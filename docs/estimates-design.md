@@ -1,0 +1,427 @@
+# The estimates path: design (2026-09-30)
+
+## Summary
+
+The factory gets an **estimate mode**. From a client's refined requirements (a new project) or from a repo plus a request (an existing project), it produces the estimate, in the general estimation workbook template (the one Folio3 uses), of the effort and cost to deliver the work **through the factory workflow**. A lead approves it in the terminal. Nothing here is built yet; the mode name and the stage names `breakdown` and `estimate` are already reserved in `src/contracts/common.ts`.
+
+**The run starts by choosing a delivery model.** Each model gets its own estimate, and the agentic one is smaller:
+
+| | Option 1: HITL (supervisor + agents) | Option 2: Solely agentic |
+|---|---|---|
+| Who works | Agents build; a human supervisor gates and reviews | Agents run the whole workflow with no supervisor gates |
+| Human hours | Clarify answers, approval card, lead review of every PR, parked runs, waivers, plus client-side work | Client-side work only: **client UAT, design approval, PM** (these stay in both models) |
+| Factory running cost | Yes | Yes, higher share of the total |
+| Elapsed time | Includes the gate and review queue | Agent time plus client waits |
+
+Every estimate states three things:
+- **Effort (hours):** human time the model needs. It is never modelled per task confirmation.
+- **Cost in API credits (dollars):** what the factory spends on planning, specify, design, build and verification, calibrated from measured runs (see "Cost in API credits").
+- **Elapsed time:** the critical path, with planning time shown separately.
+
+There is one set of Min and Max columns per estimate. Human-only sizing stays internal.
+
+The estimate:
+- works for any project size and any stack (React, Next, Nest and .NET first);
+- runs only after the requirements are refined;
+- uses no seed table of hours: hours come from the project's own tasks, sized against anchors the model proposes;
+- is checked by gates against scope creep and gold plating, at estimate time and during the build;
+- is exported by code as two workbooks from one data model.
+
+## Request types
+
+| Type | Where the hours go | First estimate |
+|---|---|---|
+| New project | Building everything: setup, architecture, features, design | Full workbook |
+| Feature in an existing repo | Understanding the area, changes by file scope, regression | Full workbook; onboarding replaces architecture |
+| Bug fix | Finding the cause; the fix is usually small | **Diagnosis only**, with a wide range; the fix is quoted after diagnosis |
+| Upgrade | Breaking changes and repairing what breaks | Workbook with a usage inventory |
+| Migration | Converting every unit, plus data and cut-over | Workbook with an inventory; a sample sets the per-unit cost |
+| Takeover | Reading, running, documenting | Audit estimate and a risk register; the full estimate comes after the audit |
+
+## The pipeline
+
+```
+intake → [discover, ground: existing repo] → clarify → spec drafts → merge → specify (E1)
+       → design: mock + clickable demo (UI only) → design baseline approved (E1b)
+       → breakdown → estimate → gates E2–E6 → lead approval (E7) → export
+```
+
+| Step | New or reused | What it does |
+|---|---|---|
+| intake, ground, clarify, drafts, merge, specify | Reused | Produce the refined spec. Large documents are specified **per module** |
+| discover (existing repo) | Reused, needs a stack-agnostic read | See "Prerequisites" |
+| design (mock and clickable demo) | Reused, **to be hardened** | Screens linked to requirements; the approved mock and demo are the **baseline of the estimate** for UI work. See "Design baseline" |
+| **breakdown** | New | Requirements → features → tasks (functionality identification) |
+| **estimate** | New | Size band, anchors, sizing, one or three estimators, merge |
+| **estimate gates** | New | E2–E6, defined with `defineGate` |
+| **approve-estimate** | New (same card mechanism) | The lead approves in a terminal, tied to the estimate's hash |
+| **export** | New | Deterministic code writes the two workbooks |
+
+The estimate does not start until the spec passes lint, critic, round trip and has no open questions (gate E1), and, for any request with UI, the mock and clickable demo are approved (gate E1b). If it doesn't, the run goes back to clarify. It does not produce a soft estimate.
+
+## Inputs
+
+| Group | Examples | Handling |
+|---|---|---|
+| Request | One line, brief, transcript, PRD or spec, RFP, tickets | Untrusted text; read-only steps only |
+| Design | Nothing, wireframes, exported Figma frames, screenshots, brand guide | Cleaned to typed fields; screens, routes and states are counted |
+| Existing system | **The repo (the only artefact)** | Read in the locked room with no network |
+| Context | Stack, platforms, compliance, hosting, client policy | Project config, plus clarify for what is missing |
+| Run settings | **Delivery model (HITL or solely agentic; chosen at the start)**, stack source, Design in total, feedback rounds, optional rates | Set by a person, recorded in the run |
+
+Document intake accepts a **.docx** (text, tables, embedded images) and **pre-exported Figma frames** placed with the request. The environment is isolated, so links are not fetched.
+
+**Stack source** is a run setting:
+- **Client-specified:** a fixed constraint.
+- **Folio3 decides:** the pipeline proposes a stack from decide-architecture. The lead sees it on the approval card, and changing it re-runs the estimate.
+- **Undecided:** a default pack is used and stated as an assumption.
+
+Required inputs by type:
+
+| Type | Must have | Should have |
+|---|---|---|
+| New project | Request, target platforms | Design source, stack, compliance |
+| Feature | Request, repo | Design system verdict, tests running |
+| Bug fix | Symptom text, repo | Logs, steps to reproduce |
+| Upgrade | Current and target versions, repo | Test suite, lockfile |
+| Migration | Source and target, repo | Inventory of what moves, data volumes |
+| Takeover | Repo access | Any docs, a running environment |
+
+A missing "must have" doesn't block the run. It becomes a clarify question, and if unanswered, a labelled assumption.
+
+Each input dimension (scope clarity, design availability, technical context, code access, constraints known) gets a grade: missing, vague, adequate or precise. The grades feed the internal uncertainty grade.
+
+## Starting from requirements only
+
+The common case for a new project: functional requirements have been gathered (notes, transcript, brief, .docx, email thread), but there is **no formal spec and no code**. The spec is something the pipeline produces, not an input.
+
+1. **Intake** takes the raw requirements as untrusted text.
+2. **Discover and ground are skipped**, because there is no repo.
+3. **Clarify** asks the lead what the material cannot answer.
+4. **Spec drafts, merge and specify** turn the answers into a spec, per module when it is large.
+5. **E1** checks the spec. Only then do breakdown and estimate start.
+
+| Missing | How it is handled |
+|---|---|
+| Code | Every task is new build work. Size comes from counted units in the spec, not from touched files. |
+| Stack | The stack-source run setting applies: client-specified, Folio3 decides (proposed stack on the approval card), or undecided (default pack as a stated assumption, optional second scenario). |
+| Design | The design step produces the mock and clickable demo first; the estimate waits for their approval (E1b). Design-in-total stays a Summary switch. |
+| Tests | The factory builds them; there is no baseline to read. |
+
+If the gathered requirements are too thin, E1 fails and the run goes back to clarify. There is no soft or guessed estimate. Each question the lead cannot answer becomes a labelled assumption in the workbook, or a scenario when one big unknown decides the size.
+
+## Design baseline
+
+The mock and clickable demo are the baseline the estimate stands on. Screen counts, states, flows, reused components and design-system changes all come from them, so a weak demo gives a weak estimate.
+
+- **Gate E1b blocks the estimate** until a person approves the mock and clickable demo in a terminal, tied to their hash. Any request with no UI skips it.
+- An approved demo that later changes creates a v2 estimate through B2, with a diff.
+- What the demo must carry for the estimator: every screen and state, every navigation flow, form fields and validations visible, reuse of existing components marked, and each screen linked to its requirement ids.
+- **Work needed on the design module first** (it is a dependency of the estimate, not a side task): richer clickable flows, screen states (empty, loading, error), a per-screen size class, requirement links on every screen, and the pending wiring listed in "Prerequisites". The existing eval (56 labelled commits, drift lint) is the measure of progress.
+
+## Size measurement
+
+Size is **counted from typed units**, not judged by feel. Code counts what it can. The model proposes units from text, and code checks each against a source quote.
+
+| Unit | From text or design | From code |
+|---|---|---|
+| Requirements (atomic statements) | Spec, brief | – |
+| Personas or roles | Spec, brief | Auth and role code |
+| Features, modules | Spec headings, prototype flows | Folders and route structure |
+| Screens and their states | **Approved mock and clickable demo** (primary), spec | Pages found by the design inventory |
+| Data entities | Spec data dictionary | Schema, ORM models, migrations |
+| Endpoints and jobs | Spec flows | Route files |
+| Integrations | Named third parties | Dependencies, client libraries |
+| Non-functional items | Compliance, load, security notes | Config, CI files |
+| Touched surface (existing code) | – | Files in the plan, dependents, size of touched modules, shared components affected |
+
+Each unit carries a **complexity flag** from a fixed list (standard, rules or algorithm, external dependency, compliance-sensitive, real-time, new to this stack). Counts alone are a weak size hint: a 112-statement post-session review with voice input is not comparable to a 13-statement listing.
+
+**Work size** is one of five bands:
+
+| Band | Meaning |
+|---|---|
+| XS | One small change (a bug, a text or config change) |
+| S | One feature area, a handful of units, no new integration |
+| M | Several feature areas in one platform or team |
+| L | Multiple modules or platforms, integrations, more than one team |
+| XL | A product or programme, delivered in phases |
+
+The cut-offs are structural for now. Numeric cut-offs are set in config as labelled assumptions and tuned later.
+
+**Uncertainty grade** (low, medium, high) comes from input quality, stack familiarity, unknown integrations and compliance, repo health, and design maturity. It stays internal.
+
+What the band and grade decide:
+- **Breakdown depth:** XS lists every task; L works epic → feature → task and goes deep where uncertainty is highest; XL is phased, with a discovery phase first.
+- **Overheads:** which lines apply and how they scale.
+- **Range width and contingency.**
+- **One phase or several.**
+- **Whether the lead sees a short card or a full workbook.**
+
+The **forgotten-work check** runs after counting. A generic list (auth, roles, environments, CI/CD, monitoring, error handling, migrations, notifications, reports and exports, admin tools, accessibility, feedback rounds, documentation, release) is marked in, or out with a reason. A zero always has a reason.
+
+## How the hours are built
+
+No seed table and no pooled medians. Two reference workbooks showed some tasks stable across projects and others varying widely, and the team's own point stands: functionality, framework and design differ per project.
+
+1. **Tasks come from the refined requirements.** Each task lists the concrete things in the spec it must deliver (fields and validations, screen states, rules, endpoints, messages, entities), each citing its requirement.
+2. **Anchors:** the model proposes a few reference tasks, estimated in detail for this project's stack, design and constraints. Every other task is sized relative to an anchor, with the reason stated ("about twice the anchor: 12 fields instead of 6, plus a state machine"). Code computes anchor × ratio.
+3. **Estimators:** XS and S use **one** estimator. M and up use **three** independent estimators, merged by code in the same pattern as `drafts` in the spec stage. Disagreement between them sets the range and flags the item.
+4. **Executors:** each task is labelled **factory**, **joint** or **human**.
+   - Factory tasks carry only the human time their gates cost, computed from counts. **In the solely agentic model this is zero.**
+   - Joint tasks mix factory work with human steps (obtaining keys, store accounts).
+   - Human tasks carry full hours (client UAT, design approval, PM, client environment work). These are in both models.
+5. **Code computes** the arithmetic: totals, overheads, gate hours, weeks, both output files. The model never does sums.
+6. **The lead reviews once**, at the final approval. The anchors are listed first on the card, with the reason for each. Any anchor or line can be edited there, and everything recomputes.
+
+Where hours can hide a pooled average, the design shows the reasoning instead: anchors, ratios and reasons per task.
+
+### Human hours in the workflow
+
+Rows marked **HITL** exist only in the HITL model. In the solely agentic model the supervisor gates are removed, and only client-side and human-only tasks remain.
+
+| Source | Depends on | Basis |
+|---|---|---|
+| Clarify answers (HITL) | Number of questions (at most 5, then 3) | Assumed minutes per question; per run |
+| Approval card (HITL) | Requirements, files listed, critic findings on the card | Assumed reading time per section; per run |
+| **Lead PR review** (HITL) | Diff size and risk class of each PR (auth, payments, personal data and migrations weigh more) | Assumed minutes per PR; **per PR** |
+| Parked runs (HITL) | Expected share of tasks that exhaust the retry ladder | Assumed rate; each costs a lead intervention |
+| Waivers (HITL) | Rare; counted only if expected | Zero by default |
+| Human-only and joint tasks (both models) | The task list, including client UAT, design approval and PM | Sized from the anchors |
+
+The number of PRs comes from grouping tasks. Fewer, larger PRs shorten the review queue and lengthen each review, and the estimate shows that choice. In HITL a lead reviews every PR before merge, so the queue sets duration. In the solely agentic model merges are automatic and duration is agent time plus client waits.
+
+All times are labelled **assumed** and editable per run. The ledger's event log records when a card was shown and decided, so measured values can replace them later.
+
+### Other outputs
+- **Factory running cost:** see "Cost in API credits" below.
+- **Elapsed time:** the critical path through dependencies and, in HITL, the gate queue. Waiting for external keys, accounts and approvals appears as a dependency in duration, not as effort.
+- **QA:** the factory runs the full suite, so regression shrinks. Exploratory testing, device checks and UAT stay human. The QA share is computed from these, not typed in as a percentage.
+- **Bug buffer:** its own assumption, tied to the parked-run rate and to misread requirements that pass every check.
+- **PM, PDM, design review:** mostly unchanged, and shown as such.
+
+### Scenarios
+When one big unknown remains after clarify (for example, whether the admin portal is a web app or part of the mobile app), one estimate can carry **two scenarios** side by side, differing only in what that unknown changes. All other tasks are shared.
+
+## Cost in API credits
+
+Every estimate says how many dollars of API credits the run will spend, broken down by phase: planning (intake, clarify, specify, design), breakdown and estimate, build (per task), and verification and integration.
+
+- **Measured, not guessed.** The ledger already records spend (`gen_ai.usage.cost_usd`) and wall minutes per step. A finished test run gives the first real numbers: how long planning took, and what it cost. Those measured values calibrate the cost model. This is calibration of the factory's own throughput, not a pooled table of task hours, so it does not conflict with the "no seed table" decision.
+- **Model:** cost per phase comes from the counted size (requirements, screens, tasks, files touched) times measured cost per unit for that phase, with a range from the spread across measured runs.
+- **Both delivery models show it.** Solely agentic carries a larger build-and-verify share because no human takes over parked runs.
+- **Shown as a range, labelled indicative,** and separate from any client rate card. B5 tracks actual against it during the build.
+- **Until data exists:** the model starts from the first test run and other available runs, marks values as assumed, and tightens as the ledger grows.
+
+## Task duration: the benchmarked harness
+
+How long a task takes is not decided by the model's opinion. A **duration harness** evaluates each task class and returns a duration and cost range, and code uses it alongside the anchors.
+
+Two sources, used together:
+
+1. **Internal (self-benchmark).** Our own ledger: wall minutes, retries, cost and outcome per step and per task class, by stack and size. This is ground truth for the factory itself, and it improves with every run.
+2. **External (researched, benchmarked).** A published, benchmarked evaluator of agent task time and reliability. Candidates must be researched and vetted before adoption, and nothing is adopted on reputation alone. Because the runtime and research are isolated (no network), the external source is a **pinned offline snapshot** in the repo, with its version and provenance recorded, never a live call.
+
+How they combine:
+- The harness classifies each task (for example, standard CRUD screen, integration, rules-heavy logic, migration unit).
+- It returns a duration and cost range per class from the internal data, with the external benchmark as a prior where the ledger has too few runs.
+- Where the two disagree beyond a tolerance, the item is flagged on the approval card. The internal measurement wins once it has enough runs.
+- The harness sets the **factory time** and **cost**. Human gate time, client UAT and PM still come from counts and anchors.
+- The plugin or harness itself is a **research task before build**. First-pass findings (2026-09-30, from published docs only, nothing run):
+
+| Candidate | Useful for us | Limit |
+|---|---|---|
+| agent-estimate (Apache 2.0) | Three-point ranges, XS–XL tiers, review overhead, a `calibrate` step that scores estimates against observed minutes | Its model limits (for example 90 min for Opus 4.7) are stated as unmeasured local policy; per-tier priors are not published; about 5 stars |
+| agent-estimation (MIT) | Tool-call rounds as the unit, risk coefficient 1.0–2.0, about 3 minutes per round | Constants are defaults, with no independent validation |
+| ACEM (MIT) | Cost from tokens, revision, context growth and HITL intensity; p10/p50/p90 bands; labels cold-start, partial, calibrated | The authors say every constant is a placeholder and the model is unvalidated |
+| METR time horizons, SWE-bench Pro | Credible task-difficulty and resolve-rate priors, with public data | Well-specified open-source or lab tasks, no cost data for METR |
+
+- **Decision (provisional):** build the harness on our own ledger. Borrow the structures (three-point ranges, rounds, Monte Carlo bands, and the cold-start / partial / calibrated confidence label), and use the external benchmarks only as priors. No candidate is adopted as is. Until enough ledger runs exist, every duration and cost is labelled **cold-start**.
+
+### Internal benchmark record
+
+Each finished step or task adds one record, taken from ledger events:
+- run id, step or task class, stack, size band, delivery model;
+- wall minutes, retries, tokens and dollars (`gen_ai.usage.cost_usd`), outcome;
+- for the plan and design steps: counted units (requirements, screens, tasks), so cost per unit can be computed.
+
+The harness reads these records and returns, per task class, a p10/p50/p90 range for duration and cost, with the record count and the confidence label. The first records come from the run on the other machine, once its ledger is copied over.
+
+## Gates
+
+A gate is a pure check over ledger artifacts. It fails closed: a gate that could not check anything counts as failed. A person can waive only those marked waivable, in a terminal, and every waiver is recorded and shown on the next approval card.
+
+### Estimate time
+
+| # | Gate | Checks | Waiver |
+|---|---|---|---|
+| E1 | Readiness | Spec passes lint, critic, round trip; no open questions | None |
+| E1b | Design baseline | For any request with UI, the mock and clickable demo are approved, and every screen links to a requirement | None |
+| E2 | Requirement → task | Every requirement has at least one task | None |
+| E3 | Task → requirement | Every task cites a requirement, or a named overhead with a reason. Anything else is an extra and goes to a separate **Suggested, not included** block, outside the totals until the lead adds it | Lead |
+| E4 | Forgotten-work checklist | Each generic item marked in, or out with a reason | Lead |
+| E5 | Consistency | Similar tasks within a stated tolerance; no unexplained outlier | Lead |
+| E6 | Workbook lint | Code recomputes every total and cross-sheet link; known template faults cannot appear | None |
+| E7 | Lead approval | Terminal approval tied to the estimate's hash; low-confidence lines need sign-off. In the solely agentic model the approver is the client-side owner, not a supervisor gate in the build | None |
+
+### During the build
+
+| # | Gate | Checks | Hook |
+|---|---|---|---|
+| B1 | Scope lock | Every plan task maps to an approved estimate task | After plan; needs `estimateTaskId` on plan tasks |
+| B2 | Change request | A new or changed requirement creates estimate v2 with a diff against v1 | New estimate run whose parent is the approved one; same approval |
+| B3 | Size cap | Finished change is no bigger than approved | Extends `integrate.diff-size` and the design size-cap |
+| B4 | Unrequested behaviour | The diff traces to requirements; new behaviour with no requirement is flagged (extra screens, options, endpoints) | New review finding category |
+| B5 | Budget burn | Effort, **API credit spend** and time so far against the approved figure | Extends the spend caps. Warn at **80% of the approved maximum**, stop at **100%** |
+
+In the solely agentic model B1–B4 stay as automatic checks, and the B5 stop at 100% still ends the run for a person to decide. B1–B5 are waivable by a lead, with the reason recorded. All decisions (approve, reject, waive) happen in a terminal by a person, as elsewhere in the factory.
+
+## Budget
+
+A budget does not have to exist beforehand.
+- **No budget:** the approved estimate is the baseline; approving it at E7 records the lead's number.
+- **Budget known before or after:** it is an optional input. Code produces a **fit check** (over, under or within, and by how much). If over, it offers **scope options**: with the requirements' priorities (must, should, could), it shows the total with lower-priority items removed. The lead chooses, and that creates a new version through the change-request gate. Hours are never squeezed to fit.
+- **API credit cost** is a headline number of the estimate (see "Cost in API credits"), and is also capped by the run policy.
+- **Costing** is per project. Rates are an optional input and cost is labelled indicative, not a quote.
+
+## The workbook
+
+Two files come from one data model, so they cannot disagree.
+
+| | Team file | Client file |
+|---|---|---|
+| The six template sheets | Yes | Yes |
+| Confidence and uncertainty grade | Yes (extra sheet) | No |
+| Anchors and ratios | Yes (extra sheet) | No |
+| Requirements and traceability | Yes (extra sheet) | No |
+| Assumed parameters, gate and waiver log | Yes (extra sheets) | Parameters block on Summary only |
+| Cost overlay | Yes, if rates were given | No: hours only |
+
+**All six sheets are mandatory:** Summary, Backend, Mobile, Web, QA, Design. A track that is out of scope keeps its sheet with "Not in scope: reason" and zero totals.
+
+### Development sheets (Backend, Mobile, Web)
+
+| Col | Content |
+|---|---|
+| B | S.No |
+| C | Task |
+| D, E | Min, Max (hours) |
+| F | Comments: what the task includes |
+| G | Executor: Factory / Joint / Human |
+| H | Requirement id(s) |
+
+- Modules → tasks; module totals are `SUM` over the module's own rows.
+- **Other Development Activities:** bug fixing (parameter %), deployment (staging, production, app store), lead PR review, code fixing after review, documentation; memory leaks for mobile only.
+- Research tasks, Assumptions, Risks and the template Notes follow.
+- Each piece of work appears in **one** sheet. Other sheets get a zero-hour reference row pointing to it.
+
+### Summary
+- **Header:** client, project, PM, date, version, mode.
+- **Task summary:** one row per track (Backend, Mobile, Web/Admin, QA, GD, PM, PDM, Design) with Min, Max, Avg, resources, and weeks as a formula (hours ÷ 40 ÷ resources).
+- **Total:** `SUM(track rows) + IF(include Design = "Yes", Design)`. The switch is a visible cell and the Design row always shows.
+- **Delivery model** shown in the header, and one estimate per model.
+- **Lines** for API credit cost (with a per-phase breakdown) and elapsed time (planning time shown apart).
+- **Special considerations** filled from the inputs and clarify answers.
+- **Assumptions and Risks** that are safe for the client.
+- **Parameters block:** every percentage and rate the formulas use, in one place.
+
+### QA and Design
+- **QA:** test plan, environments, validation cycles (later cycles as fractions by rule), smoke tests, device and browser checks, UAT (from the rounds input), miscellaneous.
+- **Design:** direction and moodboard; screen lines sized by the design classes (new screen, screen tweak, design-system change, reuse of existing components); feedback and revisions from the rounds input; design review; design QA on built screens. Rows that don't apply to design (memory leaks, deployment) are removed.
+
+### Formula rules (gate E6)
+- Every total is a formula over exact ranges, recomputed independently by code.
+- No typed-in numbers where a sheet total exists.
+- Every Summary row links to its sheet's own total.
+- Notes and assumptions are generated per project, never copied from another sheet.
+- A formula that points at an empty row fails the export.
+
+The two reference workbooks contained these faults, which the rules block: a backend maximum that summed the minimum column into the maximum, Summary totals that left out rows or linked to different cells per track, typed-in durations and design totals, review lines at 0 against a note saying 6 to 10%, assumptions copied from another sheet, and stray formulas pointing at blank cells.
+
+## Fit with the code
+
+- **Mode:** a new `estimateSteps(state)` manifest in `src/stages/modes.ts`, in the same shape as `brownfieldSteps`. `Mode` already includes `"estimate"`.
+- **Stages:** `breakdown` and `estimate` already exist in `StageName`. Steps implement `StepDef` (inputs, run, outcome `done` / `wait` / `fail` / `park`).
+- **Artifacts:** two new typed artifacts, defined in zod with the standard header and stored in the ledger by hash:
+  - **Breakdown:** features and tasks. Each task has an id (`EST-n`), title, requirement ids, the concrete spec items it delivers, track, executor, dependencies and an optional design screen link.
+  - **Estimate:** delivery model, size band, uncertainty grade, anchors, per-task Min and Max, overheads, gate hours, API credit cost per phase (range), elapsed time, harness source and version, run settings, scenarios, and the "Suggested, not included" block.
+- **Gates:** `defineGate` predicates with the `waiver` field set as in the tables above. The stage names for `after` come from `StageName`.
+- **Approval:** the same `wait` card mechanism as the plan approval; answered only from a terminal.
+- **Task id continuity:** `PlanTask` gains an optional `estimateTaskId`. One estimate task maps to many plan tasks. A plan task that maps to nothing fails B1 and becomes a change request. Each implement step's data records its `EST-n`, so actual effort and cost can be grouped per estimate task.
+- **Build seeded from an estimate** (gap G4 in `docs/design/core-design.md`): a build run takes the approved estimate's hash as input, inherits the spec, skips clarify and specify, and creates plan tasks against the estimate tasks.
+- **Change requests:** a v2 estimate run with the approved estimate as parent; the card shows the diff of tasks and hours.
+- **Model use:** the model does breakdown and estimation (locked-room style: read-only tools, structured output). Code does sizing arithmetic, overheads, totals, gate hours, estimator merge, all gates and export.
+- **Export:** ExcelJS, pinned (adopted in `docs/design/reuse.md`). Whether to fill a copy of the estimation template or draw the workbook is decided by a test on the real template, since formatting survival is marked "to verify".
+
+## Prerequisites
+
+1. **Stack-agnostic discover and ground.** Today they are .NET-shaped and refuse other repos. The estimate needs a read based on universal signals: files by language, dependency manifests, tests present, change history, and a language-neutral code map.
+2. **Design wiring.** The inventory and size check are built, but not yet called from discover and integrate (listed as pending in `docs/design-step.md`).
+3. **Decide-architecture and scaffold** for estimates without a repo. Both are named in the contracts and not built.
+4. **Document intake:** a step that extracts text, tables and images from a .docx, and accepts pre-exported Figma frames.
+5. **Per-module specify:** specify, drafts, critic and round trip run per module when the document is large, and their cost belongs in the run's cost.
+6. **Actuals logging** per estimate task, for later calibration of cost and duration.
+7. **Design module hardening** (mock and clickable demo), plus the E1b gate. The estimate depends on it.
+8. **Duration harness:** research and shortlist external benchmarked evaluators, build the internal self-benchmark from the ledger, and pin the chosen external snapshot offline.
+9. **First calibration data:** read the finished test run's ledger (planning time, cost per phase) as the first measured values.
+
+## What the reference material showed
+
+Two workbooks built on the general estimation template (Few Center, September 2025; Single Safety, January 2026), the Few Center product spec (February 2026) and the Few Center frontend repo's history were studied. Only general lessons are used here; nothing from them sets a number.
+
+- **Missing scope is the largest error source.** Tasks average about 3 hours and 80% fall between 1 and 8 hours, so per-task error averages out. A feature left out moves the total far more. The frontend repo's branches show work that appeared later and was not estimated: sockets, PDF reports, CI/CD, UAT feedback, client support and a user manual. This is why E2–E4 and B2 exist.
+- **The range was a habit.** Max divided by min has a median of 1.5, and only 8% of tasks have equal min and max. The design derives range width from estimator disagreement and named unknowns instead.
+- **Effort and duration diverge.** The Few Center plan was 11 to 13 weeks; the frontend repo shows about 19 weeks of heavy activity followed by a long tail. Team size, parallel work and waiting decide duration, so it is computed apart from effort.
+- **UAT and feedback recur.** 59 commit messages mention UAT, against a fixed 80-hour UAT block. Feedback rounds are an input, not a constant.
+- **The team's AI factor was a guess** (a flat 20% cut, applied unevenly). The workflow model replaces it with counted gate time.
+- **Design was nearly absent** from one workbook and separate in the other. New screens cost 3 to 4 hours each and reused ones 0.25 to 1 hour, which is the reuse effect the design size classes capture.
+
+## Paper proof: the Few Center spec
+
+A walk-through of the spec (no hours) tested the design:
+- **Units counted:** 3 personas; 34 features; about 1,250 statements; about 285 quoted messages; 94 data-dictionary fields across 18 tables; integrations for AI transcription, email OTP and report generation; HIPAA; landscape only. **Band: L**, with Sessions (12 features) holding about half the statements.
+- **E1 readiness would fail today** on: the platform (the spec describes a mobile app and its Supported Browsers section is empty, while the earlier estimate had web and admin web apps), the Client persona (a Forgot Password section next to view-only access), a copy-pasted breadcrumb in Signin, and a version change inside the document ("Updated Report Requirements").
+- **E2 and E3 against the earlier workbook** would flag, for the lead: spec features without tasks (Admin Image Library View, Edit and Delete; Delete Client and Restore Client) and tasks without requirements (backend user registration and licence verification). Some may have been cut after the estimate; there is no change history.
+- **E4 items** the spec does not mention: CI/CD, environments, monitoring, HIPAA audit trails, realtime, PDF export, user manual, store release, feedback rounds, accessibility, data retention.
+- **Gate load (HITL):** about 34 features at roughly one PR each means 34 or more lead reviews. The queue is the largest human cost and sets the duration. The solely agentic model has no such queue.
+- **Problems found in the design, now resolved:**
+  - a 1,250-statement document cannot go through specify in one pass, so specify runs per module;
+  - a .docx with 49 embedded images is a real input, so document intake was added;
+  - waiting for keys, accounts and approvals is duration and not effort;
+  - the estimate records the spec version by hash so later changes become a v2 diff;
+  - an unresolved big unknown can carry two scenarios.
+
+## Decisions on record
+
+- Estimate after requirements are refined; no seed table; model-proposed anchors with the lead's single review at approval.
+- One estimator for XS and S; three for M and up.
+- **Two delivery models chosen at the start: HITL (supervisor + agents) and solely agentic.** Each has its own estimate; the second is produced on request as a **child run** over the approved breakdown, with its own approval. A lead reviews every PR only in HITL. Client UAT, design approval and PM stay in both.
+- **API credit cost is a headline number**, calibrated from measured runs, not guessed.
+- **Durations come from a benchmarked harness**, internal ledger data plus a vetted external source (pinned offline).
+- **The mock and clickable demo are the estimation baseline; the estimate is blocked until they are approved (E1b).**
+- One set of Min and Max columns per estimate: delivery effort through the factory.
+- All six sheets mandatory; Design in the total is a run setting.
+- Confidence and anchors stay internal; the client file is hours only.
+- Repo is the only artefact for existing projects.
+- Stack source is a run setting (client, Folio3, or undecided).
+- Budget-burn thresholds: warn at 80% of the approved maximum, stop at 100%.
+- Specify per module; .docx and pre-exported Figma frames as inputs; up to two scenarios per estimate.
+
+## Open items
+
+1. Which external benchmarked evaluator to adopt. First-pass research found no off-the-shelf validated harness (see the table above), so the provisional decision is to build on our own ledger with external priors. Still open: the weight of external priors while the ledger is thin, and a real comparison of agent-estimate and ACEM against the test run's ledger, which is on another machine.
+2. Numeric band cut-offs, and every gate-time and share assumption, start as labelled assumptions in config and are tuned as the ledger provides measured values.
+3. The estimation template: fill a copy or draw, decided by a test on the real file.
+4. How the estimate treats a bug fix's second phase (the fix quote after diagnosis) in the ledger: a child estimate run, or a second step in the same run.
+5. Whether "Suggested, not included" items also appear in the client file, or only in the team file. The default is the team file only.
+
+## Suggested build order
+
+0. Design module hardening and gate E1b (in parallel; the estimate depends on it), and the duration-harness research task.
+1. Artifact schemas (breakdown, estimate, with delivery model and cost) and the `estimate` mode manifest with no model steps.
+2. The deterministic core: size band, anchors-and-ratios arithmetic, overheads, gate hours per delivery model, API cost model from ledger data, workbook lint (E6).
+3. Excel export from a fixture estimate, tested against the real template; both files.
+4. Gates E1–E7 and B1–B5 with tests.
+5. Model steps (breakdown, estimators, merge) tested with a scripted model, as `src/stages/e2e.test.ts` does.
+6. Document intake and per-module specify.
+7. Stack-agnostic discover and ground for existing repos, and the design wiring.
