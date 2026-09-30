@@ -112,6 +112,23 @@ describe("test gates", () => {
     expect(failsOnBase.predicate({ run1: passes, run2: passes, tests: tests() }, DEFAULT_POLICY).details).toMatch(/already passes/);
   });
 
+  it("a crash bug: an exception thrown by the code under test is the right failure, only under the new rule", () => {
+    const crash = (frames: string[], kind: "exception" | "compile" | "infra" = "exception") =>
+      run([{ id: "T::A", outcome: "failed", failureKind: kind, durationMs: 1, message: "System.NullReferenceException", frames }]);
+    const prod = ["at Shop.Api.Controllers.MockController.Process(Post p) in MockController.cs:line 73", "at Shop.Api.UnitTests.MockControllerTests.AC_1_1() in MockControllerTests.cs:line 25"];
+    const inTest = ["at Shop.Api.UnitTests.MockControllerTests.AC_1_1() in MockControllerTests.cs:line 20"];
+    const withRule = tests({ rules: { productionExceptionOk: true } } as never);
+    const verdict = (r: TestRun, t = withRule) => failsOnBase.predicate({ run1: r, run2: r, tests: t }, DEFAULT_POLICY);
+    expect(verdict(crash(prod)).passed).toBe(true);
+    // a crash in the test's own code, a compile error or an infra failure is still a broken test
+    expect(verdict(crash(inTest)).details).toMatch(/fails with exception/);
+    expect(verdict(crash([])).passed).toBe(false);
+    expect(verdict(crash(prod, "compile")).passed).toBe(false);
+    expect(verdict(crash(prod, "infra")).passed).toBe(false);
+    // a lock written before this rule re-checks exactly as it was recorded
+    expect(verdict(crash(prod), tests()).details).toMatch(/fails with exception/);
+  });
+
   it("a must-keep-passing criterion passes on base, as long as its requirement has a test that fails", () => {
     const keep = { acId: "AC-1.4", file: "tests/ATests.cs", name: "K", testId: "T::K", failsOnBase: false };
     const t = tests({ tests: [...tests().tests, keep] });

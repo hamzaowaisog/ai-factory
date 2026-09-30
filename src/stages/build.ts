@@ -310,7 +310,7 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
     const characterisation = out.characterisation.flatMap((c) => ids[c.name]!.map((testId) => ({ ...c, testId, passesOnBase: true })));
     const exp: Expectations = {
       expectPass: [...characterisation.map((c) => c.testId), ...tests.filter((t) => !t.failsOnBase).map((t) => t.testId)],
-      expectFail: tests.filter((t) => t.failsOnBase).map((t) => ({ id: t.testId, kinds: ["assertion", "not-implemented"] })),
+      expectFail: tests.filter((t) => t.failsOnBase).map((t) => ({ id: t.testId, kinds: ["assertion", "not-implemented", "exception"] })),
       compareToBaseline: [],
     };
     const only = [...tests.map((t) => t.testId), ...characterisation.map((c) => c.testId)];
@@ -328,7 +328,8 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
     const familyNote = families.testAuthor === families.implementer
       ? `Single model family: tests written by ${model}, code by ${implementer} (both ${families.testAuthor}). A second-vendor coding runner isn't built yet.`
       : undefined;
-    const lockSha = ctx.ledger.putJson({ ...lock, unlocks: [], families, familyNote, header: header(ctx.runId, "acceptance-tests", "author-tests", "", model) });
+    // rules: which fails-on-base rules this lock was written under (verify-evidence re-checks old locks the old way)
+    const lockSha = ctx.ledger.putJson({ ...lock, unlocks: [], families, familyNote, rules: { productionExceptionOk: true }, header: header(ctx.runId, "acceptance-tests", "author-tests", "", model) });
     const g = await runGate(failsOnBase, ctx.ledger, ctx.writer, { run1: run1.testRun, run2: run2.testRun, tests: lockSha }, ctx.policy, { step: "author-tests", treeSha: commit });
     if (!g.passed) {
       await resetHard(wt, start);
