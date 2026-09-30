@@ -94,3 +94,52 @@ No result I found measures LLM effort estimation for software work specifically.
 
 - Measure first: run one requirement (`examples/estimate-requirements.md`) 5 to 10 times with the real key and record the spread of total hours. That tells us the real size of the problem and whether B alone is enough. This needs an `ANTHROPIC_API_KEY`, which this environment does not have.
 - Decide cache scope (per project or global) and whether a cache hit should still require lead approval (I would say yes).
+
+## 8. Local models trained on our own data
+
+Question raised: use local models with billions of parameters and train them on our data, so the same requirement gives the same estimate.
+
+### What it would give
+
+- **Determinism from the model itself.** Open weights let us use greedy decoding, a fixed seed and a pinned model file. Current hosted Claude models have removed temperature control (section 3), so this is the only route to a deterministic model call. GPU batching can still cause small floating-point differences, so the runtime and hardware also need pinning.
+- **Privacy and cost.** Client requirements stay on our machines, and there is no per-call fee after the hardware.
+- **Stability.** The model changes only when we change it.
+
+### What it would cost
+
+- **Labelled data we do not have.** Fine-tuning needs many finished projects, each with requirements, the approved breakdown and the real hours. The ledger today holds cost records only (`records.ts`, `cost.ts`). `factory calibrate` can take real hours, but only as a file the team supplies. A few dozen pairs is too few for a large model; it would memorise them.
+- **Weaker reading of requirements.** A local model of a few billion to tens of billions of parameters will break down requirements and read a repo less well than a frontier model. The breakdown drives the estimate, so this hurts accuracy. Replacing clarify and specify would make them worse too.
+- **Operations.** GPUs, serving, retraining when delivery practice changes, and a held-out test to show it beats the current approach.
+- **Consistency is not accuracy.** A fine-tuned model returns the same number every time, and that number can be confidently wrong.
+
+### Recommended shape: a small sizing model, not a local LLM
+
+Keep the hosted model for what needs language understanding: clarify, specify and breakdown. Replace only the part where the model proposes hours anchors and ratios with a small deterministic model trained on our history. This fits the existing rule that code does the maths.
+
+Candidate features, all already computed or countable by the pipeline (`size.ts`, `assemble.ts`): counted units per track, complexity flag share, size band, task type, whether the work touches existing code, repo size and stack, number of screens, number of requirements, uncertainty grade inputs (assumptions, answered questions, critic findings).
+Target: actual hours per task class, or per project when task-level hours are unavailable.
+Model: gradient-boosted trees or regularised linear regression. These are deterministic, explainable, cheap, and workable on dozens to hundreds of projects. Output a range (quantile regression or residual spread), not a point.
+Guard rails: the model's output still passes the existing gates (E1-E7); the lead still approves; the estimate labels itself `calibrated` only when the model was trained on at least a stated number of projects (threshold to be decided from the first data, not guessed now).
+
+### Data to start collecting now
+
+One line per finished project, extending the existing `calibrate` hours file:
+
+```
+estimate-run,actual-hours[,track:hours ...]
+```
+
+Per-track hours are optional but make the sizing model far more useful. We also need to record, at approval time, the features above, so training does not depend on re-parsing old runs. That is a small addition to the benchmark record.
+
+### Sequence
+
+1. Start collecting actual hours (no code beyond documenting the file format, or an optional per-track extension).
+2. Cross-run cache (section 4A) for repeatability in the meantime.
+3. After enough projects, fit the small sizing model offline, compare against the current proposals on held-out projects, and adopt it only if it is better.
+4. Consider a local LLM for the whole pipeline only if data privacy rules out hosted models. Expect a quality drop and measure it first.
+
+### Still unknown
+
+- How many finished projects exist today with recorded hours.
+- Whether client data policy forbids sending requirements to a hosted model (this changes the local-LLM case from optional to required).
+- Hardware available for local serving.
