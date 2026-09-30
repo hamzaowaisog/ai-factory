@@ -18,6 +18,8 @@ import { createRun, execute } from "./executor.js";
 import { setProviderFactory } from "./think.js";
 import { setRuntime } from "./workspace.js";
 import { _resetEnvCache } from "../config/env.js";
+import http from "node:http";
+import type { AddressInfo } from "node:net";
 
 const GREETER = `namespace Api;
 public class Greeter
@@ -46,6 +48,8 @@ function makeRepo(): string {
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
 /** Three tasks, one criterion each: Greeter says Hello, Farewell says Bye, Third says Three. */
 let multi = false;
+/** what the scripted reviewer reports (non-blocking) */
+let reviewFindings: unknown[] = [];
 /** intake's risk: "low" takes the light lane, "medium" the full one */
 let intakeRisk = "low";
 const MULTI_FILES = ["src/Api/Greeter.cs", "src/Api/Farewell.cs", "src/Api/Third.cs"];
@@ -91,7 +95,7 @@ function answerFor(system: string, allowMulti = true): unknown {
     options: [{ id: "O-1", summary: "change the literal", simplest: true, tradeoffs: "none" }, { id: "O-2", summary: "make it configurable", simplest: false, tradeoffs: "more code" }],
     chosen: "O-1", adr: "Change the literal; configuration isn't asked for.", protectedPathsDeclared: [], newDependencies: [], stubs: [],
   };
-  if (system.includes("review a finished change")) return { findings: [] };
+  if (system.includes("review a finished change")) return { findings: reviewFindings };
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
 }
 const modelCalls: string[] = [];
@@ -232,6 +236,7 @@ beforeEach(() => {
   modelCalls.length = 0;
   multi = false;
   intakeRisk = "low";
+  reviewFindings = [];
 });
 
 describe("brownfield slice end to end (fakes)", () => {
@@ -524,5 +529,153 @@ describe("light and full lanes (fakes)", () => {
     expect(s.steps.get("clarify-2")!.data?.lightLane).toBeUndefined();
     expect(writer()).toMatchObject({ model: "claude-opus-5-5", maxTurns: 60, maxUsd: 4 });
     expect(writer().system).not.toContain("At most 2 characterisation tests");
+  });
+});
+
+describe("from a Jira label to a reviewed pull request (fakes: models, containers, Jira, Slack, GitHub)", () => {
+  const serve = (handler: (req: http.IncomingMessage, body: string) => { status: number; json?: unknown }) => {
+    const server = http.createServer((req, res) => {
+      let body = "";
+      req.on("data", (c) => { body += c; });
+      req.on("end", () => { const r = handler(req, body); res.writeHead(r.status, { "content-type": "application/json" }); res.end(JSON.stringify(r.json ?? {})); });
+    });
+    return new Promise<{ server: http.Server; url: string }>((ok) => server.listen(0, "127.0.0.1", () => ok({ server, url: `http://127.0.0.1:${(server.address() as AddressInfo).port}` })));
+  };
+  const ANN = { accountId: "acc-ann", displayName: "Ann" };
+  const DESC = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Greet people with Hello instead of Hi, everywhere the Greeter is used, and keep the name after the greeting." }] }] };
+
+  it("label → watch → cards in the terminal (Slack says which command) → delivered → draft PR, one review, ready; Jira told at each step", async () => {
+    // fake Jira: one labelled ticket, comments, transitions
+    const comments: string[] = [];
+    const jira = await serve((req, body) => {
+      const u = req.url ?? "";
+      if (u.startsWith("/rest/api/3/search/jql")) return { status: 200, json: { issues: [{ key: "SHOP-7", fields: { summary: "Say Hello", description: DESC, issuetype: { name: "Story", hierarchyLevel: 0 }, labels: ["factory"], reporter: ANN } }] } };
+      if (u.includes("/changelog")) return { status: 200, json: { isLast: true, values: [{ created: new Date(Date.now() - 60_000).toISOString().replace("Z", "+0000"), author: ANN, items: [{ field: "labels", fromString: "", toString: "factory" }] }] } };
+      if (u.includes("/comment") && req.method === "POST") { comments.push(JSON.stringify(JSON.parse(body).body)); return { status: 201, json: { id: String(comments.length) } }; }
+      if (u.includes("/comment")) return { status: 200, json: { comments: comments.map((c, i) => ({ id: String(i + 1), body: JSON.parse(c) })) } };
+      if (u.includes("/transitions")) return { status: req.method === "GET" ? 200 : 204, json: { transitions: [] } };
+      if (/\/rest\/api\/3\/issue\/SHOP-7\?/.test(u)) return { status: 200, json: { key: "SHOP-7", fields: { summary: "Say Hello", description: DESC, issuetype: { name: "Story" }, labels: ["factory"], status: { name: "To Do" }, comment: { comments: [] } } } };
+      return { status: 404 };
+    });
+    const slackMsgs: string[] = [];
+    const slack = await serve((_req, body) => { slackMsgs.push(body); return { status: 200 }; });
+    // fake GitHub: PRs, reviews, ready-for-review
+    const gh = { prs: [] as { number: number; head: string; title: string; draft: boolean; node_id: string }[], reviews: [] as { id: number; body: string; comments: { path: string; line: number }[] }[] };
+    const github = await serve((req, body) => {
+      const u = req.url ?? "";
+      if (req.method === "GET" && /\/pulls\?head=/.test(u)) { const head = decodeURIComponent(/head=[^:]+:([^&]+)/.exec(u)![1]!); return { status: 200, json: gh.prs.filter((p) => p.head === head).map((p) => ({ html_url: `https://github.test/shop/api/pull/${p.number}`, number: p.number })) }; }
+      if (req.method === "POST" && u.endsWith("/pulls")) { const b = JSON.parse(body); const pr = { number: gh.prs.length + 1, head: b.head, title: b.title, draft: b.draft, node_id: `PR_${gh.prs.length + 1}` }; gh.prs.push(pr); return { status: 201, json: { html_url: `https://github.test/shop/api/pull/${pr.number}`, number: pr.number } }; }
+      if (req.method === "GET" && /\/pulls\/\d+\/reviews/.test(u)) return { status: 200, json: gh.reviews };
+      if (req.method === "POST" && /\/pulls\/\d+\/reviews/.test(u)) { const b = JSON.parse(body); gh.reviews.push({ id: gh.reviews.length + 1, body: b.body, comments: b.comments }); return { status: 200, json: { id: gh.reviews.length } }; }
+      if (req.method === "GET" && /\/pulls\/\d+$/.test(u)) { const pr = gh.prs[Number(/(\d+)$/.exec(u)![1]) - 1]!; return { status: 200, json: { node_id: pr.node_id, draft: pr.draft } }; }
+      if (req.method === "POST" && u === "/graphql") { const id = JSON.parse(body).variables.id; gh.prs.find((p) => p.node_id === id)!.draft = false; return { status: 200, json: { data: {} } }; }
+      return { status: 404 };
+    });
+    const closers: (() => void)[] = [];
+    try {
+      const home = process.env.FACTORY_HOME!;
+      // a git remote over HTTP (the factory's hardened git refuses plain folder remotes)
+      const root = mkdtempSync(join(tmpdir(), "factory-e2e-remote-"));
+      const bare = join(root, "api.git");
+      execFileSync("git", ["init", "-q", "--bare", bare]);
+      execFileSync("git", ["config", "http.receivepack", "true"], { cwd: bare });
+      const { spawn } = await import("node:child_process");
+      const gitHttp = http.createServer((req, res) => {
+        const u = new URL(req.url ?? "/", "http://x");
+        const cgi = spawn("git", ["http-backend"], { env: { ...process.env, GIT_PROJECT_ROOT: root, GIT_HTTP_EXPORT_ALL: "1", PATH_INFO: u.pathname, QUERY_STRING: u.search.slice(1), REQUEST_METHOD: req.method ?? "GET", CONTENT_TYPE: req.headers["content-type"] ?? "", REMOTE_USER: "factory" } });
+        req.pipe(cgi.stdin);
+        const chunks: Buffer[] = [];
+        cgi.stdout.on("data", (c: Buffer) => chunks.push(c));
+        cgi.on("close", () => {
+          const all = Buffer.concat(chunks);
+          const split = all.indexOf("\r\n\r\n");
+          const head = all.subarray(0, split).toString();
+          const headers: Record<string, string> = {};
+          let status = 200;
+          for (const line of head.split("\r\n")) { const [k, ...v] = line.split(": "); if (k!.toLowerCase() === "status") status = Number(v.join(": ").split(" ")[0]); else headers[k!] = v.join(": "); }
+          res.writeHead(status, headers);
+          res.end(all.subarray(split + 4));
+        });
+      });
+      const gitUrl = await new Promise<string>((ok) => gitHttp.listen(0, "127.0.0.1", () => ok(`http://127.0.0.1:${(gitHttp.address() as AddressInfo).port}/api.git`)));
+      closers.push(() => gitHttp.close());
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nGITHUB_TOKEN=ghp_testtoken0000000000\nJIRA_BASE_URL=${jira.url}\nJIRA_EMAIL=bot@shop.test\nJIRA_API_TOKEN=tok-0123456789\nSLACK_WEBHOOK=${slack.url}/hook\n`, { mode: 0o600 });
+      _resetEnvCache();
+      const { parse } = await import("yaml");
+      const cfg = parse(readFileSync(join(home, "projects", "demo.yaml"), "utf8"));
+      writeFileSync(join(home, "projects", "demo.yaml"), stringify({ ...cfg,
+        forge: { kind: "github", repo: "shop/api", apiUrl: github.url, pushUrl: gitUrl },
+        jira: { project: "SHOP", allowedReporters: ["acc-ann"], maxCostPerRun: 3 },
+        notify: { slackWebhookEnv: "SLACK_WEBHOOK" } }));
+      // one finding on a changed line, one outside the diff
+      reviewFindings = [
+        { id: "R-1", category: "convention-intent", file: "src/Api/Greeter.cs", line: 4, text: "consider a constant", confidence: 0.4, severity: "low" },
+        { id: "R-2", category: "reuse", file: "src/Api/Other.cs", line: 99, text: "similar code elsewhere", confidence: 0.3, severity: "low" },
+      ];
+
+      const { watcherFor } = await import("../watch/start.js");
+      const { startFromJira } = await import("../watch/start.js");
+      const running: Promise<unknown>[] = [];
+      const w = watcherFor("demo", { start: (key) => startFromJira("demo", key, 3, (id) => { running.push(execute(id)); }), execute: (id) => { running.push(execute(id)); }, lockFree: async () => true });
+      const t1 = await w.tick();
+      expect(t1.started).toMatch(/jira-shop-7/);
+      const runId = t1.started!;
+      await Promise.all(running.splice(0));
+      // the run stopped at the question card; Slack got "started" and, next tick, the card with its command
+      const ledger = Ledger.open(runId);
+      expect(replay(ledger.events()).openCard?.kind).toBe("question");
+      await w.tick();
+      const card = slackMsgs.find((m) => m.includes("question card"))!;
+      expect(card).toContain(`factory show-card ${runId}`);
+      expect(comments.join()).toContain(`factory show-card ${runId}`);
+      // a person answers and approves in the terminal (the watcher never does)
+      const q = replay(ledger.events()).openCard!;
+      await decide(ledger, { decision: "answer", hashPrefix: q.artifactSha.slice(0, 6), by: "ann", data: { answers: { "Q-1": "A" } } });
+      await execute(runId);
+      const a = replay(ledger.events()).openCard!;
+      expect(a.kind).toBe("approval");
+      await decide(ledger, { decision: "approve", hashPrefix: a.artifactSha.slice(0, 6), by: "ann" });
+      const done = await execute(runId);
+      expect(done.status, done.message).toBe("delivered");
+
+      // GitHub: the branch carries the key; one draft PR titled with the key, one review, then ready
+      const s = replay(ledger.events());
+      expect(s.workspace!.branch).toBe(`factory/SHOP-7-${runId}`);
+      expect(execFileSync("git", ["branch", "--list"], { cwd: bare, encoding: "utf8" })).toContain(`factory/SHOP-7-${runId}`);
+      expect(gh.prs).toHaveLength(1);
+      expect(gh.prs[0]!.title).toMatch(/^SHOP-7: /);
+      expect(gh.prs[0]!.draft).toBe(false);
+      expect(gh.reviews).toHaveLength(1);
+      expect(gh.reviews[0]!.comments).toEqual([{ path: "src/Api/Greeter.cs", line: 4, side: "RIGHT", body: "R-1 [low/convention-intent] consider a constant" }]);
+      expect(gh.reviews[0]!.body).toContain("R-2 [low/reuse] src/Api/Other.cs:99: similar code elsewhere");
+      expect(s.steps.get("deliver")!.data!.prUrl).toBe("https://github.test/shop/api/pull/1");
+      expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+
+      // Jira and Slack hear about the delivery, once
+      await w.tick();
+      await w.tick();
+      expect(comments.filter((c) => c.includes("delivered a pull request"))).toHaveLength(1);
+      expect(comments.find((c) => c.includes("delivered a pull request"))).toContain("https://github.test/shop/api/pull/1");
+      expect(slackMsgs.filter((m) => m.includes("SHOP-7: delivered"))).toHaveLength(1);
+      // no client code or diffs went to Jira or Slack
+      for (const text of [...comments, ...slackMsgs]) expect(text).not.toMatch(/Greet\(string name\)|public class Greeter/);
+    } finally {
+      jira.server.close(); slack.server.close(); github.server.close();
+      for (const c of closers) c();
+    }
+  }, 60_000);
+
+  it("a failed push never shows the token, not even base64-encoded", async () => {
+    const { git } = await import("../ledger/git.js");
+    const dir = mkdtempSync(join(tmpdir(), "factory-push-"));
+    execFileSync("git", ["init", "-q", "-b", "main", dir]);
+    const token = "ghp_secret0123456789abcdef";
+    const auth = Buffer.from(`x-access-token:${token}`).toString("base64");
+    const err = await git(dir, ["push", "http://127.0.0.1:9/nowhere.git", "HEAD:refs/heads/x"], {
+      env: { GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "http.extraHeader", GIT_CONFIG_VALUE_0: `Authorization: Basic ${auth}` },
+    }).then(() => undefined, (e: Error) => e.message);
+    expect(err).toBeDefined();
+    expect(err).not.toContain(auth);
+    expect(err).not.toContain(token);
   });
 });
