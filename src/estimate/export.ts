@@ -21,11 +21,18 @@ export interface ExportInput {
   /** why a track has no work: shown as "Not in scope: <reason>" */
   notInScope?: Partial<Record<Track, string>>;
   assumptions?: Assumptions;
+  /** hourly rates in USD per track, plus "default" for cross-cutting time: adds the team file's Cost sheet */
+  rates?: Partial<Record<Track | "default", number>>;
+  /** waivers a lead gave, and the estimate gates' latest results: the team file's Gates sheet */
+  waivers?: { step: string; gateIds: string[]; human: string; reason: string }[];
+  gateLog?: { gateId: string; passed: boolean; details: string }[];
 }
 
 /** Sheets every workbook carries, in order. "Other" holds GD, PM, PDM and cross-cutting time. */
 export const MANDATORY_SHEETS = ["Summary", "Backend", "Mobile", "Web", "QA", "Design", "Other"] as const;
-export const TEAM_SHEETS = ["Confidence", "Anchors", "Traceability", "Parameters"] as const;
+export const TEAM_SHEETS = ["Confidence", "Anchors", "Traceability", "Parameters", "Gates"] as const;
+/** Team sheets that exist only when their input does. */
+export const OPTIONAL_TEAM_SHEETS = ["Cost"] as const;
 
 interface Section { key: string; title: string; tracks: Track[]; cross?: boolean }
 const SHEETS: { name: string; sections: Section[] }[] = [
@@ -265,7 +272,45 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     P.getCell(`B${pr}`).value = "Gate hours in this estimate"; P.getCell(`B${pr}`).font = BOLD; pr++;
     if (e.gateHours.length === 0) { P.getCell(`B${pr}`).value = e.deliveryModel === "agentic" ? "None: the solely agentic model has no supervisor gates" : "None"; pr++; }
     for (const g of e.gateHours) { range(g.source, g.hours, pr); P.getCell(`E${pr}`).value = "assumed"; pr++; }
-    P.getCell(`B${pr + 1}`).value = "No waiver log yet: gates are not wired into the run. Cost overlay: no rates were given.";
+    P.getCell(`B${pr + 1}`).value = input.rates ? "Hourly rates are on the Cost sheet." : "No rates were given, so there is no cost overlay.";
+
+    // ---------- gate and waiver log ----------
+    const G = sheet("Gates");
+    G.getColumn("B").width = 36; G.getColumn("C").width = 10; G.getColumn("D").width = 90;
+    G.getCell("B1").value = "Estimate gates and waivers"; G.getCell("B1").font = { bold: true, size: 14 };
+    head(G, 2, { B: "Gate", C: "Result", D: "Details" });
+    let gr = 3;
+    for (const x of input.gateLog ?? []) { G.getCell(`B${gr}`).value = x.gateId; G.getCell(`C${gr}`).value = x.passed ? "passed" : "FAILED"; G.getCell(`D${gr}`).value = x.details; gr++; }
+    if (!input.gateLog?.length) { G.getCell(`B${gr}`).value = "No gate results were recorded for this estimate."; gr++; }
+    gr += 2;
+    G.getCell(`B${gr}`).value = "Waivers"; G.getCell(`B${gr}`).font = BOLD; gr++;
+    head(G, gr, { B: "Gates", C: "Step", D: "Waived by and why" }); gr++;
+    for (const w of input.waivers ?? []) { G.getCell(`B${gr}`).value = w.gateIds.join(", "); G.getCell(`C${gr}`).value = w.step; G.getCell(`D${gr}`).value = `${w.human}: ${w.reason}`; gr++; }
+    if (!input.waivers?.length) { G.getCell(`B${gr}`).value = "None"; gr++; }
+
+    // ---------- cost overlay (only when rates were given) ----------
+    if (input.rates && Object.keys(input.rates).length) {
+      const K = sheet("Cost");
+      K.getColumn("B").width = 22; for (const c of ["C", "D", "E", "F", "G"]) K.getColumn(c).width = 14;
+      K.getCell("B1").value = "Cost overlay (USD, indicative: hours x the given rate, not a quote)"; K.getCell("B1").font = { bold: true, size: 14 };
+      head(K, 2, { B: "Track", C: "Rate ($/h)", D: "Cost min ($)", E: "Cost max ($)", F: "Hours min", G: "Hours max" });
+      let kr = 3;
+      const k0 = kr;
+      for (const row of rows) {
+        const sr = rowOf.get(row.key)!;
+        K.getCell(`B${kr}`).value = row.label;
+        n(K, `C${kr}`, (row.track && input.rates[row.track]) ?? input.rates.default ?? 0);
+        f(K, `F${kr}`, `Summary!C${sr}`); f(K, `G${kr}`, `Summary!D${sr}`);
+        // the Design row follows the same switch as the hours total
+        const inc = row.key === "design" ? (x: string) => `IF(Summary!${DESIGN_SWITCH}="Yes",${x},0)` : (x: string) => x;
+        f(K, `D${kr}`, inc(`F${kr}*C${kr}`)); f(K, `E${kr}`, inc(`G${kr}*C${kr}`));
+        kr++;
+      }
+      K.getCell(`B${kr}`).value = "Total"; K.getCell(`B${kr}`).font = BOLD;
+      f(K, `D${kr}`, `SUM(D${k0}:D${kr - 1})`); f(K, `E${kr}`, `SUM(E${k0}:E${kr - 1})`);
+      kr += 2;
+      K.getCell(`B${kr}`).value = "API credits are separate: see Summary. Rates apply to effort hours only.";
+    }
   }
 
   fillResults(wb);

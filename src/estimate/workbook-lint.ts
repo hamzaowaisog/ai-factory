@@ -5,7 +5,7 @@ import ExcelJS from "exceljs";
 import type { Breakdown, Estimate } from "../contracts/index.js";
 import { effortHours } from "./hours.js";
 import { evalFormula, type CellValue } from "./xl-formula.js";
-import { MANDATORY_SHEETS, TEAM_SHEETS, type Audience } from "./export.js";
+import { MANDATORY_SHEETS, OPTIONAL_TEAM_SHEETS, TEAM_SHEETS, type Audience } from "./export.js";
 import type { LintIssue } from "./lint.js";
 
 const EPS = 0.011;
@@ -38,6 +38,7 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
     if (audience === "client" && has) bad("client-leak", `the client file carries the team sheet ${s}`);
     if (audience === "team" && !has) bad("sheet-missing", `the team file lacks sheet ${s}`);
   }
+  if (audience === "client") for (const s of OPTIONAL_TEAM_SHEETS) if (wb.getWorksheet(s)) bad("client-leak", `the client file carries the team sheet ${s}`);
   if (issues.some((i) => i.check === "sheet-missing")) return issues;
 
   const read = (sheet: string, addr: string): CellValue => {
@@ -73,7 +74,7 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
   const sized = new Map(e.tasks.map((t) => [t.taskId, t]));
   const seen = new Map<string, number>();
   for (const ws of wb.worksheets) {
-    if (ws.name === "Summary" || (TEAM_SHEETS as readonly string[]).includes(ws.name)) continue;
+    if (ws.name === "Summary" || (TEAM_SHEETS as readonly string[]).includes(ws.name) || (OPTIONAL_TEAM_SHEETS as readonly string[]).includes(ws.name)) continue;
     ws.eachRow((_row, rowNo) => {
       const id = plain(ws.getCell(`I${rowNo}`).value);
       if (typeof id !== "string" || !/^EST-\d+$/.test(id)) return;

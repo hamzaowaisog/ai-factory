@@ -388,6 +388,14 @@ factory logs <run> --follow        # in a second terminal
 
 Answer the question card if one appears, read the approval card, then approve.
 
+**Estimating instead of building.** `factory estimate` takes requirements (a prompt, `--file` as Markdown, text or Word, `--frames` for exported Figma frames, or `--jira`) and produces an effort, API-cost and elapsed-time estimate of delivering them through the factory. A lead approves it on the terminal, then two workbooks (team and client) are written under the run's `export/` folder. See `docs/estimates-design.md`.
+
+```bash
+factory estimate --file requirements.docx --project shop-api --no-repo --delivery-model hitl --rate backend=55 --rate default=40
+factory approve <run> <hash> --sign-off EST-4     # low-confidence lines need a sign-off
+factory waive <run> <hash> --reason "why"         # only for E3, E4 and E5
+```
+
 **6. Get the result**
 
 The change is on branch `factory/<run>` in the Ubuntu copy. Automatic PRs support GitHub only for now (set `forge:` in the config); otherwise push the branch and open the PR yourself with the text the factory wrote:

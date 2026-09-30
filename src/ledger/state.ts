@@ -59,17 +59,19 @@ export interface RunInfo {
   changeClass?: ChangeClass;
   complexity?: Complexity;
   request?: string;
+  /** who started the run */
+  operator?: string;
   /** `factory start --file`: the file the request came from */
   requestFile?: string;
   /** where the request came from: typed prompt, file, Jira ticket */
-  sources?: { kind: "prompt" | "file" | "jira"; name?: string; key?: string; url?: string; summary?: string }[];
+  sources?: { kind: "prompt" | "file" | "jira" | "docx" | "frames"; name?: string; key?: string; url?: string; summary?: string }[];
   versions?: Record<string, string>;
   /** spend when the plan completed; the post-plan cost limit adds the size's cap to it */
   spendAtPlan?: number;
   /** `factory start --max-cost`: a lower limit for this run */
   maxCostUsd?: number;
   /** estimate mode: the run settings a person chose at the start (missing fields take the defaults) */
-  estimate?: { deliveryModel?: "hitl" | "agentic"; stackSource?: "client" | "folio3" | "undecided"; designInTotal?: boolean; feedbackRounds?: number; /** a request with no repo (requirements only) */ noRepo?: boolean; client?: string; projectName?: string; pm?: string };
+  estimate?: { deliveryModel?: "hitl" | "agentic"; stackSource?: "client" | "folio3" | "undecided"; designInTotal?: boolean; feedbackRounds?: number; /** optional hourly rates in USD per track, plus "default" */ rates?: Record<string, number>; /** a request with no repo (requirements only) */ noRepo?: boolean; client?: string; projectName?: string; pm?: string };
   createdAt: string;
 }
 

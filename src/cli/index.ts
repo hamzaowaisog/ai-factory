@@ -16,7 +16,8 @@ import { assertTty, decide, DecisionError } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay, statusLabel } from "../ledger/state.js";
 import { createRun, execute } from "../stages/executor.js";
-import { describeSources, gatherRequest } from "../sources/request.js";
+import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
+import { parseEstimateSettings, type EstimateOptions } from "../estimate/settings.js";
 import { checkRoutes } from "../stages/routing.js";
 import { findRuntimeBinary } from "../verify/runtime.js";
 import { factoryHome } from "../util/paths.js";
@@ -61,6 +62,37 @@ program.command("start")
     await runAndReport(runId);
   });
 
+program.command("estimate")
+  .argument("[prompt]", "the requirements, in plain words")
+  .requiredOption("--project <name>", "project config in ~/.factory/projects/<name>.yaml")
+  .option("--file <path>", "the requirements as a Markdown, text or Word (.docx) file")
+  .option("--frames <dir>", "a folder of design frames exported from Figma (png, jpg, webp, svg or json)")
+  .option("--jira <key>", "the requirements as a Jira ticket (ABC-123 or its link)")
+  .option("--delivery-model <model>", "hitl (supervisor + agents) or agentic (no supervisor gates)", "hitl")
+  .option("--stack-source <source>", "client (fixed), folio3 (we decide) or undecided (a default pack, stated as an assumption)", "undecided")
+  .option("--no-design-in-total", "keep Design out of the Summary total (the row still shows)")
+  .option("--feedback-rounds <n>", "client feedback rounds to allow for", "2")
+  .option("--rate <track=usd>", "hourly rate per track (backend, mobile, web, qa, design, gd, pm, pdm, default); repeat it; adds the team file's cost overlay", (v: string, prev: string[] = []) => [...prev, v])
+  .option("--no-repo", "the requirements stand alone: there is no existing code to read")
+  .option("--client <name>", "client name for the workbook header")
+  .option("--project-name <name>", "project name for the workbook header")
+  .option("--pm <name>", "project manager for the workbook header")
+  .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
+  .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory; a lead approves it in the terminal, then two workbooks are written")
+  .action(async (prompt: string | undefined, o: EstimateOptions & { project: string; file?: string; frames?: string; jira?: string; maxCost?: string }) => {
+    const settings = parseEstimateSettings(o);
+    const project = loadProject(o.project);
+    const problems = checkRoutes(project);
+    if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
+    const req = await gatherRequest({ prompt, file: o.file, jira: o.jira, frames: o.frames }, {}, { maxBytes: MAX_ESTIMATE_REQUEST_BYTES });
+    const runId = await createRun(req.text, o.project, userInfo().username, {
+      mode: "estimate", estimate: settings, sources: req.sources, attachments: req.attachments,
+      ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
+    });
+    log(`estimate run ${runId} (requirements from ${describeSources(req.sources)}; ${settings.deliveryModel === "hitl" ? "HITL" : "solely agentic"})`);
+    await runAndReport(runId);
+  });
+
 program.command("resume").argument("<run>").description("continue a run").action(async (run: string) => {
   await runAndReport(openRun(run).runId);
 });
@@ -97,22 +129,37 @@ program.command("show-card").argument("<run>").option("--pr", "show the PR text"
 for (const d of ["approve", "reject"] as const) {
   program.command(d).argument("<run>").argument("<hash>", "first characters of the card hash")
     .option("--note <text>", "your risk note (approve)")
+    .option("--sign-off <ids>", "estimate cards: sign off these low-confidence tasks, comma-separated (approve)")
     .option("--reason <text>", "why (reject)")
     .option("--reject <reason>", "reject instead, with this reason (approve only)")
     .description(d === "approve"
       ? "approve the open card, or --reject \"<reason>\" to send the spec and plan back with your reason (terminal only)"
       : "reject the open card with --reason; the spec and plan are revised and you get a new card (terminal only)")
-    .action(async (run: string, hash: string, o: { note?: string; reason?: string; reject?: string }) => {
+    .action(async (run: string, hash: string, o: { note?: string; signOff?: string; reason?: string; reject?: string }) => {
       assertTty();
       const l = openRun(run);
       const decision = d === "approve" && o.reject !== undefined ? "reject" : d;
-      const data = decision === "approve" ? { note: o.note ?? "" } : { reason: o.reject ?? o.reason ?? "" };
+      const signOff = (o.signOff ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+      const data = decision === "approve" ? { note: o.note ?? "", ...(signOff.length ? { signOff } : {}) } : { reason: o.reject ?? o.reason ?? "" };
       const r = await decide(l, { decision, hashPrefix: hash, data });
       if (r.kind === "repeat") return log("Already recorded.");
       log(decision === "approve" ? "Approved." : "Rejected. Revising the spec and plan with your reason…");
       await runAndReport(l.runId);
     });
 }
+
+program.command("waive").argument("<run>").argument("<hash>", "first characters of the waiver card's hash")
+  .requiredOption("--reason <text>", "why the failing gate is acceptable (recorded with your name)")
+  .description("waive the estimate gate(s) on the open waiver card (terminal only; E3, E4 and E5 only)")
+  .action(async (run: string, hash: string, o: { reason: string }) => {
+    assertTty();
+    const l = openRun(run);
+    if (replay(l.events()).openCard?.kind !== "waiver") throw new DecisionError("The open card is not a waiver card.");
+    const r = await decide(l, { decision: "waive", hashPrefix: hash, data: { reason: o.reason } });
+    if (r.kind === "repeat") return log("Already recorded.");
+    log("Waived, and recorded with your name.");
+    await runAndReport(l.runId);
+  });
 
 program.command("answer").argument("<run>").argument("<hash>", "first characters of the card hash")
   .argument("<answers...>", 'Q-1=A Q-2="your own words"')

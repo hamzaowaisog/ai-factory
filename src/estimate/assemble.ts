@@ -1,7 +1,7 @@
 // Turns the estimators' proposals (anchors, ratios, reasons) into a full Estimate. The model proposed
 // every number it is allowed to propose; everything here is arithmetic, so the same proposals always
 // give the same estimate (docs/estimates-design.md, "How the hours are built").
-import { Estimate, type ArtifactHeader, type Breakdown, type DeliveryModel, type Executor, type SizeBand, type SpecDraft } from "../contracts/index.js";
+import { Estimate, type ArtifactHeader, type Breakdown, type DeliveryModel, type Executor, type SizeBand, type SpecDraft, type Track } from "../contracts/index.js";
 import type { z } from "zod";
 import { DEFAULT_ASSUMPTIONS, type Assumptions, type Range } from "./assumptions.js";
 import { estimateApiCost, type BenchmarkRecord } from "./cost.js";
@@ -23,6 +23,8 @@ export interface EstimateSettings {
   stackSource: "client" | "folio3" | "undecided";
   designInTotal: boolean;
   feedbackRounds: number;
+  /** optional hourly rates (USD) per track, plus "default" for cross-cutting time; turns on the team file's cost overlay */
+  rates?: Partial<Record<Track | "default", number>>;
 }
 export const DEFAULT_SETTINGS: EstimateSettings = { deliveryModel: "hitl", stackSource: "undecided", designInTotal: true, feedbackRounds: 2 };
 

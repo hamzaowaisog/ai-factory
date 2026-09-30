@@ -2,7 +2,7 @@
 
 ## Summary
 
-The factory gets an **estimate mode**. From a client's refined requirements (a new project) or from a repo plus a request (an existing project), it produces the estimate, in the general estimation workbook template (the one Folio3 uses), of the effort and cost to deliver the work **through the factory workflow**. A lead approves it in the terminal. Nothing here is built yet; the mode name and the stage names `breakdown` and `estimate` are already reserved in `src/contracts/common.ts`.
+The factory gets an **estimate mode**. From a client's refined requirements (a new project) or from a repo plus a request (an existing project), it produces the estimate, in the general estimation workbook template (the one Folio3 uses), of the effort and cost to deliver the work **through the factory workflow**. A lead approves it in the terminal. The mode runs end to end (see "Build status" at the end): `factory estimate` takes requirements, a large document is specified per module, and a lead's approval leads to two workbooks.
 
 **The run starts by choosing a delivery model.** Each model gets its own estimate, and the agentic one is smaller:
 
@@ -440,3 +440,30 @@ A walk-through of the spec (no hours) tested the design:
 5. Model steps (breakdown, estimators, merge) tested with a scripted model, as `src/stages/e2e.test.ts` does.
 6. Document intake and per-module specify.
 7. Stack-agnostic discover and ground for existing repos, and the design wiring.
+
+## Build status (2026-09-30)
+
+Built and tested, with a scripted model, through the real executor (`src/stages/estimate-e2e.test.ts`):
+
+| Slice | What exists |
+|---|---|
+| Schemas, mode manifest, deterministic core, workbook export and lint | `src/contracts/estimate.ts`, `src/estimate/*` |
+| Gates E1-E7 and B1-B5 as `defineGate` predicates | `src/estimate/gates.ts`; E1-E7 run inside the estimate steps, B1-B5 are predicates only (see below) |
+| Model steps | `breakdown` and `estimate` in `src/stages/estimate.ts` |
+| Document intake, per-module specify | `.docx` and pre-exported Figma frames in `src/sources/`; `splitModules` and the per-module intake, clarify and spec steps in `src/stages/modular.ts`. Each module asks its own clarify questions, so a large document means one question card per module |
+| Stack-agnostic ground | `estimateGroundStep`: no repo means every span is new build work (no model call); a repo gets the normal grounding step plus `src/context/survey.ts` and, for UI work, the design inventory |
+| E1b design baseline | `design-baseline` step: no UI passes; UI needs an approved design artifact from a `design` step and parks without one |
+| E7 approval | `approve-estimate` step: one card, anchors first, hash-bound, sign-off for each low-confidence line (`factory approve --sign-off EST-2,EST-5`) |
+| Waivers | E3, E4, E5 only, after one retry: a waiver card, then `factory waive <run> <hash> --reason "..."`; recorded with the name and reason, shown on the card and in the team file's Gates sheet |
+| Export | `export` step writes both workbooks to `<ledger>/export/` and lints each file cell by cell |
+| CLI | `factory estimate` with `--file` (Markdown, text or .docx), `--frames`, `--jira`, `--delivery-model`, `--stack-source`, `--no-design-in-total`, `--feedback-rounds`, `--rate track=usd`, `--no-repo`, `--client`, `--project-name`, `--pm`, `--max-cost` |
+| Benchmark records | `src/estimate/records.ts` reads every other run in the ledger home; a phase with records replaces its cold-start figure |
+| Cost overlay | Team file's Cost sheet when `--rate` is given; the client file never has it |
+
+Not done:
+- **A `design` step.** Nothing in the factory produces the mock and clickable demo yet, so a UI estimate parks at E1b until one does (see "Design module hardening").
+- **B1-B5 wiring into the build.** The predicates exist; `PlanTask.estimateTaskId`, the seeded build run (G4), the change-request run (B2) and the budget stop (B5) are not called from any build step.
+- **The second delivery model as a child run.** Run the command again with `--delivery-model agentic` for now; it is a separate run, not a child of the approved breakdown.
+- **Editing an anchor on the card.** A lead can approve, reject (the run parks with the reason) or waive; editing a line and recomputing is not built.
+- **The real-template decision (open item 3).** `src/estimate/template.test.ts` checks whether the template survives a load and save; it runs when `FACTORY_ESTIMATE_TEMPLATE` points at the file. The workbook is drawn until that test says filling a copy is safe.
+- **Cost calibration from `report.json` of the first real runs** stays open; records come from the ledger home only.

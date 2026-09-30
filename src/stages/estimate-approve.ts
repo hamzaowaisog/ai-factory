@@ -1,0 +1,185 @@
+// Estimate mode, the human and file steps (docs/estimates-design.md, "The pipeline"):
+//   design-baseline (E1b)  the approved mock and clickable demo are the baseline of a UI estimate
+//   approve-estimate (E7)  a lead approves in a terminal, tied to the estimate's hash
+//   export                 deterministic code writes the team and client workbooks, then lints them cell by cell
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import type { z } from "zod";
+import type { Breakdown, Design, Estimate, IntentBody, Spec } from "../contracts/index.js";
+import { designBaseline, leadApproval } from "../estimate/gates.js";
+import { exportWorkbooks, type ExportInput } from "../estimate/export.js";
+import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
+import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
+import { failure } from "../gates/engine.js";
+import type { RunState } from "../ledger/state.js";
+import { hashJson } from "../util/hash.js";
+import { gate, settingsOf } from "./estimate.js";
+import { header, outputOf, readOutput, requireOutput, type StepDef, type StepOutcome } from "./framework.js";
+
+type Intent = z.infer<typeof IntentBody>;
+type DesignT = z.infer<typeof Design>;
+
+const decisionsOn = (state: RunState, prefix: string) => state.decisions.filter((d) => d.cardId.startsWith(prefix));
+const reasonOf = (d: unknown): string => String((d as { reason?: string }).reason ?? "").trim();
+
+// ---------- E1b: design baseline ----------
+
+export function designCard(runId: string, design: DesignT, hash: string): string {
+  return [
+    `# Approve the design baseline (E1b)`, ``,
+    `Run ${runId}. The estimate of a UI request stands on the approved mock and clickable demo: screen counts, states and flows come from it.`, ``,
+    `Flow: ${design.flow}`, design.figmaUrl ? `Figma: ${design.figmaUrl}` : "", ``,
+    `Screens (${design.screens.length}):`,
+    ...design.screens.map((s) => `- ${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}`), ``,
+    design.mapping.unmappedReqs.length ? `Requirements with no screen: ${design.mapping.unmappedReqs.join(", ")}` : "Every requirement has a screen.",
+    design.mapping.orphanScreens.length ? `Screens with no requirement: ${design.mapping.orphanScreens.join(", ")}` : "Every screen links to a requirement.", ``,
+    `Approve: factory approve ${runId} ${hash.slice(0, 8)}`,
+    `Reject:  factory reject ${runId} ${hash.slice(0, 8)} --reason "why"`, ``, `Card hash: ${hash.slice(0, 8)}`,
+  ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
+}
+
+export const designBaselineStep: StepDef = {
+  key: "design-baseline", stage: "design", templateVersion: "1",
+  inputs: (s, l) => {
+    if (s.steps.get("specify")?.status !== "completed") return undefined;
+    const intake = s.steps.get("intake");
+    const ui = intake?.status === "completed" ? !!l.getJson<Intent>(intake.outputs[0]!)?.touchesUi : false;
+    return { spec: s.steps.get("specify")!.outputs[0], ui, design: outputOf(s, "design"), decisions: decisionsOn(s, "design-").length };
+  },
+  async run(ctx): Promise<StepOutcome> {
+    const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
+    if (!intent.touchesUi) {
+      const g = await gate(ctx, "design-baseline", designBaseline, { ui: false });
+      return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: false, gate: g.details }) }, data: { ui: false } };
+    }
+    const design = readOutput<DesignT>(ctx.state, ctx.ledger, "design");
+    if (!design) {
+      return { kind: "park", reason: "This request has UI, so its estimate needs an approved mock and clickable demo (gate E1b), and the design step has not produced one for this run. Produce the design, then resume." };
+    }
+    const designSha = outputOf(ctx.state, "design")!;
+    const past = decisionsOn(ctx.state, "design-");
+    const bundleOf = (round: number) => ctx.ledger.putJson({ design: designSha, round });
+    const last = past[past.length - 1];
+    // the latest decision counts only if it was on the card for this exact design
+    if (last && last.artifactSha === bundleOf(past.length - 1)) {
+      if (last.decision === "reject") return { kind: "park", reason: `The design baseline was rejected${reasonOf(last) ? `: ${reasonOf(last)}` : ""}. Revise the design and resume.` };
+      if (last.decision === "approve") {
+        const g = await gate(ctx, "design-baseline", designBaseline, { ui: true, design, approval: { decision: "approved", by: last.by } });
+        if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [failure("e1b", g.details)], signature: `e1b:${g.details.slice(0, 80)}` };
+        return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, by: last.by }) }, data: { ui: true, screens: design.screens.length } };
+      }
+    }
+    const bundle = bundleOf(past.length);
+    return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle) } };
+  },
+};
+
+// ---------- E7: approve the estimate ----------
+
+const h = (r: { min: number; max: number }): string => `${r.min}-${r.max} h`;
+const usd = (r: { min: number; max: number }): string => `$${r.min.toFixed(2)}-$${r.max.toFixed(2)}`;
+
+/** The one review the lead does: anchors first, then totals, cost, flags, the gate and waiver log. */
+export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<Breakdown, "tasks">, extra: { gates: string[]; waivers: string[]; note?: string }): string {
+  const title = new Map(b.tasks.map((t) => [t.id, t.title]));
+  const flagged = e.tasks.filter((t) => t.flagged);
+  const list = (xs: string[], none: string) => (xs.length ? xs : [none]);
+  return [
+    `# Approve the estimate (E7)`, ``,
+    `Run ${runId} · ${e.deliveryModel === "hitl" ? "HITL (supervisor + agents)" : "solely agentic"} · size ${e.band} · uncertainty ${e.uncertainty}`,
+    extra.note ? `\n${extra.note}` : "", ``,
+    `## Anchors (check these first: every other task is sized against one)`,
+    ...e.anchors.map((a) => `- ${a.taskId} ${title.get(a.taskId) ?? ""}: ${h(a.hours)}. ${a.reason}`), ``,
+    `## Totals`,
+    ...Object.entries(e.totals.byTrack).map(([t, r]) => `- ${t}: ${h(r!)}`),
+    `- Overall: ${h(e.totals.overall)} (design ${e.settings.designInTotal ? "included" : "not included"})`, ``,
+    `## Cost and time`,
+    `- API credits: ${usd(e.apiCost.total)}, ${e.apiCost.confidence} (${e.apiCost.records} measured record${e.apiCost.records === 1 ? "" : "s"}); indicative, not a quote`,
+    `- Planning: ${e.elapsed.planningMinutes} min · build critical path: ${e.elapsed.criticalPathDays.min}-${e.elapsed.criticalPathDays.max} days`, ``,
+    `## Low-confidence lines (estimators disagree; each needs your sign-off)`,
+    ...list(flagged.map((t) => `- ${t.taskId} ${title.get(t.taskId) ?? ""}: ${h(t.hours)}`), "none"), ``,
+    `## Suggested, not included`, ...list(e.suggested.map((s) => `- ${s.title}: ${s.reason}`), "none"), ``,
+    `## Assumptions`, ...list(e.assumptions.map((a) => `- ${a}`), "none"), ``,
+    `## Gates`, ...list(extra.gates.map((g) => `- ${g}`), "none recorded"), ``,
+    `## Waivers`, ...list(extra.waivers.map((w) => `- ${w}`), "none"), ``,
+    `Approve: factory approve ${runId} ${hash.slice(0, 8)}${flagged.length ? ` --sign-off ${flagged.map((t) => t.taskId).join(",")}` : ""}`,
+    `Reject:  factory reject ${runId} ${hash.slice(0, 8)} --reason "why"`, ``, `Card hash: ${hash.slice(0, 8)}`,
+  ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
+}
+
+export const approveEstimateStep: StepDef = {
+  key: "approve-estimate", stage: "estimate", templateVersion: "1",
+  inputs: (s) => (s.steps.get("estimate")?.status === "completed"
+    ? { estimate: s.steps.get("estimate")!.outputs[0], breakdown: s.steps.get("breakdown")!.outputs[0], decisions: decisionsOn(s, "estimate-").length }
+    : undefined),
+  async run(ctx): Promise<StepOutcome> {
+    const estimate = requireOutput<Estimate>(ctx.state, ctx.ledger, "estimate");
+    const breakdown = requireOutput<Breakdown>(ctx.state, ctx.ledger, "breakdown");
+    const estimateSha = outputOf(ctx.state, "estimate")!;
+    const past = decisionsOn(ctx.state, "estimate-");
+    const bundleOf = (round: number) => ctx.ledger.putJson({ estimate: estimateSha, round });
+    const last = past[past.length - 1];
+    let note: string | undefined;
+    // the latest decision counts only if it was on the card for this exact estimate
+    if (last && last.artifactSha === bundleOf(past.length - 1)) {
+      if (last.decision === "reject") {
+        return { kind: "park", reason: `The estimate was rejected by ${last.by}${reasonOf(last) ? `: ${reasonOf(last)}` : ""}. Change the request or settings and start a new estimate run.` };
+      }
+      if (last.decision === "approve") {
+        const raw = (last as unknown as { signOff?: unknown }).signOff;
+        const signedOff = Array.isArray(raw) ? raw.map(String) : [];
+        const approval = { estimateHash: hashJson(estimate), decision: "approved" as const, by: last.by, signedOff };
+        const g = await gate(ctx, "approve-estimate", leadApproval, { estimate, approval });
+        if (g.passed) {
+          const sha = ctx.ledger.putJson({ header: header(ctx.runId, "estimate-approval", "estimate", estimateSha), estimateSha, ...approval, waivers: waiversOf(ctx.state) });
+          return { kind: "done", outputs: { approval: sha }, data: { by: last.by, hash: approval.estimateHash.slice(0, 12), signedOff } };
+        }
+        note = `Your last approval was not accepted: ${(g.failures ?? []).map((f) => f.message).join("; ") || g.details}. Approve again with the sign-off.`;
+      }
+    }
+    const round = past.length;
+    const bundle = bundleOf(round);
+    const md = estimateCard(ctx.runId, bundle, estimate, breakdown, {
+      gates: gateLog(ctx.ledger.events()).map(gateLine),
+      waivers: waiversOf(ctx.state).map((w) => `${w.gateIds.join(", ")} (${w.step}): waived by ${w.human}. ${w.reason}`),
+      note,
+    });
+    return { kind: "wait", card: { cardId: `estimate-${bundle.slice(0, 8)}`, kind: "estimate-approval", artifactSha: bundle, markdown: md } };
+  },
+};
+
+// ---------- export ----------
+
+const sha256File = (path: string): string => createHash("sha256").update(readFileSync(path)).digest("hex");
+
+export const exportStep: StepDef = {
+  key: "export", stage: "estimate", templateVersion: "1",
+  inputs: (s) => (s.steps.get("approve-estimate")?.status === "completed" ? { approval: s.steps.get("approve-estimate")!.outputs[0], estimate: s.steps.get("estimate")!.outputs[0] } : undefined),
+  async run(ctx): Promise<StepOutcome> {
+    const estimate = requireOutput<Estimate>(ctx.state, ctx.ledger, "estimate");
+    const breakdown = requireOutput<Breakdown>(ctx.state, ctx.ledger, "breakdown");
+    const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
+    const info = ctx.state.info.estimate ?? {};
+    const settings = settingsOf(ctx.state);
+    const input: ExportInput = {
+      estimate, breakdown,
+      header: { client: info.client ?? ctx.state.info.project, project: info.projectName ?? ctx.state.info.project, pm: info.pm ?? ctx.state.info.operator ?? "", date: new Date().toISOString().slice(0, 10), version: estimate.parentEstimate ? "2" : "1" },
+      requirements: spec.requirements.map((q) => ({ id: q.id, title: q.ears.length > 140 ? `${q.ears.slice(0, 137)}...` : q.ears })),
+      ...(settings.rates && Object.keys(settings.rates).length ? { rates: settings.rates } : {}),
+      waivers: waiversOf(ctx.state),
+      gateLog: gateLog(ctx.ledger.events()),
+    };
+    const dir = join(ctx.ledger.dir, "export");
+    const files = await exportWorkbooks(input, dir, ctx.runId);
+    // E6 at cell level: read each file back and check it against the estimate it came from
+    const failures = [];
+    for (const [audience, path] of [["team", files.team], ["client", files.client]] as const) {
+      for (const i of lintWorkbook(await loadWorkbook(path), estimate, breakdown, audience)) failures.push(failure(`workbook-${i.check}`, `${audience} file: ${i.message}`));
+    }
+    if (failures.length) return { kind: "fail", category: "other", failures, signature: `export:${failures.map((f) => f.check).sort().join(",")}` };
+    const manifest = { team: files.team, client: files.client, teamSha256: sha256File(files.team), clientSha256: sha256File(files.client), estimateSha: outputOf(ctx.state, "estimate") };
+    ctx.log(`estimate workbooks written:\n  team   ${files.team}\n  client ${files.client}`);
+    return { kind: "done", outputs: { manifest: ctx.ledger.putJson(manifest) }, data: { team: files.team, client: files.client } };
+  },
+};
