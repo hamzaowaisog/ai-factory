@@ -1,8 +1,11 @@
 // What the web screens show (`factory ui`), computed only from the ledger, the project configs
 // and the repo at the run's base commit: the same sources as `factory status|show-card|report`.
 // Read-only: nothing here writes to a ledger. Starting a run lives in start.ts.
-import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
+import { basename, join, sep } from "node:path";
+import type { z } from "zod";
+import type { Design as DesignSchema } from "../contracts/artifacts.js";
+import type { Breakdown, Estimate } from "../contracts/estimate.js";
 import { buildInventory, type DesignInventory } from "../design/inventory.js";
 import { depsOf, detectLayout } from "../design/layout.js";
 import { LEVEL_NAMES, LEVELS, plannedChanges, sizeChange, type SizeResult } from "../design/size.js";
@@ -198,6 +201,7 @@ export function runView(ledger: Ledger) {
     .map((e) => ({ ts: e.ts, where: e.step ? `${e.step}${e.attempt ? `#${e.attempt}` : ""}` : "run", kind: e.kind, msg: e.msg }));
   return {
     runId: ledger.runId,
+    mode: s.info.mode,
     project: s.info.project,
     request: s.info.request ?? "",
     sources: s.info.sources ?? [],
@@ -363,4 +367,65 @@ function inventorySummaryView(inv: DesignInventory, commit: string) {
     offSystem: { hexColors: inv.offSystem.hexColors, arbitraryValues: inv.offSystem.arbitraryValues, inlineStyle: inv.offSystem.inlineStyle, ratio: inv.offSystem.ratio },
     verdict: inv.verdict,
   };
+}
+
+// ---------- estimate ----------
+
+interface ExportManifest { team: string; client: string }
+
+/** The estimate run's numbers and what they rest on, from the ledger: the same figures as the approval card and workbooks. */
+export function estimateView(ledger: Ledger) {
+  const s = replay(ledger.events());
+  if (s.info.mode !== "estimate") return { runId: ledger.runId, none: "This is not an estimate run. Start one from New run, then Estimate." };
+  const done = (step: string) => { const r = s.steps.get(step); return r?.status === "completed" ? r.outputs[0] : undefined; };
+  const estSha = done("estimate");
+  if (!estSha) return { runId: ledger.runId, settings: s.info.estimate ?? {}, none: "The estimate isn't ready yet. It appears here after the breakdown and sizing steps finish." };
+  const est = ledger.getJson<Estimate>(estSha);
+  const bdSha = done("breakdown");
+  const bd = bdSha ? ledger.getJson<Breakdown>(bdSha) : undefined;
+  const titles = new Map((bd?.tasks ?? []).map((t) => [t.id, t]));
+  const baseline = done("design-baseline") ? ledger.getJson<{ ui: boolean; design?: string }>(done("design-baseline")!) : undefined;
+  const design = baseline?.ui && baseline.design ? ledger.getJson<z.infer<typeof DesignSchema>>(baseline.design) : undefined;
+  const approval = s.steps.get("approve-estimate");
+  const manifestSha = done("export");
+  const files = manifestSha ? (() => { const m = ledger.getJson<ExportManifest>(manifestSha); return { team: existsSync(m.team), client: existsSync(m.client) }; })() : undefined;
+  return {
+    runId: ledger.runId,
+    settings: s.info.estimate ?? {},
+    deliveryModel: est.deliveryModel, band: est.band, uncertainty: est.uncertainty, complexity: est.complexity,
+    totals: est.totals, apiCost: est.apiCost, elapsed: est.elapsed,
+    tasks: est.tasks.map((t) => {
+      const b = titles.get(t.taskId);
+      return { id: t.taskId, title: b?.title ?? t.taskId, track: b?.track, executor: t.executor, hours: t.hours, anchor: t.anchorId, ratio: t.ratio, reason: t.reason, flagged: t.flagged, screen: b?.screen, reqs: b?.reqs ?? [], overhead: b?.overhead };
+    }),
+    anchors: est.anchors,
+    overheads: est.overheads,
+    gateHours: est.gateHours,
+    scenarios: est.scenarios,
+    suggested: est.suggested,
+    assumptions: est.assumptions,
+    design: baseline === undefined ? { pending: true } : !design ? { ui: false } : {
+      ui: true, flow: design.flow,
+      screens: design.screens.map((x) => ({ id: x.id, route: x.route, size: x.size ?? "new", states: x.states ?? [], reqs: x.reqs, frames: x.frames ?? [] })),
+      unmapped: design.mapping.unmappedReqs, noScreen: design.noScreen ?? [],
+    },
+    approved: approval?.status === "completed" ? { by: String((approval.data as { by?: string } | undefined)?.by ?? ""), hash: String((approval.data as { hash?: string } | undefined)?.hash ?? "") } : undefined,
+    files,
+  };
+}
+
+/** A workbook the run exported, or undefined: only the two manifest paths, only inside the run's export folder, never through a link. */
+export function exportFile(ledger: Ledger, audience: string): { body: Buffer; name: string } | undefined {
+  if (audience !== "team" && audience !== "client") return undefined;
+  const s = replay(ledger.events());
+  const step = s.steps.get("export");
+  if (step?.status !== "completed" || !step.outputs[0]) return undefined;
+  const p = ledger.getJson<ExportManifest>(step.outputs[0])[audience];
+  try {
+    const root = realpathSync(join(ledger.dir, "export"));
+    if (lstatSync(p).isSymbolicLink()) return undefined;
+    const real = realpathSync(p);
+    if (!real.startsWith(root + sep) || !/\.xlsx$/i.test(real) || !lstatSync(real).isFile()) return undefined;
+    return { body: readFileSync(real), name: basename(real) };
+  } catch { return undefined; }
 }

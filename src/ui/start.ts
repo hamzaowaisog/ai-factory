@@ -7,7 +7,8 @@ import { userInfo } from "node:os";
 import { basename, join } from "node:path";
 import { loadProject } from "../config/project.js";
 import { costCapUsd, MIN_CAP_USD } from "../ledger/caps.js";
-import { describeSources, gatherRequest } from "../sources/request.js";
+import { parseEstimateSettings } from "../estimate/settings.js";
+import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
 import { checkRoutes } from "../stages/routing.js";
@@ -24,6 +25,10 @@ export interface StartInput {
   file?: unknown; // { name, text }
   jira?: unknown;
   maxCost?: unknown;
+  /** "estimate" starts an estimate run (factory estimate); anything else is a brownfield build */
+  mode?: unknown;
+  /** estimate settings, read like the factory estimate flags */
+  estimate?: unknown;
 }
 
 export interface StartDeps {
@@ -63,6 +68,21 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     file = { name, text: f.text };
   }
 
+  // estimate mode: the same settings checks as `factory estimate`, before anything is read
+  const estimating = input.mode === "estimate";
+  let settings: ReturnType<typeof parseEstimateSettings> | undefined;
+  if (estimating) {
+    const e = (input.estimate ?? {}) as Record<string, unknown>;
+    try {
+      settings = parseEstimateSettings({
+        deliveryModel: String(e.deliveryModel ?? "hitl"), stackSource: String(e.stackSource ?? "undecided"),
+        designInTotal: e.designInTotal !== false, feedbackRounds: String(e.feedbackRounds ?? "2"),
+        repo: e.noRepo !== true, ...(str(e.client) ? { client: str(e.client)!.trim() } : {}),
+        ...(str(e.projectName) ? { projectName: str(e.projectName)!.trim() } : {}), ...(str(e.pm) ? { pm: str(e.pm)!.trim() } : {}),
+      });
+    } catch (err) { throw new StartError((err as Error).message); }
+  }
+
   // the same checks, in the same order, as `factory start`
   const cfg = loadProject(project);
   const problems = checkRoutes(cfg);
@@ -85,7 +105,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
       path = join(dir, file.name);
       writeFileSync(path, file.text, { mode: 0o600 });
     }
-    req = await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim() });
+    req = await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim() }, {}, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
   } catch (e) {
     throw new StartError((e as Error).message);
   } finally {
@@ -95,6 +115,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   const runId = await createRun(req.text, project, `${userInfo().username} (via web)`, {
     ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
     sources: req.sources,
+    ...(settings ? { mode: "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
   });
   starting.set(project, { runId, at: Date.now() });
   (deps.execute ?? runDetached)(runId);

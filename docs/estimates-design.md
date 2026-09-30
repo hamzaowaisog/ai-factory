@@ -477,3 +477,7 @@ Not done:
 - **Waiving B1-B4 and B5.** The predicates are marked waivable, but only E3, E4 and E5 have a waiver card. B1, B3 and B4 fail or park the step; a B5 stop ends the run. The way forward is a change request or a new estimate.
 - **A visual check of the workbook in Excel.** The export is verified by reading the files back and linting every cell, and by tests on a copy of the real template, but it has not been opened in Excel or LibreOffice (LibreOffice would not start in the build container).
 - **Cost calibration from `report.json` of the first real runs** stays open; records come from the ledger home only. `factory calibrate` (`src/estimate/calibrate.ts`) now compares each approved estimate with what its estimate run and its build run spent, and, given a file of `estimate-run,actual-hours` lines, with real hours of finished projects. It needs ledgers or hours that exist; it changes nothing. Try the estimate on `examples/requirements.md`.
+
+## In the web UI
+
+`factory ui` can start an estimate run (New run, then Estimate) with the same settings as `factory estimate`, and an estimate run gets an Estimate tab: totals and band, API cost, elapsed time, per-task hours with anchors, the approved screens, and team/client workbook downloads once exported. Approving the estimate stays in the terminal. Frames, per-track rates and docx upload are terminal-only.

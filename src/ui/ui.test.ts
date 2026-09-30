@@ -486,3 +486,44 @@ describe("factory ui: a run started from the web, watched live", () => {
     }
   });
 });
+
+describe("factory ui: estimate runs", () => {
+  it("starts an estimate run with the same settings factory estimate parses, and refuses bad ones", async () => {
+    const bad = await post({ project: "web", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { deliveryModel: "nonsense" } });
+    expect(bad.status).toBe(400);
+    const r = await post({ project: "web", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { client: "Acme", feedbackRounds: "2" } });
+    expect(r.status).toBe(201);
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info.mode).toBe("estimate");
+    expect(s.info.estimate).toMatchObject({ client: "Acme" });
+    expect((await call(`/api/runs/${r.json().runId}`)).json().mode).toBe("estimate");
+  });
+
+  it("the estimate view says so for a build run and before the estimate exists", async () => {
+    const built = await call(`/api/runs/${ids.delivered}/estimate`);
+    expect(built.status).toBe(200);
+    expect(built.json().none).toMatch(/not an estimate run/);
+    const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
+    const early = await call(`/api/runs/${id}/estimate`);
+    expect(early.json().none).toMatch(/isn't ready/);
+  });
+
+  it("downloads only workbooks inside the run's export folder", async () => {
+    const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
+    const l = Ledger.open(id);
+    const dir = join(l.dir, "export");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "team.xlsx"), "PK-team");
+    const outside = join(home, "secret.xlsx");
+    writeFileSync(outside, "nope");
+    const manifest = l.putJson({ team: join(dir, "team.xlsx"), client: outside });
+    await addEvents(id, step("export", 0, {}, [manifest]));
+    const ok = await call(`/export/${id}/team`);
+    expect(ok.status).toBe(200);
+    expect(ok.headers["content-disposition"]).toMatch(/attachment.*team\.xlsx/);
+    expect(ok.body).toBe("PK-team");
+    expect((await call(`/export/${id}/client`)).status).toBe(404);
+    expect((await call(`/export/${id}/other`)).status).toBe(404);
+    expect((await call(`/export/${id}/team`, { token: null })).status).toBeGreaterThanOrEqual(401);
+  });
+});

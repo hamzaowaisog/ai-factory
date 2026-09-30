@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import "../gates/predicates.js";
 import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
-import { dashboardView, designView, eventsView, findRun, previewView, projectsView, runView, runsView, statsView } from "./data.js";
+import { dashboardView, designView, estimateView, eventsView, exportFile, findRun, previewView, projectsView, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
 import { startRun, StartError, type StartDeps } from "./start.js";
 
@@ -48,6 +48,10 @@ export const ROUTES: readonly Route[] = [
   {
     method: "GET", path: "/api/runs/:id/design", what: "the design step's data for a run",
     handle: ({ id }) => { const l = findRun(id!); return l ? ok(designView(l)) : notFound(`No run ${id}`); },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/estimate", what: "an estimate run's totals, tasks, API cost, approved design and exported files, or why there are none",
+    handle: ({ id }) => { const l = findRun(id!); return l ? ok(estimateView(l)) : notFound(`No run ${id}`); },
   },
   {
     method: "GET", path: "/api/runs/:id/events", what: "the run's ledger events and trace lines, secret-masked (text view)",
@@ -224,6 +228,16 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       }
       if (!authed) return send(res, 401, LOCKED_PAGE, "text/html; charset=utf-8");
       return send(res, 200, readFileSync(join(staticDir(), "index.html")), "text/html; charset=utf-8");
+    }
+    if (method === "GET" && path.startsWith("/export/")) {
+      // a workbook download: same key as the API, and only the two files the export step recorded
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      const [, , runId = "", audience = ""] = path.split("/");
+      let l;
+      try { l = findRun(decodeURIComponent(runId)); } catch { l = undefined; }
+      const f = l ? exportFile(l, decodeURIComponent(audience)) : undefined;
+      if (!f) return send(res, 404, "No such workbook.", "text/plain; charset=utf-8");
+      return send(res, 200, f.body, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", { "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"` });
     }
     if (!path.startsWith("/api/")) return send(res, 404, "Not found.", "text/plain; charset=utf-8");
 

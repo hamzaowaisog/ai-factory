@@ -200,8 +200,8 @@ paintThemeButton();
 // ---------- new run: mode ----------
 
 function modeScreen() {
-  const card = (i, ico, title, text, live) => live
-    ? h("a", { class: "panel mode rise", href: "#/new/brownfield", vars: { "--i": i } }, h("div", { class: "ico" }, icon(ico)), h("h2", {}, title), h("p", {}, text),
+  const card = (i, ico, title, text, href) => href
+    ? h("a", { class: "panel mode rise", href, vars: { "--i": i } }, h("div", { class: "ico" }, icon(ico)), h("h2", {}, title), h("p", {}, text),
       h("div", { class: "go" }, "Start", icon("arrow")))
     : h("div", { class: "panel mode off rise", "aria-disabled": "true", vars: { "--i": i } }, h("div", { class: "ribbon" }, "not built yet"), h("div", { class: "ico" }, icon(ico)), h("h2", {}, title), h("p", {}, text),
       h("div", { class: "go faint" }, "Not built yet"));
@@ -209,16 +209,17 @@ function modeScreen() {
     h("div", { class: "page-head" }, h("div", {}, h("div", { class: "eyebrow" }, "New run"), h("h1", {}, "What kind of work is it?"),
       h("p", { class: "sub" }, "The factory turns a request into a tested branch. You approve the plan in your terminal."))),
     h("div", { class: "grid-3" },
-      card(0, "layers", "Brownfield", "Change an existing .NET repo: request → spec → plan you approve → tests first → code → reviewed branch.", true),
-      card(1, "sprout", "Greenfield", "Start a new app from a request.", false),
-      card(2, "ruler", "Estimate", "Size and price a request before any code is written.", false),
+      card(0, "layers", "Brownfield", "Change an existing .NET repo: request → spec → plan you approve → tests first → code → reviewed branch.", "#/new/brownfield"),
+      card(1, "sprout", "Greenfield", "Start a new app from a request."),
+      card(2, "ruler", "Estimate", "Size and price a request before any code is written: hours, API cost, elapsed time and the screens. You approve it in your terminal, then two workbooks are written.", "#/new/estimate"),
     ),
   ], true);
 }
 
 // ---------- new run: request ----------
 
-async function requestScreen() {
+async function requestScreen(kind = "brownfield") {
+  const estimating = kind === "estimate";
   skeleton();
   const meta = await api("/api/projects");
   const err = h("div", { class: "error", hidden: true });
@@ -279,8 +280,27 @@ async function requestScreen() {
   tabs.jira = h("button", { class: "tab", type: "button", role: "tab", onclick: () => select("jira") }, icon("ticket"), "Jira key", dots.jira);
   select("prompt");
 
+  // estimate settings, like the factory estimate flags
+  const opt = (v, t) => h("option", { value: v }, t);
+  const delivery = h("select", { id: "delivery" }, opt("hitl", "HITL: a supervisor plus agents"), opt("agentic", "Solely agentic: no supervisor gates"));
+  const stack = h("select", { id: "stack" }, opt("undecided", "Undecided: a default pack, stated as an assumption"), opt("client", "Client's stack (fixed)"), opt("folio3", "Folio3 decides"));
+  const rounds = h("input", { type: "number", id: "rounds", min: "0", max: "10", step: "1", value: "2" });
+  const designIn = h("input", { type: "checkbox", id: "designin", checked: true });
+  const noRepo = h("input", { type: "checkbox", id: "norepo" });
+  const hdr = h("input", { type: "text", id: "client", placeholder: "client name (workbook header)" });
+  const projName = h("input", { type: "text", id: "projname", placeholder: "project name (workbook header)" });
+  const pm = h("input", { type: "text", id: "pm", placeholder: "project manager (workbook header)" });
+  const settings = estimating ? h("div", { class: "field" }, h("span", { class: "label" }, "Estimate settings"),
+    h("div", { class: "grid-2" },
+      h("div", {}, h("label", { for: "delivery" }, "Delivery model"), delivery),
+      h("div", {}, h("label", { for: "stack" }, "Stack"), stack),
+      h("div", {}, h("label", { for: "rounds" }, "Client feedback rounds"), rounds),
+      h("div", {}, h("label", { for: "designin" }, designIn, " Design counts in the total"), h("br"), h("label", { for: "norepo" }, noRepo, " The requirements stand alone (no existing code to read)"))),
+    h("div", { class: "grid-2" }, hdr, projName, pm),
+    h("div", { class: "hint" }, "The same choices as factory estimate. Frames and per-track rates are set from the terminal.")) : null;
+
   const maxCost = h("input", { type: "number", id: "maxcost", min: "0.5", step: "0.5", placeholder: "normal limit" });
-  const start = h("button", { class: "btn primary", type: "submit" }, "Start run", icon("arrow"));
+  const start = h("button", { class: "btn primary", type: "submit" }, estimating ? "Start estimate" : "Start run", icon("arrow"));
   const form = h("form", { class: "form", novalidate: true },
     err,
     h("div", { class: "field" }, h("label", { for: "project" }, "Project"), project,
@@ -289,6 +309,7 @@ async function requestScreen() {
       h("div", { class: "tabs-in", role: "tablist" }, tabs.prompt, tabs.file, tabs.jira),
       panels.prompt, panels.file, panels.jira,
       h("div", { class: "hint" }, "Use one input or several: they are combined into one request, like factory start does.")),
+    settings,
     h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost),
       h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
     h("div", { class: "row" }, start, h("span", { class: "hint" }, "Runs in the background. Questions and the plan approval are answered in your terminal.")),
@@ -299,21 +320,22 @@ async function requestScreen() {
     start.disabled = true;
     start.replaceChildren(h("span", { class: "spin" }), "Reading the request…");
     try {
-      const body = { project: project.value, prompt: prompt.value, jira: jira.disabled ? "" : jira.value, maxCost: maxCost.value, ...(file ? { file: { name: file.name, text: file.text } } : {}) };
+      const body = { project: project.value, prompt: prompt.value, jira: jira.disabled ? "" : jira.value, maxCost: maxCost.value, ...(file ? { file: { name: file.name, text: file.text } } : {}),
+        ...(estimating ? { mode: "estimate", estimate: { deliveryModel: delivery.value, stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
     } catch (e) {
       fail(e.message);
       start.disabled = false;
-      start.replaceChildren("Start run", icon("arrow"));
+      start.replaceChildren(estimating ? "Start estimate" : "Start run", icon("arrow"));
       err.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
     }
   });
   mount([
     h("div", { class: "page-head" }, h("div", {},
-      h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", "Brownfield"),
-      h("h1", {}, "What should change?"),
-      h("p", { class: "sub" }, "The request is read and checked before a run exists: a bad file or ticket costs nothing."))),
+      h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", estimating ? "Estimate" : "Brownfield"),
+      h("h1", {}, estimating ? "What should be estimated?" : "What should change?"),
+      h("p", { class: "sub" }, estimating ? "Paste or upload the requirements. A lead approves the estimate in the terminal, then the team and client workbooks are written." : "The request is read and checked before a run exists: a bad file or ticket costs nothing."))),
     h("div", { class: "panel" }, form),
   ], true);
 }
@@ -373,6 +395,7 @@ function runHeader(r, tab) {
     h("nav", { class: "subnav", "aria-label": "Run views" },
       h("div", { class: "seg", role: "tablist" }, RUN_TABS.map(([key, ico, label]) => h("a", { href: `#/runs/${id}${key === "run" ? "" : `/${key}`}`, role: "tab", "aria-selected": String(tab === key), class: tab === key ? "on" : undefined }, icon(ico), label))),
       h("span", { class: "sep" }),
+      r.mode === "estimate" ? h("a", { href: `#/runs/${id}/estimate`, class: tab === "estimate" ? "on" : undefined }, icon("ruler"), "Estimate") : null,
       h("a", { href: `#/runs/${id}/design`, class: tab === "design" ? "on" : undefined }, icon("browser"), "Design"),
       h("a", { href: `#/runs/${id}/preview`, class: tab === "preview" ? "on" : undefined }, icon("image"), "Preview")),
   ];
@@ -811,6 +834,65 @@ async function previewScreen(id) {
   mount([...runHeader(r, "preview"), h("div", { class: "stack" }, parts)], true);
 }
 
+// ---------- estimate ----------
+
+const hrs = (r) => (r.min === r.max ? `${r.min} h` : `${r.min}–${r.max} h`);
+const usd = (r) => (r.min === r.max ? money(r.min) : `${money(r.min)}–${money(r.max)}`);
+const table = (head, rows, numCols = []) => h("div", { class: "table-wrap" }, h("table", {},
+  h("thead", {}, h("tr", {}, head.map((t, i) => h("th", { class: numCols.includes(i) ? "num" : undefined }, t)))),
+  h("tbody", {}, rows.map((cells) => h("tr", {}, cells.map((c, i) => h("td", { class: numCols.includes(i) ? "num" : undefined }, c)))))));
+
+async function estimateScreen(id) {
+  skeleton("grid");
+  const [r, e] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/estimate`)]);
+  const head = runHeader(r, "estimate");
+  if (e.none) {
+    mount([...head, h("div", { class: "slot big-empty rise" }, icon("ruler"), h("strong", {}, "No estimate yet"), h("span", {}, e.none))], true);
+    return;
+  }
+  const rid = encodeURIComponent(r.runId);
+  const panel = (i, title, ico, ...body) => h("section", { class: "panel rise", vars: { "--i": i } }, h("div", { class: "panel-head" }, h("h2", {}, icon(ico), title)), ...body);
+  const fact = (k, v) => [h("dt", {}, k), h("dd", {}, v)];
+  const s = e.settings ?? {};
+  const summary = h("dl", { class: "facts" },
+    fact("Effort (all tracks)", h("strong", {}, hrs(e.totals.overall))),
+    ...Object.entries(e.totals.byTrack).map(([t, v]) => fact(`  ${t}`, hrs(v))),
+    fact("API cost", h("span", {}, h("strong", {}, usd(e.apiCost.total)), h("span", { class: "tag" }, e.apiCost.confidence), h("span", { class: "small faint" }, `${e.apiCost.records} benchmark record${e.apiCost.records === 1 ? "" : "s"}`))),
+    fact("Elapsed", `${e.elapsed.criticalPathDays.min}–${e.elapsed.criticalPathDays.max} days on the critical path, plus ${e.elapsed.planningMinutes} min planning`),
+    fact("Size and certainty", h("span", { class: "tags" }, h("span", { class: "tag" }, e.band), h("span", { class: "tag" }, `${e.uncertainty} uncertainty`), e.complexity ? h("span", { class: "tag" }, e.complexity) : null)),
+    fact("Delivery model", e.deliveryModel === "hitl" ? "HITL: a supervisor plus agents" : "Solely agentic"),
+    fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : ""].filter(Boolean).join(" · ")),
+    fact("Approval", e.approved ? h("span", { class: "pill t-ok" }, h("span", { class: "d" }), `approved by ${e.approved.by || "?"}${e.approved.hash ? ` (${e.approved.hash})` : ""}`) : h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "waiting for approval in your terminal")),
+  );
+  const files = e.files ? h("div", { class: "row" },
+    e.files.team ? h("a", { class: "btn", href: `/export/${rid}/team`, download: "" }, icon("file"), "Team workbook (.xlsx)") : null,
+    e.files.client ? h("a", { class: "btn", href: `/export/${rid}/client`, download: "" }, icon("file"), "Client workbook (.xlsx)") : null)
+    : h("p", { class: "muted small" }, "The workbooks are written after the approval.");
+  const tasks = table(["", "Task", "Track", "Who", "Hours", "Sized against", ""],
+    e.tasks.map((t) => [h("span", { class: "mono small" }, t.id), h("div", {}, h("div", {}, t.title), h("div", { class: "small muted" }, t.reason)), t.track ?? "-", t.executor, hrs(t.hours),
+      t.anchor === t.id ? h("span", { class: "tag" }, "anchor") : `${t.anchor} × ${t.ratio}`, t.flagged ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "estimators disagree") : ""]), [4]);
+  const costTable = table(["Phase", "API cost"], e.apiCost.phases.map((p) => [p.phase, usd(p.usd)]), [1]);
+  const extra = [];
+  if (e.overheads.length) extra.push(h("h3", {}, "Overheads"), table(["Name", "Track", "Hours", "Why"], e.overheads.map((o) => [o.name, o.track ?? "-", hrs(o.hours), o.reason]), [2]));
+  if (e.gateHours.length) extra.push(h("h3", {}, "Human gate hours (assumed)"), table(["Gate", "Track", "Hours"], e.gateHours.map((g) => [g.source, g.track ?? "-", hrs(g.hours)]), [2]));
+  if (e.scenarios.length) extra.push(h("h3", {}, "Scenarios"), table(["Scenario", "What changes", "Total"], e.scenarios.map((x) => [x.name, x.changes, hrs(x.totals)]), [2]));
+  if (e.suggested.length) extra.push(h("h3", {}, "Suggested extras, outside the total"), h("ul", { class: "reasons small" }, e.suggested.map((x) => h("li", {}, h("strong", {}, x.title), ` ${x.reason}`))));
+  const d = e.design;
+  const design = d.pending ? h("p", { class: "muted small" }, "The design step hasn't finished.")
+    : !d.ui ? h("p", { class: "muted small" }, "No UI in this request, so no screens were drawn.")
+    : [h("p", { class: "small" }, d.flow),
+      table(["Screen", "Route", "Size", "States", "Requirements"], d.screens.map((x) => [h("span", { class: "mono" }, x.id), h("span", { class: "mono small" }, x.route), x.size, x.states.join(", ") || "-", x.reqs.join(", ")])),
+      d.unmapped.length ? h("p", { class: "small" }, h("strong", {}, "Requirements with no screen: "), d.unmapped.join(", ")) : null,
+      d.noScreen.length ? h("p", { class: "small muted" }, `Not screens: ${d.noScreen.map((n) => `${n.req} (${n.reason})`).join("; ")}`) : null,
+      h("a", { class: "btn", href: `#/runs/${rid}/preview` }, icon("cursor"), "Open the clickable demo")];
+  mount([...head,
+    h("div", { class: "grid-2" },
+      h("div", { class: "stack" }, panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", costTable),
+        e.assumptions.length ? panel(3, "Assumptions", "alert", h("ul", { class: "reasons small" }, e.assumptions.map((x) => h("li", {}, x)))) : null),
+      h("div", { class: "stack" }, panel(1, "Screens", "browser", design), panel(2, "Tasks", "layers", tasks, ...extra))),
+  ], true);
+}
+
 // ---------- design ----------
 
 async function designScreen(id) {
@@ -848,14 +930,15 @@ async function designScreen(id) {
   }
   const style = d.styleChecks.length
     ? h("div", { class: "chips" }, d.styleChecks.map((g) => h("span", { class: `chip ${g.passed ? "pass" : "fail"}` }, icon(g.passed ? "check" : "x"), g.gateId)))
-    : h("p", { class: "muted small" }, "No style check results for this run. The pipeline doesn't run the style check yet; by hand: ", h("code", {}, "factory design lint --git <base> <head> --repo <repo>"), ".");
+    : h("p", { class: "muted small" }, "No style check results for this run. The build runs the style check on each task that changes UI files, so a run that changed none has no results. By hand: ", h("code", {}, "factory design lint --git <base> <head> --repo <repo>"), ".");
   mount([...runHeader(r, "design"),
     h("div", { class: "grid-2" },
       h("div", { class: "stack" },
         h("section", { class: "panel rise", vars: { "--i": 0 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("ruler"), "UI change size")), size),
         h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Style check")), style),
-        h("div", { class: "slot rise", vars: { "--i": 2 } }, icon("image"), h("strong", {}, "Before/after screenshots"), h("span", {}, "not built yet")),
-        h("div", { class: "slot rise", vars: { "--i": 3 } }, icon("cursor"), h("strong", {}, "Clickable prototype (estimate mode)"), h("span", {}, "not built yet")),
+        h("div", { class: "slot rise", vars: { "--i": 2 } }, icon("image"), h("strong", {}, "Screenshots of the built app"),
+          h("span", {}, "Taken by hand for now: factory design capture --page name=url --out dir, then factory design compare approved.json final.json.")),
+        r.mode === "estimate" ? h("a", { class: "slot rise", href: `#/runs/${encodeURIComponent(id)}/preview`, vars: { "--i": 3 } }, icon("cursor"), h("strong", {}, "Clickable prototype"), h("span", {}, "The demo and its screenshots are under Preview.")) : null,
       ),
       h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("grid"), "The app's pages and building blocks")), inv),
     )], true);
@@ -922,6 +1005,8 @@ async function route() {
   document.title = `AI Factory · ${{ new: "New run", runs: parts[1] ? parts[1] : "Runs", dashboard: "Dashboard" }[top] ?? ""}`;
   try {
     if (top === "new" && parts[1] === "brownfield") await requestScreen();
+    else if (top === "new" && parts[1] === "estimate") await requestScreen("estimate");
+    else if (top === "runs" && parts[1] && parts[2] === "estimate") await estimateScreen(parts[1]);
     else if (top === "new") modeScreen();
     else if (top === "runs" && parts[1] && parts[2] === "design") await designScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "preview") await previewScreen(parts[1]);
