@@ -1,15 +1,36 @@
 // Screenshots and state reports of a running app (docs/design-step.md, "Accept"): one report per page and width,
 // in the shape compareReports() takes. The caller starts the app (a dev server, `next start`, a preview URL) and
-// gives the page URLs; this step only reads it in headless Chromium. The accessibility results are a small
-// built-in set of checks (image alt text, names on buttons and links, labels on fields, page language), not a
-// full axe-core run, so they catch the common regressions and say nothing about the rest.
-import { mkdirSync } from "node:fs";
+// gives the page URLs; this step only reads it in headless Chromium. Accessibility results come from axe-core
+// (WCAG A and AA rules) when it can be loaded; if not, a small built-in set (image alt text, names on buttons and
+// links, labels on fields, page language) stands in, and the note says so.
+import { mkdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { findChromium, VIEWPORTS, type Viewport } from "../estimate/screenshots.js";
 import type { A11yViolation, LayoutBox, StateReport } from "./fidelity.js";
 
 export interface PageInput { name: string; url: string }
 export interface CaptureResult { reports: StateReport[]; files: string[]; note?: string }
+
+/** The axe-core script, or undefined when the package is not installed. */
+let axeSource: string | null | undefined;
+export function loadAxe(): string | undefined {
+  if (axeSource === undefined) {
+    try { axeSource = readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8"); } catch { axeSource = null; }
+  }
+  return axeSource ?? undefined;
+}
+
+type AxeWindow = { axe: { run(ctx: Document, o: object): Promise<{ violations: { id: string; nodes: { target: unknown[] }[] }[] }> } };
+
+/** Injects axe and runs it: one entry per rule with the elements' selectors, the same shape as the built-in checks. */
+export async function runAxe(page: { evaluate(fn: () => Promise<A11yViolation[]>): Promise<A11yViolation[]>; addScriptTag(o: { content: string }): Promise<unknown> }, source: string): Promise<A11yViolation[]> {
+  await page.addScriptTag({ content: source });
+  return page.evaluate(async () => {
+    const r = await (window as unknown as AxeWindow).axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+    return r.violations.map((v) => ({ id: v.id, targets: v.nodes.map((n) => n.target.map(String).join(" ")) }));
+  });
+}
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "page";
 
@@ -49,6 +70,8 @@ export async function captureReports(pages: PageInput[], outDir: string): Promis
   const exe = findChromium();
   if (!exe) return { reports: [], files: [], note: "no browser found (set FACTORY_CHROMIUM to a Chromium binary)" };
   const reports: StateReport[] = [], files: string[] = [];
+  const axe = loadAxe();
+  const notes: string[] = axe ? [] : ["axe-core is not installed, so the built-in accessibility checks were used (npm i axe-core)"];
   let browser: { close(): Promise<void>; newPage(o: object): Promise<any> } | undefined;
   try {
     const { chromium } = await import("playwright-core");
@@ -62,6 +85,9 @@ export async function captureReports(pages: PageInput[], outDir: string): Promis
         await page.waitForLoadState("networkidle").catch(() => undefined);
         await page.evaluate(() => document.fonts?.ready).catch(() => undefined);
         const got = await page.evaluate(inspectPage);
+        if (axe) {
+          try { got.axe = await runAxe(page, axe); } catch (e) { notes.push(`axe-core failed on ${p.name}; built-in checks used: ${(e instanceof Error ? e.message : String(e)).split("\n")[0]}`); }
+        }
         const file = `${slug(p.name)}-${vp}.png`;
         await page.screenshot({ path: join(outDir, file), fullPage: true });
         files.push(file);
@@ -69,7 +95,7 @@ export async function captureReports(pages: PageInput[], outDir: string): Promis
       }
       await page.close();
     }
-    return { reports, files };
+    return { reports, files, ...(notes.length ? { note: [...new Set(notes)].join("; ") } : {}) };
   } catch (e) {
     return { reports, files, note: `capture stopped: ${(e instanceof Error ? e.message : String(e)).split("\n")[0]}` };
   } finally {

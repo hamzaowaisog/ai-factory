@@ -1,7 +1,6 @@
 // Design fidelity checks that need no browser: the token/component lint over a diff,
 // requirement ↔ screen traceability on our spec format, and pure comparisons of screenshot
-// report data (layout, accessibility, horizontal scroll). The pixel diff itself needs
-// image libraries and is not built here.
+// report data (layout, accessibility, horizontal scroll). The pixel diff is in pixeldiff.ts.
 import { ARBITRARY_RE, HEX_RE, type DesignInventory } from "./inventory.js";
 import { componentKey, importSpecifiers, resolveImport } from "./layout.js";
 import { isUiPath } from "./size.js";

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { findChromium } from "../estimate/screenshots.js";
-import { captureReports } from "./capture.js";
+import { captureReports, loadAxe } from "./capture.js";
 import { compareReports } from "./fidelity.js";
 
 const page = (body: string) => `<!doctype html><html lang="en"><body style="margin:0">${body}</body></html>`;
@@ -29,10 +29,19 @@ describe("capture reports of a running app", () => {
     expect(a.reports.map((r) => r.state)).toEqual(["pay (phone)", "pay (desktop)"]);
     expect(a.files).toEqual(["pay-phone.png", "pay-desktop.png"]);
     expect(existsSync(join(dir, "a", "pay-phone.png"))).toBe(true);
-    expect(compareReports(a.reports, a.reports).every((r) => r.status === "PASS")).toBe(true);
+    expect(compareReports(a.reports, a.reports).every((r) => r.status !== "FAIL")).toBe(true);
     const r = compareReports(a.reports, b.reports);
     expect(r.find((x) => x.check.startsWith("accessibility"))).toMatchObject({ status: "FAIL" });
     expect(r.find((x) => x.check.startsWith("layout"))?.items?.join(" ")).toMatch(/Pay now/);
     expect(r.find((x) => x.check.startsWith("responsive"))).toMatchObject({ status: "FAIL" });
+  });
+
+  it.skipIf(!findChromium() || !loadAxe())("uses axe-core: it finds what the built-in checks cannot, such as low contrast, and keeps the same report shape", async () => {
+    const f = file("contrast.html", page('<h1>Pay</h1><p style="color:#ccc;background:#fff">faint text</p><button>Pay now</button>'));
+    const r = await captureReports([{ name: "c", url: f }], join(dir, "c"));
+    expect(r.note).toBeUndefined();
+    const v = r.reports[0]!.axeViolations.find((x) => x.id === "color-contrast");
+    expect(v?.targets?.length).toBeGreaterThan(0);
+    expect(compareReports(r.reports, r.reports).every((x) => x.status !== "FAIL")).toBe(true);
   });
 });

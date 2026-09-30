@@ -102,7 +102,7 @@ Done, in `src/stages/build.ts` (helpers in `src/design/build-checks.ts`):
 
 - **Discover:** a repo with a React or Next.js `package.json` gets the design inventory as a second named output, `design`, and the verdict and summary are logged. The snapshot leaves out `noGo` paths, so a front end under one is not inventoried. Nothing reads the output yet: the lint builds its own inventory from git at the task's start commit.
 - **Project config:** an optional `design:` block (`sourceRoot`, `uiDir`, `brandFonts`, `navRaises`), passed to the inventory, the lint and the size cap (see `docs/project-example.yaml`).
-- **Capture and compare the built app:** `factory design capture --page name=url --out dir` screenshots and reports pages of a running app at 390 and 1280 px (layout boxes, basic accessibility checks, sideways scroll), and `factory design compare approved.json final.json` runs `compareReports`. The accessibility checks are a small built-in set (alt text, names, labels, page language), not axe-core.
+- **Capture and compare the built app:** `factory design capture --page name=url --out dir` screenshots and reports pages of a running app at 390 and 1280 px (layout boxes, basic accessibility checks, sideways scroll), and `factory design compare approved.json final.json` runs `compareReports`. Accessibility comes from axe-core (WCAG A and AA rules). If the package is missing, a small built-in set (alt text, names, labels, page language) is used and the note says so. Problems already on the page before the change show as warnings; only new ones fail.
 
 - **Visual check inside the build:** see below.
 
