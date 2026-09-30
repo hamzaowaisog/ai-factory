@@ -207,11 +207,11 @@ function modeScreen() {
       h("div", { class: "go faint" }, "Not built yet"));
   mount([
     h("div", { class: "page-head" }, h("div", {}, h("div", { class: "eyebrow" }, "New run"), h("h1", {}, "What kind of work is it?"),
-      h("p", { class: "sub" }, "The factory turns a request into a tested branch. You approve the plan in your terminal."))),
+      h("p", { class: "sub" }, "The factory turns a request into a tested branch. You approve the plan in your terminal (estimates can be approved on the web)."))),
     h("div", { class: "grid-3" },
       card(0, "layers", "Brownfield", "Change an existing .NET repo: request → spec → plan you approve → tests first → code → reviewed branch.", "#/new/brownfield"),
       card(1, "sprout", "Greenfield", "Start a new app from a request."),
-      card(2, "ruler", "Estimate", "Size and price a request before any code is written: hours, API cost, elapsed time and the screens. You approve it in your terminal, then two workbooks are written.", "#/new/estimate"),
+      card(2, "ruler", "Estimate", "Size and price a request before any code is written: hours, API cost, elapsed time and the screens. The lead approves it on the Estimate tab (or in the terminal), then two workbooks are written.", "#/new/estimate"),
     ),
   ], true);
 }
