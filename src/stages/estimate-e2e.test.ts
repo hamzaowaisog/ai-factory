@@ -142,7 +142,7 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     const files = s.steps.get("export")!.data as { team: string; client: string };
     expect(existsSync(files.team) && existsSync(files.client)).toBe(true);
     const team = await loadWorkbook(files.team), client = await loadWorkbook(files.client);
-    expect(team.getWorksheet("Summary")!.getCell("C3").value).toBe("Acme");
+    expect(team.getWorksheet("Summary")!.getCell("C5").value).toBe("Acme");
     expect(team.getWorksheet("Cost")).toBeTruthy();
     expect(client.getWorksheet("Cost")).toBeUndefined();
     expect(client.getWorksheet("Anchors")).toBeUndefined();
@@ -238,7 +238,7 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 6), by: "lead" });
     await execute(runId);
     const files = replay(ledger.events()).steps.get("export")!.data as { team: string };
-    expect((await loadWorkbook(files.team)).getWorksheet("Summary")!.getCell("C7").value).toBe("2");
+    expect((await loadWorkbook(files.team)).getWorksheet("Summary")!.getCell("C8").value).toBe("2");
   });
 
   it("seeds a build run from the approved estimate: its spec, tasks and critic record, ready for gates B1-B5", async () => {

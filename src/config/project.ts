@@ -55,6 +55,8 @@ export const ProjectConfig = z.object({
   agentEnv: z.record(z.string(), z.string()).default({}),
   /** Read-only reference DB for discover (D9): the env var holding its connection string. */
   referenceDb: z.object({ connEnv: z.string() }).optional(),
+  /** the Folio3 estimation template (.xlsx) the estimate workbooks are drawn on; FACTORY_ESTIMATE_TEMPLATE also works */
+  estimateTemplate: z.string().optional(),
   noGo: z.array(z.string()).default([]),
   /** USD per million tokens for models the factory has no price for (e.g. a GPT model). */
   prices: z.record(z.string(), z.object({

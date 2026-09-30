@@ -5,10 +5,12 @@ import ExcelJS from "exceljs";
 import type { Breakdown, Estimate } from "../contracts/index.js";
 import { effortHours } from "./hours.js";
 import { evalFormula, type CellValue } from "./xl-formula.js";
-import { MANDATORY_SHEETS, OPTIONAL_TEAM_SHEETS, TEAM_SHEETS, type Audience } from "./export.js";
+import { DESIGN_SWITCH_LABEL, MANDATORY_SHEETS, OPTIONAL_TEAM_SHEETS, SHEET, SUMMARY_LABEL, TEAM_SHEETS, type Audience } from "./export.js";
 import type { LintIssue } from "./lint.js";
 
 const EPS = 0.011;
+/** Rows whose figures must be formulas: the template's total rows and the Other sheet's "<section> TOTAL". */
+const TOTAL_LABEL = /^\s*(grand total|development total|post development activities total|research total|total)\b|\bTOTAL$/i;
 const near = (a: number, b: number): boolean => Math.abs(a - b) <= EPS;
 
 function plain(v: ExcelJS.CellValue): CellValue {
@@ -59,7 +61,7 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
           } catch (err) { bad("formula", `${ws.name}!${cell.address}: ${(err as Error).message}`); }
         }
       });
-      const label = [plain(ws.getCell(`B${rowNo}`).value), plain(ws.getCell(`C${rowNo}`).value)].find((x) => typeof x === "string" && /total$/i.test(x));
+      const label = [plain(ws.getCell(`B${rowNo}`).value), plain(ws.getCell(`C${rowNo}`).value)].find((x) => typeof x === "string" && TOTAL_LABEL.test(x));
       if (label) {
         const cols = ws.name === "Summary" ? ["C", "D"] : ["D", "E"];
         for (const c of cols) {
@@ -95,9 +97,9 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
   // Summary rows link to their sheet's own total, and match the stored totals
   const S = wb.getWorksheet("Summary")!;
   const links: Record<string, { sheet: string; track?: keyof Estimate["totals"]["byTrack"] }> = {
-    Backend: { sheet: "Backend", track: "backend" }, Mobile: { sheet: "Mobile", track: "mobile" }, "Web / Admin": { sheet: "Web", track: "web" },
-    QA: { sheet: "QA", track: "qa" }, GD: { sheet: "Other", track: "gd" }, PM: { sheet: "Other", track: "pm" }, PDM: { sheet: "Other", track: "pdm" },
-    "Cross-cutting": { sheet: "Other" }, Design: { sheet: "Design", track: "design" },
+    [SUMMARY_LABEL.backend]: { sheet: SHEET.backend, track: "backend" }, [SUMMARY_LABEL.mobile]: { sheet: SHEET.mobile, track: "mobile" }, [SUMMARY_LABEL.web]: { sheet: SHEET.web, track: "web" },
+    [SUMMARY_LABEL.qa]: { sheet: SHEET.qa, track: "qa" }, [SUMMARY_LABEL.gd]: { sheet: SHEET.other, track: "gd" }, [SUMMARY_LABEL.pm]: { sheet: SHEET.other, track: "pm" }, [SUMMARY_LABEL.pdm]: { sheet: SHEET.other, track: "pdm" },
+    [SUMMARY_LABEL.cross]: { sheet: SHEET.other }, [SUMMARY_LABEL.design]: { sheet: SHEET.design, track: "design" },
   };
   let sumMin = 0, sumMax = 0, designMin = 0, designMax = 0, totalRow = 0;
   S.eachRow((_row, rowNo) => {
@@ -120,7 +122,9 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
   if (!totalRow) bad("summary-total", "Summary has no Total row");
   else {
     const tMin = plain(S.getCell(`C${totalRow}`).value), tMax = plain(S.getCell(`D${totalRow}`).value);
-    const inc = plain(S.getCell("C12").value) === "Yes";
+    let switchRow = 0;
+    S.eachRow((_row, rowNo) => { if (plain(S.getCell(`B${rowNo}`).value) === DESIGN_SWITCH_LABEL) switchRow = rowNo; });
+    const inc = switchRow > 0 && plain(S.getCell(`C${switchRow}`).value) === "Yes";
     if (inc !== e.settings.designInTotal) bad("design-switch", `the Design switch says ${inc ? "Yes" : "No"}, the estimate says ${e.settings.designInTotal ? "Yes" : "No"}`);
     const wantMin = sumMin + (inc ? designMin : 0), wantMax = sumMax + (inc ? designMax : 0);
     if (typeof tMin !== "number" || typeof tMax !== "number" || !near(tMin, wantMin) || !near(tMax, wantMax)) bad("summary-total", `Total ${tMin}-${tMax} is not the sum of its rows ${wantMin}-${wantMax}`);

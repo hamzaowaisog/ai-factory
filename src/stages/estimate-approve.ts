@@ -185,7 +185,7 @@ export const exportStep: StepDef = {
       gateLog: gateLog(ctx.ledger.events()),
     };
     const dir = join(ctx.ledger.dir, "export");
-    const files = await exportWorkbooks(input, dir, ctx.runId);
+    const files = await exportWorkbooks(input, dir, ctx.runId, ctx.project.estimateTemplate ? { templatePath: ctx.project.estimateTemplate } : {});
     // E6 at cell level: read each file back and check it against the estimate it came from
     const failures = [];
     for (const [audience, path] of [["team", files.team], ["client", files.client]] as const) {

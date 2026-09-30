@@ -5,46 +5,14 @@ import { afterAll, describe, expect, it } from "vitest";
 import { Estimate } from "../contracts/index.js";
 import type { Breakdown } from "../contracts/index.js";
 import { estimateApiCost } from "./cost.js";
-import { buildWorkbook, exportWorkbooks, MANDATORY_SHEETS, TEAM_SHEETS, type ExportInput } from "./export.js";
+import { buildWorkbook, exportWorkbooks, MANDATORY_SHEETS, SHEET, SUMMARY_LABEL, TEAM_SHEETS, type ExportInput } from "./export.js";
 import { gateHours } from "./gate-hours.js";
 import { sizeTasks } from "./hours.js";
 import { computeTotals } from "./totals.js";
 import { lintWorkbook, loadWorkbook } from "./workbook-lint.js";
 import { evalFormula } from "./xl-formula.js";
 
-const sha = "a".repeat(64);
-const task = (id: string, featureId: string, track: string, executor: string, extra: object = {}) =>
-  ({ id, title: `Task ${id}`, featureId, reqs: ["R-1"], items: ["field a", "field b"], track, executor, dependsOn: [], complexity: "standard", ...extra });
-const breakdown = {
-  features: [{ id: "F-1", title: "Login", reqs: ["R-1"] }, { id: "F-2", title: "Reports", reqs: ["R-2"] }],
-  tasks: [
-    task("EST-1", "F-1", "backend", "human"), task("EST-2", "F-1", "web", "factory"), task("EST-3", "F-2", "backend", "joint", { reqs: ["R-2"] }),
-    task("EST-4", "F-2", "design", "human", { reqs: ["R-2"] }), task("EST-5", "F-1", "pm", "human", { reqs: [], overhead: "project management" }),
-  ],
-} as unknown as Pick<Breakdown, "features" | "tasks">;
-
-function fixture(model: "hitl" | "agentic" = "hitl", designInTotal = true): ExportInput {
-  const sizing = sizeTasks([{ taskId: "EST-1", hours: { min: 4, max: 8 } }], [
-    { taskId: "EST-1", anchorId: "EST-1", ratio: 1, reason: "anchor", executor: "human" },
-    { taskId: "EST-2", anchorId: "EST-1", ratio: 2, reason: "twice the screens", executor: "factory" },
-    { taskId: "EST-3", anchorId: "EST-1", ratio: 1.5, reason: "one more rule", executor: "joint" },
-    { taskId: "EST-4", anchorId: "EST-1", ratio: 0.5, reason: "two screens", executor: "human" },
-    { taskId: "EST-5", anchorId: "EST-1", ratio: 0.25, reason: "light", executor: "human" },
-  ]);
-  const gates = gateHours(model, { questions: 4, approvalSections: 3, prs: { low: 1, medium: 1, high: 0 }, factoryTasks: 1, waivers: 0 });
-  const overheads = [{ name: "Deployment", track: "backend" as const, hours: { min: 2, max: 4 }, reason: "staging and production" }, { name: "Documentation", hours: { min: 1, max: 2 }, reason: "handover notes" }];
-  const totals = computeTotals(breakdown.tasks, sizing, overheads, gates, designInTotal);
-  const estimate = Estimate.parse({
-    header: { kind: "estimate", schemaVersion: 1, runId: "r", producedBy: { stage: "estimate" }, inputsHash: sha, createdAt: "2026-09-30T00:00:00Z" },
-    deliveryModel: model, band: "M", uncertainty: "medium", breakdownSha: sha, specSha: sha,
-    anchors: [{ taskId: "EST-1", hours: { min: 4, max: 8 }, reason: "typical login form" }], tasks: sizing, overheads, gateHours: gates, totals,
-    apiCost: estimateApiCost({ planning: 1, build: 4, verification: 4 }, [], model),
-    elapsed: { planningMinutes: 20, criticalPathDays: { min: 1, max: 2 } },
-    settings: { stackSource: "client", designInTotal, feedbackRounds: 2 },
-    assumptions: ["Client provides API keys before build"], suggested: [{ title: "Audit log", reason: "no requirement asks for it" }],
-  });
-  return { estimate, breakdown, header: { client: "Acme", project: "Portal", pm: "A. Lead", date: "2026-09-30", version: "v1" }, notInScope: { mobile: "web app only" }, requirements: [{ id: "R-1", title: "Sign in" }, { id: "R-2", title: "Reports" }] };
-}
+import { fixture } from "./fixture.js";
 
 describe("formula evaluator", () => {
   const cells: Record<string, number | string> = { "S!A1": 2, "S!A2": 3, "S!B1": "Yes", "T!C1": 10 };
@@ -89,16 +57,16 @@ describe("workbook export", () => {
       const label = S.getCell(`B${n}`).value;
       const v = (c: string) => { const x = S.getCell(`${c}${n}`).value; return x && typeof x === "object" && "result" in x ? x.result : x; };
       if (label === "Total") total = { min: v("C"), max: v("D") };
-      if (label === "Backend") backend = S.getCell(`C${n}`).value && (S.getCell(`C${n}`).value as { formula: string }).formula;
+      if (label === SUMMARY_LABEL.backend) backend = S.getCell(`C${n}`).value && (S.getCell(`C${n}`).value as { formula: string }).formula;
     });
     expect(total).toEqual({ min: input.estimate.totals.overall.min, max: input.estimate.totals.overall.max });
-    expect(backend).toMatch(/^'Backend'!D\d+$/);
+    expect(backend).toBe(`'${SHEET.backend}'!D6`);
   });
 
   it("shows a factory task at zero effort and its size only in the team file", () => {
     const input = fixture();
     const find = (wb: ReturnType<typeof buildWorkbook>) => {
-      const ws = wb.getWorksheet("Web")!; let row = 0;
+      const ws = wb.getWorksheet(SHEET.web)!; let row = 0;
       ws.eachRow((_r, n) => { if (ws.getCell(`I${n}`).value === "EST-2") row = n; });
       return { ws, row };
     };
@@ -109,7 +77,7 @@ describe("workbook export", () => {
   });
 
   it("marks an empty track as not in scope and keeps its total a real formula", () => {
-    const ws = buildWorkbook(fixture(), "team").getWorksheet("Mobile")!;
+    const ws = buildWorkbook(fixture(), "team").getWorksheet(SHEET.mobile)!;
     const texts: string[] = [];
     ws.eachRow((_r, n) => { const v = ws.getCell(`B${n}`).value; if (typeof v === "string") texts.push(v); });
     expect(texts).toContain("Not in scope: web app only");
@@ -127,7 +95,7 @@ describe("workbook export", () => {
 
   it("carries no supervisor gate rows in the agentic file", () => {
     const input = fixture("agentic");
-    const ws = buildWorkbook(input, "team").getWorksheet("Other")!;
+    const ws = buildWorkbook(input, "team").getWorksheet(SHEET.other)!;
     ws.eachRow((_r, n) => expect(String(ws.getCell(`C${n}`).value)).not.toContain("Supervisor"));
   });
 });
@@ -148,20 +116,20 @@ describe("gate E6 over a written workbook", () => {
     const input = fixture();
     // typed-in total on a track sheet
     const a = buildWorkbook(input, "client");
-    const B = a.getWorksheet("Backend")!;
-    B.eachRow((_r, n) => { if (String(B.getCell(`C${n}`).value).endsWith("TOTAL")) B.getCell(`D${n}`).value = 99; });
+    const B = a.getWorksheet(SHEET.backend)!;
+    B.eachRow((_r, n) => { if (String(B.getCell(`C${n}`).value).startsWith("Development Total")) B.getCell(`D${n}`).value = 99; });
     const typed = lintWorkbook(a, input.estimate, input.breakdown, "client").map((i) => i.check);
     expect(typed).toContain("typed-total");
 
     // a Summary row pointing at the wrong sheet
     const b = buildWorkbook(input, "client");
     const S = b.getWorksheet("Summary")!;
-    S.eachRow((_r, n) => { if (S.getCell(`B${n}`).value === "Backend") S.getCell(`C${n}`).value = { formula: "'Web'!D1", result: 0 }; });
+    S.eachRow((_r, n) => { if (S.getCell(`B${n}`).value === SUMMARY_LABEL.backend) S.getCell(`C${n}`).value = { formula: `'${SHEET.web}'!D1`, result: 0 }; });
     expect(lintWorkbook(b, input.estimate, input.breakdown, "client").map((i) => i.check)).toContain("summary-link");
 
     // a task removed from its sheet
     const c = buildWorkbook(input, "client");
-    const W = c.getWorksheet("Web")!;
+    const W = c.getWorksheet(SHEET.web)!;
     W.eachRow((_r, n) => { if (W.getCell(`I${n}`).value === "EST-2") W.getCell(`I${n}`).value = ""; });
     expect(lintWorkbook(c, input.estimate, input.breakdown, "client").map((i) => i.check)).toContain("task-rows");
 

@@ -337,7 +337,7 @@ describe("export step", () => {
     expect(existsSync(m.team) && existsSync(m.client)).toBe(true);
     expect(m.teamSha256).toHaveLength(64);
     const team = await loadWorkbook(m.team), client = await loadWorkbook(m.client);
-    expect(team.getWorksheet("Summary")!.getCell("C3").value).toBe("Acme");
+    expect(team.getWorksheet("Summary")!.getCell("C5").value).toBe("Acme");
     expect(team.getWorksheet("Gates")).toBeTruthy();
     expect(client.getWorksheet("Gates")).toBeUndefined();
     // no rates given: no cost overlay in either file
