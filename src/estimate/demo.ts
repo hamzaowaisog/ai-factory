@@ -3,6 +3,7 @@
 // is a panel with its route, the requirements it serves (with their text), and a button per state; an attached
 // Figma frame shows in place of the wireframe when the design cites it. Nothing in the page is fetched, and
 // every value from the model or the request is escaped, so opening it runs only the page's own script.
+import { wireframeSvg } from "./wireframe.js";
 import type { DesignOut } from "../stages/design.js";
 import type { z } from "zod";
 
@@ -44,7 +45,7 @@ export function buildDemo(d: DemoInput): string {
 <div class="states" role="tablist">${states.map((st, k) => `<button role="tab" data-state="${k}"${k === 0 ? ' class="on"' : ""}>${esc(st)}</button>`).join("")}</div>
 <div class="canvas">${shown.length
     ? shown.map((f) => `<img src="${f!.dataUri}" alt="${esc(f!.name)}">`).join("")
-    : `<div class="wire"><div class="bar"></div><div class="blk"></div><div class="blk short"></div><p class="state-name">${esc(states[0]!)}</p></div>`}</div>
+    : states.map((st, k) => `<div class="wire" data-wf="${k}"${k === 0 ? "" : " hidden"}>${wireframeSvg(s, st, s.reqs.map((r) => ({ id: r, text: d.requirements[r] ?? "" })))}</div>`).join("")}</div>
 <h3>Serves</h3><ul>${reqs || "<li>no requirement</li>"}</ul>
 <p class="nav">${screens.filter((o) => o.id !== s.id).map((o) => `<a href="#${esc(o.id)}">${esc(o.id)} ${esc(o.route)}</a>`).join(" ")}</p>
 </section>`;
@@ -62,7 +63,7 @@ ul{padding-left:18px}aside ul{list-style:none;padding:0}aside a{display:block;pa
 code,.file{color:#555;font-size:13px}header{display:flex;gap:12px;align-items:center}.tag{background:#eee;border-radius:10px;padding:1px 10px;font-size:12px}
 .states button{margin:0 6px 6px 0;padding:4px 12px;border:1px solid #bbb;background:#fff;border-radius:14px;cursor:pointer}.states .on{background:#1a1a1a;color:#fff}
 .canvas{border:1px solid #ccc;background:#fff;border-radius:8px;padding:16px;min-height:200px}.canvas img{max-width:100%;display:block;margin:0 auto 12px}
-.wire .bar{height:28px;background:#ddd;border-radius:4px;margin-bottom:12px}.wire .blk{height:70px;background:#eee;border-radius:4px;margin-bottom:10px}.wire .short{width:55%}.state-name{color:#888;text-align:center}
+.wire svg{display:block;max-width:640px;margin:0 auto}
 .nav a{margin-right:10px}@media(max-width:700px){body{display:block}aside{width:auto;border-right:0;border-bottom:1px solid #ddd}}
 </style></head><body>
 <aside><h1 style="font-size:16px">${esc(d.title)}</h1><p>${esc(d.flow)}</p><ul>${side}</ul>${none ? `<h3>No screen</h3><ul>${none}</ul>` : ""}</aside>
@@ -74,7 +75,7 @@ code,.file{color:#555;font-size:13px}header{display:flex;gap:12px;align-items:ce
     secs.forEach(function(s){s.hidden=s.id!==id});links.forEach(function(a){a.className=a.getAttribute("href")==="#"+id?"on":""})}
   secs.forEach(function(s){[].slice.call(s.querySelectorAll("[data-state]")).forEach(function(b){b.addEventListener("click",function(){
     [].slice.call(s.querySelectorAll("[data-state]")).forEach(function(x){x.className=""});b.className="on";
-    var n=s.querySelector(".state-name");if(n)n.textContent=b.textContent})})});
+    var k=b.getAttribute("data-state");[].slice.call(s.querySelectorAll("[data-wf]")).forEach(function(w){w.hidden=w.getAttribute("data-wf")!==k})})})});
   window.addEventListener("hashchange",show);show();
 })();
 </script></body></html>
