@@ -211,23 +211,38 @@ Every estimate says how many dollars of API credits the run will spend, broken d
 - **Model:** cost per phase comes from the counted size (requirements, screens, tasks, files touched) times measured cost per unit for that phase, with a range from the spread across measured runs.
 - **Both delivery models show it.** Solely agentic carries a larger build-and-verify share because no human takes over parked runs.
 - **Shown as a range, labelled indicative,** and separate from any client rate card. B5 tracks actual against it during the build.
-- **Until data exists:** the model starts from the first test run and other available runs, marks values as assumed, and tightens as the ledger grows.
+- **First measured points** (from `docs/runs/2026-09-30-first-real-runs.md`; a real .NET repo, planted one-line and API bugs, light lane, per-run cost caps):
 
-## Task duration: the benchmarked harness
+| Run | Cost | Active time | Outcome |
+|---|---|---|---|
+| Bug 1, light lane | $1.75 (plus about $0.3–0.6 unrecorded) | 28.5 min | Delivered: 1-line fix + 4 unit tests |
+| Bug 1, before the light lane | $5.20 | 28 min | Stopped at the cost cap, no code |
+| Bug 2, light lane | $1.33 | 18 min | Stopped by us in author-tests |
+| Bug 1, plain agent (no factory) | $0.20 | 24 s | Fix with no test, never compiled (optimistic baseline) |
+
+  What they already tell the estimate:
+  - a **small fix costs about $1–2 and 20–30 minutes** through the factory, and the time is mostly the test lab (about 64%; coding agents about 20%, model calls about 16%);
+  - the same fix without the factory costs about $0.20, so the factory's extra cost buys a locked failing test, sealed verification and evidence, and the estimate should show that as the price of the workflow;
+  - **cost varies by more than 3x with the lane** ($5.20 versus $1.75 for the same bug), so cost must be estimated per lane and size class, not from one average;
+  - spend is under-recorded for interrupted attempts (finding F7), so measured cost is a floor until that is fixed;
+  - these are bug fixes only: nothing yet covers planning for a large feature, design, or a full build, so those phases stay **cold-start**.
+- **Until enough data exists:** the model starts from the first test run and other available runs, marks values as assumed, and tightens as the ledger grows.
+
+## Task duration: the internal harness
 
 How long a task takes is not decided by the model's opinion. A **duration harness** evaluates each task class and returns a duration and cost range, and code uses it alongside the anchors.
 
-Two sources, used together:
+Internal data is the source of truth. An external source is **optional and later**:
 
 1. **Internal (self-benchmark).** Our own ledger: wall minutes, retries, cost and outcome per step and per task class, by stack and size. This is ground truth for the factory itself, and it improves with every run.
-2. **External (researched, benchmarked).** A published, benchmarked evaluator of agent task time and reliability. Candidates must be researched and vetted before adoption, and nothing is adopted on reputation alone. Because the runtime and research are isolated (no network), the external source is a **pinned offline snapshot** in the repo, with its version and provenance recorded, never a live call.
+2. **External (optional, later).** A published benchmark of agent task time and reliability, added only if the ledger stays too thin for too long. Public benchmarks measure open-source or lab tasks, not client work, and the available estimators are unvalidated, so it is a weak prior at best. If ever added, it is a **pinned offline snapshot** in the repo with its version and provenance recorded, never a live call, since the runtime has no network. It is not part of the first build.
 
 How they combine:
 - The harness classifies each task (for example, standard CRUD screen, integration, rules-heavy logic, migration unit).
-- It returns a duration and cost range per class from the internal data, with the external benchmark as a prior where the ledger has too few runs.
+- It returns a duration and cost range per class from the internal data. Where the ledger has too few runs, the range is wide and labelled cold-start; it is not filled from an external source.
 - Where the two disagree beyond a tolerance, the item is flagged on the approval card. The internal measurement wins once it has enough runs.
 - The harness sets the **factory time** and **cost**. Human gate time, client UAT and PM still come from counts and anchors.
-- The plugin or harness itself is a **research task before build**. First-pass findings (2026-09-30, from published docs only, nothing run):
+- The external option was researched at first pass (2026-09-30, from published docs only, nothing run) and is **not required for the build**:
 
 | Candidate | Useful for us | Limit |
 |---|---|---|
@@ -236,7 +251,7 @@ How they combine:
 | ACEM (MIT) | Cost from tokens, revision, context growth and HITL intensity; p10/p50/p90 bands; labels cold-start, partial, calibrated | The authors say every constant is a placeholder and the model is unvalidated |
 | METR time horizons, SWE-bench Pro | Credible task-difficulty and resolve-rate priors, with public data | Well-specified open-source or lab tasks, no cost data for METR |
 
-- **Decision (provisional):** build the harness on our own ledger. Borrow the structures (three-point ranges, rounds, Monte Carlo bands, and the cold-start / partial / calibrated confidence label), and use the external benchmarks only as priors. No candidate is adopted as is. Until enough ledger runs exist, every duration and cost is labelled **cold-start**.
+- **Decision:** the harness is internal-only for the build. It borrows the structures (three-point ranges, rounds, Monte Carlo bands, and the cold-start / partial / calibrated confidence label). No external candidate is adopted. Until enough ledger runs exist, every duration and cost is labelled **cold-start**.
 
 ### Internal benchmark record
 
@@ -245,7 +260,7 @@ Each finished step or task adds one record, taken from ledger events:
 - wall minutes, retries, tokens and dollars (`gen_ai.usage.cost_usd`), outcome;
 - for the plan and design steps: counted units (requirements, screens, tasks), so cost per unit can be computed.
 
-The harness reads these records and returns, per task class, a p10/p50/p90 range for duration and cost, with the record count and the confidence label. The first records come from the run on the other machine, once its ledger is copied over.
+The harness reads these records and returns, per task class, a p10/p50/p90 range for duration and cost, with the record count and the confidence label. The first records are the summary numbers already recorded above. Every later run, including the first estimate runs, adds records automatically, so no separate data collection is needed to start.
 
 ## Gates
 
@@ -344,7 +359,7 @@ The two reference workbooks contained these faults, which the rules block: a bac
 - **Stages:** `breakdown` and `estimate` already exist in `StageName`. Steps implement `StepDef` (inputs, run, outcome `done` / `wait` / `fail` / `park`).
 - **Artifacts:** two new typed artifacts, defined in zod with the standard header and stored in the ledger by hash:
   - **Breakdown:** features and tasks. Each task has an id (`EST-n`), title, requirement ids, the concrete spec items it delivers, track, executor, dependencies and an optional design screen link.
-  - **Estimate:** delivery model, size band, uncertainty grade, anchors, per-task Min and Max, overheads, gate hours, API credit cost per phase (range), elapsed time, harness source and version, run settings, scenarios, and the "Suggested, not included" block.
+  - **Estimate:** delivery model, size band, uncertainty grade, anchors, per-task Min and Max, overheads, gate hours, API credit cost per phase (range), elapsed time, harness confidence label and record count, run settings, scenarios, and the "Suggested, not included" block.
 - **Gates:** `defineGate` predicates with the `waiver` field set as in the tables above. The stage names for `after` come from `StageName`.
 - **Approval:** the same `wait` card mechanism as the plan approval; answered only from a terminal.
 - **Task id continuity:** `PlanTask` gains an optional `estimateTaskId`. One estimate task maps to many plan tasks. A plan task that maps to nothing fails B1 and becomes a change request. Each implement step's data records its `EST-n`, so actual effort and cost can be grouped per estimate task.
@@ -362,8 +377,8 @@ The two reference workbooks contained these faults, which the rules block: a bac
 5. **Per-module specify:** specify, drafts, critic and round trip run per module when the document is large, and their cost belongs in the run's cost.
 6. **Actuals logging** per estimate task, for later calibration of cost and duration.
 7. **Design module hardening** (mock and clickable demo), plus the E1b gate. The estimate depends on it.
-8. **Duration harness:** research and shortlist external benchmarked evaluators, build the internal self-benchmark from the ledger, and pin the chosen external snapshot offline.
-9. **First calibration data:** read the finished test run's ledger (planning time, cost per phase) as the first measured values.
+8. **Duration harness (internal):** build the self-benchmark records and the range calculation from the ledger. An external snapshot is a later, optional addition.
+9. **First calibration data:** the summary numbers in `docs/runs/2026-09-30-first-real-runs.md` are recorded above. The raw ledgers stay on the owner's laptop; `report.json` (model, agent and lab seconds per step) from those runs is the next thing to bring over, without the client code.
 
 ## What the reference material showed
 
@@ -397,7 +412,7 @@ A walk-through of the spec (no hours) tested the design:
 - One estimator for XS and S; three for M and up.
 - **Two delivery models chosen at the start: HITL (supervisor + agents) and solely agentic.** Each has its own estimate; the second is produced on request as a **child run** over the approved breakdown, with its own approval. A lead reviews every PR only in HITL. Client UAT, design approval and PM stay in both.
 - **API credit cost is a headline number**, calibrated from measured runs, not guessed.
-- **Durations come from a benchmarked harness**, internal ledger data plus a vetted external source (pinned offline).
+- **Durations come from an internal harness built on the ledger**; external benchmarks are optional, later, and only as a pinned offline prior. Until data exists, values are labelled cold-start.
 - **The mock and clickable demo are the estimation baseline; the estimate is blocked until they are approved (E1b).**
 - One set of Min and Max columns per estimate: delivery effort through the factory.
 - All six sheets mandatory; Design in the total is a run setting.
@@ -409,7 +424,7 @@ A walk-through of the spec (no hours) tested the design:
 
 ## Open items
 
-1. Which external benchmarked evaluator to adopt. First-pass research found no off-the-shelf validated harness (see the table above), so the provisional decision is to build on our own ledger with external priors. Still open: the weight of external priors while the ledger is thin, and a real comparison of agent-estimate and ACEM against the test run's ledger, which is on another machine.
+1. Whether an external prior is ever added, if the ledger stays thin. Default: no. The per-step `report.json` from the first real runs, if brought over, would tighten the first estimates but does not block anything.
 2. Numeric band cut-offs, and every gate-time and share assumption, start as labelled assumptions in config and are tuned as the ledger provides measured values.
 3. The estimation template: fill a copy or draw, decided by a test on the real file.
 4. How the estimate treats a bug fix's second phase (the fix quote after diagnosis) in the ledger: a child estimate run, or a second step in the same run.
@@ -417,7 +432,7 @@ A walk-through of the spec (no hours) tested the design:
 
 ## Suggested build order
 
-0. Design module hardening and gate E1b (in parallel; the estimate depends on it), and the duration-harness research task.
+0. Design module hardening and gate E1b (in parallel; the estimate depends on it), (the internal harness is built with the deterministic core in step 2).
 1. Artifact schemas (breakdown, estimate, with delivery model and cost) and the `estimate` mode manifest with no model steps.
 2. The deterministic core: size band, anchors-and-ratios arithmetic, overheads, gate hours per delivery model, API cost model from ledger data, workbook lint (E6).
 3. Excel export from a fixture estimate, tested against the real template; both files.
