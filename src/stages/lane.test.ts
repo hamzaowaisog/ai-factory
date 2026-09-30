@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import type { RunState } from "../ledger/state.js";
 import { timeSplit } from "../report.js";
-import { LANE, lightBuild, lightSpec } from "./lane.js";
+import { LANE, lightBuild, lightSpec, testWriterTurns } from "./lane.js";
 import { downgradeUi } from "./specpipe.js";
 
 describe("light lane", () => {
@@ -15,6 +15,14 @@ describe("light lane", () => {
     expect(lightBuild({ risk: "low", rigor: "light", changeClass: "bugfix" }, "S")).toBe(true);
     expect(lightBuild({ risk: "low", rigor: "light", changeClass: "bugfix" }, "M")).toBe(false);
     expect(lightBuild({ risk: "medium", rigor: "light", changeClass: "bugfix" }, "S")).toBe(false);
+  });
+
+  it("the test writer gets more turns when a criterion needs a test host", () => {
+    expect(testWriterTurns(true, ["unit", "unit"])).toBe(25);
+    expect(testWriterTurns(true, ["unit", "api"])).toBe(40);
+    expect(testWriterTurns(true, ["job"])).toBe(40);
+    expect(testWriterTurns(false, ["unit"])).toBe(60);
+    expect(testWriterTurns(false, ["api"])).toBe(60);
   });
 
   it("the full lane keeps what every run had before", () => {

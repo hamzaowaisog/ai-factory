@@ -508,7 +508,8 @@ describe("light and full lanes (fakes)", () => {
     expect(s.steps.get("specify")!.data!.lane).toBe("light");
     // one question round: what round 1 didn't settle is an assumption
     expect(s.steps.get("clarify-2")!.data).toMatchObject({ skipped: true, lightLane: true });
-    expect(writer()).toMatchObject({ model: "claude-sonnet-5", maxTurns: 25 });
+    // the fixture's criteria are api level: the test writer needs a test host, so 40 turns
+    expect(writer()).toMatchObject({ model: "claude-sonnet-5", maxTurns: 40 });
     expect(writer().maxUsd).toBeLessThanOrEqual(4);
     expect(writer().system).toContain("At most 2 characterisation tests");
     expect(writer().system).toContain('Don\'t run "dotnet test"');

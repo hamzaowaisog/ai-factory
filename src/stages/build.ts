@@ -29,7 +29,7 @@ import { S } from "./think.js";
 import { ensureWorktree, runtime, snapshotFor } from "./workspace.js";
 import { replay, splitKey } from "../ledger/state.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
-import { LANE, lightBuild } from "./lane.js";
+import { LANE, lightBuild, testWriterTurns } from "./lane.js";
 
 type Plan = z.infer<typeof PlanBody> & { complexity: string };
 type Intent = z.infer<typeof IntentBody>;
@@ -276,7 +276,7 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
       protectedGlobs: CONFIG_INTEGRITY_GLOBS, packagesDir: packagesDir(ctx.runId), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
       onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "author-tests", data: { id, role: "agent" } }, ctx.writer); },
       onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "author-tests", data: { id } }, ctx.writer); },
-    }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits: { maxTurns: light ? LANE.light.testWriterTurns : LANE.full.testWriterTurns, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
+    }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits: { maxTurns: testWriterTurns(light, acs.filter((a) => a.level !== "manual").map((a) => a.level)), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
     await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
     if (r.status === "config-error") return { kind: "park", reason: r.error ?? "The API rejected the coding agent's request" };
     if (r.status !== "ok") return { kind: "fail", category: r.status === "rate-limited" ? "rate-limit" : "other", failures: [failure(`agent-${r.status}`, r.error ?? r.status)], signature: `author-tests:${r.status}` };
