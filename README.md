@@ -437,7 +437,7 @@ A local web app to start runs and watch them. Decisions stay in your terminal: e
 | Run: Statistical | Totals: cost, limit left, machine vs wall-clock time, attempts, first-time pass, gates, human stops, tokens. |
 | Run: Text | Every ledger event, filterable by step, type and search, with live follow; click one for its details. Also the trace lines. |
 | Run: Design | How big the UI change is and why, and the app's pages and building blocks ("no web UI found" for a .NET-only repo). |
-| Run: Preview | Clickable demo of a UI estimate's approved screens, and the attached Figma frames against the screens that cite them: phone/tablet/desktop widths, a screen list, a gallery with a before/after slider. Until then, it says so. |
+| Run: Preview | Clickable demo of a UI estimate's approved screens, and the attached Figma frames against the screens that cite them: phone/tablet/desktop widths, a screen list, a gallery with a before/after slider. For an estimate run it shows the demo and its screenshots; with nothing to show, it says so. |
 | Dashboard | Outcome numbers across runs (like `factory report --all`), per-stage bars, recent runs. |
 
 Safety: it only listens on this computer (127.0.0.1), needs the key from the printed link (a new one each start), refuses requests from other websites, and never sends keys or `.env` values to the browser (ledger text is secret-masked). A preview runs in a locked frame that can't reach the app, the network or your files.

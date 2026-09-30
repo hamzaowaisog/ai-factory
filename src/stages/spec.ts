@@ -40,6 +40,14 @@ export function ruleRisk(text: string): { risk: Risk; tags: string[] } {
   return { risk: maxRisk(...hits.map((h) => h.risk)), tags: hits.map((h) => h.tag) };
 }
 
+// ---------- UI rules (intake: touchesUi = model or rules, never the model alone) ----------
+const UI_WORDS = /\b(screens?|ui|ux|user interface|front-?end|dashboards?|wireframes?|mock-?ups?|figma|landing pages?|web ?apps?|mobile apps?|modals?|buttons?)\b/i;
+const FRAME_LINE = /^\s*-\s*F-\d+\s+\S/m;
+/** A request that names screens, or comes with attached design frames, touches UI whatever the model said. */
+export function ruleUi(text: string): boolean {
+  return UI_WORDS.test(text) || FRAME_LINE.test(text);
+}
+
 const request = (ctx: Pick<StepContext, "state">) => ctx.state.info.request ?? "";
 /** "request.md + Jira ABC-12" (older runs: the file name only) */
 const requestFrom = (ctx: Pick<StepContext, "state">) => describeSources(ctx.state.info.sources) || ctx.state.info.requestFile || "";
@@ -70,6 +78,7 @@ ${UNTRUSTED_NOTE}
     const intent = {
       ...r.output, source: jira ? ("ticket" as const) : ("cli" as const), ...(jira ? { sourceRef: jira.url } : {}),
       risk: maxRisk(r.output.risk, rules.risk), riskTags: [...new Set([...r.output.riskTags, ...rules.tags])],
+      touchesUi: r.output.touchesUi || ruleUi(request(ctx)),
     };
     const sha = ctx.ledger.putJson({ header: header(ctx.runId, "intent", "intake", "", r.model), ...intent });
     return { kind: "done", outputs: { intent: sha }, data: { changeClass: intent.changeClass, risk: intent.risk } };

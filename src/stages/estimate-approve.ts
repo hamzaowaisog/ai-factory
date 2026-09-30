@@ -12,6 +12,7 @@ import { exportWorkbooks, type ExportInput } from "../estimate/export.js";
 import { considerationsFrom } from "../estimate/considerations.js";
 import { diffDesigns, diffEstimates } from "../estimate/lineage.js";
 import { buildDemo, frameDataUri } from "../estimate/demo.js";
+import { captureDemo, type ShotResult } from "../estimate/screenshots.js";
 import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
 import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
 import { failure } from "../gates/engine.js";
@@ -30,12 +31,13 @@ const reasonOf = (d: unknown): string => String((d as { reason?: string }).reaso
 
 // ---------- E1b: design baseline ----------
 
-export function designCard(runId: string, design: DesignT, hash: string, extra: { demo?: string; diff?: string[] } = {}): string {
+export function designCard(runId: string, design: DesignT, hash: string, extra: { demo?: string; diff?: string[]; shots?: { dir: string; count: number; note?: string } } = {}): string {
   return [
     `# Approve the design baseline (E1b)`, ``,
     `Run ${runId}. The estimate of a UI request stands on the approved mock and clickable demo: screen counts, states and flows come from it.`, ``,
     `Flow: ${design.flow}`, design.figmaUrl ? `Figma: ${design.figmaUrl}` : "",
-    extra.demo ? `Clickable demo (open in a browser, walk every screen and state before approving): ${extra.demo}` : "", ``,
+    extra.demo ? `Clickable demo (open in a browser, walk every screen and state before approving): ${extra.demo}` : "",
+    extra.shots?.count ? `Screenshots: ${extra.shots.count} in ${extra.shots.dir} (each screen and state, phone and desktop width)${extra.shots.note ? `; ${extra.shots.note}` : ""}` : extra.shots?.note ? `Screenshots: none (${extra.shots.note})` : "", ``,
     ...(extra.diff ? [`## Change from the approved design`, ...(extra.diff.length ? extra.diff.map((l) => `- ${l}`) : ["- no screen changed"]), ``] : []),
     `Screens (${design.screens.length}):`,
     ...design.screens.map((s) => { const x = s as typeof s & { states?: string[]; size?: string }; return `- ${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}${x.size ? `; ${x.size}` : ""}${x.states?.length ? `; states: ${x.states.join(", ")}` : ""}`; }), ``,
@@ -97,7 +99,11 @@ export const designBaselineStep: StepDef = {
       copyFileSync(join(ctx.ledger.dir, "attachments", "frames", basename(f.name)), join(previewDir, "frames", basename(f.name)));
       images.push({ file: `frames/${basename(f.name)}`, screen: `${sc.id} ${sc.route}`, ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}), viewport: "desktop" });
     }
-    writeFileSync(join(previewDir, "preview.json"), JSON.stringify({ site: { entry: "index.html", screens: d.screens.map((sc) => ({ path: `index.html#${sc.id}`, title: `${sc.id} ${sc.route}`, ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}) })) }, images }, null, 2));
+    const writePreview = (shots: ShotResult["shots"]) => writeFileSync(join(previewDir, "preview.json"), JSON.stringify({
+      site: { entry: "index.html", screens: d.screens.map((sc) => ({ path: `index.html#${sc.id}`, title: `${sc.id} ${sc.route}`, ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}) })) },
+      images: [...images, ...shots.map((x) => ({ file: `shots/${x.file}`, screen: `${x.screen} - ${x.state}`, viewport: x.viewport }))],
+    }, null, 2));
+    writePreview([]);
     const parentDesign = ctx.state.info.parent?.kind === "change" && ctx.state.info.parent.designSha ? ctx.ledger.getJson<Parameters<typeof diffDesigns>[0]>(ctx.state.info.parent.designSha) : undefined;
     const diff = ctx.state.info.parent?.kind === "change" ? diffDesigns(parentDesign, d) : undefined;
     const bundleOf = (round: number) => ctx.ledger.putJson({ design: designSha, demo: demoSha, round });
@@ -112,7 +118,12 @@ export const designBaselineStep: StepDef = {
       }
     }
     const bundle = bundleOf(past.length);
-    return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle, { demo: demoFile, ...(diff ? { diff } : {}) }) } };
+    // pictures of the demo, only when a person is about to look at it; best effort, never a reason to stop
+    const shotsDir = join(previewDir, "shots");
+    const taken = await captureDemo(demoFile, d.screens.map((sc) => ({ id: sc.id, route: sc.route, states: sc.states ?? [] })), shotsDir);
+    if (taken.shots.length) writePreview(taken.shots);
+    if (taken.note) ctx.log(`design-baseline: ${taken.note}`);
+    return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle, { demo: demoFile, ...(diff ? { diff } : {}), shots: { dir: shotsDir, count: taken.shots.length, ...(taken.note ? { note: taken.note } : {}) } }) } };
   },
 };
 

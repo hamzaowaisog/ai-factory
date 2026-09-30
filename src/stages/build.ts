@@ -31,6 +31,8 @@ import { replay, splitKey } from "../ledger/state.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import { LANE, lightBuild } from "./lane.js";
 import { sizeCap } from "../estimate/gates.js";
+import { designFidelityLint, designSizeCap } from "../design/gates.js";
+import { actualSize, approvedLevel, fidelityLint, touchesUiFiles } from "../design/build-checks.js";
 
 type Plan = z.infer<typeof PlanBody> & { complexity: string };
 type Intent = z.infer<typeof IntentBody>;
@@ -561,6 +563,8 @@ export function implementStep(taskId: string): StepDef {
         [noSecrets, { scan: ctx.ledger.putJson(secretScanOf(diff, commit)) }],
         [diffInScope, { diff: diffSha, task: ctx.ledger.putJson({ fileScope: task.fileScope }) }],
         [noEscapeHatches, { diff: diffSha }],
+        // a task that changes UI files also passes the token and component lint (design.fidelity-lint)
+        ...(touchesUiFiles(wt, start, commit) ? [[designFidelityLint, { lint: ctx.ledger.putJson(fidelityLint(wt, start, commit)) }] as [GateDef, Record<string, string>]] : []),
       ]);
       if (diffGated) return failed(diffGated);
       // 2. only then build and run the tests on that exact commit
@@ -616,6 +620,12 @@ export const integrateStep: StepDef = {
       [diffSize, { diff: diffSha }],
       // B3: a run that follows an approved estimate may not grow past the size that was approved
       ...(ctx.state.info.estimateRef ? [[sizeCap, { diff: diffSha, estimate: ctx.state.info.estimateRef.estimateSha }] as [GateDef, Record<string, string>]] : []),
+      // design.size-cap: the UI change may not be bigger than the approved design allows (a skipped design allows none)
+      ...(ctx.state.info.estimateRef?.designSha && touchesUiFiles(wt, ctx.state.info.baseCommit!, head)
+        ? [[designSizeCap, {
+          actual: ctx.ledger.putJson(actualSize(wt, ctx.state.info.baseCommit!, head)),
+          approved: ctx.ledger.putJson({ level: approvedLevel(ctx.ledger.getJson(ctx.state.info.estimateRef.designSha)) }),
+        }] as [GateDef, Record<string, string>]] : []),
     ]);
     if (gated) return { kind: "park", reason: `Integration failed: ${gated.failures.slice(0, 3).map((f) => f.message).join("; ")}` };
     return { kind: "done", outputs: { testRun: run.testRun, diff: diffSha }, treeSha: head, data: { commit: head } };

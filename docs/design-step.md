@@ -93,20 +93,18 @@ The screenshot step writes one report per state: element boxes, accessibility re
 - **fails** on a missing state or sideways scrolling;
 - reports moved or missing elements as evidence for the PR reviewer, not as a new human stop.
 
-## Wiring still to do (exact places)
+## Wiring: what is done and what is still to do
 
-Discover and integrate are the .NET path's busiest code and are being changed on `main`, so these calls are described here and not made yet:
+Done, in `src/stages/build.ts` (helpers in `src/design/build-checks.ts`):
 
-1. **Discover** (`src/stages/build.ts`, `discoverStep.run`):
-   - After the refusal checks, when `snapshotFor(ctx)` has a `package.json` with `react` or `next`, call `buildInventory(dirSource(snap.root))`.
-   - Store it with `ctx.ledger.putJson(...)` and return its sha as a second named output, `design`. Nothing reads it yet, so this changes no other step.
-   - A .NET repo's frontend folder is usually a `noGo` glob, so it isn't in the snapshot. For a mixed repo, the inventory would need its own snapshot rule (read-only, frontend folder only).
-2. **Approve:** record the size with the approval (`data: { uiSize: level }`), so integrate can read the approved level from the ledger.
-3. **Integrate** (`src/stages/build.ts`, `integrateStep`):
-   - After the existing gates, compute `sizeFromGit(repo, baseCommit, head)`.
-   - Run `runGate(designSizeCap, ctx.ledger, ctx.writer, { actual, approved }, ctx.policy, { step: "integrate" })`, but only when the approved size isn't "no UI". .NET runs skip it.
-4. **Implement** (`implementStep` task checks): the same pattern with `designFidelityLint`, only for UI tasks.
-5. **Project config** (`src/config/project.ts`): an optional `design:` block with `sourceRoot`, `uiDir`, `brandFonts` and `navRaises`. It is not added yet, because the config is still .NET-only (`stack: dotnet`).
+- **Implement:** when a task's commit changes UI files, the token and component lint runs on that commit range against the inventory at the task's start, and `design.fidelity-lint` decides. A task with no UI files adds no gate.
+- **Integrate:** for a build that follows an approved estimate whose design was not skipped (or was, which allows no UI), when the range changes UI files, `design.size-cap` compares the real size (`sizeFromGit`) with the biggest screen size the approved design allows (`approvedLevel`: reuse and tweak are a screen tweak, new is a new screen, design-system is a design-system change). A UI change where the design was skipped fails the cap, so a request the model judged as having no UI cannot quietly build one. A human can waive either gate; the waiver is logged.
+
+Still to do:
+
+1. **Discover** (`discoverStep.run`): when the snapshot has a `package.json` with `react` or `next`, build the inventory and store it as a second named output, `design`. Nothing reads it yet. A .NET repo's frontend folder is usually a `noGo` glob, so a mixed repo needs its own read-only snapshot rule. (The lint builds its own inventory from git at the task's start commit, so it does not wait for this.)
+2. **Project config** (`src/config/project.ts`): an optional `design:` block with `sourceRoot`, `uiDir`, `brandFonts` and `navRaises`. Not added, because the config is still .NET-only (`stack: dotnet`), and the lint and cap run on each repo's detected layout.
+3. **Screenshot comparison in the build**: the layout, accessibility and pixel comparisons (`compareReports`) need screenshots of the built app. The estimate step's screenshots are of the wireframe demo only.
 
 ## Brief cleaner and the untrusted-text rule
 
