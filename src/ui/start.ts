@@ -5,7 +5,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
 import { basename, join } from "node:path";
-import { loadProject } from "../config/project.js";
+import { ensureStandaloneProject, loadProject, STANDALONE_PROJECT } from "../config/project.js";
 import type { Estimate } from "../contracts/estimate.js";
 import { DecisionError, decide } from "../ledger/human.js";
 import type { Ledger } from "../ledger/ledger.js";
@@ -52,9 +52,12 @@ const str = (v: unknown): string | undefined => (typeof v === "string" && v.trim
 const starting = new Map<string, { runId: string; at: number }>();
 
 export async function startRun(input: StartInput, deps: StartDeps = {}): Promise<{ runId: string; from: string }> {
-  const project = str(input.project);
+  const estimating = input.mode === "estimate";
+  // an estimate may have no project: the requirements stand alone and there is no repo to read
+  const standalone = estimating && (!str(input.project) || str(input.project) === STANDALONE_PROJECT);
+  const project = standalone ? STANDALONE_PROJECT : str(input.project);
   if (!project) throw new StartError("Pick a project.");
-  if (!projectNames().includes(project)) throw new StartError(`No project "${project}". Add one with: factory init <repo>`);
+  if (!standalone && !projectNames().includes(project)) throw new StartError(`No project "${project}". Add one with: factory init <repo>`);
 
   let maxCostUsd: number | undefined;
   if (input.maxCost !== undefined && input.maxCost !== null && input.maxCost !== "") {
@@ -75,7 +78,6 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   }
 
   // estimate mode: the same settings checks as `factory estimate`, before anything is read
-  const estimating = input.mode === "estimate";
   let settings: ReturnType<typeof parseEstimateSettings> | undefined;
   let frameFiles: { name: string; bytes: Buffer }[] | undefined;
   if (input.frames !== undefined && !estimating) throw new StartError("Design frames belong to estimate runs.");
@@ -88,18 +90,19 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
       settings = parseEstimateSettings({
         deliveryModel: String(e.deliveryModel ?? "hitl"), stackSource: String(e.stackSource ?? "undecided"),
         designInTotal: e.designInTotal !== false, feedbackRounds: String(e.feedbackRounds ?? "2"),
-        repo: e.noRepo !== true, ...(str(e.client) ? { client: str(e.client)!.trim() } : {}),
+        repo: standalone ? false : e.noRepo !== true, ...(str(e.client) ? { client: str(e.client)!.trim() } : {}),
         ...(str(e.projectName) ? { projectName: str(e.projectName)!.trim() } : {}), ...(str(e.pm) ? { pm: str(e.pm)!.trim() } : {}),
       });
     } catch (err) { throw new StartError((err as Error).message); }
   }
 
   // the same checks, in the same order, as `factory start`
+  if (standalone) ensureStandaloneProject();
   const cfg = loadProject(project);
   const problems = checkRoutes(cfg);
   if (problems.length) throw new StartError(`Setup problems:\n- ${problems.join("\n- ")}`);
 
-  const busy = (await busyRun(project)) ?? (() => {
+  const busy = standalone ? undefined : (await busyRun(project)) ?? (() => {
     const s = starting.get(project);
     return s && Date.now() - s.at < 30_000 ? { runId: s.runId } : undefined;
   })();
@@ -128,7 +131,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     sources: req.sources,
     ...(settings ? { mode: "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
   });
-  starting.set(project, { runId, at: Date.now() });
+  if (!standalone) starting.set(project, { runId, at: Date.now() });
   (deps.execute ?? runDetached)(runId);
   return { runId, from: describeSources(req.sources) };
 }

@@ -231,6 +231,22 @@ a.mode:hover::after { opacity: 1; }
 .drop.over { transform: scale(1.01); }
 .drop input { display: none; }
 .file-chip { display: inline-flex; align-items: center; gap: 0.55rem; padding: 0.45rem 0.5rem 0.45rem 0.8rem; border-radius: 10px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--edge); margin-top: 0.8rem; }
+.form:has(.sect) { max-width: none; }
+.sect { margin-bottom: 1.6rem; padding-bottom: 1.6rem; border-bottom: 1px solid var(--edge); }
+.sect:last-of-type { border-bottom: 0; }
+.sect-head { display: flex; gap: 0.8rem; align-items: flex-start; margin-bottom: 1rem; }
+.sect-head h3 { margin: 0; font-size: 1.05rem; }
+.sect-head p { margin: 0.15rem 0 0; }
+.sect-head .num { flex: none; width: 1.7rem; height: 1.7rem; border-radius: 50%; display: grid; place-items: center; font-size: 0.82rem; font-weight: 700; background: var(--accent-soft); color: var(--accent-2); }
+.est-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.1rem 1.2rem; align-items: start; margin-bottom: 1rem; }
+.fld > label { display: block; font-weight: 650; margin-bottom: 0.4rem; }
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0.8rem; }
+.opt { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.8rem 1rem; border-radius: 12px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--edge); cursor: pointer; }
+.opt input { margin-top: 0.25rem; width: 1.05rem; height: 1.05rem; accent-color: var(--accent); flex: none; }
+.opt strong { display: block; }
+.opt .hint { display: block; margin-top: 0.15rem; }
+.drop.slim { min-height: 0; flex-direction: row; justify-content: flex-start; flex-wrap: wrap; gap: 0.7rem; padding: 0.9rem 1.1rem; text-align: left; }
+.drop.slim svg { width: 22px; height: 22px; }
 .row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
 .money-in { position: relative; max-width: 220px; }
 .money-in span { position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-family: var(--mono); }

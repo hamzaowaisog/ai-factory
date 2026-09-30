@@ -1,6 +1,6 @@
 // Project config: ~/.factory/projects/<name>.yaml (contracts §3, trimmed to the POC).
 // Never holds secrets: credentials are env var names resolved from ~/.factory/.env.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
@@ -99,6 +99,20 @@ export type ProjectConfig = z.infer<typeof ProjectConfig>;
 
 export function projectPath(name: string): string {
   return join(factoryHome(), "projects", `${name}.yaml`);
+}
+
+/**
+ * The config an estimate uses when there is no project: requirements alone, no repo to read. It holds nothing
+ * but a name (the estimate steps take their models from the defaults) and is written on first use.
+ */
+export const STANDALONE_PROJECT = "standalone-estimates";
+export function ensureStandaloneProject(): string {
+  const p = projectPath(STANDALONE_PROJECT);
+  if (!existsSync(p)) {
+    mkdirSync(join(factoryHome(), "projects"), { recursive: true });
+    writeFileSync(p, `# Written by the factory for estimates that have no project: the requirements stand alone, there is no repo.\nproject: ${STANDALONE_PROJECT}\nrepo: "-"\nstack: dotnet\n`, { mode: 0o600 });
+  }
+  return STANDALONE_PROJECT;
 }
 
 export function loadProject(name: string): ProjectConfig {

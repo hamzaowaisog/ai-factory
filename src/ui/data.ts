@@ -27,6 +27,7 @@ import { lastActivity, readTrace } from "../util/trace.js";
 import { maskSecrets } from "../config/env.js";
 import { Redactor } from "../context/secrets.js";
 import { readPreview } from "./preview.js";
+import { STANDALONE_PROJECT } from "../config/project.js";
 
 // ---------- helpers ----------
 
@@ -55,7 +56,7 @@ export interface ProjectRow { name: string; busy?: { runId: string } }
 
 export function projectNames(): string[] {
   const dir = join(factoryHome(), "projects");
-  return existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".yaml")).map((f) => f.replace(/\.yaml$/, "")).sort() : [];
+  return existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".yaml") && f !== `${STANDALONE_PROJECT}.yaml`).map((f) => f.replace(/\.yaml$/, "")).sort() : [];
 }
 
 /** Is a run executing on this project right now? (the executor's per-repo lock; its key is the project name) */

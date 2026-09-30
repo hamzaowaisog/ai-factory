@@ -531,6 +531,20 @@ describe("factory ui: estimate runs", () => {
     expect((await call(`/api/runs/${r.json().runId}`)).json().mode).toBe("estimate");
   });
 
+  it("starts an estimate with no project: requirements alone, no repo, and the stand-in config stays out of the project list", async () => {
+    const r = await post({ project: "", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { noRepo: false } });
+    expect(r.status).toBe(201);
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info.mode).toBe("estimate");
+    expect(s.info.estimate).toMatchObject({ noRepo: true });
+    expect(s.info.repoPath).toBeUndefined();
+    expect(s.info.repoId).toBeUndefined();
+    expect((await call("/api/projects")).json().projects.map((p: { name: string }) => p.name)).not.toContain("standalone-estimates");
+    // a build still needs a real project
+    expect((await post({ project: "", prompt: "Change the heading" })).status).toBe(400);
+    expect((await post({ project: "standalone-estimates", prompt: "Change the heading" })).status).toBe(400);
+  });
+
   it("the estimate view says so for a build run and before the estimate exists", async () => {
     const built = await call(`/api/runs/${ids.delivered}/estimate`);
     expect(built.status).toBe(200);

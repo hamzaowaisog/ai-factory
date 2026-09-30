@@ -224,12 +224,12 @@ async function requestScreen(kind = "brownfield") {
   const meta = await api("/api/projects");
   const err = h("div", { class: "error", hidden: true });
   const project = h("select", { id: "project" },
-    h("option", { value: "" }, meta.projects.length ? "Choose a project…" : "No projects yet"),
+    h("option", { value: "" }, estimating ? "No project: requirements only (no repo)" : meta.projects.length ? "Choose a project…" : "No projects yet"),
     meta.projects.map((p) => h("option", { value: p.name, disabled: !!p.busy }, p.busy ? `${p.name}  (run ${p.busy.runId} is running)` : p.name)));
-  if (meta.projects.length === 1 && !meta.projects[0].busy) project.value = meta.projects[0].name;
+  if (!estimating && meta.projects.length === 1 && !meta.projects[0].busy) project.value = meta.projects[0].name;
 
   // the three inputs, which can be combined like factory start
-  const prompt = h("textarea", { id: "prompt", placeholder: "e.g. Show the number of orders next to the Your orders heading, and keep the heading text." });
+  const prompt = h("textarea", { id: "prompt", placeholder: estimating ? "Paste the requirements: notes, a brief, a transcript, an email thread. e.g. A customer portal where buyers log in, see their orders and download invoices." : "e.g. Show the number of orders next to the Your orders heading, and keep the heading text." });
   const fileInput = h("input", { type: "file", accept: ".md,.markdown,.txt,text/markdown,text/plain" });
   const jira = h("input", { type: "text", id: "jira", placeholder: "ABC-123 or its link", disabled: !meta.jira.configured });
   let file;
@@ -283,7 +283,7 @@ async function requestScreen(kind = "brownfield") {
   // estimate settings, like the factory estimate flags
   const opt = (v, t) => h("option", { value: v }, t);
   const delivery = h("select", { id: "delivery" }, opt("hitl", "HITL: a supervisor plus agents"), opt("agentic", "Solely agentic: no supervisor gates"));
-  const stack = h("select", { id: "stack" }, opt("undecided", "Undecided: a default pack, stated as an assumption"), opt("client", "Client's stack (fixed)"), opt("folio3", "Folio3 decides"));
+  const stack = h("select", { id: "stack" }, opt("undecided", "Undecided (default pack)"), opt("client", "Client's stack (fixed)"), opt("folio3", "Folio3 decides"));
   const rounds = h("input", { type: "number", id: "rounds", min: "0", max: "10", step: "1", value: "2" });
   const designIn = h("input", { type: "checkbox", id: "designin", checked: true });
   const noRepo = h("input", { type: "checkbox", id: "norepo" });
@@ -300,29 +300,46 @@ async function requestScreen(kind = "brownfield") {
     frameList.textContent = frames.length ? `${frames.length} frame${frames.length === 1 ? "" : "s"} (${(bytes / 1e6).toFixed(1)} MB): ${frames.slice(0, 6).map((f) => f.name).join(", ")}${frames.length > 6 ? ", …" : ""}` : "No frames attached. Without them each screen is drawn as a wireframe.";
   });
   const b64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] ?? ""); r.onerror = () => no(new Error(`Could not read ${f.name}.`)); r.readAsDataURL(f); });
-  const settings = estimating ? h("div", { class: "field" }, h("span", { class: "label" }, "Estimate settings"),
-    h("div", { class: "grid-2" },
-      h("div", {}, h("label", { for: "delivery" }, "Delivery model"), delivery),
-      h("div", {}, h("label", { for: "stack" }, "Stack"), stack),
-      h("div", {}, h("label", { for: "rounds" }, "Client feedback rounds"), rounds),
-      h("div", {}, h("label", { for: "designin" }, designIn, " Design counts in the total"), h("br"), h("label", { for: "norepo" }, noRepo, " The requirements stand alone (no existing code to read)"))),
-    h("div", { class: "grid-2" }, hdr, projName, pm),
-    h("div", {}, h("label", { for: "frames" }, "Design frames (optional)"), frameInput, frameList),
-    h("div", { class: "hint" }, "The same choices as factory estimate. Per-track rates are set from the terminal.")) : null;
+  const fld = (id, label, control, hint) => h("div", { class: "fld" }, h("label", { for: id }, label), control, hint ? h("div", { class: "hint" }, hint) : null);
+  const opt2 = (id, control, title, text) => h("label", { class: "opt", for: id }, control, h("span", {}, h("strong", {}, title), h("span", { class: "hint" }, text)));
+  const sect = (n, title, text, ...kids) => h("section", { class: "sect" }, h("div", { class: "sect-head" }, h("span", { class: "num" }, String(n)), h("div", {}, h("h3", {}, title), text ? h("p", { class: "muted small" }, text) : null)), ...kids);
+  hdr.placeholder = "e.g. Acme Ltd"; projName.placeholder = "e.g. Order portal"; pm.placeholder = "e.g. Sam Lee";
+  const standaloneNote = h("div", { class: "hint" });
+  const syncProject = () => {
+    const none = !project.value;
+    noRepo.checked = none || noRepo.checked; noRepo.disabled = none;
+    standaloneNote.textContent = none
+      ? "No project: the estimate is built from the requirements alone, with no code to read. Every task counts as new build work."
+      : "With a project the factory reads its code, so changes are sized from the files they touch.";
+  };
+  if (estimating) { project.addEventListener("change", syncProject); syncProject(); }
+  const settings = estimating ? h("div", { class: "est" },
+    sect(3, "How it will be delivered", "The same choices as factory estimate.",
+      h("div", { class: "est-grid" },
+        fld("delivery", "Delivery model", delivery, "HITL keeps a supervisor at the gates; solely agentic has none."),
+        fld("stack", "Stack", stack, "Who picks the technology. Undecided uses a default pack, stated as an assumption."),
+        fld("rounds", "Client feedback rounds", rounds, "Rounds of change the client may ask for, allowed for in the hours.")),
+      h("div", { class: "opts" },
+        opt2("designin", designIn, "Design counts in the total", "Turn off to keep Design out of the Summary total (its row still shows)."),
+        opt2("norepo", noRepo, "The requirements stand alone", "There is no existing code to read. Always on when no project is chosen."))),
+    sect(4, "Workbook header", "Shown at the top of the team and client workbooks. All optional.",
+      h("div", { class: "est-grid" }, fld("client", "Client", hdr), fld("projname", "Project name", projName), fld("pm", "Project manager", pm))),
+    sect(5, "Design frames", "Exported from Figma (png, jpg, webp, svg or json). Optional.",
+      h("label", { class: "drop slim", for: "frames" }, frameInput, icon("upload"), h("strong", {}, "Choose frame files"), frameList))) : null;
 
   const maxCost = h("input", { type: "number", id: "maxcost", min: "0.5", step: "0.5", placeholder: "normal limit" });
   const start = h("button", { class: "btn primary", type: "submit" }, estimating ? "Start estimate" : "Start run", icon("arrow"));
   const form = h("form", { class: "form", novalidate: true },
     err,
-    h("div", { class: "field" }, h("label", { for: "project" }, "Project"), project,
-      h("div", { class: "hint" }, "From ~/.factory/projects. Add one with factory init <repo>.")),
-    h("div", { class: "field" }, h("span", { class: "label" }, "Request"),
+    estimating ? sect(1, "Project", "Pick one to read its code, or choose none to estimate from the requirements alone.", h("div", { class: "fld" }, project, standaloneNote))
+      : h("div", { class: "field" }, h("label", { for: "project" }, "Project"), project, h("div", { class: "hint" }, "From ~/.factory/projects. Add one with factory init <repo>.")),
+    h("div", { class: estimating ? "sect" : "field" }, estimating ? h("div", { class: "sect-head" }, h("span", { class: "num" }, "2"), h("div", {}, h("h3", {}, "Requirements"), h("p", { class: "muted small" }, "Paste them, upload a file or give a Jira key. They are combined into one request."))) : h("span", { class: "label" }, "Request"),
       h("div", { class: "tabs-in", role: "tablist" }, tabs.prompt, tabs.file, tabs.jira),
       panels.prompt, panels.file, panels.jira,
       h("div", { class: "hint" }, "Use one input or several: they are combined into one request, like factory start does.")),
     settings,
-    h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost),
-      h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
+    estimating ? sect(6, "Spend limit", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")))
+      : h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
     h("div", { class: "row" }, start, h("span", { class: "hint" }, "Runs in the background. Questions and the plan approval are answered in your terminal.")),
   );
   form.addEventListener("submit", async (ev) => {
@@ -347,7 +364,7 @@ async function requestScreen(kind = "brownfield") {
     h("div", { class: "page-head" }, h("div", {},
       h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", estimating ? "Estimate" : "Brownfield"),
       h("h1", {}, estimating ? "What should be estimated?" : "What should change?"),
-      h("p", { class: "sub" }, estimating ? "Paste or upload the requirements. A lead approves the estimate in the terminal, then the team and client workbooks are written." : "The request is read and checked before a run exists: a bad file or ticket costs nothing."))),
+      h("p", { class: "sub" }, estimating ? "Paste or upload the requirements. The lead approves the estimate on its tab or in the terminal, then the team and client workbooks are written." : "The request is read and checked before a run exists: a bad file or ticket costs nothing."))),
     h("div", { class: "panel" }, form),
   ], true);
 }

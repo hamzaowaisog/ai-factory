@@ -89,7 +89,7 @@ export async function createRun(request: string, projectName: string, operator: 
   await ledger.append({
     type: "run.created",
     data: {
-      mode: opts.mode ?? "brownfield", project: project.project, ...(noRepo ? {} : { repoPath: project.repo, baseRef: project.baseBranch, baseCommit }), repoId: project.project,
+      mode: opts.mode ?? "brownfield", project: project.project, ...(noRepo ? {} : { repoPath: project.repo, baseRef: project.baseBranch, baseCommit }), ...(noRepo ? {} : { repoId: project.project }),
       request, requestSha, operator, versions: versions(),
       ...(opts.maxCostUsd !== undefined ? { maxCostUsd: opts.maxCostUsd } : {}),
       ...(opts.requestFile ? { requestFile: opts.requestFile } : {}),

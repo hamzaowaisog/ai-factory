@@ -74,7 +74,7 @@ program.command("start")
 
 program.command("estimate")
   .argument("[prompt]", "the requirements, in plain words")
-  .requiredOption("--project <name>", "project config in ~/.factory/projects/<name>.yaml")
+  .option("--project <name>", "project config in ~/.factory/projects/<name>.yaml; leave it out to estimate from the requirements alone (no repo)")
   .option("--file <path>", "the requirements as a Markdown, text or Word (.docx) file")
   .option("--frames <dir>", "a folder of design frames exported from Figma (png, jpg, webp, svg or json)")
   .option("--jira <key>", "the requirements as a Jira ticket (ABC-123 or its link)")
@@ -91,12 +91,14 @@ program.command("estimate")
   .option("--revises <run>", "a change request: the new requirements revise an approved estimate, and the card shows what changed")
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory; a lead approves it in the terminal, then two workbooks are written")
-  .action(async (prompt: string | undefined, o: EstimateOptions & { project: string; file?: string; frames?: string; jira?: string; maxCost?: string; fromRun?: string; revises?: string }) => {
+  .action(async (prompt: string | undefined, o: EstimateOptions & { project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; fromRun?: string; revises?: string }) => {
     if (o.fromRun && o.revises) throw new Error("Use --from-run or --revises, not both.");
-    const project = loadProject(o.project);
+    // no --project: the requirements stand alone, so there is no repo to read
+    const projectName = o.project ?? (await import("../config/project.js")).ensureStandaloneProject();
+    const project = loadProject(projectName);
     const problems = checkRoutes(project);
     if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
-    let settings = parseEstimateSettings(o);
+    let settings = parseEstimateSettings(o.project ? o : { ...o, repo: false });
     let lineage: { kind: "change" | "sibling"; approved: Approved } | undefined;
     let req: { text: string; sources: RequestSource[]; attachments: { name: string; bytes: Buffer }[] };
     if (o.fromRun) {
@@ -110,7 +112,7 @@ program.command("estimate")
       req = await gatherRequest({ prompt, file: o.file, jira: o.jira, frames: o.frames }, {}, { maxBytes: MAX_ESTIMATE_REQUEST_BYTES });
       if (o.revises) lineage = { kind: "change", approved: approvedEstimate(openRun(o.revises).runId) };
     }
-    const runId = await createRun(req.text, o.project, userInfo().username, {
+    const runId = await createRun(req.text, projectName, userInfo().username, {
       mode: "estimate", estimate: settings, sources: req.sources, attachments: req.attachments, ...(lineage ? { lineage } : {}),
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
     });
@@ -494,13 +496,13 @@ program.command("doctor").description("check this machine and the setup").action
   if (hasSecret("OPENAI_API_KEY")) {
     const { DEFAULT_ROUTES } = await import("../stages/routing.js");
     const gpt = [...new Set(Object.values(DEFAULT_ROUTES).map((r) => r.model).filter((m) => /^gpt|^o\d/.test(m)))];
-    for (const name of existsSync(join(factoryHome(), "projects")) ? readdirSync(join(factoryHome(), "projects")).filter((f) => f.endsWith(".yaml")) : []) {
+    for (const name of existsSync(join(factoryHome(), "projects")) ? readdirSync(join(factoryHome(), "projects")).filter((f) => f.endsWith(".yaml") && f !== "standalone-estimates.yaml") : []) {
       const p = loadProject(name.replace(/\.yaml$/, ""));
       const missing = gpt.filter((m) => !p.prices[m]);
       if (missing.length) log(`note ${p.project}: no price set for ${missing.join(", ")}; cost is estimated high ($10/$50 per million). Add "prices:" to its config.`);
     }
   }
-  const projects = existsSync(join(factoryHome(), "projects")) ? readdirSync(join(factoryHome(), "projects")).filter((f) => f.endsWith(".yaml")) : [];
+  const projects = existsSync(join(factoryHome(), "projects")) ? readdirSync(join(factoryHome(), "projects")).filter((f) => f.endsWith(".yaml") && f !== "standalone-estimates.yaml") : [];
   ok(projects.length > 0, `projects: ${projects.join(", ").replace(/\.yaml/g, "") || "none"}`, "add one with: factory init <path-to-repo-or-git-url>");
 });
 
