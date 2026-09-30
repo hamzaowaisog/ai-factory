@@ -19,7 +19,34 @@ export const ProjectConfig = z.object({
   repo: z.string(),
   baseBranch: z.string().default("main"),
   stack: z.literal("dotnet"),
-  forge: z.object({ kind: z.enum(["github", "bitbucket"]), repo: z.string(), tokenEnv: z.string().default("GITHUB_TOKEN") }).optional(),
+  forge: z.object({
+    kind: z.enum(["github", "bitbucket"]), repo: z.string(), tokenEnv: z.string().default("GITHUB_TOKEN"),
+    /** GitHub API and git push URLs; set only for GitHub Enterprise or tests (a local fake) */
+    apiUrl: z.string().default("https://api.github.com"),
+    pushUrl: z.string().optional(),
+  }).optional(),
+  /**
+   * `factory watch`: a Jira ticket labelled `label` by someone on `allowedReporters` starts a run.
+   * Off when absent. Every limit here protects real credits.
+   */
+  jira: z.object({
+    project: z.string().regex(/^[A-Z][A-Z0-9_]+$/, "the Jira project key, e.g. SHOP"),
+    label: z.string().default("factory"),
+    /** Jira account ids or emails of people allowed to start runs by adding the label */
+    allowedReporters: z.array(z.string()).min(1),
+    /** optional workflow moves: the transition names to use when a run starts / is delivered */
+    transitions: z.object({ started: z.string().optional(), delivered: z.string().optional() }).default({}),
+    /** passed like --max-cost to every run the watcher starts */
+    maxCostPerRun: z.number().positive().default(3),
+    maxRunsPerDay: z.number().int().positive().default(3),
+    dailyBudgetUsd: z.number().positive().default(10),
+    monthlyBudgetUsd: z.number().positive().default(100),
+    /** tickets whose description is shorter than this are skipped (not enough to go on) */
+    minDescriptionChars: z.number().int().nonnegative().default(80),
+    pollSeconds: z.number().int().min(30).default(60),
+  }).optional(),
+  /** Where the watcher posts updates. Webhook URLs live in ~/.factory/.env, named here. */
+  notify: z.object({ slackWebhookEnv: z.string().optional() }).default({}),
   dotnet: z.object({
     sdkImage: z.string().default("mcr.microsoft.com/dotnet/sdk:8.0"),
     solution: z.string().optional(),

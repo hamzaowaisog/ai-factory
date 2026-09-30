@@ -354,6 +354,30 @@ program.command("smoke").option("--project <name>", "also check models this proj
     if (!ok) process.exitCode = 1;
   });
 
+program.command("watch").requiredOption("--project <name>", "the project whose Jira tickets to watch")
+  .option("--once", "check once and exit (for trying the set-up)")
+  .description("start runs from Jira tickets labelled by allowed people, and post updates to Jira and Slack; decisions stay in your terminal")
+  .action(async (o: { project: string; once?: boolean }) => {
+    const { watcherFor } = await import("../watch/start.js");
+    const w = watcherFor(o.project);
+    const cfg = loadProject(o.project).jira!;
+    log(`Watching ${cfg.project} for the "${cfg.label}" label every ${cfg.pollSeconds}s (limits: $${cfg.maxCostPerRun}/run, ${cfg.maxRunsPerDay} runs and $${cfg.dailyBudgetUsd}/day, $${cfg.monthlyBudgetUsd}/month). Ctrl+C to stop. This computer must stay awake.`);
+    for (;;) {
+      let wait = cfg.pollSeconds;
+      try {
+        const r = await w.tick();
+        const bits = [r.started && `started ${r.started}`, r.skipped.length && `skipped ${r.skipped.join(", ")}`, r.resumed.length && `resumed ${r.resumed.join(", ")}`,
+          r.sent && `${r.sent} update(s) sent`, r.failed && `${r.failed} update(s) failed`, r.blocked && `waiting: ${r.blocked}`].filter(Boolean);
+        log(`${new Date().toTimeString().slice(0, 8)} ${bits.length ? bits.join(" · ") : "nothing new"}`);
+        if (r.retryAfterSec) wait = Math.max(wait, r.retryAfterSec);
+      } catch (e) {
+        log(`${new Date().toTimeString().slice(0, 8)} check failed: ${(e as Error).message}`);
+      }
+      if (o.once) return;
+      await new Promise((res) => setTimeout(res, wait * 1000));
+    }
+  });
+
 program.command("selftest").option("--keep", "keep the sample repo and project afterwards")
   .description("one full run on a small sample repo for $0: real test lab, database, coding container, checks and delivery; only the AI answers are scripted")
   .action(async (o: { keep?: boolean }) => {
