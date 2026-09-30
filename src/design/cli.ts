@@ -6,6 +6,8 @@ import { cleanBrief } from "./brief.js";
 import { captureReports } from "./capture.js";
 import { compareReports, diffFromGit, lintDiff, overall, type StateReport } from "./fidelity.js";
 import { buildInventory, inventorySummary } from "./inventory.js";
+import { readdirSync } from "node:fs";
+import { NOTICEABLE_RATIO, pixelDiff } from "./pixeldiff.js";
 import { detectLayout } from "./layout.js";
 import { plannedChanges, sizeChange, sizeFromGit, type SizeInput, type SizeResult } from "./size.js";
 import { dirSource, gitSource, type FileSource } from "./source.js";
@@ -110,6 +112,19 @@ export function registerDesignCommands(program: Command): void {
         out(`overall: ${overall(results)}`);
       }
       if (overall(results) === "fail") process.exitCode = 1;
+    });
+
+  design.command("pixel").argument("<baseDir>", "screenshots from the before version (from design capture)").argument("<finalDir>", "screenshots from the after version")
+    .requiredOption("--out <dir>", "folder for the difference pictures")
+    .option("--tolerance <n>", "a colour channel must move by more than this (0-255) to count", "16")
+    .option("--json", "print JSON")
+    .description("compare two folders of screenshots pixel by pixel and draw where they differ (facts, not a pass or fail)")
+    .action(async (baseDir: string, finalDir: string, o: { out: string; tolerance: string; json?: boolean }) => {
+      const names = readdirSync(resolve(finalDir)).filter((f) => f.endsWith(".png") && readdirSync(resolve(baseDir)).includes(f));
+      const r = await pixelDiff(names.map((f) => ({ name: f, base: join(resolve(baseDir), f), final: join(resolve(finalDir), f), out: join(resolve(o.out), f) })), Number(o.tolerance));
+      if (o.json) return out(JSON.stringify(r, null, 2));
+      for (const x of r.results) out(`${(x.ratio * 100).toFixed(2).padStart(6)}%  ${x.name}${x.sizeChanged ? "  (page size changed)" : ""}${x.ratio > NOTICEABLE_RATIO || x.sizeChanged ? "  <- differs noticeably" : ""}`);
+      out(`${r.results.length} pair(s) compared, pictures in ${o.out}${r.note ? `\nnote: ${r.note}` : ""}`);
     });
 
   design.command("brief").argument("<extract.json>", "an untrusted design extract (Figma export, screenshot reading, brand guide)")

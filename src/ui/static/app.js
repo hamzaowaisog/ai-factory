@@ -933,6 +933,25 @@ async function estimateScreen(id) {
 
 // ---------- design ----------
 
+/** The build's before and after pictures of each page, with what moved. Evidence, not a verdict. */
+function visualPanel(id, v) {
+  const head = h("div", { class: "panel-head" }, h("h2", {}, icon("image"), "Before and after"));
+  const wrap = (...body) => h("section", { class: "panel rise", vars: { "--i": 2 } }, head, ...body);
+  if (v.none) return wrap(h("p", { class: "muted small" }, v.none));
+  if (v.skipped) return wrap(h("p", { class: "muted small" }, `Skipped: ${v.skipped}. `), h("p", { class: "small muted" }, "Turn it on with design.capture in the project config (see docs/design-step.md). By hand: ", h("code", {}, "factory design capture"), " and ", h("code", {}, "factory design pixel"), "."));
+  const shot = (rel, label) => rel ? h("figure", { class: "vshot" }, h("a", { href: `/shots/${encodeURIComponent(id)}/${rel}`, target: "_blank", rel: "noopener" }, h("img", { src: `/shots/${encodeURIComponent(id)}/${rel}`, alt: `${label}`, loading: "lazy" })), h("figcaption", { class: "small muted" }, label)) : null;
+  const results = v.results.filter((r) => r.status !== "PASS");
+  return wrap(
+    h("div", { class: "chips" }, h("span", { class: `chip ${v.overall === "pass" ? "pass" : v.overall === "fail" ? "fail" : ""}` }, icon(v.overall === "pass" ? "check" : "alert"), `layout and accessibility: ${v.overall}`)),
+    results.length ? h("ul", { class: "reasons small" }, results.slice(0, 12).map((r) => h("li", {}, h("strong", {}, `${r.status} ${r.check}`), ` ${r.detail}`))) : null,
+    v.note ? h("p", { class: "small muted" }, v.note) : null,
+    ...v.pages.map((p) => h("div", { class: "stack" },
+      h("h3", {}, p.name, p.ratio !== undefined ? h("span", { class: `tag${p.noticeable ? "" : " faint"}` }, `${(p.ratio * 100).toFixed(p.ratio < 0.1 ? 1 : 0)}% of pixels differ${p.sizeChanged ? ", page size changed" : ""}`) : null),
+      h("div", { class: "grid-2" }, shot(p.base, "Before"), shot(p.final, "After")), p.diff ? shot(p.diff, "Differences in red") : null)),
+    h("p", { class: "small muted" }, "A change request is meant to change how a page looks, so the pixel figures are facts to look at, not a pass or fail."));
+}
+
+
 async function designScreen(id) {
   skeleton("grid");
   const [r, d] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/design`)]);
@@ -974,8 +993,7 @@ async function designScreen(id) {
       h("div", { class: "stack" },
         h("section", { class: "panel rise", vars: { "--i": 0 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("ruler"), "UI change size")), size),
         h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Style check")), style),
-        h("div", { class: "slot rise", vars: { "--i": 2 } }, icon("image"), h("strong", {}, "Screenshots of the built app"),
-          h("span", {}, "Taken by hand for now: factory design capture --page name=url --out dir, then factory design compare approved.json final.json.")),
+        visualPanel(id, d.visual),
         r.mode === "estimate" ? h("a", { class: "slot rise", href: `#/runs/${encodeURIComponent(id)}/preview`, vars: { "--i": 3 } }, icon("cursor"), h("strong", {}, "Clickable prototype"), h("span", {}, "The demo and its screenshots are under Preview.")) : null,
       ),
       h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("grid"), "The app's pages and building blocks")), inv),

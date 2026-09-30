@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import "../gates/predicates.js";
 import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
-import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, previewView, projectsView, runView, runsView, statsView } from "./data.js";
+import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
 import { decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
 
@@ -254,6 +254,16 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       const f = !l ? undefined : want.startsWith("draft-") ? await draftFile(l, want.slice(6)) : exportFile(l, want);
       if (!f) return send(res, 404, "No such workbook.", "text/plain; charset=utf-8");
       return send(res, 200, f.body, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", { "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"` });
+    }
+    if (method === "GET" && path.startsWith("/shots/")) {
+      // a picture from a run's visual check: same key as the API, png files in one folder only
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      const [, , runId = "", ...rest] = path.split("/");
+      let l, rel = "";
+      try { l = findRun(decodeURIComponent(runId)); rel = rest.map(decodeURIComponent).join("/"); } catch { l = undefined; }
+      const body = l ? visualShot(l, rel) : undefined;
+      if (!body) return send(res, 404, "No such picture.", "text/plain; charset=utf-8");
+      return send(res, 200, body, "image/png", { "Cache-Control": "no-store" });
     }
     if (!path.startsWith("/api/")) return send(res, 404, "Not found.", "text/plain; charset=utf-8");
 

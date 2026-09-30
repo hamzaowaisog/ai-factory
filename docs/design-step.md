@@ -87,7 +87,7 @@ The CLI takes overrides for the source root and the building-block folder.
 - Gate: `design.size-cap` with inputs `{ actual, approved: { level } }`. It fails when the real change is bigger than the approved size, and lists the reasons.
 - It can be waived by a human, like the diff-size gate.
 
-### Accept: screenshots and comparisons (not built)
+### Accept: screenshots and comparisons (see "Visual check")
 The screenshot step writes one report per state: element boxes, accessibility results, and whether the page scrolls sideways. `compareReports(approved, final)` then:
 - **fails** on a new accessibility problem. That includes a new element that breaks a rule the page already broke, because the comparison is by rule and element, not by rule alone;
 - **fails** on a missing state or sideways scrolling;
@@ -104,10 +104,23 @@ Done, in `src/stages/build.ts` (helpers in `src/design/build-checks.ts`):
 - **Project config:** an optional `design:` block (`sourceRoot`, `uiDir`, `brandFonts`, `navRaises`), passed to the inventory, the lint and the size cap (see `docs/project-example.yaml`).
 - **Capture and compare the built app:** `factory design capture --page name=url --out dir` screenshots and reports pages of a running app at 390 and 1280 px (layout boxes, basic accessibility checks, sideways scroll), and `factory design compare approved.json final.json` runs `compareReports`. The accessibility checks are a small built-in set (alt text, names, labels, page language), not axe-core.
 
-Still to do:
+- **Visual check inside the build:** see below.
 
-1. **Run capture and compare inside the build.** It needs the built app running in a Node + Chromium lab container (see "Not ported"). Until then a person runs the two commands against a preview URL.
-2. **Pixel diff** and the fixtures, frozen clock and mocked network the diff needs.
+## Visual check (built, opt-in, advisory)
+
+`src/stages/design-check.ts` runs after accept on a build whose change touches UI files. It needs a `design.capture` block in the project config (see `docs/project-example.yaml`). Without one the step is skipped and says why.
+
+What it does: checks out the base commit, runs `install` and `start`, waits for `readyPath`, screenshots each listed page at 390 and 1280 px, stops the app, repeats for the head, then compares layout and accessibility (`compareReports`) and pixels (`pixelDiff`). Pictures and a report go in the run's `design-check/` folder (`base/`, `final/`, `diff/`). The Design tab shows them side by side, and they are served by `factory ui` only as png files from that folder, with the key.
+
+Things to know:
+- **Host risk.** The project's install and start commands run on this machine, not in a container, on code the factory just generated. That is why `allowHost: true` is required. The app gets a minimal environment plus `env` from the config, and no factory secrets. The process group is killed afterwards.
+- **Advisory.** It never blocks the build. A change request is meant to change how pages look, so the output is evidence for the reviewer.
+- **The "approved" side is the base commit**, the app as it was before the change, not the design mock. Comparing against a mock image is not attempted.
+- **Only UI-changing builds** are captured.
+
+## Pixel diff
+
+`factory design pixel <before-dir> <after-dir> [--tolerance n] [--out dir]` compares same-named pngs in two folders and prints, per pair, the share of pixels that differ, whether the size changed, and whether the change is noticeable (over `NOTICEABLE_RATIO`). It gives figures, not pass or fail. Comparison runs in headless Chromium on a canvas, so no image library is needed. Pages with clocks, animations or live data will differ run to run; fixtures, a frozen clock and mocked network are not built.
 
 ## Brief cleaner and the untrusted-text rule
 

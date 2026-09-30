@@ -558,6 +558,24 @@ describe("factory ui: estimate runs", () => {
     expect((await call(`/export/${id}/other`)).status).toBe(404);
     expect((await call(`/export/${id}/team`, { token: null })).status).toBeGreaterThanOrEqual(401);
   });
+
+  it("serves visual-check pictures only as png files inside the run's design-check folder, with the key", async () => {
+    const id = await createRun("Build an order portal", "web", "tester");
+    const l = Ledger.open(id);
+    mkdirSync(join(l.dir, "design-check", "base"), { recursive: true });
+    writeFileSync(join(l.dir, "design-check", "base", "home.png"), "PNGDATA");
+    writeFileSync(join(l.dir, "design-check", "base", "note.txt"), "no");
+    writeFileSync(join(home, "outside.png"), "secret");
+    const ok = await call(`/shots/${id}/base/home.png`);
+    expect(ok.status).toBe(200);
+    expect(ok.headers["content-type"]).toBe("image/png");
+    expect(ok.body).toBe("PNGDATA");
+    expect((await call(`/shots/${id}/base/note.txt`)).status).toBe(404);
+    expect((await call(`/shots/${id}/base/..%2F..%2F..%2Foutside.png`)).status).toBe(404);
+    expect((await call(`/shots/${id}/other/home.png`)).status).toBe(404);
+    expect((await call(`/shots/nope/base/home.png`)).status).toBe(404);
+    expect((await call(`/shots/${id}/base/home.png`, { token: null })).status).toBeGreaterThanOrEqual(401);
+  });
 });
 
 describe("factory ui: the estimate lead's decision", () => {

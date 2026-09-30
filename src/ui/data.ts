@@ -18,6 +18,7 @@ import { Ledger } from "../ledger/ledger.js";
 import { replay, splitKey, statusLabel, type RunState } from "../ledger/state.js";
 import { outcomes, scoreRun, stageStats, stageOf, type RunScore } from "../report.js";
 import { jiraConfigured } from "../sources/jira.js";
+import type { VisualCheck } from "../design/visual-check.js";
 import { exportWorkbooks } from "../estimate/export.js";
 import { exportInputFor } from "../stages/estimate-approve.js";
 import { stepsFor } from "../stages/modes.js";
@@ -353,7 +354,10 @@ export function designView(ledger: Ledger) {
   }
   const styleChecks = s.gates.filter((g) => g.gateId.startsWith("design.")).map((g) => ({ gateId: g.gateId, passed: g.passed, step: g.step, seq: g.seq }));
   const levels = LEVELS.map((level) => ({ level, name: LEVEL_NAMES[level] }));
-  return { runId: ledger.runId, project: s.info.project, levels, uiSize, inventory, styleChecks };
+  const vs = s.steps.get("design-check");
+  const visual: VisualCheck | { none: string } = vs?.status === "completed" && vs.outputs[0] ? ledger.getJson<VisualCheck>(vs.outputs[0])
+    : { none: "The visual check runs after the build's acceptance step." };
+  return { runId: ledger.runId, project: s.info.project, levels, uiSize, inventory, styleChecks, visual };
 }
 
 const nameOf = (c: { key: string; exports: string[] }) => c.exports[0] ?? c.key.split("/").pop()!;
@@ -443,5 +447,18 @@ export async function draftFile(ledger: Ledger, audience: string): Promise<{ bod
     const files = await exportWorkbooks(exportInputFor(s, ledger), dir, ledger.runId, {});
     const p = files[audience];
     return { body: readFileSync(p), name: `DRAFT-${basename(p)}` };
+  } catch { return undefined; }
+}
+
+/** A picture from the run's visual check: only a .png inside <ledger>/design-check, never through a link. */
+export function visualShot(ledger: Ledger, rel: string): Buffer | undefined {
+  if (!/^(base|final|diff)\/[\w.-]+\.png$/.test(rel)) return undefined;
+  try {
+    const root = realpathSync(join(ledger.dir, "design-check"));
+    const p = join(root, rel);
+    if (lstatSync(p).isSymbolicLink()) return undefined;
+    const real = realpathSync(p);
+    if (!real.startsWith(root + sep) || !lstatSync(real).isFile()) return undefined;
+    return readFileSync(real);
   } catch { return undefined; }
 }

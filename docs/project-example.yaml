@@ -30,3 +30,9 @@ agentEnv:                          # dummy values so the app compiles where the 
 #   uiDir: "src/components/ui"       # the building-block folder
 #   brandFonts: ["Acme Sans"]        # fonts the design brief may name besides Google Fonts
 #   navRaises: false                 # true: a navigation change counts as a new screen
+#   capture:                         # opt-in visual check after a UI-changing build (docs/design-step.md)
+#     allowHost: true                # REQUIRED: you agree to run the start command on this machine
+#     install: "npm ci"
+#     start: "npm run start -- -p $PORT"
+#     pages: [{ name: home, path: "/" }, { name: orders, path: "/orders" }]
+#     readyPath: "/"

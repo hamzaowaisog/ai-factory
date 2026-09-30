@@ -67,6 +67,25 @@ export const ProjectConfig = z.object({
     brandFonts: z.array(z.string()).default([]),
     /** a nav change counts as a new screen, not a tweak */
     navRaises: z.boolean().default(false),
+    /**
+     * Take the app's pages before and after the change and compare them (docs/design-step.md, "Visual check").
+     * The app is started from the repo's own commands ON THIS MACHINE, not in a container, so it is off unless
+     * `allowHost` is true: you are agreeing to run the project's start command on the generated code here.
+     */
+    capture: z.object({
+      allowHost: z.literal(true),
+      /** run once in each checkout first, e.g. "npm ci" */
+      install: z.string().optional(),
+      /** starts the app and listens on $PORT, e.g. "npm run start -- -p $PORT" */
+      start: z.string(),
+      pages: z.array(z.object({ name: z.string().min(1), path: z.string().startsWith("/") })).min(1).max(12),
+      port: z.number().int().min(1024).max(65000).default(4310),
+      /** a path that answers once the app is up */
+      readyPath: z.string().startsWith("/").default("/"),
+      timeoutSec: z.number().int().min(10).max(900).default(180),
+      /** extra environment for the app (no secrets from the factory are passed) */
+      env: z.record(z.string(), z.string()).default({}),
+    }).optional(),
   }).optional(),
   noGo: z.array(z.string()).default([]),
   /** USD per million tokens for models the factory has no price for (e.g. a GPT model). */
