@@ -26,6 +26,7 @@ factory start "Return 404 instead of 500 when an order ID doesn't exist" --proje
 - [Your first run](#your-first-run)
 - [Use it on your own .NET repo](#use-it-on-your-own-net-repo)
 - [Web screens](#web-screens)
+- [Start runs from Jira](#start-runs-from-jira)
 - [Command reference](#command-reference)
 - [Use it from Claude Code](#use-it-from-claude-code)
 - [Safety model](#safety-model)
@@ -434,6 +435,44 @@ Screenshots of every screen, dark and light: [docs/screens](docs/screens/). For 
 
 ---
 
+## Start runs from Jira
+
+`factory watch` starts a run when someone you trust adds a label to a Jira ticket. It posts updates on the ticket and in Slack as the run goes. It **never answers questions or approves plans**: those cards still wait for a person in the terminal, and the Slack message says which command to run.
+
+**Set-up (once per project):**
+
+1. **Jira login** in `~/.factory/.env` (the same as `--jira`): `JIRA_BASE_URL`, `JIRA_EMAIL` and `JIRA_API_TOKEN` (id.atlassian.com → Security → Create API token).
+2. **Slack (optional):** in Slack, create an app for your workspace, turn on *Incoming Webhooks*, add a webhook for the channel, and put its URL in `~/.factory/.env`, e.g. `SHOP_SLACK_WEBHOOK=https://hooks.slack.com/services/...`. Use an app webhook, not the old "custom integration" kind.
+3. **Project config:** add a `jira:` block (and `notify:` for Slack). See `docs/project-example.yaml`. The important parts:
+   - `project`: the Jira project key, e.g. `SHOP`.
+   - `label`: the label that starts a run (default `factory`).
+   - `allowedReporters`: the emails or Jira account ids of the people whose label counts. Anyone else's label is ignored.
+4. `factory doctor` checks the login and the webhook.
+
+**Run it:**
+
+```bash
+factory watch --project shop-api          # checks every minute; Ctrl+C stops it
+factory watch --project shop-api --once   # check once, to try the set-up
+```
+
+**This computer must stay awake and online while the watcher runs.** It checks Jira from here, and the runs happen here. If the laptop sleeps, nothing starts until it wakes up. Tickets aren't lost: they wait.
+
+**What it does with a ticket:**
+- Starts it only if the label was added by someone on the allowed list, the ticket is in a "To Do" status, and it isn't an epic or a sub-task. The description must also say enough (80 characters or more). Otherwise it posts one comment saying why.
+- Starts **one run at a time** per repo. The next ticket waits until the current run stops for a person (a question or approval card), is delivered, or stops.
+- Each run is capped at `maxCostPerRun` (default $3), like `--max-cost`. On top of that are daily and monthly budgets (`dailyBudgetUsd`, default $10; `monthlyBudgetUsd`, default $100) and `maxRunsPerDay` (default 3). When a budget is used up, it starts nothing more, says so once in Slack and on the waiting ticket, and picks it up when the budget allows.
+- A ticket runs once. To run it again, remove the label and add it again after its run has finished. Editing the ticket alone doesn't re-run it.
+
+**What people see:**
+- Jira comments when the run starts, when a card waits for a person (with the command), when it stops and needs a look, and when it's delivered (the branch or pull request, the cost, and how many checks passed).
+- The same in Slack, as text and links. There are no buttons: decisions stay in the terminal.
+- **No code and no diffs are ever posted** to Jira or Slack.
+
+With a GitHub `forge:`, the pull request title and the branch carry the ticket key (Jira's GitHub app links them). The factory's own review is posted on the PR, then the PR is marked ready for review.
+
+---
+
 ## Command reference
 
 | Command | What it does |
@@ -459,6 +498,7 @@ The request can come from **any one** of a typed prompt, `--file` or `--jira`, o
 | `factory pause <run>` / `stop <run>` | Pauses or stops at the next step boundary. |
 | `factory steer <run> <file>` | Records a requirement change (applying it isn't built yet). |
 | `factory verify-evidence <run>` | Re-runs every gate decision from the ledger. |
+| `factory watch --project <p> [--once]` | Starts runs from Jira tickets labelled by allowed people, and posts updates to Jira and Slack. Decisions stay in the terminal. See *Start runs from Jira*. |
 | `factory ui [--port <n>]` | Local web screens: start runs and watch them live (four views per run, dashboard, design, preview). Decisions stay in the terminal. |
 | `factory report [run] [--all] [--json]` | Step scorecard for one run. Across runs (`--all`): outcome numbers first (delivered, cost per delivered change, time from request to branch, human stops, first-time pass), then a per-stage table. `--all --json` prints `{outcomes, stages}`. From the ledgers only, no AI. |
 | `factory design inventory <repo>` | Scans a web app's look: theme settings, shared components and how often each is used, pages. No AI. |

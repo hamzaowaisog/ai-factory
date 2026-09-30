@@ -418,6 +418,15 @@ program.command("doctor").description("check this machine and the setup").action
   }
   const projects = existsSync(join(factoryHome(), "projects")) ? readdirSync(join(factoryHome(), "projects")).filter((f) => f.endsWith(".yaml")) : [];
   ok(projects.length > 0, `projects: ${projects.join(", ").replace(/\.yaml/g, "") || "none"}`, "add one with: factory init <path-to-repo-or-git-url>");
+  // factory watch: only for projects that asked for it
+  for (const f of projects) {
+    let cfg;
+    try { cfg = loadProject(f.replace(/\.yaml$/, "")); } catch { continue; }
+    if (!cfg.jira) continue;
+    ok(hasSecret("JIRA_BASE_URL") && hasSecret("JIRA_EMAIL") && hasSecret("JIRA_API_TOKEN"), `${cfg.project}: Jira login for factory watch (${cfg.jira.project}, label "${cfg.jira.label}")`, "add JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN to ~/.factory/.env");
+    if (cfg.notify.slackWebhookEnv) ok(hasSecret(cfg.notify.slackWebhookEnv), `${cfg.project}: Slack webhook (${cfg.notify.slackWebhookEnv})`, `add ${cfg.notify.slackWebhookEnv}=https://hooks.slack.com/services/... to ~/.factory/.env`);
+    log(`note ${cfg.project}: factory watch limits: $${cfg.jira.maxCostPerRun} a run, ${cfg.jira.maxRunsPerDay} runs and $${cfg.jira.dailyBudgetUsd} a day, $${cfg.jira.monthlyBudgetUsd} a month`);
+  }
 });
 
 // design toolkit (src/design): factory design inventory|size|lint|brief
