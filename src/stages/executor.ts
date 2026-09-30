@@ -20,7 +20,7 @@ import { hashJson, sha256 } from "../util/hash.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
 import { setPrice } from "../runners/pricing.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
-import { brownfieldSteps } from "./modes.js";
+import { stepsFor } from "./modes.js";
 import { availableRungs, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
 import type { RequestSource } from "../sources/request.js";
@@ -33,7 +33,7 @@ export function policyFor(project: ProjectConfig): Policy {
 
 function versions(): Record<string, string> {
   const pkg = JSON.parse(readFileSync(join(REPO_ROOT, "package.json"), "utf8")) as { version: string; dependencies: Record<string, string> };
-  return { factory: pkg.version, node: process.version, "mode:brownfield": "1", ...Object.fromEntries(Object.entries(pkg.dependencies).filter(([k]) => /anthropic|openai|zod/.test(k))) };
+  return { factory: pkg.version, node: process.version, "mode:brownfield": "1", "mode:estimate": "1", ...Object.fromEntries(Object.entries(pkg.dependencies).filter(([k]) => /anthropic|openai|zod/.test(k))) };
 }
 
 function slug(text: string): string {
@@ -67,7 +67,7 @@ export function readRequestFile(path: string): { text: string; name: string } {
 }
 
 /** `factory start`: create the ledger. Execution happens in `execute`. */
-export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[] } = {}): Promise<string> {
+export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "estimate" } = {}): Promise<string> {
   if (opts.maxCostUsd !== undefined && !(opts.maxCostUsd > 0)) throw new Error("--max-cost must be a positive number of dollars");
   const project = loadProject(projectName);
   assertSupportedPath(project.repo);
@@ -79,7 +79,7 @@ export async function createRun(request: string, projectName: string, operator: 
   await ledger.append({
     type: "run.created",
     data: {
-      mode: "brownfield", project: project.project, repoPath: project.repo, repoId: project.project,
+      mode: opts.mode ?? "brownfield", project: project.project, repoPath: project.repo, repoId: project.project,
       baseRef: project.baseBranch, baseCommit, request, requestSha, operator, versions: versions(),
       ...(opts.maxCostUsd !== undefined ? { maxCostUsd: opts.maxCostUsd } : {}),
       ...(opts.requestFile ? { requestFile: opts.requestFile } : {}),
@@ -93,7 +93,7 @@ export type NextStep = { kind: "run"; step: StepDef; hash: string } | { kind: "d
 
 /** Pure: the first step whose recorded inputsHash doesn't match its current inputs. */
 export function next(state: RunState, ledger: Ledger, project: ProjectConfig): NextStep {
-  for (const step of brownfieldSteps(state)) {
+  for (const step of stepsFor(state)) {
     const inp = step.inputs(state, ledger);
     if (!inp) return { kind: "blocked", step: step.key };
     let model: string | undefined;

@@ -15,7 +15,7 @@ import { Ledger } from "../ledger/ledger.js";
 import { replay, splitKey, statusLabel, type RunState } from "../ledger/state.js";
 import { outcomes, scoreRun, stageStats, stageOf, type RunScore } from "../report.js";
 import { jiraConfigured } from "../sources/jira.js";
-import { brownfieldSteps } from "../stages/modes.js";
+import { stepsFor } from "../stages/modes.js";
 import { factoryHome } from "../util/paths.js";
 import { lastActivity, readTrace } from "../util/trace.js";
 import { maskSecrets } from "../config/env.js";
@@ -107,7 +107,7 @@ export interface TimelineRow {
 /** The steps in pipeline order (tasks appear once the plan is done), each with its attempts. */
 export function timeline(ledger: Ledger, s: RunState): TimelineRow[] {
   const events = ledger.events();
-  const order = [...brownfieldSteps(s).map((d) => d.key)];
+  const order = [...stepsFor(s).map((d) => d.key)];
   for (const k of s.steps.keys()) if (!order.includes(k)) order.push(k);
   const tries = new Map<string, Attempt[]>();
   const cost = new Map<string, number>();
