@@ -15,7 +15,7 @@ import { parseEstimateSettings } from "../estimate/settings.js";
 import { checkUploadedFrames, describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
-import { checkRoutes } from "../stages/routing.js";
+import { checkRoutes, ESTIMATE_ROUTES } from "../stages/routing.js";
 import { factoryHome } from "../util/paths.js";
 import { busyRun, projectNames } from "./data.js";
 
@@ -99,7 +99,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   // the same checks, in the same order, as `factory start`
   if (standalone) ensureStandaloneProject();
   const cfg = loadProject(project);
-  const problems = checkRoutes(cfg);
+  const problems = checkRoutes(cfg, estimating ? ESTIMATE_ROUTES : undefined);
   if (problems.length) throw new StartError(`Setup problems:\n- ${problems.join("\n- ")}`);
 
   const busy = standalone ? undefined : (await busyRun(project)) ?? (() => {

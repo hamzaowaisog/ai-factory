@@ -31,6 +31,8 @@ export const DEFAULT_ROUTES: Record<string, StepRoute> = {
 };
 
 export const THINKING_STEPS = new Set(["intake", "ground", "specify", "specify-other", "critic", "plan", "breakdown", "estimate", "design", "review", "sketches", "sketch-align", "clarifier", "merge", "restater", "rt-align", "impact"]);
+/** The model steps an estimate run uses: it never plans, writes tests or code, or reviews, so it does not need those routes set up. */
+export const ESTIMATE_ROUTES = ["intake", "ground", "sketches", "sketch-align", "clarifier", "specify", "specify-other", "merge", "restater", "rt-align", "critic", "breakdown", "estimate", "design"] as const;
 export const CODING_STEPS = new Set(["author-tests", "implement", "conflict-resolve"]);
 
 export function routeFor(project: ProjectConfig, stage: string): StepRoute {
@@ -66,15 +68,18 @@ export function availableRungs(project: ProjectConfig, stage: string, localOnly:
 }
 
 /** Start-up checks (adapters.md): thinking steps use api only, coding steps an agent runner, every model has a credential. */
-export function checkRoutes(project: ProjectConfig): string[] {
+export function checkRoutes(project: ProjectConfig, only?: readonly string[]): string[] {
   const problems: string[] = [];
-  for (const stage of Object.keys(DEFAULT_ROUTES)) {
+  const noKey: string[] = [];
+  for (const stage of only ?? Object.keys(DEFAULT_ROUTES)) {
     const r = routeFor(project, stage);
     if (THINKING_STEPS.has(stage) && r.runner !== "api") problems.push(`${stage} is a thinking step and must use the api runner`);
     if (CODING_STEPS.has(stage) && r.runner === "api") problems.push(`${stage} is a coding step and needs an agent runner`);
     const { model } = modelFor(project, stage, 0);
-    if (model.startsWith("claude-") && !hasSecret("ANTHROPIC_API_KEY")) problems.push(`${stage} needs ANTHROPIC_API_KEY in ~/.factory/.env`);
+    if (model.startsWith("claude-") && !hasSecret("ANTHROPIC_API_KEY")) noKey.push(stage);
     if ((r.runner === "codex" || r.runner === "jcode")) problems.push(`${stage}: the ${r.runner} runner isn't built yet`);
   }
+  // one line for a missing key, not one per step
+  if (noKey.length) problems.unshift(`ANTHROPIC_API_KEY is missing from ~/.factory/.env (needed by ${noKey.join(", ")})`);
   return [...new Set(problems)];
 }

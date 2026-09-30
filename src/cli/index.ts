@@ -22,7 +22,7 @@ import { approvedEstimate, type Approved } from "../estimate/lineage.js";
 import type { RequestSource } from "../sources/request.js";
 import { checkEdit, parseAnchorSpec, parseRatioSpec } from "../estimate/edits.js";
 import type { Proposal } from "../estimate/assemble.js";
-import { checkRoutes } from "../stages/routing.js";
+import { checkRoutes, ESTIMATE_ROUTES } from "../stages/routing.js";
 import { findRuntimeBinary } from "../verify/runtime.js";
 import { factoryHome } from "../util/paths.js";
 
@@ -96,7 +96,7 @@ program.command("estimate")
     // no --project: the requirements stand alone, so there is no repo to read
     const projectName = o.project ?? (await import("../config/project.js")).ensureStandaloneProject();
     const project = loadProject(projectName);
-    const problems = checkRoutes(project);
+    const problems = checkRoutes(project, ESTIMATE_ROUTES);
     if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
     let settings = parseEstimateSettings(o.project ? o : { ...o, repo: false });
     let lineage: { kind: "change" | "sibling"; approved: Approved } | undefined;
