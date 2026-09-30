@@ -111,6 +111,8 @@ class Lab implements ContainerRuntime {
   specs = new Map<string, ContainerSpec>();
   n = 0;
   crashOnImplement = false;
+  /** the repo has a test that fails on its main branch too (a known failure) */
+  knownBroken = false;
   /** multi: per file scope, the files each implement attempt writes (the last entry repeats) */
   edits: Record<string, Record<string, string>[]> = {};
   /** multi: what each implement attempt found before it edited */
@@ -175,6 +177,7 @@ class Lab implements ContainerRuntime {
         results.push(done ? { name: "AC_1_1_GreetsWithHello", outcome: "Passed" } : { name: "AC_1_1_GreetsWithHello", outcome: "Failed", message: "Assert.Equal() Failure: Expected Hello Ann, Actual Hi Ann" } as never);
         if (!done) code = 1;
       }
+      if (this.knownBroken) { results.push({ name: "Old_Broken", outcome: "Failed", message: "broken on main too" } as never); code = 1; }
       const withCls = results.map((r) => ({ ...r, cls: r.name === "CHAR_Works" ? "ExistingTests" : "GreetTests" }));
       writeFileSync(join(mount("/results")!, "r_Api.Tests.trx"), trx(withCls, "Api.Tests", "Api.Tests"));
       return code;
@@ -236,6 +239,7 @@ beforeEach(() => {
 
 describe("brownfield slice end to end (fakes)", () => {
   it("runs to the approval card, then to a locally delivered branch", async () => {
+    lab.knownBroken = true;
     const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
     const ledger = await toApproval(runId);
     const s1 = replay(ledger.events());
@@ -261,6 +265,26 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(gates).toContain("author-tests.fails-on-base:true");
     expect(gates).toContain("tests.expectations:true");
     expect(gates).toContain("deliver.sha-binding:true");
+    // test lab: finding the new tests is the first run on the old code, and integrate reuses the
+    // task's full run on the same commit instead of building and testing it again
+    const testKeys = [...lab.specs.values()].filter((sp) => sp.cmd[1] === "test").map((sp) => sp.labels?.key);
+    expect(testKeys).not.toContain("author-tests/find");
+    expect(testKeys).not.toContain("integrate");
+    expect(testKeys.filter((k) => k?.startsWith("author-tests/base-"))).toEqual(["author-tests/base-1", "author-tests/base-2"]);
+    expect(s2.steps.get("integrate")!.data).toMatchObject({ reusedRunFrom: "implement/TASK-1" });
+    expect(s2.steps.get("integrate")!.outputs[0]).toBe(s2.steps.get("implement/TASK-1")!.outputs[1]);
+    // each commit is built once: fail check #2 reuses the tests commit's build, accept the fix commit's
+    const builds = [...lab.specs.values()].filter((sp) => sp.cmd[1] === "build").map((sp) => sp.labels.key);
+    expect(builds).toEqual(["discover", "author-tests/base-1", "implement/TASK-1/1"]);
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/lab: reused the build of .* from an earlier lab run/);
+    expect(existsSync(join(process.env.FACTORY_HOME!, "tmp", runId, "builds"))).toBe(false); // freed once delivered
+    // the full-suite run leaves out the known failure; the targeted runs don't use the skip filter
+    const OLD = "Api.Tests::Api.Tests.GreetTests.Old_Broken";
+    const testCmd = (key: string) => [...lab.specs.values()].find((sp) => sp.cmd[1] === "test" && sp.labels.key === key)!.cmd.join(" ");
+    expect(testCmd("implement/TASK-1/1")).toContain("--filter FullyQualifiedName!=Api.Tests.GreetTests.Old_Broken");
+    expect(testCmd("accept")).not.toContain("!=");
+    expect(testCmd("discover")).not.toContain("--filter");
+    expect(ledger.getJson<{ skippedKnownFailures?: string[] }>(s2.steps.get("implement/TASK-1")!.outputs[1]!).skippedKnownFailures).toEqual([OLD]);
     // the branch holds the change, the locked test and exactly one manifest commit on top
     const repo = s2.info.repoPath!;
     const log = execFileSync("git", ["log", "--format=%s", `main..factory/${runId}`], { cwd: repo, encoding: "utf8" }).trim().split("\n");
@@ -462,6 +486,8 @@ describe("implement loop across tasks (fakes)", () => {
     // each task is still one commit on the branch; every gate decision re-checks
     const log = execFileSync("git", ["log", "--format=%s", `main..factory/${runId}`], { cwd: s.info.repoPath!, encoding: "utf8" });
     expect(log.match(/factory: TASK-/g)).toHaveLength(3);
+    // the last task's run already required every task's locked test: integrate reuses it
+    expect(s.steps.get("integrate")!.data).toMatchObject({ reusedRunFrom: "implement/TASK-3" });
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
   }, 30_000);
 

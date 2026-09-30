@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { keepPassingTests, earlierTests, labelRegressions, previousAttempt, retryMode } from "./build.js";
+import { coversIntegrate, keepPassingTests, earlierTests, labelRegressions, previousAttempt, retryMode } from "./build.js";
 
 describe("earlier tasks' locked tests", () => {
   const plan = { tasks: [{ id: "TASK-1" }, { id: "TASK-2" }, { id: "TASK-3" }] };
@@ -81,5 +81,21 @@ describe("criterion tests that already pass on the old code", () => {
     expect(out.map((x) => [x.testId, x.failsOnBase])).toEqual([["a", true], ["k", false], ["b", false]]);
     // nothing fails today: nothing changes, and the fails-on-base check rejects the run
     expect(keepPassingTests([t("AC-1.1", "a")], new Set(["a"]))[0]!.failsOnBase).toBe(true);
+  });
+});
+
+describe("integrate reuses the last task's run", () => {
+  const run = { treeSha: "abc", valid: true, expectPass: ["t1", "t2", "c1"], compareToBaseline: ["b1", "b2"] };
+
+  it("when the run judged the same commit and required at least what integrate requires", () => {
+    expect(coversIntegrate(run, "abc", ["t1", "t2", "c1"], ["b1", "b2"])).toBe(true);
+    expect(coversIntegrate(run, "abc", ["t1"], ["b1"])).toBe(true);
+  });
+
+  it("not for another commit, an invalid run, or a run that didn't require every locked test or the whole baseline", () => {
+    expect(coversIntegrate(run, "def", ["t1"], ["b1"])).toBe(false);
+    expect(coversIntegrate({ ...run, valid: false }, "abc", ["t1"], ["b1"])).toBe(false);
+    expect(coversIntegrate(run, "abc", ["t1", "t3"], ["b1"])).toBe(false);
+    expect(coversIntegrate(run, "abc", ["t1"], ["b1", "b3"])).toBe(false);
   });
 });

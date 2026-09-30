@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ProjectConfig } from "../config/project.js";
-import { filterFor, findBuildTarget, parseBuildErrors, produceDotnetTests } from "./dotnet.js";
+import { buildCachePath, filterFor, findBuildTarget, KEEP_BUILDS, MAX_SKIP_FILTER, parseBuildErrors, produceDotnetTests, saveBuild, skipFilterFor, skippableKnownFailures } from "./dotnet.js";
 import type { ContainerRuntime, ContainerSpec } from "./runtime.js";
 import { classifyFailure, parseTrx } from "./trx.js";
 import { buildTestRun, classify, rerunCandidates, validate } from "./validate.js";
@@ -208,5 +208,72 @@ describe(".NET producer (fake runtime)", () => {
       exp: { expectPass: ["Shop.Tests::Shop.Tests.CheckoutTests.A"], expectFail: [], compareToBaseline: [] },
     });
     expect(out.testRun.valid).toBe(false);
+  });
+});
+
+describe("skipping the repo's known failures", () => {
+  const r = (id: string, outcome: "passed" | "failed") => ({ id, outcome, durationMs: 1 });
+
+  it("skips a method only when every baseline row of it failed, and never an expected test", () => {
+    const baseline = [
+      r("P::A.B.Broken", "failed"),
+      r("P::A.B.Theory(1)", "failed"), r("P::A.B.Theory(2)", "passed"),   // a passing row keeps the theory running
+      r("P::A.B.AllRows(1)", "failed"), r("P::A.B.AllRows(2)", "failed"),
+      r("P::A.B.Fine", "passed"),
+      r("P::A.B.Expected", "failed"),
+    ];
+    expect(skippableKnownFailures(baseline, ["P::A.B.Expected"]).sort()).toEqual(["P::A.B.AllRows(1)", "P::A.B.AllRows(2)", "P::A.B.Broken"]);
+  });
+
+  it("builds one escaped 'everything except' filter per method", () => {
+    expect(skipFilterFor(["P::A.B.X(1)", "P::A.B.X(2)", "P::A.B.Y"])).toBe("FullyQualifiedName!=A.B.X&FullyQualifiedName!=A.B.Y");
+    expect(skipFilterFor(["P::A.B`1+C.D"])).toBe("FullyQualifiedName!=A.B`1+C.D");
+    expect(skipFilterFor(["P::A.B=C!D"])).toBe("FullyQualifiedName!=A.B\\=C\\!D");
+    expect(skipFilterFor([])).toBeUndefined();
+  });
+
+  it("runs everything rather than pass a filter too long for the command line", () => {
+    const many = Array.from({ length: 2000 }, (_, i) => `P::Some.Long.Namespace.Tests.Class${i}.Method_${i}_Fails`);
+    expect(many.join("").length).toBeGreaterThan(MAX_SKIP_FILTER);
+    expect(skipFilterFor(many)).toBeUndefined();
+  });
+});
+
+describe("build cache", () => {
+  const project = ProjectConfig.parse({ project: "p", repo: "/r", stack: "dotnet" });
+
+  it("keys a build by commit, SDK image and build target", () => {
+    const d = "/cache";
+    expect(buildCachePath(d, "c1", project)).toBe(buildCachePath(d, "c1", project));
+    expect(buildCachePath(d, "c1", project)).not.toBe(buildCachePath(d, "c2", project));
+    expect(buildCachePath(d, "c1", project)).not.toBe(buildCachePath(d, "c1", { ...project, dotnet: { ...project.dotnet, sdkImage: "sdk:9.0" } }));
+  });
+
+  it("saves a copy of the built tree and keeps the new build plus the most recently used others", () => {
+    const dir = mkdtempSync(join(tmpdir(), "factory-builds-"));
+    const past = Date.now() - 1_000_000;
+    const saved: string[] = [];
+    for (let i = 0; i < KEEP_BUILDS + 2; i++) {
+      const src = mkdtempSync(join(tmpdir(), "factory-src-"));
+      mkdirSync(join(src, "bin"));
+      writeFileSync(join(src, "bin", "App.dll"), `build ${i}`);
+      const dest = buildCachePath(dir, `c${i}`, project);
+      saveBuild(src, dir, dest);
+      utimesSync(dest, new Date(past + i * 1000), new Date(past + i * 1000)); // older saves look older
+      saved.push(dest);
+    }
+    const name = (p: string) => p.split("/").pop()!;
+    const n = saved.length;
+    // only the newest KEEP_BUILDS are left, with their contents
+    expect(readdirSync(dir).sort()).toEqual(saved.slice(n - KEEP_BUILDS).map(name).sort());
+    expect(readFileSync(join(saved[n - 1]!, "bin", "App.dll"), "utf8")).toBe(`build ${n - 1}`);
+    // an older build that was just reused counts as recent: the next save keeps it over a newer, unused one
+    utimesSync(saved[n - 2]!, new Date(), new Date());
+    const src = mkdtempSync(join(tmpdir(), "factory-src-"));
+    writeFileSync(join(src, "x"), "new");
+    const last = buildCachePath(dir, "latest", project);
+    saveBuild(src, dir, last);
+    expect(readdirSync(dir).sort()).toEqual([last, saved[n - 2]!].map(name).sort());
+    expect(readFileSync(join(last, "x"), "utf8")).toBe("new");
   });
 });

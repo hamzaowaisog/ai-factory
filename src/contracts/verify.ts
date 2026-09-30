@@ -35,6 +35,8 @@ export const TestRun = z.object({
   valid: z.boolean(),
   invalidReason: z.string().optional(),
   classification: z.enum(["ok", "code", "infra", "upstream"]),
+  /** known failures (failed in the baseline) left out of this full-suite run */
+  skippedKnownFailures: z.array(z.string()).optional(),
 });
 export type TestRun = z.infer<typeof TestRun>;
 
