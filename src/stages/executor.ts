@@ -95,8 +95,8 @@ export async function createRun(request: string, projectName: string, operator: 
       ...(opts.requestFile ? { requestFile: opts.requestFile } : {}),
       ...(opts.sources?.length ? { sources: opts.sources } : {}),
       ...(opts.estimate ? { estimate: opts.estimate } : {}),
-      ...(lin && lin.kind !== "build" ? { parent: { runId: lin.approved.runId, kind: lin.kind, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.clarifySha ? { clarifySha: lin.approved.clarifySha } : {}), ...(lin.approved.clarify2Sha ? { clarify2Sha: lin.approved.clarify2Sha } : {}) } } : {}),
-      ...(lin?.kind === "build" ? { estimateRef: { runId: lin.approved.runId, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}) } } : {}),
+      ...(lin && lin.kind !== "build" ? { parent: { runId: lin.approved.runId, kind: lin.kind, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.clarifySha ? { clarifySha: lin.approved.clarifySha } : {}), ...(lin.approved.clarify2Sha ? { clarify2Sha: lin.approved.clarify2Sha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}), ...(lin.approved.baselineSha ? { baselineSha: lin.approved.baselineSha } : {}) } } : {}),
+      ...(lin?.kind === "build" ? { estimateRef: { runId: lin.approved.runId, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}) } } : {}),
     },
   }, HUMAN_WRITER);
   for (const a of opts.attachments ?? []) {

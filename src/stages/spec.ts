@@ -8,7 +8,7 @@ import { buildRepoMap } from "../context/repomap.js";
 import { failure } from "../gates/engine.js";
 import { anchorsResolve, planChecks } from "../gates/predicates.js";
 import { isConfigIntegrityPath } from "../gates/protected.js";
-import { runGate } from "../gates/engine.js";
+import { runGate, type GateDef } from "../gates/engine.js";
 import { hashJson } from "../util/hash.js";
 import { header, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { acOwners } from "./build.js";
@@ -19,7 +19,7 @@ import { S, think, UNTRUSTED_NOTE } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { uiSizeForCard } from "../design/card.js";
 import { LANE, lightSpec } from "./lane.js";
-import { changeRequest, scopeLock } from "../estimate/gates.js";
+import { changeRequest, scopeLock, screensPlanned } from "../estimate/gates.js";
 import type { Breakdown } from "../contracts/index.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -129,6 +129,8 @@ export const planStep: StepDef = {
     if (ref && ctx.state.pendingChanges.length) {
       return { kind: "park", reason: `A requirement change was recorded after the estimate was approved (gate B2). Estimate it as a change request: factory estimate --revises ${ref.runId}, then build the new estimate.` };
     }
+    const design = ref?.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: { id: string; route: string }[] }>(ref.designSha) : undefined;
+    const approvedDesign = design && !design.skipped ? { flow: design.flow, screens: design.screens } : undefined;
     const approvedTasks = ref ? ctx.ledger.getJson<Breakdown>(ref.breakdownSha).tasks : [];
     const map = buildRepoMap(snap.root, snap.files, { budgetTokens: 4000, focus: cb.claims.flatMap((c) => c.anchors.map((a) => a.path)) }).map;
     const r = await think(ctx, {
@@ -146,7 +148,8 @@ export const planStep: StepDef = {
         S.artifact("spec", "spec", spec),
         S.artifact("cb", "current-behaviour", cb),
         S.artifact("critic", "critic", critic),
-        ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task.")] : []),
+        ...(approvedDesign ? [S.artifact("approved-design", "approved-design", approvedDesign)] : []),
+        ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task." : ""))] : []),
         ...(planRejections(ctx.state).length ? [{ spec: { id: "rejection", source: "feedback" as const, trust: "trusted" as const, placement: "user" as const }, content: `The human reviewer rejected the previous plan. Their reasons (latest last):\n${planRejections(ctx.state).map((x) => `- ${x}`).join("\n")}\nThe plan must address them.` }] : []),
         S.task("Write the plan."),
       ],
@@ -160,7 +163,13 @@ export const planStep: StepDef = {
     const g = await runGate(planChecks, ctx.ledger, ctx.writer, { plan: planSha, spec: specSha }, ctx.policy, { step: "plan" });
     // B1 and B2: every plan task maps to an approved estimate task; the requirements are the approved ones
     if (ref) {
-      for (const [def, inputs] of [[scopeLock, { plan: planSha, breakdown: ref.breakdownSha }], [changeRequest, { spec: specSha, approvedSpec: ref.specSha, approvedEstimateSha: ref.estimateSha }]] as const) {
+      const checks: [GateDef, Record<string, string>][] = [
+        [scopeLock, { plan: planSha, breakdown: ref.breakdownSha }],
+        [changeRequest, { spec: specSha, approvedSpec: ref.specSha, approvedEstimateSha: ref.estimateSha }],
+        // B6: the approved screens are all planned (only when the estimate had a design)
+        ...(ref.designSha ? [[screensPlanned, { plan: planSha, breakdown: ref.breakdownSha, design: ref.designSha }] as [GateDef, Record<string, string>]] : []),
+      ];
+      for (const [def, inputs] of checks) {
         const res = await runGate(def, ctx.ledger, ctx.writer, inputs, ctx.policy, { step: "plan" });
         if (!res.passed) fs.push(...(res.failures ?? [failure(def.id, res.details)]));
       }

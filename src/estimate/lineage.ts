@@ -16,6 +16,9 @@ export interface Approved {
   criticSha?: string;
   clarifySha?: string;
   clarify2Sha?: string;
+  /** the approved design (screen inventory) and the baseline approval of it */
+  designSha?: string;
+  baselineSha?: string;
   deliveryModel: string;
   settings: NonNullable<RunInfo["estimate"]>;
   /** everything to copy into the new ledger */
@@ -36,11 +39,12 @@ export function approvedEstimate(runId: string): Approved {
   };
   const estimateSha = sha("estimate")!, breakdownSha = sha("breakdown")!, specSha = sha("specify")!;
   const criticSha = sha("specify", "critic"), clarifySha = sha("clarify"), clarify2Sha = sha("clarify-2");
+  const designSha = sha("design"), baselineSha = sha("design-baseline");
   const estimate = ledger.getJson<Estimate>(estimateSha);
   const artifacts: Record<string, unknown> = {};
-  for (const x of [estimateSha, breakdownSha, specSha, criticSha, clarifySha, clarify2Sha]) if (x) artifacts[x] = ledger.getJson(x);
+  for (const x of [estimateSha, breakdownSha, specSha, criticSha, clarifySha, clarify2Sha, designSha, baselineSha]) if (x) artifacts[x] = ledger.getJson(x);
   return {
-    runId, request: s.info.request ?? "", estimateSha, breakdownSha, specSha, criticSha, clarifySha, clarify2Sha,
+    runId, request: s.info.request ?? "", estimateSha, breakdownSha, specSha, criticSha, clarifySha, clarify2Sha, designSha, baselineSha,
     deliveryModel: estimate.deliveryModel, settings: s.info.estimate ?? {}, artifacts,
   };
 }
@@ -70,5 +74,30 @@ export function diffEstimates(from: { estimate: Estimate; breakdown: Pick<Breakd
   const was = new Set(from.breakdown.tasks.map((t) => t.title)), now = new Set(to.breakdown.tasks.map((t) => t.title));
   for (const t of to.breakdown.tasks) if (!was.has(t.title)) out.push(`Added task: ${t.title}`);
   for (const t of from.breakdown.tasks) if (!now.has(t.title)) out.push(`Removed task: ${t.title}`);
+  return out;
+}
+
+interface ScreenView { id: string; route: string; reqs: string[]; states?: string[]; size?: string }
+interface DesignView { skipped?: boolean; screens: ScreenView[] }
+
+/** What a change request does to the approved design: screens added, removed or changed, for the design card. */
+export function diffDesigns(from: DesignView | undefined, to: DesignView): string[] {
+  const was = from && !from.skipped ? from.screens : [];
+  const now = to.skipped ? [] : to.screens;
+  const out: string[] = [];
+  const byId = new Map(was.map((s) => [s.id, s]));
+  const same = (a: string[] = [], b: string[] = []) => a.length === b.length && a.every((x) => b.includes(x));
+  for (const s of now) {
+    const o = byId.get(s.id);
+    if (!o) { out.push(`Added screen ${s.id} ${s.route} (${s.reqs.join(", ")})`); continue; }
+    const ch: string[] = [];
+    if (o.route !== s.route) ch.push(`route ${o.route} -> ${s.route}`);
+    if (!same(o.reqs, s.reqs)) ch.push(`requirements ${o.reqs.join(", ") || "none"} -> ${s.reqs.join(", ") || "none"}`);
+    if (!same(o.states, s.states)) ch.push(`states ${(o.states ?? []).join(", ") || "none"} -> ${(s.states ?? []).join(", ") || "none"}`);
+    if (o.size !== s.size && o.size && s.size) ch.push(`size ${o.size} -> ${s.size}`);
+    if (ch.length) out.push(`Changed screen ${s.id}: ${ch.join("; ")}`);
+  }
+  const ids = new Set(now.map((s) => s.id));
+  for (const o of was) if (!ids.has(o.id)) out.push(`Removed screen ${o.id} ${o.route}`);
   return out;
 }

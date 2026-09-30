@@ -77,9 +77,9 @@ export interface RunInfo {
    * re-estimates under the other delivery model ("sibling": seeded with the approved spec and breakdown).
    * Every artifact is copied into this ledger under its own hash.
    */
-  parent?: { runId: string; kind: "change" | "sibling"; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string; clarifySha?: string; clarify2Sha?: string };
+  parent?: { runId: string; kind: "change" | "sibling"; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string; clarifySha?: string; clarify2Sha?: string; /** the approved design and its baseline approval (absent on estimates made before the design step) */ designSha?: string; baselineSha?: string };
   /** a build run seeded from an approved estimate: it inherits the spec and plans against the estimate's tasks (gates B1-B5) */
-  estimateRef?: { runId: string; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string };
+  estimateRef?: { runId: string; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string; /** the approved screen inventory the build is held to */ designSha?: string };
   createdAt: string;
 }
 

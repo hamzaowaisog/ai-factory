@@ -31,7 +31,7 @@ function breakdown(n: number, over: { drop?: number; noChecklist?: boolean } = {
   return {
     features: Array.from({ length: n }, (_, i) => ({ id: `F-${i + 1}`, title: `Feature ${i + 1}`, reqs: [`REQ-${i + 1}`] })),
     tasks: [
-      ...reqs.map((i) => ({ id: `EST-${i}`, title: `Build ${i}`, featureId: `F-${i}`, reqs: [`REQ-${i}`], items: [`item ${i}`], track: i % 2 ? "backend" : "web", executor: "factory", dependsOn: i > 1 && i - 1 !== over.drop ? [`EST-${i - 1}`] : [], complexity: "standard", ...(i % 2 ? {} : { screen: `Screen ${i}` }) })),
+      ...reqs.map((i) => ({ id: `EST-${i}`, title: `Build ${i}`, featureId: `F-${i}`, reqs: [`REQ-${i}`], items: [`item ${i}`], track: i % 2 ? "backend" : "web", executor: "factory", dependsOn: i > 1 && i - 1 !== over.drop ? [`EST-${i - 1}`] : [], complexity: "standard" })),
       { id: `EST-${n + 1}`, title: "Project management", featureId: "F-1", reqs: [], items: [], track: "pm", executor: "human", dependsOn: [], complexity: "standard", overhead: "coordination across the build" },
     ],
     checklist: over.noChecklist ? [] : [{ item: "auth", included: false, reason: "no login in this request" }, { item: "logging", included: true }],

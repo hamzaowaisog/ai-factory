@@ -19,6 +19,8 @@ export const DesignOut = z.object({
     states: z.array(z.string()).default([]),
     /** new screen, a tweak of an existing one, a design-system change, or reuse of existing components */
     size: z.enum(["new", "tweak", "design-system", "reuse"]).default("new"),
+    /** attached design frames (F-1, ...) that show this screen or one of its states */
+    frames: z.array(z.string()).default([]),
   })).min(1),
   /** requirements that need no screen (an API rule, a job) and why */
   noScreen: z.array(z.object({ req: z.string(), reason: z.string().min(1) })).default([]),
@@ -30,11 +32,20 @@ const RULES = `You are drawing the screen inventory of a UI request, for an esti
 - Every requirement that has anything a user sees or does goes on at least one screen. A requirement with no screen at all (an API rule, a scheduled job) goes in "noScreen" with the reason. Nothing may be left out.
 - "flow": two or three sentences on how a user moves between the screens.
 - Use only requirement ids that exist. Do not invent screens the requirements do not need.
+- If design frames are listed in the request (F-1, F-2, ...), each image frame is one screen or one state of a screen: put its id in that screen's "frames". Do not leave an image frame unused and do not cite a frame that is not listed.
+- If an approved earlier design is given, this is a change to it: keep the id, route and file of every screen that does not change, give new screens the next free ids, and drop a screen only when the new requirements remove it.
 - If an existing-system summary is given, mark a screen "reuse" or "tweak" only when an existing page or shared component really covers it.
 ${UNTRUSTED_NOTE}`;
 
+/** The design frames listed in the request text (`- F-1 home.png`), in order. JSON exports are data, not screens. */
+export function listedFrames(request: string): { id: string; name: string }[] {
+  return [...request.matchAll(/^- (F-\d+) (.+?)\s*$/gm)].map((m) => ({ id: m[1]!, name: m[2]! })).filter((f) => !/\.json$/i.test(f.name));
+}
+
 /** Code's view of the links: which requirements no screen serves, and which screens serve none. */
-export function mapDesign(reqIds: string[], out: z.infer<typeof DesignOut>): { unmappedReqs: string[]; orphanScreens: string[]; unknown: string[] } {
+export function mapDesign(reqIds: string[], out: z.infer<typeof DesignOut>, frameIds: string[] = []): { unmappedReqs: string[]; orphanScreens: string[]; unknown: string[]; duplicateIds: string[]; duplicateRoutes: string[]; unknownFrames: string[]; unusedFrames: string[] } {
+  const dup = (xs: string[]) => [...new Set(xs.filter((x, i) => xs.indexOf(x) !== i))];
+  const used = out.screens.flatMap((s) => s.frames);
   const known = new Set(reqIds);
   const served = new Set(out.screens.flatMap((s) => s.reqs));
   const exempt = new Set(out.noScreen.map((n) => n.req));
@@ -42,6 +53,11 @@ export function mapDesign(reqIds: string[], out: z.infer<typeof DesignOut>): { u
     unmappedReqs: reqIds.filter((r) => !served.has(r) && !exempt.has(r)),
     orphanScreens: out.screens.filter((s) => s.reqs.length === 0).map((s) => s.id),
     unknown: [...new Set([...out.screens.flatMap((s) => s.reqs), ...out.noScreen.map((n) => n.req)].filter((r) => !known.has(r)))],
+    duplicateIds: dup(out.screens.map((s) => s.id)),
+    // a route is the same route however it is cased or ends
+    duplicateRoutes: dup(out.screens.map((s) => s.route.trim().toLowerCase().replace(/\/+$/, "") || "/")),
+    unknownFrames: [...new Set(used.filter((f) => !frameIds.includes(f)))],
+    unusedFrames: frameIds.filter((f) => !used.includes(f)),
   };
 }
 
@@ -55,7 +71,7 @@ export const designStep: StepDef = {
   inputs: (s, l) => {
     if (s.steps.get("specify")?.status !== "completed" || s.steps.get("intake")?.status !== "completed") return undefined;
     const ui = !!l.getJson<Intent>(s.steps.get("intake")!.outputs[0]!)?.touchesUi;
-    return { spec: s.steps.get("specify")!.outputs[0], ui, inventory: s.steps.get("ground")?.data?.named };
+    return { spec: s.steps.get("specify")!.outputs[0], ui, inventory: s.steps.get("ground")?.data?.named, earlier: s.info.parent?.kind === "change" ? s.info.parent.designSha : undefined, frames: listedFrames(s.info.request ?? "").map((f) => f.id) };
   },
   async run(ctx) {
     const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
@@ -63,26 +79,34 @@ export const designStep: StepDef = {
     if (!intent.touchesUi) return { kind: "done", outputs: { design: ctx.ledger.putJson({ header: header(ctx.runId, "design", "design", ""), skipped: true, reason: "no UI in this request" }) }, data: { skipped: true } };
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
     const inv = readOutput<DesignInventory>(ctx.state, ctx.ledger, "ground", "design");
+    const frames = listedFrames(ctx.state.info.request ?? "");
+    const p = ctx.state.info.parent;
+    const earlier = p?.kind === "change" && p.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: unknown[] }>(p.designSha) : undefined;
     const r = await think(ctx, {
       stage: "design", route: "design", cls: "read-large", budgetTokens: 30000, tools: [], schema: DesignOut, maxTurns: 4,
       sections: [
         S.template("tpl", RULES),
         S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
+        ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens })] : []),
         ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
         S.task("Draw the screen inventory."),
       ],
     });
     if (!r.ok) return r.outcome;
-    const map = mapDesign(spec.requirements.map((q) => q.id), r.output);
+    const map = mapDesign(spec.requirements.map((q) => q.id), r.output, frames.map((f) => f.id));
     const bad = [
       ...map.unknown.map((x) => failure("design-unknown-req", `${x} is not a requirement in the spec`)),
       ...map.unmappedReqs.map((x) => failure("design-unmapped", `${x} is on no screen and not listed under noScreen`)),
       ...map.orphanScreens.map((x) => failure("design-orphan", `screen ${x} serves no requirement`)),
+      ...map.duplicateIds.map((x) => failure("design-duplicate-id", `two screens share the id ${x}`)),
+      ...map.duplicateRoutes.map((x) => failure("design-duplicate-route", `two screens share the route ${x}; one screen has one route (give states, not a second screen)`)),
+      ...map.unknownFrames.map((x) => failure("design-unknown-frame", `${x} is not one of the attached frames`)),
+      ...map.unusedFrames.map((x) => failure("design-frame-unused", `attached frame ${x} is on no screen`)),
     ];
     if (bad.length) return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}` };
     const artifact = {
       header: header(ctx.runId, "design", "design", "", r.model), flow: r.output.flow,
-      screens: r.output.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: s.size })),
+      screens: r.output.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: s.size, frames: s.frames })),
       mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: r.output.noScreen,
     };
     return { kind: "done", outputs: { design: ctx.ledger.putJson(artifact) }, data: { screens: artifact.screens.length, states: artifact.screens.reduce((n, s) => n + Math.max(1, s.states.length), 0) } };

@@ -415,7 +415,39 @@ describe("design step", () => {
     expect((o as { failures: { check: string }[] }).failures.map((f) => f.check).sort()).toEqual(["design-orphan", "design-unknown-req", "design-unmapped"]);
   });
   it("mapDesign reports both directions", () => {
-    expect(mapDesign(["R-1", "R-2"], { flow: "f", screens: [{ id: "S-1", route: "/", file: "a", reqs: ["R-1"], states: [], size: "new" }], noScreen: [] })).toEqual({ unmappedReqs: ["R-2"], orphanScreens: [], unknown: [] });
+    expect(mapDesign(["R-1", "R-2"], { flow: "f", screens: [{ id: "S-1", route: "/", file: "a", reqs: ["R-1"], states: [], size: "new", frames: [] }], noScreen: [] })).toMatchObject({ unmappedReqs: ["R-2"], orphanScreens: [], unknown: [], duplicateIds: [], duplicateRoutes: [] });
+  });
+  it("fails a duplicate screen id, a route used twice, and frames that are cited but not attached or attached but unused", async () => {
+    const ledger = await newRun({ request: "Build a login.\n- F-1 home.png\n- F-2 login.png\n- F-3 export.json" });
+    await complete(ledger, "intake", uiIntent(true));
+    await complete(ledger, "specify", twoReqs);
+    answer = () => out({ screens: [
+      { id: "S-1", route: "/login", file: "a.tsx", reqs: ["REQ-1"], frames: ["F-1", "F-9"] },
+      { id: "S-1", route: "/Login/", file: "b.tsx", reqs: ["REQ-1"] },
+    ] });
+    const o = await exec(ledger, designStep);
+    expect(o.kind).toBe("fail");
+    // F-3 is a JSON export, data not a screen, so it is not required
+    expect((o as { failures: { check: string }[] }).failures.map((f) => f.check).sort()).toEqual(["design-duplicate-id", "design-duplicate-route", "design-frame-unused", "design-unknown-frame"]);
+  });
+  it("puts the clickable demo on the card, and for a change request the diff from the approved design", async () => {
+    const earlier = { flow: "f", screens: [{ id: "S-1", route: "/login", file: "a.tsx", reqs: ["REQ-1"], states: [], size: "new", frames: [] }, { id: "S-2", route: "/old", file: "o.tsx", reqs: ["REQ-1"], states: [], size: "new", frames: [] }], noScreen: [] };
+    const scratch = await newRun();
+    const designSha = scratch.putJson(earlier);
+    const ledger = await newRun({ parent: { runId: "p", kind: "change", estimateSha: sha, breakdownSha: sha, specSha: sha, designSha } });
+    ledger.putJson(earlier);
+    await complete(ledger, "intake", uiIntent(true));
+    await complete(ledger, "specify", twoReqs);
+    answer = () => out({ screens: [{ id: "S-1", route: "/login", file: "a.tsx", reqs: ["REQ-1"], states: ["error"] }, { id: "S-3", route: "/export", file: "e.tsx", reqs: ["REQ-2"] }], noScreen: [] });
+    expect((await exec(ledger, designStep)).kind).toBe("done");
+    const card = await exec(ledger, designBaselineStep);
+    expect(card.kind).toBe("wait");
+    const md = (card as { card: { markdown: string } }).card.markdown;
+    expect(md).toMatch(/Clickable demo .*design-demo\.html/);
+    expect(md).toMatch(/Added screen S-3 \/export/);
+    expect(md).toMatch(/Changed screen S-1: states none -> error/);
+    expect(md).toMatch(/Removed screen S-2 \/old/);
+    expect(existsSync(join(ledger.dir, "design-demo.html"))).toBe(true);
   });
   it("its approved screens feed E1b end to end", async () => {
     const ledger = await uiRun();

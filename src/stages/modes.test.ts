@@ -51,6 +51,12 @@ describe("mode manifests", () => {
     expect(estimateSteps(replay(l.events())).map((s) => s.key)).toEqual(["specify", "clarify", "breakdown", "estimate", "approve-estimate", "export"]);
   });
 
+  it("the other delivery model keeps the approved design and its approval instead of redrawing it", async () => {
+    const l = Ledger.create("20260930-estimate-sib2");
+    await l.append({ type: "run.created", data: { mode: "estimate", project: "p", request: "x", parent: { runId: "r0", kind: "sibling", estimateSha: "e".repeat(64), breakdownSha: "b".repeat(64), specSha: "s".repeat(64), designSha: "d".repeat(64), baselineSha: "a".repeat(64) } } }, HUMAN_WRITER);
+    expect(estimateSteps(replay(l.events())).map((s) => s.key)).toEqual(["specify", "design", "design-baseline", "breakdown", "estimate", "approve-estimate", "export"]);
+  });
+
   it("a build run seeded from an estimate inherits its spec instead of clarifying and specifying", async () => {
     const l = Ledger.create("20260930-build-seed1");
     await l.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: "x", estimateRef: { runId: "r0", estimateSha: "e".repeat(64), breakdownSha: "b".repeat(64), specSha: "s".repeat(64), criticSha: "k".repeat(64) } } }, HUMAN_WRITER);

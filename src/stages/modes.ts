@@ -44,6 +44,9 @@ export function estimateSteps(state: RunState): StepDef[] {
       seedStep("specify", "specify", (i) => i.parent?.specSha, { critic: (i) => i.parent?.criticSha }),
       ...(p.clarifySha ? [seedStep("clarify", "clarify", (i) => i.parent?.clarifySha)] : []),
       ...(p.clarify2Sha ? [seedStep("clarify-2", "clarify", (i) => i.parent?.clarify2Sha)] : []),
+      // the same screens and the same approval: a different delivery model does not redraw the design
+      ...(p.designSha ? [seedStep("design", "design", (i) => i.parent?.designSha)] : []),
+      ...(p.baselineSha ? [seedStep("design-baseline", "design", (i) => i.parent?.baselineSha)] : []),
       seedStep("breakdown", "breakdown", (i) => i.parent?.breakdownSha),
       estimateStep, approveEstimateStep, exportStep,
     ];

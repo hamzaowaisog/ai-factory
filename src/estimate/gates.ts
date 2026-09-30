@@ -49,9 +49,32 @@ export const designBaseline = defineGate<{ ui: boolean; design?: z.infer<typeof 
       for (const r of design.mapping.unmappedReqs) fs.push(failure("e1b-mapping", `requirement ${r} has no screen`));
       for (const s of design.mapping.orphanScreens) fs.push(failure("e1b-mapping", `screen ${s} maps to no requirement`));
       if (design.screens.length === 0) fs.push(failure("e1b-design", "the design has no screens"));
+      const ids = design.screens.map((x) => x.id);
+      for (const x of new Set(ids.filter((v, i) => ids.indexOf(v) !== i))) fs.push(failure("e1b-duplicate", `two screens share the id ${x}`));
     }
     if (approval?.decision !== "approved" || !approval.by) fs.push(failure("e1b-approval", "the mock and clickable demo are not approved by a person"));
     return verdict(fs, `${design?.screens.length ?? 0} screens approved and linked to requirements`);
+  },
+});
+
+type ScreenLike = { id: string; route?: string };
+
+/** The breakdown and the approved design agree: each task's screen exists, each approved screen is built, no id or route twice. */
+export const designCoverage = defineGate<{ design?: { skipped?: boolean; screens: ScreenLike[] }; breakdown: Pick<Breakdown, "tasks"> }>({
+  id: "estimate.e1c-design-coverage", after: "breakdown", safety: false, waiver: "human",
+  predicate: ({ design, breakdown }) => {
+    const screens = design && !design.skipped ? design.screens : [];
+    const ids = new Set(screens.map((s) => s.id));
+    const fs = [];
+    const dup = (xs: string[]) => [...new Set(xs.filter((x, i) => xs.indexOf(x) !== i))];
+    for (const x of dup(screens.map((s) => s.id))) fs.push(failure("e1c-duplicate-id", `two approved screens share the id ${x}`));
+    for (const x of dup(screens.flatMap((s) => (s.route ? [s.route.trim().toLowerCase().replace(/\/+$/, "") || "/"] : [])))) fs.push(failure("e1c-duplicate-route", `two approved screens share the route ${x}`));
+    for (const t of breakdown.tasks) {
+      if (t.screen && !ids.has(t.screen)) fs.push(failure("e1c-unknown-screen", `${t.id} builds screen ${t.screen}, which is not in the approved design${screens.length ? "" : " (there is none)"}`));
+    }
+    const built = new Set(breakdown.tasks.map((t) => t.screen).filter(Boolean));
+    for (const s of screens) if (!built.has(s.id)) fs.push(failure("e1c-unbuilt-screen", `approved screen ${s.id} is built by no task`));
+    return verdict(fs, screens.length ? `all ${screens.length} approved screens are built by a task, and every task screen is approved` : "no approved screens, and no task cites one");
   },
 });
 
@@ -141,6 +164,22 @@ export const scopeLock = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "esti
         : approved.has(t.estimateTaskId) ? [] : [failure("b1-unknown", `plan task ${t.id} maps to ${t.estimateTaskId}, which is not in the approved estimate`)]),
       "every plan task maps to an approved estimate task",
     );
+  },
+});
+
+/** B6: a build that follows an approved estimate plans every approved screen, through the estimate tasks that build it. */
+export const screensPlanned = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "estimateTaskId">[] }; breakdown: Pick<Breakdown, "tasks">; design?: { skipped?: boolean; screens: ScreenLike[] } }>({
+  id: "build.b6-screens-planned", after: "plan", safety: false, waiver: "human",
+  predicate: ({ plan, breakdown, design }) => {
+    if (!design || design.skipped) return { passed: true, details: "the approved estimate has no design" };
+    const planned = new Set(plan.tasks.map((t) => t.estimateTaskId).filter(Boolean));
+    const fs = [];
+    for (const s of design.screens) {
+      const builders = breakdown.tasks.filter((t) => t.screen === s.id && t.executor !== "human");
+      // a screen that only humans build (no factory task) is outside this plan
+      if (builders.length && !builders.some((t) => planned.has(t.id))) fs.push(failure("b6-screen", `approved screen ${s.id} is built by ${builders.map((t) => t.id).join(", ")}, and the plan delivers none of them`));
+    }
+    return verdict(fs, `every approved screen with a factory task is in the plan (${design.screens.length})`);
   },
 });
 

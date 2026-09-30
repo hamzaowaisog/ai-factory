@@ -1,7 +1,7 @@
 // End to end: an estimate from requirements alone, through the real executor, with a scripted model.
 // One question card, then the lead's approval card, then two workbooks on disk.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -17,6 +17,7 @@ import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { createRun, execute } from "./executor.js";
+import { previewFile, readPreview } from "../ui/preview.js";
 import { approvedEstimate } from "../estimate/lineage.js";
 import { setRecordsSource } from "./estimate.js";
 import { setProviderFactory } from "./think.js";
@@ -52,6 +53,18 @@ let prompts: string[] = [];
 /** a large document: two modules, each with its own intake span, no questions, four requirements in all */
 let modular = false;
 let intakeCalls = 0;
+/** a request with UI: intake says so, the design step draws two screens, and the breakdown builds each */
+let ui = false;
+const UI_DESIGN = {
+  flow: "A user signs in, then exports a report.",
+  screens: [
+    { id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["empty", "error"], size: "new", frames: [] },
+    { id: "S-2", route: "/reports", file: "app/reports/page.tsx", reqs: ["REQ-2"], states: ["loading"], size: "new", frames: [] },
+  ],
+  noScreen: [],
+};
+let uiDesign: unknown = UI_DESIGN;
+const withScreens = (b: typeof breakdown) => ({ ...b, tasks: b.tasks.map((t) => (t.id === "EST-1" ? { ...t, track: "web", screen: "S-1" } : t.id === "EST-2" ? { ...t, track: "web", screen: "S-2" } : t)) });
 const MODULE_SPANS = ["ALPHA sign in flow", "BETA report export flow"];
 const bigBreakdown = () => ({
   features: [{ id: "F-1", title: "Alpha", reqs: ["REQ-1", "REQ-2"] }, { id: "F-2", title: "Beta", reqs: ["REQ-3", "REQ-4"] }],
@@ -71,7 +84,8 @@ function answerFor(system: string): unknown {
   if (modular && system.includes("sizing the tasks")) return bigSizing();
   if (modular && system.includes("turning a finished spec")) return bigBreakdown();
   if (modular && system.includes("Requirements analyst")) return { questions: [], conflicts: [] };
-  if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "sign in and export reports" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: false };
+  if (system.includes("drawing the screen inventory")) return uiDesign;
+  if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "sign in and export reports" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: ui };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: "user signs in", kind: "happy" }, { text: "user exports a PDF", kind: "happy" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [] };
   if (system.includes("Requirements analyst")) return system.includes("already answered") ? { questions: [], conflicts: [] } : {
@@ -82,7 +96,7 @@ function answerFor(system: string): unknown {
   if (system.includes("Senior engineer writing a behaviour spec")) return draft;
   if (system.includes("Adversarial reviewer")) return { findings: [] };
   if (system.includes("sizing the tasks")) return sizing;
-  if (system.includes("turning a finished spec")) return breakdown;
+  if (system.includes("turning a finished spec")) return ui ? withScreens(breakdown) : breakdown;
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
 }
 const provider: Provider = {
@@ -103,6 +117,8 @@ beforeEach(() => {
   prompts = [];
   modular = false;
   intakeCalls = 0;
+  ui = false;
+  uiDesign = UI_DESIGN;
 });
 
 describe("estimate mode end to end (requirements only, scripted model)", () => {
@@ -259,5 +275,116 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     // the artifacts came across under their own hashes, with the approved run's own critic record
     expect(ledger.getJson(approved.estimateSha)).toBeTruthy();
     expect(ledger.getJson<{ findings: unknown[] }>(s.info.estimateRef!.criticSha!).findings).toEqual([]);
+  });
+});
+
+describe("estimate mode for a request with UI (scripted model)", () => {
+  /** Answer whatever card is open until the run stops waiting; returns the cards seen, in order. */
+  async function drive(runId: string, hook: (kind: string, md: string) => void = () => undefined, stopAt?: string): Promise<string[]> {
+    const seen: string[] = [];
+    for (let i = 0; i < 8; i++) {
+      const r = await execute(runId);
+      if (r.status !== "waiting") { expect(r.status, r.message).not.toBe("failed"); return seen; }
+      const ledger = Ledger.open(runId);
+      const c = replay(ledger.events()).openCard!;
+      seen.push(c.kind);
+      hook(c.kind, ledger.readCard(c.cardId));
+      if (c.kind === stopAt) return seen;
+      await decide(ledger, c.kind === "question"
+        ? { decision: "answer", hashPrefix: c.artifactSha.slice(0, 6), by: "lead", data: { answers: { "Q-1": "A" } } }
+        : { decision: "approve", hashPrefix: c.artifactSha.slice(0, 6), by: "lead" });
+    }
+    throw new Error("the run kept waiting");
+  }
+  const start = (request = "Build a client portal where users sign in and export reports.", extra: Record<string, unknown> = {}) =>
+    createRun(request, "demo", "sam", { mode: "estimate", estimate: { deliveryModel: "hitl", stackSource: "client", designInTotal: true, feedbackRounds: 2, noRepo: true, client: "Acme", projectName: "Portal" }, ...extra });
+
+  it("draws the screens, shows a clickable demo for approval, checks the breakdown against them, then estimates and exports", async () => {
+    ui = true;
+    const runId = await start();
+    let demo = "";
+    const cards = await drive(runId, (kind, md) => { if (kind === "design-approval") demo = md; });
+    expect(cards).toEqual(["question", "design-approval", "estimate-approval"]);
+    expect(demo).toMatch(/S-1 \/login .*states: empty, error/);
+    expect(demo).toMatch(/Clickable demo .*design-demo\.html/);
+    const ledger = Ledger.open(runId);
+    const html = readFileSync(join(ledger.dir, "design-demo.html"), "utf8");
+    expect(html).toMatch(/id="S-2"/);
+    // the same page is what `factory ui` shows under Run: Preview
+    const pv = readPreview(ledger);
+    expect("preview" in pv && pv.preview.site?.screens.map((x) => x.title)).toEqual(["S-1 /login", "S-2 /reports"]);
+    expect(previewFile(ledger, "index.html")?.body.toString()).toBe(html);
+    const s = replay(ledger.events());
+    for (const step of ["design", "design-baseline", "breakdown", "estimate", "approve-estimate", "export"]) expect(s.steps.get(step)?.status, step).toBe("completed");
+    const gates = s.gates.map((g) => `${g.gateId}:${g.passed}`);
+    for (const g of ["estimate.e1b-design-baseline", "estimate.e1c-design-coverage"]) expect(gates, g).toContain(`${g}:true`);
+    expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+    const bd = ledger.getJson<{ tasks: { id: string; screen?: string }[] }>(s.steps.get("breakdown")!.outputs[0]!);
+    expect(bd.tasks.filter((t) => t.screen).map((t) => t.screen).sort()).toEqual(["S-1", "S-2"]);
+  });
+
+  it("refuses a breakdown whose screen nobody approved, feeding the failure back", async () => {
+    ui = true;
+    const runId = await start();
+    await drive(runId);
+    // a second run whose model cites a screen that is not in the approved design
+    const bad = await start();
+    const saved = provider.start;
+    let asked = 0;
+    (provider as { start: typeof provider.start }).start = (m, e, system, ...rest) => {
+      if (system.includes("turning a finished spec")) asked++;
+      return saved.call(provider, m, e, system, ...rest);
+    };
+    uiDesign = { ...UI_DESIGN, screens: [UI_DESIGN.screens[0]!], noScreen: [{ req: "REQ-2", reason: "a report job with no screen" }] };
+    try {
+      const r = await (async () => { for (let i = 0; i < 3; i++) { const x = await execute(bad); if (x.status === "waiting") { const l = Ledger.open(bad); const c = replay(l.events()).openCard!; await decide(l, c.kind === "question" ? { decision: "answer", hashPrefix: c.artifactSha.slice(0, 6), by: "lead", data: { answers: { "Q-1": "A" } } } : { decision: "approve", hashPrefix: c.artifactSha.slice(0, 6), by: "lead" }); } else return x; } return undefined; })();
+      // the scripted breakdown cites S-2, which this design does not have: E1c fails and the run cannot finish
+      expect(r?.status).not.toBe("completed");
+      const gates = replay(Ledger.open(bad).events()).gates.map((g) => `${g.gateId}:${g.passed}`);
+      expect(gates).toContain("estimate.e1c-design-coverage:false");
+      expect(asked).toBeGreaterThan(0);
+    } finally { (provider as { start: typeof provider.start }).start = saved; }
+  });
+
+  it("the other delivery model reuses the approved design without redrawing it, and a build inherits it", async () => {
+    ui = true;
+    const parent = await start();
+    await drive(parent);
+    const approved = approvedEstimate(parent);
+    expect(approved.designSha).toBeTruthy();
+    expect(approved.baselineSha).toBeTruthy();
+    prompts = [];
+    const sib = await createRun(approved.request, "demo", "sam", { mode: "estimate", estimate: { ...approved.settings, deliveryModel: "agentic" }, lineage: { kind: "sibling", approved } });
+    const cards = await drive(sib);
+    expect(cards).toEqual(["estimate-approval"]);
+    expect(prompts.some((p) => /screen inventory/.test(p))).toBe(false);
+    const s = replay(Ledger.open(sib).events());
+    expect(s.steps.get("design-baseline")!.status).toBe("completed");
+    expect(s.gates.map((g) => g.gateId)).not.toContain("estimate.e1b-design-baseline");
+
+    const repo = mkdtempSync(join(tmpdir(), "factory-est-build-ui-"));
+    const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
+    execFileSync("git", ["init", "-q", "-b", "main"], { cwd: repo, env });
+    writeFileSync(join(repo, "a.txt"), "x");
+    execFileSync("git", ["add", "-A"], { cwd: repo, env });
+    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: repo, env });
+    writeFileSync(join(process.env.FACTORY_HOME!, "projects", "build.yaml"), stringify({ project: "build", repo, stack: "dotnet" }));
+    const build = await createRun(approved.request, "build", "sam", { lineage: { kind: "build", approved } });
+    const info = replay(Ledger.open(build).events()).info;
+    expect(info.estimateRef?.designSha).toBe(approved.designSha);
+    expect(Ledger.open(build).getJson<{ screens: unknown[] }>(approved.designSha!).screens).toHaveLength(2);
+  });
+
+  it("a change request shows the design diff against the approved design", async () => {
+    ui = true;
+    const parent = await start();
+    await drive(parent);
+    const approved = approvedEstimate(parent);
+    uiDesign = { ...UI_DESIGN, screens: [...UI_DESIGN.screens, { id: "S-3", route: "/pay", file: "app/pay/page.tsx", reqs: ["REQ-1"], states: [], size: "new", frames: [] }] };
+    const cr = await createRun("Build a client portal where users sign in, export reports and pay.", "demo", "sam", { mode: "estimate", estimate: approved.settings, lineage: { kind: "change", approved } });
+    let card = "";
+    // the scripted breakdown does not build the new screen, so the run would stop at E1c after this card: look at the card only
+    await drive(cr, (kind, md) => { if (kind === "design-approval") card = md; }, "design-approval");
+    expect(card).toMatch(/## Change from the approved design[\s\S]*Added screen S-3 \/pay/);
   });
 });

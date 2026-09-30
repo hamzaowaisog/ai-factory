@@ -163,8 +163,12 @@ export type Spec = z.infer<typeof Spec>;
 
 export const DesignBody = z.object({
   flow: z.string(),
-  screens: z.array(z.object({ id: Id, route: z.string(), file: z.string(), reqs: z.array(Id) })),
+  screens: z.array(z.object({
+    id: Id, route: z.string(), file: z.string(), reqs: z.array(Id),
+    states: z.array(z.string()).optional(), size: z.enum(["new", "tweak", "design-system", "reuse"]).optional(), frames: z.array(z.string()).optional(),
+  })),
   mapping: z.object({ unmappedReqs: z.array(Id), orphanScreens: z.array(Id) }),
+  noScreen: z.array(z.object({ req: Id, reason: z.string() })).optional(),
   figmaUrl: z.string().optional(),
 });
 export const Design = withHeader(DesignBody.shape);

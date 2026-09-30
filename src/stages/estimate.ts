@@ -5,7 +5,7 @@ import { z } from "zod";
 import { BreakdownBody, IntentBody, type Breakdown, type Spec as SpecArtifact } from "../contracts/index.js";
 import type { Failure } from "../contracts/index.js";
 import { failure, runGate, type GateDef } from "../gates/engine.js";
-import { consistency, forgottenWork, readiness, reqToTask, taskToReq } from "../estimate/gates.js";
+import { consistency, designCoverage, forgottenWork, readiness, reqToTask, taskToReq } from "../estimate/gates.js";
 import { estimateWorkbookLint } from "../estimate/lint.js";
 import { applyEdits, describeEdit, editsOf } from "../estimate/edits.js";
 import { loadBenchmarkRecords } from "../estimate/records.js";
@@ -81,7 +81,7 @@ export const breakdownStep: StepDef = {
 
     const intent = readOutput<Intent>(ctx.state, ctx.ledger, "intake");
     const survey = readOutput<RepoSurvey>(ctx.state, ctx.ledger, "ground", "survey");
-    const design = readOutput<{ skipped?: boolean; flow: string; screens: unknown[] }>(ctx.state, ctx.ledger, "design");
+    const design = readOutput<{ skipped?: boolean; flow: string; screens: { id: string; route?: string }[] }>(ctx.state, ctx.ledger, "design");
     const cacheKey = hashJson({ step: "breakdown", spec: specSha, answers: c.answers, survey: !!survey, design: done(ctx, "design") });
     const cached = waivedCache<BreakdownBodyT>(ctx, "breakdown", cacheKey);
     let body: BreakdownBodyT;
@@ -107,8 +107,8 @@ export const breakdownStep: StepDef = {
       body = r.output;
       model = r.model;
       const bad: Failed[] = [];
-      for (const def of [reqToTask, taskToReq, forgottenWork]) {
-        const res = await gate(ctx, "breakdown", def, { spec, breakdown: body });
+      for (const def of [reqToTask, taskToReq, forgottenWork, designCoverage]) {
+        const res = await gate(ctx, "breakdown", def, def === designCoverage ? { design: design ?? null, breakdown: body } : { spec, breakdown: body });
         if (!res.passed) bad.push({ def, failures: res.failures ?? [failure(def.id, res.details)] });
       }
       if (bad.length) {
