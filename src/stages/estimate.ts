@@ -7,6 +7,7 @@ import type { Failure } from "../contracts/index.js";
 import { failure, runGate, type GateDef } from "../gates/engine.js";
 import { consistency, forgottenWork, readiness, reqToTask, taskToReq } from "../estimate/gates.js";
 import { estimateWorkbookLint } from "../estimate/lint.js";
+import { applyEdits, describeEdit, editsOf } from "../estimate/edits.js";
 import { loadBenchmarkRecords } from "../estimate/records.js";
 import type { BenchmarkRecord } from "../estimate/cost.js";
 import { surveyText, type RepoSurvey } from "../context/survey.js";
@@ -60,7 +61,7 @@ Rules (checked by code):
 - "items" lists the concrete things in the spec the task must deliver: fields and validations, screen states, rules, endpoints, messages. Do not invent items the spec does not have.
 - track: backend | mobile | web | qa | design | gd | pm | pdm. executor: factory (the AI factory builds it, humans only at gates), joint (factory plus human steps such as keys or store accounts) or human (full human hours: client UAT, design approval, PM).
 - complexity: standard | rules-or-algorithm | external-dependency | compliance-sensitive | real-time | new-to-stack.
-- Task ids are EST-1, EST-2, ... Use dependsOn for real ordering only. Set "screen" when the task builds a named screen.
+- Task ids are EST-1, EST-2, ... Use dependsOn for real ordering only. Set "screen" to the approved design screen id (S-1, ...) when the task builds that screen; every approved screen should be built by some task.
 - checklist: go through auth, roles, environments, CI/CD, monitoring, error handling, migrations, notifications, reports and exports, admin tools, accessibility, feedback rounds, documentation and release. Mark each in, or out with a reason. A zero always has a reason.
 - Do not write hours. Sizing is a later step.
 ${UNTRUSTED_NOTE}`;
@@ -68,7 +69,7 @@ ${UNTRUSTED_NOTE}`;
 export const breakdownStep: StepDef = {
   key: "breakdown", stage: "breakdown", templateVersion: "1",
   inputs: (s) => (s.steps.get("specify")?.status === "completed" && s.steps.get("design-baseline")?.status === "completed"
-    ? { spec: s.steps.get("specify")!.outputs[0], c1: s.steps.get("clarify")?.outputs[0], c2: s.steps.get("clarify-2")?.outputs[0], baseline: s.steps.get("design-baseline")!.outputs[0], survey: s.steps.get("ground")?.data?.named }
+    ? { spec: s.steps.get("specify")!.outputs[0], c1: s.steps.get("clarify")?.outputs[0], c2: s.steps.get("clarify-2")?.outputs[0], baseline: s.steps.get("design-baseline")!.outputs[0], design: s.steps.get("design")?.outputs[0], survey: s.steps.get("ground")?.data?.named }
     : undefined),
   async run(ctx) {
     const spec = requireOutput<SpecArtifact>(ctx.state, ctx.ledger, "specify");
@@ -80,7 +81,8 @@ export const breakdownStep: StepDef = {
 
     const intent = readOutput<Intent>(ctx.state, ctx.ledger, "intake");
     const survey = readOutput<RepoSurvey>(ctx.state, ctx.ledger, "ground", "survey");
-    const cacheKey = hashJson({ step: "breakdown", spec: specSha, answers: c.answers, survey: !!survey });
+    const design = readOutput<{ skipped?: boolean; flow: string; screens: unknown[] }>(ctx.state, ctx.ledger, "design");
+    const cacheKey = hashJson({ step: "breakdown", spec: specSha, answers: c.answers, survey: !!survey, design: done(ctx, "design") });
     const cached = waivedCache<BreakdownBodyT>(ctx, "breakdown", cacheKey);
     let body: BreakdownBodyT;
     let model: string | undefined;
@@ -96,6 +98,7 @@ export const breakdownStep: StepDef = {
           S.artifact("answers", "answers", c.answers),
           S.artifact("assumptions", "assumptions", c.assumptions),
           ...(survey ? [S.profile("repo", `The existing system (a read of the repository, not the requirements):\n${surveyText(survey)}\nTasks that change existing code are sized by what they touch; new build work is sized by counted units.`)] : []),
+          ...(design && !design.skipped ? [S.artifact("design", "approved-design", { flow: design.flow, screens: design.screens })] : []),
           ...(intent ? [S.artifact("intent", "intent", { touchesUi: intent.touchesUi, riskTags: intent.riskTags })] : []),
           S.task("Write the work breakdown."),
         ],
@@ -132,7 +135,7 @@ ${UNTRUSTED_NOTE}`;
 
 export const estimateStep: StepDef = {
   key: "estimate", stage: "estimate", templateVersion: "1",
-  inputs: (s) => (s.steps.get("breakdown")?.status === "completed" ? { breakdown: s.steps.get("breakdown")!.outputs[0], specify: s.steps.get("specify")!.outputs[0], settings: settingsOf(s) } : undefined),
+  inputs: (s) => (s.steps.get("breakdown")?.status === "completed" ? { breakdown: s.steps.get("breakdown")!.outputs[0], specify: s.steps.get("specify")!.outputs[0], settings: settingsOf(s), edits: editsOf(s) } : undefined),
   async run(ctx) {
     const settings = settingsOf(ctx.state);
     const breakdown = requireOutput<Breakdown>(ctx.state, ctx.ledger, "breakdown");
@@ -147,9 +150,14 @@ export const estimateStep: StepDef = {
     const view = breakdown.tasks.map((t) => ({ id: t.id, title: t.title, feature: t.featureId, track: t.track, executor: t.executor, complexity: t.complexity, screen: t.screen, items: t.items, dependsOn: t.dependsOn, overhead: t.overhead }));
     const cacheKey = hashJson({ step: "estimate", breakdown: breakdownSha, spec: specSha, settings });
     const cached = waivedCache<Proposal[]>(ctx, "estimate", cacheKey);
+    const edits = editsOf(ctx.state);
+    // a lead's edits re-assemble the estimate from the proposals already made: no new model call
+    const earlier = edits.length ? readOutput<Proposal[]>(ctx.state, ctx.ledger, "estimate", "proposals") : undefined;
     let proposals: Proposal[];
     let waivers: WaiverList = [];
-    if (cached) {
+    if (earlier) {
+      try { proposals = applyEdits(earlier, edits); } catch (e) { return failed("estimate:edit", [failure("estimate-edit", (e as Error).message)]); }
+    } else if (cached) {
       ({ payload: proposals, waivers } = cached);
     } else {
       const rs = await Promise.all(Array.from({ length: n }, (_, k) => think(ctx, {
@@ -173,10 +181,10 @@ export const estimateStep: StepDef = {
     try {
       estimate = assembleEstimate({
         header: header(ctx.runId, "estimate", "estimate", ctx.ledger.putJson({ breakdownSha, specSha, settings, proposals })) as never,
-        breakdown, breakdownSha, spec, specSha, proposals, settings, records,
+        breakdown, breakdownSha, spec, specSha, proposals, settings, records, ...(ctx.state.info.parent ? { parentEstimate: ctx.state.info.parent.estimateSha } : {}),
         grades: gradeInputs({ assumptions: c.assumptions.length, requirements: spec.requirements.length, uiTasks: uiTasks.length, uiTasksWithScreen: uiTasks.filter((t) => t.screen).length, hasRepo: !!ctx.state.info.repoPath, stackSource: settings.stackSource }),
         counts: { questions: c.answers.length, criticFindings: spec.critic.length, planningMinutes: ctx.state.activeMs / 60000 },
-        assumptions: [...c.assumptions.map((a) => a.text), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs."],
+        assumptions: [...c.assumptions.map((a) => a.text), ...edits.map((e) => `Lead edit: ${describeEdit(e)}`), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs."],
       });
     } catch (e) {
       return failed(`estimate:${(e as Error).message.slice(0, 80)}`, [failure("estimate-proposal", (e as Error).message)]);

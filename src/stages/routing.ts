@@ -23,13 +23,14 @@ export const DEFAULT_ROUTES: Record<string, StepRoute> = {
   critic: { runner: "api", model: "gpt-5.5", escalate: [], effort: "high" },
   breakdown: { runner: "api", model: OPUS, escalate: [], effort: "high" },
   estimate: { runner: "api", model: OPUS, escalate: [], effort: "high" },
+  design: { runner: "api", model: OPUS, escalate: [], effort: "high" },
   plan: { runner: "api", model: OPUS, escalate: [], effort: "high" },
   "author-tests": { runner: "claude-agent", model: OPUS, escalate: [], effort: "high" },
   implement: { runner: "claude-agent", model: SONNET, escalate: [OPUS], effort: "high" },
   review: { runner: "api", model: "gpt-5.5", escalate: [], effort: "high" },
 };
 
-export const THINKING_STEPS = new Set(["intake", "ground", "specify", "specify-other", "critic", "plan", "breakdown", "estimate", "review", "sketches", "sketch-align", "clarifier", "merge", "restater", "rt-align", "impact"]);
+export const THINKING_STEPS = new Set(["intake", "ground", "specify", "specify-other", "critic", "plan", "breakdown", "estimate", "design", "review", "sketches", "sketch-align", "clarifier", "merge", "restater", "rt-align", "impact"]);
 export const CODING_STEPS = new Set(["author-tests", "implement", "conflict-resolve"]);
 
 export function routeFor(project: ProjectConfig, stage: string): StepRoute {

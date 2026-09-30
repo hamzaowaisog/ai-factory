@@ -9,6 +9,7 @@ import { ReviewBody } from "../contracts/index.js";
 import { scanText } from "../context/secrets.js";
 import { secret } from "../config/env.js";
 import { failure, runGate } from "../gates/engine.js";
+import { unrequestedBehaviour } from "../estimate/gates.js";
 import { noSecrets, reviewBlocking, shaBinding } from "../gates/predicates.js";
 import { changedFiles, commitAll, git, gitOut, resetHard } from "../ledger/git.js";
 import { runSink } from "../ledger/sinks.js";
@@ -71,6 +72,11 @@ export const reviewStep: StepDef = {
     const implementer = modelFor(ctx.project, "implement", 0).model;
     const fam = ctx.ledger.putJson({ implementer: family(implementer), reviewer: family(r.model) });
     const g = await runGate(reviewBlocking, ctx.ledger, ctx.writer, { review: reviewSha, families: fam }, ctx.policy, { step: "review", treeSha: head });
+    // B4: a run that follows an approved estimate may not add behaviour no requirement asked for
+    if (ctx.state.info.estimateRef) {
+      const b4 = await runGate(unrequestedBehaviour, ctx.ledger, ctx.writer, { review: reviewSha }, ctx.policy, { step: "review", treeSha: head });
+      if (!b4.passed) return { kind: "park", reason: `Behaviour nobody asked for (gate B4): ${(b4.failures ?? []).slice(0, 3).map((f) => f.message).join(" | ")}. Add a requirement through a change request (factory estimate --revises ${ctx.state.info.estimateRef.runId}) or remove it.` };
+    }
     if (!g.passed) return { kind: "park", reason: `Review found blocking problems: ${(g.failures ?? []).slice(0, 3).map((f) => f.message).join(" | ")}` };
     return { kind: "done", outputs: { review: reviewSha }, data: { findings: r.output.findings.length, note: r.note } };
   },

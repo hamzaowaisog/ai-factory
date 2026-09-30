@@ -72,6 +72,14 @@ export interface RunInfo {
   maxCostUsd?: number;
   /** estimate mode: the run settings a person chose at the start (missing fields take the defaults) */
   estimate?: { deliveryModel?: "hitl" | "agentic"; stackSource?: "client" | "folio3" | "undecided"; designInTotal?: boolean; feedbackRounds?: number; /** optional hourly rates in USD per track, plus "default" */ rates?: Record<string, number>; /** a request with no repo (requirements only) */ noRepo?: boolean; client?: string; projectName?: string; pm?: string };
+  /**
+   * estimate mode: the approved estimate this run revises ("change": new requirements, full pipeline) or
+   * re-estimates under the other delivery model ("sibling": seeded with the approved spec and breakdown).
+   * Every artifact is copied into this ledger under its own hash.
+   */
+  parent?: { runId: string; kind: "change" | "sibling"; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string; clarifySha?: string; clarify2Sha?: string };
+  /** a build run seeded from an approved estimate: it inherits the spec and plans against the estimate's tasks (gates B1-B5) */
+  estimateRef?: { runId: string; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string };
   createdAt: string;
 }
 

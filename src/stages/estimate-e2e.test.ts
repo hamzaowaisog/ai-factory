@@ -1,5 +1,6 @@
 // End to end: an estimate from requirements alone, through the real executor, with a scripted model.
 // One question card, then the lead's approval card, then two workbooks on disk.
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -16,6 +17,7 @@ import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { createRun, execute } from "./executor.js";
+import { approvedEstimate } from "../estimate/lineage.js";
 import { setRecordsSource } from "./estimate.js";
 import { setProviderFactory } from "./think.js";
 
@@ -170,5 +172,92 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     const est = ledger.getJson<{ band: string; deliveryModel: string; gateHours: unknown[] }>(s.steps.get("estimate")!.outputs[0]!)!;
     expect(est.deliveryModel).toBe("agentic");
     expect(est.gateHours).toEqual([]);
+  });
+
+  /** An approved single-document run to build on. */
+  async function approvedRun(): Promise<string> {
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { deliveryModel: "hitl", stackSource: "client", designInTotal: true, feedbackRounds: 2, noRepo: true } });
+    await execute(runId);
+    const ledger = Ledger.open(runId);
+    const q = replay(ledger.events()).openCard!;
+    await decide(ledger, { decision: "answer", hashPrefix: q.artifactSha.slice(0, 6), by: "lead", data: { answers: { "Q-1": "A" } } });
+    await execute(runId);
+    const card = replay(ledger.events()).openCard!;
+    await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 6), by: "lead" });
+    const done = await execute(runId);
+    expect(done.status, done.message).not.toBe("waiting");
+    return runId;
+  }
+
+  it("refuses to build on an estimate that is not approved yet", async () => {
+    const runId = await createRun("Build a client portal.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true } });
+    await execute(runId);
+    expect(() => approvedEstimate(runId)).toThrow(/no approved estimate yet/);
+  });
+
+  it("re-estimates under the other delivery model as a sibling run over the approved breakdown, with a comparison", async () => {
+    const parent = await approvedRun();
+    const approved = approvedEstimate(parent);
+    expect(approved.deliveryModel).toBe("hitl");
+    const runId = await createRun(approved.request, "demo", "sam", { mode: "estimate", estimate: { ...approved.settings, deliveryModel: "agentic" }, lineage: { kind: "sibling", approved } });
+    prompts = [];
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("waiting");
+    // no intake, clarify, spec or breakdown work: only the sizing was asked of the model
+    expect(prompts.every((p) => /sizing the tasks/.test(p))).toBe(true);
+    const ledger = Ledger.open(runId);
+    const card = replay(ledger.events()).openCard!;
+    const md = ledger.readCard(card.cardId);
+    expect(md).toMatch(/## Compared with the HITL estimate/);
+    expect(md).toMatch(/Delivery model: hitl -> agentic/);
+    expect(md).toMatch(/solely agentic/);
+    await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 6), by: "lead" });
+    const done = await execute(runId);
+    expect(done.status, done.message).not.toBe("waiting");
+    const s = replay(ledger.events());
+    expect(s.steps.get("export")!.status).toBe("completed");
+    const est = ledger.getJson<{ parentEstimate?: string; deliveryModel: string; gateHours: unknown[] }>(s.steps.get("estimate")!.outputs[0]!);
+    expect(est.parentEstimate).toBe(approved.estimateSha);
+    expect(est.deliveryModel).toBe("agentic");
+    expect(est.gateHours).toEqual([]);
+  });
+
+  it("a change request is a full estimate whose card shows what changed from the approved one, and whose file says version 2", async () => {
+    const parent = await approvedRun();
+    const approved = approvedEstimate(parent);
+    const runId = await createRun("Build a client portal where users sign in, export reports and pay.", "demo", "sam", { mode: "estimate", estimate: approved.settings, lineage: { kind: "change", approved } });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("waiting");
+    const ledger = Ledger.open(runId);
+    const q = replay(ledger.events()).openCard!;
+    await decide(ledger, { decision: "answer", hashPrefix: q.artifactSha.slice(0, 6), by: "lead", data: { answers: { "Q-1": "A" } } });
+    const r2 = await execute(runId);
+    expect(r2.status, r2.message).toBe("waiting");
+    const card = replay(ledger.events()).openCard!;
+    expect(ledger.readCard(card.cardId)).toMatch(/## Change from the approved estimate[\s\S]*Overall: /);
+    await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 6), by: "lead" });
+    await execute(runId);
+    const files = replay(ledger.events()).steps.get("export")!.data as { team: string };
+    expect((await loadWorkbook(files.team)).getWorksheet("Summary")!.getCell("C7").value).toBe("2");
+  });
+
+  it("seeds a build run from the approved estimate: its spec, tasks and critic record, ready for gates B1-B5", async () => {
+    const parent = await approvedRun();
+    const approved = approvedEstimate(parent);
+    const repo = mkdtempSync(join(tmpdir(), "factory-est-build-repo-"));
+    const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
+    execFileSync("git", ["init", "-q", "-b", "main"], { cwd: repo, env });
+    writeFileSync(join(repo, "a.txt"), "x");
+    execFileSync("git", ["add", "-A"], { cwd: repo, env });
+    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: repo, env });
+    writeFileSync(join(process.env.FACTORY_HOME!, "projects", "build.yaml"), stringify({ project: "build", repo, stack: "dotnet" }));
+    const runId = await createRun(approved.request, "build", "sam", { lineage: { kind: "build", approved } });
+    const s = replay(Ledger.open(runId).events());
+    expect(s.info.mode).toBe("brownfield");
+    expect(s.info.estimateRef).toMatchObject({ runId: parent, estimateSha: approved.estimateSha, breakdownSha: approved.breakdownSha, specSha: approved.specSha });
+    const ledger = Ledger.open(runId);
+    // the artifacts came across under their own hashes, with the approved run's own critic record
+    expect(ledger.getJson(approved.estimateSha)).toBeTruthy();
+    expect(ledger.getJson<{ findings: unknown[] }>(s.info.estimateRef!.criticSha!).findings).toEqual([]);
   });
 });

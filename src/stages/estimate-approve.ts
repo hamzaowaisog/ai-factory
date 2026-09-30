@@ -9,6 +9,7 @@ import type { z } from "zod";
 import type { Breakdown, Design, Estimate, IntentBody, Spec } from "../contracts/index.js";
 import { designBaseline, leadApproval } from "../estimate/gates.js";
 import { exportWorkbooks, type ExportInput } from "../estimate/export.js";
+import { diffEstimates } from "../estimate/lineage.js";
 import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
 import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
 import { failure } from "../gates/engine.js";
@@ -31,7 +32,7 @@ export function designCard(runId: string, design: DesignT, hash: string): string
     `Run ${runId}. The estimate of a UI request stands on the approved mock and clickable demo: screen counts, states and flows come from it.`, ``,
     `Flow: ${design.flow}`, design.figmaUrl ? `Figma: ${design.figmaUrl}` : "", ``,
     `Screens (${design.screens.length}):`,
-    ...design.screens.map((s) => `- ${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}`), ``,
+    ...design.screens.map((s) => { const x = s as typeof s & { states?: string[]; size?: string }; return `- ${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}${x.size ? `; ${x.size}` : ""}${x.states?.length ? `; states: ${x.states.join(", ")}` : ""}`; }), ``,
     design.mapping.unmappedReqs.length ? `Requirements with no screen: ${design.mapping.unmappedReqs.join(", ")}` : "Every requirement has a screen.",
     design.mapping.orphanScreens.length ? `Screens with no requirement: ${design.mapping.orphanScreens.join(", ")}` : "Every screen links to a requirement.", ``,
     `Approve: factory approve ${runId} ${hash.slice(0, 8)}`,
@@ -53,8 +54,8 @@ export const designBaselineStep: StepDef = {
       const g = await gate(ctx, "design-baseline", designBaseline, { ui: false });
       return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: false, gate: g.details }) }, data: { ui: false } };
     }
-    const design = readOutput<DesignT>(ctx.state, ctx.ledger, "design");
-    if (!design) {
+    const design = readOutput<DesignT & { skipped?: boolean }>(ctx.state, ctx.ledger, "design");
+    if (!design || design.skipped) {
       return { kind: "park", reason: "This request has UI, so its estimate needs an approved mock and clickable demo (gate E1b), and the design step has not produced one for this run. Produce the design, then resume." };
     }
     const designSha = outputOf(ctx.state, "design")!;
@@ -77,11 +78,22 @@ export const designBaselineStep: StepDef = {
 
 // ---------- E7: approve the estimate ----------
 
+/** Against the approved estimate this run revises, or the sibling delivery model's. */
+function parentDiff(ctx: { state: RunState; ledger: { getJson<T>(sha: string): T } }, e: Estimate, b: Breakdown): { title: string; lines: string[] } | undefined {
+  const p = ctx.state.info.parent;
+  if (!p) return undefined;
+  const from = { estimate: ctx.ledger.getJson<Estimate>(p.estimateSha), breakdown: ctx.ledger.getJson<Breakdown>(p.breakdownSha) };
+  return {
+    title: p.kind === "change" ? `Change from the approved estimate (${p.runId.slice(0, 24)})` : `Compared with the ${from.estimate.deliveryModel === "hitl" ? "HITL" : "solely agentic"} estimate`,
+    lines: diffEstimates(from, { estimate: e, breakdown: b }),
+  };
+}
+
 const h = (r: { min: number; max: number }): string => `${r.min}-${r.max} h`;
 const usd = (r: { min: number; max: number }): string => `$${r.min.toFixed(2)}-$${r.max.toFixed(2)}`;
 
 /** The one review the lead does: anchors first, then totals, cost, flags, the gate and waiver log. */
-export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<Breakdown, "tasks">, extra: { gates: string[]; waivers: string[]; note?: string }): string {
+export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<Breakdown, "tasks">, extra: { gates: string[]; waivers: string[]; note?: string; diff?: { title: string; lines: string[] } }): string {
   const title = new Map(b.tasks.map((t) => [t.id, t.title]));
   const flagged = e.tasks.filter((t) => t.flagged);
   const list = (xs: string[], none: string) => (xs.length ? xs : [none]);
@@ -89,6 +101,7 @@ export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<B
     `# Approve the estimate (E7)`, ``,
     `Run ${runId} · ${e.deliveryModel === "hitl" ? "HITL (supervisor + agents)" : "solely agentic"} · size ${e.band} · uncertainty ${e.uncertainty}`,
     extra.note ? `\n${extra.note}` : "", ``,
+    ...(extra.diff ? [`## ${extra.diff.title}`, ...extra.diff.lines.map((l) => `- ${l}`), ``] : []),
     `## Anchors (check these first: every other task is sized against one)`,
     ...e.anchors.map((a) => `- ${a.taskId} ${title.get(a.taskId) ?? ""}: ${h(a.hours)}. ${a.reason}`), ``,
     `## Totals`,
@@ -104,6 +117,7 @@ export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<B
     `## Gates`, ...list(extra.gates.map((g) => `- ${g}`), "none recorded"), ``,
     `## Waivers`, ...list(extra.waivers.map((w) => `- ${w}`), "none"), ``,
     `Approve: factory approve ${runId} ${hash.slice(0, 8)}${flagged.length ? ` --sign-off ${flagged.map((t) => t.taskId).join(",")}` : ""}`,
+    `Edit:    factory edit-estimate ${runId} ${hash.slice(0, 8)} --anchor ${e.anchors[0]?.taskId ?? "EST-1"}=<min>-<max> --ratio <EST-n>=<multiple> --reason "why"   (everything recomputes; you get a new card)`,
     `Reject:  factory reject ${runId} ${hash.slice(0, 8)} --reason "why"`, ``, `Card hash: ${hash.slice(0, 8)}`,
   ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
 }
@@ -143,7 +157,7 @@ export const approveEstimateStep: StepDef = {
     const md = estimateCard(ctx.runId, bundle, estimate, breakdown, {
       gates: gateLog(ctx.ledger.events()).map(gateLine),
       waivers: waiversOf(ctx.state).map((w) => `${w.gateIds.join(", ")} (${w.step}): waived by ${w.human}. ${w.reason}`),
-      note,
+      note, diff: parentDiff(ctx, estimate, breakdown),
     });
     return { kind: "wait", card: { cardId: `estimate-${bundle.slice(0, 8)}`, kind: "estimate-approval", artifactSha: bundle, markdown: md } };
   },
@@ -164,7 +178,7 @@ export const exportStep: StepDef = {
     const settings = settingsOf(ctx.state);
     const input: ExportInput = {
       estimate, breakdown,
-      header: { client: info.client ?? ctx.state.info.project, project: info.projectName ?? ctx.state.info.project, pm: info.pm ?? ctx.state.info.operator ?? "", date: new Date().toISOString().slice(0, 10), version: estimate.parentEstimate ? "2" : "1" },
+      header: { client: info.client ?? ctx.state.info.project, project: info.projectName ?? ctx.state.info.project, pm: info.pm ?? ctx.state.info.operator ?? "", date: new Date().toISOString().slice(0, 10), version: ctx.state.info.parent?.kind === "change" ? "2" : "1" },
       requirements: spec.requirements.map((q) => ({ id: q.id, title: q.ears.length > 140 ? `${q.ears.slice(0, 137)}...` : q.ears })),
       ...(settings.rates && Object.keys(settings.rates).length ? { rates: settings.rates } : {}),
       waivers: waiversOf(ctx.state),

@@ -394,6 +394,10 @@ Answer the question card if one appears, read the approval card, then approve.
 factory estimate --file requirements.docx --project shop-api --no-repo --delivery-model hitl --rate backend=55 --rate default=40
 factory approve <run> <hash> --sign-off EST-4     # low-confidence lines need a sign-off
 factory waive <run> <hash> --reason "why"         # only for E3, E4 and E5
+factory edit-estimate <run> <hash> --anchor EST-1=6-12 --reason "why"   # recomputes, new card
+factory estimate --from-run <run> --delivery-model agentic              # the other delivery model
+factory estimate --revises <run> --file changed.md --project shop-api   # a change request (v2)
+factory start --from-estimate <run> --project shop-api                  # build it, held to the estimate
 ```
 
 **6. Get the result**

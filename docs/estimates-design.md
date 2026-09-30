@@ -452,7 +452,7 @@ Built and tested, with a scripted model, through the real executor (`src/stages/
 | Model steps | `breakdown` and `estimate` in `src/stages/estimate.ts` |
 | Document intake, per-module specify | `.docx` and pre-exported Figma frames in `src/sources/`; `splitModules` and the per-module intake, clarify and spec steps in `src/stages/modular.ts`. Each module asks its own clarify questions, so a large document means one question card per module |
 | Stack-agnostic ground | `estimateGroundStep`: no repo means every span is new build work (no model call); a repo gets the normal grounding step plus `src/context/survey.ts` and, for UI work, the design inventory |
-| E1b design baseline | `design-baseline` step: no UI passes; UI needs an approved design artifact from a `design` step and parks without one |
+| Design step and E1b | `design` step (UI requests only): the model proposes the screen inventory (flow, screens with route, states and size, the requirements each serves, a reason for each requirement with no screen); code checks the links both ways. `design-baseline` (E1b) then needs a person's approval of that inventory. It is an inventory of screens, not a rendered mock or clickable demo |
 | E7 approval | `approve-estimate` step: one card, anchors first, hash-bound, sign-off for each low-confidence line (`factory approve --sign-off EST-2,EST-5`) |
 | Waivers | E3, E4, E5 only, after one retry: a waiver card, then `factory waive <run> <hash> --reason "..."`; recorded with the name and reason, shown on the card and in the team file's Gates sheet |
 | Export | `export` step writes both workbooks to `<ledger>/export/` and lints each file cell by cell |
@@ -460,10 +460,14 @@ Built and tested, with a scripted model, through the real executor (`src/stages/
 | Benchmark records | `src/estimate/records.ts` reads every other run in the ledger home; a phase with records replaces its cold-start figure |
 | Cost overlay | Team file's Cost sheet when `--rate` is given; the client file never has it |
 
+| Edit on the card | `factory edit-estimate <run> <hash> --anchor EST-1=6-12 --ratio EST-4=2 --reason "..."`: the stored proposals are edited, the estimate is assembled again by the same code (no new model call), and a new card follows. The edit is listed in the estimate's assumptions |
+| Change request (B2) | `factory estimate --revises <run>`: a full estimate whose card shows what changed from the approved one; the file says version 2; `parentEstimate` points at the approved estimate |
+| Second delivery model | `factory estimate --from-run <run> --delivery-model agentic` (or `hitl`): a sibling run seeded with the approved spec, answers and tasks; only sizing is redone; the card compares it with the first |
+| Build from an estimate (B1-B5) | `factory start --from-estimate <run>`: inherits the spec (no clarify or specify); the plan step maps each plan task to an approved estimate task (B1) and parks a recorded requirement change (B2); integrate checks the change size against the approved cap (B3); review flags behaviour no requirement asked for (B4); before every step the run is checked against the approved budget, with a warning at 80% and a stop at 100% (B5). Each implement step records its `EST-n` |
+
 Not done:
-- **A `design` step.** Nothing in the factory produces the mock and clickable demo yet, so a UI estimate parks at E1b until one does (see "Design module hardening").
-- **B1-B5 wiring into the build.** The predicates exist; `PlanTask.estimateTaskId`, the seeded build run (G4), the change-request run (B2) and the budget stop (B5) are not called from any build step.
-- **The second delivery model as a child run.** Run the command again with `--delivery-model agentic` for now; it is a separate run, not a child of the approved breakdown.
-- **Editing an anchor on the card.** A lead can approve, reject (the run parks with the reason) or waive; editing a line and recomputing is not built.
-- **The real-template decision (open item 3).** `src/estimate/template.test.ts` checks whether the template survives a load and save; it runs when `FACTORY_ESTIMATE_TEMPLATE` points at the file. The workbook is drawn until that test says filling a copy is safe.
+- **A rendered mock and clickable demo.** The design step produces a screen inventory. Rendering a mock in the app, the screenshot lab and the pixel comparisons (`docs/design-step.md`) are separate work.
+- **Effort in B5.** Human effort hours are not measured in the ledger yet, so only API credit spend and elapsed days can stop a run; effort counts as zero.
+- **Waiving B1-B4 and B5.** The predicates are marked waivable, but only E3, E4 and E5 have a waiver card. B1, B3 and B4 fail or park the step; a B5 stop ends the run. The way forward is a change request or a new estimate.
+- **The real-template decision (open item 3).** `src/estimate/template.test.ts` checks whether the template survives a load and save; it runs when `FACTORY_ESTIMATE_TEMPLATE` points at the file, which is not in the repo. The workbook is drawn until that test says filling a copy is safe.
 - **Cost calibration from `report.json` of the first real runs** stays open; records come from the ledger home only.

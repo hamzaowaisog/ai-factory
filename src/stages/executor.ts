@@ -24,6 +24,8 @@ import { stepsFor } from "./modes.js";
 import { availableRungs, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
 import type { RequestSource } from "../sources/request.js";
+import { budgetStop } from "../estimate/budget.js";
+import { copyArtifacts, type Approved } from "../estimate/lineage.js";
 
 export type Log = (msg: string) => void;
 
@@ -67,7 +69,7 @@ export function readRequestFile(path: string, maxBytes = MAX_REQUEST_FILE_BYTES)
 }
 
 /** `factory start`: create the ledger. Execution happens in `execute`. */
-export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "estimate"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[] } = {}): Promise<string> {
+export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "estimate"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved } } = {}): Promise<string> {
   if (opts.maxCostUsd !== undefined && !(opts.maxCostUsd > 0)) throw new Error("--max-cost must be a positive number of dollars");
   const project = loadProject(projectName);
   // an estimate from requirements alone has no repo to check or read
@@ -79,6 +81,10 @@ export async function createRun(request: string, projectName: string, operator: 
   const baseCommit = noRepo ? undefined : await resolveRef(project.repo, project.baseBranch);
   const runId = newRunId(request);
   const ledger = Ledger.create(runId);
+  const lin = opts.lineage;
+  if (lin) copyArtifacts(ledger, lin.approved);
+  // an estimate has no critic record of its own to hand a build run: an empty one, stated as inherited
+  if (lin?.kind === "build" && !lin.approved.criticSha) lin.approved.criticSha = ledger.putJson({ findings: [], note: `inherited from approved estimate ${lin.approved.runId}` });
   const requestSha = ledger.putArtifact(request);
   await ledger.append({
     type: "run.created",
@@ -89,6 +95,8 @@ export async function createRun(request: string, projectName: string, operator: 
       ...(opts.requestFile ? { requestFile: opts.requestFile } : {}),
       ...(opts.sources?.length ? { sources: opts.sources } : {}),
       ...(opts.estimate ? { estimate: opts.estimate } : {}),
+      ...(lin && lin.kind !== "build" ? { parent: { runId: lin.approved.runId, kind: lin.kind, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.clarifySha ? { clarifySha: lin.approved.clarifySha } : {}), ...(lin.approved.clarify2Sha ? { clarify2Sha: lin.approved.clarify2Sha } : {}) } } : {}),
+      ...(lin?.kind === "build" ? { estimateRef: { runId: lin.approved.runId, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}) } } : {}),
     },
   }, HUMAN_WRITER);
   for (const a of opts.attachments ?? []) {
@@ -149,6 +157,7 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
     throw e;
   }
   const writer = lock;
+  const warned = new Set<string>();
   trace.startHeartbeat();
   trace.event("run", `executor started (pid ${process.pid})`);
   try {
@@ -171,6 +180,8 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
       if (state.flags.pauseRequested) { await ledger.append({ type: "run.paused" }, writer); return { status: "paused", message: "Paused." }; }
       if (typeof state.status === "object" || state.status === "delivered") return { status: String(typeof state.status === "object" ? `closed: ${state.status.closed}` : state.status), message: "Nothing to do." };
       if (state.openCard) return { status: "waiting", message: `Waiting for you: factory show-card ${runId}` };
+      const burn = await budgetStop(ledger, writer, state, policy, log, warned);
+      if (burn) { await ledger.append({ type: "run.parked", data: { reason: burn } }, writer); return { status: "parked", message: burn }; }
       const cap = checkCaps(state, policy.retryBudget);
       if (cap && !cap.waivable) { await ledger.append({ type: "run.parked", data: { reason: cap.reason } }, writer); return { status: "parked", message: cap.reason }; }
       if (cap) {

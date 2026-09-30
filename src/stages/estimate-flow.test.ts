@@ -21,7 +21,8 @@ import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { approveEstimateStep, designBaselineStep, exportStep } from "./estimate-approve.js";
 import { estimateGroundStep, newBuildBehaviour } from "./estimate-ground.js";
-import { breakdownStep } from "./estimate.js";
+import { breakdownStep, estimateStep, setRecordsSource } from "./estimate.js";
+import { designStep, mapDesign } from "./design.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
 import { NO_TRACE } from "../util/trace.js";
@@ -41,6 +42,7 @@ beforeEach(() => {
   process.env.ANTHROPIC_API_KEY = "sk-ant-test-not-real-000000000000";
   _resetEnvCache();
   modelCalls = 0;
+  setRecordsSource(() => []);
   answer = () => { throw new Error("the model must not be called"); };
   setProviderFactory(() => provider);
 });
@@ -373,5 +375,104 @@ describe("export step", () => {
   });
   it("only starts after the approval", () => {
     return newRun().then((l) => expect(exportStep.inputs(replay(l.events()), l)).toBeUndefined());
+  });
+});
+
+// ---------- design step ----------
+describe("design step", () => {
+  const twoReqs = { ...spec, requirements: [...spec.requirements, { id: "REQ-2", ears: "The system shall export a PDF report.", op: "ADDED", sources: ["I-1"], acceptance: [] }] };
+  const out = (over: Record<string, unknown> = {}) => ({
+    flow: "A user signs in, lands on the dashboard", screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["error"], size: "new" }],
+    noScreen: [{ req: "REQ-2", reason: "a scheduled job, no screen" }], ...over,
+  });
+  async function uiRun(touchesUi = true) {
+    const ledger = await newRun();
+    await complete(ledger, "intake", uiIntent(touchesUi));
+    await complete(ledger, "specify", twoReqs);
+    return ledger;
+  }
+  it("draws no screens when the request has no UI, without a model call", async () => {
+    const ledger = await uiRun(false);
+    const o = await exec(ledger, designStep);
+    expect(o.kind).toBe("done");
+    expect(modelCalls).toBe(0);
+    expect(ledger.getJson<{ skipped: boolean }>((o as { outputs: Record<string, string> }).outputs.design!).skipped).toBe(true);
+  });
+  it("records the screens, states and sizes the model proposes once every requirement is on a screen or exempt", async () => {
+    const ledger = await uiRun();
+    answer = () => out();
+    const o = await exec(ledger, designStep);
+    expect(o.kind).toBe("done");
+    const d = ledger.getJson<{ screens: { id: string; states: string[] }[]; noScreen: unknown[] }>((o as { outputs: Record<string, string> }).outputs.design!);
+    expect(d.screens[0]).toMatchObject({ id: "S-1", states: ["error"] });
+    expect(d.noScreen).toHaveLength(1);
+  });
+  it("fails on a requirement that is on no screen, a screen that serves none, and an invented requirement", async () => {
+    const ledger = await uiRun();
+    answer = () => out({ noScreen: [], screens: [{ id: "S-1", route: "/a", file: "a.tsx", reqs: ["REQ-1", "REQ-7"] }, { id: "S-2", route: "/b", file: "b.tsx", reqs: [] }] });
+    const o = await exec(ledger, designStep);
+    expect(o.kind).toBe("fail");
+    expect((o as { failures: { check: string }[] }).failures.map((f) => f.check).sort()).toEqual(["design-orphan", "design-unknown-req", "design-unmapped"]);
+  });
+  it("mapDesign reports both directions", () => {
+    expect(mapDesign(["R-1", "R-2"], { flow: "f", screens: [{ id: "S-1", route: "/", file: "a", reqs: ["R-1"], states: [], size: "new" }], noScreen: [] })).toEqual({ unmappedReqs: ["R-2"], orphanScreens: [], unknown: [] });
+  });
+  it("its approved screens feed E1b end to end", async () => {
+    const ledger = await uiRun();
+    answer = () => out();
+    await exec(ledger, designStep);
+    const card = await exec(ledger, designBaselineStep);
+    expect(card.kind).toBe("wait");
+    expect((card as { card: { markdown: string } }).card.markdown).toMatch(/S-1 \/login.*REQ-1; new; states: error/);
+    await decide(ledger, card, "design-baseline", "approve");
+    expect((await exec(ledger, designBaselineStep)).kind).toBe("done");
+  });
+});
+
+// ---------- edits on the card ----------
+describe("editing an estimate on its card", () => {
+  const sizing = {
+    anchors: [{ taskId: "EST-1", hours: { min: 4, max: 8 }, reason: "a typical endpoint for this stack" }],
+    tasks: [
+      { taskId: "EST-1", anchorId: "EST-1", ratio: 1, reason: "the anchor" },
+      { taskId: "EST-2", anchorId: "EST-1", ratio: 2, reason: "twice the fields" },
+      { taskId: "EST-3", anchorId: "EST-1", ratio: 0.25, reason: "light" },
+    ],
+  };
+  async function sized() {
+    const ledger = await newRun({ estimate: { noRepo: true } });
+    await complete(ledger, "intake", uiIntent(false));
+    await complete(ledger, "clarify", { round: 1, asked: [], assumptions: [], differences: [], conflicts: [] });
+    await complete(ledger, "specify", spec);
+    await complete(ledger, "breakdown", breakdown);
+    answer = () => sizing;
+    const first = await exec(ledger, estimateStep);
+    expect(first.kind).toBe("done");
+    return ledger;
+  }
+  it("recomputes from the stored proposals without asking the model again, and issues a new card", async () => {
+    const ledger = await sized();
+    const before = replay(ledger.events()).steps.get("estimate")!.outputs[0]!;
+    const calls = modelCalls;
+    const card = await exec(ledger, approveEstimateStep);
+    await decide(ledger, card, "approve-estimate", "edit", { edits: { anchors: { "EST-1": { min: 8, max: 16 } }, ratios: { "EST-2": 3 } }, reason: "the stack is new to us" });
+    const again = await exec(ledger, estimateStep);
+    expect(again.kind).toBe("done");
+    expect(modelCalls).toBe(calls);
+    const now = ledger.getJson<Estimate>((again as { outputs: Record<string, string> }).outputs.estimate!);
+    expect(replay(ledger.events()).steps.get("estimate")!.outputs[0]).not.toBe(before);
+    expect(now.anchors[0]!.hours).toEqual({ min: 8, max: 16 });
+    expect(now.tasks.find((t) => t.taskId === "EST-2")!.ratio).toBe(3);
+    expect(now.assumptions.some((a) => /Lead edit: anchor EST-1 set to 8-16 h, EST-2 ratio set to 3 \(lead: the stack is new to us\)/.test(a))).toBe(true);
+    // every total followed the edit, and the new estimate gets its own card
+    expect(now.totals.overall.max).toBeGreaterThan(ledger.getJson<Estimate>(before).totals.overall.max);
+    const next = await exec(ledger, approveEstimateStep);
+    expect(next.kind).toBe("wait");
+    expect((next as { card: { artifactSha: string } }).card.artifactSha).not.toBe((card as { card: { artifactSha: string } }).card.artifactSha);
+    expect((next as { card: { markdown: string } }).card.markdown).toMatch(/Lead edit: anchor EST-1/);
+  });
+  it("shows the edit command on the card", async () => {
+    const ledger = await sized();
+    expect(((await exec(ledger, approveEstimateStep)) as { card: { markdown: string } }).card.markdown).toMatch(/factory edit-estimate .* --anchor EST-1=<min>-<max>/);
   });
 });

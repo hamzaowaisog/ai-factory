@@ -30,6 +30,7 @@ import { ensureWorktree, runtime, snapshotFor } from "./workspace.js";
 import { replay, splitKey } from "../ledger/state.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import { LANE, lightBuild } from "./lane.js";
+import { sizeCap } from "../estimate/gates.js";
 
 type Plan = z.infer<typeof PlanBody> & { complexity: string };
 type Intent = z.infer<typeof IntentBody>;
@@ -580,7 +581,7 @@ export function implementStep(taskId: string): StepDef {
         }
         return failed(gated);
       }
-      return { kind: "done", outputs: { diff: diffSha, testRun: run.testRun }, treeSha: commit, data: { commit, ...retry } };
+      return { kind: "done", outputs: { diff: diffSha, testRun: run.testRun }, treeSha: commit, data: { commit, ...retry, ...(task.estimateTaskId ? { estimateTaskId: task.estimateTaskId } : {}) } };
     },
   };
 }
@@ -613,6 +614,8 @@ export const integrateStep: StepDef = {
       [testExpectations, { run: run.testRun, baseline: baselineSha }],
       [lockSetUnchanged, { diff: diffSha, tests: ctx.state.steps.get("author-tests")!.outputs[0]! }],
       [diffSize, { diff: diffSha }],
+      // B3: a run that follows an approved estimate may not grow past the size that was approved
+      ...(ctx.state.info.estimateRef ? [[sizeCap, { diff: diffSha, estimate: ctx.state.info.estimateRef.estimateSha }] as [GateDef, Record<string, string>]] : []),
     ]);
     if (gated) return { kind: "park", reason: `Integration failed: ${gated.failures.slice(0, 3).map((f) => f.message).join("; ")}` };
     return { kind: "done", outputs: { testRun: run.testRun, diff: diffSha }, treeSha: head, data: { commit: head } };

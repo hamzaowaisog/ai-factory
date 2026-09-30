@@ -8,14 +8,20 @@ import { breakdownStep, estimateStep } from "./estimate.js";
 import { approveStep, groundStep, intakeStep, planStep } from "./spec.js";
 import { draftsStep, mergeStep, specifyStep } from "./specpipe.js";
 import { splitModules } from "../estimate/modules.js";
+import { designStep } from "./design.js";
 import { approveEstimateStep, designBaselineStep, exportStep } from "./estimate-approve.js";
+import { seedStep } from "./seed.js";
 import { estimateGroundStep } from "./estimate-ground.js";
 import { combineClarifyStep, combineIntakeStep, combineSpecsStep, moduleClarifySteps, moduleIntakeSteps, moduleSteps } from "./modular.js";
 
 export function brownfieldSteps(state: RunState): StepDef[] {
   const tasks = (state.steps.get("plan")?.status === "completed" ? (state.steps.get("plan")!.data?.tasks as string[] | undefined) : undefined) ?? [];
+  // a build run seeded from an approved estimate inherits its spec (no clarify, no specify) and is held to it (gates B1-B5)
+  const spec: StepDef[] = state.info.estimateRef
+    ? [seedStep("specify", "specify", (i) => i.estimateRef?.specSha, { critic: (i) => i.estimateRef?.criticSha })]
+    : [clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
   return [
-    discoverStep, intakeStep, groundStep, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep, planStep, approveStep,
+    discoverStep, intakeStep, groundStep, ...spec, planStep, approveStep,
     stubCommitStep, authorTestsStep,
     ...tasks.map((t) => implementStep(t)),
     integrateStep, acceptStep, reviewStep, deliverStep,
@@ -31,13 +37,24 @@ export function brownfieldSteps(state: RunState): StepDef[] {
  * is unchanged. The list is a pure function of the request text, so a replay gets the same steps.
  */
 export function estimateSteps(state: RunState): StepDef[] {
+  // the other delivery model over an approved breakdown: its spec, answers and tasks are inherited, only sizing is new
+  const p = state.info.parent;
+  if (p?.kind === "sibling") {
+    return [
+      seedStep("specify", "specify", (i) => i.parent?.specSha, { critic: (i) => i.parent?.criticSha }),
+      ...(p.clarifySha ? [seedStep("clarify", "clarify", (i) => i.parent?.clarifySha)] : []),
+      ...(p.clarify2Sha ? [seedStep("clarify-2", "clarify", (i) => i.parent?.clarify2Sha)] : []),
+      seedStep("breakdown", "breakdown", (i) => i.parent?.breakdownSha),
+      estimateStep, approveEstimateStep, exportStep,
+    ];
+  }
   const modules = splitModules(state.info.request ?? "");
   const head: StepDef[] = modules.length
     ? [...moduleIntakeSteps(modules), combineIntakeStep(modules), estimateGroundStep,
       ...moduleClarifySteps(modules, 1), combineClarifyStep(modules, 1), ...moduleClarifySteps(modules, 2), combineClarifyStep(modules, 2),
       ...moduleSteps(modules), combineSpecsStep(modules)]
     : [intakeStep, estimateGroundStep, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
-  return [...head, designBaselineStep, breakdownStep, estimateStep, approveEstimateStep, exportStep];
+  return [...head, designStep, designBaselineStep, breakdownStep, estimateStep, approveEstimateStep, exportStep];
 }
 
 /** The ordered steps for the run's mode. */

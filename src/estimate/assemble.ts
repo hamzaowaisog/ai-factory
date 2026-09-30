@@ -73,6 +73,8 @@ export interface AssembleInput {
   counts: { questions: number; criticFindings: number; planningMinutes: number };
   assumptions: string[];
   records?: BenchmarkRecord[];
+  /** the approved estimate this one revises, or the sibling delivery model's */
+  parentEstimate?: string;
   a?: Assumptions;
 }
 
@@ -134,6 +136,7 @@ export function assembleEstimate(i: AssembleInput): z.infer<typeof Estimate> {
     uncertainty: uncertaintyFor(i.grades),
     breakdownSha: i.breakdownSha,
     specSha: i.specSha,
+    ...(i.parentEstimate ? { parentEstimate: i.parentEstimate } : {}),
     anchors: lead.anchors,
     tasks,
     overheads: [],
