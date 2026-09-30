@@ -32,7 +32,9 @@ import { stepBudgetUsd } from "../ledger/caps.js";
 import { LANE, lightBuild } from "./lane.js";
 import { sizeCap } from "../estimate/gates.js";
 import { designFidelityLint, designSizeCap } from "../design/gates.js";
-import { actualSize, approvedLevel, fidelityLint, touchesUiFiles } from "../design/build-checks.js";
+import { actualSize, approvedLevel, designOptions, fidelityLint, hasReactApp, touchesUiFiles } from "../design/build-checks.js";
+import { buildInventory, inventorySummary } from "../design/inventory.js";
+import { dirSource } from "../design/source.js";
 
 type Plan = z.infer<typeof PlanBody> & { complexity: string };
 type Intent = z.infer<typeof IntentBody>;
@@ -171,7 +173,21 @@ export const discoverStep: StepDef = {
     const failed = baseline.results.filter((r) => r.outcome === "failed").length;
     const sha = ctx.ledger.putJson(baseline);
     ctx.log(`baseline: ${baseline.results.length} tests, ${failed} failing before any change`);
-    return { kind: "done", outputs: { baseline: sha }, data: { tests: baseline.results.length, knownFailures: failed, status: failed ? "green-with-known-failures" : "green" } };
+    // A repo with a React or Next.js front end also gets its design inventory, as a second named output. The
+    // snapshot excludes noGo paths, so a front end under one is left out. Best effort: it never stops discover.
+    const outputs: Record<string, string> = { baseline: sha };
+    const data: Record<string, unknown> = { tests: baseline.results.length, knownFailures: failed, status: failed ? "green-with-known-failures" : "green" };
+    try {
+      const src = dirSource(snap.root);
+      if (hasReactApp(src.list(), (p) => src.read(p))) {
+        const { navRaises: _n, ...inv } = designOptions(ctx.project.design);
+        const inventory = buildInventory(src, inv);
+        outputs.design = ctx.ledger.putJson(inventory);
+        data.design = inventory.verdict;
+        ctx.log(`design inventory: ${inventory.verdict}\n${inventorySummary(inventory)}`);
+      }
+    } catch (e) { ctx.log(`design inventory skipped: ${e instanceof Error ? e.message : String(e)}`); }
+    return { kind: "done", outputs, data };
   },
 };
 
@@ -564,7 +580,7 @@ export function implementStep(taskId: string): StepDef {
         [diffInScope, { diff: diffSha, task: ctx.ledger.putJson({ fileScope: task.fileScope }) }],
         [noEscapeHatches, { diff: diffSha }],
         // a task that changes UI files also passes the token and component lint (design.fidelity-lint)
-        ...(touchesUiFiles(wt, start, commit) ? [[designFidelityLint, { lint: ctx.ledger.putJson(fidelityLint(wt, start, commit)) }] as [GateDef, Record<string, string>]] : []),
+        ...(touchesUiFiles(wt, start, commit) ? [[designFidelityLint, { lint: ctx.ledger.putJson(fidelityLint(wt, start, commit, designOptions(ctx.project.design))) }] as [GateDef, Record<string, string>]] : []),
       ]);
       if (diffGated) return failed(diffGated);
       // 2. only then build and run the tests on that exact commit
@@ -623,7 +639,7 @@ export const integrateStep: StepDef = {
       // design.size-cap: the UI change may not be bigger than the approved design allows (a skipped design allows none)
       ...(ctx.state.info.estimateRef?.designSha && touchesUiFiles(wt, ctx.state.info.baseCommit!, head)
         ? [[designSizeCap, {
-          actual: ctx.ledger.putJson(actualSize(wt, ctx.state.info.baseCommit!, head)),
+          actual: ctx.ledger.putJson(actualSize(wt, ctx.state.info.baseCommit!, head, designOptions(ctx.project.design))),
           approved: ctx.ledger.putJson({ level: approvedLevel(ctx.ledger.getJson(ctx.state.info.estimateRef.designSha)) }),
         }] as [GateDef, Record<string, string>]] : []),
     ]);

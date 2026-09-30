@@ -1,9 +1,10 @@
 // `factory design ...`: run the design toolkit by hand on any local repo.
 import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import type { Command } from "commander";
 import { cleanBrief } from "./brief.js";
-import { diffFromGit, lintDiff, overall } from "./fidelity.js";
+import { captureReports } from "./capture.js";
+import { compareReports, diffFromGit, lintDiff, overall, type StateReport } from "./fidelity.js";
 import { buildInventory, inventorySummary } from "./inventory.js";
 import { detectLayout } from "./layout.js";
 import { plannedChanges, sizeChange, sizeFromGit, type SizeInput, type SizeResult } from "./size.js";
@@ -80,6 +81,35 @@ export function registerDesignCommands(program: Command): void {
         out(`overall: ${overall(results)}`);
       }
       if (overall(results) !== "pass") process.exitCode = 1;
+    });
+
+  design.command("capture")
+    .requiredOption("--page <name=url...>", "a page to take, as name=url (the app must already be running)")
+    .requiredOption("--out <dir>", "folder for the screenshots and reports.json")
+    .description("screenshot and report pages of a running app at phone and desktop width")
+    .action(async (o: { page: string[]; out: string }) => {
+      const pages = o.page.map((p) => { const i = p.indexOf("="); if (i < 1) throw new Error(`--page wants name=url, got "${p}"`); return { name: p.slice(0, i), url: p.slice(i + 1) }; });
+      const r = await captureReports(pages, resolve(o.out));
+      writeFileSync(join(resolve(o.out), "reports.json"), JSON.stringify(r.reports, null, 2));
+      out(`${r.reports.length} report(s), ${r.files.length} screenshot(s) in ${o.out}${r.note ? `\nnote: ${r.note}` : ""}`);
+      if (r.note && !r.reports.length) process.exitCode = 1;
+    });
+
+  design.command("compare").argument("<approved.json>", "reports.json from the approved version").argument("<final.json>", "reports.json from the built app")
+    .option("--json", "print JSON")
+    .description("compare two capture reports: layout, accessibility, sideways scroll; exits 1 on a failure")
+    .action((approved: string, final: string, o: { json?: boolean }) => {
+      const read = (f: string) => JSON.parse(readFileSync(f, "utf8")) as StateReport[];
+      const results = compareReports(read(approved), read(final));
+      if (o.json) out(JSON.stringify({ overall: overall(results), results }, null, 2));
+      else {
+        for (const r of results) {
+          out(`${r.status.padEnd(9)} ${r.check.padEnd(34)} ${r.detail}`);
+          for (const i of r.items?.slice(0, 8) ?? []) out(`          - ${i}`);
+        }
+        out(`overall: ${overall(results)}`);
+      }
+      if (overall(results) === "fail") process.exitCode = 1;
     });
 
   design.command("brief").argument("<extract.json>", "an untrusted design extract (Figma export, screenshot reading, brand guide)")

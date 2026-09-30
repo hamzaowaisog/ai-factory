@@ -79,3 +79,29 @@ describe("ruleUi", () => {
     expect(ruleUi("Fix the rounding of tax in the nightly job")).toBe(false);
   });
 });
+
+describe("project design settings and discover", () => {
+  it("turns the design: block into toolkit options, leaving unset fields detected", async () => {
+    const { designOptions } = await import("./build-checks.js");
+    expect(designOptions(undefined)).toEqual({ navRaises: false });
+    expect(designOptions({ sourceRoot: "", uiDir: "web/ui", brandFonts: [], navRaises: true })).toEqual({ sourceRoot: "", uiDir: "web/ui", navRaises: true });
+  });
+  it("finds a React or Next.js front end in any package.json", async () => {
+    const { hasReactApp } = await import("./build-checks.js");
+    const files = { "package.json": '{"name":"x"}', "web/package.json": '{"dependencies":{"next":"15.0.0"}}' };
+    expect(hasReactApp(Object.keys(files), (p) => files[p as keyof typeof files])).toBe(true);
+    expect(hasReactApp(["package.json"], () => '{"dependencies":{"express":"4"}}')).toBe(false);
+    expect(hasReactApp(["src/App.cs"], () => "")).toBe(false);
+  });
+  it("uses the configured building-block folder for the size", async () => {
+    const { actualSize } = await import("./build-checks.js");
+    const r = repo({
+      "package.json": JSON.stringify({ dependencies: { next: "15.0.0", react: "19.0.0" } }),
+      "app/page.tsx": "export default function Home() { return <main /> }",
+      "kit/card.tsx": "export function Card() { return <div /> }",
+    });
+    const head = r.commit({ "kit/badge.tsx": "export function Badge() { return <span /> }" });
+    expect(actualSize(r.dir, r.base, head, { uiDir: "kit/" }).name).toBe("design-system change");
+    expect(actualSize(r.dir, r.base, head).name).not.toBe("design-system change");
+  });
+});

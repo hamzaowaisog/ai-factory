@@ -8,10 +8,10 @@ The four pieces, and where each sits in a run:
 
 | Piece | What it does | Where it plugs in | State |
 |---|---|---|---|
-| **Inventory** | Scans the app: framework, theme tokens, shared building blocks (for example `components/ui`), shared components with how often each is used, pages, and how much styling sits outside the design system | **Discover**, into the repo profile | Built, with a CLI command. Not yet called by discover (see "Wiring still to do") |
+| **Inventory** | Scans the app: framework, theme tokens, shared building blocks (for example `components/ui`), shared components with how often each is used, pages, and how much styling sits outside the design system | **Discover**, into the repo profile | Built, with a CLI command. Called by discover for React and Next.js repos |
 | **UI change size** | Sorts a change into **no UI**, **screen tweak**, **new screen** or **design-system change**, with a plain list of reasons | **After plan**, from the plan's file list; again **after integrate**, from the real diff | Built. The approval card now shows the size |
-| **Size-cap check** | Fails when the finished diff is a bigger UI change than the size that was approved | **After integrate**, as a gate | Gate predicate built and tested. Not yet called by integrate |
-| **Fidelity check** | Lint of the diff: theme tokens only, existing components only, no new building blocks. Also traces requirements to screens both ways, and compares layout and accessibility between the approved mock and the final screens | **After implement** (lint) and at **accept** (screenshots) | Lint, trace and comparisons built. The screenshot step itself is not built |
+| **Size-cap check** | Fails when the finished diff is a bigger UI change than the size that was approved | **After integrate**, as a gate | Wired into integrate |
+| **Fidelity check** | Lint of the diff: theme tokens only, existing components only, no new building blocks. Also traces requirements to screens both ways, and compares layout and accessibility between the approved mock and the final screens | **After implement** (lint) and at **accept** (screenshots) | Lint wired into implement. Comparisons built; `factory design capture` and `compare` take the screenshots by hand |
 | **Brief cleaner** | Turns an untrusted design extract (Figma export, screenshot reading, brand guide) into typed fields only | Before **design-read**, in the locked room | Built |
 
 What the size decides:
@@ -100,11 +100,14 @@ Done, in `src/stages/build.ts` (helpers in `src/design/build-checks.ts`):
 - **Implement:** when a task's commit changes UI files, the token and component lint runs on that commit range against the inventory at the task's start, and `design.fidelity-lint` decides. A task with no UI files adds no gate.
 - **Integrate:** for a build that follows an approved estimate whose design was not skipped (or was, which allows no UI), when the range changes UI files, `design.size-cap` compares the real size (`sizeFromGit`) with the biggest screen size the approved design allows (`approvedLevel`: reuse and tweak are a screen tweak, new is a new screen, design-system is a design-system change). A UI change where the design was skipped fails the cap, so a request the model judged as having no UI cannot quietly build one. A human can waive either gate; the waiver is logged.
 
+- **Discover:** a repo with a React or Next.js `package.json` gets the design inventory as a second named output, `design`, and the verdict and summary are logged. The snapshot leaves out `noGo` paths, so a front end under one is not inventoried. Nothing reads the output yet: the lint builds its own inventory from git at the task's start commit.
+- **Project config:** an optional `design:` block (`sourceRoot`, `uiDir`, `brandFonts`, `navRaises`), passed to the inventory, the lint and the size cap (see `docs/project-example.yaml`).
+- **Capture and compare the built app:** `factory design capture --page name=url --out dir` screenshots and reports pages of a running app at 390 and 1280 px (layout boxes, basic accessibility checks, sideways scroll), and `factory design compare approved.json final.json` runs `compareReports`. The accessibility checks are a small built-in set (alt text, names, labels, page language), not axe-core.
+
 Still to do:
 
-1. **Discover** (`discoverStep.run`): when the snapshot has a `package.json` with `react` or `next`, build the inventory and store it as a second named output, `design`. Nothing reads it yet. A .NET repo's frontend folder is usually a `noGo` glob, so a mixed repo needs its own read-only snapshot rule. (The lint builds its own inventory from git at the task's start commit, so it does not wait for this.)
-2. **Project config** (`src/config/project.ts`): an optional `design:` block with `sourceRoot`, `uiDir`, `brandFonts` and `navRaises`. Not added, because the config is still .NET-only (`stack: dotnet`), and the lint and cap run on each repo's detected layout.
-3. **Screenshot comparison in the build**: the layout, accessibility and pixel comparisons (`compareReports`) need screenshots of the built app. The estimate step's screenshots are of the wireframe demo only.
+1. **Run capture and compare inside the build.** It needs the built app running in a Node + Chromium lab container (see "Not ported"). Until then a person runs the two commands against a preview URL.
+2. **Pixel diff** and the fixtures, frozen clock and mocked network the diff needs.
 
 ## Brief cleaner and the untrusted-text rule
 

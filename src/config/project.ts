@@ -57,6 +57,17 @@ export const ProjectConfig = z.object({
   referenceDb: z.object({ connEnv: z.string() }).optional(),
   /** the Folio3 estimation template (.xlsx) the estimate workbooks are drawn on; FACTORY_ESTIMATE_TEMPLATE also works */
   estimateTemplate: z.string().optional(),
+  /** Front end of the repo, when it has one (docs/design-step.md): overrides what the design checks would detect. */
+  design: z.object({
+    /** source root, e.g. "src/" ("" is the repo root); default: detected */
+    sourceRoot: z.string().optional(),
+    /** the app's building-block folder, e.g. "src/components/ui"; default: detected */
+    uiDir: z.string().optional(),
+    /** brand fonts the design brief may name besides Google Fonts */
+    brandFonts: z.array(z.string()).default([]),
+    /** a nav change counts as a new screen, not a tweak */
+    navRaises: z.boolean().default(false),
+  }).optional(),
   noGo: z.array(z.string()).default([]),
   /** USD per million tokens for models the factory has no price for (e.g. a GPT model). */
   prices: z.record(z.string(), z.object({

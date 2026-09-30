@@ -357,6 +357,17 @@ program.command("report").argument("[run]")
     log(formatRun(scoreRun(openRun(run))));
   });
 
+program.command("calibrate")
+  .option("--actual-hours <file>", "a file of `estimate-run,actual-hours` lines for finished projects")
+  .option("--json", "print JSON")
+  .description("compare approved estimates with what the factory spent (and, with a file, with real hours)")
+  .action(async (o: { actualHours?: string; json?: boolean }) => {
+    const { costRows, formatCalibration, hoursRows } = await import("../estimate/calibrate.js");
+    const cost = costRows();
+    const hours = o.actualHours ? hoursRows(o.actualHours) : [];
+    log(o.json ? JSON.stringify({ cost, hours }, null, 2) : formatCalibration(cost, hours));
+  });
+
 program.command("verify-evidence").argument("<run>").description("re-check every recorded gate decision").action((run: string) => {
   const checks = verifyEvidence(openRun(run));
   for (const c of checks) log(`${c.ok ? "ok  " : "FAIL"} #${c.seq} ${c.gateId}${c.reason ? `: ${c.reason}` : ""}`);
