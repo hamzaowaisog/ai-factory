@@ -68,6 +68,8 @@ export interface RunInfo {
   spendAtPlan?: number;
   /** `factory start --max-cost`: a lower limit for this run */
   maxCostUsd?: number;
+  /** estimate mode: the run settings a person chose at the start (missing fields take the defaults) */
+  estimate?: { deliveryModel?: "hitl" | "agentic"; stackSource?: "client" | "folio3" | "undecided"; designInTotal?: boolean; feedbackRounds?: number; /** a request with no repo (requirements only) */ noRepo?: boolean; client?: string; projectName?: string; pm?: string };
   createdAt: string;
 }
 

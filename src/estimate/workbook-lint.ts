@@ -14,7 +14,10 @@ const near = (a: number, b: number): boolean => Math.abs(a - b) <= EPS;
 function plain(v: ExcelJS.CellValue): CellValue {
   if (v === null || v === undefined || v === "") return undefined;
   if (typeof v === "number" || typeof v === "string") return v;
-  if (typeof v === "object" && "result" in v && (typeof v.result === "number" || typeof v.result === "string")) return v.result;
+  if (typeof v === "object" && "formula" in v) {
+    // ExcelJS drops a cached result of 0, so a formula with no stored result reads as 0
+    return typeof v.result === "number" || typeof v.result === "string" ? v.result : 0;
+  }
   if (typeof v === "object" && "richText" in v) return v.richText.map((x) => x.text).join("");
   return undefined;
 }
@@ -102,6 +105,7 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
     if (typeof label !== "string" || !(label in links)) return;
     const want = links[label]!;
     const fm = S.getCell(`C${rowNo}`).value;
+    if (typeof fm === "string") return; // a settings row that shares the label (e.g. PM: a person's name), not a track row
     const ok = fm && typeof fm === "object" && "formula" in fm && new RegExp(`^'${want.sheet}'!D\\d+$`).test(fm.formula!);
     if (!ok) bad("summary-link", `Summary row ${label} does not link to the ${want.sheet} sheet's own total`);
     const min = plain(S.getCell(`C${rowNo}`).value), max = plain(S.getCell(`D${rowNo}`).value);

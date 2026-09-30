@@ -24,9 +24,9 @@ describe("mode manifests", () => {
     expect(stepsFor(e).map((s) => s.key)).toEqual(estimateSteps(e).map((s) => s.key));
   });
 
-  it("estimate mode reuses the spec pipeline and stops before any build step", async () => {
+  it("estimate mode reuses the spec pipeline, adds breakdown and estimate, and stops before any build step", async () => {
     const keys = estimateSteps(await stateFor("estimate")).map((s) => s.key);
-    expect(keys).toEqual(["intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify"]);
+    expect(keys).toEqual(["intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "breakdown", "estimate"]);
     for (const k of ["plan", "approve", "implement", "integrate", "deliver"]) expect(keys).not.toContain(k);
   });
 

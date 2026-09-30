@@ -4,7 +4,21 @@ import { readFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import { estimateTokens } from "./tokens.js";
 
-const CODE_EXT = new Set([".cs", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cts", ".mts"]);
+const CODE_EXT = new Set([".cs", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cts", ".mts", ".py", ".go", ".java", ".kt", ".rb", ".php", ".swift", ".dart", ".rs", ".scala"]);
+
+/** Top-level declarations for the other common languages: one regex per language, names only. */
+const DECLS: Record<string, RegExp> = {
+  ".py": /^(?:async\s+)?(def|class)\s+(\w+)/gm,
+  ".go": /^(func|type)\s+(?:\([^)]*\)\s*)?(\w+)/gm,
+  ".java": /^\s*(?:public|protected)\s+(?:static\s+|final\s+|abstract\s+)*(class|interface|enum|record)\s+(\w+)/gm,
+  ".kt": /^\s*(?:public\s+|internal\s+|data\s+|sealed\s+|open\s+|abstract\s+)*(class|interface|object|fun)\s+(\w+)/gm,
+  ".rb": /^\s*(class|module|def)\s+(self\.)?(\w+)/gm,
+  ".php": /^\s*(?:abstract\s+|final\s+)?(class|interface|trait|function)\s+(\w+)/gm,
+  ".swift": /^\s*(?:public\s+|open\s+|final\s+)*(class|struct|enum|protocol|func)\s+(\w+)/gm,
+  ".dart": /^\s*(?:abstract\s+)?(class|mixin|enum)\s+(\w+)/gm,
+  ".rs": /^\s*pub\s+(?:async\s+)?(fn|struct|enum|trait)\s+(\w+)/gm,
+  ".scala": /^\s*(?:case\s+|sealed\s+|abstract\s+)*(class|object|trait|def)\s+(\w+)/gm,
+};
 
 /** Top-level types and public members for C#; exports for TS/JS. */
 export function extractSymbols(path: string, text: string): string[] {
@@ -21,6 +35,8 @@ export function extractSymbols(path: string, text: string): string[] {
     for (const m of text.matchAll(/^\s*\[(Http(?:Get|Post|Put|Delete|Patch))(?:\("([^"]*)"\))?\]/gm)) out.push(`  [${m[1]}${m[2] ? ` ${m[2]}` : ""}]`);
   } else if (CODE_EXT.has(ext)) {
     for (const m of text.matchAll(/^export\s+(?:default\s+)?(?:async\s+)?(function|class|const|interface|type|enum)\s+(\w+)/gm)) out.push(`${m[1]} ${m[2]}`);
+  } else if (DECLS[ext]) {
+    for (const m of text.matchAll(DECLS[ext]!)) out.push(`${m[1]} ${m[m.length - 1]}`);
   }
   return out.slice(0, 40);
 }

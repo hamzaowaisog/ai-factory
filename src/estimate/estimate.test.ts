@@ -63,6 +63,8 @@ describe("anchors and ratios", () => {
     expect(mergeEstimators(base, [{ min: 4.5, max: 6 }, { min: 4, max: 6.2 }])).toEqual({ hours: { min: 4, max: 6.2 }, flagged: false });
     expect(mergeEstimators(base, [{ min: 4, max: 7 }, { min: 3.5, max: 6 }]).flagged).toBe(true);
     expect(mergeEstimators(base, [{ min: 10, max: 14 }]).flagged).toBe(true);
+    // identical readings of a wide range agree, so they are not flagged
+    expect(mergeEstimators({ min: 4, max: 8 }, [{ min: 4, max: 8 }, { min: 4, max: 8 }]).flagged).toBe(false);
   });
 
   it("counts factory task hours as size, not human effort", () => {

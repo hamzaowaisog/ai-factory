@@ -4,6 +4,7 @@ import { acceptStep, authorTestsStep, discoverStep, implementStep, integrateStep
 import { deliverStep, reviewStep } from "./deliver.js";
 import type { StepDef } from "./framework.js";
 import { clarify2Step, clarifyStep } from "./clarify.js";
+import { breakdownStep, estimateStep } from "./estimate.js";
 import { approveStep, groundStep, intakeStep, planStep } from "./spec.js";
 import { draftsStep, mergeStep, specifyStep } from "./specpipe.js";
 
@@ -18,12 +19,12 @@ export function brownfieldSteps(state: RunState): StepDef[] {
 }
 
 /**
- * Estimate mode, slice 1: the reused spec pipeline only. The estimate steps (design baseline,
- * breakdown, estimators, gates E1b-E7, approve-estimate, export) are added by later slices, each
- * behind its own inputs so the list stays a pure function of the replayed ledger.
+ * Estimate mode: the reused spec pipeline, then breakdown and estimate (gates E1-E6 run inside them).
+ * The design baseline (E1b), approve-estimate (E7) and export are added by later slices, each behind
+ * its own inputs so the list stays a pure function of the replayed ledger.
  */
 export function estimateSteps(_state: RunState): StepDef[] {
-  return [intakeStep, groundStep, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
+  return [intakeStep, groundStep, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep, breakdownStep, estimateStep];
 }
 
 /** The ordered steps for the run's mode. */

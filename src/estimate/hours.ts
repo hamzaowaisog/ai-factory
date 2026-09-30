@@ -17,7 +17,8 @@ export function scale(hours: Range, ratio: number): Range {
 
 /**
  * Merge independent readings. The merged range spans every reading; the item is flagged when the
- * spread (widest max minus lowest min) exceeds the tolerance share of the readings' midpoint.
+ * spread (widest max minus lowest min) exceeds the tolerance share of the readings' midpoint AND is wider
+ * than the widest single reading, so estimators who agree are not flagged for a wide range they share.
  */
 export function mergeEstimators(base: Range, readings: Range[], tol = DEFAULT_ASSUMPTIONS.estimatorTolerance): { hours: Range; flagged: boolean } {
   if (readings.length === 0) return { hours: base, flagged: false };
@@ -25,7 +26,8 @@ export function mergeEstimators(base: Range, readings: Range[], tol = DEFAULT_AS
   const min = Math.min(...all.map((r) => r.min));
   const max = Math.max(...all.map((r) => r.max));
   const mid = (min + max) / 2;
-  return { hours: { min: r2(min), max: r2(max) }, flagged: mid > 0 && (max - min) / mid > tol };
+  const widest = Math.max(...all.map((r) => r.max - r.min));
+  return { hours: { min: r2(min), max: r2(max) }, flagged: mid > 0 && (max - min) / mid > tol && max - min > widest + 0.005 };
 }
 
 /** Size every task against its anchor. Throws on a ratio that names something that is not an anchor. */

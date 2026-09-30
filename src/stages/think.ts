@@ -4,6 +4,7 @@ import type { z } from "zod";
 import type { PackClass, StageName } from "../contracts/index.js";
 import { buildPack, PackOverBudgetError, type ResolvedSection } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
+import { estimateTokens } from "../context/tokens.js";
 import type { RepoTools } from "../context/tools.js";
 import { ApiRunner, defaultProvider, type Provider } from "../runners/api.js";
 import type { StepContext, StepOutcome } from "./framework.js";
@@ -43,6 +44,16 @@ export type ThinkResult<T> =
   | { ok: true; output: T; model: string; packSha: string; note?: string }
   | { ok: false; outcome: StepOutcome };
 
+/**
+ * An estimate reads requirements documents far longer than a change request. The text is what it is, so in
+ * estimate mode the budget grows by the size of the untrusted document (capped), and the usual room stays.
+ */
+export function budgetFor(ctx: Pick<StepContext, "state">, base: number | undefined, sections: ResolvedSection[], model: string): number | undefined {
+  if (base === undefined || ctx.state.info.mode !== "estimate") return base;
+  const doc = sections.filter((x) => x.spec.trust === "untrusted").reduce((n, x) => n + estimateTokens(x.content, model), 0);
+  return doc > base / 2 ? Math.min(180_000, base + doc) : base;
+}
+
 export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<ThinkResult<T>> {
   const routed = modelFor(ctx.project, spec.route, ctx.rung);
   const effort = spec.effort && ctx.rung === 0 ? spec.effort : routed.effort;
@@ -58,7 +69,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
   let pack;
   try {
     pack = buildPack({
-      stage: spec.stage, cls: spec.cls, budgetTokens: spec.budgetTokens, model, recipeVersion: "1",
+      stage: spec.stage, cls: spec.cls, budgetTokens: budgetFor(ctx, spec.budgetTokens, sections, model), model, recipeVersion: "1",
       sections, tools: spec.tools, redactor: new Redactor(), local: model.startsWith("ollama/"),
     });
   } catch (e) {

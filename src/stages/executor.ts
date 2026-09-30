@@ -1,8 +1,8 @@
 // The executor (run-manager §2.3, §2.5, §2.9): replay → next step → run → record → repeat,
 // until a human card, a park, delivery, or a stop/pause request. One executor per repo.
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { basename, join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import type { Failure, LedgerEvent } from "../contracts/index.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY, mergePolicy, type Policy } from "../gates/policy.js";
@@ -12,7 +12,7 @@ import { ExecutionLock, LockBusyError } from "../ledger/exec-lock.js";
 import { resolveRef } from "../ledger/git.js";
 import { applyExpiredDeadline } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
-import { canSkip, eventKey, inputsHash, replay, splitKey, type RunState } from "../ledger/state.js";
+import { canSkip, eventKey, inputsHash, replay, splitKey, type RunInfo, type RunState } from "../ledger/state.js";
 import { assertSupportedPath } from "../util/paths.js";
 import { Tracer } from "../util/trace.js";
 import { saveReport } from "../report.js";
@@ -55,10 +55,10 @@ export function assertDeliverable(project: ProjectConfig): void {
 export const MAX_REQUEST_FILE_BYTES = 100_000;
 
 /** `factory start --file`: read a request file (Markdown or text), refusing ones intake can't take. */
-export function readRequestFile(path: string): { text: string; name: string } {
+export function readRequestFile(path: string, maxBytes = MAX_REQUEST_FILE_BYTES): { text: string; name: string } {
   if (!existsSync(path)) throw new Error(`No such file: ${path}`);
   const size = statSync(path).size;
-  if (size > MAX_REQUEST_FILE_BYTES) {
+  if (size > maxBytes) {
     throw new Error(`${basename(path)} is ${Math.round(size / 1000)} KB. The intake step reads about 25 KB; split the request or summarise it.`);
   }
   const text = readFileSync(path, "utf8").trim();
@@ -67,25 +67,35 @@ export function readRequestFile(path: string): { text: string; name: string } {
 }
 
 /** `factory start`: create the ledger. Execution happens in `execute`. */
-export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "estimate" } = {}): Promise<string> {
+export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "estimate"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[] } = {}): Promise<string> {
   if (opts.maxCostUsd !== undefined && !(opts.maxCostUsd > 0)) throw new Error("--max-cost must be a positive number of dollars");
   const project = loadProject(projectName);
-  assertSupportedPath(project.repo);
-  assertDeliverable(project);
-  const baseCommit = await resolveRef(project.repo, project.baseBranch);
+  // an estimate from requirements alone has no repo to check or read
+  const noRepo = opts.mode === "estimate" && opts.estimate?.noRepo === true;
+  if (!noRepo) {
+    assertSupportedPath(project.repo);
+    assertDeliverable(project);
+  }
+  const baseCommit = noRepo ? undefined : await resolveRef(project.repo, project.baseBranch);
   const runId = newRunId(request);
   const ledger = Ledger.create(runId);
   const requestSha = ledger.putArtifact(request);
   await ledger.append({
     type: "run.created",
     data: {
-      mode: opts.mode ?? "brownfield", project: project.project, repoPath: project.repo, repoId: project.project,
-      baseRef: project.baseBranch, baseCommit, request, requestSha, operator, versions: versions(),
+      mode: opts.mode ?? "brownfield", project: project.project, ...(noRepo ? {} : { repoPath: project.repo, baseRef: project.baseBranch, baseCommit }), repoId: project.project,
+      request, requestSha, operator, versions: versions(),
       ...(opts.maxCostUsd !== undefined ? { maxCostUsd: opts.maxCostUsd } : {}),
       ...(opts.requestFile ? { requestFile: opts.requestFile } : {}),
       ...(opts.sources?.length ? { sources: opts.sources } : {}),
+      ...(opts.estimate ? { estimate: opts.estimate } : {}),
     },
   }, HUMAN_WRITER);
+  for (const a of opts.attachments ?? []) {
+    const dest = join(ledger.dir, "attachments", a.name);
+    mkdirSync(dirname(dest), { recursive: true });
+    writeFileSync(dest, a.bytes);
+  }
   return runId;
 }
 

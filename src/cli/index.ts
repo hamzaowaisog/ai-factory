@@ -9,6 +9,8 @@ import { loadProject, projectPath } from "../config/project.js";
 import { verifyEvidence } from "../gates/engine.js";
 import "../gates/predicates.js";
 import "../design/gates.js";
+import "../estimate/lint.js";
+import "../estimate/gates.js";
 import { registerDesignCommands } from "../design/cli.js";
 import { assertTty, decide, DecisionError } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";

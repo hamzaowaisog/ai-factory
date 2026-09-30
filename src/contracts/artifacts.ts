@@ -188,6 +188,8 @@ export const PlanTask = z.object({
   exemplars: z.array(z.string()), conventions: z.array(Id),
   dependsOn: z.array(Id), plannedLoc: z.number().int().nonnegative(),
   newFileKind: z.boolean().optional(),
+  /** The approved estimate task this plan task delivers (gate B1); set when the run follows an approved estimate. */
+  estimateTaskId: z.string().regex(/^EST-\d+$/).optional(),
   /** Short instructions for the implementer (never shown to the test author). */
   approach: z.string(),
 });
@@ -254,7 +256,7 @@ export type Failures = z.infer<typeof Failures>;
 
 export const ReviewFinding = z.object({
   id: Id,
-  category: z.enum(["correctness", "spec-mismatch", "error-handling", "security", "reuse", "convention-intent"]),
+  category: z.enum(["correctness", "spec-mismatch", "error-handling", "security", "reuse", "convention-intent", "unrequested-behaviour"]),
   file: z.string(), line: z.number().int().nonnegative(), text: z.string(),
   confidence: z.number().min(0).max(1),
   severity: z.enum(["critical", "high", "medium", "low"]),
