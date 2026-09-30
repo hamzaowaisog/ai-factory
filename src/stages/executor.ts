@@ -1,7 +1,7 @@
 // The executor (run-manager §2.3, §2.5, §2.9): replay → next step → run → record → repeat,
 // until a human card, a park, delivery, or a stop/pause request. One executor per repo.
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 import type { Failure, LedgerEvent } from "../contracts/index.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
@@ -13,7 +13,7 @@ import { resolveRef } from "../ledger/git.js";
 import { applyExpiredDeadline } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { canSkip, eventKey, inputsHash, replay, splitKey, type RunState } from "../ledger/state.js";
-import { assertSupportedPath } from "../util/paths.js";
+import { assertSupportedPath, factoryHome } from "../util/paths.js";
 import { Tracer } from "../util/trace.js";
 import { saveReport } from "../report.js";
 import { hashJson, sha256 } from "../util/hash.js";
@@ -117,6 +117,11 @@ function attemptHistory(ledger: Ledger, step: string): AttemptRecord[] {
     .map((e) => e.data as unknown as AttemptRecord);
 }
 
+/** A run that has ended never reuses a build again: free the disk its kept builds use. */
+function dropBuildCache(runId: string): void {
+  rmSync(join(factoryHome(), "tmp", runId, "builds"), { recursive: true, force: true });
+}
+
 export interface ExecuteResult { status: string; message: string }
 
 export async function execute(runId: string, echo: Log = () => undefined): Promise<ExecuteResult> {
@@ -157,7 +162,7 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
 
     for (;;) {
       state = replay(ledger.events());
-      if (state.flags.stopRequested) { await ledger.append({ type: "run.stopped" }, writer); return { status: "stopped", message: "Stopped." }; }
+      if (state.flags.stopRequested) { await ledger.append({ type: "run.stopped" }, writer); dropBuildCache(runId); return { status: "stopped", message: "Stopped." }; }
       if (state.flags.pauseRequested) { await ledger.append({ type: "run.paused" }, writer); return { status: "paused", message: "Paused." }; }
       if (typeof state.status === "object" || state.status === "delivered") return { status: String(typeof state.status === "object" ? `closed: ${state.status.closed}` : state.status), message: "Nothing to do." };
       if (state.openCard) return { status: "waiting", message: `Waiting for you: factory show-card ${runId}` };
@@ -221,6 +226,7 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
           log(`✓ ${n.step.key} ($${(after - state.costUsd).toFixed(2)}, total $${after.toFixed(2)})`);
           if (n.step.key === "deliver") {
             await ledger.append({ type: "run.delivered", data: outcome.data ?? {} }, writer);
+            dropBuildCache(runId);
             const d = outcome.data as { local?: boolean; branch?: string; prUrl?: string };
             return { status: "delivered", message: d.local ? `Ready locally on branch ${d.branch}. PR text: factory show-card ${runId} --pr` : `PR opened: ${d.prUrl}` };
           }
@@ -240,6 +246,7 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
         case "close":
           await ledger.append({ type: "step.failed", key, data: { category: "other", signature: outcome.reason, rung } }, writer);
           await ledger.append({ type: "run.closed", data: { reason: outcome.reason } }, writer);
+          dropBuildCache(runId);
           return { status: `closed: ${outcome.reason}`, message: outcome.reason };
         case "fail": {
           const rec2: AttemptRecord = { category: outcome.category, signature: outcome.signature ?? sha256(JSON.stringify(outcome.failures)).slice(0, 16), diffSha: outcome.diffSha, rung, lockedFailedIds: outcome.lockedFailedIds };

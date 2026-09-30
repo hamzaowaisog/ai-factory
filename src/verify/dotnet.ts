@@ -2,7 +2,7 @@
 // → test in the Postgres container's namespace → stop everything → read results.
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdirSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 import type { BuildRun, TestResult, TestRun, VerifyStage } from "../contracts/index.js";
 import { fillTemplate, type ProjectConfig } from "../config/project.js";
@@ -35,6 +35,19 @@ export interface ProduceInput {
   packagesDir?: string;
   /** A raw `dotnet test --filter` expression (used to find tests by method name). */
   filterExpr?: string;
+  /**
+   * Expectations decided from this run's own results (author-tests: test IDs are only known once
+   * the tests ran). Replaces `exp` for the flaky re-run and the validity check.
+   */
+  resolveExp?: (results: TestResult[]) => Expectations;
+  /**
+   * Folder of finished builds kept per commit (per run). A lab run on a commit that was already built
+   * starts from a copy of that build instead of copying, restoring and building again. Needs packagesDir:
+   * the build refers to packages in it.
+   */
+  buildCache?: string;
+  /** Test IDs not to run on a full-suite run: the repo's known failures, which can never block anything. */
+  skipTests?: string[];
   /** Only restore packages into packagesDir (for the coding container); no build or tests. */
   restoreOnly?: boolean;
   /** Accept: boot the app in the db's namespace and send these probes before the tests run. */
@@ -148,6 +161,74 @@ export function filterFor(ids: string[]): string {
   return ids.map((id) => `FullyQualifiedName=${id.replace(/^[^:]*::/, "").replace(/\(.*$/, "")}`).join("|");
 }
 
+/** Longest exclusion filter passed on the command line; a longer one runs everything instead. */
+export const MAX_SKIP_FILTER = 30_000;
+
+/** Test ID → the method's fully qualified name, as the filter sees it. */
+const methodOf = (id: string) => id.replace(/^[^:]*::/, "").replace(/\(.*$/, "");
+
+/**
+ * "Everything except these" as a dotnet test filter. Filter special characters are escaped.
+ * Undefined when there's nothing to skip or the filter would be too long for the command line.
+ */
+export function skipFilterFor(ids: string[]): string | undefined {
+  const names = [...new Set(ids.map(methodOf))].sort();
+  if (!names.length) return undefined;
+  const f = names.map((n) => `FullyQualifiedName!=${n.replace(/[\\()&|=!~]/g, "\\$&")}`).join("&");
+  return f.length <= MAX_SKIP_FILTER ? f : undefined;
+}
+
+/**
+ * Known failures that are safe to skip: tests that failed in the baseline, by method, but only when
+ * EVERY baseline row of that method failed (a theory with some passing rows keeps running), and never
+ * a test the run expects to pass or fail.
+ */
+export function skippableKnownFailures(baseline: TestResult[], keep: Iterable<string>): string[] {
+  const kept = new Set([...keep].map(methodOf));
+  const byMethod = new Map<string, TestResult[]>();
+  for (const r of baseline) byMethod.set(methodOf(r.id), [...(byMethod.get(methodOf(r.id)) ?? []), r]);
+  return [...byMethod.entries()]
+    .filter(([m, rows]) => !kept.has(m) && rows.every((r) => r.outcome === "failed"))
+    .flatMap(([, rows]) => rows.map((r) => r.id));
+}
+
+/** Where a finished build of `commit` is kept: same commit, SDK image and build target → same build. */
+export function buildCachePath(dir: string, commit: string, project: ProjectConfig): string {
+  return join(dir, sha256(JSON.stringify([commit, project.dotnet.sdkImage, project.dotnet.solution ?? ""])).slice(0, 24));
+}
+
+/** Builds kept per run: the tests commit and the latest fix commit are the ones reused. */
+export const KEEP_BUILDS = 2;
+
+/** Copy a folder's contents: a cheap clone where the file system supports it, a plain copy otherwise. */
+function copyDir(from: string, to: string): void {
+  mkdirSync(to, { recursive: true });
+  const clone = process.platform === "darwin" ? ["-c", "-a"] : ["-a", "--reflink=auto"];
+  try {
+    execFileSync("cp", [...clone, `${from}/.`, to], { stdio: "ignore" });
+  } catch {
+    execFileSync("cp", ["-a", `${from}/.`, to], { stdio: "ignore" });
+  }
+}
+
+/** Save a build under `dest` (written aside, then renamed, so a half copy is never reused); keep the newest few. */
+export function saveBuild(src: string, dir: string, dest: string): void {
+  mkdirSync(dir, { recursive: true });
+  if (existsSync(dest)) return;
+  const tmp = `${dest}.partial-${randomBytes(3).toString("hex")}`;
+  try {
+    copyDir(src, tmp);
+    renameSync(tmp, dest);
+  } catch {
+    rmSync(tmp, { recursive: true, force: true });
+    return;
+  }
+  // the build just saved always stays; of the others, the most recently used ones fill the rest
+  const others = readdirSync(dir).filter((f) => !f.includes(".partial-")).map((f) => join(dir, f)).filter((p) => p !== dest)
+    .map((p) => ({ p, t: statSync(p).mtimeMs }));
+  for (const old of others.sort((a, b) => b.t - a.t).slice(KEEP_BUILDS - 1)) rmSync(old.p, { recursive: true, force: true });
+}
+
 export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutput> {
   const { rt, project } = inp;
   const n = `${Date.now()}-${randomBytes(3).toString("hex")}`;
@@ -175,46 +256,60 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
     const t0 = Date.now();
     const phase = (name: string, msg: string, data?: Record<string, unknown>) => inp.onPhase?.(name, msg, data);
     const secs = (from: number) => `${((Date.now() - from) / 1000).toFixed(0)}s`;
-    copyTree(inp.repo, inp.commit, src);
-    const target = findBuildTarget(src, project.dotnet.solution);
-    if (target) sln = [target];
-    phase("copy", `lab: copied ${inp.commit.slice(0, 10)} (${secs(t0)})`);
-    const tRestore = Date.now();
     const toolVersions: Record<string, string> = { sdkImage: await rt.imageDigest(project.dotnet.sdkImage) };
-
-    // restore: only package feeds, through the feed proxy (host allowlist; URL-prefix TLS proxy not built yet)
-    const r = await launch({
-      role: "restore", image: project.dotnet.sdkImage, network: FEEDS_NET, workdir: "/src",
-      env: { ...BASE_ENV, HTTPS_PROXY: FEED_PROXY_URL, HTTP_PROXY: FEED_PROXY_URL, NUGET_CERT_REVOCATION_MODE: "offline" },
-      mounts: [{ src, dst: "/src" }, { src: nuget, dst: "/nuget" }], cmd: ["dotnet", "restore", ...sln],
-    });
-    const rCode = await rt.wait(r, project.dotnet.buildTimeoutSec * 1000);
-    phase("restore", `lab: restore ${rCode === 0 ? "ok" : `FAILED (exit ${rCode ?? "timeout"})`} (${secs(tRestore)})`, rCode === 0 ? undefined : { logTail: (await rt.logs(r)).split("\n").slice(-40).join("\n") });
-    logs.restore = await rt.logs(r);
-    await finish(r);
-    if (inp.restoreOnly) {
-      const build: BuildRun = { kind: "build", ok: rCode === 0, errors: rCode === 0 ? [] : [{ file: "", line: 0, code: "RESTORE", msg: `dotnet restore failed (exit ${rCode ?? "timeout"})` }] };
-      const testRun = buildTestRun({ treeSha: inp.commit, stage: inp.stage, toolVersions, exp: inp.exp, raw: { reports: [], results: [], discovered: [], exitCode: rCode ?? 124, buildFailed: rCode !== 0 }, probeOk: () => true });
-      return { testRun, build, reports: [], logs };
+    // an earlier lab run in this run already built this exact commit: start from a copy of that build
+    const cached = !inp.restoreOnly && inp.buildCache ? buildCachePath(inp.buildCache, inp.commit, project) : undefined;
+    const reuse = !!cached && existsSync(cached);
+    if (reuse) {
+      copyDir(cached!, src);
+      utimesSync(cached!, new Date(), new Date()); // most recently used: pruned last
+      const target = findBuildTarget(src, project.dotnet.solution);
+      if (target) sln = [target];
+      phase("build-reused", `lab: reused the build of ${inp.commit.slice(0, 10)} from an earlier lab run (${secs(t0)})`);
     }
+    let build: BuildRun = { kind: "build", ok: reuse, errors: [] };
+    if (!reuse) {
+      copyTree(inp.repo, inp.commit, src);
+      const target = findBuildTarget(src, project.dotnet.solution);
+      if (target) sln = [target];
+      phase("copy", `lab: copied ${inp.commit.slice(0, 10)} (${secs(t0)})`);
+      const tRestore = Date.now();
 
-    // build, no network
-    let build: BuildRun = { kind: "build", ok: false, errors: [] };
-    if (rCode === 0) {
-      const b = await launch({
-        role: "producer", image: project.dotnet.sdkImage, network: "none", workdir: "/src", env: BASE_ENV,
-        mounts: [{ src, dst: "/src" }, { src: nuget, dst: "/nuget", ro: true }],
-        cmd: ["dotnet", "build", ...sln, "--no-restore", "-nologo", "-p:TreatWarningsAsErrors=false"],
+      // restore: only package feeds, through the feed proxy (host allowlist; URL-prefix TLS proxy not built yet)
+      const r = await launch({
+        role: "restore", image: project.dotnet.sdkImage, network: FEEDS_NET, workdir: "/src",
+        env: { ...BASE_ENV, HTTPS_PROXY: FEED_PROXY_URL, HTTP_PROXY: FEED_PROXY_URL, NUGET_CERT_REVOCATION_MODE: "offline" },
+        mounts: [{ src, dst: "/src" }, { src: nuget, dst: "/nuget" }], cmd: ["dotnet", "restore", ...sln],
       });
-      const tBuild = Date.now();
-      const bCode = await rt.wait(b, project.dotnet.buildTimeoutSec * 1000);
-      phase("build", `lab: build ${bCode === 0 ? "ok" : `FAILED (exit ${bCode ?? "timeout"})`} (${secs(tBuild)})`);
-      await rt.stop(b); // stop before read
-      logs.build = await rt.logs(b);
-      await finish(b);
-      build = { kind: "build", ok: bCode === 0, errors: parseBuildErrors(logs.build) };
-    } else {
-      build.errors.push({ file: "", line: 0, code: "RESTORE", msg: `dotnet restore failed (exit ${rCode ?? "timeout"})` });
+      const rCode = await rt.wait(r, project.dotnet.buildTimeoutSec * 1000);
+      phase("restore", `lab: restore ${rCode === 0 ? "ok" : `FAILED (exit ${rCode ?? "timeout"})`} (${secs(tRestore)})`, rCode === 0 ? undefined : { logTail: (await rt.logs(r)).split("\n").slice(-40).join("\n") });
+      logs.restore = await rt.logs(r);
+      await finish(r);
+      if (inp.restoreOnly) {
+        const build: BuildRun = { kind: "build", ok: rCode === 0, errors: rCode === 0 ? [] : [{ file: "", line: 0, code: "RESTORE", msg: `dotnet restore failed (exit ${rCode ?? "timeout"})` }] };
+        const testRun = buildTestRun({ treeSha: inp.commit, stage: inp.stage, toolVersions, exp: inp.exp, raw: { reports: [], results: [], discovered: [], exitCode: rCode ?? 124, buildFailed: rCode !== 0 }, probeOk: () => true });
+        return { testRun, build, reports: [], logs };
+      }
+
+      // build, no network
+      if (rCode === 0) {
+        const b = await launch({
+          role: "producer", image: project.dotnet.sdkImage, network: "none", workdir: "/src", env: BASE_ENV,
+          mounts: [{ src, dst: "/src" }, { src: nuget, dst: "/nuget", ro: true }],
+          cmd: ["dotnet", "build", ...sln, "--no-restore", "-nologo", "-p:TreatWarningsAsErrors=false"],
+        });
+        const tBuild = Date.now();
+        const bCode = await rt.wait(b, project.dotnet.buildTimeoutSec * 1000);
+        phase("build", `lab: build ${bCode === 0 ? "ok" : `FAILED (exit ${bCode ?? "timeout"})`} (${secs(tBuild)})`);
+        await rt.stop(b); // stop before read
+        logs.build = await rt.logs(b);
+        await finish(b);
+        build = { kind: "build", ok: bCode === 0, errors: parseBuildErrors(logs.build) };
+        // keep the build as it was before any test ran, for later lab runs on this commit
+        if (build.ok && inp.buildCache) saveBuild(src, inp.buildCache, buildCachePath(inp.buildCache, inp.commit, project));
+      } else {
+        build.errors.push({ file: "", line: 0, code: "RESTORE", msg: `dotnet restore failed (exit ${rCode ?? "timeout"})` });
+      }
     }
 
     if (!build.ok) {
@@ -290,7 +385,13 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
       for (const p of accept.probes) phase("probe", `lab: probe ${p.method} ${p.path} → ${p.status} (expected ${p.expectStatus})`);
     }
 
-    const filter = inp.filterExpr ?? (inp.onlyTests?.length ? filterFor(inp.onlyTests) : undefined);
+    // a full-suite run skips the repo's known failures (every expected test still runs)
+    const targeted = inp.filterExpr ?? (inp.onlyTests?.length ? filterFor(inp.onlyTests) : undefined);
+    const skipFilter = targeted || !inp.skipTests?.length ? undefined : skipFilterFor(inp.skipTests);
+    const skipped = skipFilter ? inp.skipTests! : [];
+    if (skipFilter) phase("skip", `lab: skipping ${skipped.length} test(s) that already fail on the base branch`);
+    else if (!targeted && inp.skipTests?.length) phase("skip", `lab: running the known failures too: the filter to skip ${inp.skipTests.length} test(s) would be too long`);
+    const filter = targeted ?? skipFilter;
     const tTests = Date.now();
     const first = await runTests(filter, resTest);
     {
@@ -304,7 +405,8 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
     let probe = true;
     if (dbId && needsProbe(results)) probe = (await rt.exec(dbId, ["pg_isready", "-h", "127.0.0.1"])).code === 0;
 
-    const again = rerunCandidates(results, inp.exp, inp.knownFailures);
+    const exp = inp.resolveExp ? inp.resolveExp(results) : inp.exp;
+    const again = rerunCandidates(results, exp, inp.knownFailures);
     if (again.length && again.length <= 20 && probe) {
       const dir = join(work, "results-rerun");
       mkdirSync(dir, { recursive: true });
@@ -314,9 +416,9 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
     }
     if (dbId) await finish(dbId);
 
-    const expected = [...inp.exp.expectPass, ...inp.exp.expectFail.map((e) => e.id)];
+    const expected = [...exp.expectPass, ...exp.expectFail.map((e) => e.id)];
     const testRun = buildTestRun({
-      treeSha: inp.commit, stage: inp.stage, toolVersions, exp: inp.exp,
+      treeSha: inp.commit, stage: inp.stage, toolVersions, exp,
       raw: {
         reports: first.reports.map((r) => ({ sha: r.sha, parsed: r.parsed, writtenAfterStart: r.writtenAfterStart })),
         // discovered = the IDs we require; `dotnet test --list-tests` prints display names, not IDs
@@ -324,6 +426,7 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
       },
       probeOk: () => probe,
     });
+    if (skipped.length) testRun.skippedKnownFailures = skipped;
     return { testRun, build, reports: first.reports.map((r) => ({ name: r.name, content: r.content })), logs, accept };
   } finally {
     for (const id of live) await stopAndRemove(rt, id).catch(() => undefined);
