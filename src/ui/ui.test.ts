@@ -1,6 +1,6 @@
 // factory ui: the server's safety rules, its JSON for a fixture ledger, and starting a run.
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -13,7 +13,7 @@ import { replay } from "../ledger/state.js";
 import { outcomes, scoreRun, stageStats } from "../report.js";
 import { createRun } from "../stages/executor.js";
 import { cardCommands } from "./data.js";
-import { createUiServer, listen, MAX_BODY_BYTES, ROUTES, staticDir, type UiServer } from "./server.js";
+import { createUiServer, listen, MAX_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, ROUTES, staticDir, type UiServer } from "./server.js";
 import { _resetStarting } from "./start.js";
 // the page's Markdown renderer (plain browser JS, no DOM needed)
 import { renderMarkdown } from "./static/md.js";
@@ -325,7 +325,7 @@ describe("factory ui: starting a run", () => {
       expect(r.status, JSON.stringify(body).slice(0, 80)).toBe(status);
       expect(r.json().error).toMatch(msg);
     }
-    expect((await post(JSON.stringify({ project: "web", file: { name: "a.md", text: "x".repeat(MAX_BODY_BYTES) } }))).status).toBe(413);
+    expect((await post(JSON.stringify({ project: "web", file: { name: "a.md", text: "x".repeat(MAX_UPLOAD_BODY_BYTES) } }))).status).toBe(413);
     expect((await post("{not json")).status).toBe(400);
     expect(count()).toBe(before);
     expect(started).toEqual([]);
@@ -489,6 +489,37 @@ describe("factory ui: a run started from the web, watched live", () => {
 });
 
 describe("factory ui: estimate runs", () => {
+  it("takes design frames with the request, stores them beside the run and lists them in the request text", async () => {
+    const png = Buffer.from("not really a png").toString("base64");
+    const base = { project: "web", mode: "estimate", prompt: "Build an order portal with login and a dashboard" };
+    const r = await post({ ...base, frames: [{ name: "home.png", data: png }, { name: "login.svg", data: Buffer.from("<svg/>").toString("base64") }] });
+    expect(r.status).toBe(201);
+    expect(r.json().from).toBe("typed prompt + 2 frames in web upload");
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info.request).toMatch(/- F-1 home\.png\n- F-2 login\.svg/);
+    expect(existsSync(join(Ledger.open(r.json().runId).dir, "attachments", "frames", "home.png"))).toBe(true);
+  });
+
+  it("refuses frames that are unsafe, the wrong type, repeated or on a build run", async () => {
+    const before = Ledger.listRuns().length;
+    const data = Buffer.from("x").toString("base64");
+    const base = { project: "web", prompt: "Build an order portal with login and a dashboard" };
+    const cases: [unknown, RegExp][] = [
+      [{ ...base, mode: "estimate", frames: [{ name: "../evil.png", data }] }, /not a usable frame file name/],
+      [{ ...base, mode: "estimate", frames: [{ name: "run.exe", data }] }, /png, jpg, webp, svg or json/],
+      [{ ...base, mode: "estimate", frames: [{ name: "a.png", data }, { name: "a.png", data }] }, /sent twice/],
+      [{ ...base, mode: "estimate", frames: [{ name: "a.png", data: "***" }] }, /did not arrive intact/],
+      [{ ...base, mode: "estimate", frames: [] }, /No frames/],
+      [{ ...base, frames: [{ name: "a.png", data }] }, /belong to estimate runs/],
+    ];
+    for (const [body, msg] of cases) {
+      const r = await post(body);
+      expect(r.status, JSON.stringify(body).slice(0, 60)).toBe(400);
+      expect(r.json().error).toMatch(msg);
+    }
+    expect(Ledger.listRuns().length).toBe(before);
+  });
+
   it("starts an estimate run with the same settings factory estimate parses, and refuses bad ones", async () => {
     const bad = await post({ project: "web", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { deliveryModel: "nonsense" } });
     expect(bad.status).toBe(400);

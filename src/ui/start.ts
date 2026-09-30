@@ -12,7 +12,7 @@ import type { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { costCapUsd, MIN_CAP_USD } from "../ledger/caps.js";
 import { parseEstimateSettings } from "../estimate/settings.js";
-import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
+import { checkUploadedFrames, describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
 import { checkRoutes } from "../stages/routing.js";
@@ -33,6 +33,8 @@ export interface StartInput {
   mode?: unknown;
   /** estimate settings, read like the factory estimate flags */
   estimate?: unknown;
+  /** estimate runs: design frames as [{ name, data: base64 }], like a folder given to --frames */
+  frames?: unknown;
 }
 
 export interface StartDeps {
@@ -75,7 +77,12 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   // estimate mode: the same settings checks as `factory estimate`, before anything is read
   const estimating = input.mode === "estimate";
   let settings: ReturnType<typeof parseEstimateSettings> | undefined;
+  let frameFiles: { name: string; bytes: Buffer }[] | undefined;
+  if (input.frames !== undefined && !estimating) throw new StartError("Design frames belong to estimate runs.");
   if (estimating) {
+    if (input.frames !== undefined) {
+      try { frameFiles = checkUploadedFrames(input.frames); } catch (err) { throw new StartError((err as Error).message); }
+    }
     const e = (input.estimate ?? {}) as Record<string, unknown>;
     try {
       settings = parseEstimateSettings({
@@ -109,7 +116,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
       path = join(dir, file.name);
       writeFileSync(path, file.text, { mode: 0o600 });
     }
-    req = await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim() }, {}, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
+    req = await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim(), ...(frameFiles ? { frameFiles } : {}) }, {}, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
   } catch (e) {
     throw new StartError((e as Error).message);
   } finally {

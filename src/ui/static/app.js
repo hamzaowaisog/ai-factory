@@ -290,6 +290,16 @@ async function requestScreen(kind = "brownfield") {
   const hdr = h("input", { type: "text", id: "client", placeholder: "client name (workbook header)" });
   const projName = h("input", { type: "text", id: "projname", placeholder: "project name (workbook header)" });
   const pm = h("input", { type: "text", id: "pm", placeholder: "project manager (workbook header)" });
+  // design frames exported from Figma (png, jpg, webp, svg or json): read here, sent with the request like --frames
+  const frameInput = h("input", { type: "file", multiple: true, accept: ".png,.jpg,.jpeg,.webp,.svg,.json,image/*,application/json", id: "frames" });
+  const frameList = h("div", { class: "small muted" }, "No frames attached. Without them each screen is drawn as a wireframe.");
+  let frames = [];
+  frameInput.addEventListener("change", () => {
+    frames = [...(frameInput.files ?? [])];
+    const bytes = frames.reduce((n, f) => n + f.size, 0);
+    frameList.textContent = frames.length ? `${frames.length} frame${frames.length === 1 ? "" : "s"} (${(bytes / 1e6).toFixed(1)} MB): ${frames.slice(0, 6).map((f) => f.name).join(", ")}${frames.length > 6 ? ", …" : ""}` : "No frames attached. Without them each screen is drawn as a wireframe.";
+  });
+  const b64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] ?? ""); r.onerror = () => no(new Error(`Could not read ${f.name}.`)); r.readAsDataURL(f); });
   const settings = estimating ? h("div", { class: "field" }, h("span", { class: "label" }, "Estimate settings"),
     h("div", { class: "grid-2" },
       h("div", {}, h("label", { for: "delivery" }, "Delivery model"), delivery),
@@ -297,7 +307,8 @@ async function requestScreen(kind = "brownfield") {
       h("div", {}, h("label", { for: "rounds" }, "Client feedback rounds"), rounds),
       h("div", {}, h("label", { for: "designin" }, designIn, " Design counts in the total"), h("br"), h("label", { for: "norepo" }, noRepo, " The requirements stand alone (no existing code to read)"))),
     h("div", { class: "grid-2" }, hdr, projName, pm),
-    h("div", { class: "hint" }, "The same choices as factory estimate. Frames and per-track rates are set from the terminal.")) : null;
+    h("div", {}, h("label", { for: "frames" }, "Design frames (optional)"), frameInput, frameList),
+    h("div", { class: "hint" }, "The same choices as factory estimate. Per-track rates are set from the terminal.")) : null;
 
   const maxCost = h("input", { type: "number", id: "maxcost", min: "0.5", step: "0.5", placeholder: "normal limit" });
   const start = h("button", { class: "btn primary", type: "submit" }, estimating ? "Start estimate" : "Start run", icon("arrow"));
@@ -320,7 +331,8 @@ async function requestScreen(kind = "brownfield") {
     start.disabled = true;
     start.replaceChildren(h("span", { class: "spin" }), "Reading the request…");
     try {
-      const body = { project: project.value, prompt: prompt.value, jira: jira.disabled ? "" : jira.value, maxCost: maxCost.value, ...(file ? { file: { name: file.name, text: file.text } } : {}),
+      const sent = estimating && frames.length ? await Promise.all(frames.map(async (f) => ({ name: f.name, data: await b64(f) }))) : undefined;
+      const body = { project: project.value, prompt: prompt.value, ...(sent ? { frames: sent } : {}), jira: jira.disabled ? "" : jira.value, maxCost: maxCost.value, ...(file ? { file: { name: file.name, text: file.text } } : {}),
         ...(estimating ? { mode: "estimate", estimate: { deliveryModel: delivery.value, stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;

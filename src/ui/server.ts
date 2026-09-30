@@ -19,6 +19,8 @@ import { previewFile } from "./preview.js";
 import { decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
+/** Starting a run may carry design frames (base64 in the JSON), so that one route takes a bigger body. */
+export const MAX_UPLOAD_BODY_BYTES = 30_000_000;
 const COOKIE = "factory_ui";
 
 type Json = Record<string, unknown> | unknown[];
@@ -182,13 +184,13 @@ function send(res: ServerResponse, status: number, body: string | Buffer, type: 
 
 const sendJson = (res: ServerResponse, status: number, json: unknown) => send(res, status, JSON.stringify(json), "application/json; charset=utf-8");
 
-async function readBody(req: IncomingMessage): Promise<string | "too-big"> {
-  if (Number(req.headers["content-length"] ?? 0) > MAX_BODY_BYTES) return "too-big";
+async function readBody(req: IncomingMessage, limit = MAX_BODY_BYTES): Promise<string | "too-big"> {
+  if (Number(req.headers["content-length"] ?? 0) > limit) return "too-big";
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const c of req) {
     size += (c as Buffer).length;
-    if (size > MAX_BODY_BYTES) return "too-big";
+    if (size > limit) return "too-big";
     chunks.push(c as Buffer);
   }
   return Buffer.concat(chunks).toString("utf8");
@@ -268,8 +270,9 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       if (!String(req.headers["content-type"] ?? "").startsWith("application/json")) return sendJson(res, 415, { error: "Send JSON." });
       // a cookie alone isn't enough without a same-site Origin (curl sends the key in a header)
       if (origin === undefined && !sameToken(headerToken, token)) return sendJson(res, 403, { error: "A POST needs the page's origin or the key header." });
-      const raw = await readBody(req);
-      if (raw === "too-big") return sendJson(res, 413, { error: `The request is over ${MAX_BODY_BYTES / 1_000_000} MB.` });
+      const limit = route.path === "/api/runs" ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES;
+      const raw = await readBody(req, limit);
+      if (raw === "too-big") return sendJson(res, 413, { error: `The request is over ${limit / 1_000_000} MB.` });
       try { body = raw ? JSON.parse(raw) : {}; } catch { return sendJson(res, 400, { error: "Bad JSON." }); }
     }
     const r = await route.handle(params!, body, deps, { previewKey });
