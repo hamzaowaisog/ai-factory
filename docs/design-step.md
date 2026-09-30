@@ -120,7 +120,7 @@ Things to know:
 
 ## Pixel diff
 
-`factory design pixel <before-dir> <after-dir> [--tolerance n] [--out dir]` compares same-named pngs in two folders and prints, per pair, the share of pixels that differ, whether the size changed, and whether the change is noticeable (over `NOTICEABLE_RATIO`). It gives figures, not pass or fail. Comparison runs in headless Chromium on a canvas, so no image library is needed. Pages with clocks, animations or live data will differ run to run; fixtures, a frozen clock and mocked network are not built.
+`factory design pixel <before-dir> <after-dir> --out <dir> [--tolerance n] [--json]` compares same-named pngs in two folders and prints, per pair, the share of pixels that differ, whether the size changed, and whether the change is noticeable (over `NOTICEABLE_RATIO`). It gives figures, not pass or fail. Comparison runs in headless Chromium on a canvas, so no image library is needed. Pages with clocks, animations or live data will differ run to run; fixtures, a frozen clock and mocked network are not built.
 
 ## Brief cleaner and the untrusted-text rule
 

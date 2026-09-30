@@ -477,7 +477,7 @@ The request can come from **any one** of a typed prompt, `--file` or `--jira`, o
 | `factory design size` | Says how big a UI change is (no UI, screen tweak, new screen, or a change to the shared look), from a plan's file list or a git diff, with reasons. |
 | `factory design lint` | Checks a change uses only the theme's colours and the app's existing components, and adds no new shared components. |
 | `factory design brief <file>` | Cleans a design brief from outside (a Figma export, a brand guide) down to plain fields and shows what it dropped. |
-| `factory design pixel <before> <after>` | Compares same-named screenshots in two folders and prints how much of each differs. Facts, not pass or fail. |
+| `factory design pixel <before> <after> --out <dir>` | Compares same-named screenshots in two folders and prints how much of each differs. Facts, not pass or fail. |
 
 Run any `factory design` command with `--help` for its options.
 
