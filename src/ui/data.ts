@@ -411,6 +411,7 @@ export function estimateView(ledger: Ledger) {
       screens: design.screens.map((x) => ({ id: x.id, route: x.route, size: x.size ?? "new", states: x.states ?? [], reqs: x.reqs, frames: x.frames ?? [] })),
       unmapped: design.mapping.unmappedReqs, noScreen: design.noScreen ?? [],
     },
+    pending: s.openCard?.kind === "estimate-approval" ? { hash: s.openCard.artifactSha.slice(0, 8), flagged: est.tasks.filter((t) => t.flagged).map((t) => t.taskId) } : undefined,
     approved: approval?.status === "completed" ? { by: String((approval.data as { by?: string } | undefined)?.by ?? ""), hash: String((approval.data as { hash?: string } | undefined)?.hash ?? "") } : undefined,
     files,
   };

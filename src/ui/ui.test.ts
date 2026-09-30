@@ -203,8 +203,9 @@ describe("factory ui: who can talk to it", () => {
 describe("factory ui: no decisions from the web", () => {
   it("the route list has no decision routes; the only write starts a run", () => {
     const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note/i;
-    for (const r of ROUTES) expect(`${r.method} ${r.path}`).not.toMatch(decision);
-    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs"]);
+    for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
+    // the one exception: the estimate lead's approve or reject, on estimate cards only
+    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/runs/:id/estimate-decision"]);
   });
 
   it("decision-looking URLs don't exist", async () => {
@@ -216,7 +217,7 @@ describe("factory ui: no decisions from the web", () => {
 
   it("the page says so, and has no decision buttons", () => {
     const html = readFileSync(join(staticDir(), "index.html"), "utf8");
-    expect(html).toContain("Decisions are made in your terminal, so no AI or script can approve its own plan.");
+    expect(html).toContain("Plan decisions are made in your terminal, so no AI or script can approve its own plan. Only the estimate lead can approve an estimate here.");
     const js = readFileSync(join(staticDir(), "app.js"), "utf8");
     expect(js).not.toMatch(/method: "POST"[^\n]*\/(approve|reject|answer|waive|stop|pause)/);
     // the only raw HTML the page writes is the escaped Markdown renderer's output
@@ -525,5 +526,49 @@ describe("factory ui: estimate runs", () => {
     expect((await call(`/export/${id}/client`)).status).toBe(404);
     expect((await call(`/export/${id}/other`)).status).toBe(404);
     expect((await call(`/export/${id}/team`, { token: null })).status).toBeGreaterThanOrEqual(401);
+  });
+});
+
+describe("factory ui: the estimate lead's decision", () => {
+  const decisionPost = (id: string, body: unknown) =>
+    call(`/api/runs/${id}/estimate-decision`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+
+  it("refuses a plan card, unknown runs and anything that isn't an estimate card; nothing gets recorded", async () => {
+    const r = await decisionPost(ids.waiting, { hash: "b".repeat(8), decision: "approve", by: "Sam Lead" });
+    expect(r.status).toBe(409);
+    expect(r.json().error).toMatch(/no estimate waiting/);
+    expect((await decisionPost("nope", { decision: "approve" })).status).toBe(404);
+    expect(replay(Ledger.open(ids.waiting).events()).openCard?.kind).toBe("approval");
+    expect(started).toEqual([]);
+  });
+
+  it("an estimate card needs the hash, a typed name and sign-offs; then it records and continues the run", async () => {
+    const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
+    const l = Ledger.open(id);
+    const est = l.putJson({ tasks: [{ taskId: "EST-1", flagged: true }, { taskId: "EST-2", flagged: false }] });
+    const bundle = "c".repeat(64);
+    l.writeCard(`estimate-${bundle.slice(0, 8)}`, "# Approve the estimate");
+    await addEvents(id, [
+      ...step("estimate", 0, {}, [est]),
+      { type: "step.started", key: "approve-estimate/1", data: { rung: 0 } },
+      { type: "step.interrupted", key: "approve-estimate/1", data: { reason: "waiting" } },
+      { type: "human.requested", data: { cardId: `estimate-${bundle.slice(0, 8)}`, kind: "estimate-approval", artifactSha: bundle, step: "approve-estimate" } },
+    ]);
+    const ok = { hash: bundle.slice(0, 8), decision: "approve", by: "Sam Lead" };
+    expect((await decisionPost(id, { ...ok, by: "" })).status).toBe(400);
+    expect((await decisionPost(id, { ...ok, hash: "cccc" })).status).toBe(400);
+    expect((await decisionPost(id, { hash: ok.hash, by: ok.by, decision: "maybe" })).status).toBe(400);
+    expect((await decisionPost(id, { ...ok, decision: "reject" })).json().error).toMatch(/needs a reason/);
+    expect((await decisionPost(id, ok)).json().error).toMatch(/Sign off.*EST-1/);
+    expect((await decisionPost(id, { ...ok, hash: "deadbeef", signOff: ["EST-1"] })).status).toBe(409);
+    expect(started).toEqual([]);
+    const done = await decisionPost(id, { ...ok, signOff: ["EST-1"], note: "ok" });
+    expect(done.status).toBe(200);
+    expect(done.json().recorded).toBe(true);
+    expect(started).toEqual([id]);
+    const d = replay(l.events()).decisions.at(-1) as unknown as { by: string; decision: string; signOff: string[] };
+    expect(d).toMatchObject({ by: "Sam Lead (via web)", decision: "approve", signOff: ["EST-1"] });
+    // a repeat is a no-op and does not start the run again
+    expect((await decisionPost(id, { ...ok, signOff: ["EST-1"], note: "ok" })).status).toBe(409);
   });
 });

@@ -16,7 +16,7 @@ import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, previewView, projectsView, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
-import { startRun, StartError, type StartDeps } from "./start.js";
+import { decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
 const COOKIE = "factory_ui";
@@ -75,6 +75,19 @@ export const ROUTES: readonly Route[] = [
       try {
         const r = await startRun((body ?? {}) as Record<string, unknown>, deps);
         return { status: 201, json: r };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/estimate-decision", what: "the lead's approve or reject of an estimate card (estimate cards only; needs a typed name, the card hash and sign-offs for flagged tasks)",
+    handle: async ({ id }, body, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await decideEstimate(l, (body ?? {}) as Record<string, unknown>, deps) };
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };

@@ -480,4 +480,4 @@ Not done:
 
 ## In the web UI
 
-`factory ui` can start an estimate run (New run, then Estimate) with the same settings as `factory estimate`, and an estimate run gets an Estimate tab: totals and band, API cost, elapsed time, per-task hours with anchors, the approved screens, and team/client workbook downloads once exported. Approving the estimate stays in the terminal. Frames, per-track rates and docx upload are terminal-only.
+`factory ui` can start an estimate run (New run, then Estimate) with the same settings as `factory estimate`, and an estimate run gets an Estimate tab: totals and band, API cost, elapsed time, per-task hours with anchors, the approved screens, and team/client workbook downloads once exported. The lead can approve or reject the estimate there too (typed name, card hash, sign-off for low-confidence tasks; recorded as "via web"). Plan approvals, answers and waivers stay terminal-only. Frames, per-track rates and docx upload are terminal-only.

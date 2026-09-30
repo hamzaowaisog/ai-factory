@@ -887,9 +887,33 @@ async function estimateScreen(id) {
       d.unmapped.length ? h("p", { class: "small" }, h("strong", {}, "Requirements with no screen: "), d.unmapped.join(", ")) : null,
       d.noScreen.length ? h("p", { class: "small muted" }, `Not screens: ${d.noScreen.map((n) => `${n.req} (${n.reason})`).join("; ")}`) : null,
       h("a", { class: "btn", href: `#/runs/${rid}/preview` }, icon("cursor"), "Open the clickable demo")];
+  let decide = null;
+  if (e.pending) {
+    const who = h("input", { type: "text", placeholder: "Your name", maxlength: "60", "aria-label": "Your name" });
+    const note = h("input", { type: "text", placeholder: "Risk note (optional)", "aria-label": "Risk note" });
+    const why = h("input", { type: "text", placeholder: "Reason, to send it back", "aria-label": "Rejection reason" });
+    const boxes = e.pending.flagged.map((id) => { const c = h("input", { type: "checkbox", value: id }); return [c, h("label", { class: "small" }, c, ` I have reviewed ${id} (estimators disagree) and accept it`)]; });
+    const msg = h("p", { class: "small muted", role: "status" }, "");
+    const send = async (decision) => {
+      msg.textContent = "";
+      try {
+        await api(`/api/runs/${encodeURIComponent(rid)}/estimate-decision`, { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hash: e.pending.hash, decision, by: who.value, note: note.value, reason: why.value, signOff: boxes.filter(([c]) => c.checked).map(([c]) => c.value) }) });
+        msg.textContent = decision === "approve" ? "Approved. Writing the final workbooks…" : "Sent back.";
+        setTimeout(() => estimateScreen(rid), 4000);
+      } catch (err) { msg.textContent = err.message; }
+    };
+    const ok = h("button", { class: "btn", type: "button" }, icon("check"), "Approve this estimate");
+    const no = h("button", { class: "btn", type: "button" }, "Reject");
+    ok.addEventListener("click", () => send("approve"));
+    no.addEventListener("click", () => send("reject"));
+    decide = panel(0, "Lead approval", "shield", h("div", { class: "stack" },
+      h("p", { class: "small muted" }, `Card ${e.pending.hash}. You are approving exactly the figures on this page. Your name is recorded with the decision.`),
+      who, note, ...boxes.map((b) => b[1]), why, h("div", { class: "row" }, ok, no), msg));
+  }
   mount([...head,
     h("div", { class: "grid-2" },
-      h("div", { class: "stack" }, panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", costTable),
+      h("div", { class: "stack" }, decide, panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", costTable),
         e.assumptions.length ? panel(3, "Assumptions", "alert", h("ul", { class: "reasons small" }, e.assumptions.map((x) => h("li", {}, x)))) : null),
       h("div", { class: "stack" }, panel(1, "Screens", "browser", design), panel(2, "Tasks", "layers", tasks, ...extra))),
   ], true);

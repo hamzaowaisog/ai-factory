@@ -471,7 +471,7 @@ The request can come from **any one** of a typed prompt, `--file` or `--jira`, o
 | `factory pause <run>` / `stop <run>` | Pauses or stops at the next step boundary. |
 | `factory steer <run> <file>` | Records a requirement change (applying it isn't built yet). |
 | `factory verify-evidence <run>` | Re-runs every gate decision from the ledger. |
-| `factory ui [--port <n>]` | Local web screens: start runs and watch them live (four views per run, dashboard, design, preview), and estimate runs with an Estimate tab (totals, tasks, API cost, screens, workbook downloads, plus DRAFT workbooks before approval). Decisions stay in the terminal. |
+| `factory ui [--port <n>]` | Local web screens: start runs and watch them live (four views per run, dashboard, design, preview), and estimate runs with an Estimate tab (totals, tasks, API cost, screens, workbook downloads, plus DRAFT workbooks before approval). Plan approvals, answers and waivers stay in the terminal; the estimate lead can approve or reject an estimate on its Estimate tab. |
 | `factory report [run] [--all] [--json]` | Step scorecard for one run. Across runs (`--all`): outcome numbers first (delivered, cost per delivered change, time from request to branch, human stops, first-time pass), then a per-stage table. `--all --json` prints `{outcomes, stages}`. From the ledgers only, no AI. |
 | `factory design inventory <repo>` | Scans a web app's look: theme settings, shared components and how often each is used, pages. No AI. |
 | `factory design size` | Says how big a UI change is (no UI, screen tweak, new screen, or a change to the shared look), from a plan's file list or a git diff, with reasons. |

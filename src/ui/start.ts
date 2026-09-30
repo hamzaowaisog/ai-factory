@@ -6,6 +6,10 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
 import { basename, join } from "node:path";
 import { loadProject } from "../config/project.js";
+import type { Estimate } from "../contracts/estimate.js";
+import { DecisionError, decide } from "../ledger/human.js";
+import type { Ledger } from "../ledger/ledger.js";
+import { replay } from "../ledger/state.js";
 import { costCapUsd, MIN_CAP_USD } from "../ledger/caps.js";
 import { parseEstimateSettings } from "../estimate/settings.js";
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
@@ -124,4 +128,43 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
 
 export function _resetStarting(): void {
   starting.clear();
+}
+
+export interface EstimateDecisionInput { hash?: unknown; decision?: unknown; by?: unknown; note?: unknown; reason?: unknown; signOff?: unknown }
+
+/**
+ * The lead's decision on an estimate card, from the Estimate tab. Only estimate cards: the plan approval, answers,
+ * waivers and everything else stay terminal-only. The person types their name, names the card by its hash (checked
+ * under the ledger lock like factory approve), and low-confidence tasks need an explicit sign-off (the E7 gate).
+ */
+export async function decideEstimate(ledger: Ledger, input: EstimateDecisionInput, deps: StartDeps = {}): Promise<{ recorded: boolean }> {
+  const open = replay(ledger.events()).openCard;
+  if (open?.kind !== "estimate-approval") throw new StartError("This run has no estimate waiting for approval.", 409);
+  const hash = str(input.hash)?.trim() ?? "";
+  if (hash.length < 8) throw new StartError("Send the estimate card's hash from this page.");
+  const name = str(input.by)?.trim() ?? "";
+  if (name.length < 2 || name.length > 60 || /[\r\n]/.test(name)) throw new StartError("Type your name to approve; it is recorded with the decision.");
+  const decision = input.decision === "reject" ? "reject" : input.decision === "approve" ? "approve" : undefined;
+  if (!decision) throw new StartError("The decision must be approve or reject.");
+  const by = `${name} (via web)`;
+  let data: Record<string, unknown>;
+  if (decision === "reject") {
+    const reason = str(input.reason)?.trim();
+    if (!reason) throw new StartError("A rejection needs a reason.");
+    data = { reason };
+  } else {
+    const signOff = Array.isArray(input.signOff) ? input.signOff.map(String) : [];
+    const est = ledger.getJson<Estimate>(replay(ledger.events()).steps.get("estimate")!.outputs[0]!);
+    const missing = est.tasks.filter((t) => t.flagged && !signOff.includes(t.taskId)).map((t) => t.taskId);
+    if (missing.length) throw new StartError(`Sign off the low-confidence tasks first: ${missing.join(", ")}.`);
+    data = { note: str(input.note) ?? "", ...(signOff.length ? { signOff } : {}) };
+  }
+  try {
+    const r = await decide(ledger, { decision, hashPrefix: hash, by, data });
+    if (r.kind === "recorded") (deps.execute ?? runDetached)(ledger.runId);
+    return { recorded: r.kind === "recorded" };
+  } catch (e) {
+    if (e instanceof DecisionError) throw new StartError(e.message, 409);
+    throw e;
+  }
 }
