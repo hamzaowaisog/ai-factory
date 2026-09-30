@@ -18,6 +18,12 @@ import { header, requireOutput, type StepContext, type StepDef, type StepOutcome
 import { modelFor } from "./routing.js";
 import { S, think } from "./think.js";
 import { ensureWorktree } from "./workspace.js";
+import { recordTestLesson } from "../context/lessons.js";
+
+/** Only a delivered run teaches the next one where its tests go; never fails delivery. */
+function learnFrom(ctx: StepContext, wt: string, lockedFiles: string[]): void {
+  try { recordTestLesson(ctx.project.project, wt, lockedFiles); } catch (e) { ctx.log(`deliver: couldn't save the repo lesson: ${(e as Error).message}`); }
+}
 
 type Spec = z.infer<typeof SpecDraft>;
 type Plan = z.infer<typeof PlanBody>;
@@ -268,6 +274,7 @@ export const deliverStep: StepDef = {
 
     if (!ctx.project.forge) {
       ctx.log(`deliver: no forge configured; branch ${branch} is ready locally (PR text saved)`);
+      learnFrom(ctx, wt, lock.lock.map((l) => l.file));
       return { kind: "done", outputs: { manifest: manifestHash, prBody: bodySha }, treeSha: head, data: { local: true, branch, head, manifestHash } };
     }
     // push exactly: gated SHA + manifest commit
@@ -288,6 +295,7 @@ export const deliverStep: StepDef = {
     try { await postReview(ctx, pr.value, reviewPost(ctx.runId, review.findings, lines)); } catch (e) { extra.push(`review not posted: ${(e as Error).message.replaceAll(token, "«SECRET»").slice(0, 200)}`); }
     try { await markReady(ctx, pr.value); } catch (e) { extra.push(`PR left as a draft: ${(e as Error).message.replaceAll(token, "«SECRET»").slice(0, 200)}`); }
     for (const x of extra) ctx.log(`deliver: ${x}`);
+    learnFrom(ctx, wt, lock.lock.map((l) => l.file));
     return { kind: "done", outputs: { manifest: manifestHash, prBody: bodySha }, treeSha: head, data: { local: false, branch, head, prUrl: pr.externalId, manifestHash, ...(extra.length ? { notes: extra } : {}) } };
   },
 };

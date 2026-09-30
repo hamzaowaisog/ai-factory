@@ -30,7 +30,7 @@ import { ensureWorktree, runtime, snapshotFor } from "./workspace.js";
 import { replay, splitKey } from "../ledger/state.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import { LANE, lightBuild, testWriterTurns } from "./lane.js";
-import { lessonPointers, readLessons, recordTestLesson, usableLessons } from "../context/lessons.js";
+import { lessonPointers, readLessons, usableLessons } from "../context/lessons.js";
 
 type Plan = z.infer<typeof PlanBody> & { complexity: string };
 type Intent = z.infer<typeof IntentBody>;
@@ -360,9 +360,7 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
       await resetHard(wt, start);
       return { kind: "fail", category: "other", failures: g.failures ?? [], signature: failureSignature((g.failures ?? []).map((f) => f.message)) };
     }
-    // remember where these tests went, for the next run on this repo; never fails the step
-    try { recordTestLesson(ctx.project.project, wt, lock.lock.map((l) => l.file)); } catch (e) { ctx.log(`author-tests: couldn't save the repo lesson: ${(e as Error).message}`); }
-    return { kind: "done", outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, locked: lock.lock.length, familyNote } };
+    return { kind: "done", outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, locked: lock.lock.length, familyNote, ...(lessons.length ? { lessonsUsed: lessons.map((l) => l.csproj) } : {}) } };
   },
 };
 
