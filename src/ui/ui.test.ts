@@ -545,6 +545,27 @@ describe("factory ui: estimate runs", () => {
     expect((await post({ project: "standalone-estimates", prompt: "Change the heading" })).status).toBe(400);
   });
 
+  it("a build can start from an approved estimate: it is listed, takes its request from the estimate, and refuses a request of its own", async () => {
+    const id = await createRun("Build an order portal with login and a dashboard", "web", "tester", { mode: "estimate", estimate: { deliveryModel: "hitl" } } as never);
+    const l = Ledger.open(id);
+    expect((await call("/api/projects")).json().estimates).toEqual([]);
+    const early = await post({ project: "web", fromEstimate: id });
+    expect(early.status).toBe(400);
+    expect(early.json().error).toMatch(/no approved estimate yet/);
+    const est = l.putJson({ deliveryModel: "hitl" }), bd = l.putJson({ tasks: [] }), spec = l.putJson({ title: "s" });
+    await addEvents(id, [...step("breakdown", 0, {}, [bd]), ...step("specify", 0, {}, [spec]), ...step("estimate", 0, {}, [est]), ...step("approve-estimate"), ...step("export")]);
+    const listed = (await call("/api/projects")).json().estimates;
+    expect(listed).toHaveLength(1);
+    expect(listed[0]).toMatchObject({ runId: id, project: "web" });
+    expect((await post({ project: "web", fromEstimate: id, prompt: "also do this" })).status).toBe(400);
+    expect((await post({ project: "web", mode: "estimate", fromEstimate: id })).status).toBe(400);
+    const r = await post({ project: "web", fromEstimate: id });
+    expect(r.status).toBe(201);
+    const built = replay(Ledger.open(r.json().runId).events());
+    expect(built.info.request).toBe("Build an order portal with login and a dashboard");
+    expect(built.info.estimateRef).toMatchObject({ runId: id, estimateSha: est });
+  });
+
   it("the estimate view says so for a build run and before the estimate exists", async () => {
     const built = await call(`/api/runs/${ids.delivered}/estimate`);
     expect(built.status).toBe(200);

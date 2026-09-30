@@ -481,3 +481,5 @@ Not done:
 ## In the web UI
 
 `factory ui` can start an estimate run (New run, then Estimate) with the same settings as `factory estimate`, and an estimate run gets an Estimate tab: totals and band, API cost, elapsed time, per-task hours with anchors, the approved screens, and team/client workbook downloads once exported. The lead can approve or reject the estimate there too (typed name, card hash, sign-off for low-confidence tasks; recorded as "via web"). Plan approvals, answers and waivers stay terminal-only. The form can attach design frames (png/jpg/webp, size-capped and stored beside the run). The clickable demo page includes a wireframe per screen and state, drawn by rule from the requirement wording (layout sketches, no model). Per-track rates and docx upload are terminal-only.
+
+An estimate can also start with no project (requirements alone, no repo). The Brownfield form has an optional Estimate picker listing approved, exported estimates: choosing one builds it (the same as `factory start --from-estimate`), taking its request, spec and tasks, and the request box is hidden. With none chosen it is a plain change request with no estimate gates.

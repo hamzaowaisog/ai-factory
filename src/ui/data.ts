@@ -66,7 +66,23 @@ export async function busyRun(project: string): Promise<{ runId: string } | unde
   return { runId: info?.runId ?? "" };
 }
 
-export async function projectsView(): Promise<{ projects: ProjectRow[]; jira: { configured: boolean; why?: string } }> {
+export interface ApprovedEstimateRow { runId: string; project: string; request: string; createdAt: string }
+
+/** Estimate runs that are approved and exported: the ones a build can start from (factory start --from-estimate). */
+export function approvedEstimatesView(): ApprovedEstimateRow[] {
+  const rows: ApprovedEstimateRow[] = [];
+  for (const id of Ledger.listRuns()) {
+    try {
+      const s = replay(Ledger.open(id).events());
+      if (s.info.mode !== "estimate") continue;
+      if (!["estimate", "approve-estimate", "export"].every((k) => s.steps.get(k)?.status === "completed")) continue;
+      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt });
+    } catch { /* a broken ledger doesn't hide the others */ }
+  }
+  return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
+}
+
+export async function projectsView(): Promise<{ projects: ProjectRow[]; estimates: ApprovedEstimateRow[]; jira: { configured: boolean; why?: string } }> {
   const projects: ProjectRow[] = [];
   for (const name of projectNames()) {
     const busy = await busyRun(name);
@@ -75,6 +91,7 @@ export async function projectsView(): Promise<{ projects: ProjectRow[]; jira: { 
   const configured = jiraConfigured();
   return {
     projects,
+    estimates: approvedEstimatesView(),
     jira: configured ? { configured } : { configured, why: "Jira isn't set up. Add JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN to ~/.factory/.env (factory doctor checks it)." },
   };
 }

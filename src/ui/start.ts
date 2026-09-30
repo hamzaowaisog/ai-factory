@@ -8,13 +8,14 @@ import { basename, join } from "node:path";
 import { ensureStandaloneProject, loadProject, STANDALONE_PROJECT } from "../config/project.js";
 import type { Estimate } from "../contracts/estimate.js";
 import { DecisionError, decide } from "../ledger/human.js";
-import type { Ledger } from "../ledger/ledger.js";
+import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { costCapUsd, MIN_CAP_USD } from "../ledger/caps.js";
 import { parseEstimateSettings } from "../estimate/settings.js";
 import { checkUploadedFrames, describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
+import { approvedEstimate, type Approved } from "../estimate/lineage.js";
 import { checkRoutes, ESTIMATE_ROUTES } from "../stages/routing.js";
 import { factoryHome } from "../util/paths.js";
 import { busyRun, projectNames } from "./data.js";
@@ -35,6 +36,8 @@ export interface StartInput {
   estimate?: unknown;
   /** estimate runs: design frames as [{ name, data: base64 }], like a folder given to --frames */
   frames?: unknown;
+  /** a build from an approved estimate run (factory start --from-estimate): the request comes from the estimate */
+  fromEstimate?: unknown;
 }
 
 export interface StartDeps {
@@ -66,6 +69,18 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     if (maxCostUsd > HIGHEST_NORMAL_CAP_USD) {
       throw new StartError(`Max cost can only lower the normal limit, and the highest normal limit is $${HIGHEST_NORMAL_CAP_USD}. Enter $${HIGHEST_NORMAL_CAP_USD} or less, or leave it empty.`);
     }
+  }
+
+  const fromEstimate = str(input.fromEstimate)?.trim();
+  if (fromEstimate && estimating) throw new StartError("A build starts from an estimate; an estimate cannot.");
+  if (fromEstimate && (str(input.prompt)?.trim() || input.file || str(input.jira)?.trim())) {
+    throw new StartError("A build from an estimate takes its request from the estimate. Clear the request, or choose no estimate.");
+  }
+  let approved: Approved | undefined;
+  if (fromEstimate) {
+    try { approved = approvedEstimate(fromEstimate); } catch (err) { throw new StartError((err as Error).message); }
+    const from = replay(Ledger.open(fromEstimate).events()).info.project;
+    if (from !== STANDALONE_PROJECT && from !== project) throw new StartError(`That estimate is for project ${from}, not ${project}.`);
   }
 
   let file: { name: string; text: string } | undefined;
@@ -119,7 +134,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
       path = join(dir, file.name);
       writeFileSync(path, file.text, { mode: 0o600 });
     }
-    req = await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim(), ...(frameFiles ? { frameFiles } : {}) }, {}, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
+    req = approved ? { text: approved.request, sources: [{ kind: "prompt" as const }], attachments: [] } : await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim(), ...(frameFiles ? { frameFiles } : {}) }, {}, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
   } catch (e) {
     throw new StartError((e as Error).message);
   } finally {
@@ -129,6 +144,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   const runId = await createRun(req.text, project, `${userInfo().username} (via web)`, {
     ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
     sources: req.sources,
+    ...(approved ? { lineage: { kind: "build" as const, approved } } : {}),
     ...(settings ? { mode: "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
   });
   if (!standalone) starting.set(project, { runId, at: Date.now() });

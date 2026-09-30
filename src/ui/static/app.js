@@ -228,6 +228,12 @@ async function requestScreen(kind = "brownfield") {
     meta.projects.map((p) => h("option", { value: p.name, disabled: !!p.busy }, p.busy ? `${p.name}  (run ${p.busy.runId} is running)` : p.name)));
   if (!estimating && meta.projects.length === 1 && !meta.projects[0].busy) project.value = meta.projects[0].name;
 
+  // a build can start from an approved estimate: its request, spec and tasks are inherited
+  const fromEst = h("select", { id: "fromest" }, h("option", { value: "" }, "No estimate: a plain change request"),
+    (meta.estimates ?? []).map((e) => h("option", { value: e.runId }, `${e.runId}  ·  ${e.project === "standalone-estimates" ? "no project" : e.project}  ·  ${e.request}`)));
+  const syncEst = () => { const b = document.getElementById("reqblock"); if (b) b.hidden = !!fromEst.value; };
+  fromEst.addEventListener("change", syncEst);
+
   // the three inputs, which can be combined like factory start
   const prompt = h("textarea", { id: "prompt", placeholder: estimating ? "Paste the requirements: notes, a brief, a transcript, an email thread. e.g. A customer portal where buyers log in, see their orders and download invoices." : "e.g. Show the number of orders next to the Your orders heading, and keep the heading text." });
   const fileInput = h("input", { type: "file", accept: ".md,.markdown,.txt,text/markdown,text/plain" });
@@ -333,7 +339,11 @@ async function requestScreen(kind = "brownfield") {
     err,
     estimating ? sect(1, "Project", "Pick one to read its code, or choose none to estimate from the requirements alone.", h("div", { class: "fld" }, project, standaloneNote))
       : h("div", { class: "field" }, h("label", { for: "project" }, "Project"), project, h("div", { class: "hint" }, "From ~/.factory/projects. Add one with factory init <repo>.")),
-    h("div", { class: estimating ? "sect" : "field" }, estimating ? h("div", { class: "sect-head" }, h("span", { class: "num" }, "2"), h("div", {}, h("h3", {}, "Requirements"), h("p", { class: "muted small" }, "Paste them, upload a file or give a Jira key. They are combined into one request."))) : h("span", { class: "label" }, "Request"),
+    !estimating ? h("div", { class: "field" }, h("label", { for: "fromest" }, "Estimate (optional)"), fromEst,
+      h("div", { class: "hint" }, (meta.estimates ?? []).length
+        ? "Build an approved estimate: its request, spec and tasks carry over, and the build is held to its size and budget. Choose none for a plain change request."
+        : "No approved estimates yet. Approve one first (New run, then Estimate) to build from it; until then this is a plain change request.")) : null,
+    h("div", { id: "reqblock", class: estimating ? "sect" : "field" }, estimating ? h("div", { class: "sect-head" }, h("span", { class: "num" }, "2"), h("div", {}, h("h3", {}, "Requirements"), h("p", { class: "muted small" }, "Paste them, upload a file or give a Jira key. They are combined into one request."))) : h("span", { class: "label" }, "Request"),
       h("div", { class: "tabs-in", role: "tablist" }, tabs.prompt, tabs.file, tabs.jira),
       panels.prompt, panels.file, panels.jira,
       h("div", { class: "hint" }, "Use one input or several: they are combined into one request, like factory start does.")),
@@ -349,7 +359,7 @@ async function requestScreen(kind = "brownfield") {
     start.replaceChildren(h("span", { class: "spin" }), "Reading the request…");
     try {
       const sent = estimating && frames.length ? await Promise.all(frames.map(async (f) => ({ name: f.name, data: await b64(f) }))) : undefined;
-      const body = { project: project.value, prompt: prompt.value, ...(sent ? { frames: sent } : {}), jira: jira.disabled ? "" : jira.value, maxCost: maxCost.value, ...(file ? { file: { name: file.name, text: file.text } } : {}),
+      const body = { project: project.value, ...(!estimating && fromEst.value ? { fromEstimate: fromEst.value } : {}), prompt: fromEst.value ? "" : prompt.value, ...(sent ? { frames: sent } : {}), jira: jira.disabled || fromEst.value ? "" : jira.value, maxCost: maxCost.value, ...(file && !fromEst.value ? { file: { name: file.name, text: file.text } } : {}),
         ...(estimating ? { mode: "estimate", estimate: { deliveryModel: delivery.value, stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
