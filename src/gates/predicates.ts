@@ -149,15 +149,21 @@ export const failsOnBase = defineGate<{ run1: TestRun; run2: TestRun; tests: Acc
       for (const t of tests.tests) {
         const r = byId.get(t.testId);
         if (!r || r.outcome === "notRun" || r.outcome === "skipped") fs.push(failure("not-executed", `${t.testId} (${t.acId}) didn't run`, { testId: t.testId }));
+        // a must-keep-passing criterion ("stays upper case"): it passes on the old code and must keep passing
+        else if (t.failsOnBase === false) { if (r.outcome !== "passed") fs.push(failure("keep-passing", `${t.testId} (${t.acId}) describes behaviour that works today, but fails on the old code`, { testId: t.testId })); }
         else if (r.outcome === "passed") fs.push(failure("passes-on-base", `${t.testId} (${t.acId}) already passes before any change`, { testId: t.testId }));
         else if (!ok.has(r.failureKind ?? "")) fs.push(failure("wrong-failure-kind", `${t.testId} fails with ${r.failureKind ?? "unknown"}, not an assertion or not-implemented`, { testId: t.testId, frames: r.frames ?? [] }));
       }
       for (const c of tests.characterisation) {
         const r = byId.get(c.testId);
-        if (r?.outcome !== "passed") fs.push(failure("characterisation", `Characterisation test ${c.testId} doesn't pass on base`, { testId: c.testId }));
+        // not a normal retry: a characterisation test describes behaviour that works TODAY, so failing on the
+        // old code means the test is wrong or needs something the lab doesn't have
+        if (r?.outcome !== "passed") fs.push(failure("characterisation", `Characterisation test ${c.testId} fails on the old code, so it doesn't describe today's behaviour: the test is wrong, or it needs a service or data the test lab doesn't have (an external API, seeded rows). Rewrite it as a small unit test next to the changed class, or drop it.${r?.message ? ` It failed with: ${r.message.slice(0, 200)}` : ""}`, { testId: c.testId }));
       }
     }
     if (!tests.tests.length) fs.push(failure("no-tests", "No acceptance tests were written"));
+    // at least one test must fail on the old code: that's what proves the change is needed
+    if (tests.tests.length && !tests.tests.some((t) => t.failsOnBase !== false)) fs.push(failure("no-failing-test", "No test fails on the old code, so nothing proves the change is needed"));
     return verdict(fs, `${tests.tests.length} AC tests fail on base for the right reason, twice`);
   },
 });

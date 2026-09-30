@@ -126,7 +126,8 @@ export type Questions = z.infer<typeof Questions>;
 
 export const AcceptanceCriterion = z.object({
   id: Id, given: z.string(), when: z.string(), then: z.string(),
-  level: z.enum(["api", "job", "ui", "manual"]),
+  /** unit: a public class method called directly · api: an HTTP call · job: a job run · ui: a screen (checked by a person until browser tests exist) · manual */
+  level: z.enum(["unit", "api", "job", "ui", "manual"]),
 });
 export const Requirement = z.object({
   id: Id,
@@ -257,6 +258,8 @@ export const ReviewFinding = z.object({
   file: z.string(), line: z.number().int().nonnegative(), text: z.string(),
   confidence: z.number().min(0).max(1),
   severity: z.enum(["critical", "high", "medium", "low"]),
+  /** security findings: the OWASP Top 10 item, e.g. "A01 Broken Access Control". Optional: older reviews have none. */
+  owasp: z.string().optional(),
 });
 export type ReviewFinding = z.infer<typeof ReviewFinding>;
 export const ReviewBody = z.object({ findings: z.array(ReviewFinding) });
@@ -286,3 +289,24 @@ export const EvidenceManifest = withHeader({
   versions: z.record(z.string(), z.string()),
 });
 export type EvidenceManifest = z.infer<typeof EvidenceManifest>;
+
+/**
+ * Optional: a run's clickable preview (mocks or designs), shown by `factory ui`. No stage writes it
+ * yet; the estimate module will. Lives in the run's ledger dir as preview/preview.json plus files:
+ * a static site (index.html + assets) and/or labelled images. Paths are relative to preview/.
+ */
+export const RunPreview = z.object({
+  site: z.object({
+    entry: z.string().default("index.html"),
+    screens: z.array(z.object({ path: z.string(), title: z.string(), req: z.string().optional() })).default([]),
+  }).optional(),
+  images: z.array(z.object({
+    file: z.string(),
+    screen: z.string(),
+    req: z.string().optional(),
+    viewport: z.enum(["phone", "tablet", "desktop"]).default("desktop"),
+    /** the same screen before the change, for a before/after slider */
+    before: z.string().optional(),
+  })).default([]),
+});
+export type RunPreview = z.infer<typeof RunPreview>;

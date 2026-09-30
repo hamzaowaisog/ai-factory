@@ -18,6 +18,7 @@ import { describeSources } from "../sources/request.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { uiSizeForCard } from "../design/card.js";
+import { LANE, lightSpec } from "./lane.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -83,7 +84,7 @@ export const groundStep: StepDef = {
     const map = buildRepoMap(snap.root, snap.files, { budgetTokens: 3000 }).map;
     const r = await think(ctx, {
       stage: "ground", route: "ground", cls: "read-large", budgetTokens: 40000, tools: ["read_file", "search", "repo_map"],
-      repoTools: toolsFor(ctx), schema: CurrentBehaviourBody, maxTurns: 12,
+      repoTools: toolsFor(ctx), schema: CurrentBehaviourBody, maxTurns: lightSpec(intent) ? LANE.light.groundTurns : LANE.full.groundTurns,
       sections: [
         S.template("tpl", `You are the grounding step. For each intent span, find the code that implements today's behaviour and describe it.
 Use search and read_file. Every claim needs at least one anchor: path, lineStart, lineEnd, an exact quote of those lines, and the symbol.
@@ -159,7 +160,7 @@ export function plannedFiles(plan: PlanT): string[] {
   return [...new Set(plan.tasks.flatMap((t) => t.fileScope))].sort();
 }
 
-export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string }): string {
+export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; /** reworks the spec step made (the light lane allows 1) */ repairs?: number; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string }): string {
   const grounded = new Set(a.cb.claims.flatMap((c) => c.anchors.map((x) => x.path)));
   const files = plannedFiles(a.plan);
   const notGrounded = files.filter((f) => !grounded.has(f));
@@ -180,6 +181,10 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
     `## Requirements`,
     ...a.spec.requirements.map((r) => `- **${r.id}** (${r.op})${r.stability !== undefined && r.stability < 2 / 3 ? " ⚠ only one draft had this" : ""} ${r.ears}\n${r.acceptance.map((c) => `  - ${c.id} [${c.level}] Given ${c.given}; when ${c.when}; then ${c.then}`).join("\n")}`),
     ``,
+    ...(() => {
+      const manual = a.spec.requirements.flatMap((r) => r.acceptance.filter((c) => c.level === "manual").map((c) => c.id));
+      return manual.length ? [`Checked by a person, not by a test: ${manual.join(", ")} (screens and manual checks aren't automated yet)`, ``] : [];
+    })(),
     `Not changing: ${a.spec.outOfScope.join("; ") || "(none listed)"}`,
     ``,
     `## Files the plan will touch (${files.length})`,
@@ -202,7 +207,7 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
     `## Critic findings (${a.critic.findings.length})`,
     ...a.critic.findings.map((f) => `- [${f.severity}] ${f.reqId ?? ""} ${f.finding}`),
     ...(a.critic.note ? [`_${a.critic.note}_`] : []),
-    ...(a.open.length ? [``, `## Still open after 3 repairs`, ...a.open.map((o) => `- ${o}`)] : []),
+    ...(a.open.length ? [``, `## Still open after ${a.repairs ?? 3} repair${a.repairs === 1 ? "" : "s"}`, ...a.open.map((o) => `- ${o}`)] : []),
     ...(a.roundTrip && !a.roundTrip.droppedSpans.length && !a.roundTrip.inventedCapabilities.length ? [``, `Round trip: the spec restated back matches your request (nothing dropped, nothing added).`] : []),
     ``,
     `## Decide`,
@@ -235,6 +240,7 @@ export const approveStep: StepDef = {
       cb: requireOutput<CB>(ctx.state, ctx.ledger, "ground"), risk: intent.risk,
       clar: clarifications(readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify"), readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify-2")),
       open: (ctx.state.steps.get("specify")!.data?.openFindings as string[] | undefined) ?? [],
+      repairs: ctx.state.steps.get("specify")!.data?.repairs as number | undefined,
       roundTrip: requireOutput<{ roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] } }>(ctx.state, ctx.ledger, "specify").roundTrip,
       uiSize: uiSizeForCard(snapshotFor(ctx), plannedFiles(requireOutput<PlanT>(ctx.state, ctx.ledger, "plan"))),
     });
