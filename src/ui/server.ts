@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import "../gates/predicates.js";
 import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
-import { dashboardView, designView, estimateView, eventsView, exportFile, findRun, previewView, projectsView, runView, runsView, statsView } from "./data.js";
+import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, previewView, projectsView, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
 import { startRun, StartError, type StartDeps } from "./start.js";
 
@@ -235,7 +235,8 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       const [, , runId = "", audience = ""] = path.split("/");
       let l;
       try { l = findRun(decodeURIComponent(runId)); } catch { l = undefined; }
-      const f = l ? exportFile(l, decodeURIComponent(audience)) : undefined;
+      const want = decodeURIComponent(audience);
+      const f = !l ? undefined : want.startsWith("draft-") ? await draftFile(l, want.slice(6)) : exportFile(l, want);
       if (!f) return send(res, 404, "No such workbook.", "text/plain; charset=utf-8");
       return send(res, 200, f.body, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", { "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"` });
     }

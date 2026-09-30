@@ -17,6 +17,7 @@ import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
 import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
 import { failure } from "../gates/engine.js";
 import type { RunState } from "../ledger/state.js";
+import type { Ledger } from "../ledger/ledger.js";
 import { hashJson } from "../util/hash.js";
 import type { ClarifyResult } from "./clarify.js";
 import { gate, settingsOf } from "./estimate.js";
@@ -218,24 +219,31 @@ export const approveEstimateStep: StepDef = {
 
 const sha256File = (path: string): string => createHash("sha256").update(readFileSync(path)).digest("hex");
 
+/** What both workbooks are written from: the same inputs for the approved export and for a draft taken before approval. */
+export function exportInputFor(state: RunState, ledger: Ledger): ExportInput {
+    const estimate = requireOutput<Estimate>(state, ledger, "estimate");
+    const breakdown = requireOutput<Breakdown>(state, ledger, "breakdown");
+    const spec = requireOutput<Spec>(state, ledger, "specify");
+    const info = state.info.estimate ?? {};
+    const settings = settingsOf(state);
+    const input: ExportInput = {
+      estimate, breakdown,
+      header: { client: info.client ?? state.info.project, project: info.projectName ?? state.info.project, pm: info.pm ?? state.info.operator ?? "", date: new Date().toISOString().slice(0, 10), version: state.info.parent?.kind === "change" ? "2" : "1" },
+      requirements: spec.requirements.map((q) => ({ id: q.id, title: q.ears.length > 140 ? `${q.ears.slice(0, 137)}...` : q.ears })),
+      ...(settings.rates && Object.keys(settings.rates).length ? { rates: settings.rates } : {}),
+      waivers: waiversOf(state),
+      gateLog: gateLog(ledger.events()),
+      considerations: considerationsFrom(["clarify", "clarify-2"].map((k) => readOutput<ClarifyResult>(state, ledger, k)).filter((r): r is ClarifyResult => !!r)),
+    };
+  return input;
+}
+
 export const exportStep: StepDef = {
   key: "export", stage: "estimate", templateVersion: "1",
   inputs: (s) => (s.steps.get("approve-estimate")?.status === "completed" ? { approval: s.steps.get("approve-estimate")!.outputs[0], estimate: s.steps.get("estimate")!.outputs[0] } : undefined),
   async run(ctx): Promise<StepOutcome> {
-    const estimate = requireOutput<Estimate>(ctx.state, ctx.ledger, "estimate");
-    const breakdown = requireOutput<Breakdown>(ctx.state, ctx.ledger, "breakdown");
-    const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
-    const info = ctx.state.info.estimate ?? {};
-    const settings = settingsOf(ctx.state);
-    const input: ExportInput = {
-      estimate, breakdown,
-      header: { client: info.client ?? ctx.state.info.project, project: info.projectName ?? ctx.state.info.project, pm: info.pm ?? ctx.state.info.operator ?? "", date: new Date().toISOString().slice(0, 10), version: ctx.state.info.parent?.kind === "change" ? "2" : "1" },
-      requirements: spec.requirements.map((q) => ({ id: q.id, title: q.ears.length > 140 ? `${q.ears.slice(0, 137)}...` : q.ears })),
-      ...(settings.rates && Object.keys(settings.rates).length ? { rates: settings.rates } : {}),
-      waivers: waiversOf(ctx.state),
-      gateLog: gateLog(ctx.ledger.events()),
-      considerations: considerationsFrom(["clarify", "clarify-2"].map((k) => readOutput<ClarifyResult>(ctx.state, ctx.ledger, k)).filter((r): r is ClarifyResult => !!r)),
-    };
+    const input = exportInputFor(ctx.state, ctx.ledger);
+    const { estimate, breakdown } = input;
     const dir = join(ctx.ledger.dir, "export");
     const files = await exportWorkbooks(input, dir, ctx.runId, ctx.project.estimateTemplate ? { templatePath: ctx.project.estimateTemplate } : {});
     // E6 at cell level: read each file back and check it against the estimate it came from

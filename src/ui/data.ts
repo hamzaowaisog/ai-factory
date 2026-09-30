@@ -18,6 +18,8 @@ import { Ledger } from "../ledger/ledger.js";
 import { replay, splitKey, statusLabel, type RunState } from "../ledger/state.js";
 import { outcomes, scoreRun, stageStats, stageOf, type RunScore } from "../report.js";
 import { jiraConfigured } from "../sources/jira.js";
+import { exportWorkbooks } from "../estimate/export.js";
+import { exportInputFor } from "../stages/estimate-approve.js";
 import { stepsFor } from "../stages/modes.js";
 import { factoryHome } from "../util/paths.js";
 import { lastActivity, readTrace } from "../util/trace.js";
@@ -427,5 +429,18 @@ export function exportFile(ledger: Ledger, audience: string): { body: Buffer; na
     const real = realpathSync(p);
     if (!real.startsWith(root + sep) || !/\.xlsx$/i.test(real) || !lstatSync(real).isFile()) return undefined;
     return { body: readFileSync(real), name: basename(real) };
+  } catch { return undefined; }
+}
+
+/** A workbook drawn from the finished estimate before anyone has approved it: the same figures, marked DRAFT in its name, kept apart from the approved export. */
+export async function draftFile(ledger: Ledger, audience: string): Promise<{ body: Buffer; name: string } | undefined> {
+  if (audience !== "team" && audience !== "client") return undefined;
+  const s = replay(ledger.events());
+  if (s.info.mode !== "estimate" || s.steps.get("estimate")?.status !== "completed" || !s.steps.get("breakdown")?.outputs[0] || !s.steps.get("specify")?.outputs[0]) return undefined;
+  try {
+    const dir = join(ledger.dir, "draft-export");
+    const files = await exportWorkbooks(exportInputFor(s, ledger), dir, ledger.runId, {});
+    const p = files[audience];
+    return { body: readFileSync(p), name: `DRAFT-${basename(p)}` };
   } catch { return undefined; }
 }

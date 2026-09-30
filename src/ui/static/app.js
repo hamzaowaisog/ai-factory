@@ -864,10 +864,12 @@ async function estimateScreen(id) {
     fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : ""].filter(Boolean).join(" · ")),
     fact("Approval", e.approved ? h("span", { class: "pill t-ok" }, h("span", { class: "d" }), `approved by ${e.approved.by || "?"}${e.approved.hash ? ` (${e.approved.hash})` : ""}`) : h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "waiting for approval in your terminal")),
   );
+  const dl = (audience, label, draft) => h("a", { class: "btn", href: `/export/${rid}/${draft ? "draft-" : ""}${audience}`, download: "" }, icon("file"), label);
   const files = e.files ? h("div", { class: "row" },
-    e.files.team ? h("a", { class: "btn", href: `/export/${rid}/team`, download: "" }, icon("file"), "Team workbook (.xlsx)") : null,
-    e.files.client ? h("a", { class: "btn", href: `/export/${rid}/client`, download: "" }, icon("file"), "Client workbook (.xlsx)") : null)
-    : h("p", { class: "muted small" }, "The workbooks are written after the approval.");
+    e.files.team ? dl("team", "Team workbook (.xlsx)") : null,
+    e.files.client ? dl("client", "Client workbook (.xlsx)") : null)
+    : h("div", {}, h("div", { class: "row" }, dl("team", "Draft team workbook (.xlsx)", true), dl("client", "Draft client workbook (.xlsx)", true)),
+      h("p", { class: "muted small" }, "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written after you approve in your terminal."));
   const tasks = table(["", "Task", "Track", "Who", "Hours", "Sized against", ""],
     e.tasks.map((t) => [h("span", { class: "mono small" }, t.id), h("div", {}, h("div", {}, t.title), h("div", { class: "small muted" }, t.reason)), t.track ?? "-", t.executor, hrs(t.hours),
       t.anchor === t.id ? h("span", { class: "tag" }, "anchor") : `${t.anchor} × ${t.ratio}`, t.flagged ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "estimators disagree") : ""]), [4]);

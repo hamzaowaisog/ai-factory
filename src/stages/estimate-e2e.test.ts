@@ -1,5 +1,6 @@
 // End to end: an estimate from requirements alone, through the real executor, with a scripted model.
 // One question card, then the lead's approval card, then two workbooks on disk.
+import { draftFile } from "../ui/data.js";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -140,6 +141,13 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     const md = ledger.readCard(card.cardId);
     expect(md).toMatch(/## Anchors[\s\S]*EST-1 Sign-in endpoint: 4-8 h/);
     expect(md).toMatch(/estimate\.e1-readiness/);
+    // before approval the web UI can still hand out a draft of each workbook
+    for (const who of ["team", "client"]) {
+      const d = await draftFile(ledger, who);
+      expect(d?.name).toMatch(/^DRAFT-.*\.xlsx$/);
+      expect(d?.body.subarray(0, 2).toString()).toBe("PK");
+    }
+    expect(await draftFile(ledger, "other")).toBeUndefined();
     await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 6), by: "lead" });
 
     const r3 = await execute(runId);
