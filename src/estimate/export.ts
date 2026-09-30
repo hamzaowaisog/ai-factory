@@ -9,6 +9,7 @@
 import ExcelJS from "exceljs";
 import type { Breakdown, BreakdownTask, Estimate, Track } from "../contracts/index.js";
 import { DEFAULT_ASSUMPTIONS, type Assumptions } from "./assumptions.js";
+import type { Consideration, ConsiderationKey } from "./considerations.js";
 import { effortHours } from "./hours.js";
 import { evalFormula, type CellValue } from "./xl-formula.js";
 
@@ -30,6 +31,8 @@ export interface ExportInput {
   /** waivers a lead gave, and the estimate gates' latest results: the team file's Gates sheet */
   waivers?: { step: string; gateIds: string[]; human: string; reason: string }[];
   gateLog?: { gateId: string; passed: boolean; details: string }[];
+  /** what the client's clarify answers say on each special-consideration topic; a topic with no answer reads "Not specified" */
+  considerations?: Partial<Record<ConsiderationKey, Consideration>>;
   /** the Folio3 estimation template, loaded by `loadTemplate`: its styling and theme carry over */
   template?: Template;
 }
@@ -50,6 +53,36 @@ export const SUMMARY_LABEL = {
   gd: "GD Estimates", pm: "PM Estimates", pdm: "PDM Estimates", cross: "Cross-cutting Estimates", design: "Design Estimates",
 } as const;
 export const DESIGN_SWITCH_LABEL = "Include Design in total";
+
+// ---------- QA sheet categories ----------
+
+/** The template's QA "Estimation Summary" items. Validation testing (4) is drawn as cycles, from its own detail table. */
+export const QA_ITEMS = [
+  { no: 1, label: "Test Plan/Strategy", comment: "Test planning, with the test plan, strategy and traceability matrix as outputs" },
+  { no: 2, label: "Set up of Test Environments", comment: "Setting up code and white box test environments" },
+  { no: 3, label: "Validation and Smoke test cases", comment: "Test cases to execute while debugging and white box testing" },
+  { no: 4, label: "Validation testing", comment: "Testing cycles; the detail is below" },
+  { no: 5, label: "Smoke testing", comment: "Smoke testing after each deployment, including preparation" },
+  { no: 6, label: "Multi Browser Compatibility testing", comment: "Browser, OS and device compatibility" },
+  { no: 7, label: "UAT", comment: "Client user acceptance testing support" },
+  { no: 8, label: "Misc. Optional testing", comment: "Other testing named in the breakdown, and supervisor gate time" },
+] as const;
+
+/** Which QA item a task belongs to, and for validation testing which cycle. Plain words in the title decide; a feature test with requirements is validation cycle 1. */
+export function qaPlace(t: { title: string; reqs: string[]; overhead?: string }): { item: number; cycle?: number } {
+  const x = `${t.title} ${t.overhead ?? ""}`;
+  if (/test\s*(plan|strateg)|\brtm\b|traceability matrix/i.test(x)) return { item: 1 };
+  if (/environment|test data|test set\s*-?up/i.test(x)) return { item: 2 };
+  if (/\buat\b|user acceptance/i.test(x)) return { item: 7 };
+  if (/browser|compatib|cross[- ]platform|device matrix/i.test(x)) return { item: 6 };
+  if (/test[- ]cases?|write.*tests?|author.*tests?/i.test(x)) return { item: 3 };
+  if (/smoke/i.test(x)) return { item: 5 };
+  const m = /(?:cycle|round)\s*(\d+)/i.exec(x);
+  if (m) return { item: 4, cycle: Math.max(1, Number(m[1])) };
+  if (/regression/i.test(x)) return { item: 4, cycle: 2 };
+  if (/performance|load test|security test|penetration|accessib|exploratory|misc/i.test(x)) return { item: 8 };
+  return t.reqs.length ? { item: 4, cycle: 1 } : { item: 8 };
+}
 
 // ---------- the template ----------
 
@@ -150,6 +183,127 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   const featureTitle = new Map(b.features.map((x) => [x.id, x.title]));
   const totalCell = new Map<string, { sheet: string; row: number }>(); // section key -> the cell its Summary row links to
 
+  // the template's Assumptions & Constraints and Risks blocks, closing each track sheet that has work
+  const trackOf = new Map(b.tasks.map((t) => [t.id, t]));
+  const notes = (ws: ExcelJS.Worksheet, start: number, tracks: Track[]): void => {
+    const flagged = team ? e.tasks.filter((t) => t.flagged && tracks.includes(trackOf.get(t.taskId)?.track as Track)).map((t) => `${t.taskId} ${trackOf.get(t.taskId)?.title ?? ""}: the estimators disagree, so its range is wide`) : [];
+    const block = (row: number, title: string, lines: string[]): number => {
+      put(ws, `B${row}`, "S.No", "headB", plainHead); put(ws, `C${row}`, title, "headC", plainHead); merge(ws, `C${row}:F${row}`);
+      lines.forEach((text, i) => {
+        const r = row + 1 + i;
+        put(ws, `B${r}`, i + 1, "taskB"); put(ws, `C${r}`, text, "taskC", { alignment: { wrapText: true, vertical: "top" } }); merge(ws, `C${r}:F${r}`);
+      });
+      return row + lines.length + 3;
+    };
+    const next = block(start, "Assumptions & Constraints", e.assumptions.length ? e.assumptions : ["None recorded beyond the requirements"]);
+    block(next, "Risks", ["Estimates will increase in case of change in requirement", ...flagged]);
+  };
+
+  // the QA sheet in the template's own shape: an Estimation Summary of eight items, then the validation detail by testing cycle
+  const drawQa = (ws: ExcelJS.Worksheet, tasks: BreakdownTask[], overheads: Estimate["overheads"], gates: Estimate["gateHours"]): void => {
+    type Line = { name: string; min: number; max: number; comment: string; sized?: { min: number; max: number }; task?: BreakdownTask };
+    const lineOf = (t: BreakdownTask): Line => {
+      const s = sized.get(t.id); const eff = s ? effortHours(s) : { min: 0, max: 0 };
+      return { name: t.title, min: eff.min, max: eff.max, comment: (t.overhead ? t.overhead : t.items.join("; ")) + (team && s ? ` (${s.reason})` : ""), ...(s ? { sized: s.hours } : {}), task: t };
+    };
+    const items = new Map<number, Line[]>(QA_ITEMS.map((i) => [i.no, []]));
+    const cycles = new Map<number, BreakdownTask[]>();
+    for (const t of tasks) {
+      const at = qaPlace(t);
+      if (at.item === 4) cycles.set(at.cycle ?? 1, [...(cycles.get(at.cycle ?? 1) ?? []), t]);
+      else items.get(at.item)!.push(lineOf(t));
+    }
+    for (const o of overheads) {
+      const at = qaPlace({ title: o.name, reqs: [], overhead: o.reason }).item;
+      items.get(at === 4 ? 8 : at)!.push({ name: o.name, min: o.hours.min, max: o.hours.max, comment: o.reason, sized: o.hours });
+    }
+    for (const g of gates) items.get(8)!.push({ name: `Supervisor: ${g.source}`, min: g.hours.min, max: g.hours.max, comment: "assumed, editable", sized: g.hours });
+    const cycleNos = [...cycles.keys()].sort((x, y) => x - y);
+    if (!cycleNos.length) cycleNos.push(1);
+
+    const extras = (row: number, l: Line) => {
+      if (l.task) { ws.getCell(`G${row}`).value = l.task.executor[0]!.toUpperCase() + l.task.executor.slice(1); ws.getCell(`H${row}`).value = l.task.reqs.join(", "); ws.getCell(`I${row}`).value = l.task.id; }
+      if (team && l.sized) { n(ws, `J${row}`, l.sized.min); n(ws, `K${row}`, l.sized.max); }
+    };
+    const line = (row: number, no: number | "", l: Line) => {
+      put(ws, `B${row}`, no, "taskB"); put(ws, `C${row}`, l.name, "taskC"); n(ws, `D${row}`, l.min, "taskD"); n(ws, `E${row}`, l.max, "taskE"); put(ws, `F${row}`, l.comment, "taskF"); extras(row, l);
+    };
+    const sum = (row: number, from: number, to: number, role: [string, string], sizedToo = true) => {
+      f(ws, `D${row}`, `SUM(D${from}:D${to})`, role[0], { font: BOLD }); f(ws, `E${row}`, `SUM(E${from}:E${to})`, role[1], { font: BOLD });
+      if (team && sizedToo) { f(ws, `J${row}`, `SUM(J${from}:J${to})`); f(ws, `K${row}`, `SUM(K${from}:K${to})`); }
+    };
+    const sumOf = (row: number, rows: number[], role: [string, string]) => {
+      for (const c of ["D", "E"] as const) f(ws, `${c}${row}`, rows.length ? rows.map((x) => `${c}${x}`).join("+") : "0", c === "D" ? role[0] : role[1], { font: BOLD });
+    };
+
+    // positions first: the summary's cycle rows link to the detail's cycle totals below it
+    const SUMMARY_AT = 9;
+    const summaryRows = QA_ITEMS.reduce((k, i) => k + 1 + (i.no === 4 ? cycleNos.length : items.get(i.no)!.length), 0);
+    const totalRow = SUMMARY_AT + summaryRows;
+    let r = totalRow + 3;
+
+    // detail: validation testing by cycle, each feature a numbered module
+    put(ws, `B${r}`, "S.No", "headB", plainHead); put(ws, `C${r}`, "Validation Testing", "headC", plainHead);
+    put(ws, `D${r}`, "Minimum", "headD", plainHead); put(ws, `E${r}`, "Maximum", "headE", plainHead); put(ws, `F${r}`, "Comments", "headF", plainHead);
+    for (const [col, text] of Object.entries({ G: "Executor", H: "Requirement id(s)", I: "Task id", ...(team ? { J: "Sized min (h)", K: "Sized max (h)" } : {}) })) put(ws, `${col}${r}`, text, "headF", plainHead);
+    r++;
+    const cycleTotal = new Map<number, number>();
+    for (const c of cycleNos) {
+      put(ws, `C${r}`, `Testing Cycle ${c}`, "modC", { font: BOLD }); r++;
+      const inCycle = cycles.get(c) ?? [];
+      const mods: number[] = [];
+      let no = 1;
+      for (const feat of b.features) {
+        const own = inCycle.filter((t) => t.featureId === feat.id);
+        if (!own.length) continue;
+        if (own.length === 1) { line(r, no++, lineOf(own[0]!)); mods.push(r); r++; continue; }
+        const modRow = r++;
+        mods.push(modRow);
+        put(ws, `B${modRow}`, no++, "modB", { font: BOLD }); put(ws, `C${modRow}`, featureTitle.get(feat.id) ?? feat.id, "modC", { font: BOLD }); put(ws, `F${modRow}`, "", "modF");
+        const first = r;
+        for (const t of own) { line(r, "", lineOf(t)); r++; }
+        sum(modRow, first, r - 1, ["modD", "modE"]);
+      }
+      put(ws, `C${r}`, `Total Testing Cycle ${c}`, "totC", { font: BOLD }); put(ws, `B${r}`, "", "totC"); put(ws, `F${r}`, `Sum of testing cycle ${c}`, "totF");
+      sumOf(r, mods, ["totD", "totE"]);
+      cycleTotal.set(c, r);
+      r += 3;
+    }
+
+    // summary
+    let row = SUMMARY_AT;
+    put(ws, "B8", "S.No", "headB", plainHead); put(ws, "C8", "Estimation Summary", "headC", plainHead);
+    put(ws, "D8", "Minimum", "headD", plainHead); put(ws, "E8", "Maximum", "headE", plainHead); put(ws, "F8", "Comments", "headF", plainHead);
+    for (const [col, text] of Object.entries({ G: "Executor", H: "Requirement id(s)", I: "Task id", ...(team ? { J: "Sized min (h)", K: "Sized max (h)" } : {}) })) put(ws, `${col}8`, text, "headF", plainHead);
+    const itemRows: number[] = [];
+    for (const it of QA_ITEMS) {
+      const itemRow = row++;
+      itemRows.push(itemRow);
+      put(ws, `B${itemRow}`, it.no, "modB", { font: BOLD }); put(ws, `C${itemRow}`, it.label, "modC", { font: BOLD });
+      const lines = items.get(it.no)!;
+      put(ws, `F${itemRow}`, it.no === 4 || lines.length ? it.comment : `${it.comment}. Not sized in this estimate`, "modF");
+      if (it.no === 4) {
+        const first = row;
+        for (const c of cycleNos) {
+          put(ws, `C${row}`, `Testing Cycle ${c}`, "taskC");
+          f(ws, `D${row}`, `D${cycleTotal.get(c)}`, "taskD"); f(ws, `E${row}`, `E${cycleTotal.get(c)}`, "taskE"); row++;
+        }
+        sum(itemRow, first, row - 1, ["modD", "modE"], false);
+        continue;
+      }
+      if (!lines.length) { n(ws, `D${itemRow}`, 0, "modD", { font: BOLD }); n(ws, `E${itemRow}`, 0, "modE", { font: BOLD }); continue; }
+      const first = row;
+      for (const l of lines) { line(row, "", l); row++; }
+      sum(itemRow, first, row - 1, ["modD", "modE"]);
+    }
+    if (row !== totalRow) throw new Error("the QA summary layout disagrees with its computed length");
+    put(ws, `C${totalRow}`, "Total QA Efforts", "totC", { font: BOLD }); put(ws, `B${totalRow}`, "", "totC"); put(ws, `F${totalRow}`, "Total hours of QA", "totF");
+    sumOf(totalRow, itemRows, ["totD", "totE"]);
+    put(ws, "C6", "Grand Total Efforts (in hours)", "grandLabel", { font: BOLD }); put(ws, "F6", "Sum of QA and Misc.", "grandNote");
+    f(ws, "D6", `D${totalRow}`, "grandValue", { font: BOLD }); f(ws, "E6", `E${totalRow}`, "grandValue", { font: BOLD });
+    if (tasks.length || overheads.length || gates.length) notes(ws, r, ["qa"]);
+  };
+
   // ---------- track sheets (the template's layout: title block, Grand Total at the top, modules, other activities, research) ----------
   for (const def of SHEETS) {
     const ws = sheet(def.name);
@@ -164,6 +318,8 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     if (empty) put(ws, "B5", `Not in scope: ${input.notInScope?.[def.tracks[0]!] ?? "no work in this estimate"}`, "", { font: { italic: true } });
     put(ws, "C6", "Grand Total (in hours)", "grandLabel", { font: BOLD });
     put(ws, "F6", "Sum of development, other activities and research efforts.", "grandNote");
+
+    if (def.key === "qa") { drawQa(ws, tasks, overheads, gates); totalCell.set(def.key, { sheet: def.name, row: 6 }); continue; }
 
     const header = (row: number, title: string) => {
       put(ws, `B${row}`, "S.No", "headB", plainHead); put(ws, `C${row}`, title, "headC", plainHead);
@@ -234,6 +390,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     const resRow = row++;
     total(resRow, "Research Total Efforts (in hours)", { from: resFirst, to: resRow - 1 });
 
+    if (!empty) notes(ws, resRow + 3, def.tracks);
     f(ws, "D6", `D${devRow}+D${postRow}+D${resRow}`, "grandValue", { font: BOLD }); f(ws, "E6", `E${devRow}+E${postRow}+E${resRow}`, "grandValue", { font: BOLD });
     totalCell.set(def.key, { sheet: def.name, row: 6 });
   }
@@ -331,13 +488,13 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   put(S, `B${r}`, "List of Special Considerations, where applicable:", "consHead", { font: { bold: true, size: 12 } }); r++;
   put(S, `B${r}`, "Tasks", "consTh", plainHead); put(S, `C${r}`, "Action", "consTh", plainHead); put(S, `D${r}`, "", "consTh", plainHead); put(S, `E${r}`, "Comments", "consTh", plainHead); r++;
   const present = (["backend", "mobile", "web"] as Track[]).filter((t) => tasksOf([t]).length);
+  const cons = (k: ConsiderationKey): [string, string] => { const c = input.considerations?.[k]; return c ? [c.answer, `Clarify answer ${c.from}`] : ["Not specified", "Confirm with the client"]; };
   const considerations: [string, string, string][] = [
     ["Application type (mobile, desktop, web)", present.map((t) => (t === "web" ? "Web" : t === "mobile" ? "Mobile" : "Backend")).join(" + ") || "Not specified", "From the tracks that have work"],
-    ["Platforms/OS supported", "Not specified", "Confirm with the client"],
-    ["Browsers supported", "Not specified", "Confirm with the client"],
-    ["Deployment (cloud, dedicated server, enterprise internal network)", "Not specified", "See the deployment lines in each sheet"],
-    ["Performance, Load requirements", "Not specified", ""], ["Security requirements", "Not specified", ""],
-    ["Documentation requirements", "Not specified", ""], ["Other custom?", "No", ""],
+    ["Platforms/OS supported", ...cons("platforms")], ["Browsers supported", ...cons("browsers")],
+    ["Deployment (cloud, dedicated server, enterprise internal network)", ...cons("deployment")],
+    ["Performance, Load requirements", ...cons("performance")], ["Security requirements", ...cons("security")],
+    ["Documentation requirements", ...cons("documentation")], ["Other custom?", "No", ""],
   ];
   for (const [t, act, why] of considerations) { put(S, `B${r}`, t, "consB"); put(S, `C${r}`, act, "consC"); put(S, `E${r}`, why, "consE"); r++; }
   if (r > PARAM - 1) throw new Error("the Summary considerations overran the parameters block");

@@ -9,12 +9,14 @@ import type { z } from "zod";
 import type { Breakdown, Design, Estimate, IntentBody, Spec } from "../contracts/index.js";
 import { designBaseline, leadApproval } from "../estimate/gates.js";
 import { exportWorkbooks, type ExportInput } from "../estimate/export.js";
+import { considerationsFrom } from "../estimate/considerations.js";
 import { diffEstimates } from "../estimate/lineage.js";
 import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
 import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
 import { failure } from "../gates/engine.js";
 import type { RunState } from "../ledger/state.js";
 import { hashJson } from "../util/hash.js";
+import type { ClarifyResult } from "./clarify.js";
 import { gate, settingsOf } from "./estimate.js";
 import { header, outputOf, readOutput, requireOutput, type StepDef, type StepOutcome } from "./framework.js";
 
@@ -183,6 +185,7 @@ export const exportStep: StepDef = {
       ...(settings.rates && Object.keys(settings.rates).length ? { rates: settings.rates } : {}),
       waivers: waiversOf(ctx.state),
       gateLog: gateLog(ctx.ledger.events()),
+      considerations: considerationsFrom(["clarify", "clarify-2"].map((k) => readOutput<ClarifyResult>(ctx.state, ctx.ledger, k)).filter((r): r is ClarifyResult => !!r)),
     };
     const dir = join(ctx.ledger.dir, "export");
     const files = await exportWorkbooks(input, dir, ctx.runId, ctx.project.estimateTemplate ? { templatePath: ctx.project.estimateTemplate } : {});
