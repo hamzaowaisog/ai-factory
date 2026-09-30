@@ -6,6 +6,8 @@
 // over; without it the same layout is drawn in plain styles. Every total is a formula over exact ranges and
 // gets its cached result from the same evaluator the E6 lint uses, so a cell can never carry a number that
 // its formula does not produce.
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import ExcelJS from "exceljs";
 import type { Breakdown, BreakdownTask, Estimate, Track } from "../contracts/index.js";
 import { DEFAULT_ASSUMPTIONS, type Assumptions } from "./assumptions.js";
@@ -85,6 +87,9 @@ export function qaPlace(t: { title: string; reqs: string[]; overhead?: string })
 }
 
 // ---------- the template ----------
+
+/** The template the repo ships: Folio3's v 0.5 with its text cleared, so only styles, theme, widths and sheet names remain. */
+export const BUNDLED_TEMPLATE = fileURLToPath(new URL("./assets/estimation-template.xlsx", import.meta.url));
 
 type Style = Partial<ExcelJS.Style>;
 export interface Template { wb: ExcelJS.Workbook; styles: Map<string, Style> }
@@ -666,14 +671,14 @@ export function fillResults(wb: ExcelJS.Workbook): void {
 }
 
 /**
- * Write the team and client files. With a template path (or FACTORY_ESTIMATE_TEMPLATE) each file is drawn
- * on a fresh copy of the Folio3 estimation template, so it carries the template's styling.
+ * Write the team and client files. Each is drawn on a fresh copy of the Folio3 estimation template, so it
+ * carries the template's styling: the path given, else FACTORY_ESTIMATE_TEMPLATE, else the copy the repo ships.
  */
 export async function exportWorkbooks(input: ExportInput, dir: string, base: string, opts: { templatePath?: string } = {}): Promise<{ team: string; client: string }> {
   const { mkdir } = await import("node:fs/promises");
   const { join } = await import("node:path");
   await mkdir(dir, { recursive: true });
-  const templatePath = opts.templatePath ?? process.env.FACTORY_ESTIMATE_TEMPLATE;
+  const templatePath = opts.templatePath ?? process.env.FACTORY_ESTIMATE_TEMPLATE ?? (input.template || !existsSync(BUNDLED_TEMPLATE) ? undefined : BUNDLED_TEMPLATE);
   const out = { team: join(dir, `${base}-team.xlsx`), client: join(dir, `${base}-client.xlsx`) };
   for (const audience of ["team", "client"] as const) {
     const template = templatePath ? await loadTemplate(templatePath) : input.template;

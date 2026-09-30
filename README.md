@@ -388,7 +388,7 @@ factory logs <run> --follow        # in a second terminal
 
 Answer the question card if one appears, read the approval card, then approve.
 
-**Estimating instead of building.** `factory estimate` takes requirements (a prompt, `--file` as Markdown, text or Word, `--frames` for exported Figma frames, or `--jira`) and produces an effort, API-cost and elapsed-time estimate of delivering them through the factory. A lead approves it on the terminal, then two workbooks (team and client) are written under the run's `export/` folder. See `docs/estimates-design.md`. To draw the workbooks on Folio3's estimation template, set `estimateTemplate: /path/to/Example_Estimation.xlsx` in the project config (or `FACTORY_ESTIMATE_TEMPLATE` in the environment).
+**Estimating instead of building.** `factory estimate` takes requirements (a prompt, `--file` as Markdown, text or Word, `--frames` for exported Figma frames, or `--jira`) and produces an effort, API-cost and elapsed-time estimate of delivering them through the factory. A lead approves it on the terminal, then two workbooks (team and client) are written under the run's `export/` folder. See `docs/estimates-design.md`. The workbooks are drawn on Folio3's estimation template, which the repo ships with its text cleared (`src/estimate/assets/estimation-template.xlsx`), so nothing needs setting. To use a newer template file instead, set `estimateTemplate: /path/to/Example_Estimation.xlsx` in the project config (or `FACTORY_ESTIMATE_TEMPLATE` in the environment).
 
 ```bash
 factory estimate --file requirements.docx --project shop-api --no-repo --delivery-model hitl --rate backend=55 --rate default=40

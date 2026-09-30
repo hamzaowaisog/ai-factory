@@ -1,5 +1,5 @@
-// The Folio3 estimation template (docs/estimates-design.md, open item 3). These run only when the template
-// file is at hand (the workbook is otherwise drawn in plain styles, which the other tests cover):
+// The Folio3 estimation template (docs/estimates-design.md, open item 3). These always run, on the blanked
+// copy the repo ships. To check a different template file (for example the current version from Folio3):
 //   FACTORY_ESTIMATE_TEMPLATE=/path/to/Example_Estimation.xlsx npx vitest run src/estimate/template.test.ts
 // Decision they support: filling a copy works. The template survives a load and save through ExcelJS with
 // its sheets, merges, formulas and styles (only a column width or two on the QA sheet is dropped, and the
@@ -9,11 +9,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
-import { buildWorkbook, exportWorkbooks, loadTemplate, MANDATORY_SHEETS, SHEET } from "./export.js";
+import { BUNDLED_TEMPLATE, buildWorkbook, exportWorkbooks, loadTemplate, MANDATORY_SHEETS, SHEET } from "./export.js";
 import { fixture } from "./fixture.js";
 import { lintWorkbook, loadWorkbook } from "./workbook-lint.js";
 
-const path = process.env.FACTORY_ESTIMATE_TEMPLATE;
+const path = process.env.FACTORY_ESTIMATE_TEMPLATE ?? BUNDLED_TEMPLATE;
 
 /** Stable text of an object: keys sorted, so two equal styles compare equal whatever their key order. */
 const stable = (v: unknown): string => JSON.stringify(v, (_k, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).filter(([k, y]) => !(k === "shrinkToFit" && y === false)).sort(([a], [b]) => a.localeCompare(b))) : x));
@@ -32,7 +32,7 @@ const shape = (wb: ExcelJS.Workbook) => wb.worksheets.map((ws) => {
   };
 });
 
-describe.skipIf(!path)("the Folio3 estimation template", () => {
+describe("the Folio3 estimation template", () => {
   it("has the sheets the workbook keeps, under the names the export uses", async () => {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.readFile(path!);
@@ -79,6 +79,19 @@ describe.skipIf(!path)("the Folio3 estimation template", () => {
     expect(text.join("\n")).not.toMatch(/Singe Safety|Single Safety|Syed Ahsan|\[Project Name\]|Muhammad Usman/);
   });
 
+  it("is the default: an export with no path set is drawn on the shipped copy", async () => {
+    const input = fixture();
+    const dir = await mkdtemp(join(tmpdir(), "factory-template-default-"));
+    const saved = process.env.FACTORY_ESTIMATE_TEMPLATE;
+    delete process.env.FACTORY_ESTIMATE_TEMPLATE;
+    try {
+      const files = await exportWorkbooks(input, dir, "default");
+      const wb = await loadWorkbook(files.team);
+      expect(lintWorkbook(wb, input.estimate, input.breakdown, "team")).toEqual([]);
+      expect(stable(wb.getWorksheet(SHEET.backend)!.getCell("B2").style)).toBe(stable((await loadTemplate(BUNDLED_TEMPLATE)).styles.get("title")));
+    } finally { if (saved !== undefined) process.env.FACTORY_ESTIMATE_TEMPLATE = saved; }
+  });
+
   it("refuses a file that is not the template", async () => {
     const dir = await mkdtemp(join(tmpdir(), "factory-template-bad-"));
     const bad = join(dir, "bad.xlsx");
@@ -86,11 +99,5 @@ describe.skipIf(!path)("the Folio3 estimation template", () => {
     wb.addWorksheet("Sheet1");
     await wb.xlsx.writeFile(bad);
     await expect(loadTemplate(bad)).rejects.toThrow(/does not look like the Folio3 estimation template/);
-  });
-});
-
-describe("template check without a template", () => {
-  it("says how to run it", () => {
-    expect(path ? "run" : "skipped: set FACTORY_ESTIMATE_TEMPLATE to the template file").toBeTruthy();
   });
 });
