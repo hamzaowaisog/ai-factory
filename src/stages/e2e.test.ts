@@ -546,6 +546,25 @@ describe("light and full lanes (fakes)", () => {
     expect(writer().system).toContain('Don\'t run "dotnet test"');
   });
 
+  it("the first run on a repo teaches the next one where its tests go", async () => {
+    // a test project next to the tests; with two projects the solution is named in the config, as a real repo needs
+    const home = process.env.FACTORY_HOME!;
+    const { parse } = await import("yaml");
+    const cfg = parse(readFileSync(join(home, "projects", "demo.yaml"), "utf8"));
+    const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
+    writeFileSync(join(cfg.repo, "tests/Api.Tests/Api.Tests.csproj"), '<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><PackageReference Include="xunit" Version="2.9.2" /></ItemGroup></Project>\n');
+    execFileSync("git", ["add", "-A"], { cwd: cfg.repo, env });
+    execFileSync("git", ["commit", "-q", "-m", "test project"], { cwd: cfg.repo, env });
+    writeFileSync(join(home, "projects", "demo.yaml"), stringify({ ...cfg, dotnet: { solution: "Api.sln" } }));
+    await deliver();
+    const { readLessons } = await import("../context/lessons.js");
+    expect(readLessons("demo").tests[0]).toMatchObject({ dir: "tests/Api.Tests", csproj: "tests/Api.Tests/Api.Tests.csproj", packages: ["xunit"] });
+    expect(JSON.stringify(writer())).not.toContain("earlier runs on this repo");
+    lab.jobs.length = 0;
+    await deliver();
+    expect(JSON.stringify(writer())).toContain("earlier runs on this repo put tests in tests/Api.Tests");
+  });
+
   it("medium risk keeps the full lane: 3 drafts, a merge, 3 reworks allowed, an Opus test writer with $4 and 60 turns", async () => {
     intakeRisk = "medium";
     const s = await deliver();

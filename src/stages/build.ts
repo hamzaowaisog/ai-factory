@@ -30,6 +30,7 @@ import { ensureWorktree, runtime, snapshotFor } from "./workspace.js";
 import { replay, splitKey } from "../ledger/state.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import { LANE, lightBuild, testWriterTurns } from "./lane.js";
+import { lessonPointers, readLessons, recordTestLesson, usableLessons } from "../context/lessons.js";
 
 type Plan = z.infer<typeof PlanBody> & { complexity: string };
 type Intent = z.infer<typeof IntentBody>;
@@ -249,6 +250,9 @@ export const authorTestsStep: StepDef = {
     await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
     await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
     await ensurePackages(ctx, start);
+    // what earlier runs on this repo learned about where tests go (only if those files still exist here)
+    const lessons = usableLessons(readLessons(ctx.project.project), wt);
+    if (lessons.length) ctx.log(`author-tests: pointing the test writer at ${lessons.map((l) => l.dir).join(", ")} (from earlier runs)`);
     // "already passes" is no longer a failure when the requirement has a failing test: don't push the writer to break a correct test
     const priorFailures = ctx.priorFailures.filter((f) => f.check !== "passes-on-base");
         // The test author sees ACs, stub signatures and harness rules. Never the plan's approach.
@@ -273,7 +277,7 @@ Rules:
         S.template("tpl-end", `
 - For each "api" criterion whose endpoint needs NO login, also give one HTTP probe: method, path, optional JSON body, and the status code the criterion expects once implemented. The factory sends it to the running app (with an empty test database) as evidence. Skip criteria that need a login or seeded data.
 Return the list of tests you wrote (acId, file, method name) and the probes.`),
-        ...(anchorFiles(spec).length ? [S.pointers(anchorFiles(spec).map((p) => ({ path: p, reason: "the code these criteria are about" })))] : []),
+        ...(anchorFiles(spec).length || lessons.length ? [S.pointers([...anchorFiles(spec).map((p) => ({ path: p, reason: "the code these criteria are about" })), ...lessonPointers(lessons)])] : []),
         S.artifact("acs", "acceptance-criteria", acs),
         S.artifact("stubs", "stubs", plan.stubs.map((s) => ({ path: s.path, content: s.content }))),
         ...(priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "Your previous attempt was rejected:\n" + priorFailures.slice(0, 20).map((f) => `- [${f.check}] ${f.message}`).join("\n") }] : []),
@@ -356,6 +360,8 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
       await resetHard(wt, start);
       return { kind: "fail", category: "other", failures: g.failures ?? [], signature: failureSignature((g.failures ?? []).map((f) => f.message)) };
     }
+    // remember where these tests went, for the next run on this repo; never fails the step
+    try { recordTestLesson(ctx.project.project, wt, lock.lock.map((l) => l.file)); } catch (e) { ctx.log(`author-tests: couldn't save the repo lesson: ${(e as Error).message}`); }
     return { kind: "done", outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, locked: lock.lock.length, familyNote } };
   },
 };
