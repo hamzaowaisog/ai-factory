@@ -2,7 +2,7 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Breakdown, Estimate } from "../contracts/index.js";
 import { ProjectConfig } from "../config/project.js";
 import { _resetEnvCache } from "../config/env.js";
@@ -224,5 +224,59 @@ describe("estimate step", () => {
     const out = await exec(ledger, estimateStep);
     expect(out.kind).toBe("fail");
     expect((out as { failures: { check: string }[] }).failures.map((x) => x.check)).toContain("e5-outlier");
+  });
+});
+
+describe("cross-run cache", () => {
+  const breakdownOf = async (ledger: Ledger) => {
+    const out = await exec(ledger, breakdownStep);
+    expect(out.kind).toBe("done");
+    return ledger.getJson((out as { outputs: Record<string, string> }).outputs.breakdown!);
+  };
+  beforeEach(() => { process.env.FACTORY_NO_CACHE = "0"; });
+  afterEach(() => { process.env.FACTORY_NO_CACHE = "1"; });
+
+  it("a second run with the same inputs reuses the stored answer and makes no model call", async () => {
+    answer = breakdownAnswer(breakdown(3));
+    const first = await breakdownOf(await makeRun(spec(3)));
+    expect(calls).toHaveLength(1);
+    // the model would now say something different; the cache must not ask it
+    answer = breakdownAnswer(breakdown(3, { noChecklist: false }));
+    calls = [];
+    const second = await breakdownOf(await makeRun(spec(3)));
+    expect(calls).toHaveLength(0);
+    expect((second as { tasks: unknown }).tasks).toEqual((first as { tasks: unknown }).tasks);
+  });
+
+  it("a changed requirement is a different key and asks the model again", async () => {
+    answer = breakdownAnswer(breakdown(3));
+    await breakdownOf(await makeRun(spec(3)));
+    answer = breakdownAnswer(breakdown(4));
+    calls = [];
+    await breakdownOf(await makeRun(spec(4)));
+    expect(calls).toHaveLength(1);
+  });
+
+  it("FACTORY_NO_CACHE=1 (factory estimate --fresh) skips the cache both ways", async () => {
+    answer = breakdownAnswer(breakdown(3));
+    await breakdownOf(await makeRun(spec(3)));
+    process.env.FACTORY_NO_CACHE = "1";
+    calls = [];
+    await breakdownOf(await makeRun(spec(3)));
+    expect(calls).toHaveLength(1);
+  });
+
+  it("a stored answer that no longer fits the schema is ignored", async () => {
+    answer = breakdownAnswer(breakdown(3));
+    await breakdownOf(await makeRun(spec(3)));
+    const { readdirSync, writeFileSync, readFileSync } = await import("node:fs");
+    const { cacheDir } = await import("../estimate/cache.js");
+    for (const f of readdirSync(cacheDir())) {
+      const p = join(cacheDir(), f);
+      writeFileSync(p, JSON.stringify({ ...JSON.parse(readFileSync(p, "utf8")), output: { nonsense: true } }));
+    }
+    calls = [];
+    await breakdownOf(await makeRun(spec(3)));
+    expect(calls).toHaveLength(1);
   });
 });

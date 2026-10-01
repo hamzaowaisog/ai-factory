@@ -143,3 +143,17 @@ Per-track hours are optional but make the sizing model far more useful. We also 
 - How many finished projects exist today with recorded hours.
 - Whether client data policy forbids sending requirements to a hosted model (this changes the local-LLM case from optional to required).
 - Hardware available for local serving.
+
+
+## 9. Cross-run cache: what was built
+
+Option A from section 4, in `src/estimate/cache.ts` and `src/stages/think.ts`.
+
+- **Where.** Inside `think()`, so every model step of an estimate run is covered (intake, clarify helpers, specify, merge, critic, breakdown, estimate). Build runs are not cached.
+- **Key.** Hash of the rendered briefing (system and user text), images, model, effort, tool list and, for steps that read the repository, the base commit. A step that reads a repository with no known commit is not cached. Prompt template edits change the briefing, so they change the key.
+- **Because every step is keyed on its briefing, the whole chain is repeatable.** Same requirements give the same intake, so the same spec, so the same breakdown and proposals. Code then recomputes the totals.
+- **Store.** `~/.factory/cache/think/<key>.json`, shared by all runs and projects, written atomically and best effort (a write failure never fails a run). A stored answer is checked against the step's schema on reuse; one that no longer fits is ignored.
+- **Reuse is visible** in the run log and as a `cache.hit` trace event naming the run it came from. The step still goes through the gates, and the lead still approves.
+- **Skipping it.** `factory estimate --fresh`, or `FACTORY_NO_CACHE=1`. Tests run with the cache off by default.
+- **Not covered:** reworded requirements (different key), human clarify answers (they are inputs, not model output; different answers give a different key), and pruning (entries are never deleted; delete the folder to clear it).
+- **A rejected answer** is also stored. It is reused and fails the same gate; the retry's briefing then carries the failure text, which is a different key whose answer is also stored. A repeat run therefore costs no model calls at all.

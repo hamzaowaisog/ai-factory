@@ -398,7 +398,10 @@ factory edit-estimate <run> <hash> --anchor EST-1=6-12 --reason "why"   # recomp
 factory estimate --from-run <run> --delivery-model agentic              # the other delivery model
 factory estimate --revises <run> --file changed.md --project shop-api   # a change request (v2)
 factory start --from-estimate <run> --project shop-api                  # build it, held to the estimate
+factory estimate --file requirements.md --fresh                         # ask the model again, ignoring stored answers
 ```
+
+The same requirements, model and settings reuse the stored model answers from an earlier estimate (no model call), so the same input gives the same estimate; `--fresh` skips that. See `docs/estimate-consistency.md`.
 
 **6. Get the result**
 

@@ -90,8 +90,10 @@ program.command("estimate")
   .option("--from-run <run>", "the other delivery model over an approved estimate: reuses its spec and tasks, sizes them again (set --delivery-model to the other one)")
   .option("--revises <run>", "a change request: the new requirements revise an approved estimate, and the card shows what changed")
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
+  .option("--fresh", "ask the model again even if the same requirements were estimated before (skips the stored answers)")
   .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory; a lead approves it in the terminal, then two workbooks are written")
-  .action(async (prompt: string | undefined, o: EstimateOptions & { project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; fromRun?: string; revises?: string }) => {
+  .action(async (prompt: string | undefined, o: EstimateOptions & { project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; fromRun?: string; revises?: string; fresh?: boolean }) => {
+    if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
     if (o.fromRun && o.revises) throw new Error("Use --from-run or --revises, not both.");
     // no --project: the requirements stand alone, so there is no repo to read
     const projectName = o.project ?? (await import("../config/project.js")).ensureStandaloneProject();
