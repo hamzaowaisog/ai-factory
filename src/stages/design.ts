@@ -3,11 +3,14 @@
 // requirements it serves, and a reason for each requirement that needs no screen. Code checks the links
 // both ways. It is an inventory of screens with sample content, not a finished design: a person approves it at E1b, and it
 // becomes the count of screens, flows and reused components for the UI work.
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { z } from "zod";
 import type { IntentBody, Spec } from "../contracts/index.js";
 import type { RunState } from "../ledger/state.js";
 import type { DesignInventory } from "../design/inventory.js";
-import { DesignApp, DesignTheme, ScreenMock, ScreenMockFull } from "../contracts/artifacts.js";
+import { DesignApp, DesignTheme, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
 import { header, readOutput, requireOutput, type StepDef } from "./framework.js";
 import { briefFor, pickIndustries } from "../design/refs/index.js";
@@ -15,6 +18,8 @@ import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
 import { ensureMeasured } from "../design/refs/measure.js";
 import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } from "../design/looks.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
+import { buildDemo, demoStates } from "../estimate/demo.js";
+import { checkDemoLayout, LAYOUT_FAULT, type LayoutIssue } from "../estimate/screenshots.js";
 import { decideRework, designIndex, roundOf, screenName, Triage, TRIAGE_RULES, type ReworkPlan, type ReworkRound } from "./design-rework.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -34,9 +39,13 @@ export const DesignOut = z.object({
     mockFull: ScreenMockFull.optional(),
     /** the app it belongs to (an id from "apps"), when the product has more than one */
     app: z.string().optional(),
+    /** the navigation group it is listed under in a sidebar or drawer (Money, Cards, Settings) */
+    group: z.string().max(24).optional(),
   })).min(1),
   /** the product's apps when it has more than one: a customer phone app and an admin portal each get their own device and frame */
   apps: z.array(DesignApp).max(4).optional(),
+  /** who or what a one-app product is acting for, switched from its frame (an app of several carries its own) */
+  switcher: Switcher.optional(),
   /** the look of the product: chosen from what the requirements say it is and who uses it */
   theme: DesignTheme.optional(),
   /** requirements that need no screen (an API rule, a job) and why */
@@ -61,7 +70,10 @@ const RULES = `You are a principal UI/UX engineer with fifteen years shipping co
   brand: the one brand colour (#rrggbb), in the family of the references, as a competitor in the field would choose it. accent: optional second colour for a sparing highlight, only when the field has one (for example a gold on navy, or the red beside navy).
   neutral: "cool" (technical, finance, health), "warm" (food, hospitality, craft, education) or "pure" (editorial, minimal).
   chrome: "brand" fills the app bar with the brand colour (airlines, retail, telecom, many consumer apps); "plain" keeps it white or dark (SaaS, back-office, finance, health).
-  font: "sans" (default), "humanist" (friendly, health, education), "serif" (editorial, legal, luxury, heritage headings) or "rounded" (playful consumer).
+  TYPE AND MARK are the product's voice: choose them from the reading, never by default.
+  font (the body): "sans" (neutral product UI), "humanist" (friendly: health, education, public services), "serif" (sans body with serif headings), "rounded" (playful consumer), "grotesk" (plain Swiss: design tools, transport, editorial UI) or "book" (a serif to read in: news, long reading, learning).
+  heading (the type of titles, figures and the name, paired with the body): "match" (the body's own), "serif" (editorial, legal, heritage, hospitality), "display" (a high-contrast luxury serif: fashion, jewellery, premium travel), "geometric" (modern consumer, mobility, fitness), "condensed" (sport, news, transport boards, dense dashboards), "slab" (sturdy and practical: logistics, tools, outdoor, food) or "mono" (developer, data, technical). Pair for contrast: a serif or display heading over a sans body, a geometric heading over a humanist body; a plain tool may match.
+  mark (the logo): "glyph" (an abstract shape on a tile), "monogram" (the initial on a tile: banks, firms, institutions), "wordmark" (the name alone in the heading type: editorial, fashion, consumer brands known by name) or "emblem" (a symbol of what the product does on a tile: a plane, a leaf, a heart).
   radius: "sharp" (enterprise, data-dense, government), "soft" (most products) or "round" (friendly consumer).
   density: "compact" for tools used all day, "comfortable" otherwise.
   surface: "soft" (layered cards with a light shadow: the modern default), "flat" (hairline borders, no shadow; dense back-office tools) or "glass" (translucent; media, creative or premium consumer products).
@@ -72,12 +84,14 @@ const RULES = `You are a principal UI/UX engineer with fifteen years shipping co
   hero: "band" puts the page title on a brand-coloured band that the first block overlaps (a bank's balance, an airline's search, a booking summary), as many consumer products do; "none" keeps the title plain on the page (most tools).
   charts: "soft" (muted bars with the peak in brand, a light area under lines: the default), "bold" (brand bars and a strong area; consumer and marketing dashboards) or "mono" (grey bars, ink lines, no fill; finance, research, editorial).
   imagery: the light of drawn pictures on cards, matched to the brand's mood: "day" (fresh, clear), "golden" (warm, hospitality, food), "dusk" (premium, nightlife), "mixed" (varied listings), or "icons" (icon tiles where a photo would be fake, such as B2B items, documents or services).
-- APPS. When the requirements describe more than one app (a customer phone app and an admin portal, a driver app and a dispatch console), return "apps": each with an id (lowercase, such as "customer" or "admin"), a name, its device ("web" or "phone"), its own shell (as above, chosen for that app's users and device) and who uses it; and give every screen the "app" it belongs to. The apps share the one theme: they are one product. A product with one app leaves "apps" out.
+- NAVIGATION. In a sidebar or drawer app with six or more sections, give each screen a "group" (two to four groups, such as Money, Cards, Settings) so the menu reads in sections; otherwise leave groups out. When the user acts for one of several accounts, workspaces, companies, branches or profiles (a business with two companies, a SaaS user in several workspaces, a family's profiles), add a "switcher": its kind, the current one, an optional meta line (a plan, a role) and one to four others. It sits in the frame (the sidebar's top, else the top bar).
+- APPS. When the requirements describe more than one app (a customer phone app and an admin portal, a driver app and a dispatch console), return "apps": each with an id (lowercase, such as "customer" or "admin"), a name, its device ("web" or "phone"), its own shell (as above, chosen for that app's users and device), who uses it and its own "switcher" when it has one; and give every screen the "app" it belongs to. The apps share the one theme: they are one product. A product with one app leaves "apps" out.
 - MOCK CONTENT. For every screen also give "mock": what the page shows, as a picture to react to, not a spec.
   Take every noun from the requirements' own domain: its entities, roles, statuses, units, currencies, places, names and formats. Make the sample data believable and varied (different lengths, several statuses, plausible dates and amounts that agree with each other). Never "Lorem ipsum", "Item 1", "Column A", "Test User" or "Sample".
-  "title" and "subtitle" of the page; "crumbs" when the page sits under others (the trail above it, outermost first: "Accounts", "Savings ··4821"; a phone shows a back button instead); "tabs" when one record or area is seen several ways on the same page (Overview, Activity, Documents; the first is the one drawn), never as a stand-in for pages of their own; "blocks" in page order (2 to 5), each one of: stats (label, value, delta), filters (search placeholder, chips), table (columns, 4 to 6 rows of cells, statusColumn = index of the status column), form (fields with label, kind text/select/date/textarea/toggle, placeholder or value, options; the submit label), chart (bar or line, title, 5 to 8 labelled points), cards (title, meta, badge; visual true for things people choose by picture, like products, places, listings), carousel (slides seen one at a time, each title, meta, badge, cta: style "promo" for offers, announcements or onboarding on the brand colour, "media" for a row of things chosen by picture; only where the requirements show a few featured things in turn, never as a stand-in for a list), list (title, meta), steps (a progress or checkout path, current index), timeline (time, title, status done/now/next: tracking, history, itinerary), detail (a record's labelled facts; style "pass" for a ticket, booking or boarding pass, with a lead value like the route or amount), actions (button labels), text (body).
+  "title" and "subtitle" of the page; "crumbs" when the page sits under others (the trail above it, outermost first: "Accounts", "Savings ··4821"; a phone shows a back button instead); "tabs" when one record or area is seen several ways on the same page (Overview, Activity, Documents; the first is the one drawn), never as a stand-in for pages of their own; "blocks" in page order (2 to 5), each one of: stats (label, value, delta), filters (search placeholder, chips that narrow what is shown, and "segments" that switch how it is shown, such as List/Map or Day/Week/Month), table (columns, 4 to 6 rows of cells, statusColumn = index of the status column), form (fields with label, kind text/select/date/textarea/toggle, placeholder or value, options; the submit label), chart (bar or line, title, 5 to 8 labelled points, and "ranges" such as 7D/30D/1Y when the requirements let the period be changed), cards (title, meta, badge; visual true for things people choose by picture, like products, places, listings), carousel (slides seen one at a time, each title, meta, badge, cta: style "promo" for offers, announcements or onboarding on the brand colour, "media" for a row of things chosen by picture; only where the requirements show a few featured things in turn, never as a stand-in for a list), list (title, meta), accordion (sections opened one at a time, each title and body: questions and answers, a policy's sections, settings groups; never to hide the page's main content), steps (a progress or checkout path, current index), timeline (time, title, status done/now/next: tracking, history, itinerary), detail (a record's labelled facts; style "pass" for a ticket, booking or boarding pass, with a lead value like the route or amount), actions (button labels), text (body).
   "links" (up to 8) for where the page leads, so the demo can be clicked through as the product would be: "from" is the exact label of a button, the first cell of a table row, or the title of a card, list item or slide on this page; "to" is the id of the screen it opens (a row to its record, a card to its detail, "Pay bills" to the bills screen). Link every path the requirements' journeys take.
   "overlays" (up to 3) when an action opens a layer over the page instead of a page of its own: kind "modal" (a short form or record, like Add payee), "drawer" (a side panel with a record's details or filters, on wide screens), "sheet" (a bottom sheet, the phone's way to pick, confirm or enter a little), "confirm" (a yes-or-no for a risky or final step: freeze, delete, submit, pay; text says what happens) or "menu" (a short list of row or page actions in "items"). Its "trigger" is the exact label of a button on the page (an actions button or a form's submit), or "More" for the menu of a table row; it has a "title", optional "text", up to 2 small "blocks" (a form, the record's detail, a list) and up to 2 "actions", the main one first. Use one where the requirements describe that interaction; a page of its own stays a screen. Each is shown open in the demo.
+  "toasts" (up to 3) for the short confirmations that slide in after an action and go by themselves ("Payment sent", "Card frozen", "Saved to trips"): "after" is the exact label of the button, menu item or overlay action that shows it, "text" says what happened in the product's voice, "tone" is ok, info or bad, and "undo" is true for a step that can be taken back. Each is shown in the demo.
   The page follows the refined requirements, never a fixed template. Most screens need no chart and no table: a booking flow is steps, a form and a summary; a catalogue is cards; a status page is a timeline; a settings page is a form and toggles. Add a chart only when a requirement says a trend or figure is watched, a table only when records are compared or scanned, cards only when things are chosen by picture. A screen that draws a block no requirement asks for fails review.
   Choose the block each requirement's wording asks for: something to browse or compare is a table or cards, a figure the user watches is stats, a trend is a chart, narrowing or finding is filters, something the user enters is a form, something the user triggers is actions. Keep cells and labels short.
   The same sample data is shown in every state of the screen (loading refreshes it in place, empty previews what fills the page, an error keeps the last good data behind the message), so give each block enough real rows and values to carry all of them.
@@ -127,6 +141,14 @@ export function designQuality(out: z.infer<typeof DesignOut>, existing = false, 
       if (!labels.some((l) => l.trim().toLowerCase() === o.trigger.trim().toLowerCase())) bad.push({ check: "design-overlay-trigger", message: `Screen ${sc.id}'s ${o.kind} "${o.title}" opens from "${o.trigger}", but the page has no button with that label (it has: ${labels.map((l) => `"${l}"`).join(", ") || "none"}). Use the exact label of an actions button or form submit, or "More" for a table row's menu, adding the button if the page needs it.` });
       if (o.kind === "menu" && !o.items?.length) bad.push({ check: "design-overlay-trigger", message: `Screen ${sc.id}'s menu "${o.title}" has no "items".` });
     }
+    // a toast follows something the person did on this page: a button, a slide's offer, or an overlay's action or menu item
+    const doers = [
+      ...sc.mock.blocks.flatMap((b) => (b.type === "actions" ? b.buttons : b.type === "form" ? [b.submit] : b.type === "carousel" ? b.items.flatMap((it) => (it.cta ? [it.cta] : [])) : [])),
+      ...(sc.mock.overlays ?? []).flatMap((o) => [...o.actions, ...(o.items ?? []), ...o.blocks.flatMap((b) => (b.type === "form" ? [b.submit] : []))]),
+    ];
+    for (const t of sc.mock.toasts ?? []) {
+      if (!doers.some((l) => l.trim().toLowerCase() === t.after.trim().toLowerCase())) bad.push({ check: "design-toast-trigger", message: `Screen ${sc.id}'s toast "${t.text}" follows "${t.after}", but nothing on the page or in its overlays is labelled that (it has: ${doers.map((l) => `"${l}"`).join(", ") || "none"}). Use the exact label of the button, menu item or overlay action that shows it.` });
+    }
     const dataTypes = ["stats", "table", "chart", "cards", "carousel", "list", "timeline", "detail"];
     if (sc.mock.blocks.some((b) => dataTypes.includes(b.type))) {
       if (!sc.mockFull) bad.push({ check: "design-no-full-mock", message: `Screen ${sc.id} has no "mockFull". Give the same page with fine-grained data (see FULL DATA) so the demo can show it dense and complete.` });
@@ -170,6 +192,31 @@ export function appsFit(out: Pick<z.infer<typeof DesignOut>, "apps" | "screens">
     else if (!s.app && apps.length > 1) bad.push({ check: "design-app", message: `Screen ${s.id} names no app. With more than one app, every screen says which app it is in.` });
   }
   return bad;
+}
+
+/** What the drawn demo showed wrong, as fixes the model can make: one per text and fault, with where it was seen. */
+export function layoutFixes(issues: LayoutIssue[]): { check: string; message: string }[] {
+  const by = new Map<string, { i: LayoutIssue; where: Set<string> }>();
+  for (const i of issues) {
+    const key = `${i.screen}|${i.kind}|${i.text}`;
+    const e = by.get(key) ?? { i, where: new Set<string>() };
+    e.where.add(`${i.state}, ${i.viewport} width`);
+    by.set(key, e);
+  }
+  return [...by.values()].slice(0, 10).map(({ i, where }) => ({ check: "design-layout", message: `On ${i.screen}, "${i.text}" ${LAYOUT_FAULT[i.kind]} in the drawn demo (${[...where].slice(0, 3).join("; ")}). Shorten it (labels, cells, chips and buttons must fit a phone: about 20 characters), split it, or choose a block that gives it room.` }));
+}
+
+/** Draws the demo of a design and measures its text in a browser. Undefined when it could not be checked. */
+async function demoLayout(title: string, out: z.infer<typeof DesignOut>, spec: Spec): Promise<LayoutIssue[] | undefined> {
+  const dir = mkdtempSync(join(tmpdir(), "factory-design-"));
+  try {
+    const file = join(dir, "demo.html");
+    writeFileSync(file, buildDemo({
+      title, flow: out.flow, screens: out.screens, requirements: Object.fromEntries(spec.requirements.map((r) => [r.id, r.ears])), noScreen: out.noScreen,
+      ...(out.theme ? { theme: out.theme } : {}), ...(out.apps?.length ? { apps: out.apps } : {}), ...(out.switcher ? { switcher: out.switcher } : {}),
+    }));
+    return await checkDemoLayout(file, out.screens.map((sc) => ({ id: sc.id, route: sc.route, states: demoStates(sc), title: `"${sc.mock?.title ?? sc.route}" (${sc.id})` })));
+  } catch { return undefined; } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
 /** The design frames listed in the request text (`- F-1 home.png`), in order. JSON exports are data, not screens. */
@@ -223,7 +270,7 @@ export function designRejections(s: RunState): string[] {
 
 type ScreenT = z.infer<typeof DesignOut>["screens"][number];
 type Theme = z.infer<typeof DesignTheme>;
-interface DesignArt { skipped?: boolean; flow: string; screens: ScreenT[]; apps?: z.infer<typeof DesignApp>[]; noScreen: { req: string; reason: string }[]; theme?: Theme; themeSource?: "new" | "repo"; mapping: { unmappedReqs: string[]; orphanScreens: string[] }; revision?: number; rework?: ReworkRound[]; figmaUrl?: string }
+interface DesignArt { skipped?: boolean; flow: string; screens: ScreenT[]; apps?: z.infer<typeof DesignApp>[]; switcher?: z.infer<typeof Switcher>; noScreen: { req: string; reason: string }[]; theme?: Theme; themeSource?: "new" | "repo"; mapping: { unmappedReqs: string[]; orphanScreens: string[] }; revision?: number; rework?: ReworkRound[]; figmaUrl?: string }
 
 const cut = (from: string, to: string): string => RULES.slice(RULES.indexOf(from), RULES.indexOf(to));
 const ART_RULES = (): string => cut("- ART DIRECTION.", "- MOCK CONTENT.");
@@ -360,7 +407,7 @@ export function keepFine(out: z.infer<typeof DesignOut>, fine: string[], prev: D
 }
 
 export const designStep: StepDef = {
-  key: "design", stage: "design", templateVersion: "13",
+  key: "design", stage: "design", templateVersion: "14",
   inputs: (s, l) => {
     if (s.steps.get("specify")?.status !== "completed" || s.steps.get("intake")?.status !== "completed") return undefined;
     const ui = !!l.getJson<Intent>(s.steps.get("intake")!.outputs[0]!)?.touchesUi;
@@ -426,10 +473,20 @@ export const designStep: StepDef = {
       ...designQuality(out, hasExistingLook(inv), refs, recent, !!earlier?.theme && JSON.stringify(earlier.theme) === JSON.stringify(out.theme)).map((q) => failure(q.check, q.message)),
     ];
     if (bad.length) return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}` };
+    // the drawn demo is measured in a browser: text past the frame, cut off or on top of other text goes back for one fix round
+    // (after that round what is left is listed on the card); no browser, no check
+    if (!ctx.priorFailures.some((f) => f.check === "design-layout")) {
+      const issues = await demoLayout(ctx.state.info.estimate?.projectName ?? ctx.runId, out, spec);
+      if (issues?.length) {
+        ctx.log(`design: ${issues.length} layout problem(s) in the drawn demo, sent back for one fix`);
+        const fixes = layoutFixes(issues).map((q) => failure(q.check, q.message));
+        return { kind: "fail", category: "other", failures: fixes, signature: "design:design-layout" };
+      }
+    }
     const artifact = {
       header: header(ctx.runId, "design", "design", "", r.model), flow: out.flow,
-      screens: out.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: s.size, frames: s.frames, ...(s.mock ? { mock: s.mock } : {}), ...(s.mockFull ? { mockFull: s.mockFull } : {}), ...(s.app ? { app: s.app } : {}) })),
-      ...(out.apps?.length ? { apps: out.apps } : {}),
+      screens: out.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: s.size, frames: s.frames, ...(s.mock ? { mock: s.mock } : {}), ...(s.mockFull ? { mockFull: s.mockFull } : {}), ...(s.app ? { app: s.app } : {}), ...(s.group ? { group: s.group } : {}) })),
+      ...(out.apps?.length ? { apps: out.apps } : {}), ...(out.switcher ? { switcher: out.switcher } : {}),
       ...(prev ? { revision: sentBack.length, rework: [...(prev.rework ?? []), ...(again ? [again.round] : [])] } : {}),
       mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(hasExistingLook(inv) ? { themeSource: "repo" as const } : { themeSource: "new" as const, ...(out.theme ? { theme: out.theme } : {}) }),
     };

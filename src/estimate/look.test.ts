@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildDemo, demoStates } from "./demo.js";
-import { designQuality } from "../stages/design.js";
+import { buildDemo, demoStates, toastLabel } from "./demo.js";
+import { designQuality, layoutFixes } from "../stages/design.js";
 import { icon, iconFor, verbIcon } from "./icons.js";
 import { contrast, palette } from "./palette.js";
 import { scene, sceneKind } from "./scenes.js";
@@ -202,5 +202,83 @@ describe("layout problems on the design card", () => {
     expect(card).toContain('- Customers, default, phone: "Label 0" is cut off');
     expect(card).toContain("- and 2 more");
     expect(designCard("r1", design, "abcdef12", { shots: { dir: "d", count: 2 } })).not.toContain("Layout problems");
+  });
+});
+
+describe("toasts", () => {
+  const blocks = [{ type: "table" as const, columns: ["Waybill", "Status"], rows: [["KG-1", "Delayed"], ["KG-2", "Delivered"]], statusColumn: 1 }, { type: "actions" as const, buttons: ["Export manifest"] }];
+  const overlays = [{ kind: "menu" as const, trigger: "More", title: "Shipment actions", blocks: [], items: ["Archive"], actions: [] }];
+  const toasts = [{ after: "Export manifest", text: "Manifest for 1,284 shipments is downloading", tone: "info" as const }, { after: "Archive", text: "KG-2 archived", tone: "ok" as const, undo: true }];
+  const sc = { id: "S-1", route: "/shipments", file: "a", reqs: [], states: ["empty"], size: "new", frames: [], mock: { title: "Shipments", copy: {}, blocks, overlays, toasts } };
+  const html = buildDemo({ title: "Kargo", flow: "f", screens: [sc] as never, requirements: {}, noScreen: [] });
+  it("gives each toast its own tab, after the overlays, and short", () => {
+    expect(toastLabel(toasts[0]!)).toBe("Toast: Manifest for 1,284 shipments is d…");
+    expect(demoStates(sc)).toEqual(["default", "empty", "Menu: Shipment actions", "Toast: Manifest for 1,284 shipments is d…", "Toast: KG-2 archived"]);
+  });
+  it("pins the toast on its tab, with undo when it has one, and tells the page what each action says", () => {
+    expect(html).toContain('<div class="toast info pin" role="status">');
+    expect(html).toMatch(/<div class="toast ok pin" role="status">.*<span>KG-2 archived<\/span><button type="button" class="lnk">Undo<\/button>/);
+    expect(html).toContain("data-toasts=\"[{&quot;after&quot;:&quot;Export manifest&quot;");
+  });
+  it("checks a toast follows a button, menu item or overlay action on its page", () => {
+    const checks = (t: object[]) => designQuality({ flow: "f", noScreen: [], screens: [{ ...sc, mock: { ...sc.mock, toasts: t } }] } as never).filter((q) => q.check === "design-toast-trigger").map((q) => q.message);
+    expect(checks(toasts)).toEqual([]);
+    expect(checks([{ after: "Download", text: "Saved" }])[0]).toContain('nothing on the page or in its overlays is labelled that (it has: "Export manifest", "Archive")');
+  });
+});
+
+describe("controls, groups and switcher", () => {
+  const pts = ["1 Sep", "5 Sep", "9 Sep", "13 Sep", "17 Sep", "21 Sep", "25 Sep", "29 Sep"].map((label, i) => ({ label, value: 400 + i * 10 }));
+  const s = (id: string, group: string, blocks: object[]) => ({ id, route: `/${id}`, file: "a", reqs: [], states: [], size: "new", frames: [], group, mock: { title: id, copy: {}, blocks } });
+  const screens = [
+    s("S-1", "Operations", [{ type: "chart", kind: "line", title: "Delivered", points: pts, ranges: ["7D", "30D"] }, { type: "filters", chips: ["All", "Late"], segments: ["List", "Map"] }]),
+    s("S-2", "Finance", [{ type: "accordion", title: "Common questions", items: [{ title: "When are carriers paid?", body: "Every Friday." }, { title: "Can I change a price?", body: "Yes." }] }, { type: "text", body: "x" }]),
+  ];
+  const switcher = { kind: "company" as const, current: "Kargo Pakistan", meta: "42 seats", others: ["Kargo UAE"] };
+  const html = (theme: object = {}) => buildDemo({ title: "Kargo", flow: "f", screens: screens as never, requirements: {}, noScreen: [], switcher, theme: { mood: "x", brand: "#C2410C", shell: "sidebar", ...theme } as never });
+  it("draws segmented controls for views and chart periods", () => {
+    const h = html();
+    expect(h).toContain('<div class="seg" role="radiogroup" aria-label="Period"><button type="button" role="radio" aria-checked="true" class="on"><span>7D</span></button>');
+    expect(h).toMatch(/role="radio" aria-checked="false">.*<span>Map<\/span>/);
+  });
+  it("draws a line chart for wide and narrow frames, and swaps them without restarting the line", () => {
+    const h = html();
+    expect(h).toContain('<svg class="lc-w" viewBox="0 0 680 230"');
+    expect(h).toContain('<svg class="lc-n" viewBox="0 0 340 220"');
+    // the narrow chart labels fewer points, the last always
+    const narrow = h.match(/<svg class="lc-n"[^]*?<\/svg>/)![0];
+    expect(narrow.match(/class="xl"/g)!.length).toBeLessThan(8);
+    expect(narrow).toContain(">29 Sep</text>");
+    expect(h).not.toMatch(/svg\.lc-[nw]\{display:none\}/);
+  });
+  it("draws an accordion with the first answer open", () => {
+    expect(html()).toContain('<div class="card acc"><h4>Common questions</h4><details open><summary><span>When are carriers paid?</span>');
+  });
+  it("groups the menu and puts the switcher under the brand", () => {
+    const h = html();
+    expect(h).toContain("<h5>Operations</h5>");
+    expect(h).toContain("<h5>Finance</h5>");
+    expect(h).toContain('aria-label="Switch company"><span class="swa">KP</span><span class="swt"><b>Kargo Pakistan</b><small>42 seats</small>');
+    expect(h).toContain('role="menuitemradio" aria-checked="false"><span class="swa">KU</span><span>Kargo UAE</span>');
+  });
+  it("pairs a heading face with the body and draws the chosen logo mark", () => {
+    expect(html({ heading: "slab" })).toMatch(/--head:Rockwell[^;]*;--hw:650;/);
+    expect(html({ mark: "monogram" })).toContain('class="logo mono"><b>K</b></span>');
+    expect(html({ mark: "wordmark" })).toContain('<span class="bm wm"><b>Kargo</b><i class="wd" aria-hidden="true"></i></span>');
+    // an emblem is the product's own icon, found from its words; with none, the plain mark
+    expect(html({ mark: "emblem" })).toContain('<span class="logo"><svg');
+    expect(buildDemo({ title: "Kargo", flow: "Dispatchers track every shipment", screens: screens as never, requirements: {}, noScreen: [], theme: { mood: "x", brand: "#C2410C", mark: "emblem" } as never })).toContain('class="logo emb"><svg');
+  });
+});
+
+describe("layout problems sent back to the model", () => {
+  const issue = (state: string, viewport: "phone" | "desktop", text = "Reassign carrier to another lane") => ({ screen: '"Shipments" (S-2)', state, viewport, kind: "clipped" as const, text });
+  it("names each problem once, with where it was seen, and asks for a fix", () => {
+    const f = layoutFixes([issue("default", "phone"), issue("default", "desktop"), issue("Menu: Actions", "phone"), issue("default", "phone", "Other")]);
+    expect(f).toHaveLength(2);
+    expect(f[0]).toEqual({ check: "design-layout", message: expect.stringContaining('On "Shipments" (S-2), "Reassign carrier to another lane" is cut off in the drawn demo (default, phone width; default, desktop width; Menu: Actions, phone width). Shorten it') });
+  });
+  it("sends at most ten", () => {
+    expect(layoutFixes(Array.from({ length: 14 }, (_, i) => issue("default", "phone", `Label ${i}`)))).toHaveLength(10);
   });
 });

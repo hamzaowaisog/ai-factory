@@ -9,7 +9,7 @@ import { wireframeSvg } from "./wireframe.js";
 import { palette } from "./palette.js";
 import { icon, iconFor, verbIcon } from "./icons.js";
 import { hash, scene } from "./scenes.js";
-import type { DesignApp, DesignTheme, MockBlock, MockOverlay, ScreenMock } from "../contracts/artifacts.js";
+import type { DesignApp, DesignTheme, MockBlock, MockOverlay, MockToast, ScreenMock, Switcher } from "../contracts/artifacts.js";
 import type { DesignOut } from "../stages/design.js";
 import type { z } from "zod";
 
@@ -27,6 +27,8 @@ export interface DemoInput {
   theme?: DesignTheme;
   /** the product's apps when it has more than one (a customer phone app, an admin portal); screens name theirs */
   apps?: DesignApp[];
+  /** who or what a one-app product acts for, switched from its frame */
+  switcher?: Switcher;
 }
 
 const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -53,14 +55,16 @@ export function stateKind(state: string): StateKind {
     : "normal";
 }
 
-/** The states a screen's demo lists: its own, in order, then each overlay shown open, and a "Full data" page when the design gave dense sample data. */
-export function demoStates(s: { states?: string[]; frames?: string[]; mockFull?: unknown; mock?: { overlays?: { kind: string; title: string }[] } }): string[] {
+/** The states a screen's demo lists: its own, in order, then each overlay shown open, each toast shown, and a "Full data" page when the design gave dense sample data. */
+export function demoStates(s: { states?: string[]; frames?: string[]; mockFull?: unknown; mock?: { overlays?: { kind: string; title: string }[]; toasts?: { text: string }[] } }): string[] {
   // the normal page always comes first: a screen whose listed states are all special (loading, empty, error) still opens on its real content
   const listed = s.states ?? [];
   const own = orderStates(listed.some((st) => stateKind(st) === "normal") ? listed : ["default", ...listed]);
   if (s.frames?.length) return own;
-  return [...own, ...(s.mock?.overlays ?? []).map(overlayLabel), ...(s.mockFull ? [FULL_DATA] : [])];
+  return [...own, ...(s.mock?.overlays ?? []).map(overlayLabel), ...(s.mock?.toasts ?? []).map(toastLabel), ...(s.mockFull ? [FULL_DATA] : [])];
 }
+/** A toast's tab in the demo: "Toast: Payment sent". Like an overlay's, a demo tab, not a counted state. */
+export const toastLabel = (t: { text: string }): string => `Toast: ${t.text.length > 34 ? `${t.text.slice(0, 33).trimEnd()}…` : t.text}`;
 const KIND_NAME: Record<string, string> = { modal: "Dialog", drawer: "Panel", sheet: "Sheet", confirm: "Confirm", menu: "Menu" };
 /** An overlay's tab in the demo: "Dialog: Add payee". It is a demo tab, not a state the estimate counts. */
 export const overlayLabel = (o: { kind: string; title: string }): string => `${KIND_NAME[o.kind] ?? "Dialog"}: ${o.title}`;
@@ -135,6 +139,25 @@ function barcode(seed: string): string {
   return `<svg class="code128" viewBox="0 0 230 40" preserveAspectRatio="none" aria-hidden="true">${out}</svg>`;
 }
 
+/**
+ * A line chart drawn for one width: the wide one for a desktop frame, a narrow one (fewer labels, larger in the frame) for a phone,
+ * so its text stays readable in both. The frame's width picks which shows.
+ */
+function lineSvg(title: string, pts: { label: string; value: number }[], top: number, W: number, H: number, cls: string): string {
+  const L = W < 500 ? 34 : 40, R = 12, step = (W - L - R) / Math.max(1, pts.length - 1);
+  // a label needs about 44 units, so a narrow chart labels every second or third point (the last always)
+  const every = Math.max(1, Math.ceil(pts.length / Math.floor((W - L - R) / 44)));
+  const yOf = (v: number) => Math.round(H - 14 - (v / top) * (H - 34));
+  const xy = pts.map((p, i) => [Math.round(L + i * step), yOf(p.value)] as const);
+  const id = uid(), line = smooth(xy);
+  const grid = [0, 0.25, 0.5, 0.75, 1].map((f) => `<line class="gl${f === 0 ? " base" : ""}" x1="${L}" x2="${W - R}" y1="${yOf(top * f)}" y2="${yOf(top * f)}"/><text class="yl" x="${L - 8}" y="${yOf(top * f) + 3.5}" text-anchor="end">${short(top * f)}</text>`).join("");
+  const hover = xy.map(([x, y], i) => {
+    const tx = Math.max(L, Math.min(W - R - 92, x - 46)), ty = Math.max(2, y - 54);
+    return `<g class="hv${i === xy.length - 1 ? " last" : ""}"><rect class="hit" x="${Math.round(x - step / 2)}" y="0" width="${Math.ceil(step)}" height="${H}"/><line class="cx" x1="${x}" x2="${x}" y1="10" y2="${H - 14}"/><circle class="hd" cx="${x}" cy="${y}" r="5"/><g class="tt"><rect x="${tx}" y="${ty}" width="92" height="40" rx="8"/><text class="tl" x="${tx + 12}" y="${ty + 16}">${esc(pts[i]!.label)}</text><text class="tv" x="${tx + 12}" y="${ty + 32}">${short(pts[i]!.value)}</text></g></g>`;
+  }).join("");
+  return `<svg class="${cls}" viewBox="0 0 ${W} ${H + 20}" role="img" aria-label="${esc(title)}"><defs><linearGradient id="ar${id}" x1="0" x2="0" y1="0" y2="1"><stop class="s0" offset="0" stop-color="var(--a1)" stop-opacity=".2"/><stop offset="1" stop-color="var(--a1)" stop-opacity="0"/></linearGradient></defs>${grid}<path class="area" d="${line} L${xy[xy.length - 1]![0]} ${H - 14} L${L} ${H - 14}Z" fill="url(#ar${id})"/><path class="ln" d="${line}" fill="none" pathLength="1"/>${pts.map((p, i) => (i !== pts.length - 1 && (i % every || pts.length - 1 - i < every) ? "" : `<text class="xl" x="${xy[i]![0]}" y="${H + 12}" text-anchor="${i === 0 ? "start" : i === pts.length - 1 ? "end" : "middle"}">${esc(p.label)}</text>`)).join("")}${hover}</svg>`;
+}
+
 /** The loading look of a block: what is static stays real (labels, column headers, titles, filters, buttons, step names), and only the data becomes shimmering shapes. */
 function skeleton(b: MockBlock): string {
   const bar = (w: number, h = 12) => `<i class="sk" style="width:${w}%;height:${h}px"></i>`;
@@ -149,11 +172,16 @@ function skeleton(b: MockBlock): string {
     case "list": return `<div class="card list">${b.items.slice(0, 4).map(() => `<div class="li"><i class="sk" style="width:36px;height:36px;border-radius:10px;margin:0"></i><div style="flex:1">${bar(55, 13)}${bar(35, 10)}</div></div>`).join("")}</div>`;
     case "timeline": return `<div class="card tl">${b.items.map((it, i) => `<div class="ev ${it.status}"><span class="t">${esc(it.time)}</span><i></i><div>${bar(40 + ((i * 17) % 30), 13)}${bar(28, 10)}</div></div>`).join("")}</div>`;
     case "detail": return `<div class="card detail ${b.style}">${b.title ? `<div class="dh"><b>${esc(b.title)}</b></div>` : ""}<dl>${b.rows.map((r) => `<div><dt>${esc(r.label)}</dt><dd>${bar(70, 14)}</dd></div>`).join("")}</dl></div>`;
+    case "accordion": return `<div class="card acc">${b.title ? `<h4>${esc(b.title)}</h4>` : ""}${b.items.map((it) => `<details><summary><span>${esc(it.title)}</span>${icon("chevd")}</summary></details>`).join("")}</div>`;
     case "filters": return renderBlock(b, "normal");
     case "actions": return renderBlock(b, "normal");
     default: return `<div class="card">${bar(90)}${bar(70)}</div>`;
   }
 }
+
+// a segmented control: one of a few views or periods, the first one chosen
+const VIEW_ICON: [RegExp, string][] = [[/^list$/i, "menu"], [/^(grid|cards|tiles)$/i, "grid"], [/^map$/i, "map"], [/^(calendar|month|week|day|schedule)$/i, "calendar"], [/^(board|kanban)$/i, "layers"], [/^(chart|graph)$/i, "chart"]];
+const segs = (items: string[], label: string): string => `<div class="seg" role="radiogroup" aria-label="${esc(label)}">${items.map((t, i) => { const ic = items.length <= 3 ? VIEW_ICON.find(([re]) => re.test(t.trim()))?.[1] : undefined; return `<button type="button" role="radio" aria-checked="${i === 0}"${i === 0 ? ' class="on"' : ""}>${ic ? icon(ic) : ""}<span>${esc(t)}</span></button>`; }).join("")}</div>`;
 
 const btnLabel = (t: string): string => { const v = verbIcon(t); return `${v ? icon(v) : ""}<span>${esc(t)}</span>`; };
 
@@ -169,7 +197,7 @@ function renderBlock(b: MockBlock, k: StateKind, page = ""): string {
         return `<div class="stat"><div class="sh"><span class="k">${esc(it.label)}</span>${ic ? `<span class="ic">${icon(ic)}</span>` : ""}</div><b class="v" data-count="${esc(it.value)}">${esc(it.value)}</b><div class="sf">${d ? `<span class="delta ${down ? "dn" : "up"}">${icon("chevd", down ? "" : "flip")}${esc(d.replace(/^\s*[+−-]/, ""))}</span>` : ""}${d && !meter ? spark(it.label, down) : ""}</div>${meter}</div>`;
       }).join("")}</div>`;
     case "filters":
-      return `<div class="filters">${b.search ? `<label class="search">${icon("search")}<input type="search" placeholder="${esc(b.search)}" aria-label="${esc(b.search)}"></label>` : ""}${b.chips.length ? `<div class="chips" role="tablist">${b.chips.map((c, i) => `<button type="button" role="tab" class="chip${i === 0 ? " on" : ""}">${esc(c)}</button>`).join("")}</div>` : ""}</div>`;
+      return `<div class="filters">${b.search ? `<label class="search">${icon("search")}<input type="search" placeholder="${esc(b.search)}" aria-label="${esc(b.search)}"></label>` : ""}${b.chips.length ? `<div class="chips" role="tablist">${b.chips.map((c, i) => `<button type="button" role="tab" class="chip${i === 0 ? " on" : ""}">${esc(c)}</button>`).join("")}</div>` : ""}${b.segments?.length ? segs(b.segments, "View") : ""}</div>`;
     case "table": {
       const sc = b.statusColumn;
       const col = (i: number) => b.rows.map((r) => r[i] ?? "");
@@ -206,19 +234,8 @@ function renderBlock(b: MockBlock, k: StateKind, page = ""): string {
       const last = pts[pts.length - 1]!, prev = pts[pts.length - 2];
       const change = prev && prev.value ? ((last.value - prev.value) / Math.abs(prev.value)) * 100 : 0;
       // a line is a level over time (a balance, a rate): it reads as its latest value; bars are amounts per period and read as their total
-      const head = `<div class="ch"><div><h4>${esc(b.title)}</h4><span class="tot">${short(b.kind === "line" ? last.value : total)}${prev ? `<span class="delta ${change < 0 ? "dn" : "up"}">${icon("chevd", change < 0 ? "" : "flip")}${Math.abs(change).toFixed(1)}%</span>` : ""}</span></div><span class="legend"><i></i>${esc(b.kind === "line" ? "Trend" : `Peak: ${pts[peak]?.label ?? ""}`)}</span></div>`;
-      if (b.kind === "line") {
-        const W = 680, H = 210, L = 40, R = 12, step = (W - L - R) / Math.max(1, pts.length - 1);
-        const yOf = (v: number) => Math.round(H - 14 - (v / top) * (H - 34));
-        const xy = pts.map((p, i) => [Math.round(L + i * step), yOf(p.value)] as const);
-        const id = uid(), line = smooth(xy);
-        const grid = [0, 0.25, 0.5, 0.75, 1].map((f) => `<line class="gl${f === 0 ? " base" : ""}" x1="${L}" x2="${W - R}" y1="${yOf(top * f)}" y2="${yOf(top * f)}"/><text class="yl" x="${L - 8}" y="${yOf(top * f) + 3.5}" text-anchor="end">${short(top * f)}</text>`).join("");
-        const hover = xy.map(([x, y], i) => {
-          const tx = Math.max(L, Math.min(W - R - 92, x - 46)), ty = Math.max(2, y - 54);
-          return `<g class="hv${i === xy.length - 1 ? " last" : ""}"><rect class="hit" x="${Math.round(x - step / 2)}" y="0" width="${Math.ceil(step)}" height="${H}"/><line class="cx" x1="${x}" x2="${x}" y1="10" y2="${H - 14}"/><circle class="hd" cx="${x}" cy="${y}" r="5"/><g class="tt"><rect x="${tx}" y="${ty}" width="92" height="40" rx="8"/><text class="tl" x="${tx + 12}" y="${ty + 16}">${esc(pts[i]!.label)}</text><text class="tv" x="${tx + 12}" y="${ty + 32}">${short(pts[i]!.value)}</text></g></g>`;
-        }).join("");
-        return `<div class="card chart">${head}<svg viewBox="0 0 ${W} ${H + 20}" role="img" aria-label="${esc(b.title)}"><defs><linearGradient id="ar${id}" x1="0" x2="0" y1="0" y2="1"><stop class="s0" offset="0" stop-color="var(--a1)" stop-opacity=".2"/><stop offset="1" stop-color="var(--a1)" stop-opacity="0"/></linearGradient></defs>${grid}<path class="area" d="${line} L${xy[xy.length - 1]![0]} ${H - 14} L${L} ${H - 14}Z" fill="url(#ar${id})"/><path class="ln" d="${line}" fill="none" pathLength="1"/>${pts.map((p, i) => (pts.length > 10 && i % 2 && i !== pts.length - 1 ? "" : `<text class="xl" x="${xy[i]![0]}" y="${H + 12}" text-anchor="${i === 0 ? "start" : i === pts.length - 1 ? "end" : "middle"}">${esc(p.label)}</text>`)).join("")}${hover}</svg></div>`;
-      }
+      const head = `<div class="ch"><div><h4>${esc(b.title)}</h4><span class="tot">${short(b.kind === "line" ? last.value : total)}${prev ? `<span class="delta ${change < 0 ? "dn" : "up"}">${icon("chevd", change < 0 ? "" : "flip")}${Math.abs(change).toFixed(1)}%</span>` : ""}</span></div>${b.ranges?.length ? segs(b.ranges, "Period") : `<span class="legend"><i></i>${esc(b.kind === "line" ? "Trend" : `Peak: ${pts[peak]?.label ?? ""}`)}</span>`}</div>`;
+      if (b.kind === "line") return `<div class="card chart">${head}${lineSvg(b.title, pts, top, 680, 210, "lc-w")}${lineSvg(b.title, pts, top, 340, 200, "lc-n")}</div>`;
       const grid = [1, 0.5, 0].map((f) => `<span class="g${f === 0 ? " base" : ""}" style="bottom:${f * 100}%"><em>${short(top * f)}</em></span>`).join("");
       return `<div class="card chart">${head}<div class="bars">${grid}${pts.map((p, i) => `<div class="bar${i === peak ? " pk" : ""}" style="--h:${Math.round((p.value / top) * 100)}%;--d:${i}"><span class="n">${short(p.value)}</span><i></i><span class="l">${esc(p.label)}</span></div>`).join("")}</div></div>`;
     }
@@ -251,6 +268,8 @@ function renderBlock(b: MockBlock, k: StateKind, page = ""): string {
       const dots = `<div class="dots" aria-hidden="true">${b.items.map((_, i) => `<i${i === 0 ? ' class="on"' : ""}></i>`).join("")}</div>`;
       return `<div class="car k-${b.style}" role="region" aria-roledescription="carousel"${b.title ? ` aria-label="${esc(b.title)}"` : ""}><div class="car-h">${b.title ? `<h4>${esc(b.title)}</h4>` : "<span></span>"}${nav}</div><div class="track" tabindex="0">${slides}</div>${dots}</div>`;
     }
+    case "accordion":
+      return `<div class="card acc">${b.title ? `<h4>${esc(b.title)}</h4>` : ""}${b.items.map((it, i) => `<details${i === 0 ? " open" : ""}><summary><span>${esc(it.title)}</span>${icon("chevd")}</summary><p>${esc(it.body)}</p></details>`).join("")}</div>`;
     case "list":
       return `<div class="card list">${b.items.map((it) => {
         const m = MONEY.exec(it.meta), rest = m ? it.meta.slice(0, m.index).replace(/\s*·\s*$/, "") : it.meta;
@@ -321,8 +340,12 @@ export function compose(blocks: MockBlock[], draw: (b: MockBlock) => string): { 
 /** The words a page is about (title, subtitle, filter chips), which decide what the pictures on its cards show. */
 const pageWords = (m: ScreenMock): string => [m.title, m.subtitle ?? "", ...m.blocks.flatMap((b) => (b.type === "filters" ? [b.search ?? "", ...b.chips] : []))].join(" ");
 
-/** One state of one screen drawn from its sample content; `open` is the overlay drawn open over it. */
-function renderMock(m: ScreenMock, k: StateKind, state: string, open = -1): string {
+/** A toast as the product shows it after an action: what happened, and Undo for a step that can be taken back. `shown` pins it in view for its tab. */
+const renderToast = (t: MockToast, shown: boolean): string =>
+  `<div class="toast ${t.tone}${shown ? " pin" : ""}" role="status"><svg viewBox="0 0 24 24" aria-hidden="true">${t.tone === "bad" ? '<circle cx="12" cy="12" r="8.5"/><path d="M12 8v5M12 16v.01"/>' : t.tone === "info" ? '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/>' : '<circle cx="12" cy="12" r="8.5"/><path d="m8.2 12.3 2.6 2.6 5-5.4"/>'}</svg><span>${esc(t.text)}</span>${t.undo ? '<button type="button" class="lnk">Undo</button>' : ""}</div>`;
+
+/** One state of one screen drawn from its sample content; `open` is the overlay drawn open over it, `toast` the toast shown on it. */
+function renderMock(m: ScreenMock, k: StateKind, state: string, open = -1, toast = -1): string {
   const c = m.copy;
   const words = pageWords(m);
   const keep = (b: MockBlock) => b.type === "filters" || b.type === "actions" || b.type === "stats" || b.type === "text";
@@ -348,17 +371,29 @@ function renderMock(m: ScreenMock, k: StateKind, state: string, open = -1): stri
     body = `${lead}${normal.body}`;
   }
   // the normal page carries its overlays, ready to open from their buttons; an overlay's own tab shows it open
-  const layers = k === "normal" ? (m.overlays ?? []).map((o, i) => renderOverlay(o, i === open, words)).join("") : "";
+  const layers = k === "normal" ? (m.overlays ?? []).map((o, i) => renderOverlay(o, i === open, words)).join("") + (m.toasts?.[toast] ? renderToast(m.toasts[toast]!, true) : "") : "";
   return `<div class="app${look.hero === "band" ? " hero" : ""}" data-kind="${k}" aria-label="${esc(state)}">${head(normal.actions)}<div class="body">${body}</div></div>${layers}`;
 }
 
-const DEFAULT_THEME: DesignTheme = { mood: "clean product", mode: "light", brand: "#1a56db", neutral: "cool", chrome: "plain", font: "sans", radius: "soft", density: "comfortable", surface: "soft", motion: "lively", fx: "modern", shell: "auto", hero: "none", charts: "soft", imagery: "mixed" };
+const DEFAULT_THEME: DesignTheme = { mood: "clean product", mode: "light", brand: "#1a56db", neutral: "cool", chrome: "plain", font: "sans", heading: "match", mark: "glyph", radius: "soft", density: "comfortable", surface: "soft", motion: "lively", fx: "modern", shell: "auto", hero: "none", charts: "soft", imagery: "mixed" };
 
 const FONTS = {
   sans: '"Inter var",Inter,"SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI",Roboto,"Helvetica Neue",sans-serif',
   humanist: '"Avenir Next",Avenir,"Segoe UI Variable","Segoe UI","Gill Sans",Optima,Candara,ui-sans-serif,sans-serif',
   serif: '"Inter var",Inter,"SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',
   rounded: 'ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",Nunito,"Varela Round",ui-sans-serif,system-ui,sans-serif',
+  grotesk: '"Helvetica Neue",Helvetica,"Nimbus Sans","Liberation Sans",Arial,sans-serif',
+  book: '"Iowan Old Style",Charter,"Bitstream Charter","Palatino Linotype","Book Antiqua",Georgia,serif',
+};
+// the heading type paired with the body, with the weight and tracking that face reads well at (system faces only: the page fetches nothing)
+const HEADS: Record<DesignTheme["heading"], [string, number, string]> = {
+  match: ["inherit", 680, "-.025em"],
+  serif: ['"Iowan Old Style",Charter,"Palatino Linotype","Book Antiqua",Georgia,serif', 640, "-.015em"],
+  display: ['Didot,"Bodoni 72","Bodoni MT","Playfair Display","Libre Bodoni",Georgia,serif', 600, "-.01em"],
+  geometric: ['Futura,"Futura PT","Century Gothic","Avenir Next",Avenir,"URW Gothic",sans-serif', 600, "-.01em"],
+  condensed: ['"Avenir Next Condensed","DIN Condensed","Bahnschrift SemiCondensed","Roboto Condensed","Arial Narrow",sans-serif', 650, "0em"],
+  slab: ['Rockwell,"Roboto Slab","Zilla Slab","Rockwell Nova",Georgia,serif', 650, "-.01em"],
+  mono: ['ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace', 600, "-.03em"],
 };
 
 /** The page's colour variables from the chosen theme (a bad or absent theme gives the default). */
@@ -373,7 +408,8 @@ export function themeCss(theme?: DesignTheme): string {
     const lift = dark ? "inset 0 1px 0 rgba(255,255,255,.06),0 12px 28px -12px rgba(0,0,0,.7)" : "0 2px 4px rgba(16,24,40,.04),0 12px 28px -10px rgba(16,24,40,.14)";
     return `${Object.entries(p).map(([k, v]) => `--${k}:${glass && k === "sf" ? (dark ? "rgba(255,255,255,.05)" : "rgba(255,255,255,.72)") : v}`).join(";")};--shadow:${shadow};--lift:${lift};--blur:${glass ? "blur(16px) saturate(1.2)" : "none"}`;
   };
-  const shared = `--r:${{ sharp: 4, soft: 10, round: 18 }[t.radius]}px;--pad:${t.density === "compact" ? 12 : 18}px;--row:${t.density === "compact" ? 40 : 52}px;--font:${FONTS[t.font]};--head:${t.font === "serif" ? 'Georgia,"Iowan Old Style","Palatino Linotype",serif' : "inherit"};--e:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.34,1.4,.64,1);--rise:${t.motion === "calm" ? 6 : 10}px;--drift:${t.motion === "calm" ? "paused" : "running"}`;
+  const head = t.heading === "match" && t.font === "serif" ? HEADS.serif : HEADS[t.heading] ?? HEADS.match;
+  const shared = `--r:${{ sharp: 4, soft: 10, round: 18 }[t.radius]}px;--pad:${t.density === "compact" ? 12 : 18}px;--row:${t.density === "compact" ? 40 : 52}px;--font:${FONTS[t.font]};--head:${head[0]};--hw:${head[1]};--hls:${head[2]};--e:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.34,1.4,.64,1);--rise:${t.motion === "calm" ? 6 : 10}px;--drift:${t.motion === "calm" ? "paused" : "running"}`;
   return t.mode === "auto" ? `:root{${shared};${set(false)}}@media(prefers-color-scheme:dark){:root{${set(true)}}}` : `:root{${shared};${set(t.mode === "dark")}}`;
 }
 
@@ -417,15 +453,15 @@ main{flex:1;min-width:0;padding:22px clamp(14px,3vw,36px) 60px}
 .rail a,.tnav a,.dp a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--ink2);text-decoration:none;font-weight:500;font-size:13.5px;white-space:nowrap;position:relative;transition:background .15s,color .15s}
 .rail a svg,.dp a svg{color:var(--mut);transition:color .15s}.rail a:hover,.dp a:hover{background:var(--sf2);color:var(--ink)}
 .rail a.on,.dp a.on{background:color-mix(in srgb,var(--a1) 9%,transparent);color:var(--a1);font-weight:600}.rail a.on svg,.dp a.on svg{color:var(--a1)}
-.rail h5,.dp h5{margin:0 10px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);font-weight:600}
-.rail.brand{background:var(--br);border-color:transparent;color:var(--on)}.rail.brand a,.rail.brand a svg,.rail.brand h5{color:color-mix(in srgb,var(--on) 72%,transparent)}.rail.brand a:hover{background:color-mix(in srgb,var(--on) 10%,transparent);color:var(--on)}.rail.brand a.on{background:color-mix(in srgb,var(--on) 16%,transparent);color:var(--on)}.rail.brand a.on svg{color:var(--on)}.rail.brand .bm b{color:var(--on)}
+.rail h5,.dp h5{margin:0 10px 4px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);font-weight:600}.rail h5:not(:first-of-type),.dp h5:not(:first-of-type){margin-top:14px}
+.rail.brand{background:var(--br);border-color:transparent;color:var(--on)}.rail.brand a,.rail.brand a svg,.rail.brand h5{color:color-mix(in srgb,var(--on) 72%,transparent)}.rail.brand a:hover{background:color-mix(in srgb,var(--on) 10%,transparent);color:var(--on)}.rail.brand a.on{background:color-mix(in srgb,var(--on) 16%,transparent);color:var(--on)}.rail.brand a.on svg{color:var(--on)}.rail.brand .bm>b{color:var(--on)}
 .stage{flex:1;min-width:0;display:flex;flex-direction:column}
 .topbar{display:flex;align-items:center;gap:10px;height:58px;padding:0 clamp(14px,2.4vw,28px);border-bottom:1px solid var(--edge);background:var(--sf);position:relative;z-index:1}
 .topbar .sp{flex:1}
-.topbar.brand{background:var(--br);color:var(--on);border-color:transparent}.topbar.brand .tnav a{color:color-mix(in srgb,var(--on) 75%,transparent)}.topbar.brand .tnav a:hover,.topbar.brand .tnav a.on{color:var(--on)}.topbar.brand .tnav a.on:after{background:var(--on)}.topbar.brand .ib{color:var(--on)}.topbar.brand .ib:hover{background:color-mix(in srgb,var(--on) 12%,transparent)}.topbar.brand .bm b{color:var(--on)}
+.topbar.brand{background:var(--br);color:var(--on);border-color:transparent}.topbar.brand .tnav a{color:color-mix(in srgb,var(--on) 75%,transparent)}.topbar.brand .tnav a:hover,.topbar.brand .tnav a.on{color:var(--on)}.topbar.brand .tnav a.on:after{background:var(--on)}.topbar.brand .ib{color:var(--on)}.topbar.brand .ib:hover{background:color-mix(in srgb,var(--on) 12%,transparent)}.topbar.brand .bm>b{color:var(--on)}
 .tnav{display:flex;gap:2px;margin-left:18px;align-self:stretch}.tnav a{border-radius:0;padding:0 12px}.tnav a:hover{color:var(--ink)}.tnav a.on{color:var(--ink);font-weight:600}
 .tnav a.on:after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;border-radius:2px;background:var(--br);animation:grow-x .35s var(--e) both}@keyframes grow-x{from{transform:scaleX(.3);opacity:0}}
-.bm{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.015em;white-space:nowrap}.bm b{color:var(--ink)}
+.bm{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.015em;white-space:nowrap}.bm>b{color:var(--ink)}
 .logo{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--br);color:var(--on);box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}.logo svg{width:17px;height:17px;stroke-width:2.2}
 .rail.brand .logo,.topbar.brand .logo{background:var(--on);color:var(--br)}
 .q{display:flex;align-items:center;gap:8px;height:36px;width:min(340px,40%);padding:0 10px;border-radius:9px;background:var(--sf2);border:1px solid var(--edge);color:var(--mut);font-size:13px}.q svg{width:16px;height:16px}.q span{flex:1}
@@ -493,7 +529,7 @@ kbd{font:500 11px var(--font);border:1px solid var(--edge2);border-bottom-width:
 .pane{--px:clamp(14px,2.4vw,32px);padding:26px var(--px) 32px;flex:1}.pane[hidden]{display:none}.pane:not([hidden]){animation:fadein .3s ease backwards}@keyframes fadein{from{opacity:0}}
 .canvas img{max-width:100%;display:block;margin:18px auto}.wire{background:#fff;border-radius:var(--r);padding:10px;margin:14px}.wire svg{display:block;width:auto;height:auto;max-width:640px;margin:0 auto;stroke-width:inherit}
 /* the page */
-.ph{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 20px;flex-wrap:wrap}.ph h3{margin:0;font-size:clamp(21px,2.3vw,26px);letter-spacing:-.025em;font-weight:680;line-height:1.2}.pa .row{gap:8px}
+.ph{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 20px;flex-wrap:wrap}.ph h3{margin:0;font-size:clamp(21px,2.3vw,26px);letter-spacing:var(--hls);font-weight:var(--hw);line-height:1.2}.pa .row{gap:8px}
 .sub{margin:.3rem 0 0;color:var(--mut);font-size:14px}.body{display:grid;gap:16px;margin-top:22px}
 .body>*{animation:rise .5s var(--e) both}${[2, 3, 4, 5, 6].map((i) => `.body>:nth-child(${i}){animation-delay:${(i - 1) * 0.06}s}`).join("")}
 @keyframes rise{from{opacity:0;transform:translateY(var(--rise))}}
@@ -656,12 +692,59 @@ body.fx-futuristic .card,body.fx-futuristic .stat{box-shadow:inset 0 1px 0 color
 body.fx-futuristic .stat .v,body.fx-futuristic .tot{font-feature-settings:"tnum","ss01";letter-spacing:-.035em}
 body.fx-futuristic .stat .ic{color:var(--a1);background:color-mix(in srgb,var(--a1) 10%,var(--sf));border-color:color-mix(in srgb,var(--a1) 22%,var(--edge))}
 body.fx-futuristic .badge.ok:before,body.fx-futuristic .badge.live:before{animation:pulse 1.8s ease-in-out infinite}
-@container app (max-width:900px){.split.wl,.split.wr,.split.ev{grid-template-columns:1fr}.rail{width:64px;padding:16px 10px}.rail a span,.rail h5,.rail .bm b{display:none}.rail a{justify-content:center}.q{display:none}}
+/* the heading type: titles, figures and the product's name speak in it */
+.stat .v,.tot,.bm>b,.sc b,.detail .dh strong,.ovp h4,.acc h4,.car-h h4,.ch h4{font-family:var(--head)}.tot .delta{font-family:var(--font);letter-spacing:0}
+.bm>b{letter-spacing:var(--hls)}
+/* the mark: a glyph, the initial or a symbol on a tile shaped like the theme's corners, or the name alone */
+.r-round .logo{border-radius:50%}.r-sharp .logo{border-radius:3px}
+.logo.mono b{font:700 15px/1 var(--head);letter-spacing:0;color:inherit}
+.logo.emb{background:linear-gradient(140deg,color-mix(in srgb,var(--br) 78%,#fff),var(--br))}.logo.emb svg{width:16px;height:16px;stroke-width:2}
+.bm.wm{gap:3px;align-items:baseline}.bm.wm b{font:var(--hw) 19px/1 var(--head);letter-spacing:var(--hls);color:var(--br)}.bm.wm .wd{width:6px;height:6px;border-radius:50%;background:var(--a2,var(--br));flex:none}
+.topbar.brand .bm.wm b,.rail.brand .bm.wm b{color:var(--on)}.topbar.brand .bm.wm .wd,.rail.brand .bm.wm .wd{background:var(--on)}
+/* the switcher: who the app is acting for */
+.sw{position:relative;display:flex;flex:none}
+.swb{display:flex;align-items:center;gap:9px;border:1px solid var(--edge);background:var(--sf);color:var(--ink);border-radius:calc(var(--r) - 2px);padding:5px 9px 5px 5px;cursor:pointer;min-width:0;max-width:220px;text-align:left;transition:background .15s,border-color .15s}
+.swb:hover{background:var(--sf2);border-color:var(--edge2)}.swb>svg{width:15px;height:15px;color:var(--mut);flex:none}
+.swa{width:26px;height:26px;border-radius:calc(var(--r) - 4px);display:grid;place-items:center;flex:none;font-size:11px;font-weight:700;letter-spacing:.02em;background:color-mix(in srgb,var(--a1) 12%,var(--sf));color:var(--a1)}
+.r-round .swa{border-radius:50%}
+.swt{display:grid;min-width:0;line-height:1.2}.swt b{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.swt small{font-size:11px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rail .sw{margin:-6px 0 0}.rail .swb{width:100%;max-width:none}
+.rail.brand .swb,.topbar.brand .swb{background:color-mix(in srgb,var(--on) 12%,transparent);border-color:color-mix(in srgb,var(--on) 20%,transparent);color:var(--on)}.rail.brand .swb>svg,.topbar.brand .swb>svg,.rail.brand .swt small,.topbar.brand .swt small{color:color-mix(in srgb,var(--on) 70%,transparent)}
+.swm{position:absolute;top:calc(100% + 6px);left:0;z-index:6;min-width:220px;display:grid;gap:2px;padding:6px;border:1px solid var(--edge);border-radius:var(--r);background:var(--sf);color:var(--ink);box-shadow:0 18px 40px -16px rgba(16,24,40,.32);animation:ovpop .18s var(--e)}
+.swm[hidden]{display:none}.topbar .swm{left:auto;right:0}.topbar .nb{align-items:center;gap:10px}.topbar .nb .swm{left:0;right:auto}
+.swm small{padding:4px 8px 6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
+.swm button{display:flex;align-items:center;gap:10px;border:0;background:none;padding:7px 8px;border-radius:calc(var(--r) - 3px);cursor:pointer;text-align:left;font-size:13px;color:var(--ink)}
+.swm button:hover{background:var(--sf2)}.swm button span:not(.swa){flex:1}.swm button>svg{width:15px;height:15px;color:var(--a1)}.swm button.on{font-weight:600}
+/* a segmented control: one of a few views or periods */
+.seg{display:inline-flex;gap:2px;padding:3px;border-radius:calc(var(--r) - 1px);background:var(--sf2);border:1px solid var(--edge);flex:none;margin-left:auto}
+.seg button{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:5px 11px;border-radius:calc(var(--r) - 4px);font-size:12.5px;font-weight:550;color:var(--mut);cursor:pointer;white-space:nowrap;transition:background .15s,color .15s,box-shadow .15s}
+.seg button svg{width:14px;height:14px}.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--sf);color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.1),0 0 0 1px var(--edge)}
+.r-round .seg,.r-round .seg button{border-radius:99px}.r-sharp .seg,.r-sharp .seg button{border-radius:3px}
+.ch .seg{margin-left:0}
+/* an accordion: sections opened one at a time */
+.acc{padding:4px var(--pad)}.acc h4{margin:12px 0 4px;font-size:15px}
+.acc details{border-bottom:1px solid var(--edge)}.acc details:last-child{border-bottom:0}
+.acc summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;cursor:pointer;list-style:none;font-weight:600;font-size:14px}
+.acc summary::-webkit-details-marker{display:none}.acc summary svg{width:17px;height:17px;color:var(--mut);flex:none;transition:transform .25s var(--e)}
+.acc details[open] summary svg{transform:rotate(180deg);color:var(--a1)}
+.acc details p{margin:-4px 0 14px;color:var(--ink2);font-size:13.5px;line-height:1.6;max-width:68ch;animation:fadein .3s ease}
+/* a toast in its own tab stays in view, over the page and above a phone's tab bar */
+.toast.pin{position:absolute;left:50%;right:auto;bottom:24px;width:max-content;max-width:calc(100% - 32px);transform:translateX(-50%);animation:toastin .45s var(--spring) both;z-index:6}
+.canvas.phone .toast.pin{bottom:96px}
+.toast span{min-width:0}.toast .lnk{padding:0 0 0 6px;color:color-mix(in srgb,var(--a1) 55%,var(--bg));font-size:13px}
+.toast.bad svg{color:var(--bad)}.toast.info svg{color:color-mix(in srgb,var(--a1) 60%,var(--bg))}
+@keyframes toastin{from{opacity:0;transform:translate(-50%,16px) scale(.96)}to{opacity:1;transform:translateX(-50%)}}
+/* a line chart is drawn twice, wide and narrow; the frame's width shows one */
+/* the unused line chart is hidden without display:none, which would restart its draw-in whenever the frame is resized (a full-page screenshot does) */
+.chart svg.lc-n{position:absolute;visibility:hidden;width:0;height:0;overflow:hidden}
+@container app (max-width:900px){.rail .swt,.rail .swb>svg{display:none}.rail .swb{padding:5px;justify-content:center}.rail h5:not(:first-of-type){display:block;height:1px;margin:8px 10px;background:var(--edge);font-size:0}.split.wl,.split.wr,.split.ev{grid-template-columns:1fr}.rail{width:64px;padding:16px 10px}.rail a span,.rail h5,.rail .bm>b{display:none}.rail a{justify-content:center}.q{display:none}}
 @media(max-width:760px){body{display:block}aside{width:auto;border-right:0;border-bottom:1px solid var(--edge)}}
 @media(max-width:640px){main{padding:14px 10px 40px}.win{display:none}.canvas{border-radius:22px}.canvas.phone{width:auto;border:0;border-radius:22px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 24px 48px -24px rgba(16,24,40,.28)}.canvas.phone .sbar,.canvas.phone:after{display:none}.canvas .drawer,.canvas.phone .drawer,.ovl,.canvas.phone .ovl{top:0}}
 /* a narrow frame (a phone, or a small window) whatever the viewport: a phone app's frame is narrow on a desktop too */
-@container app (max-width:640px){.rail,.tnav{display:none}.shell{flex-direction:column;min-height:0}.topbar{height:54px}.tabbar{display:flex}
-.crumbs>:not(.back){display:none}.crumbs .back{display:inline-flex}.topbar .nb{display:flex}
+@container app (max-width:640px){.chart svg.lc-w{position:absolute;visibility:hidden;width:0;height:0;overflow:hidden}.chart svg.lc-n{position:static;visibility:visible;width:100%;height:auto;overflow:visible}.topbar .swt{display:none}.topbar .swb{padding:4px 6px 4px 4px}.seg{margin-left:0}.ch{flex-wrap:wrap}
+.rail,.tnav{display:none}.shell{flex-direction:column;min-height:0}.topbar{height:54px}.tabbar{display:flex}
+.crumbs>:not(.back){display:none}.crumbs .back{display:inline-flex}.topbar .nb{display:flex}.stage:has(>.tabbar) .toast.pin{bottom:92px}
 .pane{--px:14px;padding:18px 14px 24px}.ph .pa{width:100%}.ph .pa .btn{flex:1;justify-content:center}.form{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stats>.stat:last-child:nth-child(odd){grid-column:1/-1}.stat .v{font-size:22px}.spark{display:none}.search{min-width:0;flex:1}.toolbar .filters{flex-direction:column;align-items:stretch}.chips{overflow:auto;flex-wrap:nowrap}.bars{padding-left:30px}.bars .g{left:30px}.bars .g em{left:-30px;width:24px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}.chart .ln{stroke-dashoffset:0}}
 `;
@@ -691,7 +774,11 @@ const JS = `
   function place(ov){if(!ov.classList.contains("k-menu"))return;var lab=ov.getAttribute("data-trigger").toLowerCase();
     var b=$("button",ov.closest(".pane")).filter(function(x){return !x.closest(".ovl")&&label(x)===lab})[0];if(!b)return;
     var r=b.getBoundingClientRect(),o=ov.getBoundingClientRect(),p=ov.querySelector(".ovp");p.style.top=Math.round(r.bottom-o.top+6)+"px";p.style.right=Math.round(Math.max(8,o.right-r.right))+"px"}
-  function toast(s,t){var d=document.createElement("div");d.className="toast";d.setAttribute("role","status");d.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m8.2 12.3 2.6 2.6 5-5.4"/></svg>';d.appendChild(document.createTextNode(t));s.appendChild(d);setTimeout(function(){d.remove()},3100)}
+  var MARK={ok:'<circle cx="12" cy="12" r="8.5"/><path d="m8.2 12.3 2.6 2.6 5-5.4"/>',bad:'<circle cx="12" cy="12" r="8.5"/><path d="M12 8v5M12 16v.01"/>',info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/>'};
+  function toast(s,t,tone,undo){$(".toast:not(.pin)",s).forEach(function(x){x.remove()});var d=document.createElement("div");tone=tone||"ok";d.className="toast "+tone;d.setAttribute("role","status");d.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+(MARK[tone]||MARK.ok)+'</svg>';var sp=document.createElement("span");sp.textContent=t;d.appendChild(sp);
+    if(undo){var u=document.createElement("button");u.type="button";u.className="lnk";u.textContent="Undo";d.appendChild(u)}s.appendChild(d);setTimeout(function(){d.remove()},3100)}
+  // the page's own words for what an action did, when the design gave them; else "<action> done"
+  function said(s,el,dflt){var p=el.closest(".pane"),raw=p&&p.getAttribute("data-toasts"),lab=label(el);if(raw){var t=JSON.parse(raw).filter(function(x){return x.after.trim().toLowerCase()===lab})[0];if(t)return toast(s,t.text,t.tone,t.undo)}toast(s,dflt)}
   secs.forEach(function(s){
     $("[data-state]",s).forEach(function(b){b.addEventListener("click",function(){
       $("[data-state]",s).forEach(function(x){x.className=""});b.className="on";
@@ -699,10 +786,16 @@ const JS = `
     s.addEventListener("input",function(e){var t=e.target;if(!t.matches||!t.matches('input[type=search]'))return;
       var q=t.value.toLowerCase(),pane=t.closest(".pane");$("tbody tr,.cards .item,.list .li",pane).forEach(function(r){r.style.display=r.textContent.toLowerCase().indexOf(q)>-1?"":"none"})});
     s.addEventListener("click",function(e){
+      // the switcher: open its menu, or switch to another account, workspace or company
+      var sb=e.target.closest?e.target.closest("[data-sw],.swm button"):null;$(".swm",s).forEach(function(m){if(!sb||!m.parentNode.contains(sb)){m.hidden=true;m.parentNode.querySelector("[data-sw]").setAttribute("aria-expanded","false")}});
+      if(sb){var w=sb.closest(".sw"),m=w.querySelector(".swm"),btn=w.querySelector("[data-sw]");
+        if(sb.hasAttribute("data-sw")){m.hidden=!m.hidden;btn.setAttribute("aria-expanded",String(!m.hidden));return}
+        var to=sb.querySelector("span:not(.swa)").textContent;$("button",m).forEach(function(x){var on=x===sb;x.classList.toggle("on",on);x.setAttribute("aria-checked",String(on))});
+        btn.querySelector(".swt b").textContent=to;btn.querySelector(".swa").textContent=sb.querySelector(".swa").textContent;var sm=btn.querySelector(".swt small");if(sm)sm.remove();m.hidden=true;btn.setAttribute("aria-expanded","false");toast(s,"Switched to "+to,"info");return}
       var dr=e.target.closest?e.target.closest("[data-drawer],.scrim,.dp a"):null;
       if(dr){var cv=dr.closest(".canvas");if(dr.hasAttribute("data-drawer"))cv.classList.toggle("dopen");else cv.classList.remove("dopen");return}
       var ob=e.target.closest?e.target.closest("button"):null,inOv=e.target.closest?e.target.closest(".ovl"):null;
-      if(inOv){if(e.target.classList.contains("ovs")||(ob&&(ob.hasAttribute("data-close")||ob.closest(".ova")||ob.classList.contains("mitem")))){inOv.classList.remove("open");if(ob&&(ob.classList.contains("primary")||ob.classList.contains("mitem")))toast(s,ob.textContent.trim()+" done")}return}
+      if(inOv){if(e.target.classList.contains("ovs")||(ob&&(ob.hasAttribute("data-close")||ob.closest(".ova")||ob.classList.contains("mitem")))){inOv.classList.remove("open");if(ob&&(ob.classList.contains("primary")||ob.classList.contains("mitem")))said(s,ob,ob.textContent.trim()+" done")}return}
       if(ob&&ob.closest(".pane")){var lab=label(ob),ov=$(".ovl",ob.closest(".pane")).filter(function(o){return o.getAttribute("data-trigger").toLowerCase()===lab})[0];if(ov){ov.classList.add("open");place(ov);return}}
       var cb=e.target.closest?e.target.closest("[data-car]"):null;if(cb){var tr=cb.closest(".car").querySelector(".track"),sl=tr.querySelector(".slide");tr.scrollBy({left:(+cb.getAttribute("data-car"))*(sl?sl.getBoundingClientRect().width+16:tr.clientWidth),behavior:"smooth"});return}
       // a link leads to another screen of the demo, unless a button of its own inside it was pressed (save, a slide's offer)
@@ -712,20 +805,22 @@ const JS = `
         var bd=t.closest(".app").querySelector(".body");bd.style.transition="opacity .2s";bd.style.opacity=.35;setTimeout(function(){bd.style.opacity=""},360);return}
       if(t.tagName==="TR"&&t.parentNode.tagName==="TBODY"){$("tr.sel",pane).forEach(function(r){r.classList.remove("sel")});t.classList.add("sel");return}
       if(t.classList.contains("fav")){t.classList.toggle("on");return}
+      if(t.parentNode.classList&&t.parentNode.classList.contains("seg")){$("button",t.parentNode).forEach(function(c){c.classList.remove("on");c.setAttribute("aria-checked","false")});t.classList.add("on");t.setAttribute("aria-checked","true");
+        var area=t.closest(".chart")||pane;$(".tbl tbody,.cards,.list,.bars,svg.lc-w,svg.lc-n",area).forEach(function(x){x.style.transition="opacity .2s";x.style.opacity=.3;setTimeout(function(){x.style.opacity=""},380)});return}
       if(t.classList.contains("chip")){$(".chip",t.parentNode).forEach(function(c){c.classList.remove("on")});t.classList.add("on");
         $(".tbl tbody,.cards,.list",pane).forEach(function(x){x.style.transition="opacity .2s";x.style.opacity=.3;setTimeout(function(){x.style.opacity=""},380)});return}
       var act=t.getAttribute("data-act");if(!act)return;t.classList.add("busy");
-      setTimeout(function(){t.classList.remove("busy");if(act==="submit")toast(s,"Saved");else if(act==="act")toast(s,t.textContent.trim()+" done")},800)});
+      setTimeout(function(){t.classList.remove("busy");if(act==="submit")said(s,t,"Saved");else if(act==="act")said(s,t,t.textContent.trim()+" done")},800)});
   });
   // the dots follow the slide in view
   document.addEventListener("scroll",function(e){var tr=e.target;if(!tr.classList||!tr.classList.contains("track"))return;var c=tr.closest(".car"),sl=tr.querySelectorAll(".slide");if(!sl.length)return;
     var w=sl[0].getBoundingClientRect().width+16,i=Math.round(tr.scrollLeft/w);if(tr.scrollLeft+tr.clientWidth>=tr.scrollWidth-4)i=sl.length-1;$(".dots i",c).forEach(function(d,k){d.classList.toggle("on",k===i)})},true);
-  document.addEventListener("keydown",function(e){if(e.key==="Escape"){$(".canvas.dopen").forEach(function(c){c.classList.remove("dopen")});$(".ovl.open").forEach(function(o){o.classList.remove("open")})}});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"){$(".swm").forEach(function(m){m.hidden=true});$(".canvas.dopen").forEach(function(c){c.classList.remove("dopen")});$(".ovl.open").forEach(function(o){o.classList.remove("open")})}});
   window.addEventListener("hashchange",show);show();
 })();
 `;
 
-// the product's mark: a simple geometric glyph on the brand colour, picked from its name, never a letter in a circle
+// the product's mark, as the theme chose it: an abstract glyph (picked from the name), the initial, the name alone, or a symbol of what it does
 const MARKS = [
   '<circle cx="9.5" cy="12" r="5"/><circle cx="14.5" cy="12" r="5"/>',
   '<path d="M5 16.5 12 7l7 9.5"/><path d="M9 16.5h6"/>',
@@ -733,12 +828,26 @@ const MARKS = [
   '<path d="M12 4.5 19.5 12 12 19.5 4.5 12z"/><path d="M12 9v6"/>',
   '<path d="M5 7h14M5 12h9M5 17h5"/>',
   '<rect x="5.5" y="5.5" width="13" height="13" rx="4"/><circle cx="12" cy="12" r="2.2"/>',
+  '<path d="M6 12a6 6 0 0 1 12 0"/><path d="M9 12a3 3 0 0 1 6 0"/><path d="M5 16h14"/>',
+  '<path d="M7 5v14"/><path d="M7 12c4 0 6-3 10-7"/><path d="M7 12c4 0 6 3 10 7"/>',
+  '<circle cx="12" cy="12" r="6.5"/><path d="M12 5.5v13"/><path d="M12 12h6.5"/>',
+  '<path d="M4.5 15.5c2.5-5 5-5 7.5 0s5 5 7.5 0"/><path d="M4.5 9.5c2.5-5 5-5 7.5 0s5 5 7.5 0"/>',
+  '<path d="M6 18V9l6-4 6 4v9"/><path d="M10 18v-5h4v5"/>',
+  '<circle cx="8.5" cy="8.5" r="3"/><circle cx="15.5" cy="15.5" r="3"/><path d="M15.5 5.5v6M18.5 8.5h-6"/>',
 ];
-const logo = (name: string): string => `<span class="logo"><svg viewBox="0 0 24 24" aria-hidden="true">${MARKS[Math.abs(hash(name)) % MARKS.length]}</svg></span>`;
+/** The product's logo; `words` (the product's own) choose an emblem's symbol. */
+function logo(name: string, words = ""): string {
+  const clean = name.replace(/[^\p{L}\p{N} ]/gu, " ").trim() || "A";
+  const glyph = () => `<span class="logo"><svg viewBox="0 0 24 24" aria-hidden="true">${MARKS[Math.abs(hash(name)) % MARKS.length]}</svg></span>`;
+  if (look.mark === "monogram") return `<span class="logo mono"><b>${esc(clean[0]!.toUpperCase())}</b></span>`;
+  if (look.mark === "emblem") { const ic = iconFor(`${name} ${words}`); return ic ? `<span class="logo emb">${icon(ic)}</span>` : glyph(); }
+  if (look.mark === "wordmark") return "";
+  return glyph();
+}
 const ME = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" fill="#E8DCCB"/><path d="M5 33c1-6.5 5.4-9.5 11-9.5s10 3 11 9.5z" fill="#3D5A80"/><circle cx="16" cy="13.5" r="6" fill="#D9A47E"/><path d="M9.8 13c0-4.6 2.8-7 6.4-7 3.4 0 6.1 2.2 6 6.6-1.7-2-4.5-3.1-7.4-2.6-1.7.3-3.4 1.4-5 3z" fill="#2B1E16"/></svg>';
 
 type Frame = Exclude<DesignTheme["shell"], "auto">;
-interface AppFrame { id: string; name: string; device: "web" | "phone"; shell: Frame }
+interface AppFrame { id: string; name: string; device: "web" | "phone"; shell: Frame; switcher?: Switcher }
 // a phone's status bar: the time, then signal, wifi and battery, drawn as the system draws them
 const SYS = '<svg viewBox="0 0 18 11" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="6" rx="1"/><rect x="10" y="2.5" width="3" height="8.5" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/></svg><svg viewBox="0 0 16 11" aria-hidden="true"><path d="M8 2.2c2.3 0 4.4.9 6 2.4l1.3-1.4A10.4 10.4 0 0 0 8 .3 10.4 10.4 0 0 0 .7 3.2L2 4.6a8.6 8.6 0 0 1 6-2.4Zm0 3.6c1.3 0 2.5.5 3.4 1.3l1.3-1.4A6.8 6.8 0 0 0 8 3.9a6.8 6.8 0 0 0-4.7 1.8l1.3 1.4c.9-.8 2.1-1.3 3.4-1.3Zm0 3.5L9.9 7.4a2.8 2.8 0 0 0-3.8 0Z"/></svg><svg viewBox="0 0 27 12" aria-hidden="true"><rect x=".5" y=".5" width="23" height="11" rx="3.2" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="17" height="8" rx="2"/><path d="M25 4v4c.8-.3 1.3-1.1 1.3-2S25.8 4.3 25 4Z" opacity=".45"/></svg>';
 
@@ -760,7 +869,7 @@ export function buildDemo(d: DemoInput): string {
     const tool = own.filter((s) => s.mock!.blocks.some((b) => b.type === "table" || b.type === "stats")).length;
     return own.length > 0 && tool * 2 >= own.length ? "sidebar" : "topbar";
   };
-  const apps: AppFrame[] = given.map((a) => ({ id: a.id, name: a.name, device: a.device, shell: frameOf(a) }));
+  const apps: AppFrame[] = given.map((a, i) => { const sw = "switcher" in a && a.switcher ? a.switcher : i === 0 && given.length < 2 ? d.switcher : undefined; return { id: a.id, name: a.name, device: a.device, shell: frameOf(a), ...(sw ? { switcher: sw } : {}) }; });
   const appOf = (s: Screen): AppFrame => apps.find((a) => inApp(s, a)) ?? apps[0]!;
   const brandBar = d.theme?.chrome === "brand" ? " brand" : "";
   const slug = d.title.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "app";
@@ -778,37 +887,47 @@ export function buildDemo(d: DemoInput): string {
     const pane = (st: string, k: number): string => {
       const hidden = k === 0 ? "" : " hidden";
       const ov = s.mock?.overlays?.findIndex((o) => overlayLabel(o) === st) ?? -1;
+      const tst = s.mock?.toasts?.findIndex((t) => toastLabel(t) === st) ?? -1;
       const inner = st === FULL_DATA && s.mockFull
         ? renderMock(s.mockFull, "normal", st)
         : s.mock && ov >= 0
         ? renderMock(s.mock, "normal", st, ov)
+        : s.mock && tst >= 0
+        ? renderMock(s.mock, "normal", st, -1, tst)
         : s.mock
         ? renderMock(s.mock, stateKind(st), st)
         : `<div class="wire">${wireframeSvg(s, st, s.reqs.map((r) => ({ id: r, text: d.requirements[r] ?? "" })))}</div>`;
-      const go = s.mock?.links?.length ? ` data-links="${esc(JSON.stringify(s.mock.links))}"` : "";
+      const go = (s.mock?.links?.length ? ` data-links="${esc(JSON.stringify(s.mock.links))}"` : "") + (s.mock?.toasts?.length ? ` data-toasts="${esc(JSON.stringify(s.mock.toasts))}"` : "");
       return `<div class="pane" data-wf="${k}"${go}${hidden}>${wrap(inner)}</div>`;
     };
     // the navigation lists the app's sections (a detail page sits under its section, which stays lit), named as a product names them
     const nav = sections(sibs);
-    const links = (max = nav.length) => nav.slice(0, max).map((o) => `<a href="#${esc(o.id)}"${section(o) === section(s) ? ' class="on"' : ""}>${icon(iconOf(o))}<span>${esc(navName(o))}</span></a>`).join("");
+    const links = (max = nav.length, list = nav) => list.slice(0, max).map((o) => `<a href="#${esc(o.id)}"${section(o) === section(s) ? ' class="on"' : ""}>${icon(iconOf(o))}<span>${esc(navName(o))}</span></a>`).join("");
+    // a long menu reads in groups (Money, Cards, Settings), in the order they first appear; pages without one lead
+    const groups = [...new Set(nav.map((o) => o.group?.trim() ?? ""))];
+    const menu = groups.some(Boolean) ? groups.map((g) => `${g ? `<h5>${esc(g)}</h5>` : ""}${links(nav.length, nav.filter((o) => (o.group?.trim() ?? "") === g))}`).join("") : `<h5>Menu</h5>${links()}`;
     const name = apps.length > 1 ? `${d.title} ${app.name}` : d.title;
-    const bm = `<span class="bm">${logo(d.title)}<b>${esc(apps.length > 1 && phone ? d.title : name)}</b></span>`;
+    const wm = look.mark === "wordmark";
+    const bm = `<span class="bm${wm ? " wm" : ""}">${logo(d.title, `${look.reading?.hero ?? ""} ${look.reading?.context ?? ""} ${d.flow}`)}<b>${esc(apps.length > 1 && phone ? d.title : name)}</b>${wm ? '<i class="wd" aria-hidden="true"></i>' : ""}</span>`;
+    // who the app is acting for: the current one and the others, switched from the frame
+    const sw = app.switcher;
+    const switcher = sw ? `<span class="sw"><button type="button" class="swb" data-sw aria-haspopup="menu" aria-expanded="false" aria-label="Switch ${esc(sw.kind)}"><span class="swa">${esc(initials(sw.current) || "•")}</span><span class="swt"><b>${esc(sw.current)}</b>${sw.meta ? `<small>${esc(sw.meta)}</small>` : ""}</span>${icon("chevd")}</button><span class="swm" role="menu" hidden><small>Switch ${esc(sw.kind)}</small>${[sw.current, ...sw.others].map((o, k) => `<button type="button" role="menuitemradio" aria-checked="${k === 0}"${k === 0 ? ' class="on"' : ""}><span class="swa">${esc(initials(o) || "•")}</span><span>${esc(o)}</span>${k === 0 ? icon("check") : ""}</button>`).join("")}</span></span>` : "";
     const tools = `<button type="button" class="ib" aria-label="Notifications">${icon("bell")}<i class="dot"></i></button><span class="me">${ME}</span>`;
     const search = phone ? "" : `<button type="button" class="ib" aria-label="Search">${icon("search")}</button>`;
     const content = shown.length ? shown.map((f) => `<img src="${f!.dataUri}" alt="${esc(f!.name)}">`).join("") : states.map(pane).join("");
     const tabbar = shell === "minimal" || shell === "drawer" || nav.length < 2 ? "" : `<nav class="tabbar" aria-label="Tabs">${links(5)}</nav>`;
     const foot = `<div class="rf"><a href="#${esc(s.id)}">${icon("settings")}<span>Settings</span></a><a href="#${esc(s.id)}">${icon("help")}<span>Help</span></a></div>`;
-    const drawer = shell === "drawer" ? `<div class="drawer"><span class="scrim"></span><div class="dp" role="dialog" aria-label="Menu"><div class="row">${bm}<button type="button" class="ib" data-drawer aria-label="Close menu">${icon("close")}</button></div><nav aria-label="Main">${links()}</nav>${foot}</div></div>` : "";
+    const drawer = shell === "drawer" ? `<div class="drawer"><span class="scrim"></span><div class="dp" role="dialog" aria-label="Menu"><div class="row">${bm}<button type="button" class="ib" data-drawer aria-label="Close menu">${icon("close")}</button></div><nav aria-label="Main">${groups.some(Boolean) ? menu : links()}</nav>${foot}</div></div>` : "";
     const head = (x: string) => `<header class="topbar${brandBar}">${wrap(x)}</header>`;
     const app$ = shell === "sidebar"
-      ? `<div class="shell"><nav class="rail${brandBar}" aria-label="Main">${bm}<div class="rl"><h5>Menu</h5>${links()}</div>${foot}</nav><div class="stage"><header class="topbar"><span class="nb">${bm}</span><span class="q">${icon("search")}<span>Search</span><kbd>⌘K</kbd></span><span class="sp"></span>${tools}</header>${content}${tabbar}</div></div>`
+      ? `<div class="shell"><nav class="rail${brandBar}" aria-label="Main">${bm}${switcher}<div class="rl">${menu}</div>${foot}</nav><div class="stage"><header class="topbar"><span class="nb">${bm}${switcher}</span><span class="q">${icon("search")}<span>Search</span><kbd>⌘K</kbd></span><span class="sp"></span>${tools}</header>${content}${tabbar}</div></div>`
       : shell === "minimal"
-      ? `<div class="stage">${head(`${bm}<span class="sp"></span><a class="help" href="#${esc(s.id)}">${icon("help")}<span>Help</span></a><span class="me">${ME}</span>`)}${content}</div>`
+      ? `<div class="stage">${head(`${bm}${switcher}<span class="sp"></span><a class="help" href="#${esc(s.id)}">${icon("help")}<span>Help</span></a><span class="me">${ME}</span>`)}${content}</div>`
       : shell === "drawer"
-      ? `<div class="stage">${head(`<button type="button" class="ib" data-drawer aria-label="Menu">${icon("menu")}</button>${bm}<span class="sp"></span>${search}${tools}`)}${content}</div>${drawer}`
+      ? `<div class="stage">${head(`<button type="button" class="ib" data-drawer aria-label="Menu">${icon("menu")}</button>${bm}<span class="sp"></span>${switcher}${search}${tools}`)}${content}</div>${drawer}`
       : shell === "tabs"
-      ? `<div class="stage">${head(`${bm}<span class="sp"></span>${search}${tools}`)}${content}${tabbar}</div>`
-      : `<div class="stage">${head(`${bm}<nav class="tnav" aria-label="Main">${links()}</nav><span class="sp"></span>${search}${tools}`)}${content}${tabbar}</div>`;
+      ? `<div class="stage">${head(`${bm}<span class="sp"></span>${switcher}${search}${tools}`)}${content}${tabbar}</div>`
+      : `<div class="stage">${head(`${bm}<nav class="tnav" aria-label="Main">${links()}</nav><span class="sp"></span>${switcher}${search}${tools}`)}${content}${tabbar}</div>`;
     const host = `${apps.length > 1 && app.id ? `${app.id}.` : ""}${slug}.app`;
     const device = phone ? `<div class="sbar${brandBar && shell !== "sidebar" ? brandBar : ""}" aria-hidden="true"><b>9:41</b><span class="island"></span><span class="sys">${SYS}</span></div>` : `<div class="win" aria-hidden="true"><span class="tl"><i></i><i></i><i></i></span><span class="url">${icon("lock")}${esc(host)}${esc(s.route)}</span></div>`;
     return `<section class="screen" id="${esc(s.id)}" data-i="${i}" hidden>

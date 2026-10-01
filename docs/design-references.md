@@ -20,7 +20,7 @@ session.
    (`src/stages/design.ts`) adds it as a "design references" section. The rules tell the model to
    stay in the family, borrow what the brands share, and not reuse any one brand's exact colour,
    name or logo. No match, no section, and the rules fall back to a general line.
-4. The prompt template version is 13, so the cross-run cache does not replay old designs.
+4. The prompt template version is 14, so the cross-run cache does not replay old designs.
 5. **Proof, checked in code** (`refs/fit.ts`). The design's `theme.basis` must cite at least two of the briefed brands and what was taken from each. The references are guardrails, not a template: the brand colour may sit outside the field's colours (more than 40 degrees of hue from every reference colour) only when the theme says in `departure` what in the product reading makes this product differ (`design-off-reference` otherwise). A neon brand in a field people trust with money, health or duties needs a departure too (`design-neon`). The brand must not be the same shade as one brand (`design-copied`). A failure sends the model back with the reason. For a field with no references, `basis` must name two or three well-known real products. None of this is shown to the lead; they see only the final design.
 6. **Silent live read, every new design.** Before the model call, `ensureMeasured` (`refs/measure.ts`) opens up to four of the matched brands, unread ones first and then those read longest ago (a reading older than 7 days counts as stale), within a 45 second cap. Each good reading is saved as it arrives, so a slow site never costs the readings already taken, and the read stops at the cap. A request whose field is not in the library reads nothing. It is best effort: any failure keeps the reported colours. Set `FACTORY_DESIGN_LIVE_REFS=0` to turn it off (tests turn it off themselves). It runs only before a full draw or a fix to the look; a fix to a page's layout or sample content skips it. The browser is found on its own: `FACTORY_CHROMIUM` if set, else Playwright's browsers (Linux, macOS, Windows), else an installed Chrome, Chromium, Edge or Brave.
 
@@ -57,10 +57,11 @@ A family or field gives a starting point, not the answer. These keep two project
   say why in `mood`.
 - It must pick its own brand colour and may not reuse any listed brand's value, name or logo.
 
-The look record makes a repeat of a recent project fail in code. The brief text itself still
-varies little within a field, and the type choice is still four font stacks with no heading and
-body pairing and one family of logo marks. If two runs still look alike, add an industry file with
-more brands or sharper notes for that field.
+The look record makes a repeat of a recent project fail in code. It counts the type as the body
+and heading pair (six body fonts, seven heading faces) and the logo mark (glyph, monogram, emblem
+or wordmark), so those choices also keep projects apart. The brief text itself still varies little
+within a field. If two runs still look alike, add an industry file with more brands or sharper
+notes for that field.
 
 ## Reported versus measured
 
@@ -108,6 +109,6 @@ readings need no code change.
 - The brief shapes the theme (colour, bar, corners, type, density). It does not copy layouts, and
   the model still chooses the screens and sample content.
 - Nothing here has been compared against a real run of the model; the first real runs should be
-  checked by eye (`factory design refs show` plus the demo screenshots). The design card also
-  lists text in the demo that overflows, is cut off or overlaps, measured while the screenshots
-  are taken.
+  checked by eye (`factory design refs show` plus the demo screenshots). The design step measures the drawn demo in a browser and
+  sends text that overflows, is cut off or overlaps back to the model for one fix. Anything left
+  is listed on the design card, measured while the screenshots are taken.

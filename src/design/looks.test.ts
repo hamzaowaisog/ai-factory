@@ -1,4 +1,4 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -25,6 +25,17 @@ describe("each product its own look", () => {
     expect(recentLooks(undefined, f).map((l) => l.key)).toEqual(["bank", "air"]);
     for (let i = 0; i < 10; i++) recordLook(`p${i}`, t(), f, `2026-04-0${i}`);
     expect(recentLooks(undefined, f)).toHaveLength(RECENT_LOOKS);
+  });
+  it("counts the logo mark and the heading face as part of the look", () => {
+    expect(lookGap(lookOf("a", t()), lookOf("b", t({ mark: "monogram" }))).gap).toBe(1);
+    expect(lookOf("a", t({ font: "book", heading: "slab" })).font).toBe("book+slab");
+    expect(lookGap(lookOf("a", t({ heading: "match" })), lookOf("b", t())).gap).toBe(0);
+  });
+  it("reads a look recorded before marks existed as the default mark, not a different one", () => {
+    const f = file();
+    writeFileSync(f, JSON.stringify([{ ...lookOf("old", t()), mark: undefined }]));
+    expect(loadLooks(f)[0]!.mark).toBe("glyph");
+    expect(lookGap(loadLooks(f)[0]!, lookOf("new", t())).gap).toBe(0);
   });
   it("keys a look by the project name, else the run", () => {
     expect(lookKey(" Mizan Bank ", "run-1")).toBe("mizan bank");

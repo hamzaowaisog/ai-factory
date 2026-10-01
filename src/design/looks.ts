@@ -12,13 +12,13 @@ import { colourGap } from "./refs/fit.js";
 type Problem = { check: string; message: string };
 
 /** The parts of a look a person notices first, compared between projects. */
-const AXES = ["mode", "shell", "font", "radius", "surface", "hero", "charts", "imagery", "neutral", "chrome"] as const;
+const AXES = ["mode", "shell", "font", "radius", "surface", "hero", "charts", "imagery", "neutral", "chrome", "mark"] as const;
 type Axis = (typeof AXES)[number];
 
 const axis = z.string().default("");
 export const Look = z.object({
   key: z.string(), at: z.string(), brand: z.string(), mood: z.string().default(""),
-  mode: axis, shell: axis, font: axis, radius: axis, surface: axis, hero: axis, charts: axis, imagery: axis, neutral: axis, chrome: axis,
+  mode: axis, shell: axis, font: axis, radius: axis, surface: axis, hero: axis, charts: axis, imagery: axis, neutral: axis, chrome: axis, mark: axis,
 });
 export type Look = z.infer<typeof Look>;
 
@@ -26,10 +26,11 @@ export type Look = z.infer<typeof Look>;
 export const RECENT_LOOKS = 6;
 export const MIN_LOOK_GAP = 4;
 
-const DEFAULTS: Record<Axis, string> = { mode: "light", shell: "auto", font: "sans", radius: "soft", surface: "flat", hero: "none", charts: "soft", imagery: "mixed", neutral: "cool", chrome: "plain" };
+const DEFAULTS: Record<Axis, string> = { mode: "light", shell: "auto", font: "sans", radius: "soft", surface: "flat", hero: "none", charts: "soft", imagery: "mixed", neutral: "cool", chrome: "plain", mark: "glyph" };
 
 export function lookOf(key: string, t: DesignTheme, at = new Date().toISOString()): Look {
-  const v = t as unknown as Record<string, string | undefined>;
+  // the type is the pair: a body with a different heading is another type ("sans+serif")
+  const v: Record<string, string | undefined> = { ...(t as unknown as Record<string, string | undefined>), font: `${t.font ?? DEFAULTS.font}${t.heading && t.heading !== "match" ? `+${t.heading}` : ""}` };
   return { key, at, brand: t.brand, mood: t.mood, ...Object.fromEntries(AXES.map((a) => [a, v[a] ?? DEFAULTS[a]])) } as Look;
 }
 
@@ -47,7 +48,8 @@ export const looksPath = (): string => join(factoryHome(), "design-looks.json");
 
 export function loadLooks(path = looksPath()): Look[] {
   if (!existsSync(path)) return [];
-  try { return z.array(Look).parse(JSON.parse(readFileSync(path, "utf8"))); } catch { return []; }
+  // a look recorded before an axis existed has that axis's default
+  try { return z.array(Look).parse(JSON.parse(readFileSync(path, "utf8"))).map((l) => ({ ...l, ...Object.fromEntries(AXES.filter((x) => !l[x]).map((x) => [x, DEFAULTS[x]])) })); } catch { return []; }
 }
 
 /** Remembers an approved look; a project approved again replaces its own entry. */
@@ -62,7 +64,7 @@ export function recentLooks(exceptKey: string | undefined, path = looksPath()): 
   return loadLooks(path).filter((l) => l.key !== exceptKey).sort((a, b) => b.at.localeCompare(a.at)).slice(0, RECENT_LOOKS);
 }
 
-const describe = (l: Look): string => `${l.brand.toUpperCase()} ${l.mode}, ${l.shell} frame, ${l.font} type, ${l.radius} corners, ${l.surface} surfaces, hero ${l.hero}, ${l.charts} charts, ${l.imagery} pictures, ${l.neutral} greys, ${l.chrome} bar${l.mood ? ` ("${l.mood}")` : ""}`;
+const describe = (l: Look): string => `${l.brand.toUpperCase()} ${l.mode}, ${l.shell} frame, ${l.font} type, ${l.radius} corners, ${l.surface} surfaces, hero ${l.hero}, ${l.charts} charts, ${l.imagery} pictures, ${l.neutral} greys, ${l.chrome} bar, ${l.mark} mark${l.mood ? ` ("${l.mood}")` : ""}`;
 
 /** What the design step is told about recent projects. */
 export function lookBrief(recent: Look[]): string {
@@ -70,7 +72,7 @@ export function lookBrief(recent: Look[]): string {
   return [
     "Looks of the most recent other projects (newest first). This product must not look like any of them:",
     ...recent.map((l, i) => `${i + 1}. ${describe(l)}`),
-    `Differ from each in at least ${MIN_LOOK_GAP} points (a different colour family counts 2; each of mode, frame, type, corners, surfaces, hero, charts, pictures, greys and bar counts 1). Let the product reading decide where to differ, not chance.`,
+    `Differ from each in at least ${MIN_LOOK_GAP} points (a different colour family counts 2; each of mode, frame, type, corners, surfaces, hero, charts, pictures, greys, bar and mark counts 1; type is the body and heading pair). Let the product reading decide where to differ, not chance.`,
   ].join("\n");
 }
 
@@ -79,7 +81,7 @@ export function lookRepeats(theme: DesignTheme, recent: Look[]): Problem[] {
   const me = lookOf("new", theme);
   return recent.flatMap((l, i) => {
     const { gap, same } = lookGap(me, l);
-    return gap >= MIN_LOOK_GAP ? [] : [{ check: "design-look-repeat", message: `The look is too close to recent project ${i + 1} (${describe(l)}): it differs by ${gap} of the ${MIN_LOOK_GAP} points needed and shares ${same.join(", ")}. Change what this product's reading calls for (frame, type, corners, surfaces, hero, charts, pictures, greys, bar or colour family).` }];
+    return gap >= MIN_LOOK_GAP ? [] : [{ check: "design-look-repeat", message: `The look is too close to recent project ${i + 1} (${describe(l)}): it differs by ${gap} of the ${MIN_LOOK_GAP} points needed and shares ${same.join(", ")}. Change what this product's reading calls for (frame, type, corners, surfaces, hero, charts, pictures, greys, bar, mark or colour family).` }];
   });
 }
 

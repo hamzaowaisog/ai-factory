@@ -16,6 +16,8 @@ export interface ScreenShotInput { id: string; route: string; states: string[]; 
 /** A fault of the drawn page a person would notice: text past the app's edge, text cut off by its box, or two texts on top of each other. */
 export interface LayoutIssue { screen: string; state: string; viewport: Viewport; kind: "overflow" | "clipped" | "overlap"; text: string }
 export interface ShotResult { shots: Shot[]; note?: string; issues?: LayoutIssue[] }
+/** How each fault reads to a person. */
+export const LAYOUT_FAULT = { overflow: "runs past the edge", clipped: "is cut off", overlap: "sits on top of other text" } as const;
 
 const MAX_SHOTS = 64;
 
@@ -77,7 +79,7 @@ export const LAYOUT_CHECK = String.raw`(function(id){
       if(c.textOverflow==="ellipsis"||(c.webkitLineClamp&&c.webkitLineClamp!=="none"))cut=true;
       if(e!==canvas){var o=c.overflowX+" "+c.overflowY;if(/auto|scroll/.test(o))scrolls=true;else if(!box&&!scrolls&&/hidden|clip/.test(o))box=e}}
     if(hidden)continue;
-    var range=document.createRange();range.selectNodeContents(n);var rs=range.getClientRects(),layer=el.closest(".ovl");
+    var range=document.createRange();range.selectNodeContents(n);var rs=range.getClientRects(),layer=el.closest(".ovl,.toast");
     for(var i=0;i<rs.length;i++){var r=rs[i];if(r.width<1||r.height<1)continue;lines.push({r:r,node:n,text:text,layer:layer});
       if(!scrolls&&(r.right>frame.right+1||r.left<frame.left-1))add("overflow",text);
       if(box&&!cut&&!scrolls){var b=box.getBoundingClientRect();if(b.width>2&&b.height>2&&(r.right>b.right+2||r.left<b.left-2||r.bottom>b.bottom+2||r.top<b.top-2))add("clipped",text)}}}
@@ -92,6 +94,21 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(
 /** Screenshot the demo page. `outDir` gets `<screen>-<state>-<viewport>.png`. Never throws. */
 export async function captureDemo(demoFile: string, screens: ScreenShotInput[], outDir: string): Promise<ShotResult> {
   if (process.env.FACTORY_NO_SCREENSHOTS) return { shots: [], note: "screenshots are switched off (FACTORY_NO_SCREENSHOTS)" };
+  return walkDemo(demoFile, screens, outDir);
+}
+
+/**
+ * Only the layout check, fast: motion is reduced so each state settles at once, and nothing is saved. The design step runs it
+ * before the card exists, so the model can fix what it wrote. Undefined when it could not run (no browser, switched off, a failure).
+ */
+export async function checkDemoLayout(demoFile: string, screens: ScreenShotInput[]): Promise<LayoutIssue[] | undefined> {
+  if (process.env.FACTORY_NO_SCREENSHOTS || process.env.FACTORY_DESIGN_LAYOUT_CHECK === "0" || !screens.length) return undefined;
+  const r = await walkDemo(demoFile, screens);
+  return r.note ? undefined : r.issues ?? [];
+}
+
+/** Each screen in each state at each width: the layout checked, and a screenshot saved when `outDir` is given. */
+async function walkDemo(demoFile: string, screens: ScreenShotInput[], outDir?: string): Promise<ShotResult> {
   if (!screens.length) return { shots: [] };
   const exe = findChromium();
   if (!exe) return { shots: [], note: "no browser found, so no screenshots were taken (set FACTORY_CHROMIUM to a Chromium binary)" };
@@ -99,24 +116,25 @@ export async function captureDemo(demoFile: string, screens: ScreenShotInput[], 
   const shots: Shot[] = [], issues: LayoutIssue[] = [];
   try {
     const { chromium } = await import("playwright-core");
-    mkdirSync(outDir, { recursive: true });
+    if (outDir) mkdirSync(outDir, { recursive: true });
     browser = await chromium.launch({ executablePath: exe, args: ["--no-sandbox"], timeout: 30_000 });
     const url = pathToFileURL(demoFile).href;
     for (const vp of Object.keys(VIEWPORTS) as Viewport[]) {
-      const page = await browser.newPage({ viewport: VIEWPORTS[vp] });
+      const page = await browser.newPage({ viewport: VIEWPORTS[vp], ...(outDir ? {} : { reducedMotion: "reduce" }) });
       page.setDefaultTimeout(10_000);
       for (const sc of screens) {
         await page.goto(`${url}#${encodeURIComponent(sc.id)}`);
         const states = sc.states.length ? sc.states : ["default"];
         for (const [k, st] of states.entries()) {
-          if (shots.length >= MAX_SHOTS) return { shots, issues, note: `stopped at ${MAX_SHOTS} screenshots` };
+          if (outDir && shots.length >= MAX_SHOTS) return { shots, issues, note: `stopped at ${MAX_SHOTS} screenshots` };
           await page.locator(`#${sc.id.replace(/[^\w-]/g, "\\$&")} [data-state="${k}"]`).click();
           // move the pointer off the tab (a hovered tab is drawn differently) and show the page from its top
           await page.mouse.move(0, 0);
           await page.evaluate(() => window.scrollTo(0, 0));
-          await page.waitForTimeout(1600); // the page animates in
+          await page.waitForTimeout(outDir ? 1600 : 150); // the page animates in (at once with reduced motion)
           // what a person would see is wrong with the page (best effort: a failed check is no fault of the page)
           try { for (const f of (await page.evaluate(`${LAYOUT_CHECK}(${JSON.stringify(sc.id)})`)) as Omit<LayoutIssue, "screen" | "state" | "viewport">[]) issues.push({ ...f, screen: sc.title ?? `${sc.id} ${sc.route}`, state: st, viewport: vp }); } catch { /* not checked */ }
+          if (!outDir) continue;
           const file = `${slug(sc.id)}-${slug(st)}-${vp}.png`;
           await page.screenshot({ path: join(outDir, file), fullPage: true });
           shots.push({ file, screen: sc.title ?? `${sc.id} ${sc.route}`, state: st, viewport: vp });

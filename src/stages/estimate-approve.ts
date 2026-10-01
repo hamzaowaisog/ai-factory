@@ -12,7 +12,7 @@ import { exportWorkbooks, type ExportInput } from "../estimate/export.js";
 import { considerationsFrom } from "../estimate/considerations.js";
 import { diffDesigns, diffEstimates } from "../estimate/lineage.js";
 import { buildDemo, demoStates, frameDataUri } from "../estimate/demo.js";
-import { captureDemo, type LayoutIssue, type ShotResult } from "../estimate/screenshots.js";
+import { captureDemo, LAYOUT_FAULT, type LayoutIssue, type ShotResult } from "../estimate/screenshots.js";
 import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
 import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
 import { failure } from "../gates/engine.js";
@@ -34,11 +34,10 @@ const reasonOf = (d: unknown): string => String((d as { reason?: string }).reaso
 
 // ---------- E1b: design baseline ----------
 
-const FAULT = { overflow: "runs past the edge", clipped: "is cut off", overlap: "sits on top of other text" } as const;
 /** What the screenshots found wrong with the drawn pages, for the lead to see before approving. */
 function layoutLines(issues: LayoutIssue[]): string[] {
   if (!issues.length) return [];
-  const shown = issues.slice(0, 8).map((f) => `- ${f.screen}, ${f.state}, ${f.viewport}: "${f.text}" ${FAULT[f.kind]}`);
+  const shown = issues.slice(0, 8).map((f) => `- ${f.screen}, ${f.state}, ${f.viewport}: "${f.text}" ${LAYOUT_FAULT[f.kind]}`);
   return [`## Layout problems in the demo (${issues.length})`, ...shown, ...(issues.length > shown.length ? [`- and ${issues.length - shown.length} more`] : []), ``];
 }
 

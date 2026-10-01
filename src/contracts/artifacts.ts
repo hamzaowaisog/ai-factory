@@ -166,16 +166,20 @@ const Str = (n: number) => z.string().max(n);
 /** The block shapes; `big` lifts the size limits for the full-data state (more rows, points and items). */
 const blockSchema = (big: boolean) => z.discriminatedUnion("type", [
   z.object({ type: z.literal("stats"), items: z.array(z.object({ label: Str(40), value: Str(24), delta: Str(24).optional() })).min(1).max(big ? 6 : 4) }),
-  z.object({ type: z.literal("filters"), search: Str(40).optional(), chips: z.array(Str(30)).max(6).default([]) }),
+  /** chips narrow what is shown; segments switch how it is shown (List, Map; Day, Week, Month), one at a time */
+  z.object({ type: z.literal("filters"), search: Str(40).optional(), chips: z.array(Str(30)).max(6).default([]), segments: z.array(Str(16)).min(2).max(4).optional() }),
   z.object({ type: z.literal("table"), columns: z.array(Str(30)).min(1).max(6), rows: z.array(z.array(Str(60))).min(1).max(big ? 14 : 6), statusColumn: z.number().int().min(0).optional() }),
   z.object({ type: z.literal("form"), fields: z.array(z.object({ label: Str(40), kind: z.enum(["text", "select", "date", "textarea", "toggle"]).default("text"), placeholder: Str(60).optional(), value: Str(80).optional(), options: z.array(Str(40)).max(8).optional() })).min(1).max(6), submit: Str(30).default("Save") }),
-  z.object({ type: z.literal("chart"), kind: z.enum(["bar", "line"]).default("bar"), title: Str(60), points: z.array(z.object({ label: Str(16), value: z.number() })).min(2).max(big ? 14 : 8) }),
+  /** ranges: the periods the chart can be switched between (7D, 30D, 1Y), the first one drawn */
+  z.object({ type: z.literal("chart"), kind: z.enum(["bar", "line"]).default("bar"), title: Str(60), points: z.array(z.object({ label: Str(16), value: z.number() })).min(2).max(big ? 14 : 8), ranges: z.array(Str(12)).min(2).max(5).optional() }),
   z.object({ type: z.literal("cards"), visual: z.boolean().optional(), items: z.array(z.object({ title: Str(50), meta: Str(80), badge: Str(24).optional() })).min(1).max(big ? 9 : 6) }),
   /** slides seen one at a time: "promo" for offers, announcements or onboarding (wide, on the brand colour), "media" for a row of things chosen by picture */
   z.object({ type: z.literal("carousel"), style: z.enum(["promo", "media"]).default("media"), title: Str(40).optional(), items: z.array(z.object({ title: Str(50), meta: Str(80), badge: Str(24).optional(), cta: Str(24).optional() })).min(2).max(big ? 10 : 6) }),
   z.object({ type: z.literal("steps"), items: z.array(Str(30)).min(2).max(6), current: z.number().int().min(0).default(0) }),
   z.object({ type: z.literal("timeline"), items: z.array(z.object({ time: Str(24), title: Str(60), meta: Str(80).optional(), status: z.enum(["done", "now", "next"]).default("next") })).min(1).max(big ? 10 : 6) }),
   z.object({ type: z.literal("detail"), style: z.enum(["card", "pass"]).default("card"), title: Str(50).optional(), lead: z.object({ label: Str(30), value: Str(40) }).optional(), rows: z.array(z.object({ label: Str(30), value: Str(60) })).min(1).max(8) }),
+  /** sections opened one at a time (questions and answers, policy or settings groups), the first one open */
+  z.object({ type: z.literal("accordion"), title: Str(40).optional(), items: z.array(z.object({ title: Str(60), body: Str(240) })).min(2).max(big ? 10 : 8) }),
   z.object({ type: z.literal("list"), items: z.array(z.object({ title: Str(60), meta: Str(80) })).min(1).max(big ? 10 : 6) }),
   z.object({ type: z.literal("actions"), buttons: z.array(Str(30)).min(1).max(4) }),
   z.object({ type: z.literal("text"), body: Str(240) }),
@@ -200,6 +204,17 @@ export const MockOverlay = z.object({
 });
 export type MockOverlay = z.infer<typeof MockOverlay>;
 
+/** A short message that slides in after an action and goes away by itself ("Payment sent", "Card frozen"), shown as its own tab in the demo. */
+export const MockToast = z.object({
+  /** the exact label of the button, menu item or overlay action that shows it */
+  after: Str(40),
+  text: Str(80),
+  tone: z.enum(["ok", "info", "bad"]).default("ok"),
+  /** an Undo link, for a step that can be taken back (archive, remove from list) */
+  undo: z.boolean().optional(),
+});
+export type MockToast = z.infer<typeof MockToast>;
+
 export const ScreenMock = z.object({
   title: Str(60), subtitle: Str(120).optional(),
   blocks: z.array(MockBlock).min(1).max(6),
@@ -211,6 +226,8 @@ export const ScreenMock = z.object({
   links: z.array(z.object({ from: Str(60), to: Str(16) })).max(8).optional(),
   /** the dialogs, side panels, sheets, confirmations and menus the page opens: each is shown open as its own tab in the demo */
   overlays: z.array(MockOverlay).max(3).optional(),
+  /** the confirmations that slide in after the page's actions: each is shown as its own tab in the demo */
+  toasts: z.array(MockToast).max(3).optional(),
   /** the words a state shows: the empty page, an error, a success message, a validation message */
   copy: z.object({ emptyTitle: Str(60).optional(), emptyHint: Str(120).optional(), error: Str(140).optional(), success: Str(140).optional(), validation: Str(140).optional() }).default({}),
 });
@@ -218,6 +235,16 @@ export type ScreenMock = z.infer<typeof ScreenMock>;
 /** The same screen with fine-grained data: every block of the normal page, denser (more rows, points and items), plus the graphs and figures a real day of use would show. */
 export const ScreenMockFull = z.object({ title: Str(60), subtitle: Str(120).optional(), blocks: z.array(MockBlockFull).min(1).max(9), tabs: ScreenMock.shape.tabs, crumbs: ScreenMock.shape.crumbs, copy: ScreenMock.shape.copy });
 export type ScreenMockFull = z.infer<typeof ScreenMockFull>;
+
+/** Who or what the app is acting for, switched from the frame (a bank's accounts, a SaaS workspace, a group's companies or branches). */
+export const Switcher = z.object({
+  kind: z.enum(["account", "workspace", "company", "location", "profile"]),
+  current: Str(40),
+  /** a second line under the current one (a plan, a role, an account number) */
+  meta: Str(40).optional(),
+  others: z.array(Str(40)).min(1).max(4),
+});
+export type Switcher = z.infer<typeof Switcher>;
 
 export const Shell = z.enum(["auto", "sidebar", "topbar", "drawer", "tabs", "minimal"]);
 /**
@@ -230,6 +257,7 @@ export const DesignApp = z.object({
   shell: Shell.default("auto"),
   /** who uses this app */
   users: Str(80).optional(),
+  switcher: Switcher.optional(),
 });
 export type DesignApp = z.infer<typeof DesignApp>;
 
@@ -243,7 +271,12 @@ export const DesignTheme = z.object({
   neutral: z.enum(["cool", "warm", "pure"]).default("cool"),
   /** the app bar: filled with the brand colour, or plain */
   chrome: z.enum(["brand", "plain"]).default("plain"),
-  font: z.enum(["sans", "humanist", "serif", "rounded"]).default("sans"),
+  /** the body type: sans (neutral), humanist (friendly), serif (sans body, serif headings), rounded (playful), grotesk (Swiss, plain), book (a serif to read in) */
+  font: z.enum(["sans", "humanist", "serif", "rounded", "grotesk", "book"]).default("sans"),
+  /** the heading and figure type paired with the body: match (the body's), serif, display (high-contrast luxury serif), geometric, condensed, slab, mono */
+  heading: z.enum(["match", "serif", "display", "geometric", "condensed", "slab", "mono"]).default("match"),
+  /** the logo: glyph (an abstract shape on a tile), monogram (the initial on a tile), wordmark (the name alone, set in the heading type), emblem (a symbol of what the product does) */
+  mark: z.enum(["glyph", "monogram", "wordmark", "emblem"]).default("glyph"),
   radius: z.enum(["sharp", "soft", "round"]).default("soft"),
   density: z.enum(["comfortable", "compact"]).default("comfortable"),
   surface: z.enum(["flat", "soft", "glass"]).default("flat"),
@@ -287,9 +320,13 @@ export const DesignBody = z.object({
     mock: ScreenMock.optional(), mockFull: ScreenMockFull.optional(),
     /** the app it belongs to, when the product has more than one */
     app: z.string().optional(),
+    /** the navigation group it is listed under in a sidebar or drawer */
+    group: z.string().optional(),
   })),
   /** the product's apps when it has more than one (each with its own device and frame) */
   apps: z.array(DesignApp).optional(),
+  /** the switcher of a product with one app */
+  switcher: Switcher.optional(),
   mapping: z.object({ unmappedReqs: z.array(Id), orphanScreens: z.array(Id) }),
   noScreen: z.array(z.object({ req: Id, reason: z.string() })).optional(),
   theme: DesignTheme.optional(),

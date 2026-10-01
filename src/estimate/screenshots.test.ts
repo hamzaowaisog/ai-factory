@@ -8,7 +8,7 @@ const offBefore = process.env.FACTORY_NO_SCREENSHOTS;
 beforeAll(() => { delete process.env.FACTORY_NO_SCREENSHOTS; });
 afterAll(() => { if (offBefore !== undefined) process.env.FACTORY_NO_SCREENSHOTS = offBefore; });
 import { buildDemo } from "./demo.js";
-import { captureDemo, findChromium, LAYOUT_CHECK } from "./screenshots.js";
+import { captureDemo, checkDemoLayout, findChromium, LAYOUT_CHECK } from "./screenshots.js";
 
 const screens = [
   { id: "S-1", route: "/pay", file: "app/pay/page.tsx", reqs: ["REQ-1"], states: ["default", "error"], size: "new", frames: [] },
@@ -37,6 +37,15 @@ describe("demo screenshots", () => {
     expect(r.shots.map((s) => s.file).sort()).toEqual(["s-1-default-desktop.png", "s-1-default-phone.png", "s-1-error-desktop.png", "s-1-error-phone.png", "s-2-default-desktop.png", "s-2-default-phone.png"]);
     for (const s of r.shots) { expect(existsSync(join(out, s.file))).toBe(true); expect(statSync(join(out, s.file)).size).toBeGreaterThan(500); }
     expect(readdirSync(out)).toHaveLength(6);
+  }, 60_000);
+
+  it.skipIf(!findChromium())("checks the layout without taking pictures, and says nothing when it cannot", async () => {
+    const d = dir(); const f = join(d, "demo.html"); writeFileSync(f, html);
+    expect(await checkDemoLayout(f, screens)).toEqual([]);
+    expect(readdirSync(d)).toEqual(["demo.html"]);
+    expect(await checkDemoLayout(f, [])).toBeUndefined();
+    process.env.FACTORY_DESIGN_LAYOUT_CHECK = "0";
+    try { expect(await checkDemoLayout(f, screens)).toBeUndefined(); } finally { delete process.env.FACTORY_DESIGN_LAYOUT_CHECK; }
   }, 60_000);
 
   it.skipIf(!findChromium())("finds text past the frame, cut off by its box, or on top of other text", async () => {
