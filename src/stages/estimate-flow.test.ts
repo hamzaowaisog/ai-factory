@@ -22,7 +22,7 @@ import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { approveEstimateStep, designBaselineStep, exportStep } from "./estimate-approve.js";
 import { estimateGroundStep, newBuildBehaviour } from "./estimate-ground.js";
 import { breakdownStep, estimateStep, setRecordsSource } from "./estimate.js";
-import { designStep, mapDesign, MAX_DESIGN_REVISIONS } from "./design.js";
+import { designQuality, designStep, mapDesign, MAX_DESIGN_REVISIONS } from "./design.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
 import { NO_TRACE } from "../util/trace.js";
@@ -395,10 +395,14 @@ describe("export step", () => {
 // ---------- design step ----------
 describe("design step", () => {
   const twoReqs = { ...spec, requirements: [...spec.requirements, { id: "REQ-2", ears: "The system shall export a PDF report.", op: "ADDED", sources: ["I-1"], acceptance: [] }] };
-  const out = (over: Record<string, unknown> = {}) => ({
+  const theme = { mood: "calm clinical", mode: "light", brand: "#1f6feb", neutral: "cool", chrome: "plain", font: "sans", radius: "soft", density: "comfortable", surface: "flat", motion: "lively" };
+  const mock = { title: "Sign in", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["Sign in"] }], copy: {} };
+  /** a finished-looking answer: every screen without a frame gets sample content, and the product has a theme */
+  const dress = (o: { screens: Record<string, unknown>[] } & Record<string, unknown>) => ({ theme, ...o, screens: o.screens.map((s) => (s.mock || (s.frames as unknown[] | undefined)?.length ? s : { ...s, mock })) });
+  const out = (over: Record<string, unknown> = {}) => dress({
     flow: "A user signs in, lands on the dashboard", screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["error"], size: "new" }],
     noScreen: [{ req: "REQ-2", reason: "a scheduled job, no screen" }], ...over,
-  });
+  } as never);
   async function uiRun(touchesUi = true) {
     const ledger = await newRun();
     await complete(ledger, "intake", uiIntent(touchesUi));
@@ -520,5 +524,24 @@ describe("editing an estimate on its card", () => {
   it("shows the edit command on the card", async () => {
     const ledger = await sized();
     expect(((await exec(ledger, approveEstimateStep)) as { card: { markdown: string } }).card.markdown).toMatch(/factory edit-estimate .* --anchor EST-1=<min>-<max>/);
+  });
+});
+
+describe("design quality (a finished look, not a wireframe)", () => {
+  const base = { flow: "f", noScreen: [] };
+  const sc = (extra: object = {}) => ({ id: "S-1", route: "/a", file: "a.tsx", reqs: ["R-1"], states: [], size: "new", frames: [], ...extra });
+  const mockOf = (blocks: unknown[]) => ({ title: "T", blocks, copy: {} });
+  const two = [{ type: "actions", buttons: ["Go"] }, { type: "text", body: "Hello" }];
+  it("asks for a theme and for sample content on every screen without a frame", () => {
+    const checks = (o: object) => designQuality({ ...base, ...o } as never).map((q) => q.check);
+    expect(checks({ screens: [sc()] })).toEqual(["design-no-theme", "design-no-mock"]);
+    expect(checks({ theme: { brand: "#112233" }, screens: [sc({ mock: mockOf(two) })] })).toEqual([]);
+    expect(checks({ theme: {}, screens: [sc({ frames: ["F-1"] })] })).toEqual([]);
+  });
+  it("rejects thin pages, short tables and placeholder text", () => {
+    const checks = (m: unknown) => designQuality({ ...base, theme: {}, screens: [sc({ mock: m })] } as never).map((q) => q.check);
+    expect(checks(mockOf([two[0]]))).toEqual(["design-thin-mock"]);
+    expect(checks(mockOf([...two, { type: "table", columns: ["A"], rows: [["x"]] }]))).toEqual(["design-thin-mock"]);
+    expect(checks(mockOf([{ type: "list", items: [{ title: "Item 1", meta: "m" }] }, two[0]]))).toEqual(["design-placeholder"]);
   });
 });

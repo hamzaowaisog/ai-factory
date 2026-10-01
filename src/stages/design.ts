@@ -50,8 +50,8 @@ const RULES = `You are drawing the screen inventory of a UI request, for an esti
   font: "sans" (default), "humanist" (friendly, health, education), "serif" (editorial, legal, luxury, heritage headings) or "rounded" (playful consumer).
   radius: "sharp" (enterprise, data-dense, government), "soft" (most products) or "round" (friendly consumer).
   density: "compact" for tools used all day, "comfortable" otherwise.
-  surface: "flat" (hairline borders, no shadow: the default), "soft" (light shadow, consumer) or "glass" (translucent; only for media or creative tools).
-  motion: "calm" (serious, high-stakes) or "lively" (consumer, showcase). The page animates entrances, charts, numbers and skeletons either way; calm only quiets it.
+  surface: "soft" (layered cards with a light shadow: the modern default for most products), "flat" (hairline borders, no shadow; dense back-office tools) or "glass" (translucent; media, creative or premium consumer products).
+  motion: "lively" (the default: entrances, counting numbers, drawing charts, skeleton shimmer) or "calm" (only for serious, high-stakes tools). The page animates either way; calm only quiets it. Aim for a current, polished product, the kind shipped this year, not a plain form.
 - MOCK CONTENT. For every screen also give "mock": what the page shows, as a picture to react to, not a spec.
   Take every noun from the requirements' own domain: its entities, roles, statuses, units, currencies, places, names and formats. Make the sample data believable and varied (different lengths, several statuses, plausible dates and amounts that agree with each other). Never "Lorem ipsum", "Item 1", "Column A", "Test User" or "Sample".
   "title" and "subtitle" of the page; "blocks" in page order (2 to 5), each one of: stats (label, value, delta), filters (search placeholder, chips), table (columns, 4 to 6 rows of cells, statusColumn = index of the status column), form (fields with label, kind text/select/date/textarea/toggle, placeholder or value, options; the submit label), chart (bar or line, title, 5 to 8 labelled points), cards (title, meta, badge; visual true for things people choose by picture, like products, places, listings), list (title, meta), steps (a progress or checkout path, current index), timeline (time, title, status done/now/next: tracking, history, itinerary), detail (a record's labelled facts; style "pass" for a ticket, booking or boarding pass, with a lead value like the route or amount), actions (button labels), text (body).
@@ -61,6 +61,30 @@ const RULES = `You are drawing the screen inventory of a UI request, for an esti
 - If an approved earlier design is given, this is a change to it: keep the id, route and file of every screen that does not change, give new screens the next free ids, and drop a screen only when the new requirements remove it.
 - If an existing-system summary is given, mark a screen "reuse" or "tweak" only when an existing page or shared component really covers it.
 ${UNTRUSTED_NOTE}`;
+
+const PLACEHOLDER = /lorem ipsum|\bitem \d\b|column [a-d]\b|test user|\bsample\b|john doe|jane doe|foo bar|\bTBD\b/i;
+
+/**
+ * What makes the demo look finished rather than raw. Without "theme" the page falls back to a default look; a screen
+ * without "mock" is drawn as a grey wireframe. Both are optional in the schema, so code insists on them for a request with UI
+ * (a screen shown by an attached frame needs no mock) and the model is asked again with these reasons.
+ */
+export function designQuality(out: z.infer<typeof DesignOut>): { check: string; message: string }[] {
+  const bad: { check: string; message: string }[] = [];
+  if (!out.theme) bad.push({ check: "design-no-theme", message: 'No "theme". Choose the product look (brand colour, mode, radius, font, surface, motion) from the ART DIRECTION rules; without it the demo shows a default look.' });
+  for (const sc of out.screens) {
+    if (!sc.mock) {
+      if (!sc.frames.length) bad.push({ check: "design-no-mock", message: `Screen ${sc.id} has no "mock". Give it believable sample content (2 to 5 blocks) so the demo is not a wireframe.` });
+      continue;
+    }
+    if (sc.mock.blocks.length < 2) bad.push({ check: "design-thin-mock", message: `Screen ${sc.id} has only ${sc.mock.blocks.length} block. A real page has 2 to 5 (header figures, a table or cards, filters, actions).` });
+    const hit = JSON.stringify(sc.mock).match(PLACEHOLDER);
+    if (hit) bad.push({ check: "design-placeholder", message: `Screen ${sc.id} sample content contains placeholder text ("${hit[0]}"). Use real names, amounts, statuses and dates from the product's domain.` });
+    const tbl = sc.mock.blocks.find((b) => b.type === "table");
+    if (tbl && tbl.type === "table" && tbl.rows.length < 3) bad.push({ check: "design-thin-mock", message: `The table on ${sc.id} has ${tbl.rows.length} rows; give 4 to 6 varied rows so it reads like real data.` });
+  }
+  return bad;
+}
 
 /** The design frames listed in the request text (`- F-1 home.png`), in order. JSON exports are data, not screens. */
 export function listedFrames(request: string): { id: string; name: string }[] {
@@ -101,7 +125,7 @@ export function designRejections(s: RunState): string[] {
 }
 
 export const designStep: StepDef = {
-  key: "design", stage: "design", templateVersion: "7",
+  key: "design", stage: "design", templateVersion: "8",
   inputs: (s, l) => {
     if (s.steps.get("specify")?.status !== "completed" || s.steps.get("intake")?.status !== "completed") return undefined;
     const ui = !!l.getJson<Intent>(s.steps.get("intake")!.outputs[0]!)?.touchesUi;
@@ -143,6 +167,7 @@ export const designStep: StepDef = {
       ...map.duplicateRoutes.map((x) => failure("design-duplicate-route", `two screens share the route ${x}; one screen has one route (give states, not a second screen)`)),
       ...map.unknownFrames.map((x) => failure("design-unknown-frame", `${x} is not one of the attached frames`)),
       ...map.unusedFrames.map((x) => failure("design-frame-unused", `attached frame ${x} is on no screen`)),
+      ...designQuality(r.output).map((q) => failure(q.check, q.message)),
     ];
     if (bad.length) return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}` };
     const artifact = {

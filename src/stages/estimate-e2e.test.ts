@@ -85,7 +85,11 @@ function answerFor(system: string): unknown {
   if (modular && system.includes("sizing the tasks")) return bigSizing();
   if (modular && system.includes("turning a finished spec")) return bigBreakdown();
   if (modular && system.includes("Requirements analyst")) return { questions: [], conflicts: [] };
-  if (system.includes("drawing the screen inventory")) return uiDesign;
+  if (system.includes("drawing the screen inventory")) {
+    const d = uiDesign as { screens: Record<string, unknown>[] };
+    const mock = { title: "Page", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["Continue"] }], copy: {} };
+    return { theme: { mood: "calm", brand: "#1f6feb" }, ...d, screens: d.screens.map((x) => ({ mock, ...x })) };
+  }
   if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "sign in and export reports" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: ui };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: "user signs in", kind: "happy" }, { text: "user exports a PDF", kind: "happy" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [] };
