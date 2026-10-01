@@ -353,6 +353,18 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(ledger.events().some((e) => e.type === "ledger.repaired")).toBe(true);
   });
 
+  it("parks, never swaps, when a step's model isn't in the policy's allowed models", async () => {
+    const home = process.env.FACTORY_HOME!;
+    const file = join(home, "projects", "demo.yaml");
+    const { parse } = await import("yaml");
+    writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), policy: { allowedModels: ["claude-haiku-4-5", "claude-sonnet-5"] } }));
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const r = await execute(runId);
+    expect(r.status).toBe("parked");
+    expect(r.message).toMatch(/needs claude-opus-5-5 but this run's policy allows only claude-haiku-4-5, claude-sonnet-5/);
+    expect(modelCalls.some((m) => /opus/.test(m))).toBe(false);
+  });
+
   it("parks when a coding step keeps failing a safety gate", async () => {
     const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
     const ledger = await toApproval(runId);

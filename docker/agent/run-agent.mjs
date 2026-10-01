@@ -109,7 +109,7 @@ async function main() {
     if (m.type === "assistant") {
       const u = m.message?.usage ?? {};
       const text = (m.message?.content ?? []).filter((b) => b.type === "text").map((b) => b.text).join(" ");
-      progress({ kind: "turn", in: (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0), out: u.output_tokens ?? 0, text: short(text, 160) });
+      progress({ kind: "turn", id: m.message?.id, in: (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0), out: u.output_tokens ?? 0, cacheRead: u.cache_read_input_tokens ?? 0, cacheWrite: u.cache_creation_input_tokens ?? 0, text: short(text, 160) });
     }
     if (m.type === "result") {
       out.turns = m.num_turns;

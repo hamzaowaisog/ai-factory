@@ -79,6 +79,21 @@ describe("spend limits", () => {
     expect(checkCaps(replay(low.events()))?.kind).toBe("cost");
   });
 
+  it("the $5 bugfix and S caps apply (no $10 floor): class cap before plan, spend at plan + size cap after", async () => {
+    const l = await run("cap-5", { maxCostUsd: 50 });
+    await l.append({ type: "step.completed", key: "intake/1", data: { changeClass: "bugfix" } }, HUMAN_WRITER);
+    expect(currentCostCap(replay(l.events()))).toBe(5);
+    await l.append({ type: "usage", data: { "gen_ai.usage.cost_usd": 4.5 } }, HUMAN_WRITER);
+    expect(checkCaps(replay(l.events()))).toBeUndefined();
+    await l.append({ type: "usage", data: { "gen_ai.usage.cost_usd": 0.6 } }, HUMAN_WRITER);
+    expect(checkCaps(replay(l.events()))).toMatchObject({ kind: "cost", proposal: { costUsd: 10 } });
+    await l.append({ type: "step.completed", key: "plan/1", data: { complexity: "S" } }, HUMAN_WRITER);
+    expect(currentCostCap(replay(l.events()))).toBeCloseTo(10.1, 6);
+    const lowered = await run("cap-5b", { maxCostUsd: 2 });
+    await lowered.append({ type: "step.completed", key: "intake/1", data: { changeClass: "bugfix" } }, HUMAN_WRITER);
+    expect(currentCostCap(replay(lowered.events()))).toBe(2);
+  });
+
   it("the retry budget limits attempts", async () => {
     const l = await run("rb-1");
     for (let i = 1; i <= 2; i++) {

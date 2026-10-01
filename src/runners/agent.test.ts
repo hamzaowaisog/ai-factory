@@ -5,8 +5,9 @@ import http from "node:http";
 import { beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { ContainerRuntime, ContainerSpec } from "../verify/runtime.js";
+import { DEFAULT_POLICY, withPolicy } from "../gates/policy.js";
 import { agentFileMasks, ClaudeAgentRunner } from "./claude-agent.js";
-import { AGENT_NET, API_BASE_URL } from "./netinfra.js";
+import { AGENT_NET, API_BASE_URL, apiProxyEnv } from "./netinfra.js";
 
 beforeEach(() => {
   process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "factory-agent-"));
@@ -85,6 +86,47 @@ describe("ClaudeAgentRunner (fake runtime)", () => {
     expect(r.status).toBe("error");
   });
 
+  it("counts spend from progress.jsonl when the agent times out or leaves no result", async () => {
+    const lines = [
+      { kind: "start", model: "claude-sonnet-5" },
+      { kind: "turn", id: "m1", in: 1_000_100, out: 10, cacheRead: 1_000_000, cacheWrite: 0 },
+      { kind: "turn", id: "m1", in: 1_000_100, out: 20, cacheRead: 1_000_000, cacheWrite: 0 }, // same message, later block
+      { kind: "turn", id: "m2", in: 200_000, out: 1_000_000, cacheRead: 0, cacheWrite: 400_000 },
+      { kind: "tool", tool: "Bash" },
+    ].map((l) => JSON.stringify({ ts: 1, ...l })).join("\n") + "\n";
+    for (const timeout of [true, false]) {
+      const rt = new FakeRt(undefined);
+      rt.wait = async () => {
+        writeFileSync(join(rt.spec!.mounts.find((m) => m.dst === "/job/out")!.src, "progress.jsonl"), lines);
+        return timeout ? undefined : 137;
+      };
+      const r = await new ClaudeAgentRunner(rt, { runId: "r", key: "k", fileScope: [], lockedFiles: [], extraProtected: [], agentEnv: {} })
+        .run({ step: "implement", model: "claude-sonnet-5", pack, schema: Out, limits: { maxTurns: 1, maxUsd: 1, timeoutSec: 60 }, workdir: worktree() });
+      expect(r.status).toBe(timeout ? "timeout" : "error");
+      expect(r.usage).toMatchObject({ inputTokens: 200_100, outputTokens: 1_000_020, cacheRead: 1_000_000, cacheWrite: 400_000, turns: 2 });
+      // sonnet-5: 0.2001M×$2 + 1.00002M×$10 + 1M×$0.2 + 0.4M×$2.5
+      expect(r.usage.estUsd).toBeCloseTo(0.4002 + 10.0002 + 0.2 + 1, 4);
+    }
+  });
+
+  it("keeps the SDK's total when the result exists", async () => {
+    const rt = new FakeRt({ status: "error", error: "x", instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 10, output_tokens: 5 }, costUsd: 0.5, turns: 2 });
+    const r = await new ClaudeAgentRunner(rt, { runId: "r", key: "k", fileScope: [], lockedFiles: [], extraProtected: [], agentEnv: {} })
+      .run({ step: "implement", model: "claude-sonnet-5", pack, schema: Out, limits: { maxTurns: 1, maxUsd: 1, timeoutSec: 60 }, workdir: worktree() });
+    expect(r.usage).toMatchObject({ inputTokens: 10, outputTokens: 5, estUsd: 0.5, turns: 2 });
+  });
+
+  it("refuses a coding model the run's policy doesn't allow (config-error parks) before starting a container", async () => {
+    const rt = new FakeRt(undefined);
+    const run = () => new ClaudeAgentRunner(rt, { runId: "r", key: "k", fileScope: [], lockedFiles: [], extraProtected: [], agentEnv: {} })
+      .run({ step: "author-tests", model: "claude-sonnet-5", pack, schema: Out, limits: { maxTurns: 1, maxUsd: 1, timeoutSec: 60 }, workdir: worktree() });
+    const r = await withPolicy({ ...DEFAULT_POLICY, allowedModels: ["claude-opus-5-5"] }, run);
+    expect(r.status).toBe("config-error");
+    expect(r.error).toMatch(/author-tests needs claude-sonnet-5 but this run's policy allows only claude-opus-5-5/);
+    expect(rt.spec).toBeUndefined();
+    expect((await withPolicy(DEFAULT_POLICY, run)).status).toBe("error"); // "*": runs (no result here)
+  });
+
   it("lists masks: agent files, tracked secret files, no-go folders", () => {
     const m = agentFileMasks(worktree(), ["web/**"]);
     expect(m.files.sort()).toEqual([".mcp.json", "CLAUDE.md", "src/Api/AGENTS.md"]);
@@ -100,6 +142,22 @@ describe("egress proxy", () => {
     expect(proxy.hostAllowed("pkgs.dev.azure.com", ["api.nuget.org"])).toBe(false);
     expect(proxy.route("/anthropic/v1/messages")).toEqual({ name: "anthropic", path: "/v1/messages" });
     expect(proxy.route("/http://evil.com/")).toBeUndefined();
+  });
+
+  // the proxy module reads its keys once at import, so this needs a shell without OPENAI_API_KEY
+  it.skipIf(!!process.env.OPENAI_API_KEY)("the key proxy gets only the Anthropic key and refuses routes without a key", async () => {
+    process.env.OPENAI_API_KEY = "sk-openai-should-not-reach-proxy";
+    try { expect(JSON.stringify(apiProxyEnv())).not.toContain("sk-openai"); } finally { delete process.env.OPENAI_API_KEY; }
+    const proxy = await import("../../docker/proxy/proxy.mjs" as string);
+    const server: http.Server = proxy.apiServer();
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+    const port = (server.address() as { port: number }).port;
+    const status = await new Promise<number>((resolve) => {
+      http.request({ host: "127.0.0.1", port, method: "POST", path: "/openai/v1/responses" }, (res) => { res.resume(); resolve(res.statusCode ?? 0); })
+        .on("error", () => resolve(-1)).end("{}");
+    });
+    server.close();
+    expect(status).toBe(403);
   });
 
   it("feed proxy refuses CONNECT to other hosts", async () => {

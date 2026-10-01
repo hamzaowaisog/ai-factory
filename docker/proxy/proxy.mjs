@@ -1,6 +1,7 @@
 // Factory egress proxy. No dependencies; runs in a small container on an internal network.
 //   MODE=api   → reverse proxy: /anthropic/* → https://api.anthropic.com/*, adds the API key.
-//                The agent container never holds the key and can reach nothing else.
+//                The agent container never holds the key and can reach nothing else. A route
+//                whose key isn't set is refused (the factory passes only ANTHROPIC_API_KEY).
 //   MODE=feeds → forward proxy: HTTPS CONNECT only to allowlisted hosts (package feeds).
 // POC limit: feeds are allowlisted by host, not URL prefix (verify-runner §2.3 wants TLS
 // termination with a factory CA; not built yet).
