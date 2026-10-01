@@ -252,7 +252,7 @@ export function resolveTestIds(names: string[], resultIds: string[]): { ids: Rec
 // (case-sensitive; no {a,b}: the in-container matcher lacks it)
 export const TEST_SCOPE = ["tests/**", "test/**", "**/__tests__/**",
   ...["Test", "Tests", "TEST", "TESTS"].flatMap((n) => [`**/*${n}/**`, `**/*${n}.*/**`]),
-  ...["", "*.", "*-", "*_"].flatMap((p) => ["test", "tests"].map((n) => `**/${p}${n}/**`))];
+  ...["", "*.", "*-", "*_"].flatMap((p) => ["test", "tests"].flatMap((n) => [`**/${p}${n}/**`, ...(p ? [`**/${p}${n}.*/**`] : [])]))];
 
 const SKIP_MARKER = ESCAPE_HATCHES.find((h) => h.id === "skip-test")!.re;
 // added lines that take tests out of the build or the run without touching a test method

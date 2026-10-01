@@ -103,9 +103,9 @@ describe("integrate reuses the last task's run", () => {
 
 describe("test writer: scope and tampering", () => {
   it("scope is test folders only", () => {
-    for (const p of ["tests/Shop.Tests/OrdersTests.cs", "src/Shop.Tests/A.cs", "src/ShopTests/A.cs", "src/shop-tests/a.cs", "src/Shop_Test/A.cs", "test/a.cs", "src/Tests/A.cs", "x/test/a.cs", "src/MyApp.Tests.Unit/A.cs", "src/MyApp.Test.Helpers/A.cs", "web/src/__tests__/a.ts"])
+    for (const p of ["tests/Shop.Tests/OrdersTests.cs", "src/Shop.Tests/A.cs", "src/ShopTests/A.cs", "src/shop-tests/a.cs", "src/Shop_Test/A.cs", "test/a.cs", "src/Tests/A.cs", "x/test/a.cs", "src/MyApp.Tests.Unit/A.cs", "src/MyApp.Test.Helpers/A.cs", "web/src/__tests__/a.ts", "src/MyApp.tests.integration/A.cs", "src/my-app-tests.e2e/a.ts"])
       expect(matchesAny(p, TEST_SCOPE), p).toBe(true);
-    for (const p of ["src/Latest/A.cs", "src/Contest/A.cs", "src/Attestation/A.cs", "src/Shop/OrdersTests.cs", "src/latest-test.cs", "src/Latest.Api/A.cs", "src/Contest.Web/A.cs"])
+    for (const p of ["src/Latest/A.cs", "src/Contest/A.cs", "src/Attestation/A.cs", "src/Shop/OrdersTests.cs", "src/latest-test.cs", "src/Latest.Api/A.cs", "src/Contest.Web/A.cs", "src/latest.api/a.cs", "src/contest.web/a.cs"])
       expect(matchesAny(p, TEST_SCOPE), p).toBe(false);
   });
 
