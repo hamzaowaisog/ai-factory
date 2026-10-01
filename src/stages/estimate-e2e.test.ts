@@ -51,6 +51,9 @@ const sizing = {
 };
 
 let prompts: string[] = [];
+/** tool names each spec drafter got, and the critic's instructions */
+let drafterTools: string[][] = [];
+let criticSystems: string[] = [];
 /** a large document: two modules, each with its own intake span, no questions, four requirements in all */
 let modular = false;
 let intakeCalls = 0;
@@ -101,7 +104,9 @@ function answerFor(system: string): unknown {
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
 }
 const provider: Provider = {
-  start(_m, _e, system): Conversation {
+  start(_m, _e, system, _u, tools): Conversation {
+    if (system.includes("Senior engineer writing a behaviour spec")) drafterTools.push(tools.map((t) => t.name));
+    if (system.includes("Adversarial reviewer")) criticSystems.push(system);
     return { async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answerFor(system) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
@@ -116,6 +121,8 @@ beforeEach(() => {
   setProviderFactory(() => provider);
   setRecordsSource(() => []);
   prompts = [];
+  drafterTools = [];
+  criticSystems = [];
   modular = false;
   intakeCalls = 0;
   ui = false;
@@ -159,6 +166,11 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     // no repo, no build steps, no model call for ground
     expect(s.steps.has("plan")).toBe(false);
     expect(s.steps.get("ground")!.data).toMatchObject({ repo: false });
+    // no repo: drafters get no repo tools, the critic isn't asked about existing code
+    expect(drafterTools.length).toBeGreaterThan(0);
+    expect(drafterTools.flat().filter((t) => t === "read_file" || t === "search")).toEqual([]);
+    expect(criticSystems.length).toBeGreaterThan(0);
+    for (const c of criticSystems) { expect(c).toContain("There is no existing codebase"); expect(c).not.toContain("without anchors"); }
     const gates = s.gates.map((g) => `${g.gateId}:${g.passed}`);
     for (const g of ["estimate.e1-readiness", "estimate.e1b-design-baseline", "estimate.e2-req-to-task", "estimate.e3-task-to-req", "estimate.e4-checklist", "estimate.e5-consistency", "estimate.e6-lint", "estimate.e7-approval"]) expect(gates, g).toContain(`${g}:true`);
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
