@@ -10,8 +10,7 @@ import { clarifications, type ClarifyResult } from "./clarify.js";
 import { lintSpec, type LintResult } from "./speclint.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
-import { LANE, lightSpec, specLane } from "./lane.js";
-import { hasRepo } from "./estimate-ground.js";
+import { LANE, lightSpec } from "./lane.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -107,18 +106,8 @@ Format rules (checked by code):
 - A bugfix has at most 4 requirements.
 ${UNTRUSTED_NOTE}`;
 
-/** Estimate mode: the spec is priced as a whole, so it must keep everything the request asked for. */
-function estimateScope(ctx: StepContext) {
-  if (ctx.state.info.mode !== "estimate") return [];
-  return [S.template("estimate-scope", `This spec feeds a cost estimate for the WHOLE request.
-- Cover every part of the request with requirements. Never defer work to "later runs", never split it into a run sequence, and never move requested work to out of scope to keep the spec short. There is no limit on the number of requirements.
-- Out of scope is only for things the request excludes or never mentions.${hasRepo(ctx.state) ? "" : `
-- There is no repository: all behaviour is new. Don't claim anything about existing code or invent existing status values, and don't write anchors.`}`)];
-}
-
 function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
   return [
-    ...estimateScope(ctx),
     S.template("tpl", DRAFT_RULES),
     S.artifact("intent", "intent", i.intent),
     S.artifact("answers", "answers", i.answers),
@@ -128,18 +117,11 @@ function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
   ];
 }
 
-/** Repo tools for a drafter. A requirements-only estimate has no repo (the snapshot is empty), so offering tools only buys wasted turns. */
-function repoAccess(ctx: StepContext) {
-  return ctx.state.info.mode === "estimate" && !hasRepo(ctx.state)
-    ? { tools: [] as ("read_file" | "search")[] }
-    : { tools: ["read_file", "search"] as ("read_file" | "search")[], repoTools: toolsFor(ctx) };
-}
-
 // ---------- steps ----------
 
 /** Three independent drafts: 2 × Opus + 1 × other family (Sonnet for a low-risk bugfix). The light lane writes one. */
 export const draftsStep: StepDef = {
-  key: "drafts", stage: "specify", templateVersion: "3",
+  key: "drafts", stage: "specify", templateVersion: "2",
   inputs: (s) => (s.steps.get("clarify-2")?.status === "completed"
     ? { intent: s.steps.get("intake")!.outputs[0], cb: s.steps.get("ground")!.outputs[0], c1: s.steps.get("clarify")!.outputs[0], c2: s.steps.get("clarify-2")!.outputs[0] } : undefined),
   async run(ctx) {
@@ -149,7 +131,8 @@ export const draftsStep: StepDef = {
     const routes = (lowBugfix || light ? ["specify", "specify", "specify"] : ["specify", "specify", "specify-other"]).slice(0, light ? LANE.light.drafts : LANE.full.drafts);
     const models = lowBugfix || light ? routes.map(() => "claude-sonnet-5") : [undefined, undefined, undefined];
     const rs = await Promise.all(routes.map((route, n) => think(ctx, {
-      stage: "specify", route, model: models[n], cls: "read-large", budgetTokens: 30000, ...repoAccess(ctx), schema: DraftOut, maxTurns: 8,
+      stage: "specify", route, model: models[n], cls: "read-large", budgetTokens: 30000, tools: ["read_file", "search"],
+      repoTools: toolsFor(ctx), schema: DraftOut, maxTurns: 8,
       sections: [...draftSections(ctx, i), S.task(routes.length === 1 ? "Write the spec." : `Write the spec (independent draft ${n + 1}).`)],
     })));
     const bad = rs.find((r) => !r.ok);
@@ -195,7 +178,7 @@ interface Checks { lint: LintResult[]; critic: z.infer<typeof CriticOut>["findin
 async function checkSpec(ctx: StepContext, spec: Spec, i: ReturnType<typeof inputsOf>, criticEffort?: "low" | "medium" | "high"): Promise<{ ok: true; checks: Checks } | { ok: false; outcome: StepOutcome }> {
   const snap = snapshotFor(ctx);
   const lint = lintSpec(spec, {
-    spans: i.intent.spans.map((s) => s.id), changeClass: i.intent.changeClass, noSizeLimit: ctx.state.info.mode === "estimate",
+    spans: i.intent.spans.map((s) => s.id), changeClass: i.intent.changeClass,
     anchorOk: (id) => (spec.requirements.find((q) => q.id === id)?.anchors ?? []).every((a) => checkEvidence(snap, a).ok),
   });
   const [critic, restate] = await Promise.all([
@@ -206,7 +189,6 @@ async function checkSpec(ctx: StepContext, spec: Spec, i: ReturnType<typeof inpu
 Rubric: 1 conflicts between requirements 2 missing error, empty and permission paths 3 ACs not observable at a public surface 4 scope creep beyond the intent 5 claims about existing behaviour without anchors 6 state transitions and existing data 7 behaviour changes outside the requested scope (blast radius) 8 hardcoded identifiers that should be configuration.
 Each finding: rubric number, reqId, severity (critical|high|medium|low), one-sentence evidence in "finding". Empty list if none.
 The human answered questions and accepted assumptions (below). Scope they decided is not a defect: don't flag it.`),
-        ...(ctx.state.info.mode === "estimate" ? [S.template("estimate-review", `This spec feeds a cost estimate for the whole request. Requested work that was deferred, split into later runs or moved to out of scope is a HIGH severity finding (rubric 4).${hasRepo(ctx.state) ? "" : " There is no repository: don't flag missing anchors, unknown existing statuses or fields, or current-behaviour claims; all behaviour is new."} Example numbers the human accepted (e.g. a 60 s window) are not hardcoding defects.`)] : []),
         S.artifact("intent", "intent", i.intent),
         S.artifact("answers", "answers", i.answers),
         S.artifact("assumptions", "assumptions", i.assumptions),
@@ -252,11 +234,11 @@ function problems(c: Checks): string[] {
 
 /** Final spec: check, repair (one drafter, merged spec + findings) up to 3 times (once on the light lane). */
 export const specifyStep: StepDef = {
-  key: "specify", stage: "specify", templateVersion: "4",
+  key: "specify", stage: "specify", templateVersion: "3",
   inputs: (s) => (s.steps.get("merge")?.status === "completed" ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s) } : undefined),
   async run(ctx) {
     const i = inputsOf(ctx);
-    const lane = specLane(i.intent, ctx.state.info.mode);
+    const lane = lightSpec(i.intent) ? LANE.light : LANE.full;
     const merged = requireOutput<{ spec: Spec; conflicts: string[]; singleDraft?: boolean }>(ctx.state, ctx.ledger, "merge");
     // stability is only measured across drafts: with one draft there's nothing to report
     const stable = (stab: Record<string, number | undefined>, id: string) => (merged.singleDraft ? undefined : stab[id] ?? 1 / 3);
@@ -268,7 +250,7 @@ export const specifyStep: StepDef = {
     if (rejections.length) {
       ctx.log(`specify: revising for your rejection: ${rejections[rejections.length - 1]}`);
       const r = await think(ctx, {
-        stage: "specify", route: "specify", cls: "read-large", budgetTokens: 30000, ...repoAccess(ctx), schema: DraftOut, maxTurns: 8,
+        stage: "specify", route: "specify", cls: "read-large", budgetTokens: 30000, tools: ["read_file", "search"], repoTools: toolsFor(ctx), schema: DraftOut, maxTurns: 8,
         sections: [
           ...draftSections(ctx, i),
           S.artifact("spec", "spec", spec),
@@ -295,7 +277,7 @@ export const specifyStep: StepDef = {
       repairs++;
       ctx.log(`specify: repair ${repairs}/${lane.maxRepairs} for ${open.length} findings`);
       const r = await think(ctx, {
-        stage: "specify", route: "specify", cls: "read-large", budgetTokens: 30000, ...repoAccess(ctx), schema: DraftOut, maxTurns: 8,
+        stage: "specify", route: "specify", cls: "read-large", budgetTokens: 30000, tools: ["read_file", "search"], repoTools: toolsFor(ctx), schema: DraftOut, maxTurns: 8,
         sections: [
           ...draftSections(ctx, i),
           S.artifact("spec", "spec", spec),
@@ -318,7 +300,7 @@ export const specifyStep: StepDef = {
     const criticSha = ctx.ledger.putJson({ findings: checks!.critic, note: checks!.criticNote });
     return {
       kind: "done", outputs: { spec: specSha, critic: criticSha },
-      data: { repairs, openFindings: problems(checks!), conflicts: merged.conflicts, manualUi: [...manualUi], lane: lane === LANE.light ? "light" : lane === LANE.estimate ? "estimate" : "full" },
+      data: { repairs, openFindings: problems(checks!), conflicts: merged.conflicts, manualUi: [...manualUi], lane: lane === LANE.light ? "light" : "full" },
     };
   },
 };

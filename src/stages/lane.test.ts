@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import type { RunState } from "../ledger/state.js";
 import { timeSplit } from "../report.js";
-import { LANE, lightBuild, lightSpec, specLane, testWriterTurns } from "./lane.js";
+import { LANE, lightBuild, lightSpec, testWriterTurns } from "./lane.js";
 import { downgradeUi } from "./specpipe.js";
 
 describe("light lane", () => {
@@ -68,15 +68,4 @@ describe("time split", () => {
     expect(t.get("plan")).toEqual({ modelSec: 10, agentSec: 0, labSec: 0 });
     expect(t.get("author-tests")).toEqual({ modelSec: 0, agentSec: 600, labSec: 78 });
   });
-});
-
-describe("specLane", () => {
-  const intent = (o: Partial<Parameters<typeof specLane>[0]> = {}) => ({ risk: "high", rigor: "full", changeClass: "feature", ...o }) as Parameters<typeof specLane>[0];
-  it("an estimate keeps three drafts but allows one repair and a medium critic", () => {
-    const l = specLane(intent(), "estimate");
-    expect(l).toBe(LANE.estimate);
-    expect(l).toMatchObject({ drafts: 3, maxRepairs: 1, criticEffort: "medium" });
-  });
-  it("a build run keeps the full lane", () => expect(specLane(intent(), "brownfield")).toBe(LANE.full));
-  it("a small low-risk change is light in any mode", () => expect(specLane(intent({ risk: "low", rigor: "light" }), "estimate")).toBe(LANE.light));
 });
