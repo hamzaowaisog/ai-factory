@@ -9,13 +9,21 @@ import { loadProject, projectPath } from "../config/project.js";
 import { verifyEvidence } from "../gates/engine.js";
 import "../gates/predicates.js";
 import "../design/gates.js";
+import "../estimate/lint.js";
+import "../estimate/gates.js";
 import { registerDesignCommands } from "../design/cli.js";
 import { assertTty, decide, DecisionError } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay, statusLabel } from "../ledger/state.js";
 import { createRun, execute } from "../stages/executor.js";
-import { describeSources, gatherRequest } from "../sources/request.js";
-import { checkRoutes } from "../stages/routing.js";
+import { answerOpenQuestions, canPrompt, terminalIO } from "./interactive.js";
+import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
+import { parseEstimateSettings, type EstimateOptions } from "../estimate/settings.js";
+import { approvedEstimate, type Approved } from "../estimate/lineage.js";
+import type { RequestSource } from "../sources/request.js";
+import { checkEdit, parseAnchorSpec, parseRatioSpec } from "../estimate/edits.js";
+import type { Proposal } from "../estimate/assemble.js";
+import { checkRoutes, ESTIMATE_ROUTES } from "../stages/routing.js";
 import { findRuntimeBinary } from "../verify/runtime.js";
 import { factoryHome } from "../util/paths.js";
 
@@ -30,9 +38,19 @@ function openRun(runId: string): Ledger {
   return Ledger.open(runId);
 }
 
+/** Run, and while the run only waits for answers to its questions, ask them here and carry on (a terminal only; elsewhere the run stops with the `factory answer` command). */
 async function runAndReport(runId: string): Promise<void> {
-  const r = await execute(runId, log);
-  log(`\n${r.status}: ${r.message}`);
+  for (;;) {
+    const r = await execute(runId, log);
+    if (r.status === "waiting" && canPrompt()) {
+      const io = terminalIO(log);
+      try {
+        if (await answerOpenQuestions(Ledger.open(runId), io)) continue;
+      } finally { io.close(); }
+    }
+    log(`\n${r.status}: ${r.message}`);
+    return;
+  }
 }
 
 const program = new Command();
@@ -43,19 +61,75 @@ program.command("start")
   .requiredOption("--project <name>", "project config in ~/.factory/projects/<name>.yaml")
   .option("--file <path>", "the request as a Markdown or text file")
   .option("--jira <key>", "the request as a Jira ticket (ABC-123 or its link)")
+  .option("--from-estimate <run>", "build an approved estimate: inherits its spec, plans against its tasks, and is held to its size and budget (gates B1-B5)")
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .description("create a run from a prompt, a file or a Jira ticket (any one, or several) and execute until a card, a park, or delivery")
-  .action(async (prompt: string | undefined, o: { project: string; maxCost?: string; file?: string; jira?: string }) => {
+  .action(async (prompt: string | undefined, o: { project: string; maxCost?: string; file?: string; jira?: string; fromEstimate?: string }) => {
     const project = loadProject(o.project);
     const problems = checkRoutes(project);
     if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
     // everything is read before a run exists: a bad file or ticket costs nothing
-    const req = await gatherRequest({ prompt, file: o.file, jira: o.jira });
+    let approved: Approved | undefined;
+    if (o.fromEstimate) {
+      if (prompt || o.file || o.jira) throw new Error("--from-estimate takes its request from the estimate; drop the prompt, --file and --jira. A changed requirement is a change request: factory estimate --revises <run>.");
+      approved = approvedEstimate(openRun(o.fromEstimate).runId);
+    }
+    const req = approved ? { text: approved.request, sources: [{ kind: "prompt" as const }] } : await gatherRequest({ prompt, file: o.file, jira: o.jira });
     const runId = await createRun(req.text, o.project, userInfo().username, {
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
-      sources: req.sources,
+      sources: req.sources, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}),
     });
     log(`run ${runId} (request from ${describeSources(req.sources)})`);
+    await runAndReport(runId);
+  });
+
+program.command("estimate")
+  .argument("[prompt]", "the requirements, in plain words")
+  .option("--project <name>", "project config in ~/.factory/projects/<name>.yaml; leave it out to estimate from the requirements alone (no repo)")
+  .option("--file <path>", "the requirements as a Markdown, text or Word (.docx) file")
+  .option("--frames <dir>", "a folder of design frames exported from Figma (png, jpg, webp, svg or json)")
+  .option("--jira <key>", "the requirements as a Jira ticket (ABC-123 or its link)")
+  .option("--delivery-model <model>", "hitl (supervisor + agents) or agentic (no supervisor gates)", "hitl")
+  .option("--stack-source <source>", "client (fixed), folio3 (we decide) or undecided (a default pack, stated as an assumption)", "undecided")
+  .option("--no-design-in-total", "keep Design out of the Summary total (the row still shows)")
+  .option("--feedback-rounds <n>", "client feedback rounds to allow for", "2")
+  .option("--rate <track=usd>", "hourly rate per track (backend, mobile, web, qa, design, gd, pm, pdm, default); repeat it; adds the team file's cost overlay", (v: string, prev: string[] = []) => [...prev, v])
+  .option("--no-repo", "the requirements stand alone: there is no existing code to read")
+  .option("--client <name>", "client name for the workbook header")
+  .option("--project-name <name>", "project name for the workbook header")
+  .option("--pm <name>", "project manager for the workbook header")
+  .option("--from-run <run>", "the other delivery model over an approved estimate: reuses its spec and tasks, sizes them again (set --delivery-model to the other one)")
+  .option("--revises <run>", "a change request: the new requirements revise an approved estimate, and the card shows what changed")
+  .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
+  .option("--fresh", "ask the model again even if the same requirements were estimated before (skips the stored answers)")
+  .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory; a lead approves it in the terminal, then two workbooks are written")
+  .action(async (prompt: string | undefined, o: EstimateOptions & { project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; fromRun?: string; revises?: string; fresh?: boolean }) => {
+    if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
+    if (o.fromRun && o.revises) throw new Error("Use --from-run or --revises, not both.");
+    // no --project: the requirements stand alone, so there is no repo to read
+    const projectName = o.project ?? (await import("../config/project.js")).ensureStandaloneProject();
+    const project = loadProject(projectName);
+    const problems = checkRoutes(project, ESTIMATE_ROUTES);
+    if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
+    let settings = parseEstimateSettings(o.project ? o : { ...o, repo: false });
+    let lineage: { kind: "change" | "sibling"; approved: Approved } | undefined;
+    let req: { text: string; sources: RequestSource[]; attachments: { name: string; bytes: Buffer }[] };
+    if (o.fromRun) {
+      const approved = approvedEstimate(openRun(o.fromRun).runId);
+      if (settings.deliveryModel === approved.deliveryModel) throw new Error(`That estimate is already ${approved.deliveryModel}. Give --delivery-model ${approved.deliveryModel === "hitl" ? "agentic" : "hitl"} for the other one.`);
+      // the same inputs as the approved run, under the other delivery model
+      settings = { ...approved.settings, deliveryModel: settings.deliveryModel };
+      lineage = { kind: "sibling", approved };
+      req = { text: approved.request, sources: [{ kind: "prompt" }], attachments: [] };
+    } else {
+      req = await gatherRequest({ prompt, file: o.file, jira: o.jira, frames: o.frames }, {}, { maxBytes: MAX_ESTIMATE_REQUEST_BYTES });
+      if (o.revises) lineage = { kind: "change", approved: approvedEstimate(openRun(o.revises).runId) };
+    }
+    const runId = await createRun(req.text, projectName, userInfo().username, {
+      mode: "estimate", estimate: settings, sources: req.sources, attachments: req.attachments, ...(lineage ? { lineage } : {}),
+      ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
+    });
+    log(`estimate run ${runId} (requirements from ${describeSources(req.sources)}; ${settings.deliveryModel === "hitl" ? "HITL" : "solely agentic"})`);
     await runAndReport(runId);
   });
 
@@ -95,22 +169,60 @@ program.command("show-card").argument("<run>").option("--pr", "show the PR text"
 for (const d of ["approve", "reject"] as const) {
   program.command(d).argument("<run>").argument("<hash>", "first characters of the card hash")
     .option("--note <text>", "your risk note (approve)")
+    .option("--sign-off <ids>", "estimate cards: sign off these low-confidence tasks, comma-separated (approve)")
     .option("--reason <text>", "why (reject)")
     .option("--reject <reason>", "reject instead, with this reason (approve only)")
     .description(d === "approve"
       ? "approve the open card, or --reject \"<reason>\" to send the spec and plan back with your reason (terminal only)"
       : "reject the open card with --reason; the spec and plan are revised and you get a new card (terminal only)")
-    .action(async (run: string, hash: string, o: { note?: string; reason?: string; reject?: string }) => {
+    .action(async (run: string, hash: string, o: { note?: string; signOff?: string; reason?: string; reject?: string }) => {
       assertTty();
       const l = openRun(run);
       const decision = d === "approve" && o.reject !== undefined ? "reject" : d;
-      const data = decision === "approve" ? { note: o.note ?? "" } : { reason: o.reject ?? o.reason ?? "" };
+      const signOff = (o.signOff ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+      const data = decision === "approve" ? { note: o.note ?? "", ...(signOff.length ? { signOff } : {}) } : { reason: o.reject ?? o.reason ?? "" };
       const r = await decide(l, { decision, hashPrefix: hash, data });
       if (r.kind === "repeat") return log("Already recorded.");
       log(decision === "approve" ? "Approved." : "Rejected. Revising the spec and plan with your reason…");
       await runAndReport(l.runId);
     });
 }
+
+program.command("waive").argument("<run>").argument("<hash>", "first characters of the waiver card's hash")
+  .requiredOption("--reason <text>", "why the failing gate is acceptable (recorded with your name)")
+  .description("waive the estimate gate(s) on the open waiver card (terminal only; E3, E4 and E5 only)")
+  .action(async (run: string, hash: string, o: { reason: string }) => {
+    assertTty();
+    const l = openRun(run);
+    if (replay(l.events()).openCard?.kind !== "waiver") throw new DecisionError("The open card is not a waiver card.");
+    const r = await decide(l, { decision: "waive", hashPrefix: hash, data: { reason: o.reason } });
+    if (r.kind === "repeat") return log("Already recorded.");
+    log("Waived, and recorded with your name.");
+    await runAndReport(l.runId);
+  });
+
+program.command("edit-estimate").argument("<run>").argument("<hash>", "first characters of the estimate card's hash")
+  .option("--anchor <EST-n=min-max>", "set an anchor's hours; repeat it", (v: string, prev: string[] = []) => [...prev, v])
+  .option("--ratio <EST-n=multiple>", "set a task's ratio to its anchor; repeat it", (v: string, prev: string[] = []) => [...prev, v])
+  .requiredOption("--reason <text>", "why (recorded with your name and shown in the estimate's assumptions)")
+  .description("edit anchors or ratios on the open estimate card; every total, gate and workbook cell is recomputed and you get a new card (terminal only)")
+  .action(async (run: string, hash: string, o: { anchor?: string[]; ratio?: string[]; reason: string }) => {
+    assertTty();
+    const l = openRun(run);
+    const state = replay(l.events());
+    if (state.openCard?.kind !== "estimate-approval") throw new DecisionError("The open card is not an estimate card.");
+    const edits = {
+      anchors: Object.fromEntries((o.anchor ?? []).map(parseAnchorSpec)),
+      ratios: Object.fromEntries((o.ratio ?? []).map(parseRatioSpec)),
+    };
+    const proposals = l.getJson<Proposal[]>(state.steps.get("estimate")!.data!.named ? (state.steps.get("estimate")!.data!.named as Record<string, string>).proposals! : "");
+    const problems = proposals ? checkEdit(edits, proposals[0]!) : ["the estimate's proposals are missing"];
+    if (problems.length) throw new DecisionError(`Can't apply that edit: ${problems.join("; ")}`);
+    const r = await decide(l, { decision: "edit", hashPrefix: hash, data: { edits, reason: o.reason } });
+    if (r.kind === "repeat") return log("Already recorded.");
+    log("Edit recorded. Recomputing the estimate…");
+    await runAndReport(l.runId);
+  });
 
 program.command("answer").argument("<run>").argument("<hash>", "first characters of the card hash")
   .argument("<answers...>", 'Q-1=A Q-2="your own words"')
@@ -258,6 +370,17 @@ program.command("report").argument("[run]")
       return log(runs.length ? `${formatOutcomes(outcomes(runs))}\n\n${formatAll(runs)}` : "No runs yet.");
     }
     log(formatRun(scoreRun(openRun(run))));
+  });
+
+program.command("calibrate")
+  .option("--actual-hours <file>", "a file of `estimate-run,actual-hours` lines for finished projects")
+  .option("--json", "print JSON")
+  .description("compare approved estimates with what the factory spent (and, with a file, with real hours)")
+  .action(async (o: { actualHours?: string; json?: boolean }) => {
+    const { costRows, formatCalibration, hoursRows } = await import("../estimate/calibrate.js");
+    const cost = costRows();
+    const hours = o.actualHours ? hoursRows(o.actualHours) : [];
+    log(o.json ? JSON.stringify({ cost, hours }, null, 2) : formatCalibration(cost, hours));
   });
 
 program.command("verify-evidence").argument("<run>").description("re-check every recorded gate decision").action((run: string) => {
@@ -410,13 +533,13 @@ program.command("doctor").description("check this machine and the setup").action
   if (hasSecret("OPENAI_API_KEY")) {
     const { DEFAULT_ROUTES } = await import("../stages/routing.js");
     const gpt = [...new Set(Object.values(DEFAULT_ROUTES).map((r) => r.model).filter((m) => /^gpt|^o\d/.test(m)))];
-    for (const name of existsSync(join(factoryHome(), "projects")) ? readdirSync(join(factoryHome(), "projects")).filter((f) => f.endsWith(".yaml")) : []) {
+    for (const name of existsSync(join(factoryHome(), "projects")) ? readdirSync(join(factoryHome(), "projects")).filter((f) => f.endsWith(".yaml") && f !== "standalone-estimates.yaml") : []) {
       const p = loadProject(name.replace(/\.yaml$/, ""));
       const missing = gpt.filter((m) => !p.prices[m]);
       if (missing.length) log(`note ${p.project}: no price set for ${missing.join(", ")}; cost is estimated high ($10/$50 per million). Add "prices:" to its config.`);
     }
   }
-  const projects = existsSync(join(factoryHome(), "projects")) ? readdirSync(join(factoryHome(), "projects")).filter((f) => f.endsWith(".yaml")) : [];
+  const projects = existsSync(join(factoryHome(), "projects")) ? readdirSync(join(factoryHome(), "projects")).filter((f) => f.endsWith(".yaml") && f !== "standalone-estimates.yaml") : [];
   ok(projects.length > 0, `projects: ${projects.join(", ").replace(/\.yaml/g, "") || "none"}`, "add one with: factory init <path-to-repo-or-git-url>");
   // factory watch: only for projects that asked for it
   for (const f of projects) {

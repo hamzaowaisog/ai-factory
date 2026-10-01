@@ -8,10 +8,10 @@ The four pieces, and where each sits in a run:
 
 | Piece | What it does | Where it plugs in | State |
 |---|---|---|---|
-| **Inventory** | Scans the app: framework, theme tokens, shared building blocks (for example `components/ui`), shared components with how often each is used, pages, and how much styling sits outside the design system | **Discover**, into the repo profile | Built, with a CLI command. Not yet called by discover (see "Wiring still to do") |
+| **Inventory** | Scans the app: framework, theme tokens, shared building blocks (for example `components/ui`), shared components with how often each is used, pages, and how much styling sits outside the design system | **Discover**, into the repo profile | Built, with a CLI command. Called by discover for React and Next.js repos |
 | **UI change size** | Sorts a change into **no UI**, **screen tweak**, **new screen** or **design-system change**, with a plain list of reasons | **After plan**, from the plan's file list; again **after integrate**, from the real diff | Built. The approval card now shows the size |
-| **Size-cap check** | Fails when the finished diff is a bigger UI change than the size that was approved | **After integrate**, as a gate | Gate predicate built and tested. Not yet called by integrate |
-| **Fidelity check** | Lint of the diff: theme tokens only, existing components only, no new building blocks. Also traces requirements to screens both ways, and compares layout and accessibility between the approved mock and the final screens | **After implement** (lint) and at **accept** (screenshots) | Lint, trace and comparisons built. The screenshot step itself is not built |
+| **Size-cap check** | Fails when the finished diff is a bigger UI change than the size that was approved | **After integrate**, as a gate | Wired into integrate |
+| **Fidelity check** | Lint of the diff: theme tokens only, existing components only, no new building blocks. Also traces requirements to screens both ways, and compares layout and accessibility between the approved mock and the final screens | **After implement** (lint) and at **accept** (screenshots) | Lint wired into implement. Comparisons built; `factory design capture` and `compare` take the screenshots by hand |
 | **Brief cleaner** | Turns an untrusted design extract (Figma export, screenshot reading, brand guide) into typed fields only | Before **design-read**, in the locked room | Built |
 
 What the size decides:
@@ -87,26 +87,40 @@ The CLI takes overrides for the source root and the building-block folder.
 - Gate: `design.size-cap` with inputs `{ actual, approved: { level } }`. It fails when the real change is bigger than the approved size, and lists the reasons.
 - It can be waived by a human, like the diff-size gate.
 
-### Accept: screenshots and comparisons (not built)
+### Accept: screenshots and comparisons (see "Visual check")
 The screenshot step writes one report per state: element boxes, accessibility results, and whether the page scrolls sideways. `compareReports(approved, final)` then:
 - **fails** on a new accessibility problem. That includes a new element that breaks a rule the page already broke, because the comparison is by rule and element, not by rule alone;
 - **fails** on a missing state or sideways scrolling;
 - reports moved or missing elements as evidence for the PR reviewer, not as a new human stop.
 
-## Wiring still to do (exact places)
+## Wiring: what is done and what is still to do
 
-Discover and integrate are the .NET path's busiest code and are being changed on `main`, so these calls are described here and not made yet:
+Done, in `src/stages/build.ts` (helpers in `src/design/build-checks.ts`):
 
-1. **Discover** (`src/stages/build.ts`, `discoverStep.run`):
-   - After the refusal checks, when `snapshotFor(ctx)` has a `package.json` with `react` or `next`, call `buildInventory(dirSource(snap.root))`.
-   - Store it with `ctx.ledger.putJson(...)` and return its sha as a second named output, `design`. Nothing reads it yet, so this changes no other step.
-   - A .NET repo's frontend folder is usually a `noGo` glob, so it isn't in the snapshot. For a mixed repo, the inventory would need its own snapshot rule (read-only, frontend folder only).
-2. **Approve:** record the size with the approval (`data: { uiSize: level }`), so integrate can read the approved level from the ledger.
-3. **Integrate** (`src/stages/build.ts`, `integrateStep`):
-   - After the existing gates, compute `sizeFromGit(repo, baseCommit, head)`.
-   - Run `runGate(designSizeCap, ctx.ledger, ctx.writer, { actual, approved }, ctx.policy, { step: "integrate" })`, but only when the approved size isn't "no UI". .NET runs skip it.
-4. **Implement** (`implementStep` task checks): the same pattern with `designFidelityLint`, only for UI tasks.
-5. **Project config** (`src/config/project.ts`): an optional `design:` block with `sourceRoot`, `uiDir`, `brandFonts` and `navRaises`. It is not added yet, because the config is still .NET-only (`stack: dotnet`).
+- **Implement:** when a task's commit changes UI files, the token and component lint runs on that commit range against the inventory at the task's start, and `design.fidelity-lint` decides. A task with no UI files adds no gate.
+- **Integrate:** for a build that follows an approved estimate whose design was not skipped (or was, which allows no UI), when the range changes UI files, `design.size-cap` compares the real size (`sizeFromGit`) with the biggest screen size the approved design allows (`approvedLevel`: reuse and tweak are a screen tweak, new is a new screen, design-system is a design-system change). A UI change where the design was skipped fails the cap, so a request the model judged as having no UI cannot quietly build one. A human can waive either gate; the waiver is logged.
+
+- **Discover:** a repo with a React or Next.js `package.json` gets the design inventory as a second named output, `design`, and the verdict and summary are logged. The snapshot leaves out `noGo` paths, so a front end under one is not inventoried. Nothing reads the output yet: the lint builds its own inventory from git at the task's start commit.
+- **Project config:** an optional `design:` block (`sourceRoot`, `uiDir`, `brandFonts`, `navRaises`), passed to the inventory, the lint and the size cap (see `docs/project-example.yaml`).
+- **Capture and compare the built app:** `factory design capture --page name=url --out dir` screenshots and reports pages of a running app at 390 and 1280 px (layout boxes, basic accessibility checks, sideways scroll), and `factory design compare approved.json final.json` runs `compareReports`. Accessibility comes from axe-core (WCAG A and AA rules). If the package is missing, a small built-in set (alt text, names, labels, page language) is used and the note says so. Problems already on the page before the change show as warnings; only new ones fail.
+
+- **Visual check inside the build:** see below.
+
+## Visual check (built, opt-in, advisory)
+
+`src/stages/design-check.ts` runs after accept on a build whose change touches UI files. It needs a `design.capture` block in the project config (see `docs/project-example.yaml`). Without one the step is skipped and says why.
+
+What it does: checks out the base commit, runs `install` and `start`, waits for `readyPath`, screenshots each listed page at 390 and 1280 px, stops the app, repeats for the head, then compares layout and accessibility (`compareReports`) and pixels (`pixelDiff`). Pictures and a report go in the run's `design-check/` folder (`base/`, `final/`, `diff/`). The Design tab shows them side by side, and they are served by `factory ui` only as png files from that folder, with the key.
+
+Things to know:
+- **Host risk.** The project's install and start commands run on this machine, not in a container, on code the factory just generated. That is why `allowHost: true` is required. The app gets a minimal environment plus `env` from the config, and no factory secrets. The process group is killed afterwards.
+- **Advisory.** It never blocks the build. A change request is meant to change how pages look, so the output is evidence for the reviewer.
+- **The "approved" side is the base commit**, the app as it was before the change, not the design mock. Comparing against a mock image is not attempted.
+- **Only UI-changing builds** are captured.
+
+## Pixel diff
+
+`factory design pixel <before-dir> <after-dir> --out <dir> [--tolerance n] [--json]` compares same-named pngs in two folders and prints, per pair, the share of pixels that differ, whether the size changed, and whether the change is noticeable (over `NOTICEABLE_RATIO`). It gives figures, not pass or fail. Comparison runs in headless Chromium on a canvas, so no image library is needed. Pages with clocks, animations or live data will differ run to run; fixtures, a frozen clock and mocked network are not built.
 
 ## Brief cleaner and the untrusted-text rule
 

@@ -1,0 +1,178 @@
+// Estimate-mode artifacts (docs/estimates-design.md, "Fit with the code"). The model proposes the
+// breakdown and the sizing reasons; code computes every sum, so totals here are stored, never trusted (gate E6).
+import { z } from "zod";
+import { Id, Sha, Complexity } from "./common.js";
+import { ArtifactHeader } from "./artifacts.js";
+
+const withHeader = <T extends z.ZodRawShape>(shape: T) =>
+  z.object({ header: ArtifactHeader, ...shape });
+
+/** Estimate task ids look like EST-12. */
+export const EstimateTaskId = z.string().regex(/^EST-\d+$/, "EST-<number>");
+
+export const DeliveryModel = z.enum(["hitl", "agentic"]);
+export type DeliveryModel = z.infer<typeof DeliveryModel>;
+
+/** Sheets of the general estimation template a task can land in. */
+export const Track = z.enum(["backend", "mobile", "web", "qa", "design", "gd", "pm", "pdm"]);
+export type Track = z.infer<typeof Track>;
+
+/** factory: the factory does it, humans only at gates; joint: mixed; human: full human hours. */
+export const Executor = z.enum(["factory", "joint", "human"]);
+export type Executor = z.infer<typeof Executor>;
+
+export const SizeBand = z.enum(["XS", "S", "M", "L", "XL"]);
+export type SizeBand = z.infer<typeof SizeBand>;
+
+export const Uncertainty = z.enum(["low", "medium", "high"]);
+export type Uncertainty = z.infer<typeof Uncertainty>;
+
+/** How much measured data backs a duration or cost figure. */
+export const Confidence = z.enum(["cold-start", "partial", "calibrated"]);
+export type Confidence = z.infer<typeof Confidence>;
+
+export const ComplexityFlag = z.enum([
+  "standard", "rules-or-algorithm", "external-dependency", "compliance-sensitive", "real-time", "new-to-stack",
+]);
+export type ComplexityFlag = z.infer<typeof ComplexityFlag>;
+
+// ---------- breakdown ----------
+export const BreakdownTask = z.object({
+  id: EstimateTaskId,
+  title: z.string().min(1),
+  featureId: Id,
+  /** requirement ids this task delivers; empty only for a named overhead (checked by gate E3) */
+  reqs: z.array(Id),
+  /** the concrete spec items it must deliver (fields, states, rules, endpoints, messages) */
+  items: z.array(z.string()).default([]),
+  track: Track,
+  executor: Executor,
+  dependsOn: z.array(EstimateTaskId).default([]),
+  /** approved design screen this task builds, when there is one */
+  screen: z.string().optional(),
+  complexity: ComplexityFlag.default("standard"),
+  /** set for an overhead task (deployment, PM, ...): the reason it has no requirement */
+  overhead: z.string().optional(),
+});
+export type BreakdownTask = z.infer<typeof BreakdownTask>;
+
+const BreakdownShape = {
+  features: z.array(z.object({ id: Id, title: z.string().min(1), reqs: z.array(Id) })).min(1),
+  tasks: z.array(BreakdownTask).min(1),
+  /** forgotten-work checklist (gate E4): each generic item in, or out with a reason */
+  checklist: z.array(z.object({ item: z.string(), included: z.boolean(), reason: z.string().optional() })).default([]),
+};
+
+function checkBreakdown(b: { features: { id: string }[]; tasks: BreakdownTask[] }, ctx: z.core.$RefinementCtx): void {
+  const ids = new Set<string>();
+  for (const [i, t] of b.tasks.entries()) {
+    if (ids.has(t.id)) ctx.addIssue({ code: "custom", path: ["tasks", i, "id"], message: `duplicate task id ${t.id}` });
+    ids.add(t.id);
+  }
+  for (const [i, t] of b.tasks.entries()) {
+    for (const d of t.dependsOn) {
+      if (!ids.has(d)) ctx.addIssue({ code: "custom", path: ["tasks", i, "dependsOn"], message: `${t.id} depends on unknown ${d}` });
+      if (d === t.id) ctx.addIssue({ code: "custom", path: ["tasks", i, "dependsOn"], message: `${t.id} depends on itself` });
+    }
+  }
+  const features = new Set(b.features.map((f) => f.id));
+  for (const [i, t] of b.tasks.entries()) {
+    if (!features.has(t.featureId)) ctx.addIssue({ code: "custom", path: ["tasks", i, "featureId"], message: `unknown feature ${t.featureId}` });
+  }
+}
+
+/** What the model returns (its structured-output schema). */
+export const BreakdownBody = z.object(BreakdownShape).superRefine(checkBreakdown);
+export const Breakdown = withHeader({ ...BreakdownShape, specSha: Sha }).superRefine(checkBreakdown);
+export type Breakdown = z.infer<typeof Breakdown>;
+
+// ---------- estimate ----------
+const Hours = z.number().nonnegative();
+const Range = z.object({ min: Hours, max: Hours }).refine((r) => r.min <= r.max, "min must not exceed max");
+
+export const Anchor = z.object({
+  taskId: EstimateTaskId,
+  hours: Range,
+  /** why this task is a fair reference for this project's stack, design and constraints */
+  reason: z.string().min(1),
+});
+
+export type Anchor = z.infer<typeof Anchor>;
+
+export const TaskSizing = z.object({
+  taskId: EstimateTaskId,
+  /** the anchor this task is sized against; an anchor sizes itself */
+  anchorId: EstimateTaskId,
+  ratio: z.number().positive(),
+  reason: z.string().min(1),
+  /** code computed: anchor hours x ratio, before the estimators' spread is applied */
+  hours: Range,
+  executor: Executor,
+  /** independent estimators' readings for M and up (spread sets the range and flags the item) */
+  estimators: z.array(Range).max(3).default([]),
+  flagged: z.boolean().default(false),
+});
+
+export type TaskSizing = z.infer<typeof TaskSizing>;
+
+/** Money in API credits, as a range. */
+const Usd = z.object({ min: z.number().nonnegative(), max: z.number().nonnegative() })
+  .refine((r) => r.min <= r.max, "min must not exceed max");
+
+export const CostPhase = z.enum(["planning", "design", "breakdown-estimate", "build", "verification"]);
+
+export const ApiCost = z.object({
+  phases: z.array(z.object({ phase: CostPhase, usd: Usd })),
+  total: Usd,
+  confidence: Confidence,
+  /** benchmark records behind the figures */
+  records: z.number().int().nonnegative(),
+});
+
+export type ApiCost = z.infer<typeof ApiCost>;
+
+export const Estimate = withHeader({
+  deliveryModel: DeliveryModel,
+  band: SizeBand,
+  uncertainty: Uncertainty,
+  complexity: Complexity.optional(),
+  breakdownSha: Sha,
+  specSha: Sha,
+  /** the approved estimate this one revises (change request) or the sibling model's estimate */
+  parentEstimate: Sha.optional(),
+  anchors: z.array(Anchor).min(1),
+  tasks: z.array(TaskSizing).min(1),
+  overheads: z.array(z.object({ name: z.string(), track: Track.optional(), hours: Range, reason: z.string() })).default([]),
+  /** human gate hours (HITL only); every figure is a labelled, editable assumption */
+  gateHours: z.array(z.object({ source: z.string(), track: Track.optional(), hours: Range, assumed: z.literal(true) })).default([]),
+  totals: z.object({ byTrack: z.partialRecord(Track, Range), overall: Range }),
+  apiCost: ApiCost,
+  elapsed: z.object({
+    planningMinutes: z.number().nonnegative(),
+    criticalPathDays: Range,
+  }),
+  settings: z.object({
+    stackSource: z.enum(["client", "folio3", "undecided"]),
+    designInTotal: z.boolean(),
+    feedbackRounds: z.number().int().nonnegative(),
+  }),
+  /** at most two, for one big unknown (scenario name -> what it changes) */
+  scenarios: z.array(z.object({ name: z.string(), changes: z.string(), totals: Range })).max(2).default([]),
+  /** extras outside the totals until the lead adds them (gate E3) */
+  suggested: z.array(z.object({ title: z.string(), reason: z.string() })).default([]),
+  assumptions: z.array(z.string()).default([]),
+}).superRefine((e, ctx) => {
+  const taskIds = new Set(e.tasks.map((t) => t.taskId));
+  for (const [i, a] of e.anchors.entries()) {
+    if (!taskIds.has(a.taskId)) ctx.addIssue({ code: "custom", path: ["anchors", i, "taskId"], message: `anchor ${a.taskId} is not a sized task` });
+  }
+  const anchors = new Set(e.anchors.map((a) => a.taskId));
+  for (const [i, t] of e.tasks.entries()) {
+    if (!anchors.has(t.anchorId)) ctx.addIssue({ code: "custom", path: ["tasks", i, "anchorId"], message: `${t.taskId} sized against ${t.anchorId}, which is not an anchor` });
+  }
+  // the solely agentic model has no supervisor gates
+  if (e.deliveryModel === "agentic" && e.gateHours.length) {
+    ctx.addIssue({ code: "custom", path: ["gateHours"], message: "the solely agentic model carries no supervisor gate hours" });
+  }
+});
+export type Estimate = z.infer<typeof Estimate>;

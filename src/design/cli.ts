@@ -1,13 +1,18 @@
 // `factory design ...`: run the design toolkit by hand on any local repo.
 import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import type { Command } from "commander";
 import { cleanBrief } from "./brief.js";
-import { diffFromGit, lintDiff, overall } from "./fidelity.js";
+import { captureReports } from "./capture.js";
+import { compareReports, diffFromGit, lintDiff, overall, type StateReport } from "./fidelity.js";
 import { buildInventory, inventorySummary } from "./inventory.js";
+import { readdirSync } from "node:fs";
+import { NOTICEABLE_RATIO, pixelDiff } from "./pixeldiff.js";
 import { detectLayout } from "./layout.js";
 import { plannedChanges, sizeChange, sizeFromGit, type SizeInput, type SizeResult } from "./size.js";
 import { dirSource, gitSource, type FileSource } from "./source.js";
+import { allIndustries, archetypeBrief, briefFor, loadMeasured, loadUserIndustries, measuredPath, resolveBrand, userIndustriesDir } from "./refs/index.js";
+import { measureAndSave } from "./refs/measure.js";
 
 const out = (m: string): void => { process.stdout.write(`${m}\n`); };
 
@@ -82,6 +87,48 @@ export function registerDesignCommands(program: Command): void {
       if (overall(results) !== "pass") process.exitCode = 1;
     });
 
+  design.command("capture")
+    .requiredOption("--page <name=url...>", "a page to take, as name=url (the app must already be running)")
+    .requiredOption("--out <dir>", "folder for the screenshots and reports.json")
+    .description("screenshot and report pages of a running app at phone and desktop width")
+    .action(async (o: { page: string[]; out: string }) => {
+      const pages = o.page.map((p) => { const i = p.indexOf("="); if (i < 1) throw new Error(`--page wants name=url, got "${p}"`); return { name: p.slice(0, i), url: p.slice(i + 1) }; });
+      const r = await captureReports(pages, resolve(o.out));
+      writeFileSync(join(resolve(o.out), "reports.json"), JSON.stringify(r.reports, null, 2));
+      out(`${r.reports.length} report(s), ${r.files.length} screenshot(s) in ${o.out}${r.note ? `\nnote: ${r.note}` : ""}`);
+      if (r.note && !r.reports.length) process.exitCode = 1;
+    });
+
+  design.command("compare").argument("<approved.json>", "reports.json from the approved version").argument("<final.json>", "reports.json from the built app")
+    .option("--json", "print JSON")
+    .description("compare two capture reports: layout, accessibility, sideways scroll; exits 1 on a failure")
+    .action((approved: string, final: string, o: { json?: boolean }) => {
+      const read = (f: string) => JSON.parse(readFileSync(f, "utf8")) as StateReport[];
+      const results = compareReports(read(approved), read(final));
+      if (o.json) out(JSON.stringify({ overall: overall(results), results }, null, 2));
+      else {
+        for (const r of results) {
+          out(`${r.status.padEnd(9)} ${r.check.padEnd(34)} ${r.detail}`);
+          for (const i of r.items?.slice(0, 8) ?? []) out(`          - ${i}`);
+        }
+        out(`overall: ${overall(results)}`);
+      }
+      if (overall(results) === "fail") process.exitCode = 1;
+    });
+
+  design.command("pixel").argument("<baseDir>", "screenshots from the before version (from design capture)").argument("<finalDir>", "screenshots from the after version")
+    .requiredOption("--out <dir>", "folder for the difference pictures")
+    .option("--tolerance <n>", "a colour channel must move by more than this (0-255) to count", "16")
+    .option("--json", "print JSON")
+    .description("compare two folders of screenshots pixel by pixel and draw where they differ (facts, not a pass or fail)")
+    .action(async (baseDir: string, finalDir: string, o: { out: string; tolerance: string; json?: boolean }) => {
+      const names = readdirSync(resolve(finalDir)).filter((f) => f.endsWith(".png") && readdirSync(resolve(baseDir)).includes(f));
+      const r = await pixelDiff(names.map((f) => ({ name: f, base: join(resolve(baseDir), f), final: join(resolve(finalDir), f), out: join(resolve(o.out), f) })), Number(o.tolerance));
+      if (o.json) return out(JSON.stringify(r, null, 2));
+      for (const x of r.results) out(`${(x.ratio * 100).toFixed(2).padStart(6)}%  ${x.name}${x.sizeChanged ? "  (page size changed)" : ""}${x.ratio > NOTICEABLE_RATIO || x.sizeChanged ? "  <- differs noticeably" : ""}`);
+      out(`${r.results.length} pair(s) compared, pictures in ${o.out}${r.note ? `\nnote: ${r.note}` : ""}`);
+    });
+
   design.command("brief").argument("<extract.json>", "an untrusted design extract (Figma export, screenshot reading, brand guide)")
     .option("--repo <path>", "the repo, for its component inventory", ".")
     .option("--brand-font <name...>", "brand fonts to allow")
@@ -90,5 +137,28 @@ export function registerDesignCommands(program: Command): void {
       const inv = buildInventory(dirSource(resolve(o.repo)));
       const r = cleanBrief(JSON.parse(readFileSync(file, "utf8")), inv, { brandFonts: o.brandFont ?? [] });
       out(JSON.stringify(r, null, 2));
+    });
+  const refs = design.command("refs").description("industry design references: how real products in a field are coloured (feeds the design step)");
+  refs.command("list").description("industries, their brands and whether each colour is measured")
+    .action(() => {
+      const m = loadMeasured();
+      for (const i of allIndustries()) {
+        out(`${i.id.padEnd(13)} ${i.label}  [${i.archetype}]`);
+        for (const raw of i.brands) { const b = resolveBrand(raw, m); out(`  ${b.name.padEnd(20)} ${b.brand}${b.accent ? ` ${b.accent}` : ""}  ${b.measured ? "measured" : "reported"}`); }
+      }
+      for (const p of loadUserIndustries().problems) out(`ignored (${userIndustriesDir()}): ${p}`);
+    });
+  refs.command("show").argument("[text...]", "an industry id (airline) or requirement text; the brief the design step would receive")
+    .action((words: string[]) => {
+      const t = words.join(" ");
+      const byId = allIndustries().filter((i) => i.id === t.trim().toLowerCase());
+      out(byId.length ? briefFor(byId.flatMap((i) => i.keywords).join(" "), byId) : briefFor(t) || archetypeBrief());
+    });
+  refs.command("measure").option("--industry <id...>", "only these industries (default: all)")
+    .description("open each brand's live site on a phone viewport and store its real colours (needs network access to those sites)")
+    .action(async (o: { industry?: string[] }) => {
+      const r = await measureAndSave(o.industry ?? []);
+      for (const x of r.results) out(`${x.reading?.brand ? "ok   " : "none "} ${x.name.padEnd(20)} ${x.reading?.brand ?? x.error ?? "no colour found"}`);
+      out(`${r.saved} brand(s) stored in ${measuredPath()}${r.note ? `\nnote: ${r.note}` : ""}`);
     });
 }

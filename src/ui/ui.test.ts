@@ -1,6 +1,6 @@
 // factory ui: the server's safety rules, its JSON for a fixture ledger, and starting a run.
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -13,7 +13,7 @@ import { replay } from "../ledger/state.js";
 import { outcomes, scoreRun, stageStats } from "../report.js";
 import { createRun } from "../stages/executor.js";
 import { cardCommands } from "./data.js";
-import { createUiServer, listen, MAX_BODY_BYTES, ROUTES, staticDir, type UiServer } from "./server.js";
+import { createUiServer, listen, MAX_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, ROUTES, staticDir, type UiServer } from "./server.js";
 import { _resetStarting } from "./start.js";
 // the page's Markdown renderer (plain browser JS, no DOM needed)
 import { renderMarkdown } from "./static/md.js";
@@ -203,8 +203,9 @@ describe("factory ui: who can talk to it", () => {
 describe("factory ui: no decisions from the web", () => {
   it("the route list has no decision routes; the only write starts a run", () => {
     const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note/i;
-    for (const r of ROUTES) expect(`${r.method} ${r.path}`).not.toMatch(decision);
-    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs"]);
+    for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision") && !r.path.endsWith("/estimate-answers"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
+    // the one exception: the estimate lead's approve or reject, on estimate cards only
+    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers"]);
   });
 
   it("decision-looking URLs don't exist", async () => {
@@ -216,7 +217,7 @@ describe("factory ui: no decisions from the web", () => {
 
   it("the page says so, and has no decision buttons", () => {
     const html = readFileSync(join(staticDir(), "index.html"), "utf8");
-    expect(html).toContain("Decisions are made in your terminal, so no AI or script can approve its own plan.");
+    expect(html).toContain("Plan decisions are made in your terminal, so no AI or script can approve its own plan. Only the estimate lead can approve an estimate here.");
     const js = readFileSync(join(staticDir(), "app.js"), "utf8");
     expect(js).not.toMatch(/method: "POST"[^\n]*\/(approve|reject|answer|waive|stop|pause)/);
     // the only raw HTML the page writes is the escaped Markdown renderer's output
@@ -324,7 +325,7 @@ describe("factory ui: starting a run", () => {
       expect(r.status, JSON.stringify(body).slice(0, 80)).toBe(status);
       expect(r.json().error).toMatch(msg);
     }
-    expect((await post(JSON.stringify({ project: "web", file: { name: "a.md", text: "x".repeat(MAX_BODY_BYTES) } }))).status).toBe(413);
+    expect((await post(JSON.stringify({ project: "web", file: { name: "a.md", text: "x".repeat(MAX_UPLOAD_BODY_BYTES) } }))).status).toBe(413);
     expect((await post("{not json")).status).toBe(400);
     expect(count()).toBe(before);
     expect(started).toEqual([]);
@@ -484,5 +485,215 @@ describe("factory ui: a run started from the web, watched live", () => {
       const ev = (await call(`/api/runs/${runId}/events`)).json();
       expect(ev.events.at(-1)).toMatchObject({ type: "step.completed", step: k });
     }
+  });
+});
+
+describe("factory ui: estimate runs", () => {
+  it("takes design frames with the request, stores them beside the run and lists them in the request text", async () => {
+    const png = Buffer.from("not really a png").toString("base64");
+    const base = { project: "web", mode: "estimate", prompt: "Build an order portal with login and a dashboard" };
+    const r = await post({ ...base, frames: [{ name: "home.png", data: png }, { name: "login.svg", data: Buffer.from("<svg/>").toString("base64") }] });
+    expect(r.status).toBe(201);
+    expect(r.json().from).toBe("typed prompt + 2 frames in web upload");
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info.request).toMatch(/- F-1 home\.png\n- F-2 login\.svg/);
+    expect(existsSync(join(Ledger.open(r.json().runId).dir, "attachments", "frames", "home.png"))).toBe(true);
+  });
+
+  it("refuses frames that are unsafe, the wrong type, repeated or on a build run", async () => {
+    const before = Ledger.listRuns().length;
+    const data = Buffer.from("x").toString("base64");
+    const base = { project: "web", prompt: "Build an order portal with login and a dashboard" };
+    const cases: [unknown, RegExp][] = [
+      [{ ...base, mode: "estimate", frames: [{ name: "../evil.png", data }] }, /not a usable frame file name/],
+      [{ ...base, mode: "estimate", frames: [{ name: "run.exe", data }] }, /png, jpg, webp, svg or json/],
+      [{ ...base, mode: "estimate", frames: [{ name: "a.png", data }, { name: "a.png", data }] }, /sent twice/],
+      [{ ...base, mode: "estimate", frames: [{ name: "a.png", data: "***" }] }, /did not arrive intact/],
+      [{ ...base, mode: "estimate", frames: [] }, /No frames/],
+      [{ ...base, frames: [{ name: "a.png", data }] }, /belong to estimate runs/],
+    ];
+    for (const [body, msg] of cases) {
+      const r = await post(body);
+      expect(r.status, JSON.stringify(body).slice(0, 60)).toBe(400);
+      expect(r.json().error).toMatch(msg);
+    }
+    expect(Ledger.listRuns().length).toBe(before);
+  });
+
+  it("starts an estimate run with the same settings factory estimate parses, and refuses bad ones", async () => {
+    const bad = await post({ project: "web", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { deliveryModel: "nonsense" } });
+    expect(bad.status).toBe(400);
+    const r = await post({ project: "web", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { client: "Acme", feedbackRounds: "2" } });
+    expect(r.status).toBe(201);
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info.mode).toBe("estimate");
+    expect(s.info.estimate).toMatchObject({ client: "Acme" });
+    expect((await call(`/api/runs/${r.json().runId}`)).json().mode).toBe("estimate");
+  });
+
+  it("starts an estimate with no project: requirements alone, no repo, and the stand-in config stays out of the project list", async () => {
+    const r = await post({ project: "", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { noRepo: false } });
+    expect(r.status).toBe(201);
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info.mode).toBe("estimate");
+    expect(s.info.estimate).toMatchObject({ noRepo: true });
+    expect(s.info.repoPath).toBeUndefined();
+    expect(s.info.repoId).toBeUndefined();
+    expect((await call("/api/projects")).json().projects.map((p: { name: string }) => p.name)).not.toContain("standalone-estimates");
+    // a build still needs a real project
+    expect((await post({ project: "", prompt: "Change the heading" })).status).toBe(400);
+    expect((await post({ project: "standalone-estimates", prompt: "Change the heading" })).status).toBe(400);
+  });
+
+  it("a build can start from an approved estimate: it is listed, takes its request from the estimate, and refuses a request of its own", async () => {
+    const id = await createRun("Build an order portal with login and a dashboard", "web", "tester", { mode: "estimate", estimate: { deliveryModel: "hitl" } } as never);
+    const l = Ledger.open(id);
+    expect((await call("/api/projects")).json().estimates).toEqual([]);
+    const early = await post({ project: "web", fromEstimate: id });
+    expect(early.status).toBe(400);
+    expect(early.json().error).toMatch(/no approved estimate yet/);
+    const est = l.putJson({ deliveryModel: "hitl" }), bd = l.putJson({ tasks: [] }), spec = l.putJson({ title: "s" });
+    await addEvents(id, [...step("breakdown", 0, {}, [bd]), ...step("specify", 0, {}, [spec]), ...step("estimate", 0, {}, [est]), ...step("approve-estimate"), ...step("export")]);
+    const listed = (await call("/api/projects")).json().estimates;
+    expect(listed).toHaveLength(1);
+    expect(listed[0]).toMatchObject({ runId: id, project: "web" });
+    expect((await post({ project: "web", fromEstimate: id, prompt: "also do this" })).status).toBe(400);
+    expect((await post({ project: "web", mode: "estimate", fromEstimate: id })).status).toBe(400);
+    const r = await post({ project: "web", fromEstimate: id });
+    expect(r.status).toBe(201);
+    const built = replay(Ledger.open(r.json().runId).events());
+    expect(built.info.request).toBe("Build an order portal with login and a dashboard");
+    expect(built.info.estimateRef).toMatchObject({ runId: id, estimateSha: est });
+  });
+
+  it("the estimate view says so for a build run and before the estimate exists", async () => {
+    const built = await call(`/api/runs/${ids.delivered}/estimate`);
+    expect(built.status).toBe(200);
+    expect(built.json().none).toMatch(/not an estimate run/);
+    const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
+    const early = await call(`/api/runs/${id}/estimate`);
+    expect(early.json().none).toMatch(/isn't ready/);
+  });
+
+  it("downloads only workbooks inside the run's export folder", async () => {
+    const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
+    const l = Ledger.open(id);
+    const dir = join(l.dir, "export");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "team.xlsx"), "PK-team");
+    const outside = join(home, "secret.xlsx");
+    writeFileSync(outside, "nope");
+    const manifest = l.putJson({ team: join(dir, "team.xlsx"), client: outside });
+    await addEvents(id, step("export", 0, {}, [manifest]));
+    const ok = await call(`/export/${id}/team`);
+    expect(ok.status).toBe(200);
+    expect(ok.headers["content-disposition"]).toMatch(/attachment.*team\.xlsx/);
+    expect(ok.body).toBe("PK-team");
+    expect((await call(`/export/${id}/client`)).status).toBe(404);
+    expect((await call(`/export/${id}/other`)).status).toBe(404);
+    expect((await call(`/export/${id}/team`, { token: null })).status).toBeGreaterThanOrEqual(401);
+  });
+
+  it("serves visual-check pictures only as png files inside the run's design-check folder, with the key", async () => {
+    const id = await createRun("Build an order portal", "web", "tester");
+    const l = Ledger.open(id);
+    mkdirSync(join(l.dir, "design-check", "base"), { recursive: true });
+    writeFileSync(join(l.dir, "design-check", "base", "home.png"), "PNGDATA");
+    writeFileSync(join(l.dir, "design-check", "base", "note.txt"), "no");
+    writeFileSync(join(home, "outside.png"), "secret");
+    const ok = await call(`/shots/${id}/base/home.png`);
+    expect(ok.status).toBe(200);
+    expect(ok.headers["content-type"]).toBe("image/png");
+    expect(ok.body).toBe("PNGDATA");
+    expect((await call(`/shots/${id}/base/note.txt`)).status).toBe(404);
+    expect((await call(`/shots/${id}/base/..%2F..%2F..%2Foutside.png`)).status).toBe(404);
+    expect((await call(`/shots/${id}/other/home.png`)).status).toBe(404);
+    expect((await call(`/shots/nope/base/home.png`)).status).toBe(404);
+    expect((await call(`/shots/${id}/base/home.png`, { token: null })).status).toBeGreaterThanOrEqual(401);
+  });
+});
+
+describe("factory ui: the estimate lead's decision", () => {
+  const decisionPost = (id: string, body: unknown) =>
+    call(`/api/runs/${id}/estimate-decision`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+
+  it("refuses a plan card, unknown runs and anything that isn't an estimate card; nothing gets recorded", async () => {
+    const r = await decisionPost(ids.waiting, { hash: "b".repeat(8), decision: "approve", by: "Sam Lead" });
+    expect(r.status).toBe(409);
+    expect(r.json().error).toMatch(/no estimate waiting/);
+    expect((await decisionPost("nope", { decision: "approve" })).status).toBe(404);
+    expect(replay(Ledger.open(ids.waiting).events()).openCard?.kind).toBe("approval");
+    expect(started).toEqual([]);
+  });
+
+  it("an estimate card needs the hash, a typed name and sign-offs; then it records and continues the run", async () => {
+    const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
+    const l = Ledger.open(id);
+    const est = l.putJson({ tasks: [{ taskId: "EST-1", flagged: true }, { taskId: "EST-2", flagged: false }] });
+    const bundle = "c".repeat(64);
+    l.writeCard(`estimate-${bundle.slice(0, 8)}`, "# Approve the estimate");
+    await addEvents(id, [
+      ...step("estimate", 0, {}, [est]),
+      { type: "step.started", key: "approve-estimate/1", data: { rung: 0 } },
+      { type: "step.interrupted", key: "approve-estimate/1", data: { reason: "waiting" } },
+      { type: "human.requested", data: { cardId: `estimate-${bundle.slice(0, 8)}`, kind: "estimate-approval", artifactSha: bundle, step: "approve-estimate" } },
+    ]);
+    const ok = { hash: bundle.slice(0, 8), decision: "approve", by: "Sam Lead" };
+    expect((await decisionPost(id, { ...ok, by: "" })).status).toBe(400);
+    expect((await decisionPost(id, { ...ok, hash: "cccc" })).status).toBe(400);
+    expect((await decisionPost(id, { hash: ok.hash, by: ok.by, decision: "maybe" })).status).toBe(400);
+    expect((await decisionPost(id, { ...ok, decision: "reject" })).json().error).toMatch(/needs a reason/);
+    expect((await decisionPost(id, ok)).json().error).toMatch(/Sign off.*EST-1/);
+    expect((await decisionPost(id, { ...ok, hash: "deadbeef", signOff: ["EST-1"] })).status).toBe(409);
+    expect(started).toEqual([]);
+    const done = await decisionPost(id, { ...ok, signOff: ["EST-1"], note: "ok" });
+    expect(done.status).toBe(200);
+    expect(done.json().recorded).toBe(true);
+    expect(started).toEqual([id]);
+    const d = replay(l.events()).decisions.at(-1) as unknown as { by: string; decision: string; signOff: string[] };
+    expect(d).toMatchObject({ by: "Sam Lead (via web)", decision: "approve", signOff: ["EST-1"] });
+    // a repeat is a no-op and does not start the run again
+    expect((await decisionPost(id, { ...ok, signOff: ["EST-1"], note: "ok" })).status).toBe(409);
+  });
+});
+
+describe("factory ui: answering an estimate run's questions", () => {
+  const answersPost = (id: string, body: unknown) =>
+    call(`/api/runs/${id}/estimate-answers`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+  const asked = [
+    { id: "Q-1", text: "Who can refund an order?", options: ["Support only", "Support and finance"], recommended: "Support only", reason: "smaller", impactReason: "changes who sees money", impact: 3, uncertainty: 3, score: 9, category: "roles", spans: [] },
+    { id: "Q-2", text: "Keep order history?", options: ["Yes", "No"], recommended: "Yes", reason: "usual", impactReason: "data kept", impact: 2, uncertainty: 2, score: 4, category: "scope", spans: [] },
+  ];
+
+  it("shows the questions on the run, refuses a plan card, and takes typed answers that continue the run", async () => {
+    const before = started.length;
+    expect((await answersPost(ids.waiting, { hash: "b".repeat(8), by: "Sam Lead", answers: {} })).status).toBe(409);
+    expect((await answersPost("nope", {})).status).toBe(404);
+    const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
+    const l = Ledger.open(id);
+    const body = l.putJson({ key: "clarify", asked, assumptions: [{ id: "ASM-1", text: "Currency is USD" }] });
+    l.writeCard(`questions-1-${body.slice(0, 8)}`, "# Questions");
+    await addEvents(id, [
+      { type: "step.started", key: "clarify/1", data: { rung: 0 } },
+      { type: "step.interrupted", key: "clarify/1", data: { reason: "waiting" } },
+      { type: "human.requested", data: { cardId: `questions-1-${body.slice(0, 8)}`, kind: "question", artifactSha: body, step: "clarify" } },
+    ]);
+    const view = (await call(`/api/runs/${id}`)).json();
+    expect(view.card.questions.map((q: { id: string }) => q.id)).toEqual(["Q-1", "Q-2"]);
+    expect(view.card.assumptions).toEqual([{ id: "ASM-1", text: "Currency is USD" }]);
+    const ok = { hash: body.slice(0, 8), by: "Sam Lead", answers: { "Q-1": "Support and finance" } };
+    expect((await answersPost(id, { ...ok, by: "" })).status).toBe(400);
+    expect((await answersPost(id, { ...ok, hash: "abcd" })).status).toBe(400);
+    expect((await answersPost(id, { ...ok, answers: { "Q-9": "x" } })).status).toBe(400);
+    expect((await answersPost(id, { ...ok, hash: "deadbeef" })).status).toBe(409);
+    expect(started.length).toBe(before);
+    const done = await answersPost(id, ok);
+    expect(done.status).toBe(200);
+    expect(done.json().recorded).toBe(true);
+    expect(started.at(-1)).toBe(id);
+    const d = replay(l.events()).decisions.at(-1) as unknown as { by: string; decision: string; answers: Record<string, string> };
+    expect(d).toMatchObject({ by: "Sam Lead (via web)", decision: "answer", answers: { "Q-1": "Support and finance" } });
+    // Q-2 was left out: it takes its recommended option when the step reads the decision
+    expect(d.answers["Q-2"]).toBeUndefined();
   });
 });

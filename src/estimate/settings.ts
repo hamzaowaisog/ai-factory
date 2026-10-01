@@ -1,0 +1,44 @@
+// `factory estimate` flags -> the run settings recorded on run.created (docs/estimates-design.md, "Inputs":
+// delivery model, stack source, Design in total, feedback rounds, optional rates). Everything is checked
+// before a run exists, so a typo costs nothing.
+import type { RunInfo } from "../ledger/state.js";
+
+export interface EstimateOptions {
+  deliveryModel: string;
+  stackSource: string;
+  designInTotal: boolean;
+  feedbackRounds: string;
+  rate?: string[];
+  repo: boolean;
+  client?: string;
+  projectName?: string;
+  pm?: string;
+}
+
+export const RATE_KEYS = ["backend", "mobile", "web", "qa", "design", "gd", "pm", "pdm", "default"] as const;
+
+export function parseRates(specs: string[] = []): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const spec of specs) {
+    const m = /^([a-z]+)=(\d+(?:\.\d+)?)$/.exec(spec.trim());
+    if (!m || !(RATE_KEYS as readonly string[]).includes(m[1]!)) throw new Error(`Can't read --rate "${spec}". Use track=dollars, with the track one of ${RATE_KEYS.join(", ")} (for example backend=55).`);
+    const v = Number(m[2]);
+    if (!(v > 0)) throw new Error(`--rate ${m[1]} must be more than 0.`);
+    out[m[1]!] = v;
+  }
+  return out;
+}
+
+export function parseEstimateSettings(o: EstimateOptions): NonNullable<RunInfo["estimate"]> {
+  if (o.deliveryModel !== "hitl" && o.deliveryModel !== "agentic") throw new Error(`--delivery-model must be hitl or agentic, not "${o.deliveryModel}".`);
+  if (o.stackSource !== "client" && o.stackSource !== "folio3" && o.stackSource !== "undecided") throw new Error(`--stack-source must be client, folio3 or undecided, not "${o.stackSource}".`);
+  const rounds = Number(o.feedbackRounds);
+  if (!Number.isInteger(rounds) || rounds < 0 || rounds > 10) throw new Error("--feedback-rounds must be a whole number from 0 to 10.");
+  const rates = parseRates(o.rate);
+  return {
+    deliveryModel: o.deliveryModel, stackSource: o.stackSource, designInTotal: o.designInTotal, feedbackRounds: rounds,
+    ...(Object.keys(rates).length ? { rates } : {}),
+    ...(o.repo ? {} : { noRepo: true }),
+    ...(o.client ? { client: o.client } : {}), ...(o.projectName ? { projectName: o.projectName } : {}), ...(o.pm ? { pm: o.pm } : {}),
+  };
+}

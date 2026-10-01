@@ -1,8 +1,11 @@
 // What the web screens show (`factory ui`), computed only from the ledger, the project configs
 // and the repo at the run's base commit: the same sources as `factory status|show-card|report`.
 // Read-only: nothing here writes to a ledger. Starting a run lives in start.ts.
-import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
+import { basename, join, sep } from "node:path";
+import type { z } from "zod";
+import type { Design as DesignSchema } from "../contracts/artifacts.js";
+import type { Breakdown, Estimate } from "../contracts/estimate.js";
 import { buildInventory, type DesignInventory } from "../design/inventory.js";
 import { depsOf, detectLayout } from "../design/layout.js";
 import { LEVEL_NAMES, LEVELS, plannedChanges, sizeChange, type SizeResult } from "../design/size.js";
@@ -15,12 +18,16 @@ import { Ledger } from "../ledger/ledger.js";
 import { replay, splitKey, statusLabel, type RunState } from "../ledger/state.js";
 import { outcomes, scoreRun, stageStats, stageOf, type RunScore } from "../report.js";
 import { jiraConfigured } from "../sources/jira.js";
-import { brownfieldSteps } from "../stages/modes.js";
+import type { VisualCheck } from "../design/visual-check.js";
+import { exportWorkbooks } from "../estimate/export.js";
+import { exportInputFor } from "../stages/estimate-approve.js";
+import { stepsFor } from "../stages/modes.js";
 import { factoryHome } from "../util/paths.js";
 import { lastActivity, readTrace } from "../util/trace.js";
 import { maskSecrets } from "../config/env.js";
 import { Redactor } from "../context/secrets.js";
 import { readPreview } from "./preview.js";
+import { STANDALONE_PROJECT } from "../config/project.js";
 
 // ---------- helpers ----------
 
@@ -49,7 +56,7 @@ export interface ProjectRow { name: string; busy?: { runId: string } }
 
 export function projectNames(): string[] {
   const dir = join(factoryHome(), "projects");
-  return existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".yaml")).map((f) => f.replace(/\.yaml$/, "")).sort() : [];
+  return existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".yaml") && f !== `${STANDALONE_PROJECT}.yaml`).map((f) => f.replace(/\.yaml$/, "")).sort() : [];
 }
 
 /** Is a run executing on this project right now? (the executor's per-repo lock; its key is the project name) */
@@ -59,7 +66,23 @@ export async function busyRun(project: string): Promise<{ runId: string } | unde
   return { runId: info?.runId ?? "" };
 }
 
-export async function projectsView(): Promise<{ projects: ProjectRow[]; jira: { configured: boolean; why?: string } }> {
+export interface ApprovedEstimateRow { runId: string; project: string; request: string; createdAt: string }
+
+/** Estimate runs that are approved and exported: the ones a build can start from (factory start --from-estimate). */
+export function approvedEstimatesView(): ApprovedEstimateRow[] {
+  const rows: ApprovedEstimateRow[] = [];
+  for (const id of Ledger.listRuns()) {
+    try {
+      const s = replay(Ledger.open(id).events());
+      if (s.info.mode !== "estimate") continue;
+      if (!["estimate", "approve-estimate", "export"].every((k) => s.steps.get(k)?.status === "completed")) continue;
+      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt });
+    } catch { /* a broken ledger doesn't hide the others */ }
+  }
+  return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
+}
+
+export async function projectsView(): Promise<{ projects: ProjectRow[]; estimates: ApprovedEstimateRow[]; jira: { configured: boolean; why?: string } }> {
   const projects: ProjectRow[] = [];
   for (const name of projectNames()) {
     const busy = await busyRun(name);
@@ -68,6 +91,7 @@ export async function projectsView(): Promise<{ projects: ProjectRow[]; jira: { 
   const configured = jiraConfigured();
   return {
     projects,
+    estimates: approvedEstimatesView(),
     jira: configured ? { configured } : { configured, why: "Jira isn't set up. Add JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN to ~/.factory/.env (factory doctor checks it)." },
   };
 }
@@ -107,7 +131,7 @@ export interface TimelineRow {
 /** The steps in pipeline order (tasks appear once the plan is done), each with its attempts. */
 export function timeline(ledger: Ledger, s: RunState): TimelineRow[] {
   const events = ledger.events();
-  const order = [...brownfieldSteps(s).map((d) => d.key)];
+  const order = [...stepsFor(s).map((d) => d.key)];
   for (const k of s.steps.keys()) if (!order.includes(k)) order.push(k);
   const tries = new Map<string, Attempt[]>();
   const cost = new Map<string, number>();
@@ -186,6 +210,16 @@ function evidence(ledger: Ledger, seq: number) {
   return value;
 }
 
+/** The questions on an estimate run's question card, so the run page can ask them. */
+function questionsOf(ledger: Ledger, sha: string) {
+  const body = ledger.getJson<{ asked?: { id: string; text: string; options: string[]; recommended: string; reason: string; impactReason: string }[]; assumptions?: { id: string; text: string }[] }>(sha);
+  if (!body?.asked?.length) return {};
+  return {
+    questions: body.asked.map((q) => ({ id: q.id, text: q.text, options: q.options, recommended: q.recommended, reason: q.reason, why: q.impactReason })),
+    assumptions: (body.assumptions ?? []).map((a) => ({ id: a.id, text: a.text })),
+  };
+}
+
 export function runView(ledger: Ledger) {
   const s = replay(ledger.events());
   const card = s.openCard && existsSync(join(ledger.cardsDir, `${s.openCard.cardId}.md`)) ? ledger.readCard(s.openCard.cardId) : undefined;
@@ -198,6 +232,7 @@ export function runView(ledger: Ledger) {
     .map((e) => ({ ts: e.ts, where: e.step ? `${e.step}${e.attempt ? `#${e.attempt}` : ""}` : "run", kind: e.kind, msg: e.msg }));
   return {
     runId: ledger.runId,
+    mode: s.info.mode,
     project: s.info.project,
     request: s.info.request ?? "",
     sources: s.info.sources ?? [],
@@ -210,7 +245,7 @@ export function runView(ledger: Ledger) {
     lastActivity: last ? { ts: last.ts, msg: last.msg, where: last.step ?? "run" } : undefined,
     timeline: timeline(ledger, s),
     gates: gateChips(s),
-    card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8) } : undefined,
+    card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.info.mode === "estimate" && s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}) } : undefined,
     trace,
     delivered: done ? {
       branch: d.branch ?? s.workspace?.branch, head: d.head, prUrl: d.prUrl, local: d.local !== false,
@@ -347,7 +382,10 @@ export function designView(ledger: Ledger) {
   }
   const styleChecks = s.gates.filter((g) => g.gateId.startsWith("design.")).map((g) => ({ gateId: g.gateId, passed: g.passed, step: g.step, seq: g.seq }));
   const levels = LEVELS.map((level) => ({ level, name: LEVEL_NAMES[level] }));
-  return { runId: ledger.runId, project: s.info.project, levels, uiSize, inventory, styleChecks };
+  const vs = s.steps.get("design-check");
+  const visual: VisualCheck | { none: string } = vs?.status === "completed" && vs.outputs[0] ? ledger.getJson<VisualCheck>(vs.outputs[0])
+    : { none: "The visual check runs after the build's acceptance step." };
+  return { runId: ledger.runId, project: s.info.project, levels, uiSize, inventory, styleChecks, visual };
 }
 
 const nameOf = (c: { key: string; exports: string[] }) => c.exports[0] ?? c.key.split("/").pop()!;
@@ -363,4 +401,92 @@ function inventorySummaryView(inv: DesignInventory, commit: string) {
     offSystem: { hexColors: inv.offSystem.hexColors, arbitraryValues: inv.offSystem.arbitraryValues, inlineStyle: inv.offSystem.inlineStyle, ratio: inv.offSystem.ratio },
     verdict: inv.verdict,
   };
+}
+
+// ---------- estimate ----------
+
+interface ExportManifest { team: string; client: string }
+
+/** The estimate run's numbers and what they rest on, from the ledger: the same figures as the approval card and workbooks. */
+export function estimateView(ledger: Ledger) {
+  const s = replay(ledger.events());
+  if (s.info.mode !== "estimate") return { runId: ledger.runId, none: "This is not an estimate run. Start one from New run, then Estimate." };
+  const done = (step: string) => { const r = s.steps.get(step); return r?.status === "completed" ? r.outputs[0] : undefined; };
+  const estSha = done("estimate");
+  if (!estSha) return { runId: ledger.runId, settings: s.info.estimate ?? {}, none: "The estimate isn't ready yet. It appears here after the breakdown and sizing steps finish." };
+  const est = ledger.getJson<Estimate>(estSha);
+  const bdSha = done("breakdown");
+  const bd = bdSha ? ledger.getJson<Breakdown>(bdSha) : undefined;
+  const titles = new Map((bd?.tasks ?? []).map((t) => [t.id, t]));
+  const baseline = done("design-baseline") ? ledger.getJson<{ ui: boolean; design?: string }>(done("design-baseline")!) : undefined;
+  const design = baseline?.ui && baseline.design ? ledger.getJson<z.infer<typeof DesignSchema>>(baseline.design) : undefined;
+  const approval = s.steps.get("approve-estimate");
+  const manifestSha = done("export");
+  const files = manifestSha ? (() => { const m = ledger.getJson<ExportManifest>(manifestSha); return { team: existsSync(m.team), client: existsSync(m.client) }; })() : undefined;
+  return {
+    runId: ledger.runId,
+    settings: s.info.estimate ?? {},
+    deliveryModel: est.deliveryModel, band: est.band, uncertainty: est.uncertainty, complexity: est.complexity,
+    totals: est.totals, apiCost: est.apiCost, elapsed: est.elapsed,
+    tasks: est.tasks.map((t) => {
+      const b = titles.get(t.taskId);
+      return { id: t.taskId, title: b?.title ?? t.taskId, track: b?.track, executor: t.executor, hours: t.hours, anchor: t.anchorId, ratio: t.ratio, reason: t.reason, flagged: t.flagged, screen: b?.screen, reqs: b?.reqs ?? [], overhead: b?.overhead };
+    }),
+    anchors: est.anchors,
+    overheads: est.overheads,
+    gateHours: est.gateHours,
+    scenarios: est.scenarios,
+    suggested: est.suggested,
+    assumptions: est.assumptions,
+    design: baseline === undefined ? { pending: true } : !design ? { ui: false } : {
+      ui: true, flow: design.flow,
+      screens: design.screens.map((x) => ({ id: x.id, route: x.route, size: x.size ?? "new", states: x.states ?? [], reqs: x.reqs, frames: x.frames ?? [] })),
+      unmapped: design.mapping.unmappedReqs, noScreen: design.noScreen ?? [],
+    },
+    pending: s.openCard?.kind === "estimate-approval" ? { hash: s.openCard.artifactSha.slice(0, 8), flagged: est.tasks.filter((t) => t.flagged).map((t) => t.taskId) } : undefined,
+    approved: approval?.status === "completed" ? { by: String((approval.data as { by?: string } | undefined)?.by ?? ""), hash: String((approval.data as { hash?: string } | undefined)?.hash ?? "") } : undefined,
+    files,
+  };
+}
+
+/** A workbook the run exported, or undefined: only the two manifest paths, only inside the run's export folder, never through a link. */
+export function exportFile(ledger: Ledger, audience: string): { body: Buffer; name: string } | undefined {
+  if (audience !== "team" && audience !== "client") return undefined;
+  const s = replay(ledger.events());
+  const step = s.steps.get("export");
+  if (step?.status !== "completed" || !step.outputs[0]) return undefined;
+  const p = ledger.getJson<ExportManifest>(step.outputs[0])[audience];
+  try {
+    const root = realpathSync(join(ledger.dir, "export"));
+    if (lstatSync(p).isSymbolicLink()) return undefined;
+    const real = realpathSync(p);
+    if (!real.startsWith(root + sep) || !/\.xlsx$/i.test(real) || !lstatSync(real).isFile()) return undefined;
+    return { body: readFileSync(real), name: basename(real) };
+  } catch { return undefined; }
+}
+
+/** A workbook drawn from the finished estimate before anyone has approved it: the same figures, marked DRAFT in its name, kept apart from the approved export. */
+export async function draftFile(ledger: Ledger, audience: string): Promise<{ body: Buffer; name: string } | undefined> {
+  if (audience !== "team" && audience !== "client") return undefined;
+  const s = replay(ledger.events());
+  if (s.info.mode !== "estimate" || s.steps.get("estimate")?.status !== "completed" || !s.steps.get("breakdown")?.outputs[0] || !s.steps.get("specify")?.outputs[0]) return undefined;
+  try {
+    const dir = join(ledger.dir, "draft-export");
+    const files = await exportWorkbooks(exportInputFor(s, ledger), dir, ledger.runId, {});
+    const p = files[audience];
+    return { body: readFileSync(p), name: `DRAFT-${basename(p)}` };
+  } catch { return undefined; }
+}
+
+/** A picture from the run's visual check: only a .png inside <ledger>/design-check, never through a link. */
+export function visualShot(ledger: Ledger, rel: string): Buffer | undefined {
+  if (!/^(base|final|diff)\/[\w.-]+\.png$/.test(rel)) return undefined;
+  try {
+    const root = realpathSync(join(ledger.dir, "design-check"));
+    const p = join(root, rel);
+    if (lstatSync(p).isSymbolicLink()) return undefined;
+    const real = realpathSync(p);
+    if (!real.startsWith(root + sep) || !lstatSync(real).isFile()) return undefined;
+    return readFileSync(real);
+  } catch { return undefined; }
 }

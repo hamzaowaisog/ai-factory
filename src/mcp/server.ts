@@ -40,7 +40,7 @@ export async function startMcpServer(): Promise<void> {
     description: "List the projects configured for the AI Factory (the names to pass to factory_start).",
   }, async () => {
     const dir = join(factoryHome(), "projects");
-    const names = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".yaml")).map((f) => f.replace(/\.yaml$/, "")) : [];
+    const names = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".yaml") && f !== "standalone-estimates.yaml").map((f) => f.replace(/\.yaml$/, "")) : [];
     return text(names.length ? names.join("\n") : "No projects yet. The user can add one with `factory init <repo>`.");
   });
 

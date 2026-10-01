@@ -1,7 +1,9 @@
 // `factory ui`: a small local web app to start runs and watch them. node:http only, plain files.
-// It can NEVER answer, approve, reject, waive, unlock, steer, pause or stop: decisions are TTY-only
-// (ledger/human.ts), so no AI or script can approve its own plan. Cards are shown read-only with the
-// terminal command to paste.
+// It can NEVER approve a plan, waive, unlock, steer, pause or stop: those decisions are TTY-only
+// (ledger/human.ts), so no AI or script can approve its own plan. Two exceptions, both for an estimate
+// run and both needing a typed name and the card's hash: the lead's approve or reject of the estimate card,
+// and the answers to its clarification questions (so a run never stops waiting for a second command).
+// Other cards are shown read-only with the terminal command to paste.
 // Safety: bound to 127.0.0.1; a random token per start (in the printed link, then an HttpOnly
 // cookie) on every API call; Host and Origin checked so another website can't drive it; JSON-only
 // POSTs; a 1 MB body limit; no secrets or .env values are ever sent.
@@ -14,11 +16,13 @@ import { fileURLToPath } from "node:url";
 import "../gates/predicates.js";
 import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
-import { dashboardView, designView, eventsView, findRun, previewView, projectsView, runView, runsView, statsView } from "./data.js";
+import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
-import { startRun, StartError, type StartDeps } from "./start.js";
+import { answerEstimateQuestions, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
+/** Starting a run may carry design frames (base64 in the JSON), so that one route takes a bigger body. */
+export const MAX_UPLOAD_BODY_BYTES = 30_000_000;
 const COOKIE = "factory_ui";
 
 type Json = Record<string, unknown> | unknown[];
@@ -50,6 +54,10 @@ export const ROUTES: readonly Route[] = [
     handle: ({ id }) => { const l = findRun(id!); return l ? ok(designView(l)) : notFound(`No run ${id}`); },
   },
   {
+    method: "GET", path: "/api/runs/:id/estimate", what: "an estimate run's totals, tasks, API cost, approved design and exported files, or why there are none",
+    handle: ({ id }) => { const l = findRun(id!); return l ? ok(estimateView(l)) : notFound(`No run ${id}`); },
+  },
+  {
     method: "GET", path: "/api/runs/:id/events", what: "the run's ledger events and trace lines, secret-masked (text view)",
     handle: ({ id }) => { const l = findRun(id!); return l ? ok(eventsView(l)) : notFound(`No run ${id}`); },
   },
@@ -71,6 +79,32 @@ export const ROUTES: readonly Route[] = [
       try {
         const r = await startRun((body ?? {}) as Record<string, unknown>, deps);
         return { status: 201, json: r };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/estimate-decision", what: "the lead's approve or reject of an estimate card (estimate cards only; needs a typed name, the card hash and sign-offs for flagged tasks)",
+    handle: async ({ id }, body, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await decideEstimate(l, (body ?? {}) as Record<string, unknown>, deps) };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/estimate-answers", what: "the lead's answers to an estimate run's clarification questions (question cards of estimate runs only; needs a typed name and the card hash)",
+    handle: async ({ id }, body, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await answerEstimateQuestions(l, (body ?? {}) as Record<string, unknown>, deps) };
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };
@@ -165,13 +199,13 @@ function send(res: ServerResponse, status: number, body: string | Buffer, type: 
 
 const sendJson = (res: ServerResponse, status: number, json: unknown) => send(res, status, JSON.stringify(json), "application/json; charset=utf-8");
 
-async function readBody(req: IncomingMessage): Promise<string | "too-big"> {
-  if (Number(req.headers["content-length"] ?? 0) > MAX_BODY_BYTES) return "too-big";
+async function readBody(req: IncomingMessage, limit = MAX_BODY_BYTES): Promise<string | "too-big"> {
+  if (Number(req.headers["content-length"] ?? 0) > limit) return "too-big";
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const c of req) {
     size += (c as Buffer).length;
-    if (size > MAX_BODY_BYTES) return "too-big";
+    if (size > limit) return "too-big";
     chunks.push(c as Buffer);
   }
   return Buffer.concat(chunks).toString("utf8");
@@ -225,6 +259,27 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       if (!authed) return send(res, 401, LOCKED_PAGE, "text/html; charset=utf-8");
       return send(res, 200, readFileSync(join(staticDir(), "index.html")), "text/html; charset=utf-8");
     }
+    if (method === "GET" && path.startsWith("/export/")) {
+      // a workbook download: same key as the API, and only the two files the export step recorded
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      const [, , runId = "", audience = ""] = path.split("/");
+      let l;
+      try { l = findRun(decodeURIComponent(runId)); } catch { l = undefined; }
+      const want = decodeURIComponent(audience);
+      const f = !l ? undefined : want.startsWith("draft-") ? await draftFile(l, want.slice(6)) : exportFile(l, want);
+      if (!f) return send(res, 404, "No such workbook.", "text/plain; charset=utf-8");
+      return send(res, 200, f.body, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", { "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"` });
+    }
+    if (method === "GET" && path.startsWith("/shots/")) {
+      // a picture from a run's visual check: same key as the API, png files in one folder only
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      const [, , runId = "", ...rest] = path.split("/");
+      let l, rel = "";
+      try { l = findRun(decodeURIComponent(runId)); rel = rest.map(decodeURIComponent).join("/"); } catch { l = undefined; }
+      const body = l ? visualShot(l, rel) : undefined;
+      if (!body) return send(res, 404, "No such picture.", "text/plain; charset=utf-8");
+      return send(res, 200, body, "image/png", { "Cache-Control": "no-store" });
+    }
     if (!path.startsWith("/api/")) return send(res, 404, "Not found.", "text/plain; charset=utf-8");
 
     if (!authed) return sendJson(res, 401, { error: "Missing or wrong key. Open the link factory ui printed." });
@@ -240,8 +295,9 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       if (!String(req.headers["content-type"] ?? "").startsWith("application/json")) return sendJson(res, 415, { error: "Send JSON." });
       // a cookie alone isn't enough without a same-site Origin (curl sends the key in a header)
       if (origin === undefined && !sameToken(headerToken, token)) return sendJson(res, 403, { error: "A POST needs the page's origin or the key header." });
-      const raw = await readBody(req);
-      if (raw === "too-big") return sendJson(res, 413, { error: `The request is over ${MAX_BODY_BYTES / 1_000_000} MB.` });
+      const limit = route.path === "/api/runs" ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES;
+      const raw = await readBody(req, limit);
+      if (raw === "too-big") return sendJson(res, 413, { error: `The request is over ${limit / 1_000_000} MB.` });
       try { body = raw ? JSON.parse(raw) : {}; } catch { return sendJson(res, 400, { error: "Bad JSON." }); }
     }
     const r = await route.handle(params!, body, deps, { previewKey });

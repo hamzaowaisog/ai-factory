@@ -104,7 +104,7 @@ When something keeps failing, the factory climbs a fixed ladder (retry with the 
 | Test lab: restore → offline build → tests next to a throwaway Postgres | Review repair loop (blocking findings park the run); unlock card for a wrong test |
 | Ledger, crash-resume, failure ladder, cost caps, verify-evidence | URL-prefix package filter (today: allowlist by host name) |
 | GitHub PR delivery (optional) | Bitbucket PR delivery (today: branch ready locally) |
-| Design toolkit for web apps (no AI): how big a UI change is, shown on the approval card; style checks; `factory design` | The design mock step and screenshots; the design checks aren't called by any step yet |
+| Design toolkit for web apps (no AI): how big a UI change is, shown on the approval card; style checks; `factory design` | The design mock step; the visual check (`design.capture`) is opt-in and advisory |
 
 **Refused for now:** SQL Server, repos whose tests start their own containers (Testcontainers), Windows-only projects (WPF/WinForms/.NET Framework), Git LFS, submodules.
 
@@ -309,7 +309,7 @@ factory show-card <run>
 factory answer <run> <hash> Q-1=A Q-2="only for guest checkouts"
 ```
 
-Unanswered questions take the recommended option. Low-risk question cards default automatically after 24 hours.
+In a terminal, `factory start` and `factory estimate` ask the questions right there (a letter, your own words, or Enter for the recommended option) and carry straight on, so a run does not stop for a second command. Set `FACTORY_NO_PROMPT=1` to switch that off; from a script or pipe the run still stops and prints the `factory answer` command. For estimate runs started in `factory ui`, the run page shows the same questions with the recommended option selected; type your name and send. Unanswered questions take the recommended option. Low-risk question cards default automatically after 24 hours.
 
 **2. Approval**
 
@@ -389,6 +389,21 @@ factory logs <run> --follow        # in a second terminal
 
 Answer the question card if one appears, read the approval card, then approve.
 
+**Estimating instead of building.** `factory estimate` takes requirements (a prompt, `--file` as Markdown, text or Word, `--frames` for exported Figma frames, or `--jira`) and produces an effort, API-cost and elapsed-time estimate of delivering them through the factory. A lead approves it on the terminal, then two workbooks (team and client) are written under the run's `export/` folder. See `docs/estimates-design.md`. The workbooks are drawn on Folio3's estimation template, which the repo ships with its text cleared (`src/estimate/assets/estimation-template.xlsx`), so nothing needs setting. To use a newer template file instead, set `estimateTemplate: /path/to/Example_Estimation.xlsx` in the project config (or `FACTORY_ESTIMATE_TEMPLATE` in the environment).
+
+```bash
+factory estimate --file requirements.docx --project shop-api --no-repo --delivery-model hitl --rate backend=55 --rate default=40
+factory approve <run> <hash> --sign-off EST-4     # low-confidence lines need a sign-off
+factory waive <run> <hash> --reason "why"         # only for E3, E4 and E5
+factory edit-estimate <run> <hash> --anchor EST-1=6-12 --reason "why"   # recomputes, new card
+factory estimate --from-run <run> --delivery-model agentic              # the other delivery model
+factory estimate --revises <run> --file changed.md --project shop-api   # a change request (v2)
+factory start --from-estimate <run> --project shop-api                  # build it, held to the estimate
+factory estimate --file requirements.md --fresh                         # ask the model again, ignoring stored answers
+```
+
+The same requirements, model and settings reuse the stored model answers from an earlier estimate (no model call), so the same input gives the same estimate; `--fresh` skips that. See `docs/estimate-consistency.md`.
+
 **6. Get the result**
 
 The change is on branch `factory/<run>` in the Ubuntu copy. Automatic PRs support GitHub only for now (set `forge:` in the config); otherwise push the branch and open the PR yourself with the text the factory wrote:
@@ -426,7 +441,7 @@ A local web app to start runs and watch them. Decisions stay in your terminal: e
 | Run: Statistical | Totals: cost, limit left, machine vs wall-clock time, attempts, first-time pass, gates, human stops, tokens. |
 | Run: Text | Every ledger event, filterable by step, type and search, with live follow; click one for its details. Also the trace lines. |
 | Run: Design | How big the UI change is and why, and the app's pages and building blocks ("no web UI found" for a .NET-only repo). |
-| Run: Preview | Clickable mocks and design images, once the estimate module makes them: phone/tablet/desktop widths, a screen list, a gallery with a before/after slider. Until then, it says so. |
+| Run: Preview | Clickable demo of a UI estimate's approved screens, and the attached Figma frames against the screens that cite them: phone/tablet/desktop widths, a screen list, a gallery with a before/after slider. For an estimate run it shows the demo and its screenshots; with nothing to show, it says so. |
 | Dashboard | Outcome numbers across runs (like `factory report --all`), per-stage bars, recent runs. |
 
 Safety: it only listens on this computer (127.0.0.1), needs the key from the printed link (a new one each start), refuses requests from other websites, and never sends keys or `.env` values to the browser (ledger text is secret-masked). A preview runs in a locked frame that can't reach the app, the network or your files.
@@ -499,12 +514,13 @@ The request can come from **any one** of a typed prompt, `--file` or `--jira`, o
 | `factory steer <run> <file>` | Records a requirement change (applying it isn't built yet). |
 | `factory verify-evidence <run>` | Re-runs every gate decision from the ledger. |
 | `factory watch --project <p> [--once]` | Starts runs from Jira tickets labelled by allowed people, and posts updates to Jira and Slack. Decisions stay in the terminal. See *Start runs from Jira*. |
-| `factory ui [--port <n>]` | Local web screens: start runs and watch them live (four views per run, dashboard, design, preview). Decisions stay in the terminal. |
+| `factory ui [--port <n>]` | Local web screens: start runs and watch them live (four views per run, dashboard, design, preview), and estimate runs with an Estimate tab (totals, tasks, API cost, screens, workbook downloads, plus DRAFT workbooks before approval). The estimate form can attach design frames, the demo page has drawn wireframes, and the Design tab shows build screenshots before/after with a pixel diff when `design.capture` is set. Plan approvals, answers and waivers stay in the terminal; the estimate lead can approve or reject an estimate on its Estimate tab. |
 | `factory report [run] [--all] [--json]` | Step scorecard for one run. Across runs (`--all`): outcome numbers first (delivered, cost per delivered change, time from request to branch, human stops, first-time pass), then a per-stage table. `--all --json` prints `{outcomes, stages}`. From the ledgers only, no AI. |
 | `factory design inventory <repo>` | Scans a web app's look: theme settings, shared components and how often each is used, pages. No AI. |
 | `factory design size` | Says how big a UI change is (no UI, screen tweak, new screen, or a change to the shared look), from a plan's file list or a git diff, with reasons. |
 | `factory design lint` | Checks a change uses only the theme's colours and the app's existing components, and adds no new shared components. |
 | `factory design brief <file>` | Cleans a design brief from outside (a Figma export, a brand guide) down to plain fields and shows what it dropped. |
+| `factory design pixel <before> <after> --out <dir>` | Compares same-named screenshots in two folders and prints how much of each differs. Facts, not pass or fail. |
 
 Run any `factory design` command with `--help` for its options.
 
@@ -524,7 +540,7 @@ Setup registers an MCP server called **ai-factory** in Claude Code (if you have 
 | `factory_show_card` | Shows the open card or the PR text. |
 | `factory_verify_evidence` | Re-checks a run's decisions. |
 
-By design it **can't answer questions or approve plans**. Those always happen in your own terminal (`factory answer`, `factory approve`), so no AI can approve its own plan.
+By design it **can't approve plans**, and an MCP client can't answer questions. Those happen in your own terminal (`factory answer`, `factory approve`), so no AI can approve its own plan. The one web exception is the estimate lead, who can answer an estimate run's questions and approve its estimate on the `factory ui` run page (typed name and card hash required).
 
 ---
 

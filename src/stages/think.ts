@@ -4,10 +4,12 @@ import type { z } from "zod";
 import type { PackClass, StageName } from "../contracts/index.js";
 import { buildPack, PackOverBudgetError, type ResolvedSection } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
+import { estimateTokens } from "../context/tokens.js";
 import type { RepoTools } from "../context/tools.js";
 import { ApiRunner, defaultProvider, type Provider } from "../runners/api.js";
 import type { StepContext, StepOutcome } from "./framework.js";
 import { argsSummary } from "../util/trace.js";
+import { cacheDisabled, cacheGet, cacheKey, cachePut } from "../estimate/cache.js";
 
 const kTok = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n));
 import { modelFor } from "./routing.js";
@@ -43,6 +45,16 @@ export type ThinkResult<T> =
   | { ok: true; output: T; model: string; packSha: string; note?: string }
   | { ok: false; outcome: StepOutcome };
 
+/**
+ * An estimate reads requirements documents far longer than a change request. The text is what it is, so in
+ * estimate mode the budget grows by the size of the untrusted document (capped), and the usual room stays.
+ */
+export function budgetFor(ctx: Pick<StepContext, "state">, base: number | undefined, sections: ResolvedSection[], model: string): number | undefined {
+  if (base === undefined || ctx.state.info.mode !== "estimate") return base;
+  const doc = sections.filter((x) => x.spec.trust === "untrusted").reduce((n, x) => n + estimateTokens(x.content, model), 0);
+  return doc > base / 2 ? Math.min(180_000, base + doc) : base;
+}
+
 export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<ThinkResult<T>> {
   const routed = modelFor(ctx.project, spec.route, ctx.rung);
   const effort = spec.effort && ctx.rung === 0 ? spec.effort : routed.effort;
@@ -58,7 +70,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
   let pack;
   try {
     pack = buildPack({
-      stage: spec.stage, cls: spec.cls, budgetTokens: spec.budgetTokens, model, recipeVersion: "1",
+      stage: spec.stage, cls: spec.cls, budgetTokens: budgetFor(ctx, spec.budgetTokens, sections, model), model, recipeVersion: "1",
       sections, tools: spec.tools, redactor: new Redactor(), local: model.startsWith("ollama/"),
     });
   } catch (e) {
@@ -66,6 +78,22 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
     throw e;
   }
   const packSha = ctx.ledger.putJson(pack);
+
+  // estimate mode: the same briefing, model and repository state gives the stored answer (src/estimate/cache.ts)
+  const reads = spec.tools.length > 0 && !!ctx.state.info.repoPath;
+  const cacheable = ctx.state.info.mode === "estimate" && !cacheDisabled() && !(reads && !ctx.state.info.baseCommit);
+  const key = cacheable
+    ? cacheKey({ model, effort, system: pack.system, user: pack.user, images: pack.images, tools: pack.tools, ...(reads ? { repoCommit: ctx.state.info.baseCommit } : {}) })
+    : undefined;
+  if (key) {
+    const hit = cacheGet<unknown>(key);
+    const parsed = hit ? spec.schema.safeParse(hit.output) : undefined;
+    if (hit && parsed?.success) {
+      ctx.log(`${spec.stage}: reused the stored answer from run ${hit.runId} (same briefing, model and settings; no model call)`);
+      ctx.trace.event("cache.hit", `${spec.stage} reused from ${hit.runId}`, { key, fromRun: hit.runId, model });
+      return { ok: true, output: parsed.data, model, packSha, note: singleFamilyNote };
+    }
+  }
   const runner = new ApiRunner({
     provider: providerFactory,
     tools: spec.repoTools,
@@ -87,7 +115,10 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
     // never more than what's left of the run's cost limit
     limits: { maxTurns: spec.maxTurns ?? 8, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), spec.maxUsd ?? 2), timeoutSec: spec.timeoutSec ?? 900 },
   });
-  if (r.status === "ok") return { ok: true, output: r.output as T, model, packSha, note: singleFamilyNote };
+  if (r.status === "ok") {
+    if (key) cachePut({ key, step: spec.stage, route: spec.route, model, runId: ctx.runId, createdAt: new Date().toISOString(), output: r.output });
+    return { ok: true, output: r.output as T, model, packSha, note: singleFamilyNote };
+  }
   // bad key, unknown model, rejected request: stop now instead of paying for retries
   if (r.status === "config-error") return { ok: false, outcome: { kind: "park", reason: r.error ?? "The API rejected the request" } };
   const category = r.status === "rate-limited" ? "rate-limit" : "other";
@@ -108,6 +139,8 @@ export const S = {
   untrusted: (id: string, source: string, text: string): ResolvedSection => ({
     spec: { id, source: "doc", trust: "untrusted", placement: "user" }, content: text, docId: id, source,
   }),
+  /** trusted reference text for the user message (our own data, not model or user input) */
+  reference: (id: string, text: string): ResolvedSection => ({ spec: { id, source: "template", trust: "trusted", placement: "user" }, content: text }),
   task: (text: string): ResolvedSection => ({ spec: { id: "task", source: "task", trust: "trusted", placement: "user" }, content: text }),
   recap: (lines: string[]): ResolvedSection => ({ spec: { id: "recap", source: "recap", trust: "trusted", placement: "user" }, content: lines.map((l) => `- ${l}`).join("\n") }),
   pointers: (ps: { path: string; reason: string }[]): ResolvedSection => ({ spec: { id: "pointers", source: "pointers", trust: "derived", placement: "user", trimmable: "pointers-tail" }, content: "", pointers: ps }),

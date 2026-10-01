@@ -36,3 +36,15 @@ agentEnv:                          # dummy values so the app compiles where the 
 # $10 in / $50 out, which is deliberately high and can hit the run's cost limit early.
 # prices:
 #   gpt-5.5: { input: <from OpenAI's pricing page>, output: <...>, cacheRead: <...> }
+# A repo with a React or Next.js front end: tell the design checks where things are when detection guesses wrong.
+# design:
+#   sourceRoot: "src/"               # "" is the repo root
+#   uiDir: "src/components/ui"       # the building-block folder
+#   brandFonts: ["Acme Sans"]        # fonts the design brief may name besides Google Fonts
+#   navRaises: false                 # true: a navigation change counts as a new screen
+#   capture:                         # opt-in visual check after a UI-changing build (docs/design-step.md)
+#     allowHost: true                # REQUIRED: you agree to run the start command on this machine
+#     install: "npm ci"
+#     start: "npm run start -- -p $PORT"
+#     pages: [{ name: home, path: "/" }, { name: orders, path: "/orders" }]
+#     readyPath: "/"

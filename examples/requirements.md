@@ -1,0 +1,24 @@
+# Invoice reminders
+
+A small web app for a bakery wholesaler. Staff see which customer invoices are overdue and send a reminder by email.
+
+## Requirements
+
+- When an invoice is 7 days past its due date, the system shall mark it overdue and show it on the overdue list.
+- When staff press "Send reminder" on an overdue invoice, the system shall email the customer a reminder with the invoice number, amount and due date.
+- The system shall record each reminder sent, with who sent it and when, and show the history on the invoice.
+- If an email cannot be delivered, the system shall show the failure on the invoice and keep it on the overdue list.
+- Staff shall be able to filter the overdue list by customer and by days overdue.
+
+## Screens
+
+- Overdue list (table, filters, a "Send reminder" button per row)
+- Invoice detail (amount, due date, reminder history, delivery failures)
+
+## Out of scope
+
+Payments, customer logins, SMS reminders.
+
+## Stack
+
+Client's existing .NET 8 API with a React front end. Postgres.

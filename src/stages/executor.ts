@@ -1,8 +1,8 @@
 // The executor (run-manager §2.3, §2.5, §2.9): replay → next step → run → record → repeat,
 // until a human card, a park, delivery, or a stop/pause request. One executor per repo.
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, rmSync, statSync } from "node:fs";
-import { basename, join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import type { Failure, LedgerEvent } from "../contracts/index.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY, mergePolicy, type Policy } from "../gates/policy.js";
@@ -12,7 +12,7 @@ import { ExecutionLock, LockBusyError } from "../ledger/exec-lock.js";
 import { resolveRef } from "../ledger/git.js";
 import { applyExpiredDeadline } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
-import { canSkip, eventKey, inputsHash, replay, splitKey, type RunState } from "../ledger/state.js";
+import { canSkip, eventKey, inputsHash, replay, splitKey, type RunInfo, type RunState } from "../ledger/state.js";
 import { assertSupportedPath, factoryHome } from "../util/paths.js";
 import { Tracer } from "../util/trace.js";
 import { saveReport } from "../report.js";
@@ -20,10 +20,12 @@ import { hashJson, sha256 } from "../util/hash.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
 import { setPrice } from "../runners/pricing.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
-import { brownfieldSteps } from "./modes.js";
+import { stepsFor } from "./modes.js";
 import { availableRungs, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
 import type { RequestSource } from "../sources/request.js";
+import { budgetStop } from "../estimate/budget.js";
+import { copyArtifacts, type Approved } from "../estimate/lineage.js";
 
 export type Log = (msg: string) => void;
 
@@ -33,7 +35,7 @@ export function policyFor(project: ProjectConfig): Policy {
 
 function versions(): Record<string, string> {
   const pkg = JSON.parse(readFileSync(join(REPO_ROOT, "package.json"), "utf8")) as { version: string; dependencies: Record<string, string> };
-  return { factory: pkg.version, node: process.version, "mode:brownfield": "1", ...Object.fromEntries(Object.entries(pkg.dependencies).filter(([k]) => /anthropic|openai|zod/.test(k))) };
+  return { factory: pkg.version, node: process.version, "mode:brownfield": "1", "mode:estimate": "1", ...Object.fromEntries(Object.entries(pkg.dependencies).filter(([k]) => /anthropic|openai|zod/.test(k))) };
 }
 
 function slug(text: string): string {
@@ -55,10 +57,10 @@ export function assertDeliverable(project: ProjectConfig): void {
 export const MAX_REQUEST_FILE_BYTES = 100_000;
 
 /** `factory start --file`: read a request file (Markdown or text), refusing ones intake can't take. */
-export function readRequestFile(path: string): { text: string; name: string } {
+export function readRequestFile(path: string, maxBytes = MAX_REQUEST_FILE_BYTES): { text: string; name: string } {
   if (!existsSync(path)) throw new Error(`No such file: ${path}`);
   const size = statSync(path).size;
-  if (size > MAX_REQUEST_FILE_BYTES) {
+  if (size > maxBytes) {
     throw new Error(`${basename(path)} is ${Math.round(size / 1000)} KB. The intake step reads about 25 KB; split the request or summarise it.`);
   }
   const text = readFileSync(path, "utf8").trim();
@@ -67,25 +69,41 @@ export function readRequestFile(path: string): { text: string; name: string } {
 }
 
 /** `factory start`: create the ledger. Execution happens in `execute`. */
-export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[] } = {}): Promise<string> {
+export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "estimate"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved } } = {}): Promise<string> {
   if (opts.maxCostUsd !== undefined && !(opts.maxCostUsd > 0)) throw new Error("--max-cost must be a positive number of dollars");
   const project = loadProject(projectName);
-  assertSupportedPath(project.repo);
-  assertDeliverable(project);
-  const baseCommit = await resolveRef(project.repo, project.baseBranch);
+  // an estimate from requirements alone has no repo to check or read
+  const noRepo = opts.mode === "estimate" && opts.estimate?.noRepo === true;
+  if (!noRepo) {
+    assertSupportedPath(project.repo);
+    assertDeliverable(project);
+  }
+  const baseCommit = noRepo ? undefined : await resolveRef(project.repo, project.baseBranch);
   const runId = newRunId(request);
   const ledger = Ledger.create(runId);
+  const lin = opts.lineage;
+  if (lin) copyArtifacts(ledger, lin.approved);
+  // an estimate has no critic record of its own to hand a build run: an empty one, stated as inherited
+  if (lin?.kind === "build" && !lin.approved.criticSha) lin.approved.criticSha = ledger.putJson({ findings: [], note: `inherited from approved estimate ${lin.approved.runId}` });
   const requestSha = ledger.putArtifact(request);
   await ledger.append({
     type: "run.created",
     data: {
-      mode: "brownfield", project: project.project, repoPath: project.repo, repoId: project.project,
-      baseRef: project.baseBranch, baseCommit, request, requestSha, operator, versions: versions(),
+      mode: opts.mode ?? "brownfield", project: project.project, ...(noRepo ? {} : { repoPath: project.repo, baseRef: project.baseBranch, baseCommit }), ...(noRepo ? {} : { repoId: project.project }),
+      request, requestSha, operator, versions: versions(),
       ...(opts.maxCostUsd !== undefined ? { maxCostUsd: opts.maxCostUsd } : {}),
       ...(opts.requestFile ? { requestFile: opts.requestFile } : {}),
       ...(opts.sources?.length ? { sources: opts.sources } : {}),
+      ...(opts.estimate ? { estimate: opts.estimate } : {}),
+      ...(lin && lin.kind !== "build" ? { parent: { runId: lin.approved.runId, kind: lin.kind, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.clarifySha ? { clarifySha: lin.approved.clarifySha } : {}), ...(lin.approved.clarify2Sha ? { clarify2Sha: lin.approved.clarify2Sha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}), ...(lin.approved.baselineSha ? { baselineSha: lin.approved.baselineSha } : {}) } } : {}),
+      ...(lin?.kind === "build" ? { estimateRef: { runId: lin.approved.runId, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}) } } : {}),
     },
   }, HUMAN_WRITER);
+  for (const a of opts.attachments ?? []) {
+    const dest = join(ledger.dir, "attachments", a.name);
+    mkdirSync(dirname(dest), { recursive: true });
+    writeFileSync(dest, a.bytes);
+  }
   return runId;
 }
 
@@ -93,7 +111,7 @@ export type NextStep = { kind: "run"; step: StepDef; hash: string } | { kind: "d
 
 /** Pure: the first step whose recorded inputsHash doesn't match its current inputs. */
 export function next(state: RunState, ledger: Ledger, project: ProjectConfig): NextStep {
-  for (const step of brownfieldSteps(state)) {
+  for (const step of stepsFor(state)) {
     const inp = step.inputs(state, ledger);
     if (!inp) return { kind: "blocked", step: step.key };
     let model: string | undefined;
@@ -144,6 +162,7 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
     throw e;
   }
   const writer = lock;
+  const warned = new Set<string>();
   trace.startHeartbeat();
   trace.event("run", `executor started (pid ${process.pid})`);
   try {
@@ -166,6 +185,8 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
       if (state.flags.pauseRequested) { await ledger.append({ type: "run.paused" }, writer); return { status: "paused", message: "Paused." }; }
       if (typeof state.status === "object" || state.status === "delivered") return { status: String(typeof state.status === "object" ? `closed: ${state.status.closed}` : state.status), message: "Nothing to do." };
       if (state.openCard) return { status: "waiting", message: `Waiting for you: factory show-card ${runId}` };
+      const burn = await budgetStop(ledger, writer, state, policy, log, warned);
+      if (burn) { await ledger.append({ type: "run.parked", data: { reason: burn } }, writer); return { status: "parked", message: burn }; }
       const cap = checkCaps(state, policy.retryBudget);
       if (cap && !cap.waivable) { await ledger.append({ type: "run.parked", data: { reason: cap.reason } }, writer); return { status: "parked", message: cap.reason }; }
       if (cap) {

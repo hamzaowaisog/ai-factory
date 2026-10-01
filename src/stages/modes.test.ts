@@ -1,0 +1,71 @@
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { beforeEach, describe, expect, it } from "vitest";
+import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
+import { replay } from "../ledger/state.js";
+import { brownfieldSteps, estimateSteps, stepsFor } from "./modes.js";
+
+beforeEach(() => {
+  process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "factory-modes-"));
+});
+
+async function stateFor(mode: string) {
+  const l = Ledger.create(`20260930-${mode}-abcd`);
+  await l.append({ type: "run.created", data: { mode, project: "p", request: "x" } }, HUMAN_WRITER);
+  return replay(l.events());
+}
+
+describe("mode manifests", () => {
+  it("dispatches on the run's mode", async () => {
+    const b = await stateFor("brownfield");
+    const e = await stateFor("estimate");
+    expect(stepsFor(b).map((s) => s.key)).toEqual(brownfieldSteps(b).map((s) => s.key));
+    expect(stepsFor(e).map((s) => s.key)).toEqual(estimateSteps(e).map((s) => s.key));
+  });
+
+  it("estimate mode reuses the spec pipeline, adds breakdown, estimate, approval and export, and stops before any build step", async () => {
+    const keys = estimateSteps(await stateFor("estimate")).map((s) => s.key);
+    expect(keys).toEqual(["intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "design", "design-baseline", "breakdown", "estimate", "approve-estimate", "export"]);
+    for (const k of ["plan", "approve", "implement", "integrate", "deliver"]) expect(keys).not.toContain(k);
+  });
+
+  it("a large requirements document runs intake, clarify and the spec pipeline per module, then joins them under the same keys", async () => {
+    const l = Ledger.create("20260930-estimate-big1");
+    const section = (n: number) => `# Module ${n}\n\n${"The system shall do a thing in detail. ".repeat(300)}`;
+    await l.append({ type: "run.created", data: { mode: "estimate", project: "p", request: [1, 2, 3].map(section).join("\n\n") } }, HUMAN_WRITER);
+    const keys = estimateSteps(replay(l.events())).map((s) => s.key);
+    expect(keys).toEqual([
+      "intake:m1", "intake:m2", "intake:m3", "intake", "ground",
+      "clarify:m1", "clarify:m2", "clarify:m3", "clarify", "clarify-2:m1", "clarify-2:m2", "clarify-2:m3", "clarify-2",
+      "drafts:m1", "merge:m1", "specify:m1", "drafts:m2", "merge:m2", "specify:m2", "drafts:m3", "merge:m3", "specify:m3", "specify",
+      "design", "design-baseline", "breakdown", "estimate", "approve-estimate", "export",
+    ]);
+    // the same request gives the same list (a replay must not reshuffle steps)
+    expect(estimateSteps(replay(l.events())).map((s) => s.key)).toEqual(keys);
+  });
+
+  it("the other delivery model is seeded with the approved spec, answers and tasks, and only sizes them again", async () => {
+    const l = Ledger.create("20260930-estimate-sib1");
+    await l.append({ type: "run.created", data: { mode: "estimate", project: "p", request: "x", parent: { runId: "r0", kind: "sibling", estimateSha: "e".repeat(64), breakdownSha: "b".repeat(64), specSha: "s".repeat(64), clarifySha: "c".repeat(64) } } }, HUMAN_WRITER);
+    expect(estimateSteps(replay(l.events())).map((s) => s.key)).toEqual(["specify", "clarify", "breakdown", "estimate", "approve-estimate", "export"]);
+  });
+
+  it("the other delivery model keeps the approved design and its approval instead of redrawing it", async () => {
+    const l = Ledger.create("20260930-estimate-sib2");
+    await l.append({ type: "run.created", data: { mode: "estimate", project: "p", request: "x", parent: { runId: "r0", kind: "sibling", estimateSha: "e".repeat(64), breakdownSha: "b".repeat(64), specSha: "s".repeat(64), designSha: "d".repeat(64), baselineSha: "a".repeat(64) } } }, HUMAN_WRITER);
+    expect(estimateSteps(replay(l.events())).map((s) => s.key)).toEqual(["specify", "design", "design-baseline", "breakdown", "estimate", "approve-estimate", "export"]);
+  });
+
+  it("a build run seeded from an estimate inherits its spec instead of clarifying and specifying", async () => {
+    const l = Ledger.create("20260930-build-seed1");
+    await l.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: "x", estimateRef: { runId: "r0", estimateSha: "e".repeat(64), breakdownSha: "b".repeat(64), specSha: "s".repeat(64), criticSha: "k".repeat(64) } } }, HUMAN_WRITER);
+    const keys = brownfieldSteps(replay(l.events())).map((s) => s.key);
+    expect(keys).toEqual(["discover", "intake", "ground", "specify", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-check", "review", "deliver"]);
+  });
+
+  it("refuses a mode with no step list yet", async () => {
+    const g = await stateFor("greenfield");
+    expect(() => stepsFor(g)).toThrow(/greenfield/);
+  });
+});
