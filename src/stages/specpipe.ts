@@ -107,8 +107,18 @@ Format rules (checked by code):
 - A bugfix has at most 4 requirements.
 ${UNTRUSTED_NOTE}`;
 
+/** Estimate mode: the spec is priced as a whole, so it must keep everything the request asked for. */
+function estimateScope(ctx: StepContext) {
+  if (ctx.state.info.mode !== "estimate") return [];
+  return [S.template("estimate-scope", `This spec feeds a cost estimate for the WHOLE request.
+- Cover every part of the request with requirements. Never defer work to "later runs", never split it into a run sequence, and never move requested work to out of scope to keep the spec short. There is no limit on the number of requirements.
+- Out of scope is only for things the request excludes or never mentions.${hasRepo(ctx.state) ? "" : `
+- There is no repository: all behaviour is new. Don't claim anything about existing code or invent existing status values, and don't write anchors.`}`)];
+}
+
 function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
   return [
+    ...estimateScope(ctx),
     S.template("tpl", DRAFT_RULES),
     S.artifact("intent", "intent", i.intent),
     S.artifact("answers", "answers", i.answers),
@@ -129,7 +139,7 @@ function repoAccess(ctx: StepContext) {
 
 /** Three independent drafts: 2 × Opus + 1 × other family (Sonnet for a low-risk bugfix). The light lane writes one. */
 export const draftsStep: StepDef = {
-  key: "drafts", stage: "specify", templateVersion: "2",
+  key: "drafts", stage: "specify", templateVersion: "3",
   inputs: (s) => (s.steps.get("clarify-2")?.status === "completed"
     ? { intent: s.steps.get("intake")!.outputs[0], cb: s.steps.get("ground")!.outputs[0], c1: s.steps.get("clarify")!.outputs[0], c2: s.steps.get("clarify-2")!.outputs[0] } : undefined),
   async run(ctx) {
@@ -185,7 +195,7 @@ interface Checks { lint: LintResult[]; critic: z.infer<typeof CriticOut>["findin
 async function checkSpec(ctx: StepContext, spec: Spec, i: ReturnType<typeof inputsOf>, criticEffort?: "low" | "medium" | "high"): Promise<{ ok: true; checks: Checks } | { ok: false; outcome: StepOutcome }> {
   const snap = snapshotFor(ctx);
   const lint = lintSpec(spec, {
-    spans: i.intent.spans.map((s) => s.id), changeClass: i.intent.changeClass,
+    spans: i.intent.spans.map((s) => s.id), changeClass: i.intent.changeClass, noSizeLimit: ctx.state.info.mode === "estimate",
     anchorOk: (id) => (spec.requirements.find((q) => q.id === id)?.anchors ?? []).every((a) => checkEvidence(snap, a).ok),
   });
   const [critic, restate] = await Promise.all([
@@ -196,6 +206,7 @@ async function checkSpec(ctx: StepContext, spec: Spec, i: ReturnType<typeof inpu
 Rubric: 1 conflicts between requirements 2 missing error, empty and permission paths 3 ACs not observable at a public surface 4 scope creep beyond the intent 5 claims about existing behaviour without anchors 6 state transitions and existing data 7 behaviour changes outside the requested scope (blast radius) 8 hardcoded identifiers that should be configuration.
 Each finding: rubric number, reqId, severity (critical|high|medium|low), one-sentence evidence in "finding". Empty list if none.
 The human answered questions and accepted assumptions (below). Scope they decided is not a defect: don't flag it.`),
+        ...(ctx.state.info.mode === "estimate" ? [S.template("estimate-review", `This spec feeds a cost estimate for the whole request. Requested work that was deferred, split into later runs or moved to out of scope is a HIGH severity finding (rubric 4).${hasRepo(ctx.state) ? "" : " There is no repository: don't flag missing anchors, unknown existing statuses or fields, or current-behaviour claims; all behaviour is new."} Example numbers the human accepted (e.g. a 60 s window) are not hardcoding defects.`)] : []),
         S.artifact("intent", "intent", i.intent),
         S.artifact("answers", "answers", i.answers),
         S.artifact("assumptions", "assumptions", i.assumptions),
@@ -241,7 +252,7 @@ function problems(c: Checks): string[] {
 
 /** Final spec: check, repair (one drafter, merged spec + findings) up to 3 times (once on the light lane). */
 export const specifyStep: StepDef = {
-  key: "specify", stage: "specify", templateVersion: "3",
+  key: "specify", stage: "specify", templateVersion: "4",
   inputs: (s) => (s.steps.get("merge")?.status === "completed" ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s) } : undefined),
   async run(ctx) {
     const i = inputsOf(ctx);

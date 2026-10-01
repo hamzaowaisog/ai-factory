@@ -16,7 +16,7 @@ const NUMBER = /\d/;
 const OBSERVABLE = /\b(respon[sd]|status|return|row|record|table|database|db|call|request|sent|email|message|screen|page|display|shown|show|visible|error|log|event|header|body|json|field|value|count|list|file)\w*/i;
 const LITERAL_ID = /\b([A-Z]{2,}-\d+|\d{4,}|[A-Z][a-z]+ (Inc|LLC|Ltd|GmbH|Corp))\b/;
 
-export function lintSpec(spec: SpecDraft, ctx: { spans: string[]; changeClass: ChangeClass; anchorOk: (reqId: string) => boolean }): LintResult[] {
+export function lintSpec(spec: SpecDraft, ctx: { spans: string[]; changeClass: ChangeClass; anchorOk: (reqId: string) => boolean; noSizeLimit?: boolean }): LintResult[] {
   const out: LintResult[] = [];
   const add = (check: string, fails: string[], blocking = true) =>
     out.push({ check, passed: fails.length === 0, details: fails.length ? fails.slice(0, 8).join("; ") : "ok", blocking });
@@ -61,7 +61,8 @@ export function lintSpec(spec: SpecDraft, ctx: { spans: string[]; changeClass: C
   // L9 size
   const acs = spec.requirements.reduce((n, r) => n + r.acceptance.length, 0);
   const maxReq = ctx.changeClass === "bugfix" ? 4 : 12;
-  add("L9 size", spec.requirements.length > maxReq || acs > 30 ? [`${spec.requirements.length} requirements / ${acs} ACs is over the budget for a ${ctx.changeClass}; split into a run sequence`] : []);
+  // an estimate prices the whole request, so a big spec is the point, not a defect
+  add("L9 size", !ctx.noSizeLimit && (spec.requirements.length > maxReq || acs > 30) ? [`${spec.requirements.length} requirements / ${acs} ACs is over the budget for a ${ctx.changeClass}; split into a run sequence`] : []);
 
   // L10 traceability
   const covered = new Set(spec.requirements.flatMap((r) => r.sources));
