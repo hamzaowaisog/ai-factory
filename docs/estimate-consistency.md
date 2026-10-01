@@ -157,3 +157,5 @@ Option A from section 4, in `src/estimate/cache.ts` and `src/stages/think.ts`.
 - **Skipping it.** `factory estimate --fresh`, or `FACTORY_NO_CACHE=1`. Tests run with the cache off by default.
 - **Not covered:** reworded requirements (different key), human clarify answers (they are inputs, not model output; different answers give a different key), and pruning (entries are never deleted; delete the folder to clear it).
 - **A rejected answer** is also stored. It is reused and fails the same gate; the retry's briefing then carries the failure text, which is a different key whose answer is also stored. A repeat run therefore costs no model calls at all.
+
+The local sizing model is researched in `docs/estimate-local-model.md`.
