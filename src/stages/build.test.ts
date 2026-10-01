@@ -123,4 +123,15 @@ describe("test writer: scope and tampering", () => {
     const patch = ["diff --git a/x.sql b/x.sql", "--- a/x.sql", "+++ b/x.sql", "@@ -2 +1,0 @@", "--- seed", "@@ -9 +9,2 @@", "-}", "\\ No newline at end of file", "+}", "+// AC_1_1"].join("\n");
     expect(patchLines(patch)).toEqual({ added: ["}", "// AC_1_1"], removed: ["-- seed"] });
   });
+
+  it("a removed line whose text also appears among the additions still counts (an existing test can't lose its [Fact])", () => {
+    // removes [Fact] from the existing test, adds a new test that has its own [Fact]
+    const patch = ["diff --git a/T.cs b/T.cs", "--- a/T.cs", "+++ b/T.cs", "@@ -3 +2,0 @@", "-    [Fact]", "@@ -5,0 +5,3 @@", "+", "+    [Fact]", "+    public void AC_1_1_New() { }"].join("\n");
+    const lines = patchLines(patch);
+    expect(lines.removed).toEqual(["    [Fact]"]);
+    expect(testWriterTampering([{ status: "M", path: "tests/A.Tests/T.cs", ...lines }]).map((x) => x.check)).toEqual(["author-tests-removed"]);
+    // a closing brace removed mid-file and re-added elsewhere is still a removal; only the no-newline last line is forgiven
+    const brace = ["diff --git a/T.cs b/T.cs", "--- a/T.cs", "+++ b/T.cs", "@@ -4 +3,0 @@", "-}", "@@ -9,0 +9,1 @@", "+}"].join("\n");
+    expect(patchLines(brace).removed).toEqual(["}"]);
+  });
 });

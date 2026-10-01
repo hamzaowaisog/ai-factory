@@ -266,15 +266,21 @@ const UNTEST_MARKER = /<Compile\s+Remove=|<IsTestProject>\s*false|<IsTestingPlat
  * file with no final newline) isn't a removal. */
 export function patchLines(patch: string): { added: string[]; removed: string[] } {
   const added: string[] = [], removed: string[] = [];
-  let inHunk = false;
+  // the old file's last line when it had no final newline: git marks it "\ No newline at end of file"
+  let lastNoNewline: string | undefined;
+  let inHunk = false, prev: "+" | "-" | undefined;
   for (const l of patch.split("\n")) {
-    if (l.startsWith("@@")) inHunk = true;
+    if (l.startsWith("@@")) { inHunk = true; prev = undefined; }
     else if (l.startsWith("diff --git")) inHunk = false;
-    else if (inHunk && l.startsWith("+")) added.push(l.slice(1));
-    else if (inHunk && l.startsWith("-")) removed.push(l.slice(1));
+    else if (inHunk && l.startsWith("+")) { added.push(l.slice(1)); prev = "+"; }
+    else if (inHunk && l.startsWith("-")) { removed.push(l.slice(1)); prev = "-"; }
+    else if (inHunk && l.startsWith("\\") && prev === "-") lastNoNewline = removed[removed.length - 1];
   }
-  const pool = [...added];
-  return { added, removed: removed.filter((r) => { const i = pool.indexOf(r); if (i < 0) return true; pool.splice(i, 1); return false; }) };
+  // only that one line, re-added unchanged, isn't a removal (appending to a file with no final newline);
+  // any other removed line counts even if its text appears among the additions ("[Fact]", "}")
+  const i = lastNoNewline === undefined ? -1 : removed.lastIndexOf(lastNoNewline);
+  if (i >= 0 && added.includes(lastNoNewline!)) removed.splice(i, 1);
+  return { added, removed };
 }
 
 export function testWriterTampering(files: { status: string; path: string; added: string[]; removed: string[] }[]): Failure[] {

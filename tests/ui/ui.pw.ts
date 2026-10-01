@@ -24,7 +24,7 @@ test.afterEach(async ({ page }) => {
 });
 
 test("new run → start → the run view shows steps as they happen", async ({ page }) => {
-  await expect(page.locator(".mode.off")).toHaveCount(2);
+  await expect(page.locator(".mode.off")).toHaveCount(1); // Greenfield (Estimate is built now)
   await expect(page.locator(".mode.off .ribbon").first()).toHaveText("not built yet");
   await page.getByRole("link", { name: /Brownfield/ }).click();
   await expect(page.locator("h1")).toHaveText("What should change?");
