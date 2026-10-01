@@ -101,7 +101,7 @@ describe("only people put scope out of scope", () => {
   it("out of scope citing an answer or assumption, or excluded by the request, counts as covered", () => {
     expect(trace(spec(["I-2 bulk reminders (Q-1: not now)"]), ["I-1", "I-2"], ["Q-1"]).passed).toBe(true);
     expect(trace(spec(["I-2 bulk reminders per ASM-3"]), ["I-1", "I-2"], ["ASM-3"]).passed).toBe(true);
-    expect(requestExcluded([{ id: "I-1", text: "remind by email" }, { id: "I-2", text: "don't send SMS" }])).toEqual(["I-2"]);
+    expect(requestExcluded([{ id: "I-1", text: "remind by email" }, { id: "I-2", text: "no need for SMS" }, { id: "I-3", text: "users don't get duplicate reminders" }])).toEqual(["I-2"]);
     expect(trace(spec(["I-2 SMS, as the request says"]), ["I-1", "I-2"], [], ["I-2"]).passed).toBe(true);
     const rt = roundTripCheck(["I-1", "I-2"], ["Q-1"], spec(["I-2 (Q-1)"]), [{ n: 1, text: "greets" }], [{ n: 1, spans: ["I-1"], answers: [] }]);
     expect(rt.droppedSpans).toEqual([]);

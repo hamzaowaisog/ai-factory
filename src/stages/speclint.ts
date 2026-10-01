@@ -20,8 +20,9 @@ const LITERAL_ID = /\b([A-Z]{2,}-\d+|\d{4,}|[A-Z][a-z]+ (Inc|LLC|Ltd|GmbH|Corp))
 export const mentions = (text: string, id: string): boolean =>
   new RegExp(`(?<![\\w-])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`).test(text);
 
-/** The request's own span says something isn't wanted ("don't", "no need", "out of scope"...). */
-const EXCLUDES = /\b(out of scope|not in scope|do(es)? not|don'?t|not needed|no need|exclud\w*|won'?t|will not|skip)\b/i;
+/** The request's own span says a piece of work isn't wanted ("out of scope", "no need for"). Behaviour words
+ * like "don't" or "won't" are left out: "users don't get duplicates" is a requirement, not an exclusion. */
+const EXCLUDES = /\b(out of scope|not in scope|not needed|no need (for|to)|exclud\w*|not required)\b/i;
 export const requestExcluded = (spans: { id: string; text: string }[]): string[] => spans.filter((s) => EXCLUDES.test(s.text)).map((s) => s.id);
 
 /**
