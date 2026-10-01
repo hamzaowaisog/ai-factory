@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { findChromium } from "../../estimate/screenshots.js";
 import { ARCHETYPES, INDUSTRIES } from "./data.js";
-import { allIndustries, archetypeBrief, briefFor, loadMeasured, loadUserIndustries, matchIndustries, pickIndustries, referenceBrief, resolveBrand, saveMeasured } from "./index.js";
+import { allIndustries, archetypeBrief, briefFor, cueBrief, fieldOf, requirementCues, loadMeasured, loadUserIndustries, matchIndustries, pickIndustries, referenceBrief, resolveBrand, saveMeasured } from "./index.js";
 import { measureBrands } from "./measure.js";
 
 const dirs: string[] = [];
@@ -140,5 +140,34 @@ describe("trusting a live reading", () => {
   it("accepts a real rebrand when the page agrees with itself", async () => {
     const { plausible } = await import("./measure.js");
     expect(plausible({ brand: "#1a73e8", themeColor: "#1a73e8", buttonBg: "#1b74e9" } as never, b)).toBe(true);
+  });
+});
+
+describe("the brief follows the product, not only its field", () => {
+  const patients = "Patients book an appointment at the clinic and see their symptoms history. Older users and caregivers manage it for them.";
+  const office = "Clinic back office staff and administrators manage the patient appointment calendar and run daily reports.";
+  it("names the field each product belongs to", () => {
+    expect(fieldOf(patients)).toBe("health");
+    expect(fieldOf("a todo list")).toBe("");
+  });
+  it("reads who uses it and in what mood from the requirement words", () => {
+    expect(requirementCues(patients).map((c) => c.id)).toEqual(["older", "anxious"]);
+    expect(requirementCues(office).map((c) => c.id)).toEqual(["desk-all-day"]);
+    expect(requirementCues(office)[0]!.word).toBe("back office");
+    expect(cueBrief("a todo list")).toBe("");
+  });
+  it("gives two products in one field different briefs because of those words", () => {
+    const a = briefFor(patients), b = briefFor(office);
+    expect(a).toContain('"older users": older users: large text');
+    expect(a).not.toContain("staff at a desk all day");
+    expect(b).not.toContain("may be worried");
+    expect(b).toContain("staff at a desk all day");
+    expect(b).toContain("Signals in THIS product's requirements");
+  });
+  it("adds the signals when no field is clear too", () => {
+    expect(briefFor("Drivers record each delivery on the go and see their streaks")).toContain("phone first, big touch targets");
+  });
+  it("keeps the list short", () => {
+    expect(requirementCues("kids elderly drivers back office premium emergency patients students wallet feed b2b night offline rewards")).toHaveLength(6);
   });
 });

@@ -31,6 +31,48 @@ export function pickIndustries(text: string, industries: RefIndustry[] = allIndu
   return second && second.score >= 2 && second.score * 2 >= top.score ? [top, second] : [top];
 }
 
+/** The fields a requirement belongs to, as one key ("clinic", "hotel+payments"); "" when none is clear. Kept with each approved look. */
+export const fieldOf = (text: string, industries?: RefIndustry[]): string => pickIndustries(text, industries).map((p) => p.industry.id).join("+");
+
+// ---------- the product's own signals ----------
+
+/**
+ * What the requirements say about who uses the product, where and in what mood, as plain words found in them. Two products in one
+ * field share the brands above; these differ with the product, so the brief does too (a clinic's patient app and its back office
+ * get different starting points). Evidence for the reading, not a rule: the model weighs them.
+ */
+const CUES: { id: string; when: RegExp; means: string }[] = [
+  { id: "children", when: /\b(kids?|children|child|toddlers?|parents?|school ?kids|pupils?)\b/i, means: "children or families: friendly and rounded, bright but readable, pictures over words" },
+  { id: "older", when: /\b(elderly|seniors?|older (?:adults|people|users)|pensioners?|retirees?|caregivers?)\b/i, means: "older users: large text, strong contrast, few choices per screen" },
+  { id: "on-the-move", when: /\b(drivers?|riders?|couriers?|technicians?|on (?:the )?site|in the field|field (?:staff|agents?|workers?)|warehouse|delivery agents?|on the go|outdoors?)\b/i, means: "used on the move or on site: phone first, big touch targets, high contrast, read at a glance" },
+  { id: "desk-all-day", when: /\b(back ?office|admin(?:istrator)?s?|operations team|ops team|dispatchers?|agents? console|analysts?|accountants?|clerks?|reports?|analytics)\b/i, means: "staff at a desk all day: dense, calm, quiet colour, fast to scan" },
+  { id: "premium", when: /\b(premium|luxury|vip|private (?:banking|clients?)|concierge|exclusive|bespoke|high[- ]net[- ]worth)\b/i, means: "premium: restraint, more space, a refined or serif heading" },
+  { id: "urgent", when: /\b(emergency|urgent|sos|incidents?|alerts?|outages?|critical|panic)\b/i, means: "urgent moments: one clear action, strong status colours, nothing decorative in the way" },
+  { id: "anxious", when: /\b(symptoms?|diagnos\w*|therapy|mental health|insurance claims?|debt|loans? arrears)\b/i, means: "people who may be worried: calm, reassuring, plain words, no alarm colours for normal states" },
+  { id: "learners", when: /\b(students?|learners?|courses?|lessons?|quiz(?:zes)?|exams?|tutors?)\b/i, means: "learners: encouraging, progress always visible" },
+  { id: "money", when: /\b(wallet|balances?|transfers?|payments?|payouts?|invoices?|remittances?)\b/i, means: "money moments: trust first, amounts large and exact, every status explicit" },
+  { id: "social", when: /\b(feed|followers?|friends|community|posts?|likes?|comments?|share|stories)\b/i, means: "social: expressive, picture-led, content before chrome" },
+  { id: "enterprise", when: /\b(b2b|enterprise|compliance|audit(?: trail)?|sso|tenants?|procurement|approvals? workflow)\b/i, means: "business buyers: sober, credible, data first" },
+  { id: "night", when: /\b(night|late[- ]night|after hours|overnight|shift workers?|in the dark)\b/i, means: "used at night: a dark mode or dim surfaces, no glare" },
+  { id: "patchy-network", when: /\b(offline|low (?:connectivity|bandwidth)|poor (?:signal|network)|rural|no internet)\b/i, means: "patchy networks: light pages, clear saved and waiting states" },
+  { id: "playful", when: /\b(game|gamif\w*|rewards?|points|badges?|streaks?|fun|leaderboards?)\b/i, means: "playful: rewards and motion are part of the product, bolder colour is earned" },
+];
+
+/** The signals a requirement text gives, in table order; at most six, so a long spec does not drown the brief. */
+export function requirementCues(text: string): { id: string; means: string; word: string }[] {
+  return CUES.flatMap((c) => { const m = c.when.exec(text); return m ? [{ id: c.id, means: c.means, word: m[0].toLowerCase() }] : []; }).slice(0, 6);
+}
+
+/** The cues as brief lines; "" when the requirements give none. */
+export function cueBrief(text: string): string {
+  const cues = requirementCues(text);
+  if (!cues.length) return "";
+  return [
+    "Signals in THIS product's requirements (the word found, then what it usually means for the look). Two products in one field share the brands above; these are what set this one apart, so weigh them in the reading and let them decide which field defaults to change:",
+    ...cues.map((c) => `- "${c.word}": ${c.means}`),
+  ].join("\n");
+}
+
 // ---------- your own industries ----------
 
 export const userIndustriesDir = (): string => join(factoryHome(), "design-refs", "industries");
@@ -138,7 +180,8 @@ export function archetypeBrief(hint?: RefIndustry): string {
 /** The brief for a requirement text. A matched field gets its brands plus its look family; anything else gets the families. */
 export function briefFor(text: string, industries: RefIndustry[] = allIndustries()): string {
   const picked = pickIndustries(text, industries);
-  if (!picked.length) return archetypeBrief(matchIndustries(text, industries)[0]?.industry);
+  const cues = cueBrief(text);
+  if (!picked.length) return [archetypeBrief(matchIndustries(text, industries)[0]?.industry), cues].filter(Boolean).join("\n\n");
   const looks = [...new Set(picked.map((p) => p.industry.archetype))].map((id) => ARCHETYPES.find((a) => a.id === id)).filter((a) => !!a);
-  return `${referenceBrief(picked.map((p) => p.industry), loadMeasured(), text)}\nWider family (shared by many fields, so differ from it deliberately): ${looks.map((a) => `${a!.label}: ${a!.look}`).join(" | ")}`;
+  return [`${referenceBrief(picked.map((p) => p.industry), loadMeasured(), text)}\nWider family (shared by many fields, so differ from it deliberately): ${looks.map((a) => `${a!.label}: ${a!.look}`).join(" | ")}`, cues].filter(Boolean).join("\n\n");
 }

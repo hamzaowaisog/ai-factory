@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { appsFit } from "../stages/design.js";
-import { lookBrief, lookGap, lookKey, lookOf, lookRepeats, loadLooks, MIN_LOOK_GAP, readingFit, recentLooks, recordLook, RECENT_LOOKS } from "./looks.js";
+import { lookBrief, lookGap, lookKey, lookOf, lookRepeats, loadLooks, MIN_LOOK_GAP, readingFit, recentLooks, recordLook, RECENT_LOOKS, SAME_FIELD_LOOKS } from "./looks.js";
 
 const reading = { users: "travellers", context: "on the move", device: "web" as const, tone: "warm", hero: "the boarding pass", traits: ["photo-led", "calm"] };
 const t = (o: object = {}) => ({ mood: "warm", brand: "#C21F3A", mode: "light", shell: "topbar", font: "sans", radius: "soft", surface: "soft", hero: "band", charts: "soft", imagery: "golden", neutral: "warm", chrome: "brand", reading, ...o }) as never;
@@ -71,5 +71,21 @@ describe("apps of one product", () => {
   });
   it("wants a web product's frame not to be a phone's tab bar", () => {
     expect(readingFit(t({ shell: "tabs" })).map((p) => p.check)).toEqual(["design-reading-mismatch"]);
+  });
+  it("also compares older projects in the same field, and says which ones share it", () => {
+    const f = file();
+    recordLook("clinic-a", t({ brand: "#0065A9" }), f, "2025-01-01", "health");
+    recordLook("hotel-old", t(), f, "2025-01-02", "travel");
+    recordLook("pharma", t(), f, "2025-01-03", "pharmacy+health");
+    for (let i = 0; i < RECENT_LOOKS; i++) recordLook(`p${i}`, t(), f, `2026-04-0${i + 1}`, "retail");
+    const got = recentLooks(undefined, f, "health");
+    expect(got.map((l) => l.key).slice(RECENT_LOOKS)).toEqual(["pharma", "clinic-a"]);
+    expect(recentLooks(undefined, f, "")).toHaveLength(RECENT_LOOKS);
+    expect(recentLooks(undefined, f, "health").length).toBeLessThanOrEqual(RECENT_LOOKS + SAME_FIELD_LOOKS);
+    const brief = lookBrief(got, "health");
+    expect(brief).toContain("[health] #0065A9");
+    expect(brief).toContain("2 of them are in this product's own field (health)");
+    expect(lookBrief(got.slice(0, RECENT_LOOKS), "health")).not.toContain("own field");
+    expect(loadLooks(f).find((l) => l.key === "hotel-old")!.field).toBe("travel");
   });
 });

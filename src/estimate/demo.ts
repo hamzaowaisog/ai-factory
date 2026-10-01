@@ -375,9 +375,9 @@ function renderMock(m: ScreenMock, k: StateKind, state: string, open = -1, toast
   return `<div class="app${look.hero === "band" ? " hero" : ""}" data-kind="${k}" aria-label="${esc(state)}">${head(normal.actions)}<div class="body">${body}</div></div>${layers}`;
 }
 
-const DEFAULT_THEME: DesignTheme = { mood: "clean product", mode: "light", brand: "#1a56db", neutral: "cool", chrome: "plain", font: "sans", heading: "match", mark: "glyph", radius: "soft", density: "comfortable", surface: "soft", motion: "lively", fx: "modern", shell: "auto", hero: "none", charts: "soft", imagery: "mixed" };
+export const DEFAULT_THEME: DesignTheme = { mood: "clean product", mode: "light", brand: "#1a56db", neutral: "cool", chrome: "plain", font: "sans", heading: "match", mark: "glyph", radius: "soft", density: "comfortable", surface: "soft", motion: "lively", fx: "modern", shell: "auto", hero: "none", charts: "soft", imagery: "mixed" };
 
-const FONTS = {
+export const FONTS = {
   sans: '"Inter var",Inter,"SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI",Roboto,"Helvetica Neue",sans-serif',
   humanist: '"Avenir Next",Avenir,"Segoe UI Variable","Segoe UI","Gill Sans",Optima,Candara,ui-sans-serif,sans-serif',
   serif: '"Inter var",Inter,"SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif',
@@ -386,7 +386,7 @@ const FONTS = {
   book: '"Iowan Old Style",Charter,"Bitstream Charter","Palatino Linotype","Book Antiqua",Georgia,serif',
 };
 // the heading type paired with the body, with the weight and tracking that face reads well at (system faces only: the page fetches nothing)
-const HEADS: Record<DesignTheme["heading"], [string, number, string]> = {
+export const HEADS: Record<DesignTheme["heading"], [string, number, string]> = {
   match: ["inherit", 680, "-.025em"],
   serif: ['"Iowan Old Style",Charter,"Palatino Linotype","Book Antiqua",Georgia,serif', 640, "-.015em"],
   display: ['Didot,"Bodoni 72","Bodoni MT","Playfair Display","Libre Bodoni",Georgia,serif', 600, "-.01em"],
@@ -396,20 +396,32 @@ const HEADS: Record<DesignTheme["heading"], [string, number, string]> = {
   mono: ['ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace', 600, "-.03em"],
 };
 
+/** Every value the look draws with, from the chosen theme: the demo's variables and the build's design tokens both come from here. */
+export function themeValues(theme?: DesignTheme) {
+  const t = { ...DEFAULT_THEME, ...theme };
+  const glass = t.surface === "glass";
+  const colours = (dark: boolean): Record<string, string> => {
+    const p = palette({ brand: t.brand, accent: t.accent, mode: dark ? "dark" : "light", neutral: t.neutral });
+    return glass ? { ...p, sf: dark ? "rgba(255,255,255,.05)" : "rgba(255,255,255,.72)" } : p;
+  };
+  const shadow = (dark: boolean): string => t.surface === "flat" ? "none"
+    : dark ? "inset 0 1px 0 rgba(255,255,255,.045),0 1px 2px rgba(0,0,0,.4)"
+    : "0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.04)";
+  const lift = (dark: boolean): string => dark ? "inset 0 1px 0 rgba(255,255,255,.06),0 12px 28px -12px rgba(0,0,0,.7)" : "0 2px 4px rgba(16,24,40,.04),0 12px 28px -10px rgba(16,24,40,.14)";
+  const head = t.heading === "match" && t.font === "serif" ? HEADS.serif : HEADS[t.heading] ?? HEADS.match;
+  return {
+    theme: t, colours, shadow, lift, blur: glass ? "blur(16px) saturate(1.2)" : "none",
+    radius: { sharp: 4, soft: 10, round: 18 }[t.radius], pad: t.density === "compact" ? 12 : 18, row: t.density === "compact" ? 40 : 52,
+    font: FONTS[t.font], head: { family: head[0], weight: head[1], tracking: head[2] },
+    ease: "cubic-bezier(.2,.8,.2,1)", spring: "cubic-bezier(.34,1.4,.64,1)", rise: t.motion === "calm" ? 6 : 10,
+  };
+}
+
 /** The page's colour variables from the chosen theme (a bad or absent theme gives the default). */
 export function themeCss(theme?: DesignTheme): string {
-  const t = { ...DEFAULT_THEME, ...theme };
-  const set = (dark: boolean): string => {
-    const p = palette({ brand: t.brand, accent: t.accent, mode: dark ? "dark" : "light", neutral: t.neutral });
-    const glass = t.surface === "glass";
-    const shadow = t.surface === "flat" ? "none"
-      : dark ? "inset 0 1px 0 rgba(255,255,255,.045),0 1px 2px rgba(0,0,0,.4)"
-      : "0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.04)";
-    const lift = dark ? "inset 0 1px 0 rgba(255,255,255,.06),0 12px 28px -12px rgba(0,0,0,.7)" : "0 2px 4px rgba(16,24,40,.04),0 12px 28px -10px rgba(16,24,40,.14)";
-    return `${Object.entries(p).map(([k, v]) => `--${k}:${glass && k === "sf" ? (dark ? "rgba(255,255,255,.05)" : "rgba(255,255,255,.72)") : v}`).join(";")};--shadow:${shadow};--lift:${lift};--blur:${glass ? "blur(16px) saturate(1.2)" : "none"}`;
-  };
-  const head = t.heading === "match" && t.font === "serif" ? HEADS.serif : HEADS[t.heading] ?? HEADS.match;
-  const shared = `--r:${{ sharp: 4, soft: 10, round: 18 }[t.radius]}px;--pad:${t.density === "compact" ? 12 : 18}px;--row:${t.density === "compact" ? 40 : 52}px;--font:${FONTS[t.font]};--head:${head[0]};--hw:${head[1]};--hls:${head[2]};--e:cubic-bezier(.2,.8,.2,1);--spring:cubic-bezier(.34,1.4,.64,1);--rise:${t.motion === "calm" ? 6 : 10}px;--drift:${t.motion === "calm" ? "paused" : "running"}`;
+  const v = themeValues(theme), t = v.theme;
+  const set = (dark: boolean): string => `${Object.entries(v.colours(dark)).map(([k, c]) => `--${k}:${c}`).join(";")};--shadow:${v.shadow(dark)};--lift:${v.lift(dark)};--blur:${v.blur}`;
+  const shared = `--r:${v.radius}px;--pad:${v.pad}px;--row:${v.row}px;--font:${v.font};--head:${v.head.family};--hw:${v.head.weight};--hls:${v.head.tracking};--e:${v.ease};--spring:${v.spring};--rise:${v.rise}px;--drift:${t.motion === "calm" ? "paused" : "running"}`;
   return t.mode === "auto" ? `:root{${shared};${set(false)}}@media(prefers-color-scheme:dark){:root{${set(true)}}}` : `:root{${shared};${set(t.mode === "dark")}}`;
 }
 

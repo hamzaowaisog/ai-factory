@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "../gates/policy.js";
-import { screenBrief, screenFor, screenScopeGaps, type ApprovedDesign } from "./design-link.js";
+import { approvedTokens, screenBrief, screenFor, screenScopeGaps, TOKENS_NOTE, type ApprovedDesign } from "./design-link.js";
+import { themeCss } from "./demo.js";
+import { designTokens } from "./tokens.js";
 import { screenScope } from "./gates.js";
 import { designQuality, hasExistingLook } from "../stages/design.js";
 
@@ -19,6 +21,34 @@ describe("approved design reaches the build", () => {
     expect(screenBrief(design, screen).look).toEqual({ brand: "#123456" });
     expect(String(screenBrief({ ...design, themeSource: "repo", theme: undefined }, screen).look)).toMatch(/existing app's design tokens/);
     expect(screenBrief(design, screen)).toMatchObject({ route: "/login", file: "src/pages/login.tsx", states: ["error"], sampleContent: { title: "Sign in" } });
+  });
+  it("hands a new look to the build as design tokens, and none for an existing app's look", () => {
+    const b = screenBrief(design, screen);
+    expect(b.tokensNote).toBe(TOKENS_NOTE);
+    expect((b.tokens as ReturnType<typeof designTokens>).colour.light!.brand).toBe("#123456");
+    expect(screenBrief({ ...design, themeSource: "repo", theme: undefined }, screen).tokens).toBeUndefined();
+    expect(approvedTokens({ ...design, theme: "not a theme" })).toBeUndefined();
+  });
+  it("gives the build the very values the approved demo was drawn with", () => {
+    const theme = { brand: "#0A6E5C", mode: "light", font: "humanist", heading: "slab", radius: "round", density: "compact", surface: "soft", neutral: "warm" } as never;
+    const tk = designTokens(theme), demo = themeCss(theme);
+    expect(Object.keys(tk.colour)).toEqual(["light"]);
+    for (const [short, name] of [["bg", "background"], ["sf", "surface"], ["ink", "text"], ["br", "brand"], ["on", "on-brand"], ["bad", "danger"]] as const) {
+      expect(demo).toContain(`--${short}:${tk.colour.light![name]};`);
+      expect(tk.css).toContain(`--color-${name}:${tk.colour.light![name]};`);
+    }
+    expect(tk).toMatchObject({ radiusPx: 18, space: { padPx: 12, rowPx: 40 }, type: { headingWeight: 650 } });
+    expect(tk.type.heading).toMatch(/Rockwell/);
+    expect(tk.css).toContain("--radius:18px;");
+    expect(tk.css).not.toContain("prefers-color-scheme");
+  });
+  it("gives both modes when the look follows the viewer's setting, and the body face for a matching heading", () => {
+    const tk = designTokens({ brand: "#1F6FEB", mode: "auto", heading: "match", font: "sans" } as never);
+    expect(Object.keys(tk.colour)).toEqual(["light", "dark"]);
+    expect(tk.colour.dark!.background).not.toBe(tk.colour.light!.background);
+    expect(tk.css).toMatch(/@media \(prefers-color-scheme: dark\) \{\n  :root \{\n    --color-background:/);
+    expect(tk.type.heading).toBe(tk.type.body);
+    expect(tk.css).toContain("--font-heading:var(--font-body);");
   });
   it("B7 fails a plan task whose file scope leaves out the screen's file, and passes when it covers it", () => {
     const task = (fileScope: string[]) => ({ tasks: [{ id: "T-1", estimateTaskId: "EST-1", fileScope }] });

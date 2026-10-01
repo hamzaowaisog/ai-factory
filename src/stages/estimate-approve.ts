@@ -12,6 +12,7 @@ import { exportWorkbooks, type ExportInput } from "../estimate/export.js";
 import { considerationsFrom } from "../estimate/considerations.js";
 import { diffDesigns, diffEstimates } from "../estimate/lineage.js";
 import { buildDemo, demoStates, frameDataUri } from "../estimate/demo.js";
+import { designTokens } from "../estimate/tokens.js";
 import { captureDemo, LAYOUT_FAULT, type LayoutIssue, type ShotResult } from "../estimate/screenshots.js";
 import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
 import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
@@ -24,6 +25,7 @@ import { gate, settingsOf } from "./estimate.js";
 import { listedFrames, MAX_DESIGN_REVISIONS } from "./design.js";
 import { reworkCardLines } from "./design-rework.js";
 import { lookKey, recordLook } from "../design/looks.js";
+import { fieldOf } from "../design/refs/index.js";
 import { header, outputOf, readOutput, requireOutput, type StepDef, type StepOutcome } from "./framework.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -107,6 +109,12 @@ export const designBaselineStep: StepDef = {
     const previewDir = join(ctx.ledger.dir, "preview");
     mkdirSync(join(previewDir, "frames"), { recursive: true });
     writeFileSync(join(previewDir, "index.html"), html);
+    // the look as design tokens, as the build will get them (a repo's own look has none: the build keeps the repo's)
+    if (d.theme && d.themeSource !== "repo") {
+      const tk = designTokens(d.theme);
+      writeFileSync(join(previewDir, "tokens.css"), tk.css);
+      writeFileSync(join(previewDir, "tokens.json"), JSON.stringify({ ...tk, css: undefined }, null, 2));
+    }
     const images: { file: string; screen: string; req?: string; viewport: "desktop" }[] = [];
     for (const sc of d.screens) for (const fid of sc.frames ?? []) {
       const f = frames[fid];
@@ -131,7 +139,7 @@ export const designBaselineStep: StepDef = {
         const g = await gate(ctx, "design-baseline", designBaseline, { ui: true, design, approval: { decision: "approved", by: last.by } });
         if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [failure("e1b", g.details)], signature: `e1b:${g.details.slice(0, 80)}` };
         // remembered so the next projects are told to look different (best effort: never a reason to stop)
-        if (d.theme && d.themeSource !== "repo") try { recordLook(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), d.theme); } catch (e) { ctx.log(`design-baseline: look not recorded: ${(e as Error).message}`); }
+        if (d.theme && d.themeSource !== "repo") try { recordLook(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), d.theme, undefined, undefined, fieldOf(requireOutput<Spec>(ctx.state, ctx.ledger, "specify").requirements.map((q) => q.ears).join("\n"))); } catch (e) { ctx.log(`design-baseline: look not recorded: ${(e as Error).message}`); }
         return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, by: last.by }) }, data: { ui: true, screens: design.screens.length } };
       }
     }

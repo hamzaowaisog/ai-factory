@@ -13,7 +13,7 @@ import type { DesignInventory } from "../design/inventory.js";
 import { DesignApp, DesignTheme, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
 import { header, readOutput, requireOutput, type StepDef } from "./framework.js";
-import { briefFor, pickIndustries } from "../design/refs/index.js";
+import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
 import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
 import { ensureMeasured } from "../design/refs/measure.js";
 import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } from "../design/looks.js";
@@ -332,7 +332,8 @@ async function reworkDesign(ctx: Parameters<StepDef["run"]>[0], spec: Spec, prev
     const items = plan.items.filter((i) => i.part === "look");
     await ensureMeasured(pickIndustries(reqText).map((p) => p.industry.id)).catch(() => undefined);
     const refs = fitRefs(reqText);
-    const recent = recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId));
+    const field = fieldOf(reqText);
+    const recent = recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), undefined, field);
     let failures: string[] = [], got: Theme | undefined;
     for (let attempt = 0; attempt < 2 && !got; attempt++) {
       const r = await think(ctx, {
@@ -343,7 +344,7 @@ async function reworkDesign(ctx: Parameters<StepDef["run"]>[0], spec: Spec, prev
           S.artifact("current-look", "approved-design", prev.theme),
           S.artifact("pages", "approved-design", prev.screens.map((x) => ({ title: screenName(x), route: x.route, blocks: x.mock?.blocks.map((b) => b.type) }))),
           S.reference("design-references", `Design references (how real products in this field look):\n${briefFor(reqText)}`),
-          ...(recent.length ? [S.reference("recent-looks", lookBrief(recent))] : []),
+          ...(recent.length ? [S.reference("recent-looks", lookBrief(recent, field))] : []),
           S.reference("feedback", `Change the look as the lead asked:\n${asks(items)}`),
           ...history("look"),
           ...(failures.length ? [S.reference("failures", `Your previous attempt was rejected:\n${failures.map((f) => `- ${f}`).join("\n")}`)] : []),
@@ -407,7 +408,7 @@ export function keepFine(out: z.infer<typeof DesignOut>, fine: string[], prev: D
 }
 
 export const designStep: StepDef = {
-  key: "design", stage: "design", templateVersion: "14",
+  key: "design", stage: "design", templateVersion: "15",
   inputs: (s, l) => {
     if (s.steps.get("specify")?.status !== "completed" || s.steps.get("intake")?.status !== "completed") return undefined;
     const ui = !!l.getJson<Intent>(s.steps.get("intake")!.outputs[0]!)?.touchesUi;
@@ -441,7 +442,8 @@ export const designStep: StepDef = {
     const refBrief = briefFor(reqText);
     const refs = fitRefs(reqText);
     // a new look is compared with the factory's latest projects; a change keeps its approved look, and an existing app keeps the repo's
-    const recent = hasExistingLook(inv) || (earlier && !earlier.skipped) ? [] : recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId));
+    const field = fieldOf(reqText);
+    const recent = hasExistingLook(inv) || (earlier && !earlier.skipped) ? [] : recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), undefined, field);
     const feedback = sentBack.length
       ? `The lead rejected the previous design ${sentBack.length === 1 ? "once" : `${sentBack.length} times`}. Their reasons, oldest first:\n${sentBack.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nRedraw it so each reason is met: keep what they did not criticise, change what they did, and do not repeat the earlier screens, theme or sample data where they objected.${again?.fine.length && prev ? ` The lead said these pages are fine, so keep them as they are: ${prev.screens.filter((x) => again!.fine.includes(x.id)).map(screenName).join(", ")}.` : ""}`
       : "";
@@ -454,7 +456,7 @@ export const designStep: StepDef = {
         ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens, ...(earlier.theme ? { theme: earlier.theme } : {}) })] : []),
         ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
         S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`),
-        ...(recent.length ? [S.reference("recent-looks", lookBrief(recent))] : []),
+        ...(recent.length ? [S.reference("recent-looks", lookBrief(recent, field))] : []),
         ...(feedback ? [S.reference("design-feedback", feedback)] : []),
         S.task("Draw the screen inventory."),
       ],

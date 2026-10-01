@@ -132,7 +132,7 @@ function complexityOf(plan: PlanT): Complexity {
 }
 
 export const planStep: StepDef = {
-  key: "plan", stage: "plan", templateVersion: "1",
+  key: "plan", stage: "plan", templateVersion: "2",
   inputs: (s) => (s.steps.get("specify")?.status === "completed" ? { spec: s.steps.get("specify")!.outputs[0], rejections: planRejections(s) } : undefined),
   async run(ctx) {
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
@@ -144,8 +144,10 @@ export const planStep: StepDef = {
     if (ref && ctx.state.pendingChanges.length) {
       return { kind: "park", reason: `A requirement change was recorded after the estimate was approved (gate B2). Estimate it as a change request: factory estimate --revises ${ref.runId}, then build the new estimate.` };
     }
-    const design = ref?.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: { id: string; route: string }[] }>(ref.designSha) : undefined;
+    const design = ref?.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: { id: string; route: string }[]; theme?: unknown; themeSource?: "new" | "repo" }>(ref.designSha) : undefined;
     const approvedDesign = design && !design.skipped ? { flow: design.flow, screens: design.screens } : undefined;
+    // a new look comes with design tokens (estimate/tokens.ts); one task must be free to put them in the app's global stylesheet
+    const newLook = !!approvedDesign && !!design?.theme && design.themeSource !== "repo";
     const approvedTasks = ref ? ctx.ledger.getJson<Breakdown>(ref.breakdownSha).tasks : [];
     const map = buildRepoMap(snap.root, snap.files, { budgetTokens: 4000, focus: cb.claims.flatMap((c) => c.anchors.map((a) => a.path)) }).map;
     const r = await think(ctx, {
@@ -164,7 +166,7 @@ export const planStep: StepDef = {
         S.artifact("cb", "current-behaviour", cb),
         S.artifact("critic", "critic", critic),
         ...(approvedDesign ? [S.artifact("approved-design", "approved-design", approvedDesign)] : []),
-        ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task, and that plan task's fileScope must include the approved screen's file." : ""))] : []),
+        ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task, and that plan task's fileScope must include the approved screen's file." : "") + (newLook ? " The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them." : ""))] : []),
         ...(planRejections(ctx.state).length ? [{ spec: { id: "rejection", source: "feedback" as const, trust: "trusted" as const, placement: "user" as const }, content: `The human reviewer rejected the previous plan. Their reasons (latest last):\n${planRejections(ctx.state).map((x) => `- ${x}`).join("\n")}\nThe plan must address them.` }] : []),
         S.task("Write the plan."),
       ],

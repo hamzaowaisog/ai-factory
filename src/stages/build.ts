@@ -511,7 +511,7 @@ const PREV_CHANGE_CAP = 40_000;
 export function implementStep(taskId: string): StepDef {
   const key = `implement/${taskId}`;
   return {
-    key, stage: "implement", templateVersion: "1", coding: true,
+    key, stage: "implement", templateVersion: "2", coding: true,
     inputs: (s) => {
       if (s.steps.get("author-tests")?.status !== "completed") return undefined;
       const plan = s.steps.get("plan")!.outputs[0];
