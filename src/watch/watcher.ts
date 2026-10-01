@@ -6,13 +6,13 @@ import { isLockFree } from "../ledger/exec-lock.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay, type RunState } from "../ledger/state.js";
 import type { ProjectConfig } from "../config/project.js";
-import { adfToText } from "../sources/jira.js";
+import { adfToText, allowedPerson, type JiraPerson } from "../sources/jira.js";
 import { adfParagraphs, JiraHttpError, type JiraClient, type JiraIssue } from "./jira-client.js";
 import type { Notice, Notifier } from "./notify.js";
 import { loadState, saveState, type Update, type WatchState } from "./state.js";
 
 type JiraCfg = NonNullable<ProjectConfig["jira"]>;
-export type JiraApi = Pick<JiraClient, "labelledTickets" | "lastLabelAdd" | "comments" | "addComment" | "transition" | "base">;
+export type JiraApi = Pick<JiraClient, "labelledTickets" | "issue" | "lastLabelAdd" | "comments" | "addComment" | "transition" | "base">;
 
 export interface WatcherDeps {
   jira: JiraApi;
@@ -69,6 +69,7 @@ export class Watcher {
     const s = loadState(this.project);
     const out: TickResult = { skipped: [], sent: 0, failed: 0, resumed: [] };
     try {
+      this.resolveStarting(s);
       await this.sendUpdates(s, out);
       await this.resumeReady(s, out);
       await this.maybeStart(s, out);
@@ -240,9 +241,8 @@ export class Watcher {
     return undefined;
   }
 
-  private allowed(who: { accountId?: string; emailAddress?: string } | undefined): boolean {
-    const ok = new Set(this.cfg.allowedReporters.map((x) => x.toLowerCase()));
-    return !!who && ((!!who.accountId && ok.has(who.accountId.toLowerCase())) || (!!who.emailAddress && ok.has(who.emailAddress.toLowerCase())));
+  private allowed(who: JiraPerson | undefined): boolean {
+    return allowedPerson(this.cfg.allowedReporters)(who);
   }
 
   private async comment(key: string, paragraphs: string[], marker: string): Promise<void> {
@@ -250,60 +250,144 @@ export class Watcher {
     if (!found) await this.deps.jira.addComment(key, adfParagraphs([...paragraphs, marker]));
   }
 
+  /** A run the watcher created for this ticket at or after `since` that it isn't tracking yet. */
+  private findRun(s: WatchState, key: string, since: string): string | undefined {
+    const from = Date.parse(since) - 60_000; // the ledger's clock and ours may differ a little
+    for (const runId of Ledger.listRuns()) {
+      if (s.runs[runId]) continue;
+      const st = this.runState(runId);
+      if (!st || st.info.project !== this.project || st.info.operator !== "factory watch") continue;
+      if (!st.info.sources?.some((x) => x.kind === "jira" && x.key === key)) continue;
+      if (Date.parse(st.info.createdAt) >= from) return runId;
+    }
+    return undefined;
+  }
+
+  private track(s: WatchState, key: string, runId: string): void {
+    s.seen[key] = { at: this.now().toISOString(), runId };
+    // lastSeq -1: the run's first event (seq 0, run.created) still needs its "started" update
+    s.runs[runId] = { key, lastSeq: -1, updates: {}, kickedAt: this.now().toISOString() };
+  }
+
+  /**
+   * A "starting" record without a run id: the watcher stopped between asking for a run and saving it.
+   * If the run exists it's tracked from here; if not, the ticket is NOT started again on its own (that
+   * could be a second paid run): it's left for a person, and only the log says so.
+   */
+  private resolveStarting(s: WatchState): void {
+    for (const [key, seen] of Object.entries(s.seen)) {
+      if (!seen.starting || seen.runId) continue;
+      const runId = this.findRun(s, key, seen.starting);
+      if (runId) {
+        this.track(s, key, runId);
+        this.log(s, `${key}: found run ${runId}, started just before the watcher stopped; following it now`);
+      } else {
+        s.seen[key] = { at: seen.at, skipped: "the watcher stopped while starting it and no run was found; remove and add the label again to start it" };
+        this.log(s, `${key}: the watcher stopped while starting a run and no run was found; not starting it again on its own (remove and add the "${this.cfg.label}" label to retry)`);
+      }
+    }
+  }
+
   private async maybeStart(s: WatchState, out: TickResult): Promise<void> {
-    const tickets = await this.deps.jira.labelledTickets(this.cfg.project, this.cfg.label);
-    const candidates: { t: JiraIssue; by: { accountId?: string; emailAddress?: string; displayName?: string } | undefined; via: string }[] = [];
-    for (const t of tickets) {
-      const seen = s.seen[t.key];
-      const add = await this.deps.jira.lastLabelAdd(t.key, this.cfg.label);
+    // the search finds tickets labelled in the last few minutes; tickets already waiting are read by key
+    const found = await this.deps.jira.labelledTickets(this.cfg.project, this.cfg.label);
+    const byKey = new Map(found.map((t) => [t.key, t]));
+    for (const key of Object.keys(s.pending)) {
+      if (byKey.has(key)) continue;
+      const t = await this.deps.jira.issue(key);
+      const gone = !t ? "it can't be found any more" : !t.labels.includes(this.cfg.label) ? `the "${this.cfg.label}" label was removed` : t.toDo === false ? "it isn't in a To Do status any more" : undefined;
+      if (gone) { delete s.pending[key]; this.log(s, `${key}: no longer waiting to start, ${gone}`); continue; }
+      byKey.set(key, t!);
+    }
+    // waiting tickets first, oldest first; then new ones in Jira's order (oldest created first)
+    const waiting = Object.entries(s.pending).filter(([k]) => byKey.has(k)).sort((a, b) => a[1].since.localeCompare(b[1].since)).map(([k]) => k);
+    const order = [...waiting, ...found.map((t) => t.key).filter((k) => !s.pending[k])];
+
+    const ready: { t: JiraIssue; by: JiraPerson | undefined; via: string }[] = [];
+    for (const key of order) {
+      const t = byKey.get(key)!;
+      const seen = s.seen[key];
+      const add = await this.deps.jira.lastLabelAdd(key, this.cfg.label);
       if (seen) {
         // a seen ticket starts again only if the label was re-added after it was last handled,
         // and its earlier run is finished (so editing a ticket never re-runs it)
         const prev = seen.runId ? this.runState(seen.runId) : undefined;
         const prevDone = !prev || ["delivered", "closed"].includes(phaseOf(prev));
-        if (!(add && jiraTime(add.at) > Date.parse(seen.at) && prevDone)) continue;
+        if (!(add && jiraTime(add.at) > Date.parse(seen.at) && prevDone)) { delete s.pending[key]; continue; }
       }
-      candidates.push({ t, by: add?.by ?? t.reporter, via: add ? "added the label" : "reported it (the label history wasn't available)" });
+      const by = add?.by ?? t.reporter;
+      const via = add ? "added the label" : "reported it (the label history wasn't available)";
+      // trust first: a ticket labelled by someone not on the list gets no comment, no notice, nothing
+      if (!this.allowed(by)) {
+        s.seen[key] = { at: this.now().toISOString(), skipped: `the person who ${via} isn't on the allowed list` };
+        delete s.pending[key];
+        out.skipped.push(key);
+        this.log(s, `${key}: not started, the person who ${via} (${by?.displayName ?? by?.emailAddress ?? "unknown"}) isn't on the allowed list`);
+        continue;
+      }
+      const skip = this.skipReason(t);
+      if (skip) {
+        s.seen[key] = { at: this.now().toISOString(), skipped: skip };
+        delete s.pending[key];
+        out.skipped.push(key);
+        this.log(s, `${key}: skipped, ${skip}`);
+        await this.comment(key, [`The AI factory didn't start this ticket: ${skip}. Fix that, then remove and add the "${this.cfg.label}" label again.`], `factory-skip:${key}:${s.seen[key]!.at}`).catch((e: Error) => this.log(s, `${key}: skip comment failed: ${e.message}`));
+        continue;
+      }
+      ready.push({ t, by, via });
     }
-    if (!candidates.length) return;
+    if (!ready.length) return;
+    // everything that passed the checks waits in the state until it starts; Jira's search may not find it again
+    for (const { t } of ready) s.pending[t.key] ??= { since: this.now().toISOString() };
 
     const why = await this.blocked(s);
     if (why) {
       out.blocked = why;
-      const day = dayOf(this.now().toISOString());
-      if (/budget|daily limit/.test(why) && !s.notices[`budget:${day}`]) {
-        s.notices[`budget:${day}`] = this.now().toISOString();
-        const first = candidates[0]!.t.key;
-        this.log(s, `not starting ${candidates.map((c) => c.t.key).join(", ")}: ${why}`);
-        await this.comment(first, [`The AI factory didn't start this ticket yet: ${why}. It will start when the budget allows; nothing else is needed.`], `factory-budget:${first}:${day}`).catch((e: Error) => this.log(s, `${first}: budget comment failed: ${e.message}`));
-        for (const nt of this.deps.notifiers) await nt.send({ title: "The factory paused new runs", lines: [`${why}.`, `Waiting: ${candidates.map((c) => c.t.key).join(", ")}.`] }).catch((e: Error) => this.log(s, `${nt.name} budget notice failed: ${e.message}`));
+      if (/budget|daily limit/.test(why)) {
+        for (const { t } of ready) {
+          const p = s.pending[t.key]!;
+          if (p.budgetNoted) continue;
+          try {
+            await this.comment(t.key, [`The AI factory didn't start this ticket yet: ${why}. It will start when the budget allows; nothing else is needed.`], `factory-budget:${t.key}`);
+            p.budgetNoted = true;
+          } catch (e) { this.log(s, `${t.key}: budget comment failed: ${(e as Error).message}`); }
+        }
+        const day = dayOf(this.now().toISOString());
+        if (!s.notices[`budget:${day}`]) {
+          s.notices[`budget:${day}`] = this.now().toISOString();
+          const keys = Object.keys(s.pending).join(", ");
+          this.log(s, `not starting ${keys}: ${why}`);
+          for (const nt of this.deps.notifiers) await nt.send({ title: "The factory paused new runs", lines: [`${why}.`, `Waiting: ${keys}.`] }).catch((e: Error) => this.log(s, `${nt.name} budget notice failed: ${e.message}`));
+        }
       }
-      return; // tickets stay unseen: they start once the guard clears
+      return; // tickets wait in the state: they start once the guard clears
     }
 
-    for (const { t, by, via } of candidates) {
-      const skip = this.skipReason(t);
-      if (skip) {
-        s.seen[t.key] = { at: this.now().toISOString(), skipped: skip };
-        out.skipped.push(t.key);
-        this.log(s, `${t.key}: skipped, ${skip}`);
-        await this.comment(t.key, [`The AI factory didn't start this ticket: ${skip}. Fix that, then remove and add the "${this.cfg.label}" label again.`], `factory-skip:${t.key}:${s.seen[t.key]!.at}`).catch((e: Error) => this.log(s, `${t.key}: skip comment failed: ${e.message}`));
-        continue;
+    const { t, by, via } = ready[0]!;
+    const prevSeen = s.seen[t.key], prevPending = s.pending[t.key];
+    // a "starting" record goes to disk before the run is asked for, so a crash in between can't lead to a second run
+    const reserved = this.now().toISOString();
+    s.seen[t.key] = { at: reserved, starting: reserved };
+    delete s.pending[t.key];
+    saveState(this.project, s);
+    let runId: string;
+    try {
+      runId = await this.deps.start(t.key);
+    } catch (e) {
+      const made = this.findRun(s, t.key, reserved);
+      if (!made) {
+        // no run was created: the ticket keeps waiting and is tried again next tick
+        if (prevSeen) s.seen[t.key] = prevSeen; else delete s.seen[t.key];
+        s.pending[t.key] = prevPending ?? { since: reserved };
+        this.log(s, `${t.key}: couldn't start a run: ${(e as Error).message}`);
+        throw e;
       }
-      if (!this.allowed(by)) {
-        s.seen[t.key] = { at: this.now().toISOString(), skipped: `the person who ${via} isn't on the allowed list` };
-        out.skipped.push(t.key);
-        this.log(s, `${t.key}: not started, the person who ${via} (${by?.displayName ?? by?.emailAddress ?? "unknown"}) isn't on the allowed list`);
-        continue; // no comment: only allowed people get the factory's attention
-      }
-      const runId = await this.deps.start(t.key);
-      s.seen[t.key] = { at: this.now().toISOString(), runId };
-      // lastSeq -1: the run's first event (seq 0, run.created) still needs its "started" update
-      s.runs[runId] = { key: t.key, lastSeq: -1, updates: {}, kickedAt: this.now().toISOString() };
-      out.started = runId;
-      this.log(s, `${t.key}: started run ${runId} (${by?.displayName ?? by?.emailAddress ?? "someone"} ${via})`);
-      await this.sendUpdates(s, out);
-      return; // one new run per tick, one run per repo at a time
+      runId = made;
     }
+    this.track(s, t.key, runId);
+    out.started = runId;
+    this.log(s, `${t.key}: started run ${runId} (${by?.displayName ?? by?.emailAddress ?? "someone"} ${via})`);
+    await this.sendUpdates(s, out);
+    // one new run per tick, one run per repo at a time
   }
 }

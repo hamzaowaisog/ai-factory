@@ -1,6 +1,7 @@
 // How the watcher starts a run: exactly `factory start --jira KEY --max-cost <maxCostPerRun>`,
 // then the executor in the background like the web screen and MCP do.
 import { loadProject } from "../config/project.js";
+import { jiraFetcherFor } from "../sources/jira.js";
 import { gatherRequest } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
@@ -10,9 +11,11 @@ import { notifiersFor } from "./notify.js";
 import { Watcher, type WatcherDeps } from "./watcher.js";
 
 export async function startFromJira(project: string, key: string, maxCostUsd: number, execute: (runId: string) => void = runDetached): Promise<string> {
-  const problems = checkRoutes(loadProject(project));
+  const cfg = loadProject(project);
+  const problems = checkRoutes(cfg);
   if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
-  const req = await gatherRequest({ jira: key });
+  // only comments by allowed people go into the request: anyone can comment on a ticket
+  const req = await gatherRequest({ jira: key }, { fetchJira: jiraFetcherFor(cfg.jira?.allowedReporters) });
   const runId = await createRun(req.text, project, "factory watch", { maxCostUsd, sources: req.sources });
   execute(runId);
   return runId;

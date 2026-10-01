@@ -14,7 +14,28 @@ export interface JiraIssue {
   labels: string[];
   reporter?: { accountId?: string; emailAddress?: string; displayName?: string };
   updated?: string;
+  /** whether the ticket's status is in Jira's "To Do" category (read by `issue`; search only finds To Do tickets) */
+  toDo?: boolean;
 }
+
+const ISSUE_FIELDS = ["summary", "description", "issuetype", "labels", "reporter", "updated", "status"];
+
+function toIssue(key: string, f: Record<string, unknown>): JiraIssue {
+  const it = (f.issuetype ?? {}) as { name?: string; subtask?: boolean; hierarchyLevel?: number };
+  const st = f.status as { name?: string; statusCategory?: { key?: string; name?: string } } | undefined;
+  return {
+    key, summary: String(f.summary ?? ""), description: f.description, issueType: it.name ?? "",
+    hierarchyLevel: Number(it.hierarchyLevel ?? 0), subtask: !!it.subtask, labels: (f.labels as string[] | undefined) ?? [],
+    reporter: f.reporter as JiraIssue["reporter"], updated: f.updated as string | undefined,
+    ...(st ? { toDo: st.statusCategory ? st.statusCategory.key === "new" || /^to do$/i.test(st.statusCategory.name ?? "") : /^to do$/i.test(st.name ?? "") } : {}),
+  };
+}
+
+/** changelog entries are read this many at a time, and at most this many pages per ticket */
+const CHANGELOG_PAGE = 100;
+const CHANGELOG_MAX_PAGES = 20;
+
+type ChangelogEntry = { created: string; author?: LabelAdd["by"]; items?: { field?: string; fromString?: string | null; toString?: string | null }[] };
 
 export interface LabelAdd { at: string; by: { accountId?: string; emailAddress?: string; displayName?: string } }
 
@@ -55,8 +76,9 @@ export class JiraClient {
   }
 
   /**
-   * Labelled "To Do" tickets updated in the last few minutes (the seen-set makes repeats harmless;
-   * the search endpoint's paging has quirks, so correctness never depends on it).
+   * Labelled "To Do" tickets updated in the last few minutes: this only discovers new tickets (the
+   * seen-set makes repeats harmless; the search endpoint's paging has quirks, so correctness never
+   * depends on it). A ticket that has to wait is kept in the watcher's state and read with `issue`.
    */
   async labelledTickets(project: string, label: string, sinceMinutes = 10): Promise<JiraIssue[]> {
     const jql = `project = ${project} AND labels = "${label.replace(/"/g, "")}" AND statusCategory = "To Do" AND updated >= -${sinceMinutes}m ORDER BY created ASC`;
@@ -64,38 +86,65 @@ export class JiraClient {
     let nextPageToken: string | undefined;
     for (let page = 0; page < 3; page++) {
       const r = await this.call<{ issues?: { key: string; fields: Record<string, unknown> }[]; nextPageToken?: string }>("POST", "/rest/api/3/search/jql", {
-        jql, maxResults: 50, fields: ["summary", "description", "issuetype", "labels", "reporter", "updated"], ...(nextPageToken ? { nextPageToken } : {}),
+        jql, maxResults: 50, fields: ISSUE_FIELDS, ...(nextPageToken ? { nextPageToken } : {}),
       });
-      for (const i of r.issues ?? []) {
-        const f = i.fields;
-        const it = (f.issuetype ?? {}) as { name?: string; subtask?: boolean; hierarchyLevel?: number };
-        out.push({
-          key: i.key, summary: String(f.summary ?? ""), description: f.description, issueType: it.name ?? "",
-          hierarchyLevel: Number(it.hierarchyLevel ?? 0), subtask: !!it.subtask, labels: (f.labels as string[] | undefined) ?? [],
-          reporter: f.reporter as JiraIssue["reporter"], updated: f.updated as string | undefined,
-        });
-      }
+      for (const i of r.issues ?? []) out.push(toIssue(i.key, i.fields));
       if (!r.nextPageToken) break;
       nextPageToken = r.nextPageToken;
     }
     return out;
   }
 
-  /** The latest time the label was added, and by whom (from the ticket's history). */
+  /** One ticket by its key, or undefined when it's gone (or this login can't see it any more). */
+  async issue(key: string): Promise<JiraIssue | undefined> {
+    try {
+      const r = await this.call<{ key: string; fields: Record<string, unknown> }>("GET", `/rest/api/3/issue/${encodeURIComponent(key)}?fields=${ISSUE_FIELDS.join(",")}`);
+      return toIssue(r.key, r.fields);
+    } catch (e) {
+      if (e instanceof JiraHttpError && e.status === 404) return undefined;
+      throw e;
+    }
+  }
+
+  /**
+   * The latest time the label was added, and by whom (from the ticket's history). The changelog is
+   * oldest first, so on a long ticket it's read from the end backwards until a page has a label add.
+   */
   async lastLabelAdd(key: string, label: string): Promise<LabelAdd | undefined> {
-    let found: LabelAdd | undefined;
-    for (let startAt = 0, page = 0; page < 5; page++) {
-      const r = await this.call<{ values?: { created: string; author?: LabelAdd["by"]; items?: { field?: string; fromString?: string | null; toString?: string | null }[] }[]; isLast?: boolean; total?: number }>(
-        "GET", `/rest/api/3/issue/${encodeURIComponent(key)}/changelog?startAt=${startAt}&maxResults=100`);
-      const values = r.values ?? [];
+    const page = (startAt: number) => this.call<{ values?: ChangelogEntry[]; isLast?: boolean; total?: number; maxResults?: number }>(
+      "GET", `/rest/api/3/issue/${encodeURIComponent(key)}/changelog?startAt=${startAt}&maxResults=${CHANGELOG_PAGE}`);
+    const latest = (values: ChangelogEntry[]): LabelAdd | undefined => {
+      let found: LabelAdd | undefined;
       for (const v of values) {
         for (const item of v.items ?? []) {
           if (item.field !== "labels") continue;
           const before = new Set((item.fromString ?? "").split(/\s+/).filter(Boolean));
           const after = new Set((item.toString ?? "").split(/\s+/).filter(Boolean));
-          if (after.has(label) && !before.has(label) && (!found || v.created > found.at)) found = { at: v.created, by: v.author ?? {} };
+          if (after.has(label) && !before.has(label) && (!found || v.created >= found.at)) found = { at: v.created, by: v.author ?? {} };
         }
       }
+      return found;
+    };
+    const first = await page(0);
+    const firstValues = first.values ?? [];
+    if (first.isLast !== false || !firstValues.length) return latest(firstValues);
+    const size = first.maxResults || firstValues.length;
+    if (typeof first.total === "number" && first.total > firstValues.length) {
+      // newest pages first; the first page with a label add holds the latest one
+      for (let startAt = Math.max(0, first.total - size), n = 1; n < CHANGELOG_MAX_PAGES; n++) {
+        const values = startAt === 0 ? firstValues : (await page(startAt)).values ?? [];
+        const found = latest(values);
+        if (found || startAt === 0) return found;
+        startAt = Math.max(0, startAt - size);
+      }
+      return undefined;
+    }
+    // no total: read forwards (up to the cap) and keep the last add
+    let found = latest(firstValues);
+    for (let startAt = firstValues.length, n = 1; n < CHANGELOG_MAX_PAGES; n++) {
+      const r = await page(startAt);
+      const values = r.values ?? [];
+      found = latest(values) ?? found;
       if (r.isLast !== false || !values.length) break;
       startAt += values.length;
     }
