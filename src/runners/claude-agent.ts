@@ -6,14 +6,17 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync }
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { toAgentJsonSchema } from "../contracts/index.js";
+import { activePolicy, blockedText, modelAllowed } from "../gates/policy.js";
 import { AGENT_FILE_GLOBS, CONFIG_INTEGRITY_GLOBS, isSecretPath, LOCK_SET_GLOBS } from "../gates/protected.js";
 import { listFiles } from "../context/snapshot.js";
 import { matchesAny } from "../util/glob.js";
 import { factoryHome } from "../util/paths.js";
 import type { ContainerRuntime, Mount } from "../verify/runtime.js";
 import { stopAndRemove } from "../verify/runtime.js";
+import type { Usage } from "../contracts/index.js";
 import { supportsEffort } from "./api.js";
 import { AGENT_IMAGE, AGENT_NET, API_BASE_URL } from "./netinfra.js";
+import { costUsd } from "./pricing.js";
 import { configErrorText, emptyUsage, type Job, type Result, type Runner } from "./types.js";
 
 export interface AgentJobExtras {
@@ -37,7 +40,28 @@ export interface AgentJobExtras {
   onProgress?: (p: AgentProgress) => void;
 }
 
-export interface AgentProgress { ts: number; kind: "start" | "tool" | "turn" | "end"; tool?: string; target?: string; in?: number; out?: number; text?: string; status?: string; turns?: number; costUsd?: number; model?: string }
+export interface AgentProgress { ts: number; kind: "start" | "tool" | "turn" | "end"; tool?: string; target?: string; id?: string; in?: number; out?: number; cacheRead?: number; cacheWrite?: number; text?: string; status?: string; turns?: number; costUsd?: number; model?: string }
+
+/**
+ * Spend from the per-turn lines when the agent left no SDK total (timeout, crash): tokens summed,
+ * priced from the table. `in` includes cache reads; one API message can log several lines (same id),
+ * so per id the largest value of each field counts.
+ */
+export function usageFromProgress(file: string, model: string): Usage {
+  const byId = new Map<string, { input: number; output: number; cacheRead: number; cacheWrite: number }>();
+  let n = 0;
+  for (const p of readProgress(file, 0).lines) {
+    if (p.kind !== "turn") continue;
+    const k = p.id ?? `#${n++}`, cr = p.cacheRead ?? 0, prev = byId.get(k);
+    const t = { input: Math.max(0, (p.in ?? 0) - cr), output: p.out ?? 0, cacheRead: cr, cacheWrite: p.cacheWrite ?? 0 };
+    byId.set(k, prev ? { input: Math.max(prev.input, t.input), output: Math.max(prev.output, t.output), cacheRead: Math.max(prev.cacheRead, t.cacheRead), cacheWrite: Math.max(prev.cacheWrite, t.cacheWrite) } : t);
+  }
+  const u = emptyUsage();
+  for (const t of byId.values()) { u.inputTokens += t.input; u.outputTokens += t.output; u.cacheRead += t.cacheRead; u.cacheWrite += t.cacheWrite; }
+  u.turns = byId.size;
+  u.estUsd = costUsd(model, u);
+  return u;
+}
 
 /** Read new complete lines of progress.jsonl from `offset`. */
 export function readProgress(file: string, offset: number): { lines: AgentProgress[]; offset: number } {
@@ -103,6 +127,9 @@ export class ClaudeAgentRunner implements Runner {
 
   async run<T>(job: Job<T>): Promise<Result<T>> {
     if (!job.workdir) throw new Error("ClaudeAgentRunner needs the worktree");
+    // the run's policy decides the coding model too (config-error parks the step)
+    const pol = activePolicy();
+    if (pol && !modelAllowed(pol, job.model)) return { status: "config-error", error: blockedText(job.step, job.model, pol), usage: emptyUsage() };
     const started = Date.now();
     const x = this.extras;
     const jobDir = join(factoryHome(), "tmp", x.runId, `agent-${randomBytes(4).toString("hex")}`);
@@ -174,11 +201,14 @@ export class ClaudeAgentRunner implements Runner {
       }
       await this.rt.stop(id, 5); // kills leftover processes before the core commits
       const resultPath = join(outDir, "result.json");
-      const usage = emptyUsage();
-      if (code === undefined) return { status: "timeout", usage: { ...usage, wallMs: Date.now() - started } };
-      if (!existsSync(resultPath)) return { status: "error", error: `Agent exited ${code} without a result`, usage };
+      // no SDK total (timeout, crash): count the spend from the per-turn lines before the folder goes
+      const fromProgress = (): Usage => ({ ...usageFromProgress(progressFile, job.model), wallMs: Date.now() - started });
+      if (code === undefined) return { status: "timeout", usage: fromProgress() };
+      if (!existsSync(resultPath)) return { status: "error", error: `Agent exited ${code} without a result`, usage: fromProgress() };
       const out = JSON.parse(readFileSync(resultPath, "utf8")) as AgentOut;
-      const u = {
+      // result.json is also written when the SDK threw before its result message: no total then
+      const noTotal = !out.turns && !out.costUsd && !out.usage?.input_tokens && !out.usage?.output_tokens;
+      const u = noTotal ? fromProgress() : {
         inputTokens: out.usage.input_tokens ?? 0, outputTokens: out.usage.output_tokens ?? 0,
         cacheRead: out.usage.cache_read_input_tokens ?? 0, cacheWrite: out.usage.cache_creation_input_tokens ?? 0,
         turns: out.turns, wallMs: Date.now() - started, estUsd: out.costUsd,
