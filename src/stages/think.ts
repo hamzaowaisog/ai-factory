@@ -139,6 +139,8 @@ export const S = {
   untrusted: (id: string, source: string, text: string): ResolvedSection => ({
     spec: { id, source: "doc", trust: "untrusted", placement: "user" }, content: text, docId: id, source,
   }),
+  /** trusted reference text for the user message (our own data, not model or user input) */
+  reference: (id: string, text: string): ResolvedSection => ({ spec: { id, source: "template", trust: "trusted", placement: "user" }, content: text }),
   task: (text: string): ResolvedSection => ({ spec: { id: "task", source: "task", trust: "trusted", placement: "user" }, content: text }),
   recap: (lines: string[]): ResolvedSection => ({ spec: { id: "recap", source: "recap", trust: "trusted", placement: "user" }, content: lines.map((l) => `- ${l}`).join("\n") }),
   pointers: (ps: { path: string; reason: string }[]): ResolvedSection => ({ spec: { id: "pointers", source: "pointers", trust: "derived", placement: "user", trimmable: "pointers-tail" }, content: "", pointers: ps }),

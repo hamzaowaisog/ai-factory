@@ -11,6 +11,9 @@ import { NOTICEABLE_RATIO, pixelDiff } from "./pixeldiff.js";
 import { detectLayout } from "./layout.js";
 import { plannedChanges, sizeChange, sizeFromGit, type SizeInput, type SizeResult } from "./size.js";
 import { dirSource, gitSource, type FileSource } from "./source.js";
+import { INDUSTRIES } from "./refs/data.js";
+import { loadMeasured, measuredPath, pickIndustries, referenceBrief, resolveBrand } from "./refs/index.js";
+import { measureAndSave } from "./refs/measure.js";
 
 const out = (m: string): void => { process.stdout.write(`${m}\n`); };
 
@@ -135,5 +138,28 @@ export function registerDesignCommands(program: Command): void {
       const inv = buildInventory(dirSource(resolve(o.repo)));
       const r = cleanBrief(JSON.parse(readFileSync(file, "utf8")), inv, { brandFonts: o.brandFont ?? [] });
       out(JSON.stringify(r, null, 2));
+    });
+  const refs = design.command("refs").description("industry design references: how real products in a field are coloured (feeds the design step)");
+  refs.command("list").description("industries, their brands and whether each colour is measured")
+    .action(() => {
+      const m = loadMeasured();
+      for (const i of INDUSTRIES) {
+        out(`${i.id.padEnd(11)} ${i.label}`);
+        for (const raw of i.brands) { const b = resolveBrand(raw, m); out(`  ${b.name.padEnd(20)} ${b.brand}${b.accent ? ` ${b.accent}` : ""}  ${b.measured ? "measured" : "reported"}`); }
+      }
+    });
+  refs.command("show").argument("[text...]", "an industry id (airline) or requirement text; the brief the design step would receive")
+    .action((words: string[]) => {
+      const t = words.join(" ");
+      const byId = INDUSTRIES.filter((i) => i.id === t.trim().toLowerCase());
+      const picked = byId.length ? byId : pickIndustries(t).map((p) => p.industry);
+      out(picked.length ? referenceBrief(picked) : "no industry matched (the design step gets no reference brief)");
+    });
+  refs.command("measure").option("--industry <id...>", "only these industries (default: all)")
+    .description("open each brand's live site on a phone viewport and store its real colours (needs network access to those sites)")
+    .action(async (o: { industry?: string[] }) => {
+      const r = await measureAndSave(o.industry ?? []);
+      for (const x of r.results) out(`${x.reading?.brand ? "ok   " : "none "} ${x.name.padEnd(20)} ${x.reading?.brand ?? x.error ?? "no colour found"}`);
+      out(`${r.saved} brand(s) stored in ${measuredPath()}${r.note ? `\nnote: ${r.note}` : ""}`);
     });
 }

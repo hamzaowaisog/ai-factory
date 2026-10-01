@@ -9,6 +9,7 @@ import type { DesignInventory } from "../design/inventory.js";
 import { DesignTheme, ScreenMock } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
 import { header, readOutput, requireOutput, type StepDef } from "./framework.js";
+import { briefFor } from "../design/refs/index.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -38,7 +39,7 @@ const RULES = `You are drawing the screen inventory of a UI request, for an esti
 - "flow": two or three sentences on how a user moves between the screens.
 - Use only requirement ids that exist. Do not invent screens the requirements do not need.
 - ART DIRECTION. Work out what the product is and who uses it from the requirements alone, then return "theme": the look a real team in that field would ship. The goal is a believable product, not a showcase: restrained, legible, specific to its domain, and never a generic template.
-  How real products are coloured: a mostly neutral page (white or near-white, or a deliberate dark), near-black text, ONE brand colour used for the app bar, the primary action and selection, and status colours only where they carry meaning (green done, red wrong, amber attention). Colour is information, not decoration. Look at how several well-known products in the same field do it, then make your own: airlines use their livery colour (a deep red, navy, burgundy or teal) as a filled app bar and primary button over white cards and a boarding-pass style detail; banks and fintech use a calm deep blue or green, or one bold brand colour on white or near-black, with figures that stay legible; health and care use soft blues and greens on white with generous space; retail and food use one warm, high-energy colour (red, orange, green) on white with big imagery; developer and data tools use dark neutrals or white with one cool accent and dense tables; logistics and industrial use a strong blue, orange or yellow on grey with dense status tables; learning products use friendly, saturated colour and round shapes; media uses black with one vivid colour; government and public services use plain white, black text and one blue.
+  How real products are coloured: a mostly neutral page (white or near-white, or a deliberate dark), near-black text, ONE brand colour used for the app bar, the primary action and selection, and status colours only where they carry meaning (green done, red wrong, amber attention). Colour is information, not decoration. When a "design-references" section is given, it shows how real products in this field are coloured: stay in that family, borrow what they share, and do not copy one brand. With none, think of how several well-known products in the same field do it and make your own.
   Avoid what makes a design look machine-made: purple-to-blue gradients, neon glows on dark, glass panels everywhere, several accent colours, rainbow icons, one huge radius on everything, and centred "three cards" layouts.
   mood: two or three words for the feeling (for example "calm clinical", "precise financial", "warm retail"). Invent the one that fits.
   mode: "light" for most products, "dark" only when the audience works in it for hours (developer, trading, media, creative tools), "auto" to follow the viewer.
@@ -90,7 +91,7 @@ const inventoryBrief = (inv: DesignInventory) => ({
 });
 
 export const designStep: StepDef = {
-  key: "design", stage: "design", templateVersion: "4",
+  key: "design", stage: "design", templateVersion: "5",
   inputs: (s, l) => {
     if (s.steps.get("specify")?.status !== "completed" || s.steps.get("intake")?.status !== "completed") return undefined;
     const ui = !!l.getJson<Intent>(s.steps.get("intake")!.outputs[0]!)?.touchesUi;
@@ -105,6 +106,7 @@ export const designStep: StepDef = {
     const frames = listedFrames(ctx.state.info.request ?? "");
     const p = ctx.state.info.parent;
     const earlier = p?.kind === "change" && p.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: unknown[] }>(p.designSha) : undefined;
+    const refBrief = briefFor(spec.requirements.map((q) => q.ears).join("\n"));
     const r = await think(ctx, {
       stage: "design", route: "design", cls: "read-large", budgetTokens: 45000, tools: [], schema: DesignOut, maxTurns: 4,
       sections: [
@@ -112,6 +114,7 @@ export const designStep: StepDef = {
         S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
         ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens })] : []),
         ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
+        ...(refBrief ? [S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`)] : []),
         S.task("Draw the screen inventory."),
       ],
     });
