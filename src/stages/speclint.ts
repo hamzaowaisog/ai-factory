@@ -16,7 +16,39 @@ const NUMBER = /\d/;
 const OBSERVABLE = /\b(respon[sd]|status|return|row|record|table|database|db|call|request|sent|email|message|screen|page|display|shown|show|visible|error|log|event|header|body|json|field|value|count|list|file)\w*/i;
 const LITERAL_ID = /\b([A-Z]{2,}-\d+|\d{4,}|[A-Z][a-z]+ (Inc|LLC|Ltd|GmbH|Corp))\b/;
 
-export function lintSpec(spec: SpecDraft, ctx: { spans: string[]; changeClass: ChangeClass; anchorOk: (reqId: string) => boolean }): LintResult[] {
+/** `id` as a whole token in `text`: "I-1" isn't in "I-12" (never substring matching). */
+export const mentions = (text: string, id: string): boolean =>
+  new RegExp(`(?<![\\w-])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`).test(text);
+
+/** The request's own span says a piece of work isn't wanted ("out of scope", "no need for"). Behaviour words
+ * like "don't" or "won't" are left out: "users don't get duplicates" is a requirement, not an exclusion. */
+const EXCLUDES = /\b(out of scope|not in scope|not needed|no need (for|to)|exclud\w*|not required)\b/i;
+export const requestExcluded = (spans: { id: string; text: string }[]): string[] => spans.filter((s) => EXCLUDES.test(s.text)).map((s) => s.id);
+
+/**
+ * Only people put scope out of scope: a span counts as out of scope when an out-of-scope entry names it
+ * (exact token) and that same entry cites an answer or accepted assumption id the run has (Q-n / ASM-n),
+ * or the request itself excludes it. A drafter's own deferral ("run 2") doesn't count.
+ */
+export function outOfScopeSpans(outOfScope: string[], spans: string[], decisions: string[], excluded: string[] = []): Set<string> {
+  return new Set(spans.filter((s) => outOfScope.some((o) => mentions(o, s) && (excluded.includes(s) || decisions.some((d) => mentions(o, d))))));
+}
+
+export const sizeBudget = (cls: ChangeClass) => ({ reqs: cls === "bugfix" ? 4 : 12, acs: 30 });
+/** A spec over the size budget, as one line for the approval card (undefined when within it). */
+export function sizeNote(spec: SpecDraft, cls: ChangeClass): string | undefined {
+  const b = sizeBudget(cls), n = spec.requirements.length, acs = spec.requirements.reduce((k, r) => k + r.acceptance.length, 0);
+  if (n <= b.reqs && acs <= b.acs) return undefined;
+  const runs = Math.max(Math.ceil(n / b.reqs), Math.ceil(acs / b.acs));
+  return `This spec has ${n} requirements, about ${runs} runs' worth of work for a ${cls}; approve it as one run or reject with which part to cut.`;
+}
+
+export function lintSpec(spec: SpecDraft, ctx: {
+  spans: string[]; changeClass: ChangeClass; anchorOk: (reqId: string) => boolean;
+  /** answer and assumption ids the human decided (Q-n, ASM-n) */ decisions?: string[];
+  /** spans the request itself excludes */ excluded?: string[];
+  /** estimate mode prices the whole request: no size check */ estimate?: boolean;
+}): LintResult[] {
   const out: LintResult[] = [];
   const add = (check: string, fails: string[], blocking = true) =>
     out.push({ check, passed: fails.length === 0, details: fails.length ? fails.slice(0, 8).join("; ") : "ok", blocking });
@@ -58,15 +90,16 @@ export function lintSpec(spec: SpecDraft, ctx: { spans: string[]; changeClass: C
     !r.anchors?.length ? [`${r.id} is ${r.op} but has no anchor to existing code`] : !ctx.anchorOk(r.id) ? [`${r.id} has an anchor that doesn't match the code`] : [],
   ));
 
-  // L9 size
-  const acs = spec.requirements.reduce((n, r) => n + r.acceptance.length, 0);
-  const maxReq = ctx.changeClass === "bugfix" ? 4 : 12;
-  add("L9 size", spec.requirements.length > maxReq || acs > 30 ? [`${spec.requirements.length} requirements / ${acs} ACs is over the budget for a ${ctx.changeClass}; split into a run sequence`] : []);
+  // L9 size: never blocking (shrinking a spec drops requested behaviour); the card asks the human instead
+  if (!ctx.estimate) { const n = sizeNote(spec, ctx.changeClass); add("L9 size", n ? [n] : [], false); }
 
-  // L10 traceability
+  // L10 traceability: a span is covered by a requirement, or out of scope by a human decision
   const covered = new Set(spec.requirements.flatMap((r) => r.sources));
+  const oos = outOfScopeSpans(spec.outOfScope, ctx.spans, ctx.decisions ?? [], ctx.excluded);
   add("L10 trace", [
-    ...ctx.spans.filter((s) => !covered.has(s) && !spec.outOfScope.some((o) => o.includes(s))).map((s) => `intent span ${s} isn't covered by any requirement or listed as out of scope`),
+    ...ctx.spans.filter((s) => !covered.has(s) && !oos.has(s)).map((s) => spec.outOfScope.some((o) => mentions(o, s))
+      ? `intent span ${s} was moved out of scope without a decision from you; cover it or ask`
+      : `intent span ${s} isn't covered by any requirement or listed as out of scope`),
     ...spec.requirements.filter((r) => !r.sources.length).map((r) => `${r.id} has no source span`),
   ]);
 

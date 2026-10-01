@@ -7,8 +7,8 @@ import { checkEvidence } from "../context/tools.js";
 import { failure } from "../gates/engine.js";
 import { planRejections, requireOutput, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
-import { lintSpec, type LintResult } from "./speclint.js";
-import { S, think, UNTRUSTED_NOTE } from "./think.js";
+import { lintSpec, outOfScopeSpans, requestExcluded, sizeNote, type LintResult } from "./speclint.js";
+import { S, think, UNTRUSTED_NOTE, type ThinkSpec } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { LANE, lightSpec } from "./lane.js";
 
@@ -64,14 +64,17 @@ export function checkMerge(m: z.infer<typeof MergeOut>, drafts: Spec[]): { error
   return { errors, stability };
 }
 
-/** A dropped span not out of scope fails; a sentence matching no span and no answer is an invention. */
+/**
+ * A dropped span fails unless a human put it out of scope (an answer/assumption cited next to it, or
+ * the request itself); a sentence matching no span and no answer is an invention.
+ */
 export function roundTripCheck(
   spans: string[], answers: string[], spec: Spec,
-  restated: z.infer<typeof RestateOut>["sentences"], mapping: z.infer<typeof RtAlignOut>["mapping"],
+  restated: z.infer<typeof RestateOut>["sentences"], mapping: z.infer<typeof RtAlignOut>["mapping"], excluded: string[] = [],
 ): { droppedSpans: string[]; inventedCapabilities: string[] } {
   const covered = new Set(mapping.flatMap((m) => m.spans));
-  const outOfScope = spec.outOfScope.join(" ");
-  const droppedSpans = spans.filter((s) => !covered.has(s) && !outOfScope.includes(s));
+  const oos = outOfScopeSpans(spec.outOfScope, spans, answers, excluded);
+  const droppedSpans = spans.filter((s) => !covered.has(s) && !oos.has(s));
   const known = new Set([...spans, ...answers]);
   const inventedCapabilities = restated
     .filter((r) => { const m = mapping.find((x) => x.n === r.n); return !m || ![...m.spans, ...m.answers].some((x) => known.has(x)); })
@@ -82,8 +85,37 @@ export function roundTripCheck(
 /** Critic blocking is derived by code from severity (gate-engine §2.5). */
 export const criticBlocks = (f: { severity: string }) => f.severity === "critical" || f.severity === "high";
 
+/** Problem lists compared loosely (case, spacing, trailing punctuation): a repair that changed nothing. */
+const norm = (p: string) => p.toLowerCase().replace(/\s+/g, " ").replace(/[.;:\s]+$/, "").trim();
+export function sameProblems(a: string[], b: string[]): boolean {
+  const x = new Set(a.map(norm)), y = new Set(b.map(norm));
+  return x.size === y.size && [...x].every((p) => y.has(p));
+}
+
+/** Spans a requirement covered before a repair and none covers after it (exact ids). */
+export function lostCoverage(before: Spec, after: Spec, spans: string[]): string[] {
+  const had = new Set(before.requirements.flatMap((r) => r.sources)), has = new Set(after.requirements.flatMap((r) => r.sources));
+  return spans.filter((s) => had.has(s) && !has.has(s));
+}
+
+/** Critic instructions; a run with no repo is new work, so existing-code rubric items (5, 6) don't apply. */
+export function criticTemplate(repo: boolean): string {
+  const rubric = ["1 conflicts between requirements", "2 missing error, empty and permission paths", "3 ACs not observable at a public surface", "4 scope creep beyond the intent",
+    ...(repo ? ["5 claims about existing behaviour without anchors", "6 state transitions and existing data"] : []),
+    "7 behaviour changes outside the requested scope (blast radius)", "8 hardcoded identifiers that should be configuration"];
+  return `Adversarial reviewer. Find defects in this spec; don't praise; don't rewrite it.
+Rubric: ${rubric.join(" ")}.
+Each finding: rubric number, reqId, severity (critical|high|medium|low), one-sentence evidence in "finding". Empty list if none.
+The human answered questions and accepted assumptions (below). Scope they decided is not a defect: don't flag it.${repo ? "" : "\nThere is no existing codebase: this is new work. Don't flag missing anchors, unknown existing data or missing repository."}`;
+}
+
 // ---------- helpers ----------
 const request = (ctx: Pick<StepContext, "state">) => ctx.state.info.request ?? "";
+const hasRepo = (ctx: Pick<StepContext, "state">) => !!ctx.state.info.repoPath && !!ctx.state.info.baseCommit;
+/** Drafters read the repo; with no repo there is nothing to read, so no tools. */
+const readTools = (ctx: StepContext): Pick<ThinkSpec<unknown>, "tools" | "repoTools"> =>
+  (hasRepo(ctx) ? { tools: ["read_file", "search"], repoTools: toolsFor(ctx) } : { tools: [] });
+const decisionsOf = (i: { answers: { id: string }[]; assumptions: { id: string }[] }) => [...i.answers.map((a) => a.id), ...i.assumptions.map((a) => a.id)];
 
 function inputsOf(ctx: StepContext) {
   const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
@@ -100,7 +132,8 @@ Format rules (checked by code):
 - Pick the LOWEST level that proves the behaviour: unit when the logic lives in one class (call its public method directly), api for an endpoint, job only when the behaviour exists only in a job run. The factory can't test screens yet: a ui criterion becomes a manual check by a person, so use it only for behaviour that exists only on a screen.
 - Change only what the request asks. Other places that might need the same change go in suggestions, not requirements.
 - sources: intent span IDs, answer IDs (Q-n) or assumption IDs (ASM-n).
-- NFRs need a metric with a number. List out-of-scope items. Every intent span is covered or explicitly out of scope.
+- NFRs need a metric with a number. List out-of-scope items. Every intent span is covered by a requirement.
+- Never move requested behaviour out of scope on your own, and never shrink a spec by deferring requested behaviour to a later run. An out-of-scope entry that names an intent span must cite the answer or assumption id that excluded it, e.g. "I-3 SMS reminders (Q-2)"; without one, cover the span.
 - No vague words (fast, robust, user-friendly, appropriate) without a number.
 - Don't add capabilities the request didn't ask for; put ideas under suggestions.
 - A bugfix has at most 4 requirements.
@@ -121,7 +154,7 @@ function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
 
 /** Three independent drafts: 2 × Opus + 1 × other family (Sonnet for a low-risk bugfix). The light lane writes one. */
 export const draftsStep: StepDef = {
-  key: "drafts", stage: "specify", templateVersion: "2",
+  key: "drafts", stage: "specify", templateVersion: "3",
   inputs: (s) => (s.steps.get("clarify-2")?.status === "completed"
     ? { intent: s.steps.get("intake")!.outputs[0], cb: s.steps.get("ground")!.outputs[0], c1: s.steps.get("clarify")!.outputs[0], c2: s.steps.get("clarify-2")!.outputs[0] } : undefined),
   async run(ctx) {
@@ -131,8 +164,7 @@ export const draftsStep: StepDef = {
     const routes = (lowBugfix || light ? ["specify", "specify", "specify"] : ["specify", "specify", "specify-other"]).slice(0, light ? LANE.light.drafts : LANE.full.drafts);
     const models = lowBugfix || light ? routes.map(() => "claude-sonnet-5") : [undefined, undefined, undefined];
     const rs = await Promise.all(routes.map((route, n) => think(ctx, {
-      stage: "specify", route, model: models[n], cls: "read-large", budgetTokens: 30000, tools: ["read_file", "search"],
-      repoTools: toolsFor(ctx), schema: DraftOut, maxTurns: 8,
+      stage: "specify", route, model: models[n], cls: "read-large", budgetTokens: 30000, ...readTools(ctx), schema: DraftOut, maxTurns: 8,
       sections: [...draftSections(ctx, i), S.task(routes.length === 1 ? "Write the spec." : `Write the spec (independent draft ${n + 1}).`)],
     })));
     const bad = rs.find((r) => !r.ok);
@@ -173,22 +205,20 @@ When drafts conflict, keep both readings as separate requirements and add a conf
   },
 };
 
-interface Checks { lint: LintResult[]; critic: z.infer<typeof CriticOut>["findings"]; roundTrip: { droppedSpans: string[]; inventedCapabilities: string[] }; criticNote?: string }
+export interface Checks { lint: LintResult[]; critic: z.infer<typeof CriticOut>["findings"]; roundTrip: { droppedSpans: string[]; inventedCapabilities: string[] }; criticNote?: string }
 
 async function checkSpec(ctx: StepContext, spec: Spec, i: ReturnType<typeof inputsOf>, criticEffort?: "low" | "medium" | "high"): Promise<{ ok: true; checks: Checks } | { ok: false; outcome: StepOutcome }> {
   const snap = snapshotFor(ctx);
+  const excluded = requestExcluded(i.intent.spans);
   const lint = lintSpec(spec, {
-    spans: i.intent.spans.map((s) => s.id), changeClass: i.intent.changeClass,
+    spans: i.intent.spans.map((s) => s.id), changeClass: i.intent.changeClass, decisions: decisionsOf(i), excluded, estimate: ctx.state.info.mode === "estimate",
     anchorOk: (id) => (spec.requirements.find((q) => q.id === id)?.anchors ?? []).every((a) => checkEvidence(snap, a).ok),
   });
   const [critic, restate] = await Promise.all([
     think(ctx, {
       stage: "critic", route: "critic", cls: "read-large", budgetTokens: 30000, tools: [], schema: CriticOut, effort: criticEffort,
       sections: [
-        S.template("tpl", `Adversarial reviewer. Find defects in this spec; don't praise; don't rewrite it.
-Rubric: 1 conflicts between requirements 2 missing error, empty and permission paths 3 ACs not observable at a public surface 4 scope creep beyond the intent 5 claims about existing behaviour without anchors 6 state transitions and existing data 7 behaviour changes outside the requested scope (blast radius) 8 hardcoded identifiers that should be configuration.
-Each finding: rubric number, reqId, severity (critical|high|medium|low), one-sentence evidence in "finding". Empty list if none.
-The human answered questions and accepted assumptions (below). Scope they decided is not a defect: don't flag it.`),
+        S.template("tpl", criticTemplate(hasRepo(ctx))),
         S.artifact("intent", "intent", i.intent),
         S.artifact("answers", "answers", i.answers),
         S.artifact("assumptions", "assumptions", i.assumptions),
@@ -219,11 +249,11 @@ The human answered questions and accepted assumptions (below). Scope they decide
     ],
   });
   if (!align.ok) return { ok: false, outcome: align.outcome };
-  const roundTrip = roundTripCheck(i.intent.spans.map((s) => s.id), [...i.answers.map((a) => a.id), ...i.assumptions.map((a) => a.id)], spec, restate.output.sentences, align.output.mapping);
+  const roundTrip = roundTripCheck(i.intent.spans.map((s) => s.id), decisionsOf(i), spec, restate.output.sentences, align.output.mapping, excluded);
   return { ok: true, checks: { lint, critic: critic.output.findings, roundTrip, criticNote: critic.note } };
 }
 
-function problems(c: Checks): string[] {
+export function problems(c: Checks): string[] {
   return [
     ...c.lint.filter((l) => l.blocking && !l.passed).map((l) => `[lint ${l.check}] ${l.details}`),
     ...c.critic.filter(criticBlocks).map((f) => `[critic ${f.severity}] ${f.reqId ?? ""} ${f.finding}`),
@@ -234,7 +264,7 @@ function problems(c: Checks): string[] {
 
 /** Final spec: check, repair (one drafter, merged spec + findings) up to 3 times (once on the light lane). */
 export const specifyStep: StepDef = {
-  key: "specify", stage: "specify", templateVersion: "3",
+  key: "specify", stage: "specify", templateVersion: "4",
   inputs: (s) => (s.steps.get("merge")?.status === "completed" ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s) } : undefined),
   async run(ctx) {
     const i = inputsOf(ctx);
@@ -250,7 +280,7 @@ export const specifyStep: StepDef = {
     if (rejections.length) {
       ctx.log(`specify: revising for your rejection: ${rejections[rejections.length - 1]}`);
       const r = await think(ctx, {
-        stage: "specify", route: "specify", cls: "read-large", budgetTokens: 30000, tools: ["read_file", "search"], repoTools: toolsFor(ctx), schema: DraftOut, maxTurns: 8,
+        stage: "specify", route: "specify", cls: "read-large", budgetTokens: 30000, ...readTools(ctx), schema: DraftOut, maxTurns: 8,
         sections: [
           ...draftSections(ctx, i),
           S.artifact("spec", "spec", spec),
@@ -265,6 +295,9 @@ export const specifyStep: StepDef = {
       spec = { ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) };
     }
     const manualUi = new Set<string>();
+    const spanIds = i.intent.spans.map((s) => s.id);
+    let before: string[] | undefined;
+    let rejectedRepair: string[] | undefined;
     for (;;) {
       const d = downgradeUi(spec);
       spec = d.spec;
@@ -274,22 +307,29 @@ export const specifyStep: StepDef = {
       checks = c.checks;
       const open = problems(checks);
       if (!open.length || repairs >= lane.maxRepairs) break;
+      // a repair that left the same problems won't do better next time: stop paying for more
+      if (before && sameProblems(before, open)) { ctx.log("specify: the last repair left the same findings; stopping repairs"); break; }
+      before = open;
       repairs++;
       ctx.log(`specify: repair ${repairs}/${lane.maxRepairs} for ${open.length} findings`);
       const r = await think(ctx, {
-        stage: "specify", route: "specify", cls: "read-large", budgetTokens: 30000, tools: ["read_file", "search"], repoTools: toolsFor(ctx), schema: DraftOut, maxTurns: 8,
+        stage: "specify", route: "specify", cls: "read-large", budgetTokens: 30000, ...readTools(ctx), schema: DraftOut, maxTurns: 8,
         sections: [
           ...draftSections(ctx, i),
           S.artifact("spec", "spec", spec),
           S.artifact("findings", "findings", open),
-          S.task("Repair this spec so every finding is fixed. Keep requirement IDs stable where the meaning doesn't change. Change nothing the findings don't need."),
+          S.task("Repair this spec so every finding is fixed. Keep requirement IDs stable where the meaning doesn't change. Change nothing the findings don't need. Never fix a finding by moving requested behaviour out of scope or deleting the requirements that cover an intent span."),
         ],
       });
       if (!r.ok) return r.outcome;
       const stab = Object.fromEntries(spec.requirements.map((q) => [q.id, q.stability]));
       const { suggestions: _s, ...draft } = r.output;
       void _s;
-      spec = { ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) };
+      const next = { ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) };
+      // a repair may not drop requested behaviour: keep the previous spec (and its checks) and stop
+      const lost = lostCoverage(spec, next, spanIds);
+      if (lost.length) { rejectedRepair = lost; ctx.log(`specify: repair ${repairs} dropped intent span${lost.length > 1 ? "s" : ""} ${lost.join(", ")}; kept the previous spec`); break; }
+      spec = next;
     }
     const hardLint = checks!.lint.filter((l) => l.blocking && !l.passed);
     if (hardLint.length) {
@@ -300,7 +340,8 @@ export const specifyStep: StepDef = {
     const criticSha = ctx.ledger.putJson({ findings: checks!.critic, note: checks!.criticNote });
     return {
       kind: "done", outputs: { spec: specSha, critic: criticSha },
-      data: { repairs, openFindings: problems(checks!), conflicts: merged.conflicts, manualUi: [...manualUi], lane: lane === LANE.light ? "light" : "full" },
+      data: { repairs, openFindings: problems(checks!), conflicts: merged.conflicts, ...(rejectedRepair ? { rejectedRepair } : {}),
+        ...(ctx.state.info.mode !== "estimate" && sizeNote(spec, i.intent.changeClass) ? { sizeNote: sizeNote(spec, i.intent.changeClass) } : {}), manualUi: [...manualUi], lane: lane === LANE.light ? "light" : "full" },
     };
   },
 };

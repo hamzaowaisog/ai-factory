@@ -52,6 +52,10 @@ let multi = false;
 let reviewFindings: unknown[] = [];
 /** intake's risk: "low" takes the light lane, "medium" the full one */
 let intakeRisk = "low";
+/** what the scripted spec critic reports; a repair (the "Repair this spec" task) answers repairSpec when set */
+let criticFindings: unknown[] = [];
+let repairSpec: unknown;
+let repairCalls = 0;
 const MULTI_FILES = ["src/Api/Greeter.cs", "src/Api/Farewell.cs", "src/Api/Third.cs"];
 const MULTI_TESTS = ["AC_1_1_GreetsWithHello", "AC_2_1_SaysBye", "AC_3_1_CountsThree"];
 function multiAnswer(system: string): unknown {
@@ -89,7 +93,7 @@ function answerFor(system: string, allowMulti = true): unknown {
       acceptance: [{ id: "AC-1.1", given: "a name Ann", when: "Greet is called", then: "the returned value is Hello Ann", level: "api" }] }],
     nfrs: [], outOfScope: ["other greetings"], assumptions: [], suggestions: [],
   };
-  if (system.includes("Adversarial reviewer")) return { findings: [] };
+  if (system.includes("Adversarial reviewer")) return { findings: criticFindings };
   if (system.includes("plan the implementation")) return {
     tasks: [{ id: "TASK-1", title: "Say Hello", reqs: ["REQ-1"], fileScope: ["src/Api/Greeter.cs"], exemplars: [], conventions: [], dependsOn: [], plannedLoc: 3, approach: "change the literal" }],
     options: [{ id: "O-1", summary: "change the literal", simplest: true, tradeoffs: "none" }, { id: "O-2", summary: "make it configurable", simplest: false, tradeoffs: "more code" }],
@@ -100,10 +104,12 @@ function answerFor(system: string, allowMulti = true): unknown {
 }
 const modelCalls: string[] = [];
 const provider: Provider = {
-  start(model, _e, system): Conversation {
+  start(model, _e, system, user): Conversation {
     modelCalls.push(model);
+    const repair = user.includes("Repair this spec");
+    if (repair) repairCalls++;
     return {
-      async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answerFor(system) }], text: "", stop: "tool_use", usage: U }; },
+      async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: repair && repairSpec ? repairSpec : answerFor(system) }], text: "", stop: "tool_use", usage: U }; },
       toolResults() {}, say() {},
     };
   },
@@ -240,6 +246,9 @@ beforeEach(() => {
   multi = false;
   intakeRisk = "low";
   reviewFindings = [];
+  criticFindings = [];
+  repairSpec = undefined;
+  repairCalls = 0;
 });
 
 describe("brownfield slice end to end (fakes)", () => {
@@ -613,6 +622,34 @@ describe("light and full lanes (fakes)", () => {
     expect(s.steps.get("clarify-2")!.data?.lightLane).toBeUndefined();
     expect(writer()).toMatchObject({ model: "claude-opus-5-5", maxTurns: 60, maxUsd: 4 });
     expect(writer().system).not.toContain("At most 2 characterisation tests");
+  });
+});
+
+describe("spec repairs", () => {
+  const finding = { rubric: 2, reqId: "REQ-1", severity: "high", finding: "No path for an empty name." };
+  it("stops repairing when a repair leaves the same findings, instead of paying for all 3", async () => {
+    intakeRisk = "medium";
+    criticFindings = [finding];
+    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester"));
+    const s = replay(ledger.events());
+    expect(s.steps.get("specify")!.data).toMatchObject({ repairs: 1, lane: "full" });
+    expect(repairCalls).toBe(1);
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toContain("the last repair left the same findings; stopping repairs");
+    expect(ledger.readCard(s.openCard!.cardId)).toContain("## Still open after 1 repair");
+  });
+
+  it("rejects a repair that drops a requested span and keeps the previous spec", async () => {
+    intakeRisk = "medium";
+    criticFindings = [finding];
+    const base = answerFor("Senior engineer writing a behaviour spec") as { requirements: { sources: string[] }[]; outOfScope: string[] };
+    repairSpec = { ...base, requirements: base.requirements.map((r) => ({ ...r, sources: ["Q-1"] })), outOfScope: ["I-1 greeting change, deferred to run 2"] };
+    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester"));
+    const s = replay(ledger.events());
+    expect(s.steps.get("specify")!.data).toMatchObject({ repairs: 1, rejectedRepair: ["I-1"] });
+    expect(repairCalls).toBe(1);
+    const spec = ledger.getJson<{ requirements: { sources: string[] }[]; outOfScope: string[] }>(s.steps.get("specify")!.outputs[0]!);
+    expect(spec.requirements[0]!.sources).toEqual(["I-1"]);
+    expect(spec.outOfScope).toEqual(["other greetings"]);
   });
 });
 
