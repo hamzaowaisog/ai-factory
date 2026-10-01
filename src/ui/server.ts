@@ -1,8 +1,8 @@
 // `factory ui`: a small local web app to start runs and watch them. node:http only, plain files.
 // It can NEVER approve a plan, waive, unlock, steer, pause or stop: those decisions are TTY-only
-// (ledger/human.ts), so no AI or script can approve its own plan. Two exceptions, both for an estimate
-// run and both needing a typed name and the card's hash: the lead's approve or reject of the estimate card,
-// and the answers to its clarification questions (so a run never stops waiting for a second command).
+// (ledger/human.ts), so no AI or script can approve its own plan. Three exceptions, each needing a typed name
+// and the card's hash: the lead's approve or reject of an estimate card, the same on a design card (E1b), and
+// the answers to a clarification question card (so a run never stops waiting for a second command).
 // Other cards are shown read-only with the terminal command to paste.
 // Safety: bound to 127.0.0.1; a random token per start (in the printed link, then an HttpOnly
 // cookie) on every API call; Host and Origin checked so another website can't drive it; JSON-only
@@ -18,7 +18,7 @@ import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
-import { answerEstimateQuestions, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
+import { answerEstimateQuestions, decideDesign, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
 /** Starting a run may carry design frames (base64 in the JSON), so that one route takes a bigger body. */
@@ -105,6 +105,19 @@ export const ROUTES: readonly Route[] = [
       if (!l) return notFound(`No run ${id}`);
       try {
         return { status: 200, json: await answerEstimateQuestions(l, (body ?? {}) as Record<string, unknown>, deps) };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/design-decision", what: "the lead's approve or reject of a design card (E1b only; needs a typed name and the card hash; a rejection needs a reason and sends the design back for a redraw)",
+    handle: async ({ id }, body, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await decideDesign(l, (body ?? {}) as Record<string, unknown>, deps) };
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };

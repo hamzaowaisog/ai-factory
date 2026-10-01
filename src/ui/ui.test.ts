@@ -203,9 +203,9 @@ describe("factory ui: who can talk to it", () => {
 describe("factory ui: no decisions from the web", () => {
   it("the route list has no decision routes; the only write starts a run", () => {
     const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note/i;
-    for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision") && !r.path.endsWith("/estimate-answers"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
+    for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision") && !r.path.endsWith("/estimate-answers") && !r.path.endsWith("/design-decision"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
     // the one exception: the estimate lead's approve or reject, on estimate cards only
-    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers"]);
+    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/design-decision"]);
   });
 
   it("decision-looking URLs don't exist", async () => {
@@ -712,5 +712,39 @@ describe("factory ui: answering an estimate run's questions", () => {
     expect(done.status).toBe(200);
     expect(started.at(-1)).toBe(id);
     expect(replay(l.events()).decisions.at(-1)).toMatchObject({ decision: "answer", by: "Sam Lead (via web)" });
+  });
+});
+
+describe("factory ui: design card decisions", () => {
+  const designPost = (id: string, body: unknown) =>
+    call(`/api/runs/${id}/design-decision`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+  it("approves or sends back a design card with a name and the hash, and refuses other cards", async () => {
+    expect((await designPost(ids.waiting, { hash: "b".repeat(8), by: "Sam Lead", decision: "approve" })).status).toBe(409);
+    expect((await designPost("nope", {})).status).toBe(404);
+    const make = async () => {
+      const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
+      const l = Ledger.open(id);
+      const bundle = "d".repeat(64);
+      l.writeCard(`design-${bundle.slice(0, 8)}`, "# Approve the design baseline");
+      await addEvents(id, [
+        { type: "step.started", key: "design-baseline/1", data: { rung: 0 } },
+        { type: "step.interrupted", key: "design-baseline/1", data: { reason: "waiting" } },
+        { type: "human.requested", data: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, step: "design-baseline" } },
+      ]);
+      return { id, l, hash: bundle.slice(0, 8) };
+    };
+    const a = await make();
+    const ok = { hash: a.hash, by: "Sam Lead", decision: "reject", reason: "needs error states" };
+    expect((await designPost(a.id, { ...ok, by: "" })).status).toBe(400);
+    expect((await designPost(a.id, { ...ok, reason: "" })).status).toBe(400);
+    expect((await designPost(a.id, { ...ok, decision: "maybe" })).status).toBe(400);
+    expect((await designPost(a.id, { ...ok, hash: "deadbeef" })).status).toBe(409);
+    const before = started.length;
+    expect((await designPost(a.id, ok)).json().recorded).toBe(true);
+    expect(started.length).toBe(before + 1);
+    expect(replay(a.l.events()).decisions.at(-1)).toMatchObject({ decision: "reject", by: "Sam Lead (via web)", reason: "needs error states" });
+    const b = await make();
+    expect((await designPost(b.id, { hash: b.hash, by: "Sam Lead", decision: "approve" })).status).toBe(200);
+    expect(replay(b.l.events()).decisions.at(-1)).toMatchObject({ decision: "approve" });
   });
 });

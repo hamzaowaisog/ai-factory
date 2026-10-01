@@ -230,3 +230,36 @@ export async function answerEstimateQuestions(ledger: Ledger, input: EstimateAns
     throw e;
   }
 }
+
+export interface DesignDecisionInput { hash?: unknown; decision?: unknown; by?: unknown; note?: unknown; reason?: unknown }
+
+/**
+ * The lead's decision on the design card (E1b), from the run page. Like the estimate card: a typed name, the card's hash
+ * checked under the ledger lock, and a reason when sending it back. A rejection does not stop the run: the design is redrawn
+ * with the reason and a new card follows.
+ */
+export async function decideDesign(ledger: Ledger, input: DesignDecisionInput, deps: StartDeps = {}): Promise<{ recorded: boolean }> {
+  const open = replay(ledger.events()).openCard;
+  if (open?.kind !== "design-approval") throw new StartError("This run has no design waiting for approval.", 409);
+  const hash = str(input.hash)?.trim() ?? "";
+  if (hash.length < 8) throw new StartError("Send the design card's hash from this page.");
+  const name = str(input.by)?.trim() ?? "";
+  if (name.length < 2 || name.length > 60 || /[\r\n]/.test(name)) throw new StartError("Type your name to decide; it is recorded with the decision.");
+  const decision = input.decision === "reject" ? "reject" : input.decision === "approve" ? "approve" : undefined;
+  if (!decision) throw new StartError("The decision must be approve or reject.");
+  let data: Record<string, unknown>;
+  if (decision === "reject") {
+    const reason = str(input.reason)?.trim();
+    if (!reason) throw new StartError("Say what to change: the design is redrawn with your reason.");
+    if (reason.length > 2000) throw new StartError("The reason is too long (2000 characters at most).");
+    data = { reason };
+  } else data = { note: str(input.note) ?? "" };
+  try {
+    const r = await decide(ledger, { decision, hashPrefix: hash, by: `${name} (via web)`, data });
+    if (r.kind === "recorded") (deps.execute ?? runDetached)(ledger.runId);
+    return { recorded: r.kind === "recorded" };
+  } catch (e) {
+    if (e instanceof DecisionError) throw new StartError(e.message, 409);
+    throw e;
+  }
+}

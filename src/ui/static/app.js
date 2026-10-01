@@ -459,7 +459,7 @@ function pipeline(r) {
   const note = (() => {
     const parked = r.timeline.find((t) => t.status === "parked");
     if (r.status === "parked") return h("div", { class: "pipe-note bad" }, icon("alert"), h("div", {}, h("strong", {}, parked ? `Parked at ${parked.step}` : "Parked"), h("p", {}, r.parkedReason ?? "")));
-    if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Answer them in the panel below (or in the terminal); the run carries on right after.")));
+    if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Pick an option for each in the panel below (or answer in the terminal); the run carries on right after.")));
     if (r.card) return h("div", { class: "pipe-note wait" }, icon("terminal"), h("div", {}, h("strong", {}, `Waiting for you in the terminal: ${r.card.kind} card`), h("p", {}, "The run continues after you decide there. The card and the command to paste are below.")));
     if (r.delivered) return h("div", { class: "pipe-note ok" }, icon("check"), h("div", {}, h("strong", {}, "Delivered"), h("p", {}, r.delivered.branch ? `Branch ${r.delivered.branch}` : "")));
     if (r.status === "running" && r.lastActivity) return h("div", { class: "pipe-note live" }, icon("activity"), h("div", {}, h("strong", {}, `Working on ${r.step}`), h("p", {}, r.lastActivity.msg, h("span", { class: "muted" }, ` · ${ago(r.lastActivity.ts)}`))));
@@ -500,47 +500,103 @@ function gatesPanel(r) {
     r.gates.length ? h("div", { class: "chips" }, chips) : h("p", { class: "muted small" }, "No gate results yet. Gates check each step's output (scope, locked tests, secrets, review) as the run goes."));
 }
 
+/** The name typed once is remembered in this browser (a convenience only; it is still sent and recorded with every decision). */
+function nameInput() {
+  let saved = "";
+  try { saved = localStorage.getItem("factory-lead-name") || ""; } catch { /* storage can be blocked */ }
+  const el = h("input", { type: "text", placeholder: "Your name (recorded with the decision)", maxlength: "60", "aria-label": "Your name", value: saved });
+  el.addEventListener("change", () => { try { localStorage.setItem("factory-lead-name", el.value.trim()); } catch { /* ignore */ } });
+  return el;
+}
+
+/** Clarification questions, one at a time: pick an option and it moves on; the chosen options are the answers. */
 function questionPanel(r) {
   const c = r.card;
-  const who = h("input", { type: "text", placeholder: "Your name", maxlength: "60", "aria-label": "Your name" });
+  const qs = c.questions;
+  const picks = Object.fromEntries(qs.map((q) => [q.id, q.recommended]));
+  const who = nameInput();
   const msg = h("p", { class: "small muted", role: "status" }, "");
-  const fields = c.questions.map((q) => {
-    const name = `q-${q.id}`;
-    const custom = h("input", { type: "text", placeholder: "or type your own answer", "aria-label": `Your own answer to ${q.id}` });
-    const radios = q.options.map((o) => {
-      const rb = h("input", { type: "radio", name, value: o });
-      if (o === q.recommended) rb.checked = true;
-      return h("label", { class: "small" }, rb, ` ${o}`, o === q.recommended ? h("span", { class: "muted" }, ` (recommended: ${q.reason})`) : null);
-    });
-    return { id: q.id, custom, radios, node: h("div", { class: "stack" }, h("strong", {}, `${q.id}  ${q.text}`), ...radios, custom, h("p", { class: "small muted" }, `Why it matters: ${q.why}`)) };
-  });
-  const send = h("button", { class: "btn", type: "button" }, icon("check"), "Send answers and continue");
-  send.addEventListener("click", async () => {
-    msg.textContent = "";
-    const answers = {};
-    for (const f of fields) {
-      const own = f.custom.value.trim();
-      const picked = f.radios.map((l) => l.querySelector("input")).find((i) => i.checked);
-      answers[f.id] = own || (picked ? picked.value : "");
+  const body = h("div", { class: "body stack" });
+  let at = 0, sent = false;
+  const letter = (i) => String.fromCharCode(65 + i);
+  const draw = () => {
+    body.replaceChildren();
+    if (at < qs.length) {
+      const q = qs[at];
+      body.append(
+        h("div", { class: "q-progress small muted" }, `Question ${at + 1} of ${qs.length}`, h("span", { class: "q-dots" }, qs.map((x, i) => h("i", { class: i === at ? "on" : i < at ? "done" : "" })))),
+        h("h3", { class: "q-text" }, q.text),
+        h("div", { class: "q-opts", role: "radiogroup", "aria-label": q.text }, q.options.map((o, i) => {
+          const b = h("button", { type: "button", class: `q-opt${picks[q.id] === o ? " picked" : ""}`, role: "radio", "aria-checked": String(picks[q.id] === o) },
+            h("span", { class: "q-key" }, letter(i)),
+            h("span", { class: "q-label" }, o, o === q.recommended ? h("span", { class: "q-rec" }, "Recommended") : null),
+            o === q.recommended && q.reason ? h("span", { class: "q-why small muted" }, q.reason) : null);
+          b.addEventListener("click", () => { picks[q.id] = o; draw(); setTimeout(() => { if (at === qs.indexOf(q)) { at++; draw(); } }, 220); });
+          return b;
+        })),
+        h("p", { class: "small muted" }, `Why it matters: ${q.why}`),
+        h("div", { class: "row" },
+          at > 0 ? (() => { const bk = h("button", { class: "btn ghost", type: "button" }, "Back"); bk.addEventListener("click", () => { at--; draw(); }); return bk; })() : null,
+          (() => { const nx = h("button", { class: "btn ghost", type: "button" }, at === qs.length - 1 ? "Review" : "Next"); nx.addEventListener("click", () => { at++; draw(); }); return nx; })()));
+      return;
     }
-    try {
-      await api(`/api/runs/${encodeURIComponent(r.runId)}/estimate-answers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, by: who.value, answers }) });
-      msg.textContent = "Answers recorded. The run is continuing…";
-      send.disabled = true;
-    } catch (err) { msg.textContent = err.message; }
-  });
-  return h("section", { class: "card-box" },
-    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Questions before the estimate can go on"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
-    h("div", { class: "body stack" },
-      h("p", { class: "small muted" }, "The recommended option is selected. Change any, then send; your name is recorded with the answers."),
-      ...fields.map((f) => f.node),
+    const send = h("button", { class: "btn", type: "button" }, icon("check"), "Send answers and continue");
+    send.disabled = sent;
+    send.addEventListener("click", async () => {
+      msg.textContent = "";
+      try {
+        await api(`/api/runs/${encodeURIComponent(r.runId)}/estimate-answers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, by: who.value, answers: picks }) });
+        sent = true; send.disabled = true;
+        msg.textContent = "Answers recorded. The run is continuing…";
+      } catch (err) { msg.textContent = err.message; }
+    });
+    body.append(
+      h("h3", { class: "q-text" }, "Your answers"),
+      h("ul", { class: "q-review" }, qs.map((q, i) => {
+        const ch = h("button", { type: "button", class: "linkish small" }, "Change");
+        ch.addEventListener("click", () => { at = i; draw(); });
+        return h("li", {}, h("span", { class: "small muted" }, q.text), h("strong", {}, picks[q.id]), ch);
+      })),
       c.assumptions?.length ? h("p", { class: "small muted" }, `Assumed unless you say otherwise on the approval card: ${c.assumptions.map((a) => a.id).join(", ")}`) : null,
-      who, h("div", { class: "row" }, send), msg));
+      who, h("div", { class: "row" }, send), msg);
+  };
+  draw();
+  return h("section", { class: "card-box" },
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Questions before the run can go on"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    body);
+}
+
+/** The design card (E1b): the card and demo link, and approve or send back with a reason (the design is redrawn, the run goes on). */
+function designPanel(r) {
+  const c = r.card;
+  const who = nameInput();
+  const why = h("textarea", { rows: "3", placeholder: "What should change? The design is redrawn with this and you get a new card.", "aria-label": "Rejection reason", maxlength: "2000" });
+  const msg = h("p", { class: "small muted", role: "status" }, "");
+  const act = async (decision) => {
+    msg.textContent = "";
+    try {
+      await api(`/api/runs/${encodeURIComponent(r.runId)}/design-decision`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, decision, by: who.value, reason: why.value }) });
+      msg.textContent = decision === "approve" ? "Approved. The estimate is continuing…" : "Sent back. The design is being redrawn with your reason…";
+      ok.disabled = no.disabled = true;
+    } catch (err) { msg.textContent = err.message; }
+  };
+  const ok = h("button", { class: "btn", type: "button" }, icon("check"), "Approve the design");
+  const no = h("button", { class: "btn ghost", type: "button" }, "Send back");
+  ok.addEventListener("click", () => act("approve"));
+  no.addEventListener("click", () => act("reject"));
+  return h("section", { class: "card-box" },
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Approve the design"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    h("div", { class: "body stack" },
+      h("p", { class: "small muted" }, "The estimate stands on this design. Walk the clickable demo, then approve it or send it back with what to change."),
+      h("div", { class: "row" }, h("a", { class: "btn", href: `#/runs/${r.runId}/preview` }, icon("cursor"), "Open the clickable demo")),
+      md(c.markdown),
+      who, why, h("div", { class: "row" }, ok, no), msg));
 }
 
 function cardPanel(r) {
   const c = r.card;
   if (c.questions) return questionPanel(r);
+  if (c.kind === "design-approval") return designPanel(r);
   return h("section", { class: "card-box" },
     h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Waiting for you in the terminal"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body" },
