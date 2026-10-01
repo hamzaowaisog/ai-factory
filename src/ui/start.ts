@@ -198,14 +198,13 @@ export async function decideEstimate(ledger: Ledger, input: EstimateDecisionInpu
 export interface EstimateAnswersInput { hash?: unknown; by?: unknown; answers?: unknown }
 
 /**
- * The lead's answers to an estimate run's clarification questions, from the run page. Only question cards of estimate
- * runs: the person types their name, names the card by its hash (checked under the ledger lock), and every answer must
+ * The answers to a run's clarification questions (estimate or build), from the run page. Only question cards: the person types their name, names the card by its hash (checked under the ledger lock), and every answer must
  * be for a question on the card. A question left out takes its recommended option, as in the terminal.
  */
 export async function answerEstimateQuestions(ledger: Ledger, input: EstimateAnswersInput, deps: StartDeps = {}): Promise<{ recorded: boolean }> {
   const state = replay(ledger.events());
   const open = state.openCard;
-  if (state.info.mode !== "estimate" || open?.kind !== "question") throw new StartError("This run has no questions waiting for answers.", 409);
+  if (open?.kind !== "question") throw new StartError("This run has no questions waiting for answers.", 409);
   const hash = str(input.hash)?.trim() ?? "";
   if (hash.length < 8) throw new StartError("Send the question card's hash from this page.");
   const name = str(input.by)?.trim() ?? "";

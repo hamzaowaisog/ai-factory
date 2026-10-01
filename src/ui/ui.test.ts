@@ -696,4 +696,21 @@ describe("factory ui: answering an estimate run's questions", () => {
     // Q-2 was left out: it takes its recommended option when the step reads the decision
     expect(d.answers["Q-2"]).toBeUndefined();
   });
+
+  it("takes answers for a build run's questions too, not only an estimate run's", async () => {
+    const id = await createRun("Add a refund button to orders", "web", "tester");
+    const l = Ledger.open(id);
+    const body = l.putJson({ key: "clarify", asked, assumptions: [] });
+    l.writeCard(`questions-1-${body.slice(0, 8)}`, "# Questions");
+    await addEvents(id, [
+      { type: "step.started", key: "clarify/1", data: { rung: 0 } },
+      { type: "step.interrupted", key: "clarify/1", data: { reason: "waiting" } },
+      { type: "human.requested", data: { cardId: `questions-1-${body.slice(0, 8)}`, kind: "question", artifactSha: body, step: "clarify" } },
+    ]);
+    expect((await call(`/api/runs/${id}`)).json().card.questions).toHaveLength(2);
+    const done = await answersPost(id, { hash: body.slice(0, 8), by: "Sam Lead", answers: { "Q-2": "No" } });
+    expect(done.status).toBe(200);
+    expect(started.at(-1)).toBe(id);
+    expect(replay(l.events()).decisions.at(-1)).toMatchObject({ decision: "answer", by: "Sam Lead (via web)" });
+  });
 });

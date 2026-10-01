@@ -309,7 +309,7 @@ factory show-card <run>
 factory answer <run> <hash> Q-1=A Q-2="only for guest checkouts"
 ```
 
-In a terminal, `factory start` and `factory estimate` ask the questions right there (a letter, your own words, or Enter for the recommended option) and carry straight on, so a run does not stop for a second command. Set `FACTORY_NO_PROMPT=1` to switch that off; from a script or pipe the run still stops and prints the `factory answer` command. For estimate runs started in `factory ui`, the run page shows the same questions with the recommended option selected; type your name and send. Both channels work on the same card: a terminal run waiting at the prompt notices when the web page answers (and stops asking), and the page shows the card as answered when the terminal got there first. Unanswered questions take the recommended option. Low-risk question cards default automatically after 24 hours.
+In a terminal, `factory start` and `factory estimate` ask the questions right there (a letter, your own words, or Enter for the recommended option) and carry straight on, so a run does not stop for a second command. Set `FACTORY_NO_PROMPT=1` to switch that off; from a script or pipe the run still stops and prints the `factory answer` command. On any run (estimate or build) the run page in `factory ui` shows the same questions with the recommended option selected; type your name and send. Both channels work on the same card: a terminal run waiting at the prompt notices when the web page answers (and stops asking), and the page shows the card as answered when the terminal got there first. Unanswered questions take the recommended option. Low-risk question cards default automatically after 24 hours.
 
 **2. Approval**
 

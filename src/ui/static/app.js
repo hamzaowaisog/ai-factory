@@ -207,7 +207,7 @@ function modeScreen() {
       h("div", { class: "go faint" }, "Not built yet"));
   mount([
     h("div", { class: "page-head" }, h("div", {}, h("div", { class: "eyebrow" }, "New run"), h("h1", {}, "What kind of work is it?"),
-      h("p", { class: "sub" }, "The factory turns a request into a tested branch. You approve the plan in your terminal (estimates can be approved on the web)."))),
+      h("p", { class: "sub" }, "The factory turns a request into a tested branch. You approve the plan in your terminal, and answer questions there or on the run page (estimates can be approved on the web)."))),
     h("div", { class: "grid-3" },
       card(0, "layers", "Brownfield", "Change an existing .NET repo: request → spec → plan you approve → tests first → code → reviewed branch.", "#/new/brownfield"),
       card(1, "sprout", "Greenfield", "Start a new app from a request."),
@@ -350,7 +350,7 @@ async function requestScreen(kind = "brownfield") {
     settings,
     estimating ? sect(6, "Spend limit", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")))
       : h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
-    h("div", { class: "row" }, start, h("span", { class: "hint" }, "Runs in the background. Questions and the plan approval are answered in your terminal.")),
+    h("div", { class: "row" }, start, h("span", { class: "hint" }, "Runs in the background. Questions can be answered here on the run page or in your terminal; the plan approval stays in your terminal.")),
   );
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();

@@ -99,7 +99,7 @@ export const ROUTES: readonly Route[] = [
     },
   },
   {
-    method: "POST", path: "/api/runs/:id/estimate-answers", what: "the lead's answers to an estimate run's clarification questions (question cards of estimate runs only; needs a typed name and the card hash)",
+    method: "POST", path: "/api/runs/:id/estimate-answers", what: "the answers to a run's clarification questions (question cards only, on any run; needs a typed name and the card hash)",
     handle: async ({ id }, body, deps) => {
       const l = findRun(id!);
       if (!l) return notFound(`No run ${id}`);

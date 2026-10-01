@@ -210,7 +210,7 @@ function evidence(ledger: Ledger, seq: number) {
   return value;
 }
 
-/** The questions on an estimate run's question card, so the run page can ask them. */
+/** The questions on a run's question card, so the run page can ask them. */
 function questionsOf(ledger: Ledger, sha: string) {
   const body = ledger.getJson<{ asked?: { id: string; text: string; options: string[]; recommended: string; reason: string; impactReason: string }[]; assumptions?: { id: string; text: string }[] }>(sha);
   if (!body?.asked?.length) return {};
@@ -245,7 +245,7 @@ export function runView(ledger: Ledger) {
     lastActivity: last ? { ts: last.ts, msg: last.msg, where: last.step ?? "run" } : undefined,
     timeline: timeline(ledger, s),
     gates: gateChips(s),
-    card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.info.mode === "estimate" && s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}) } : undefined,
+    card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}) } : undefined,
     trace,
     delivered: done ? {
       branch: d.branch ?? s.workspace?.branch, head: d.head, prUrl: d.prUrl, local: d.local !== false,
