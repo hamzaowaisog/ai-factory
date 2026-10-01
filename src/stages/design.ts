@@ -10,7 +10,7 @@ import { z } from "zod";
 import type { IntentBody, Spec } from "../contracts/index.js";
 import type { RunState } from "../ledger/state.js";
 import type { DesignInventory } from "../design/inventory.js";
-import { DesignApp, DesignTheme, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
+import { DesignApp, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
 import { header, readOutput, requireOutput, type StepDef } from "./framework.js";
 import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
@@ -88,7 +88,7 @@ const RULES = `You are a principal UI/UX engineer with fifteen years shipping co
 - APPS. When the requirements describe more than one app (a customer phone app and an admin portal, a driver app and a dispatch console), return "apps": each with an id (lowercase, such as "customer" or "admin"), a name, its device ("web" or "phone"), its own shell (as above, chosen for that app's users and device), who uses it and its own "switcher" when it has one; and give every screen the "app" it belongs to. The apps share the one theme: they are one product. A product with one app leaves "apps" out.
 - MOCK CONTENT. For every screen also give "mock": what the page shows, as a picture to react to, not a spec.
   Take every noun from the requirements' own domain: its entities, roles, statuses, units, currencies, places, names and formats. Make the sample data believable and varied (different lengths, several statuses, plausible dates and amounts that agree with each other). Never "Lorem ipsum", "Item 1", "Column A", "Test User" or "Sample".
-  "title" and "subtitle" of the page; "crumbs" when the page sits under others (the trail above it, outermost first: "Accounts", "Savings ··4821"; a phone shows a back button instead); "tabs" when one record or area is seen several ways on the same page (Overview, Activity, Documents; the first is the one drawn), never as a stand-in for pages of their own; "blocks" in page order (2 to 5), each one of: stats (label, value, delta), filters (search placeholder, chips that narrow what is shown, and "segments" that switch how it is shown, such as List/Map or Day/Week/Month), table (columns, 4 to 6 rows of cells, statusColumn = index of the status column), form (fields with label, kind text/select/date/textarea/toggle, placeholder or value, options; the submit label), chart (bar or line, title, 5 to 8 labelled points, and "ranges" such as 7D/30D/1Y when the requirements let the period be changed), cards (title, meta, badge; visual true for things people choose by picture, like products, places, listings), carousel (slides seen one at a time, each title, meta, badge, cta: style "promo" for offers, announcements or onboarding on the brand colour, "media" for a row of things chosen by picture; only where the requirements show a few featured things in turn, never as a stand-in for a list), list (title, meta), accordion (sections opened one at a time, each title and body: questions and answers, a policy's sections, settings groups; never to hide the page's main content), steps (a progress or checkout path, current index), timeline (time, title, status done/now/next: tracking, history, itinerary), detail (a record's labelled facts; style "pass" for a ticket, booking or boarding pass, with a lead value like the route or amount), actions (button labels), text (body).
+  "title" and "subtitle" of the page; "crumbs" when the page sits under others (the trail above it, outermost first: "Accounts", "Savings ··4821"; a phone shows a back button instead); "tabs" when one record or area is seen several ways on the same page (Overview, Activity, Documents; the first is the one drawn), never as a stand-in for pages of their own; "blocks" in page order (2 to 5), each one of: stats (label, value, delta), filters (search placeholder, chips that narrow what is shown, and "segments" that switch how it is shown, such as List/Map or Day/Week/Month), table (columns, 4 to 6 rows of cells, statusColumn = index of the status column; "sortBy" (a column index) and "sortDir" when people sort it; "selectable" and "bulk" (what can be done to the ticked rows at once: "Export", "Mark paid") when people act on several rows together), form (fields with label, kind, placeholder or value, options; the submit label; kinds: text, select, date, textarea, toggle, radio (one of 2 to 5 options shown at once), checkbox (several options; value lists the ticked ones, comma-separated), number, currency (value with its code: "PKR 25,000"), otp (a one-time code), phone (value with its country code: "+92 300 1234567"), search (a select typed into, for long lists), slider (options are the two ends: "0 km", "50 km"), card (card number, expiry and code; never a real number); pick the kind the requirement's input is, not text for everything), chart (kind, title, labelled points, and "ranges" such as 7D/30D/1Y when the requirements let the period be changed; kinds: bar (amounts per period, 5 to 8 points), line (a level over time, 5 to 8 points), stacked (bars split into 2 to 4 "series", each point's "parts" in series order: revenue by channel per month), donut (shares of a whole, 2 to 6 points: spend by category), progress (1 to 4 goals, each value a percent: course completion, savings goals), gauge (one reading against its scale: one point, "max" the top of the scale, "unit": a credit score, a fuel level); pick the kind the requirement's numbers are), cards (title, meta, badge; visual true for things people choose by picture, like products, places, listings), carousel (slides seen one at a time, each title, meta, badge, cta: style "promo" for offers, announcements or onboarding on the brand colour, "media" for a row of things chosen by picture; only where the requirements show a few featured things in turn, never as a stand-in for a list), list (title, meta), accordion (sections opened one at a time, each title and body: questions and answers, a policy's sections, settings groups; never to hide the page's main content), steps (a progress or checkout path, current index), timeline (time, title, status done/now/next: tracking, history, itinerary), detail (a record's labelled facts; style "pass" for a ticket, booking or boarding pass, with a lead value like the route or amount), actions (button labels), text (body).
   "links" (up to 8) for where the page leads, so the demo can be clicked through as the product would be: "from" is the exact label of a button, the first cell of a table row, or the title of a card, list item or slide on this page; "to" is the id of the screen it opens (a row to its record, a card to its detail, "Pay bills" to the bills screen). Link every path the requirements' journeys take.
   "overlays" (up to 3) when an action opens a layer over the page instead of a page of its own: kind "modal" (a short form or record, like Add payee), "drawer" (a side panel with a record's details or filters, on wide screens), "sheet" (a bottom sheet, the phone's way to pick, confirm or enter a little), "confirm" (a yes-or-no for a risky or final step: freeze, delete, submit, pay; text says what happens) or "menu" (a short list of row or page actions in "items"). Its "trigger" is the exact label of a button on the page (an actions button or a form's submit), or "More" for the menu of a table row; it has a "title", optional "text", up to 2 small "blocks" (a form, the record's detail, a list) and up to 2 "actions", the main one first. Use one where the requirements describe that interaction; a page of its own stays a screen. Each is shown open in the demo.
   "toasts" (up to 3) for the short confirmations that slide in after an action and go by themselves ("Payment sent", "Card frozen", "Saved to trips"): "after" is the exact label of the button, menu item or overlay action that shows it, "text" says what happened in the product's voice, "tone" is ok, info or bad, and "undo" is true for a step that can be taken back. Each is shown in the demo.
@@ -105,6 +105,8 @@ ${UNTRUSTED_NOTE}`;
 
 // "sample" alone is a real word in many fields (a blood sample, a sample pack), so only its placeholder uses are caught
 const PLACEHOLDER = /lorem ipsum|\bitem \d\b|column [a-d]\b|test user|\bsample (?:user|name|item|text|data|product|title|company|customer|value|\d)\b|\bplaceholder\b|john doe|jane doe|foo bar|\bTBD\b/i;
+// the words a mock shows, without its field names: a form field's "placeholder" key is not placeholder text
+const textOf = (v: unknown): string => typeof v === "string" ? v : Array.isArray(v) ? v.map(textOf).join(" | ") : v && typeof v === "object" ? Object.values(v).map(textOf).join(" | ") : "";
 
 /**
  * What makes the demo look finished rather than raw. Without "theme" the page falls back to a default look; a screen
@@ -128,7 +130,7 @@ export function designQuality(out: z.infer<typeof DesignOut>, existing = false, 
     }
     if (/^(page|screen|view|untitled|new page|home page)\s*\d*$/i.test(sc.mock.title.trim())) bad.push({ check: "design-generic-title", message: `Screen ${sc.id} is titled "${sc.mock.title}". Name each page for what it shows ("Find a flight", "My trips"): the lead talks about pages by name.` });
     if (sc.mock.blocks.length < 2) bad.push({ check: "design-thin-mock", message: `Screen ${sc.id} has only ${sc.mock.blocks.length} block. A real page has 2 to 5 (header figures, a table or cards, filters, actions).` });
-    const hit = JSON.stringify(sc.mock).match(PLACEHOLDER);
+    const hit = textOf(sc.mock).match(PLACEHOLDER);
     if (hit) bad.push({ check: "design-placeholder", message: `Screen ${sc.id} sample content contains placeholder text ("${hit[0]}"). Use real names, amounts, statuses and dates from the product's domain.` });
     const ids = new Set(out.screens.map((x) => x.id));
     const named = sc.mock.blocks.flatMap((b) => (b.type === "actions" ? b.buttons : b.type === "form" ? [b.submit] : b.type === "table" ? b.rows.map((r) => r[0] ?? "") : b.type === "cards" || b.type === "list" ? b.items.map((i) => i.title) : b.type === "carousel" ? b.items.flatMap((i) => [i.title, ...(i.cta ? [i.cta] : [])]) : []));
@@ -137,13 +139,13 @@ export function designQuality(out: z.infer<typeof DesignOut>, existing = false, 
       if (!named.some((n) => n.trim().toLowerCase() === l.from.trim().toLowerCase())) bad.push({ check: "design-link", message: `Screen ${sc.id} links from "${l.from}", but nothing on the page is labelled that. Use the exact label of a button, the first cell of a table row, or the title of a card, list item or slide.` });
     }
     for (const o of sc.mock.overlays ?? []) {
-      const labels = sc.mock.blocks.flatMap((b) => (b.type === "actions" ? b.buttons : b.type === "form" ? [b.submit] : b.type === "table" ? ["More"] : b.type === "carousel" ? b.items.flatMap((it) => (it.cta ? [it.cta] : [])) : []));
+      const labels = sc.mock.blocks.flatMap((b) => (b.type === "actions" ? b.buttons : b.type === "form" ? [b.submit] : b.type === "table" ? ["More", ...(b.bulk ?? [])] : b.type === "carousel" ? b.items.flatMap((it) => (it.cta ? [it.cta] : [])) : []));
       if (!labels.some((l) => l.trim().toLowerCase() === o.trigger.trim().toLowerCase())) bad.push({ check: "design-overlay-trigger", message: `Screen ${sc.id}'s ${o.kind} "${o.title}" opens from "${o.trigger}", but the page has no button with that label (it has: ${labels.map((l) => `"${l}"`).join(", ") || "none"}). Use the exact label of an actions button or form submit, or "More" for a table row's menu, adding the button if the page needs it.` });
       if (o.kind === "menu" && !o.items?.length) bad.push({ check: "design-overlay-trigger", message: `Screen ${sc.id}'s menu "${o.title}" has no "items".` });
     }
     // a toast follows something the person did on this page: a button, a slide's offer, or an overlay's action or menu item
     const doers = [
-      ...sc.mock.blocks.flatMap((b) => (b.type === "actions" ? b.buttons : b.type === "form" ? [b.submit] : b.type === "carousel" ? b.items.flatMap((it) => (it.cta ? [it.cta] : [])) : [])),
+      ...sc.mock.blocks.flatMap((b) => (b.type === "actions" ? b.buttons : b.type === "form" ? [b.submit] : b.type === "table" ? b.bulk ?? [] : b.type === "carousel" ? b.items.flatMap((it) => (it.cta ? [it.cta] : [])) : [])),
       ...(sc.mock.overlays ?? []).flatMap((o) => [...o.actions, ...(o.items ?? []), ...o.blocks.flatMap((b) => (b.type === "form" ? [b.submit] : []))]),
     ];
     for (const t of sc.mock.toasts ?? []) {
@@ -153,7 +155,7 @@ export function designQuality(out: z.infer<typeof DesignOut>, existing = false, 
     if (sc.mock.blocks.some((b) => dataTypes.includes(b.type))) {
       if (!sc.mockFull) bad.push({ check: "design-no-full-mock", message: `Screen ${sc.id} has no "mockFull". Give the same page with fine-grained data (see FULL DATA) so the demo can show it dense and complete.` });
       else {
-        const hit2 = JSON.stringify(sc.mockFull).match(PLACEHOLDER);
+        const hit2 = textOf(sc.mockFull).match(PLACEHOLDER);
         if (hit2) bad.push({ check: "design-placeholder", message: `Screen ${sc.id} full-data content contains placeholder text ("${hit2[0]}"). Use real names, amounts, statuses and dates from the product's domain.` });
         const size = (m: { blocks: { type: string }[] }, t: string) => m.blocks.filter((b) => b.type === t).length;
         const missing = [...new Set(sc.mock.blocks.map((b) => b.type))].filter((t) => dataTypes.includes(t) && size(sc.mockFull!, t) < size(sc.mock!, t));
@@ -165,13 +167,36 @@ export function designQuality(out: z.infer<typeof DesignOut>, existing = false, 
         }
         const rows = (m: { blocks: { type: string; rows?: unknown[]; points?: unknown[] }[] }, t: "rows" | "points") => Math.max(0, ...m.blocks.map((b) => b[t]?.length ?? 0));
         if (sc.mock.blocks.some((b) => b.type === "table") && rows(sc.mockFull as never, "rows") < 8) bad.push({ check: "design-thin-full-mock", message: `The tables of the full-data page of ${sc.id} have too few rows; give 8 to 14 varied rows with every status in use.` });
-        if (sc.mock.blocks.some((b) => b.type === "chart") && rows(sc.mockFull as never, "points") <= rows(sc.mock as never, "points") && rows(sc.mock as never, "points") < 14) bad.push({ check: "design-thin-full-mock", message: `The charts of the full-data page of ${sc.id} must have more points than the normal page (up to 14).` });
+        if (sc.mock.blocks.some((b) => b.type === "chart" && OVER_TIME.has(b.kind)) && rows(sc.mockFull as never, "points") <= rows(sc.mock as never, "points") && rows(sc.mock as never, "points") < 14) bad.push({ check: "design-thin-full-mock", message: `The charts of the full-data page of ${sc.id} must have more points than the normal page (up to 14).` });
       }
     }
     const tbl = sc.mock.blocks.find((b) => b.type === "table");
     if (tbl && tbl.type === "table" && tbl.rows.length < 3) bad.push({ check: "design-thin-mock", message: `The table on ${sc.id} has ${tbl.rows.length} rows; give 4 to 6 varied rows so it reads like real data.` });
+    for (const m of [sc.mock, sc.mockFull]) for (const b of m?.blocks ?? []) {
+      if (b.type === "chart") bad.push(...chartFit(sc.id, b));
+      if (b.type === "table" && b.sortBy !== undefined && b.sortBy >= b.columns.length) bad.push({ check: "design-table", message: `The table on ${sc.id} sorts by column ${b.sortBy}, but it has ${b.columns.length} columns (counted from 0).` });
+    }
   }
   return bad;
+}
+
+// the chart kinds drawn along a time axis: a busy day gives them more points; shares, goals and readings keep theirs
+const OVER_TIME = new Set(["bar", "line", "stacked"]);
+
+/** A chart's numbers fit its kind: enough points, parts that match the series, shares that are not negative, percents for rings, a reading under its scale. */
+export function chartFit(id: string, b: Extract<z.infer<typeof MockBlockFull>, { type: "chart" }>): { check: string; message: string }[] {
+  const bad = (m: string) => [{ check: "design-chart", message: `The ${b.kind} chart "${b.title}" on ${id} ${m}` }];
+  const n = b.points.length;
+  if (OVER_TIME.has(b.kind) && n < 2) return bad("needs at least 2 points along its axis.");
+  if (b.kind === "stacked") {
+    if (!b.series?.length) return bad('needs "series" (2 to 4 names) and each point\'s "parts" in that order.');
+    const off = b.points.filter((p) => p.parts?.length !== b.series!.length);
+    if (off.length) return bad(`has ${b.series.length} series, but ${off.map((p) => `"${p.label}"`).join(", ")} ${off.length === 1 ? "has" : "have"} a different number of parts.`);
+  }
+  if (b.kind === "donut" && (n < 2 || n > 6 || b.points.some((p) => p.value < 0))) return bad("needs 2 to 6 shares, none negative.");
+  if (b.kind === "progress" && (n > 4 || (!b.max && b.points.some((p) => p.value < 0 || p.value > 100)))) return bad('needs 1 to 4 goals, each a percent from 0 to 100 (or give "max" for the goal).');
+  if (b.kind === "gauge" && (n !== 1 || !b.max || b.points[0]!.value > b.max || b.points[0]!.value < 0)) return bad('needs exactly one reading and "max", the top of its scale, with the reading between 0 and max.');
+  return [];
 }
 
 const PHONE_SHELLS = ["tabs", "drawer", "minimal", "auto"];
@@ -408,7 +433,7 @@ export function keepFine(out: z.infer<typeof DesignOut>, fine: string[], prev: D
 }
 
 export const designStep: StepDef = {
-  key: "design", stage: "design", templateVersion: "15",
+  key: "design", stage: "design", templateVersion: "16",
   inputs: (s, l) => {
     if (s.steps.get("specify")?.status !== "completed" || s.steps.get("intake")?.status !== "completed") return undefined;
     const ui = !!l.getJson<Intent>(s.steps.get("intake")!.outputs[0]!)?.touchesUi;

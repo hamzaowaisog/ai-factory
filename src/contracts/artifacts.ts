@@ -163,15 +163,44 @@ export type Spec = z.infer<typeof Spec>;
 
 /** What a screen shows, with believable sample data: drawn into the clickable demo (code, no model). Kept small on purpose. */
 const Str = (n: number) => z.string().max(n);
+/**
+ * One field of a form. Beyond text, select, date, textarea and toggle: radio (one of the options, shown at once), checkbox (several
+ * of the options; the value lists the ticked ones, comma-separated), number, currency (the value or placeholder carries the code or
+ * sign, "PKR 25,000"), otp (a one-time code, its length from the value or 6), phone (country code then number, "+92 300 1234567"),
+ * search (a select you type into, for long option lists), slider (a value between the first and last option, "0" and "50 km"),
+ * card (card number, expiry and security code; placeholders only, never a real number).
+ */
+export const FormField = z.object({
+  label: Str(40),
+  kind: z.enum(["text", "select", "date", "textarea", "toggle", "radio", "checkbox", "number", "currency", "otp", "phone", "search", "slider", "card"]).default("text"),
+  placeholder: Str(60).optional(), value: Str(80).optional(), options: z.array(Str(40)).max(8).optional(),
+});
+export type FormField = z.infer<typeof FormField>;
 /** The block shapes; `big` lifts the size limits for the full-data state (more rows, points and items). */
 const blockSchema = (big: boolean) => z.discriminatedUnion("type", [
   z.object({ type: z.literal("stats"), items: z.array(z.object({ label: Str(40), value: Str(24), delta: Str(24).optional() })).min(1).max(big ? 6 : 4) }),
   /** chips narrow what is shown; segments switch how it is shown (List, Map; Day, Week, Month), one at a time */
   z.object({ type: z.literal("filters"), search: Str(40).optional(), chips: z.array(Str(30)).max(6).default([]), segments: z.array(Str(16)).min(2).max(4).optional() }),
-  z.object({ type: z.literal("table"), columns: z.array(Str(30)).min(1).max(6), rows: z.array(z.array(Str(60))).min(1).max(big ? 14 : 6), statusColumn: z.number().int().min(0).optional() }),
-  z.object({ type: z.literal("form"), fields: z.array(z.object({ label: Str(40), kind: z.enum(["text", "select", "date", "textarea", "toggle"]).default("text"), placeholder: Str(60).optional(), value: Str(80).optional(), options: z.array(Str(40)).max(8).optional() })).min(1).max(6), submit: Str(30).default("Save") }),
-  /** ranges: the periods the chart can be switched between (7D, 30D, 1Y), the first one drawn */
-  z.object({ type: z.literal("chart"), kind: z.enum(["bar", "line"]).default("bar"), title: Str(60), points: z.array(z.object({ label: Str(16), value: z.number() })).min(2).max(big ? 14 : 8), ranges: z.array(Str(12)).min(2).max(5).optional() }),
+  /**
+   * sortBy: the column the rows are sorted by (its header shows the direction, every header sorts on click); selectable: a tick box
+   * on each row; bulk: what can be done to the ticked rows at once ("Export", "Mark paid"), shown in a bar when any is ticked
+   */
+  z.object({
+    type: z.literal("table"), columns: z.array(Str(30)).min(1).max(6), rows: z.array(z.array(Str(60))).min(1).max(big ? 14 : 6), statusColumn: z.number().int().min(0).optional(),
+    sortBy: z.number().int().min(0).optional(), sortDir: z.enum(["asc", "desc"]).default("desc"), selectable: z.boolean().optional(), bulk: z.array(Str(24)).min(1).max(3).optional(),
+  }),
+  z.object({ type: z.literal("form"), fields: z.array(FormField).min(1).max(big ? 8 : 6), submit: Str(30).default("Save") }),
+  /**
+   * kind: bar (amounts per period), line (a level over time), stacked (bars split into "series", each point's "parts" in series order),
+   * donut (shares of a whole, 2 to 6 points), progress (rings, each point a percent 0-100 toward a goal, 1 to 4 points),
+   * gauge (one reading against a scale: the first point is the reading, "max" the top of the scale).
+   * ranges: the periods the chart can be switched between (7D, 30D, 1Y), the first one drawn
+   */
+  z.object({
+    type: z.literal("chart"), kind: z.enum(["bar", "line", "stacked", "donut", "progress", "gauge"]).default("bar"), title: Str(60),
+    points: z.array(z.object({ label: Str(16), value: z.number(), parts: z.array(z.number()).min(2).max(4).optional() })).min(1).max(big ? 14 : 8),
+    series: z.array(Str(20)).min(2).max(4).optional(), max: z.number().positive().optional(), unit: Str(8).optional(), ranges: z.array(Str(12)).min(2).max(5).optional(),
+  }),
   z.object({ type: z.literal("cards"), visual: z.boolean().optional(), items: z.array(z.object({ title: Str(50), meta: Str(80), badge: Str(24).optional() })).min(1).max(big ? 9 : 6) }),
   /** slides seen one at a time: "promo" for offers, announcements or onboarding (wide, on the brand colour), "media" for a row of things chosen by picture */
   z.object({ type: z.literal("carousel"), style: z.enum(["promo", "media"]).default("media"), title: Str(40).optional(), items: z.array(z.object({ title: Str(50), meta: Str(80), badge: Str(24).optional(), cta: Str(24).optional() })).min(2).max(big ? 10 : 6) }),

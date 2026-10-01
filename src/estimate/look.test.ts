@@ -282,3 +282,76 @@ describe("layout problems sent back to the model", () => {
     expect(layoutFixes(Array.from({ length: 14 }, (_, i) => issue("default", "phone", `Label ${i}`)))).toHaveLength(10);
   });
 });
+
+describe("charts, fields and tables that fit the data", () => {
+  const demo = (blocks: unknown[], states = ["loading"]) => buildDemo({ title: "Kargo", flow: "f", requirements: {}, noScreen: [],
+    screens: [{ id: "S-1", route: "/s", file: "a.tsx", reqs: [], states, size: "new", frames: [], mock: { title: "Home", copy: {}, blocks } }] as never });
+  const chart = (c: Record<string, unknown>) => ({ type: "chart", title: "Spend", ...c });
+  it("draws a donut of shares with its total, rings for goals, and a gauge for one reading", () => {
+    const donut = demo([chart({ kind: "donut", unit: "PKR", points: [{ label: "Fuel", value: 60 }, { label: "Tolls", value: 40 }] })]);
+    expect(donut).toContain("pathLength=\"100\"");
+    expect(donut).toMatch(/class="dleg"/);
+    expect(donut).toContain(">100<");
+    expect(demo([chart({ kind: "progress", points: [{ label: "Course", value: 70 }, { label: "Quiz", value: 30 }] })])).toContain("70%");
+    expect(demo([chart({ kind: "gauge", max: 850, points: [{ label: "Score", value: 720 }] })])).toContain("720");
+  });
+  it("splits a stacked bar into its series, with a legend", () => {
+    const html = demo([chart({ kind: "stacked", series: ["Web", "App"], points: [{ label: "Jan", value: 0, parts: [3, 2] }, { label: "Feb", value: 0, parts: [4, 1] }] })]);
+    expect(html).toContain("Web");
+    expect(html).toContain("App");
+    expect((html.match(/<s /g) ?? []).length).toBeGreaterThanOrEqual(4);
+  });
+  it("draws each form field kind as the input it is", () => {
+    const fields = [
+      { label: "Size", kind: "radio", options: ["Small", "Large"] },
+      { label: "Extras", kind: "checkbox", options: ["Gift wrap", "Insurance"], value: "Insurance" },
+      { label: "Boxes", kind: "number", value: "2" },
+      { label: "Amount", kind: "currency", value: "PKR 25,000" },
+      { label: "Code", kind: "otp" },
+      { label: "Mobile", kind: "phone", value: "+92 300 1234567" },
+      { label: "City", kind: "search", options: ["Lahore", "Karachi"] },
+      { label: "Radius", kind: "slider", options: ["0 km", "50 km"], value: "20 km" },
+      { label: "Card", kind: "card" },
+    ];
+    const html = demo([{ type: "form", fields, submit: "Book" }]);
+    expect(html).toContain('type="radio"');
+    expect(html).toContain('type="checkbox"');
+    expect(html).toContain("data-step");
+    expect(html).toContain("PKR");
+    expect(html).toContain('type="tel"');
+    expect(html).toContain("<datalist");
+    expect(html).toContain('type="range"');
+    expect(html).toContain('data-suf=" km"');
+    expect(html).not.toMatch(/4[0-9]{3} ?[0-9]{4} ?[0-9]{4} ?[0-9]{4}/); // no card number, only a placeholder
+  });
+  it("sorts a table by its column, and shows the bulk bar with rows ticked on a busy day", () => {
+    const table = { type: "table", columns: ["Order", "Total"], sortBy: 1, sortDir: "desc", bulk: ["Export"], rows: [["A-1", "PKR 900"], ["A-2", "PKR 12,000"], ["A-3", "PKR 1.2k"]] };
+    const html = demo([table]);
+    expect(html.indexOf("A-2")).toBeLessThan(html.indexOf("A-3"));
+    expect(html.indexOf("A-3")).toBeLessThan(html.indexOf("A-1"));
+    expect(html).toContain('aria-sort="descending"');
+    expect(html).toContain('class="ck"');
+  });
+  it("ticks two rows and shows the bulk bar on the busy day only", () => {
+    const table = { type: "table", columns: ["Order", "Total"], bulk: ["Export"], rows: [["A-1", "PKR 900"], ["A-2", "PKR 1,200"], ["A-3", "PKR 300"]] };
+    const html = buildDemo({ title: "Kargo", flow: "f", requirements: {}, noScreen: [], screens: [{ id: "S-1", route: "/s", file: "a.tsx", reqs: [], states: [], size: "new", frames: [],
+      mock: { title: "Orders", copy: {}, blocks: [table] }, mockFull: { title: "Orders", copy: {}, blocks: [{ ...table, rows: [...table.rows, ["A-4", "PKR 50"]] }] } }] as never });
+    expect((html.match(/class="picked"/g) ?? []).length).toBe(2);
+    expect(html).toMatch(/<div class="bulk">/);
+    expect(html).toMatch(/<div class="bulk" hidden>/);
+  });
+  it("names an even split so the timeline's styles never reach it", () => {
+    const html = demo([chart({ kind: "bar", points: [{ label: "A", value: 1 }, { label: "B", value: 2 }] }), chart({ kind: "donut", points: [{ label: "A", value: 1 }, { label: "B", value: 2 }] })]);
+    expect(html).toContain('class="split eq"');
+    expect(html).not.toContain('class="split ev"');
+  });
+  it("checks a chart's numbers fit its kind", () => {
+    const base = { title: "Kargo", flow: "f", app: undefined, mapping: { unmappedReqs: [], orphanScreens: [] } };
+    const fails = (c: Record<string, unknown>) => designQuality({ ...base, screens: [{ id: "S-1", route: "/s", file: "a", reqs: ["R-1"], states: ["loading"], size: "new", frames: [], mock: { title: "Home", copy: {}, blocks: [chart(c)] } }] } as never, {} as never).map((f) => f.check);
+    expect(fails({ kind: "stacked", series: ["A", "B"], points: [{ label: "Jan", value: 0, parts: [1] }, { label: "Feb", value: 0, parts: [1, 2] }] })).toContain("design-chart");
+    expect(fails({ kind: "donut", points: [{ label: "Only", value: 1 }] })).toContain("design-chart");
+    expect(fails({ kind: "progress", points: [{ label: "Goal", value: 140 }] })).toContain("design-chart");
+    expect(fails({ kind: "gauge", max: 100, points: [{ label: "Fuel", value: 120 }] })).toContain("design-chart");
+    expect(fails({ kind: "gauge", max: 850, points: [{ label: "Score", value: 720 }] })).not.toContain("design-chart");
+  });
+});

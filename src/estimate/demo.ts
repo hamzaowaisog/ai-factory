@@ -9,7 +9,7 @@ import { wireframeSvg } from "./wireframe.js";
 import { palette } from "./palette.js";
 import { icon, iconFor, verbIcon } from "./icons.js";
 import { hash, scene } from "./scenes.js";
-import type { DesignApp, DesignTheme, MockBlock, MockOverlay, MockToast, ScreenMock, Switcher } from "../contracts/artifacts.js";
+import type { DesignApp, DesignTheme, FormField, MockBlock, MockOverlay, MockToast, ScreenMock, Switcher } from "../contracts/artifacts.js";
 import type { DesignOut } from "../stages/design.js";
 import type { z } from "zod";
 
@@ -117,6 +117,8 @@ function smooth(p: (readonly [number, number])[]): string {
 
 // the theme of the page being built: set by buildDemo, read by the blocks (pictures, charts)
 let look: DesignTheme;
+// drawing the full-data page: a busy real day, so a table with bulk actions shows two rows ticked and its bulk bar
+let busy = false;
 
 // unique ids for gradients: ids are page-wide, and a gradient first defined in a hidden state would not paint in a visible one
 let uidN = 0;
@@ -158,14 +160,68 @@ function lineSvg(title: string, pts: { label: string; value: number }[], top: nu
   return `<svg class="${cls}" viewBox="0 0 ${W} ${H + 20}" role="img" aria-label="${esc(title)}"><defs><linearGradient id="ar${id}" x1="0" x2="0" y1="0" y2="1"><stop class="s0" offset="0" stop-color="var(--a1)" stop-opacity=".2"/><stop offset="1" stop-color="var(--a1)" stop-opacity="0"/></linearGradient></defs>${grid}<path class="area" d="${line} L${xy[xy.length - 1]![0]} ${H - 14} L${L} ${H - 14}Z" fill="url(#ar${id})"/><path class="ln" d="${line}" fill="none" pathLength="1"/>${pts.map((p, i) => (i !== pts.length - 1 && (i % every || pts.length - 1 - i < every) ? "" : `<text class="xl" x="${xy[i]![0]}" y="${H + 12}" text-anchor="${i === 0 ? "start" : i === pts.length - 1 ? "end" : "middle"}">${esc(p.label)}</text>`)).join("")}${hover}</svg>`;
 }
 
+type ChartBlock = Extract<MockBlock, { type: "chart" }>;
+// what a chart's series, slices and rings are told apart by: the brand at three strengths, then two status hues and a grey
+const swatch = (i: number): string => `var(--c${i % 6})`;
+const legendOf = (names: string[]): string => `<span class="legend multi">${names.map((n, i) => `<span><i style="background:${swatch(i)}"></i>${esc(n)}</span>`).join("")}</span>`;
+const pctOf = (v: number, whole: number): string => `${whole ? Math.round((v / whole) * 1000) / 10 : 0}%`;
+
+/** Shares of a whole: a ring of slices with the total in its middle, and each slice's value and share beside it. */
+function donutChart(b: ChartBlock): string {
+  const pts = b.points.slice(0, 6).map((p) => ({ label: p.label, value: Math.max(0, num(p.value)) }));
+  const total = pts.reduce((n, p) => n + p.value, 0);
+  let at = 0;
+  const arcs = pts.map((p, i) => {
+    const len = total ? (p.value / total) * 100 : 0, gap = pts.length > 1 && len > 1.2 ? 0.8 : 0;
+    const out = `<circle class="sl" r="48" cx="60" cy="60" pathLength="100" stroke="${swatch(i)}" stroke-dasharray="${Math.max(0, len - gap).toFixed(2)} 100" stroke-dashoffset="${(-at).toFixed(2)}" style="--d:${i}"><title>${esc(p.label)}: ${short(p.value)}</title></circle>`;
+    at += len;
+    return out;
+  }).join("");
+  const head = `<div class="ch"><div><h4>${esc(b.title)}</h4></div>${b.ranges?.length ? segs(b.ranges, "Period") : ""}</div>`;
+  const legend = `<ul class="dleg">${pts.map((p, i) => `<li><i style="background:${swatch(i)}"></i><span>${esc(p.label)}</span><b>${short(p.value)}${b.unit ? ` ${esc(b.unit)}` : ""}</b><em>${pctOf(p.value, total)}</em></li>`).join("")}</ul>`;
+  return `<div class="card chart pie">${head}<div class="dn"><svg class="donut" viewBox="0 0 120 120" role="img" aria-label="${esc(b.title)}"><circle class="trk" r="48" cx="60" cy="60"/><g transform="rotate(-90 60 60)">${arcs}</g><text class="dt" x="60" y="62" text-anchor="middle">${short(total)}</text><text class="dl" x="60" y="78" text-anchor="middle">${esc(b.unit ?? "Total")}</text></svg>${legend}</div></div>`;
+}
+
+/** Progress toward goals: one ring per goal, its share in the middle and its name under it. */
+function ringsChart(b: ChartBlock): string {
+  const rings = b.points.slice(0, 4).map((p, i) => {
+    const raw = num(p.value), pct = Math.max(0, Math.min(100, b.max ? (raw / b.max) * 100 : raw));
+    const shown = b.max ? `${short(raw)}${b.unit ? ` ${esc(b.unit)}` : ""}` : `${Math.round(pct)}%`;
+    return `<div class="ring${pct >= 100 ? " full" : ""}"><svg viewBox="0 0 64 64" aria-hidden="true"><circle class="trk" r="26" cx="32" cy="32"/><circle class="val" r="26" cx="32" cy="32" pathLength="100" stroke-dasharray="${pct.toFixed(1)} 100" transform="rotate(-90 32 32)" style="--d:${i}"/></svg><b>${shown}</b><span>${esc(p.label)}</span></div>`;
+  }).join("");
+  return `<div class="card chart rings-c"><div class="ch"><div><h4>${esc(b.title)}</h4></div>${b.ranges?.length ? segs(b.ranges, "Period") : ""}</div><div class="rings" role="list" aria-label="${esc(b.title)}">${rings}</div></div>`;
+}
+
+/** One reading against its scale: a half ring filled to the reading, the reading in the middle, the scale's ends under it. */
+function gaugeChart(b: ChartBlock): string {
+  const p = b.points[0]!, v = num(p.value), top = b.max ?? niceMax(Math.max(1, v));
+  const pct = Math.max(0, Math.min(100, (v / top) * 100));
+  const unit = b.unit ? `${/^[%°‰]/.test(b.unit) ? "" : " "}${esc(b.unit)}` : "";
+  const band = pct >= 85 ? "bad" : pct >= 65 ? "warn" : "";
+  return `<div class="card chart gauge-c"><div class="ch"><div><h4>${esc(b.title)}</h4></div>${b.ranges?.length ? segs(b.ranges, "Period") : ""}</div><svg class="gauge${band ? ` ${band}` : ""}" viewBox="0 0 200 128" role="img" aria-label="${esc(`${b.title}: ${short(v)}${b.unit ? ` ${b.unit}` : ""} of ${short(top)}`)}"><path class="trk" d="M20 104 A80 80 0 0 1 180 104"/><path class="val" d="M20 104 A80 80 0 0 1 180 104" pathLength="100" stroke-dasharray="${pct.toFixed(1)} 100"/><text class="gv" x="100" y="90" text-anchor="middle">${short(v)}${unit}</text><text class="gl2" x="100" y="110" text-anchor="middle">${esc(p.label)}</text><text class="ge" x="20" y="127" text-anchor="middle">0</text><text class="ge" x="180" y="127" text-anchor="middle">${short(top)}</text></svg></div>`;
+}
+
+/** The key a table cell sorts by: a number when it reads as one (an amount, count, percent or duration), a time for a date, else its words. */
+export function sortKey(v: string): number | string {
+  const t = v.trim();
+  const m = /^(?:[A-Z]{3} ?|[$€£¥₹₨] ?|Rs\.? ?)?([+−-]?\d[\d,]*(?:\.\d+)?) ?(%|k|m|bn|kg|km|mins?|h|hrs?|days?|pts)?$/i.exec(t);
+  if (m) return Number(m[1]!.replace(/,/g, "").replace("−", "-")) * ({ k: 1e3, m: 1e6, bn: 1e9 }[m[2]?.toLowerCase() as "k"] ?? 1);
+  const when = Date.parse(t);
+  if (!Number.isNaN(when) && /\d/.test(t) && /[a-z]{3}|\d{4}/i.test(t)) return when;
+  return t.toLowerCase();
+}
+const cmpKey = (a: number | string, b: number | string): number => (typeof a === "number" && typeof b === "number" ? a - b : String(a).localeCompare(String(b)));
+
 /** The loading look of a block: what is static stays real (labels, column headers, titles, filters, buttons, step names), and only the data becomes shimmering shapes. */
 function skeleton(b: MockBlock): string {
   const bar = (w: number, h = 12) => `<i class="sk" style="width:${w}%;height:${h}px"></i>`;
   switch (b.type) {
     case "stats": return `<div class="stats">${b.items.map((it) => `<div class="stat"><div class="sh"><span class="k">${esc(it.label)}</span></div>${bar(55, 26)}${it.delta ? bar(30, 10) : ""}</div>`).join("")}</div>`;
     case "table": return `<div class="card tbl"><table><thead><tr>${b.columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${[0, 1, 2, 3, 4].map((r) => `<tr>${b.columns.map((_, i) => `<td>${bar(i === 0 ? 70 : 40 + ((r * 13 + i * 29) % 45), 12)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
-    case "form": return `<div class="card form">${b.fields.map((f) => `<div class="field"><label>${esc(f.label)}</label>${f.kind === "toggle" ? bar(12, 22) : bar(100, 38)}</div>`).join("")}<div class="row"><button type="button" class="btn primary" disabled>${esc(b.submit)}</button></div></div>`;
-    case "chart": return `<div class="card chart"><div class="ch"><h4>${esc(b.title)}</h4></div><div class="skbars">${b.points.map((p, i) => `<i class="sk" style="height:${30 + ((i * 37) % 60)}%"></i>`).join("")}</div></div>`;
+    case "form": return `<div class="card form">${b.fields.map((f) => `<div class="field"><label>${esc(f.label)}</label>${f.kind === "toggle" ? bar(12, 22) : f.kind === "otp" ? bar(60, 46) : f.kind === "slider" ? bar(100, 8) : bar(100, f.kind === "radio" || f.kind === "checkbox" ? 64 : 38)}</div>`).join("")}<div class="row"><button type="button" class="btn primary" disabled>${esc(b.submit)}</button></div></div>`;
+    case "chart":
+      if (b.kind === "donut" || b.kind === "progress" || b.kind === "gauge") return `<div class="card chart"><div class="ch"><h4>${esc(b.title)}</h4></div><div class="skround">${(b.kind === "progress" ? b.points.slice(0, 4) : [0]).map(() => '<i class="sk"></i>').join("")}</div></div>`;
+      return `<div class="card chart"><div class="ch"><h4>${esc(b.title)}</h4></div><div class="skbars">${b.points.map((p, i) => `<i class="sk" style="height:${30 + ((i * 37) % 60)}%"></i>`).join("")}</div></div>`;
     case "steps": return `<ol class="steps">${b.items.map((t, i) => `<li class="${i === b.current ? "now" : ""}"><span>${i + 1}</span>${esc(t)}</li>`).join("")}</ol>`;
     case "cards": return `<div class="cards${b.visual ? " vis" : ""}">${b.items.slice(0, 3).map(() => `<div class="card item">${b.visual ? '<i class="sk pic-sk"></i>' : ""}<div class="ib-body">${bar(60, 14)}${bar(90)}${bar(40)}</div></div>`).join("")}</div>`;
     case "carousel": return `<div class="car sk-car k-${b.style}">${b.title ? `<div class="car-h"><h4>${esc(b.title)}</h4></div>` : ""}<div class="track">${b.items.slice(0, 3).map(() => (b.style === "promo" ? '<div class="slide"><i class="sk"></i></div>' : `<div class="slide"><i class="sk pic-sk"></i>${bar(60, 14)}${bar(40)}</div>`)).join("")}</div></div>`;
@@ -185,6 +241,56 @@ const segs = (items: string[], label: string): string => `<div class="seg" role=
 
 const btnLabel = (t: string): string => { const v = verbIcon(t); return `${v ? icon(v) : ""}<span>${esc(t)}</span>`; };
 
+// fields the person picks rather than types: the validation state never flags them
+const CHOSEN = new Set(["select", "toggle", "radio", "checkbox", "slider"]);
+const CURRENCY = /^\s*([A-Z]{3}|[$€£¥₹₨]|Rs\.?)\s?/;
+const DIAL = ["+1", "+44", "+92", "+91", "+971", "+966", "+974", "+20"];
+
+/** The richer form fields (choices shown at once, amounts, codes, phone numbers, sliders, cards); undefined for the basic kinds. */
+function fieldHtml(f: FormField, id: string, bad: boolean, label: string, err: string, cls: string): string | undefined {
+  const v = f.value ?? "", ph = f.placeholder ?? "";
+  const inv = bad ? ' aria-invalid="true"' : "";
+  const opts = f.options?.length ? f.options : v ? [v] : [];
+  switch (f.kind) {
+    case "radio": case "checkbox": {
+      const on = f.kind === "radio" ? [opts.includes(v) ? v : opts[0]] : v.split(/\s*,\s*/).filter(Boolean);
+      return `<fieldset class="${cls} wide opts-f"><legend>${esc(f.label)}</legend><div class="opts${opts.length <= 3 ? " tiles" : ""}">${opts.map((o) => `<label class="opt"><input type="${f.kind}" name="${id}"${on.includes(o) ? " checked" : ""}><span>${esc(o)}</span></label>`).join("")}</div>${err}</fieldset>`;
+    }
+    case "number":
+      return `<div class="${cls}">${label}<span class="num"><button type="button" class="ib" data-step="-1" aria-label="Less">−</button><input id="${id}" type="text" inputmode="numeric" placeholder="${esc(ph)}" value="${esc(bad ? "" : v)}"${inv}><button type="button" class="ib" data-step="1" aria-label="More">+</button></span>${err}</div>`;
+    case "currency": {
+      const code = CURRENCY.exec(v)?.[1] ?? CURRENCY.exec(ph)?.[1] ?? "$";
+      return `<div class="${cls}">${label}<span class="aff"><b>${esc(code)}</b><input id="${id}" type="text" inputmode="decimal" placeholder="${esc(ph.replace(CURRENCY, ""))}" value="${esc(bad ? "" : v.replace(CURRENCY, ""))}"${inv}></span>${err}</div>`;
+    }
+    case "otp": {
+      const digits = v.replace(/\D/g, ""), n = Math.max(4, Math.min(8, digits.length || 6));
+      return `<div class="${cls} wide">${label}<span class="otp" role="group" aria-label="${esc(f.label)}">${Array.from({ length: n }, (_, i) => `<input${i === 0 ? ` id="${id}"` : ""} type="text" inputmode="numeric" maxlength="1" aria-label="Digit ${i + 1}" value="${bad ? "" : esc(digits[i] ?? "")}"${inv}>`).join("")}</span>${err}</div>`;
+    }
+    case "phone": {
+      const m = /^\s*(\+\d{1,3})\s*(.*)$/.exec(v) ?? /^\s*(\+\d{1,3})\s*(.*)$/.exec(ph);
+      const cc = m?.[1] ?? "+1", rest = /^\s*\+\d/.test(v) ? m?.[2] ?? "" : v;
+      return `<div class="${cls} wide">${label}<span class="aff phone"><span class="sel cc"><select aria-label="Country code">${[...new Set([cc, ...DIAL])].map((c) => `<option${c === cc ? " selected" : ""}>${c}</option>`).join("")}</select>${icon("chevd")}</span><input id="${id}" type="tel" placeholder="${esc(ph.replace(/^\s*\+\d{1,3}\s*/, ""))}" value="${esc(bad ? "" : rest)}"${inv}></span>${err}</div>`;
+    }
+    // a search and a phone number carry an icon or a code beside the text: they take the whole row so the text is not cut
+    case "search":
+      return `<div class="${cls} wide">${label}<span class="aff srch">${icon("search")}<input id="${id}" type="text" list="${id}l" placeholder="${esc(ph || "Search")}" value="${esc(bad ? "" : v)}"${inv}>${icon("chevd")}</span><datalist id="${id}l">${opts.map((o) => `<option value="${esc(o)}">`).join("")}</datalist>${err}</div>`;
+    case "slider": {
+      const ends = (f.options ?? []).map((o) => ({ o, n: Number(/-?\d+(?:\.\d+)?/.exec(o.replace(/,/g, ""))?.[0]) })).filter((x) => Number.isFinite(x.n));
+      const lo = ends[0]?.n ?? 0, hi = ends.length > 1 ? ends[ends.length - 1]!.n : 100;
+      const at = Number(/-?\d+(?:\.\d+)?/.exec(v.replace(/,/g, ""))?.[0] ?? (lo + hi) / 2);
+      // the words around the number ("PKR 50,000", "25 km") stay with it as the slider moves
+      const around = /^(.*?)-?\d[\d,.]*(.*)$/.exec(ends[ends.length - 1]?.o ?? v) ?? ["", "", ""];
+      const pos = Math.max(lo, Math.min(hi, at));
+      return `<div class="${cls} wide">${label}<div class="rng"><input id="${id}" type="range" min="${lo}" max="${hi}" step="${hi - lo > 20 ? 1 : (hi - lo) / 100}" value="${pos}" data-pre="${esc(around[1]!)}" data-suf="${esc(around[2]!)}" style="--p:${hi > lo ? ((pos - lo) / (hi - lo)) * 100 : 0}%"><output for="${id}">${esc(v || `${around[1]}${pos.toLocaleString("en")}${around[2]}`)}</output></div><div class="rngl"><span>${esc(ends[0]?.o ?? String(lo))}</span><span>${esc(ends[ends.length - 1]?.o ?? String(hi))}</span></div></div>`;
+    }
+    case "card":
+      // placeholders only: the demo never shows a card number someone could take for a real one
+      return `<div class="${cls} wide">${label}<span class="cardin${bad ? " bad" : ""}">${icon("card")}<input id="${id}" type="text" inputmode="numeric" autocomplete="off" placeholder="${esc(ph && !/\d{5,}/.test(ph.replace(/\s/g, "")) ? ph : "Card number")}"${inv}><input type="text" inputmode="numeric" placeholder="MM / YY" aria-label="Expiry"><input type="text" inputmode="numeric" placeholder="CVC" aria-label="Security code"></span>${err}</div>`;
+    default:
+      return undefined;
+  }
+}
+
 /** One block drawn from its sample content; `page` is the page's own words, which pick the pictures on cards. */
 function renderBlock(b: MockBlock, k: StateKind, page = ""): string {
   switch (b.type) {
@@ -203,15 +309,27 @@ function renderBlock(b: MockBlock, k: StateKind, page = ""): string {
       const col = (i: number) => b.rows.map((r) => r[i] ?? "");
       const isNum = b.columns.map((_, i) => i !== sc && share(col(i), NUMERIC) >= 0.6);
       const person = share(col(0), PERSON) >= 0.6, code = !person && share(col(0), CODE) >= 0.6;
-      return `<div class="card tbl"><div class="scroll"><table><thead><tr>${b.columns.map((c, i) => `<th${isNum[i] ? ' class="n"' : ""}>${esc(c)}</th>`).join("")}<th class="act"><span class="vh">Actions</span></th></tr></thead><tbody>${b.rows.map((r) => `<tr>${b.columns.map((_, i) => {
+      // a sorted table is drawn in its order, so the arrow on its header tells the truth; every header sorts on click
+      const sortBy = b.sortBy !== undefined && b.sortBy < b.columns.length ? b.sortBy : undefined;
+      const rows = sortBy === undefined ? b.rows : [...b.rows].sort((x, y) => cmpKey(sortKey(x[sortBy] ?? ""), sortKey(y[sortBy] ?? "")) * (b.sortDir === "asc" ? 1 : -1));
+      const pick = !!b.selectable || !!b.bulk?.length, ticked = busy && !!b.bulk?.length ? 2 : 0;
+      const th = (c: string, i: number) => {
+        const cls = isNum[i] ? ' class="n"' : "";
+        if (sortBy === undefined) return `<th${cls}>${esc(c)}</th>`;
+        const dir = i === sortBy ? (b.sortDir === "asc" ? "ascending" : "descending") : "none";
+        return `<th${cls} aria-sort="${dir}"><button type="button" class="sh" data-sort="${i}">${esc(c)}${icon("chevd", dir === "ascending" ? "flip" : "")}</button></th>`;
+      };
+      const bulk = b.bulk?.length ? `<div class="bulk"${ticked ? "" : " hidden"}><b><span class="bn">${ticked}</span> selected</b><span class="bb">${b.bulk.map((t, i) => `<button type="button" class="btn${i === 0 ? " primary" : ""}" data-act="act">${btnLabel(t)}</button>`).join("")}</span><button type="button" class="lnk" data-clear>Clear</button></div>` : "";
+      return `<div class="card tbl">${bulk}<div class="scroll"><table><thead><tr>${pick ? `<th class="ck"><input type="checkbox" aria-label="Select all"${ticked && ticked >= rows.length ? " checked" : ""}></th>` : ""}${b.columns.map(th).join("")}<th class="act"><span class="vh">Actions</span></th></tr></thead><tbody>${rows.map((r, ri) => `<tr${ri < ticked ? ' class="picked"' : ""}>${pick ? `<td class="ck"><input type="checkbox" aria-label="Select ${esc(r[0] ?? "row")}"${ri < ticked ? " checked" : ""}></td>` : ""}${b.columns.map((_, i) => {
         const v = r[i] ?? "";
         const cell = sc === i ? `<span class="badge ${tone(v)}">${esc(v)}</span>` : i === 0 && person && v ? `<span class="who">${avatar(v)}${esc(v)}</span>` : i === 0 && code ? `<span class="code">${esc(v)}</span>` : esc(v);
-        return `<td${isNum[i] ? ' class="n"' : i === 0 ? ' class="first"' : ""}>${cell}</td>`;
+        const key = sortBy === undefined ? "" : ` data-v="${esc(String(sortKey(v)))}"`;
+        return `<td${isNum[i] ? ' class="n"' : i === 0 ? ' class="first"' : ""}${key}>${cell}</td>`;
       }).join("")}<td class="act"><button type="button" class="ib" aria-label="More">${icon("more")}</button></td></tr>`).join("")}</tbody></table></div><div class="tfoot"><span>${b.rows.length} ${b.rows.length === 1 ? "result" : "results"}</span><span class="pager"><button type="button" class="ib" aria-label="Previous page" disabled>${icon("chevl")}</button><b>1</b><button type="button" class="ib" aria-label="Next page" disabled>${icon("chevr")}</button></span></div></div>`;
     }
     case "form": {
       // the validation state flags the typed-in fields the person left empty (at most two), or the first one when all are filled
-      const typed = b.fields.map((f, i) => (f.kind === "select" || f.kind === "toggle" ? -1 : i)).filter((i) => i >= 0);
+      const typed = b.fields.map((f, i) => (CHOSEN.has(f.kind) ? -1 : i)).filter((i) => i >= 0);
       const blank = typed.filter((i) => !b.fields[i]!.value);
       const flagged = new Set((blank.length ? blank : typed).slice(0, blank.length ? 2 : 1));
       return `<form class="card form" onsubmit="return false">${b.fields.map((f, i) => {
@@ -223,21 +341,29 @@ function renderBlock(b: MockBlock, k: StateKind, page = ""): string {
         if (f.kind === "select") return `<div class="${cls}">${label}<span class="sel"><select id="${id}">${(f.options?.length ? f.options : [f.value ?? f.placeholder ?? "Select"]).map((o) => `<option${o === f.value ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>${icon("chevd")}</span>${err}</div>`;
         if (f.kind === "textarea") return `<div class="${cls}">${label}<textarea id="${id}" rows="3" placeholder="${esc(f.placeholder ?? "")}">${esc(f.value ?? "")}</textarea>${err}</div>`;
         if (f.kind === "toggle") return `<div class="field tog wide"><label for="${id}">${esc(f.label)}</label><input id="${id}" type="checkbox" role="switch"${f.value && !/^(no|off|false)$/i.test(f.value) ? " checked" : ""}></div>`;
+        const more = fieldHtml(f, id, bad, label, err, cls);
+        if (more) return more;
         return `<div class="${cls}">${label}<input id="${id}" type="${f.kind === "date" ? "date" : "text"}" placeholder="${esc(f.placeholder ?? "")}" value="${esc(bad ? "" : f.value ?? "")}"${bad ? ' aria-invalid="true"' : ""}>${err}</div>`;
       }).join("")}<div class="row end"><button type="submit" class="btn primary" data-act="submit">${esc(b.submit)}${icon("arrowr")}</button></div></form>`;
     }
     case "chart": {
-      const pts = b.points.map((p) => ({ label: p.label, value: num(p.value) }));
+      if (b.kind === "donut") return donutChart(b);
+      if (b.kind === "progress") return ringsChart(b);
+      if (b.kind === "gauge") return gaugeChart(b);
+      // a stacked bar's height is the sum of its parts
+      const stacked = b.kind === "stacked" && !!b.series?.length;
+      const pts = b.points.map((p) => ({ label: p.label, value: stacked && p.parts ? p.parts.reduce((n, x) => n + Math.max(0, num(x)), 0) : num(p.value), parts: p.parts }));
       const top = niceMax(Math.max(0, ...pts.map((p) => p.value)));
       const peak = pts.reduce((m, p, i) => (p.value > pts[m]!.value ? i : m), 0);
       const total = pts.reduce((n, p) => n + p.value, 0);
       const last = pts[pts.length - 1]!, prev = pts[pts.length - 2];
       const change = prev && prev.value ? ((last.value - prev.value) / Math.abs(prev.value)) * 100 : 0;
       // a line is a level over time (a balance, a rate): it reads as its latest value; bars are amounts per period and read as their total
-      const head = `<div class="ch"><div><h4>${esc(b.title)}</h4><span class="tot">${short(b.kind === "line" ? last.value : total)}${prev ? `<span class="delta ${change < 0 ? "dn" : "up"}">${icon("chevd", change < 0 ? "" : "flip")}${Math.abs(change).toFixed(1)}%</span>` : ""}</span></div>${b.ranges?.length ? segs(b.ranges, "Period") : `<span class="legend"><i></i>${esc(b.kind === "line" ? "Trend" : `Peak: ${pts[peak]?.label ?? ""}`)}</span>`}</div>`;
+      const head = `<div class="ch"><div><h4>${esc(b.title)}</h4><span class="tot">${short(b.kind === "line" ? last.value : total)}${prev ? `<span class="delta ${change < 0 ? "dn" : "up"}">${icon("chevd", change < 0 ? "" : "flip")}${Math.abs(change).toFixed(1)}%</span>` : ""}</span></div>${b.ranges?.length ? segs(b.ranges, "Period") : stacked ? legendOf(b.series!) : `<span class="legend"><i></i>${esc(b.kind === "line" ? "Trend" : `Peak: ${pts[peak]?.label ?? ""}`)}</span>`}</div>${stacked && b.ranges?.length ? `<div class="lgrow">${legendOf(b.series!)}</div>` : ""}`;
       if (b.kind === "line") return `<div class="card chart">${head}${lineSvg(b.title, pts, top, 680, 210, "lc-w")}${lineSvg(b.title, pts, top, 340, 200, "lc-n")}</div>`;
       const grid = [1, 0.5, 0].map((f) => `<span class="g${f === 0 ? " base" : ""}" style="bottom:${f * 100}%"><em>${short(top * f)}</em></span>`).join("");
-      return `<div class="card chart">${head}<div class="bars">${grid}${pts.map((p, i) => `<div class="bar${i === peak ? " pk" : ""}" style="--h:${Math.round((p.value / top) * 100)}%;--d:${i}"><span class="n">${short(p.value)}</span><i></i><span class="l">${esc(p.label)}</span></div>`).join("")}</div></div>`;
+      const fill = (p: (typeof pts)[number]) => (stacked ? `<i>${(p.parts ?? []).slice(0, b.series!.length).map((x, j) => `<s style="flex:${Math.max(0, num(x))};background:${swatch(j)}" title="${esc(`${b.series![j]}: ${short(num(x))}`)}"></s>`).join("")}</i>` : "<i></i>");
+      return `<div class="card chart">${head}<div class="bars${stacked ? " stk" : ""}">${grid}${pts.map((p, i) => `<div class="bar${i === peak ? " pk" : ""}" style="--h:${Math.round((p.value / top) * 100)}%;--d:${i}"><span class="n">${short(p.value)}</span>${fill(p)}<span class="l">${esc(p.label)}</span></div>`).join("")}</div></div>`;
     }
     case "steps":
       return `<ol class="steps">${b.items.map((t, i) => `<li class="${i < b.current ? "done" : i === b.current ? "now" : ""}"><span>${i < b.current ? icon("check") : i + 1}</span>${esc(t)}</li>`).join("")}</ol>`;
@@ -312,7 +438,7 @@ function pairOf(a: MockBlock, b: MockBlock): string {
   if (SIDE.has(a.type) && b.type === "chart") return "wr";
   if (a.type === "form" && (b.type === "detail" || b.type === "list")) return "wl";
   if ((a.type === "detail" || a.type === "list") && b.type === "form") return "wr";
-  if ((SIDE.has(a.type) && SIDE.has(b.type)) || (a.type === "chart" && b.type === "chart")) return "ev";
+  if ((SIDE.has(a.type) && SIDE.has(b.type)) || (a.type === "chart" && b.type === "chart")) return "eq";
   return "";
 }
 
@@ -545,7 +671,7 @@ kbd{font:500 11px var(--font);border:1px solid var(--edge2);border-bottom-width:
 .sub{margin:.3rem 0 0;color:var(--mut);font-size:14px}.body{display:grid;gap:16px;margin-top:22px}
 .body>*{animation:rise .5s var(--e) both}${[2, 3, 4, 5, 6].map((i) => `.body>:nth-child(${i}){animation-delay:${(i - 1) * 0.06}s}`).join("")}
 @keyframes rise{from{opacity:0;transform:translateY(var(--rise))}}
-.split{display:grid;gap:16px;align-items:start}.split.wl{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}.split.wr{grid-template-columns:minmax(0,1fr) minmax(0,1.7fr)}.split.ev{grid-template-columns:repeat(2,minmax(0,1fr))}
+.split{display:grid;gap:16px;align-items:start}.split.wl{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}.split.wr{grid-template-columns:minmax(0,1fr) minmax(0,1.7fr)}.split.eq{grid-template-columns:repeat(2,minmax(0,1fr))}
 .card{border:1px solid var(--edge);border-radius:var(--r);background:var(--sf);backdrop-filter:var(--blur);box-shadow:var(--shadow);padding:var(--pad);transition:border-color .2s,box-shadow .25s,transform .25s var(--e)}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.row.sp{justify-content:space-between;flex-wrap:nowrap}.row.end{justify-content:flex-end}
 .meta{color:var(--mut);font-size:13px;display:block}.meta .sep{margin:0 6px;opacity:.6}.meta .price{color:var(--ink);font-weight:650;white-space:nowrap}
@@ -689,7 +815,7 @@ ${[1, 2, 3, 4, 5, 6, 7, 8].map((i) => `tbody tr:nth-child(${i}){animation-delay:
 /* chart styles */
 .ch-bold .bar i{background:color-mix(in srgb,var(--a1) 78%,var(--sf))}.ch-bold .bar.pk i{background:var(--a1)}.ch-bold .chart .ln{stroke-width:3}.ch-bold .s0{stop-opacity:.42}
 .ch-mono .bar i{background:color-mix(in srgb,var(--ink) 13%,var(--sf))}.ch-mono .bar:hover i{background:color-mix(in srgb,var(--ink) 30%,var(--sf))}.ch-mono .bar.pk i{background:var(--a1)}
-.ch-mono .chart .ln{stroke:var(--ink);stroke-width:1.75}.ch-mono .chart .area{display:none}.ch-mono .chart .gl:not(.base){stroke-dasharray:2 4}.ch-mono .bars .g:not(.base){border-top-style:dashed}.ch-mono .hv .hd{stroke:var(--ink)}.ch-mono .legend i{background:var(--ink)}
+.ch-mono .chart .ln{stroke:var(--ink);stroke-width:1.75}.ch-mono .chart .area{display:none}.ch-mono .chart .gl:not(.base){stroke-dasharray:2 4}.ch-mono .bars .g:not(.base){border-top-style:dashed}.ch-mono .hv .hd{stroke:var(--ink)}.ch-mono .legend i{background:var(--ink)}.ch-mono .chart{--c1:color-mix(in srgb,var(--ink) 62%,var(--sf));--c2:color-mix(in srgb,var(--ink) 36%,var(--sf));--c3:color-mix(in srgb,var(--ink) 20%,var(--sf));--c4:color-mix(in srgb,var(--a1) 45%,var(--sf));--c5:color-mix(in srgb,var(--ink) 10%,var(--sf))}
 /* rounded themes use pill controls, as friendly consumer products do; sharp themes square them off */
 .r-round .btn,.r-round .chip,.r-round .chips,.r-round .search,.r-round .q,.r-round .states,.r-round .states button{border-radius:99px}
 .r-round .tnav{align-self:center;gap:4px}.r-round .tnav a{height:36px;border-radius:99px;padding:0 14px}.r-round .tnav a.on{background:var(--sf2)}.r-round .tnav a.on:after{display:none}
@@ -750,11 +876,53 @@ body.fx-futuristic .badge.ok:before,body.fx-futuristic .badge.live:before{animat
 /* a line chart is drawn twice, wide and narrow; the frame's width shows one */
 /* the unused line chart is hidden without display:none, which would restart its draw-in whenever the frame is resized (a full-page screenshot does) */
 .chart svg.lc-n{position:absolute;visibility:hidden;width:0;height:0;overflow:hidden}
-@container app (max-width:900px){.rail .swt,.rail .swb>svg{display:none}.rail .swb{padding:5px;justify-content:center}.rail h5:not(:first-of-type){display:block;height:1px;margin:8px 10px;background:var(--edge);font-size:0}.split.wl,.split.wr,.split.ev{grid-template-columns:1fr}.rail{width:64px;padding:16px 10px}.rail a span,.rail h5,.rail .bm>b{display:none}.rail a{justify-content:center}.q{display:none}}
+@container app (max-width:900px){.rail .swt,.rail .swb>svg{display:none}.rail .swb{padding:5px;justify-content:center}.rail h5:not(:first-of-type){display:block;height:1px;margin:8px 10px;background:var(--edge);font-size:0}.split.wl,.split.wr,.split.eq{grid-template-columns:1fr}.rail{width:64px;padding:16px 10px}.rail a span,.rail h5,.rail .bm>b{display:none}.rail a{justify-content:center}.q{display:none}}
 @media(max-width:760px){body{display:block}aside{width:auto;border-right:0;border-bottom:1px solid var(--edge)}}
 @media(max-width:640px){main{padding:14px 10px 40px}.win{display:none}.canvas{border-radius:22px}.canvas.phone{width:auto;border:0;border-radius:22px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 24px 48px -24px rgba(16,24,40,.28)}.canvas.phone .sbar,.canvas.phone:after{display:none}.canvas .drawer,.canvas.phone .drawer,.ovl,.canvas.phone .ovl{top:0}}
 /* a narrow frame (a phone, or a small window) whatever the viewport: a phone app's frame is narrow on a desktop too */
-@container app (max-width:640px){.chart svg.lc-w{position:absolute;visibility:hidden;width:0;height:0;overflow:hidden}.chart svg.lc-n{position:static;visibility:visible;width:100%;height:auto;overflow:visible}.topbar .swt{display:none}.topbar .swb{padding:4px 6px 4px 4px}.seg{margin-left:0}.ch{flex-wrap:wrap}
+/* more chart kinds: series and slices told apart by the brand at three strengths, then two status hues and a grey */
+.chart{--c0:var(--a1);--c1:color-mix(in srgb,var(--a1) 58%,var(--sf));--c2:color-mix(in srgb,var(--a1) 30%,var(--sf));--c3:var(--info);--c4:var(--warn);--c5:color-mix(in srgb,var(--ink2) 28%,var(--sf))}
+.legend.multi{gap:12px;flex-wrap:wrap}.legend.multi span{display:inline-flex;align-items:center;gap:6px}.legend.multi i{width:10px;height:10px;border-radius:3px}.lgrow{margin:-2px 0 6px}
+.bars.stk .bar i{display:flex;flex-direction:column-reverse;gap:2px;background:none!important;overflow:hidden}.bars.stk .bar s{display:block;min-height:0}.bars.stk .bar:hover i{filter:brightness(1.07)}
+.dn{display:flex;align-items:center;gap:clamp(16px,4vw,36px);flex-wrap:wrap;padding:4px 0 6px}
+.chart .donut{width:min(180px,100%);height:auto;flex:none;overflow:visible}.donut circle{fill:none;stroke-width:16}.donut .trk{stroke:var(--sf2)}
+.donut .sl{transition:stroke-width .15s;animation:fade .5s var(--e) both;animation-delay:calc(var(--d)*80ms)}.donut .sl:hover{stroke-width:19}
+.chart .donut .dt{font:700 22px var(--head);fill:var(--ink);letter-spacing:-.02em}.chart .donut .dl{font-size:10.5px}
+.dleg{list-style:none;margin:0;padding:0;display:grid;gap:10px;flex:1;min-width:190px}
+.dleg li{display:grid;grid-template-columns:10px minmax(0,1fr) auto 48px;align-items:center;gap:10px;font-size:13px}.dleg i{width:10px;height:10px;border-radius:3px}.dleg span{color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dleg b{font-variant-numeric:tabular-nums;font-weight:650}.dleg em{font-style:normal;color:var(--mut);text-align:right;font-variant-numeric:tabular-nums}
+.rings{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:14px;padding:4px 0 2px}
+.ring{position:relative;display:grid;justify-items:center;gap:6px;text-align:center}.chart .ring svg{width:92px;height:92px}.ring circle{fill:none;stroke-width:7}.ring .trk{stroke:var(--sf2)}
+.ring .val{stroke:var(--a1);stroke-linecap:round;animation:fade .6s var(--e) both;animation-delay:calc(var(--d)*90ms)}.ring.full .val{stroke:var(--ok)}
+.ring b{position:absolute;top:46px;transform:translateY(-50%);font:700 17px var(--head);font-variant-numeric:tabular-nums;letter-spacing:-.02em}.ring span{font-size:12.5px;color:var(--ink2);font-weight:550}
+.chart .gauge{display:block;width:min(300px,100%);height:auto;margin:0 auto;overflow:visible}.gauge path{fill:none;stroke-width:14;stroke-linecap:round}.gauge .trk{stroke:var(--sf2)}
+.gauge .val{stroke:var(--a1);animation:fade .6s var(--e) both}.gauge.warn .val{stroke:var(--warn)}.gauge.bad .val{stroke:var(--bad)}
+.chart .gauge .gv{font:700 28px var(--head);fill:var(--ink);letter-spacing:-.02em}.chart .gauge .gl2{font-size:12px;fill:var(--ink2)}.chart .gauge .ge{font-size:10.5px}
+.skround{display:flex;gap:18px;justify-content:center;padding:12px 0}.skround .sk{width:120px;height:120px;border-radius:50%;margin:0}
+/* more field kinds */
+.opts-f{border:0;margin:0;padding:0;min-width:0}.opts-f legend{font-size:13px;font-weight:600;color:var(--ink);padding:0;margin-bottom:6px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}.opts.tiles .opt{flex:1;min-width:120px}
+.opt{display:inline-flex;align-items:center;gap:9px;padding:9px 14px 9px 11px;border:1px solid var(--edge2);border-radius:9px;background:var(--sf);cursor:pointer;font-size:13.5px;color:var(--ink2);transition:border-color .15s,background .15s}
+.opt:has(input:checked){border-color:var(--a1);background:color-mix(in srgb,var(--a1) 7%,var(--sf));color:var(--ink)}
+.field .opt input,.ck input{width:16px;height:16px;margin:0;padding:0;border:0;box-shadow:none;accent-color:var(--a1);flex:none;cursor:pointer}
+.num,.aff,.cardin{display:flex;align-items:center;height:40px;border:1px solid var(--edge2);border-radius:9px;background:var(--sf);box-shadow:0 1px 2px rgba(16,24,40,.04);transition:border-color .15s,box-shadow .15s;overflow:hidden}
+.num:focus-within,.aff:focus-within,.cardin:focus-within{border-color:var(--a1);box-shadow:0 0 0 4px color-mix(in srgb,var(--a1) 14%,transparent)}
+.field .num input,.field .aff input,.field .cardin input,.field .aff select{height:38px;border:0;box-shadow:none;border-radius:0;background:transparent;min-width:0;animation:none}
+.num input{text-align:center;font-variant-numeric:tabular-nums}.num .ib{flex:none;width:40px;height:38px;border-radius:0;font-size:17px;color:var(--ink2)}.num .ib:first-child{border-right:1px solid var(--edge)}.num .ib:last-child{border-left:1px solid var(--edge)}
+.aff>b{flex:none;padding:0 2px 0 12px;font-weight:600;color:var(--mut);font-size:13px}.aff.srch>svg{flex:none;margin-left:11px;width:16px;height:16px;color:var(--mut)}.aff.srch>svg:last-of-type{margin:0 11px 0 0}
+.aff.phone .cc{flex:none;height:100%;border-right:1px solid var(--edge);background:var(--sf2)}.field .aff.phone .cc select{width:auto;padding:0 28px 0 12px;font-variant-numeric:tabular-nums}.aff.phone .cc svg{right:8px}
+.field.bad .num,.field.bad .aff,.cardin.bad,.field.bad .otp input{border-color:var(--bad);box-shadow:0 0 0 4px color-mix(in srgb,var(--bad) 12%,transparent)}
+.otp{display:flex;gap:8px}.field .otp input{flex:1;max-width:50px;min-width:0;height:52px;padding:0;text-align:center;font:650 20px var(--font);font-variant-numeric:tabular-nums}
+.rng{display:flex;align-items:center;gap:14px;height:40px}.field .rng input{flex:1;height:6px;padding:0;border:0;border-radius:99px;appearance:none;-webkit-appearance:none;background:linear-gradient(90deg,var(--a1) var(--p),var(--sf2) var(--p));box-shadow:none}
+.rng input::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--sf);border:2px solid var(--a1);box-shadow:0 1px 3px rgba(16,24,40,.2);cursor:pointer}.rng input::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--sf);border:2px solid var(--a1)}
+.rng output{min-width:72px;text-align:right;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.rngl{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-top:-6px}
+.cardin>svg{flex:none;margin-left:12px;color:var(--mut)}.field .cardin input:first-of-type{flex:1}.field .cardin input:not(:first-of-type){flex:none;width:80px;border-left:1px solid var(--edge);text-align:center}
+/* a table that sorts, and rows ticked for a bulk action */
+th[aria-sort]{padding-top:0;padding-bottom:0;height:38px}.sh{display:inline-flex;align-items:center;gap:4px;border:0;background:none;padding:0;font:inherit;color:inherit;letter-spacing:inherit;cursor:pointer}th.n .sh{flex-direction:row-reverse}
+.sh svg{width:13px;height:13px;opacity:0;transition:opacity .15s,transform .15s}.sh:hover svg{opacity:.5}th[aria-sort=ascending],th[aria-sort=descending]{color:var(--ink)}th[aria-sort=ascending] .sh svg,th[aria-sort=descending] .sh svg{opacity:1;color:var(--a1)}.sh svg.flip{transform:rotate(180deg)}
+th.ck,td.ck{width:44px;padding-right:0}tr.picked td{background:color-mix(in srgb,var(--a1) 6%,var(--sf))}
+.bulk{display:flex;align-items:center;gap:12px;padding:8px 12px 8px 16px;background:color-mix(in srgb,var(--a1) 8%,var(--sf));border-bottom:1px solid color-mix(in srgb,var(--a1) 22%,var(--edge));font-size:13px;animation:enter .25s var(--e)}.bulk[hidden]{display:none}
+.bulk .bb{display:flex;gap:8px;margin-left:auto}.bulk .btn{height:32px;padding:0 12px;font-size:12.5px}
+@container app (max-width:640px){.bulk{flex-wrap:wrap}.bulk .bb{margin-left:0;width:100%}.bulk .bb .btn{flex:1;justify-content:center}.dn{justify-content:center}.field .cardin input:not(:first-of-type){width:72px;padding:0 6px}.cardin input:last-of-type{width:56px}.chart svg.lc-w{position:absolute;visibility:hidden;width:0;height:0;overflow:hidden}.chart svg.lc-n{position:static;visibility:visible;width:100%;height:auto;overflow:visible}.topbar .swt{display:none}.topbar .swb{padding:4px 6px 4px 4px}.seg{margin-left:0}.ch{flex-wrap:wrap}
 .rail,.tnav{display:none}.shell{flex-direction:column;min-height:0}.topbar{height:54px}.tabbar{display:flex}
 .crumbs>:not(.back){display:none}.crumbs .back{display:inline-flex}.topbar .nb{display:flex}.stage:has(>.tabbar) .toast.pin{bottom:92px}
 .pane{--px:14px;padding:18px 14px 24px}.ph .pa{width:100%}.ph .pa .btn{flex:1;justify-content:center}.form{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stats>.stat:last-child:nth-child(odd){grid-column:1/-1}.stat .v{font-size:22px}.spark{display:none}.search{min-width:0;flex:1}.toolbar .filters{flex-direction:column;align-items:stretch}.chips{overflow:auto;flex-wrap:nowrap}.bars{padding-left:30px}.bars .g{left:30px}.bars .g em{left:-30px;width:24px}}
@@ -779,7 +947,7 @@ const JS = `
   function go(id){var sec=document.getElementById(id);if(!sec)return;location.hash=id;setTimeout(function(){sec.scrollIntoView({block:"start"})},0)}
   // what each page leads to: buttons by label, rows by their first cell, cards, list items and slides by their title
   $(".pane[data-links]").forEach(function(p){var L={};JSON.parse(p.getAttribute("data-links")).forEach(function(l){L[l.from.trim().toLowerCase()]=l.to});
-    var name=function(el){if(el.tagName==="BUTTON")return label(el);if(el.tagName==="TR"){var c=el.querySelector("td");while(c&&c.lastChild)c=c.lastChild;return c?c.textContent.trim().toLowerCase():""}var b=el.querySelector("b");return b?b.textContent.trim().toLowerCase():""};
+    var name=function(el){if(el.tagName==="BUTTON")return label(el);if(el.tagName==="TR"){var c=el.querySelector("td:not(.ck)");while(c&&c.lastChild)c=c.lastChild;return c?c.textContent.trim().toLowerCase():""}var b=el.querySelector("b");return b?b.textContent.trim().toLowerCase():""};
     $(".app button,.app tbody tr,.app .card.item,.app .li,.app .slide",p).forEach(function(el){if(el.closest(".ovl"))return;var to=L[name(el)];if(to){el.setAttribute("data-go",to);el.classList.add("go")}})});
   function label(b){return (b.textContent.trim()||b.getAttribute("aria-label")||"").toLowerCase()}
   // a menu opens under the button that opened it
@@ -795,6 +963,10 @@ const JS = `
     $("[data-state]",s).forEach(function(b){b.addEventListener("click",function(){
       $("[data-state]",s).forEach(function(x){x.className=""});b.className="on";
       var k=b.getAttribute("data-state");$("[data-wf]",s).forEach(function(w){var on=w.getAttribute("data-wf")===k;w.hidden=!on;if(on){count(w);$(".ovl[data-open]",w).forEach(function(o){o.classList.add("open");place(o)})}})})});
+    // a slider shows its value as it moves; a one-time code moves to the next box as each digit is typed
+    s.addEventListener("input",function(e){var t=e.target;
+      if(t.type==="range"){var o=t.parentNode.querySelector("output");t.style.setProperty("--p",((t.value-t.min)/(t.max-t.min||1)*100)+"%");if(o)o.textContent=(t.getAttribute("data-pre")||"")+Number(t.value).toLocaleString("en")+(t.getAttribute("data-suf")||"");return}
+      if(t.closest&&t.closest(".otp")&&t.value&&t.nextElementSibling)t.nextElementSibling.focus()});
     s.addEventListener("input",function(e){var t=e.target;if(!t.matches||!t.matches('input[type=search]'))return;
       var q=t.value.toLowerCase(),pane=t.closest(".pane");$("tbody tr,.cards .item,.list .li",pane).forEach(function(r){r.style.display=r.textContent.toLowerCase().indexOf(q)>-1?"":"none"})});
     s.addEventListener("click",function(e){
@@ -806,6 +978,21 @@ const JS = `
         btn.querySelector(".swt b").textContent=to;btn.querySelector(".swa").textContent=sb.querySelector(".swa").textContent;var sm=btn.querySelector(".swt small");if(sm)sm.remove();m.hidden=true;btn.setAttribute("aria-expanded","false");toast(s,"Switched to "+to,"info");return}
       var dr=e.target.closest?e.target.closest("[data-drawer],.scrim,.dp a"):null;
       if(dr){var cv=dr.closest(".canvas");if(dr.hasAttribute("data-drawer"))cv.classList.toggle("dopen");else cv.classList.remove("dopen");return}
+      // a table's tick boxes (one row, or all of them): the bulk bar shows while any row is ticked
+      var ck=e.target.closest?e.target.closest(".tbl .ck input"):null;
+      if(ck){var tb=ck.closest(".tbl"),boxes=$("tbody .ck input",tb);if(ck.closest("thead"))boxes.forEach(function(x){x.checked=ck.checked});boxes.forEach(function(x){x.closest("tr").classList.toggle("picked",x.checked)});
+        var n=boxes.filter(function(x){return x.checked}).length,h=tb.querySelector("thead .ck input");if(h){h.checked=n>0&&n===boxes.length;h.indeterminate=n>0&&n<boxes.length}var bk=tb.querySelector(".bulk");if(bk){bk.hidden=!n;bk.querySelector(".bn").textContent=n}return}
+      var clr=e.target.closest?e.target.closest("[data-clear]"):null;
+      if(clr){$(".ck input",clr.closest(".tbl")).forEach(function(x){x.checked=false;x.indeterminate=false;var r=x.closest("tbody tr");if(r)r.classList.remove("picked")});clr.closest(".bulk").hidden=true;return}
+      // a sortable header sorts the rows by its column, the other way round when it already does
+      var sh=e.target.closest?e.target.closest(".sh"):null;
+      if(sh){var th=sh.closest("th"),tbl=th.closest("table"),ci=+sh.getAttribute("data-sort"),cur=th.getAttribute("aria-sort"),asc=cur==="none"?!th.classList.contains("n"):cur==="descending";
+        $("th[aria-sort]",tbl).forEach(function(x){x.setAttribute("aria-sort","none");x.querySelector("svg").classList.remove("flip")});th.setAttribute("aria-sort",asc?"ascending":"descending");sh.querySelector("svg").classList.toggle("flip",asc);
+        var body=tbl.tBodies[0],key=function(r){var c=r.querySelectorAll("td[data-v]")[ci];return c?c.getAttribute("data-v"):""};
+        [].slice.call(body.rows).sort(function(a,b){var x=key(a),y=key(b),d=x!==""&&y!==""&&isFinite(x)&&isFinite(y)?x-y:x.localeCompare(y);return asc?d:-d}).forEach(function(r){body.appendChild(r)});return}
+      // a number field's − and + buttons
+      var stp=e.target.closest?e.target.closest("[data-step]"):null;
+      if(stp){var ni=stp.parentNode.querySelector("input"),nv=parseFloat((ni.value||"0").replace(/,/g,""))||0;ni.value=String(Math.max(0,nv+(+stp.getAttribute("data-step"))));return}
       var ob=e.target.closest?e.target.closest("button"):null,inOv=e.target.closest?e.target.closest(".ovl"):null;
       if(inOv){if(e.target.classList.contains("ovs")||(ob&&(ob.hasAttribute("data-close")||ob.closest(".ova")||ob.classList.contains("mitem")))){inOv.classList.remove("open");if(ob&&(ob.classList.contains("primary")||ob.classList.contains("mitem")))said(s,ob,ob.textContent.trim()+" done")}return}
       if(ob&&ob.closest(".pane")){var lab=label(ob),ov=$(".ovl",ob.closest(".pane")).filter(function(o){return o.getAttribute("data-trigger").toLowerCase()===lab})[0];if(ov){ov.classList.add("open");place(ov);return}}
@@ -901,7 +1088,7 @@ export function buildDemo(d: DemoInput): string {
       const ov = s.mock?.overlays?.findIndex((o) => overlayLabel(o) === st) ?? -1;
       const tst = s.mock?.toasts?.findIndex((t) => toastLabel(t) === st) ?? -1;
       const inner = st === FULL_DATA && s.mockFull
-        ? renderMock(s.mockFull, "normal", st)
+        ? (() => { busy = true; try { return renderMock(s.mockFull!, "normal", st); } finally { busy = false; } })()
         : s.mock && ov >= 0
         ? renderMock(s.mock, "normal", st, ov)
         : s.mock && tst >= 0
