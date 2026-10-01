@@ -161,14 +161,59 @@ export const Spec = withHeader({
 });
 export type Spec = z.infer<typeof Spec>;
 
+/** What a screen shows, with believable sample data: drawn into the clickable demo (code, no model). Kept small on purpose. */
+const Str = (n: number) => z.string().max(n);
+export const MockBlock = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("stats"), items: z.array(z.object({ label: Str(40), value: Str(24), delta: Str(24).optional() })).min(1).max(4) }),
+  z.object({ type: z.literal("filters"), search: Str(40).optional(), chips: z.array(Str(30)).max(6).default([]) }),
+  z.object({ type: z.literal("table"), columns: z.array(Str(30)).min(1).max(6), rows: z.array(z.array(Str(60))).min(1).max(6), statusColumn: z.number().int().min(0).optional() }),
+  z.object({ type: z.literal("form"), fields: z.array(z.object({ label: Str(40), kind: z.enum(["text", "select", "date", "textarea", "toggle"]).default("text"), placeholder: Str(60).optional(), value: Str(80).optional(), options: z.array(Str(40)).max(8).optional() })).min(1).max(6), submit: Str(30).default("Save") }),
+  z.object({ type: z.literal("chart"), kind: z.enum(["bar", "line"]).default("bar"), title: Str(60), points: z.array(z.object({ label: Str(16), value: z.number() })).min(2).max(8) }),
+  z.object({ type: z.literal("cards"), visual: z.boolean().optional(), items: z.array(z.object({ title: Str(50), meta: Str(80), badge: Str(24).optional() })).min(1).max(6) }),
+  z.object({ type: z.literal("steps"), items: z.array(Str(30)).min(2).max(6), current: z.number().int().min(0).default(0) }),
+  z.object({ type: z.literal("timeline"), items: z.array(z.object({ time: Str(24), title: Str(60), meta: Str(80).optional(), status: z.enum(["done", "now", "next"]).default("next") })).min(1).max(6) }),
+  z.object({ type: z.literal("detail"), style: z.enum(["card", "pass"]).default("card"), title: Str(50).optional(), lead: z.object({ label: Str(30), value: Str(40) }).optional(), rows: z.array(z.object({ label: Str(30), value: Str(60) })).min(1).max(8) }),
+  z.object({ type: z.literal("list"), items: z.array(z.object({ title: Str(60), meta: Str(80) })).min(1).max(6) }),
+  z.object({ type: z.literal("actions"), buttons: z.array(Str(30)).min(1).max(4) }),
+  z.object({ type: z.literal("text"), body: Str(240) }),
+]);
+export const ScreenMock = z.object({
+  title: Str(60), subtitle: Str(120).optional(),
+  blocks: z.array(MockBlock).min(1).max(6),
+  /** the words a state shows: the empty page, an error, a success message, a validation message */
+  copy: z.object({ emptyTitle: Str(60).optional(), emptyHint: Str(120).optional(), error: Str(140).optional(), success: Str(140).optional(), validation: Str(140).optional() }).default({}),
+});
+export type ScreenMock = z.infer<typeof ScreenMock>;
+
+/** The look the design step picks for the product: colours, light or dark, corners, motion. Drawn by the demo (code, no model). */
+const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+export const DesignTheme = z.object({
+  mood: Str(40),
+  mode: z.enum(["light", "dark", "auto"]).default("light"),
+  /** the product's one brand colour; an optional second colour is a sparing highlight */
+  brand: Hex, accent: Hex.optional(),
+  neutral: z.enum(["cool", "warm", "pure"]).default("cool"),
+  /** the app bar: filled with the brand colour, or plain */
+  chrome: z.enum(["brand", "plain"]).default("plain"),
+  font: z.enum(["sans", "humanist", "serif", "rounded"]).default("sans"),
+  radius: z.enum(["sharp", "soft", "round"]).default("soft"),
+  density: z.enum(["comfortable", "compact"]).default("comfortable"),
+  surface: z.enum(["flat", "soft", "glass"]).default("flat"),
+  motion: z.enum(["calm", "lively"]).default("lively"),
+});
+export type DesignTheme = z.infer<typeof DesignTheme>;
+export type MockBlock = z.infer<typeof MockBlock>;
+
 export const DesignBody = z.object({
   flow: z.string(),
   screens: z.array(z.object({
     id: Id, route: z.string(), file: z.string(), reqs: z.array(Id),
     states: z.array(z.string()).optional(), size: z.enum(["new", "tweak", "design-system", "reuse"]).optional(), frames: z.array(z.string()).optional(),
+    mock: ScreenMock.optional(),
   })),
   mapping: z.object({ unmappedReqs: z.array(Id), orphanScreens: z.array(Id) }),
   noScreen: z.array(z.object({ req: Id, reason: z.string() })).optional(),
+  theme: DesignTheme.optional(),
   figmaUrl: z.string().optional(),
 });
 export const Design = withHeader(DesignBody.shape);

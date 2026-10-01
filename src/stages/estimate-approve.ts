@@ -11,7 +11,7 @@ import { designBaseline, leadApproval } from "../estimate/gates.js";
 import { exportWorkbooks, type ExportInput } from "../estimate/export.js";
 import { considerationsFrom } from "../estimate/considerations.js";
 import { diffDesigns, diffEstimates } from "../estimate/lineage.js";
-import { buildDemo, frameDataUri } from "../estimate/demo.js";
+import { buildDemo, frameDataUri, orderStates } from "../estimate/demo.js";
 import { captureDemo, type ShotResult } from "../estimate/screenshots.js";
 import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
 import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
@@ -84,7 +84,7 @@ export const designBaselineStep: StepDef = {
     const d = design;
     const html = buildDemo({
       title: ctx.state.info.estimate?.projectName ?? ctx.runId, flow: d.flow, screens: d.screens.map((s) => ({ ...s, states: s.states ?? [], size: s.size ?? "new", frames: s.frames ?? [] })),
-      requirements: Object.fromEntries(spec.requirements.map((r) => [r.id, r.ears])), noScreen: d.noScreen ?? [], frames,
+      requirements: Object.fromEntries(spec.requirements.map((r) => [r.id, r.ears])), noScreen: d.noScreen ?? [], frames, ...(d.theme ? { theme: d.theme } : {}),
     });
     const demoSha = ctx.ledger.putArtifact(html);
     const demoFile = join(ctx.ledger.dir, "design-demo.html");
@@ -121,7 +121,7 @@ export const designBaselineStep: StepDef = {
     const bundle = bundleOf(past.length);
     // pictures of the demo, only when a person is about to look at it; best effort, never a reason to stop
     const shotsDir = join(previewDir, "shots");
-    const taken = await captureDemo(demoFile, d.screens.map((sc) => ({ id: sc.id, route: sc.route, states: sc.states ?? [] })), shotsDir);
+    const taken = await captureDemo(demoFile, d.screens.map((sc) => ({ id: sc.id, route: sc.route, states: orderStates(sc.states ?? []) })), shotsDir);
     if (taken.shots.length) writePreview(taken.shots);
     if (taken.note) ctx.log(`design-baseline: ${taken.note}`);
     return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle, { demo: demoFile, ...(diff ? { diff } : {}), shots: { dir: shotsDir, count: taken.shots.length, ...(taken.note ? { note: taken.note } : {}) } }) } };

@@ -833,7 +833,8 @@ async function previewScreen(id) {
     return;
   }
   const pv = p.preview;
-  const url = (path) => p.base + path.split("/").map(encodeURIComponent).join("/");
+  // keep a "#screen" or "?query" tail out of the encoding: "index.html#S-1" must not become a file named "index.html%23S-1"
+  const url = (path) => { const [file, ...tail] = path.split(/(?=[?#])/); return p.base + file.split("/").map(encodeURIComponent).join("/") + tail.join(""); };
   const parts = [];
   if (pv.site) {
     const screens = pv.site.screens.length ? pv.site.screens : [{ path: pv.site.entry, title: "Start" }];

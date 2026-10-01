@@ -1,6 +1,6 @@
 // Screenshots of the clickable demo (docs/estimates-design.md, "Design baseline"): each screen in each state,
 // at phone and desktop width, taken from the demo page in headless Chromium. They are pictures of the
-// wireframe (or of the cited Figma frame), so the card and `factory ui` show something to look at without
+// drawn screen (or of the cited Figma frame), so the card and `factory ui` show something to look at without
 // opening the page. Best effort: no browser, or a browser that fails, is reported in `note` and never
 // fails the run, and the approval is tied to the demo page, not to these files.
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
@@ -55,6 +55,7 @@ export async function captureDemo(demoFile: string, screens: ScreenShotInput[], 
         for (const [k, st] of states.entries()) {
           if (shots.length >= MAX_SHOTS) return { shots, note: `stopped at ${MAX_SHOTS} screenshots` };
           await page.locator(`#${sc.id.replace(/[^\w-]/g, "\\$&")} [data-state="${k}"]`).click();
+          await page.waitForTimeout(1200); // the page animates in
           const file = `${slug(sc.id)}-${slug(st)}-${vp}.png`;
           await page.screenshot({ path: join(outDir, file) });
           shots.push({ file, screen: `${sc.id} ${sc.route}`, state: st, viewport: vp });
