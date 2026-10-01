@@ -105,3 +105,19 @@ export async function measureAndSave(industryIds: string[] = [], path?: string):
   if (good.length) saveMeasured(Object.fromEntries(good.map((x) => [x.id, x.reading!])), path);
   return { ...r, saved: good.length };
 }
+
+/**
+ * Before the design step briefs a field, read the live pages of its top brands, every time, so the colours the design is checked
+ * against are today's. Silent and best effort: it prints nothing, a missing browser, no network or a slow site keeps the reported
+ * values, and a hard cap means the pipeline never waits on it for long. Off with FACTORY_DESIGN_LIVE_REFS=0.
+ */
+export async function ensureMeasured(industryIds: string[], opts: { path?: string; max?: number; capMs?: number } = {}): Promise<{ measured: number; note?: string }> {
+  if (process.env.FACTORY_DESIGN_LIVE_REFS === "0" || process.env.VITEST) return { measured: 0, note: "live reference reading is off" };
+  const todo = brandsFor(industryIds).slice(0, opts.max ?? 4);
+  if (!todo.length) return { measured: 0 };
+  const cap = new Promise<{ results: MeasureResult[]; note: string }>((res) => setTimeout(() => res({ results: [], note: "live reading timed out" }), opts.capMs ?? 45_000).unref());
+  const r = await Promise.race([measureBrands(todo, { timeoutMs: 10_000 }), cap]);
+  const good = r.results.filter((x) => x.reading?.brand);
+  if (good.length) saveMeasured(Object.fromEntries(good.map((x) => [x.id, x.reading!])), opts.path);
+  return { measured: good.length, ...(r.note ? { note: r.note } : {}) };
+}

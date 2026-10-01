@@ -20,7 +20,9 @@ session.
    (`src/stages/design.ts`) adds it as a "design references" section. The rules tell the model to
    stay in the family, borrow what the brands share, and not reuse any one brand's exact colour,
    name or logo. No match, no section, and the rules fall back to a general line.
-4. The prompt template version is 6, so the cross-run cache does not replay old designs.
+4. The prompt template version is 12, so the cross-run cache does not replay old designs.
+5. **Proof, checked in code** (`refs/fit.ts`). The design's `theme.basis` must cite at least two of the briefed brands and what was taken from each. The brand colour must sit within 40 degrees of hue of a reference colour (`design-off-reference`), and must not be the same shade as one brand (`design-copied`). A failure sends the model back with the reason. For a field with no references, `basis` must name two or three well-known real products. None of this is shown to the lead; they see only the final design.
+6. **Silent live read, every new design.** Before the model call, `ensureMeasured` (`refs/measure.ts`) opens up to four of the matched brands that are not yet measured, within a 45 second cap, and saves them to the measured file. It is best effort: any failure keeps the reported colours. Set `FACTORY_DESIGN_LIVE_REFS=0` to turn it off (tests turn it off themselves). When a lead sends a design back, it runs again only if the look itself is being changed.
 
 ## Fields nobody listed
 
@@ -55,11 +57,11 @@ file with more brands or sharper notes for that field.
 ## Reported versus measured
 
 The colours in `data.ts` are reported: gathered from brand pages and aggregator sites and rounded.
-They were not measured from the live sites (this environment cannot reach them), and sources
+Until measured, they were not read from the live sites, and sources
 disagree (Lufthansa's navy appears as three different values). They are enough to show the family;
 do not treat them as brand-accurate.
 
-To replace them with measurements, run where the sites are reachable:
+The design step measures a few brands on its own each time (see step 6). To measure everything up front, run where the sites are reachable:
 
 ```
 factory design refs measure                      # every brand

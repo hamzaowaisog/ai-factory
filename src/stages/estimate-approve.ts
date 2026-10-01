@@ -11,7 +11,7 @@ import { designBaseline, leadApproval } from "../estimate/gates.js";
 import { exportWorkbooks, type ExportInput } from "../estimate/export.js";
 import { considerationsFrom } from "../estimate/considerations.js";
 import { diffDesigns, diffEstimates } from "../estimate/lineage.js";
-import { buildDemo, frameDataUri, orderStates } from "../estimate/demo.js";
+import { buildDemo, demoStates, frameDataUri } from "../estimate/demo.js";
 import { captureDemo, type ShotResult } from "../estimate/screenshots.js";
 import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
 import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
@@ -22,6 +22,7 @@ import { hashJson } from "../util/hash.js";
 import type { ClarifyResult } from "./clarify.js";
 import { gate, settingsOf } from "./estimate.js";
 import { listedFrames, MAX_DESIGN_REVISIONS } from "./design.js";
+import { reworkCardLines } from "./design-rework.js";
 import { header, outputOf, readOutput, requireOutput, type StepDef, type StepOutcome } from "./framework.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -40,12 +41,13 @@ export function designCard(runId: string, design: DesignT, hash: string, extra: 
     extra.demo ? `Clickable demo (open in a browser, walk every screen and state before approving): ${extra.demo}` : "",
     extra.shots?.count ? `Screenshots: ${extra.shots.count} in ${extra.shots.dir} (each screen and state, phone and desktop width)${extra.shots.note ? `; ${extra.shots.note}` : ""}` : extra.shots?.note ? `Screenshots: none (${extra.shots.note})` : "", ``,
     ...(extra.diff ? [`## Change from the approved design`, ...(extra.diff.length ? extra.diff.map((l) => `- ${l}`) : ["- no screen changed"]), ``] : []),
+    ...reworkCardLines(design as never),
     `Screens (${design.screens.length}):`,
-    ...design.screens.map((s) => { const x = s as typeof s & { states?: string[]; size?: string }; return `- ${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}${x.size ? `; ${x.size}` : ""}${x.states?.length ? `; states: ${x.states.join(", ")}` : ""}`; }), ``,
+    ...design.screens.map((s) => { const x = s as typeof s & { states?: string[]; size?: string; mock?: { title: string } }; const title = x.mock?.title ? `${x.mock.title}: ` : ""; return `- ${title}${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}${x.size ? `; ${x.size}` : ""}${x.states?.length ? `; states: ${x.states.join(", ")}` : ""}`; }), ``,
     design.mapping.unmappedReqs.length ? `Requirements with no screen: ${design.mapping.unmappedReqs.join(", ")}` : "Every requirement has a screen.",
     design.mapping.orphanScreens.length ? `Screens with no requirement: ${design.mapping.orphanScreens.join(", ")}` : "Every screen links to a requirement.", ``,
     `Approve: factory approve ${runId} ${hash.slice(0, 8)}`,
-    `Reject:  factory reject ${runId} ${hash.slice(0, 8)} --reason "why"   (the design is redrawn with your reason and you get a new card; the run does not stop)`, ``, `Card hash: ${hash.slice(0, 8)}`,
+    `Reject:  factory reject ${runId} ${hash.slice(0, 8)} --reason "why"   (only the parts you point at are fixed, or the whole design is redrawn if that is what it needs; you get a new card and the run does not stop)`, ``, `Card hash: ${hash.slice(0, 8)}`,
   ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
 }
 
@@ -122,7 +124,7 @@ export const designBaselineStep: StepDef = {
     const bundle = bundleOf(past.length);
     // pictures of the demo, only when a person is about to look at it; best effort, never a reason to stop
     const shotsDir = join(previewDir, "shots");
-    const taken = await captureDemo(demoFile, d.screens.map((sc) => ({ id: sc.id, route: sc.route, states: orderStates(sc.states ?? []) })), shotsDir);
+    const taken = await captureDemo(demoFile, d.screens.map((sc) => ({ id: sc.id, route: sc.route, states: demoStates(sc as never) })), shotsDir);
     if (taken.shots.length) writePreview(taken.shots);
     if (taken.note) ctx.log(`design-baseline: ${taken.note}`);
     return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle, { demo: demoFile, ...(diff ? { diff } : {}), shots: { dir: shotsDir, count: taken.shots.length, ...(taken.note ? { note: taken.note } : {}) } }) } };

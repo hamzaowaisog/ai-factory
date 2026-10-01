@@ -396,10 +396,10 @@ describe("export step", () => {
 // ---------- design step ----------
 describe("design step", () => {
   const twoReqs = { ...spec, requirements: [...spec.requirements, { id: "REQ-2", ears: "The system shall export a PDF report.", op: "ADDED", sources: ["I-1"], acceptance: [] }] };
-  const theme = { mood: "calm clinical", mode: "light", brand: "#1f6feb", neutral: "cool", chrome: "plain", font: "sans", radius: "soft", density: "comfortable", surface: "flat", motion: "lively" };
+  const theme = { mood: "calm clinical", mode: "light", brand: "#1f6feb", neutral: "cool", chrome: "plain", font: "sans", radius: "soft", density: "comfortable", surface: "flat", motion: "lively", basis: [{ ref: "Epic MyChart", took: "calm white page, one blue action" }, { ref: "Linear", took: "hairline borders, compact tables" }] };
   const mock = { title: "Sign in", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["Sign in"] }], copy: {} };
   /** a finished-looking answer: every screen without a frame gets sample content, and the product has a theme */
-  const dress = (o: { screens: Record<string, unknown>[] } & Record<string, unknown>) => ({ theme, ...o, screens: o.screens.map((s) => (s.mock || (s.frames as unknown[] | undefined)?.length ? s : { ...s, mock })) });
+  const dress = (o: { screens: Record<string, unknown>[] } & Record<string, unknown>) => ({ theme, ...o, screens: o.screens.map((s) => (s.mock || (s.frames as unknown[] | undefined)?.length ? s : { ...s, mock, mockFull: mock })) });
   const out = (over: Record<string, unknown> = {}) => dress({
     flow: "A user signs in, lands on the dashboard", screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["error"], size: "new" }],
     noScreen: [{ req: "REQ-2", reason: "a scheduled job, no screen" }], ...over,
@@ -478,6 +478,73 @@ describe("design step", () => {
     await decide(ledger, card, "design-baseline", "approve");
     expect((await exec(ledger, designBaselineStep)).kind).toBe("done");
   });
+
+  describe("sending the design back", () => {
+    const page = (title: string, extra: object = {}) => ({ title, blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["Go"] }], copy: {}, ...extra });
+    const sc = (id: string, route: string, title: string, reqs: string[]) => ({ id, route, file: `${id}.tsx`, reqs, states: [], size: "new", mock: page(title), mockFull: page(title) });
+    const three = () => ({ flow: "f", screens: [sc("S-1", "/find", "Find a flight", ["REQ-1"]), sc("S-2", "/book", "Book your flight", ["REQ-2"]), sc("S-3", "/trips", "My trips", ["REQ-1"])], noScreen: [] });
+    const triage = (o: object) => ({ verdict: "patch", summary: "s", items: [], fine: [], notDesign: [], ...o });
+    async function rejected(reason: string) {
+      const ledger = await uiRun();
+      answer = () => dress(three() as never);
+      await exec(ledger, designStep);
+      const card = await exec(ledger, designBaselineStep);
+      await decide(ledger, card, "design-baseline", "reject", { reason });
+      return ledger;
+    }
+    const queue = (...xs: unknown[]) => { answer = () => { if (!xs.length) throw new Error("one model call too many"); return xs.shift(); }; };
+    const latest = (ledger: Ledger) => ledger.getJson<{ screens: { id: string; mock?: { title: string } }[]; rework?: { mode: string; patched: string[]; lines: string[]; kept: string[] }[]; revision?: number }>(replay(ledger.events()).steps.get("design")!.outputs[0]!);
+    const item = (o: object) => ({ part: "screen", screen: "S-2", quote: "the booking page is crowded", change: "fewer blocks, clearer steps", confidence: "high", ...o });
+
+    it("fixes only the page the lead named: one cheap read and one page call, the rest untouched", async () => {
+      const ledger = await rejected("the booking page is way too crowded, the trips list is fine");
+      const before = latest(ledger);
+      const fixed = sc("S-2", "/book", "Book your flight", ["REQ-2"]);
+      queue(triage({ items: [item({})], fine: ["S-3"] }), { screen: { ...fixed, mock: page("Book your flight", { blocks: [{ type: "steps", items: ["Seats", "Extras", "Pay"], current: 0 }, { type: "actions", buttons: ["Continue"] }] }) } });
+      modelCalls = 0;
+      const o = await exec(ledger, designStep);
+      expect(o.kind).toBe("done");
+      expect(modelCalls).toBe(2);
+      const after = latest(ledger);
+      expect(after.screens[0]).toEqual(before.screens[0]);
+      expect(after.screens[2]).toEqual(before.screens[2]);
+      expect(after.screens[1]).not.toEqual(before.screens[1]);
+      expect(after.rework![0]).toMatchObject({ mode: "patch", patched: ["S-2"], kept: ["Find a flight", "My trips"] });
+      expect(after.rework![0]!.lines[0]).toMatch(/^Book your flight: fewer blocks, clearer steps \(you said: "the booking page is crowded"\)/);
+      const md = ((await exec(ledger, designBaselineStep)) as { card: { markdown: string } }).card.markdown;
+      expect(md).toMatch(/## What changed from your feedback/);
+      expect(md).toMatch(/Kept exactly as before: Find a flight, My trips\./);
+      expect(md).toMatch(/- Book your flight: S-2 \/book/);
+    });
+    it("redraws everything when the note is about the structure, and says so", async () => {
+      const ledger = await rejected("the whole flow is wrong, there should be a basket page");
+      queue(triage({ verdict: "redraw", items: [item({ part: "screen", screen: undefined, confidence: "low" })] }), dress(three() as never));
+      modelCalls = 0;
+      expect((await exec(ledger, designStep)).kind).toBe("done");
+      expect(modelCalls).toBe(2);
+      expect(latest(ledger).rework![0]).toMatchObject({ mode: "redraw" });
+      expect(latest(ledger).rework![0]!.lines[0]).toMatch(/organised, so I redrew all of it/);
+    });
+    it("draws nothing for a request no requirement covers, and says it is not a design change", async () => {
+      const ledger = await rejected("add a way to transfer a ticket to a friend");
+      const before = latest(ledger);
+      queue(triage({ notDesign: [{ quote: "transfer a ticket to a friend", why: "no requirement covers it" }] }));
+      modelCalls = 0;
+      expect((await exec(ledger, designStep)).kind).toBe("done");
+      expect(modelCalls).toBe(1);
+      expect(latest(ledger).screens).toEqual(before.screens);
+      expect(((await exec(ledger, designBaselineStep)) as { card: { markdown: string } }).card.markdown).toMatch(/Not changed: "transfer a ticket to a friend".*factory estimate --revises/);
+    });
+    it("falls back to a full redraw when the fixed page keeps failing its checks", async () => {
+      const ledger = await rejected("the booking page is crowded");
+      const wrong = { screen: sc("S-9", "/other", "Book your flight", ["REQ-2"]) };
+      queue(triage({ items: [item({})] }), wrong, wrong, dress(three() as never));
+      modelCalls = 0;
+      expect((await exec(ledger, designStep)).kind).toBe("done");
+      expect(modelCalls).toBe(4);
+      expect(latest(ledger).rework![0]!.lines[0]).toMatch(/did not hold up to the checks/);
+    });
+  });
 });
 
 // ---------- edits on the card ----------
@@ -537,10 +604,11 @@ describe("design quality (a finished look, not a wireframe)", () => {
     const checks = (o: object) => designQuality({ ...base, ...o } as never).map((q) => q.check);
     expect(checks({ screens: [sc()] })).toEqual(["design-no-theme", "design-no-mock"]);
     expect(checks({ theme: { brand: "#112233" }, screens: [sc({ mock: mockOf(two) })] })).toEqual([]);
+    expect(checks({ theme: {}, screens: [sc({ mock: mockOf([{ type: "stats", items: [{ label: "A", value: "1" }] }, two[0]]) })] })).toEqual(["design-no-full-mock"]);
     expect(checks({ theme: {}, screens: [sc({ frames: ["F-1"] })] })).toEqual([]);
   });
   it("rejects thin pages, short tables and placeholder text", () => {
-    const checks = (m: unknown) => designQuality({ ...base, theme: {}, screens: [sc({ mock: m })] } as never).map((q) => q.check);
+    const checks = (m: unknown) => designQuality({ ...base, theme: {}, screens: [sc({ mock: m })] } as never).map((q) => q.check).filter((c) => !c.includes("full-mock"));
     expect(checks(mockOf([two[0]]))).toEqual(["design-thin-mock"]);
     expect(checks(mockOf([...two, { type: "table", columns: ["A"], rows: [["x"]] }]))).toEqual(["design-thin-mock"]);
     expect(checks(mockOf([{ type: "list", items: [{ title: "Item 1", meta: "m" }] }, two[0]]))).toEqual(["design-placeholder"]);

@@ -49,6 +49,13 @@ export function stateKind(state: string): StateKind {
 }
 
 /** The order the demo lists a screen's states: the normal page first, then success, validation, loading, empty, error. Screenshots use the same order. */
+/** The states a screen's demo lists: its own, in order, and a "Full data" page when the design gave dense sample data. */
+export function demoStates(s: { states?: string[]; frames?: string[]; mockFull?: unknown }): string[] {
+  const own = s.states?.length ? orderStates(s.states) : ["default"];
+  return s.mockFull && !s.frames?.length ? [...own, FULL_DATA] : own;
+}
+export const FULL_DATA = "Full data";
+
 export function orderStates(states: string[]): string[] {
   const rank: Record<StateKind, number> = { normal: 0, success: 1, validation: 2, loading: 3, empty: 4, error: 5 };
   return states.map((st, i) => ({ st, i })).sort((a, b) => rank[stateKind(a.st)] - rank[stateKind(b.st)] || a.i - b.i).map((x) => x.st);
@@ -69,19 +76,21 @@ const ICONS = {
   check: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m8.2 12.3 2.6 2.6 5-5.4"/></svg>',
 };
 
-/** The loading look of a block: grey shapes that shimmer, in the block's own layout. */
+/** The loading look of a block: what is static stays real (labels, column headers, titles, filters, buttons, step names), and only the data becomes shimmering shapes. */
 function skeleton(b: MockBlock): string {
   const bar = (w: number, h = 12) => `<i class="sk" style="width:${w}%;height:${h}px"></i>`;
   switch (b.type) {
-    case "stats": return `<div class="stats">${b.items.map(() => `<div class="stat">${bar(50, 10)}${bar(70, 26)}${bar(35, 10)}</div>`).join("")}</div>`;
-    case "table": return `<div class="card">${bar(100, 30)}${[0, 1, 2, 3, 4].map(() => `<div class="skrow">${bar(22)}${bar(36)}${bar(14)}</div>`).join("")}</div>`;
-    case "form": return `<div class="card">${b.fields.map(() => `<div class="skfield">${bar(24, 10)}${bar(100, 38)}</div>`).join("")}${bar(26, 38)}</div>`;
-    case "chart": return `<div class="card">${bar(30, 12)}<i class="sk" style="width:100%;height:150px;margin-top:14px"></i></div>`;
-    case "steps": return `<div class="row">${bar(60, 30)}</div>`;
-    case "cards": return `<div class="cards">${b.items.slice(0, 3).map(() => `<div class="card">${bar(60, 14)}${bar(90)}${bar(40)}</div>`).join("")}</div>`;
-    case "list": return `<div class="card">${[0, 1, 2, 3].map(() => `<div class="skrow">${bar(8, 28)}${bar(60)}</div>`).join("")}</div>`;
-    case "filters": return `<div class="filters">${bar(34, 36)}${bar(12, 30)}${bar(12, 30)}</div>`;
-    case "actions": return `<div class="row">${bar(16, 38)}</div>`;
+    case "stats": return `<div class="stats">${b.items.map((it) => `<div class="stat"><span class="k">${esc(it.label)}</span>${bar(60, 26)}${it.delta ? bar(32, 10) : ""}</div>`).join("")}</div>`;
+    case "table": return `<div class="card tbl"><table><thead><tr>${b.columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${[0, 1, 2, 3, 4].map((r) => `<tr>${b.columns.map((_, i) => `<td>${bar(i === 0 ? 70 : 40 + ((r * 13 + i * 29) % 45), 12)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    case "form": return `<div class="card form">${b.fields.map((f) => `<div class="field"><label>${esc(f.label)}</label>${f.kind === "toggle" ? bar(12, 22) : bar(100, 38)}</div>`).join("")}<div class="row"><button type="button" class="btn primary" disabled>${esc(b.submit)}</button></div></div>`;
+    case "chart": return `<div class="card chart"><h4>${esc(b.title)}</h4><div class="skbars">${b.points.map((p, i) => `<i class="sk" style="height:${30 + ((i * 37) % 60)}%"></i>`).join("")}</div></div>`;
+    case "steps": return `<ol class="steps">${b.items.map((t, i) => `<li class="${i === b.current ? "now" : ""}"><span>${i + 1}</span>${esc(t)}</li>`).join("")}</ol>`;
+    case "cards": return `<div class="cards">${b.items.slice(0, 3).map(() => `<div class="card item">${b.visual ? '<i class="sk" style="height:86px;margin:calc(var(--pad)*-1) calc(var(--pad)*-1) 4px;width:calc(100% + var(--pad)*2);border-radius:0"></i>' : ""}${bar(60, 14)}${bar(90)}${bar(40)}</div>`).join("")}</div>`;
+    case "list": return `<div class="card list">${b.items.slice(0, 4).map(() => `<div class="li"><span class="pip"></span><div>${bar(55, 13)}${bar(35, 10)}</div></div>`).join("")}</div>`;
+    case "timeline": return `<div class="card tl">${b.items.map((it, i) => `<div class="ev ${it.status}"><span class="t">${esc(it.time)}</span><i></i><div>${bar(40 + ((i * 17) % 30), 13)}${bar(28, 10)}</div></div>`).join("")}</div>`;
+    case "detail": return `<div class="card detail ${b.style}">${b.title ? `<div class="dh"><b>${esc(b.title)}</b></div>` : ""}<dl>${b.rows.map((r) => `<div><dt>${esc(r.label)}</dt><dd>${bar(70, 14)}</dd></div>`).join("")}</dl></div>`;
+    case "filters": return renderBlock(b, "normal");
+    case "actions": return renderBlock(b, "normal");
     default: return `<div class="card">${bar(90)}${bar(70)}</div>`;
   }
 }
@@ -159,12 +168,15 @@ function renderMock(m: ScreenMock, k: StateKind, state: string): string {
   const head = `<div class="ph"><div><h3>${esc(m.title)}</h3>${m.subtitle ? `<p class="sub">${esc(m.subtitle)}</p>` : ""}</div></div>`;
   const keep = (b: MockBlock) => b.type === "filters" || b.type === "actions" || b.type === "stats" || b.type === "text";
   let body: string;
-  if (k === "loading") body = m.blocks.map(skeleton).join("");
+  // loading keeps everything static (title, labels, headers, filters, buttons) and turns only the data into shimmering shapes, under a progress bar;
+  // empty previews what the page fills with; error keeps the last good data dimmed behind the message; "Full data" is a state of its own
+  if (k === "loading") body = `<div class="prog" role="progressbar" aria-label="Loading"><i></i></div>${m.blocks.map(skeleton).join("")}`;
   else if (k === "empty") {
     const lead = m.blocks.filter((b) => b.type === "filters" || b.type === "actions").map((b) => renderBlock(b, k)).join("");
-    body = `${lead}<div class="card empty">${ICONS.inbox}<h4>${esc(c.emptyTitle ?? "Nothing here yet")}</h4><p>${esc(c.emptyHint ?? "When there is something to show, it appears here.")}</p></div>`;
+    const sample = m.blocks.find((b) => !keep(b));
+    body = `${lead}<div class="card empty">${ICONS.inbox}<h4>${esc(c.emptyTitle ?? "Nothing here yet")}</h4><p>${esc(c.emptyHint ?? "When there is something to show, it appears here.")}</p></div>${sample ? `<div class="preview"><span class="pv">What this fills with</span>${renderBlock(sample, k)}</div>` : ""}`;
   } else if (k === "error") {
-    body = `${banner("bad", c.error ?? "Something went wrong. Try again in a moment.", true)}<div class="stale">${m.blocks.filter(keep).map((b) => renderBlock(b, k)).join("")}${m.blocks.filter((b) => !keep(b)).slice(0, 1).map(skeleton).join("")}</div>`;
+    body = `${banner("bad", c.error ?? "Something went wrong. Try again in a moment.", true)}<div class="stale">${m.blocks.map((b) => renderBlock(b, k)).join("")}</div>`;
   } else {
     const hasForm = m.blocks.some((b) => b.type === "form");
     const lead = k === "success" ? banner("ok", c.success ?? "Done.") : k === "validation" && !hasForm ? banner("warn", c.validation ?? "Check the highlighted details and try again.") : k === "validation" && c.validation ? banner("warn", c.validation) : "";
@@ -174,7 +186,7 @@ function renderMock(m: ScreenMock, k: StateKind, state: string): string {
 }
 
 
-const DEFAULT_THEME: DesignTheme = { mood: "clean product", mode: "light", brand: "#1a56db", neutral: "cool", chrome: "plain", font: "sans", radius: "soft", density: "comfortable", surface: "flat", motion: "lively" };
+const DEFAULT_THEME: DesignTheme = { mood: "clean product", mode: "light", brand: "#1a56db", neutral: "cool", chrome: "plain", font: "sans", radius: "soft", density: "comfortable", surface: "flat", motion: "lively", fx: "modern" };
 
 type RGB = [number, number, number];
 const rgb = (hex: string): RGB => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as RGB;
@@ -323,6 +335,23 @@ ${[1, 2, 3, 4, 5, 6].map((i) => `tbody tr:nth-child(${i}){animation-delay:${0.08
 .serves{margin-top:18px;border:1px solid var(--edge);border-radius:var(--r);background:var(--sf);padding:12px 16px}.serves summary{cursor:pointer;color:var(--mut);font-size:12.5px}
 .serves ul{margin:.6rem 0 0;padding-left:18px;color:var(--mut);font-size:12.5px}.serves b{color:var(--ink)}
 .nav{margin:14px 0 0;display:flex;flex-wrap:wrap;gap:8px}.nav a{color:var(--a1);text-decoration:none;font-size:12.5px;border-bottom:1px solid transparent}.nav a:hover{border-color:currentColor}
+body.fx-modern main:before,body.fx-futuristic main:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60vw 40vh at 85% -8%,color-mix(in srgb,var(--br) 16%,transparent),transparent 70%),radial-gradient(50vw 40vh at 0% 105%,color-mix(in srgb,var(--a2) 11%,transparent),transparent 70%)}
+body.fx-modern .card.item,body.fx-modern .stat,body.fx-futuristic .card.item,body.fx-futuristic .stat{transition:transform .25s var(--e),border-color .2s,box-shadow .25s}
+body.fx-modern .card.item:hover,body.fx-modern .stat:hover,body.fx-futuristic .card.item:hover,body.fx-futuristic .stat:hover{transform:translateY(-3px);box-shadow:0 14px 32px -16px color-mix(in srgb,var(--br) 45%,transparent)}
+body.fx-modern .btn.primary,body.fx-futuristic .btn.primary{box-shadow:0 8px 22px -10px var(--br)}
+body.fx-futuristic main:before{background:radial-gradient(46vw 36vh at 82% -6%,color-mix(in srgb,var(--br) 26%,transparent),transparent 70%),radial-gradient(42vw 36vh at 4% 100%,color-mix(in srgb,var(--a2) 20%,transparent),transparent 70%),radial-gradient(30vw 30vh at 50% 45%,color-mix(in srgb,var(--a1) 8%,transparent),transparent 70%);animation:aurora 18s ease-in-out infinite alternate;animation-play-state:var(--drift)}
+@keyframes aurora{to{transform:translate3d(-2.5%,2%,0) scale(1.06)}}
+body.fx-futuristic .ph h3,body.fx-futuristic aside h1,body.fx-futuristic .chrome .lg{background:linear-gradient(100deg,var(--ink),color-mix(in srgb,var(--a1) 80%,var(--ink)));-webkit-background-clip:text;background-clip:text;color:transparent}
+body.fx-futuristic .card,body.fx-futuristic .stat{position:relative;background-image:radial-gradient(240px circle at var(--mx,50%) var(--my,0%),color-mix(in srgb,var(--br) 14%,transparent),transparent 70%)}
+body.fx-futuristic .canvas{border-color:color-mix(in srgb,var(--br) 28%,var(--edge));box-shadow:0 30px 70px -40px color-mix(in srgb,var(--br) 55%,transparent)}
+body.fx-futuristic .badge:before{box-shadow:0 0 8px currentColor}
+body.fx-futuristic .ev.now i{animation:ping 1.8s ease-out infinite}
+@keyframes ping{70%{box-shadow:0 0 0 10px transparent}}
+.prog{height:3px;border-radius:3px;background:color-mix(in srgb,var(--br) 14%,transparent);overflow:hidden;position:relative}.prog i{position:absolute;inset:0 auto 0 0;width:38%;background:var(--br);border-radius:3px;animation:slide 1.2s var(--e) infinite}
+@keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(280%)}}
+.skbars{display:flex;align-items:flex-end;gap:clamp(6px,2vw,16px);height:170px;padding-top:18px}.skbars .sk{flex:1;margin:0;border-radius:calc(var(--r) - 4px) calc(var(--r) - 4px) 2px 2px}
+.tbl .sk{margin:2px 0}
+.preview{position:relative;display:grid;gap:10px;opacity:.55;pointer-events:none}.pv{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)}
 @media(max-width:760px){body{display:block}aside{width:auto;position:static;max-height:none;border-right:0;border-bottom:1px solid var(--edge)}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
 `;
@@ -355,6 +384,7 @@ const JS = `
       var act=t.getAttribute("data-act");if(!act)return;t.classList.add("busy");
       setTimeout(function(){t.classList.remove("busy");if(act==="submit")toast(s,"Saved");else if(act==="act")toast(s,t.textContent+" done")},800)});
   });
+  if(document.body.className.indexOf("fx-futuristic")>-1&&!matchMedia("(prefers-reduced-motion:reduce)").matches)document.addEventListener("pointermove",function(e){var c=e.target.closest&&e.target.closest(".card,.stat");if(!c)return;var r=c.getBoundingClientRect();c.style.setProperty("--mx",(e.clientX-r.left)+"px");c.style.setProperty("--my",(e.clientY-r.top)+"px")});
   window.addEventListener("hashchange",show);show();
 })();
 `;
@@ -363,12 +393,14 @@ export function buildDemo(d: DemoInput): string {
   const screens = d.screens;
   const frame = (id: string) => d.frames?.[id];
   const panel = (s: Screen, i: number): string => {
-    const states = s.states.length ? orderStates(s.states) : ["default"];
+    const states = demoStates(s);
     const shown = s.frames.map(frame).filter((f) => f?.dataUri);
     const reqs = s.reqs.map((r) => `<li><b>${esc(r)}</b> ${esc(d.requirements[r] ?? "")}</li>`).join("");
     const pane = (st: string, k: number): string => {
       const hidden = k === 0 ? "" : " hidden";
-      const inner = s.mock
+      const inner = st === FULL_DATA && s.mockFull
+        ? renderMock(s.mockFull, "normal", st)
+        : s.mock
         ? renderMock(s.mock, stateKind(st), st)
         : `<div class="wire">${wireframeSvg(s, st, s.reqs.map((r) => ({ id: r, text: d.requirements[r] ?? "" })))}</div>`;
       return `<div class="pane" data-wf="${k}"${hidden}>${inner}</div>`;
@@ -391,7 +423,7 @@ export function buildDemo(d: DemoInput): string {
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
 <title>${esc(d.title)} - design demo</title>
 <meta name="color-scheme" content="${d.theme?.mode === "dark" ? "dark" : d.theme?.mode === "auto" ? "light dark" : "light"}">
-<style>${themeCss(d.theme)}${CSS}</style></head><body>
+<style>${themeCss(d.theme)}${CSS}</style></head><body class="fx-${esc(d.theme?.fx ?? "modern")}">
 <aside><h1>${esc(d.title)}</h1><p>${esc(d.flow)}</p><h3>Screens</h3><ul>${side}</ul>${none ? `<h3>No screen</h3><ul>${none}</ul>` : ""}</aside>
 <main>${screens.map(panel).join("\n")}</main>
 <script>${JS}</script></body></html>
