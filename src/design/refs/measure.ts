@@ -1,8 +1,8 @@
 // Read a brand's real colours from its live page (run this where the sites are reachable). Writes an
 // overlay (~/.factory/design-refs/measured.json) that the reference brief prefers over the reported values.
 import { findChromium } from "../../estimate/screenshots.js";
-import { INDUSTRIES, type RefBrand } from "./data.js";
-import { saveMeasured, type Measured } from "./index.js";
+import type { RefBrand } from "./data.js";
+import { allIndustries, saveMeasured, type Measured } from "./index.js";
 
 export type Reading = Omit<Measured, "measuredAt">;
 
@@ -95,7 +95,7 @@ export async function measureBrands(brands: RefBrand[], opts: { timeoutMs?: numb
 
 /** Brands of the named industries (all when none given). */
 export function brandsFor(industryIds: string[] = []): RefBrand[] {
-  return INDUSTRIES.filter((i) => !industryIds.length || industryIds.includes(i.id)).flatMap((i) => i.brands);
+  return allIndustries().filter((i) => !industryIds.length || industryIds.includes(i.id)).flatMap((i) => i.brands);
 }
 
 /** Measure and store every reading that found a brand colour. */

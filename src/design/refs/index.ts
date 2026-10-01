@@ -1,18 +1,18 @@
 // The design reference library: pick the industry a requirement belongs to and give the design step a
 // short brief of how real products in that field look. Only the matched industry is sent (a few
 // hundred tokens), never the whole library.
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
 import { factoryHome } from "../../util/paths.js";
-import { INDUSTRIES, type RefBrand, type RefIndustry } from "./data.js";
+import { ARCHETYPES, INDUSTRIES, RefIndustry, type RefBrand } from "./data.js";
 
 const esc = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export interface IndustryMatch { industry: RefIndustry; score: number; hits: string[] }
 
 /** Industries a text points at, best first. A keyword counts once, as a whole word or phrase. */
-export function matchIndustries(text: string, industries: RefIndustry[] = INDUSTRIES): IndustryMatch[] {
+export function matchIndustries(text: string, industries: RefIndustry[] = allIndustries()): IndustryMatch[] {
   const out: IndustryMatch[] = [];
   for (const industry of industries) {
     const hits = industry.keywords.filter((k) => new RegExp(`(^|[^a-z0-9])${esc(k)}([^a-z0-9]|$)`, "i").test(text));
@@ -22,12 +22,40 @@ export function matchIndustries(text: string, industries: RefIndustry[] = INDUST
 }
 
 /** The industries to brief: the best match, plus a second only when it is close (a hotel app with payments). A single stray word is not enough. */
-export function pickIndustries(text: string, industries: RefIndustry[] = INDUSTRIES): IndustryMatch[] {
+export function pickIndustries(text: string, industries: RefIndustry[] = allIndustries()): IndustryMatch[] {
   const m = matchIndustries(text, industries);
   const top = m[0];
   if (!top || top.score < 2) return [];
   const second = m[1];
   return second && second.score >= 2 && second.score * 2 >= top.score ? [top, second] : [top];
+}
+
+// ---------- your own industries ----------
+
+export const userIndustriesDir = (): string => join(factoryHome(), "design-refs", "industries");
+
+/** Fields you added as JSON files in ~/.factory/design-refs/industries (one industry or an array per file). Bad files are reported, not fatal. */
+export function loadUserIndustries(dir = userIndustriesDir()): { industries: RefIndustry[]; problems: string[] } {
+  const industries: RefIndustry[] = [], problems: string[] = [];
+  if (!existsSync(dir)) return { industries, problems };
+  for (const f of readdirSync(dir).filter((x) => x.endsWith(".json")).sort()) {
+    try {
+      const raw = JSON.parse(readFileSync(join(dir, f), "utf8")) as unknown;
+      for (const item of Array.isArray(raw) ? raw : [raw]) {
+        const r = RefIndustry.safeParse(item);
+        if (r.success) industries.push(r.data);
+        else problems.push(`${f}: ${r.error.issues.slice(0, 2).map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`);
+      }
+    } catch (e) { problems.push(`${f}: ${(e instanceof Error ? e.message : String(e)).split("\n")[0]}`); }
+  }
+  return { industries, problems };
+}
+
+/** Built-in fields plus yours; one of yours with the same id replaces the built-in. */
+export function allIndustries(dir?: string): RefIndustry[] {
+  const mine = loadUserIndustries(dir).industries;
+  const ids = new Set(mine.map((i) => i.id));
+  return [...INDUSTRIES.filter((i) => !ids.has(i.id)), ...mine];
 }
 
 // ---------- measured overlay ----------
@@ -92,8 +120,20 @@ export function referenceBrief(industries: RefIndustry[], measured: Record<strin
     + "\nPick a brand colour in the same family as these, but do not reuse any one brand's exact value, name or logo. Make it feel like another competitor in the field.";
 }
 
-/** The brief for a requirement text, or undefined when no industry is clear. */
-export function briefFor(text: string): string | undefined {
-  const picked = pickIndustries(text);
-  return picked.length ? referenceBrief(picked.map((p) => p.industry)) : undefined;
+/** Used when no field is clear: the general look families, so the model can place a field nobody listed. */
+export function archetypeBrief(hint?: RefIndustry): string {
+  return [
+    "No listed field matched clearly. First decide what kind of product this is, then use the nearest look family below (blend two when it is mixed, for example a hospital portal is care plus professional tool). Real products of that kind are coloured like this:",
+    ...ARCHETYPES.map((a) => `- ${a.label} (${a.when}): ${a.look}`),
+    ...(hint ? [`Weak hint from one keyword: ${hint.label} (${hint.archetype}).`] : []),
+    "Think of two or three well-known products of that kind and note what they share. Choose your own brand colour in that family; do not copy any brand.",
+  ].join("\n");
+}
+
+/** The brief for a requirement text. A matched field gets its brands plus its look family; anything else gets the families. */
+export function briefFor(text: string, industries: RefIndustry[] = allIndustries()): string {
+  const picked = pickIndustries(text, industries);
+  if (!picked.length) return archetypeBrief(matchIndustries(text, industries)[0]?.industry);
+  const looks = [...new Set(picked.map((p) => p.industry.archetype))].map((id) => ARCHETYPES.find((a) => a.id === id)).filter((a) => !!a);
+  return `${referenceBrief(picked.map((p) => p.industry))}\nWider family: ${looks.map((a) => `${a!.label}: ${a!.look}`).join(" | ")}`;
 }

@@ -23,9 +23,14 @@ export const RefBrand = z.object({
 });
 export type RefBrand = z.infer<typeof RefBrand>;
 
+export const ARCHETYPE_IDS = ["trust-finance", "care", "consumer-shop", "hospitality", "operations", "media", "learning", "public", "pro-tool"] as const;
+export type ArchetypeId = typeof ARCHETYPE_IDS[number];
+
 export const RefIndustry = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/),
   label: z.string(),
+  /** the general look family this field belongs to (see ARCHETYPES); used when a requirement matches no field */
+  archetype: z.enum(ARCHETYPE_IDS),
   /** words in a requirement that point at this field (matched as whole words, case-insensitive) */
   keywords: z.array(z.string().min(2)).min(3),
   brands: z.array(RefBrand).min(3),
@@ -88,7 +93,7 @@ const RAW = [
   },
   {
     id: "health", label: "Health and care",
-    keywords: ["patient", "patients", "clinic", "clinical", "doctor", "appointment", "appointments", "prescription", "hospital", "medical", "health", "healthcare", "telehealth", "ehr", "care"],
+    keywords: ["patient", "patients", "clinic", "clinical", "doctor", "appointment", "appointments", "prescription", "hospital", "medical", "health", "healthcare", "telehealth", "ehr", "care", "hospital", "ward", "nurse", "nurses", "triage", "radiology", "laboratory", "lab results", "discharge", "admission", "clinician"],
     brands: [
       b("cleveland", "Cleveland Clinic", "https://my.clevelandclinic.org", "#0065A9", "plain", "soft", "calm blue with a green accent on white", { accent: "#1A7C40" }),
       b("mayo", "Mayo Clinic", "https://www.mayoclinic.org", "#012D61", "plain", "sharp", "deep navy with a warm yellow highlight", { accent: "#FFC846" }),
@@ -245,6 +250,140 @@ const RAW = [
     pattern: "Reassuring blue (or one confident pink or red for a newer brand) on white, with the quote or claim form as the first thing. Claims show a status timeline and documents list; amounts are plain and large.",
     usual: { mode: "light", chrome: "plain", neutral: "cool", font: "sans", radius: "soft", density: "comfortable", surface: "flat" },
   },
+  {
+    id: "grocery", label: "Supermarkets and grocery", archetype: "consumer-shop",
+    keywords: ["supermarket", "supermarkets", "grocery", "groceries", "aisle", "basket", "produce", "pantry", "substitution", "click and collect", "loyalty card", "checkout lane", "shelf"],
+    brands: [
+      b("tesco", "Tesco", "https://www.tesco.com", "#00539F", "plain", "soft", "blue with a red accent, offers and Clubcard prices in bold tags", { accent: "#EE1C2E" }),
+      b("sainsburys", "Sainsbury's", "https://www.sainsburys.co.uk", "#F06C00", "plain", "soft", "orange on white, product grid with price tags"),
+      b("wholefoods", "Whole Foods", "https://www.wholefoodsmarket.com", "#00674B", "plain", "soft", "deep green, calm, natural and editorial"),
+      b("instacart", "Instacart", "https://www.instacart.com", "#43B02A", "plain", "round", "fresh green on white, big product photos, cart drawer", { accent: "#FF7009" }),
+      b("lidl", "Lidl", "https://www.lidl.com", "#0050AA", "brand", "soft", "blue bar with a yellow accent, weekly offers", { accent: "#FFF000" }),
+      b("kroger", "Kroger", "https://www.kroger.com", "#1C4A9B", "plain", "soft", "plain blue on white, coupons and lists up front"),
+    ],
+    pattern: "White pages with product photos, a fresh or trustworthy colour (green, blue, orange) for the buy and add-to-basket actions, price and unit price in bold, offer tags in one warm colour, and a persistent basket total. Lists, substitutions and delivery slots are plain and fast; store-operations screens (stock, shelves, orders to pick) are dense tables with status chips.",
+    usual: { mode: "light", chrome: "plain", neutral: "warm", font: "sans", radius: "soft", density: "comfortable", surface: "soft" },
+  },
+  {
+    id: "pharmacy", label: "Pharmacy and medicines", archetype: "care",
+    keywords: ["pharmacy", "pharmacist", "medicine", "medicines", "dispense", "refill", "dosage", "drug", "formulary", "prescriptions"],
+    brands: [
+      b("cvs", "CVS Health", "https://www.cvs.com", "#CC0000", "plain", "soft", "red on white, plain lists, refill buttons"),
+      b("walgreens", "Walgreens", "https://www.walgreens.com", "#E31837", "plain", "soft", "red and white, store locator and refills"),
+      b("boots", "Boots", "https://www.boots.com", "#05054B", "plain", "soft", "deep navy on white with a bright blue action", { accent: "#0070CC" }),
+      b("goodrx", "GoodRx", "https://www.goodrx.com", "#00473E", "plain", "round", "deep green with yellow highlight, price comparison", { accent: "#FFE600" }),
+    ],
+    pattern: "Clean white screens, one calm brand colour, medicine names and doses in large clear type, and status chips for ready, waiting and out of stock. Safety text (allergies, interactions) is plain and never decorative.",
+    usual: { mode: "light", chrome: "plain", neutral: "cool", font: "humanist", radius: "soft", density: "comfortable", surface: "flat" },
+  },
+  {
+    id: "realestate", label: "Real estate and property", archetype: "consumer-shop",
+    keywords: ["property", "properties", "listing", "listings", "tenant", "tenants", "landlord", "lease", "realtor", "mortgage", "viewing", "rent", "real estate"],
+    brands: [
+      b("zillow", "Zillow", "https://www.zillow.com", "#006AFF", "plain", "soft", "bright blue on white, map and photo cards"),
+      b("rightmove", "Rightmove", "https://www.rightmove.co.uk", "#00DEB6", "plain", "soft", "teal on dark navy header, search first", { accent: "#02142A" }),
+      b("redfin", "Redfin", "https://www.redfin.com", "#A02021", "plain", "soft", "deep red on white, map plus list"),
+      b("realtor", "Realtor.com", "https://www.realtor.com", "#D92228", "plain", "soft", "red on white, photo-led listings"),
+    ],
+    pattern: "A search and map first, photo cards with price in bold, one confident colour for the action (contact, book a viewing), and a detail page with a gallery, key facts row and a sticky contact box. Management screens (leases, tenants, payments) are tables with status chips.",
+    usual: { mode: "light", chrome: "plain", neutral: "cool", font: "sans", radius: "soft", density: "comfortable", surface: "soft" },
+  },
+  {
+    id: "fitness", label: "Fitness and wellness", archetype: "consumer-shop",
+    keywords: ["workout", "workouts", "gym", "fitness", "training", "exercise", "calories", "wellness", "coach", "routine", "steps", "heart rate"],
+    brands: [
+      b("strava", "Strava", "https://www.strava.com", "#FC4C02", "plain", "soft", "one orange on white, activity feed with maps and stats"),
+      b("peloton", "Peloton", "https://www.onepeloton.com", "#DF1C2F", "plain", "sharp", "black and white with a red mark, bold type", { mode: "dark" }),
+      b("fitbit", "Fitbit", "https://www.fitbit.com", "#00B0B9", "plain", "round", "teal with soft rings and big daily numbers"),
+      b("myfitnesspal", "MyFitnessPal", "https://www.myfitnesspal.com", "#0066EE", "plain", "round", "blue on white, diary lists and progress bars"),
+    ],
+    pattern: "Big numerals and progress rings or bars, one energetic colour, a feed or list of sessions and a clear start action. Dark or black for performance brands, white and friendly for habit and nutrition apps.",
+    usual: { mode: "light", chrome: "plain", neutral: "pure", font: "sans", radius: "round", density: "comfortable", surface: "soft" },
+  },
+  {
+    id: "events", label: "Events and ticketing", archetype: "hospitality",
+    keywords: ["event", "events", "ticket", "tickets", "venue", "concert", "seating", "attendee", "attendees", "organiser", "organizer", "registration", "agenda", "speaker"],
+    brands: [
+      b("ticketmaster", "Ticketmaster", "https://www.ticketmaster.com", "#026CDF", "plain", "soft", "blue actions on white, seat map, countdown"),
+      b("eventbrite", "Eventbrite", "https://www.eventbrite.com", "#F05537", "plain", "round", "orange-red on white, image cards"),
+      b("meetup", "Meetup", "https://www.meetup.com", "#ED1C40", "plain", "round", "red on white, people and group photos"),
+      b("seatgeek", "SeatGeek", "https://seatgeek.com", "#00B9E1", "plain", "soft", "bright cyan with dark navy, deal scores"),
+    ],
+    pattern: "Image-led event cards with date, place and price, one bright action colour, a seat or ticket picker with a clear total, and a ticket detail with a code. Organiser screens are tables and counts of sales and check-ins.",
+    usual: { mode: "light", chrome: "plain", neutral: "warm", font: "sans", radius: "round", density: "comfortable", surface: "soft" },
+  },
+  {
+    id: "hr", label: "HR and workforce", archetype: "pro-tool",
+    keywords: ["employee", "employees", "payroll", "leave", "timesheet", "timesheets", "recruit", "recruiting", "candidate", "candidates", "onboarding", "headcount", "shift", "shifts", "rota"],
+    brands: [
+      b("workday", "Workday", "https://www.workday.com", "#0875E1", "plain", "soft", "blue on white, orange accent, cards and worklists", { accent: "#F38B00" }),
+      b("bamboohr", "BambooHR", "https://www.bamboohr.com", "#73C41D", "plain", "round", "friendly green, people photos, soft cards"),
+      b("gusto", "Gusto", "https://gusto.com", "#F45D48", "plain", "round", "warm coral on white, plain-language payroll steps"),
+      b("adp", "ADP", "https://www.adp.com", "#D0271D", "plain", "sharp", "red on white, formal tables and pay statements"),
+    ],
+    pattern: "Friendly but orderly: white pages, a single warm or blue brand colour, people avatars, status chips for pending, approved and rejected, and step-by-step flows for onboarding and payroll. Admin lists are tables with filters.",
+    usual: { mode: "light", chrome: "plain", neutral: "cool", font: "sans", radius: "soft", density: "comfortable", surface: "flat" },
+  },
+  {
+    id: "manufacturing", label: "Manufacturing and industrial", archetype: "operations",
+    keywords: ["machine", "machines", "factory floor", "production", "plant", "maintenance", "equipment", "assembly", "scada", "downtime", "work order", "work orders", "batch", "quality control"],
+    brands: [
+      b("siemens", "Siemens", "https://www.siemens.com", "#009999", "plain", "sharp", "petrol teal on white, flat and technical"),
+      b("caterpillar", "Caterpillar", "https://www.cat.com", "#FFCD11", "plain", "sharp", "safety yellow with black, heavy type", { accent: "#000000" }),
+      b("bosch", "Bosch", "https://www.bosch.com", "#E20015", "plain", "sharp", "red on white with a thin line language"),
+      b("abb", "ABB", "https://global.abb", "#FF000F", "plain", "sharp", "red on white, grey tables and diagrams"),
+    ],
+    pattern: "A strong industrial colour (yellow, red or teal) used sparingly on grey or white, dense tables and state indicators (running, stopped, fault) with real colour meaning, large touch targets for floor tablets, and sharp corners.",
+    usual: { mode: "light", chrome: "plain", neutral: "cool", font: "sans", radius: "sharp", density: "compact", surface: "flat" },
+  },
+  {
+    id: "automotive", label: "Automotive", archetype: "hospitality",
+    keywords: ["vehicle", "car", "cars", "dealership", "dealer", "test drive", "service booking", "charging", "mileage", "garage", "showroom"],
+    brands: [
+      b("tesla", "Tesla", "https://www.tesla.com", "#E82127", "plain", "sharp", "white or black, full-bleed photography, one red button"),
+      b("bmw", "BMW", "https://www.bmw.com", "#1C69D4", "plain", "sharp", "blue on white and black, crisp and technical"),
+      b("toyota", "Toyota", "https://www.toyota.com", "#EB0A1E", "plain", "soft", "red on white, model cards and offers"),
+      b("ford", "Ford", "https://www.ford.com", "#003478", "plain", "soft", "dark blue on white, trim configurator"),
+    ],
+    pattern: "Large photography, one brand colour on the primary action, a configurator or booking flow with a running total, and plain owner screens for service history and charging. Premium brands go minimal and sharp.",
+    usual: { mode: "light", chrome: "plain", neutral: "pure", font: "sans", radius: "sharp", density: "comfortable", surface: "flat" },
+  },
+  {
+    id: "nonprofit", label: "Non-profit and charity", archetype: "public",
+    keywords: ["donation", "donations", "donor", "donors", "charity", "volunteer", "volunteers", "campaign", "fundraising", "nonprofit", "non-profit", "beneficiary", "grant"],
+    brands: [
+      b("redcross", "Red Cross", "https://www.redcross.org", "#ED1B2E", "plain", "soft", "red on white, plain donate button, human photography"),
+      b("unicef", "UNICEF", "https://www.unicef.org", "#1CABE2", "plain", "soft", "cyan blue on white, strong headlines"),
+      b("wwf", "WWF", "https://www.worldwildlife.org", "#000000", "plain", "soft", "black and white with nature photography, one donate colour"),
+      b("charitywater", "charity: water", "https://www.charitywater.org", "#FFC907", "plain", "sharp", "yellow with black, stark and honest imagery"),
+    ],
+    pattern: "A single emotive colour, real photography, a donate button that is always visible, big impact figures and plain forms. Admin screens for donors and campaigns are simple tables.",
+    usual: { mode: "light", chrome: "plain", neutral: "warm", font: "humanist", radius: "soft", density: "comfortable", surface: "flat" },
+  },
 ];
 
-export const INDUSTRIES: RefIndustry[] = RAW.map((r) => RefIndustry.parse(r));
+const ARCH_OF: Record<string, ArchetypeId> = {"airline":"hospitality","bank":"trust-finance","fintech":"trust-finance","health":"care","retail":"consumer-shop","food":"consumer-shop","travel":"hospitality","mobility":"consumer-shop","media":"media","devtools":"pro-tool","logistics":"operations","telecom":"consumer-shop","education":"learning","government":"public","insurance":"trust-finance"};
+
+export const INDUSTRIES: RefIndustry[] = RAW.map((r) => RefIndustry.parse({ ...r, archetype: (r as { archetype?: ArchetypeId }).archetype ?? ARCH_OF[r.id] }));
+
+export const Archetype = z.object({
+  id: z.enum(ARCHETYPE_IDS), label: z.string(),
+  /** what kind of product this is, so a model can place a field nobody listed */
+  when: z.string(),
+  /** how products of this kind are coloured and shaped */
+  look: z.string(),
+});
+export type Archetype = z.infer<typeof Archetype>;
+
+/** General look families. Used when a requirement matches no listed field: the design step picks the nearest one. */
+export const ARCHETYPES: Archetype[] = [
+  { id: "trust-finance", label: "Trust and money", when: "people hand over money or sensitive data: banking, payments, insurance, tax, accounting", look: "near-white page, one deep blue or green, tabular figures, plain bar, soft or sharp corners, colour only for money in or out and for alerts" },
+  { id: "care", label: "Care and clinical", when: "health, medicine, wellbeing, social care, anything where clarity affects safety", look: "white with soft blue or green, humanist type, large readable text, generous space, status colour reserved for clinical meaning" },
+  { id: "consumer-shop", label: "Browse and buy", when: "people choose things by picture and price: shops, food, marketplaces, listings, rides, plans", look: "white page, photography, one warm high-energy action colour, price in bold, round or soft corners, soft shadows, a persistent basket or total" },
+  { id: "hospitality", label: "Travel and experience", when: "bookings, trips, tickets, stays, vehicles, events: aspirational and time-bound", look: "image-led, a search or booking form first, a deep brand or livery colour on the bar or action, a ticket or booking detail card with a large key fact" },
+  { id: "operations", label: "Operations and field work", when: "staff run physical work: logistics, factories, warehouses, maintenance, dispatch", look: "grey or white utility page, a strong industrial colour used sparingly, dense tables, status chips with real meaning, sharp corners, big touch targets" },
+  { id: "media", label: "Media and immersion", when: "watching, listening or reading for long sessions: streaming, news, games, creative tools", look: "dark or black surfaces with one vivid colour for play and selection, thumbnails carry the colour; editorial products stay white with serif headlines" },
+  { id: "learning", label: "Learning and progress", when: "learners and teachers: courses, schools, training, onboarding", look: "friendly saturated colour, rounded shapes, progress rings and streaks, humanist type, one big next-step button" },
+  { id: "public", label: "Public service and civic", when: "citizens, permits, benefits, charities, councils, forms with duties attached", look: "plain white, black text, one blue (or one emotive colour for charities), underlined links, square corners, one question per page, no decoration" },
+  { id: "pro-tool", label: "Professional tool", when: "people work in it all day: admin, analytics, developer, CRM, HR, back office", look: "neutrals first, white or a deliberate dark, one cool accent, hairline borders, compact tables, small type, colour for status and charts only" },
+];

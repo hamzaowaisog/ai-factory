@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { findChromium } from "../../estimate/screenshots.js";
-import { INDUSTRIES } from "./data.js";
-import { briefFor, loadMeasured, matchIndustries, pickIndustries, referenceBrief, resolveBrand, saveMeasured } from "./index.js";
+import { ARCHETYPES, INDUSTRIES } from "./data.js";
+import { allIndustries, archetypeBrief, briefFor, loadMeasured, loadUserIndustries, matchIndustries, pickIndustries, referenceBrief, resolveBrand, saveMeasured } from "./index.js";
 import { measureBrands } from "./measure.js";
 
 const dirs: string[] = [];
@@ -16,7 +16,8 @@ describe("reference data", () => {
     expect(new Set(INDUSTRIES.map((i) => i.id)).size).toBe(INDUSTRIES.length);
     const brands = INDUSTRIES.flatMap((i) => i.brands.map((b) => b.id));
     expect(new Set(brands).size).toBe(brands.length);
-    expect(INDUSTRIES.length).toBeGreaterThanOrEqual(12);
+    expect(INDUSTRIES.length).toBeGreaterThanOrEqual(20);
+    for (const i of INDUSTRIES) expect(ARCHETYPES.some((a) => a.id === i.archetype)).toBe(true);
     for (const i of INDUSTRIES) expect(i.brands.length).toBeGreaterThanOrEqual(3);
   });
 });
@@ -44,7 +45,41 @@ describe("brief", () => {
     expect(b).toContain("do not reuse any one brand's exact value");
     expect(b.length).toBeLessThan(2400);
   });
-  it("is undefined when nothing matches", () => { expect(briefFor("a note-taking widget")).toBeUndefined(); });
+  it("falls back to the look families when no field matches, so any field is covered", () => {
+    const b = briefFor("A museum audio guide with exhibits and a gift shop map");
+    expect(b).toContain("No listed field matched");
+    for (const a of ARCHETYPES) expect(b).toContain(a.label);
+    expect(b.length).toBeLessThan(3000);
+  });
+  it("covers hospitals and supermarkets by name", () => {
+    expect(pickIndustries("Nurses see the ward list, triage level and discharge status for each patient")[0]?.industry.id).toBe("health");
+    expect(pickIndustries("Shoppers fill a basket from supermarket aisles and pick a click and collect slot")[0]?.industry.id).toBe("grocery");
+  });
+  it("hints at a weak single-keyword match", () => {
+    expect(archetypeBrief(INDUSTRIES.find((i) => i.id === "grocery"))).toContain("Weak hint");
+  });
+});
+
+describe("your own industries", () => {
+  const mine = { id: "museum", label: "Museums", archetype: "hospitality", keywords: ["museum", "exhibit", "gallery", "curator"],
+    brands: [1, 2, 3].map((n) => ({ id: `m${n}`, name: `M${n}`, site: "https://example.com", brand: "#112233", chrome: "plain", radius: "soft", trait: "quiet" })),
+    pattern: "Quiet editorial pages.", usual: { mode: "light", chrome: "plain", neutral: "warm", font: "serif", radius: "sharp", density: "comfortable", surface: "flat" } };
+  it("loads valid files, reports bad ones, and matches them", () => {
+    const d = tmp();
+    writeFileSync(join(d, "museum.json"), JSON.stringify(mine));
+    writeFileSync(join(d, "bad.json"), JSON.stringify({ id: "x" }));
+    const r = loadUserIndustries(d);
+    expect(r.industries.map((i) => i.id)).toEqual(["museum"]);
+    expect(r.problems.length).toBe(1);
+    const all = allIndustries(d);
+    expect(briefFor("The museum shows each exhibit and the curator note", all)).toContain("Museums");
+  });
+  it("lets one of yours replace a built-in with the same id", () => {
+    const d = tmp();
+    writeFileSync(join(d, "a.json"), JSON.stringify({ ...mine, id: "airline" }));
+    expect(allIndustries(d).filter((i) => i.id === "airline")).toHaveLength(1);
+    expect(allIndustries(d).find((i) => i.id === "airline")?.label).toBe("Museums");
+  });
 });
 
 describe("measured overlay", () => {

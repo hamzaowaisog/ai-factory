@@ -11,8 +11,7 @@ import { NOTICEABLE_RATIO, pixelDiff } from "./pixeldiff.js";
 import { detectLayout } from "./layout.js";
 import { plannedChanges, sizeChange, sizeFromGit, type SizeInput, type SizeResult } from "./size.js";
 import { dirSource, gitSource, type FileSource } from "./source.js";
-import { INDUSTRIES } from "./refs/data.js";
-import { loadMeasured, measuredPath, pickIndustries, referenceBrief, resolveBrand } from "./refs/index.js";
+import { allIndustries, archetypeBrief, briefFor, loadMeasured, loadUserIndustries, measuredPath, resolveBrand, userIndustriesDir } from "./refs/index.js";
 import { measureAndSave } from "./refs/measure.js";
 
 const out = (m: string): void => { process.stdout.write(`${m}\n`); };
@@ -143,17 +142,17 @@ export function registerDesignCommands(program: Command): void {
   refs.command("list").description("industries, their brands and whether each colour is measured")
     .action(() => {
       const m = loadMeasured();
-      for (const i of INDUSTRIES) {
-        out(`${i.id.padEnd(11)} ${i.label}`);
+      for (const i of allIndustries()) {
+        out(`${i.id.padEnd(13)} ${i.label}  [${i.archetype}]`);
         for (const raw of i.brands) { const b = resolveBrand(raw, m); out(`  ${b.name.padEnd(20)} ${b.brand}${b.accent ? ` ${b.accent}` : ""}  ${b.measured ? "measured" : "reported"}`); }
       }
+      for (const p of loadUserIndustries().problems) out(`ignored (${userIndustriesDir()}): ${p}`);
     });
   refs.command("show").argument("[text...]", "an industry id (airline) or requirement text; the brief the design step would receive")
     .action((words: string[]) => {
       const t = words.join(" ");
-      const byId = INDUSTRIES.filter((i) => i.id === t.trim().toLowerCase());
-      const picked = byId.length ? byId : pickIndustries(t).map((p) => p.industry);
-      out(picked.length ? referenceBrief(picked) : "no industry matched (the design step gets no reference brief)");
+      const byId = allIndustries().filter((i) => i.id === t.trim().toLowerCase());
+      out(byId.length ? briefFor(byId.flatMap((i) => i.keywords).join(" "), byId) : briefFor(t) || archetypeBrief());
     });
   refs.command("measure").option("--industry <id...>", "only these industries (default: all)")
     .description("open each brand's live site on a phone viewport and store its real colours (needs network access to those sites)")
