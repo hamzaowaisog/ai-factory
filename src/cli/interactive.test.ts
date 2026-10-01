@@ -67,4 +67,20 @@ describe("answering questions in the terminal", () => {
     await answerOpenQuestions(l, { ask: async () => "", out: () => undefined });
     expect(await answerOpenQuestions(l, { ask: async () => { throw new Error("should not ask"); }, out: () => undefined })).toBe(false);
   });
+
+  it("stops asking and carries on when the web form answers the same card first", async () => {
+    const l = await waitingRun();
+    const shown: string[] = [];
+    const io = {
+      ask: (_p: string, signal?: AbortSignal) => new Promise<string>((_res, rej) => {
+        signal?.addEventListener("abort", () => rej(new DOMException("aborted", "AbortError")));
+        // the "web" answers while the terminal is waiting
+        void l.append({ type: "human.decided", data: { cardId: replay(l.events()).openCard!.cardId, decision: "answer", by: "Sam (via web)", artifactSha: replay(l.events()).openCard!.artifactSha, answers: {} } } as never, HUMAN_WRITER);
+      }),
+      out: (m: string) => shown.push(m),
+    };
+    expect(await answerOpenQuestions(l, io, 20)).toBe(true);
+    expect(shown.join("\n")).toContain("answered elsewhere");
+    expect(replay(l.events()).decisions).toHaveLength(1);
+  });
 });
