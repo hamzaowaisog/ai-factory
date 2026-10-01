@@ -5,6 +5,7 @@
 // becomes the count of screens, flows and reused components for the UI work.
 import { z } from "zod";
 import type { IntentBody, Spec } from "../contracts/index.js";
+import type { RunState } from "../ledger/state.js";
 import type { DesignInventory } from "../design/inventory.js";
 import { DesignTheme, ScreenMock } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
@@ -90,12 +91,21 @@ const inventoryBrief = (inv: DesignInventory) => ({
   pages: inv.pages.slice(0, 40), sharedComponents: [...inv.primitives, ...inv.composites].slice(0, 40).map((c) => (c as { name?: string }).name ?? c),
 });
 
+/** How many times a lead can send the design back before the run stops and asks for a different brief. */
+export const MAX_DESIGN_REVISIONS = 4;
+
+/** What the lead said when sending the design back, oldest first. The design is redrawn once for each. */
+export function designRejections(s: RunState): string[] {
+  return s.decisions.filter((d) => d.cardId.startsWith("design-") && d.decision === "reject")
+    .map((d) => String((d as { reason?: string }).reason ?? "").trim() || "(no reason given)");
+}
+
 export const designStep: StepDef = {
-  key: "design", stage: "design", templateVersion: "6",
+  key: "design", stage: "design", templateVersion: "7",
   inputs: (s, l) => {
     if (s.steps.get("specify")?.status !== "completed" || s.steps.get("intake")?.status !== "completed") return undefined;
     const ui = !!l.getJson<Intent>(s.steps.get("intake")!.outputs[0]!)?.touchesUi;
-    return { spec: s.steps.get("specify")!.outputs[0], ui, inventory: s.steps.get("ground")?.data?.named, earlier: s.info.parent?.kind === "change" ? s.info.parent.designSha : undefined, frames: listedFrames(s.info.request ?? "").map((f) => f.id) };
+    return { spec: s.steps.get("specify")!.outputs[0], ui, inventory: s.steps.get("ground")?.data?.named, earlier: s.info.parent?.kind === "change" ? s.info.parent.designSha : undefined, frames: listedFrames(s.info.request ?? "").map((f) => f.id), rejections: designRejections(s).slice(0, MAX_DESIGN_REVISIONS) };
   },
   async run(ctx) {
     const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
@@ -107,6 +117,10 @@ export const designStep: StepDef = {
     const p = ctx.state.info.parent;
     const earlier = p?.kind === "change" && p.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: unknown[] }>(p.designSha) : undefined;
     const refBrief = briefFor(spec.requirements.map((q) => q.ears).join("\n"));
+    const sentBack = designRejections(ctx.state).slice(0, MAX_DESIGN_REVISIONS);
+    const feedback = sentBack.length
+      ? `The lead rejected the previous design ${sentBack.length === 1 ? "once" : `${sentBack.length} times`}. Their reasons, oldest first:\n${sentBack.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nRedraw it so each reason is met: keep what they did not criticise, change what they did, and do not repeat the earlier screens, theme or sample data where they objected.`
+      : "";
     const r = await think(ctx, {
       stage: "design", route: "design", cls: "read-large", budgetTokens: 45000, tools: [], schema: DesignOut, maxTurns: 4,
       sections: [
@@ -115,6 +129,7 @@ export const designStep: StepDef = {
         ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens })] : []),
         ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
         S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`),
+        ...(feedback ? [S.reference("design-feedback", feedback)] : []),
         S.task("Draw the screen inventory."),
       ],
     });

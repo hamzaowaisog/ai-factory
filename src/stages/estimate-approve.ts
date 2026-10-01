@@ -21,7 +21,7 @@ import type { Ledger } from "../ledger/ledger.js";
 import { hashJson } from "../util/hash.js";
 import type { ClarifyResult } from "./clarify.js";
 import { gate, settingsOf } from "./estimate.js";
-import { listedFrames } from "./design.js";
+import { listedFrames, MAX_DESIGN_REVISIONS } from "./design.js";
 import { header, outputOf, readOutput, requireOutput, type StepDef, type StepOutcome } from "./framework.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -45,7 +45,7 @@ export function designCard(runId: string, design: DesignT, hash: string, extra: 
     design.mapping.unmappedReqs.length ? `Requirements with no screen: ${design.mapping.unmappedReqs.join(", ")}` : "Every requirement has a screen.",
     design.mapping.orphanScreens.length ? `Screens with no requirement: ${design.mapping.orphanScreens.join(", ")}` : "Every screen links to a requirement.", ``,
     `Approve: factory approve ${runId} ${hash.slice(0, 8)}`,
-    `Reject:  factory reject ${runId} ${hash.slice(0, 8)} --reason "why"`, ``, `Card hash: ${hash.slice(0, 8)}`,
+    `Reject:  factory reject ${runId} ${hash.slice(0, 8)} --reason "why"   (the design is redrawn with your reason and you get a new card; the run does not stop)`, ``, `Card hash: ${hash.slice(0, 8)}`,
   ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
 }
 
@@ -111,7 +111,8 @@ export const designBaselineStep: StepDef = {
     const last = past[past.length - 1];
     // the latest decision counts only if it was on the card for this exact design
     if (last && last.artifactSha === bundleOf(past.length - 1)) {
-      if (last.decision === "reject") return { kind: "park", reason: `The design baseline was rejected${reasonOf(last) ? `: ${reasonOf(last)}` : ""}. Revise the design and resume.` };
+      // a rejection sends the design back to be redrawn with the lead's reason (the design step reruns on its own); only after too many rounds does the run stop
+      if (last.decision === "reject" && past.filter((d) => d.decision === "reject").length > MAX_DESIGN_REVISIONS) return { kind: "park", reason: `The design was sent back ${past.filter((d) => d.decision === "reject").length} times${reasonOf(last) ? `, last time: ${reasonOf(last)}` : ""}. Change the request or attach a design frame to show what you want, then start again.` };
       if (last.decision === "approve") {
         const g = await gate(ctx, "design-baseline", designBaseline, { ui: true, design, approval: { decision: "approved", by: last.by } });
         if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [failure("e1b", g.details)], signature: `e1b:${g.details.slice(0, 80)}` };

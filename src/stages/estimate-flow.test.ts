@@ -22,7 +22,7 @@ import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { approveEstimateStep, designBaselineStep, exportStep } from "./estimate-approve.js";
 import { estimateGroundStep, newBuildBehaviour } from "./estimate-ground.js";
 import { breakdownStep, estimateStep, setRecordsSource } from "./estimate.js";
-import { designStep, mapDesign } from "./design.js";
+import { designStep, mapDesign, MAX_DESIGN_REVISIONS } from "./design.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
 import { NO_TRACE } from "../util/trace.js";
@@ -213,9 +213,23 @@ describe("design baseline (E1b)", () => {
     await complete(other, "intake", uiIntent(true));
     await complete(other, "design", design());
     await decide(other, await exec(other, designBaselineStep), "design-baseline", "reject", { reason: "missing the error states" });
-    const parked = await exec(other, designBaselineStep);
+    // a rejection is not a stop: the design is sent back with the reason (its step now has new inputs) and a fresh card follows
+    expect(designStep.inputs(replay(other.events()), other)).toMatchObject({ rejections: ["missing the error states"] });
+    expect((await exec(other, designBaselineStep)).kind).toBe("wait");
+  });
+  it("sends a rejected design back to be redrawn, and stops only after too many rounds", async () => {
+    const ledger = await newRun();
+    await complete(ledger, "specify", spec);
+    await complete(ledger, "intake", uiIntent(true));
+    await complete(ledger, "design", design());
+    const before = designStep.inputs(replay(ledger.events()), ledger);
+    for (let i = 0; i <= MAX_DESIGN_REVISIONS; i++) {
+      await decide(ledger, await exec(ledger, designBaselineStep), "design-baseline", "reject", { reason: `round ${i + 1}` });
+      if (i < MAX_DESIGN_REVISIONS) expect(designStep.inputs(replay(ledger.events()), ledger)).not.toEqual(before);
+    }
+    const parked = await exec(ledger, designBaselineStep);
     expect(parked.kind).toBe("park");
-    expect((parked as { reason: string }).reason).toMatch(/missing the error states/);
+    expect((parked as { reason: string }).reason).toMatch(/sent back 5 times.*round 5/);
   });
   it("fails an approved design whose screen links to no requirement", async () => {
     const ledger = await newRun();
