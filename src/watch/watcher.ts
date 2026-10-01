@@ -376,10 +376,14 @@ export class Watcher {
     } catch (e) {
       const made = this.findRun(s, t.key, reserved);
       if (!made) {
-        // no run was created: the ticket keeps waiting and is tried again next tick
+        // no run was created: the ticket goes to the back of the queue; after 3 failed starts it's dropped
+        // (re-adding the label tries again), so one broken ticket can't block the others
         if (prevSeen) s.seen[t.key] = prevSeen; else delete s.seen[t.key];
-        s.pending[t.key] = prevPending ?? { since: reserved };
-        this.log(s, `${t.key}: couldn't start a run: ${(e as Error).message}`);
+        const failedStarts = (prevPending?.failedStarts ?? 0) + 1;
+        if (failedStarts >= 3) s.seen[t.key] = { at: reserved, skipped: `couldn't start: ${(e as Error).message}`.slice(0, 200) };
+        else s.pending[t.key] = { ...(prevPending ?? {}), since: reserved, failedStarts };
+        this.log(s, `${t.key}: couldn't start a run (${failedStarts}/3): ${(e as Error).message}`);
+        saveState(this.project, s);
         throw e;
       }
       runId = made;

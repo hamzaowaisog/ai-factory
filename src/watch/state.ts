@@ -24,6 +24,8 @@ export interface PendingTicket {
   since: string;
   /** the "waiting for the budget" comment was posted (once per ticket) */
   budgetNoted?: boolean;
+  /** starts that threw without making a run; after 3 the ticket is dropped so it can't block the queue */
+  failedStarts?: number;
 }
 
 /** One outgoing update (a Jira comment or a Slack message) for one run event. */

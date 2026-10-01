@@ -111,6 +111,10 @@ describe("test gates", () => {
     const v = testExpectations.predicate({ run: now, baseline: base }, DEFAULT_POLICY);
     expect(v.failures?.map((f) => [f.check, f.testId])).toEqual([["missing-test", "U::Gone"], ["missing-test", "U::Skip"]]);
     expect(v.failures?.[0]!.message).toBe("Test missing vs baseline: U::Gone");
+    // theory rows whose names carry changed arguments (a record grew a field, AutoFixture values) aren't missing
+    const rowsBase = run([{ id: "U::Rows(o: Order { Id = 1 })", outcome: "passed", durationMs: 1 }, { id: "V::Rows(x: 1)", outcome: "passed", durationMs: 1 }]);
+    const rowsNow = run([{ id: "U::Rows(o: Order { Id = 1, Note = null })", outcome: "passed", durationMs: 1 }], { compareToBaseline: rowsBase.results.map((r) => r.id) });
+    expect(testExpectations.predicate({ run: rowsNow, baseline: rowsBase }, DEFAULT_POLICY).failures?.map((f) => f.message)).toEqual(["Test missing vs baseline: V::Rows"]);
     const broken = run([{ id: "T::A", outcome: "failed", failureKind: "compile", durationMs: 0, message: "Build failed" }], { ...cmp, expectPass: ["T::A"] });
     expect(testExpectations.predicate({ run: broken, baseline: base }, DEFAULT_POLICY).failures?.map((f) => f.check)).toEqual(["locked-failed"]);
   });

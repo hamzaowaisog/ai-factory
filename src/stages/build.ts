@@ -248,22 +248,41 @@ export function resolveTestIds(names: string[], resultIds: string[]): { ids: Rec
   return { ids, missing };
 }
 
-// test folders only: FooTests, Foo.Tests, foo-test, tests, not Latest/ or Contest/ (no {a,b}: the in-container matcher lacks it)
-export const TEST_SCOPE = ["tests/**", "test/**", ...["Test", "Tests", "TEST", "TESTS"].map((n) => `**/*${n}/**`),
+// test folders only: FooTests, Foo.Tests, Foo.Tests.Unit, foo-test, tests, __tests__, not Latest/ or Contest/
+// (case-sensitive; no {a,b}: the in-container matcher lacks it)
+export const TEST_SCOPE = ["tests/**", "test/**", "**/__tests__/**",
+  ...["Test", "Tests", "TEST", "TESTS"].flatMap((n) => [`**/*${n}/**`, `**/*${n}.*/**`]),
   ...["", "*.", "*-", "*_"].flatMap((p) => ["test", "tests"].map((n) => `**/${p}${n}/**`))];
 
 const SKIP_MARKER = ESCAPE_HATCHES.find((h) => h.id === "skip-test")!.re;
+// added lines that take tests out of the build or the run without touching a test method
+const UNTEST_MARKER = /<Compile\s+Remove=|<IsTestProject>\s*false|<IsTestingPlatformApplication>\s*false/i;
 
 /**
  * The test writer may only add: new files, or new lines in existing ones. A deleted file, a removed or
  * rewritten line, or an added skip marker could drop part of the existing suite, and that would get locked.
  */
+/** Added and removed lines of a -U0 patch (hunk bodies only). A removed line re-added unchanged (appending to a
+ * file with no final newline) isn't a removal. */
+export function patchLines(patch: string): { added: string[]; removed: string[] } {
+  const added: string[] = [], removed: string[] = [];
+  let inHunk = false;
+  for (const l of patch.split("\n")) {
+    if (l.startsWith("@@")) inHunk = true;
+    else if (l.startsWith("diff --git")) inHunk = false;
+    else if (inHunk && l.startsWith("+")) added.push(l.slice(1));
+    else if (inHunk && l.startsWith("-")) removed.push(l.slice(1));
+  }
+  const pool = [...added];
+  return { added, removed: removed.filter((r) => { const i = pool.indexOf(r); if (i < 0) return true; pool.splice(i, 1); return false; }) };
+}
+
 export function testWriterTampering(files: { status: string; path: string; added: string[]; removed: string[] }[]): Failure[] {
   const fs: Failure[] = [];
   for (const f of files) {
     if (f.status === "D") fs.push(failure("author-tests-deleted", `Test author deleted an existing file: ${f.path}`, { location: f.path }));
     else if (f.removed.length) fs.push(failure("author-tests-removed", `Test author removed or changed ${f.removed.length} existing line(s) in ${f.path}`, { location: f.path }));
-    const skip = f.added.find((l) => SKIP_MARKER.test(l));
+    const skip = f.added.find((l) => SKIP_MARKER.test(l) || UNTEST_MARKER.test(l));
     if (skip) fs.push(failure("author-tests-skip", `Test author added a skip marker in ${f.path}: ${skip.trim().slice(0, 120)}`, { location: f.path }));
   }
   return fs;
@@ -338,10 +357,9 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
     const changed = await changedFiles(wt, start, commit);
     const notTests = changed.filter((c) => !matchesAny(c.path, TEST_SCOPE));
     if (notTests.length) return { kind: "fail", category: "safety", failures: notTests.map((c) => failure("author-tests-scope", `Test author changed a non-test file: ${c.path}`)), signature: "author-tests:scope" };
-    const lines = (patch: string, sign: string) => patch.split("\n").filter((l) => l.startsWith(sign) && !l.startsWith(sign.repeat(3))).map((l) => l.slice(1));
     const tampered = testWriterTampering(await Promise.all(changed.map(async (c) => {
       const patch = c.status === "D" ? "" : (await git(wt, ["diff", "--no-color", "-U0", start, commit, "--", c.path])).stdout;
-      return { ...c, added: lines(patch, "+"), removed: lines(patch, "-") };
+      return { ...c, ...patchLines(patch) };
     })));
     if (tampered.length) return { kind: "fail", category: "safety", failures: tampered, signature: "author-tests:tamper" };
     const missingAc = acs.filter((a) => a.level !== "manual" && !out.tests.some((t) => t.acId === a.id));

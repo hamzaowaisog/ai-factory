@@ -340,6 +340,30 @@ describe("a crash between asking for a run and saving it", () => {
     jira.advance(30);
     expect((await watcher().tick()).started).toBeDefined();
   });
+
+  it("a ticket that keeps failing to start is dropped after 3 tries, so it can't block the queue", async () => {
+    ticket("SHOP-1");
+    const failing = watcher({ start: async () => { throw new Error("request too large"); } });
+    for (const n of [1, 2]) {
+      await expect(failing.tick()).rejects.toThrow(/too large/);
+      expect(loadState("shop-api").pending["SHOP-1"]!.failedStarts).toBe(n);
+      jira.advance(30);
+    }
+    await expect(failing.tick()).rejects.toThrow(/too large/);
+    expect(loadState("shop-api").pending["SHOP-1"]).toBeUndefined();
+    expect(loadState("shop-api").seen["SHOP-1"]!.skipped).toMatch(/couldn't start/);
+    expect(jira.commentTexts("SHOP-1")).toEqual([]);
+  });
+
+  it("a failed start goes to the back of the queue: the next ticket starts on the next tick", async () => {
+    ticket("SHOP-1");
+    ticket("SHOP-4");
+    const runs: string[] = [];
+    const w = watcher({ start: async (key: string) => { if (key === "SHOP-1") throw new Error("request too large"); runs.push(key); return `run-${key}`; } });
+    await expect(w.tick()).rejects.toThrow(/too large/);
+    await w.tick();
+    expect(runs).toEqual(["SHOP-4"]);
+  });
 });
 
 describe("the queue: one run per repo at a time", () => {
