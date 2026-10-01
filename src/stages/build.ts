@@ -614,8 +614,9 @@ export function implementStep(taskId: string): StepDef {
         [noSecrets, { scan: ctx.ledger.putJson(secretScanOf(diff, commit)) }],
         [diffInScope, { diff: diffSha, task: ctx.ledger.putJson({ fileScope: task.fileScope }) }],
         [noEscapeHatches, { diff: diffSha }],
-        // a task that changes UI files also passes the token and component lint (design.fidelity-lint)
-        ...(touchesUiFiles(wt, start, commit) ? [[designFidelityLint, { lint: ctx.ledger.putJson(fidelityLint(wt, start, commit, designOptions(ctx.project.design))) }] as [GateDef, Record<string, string>]] : []),
+        // a task that changes UI files also passes the token and component lint (design.fidelity-lint),
+        // but only in a project that set up its front end (a `design` block): elsewhere the lint has nothing reliable to check against
+        ...(ctx.project.design && touchesUiFiles(wt, start, commit) ? [[designFidelityLint, { lint: ctx.ledger.putJson(fidelityLint(wt, start, commit, designOptions(ctx.project.design))) }] as [GateDef, Record<string, string>]] : []),
       ]);
       if (diffGated) return failed(diffGated);
       // 2. only then build and run the tests on that exact commit
