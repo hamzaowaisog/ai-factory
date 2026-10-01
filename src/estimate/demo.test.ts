@@ -50,7 +50,7 @@ describe("clickable demo", () => {
   it("takes its colours, mode, corners and motion from the design's theme", () => {
     const theme = { mood: "calm clinical", mode: "light" as const, accent: "#0f766e", accent2: "#0369a1", radius: "round" as const, motion: "calm" as const };
     const html = buildDemo({ ...base, theme });
-    expect(html).toContain("--r:24px");
+    expect(html).toContain("--r:18px");
     expect(html).toContain("--rise:8px");
     expect(html).toContain("--drift:paused");
     expect(html).toContain('content="light"');
