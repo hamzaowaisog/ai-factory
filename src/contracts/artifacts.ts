@@ -171,6 +171,8 @@ const blockSchema = (big: boolean) => z.discriminatedUnion("type", [
   z.object({ type: z.literal("form"), fields: z.array(z.object({ label: Str(40), kind: z.enum(["text", "select", "date", "textarea", "toggle"]).default("text"), placeholder: Str(60).optional(), value: Str(80).optional(), options: z.array(Str(40)).max(8).optional() })).min(1).max(6), submit: Str(30).default("Save") }),
   z.object({ type: z.literal("chart"), kind: z.enum(["bar", "line"]).default("bar"), title: Str(60), points: z.array(z.object({ label: Str(16), value: z.number() })).min(2).max(big ? 14 : 8) }),
   z.object({ type: z.literal("cards"), visual: z.boolean().optional(), items: z.array(z.object({ title: Str(50), meta: Str(80), badge: Str(24).optional() })).min(1).max(big ? 9 : 6) }),
+  /** slides seen one at a time: "promo" for offers, announcements or onboarding (wide, on the brand colour), "media" for a row of things chosen by picture */
+  z.object({ type: z.literal("carousel"), style: z.enum(["promo", "media"]).default("media"), title: Str(40).optional(), items: z.array(z.object({ title: Str(50), meta: Str(80), badge: Str(24).optional(), cta: Str(24).optional() })).min(2).max(big ? 10 : 6) }),
   z.object({ type: z.literal("steps"), items: z.array(Str(30)).min(2).max(6), current: z.number().int().min(0).default(0) }),
   z.object({ type: z.literal("timeline"), items: z.array(z.object({ time: Str(24), title: Str(60), meta: Str(80).optional(), status: z.enum(["done", "now", "next"]).default("next") })).min(1).max(big ? 10 : 6) }),
   z.object({ type: z.literal("detail"), style: z.enum(["card", "pass"]).default("card"), title: Str(50).optional(), lead: z.object({ label: Str(30), value: Str(40) }).optional(), rows: z.array(z.object({ label: Str(30), value: Str(60) })).min(1).max(8) }),
@@ -180,16 +182,56 @@ const blockSchema = (big: boolean) => z.discriminatedUnion("type", [
 ]);
 export const MockBlock = blockSchema(false);
 export const MockBlockFull = blockSchema(true);
+/**
+ * A layer the page opens over itself: a dialog (modal), a side panel (drawer), a bottom sheet, a yes-or-no question (confirm) or a
+ * short menu. It opens from one of the page's own buttons (`trigger`, its label; "More" for a table row's menu).
+ */
+export const MockOverlay = z.object({
+  kind: z.enum(["modal", "drawer", "sheet", "confirm", "menu"]),
+  trigger: Str(40),
+  title: Str(60),
+  text: Str(200).optional(),
+  /** what it shows: a form, a record's facts, a short list or text (not a whole page) */
+  blocks: z.array(MockBlock).max(2).default([]),
+  /** a menu's entries */
+  items: z.array(Str(40)).max(8).optional(),
+  /** its buttons, the main one first ("Freeze card", "Keep it active") */
+  actions: z.array(Str(30)).max(2).default([]),
+});
+export type MockOverlay = z.infer<typeof MockOverlay>;
+
 export const ScreenMock = z.object({
   title: Str(60), subtitle: Str(120).optional(),
   blocks: z.array(MockBlock).min(1).max(6),
+  /** the page's own tabs (Overview, Activity, Documents), the first one open; for one record seen several ways, not for pages of their own */
+  tabs: z.array(Str(24)).min(2).max(6).optional(),
+  /** the trail above this page, outermost first, not including the page itself ("Accounts", "Savings ··4821"); a phone shows it as a back button */
+  crumbs: z.array(Str(40)).min(1).max(4).optional(),
+  /** where the page leads: clicking the button, table row (its first cell), card, list item or slide titled `from` opens screen `to` */
+  links: z.array(z.object({ from: Str(60), to: Str(16) })).max(8).optional(),
+  /** the dialogs, side panels, sheets, confirmations and menus the page opens: each is shown open as its own tab in the demo */
+  overlays: z.array(MockOverlay).max(3).optional(),
   /** the words a state shows: the empty page, an error, a success message, a validation message */
   copy: z.object({ emptyTitle: Str(60).optional(), emptyHint: Str(120).optional(), error: Str(140).optional(), success: Str(140).optional(), validation: Str(140).optional() }).default({}),
 });
 export type ScreenMock = z.infer<typeof ScreenMock>;
 /** The same screen with fine-grained data: every block of the normal page, denser (more rows, points and items), plus the graphs and figures a real day of use would show. */
-export const ScreenMockFull = z.object({ title: Str(60), subtitle: Str(120).optional(), blocks: z.array(MockBlockFull).min(1).max(9), copy: ScreenMock.shape.copy });
+export const ScreenMockFull = z.object({ title: Str(60), subtitle: Str(120).optional(), blocks: z.array(MockBlockFull).min(1).max(9), tabs: ScreenMock.shape.tabs, crumbs: ScreenMock.shape.crumbs, copy: ScreenMock.shape.copy });
 export type ScreenMockFull = z.infer<typeof ScreenMockFull>;
+
+export const Shell = z.enum(["auto", "sidebar", "topbar", "drawer", "tabs", "minimal"]);
+/**
+ * One app of the product when it has more than one (a customer phone app and an admin portal): its own device and frame, the
+ * same look. Screens name the app they belong to.
+ */
+export const DesignApp = z.object({
+  id: z.string().regex(/^[a-z][a-z0-9-]{0,23}$/), name: Str(40),
+  device: z.enum(["web", "phone"]).default("web"),
+  shell: Shell.default("auto"),
+  /** who uses this app */
+  users: Str(80).optional(),
+});
+export type DesignApp = z.infer<typeof DesignApp>;
 
 /** The look the design step picks for the product: colours, light or dark, corners, motion. Drawn by the demo (code, no model). */
 const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
@@ -206,8 +248,31 @@ export const DesignTheme = z.object({
   density: z.enum(["comfortable", "compact"]).default("comfortable"),
   surface: z.enum(["flat", "soft", "glass"]).default("flat"),
   motion: z.enum(["calm", "lively"]).default("lively"),
-  /** how modern the page feels: "quiet" (plain), "modern" (soft glow, hover lift, scroll reveal), "futuristic" (glow mesh, spotlight cards, gradient headings; for products whose users expect it) */
+  /** how modern the page feels: "quiet" (fades only), "modern" (hover lift, rise-in, drawn charts), "futuristic" (plus a dot grid, lit edges, live dots; for products whose users expect it) */
   fx: z.enum(["quiet", "modern", "futuristic"]).default("modern"),
+  /** the product's frame: a sidebar app, a top-bar site with contained content, a menu button opening a drawer, a bottom tab bar (phone apps), a minimal frame (logo only, narrow column), or chosen from the pages */
+  shell: Shell.default("auto"),
+  /** the page header: plain on the page, or on a brand-coloured band the first block overlaps */
+  hero: z.enum(["none", "band"]).default("none"),
+  /** how charts are drawn: soft (muted bars, the peak in brand, a light area), bold (brand bars, a strong area), mono (grey bars, ink line, no fill) */
+  charts: z.enum(["soft", "bold", "mono"]).default("soft"),
+  /** the pictures on cards: drawn scenes in one light (day, golden, dusk) or mixed, or icon tiles where photos would be fake */
+  imagery: z.enum(["mixed", "day", "golden", "dusk", "icons"]).default("mixed"),
+  /** the product read from its requirements before any look is chosen; every choice above follows from it */
+  reading: z.object({
+    /** who uses it and how often */
+    users: Str(140),
+    /** where and when it is used */
+    context: Str(140),
+    device: z.enum(["web", "phone", "both"]).default("web"),
+    /** the feeling the product must give (calm, urgent, playful, premium, serious, warm...) */
+    tone: Str(40),
+    /** the one moment that matters most, the thing the design must make effortless */
+    hero: Str(140),
+    traits: z.array(Str(24)).min(2).max(4),
+  }).optional(),
+  /** why the brand colour sits outside the field's usual colour family, from the reading; absent when it sits inside */
+  departure: Str(200).optional(),
   /** the real products this look draws on and what was taken from each: the proof the look is not invented */
   basis: z.array(z.object({ ref: Str(40), took: Str(120) })).max(5).optional(),
 });
@@ -220,7 +285,11 @@ export const DesignBody = z.object({
     id: Id, route: z.string(), file: z.string(), reqs: z.array(Id),
     states: z.array(z.string()).optional(), size: z.enum(["new", "tweak", "design-system", "reuse"]).optional(), frames: z.array(z.string()).optional(),
     mock: ScreenMock.optional(), mockFull: ScreenMockFull.optional(),
+    /** the app it belongs to, when the product has more than one */
+    app: z.string().optional(),
   })),
+  /** the product's apps when it has more than one (each with its own device and frame) */
+  apps: z.array(DesignApp).optional(),
   mapping: z.object({ unmappedReqs: z.array(Id), orphanScreens: z.array(Id) }),
   noScreen: z.array(z.object({ req: Id, reason: z.string() })).optional(),
   theme: DesignTheme.optional(),

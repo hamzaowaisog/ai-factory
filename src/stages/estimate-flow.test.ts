@@ -396,7 +396,7 @@ describe("export step", () => {
 // ---------- design step ----------
 describe("design step", () => {
   const twoReqs = { ...spec, requirements: [...spec.requirements, { id: "REQ-2", ears: "The system shall export a PDF report.", op: "ADDED", sources: ["I-1"], acceptance: [] }] };
-  const theme = { mood: "calm clinical", mode: "light", brand: "#1f6feb", neutral: "cool", chrome: "plain", font: "sans", radius: "soft", density: "comfortable", surface: "flat", motion: "lively", basis: [{ ref: "Epic MyChart", took: "calm white page, one blue action" }, { ref: "Linear", took: "hairline borders, compact tables" }] };
+  const theme = { mood: "calm clinical", mode: "light", brand: "#1f6feb", neutral: "cool", chrome: "plain", font: "sans", radius: "soft", density: "comfortable", surface: "flat", motion: "lively", reading: { users: "clinic staff", context: "at a desk all day", device: "web", tone: "calm", hero: "the day's queue at a glance", traits: ["dense", "quiet"] }, basis: [{ ref: "Epic MyChart", took: "calm white page, one blue action" }, { ref: "Linear", took: "hairline borders, compact tables" }] };
   const mock = { title: "Sign in", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["Sign in"] }], copy: {} };
   /** a finished-looking answer: every screen without a frame gets sample content, and the product has a theme */
   const dress = (o: { screens: Record<string, unknown>[] } & Record<string, unknown>) => ({ theme, ...o, screens: o.screens.map((s) => (s.mock || (s.frames as unknown[] | undefined)?.length ? s : { ...s, mock, mockFull: mock })) });

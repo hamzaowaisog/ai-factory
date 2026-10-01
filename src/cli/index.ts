@@ -179,11 +179,13 @@ for (const d of ["approve", "reject"] as const) {
       assertTty();
       const l = openRun(run);
       const decision = d === "approve" && o.reject !== undefined ? "reject" : d;
+      const design = replay(l.events()).openCard?.kind === "design-approval";
+      if (design && decision === "reject" && !(o.reject ?? o.reason ?? "").trim()) throw new DecisionError('Say what to change with --reason "...", naming the page or the part in your own words.');
       const signOff = (o.signOff ?? "").split(",").map((x) => x.trim()).filter(Boolean);
       const data = decision === "approve" ? { note: o.note ?? "", ...(signOff.length ? { signOff } : {}) } : { reason: o.reject ?? o.reason ?? "" };
       const r = await decide(l, { decision, hashPrefix: hash, data });
       if (r.kind === "repeat") return log("Already recorded.");
-      log(decision === "approve" ? "Approved." : "Rejected. Revising the spec and plan with your reason…");
+      log(decision === "approve" ? "Approved." : design ? "Sent back. Fixing what you pointed at (or redrawing the design if it needs that); a new card follows…" : "Rejected. Revising the spec and plan with your reason…");
       await runAndReport(l.runId);
     });
 }

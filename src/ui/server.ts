@@ -112,7 +112,7 @@ export const ROUTES: readonly Route[] = [
     },
   },
   {
-    method: "POST", path: "/api/runs/:id/design-decision", what: "the lead's approve or reject of a design card (E1b only; needs a typed name and the card hash; a rejection needs a reason and sends the design back for a redraw)",
+    method: "POST", path: "/api/runs/:id/design-decision", what: "the lead's approve or reject of a design card (E1b only; needs a typed name and the card hash; a rejection needs a reason; the parts it points at are fixed, or the design is redrawn when it needs that)",
     handle: async ({ id }, body, deps) => {
       const l = findRun(id!);
       if (!l) return notFound(`No run ${id}`);

@@ -4,32 +4,88 @@
 // opening the page. Best effort: no browser, or a browser that fails, is reported in `note` and never
 // fails the run, and the approval is tied to the demo page, not to these files.
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 export const VIEWPORTS = { phone: { width: 390, height: 844 }, desktop: { width: 1280, height: 800 } } as const;
 export type Viewport = keyof typeof VIEWPORTS;
 export interface Shot { file: string; screen: string; state: string; viewport: Viewport }
-export interface ScreenShotInput { id: string; route: string; states: string[] }
-export interface ShotResult { shots: Shot[]; note?: string }
+/** `title` is the page's name as the lead knows it; shots are labelled with it when given */
+export interface ScreenShotInput { id: string; route: string; states: string[]; title?: string }
+/** A fault of the drawn page a person would notice: text past the app's edge, text cut off by its box, or two texts on top of each other. */
+export interface LayoutIssue { screen: string; state: string; viewport: Viewport; kind: "overflow" | "clipped" | "overlap"; text: string }
+export interface ShotResult { shots: Shot[]; note?: string; issues?: LayoutIssue[] }
 
-const MAX_SHOTS = 48;
+const MAX_SHOTS = 64;
 
-/** A Chromium to launch: the one named by FACTORY_CHROMIUM, Playwright's own, or one under PLAYWRIGHT_BROWSERS_PATH. */
+// where Playwright keeps its browsers on each system, and the binary inside each browser folder
+const PW_ROOTS = (): string[] => [
+  process.env.PLAYWRIGHT_BROWSERS_PATH, "/opt/pw-browsers",
+  join(homedir(), "Library", "Caches", "ms-playwright"), join(homedir(), ".cache", "ms-playwright"),
+  process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, "ms-playwright") : undefined,
+].filter((x): x is string => !!x);
+const PW_BINARIES = [
+  "chrome-linux/chrome", "chrome-linux/headless_shell", "chrome-linux64/chrome", "chrome-headless-shell-linux64/chrome-headless-shell",
+  "chrome-mac/Chromium.app/Contents/MacOS/Chromium", "chrome-mac-arm64/Chromium.app/Contents/MacOS/Chromium",
+  "chrome-mac/headless_shell", "chrome-headless-shell-mac-arm64/chrome-headless-shell", "chrome-headless-shell-mac-x64/chrome-headless-shell",
+  "chrome-win/chrome.exe", "chrome-win64/chrome.exe",
+];
+// browsers people already have installed: a Chromium-based one is all the screenshots and the brand reading need
+const INSTALLED = (): string[] => [
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Chromium.app/Contents/MacOS/Chromium",
+  "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge", "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+  join(homedir(), "Applications", "Google Chrome.app", "Contents", "MacOS", "Google Chrome"),
+  "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser", "/snap/bin/chromium", "/usr/bin/microsoft-edge",
+  ...["PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA"].flatMap((v) => process.env[v] ? [join(process.env[v]!, "Google", "Chrome", "Application", "chrome.exe"), join(process.env[v]!, "Microsoft", "Edge", "Application", "msedge.exe")] : []),
+];
+
+/**
+ * A Chromium to launch: the one named by FACTORY_CHROMIUM, else Playwright's own (on Linux, macOS or Windows), else an installed
+ * Chrome, Chromium, Edge or Brave. FACTORY_CHROMIUM set to a missing path means "none", so a test or a locked-down machine can turn it off.
+ */
 export function findChromium(): string | undefined {
   const env = process.env.FACTORY_CHROMIUM;
   if (env) return existsSync(env) ? env : undefined;
-  const root = process.env.PLAYWRIGHT_BROWSERS_PATH ?? "/opt/pw-browsers";
-  try {
-    for (const d of readdirSync(root).sort().reverse()) {
-      for (const rel of ["chrome-linux/chrome", "chrome-linux/headless_shell", "chrome-linux64/chrome", "chrome-headless-shell-linux64/chrome-headless-shell"]) {
-        const p = join(root, d, rel);
-        if (/^chromium/.test(d) && existsSync(p)) return p;
+  for (const root of PW_ROOTS()) {
+    try {
+      for (const d of readdirSync(root).sort().reverse()) {
+        if (!/^chromium/.test(d)) continue;
+        for (const rel of PW_BINARIES) { const p = join(root, d, rel); if (existsSync(p)) return p; }
       }
-    }
-  } catch { /* no browsers folder */ }
-  return undefined;
+    } catch { /* no browsers folder */ }
+  }
+  return INSTALLED().find((p) => existsSync(p));
 }
+
+/**
+ * Run in the page: measures every line of text in the screen's visible state (open overlays included) and returns what is wrong
+ * with it. Scrolling rows (tables, slides) may run past their box on purpose; text cut with an ellipsis or a line clamp is
+ * shortened on purpose. Plain JS, as it is sent to the browser.
+ */
+export const LAYOUT_CHECK = String.raw`(function(id){
+  var sec=document.getElementById(id),pane=sec&&sec.querySelector(".pane:not([hidden])");if(!pane)return[];
+  var canvas=pane.closest(".canvas"),frame=(canvas||pane).getBoundingClientRect(),out=[],seen={},lines=[];
+  function add(kind,text){if(!seen[kind+text]&&out.length<12){seen[kind+text]=1;out.push({kind:kind,text:text})}}
+  var walk=document.createTreeWalker(pane,NodeFilter.SHOW_TEXT),n;
+  while((n=walk.nextNode())){
+    var text=(n.textContent||"").trim().replace(/\s+/g," ").slice(0,40),el=n.parentElement;
+    if(!text||!el||el.closest("svg,script,style,[aria-hidden=true],.vh,select,option"))continue;
+    var hidden=false,cut=false,box=null,scrolls=false;
+    for(var e=el;e&&e!==pane;e=e.parentElement){var c=getComputedStyle(e);
+      if(c.display==="none"||c.visibility==="hidden"||Number(c.opacity)===0){hidden=true;break}
+      if(c.textOverflow==="ellipsis"||(c.webkitLineClamp&&c.webkitLineClamp!=="none"))cut=true;
+      if(e!==canvas){var o=c.overflowX+" "+c.overflowY;if(/auto|scroll/.test(o))scrolls=true;else if(!box&&!scrolls&&/hidden|clip/.test(o))box=e}}
+    if(hidden)continue;
+    var range=document.createRange();range.selectNodeContents(n);var rs=range.getClientRects(),layer=el.closest(".ovl");
+    for(var i=0;i<rs.length;i++){var r=rs[i];if(r.width<1||r.height<1)continue;lines.push({r:r,node:n,text:text,layer:layer});
+      if(!scrolls&&(r.right>frame.right+1||r.left<frame.left-1))add("overflow",text);
+      if(box&&!cut&&!scrolls){var b=box.getBoundingClientRect();if(b.width>2&&b.height>2&&(r.right>b.right+2||r.left<b.left-2||r.bottom>b.bottom+2||r.top<b.top-2))add("clipped",text)}}}
+  lines=lines.slice(0,600);
+  for(var x=0;x<lines.length;x++)for(var y=x+1;y<lines.length;y++){var a=lines[x],q=lines[y];if(a.node===q.node||a.layer!==q.layer)continue;
+    var w=Math.min(a.r.right,q.r.right)-Math.max(a.r.left,q.r.left),h=Math.min(a.r.bottom,q.r.bottom)-Math.max(a.r.top,q.r.top);
+    if(w>2&&h>2&&w*h>0.2*Math.min(a.r.width*a.r.height,q.r.width*q.r.height))add("overlap",a.text+" / "+q.text)}
+  return out})`;
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "state";
 
@@ -40,7 +96,7 @@ export async function captureDemo(demoFile: string, screens: ScreenShotInput[], 
   const exe = findChromium();
   if (!exe) return { shots: [], note: "no browser found, so no screenshots were taken (set FACTORY_CHROMIUM to a Chromium binary)" };
   let browser: { close(): Promise<void>; newPage(o: object): Promise<any> } | undefined;
-  const shots: Shot[] = [];
+  const shots: Shot[] = [], issues: LayoutIssue[] = [];
   try {
     const { chromium } = await import("playwright-core");
     mkdirSync(outDir, { recursive: true });
@@ -53,19 +109,24 @@ export async function captureDemo(demoFile: string, screens: ScreenShotInput[], 
         await page.goto(`${url}#${encodeURIComponent(sc.id)}`);
         const states = sc.states.length ? sc.states : ["default"];
         for (const [k, st] of states.entries()) {
-          if (shots.length >= MAX_SHOTS) return { shots, note: `stopped at ${MAX_SHOTS} screenshots` };
+          if (shots.length >= MAX_SHOTS) return { shots, issues, note: `stopped at ${MAX_SHOTS} screenshots` };
           await page.locator(`#${sc.id.replace(/[^\w-]/g, "\\$&")} [data-state="${k}"]`).click();
-          await page.waitForTimeout(1200); // the page animates in
+          // move the pointer off the tab (a hovered tab is drawn differently) and show the page from its top
+          await page.mouse.move(0, 0);
+          await page.evaluate(() => window.scrollTo(0, 0));
+          await page.waitForTimeout(1600); // the page animates in
+          // what a person would see is wrong with the page (best effort: a failed check is no fault of the page)
+          try { for (const f of (await page.evaluate(`${LAYOUT_CHECK}(${JSON.stringify(sc.id)})`)) as Omit<LayoutIssue, "screen" | "state" | "viewport">[]) issues.push({ ...f, screen: sc.title ?? `${sc.id} ${sc.route}`, state: st, viewport: vp }); } catch { /* not checked */ }
           const file = `${slug(sc.id)}-${slug(st)}-${vp}.png`;
-          await page.screenshot({ path: join(outDir, file) });
-          shots.push({ file, screen: `${sc.id} ${sc.route}`, state: st, viewport: vp });
+          await page.screenshot({ path: join(outDir, file), fullPage: true });
+          shots.push({ file, screen: sc.title ?? `${sc.id} ${sc.route}`, state: st, viewport: vp });
         }
       }
       await page.close();
     }
-    return { shots };
+    return { shots, issues };
   } catch (e) {
-    return { shots, note: `screenshots stopped: ${(e instanceof Error ? e.message : String(e)).split("\n")[0]}` };
+    return { shots, issues, note: `screenshots stopped: ${(e instanceof Error ? e.message : String(e)).split("\n")[0]}` };
   } finally {
     try { await browser?.close(); } catch { /* already gone */ }
   }

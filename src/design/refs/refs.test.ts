@@ -129,3 +129,16 @@ describe.skipIf(!findChromium())("measuring a page", () => {
     expect(r.results[0]?.error).toBeTruthy();
   }, 60_000);
 });
+
+describe("trusting a live reading", () => {
+  const b = { id: "x", name: "X", site: "https://x.example", brand: "#d71921", mode: "light" } as never;
+  it("keeps a reading near the reported brand and drops a cookie banner's blue", async () => {
+    const { plausible } = await import("./measure.js");
+    expect(plausible({ brand: "#c8102e" } as never, b)).toBe(true);
+    expect(plausible({ brand: "#1a73e8" } as never, b)).toBe(false);
+  });
+  it("accepts a real rebrand when the page agrees with itself", async () => {
+    const { plausible } = await import("./measure.js");
+    expect(plausible({ brand: "#1a73e8", themeColor: "#1a73e8", buttonBg: "#1b74e9" } as never, b)).toBe(true);
+  });
+});

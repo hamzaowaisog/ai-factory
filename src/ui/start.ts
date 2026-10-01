@@ -235,8 +235,8 @@ export interface DesignDecisionInput { hash?: unknown; decision?: unknown; by?: 
 
 /**
  * The lead's decision on the design card (E1b), from the run page. Like the estimate card: a typed name, the card's hash
- * checked under the ledger lock, and a reason when sending it back. A rejection does not stop the run: the design is redrawn
- * with the reason and a new card follows.
+ * checked under the ledger lock, and a reason when sending it back. A rejection does not stop the run: the parts the reason
+ * points at are fixed (or the whole design is redrawn when it needs that) and a new card follows.
  */
 export async function decideDesign(ledger: Ledger, input: DesignDecisionInput, deps: StartDeps = {}): Promise<{ recorded: boolean }> {
   const open = replay(ledger.events()).openCard;
@@ -250,7 +250,7 @@ export async function decideDesign(ledger: Ledger, input: DesignDecisionInput, d
   let data: Record<string, unknown>;
   if (decision === "reject") {
     const reason = str(input.reason)?.trim();
-    if (!reason) throw new StartError("Say what to change: the design is redrawn with your reason.");
+    if (!reason) throw new StartError("Say what to change, in your own words: the parts you point at are fixed and you get a new card.");
     if (reason.length > 2000) throw new StartError("The reason is too long (2000 characters at most).");
     data = { reason };
   } else data = { note: str(input.note) ?? "" };

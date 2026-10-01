@@ -566,17 +566,17 @@ function questionPanel(r) {
     body);
 }
 
-/** The design card (E1b): the card and demo link, and approve or send back with a reason (the design is redrawn, the run goes on). */
+/** The design card (E1b): the card and demo link, and approve or send back with a reason (what it points at is fixed, or the design is redrawn; the run goes on). */
 function designPanel(r) {
   const c = r.card;
   const who = nameInput();
-  const why = h("textarea", { rows: "3", placeholder: "What should change? The design is redrawn with this and you get a new card.", "aria-label": "Rejection reason", maxlength: "2000" });
+  const why = h("textarea", { rows: "3", placeholder: "What should change? Name the page or the part, in your own words (for example: the booking page needs the price next to the button). Only what you point at is changed, and you get a new card.", "aria-label": "Rejection reason", maxlength: "2000" });
   const msg = h("p", { class: "small muted", role: "status" }, "");
   const act = async (decision) => {
     msg.textContent = "";
     try {
       await api(`/api/runs/${encodeURIComponent(r.runId)}/design-decision`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, decision, by: who.value, reason: why.value }) });
-      msg.textContent = decision === "approve" ? "Approved. The estimate is continuing…" : "Sent back. The design is being redrawn with your reason…";
+      msg.textContent = decision === "approve" ? "Approved. The estimate is continuing…" : "Sent back. Working on what you pointed at; a new card follows…";
       ok.disabled = no.disabled = true;
     } catch (err) { msg.textContent = err.message; }
   };

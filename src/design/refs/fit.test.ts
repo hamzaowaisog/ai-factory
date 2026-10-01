@@ -20,6 +20,17 @@ describe("theme fit to the field's real products", () => {
     expect(bad.map((b) => b.check)).toEqual(["design-off-reference"]);
     expect(bad[0]!.message).toContain("Delta");
   });
+  it("allows a brand outside the family when the reading gives a departure", () => {
+    expect(themeFit(theme({ brand: "#1F7A4D", basis, departure: "a rail-and-air pass for hikers; the outdoors, not the jet, is the hero" }), fitRefs(AIR, undefined, {}))).toEqual([]);
+  });
+  it("asks for a reason before a neon brand in a field people trust with money", () => {
+    const BANK = "Customers check their bank account balance, send payments and transfer money, and view card statements";
+    const r = fitRefs(BANK, undefined, {});
+    const fb = [{ ref: r.brands[0]!.name, took: "x" }, { ref: r.brands[1]!.name, took: "y" }];
+    expect(themeFit(theme({ brand: "#39FF14", basis: fb }), r).map((b) => b.check)).toContain("design-neon");
+    expect(themeFit(theme({ brand: "#39FF14", basis: fb, departure: "a trading app for first-time investors under 25" }), r).map((b) => b.check)).not.toContain("design-neon");
+    expect(themeFit(theme({ brand: "#0066FF", basis: fb }), r).map((b) => b.check)).not.toContain("design-neon");
+  });
   it("rejects a brand that is one reference brand's exact shade", () => {
     const r = fitRefs(AIR, undefined, {});
     const delta = r.brands.find((b) => b.name === "Delta")!;
@@ -43,7 +54,7 @@ describe("theme fit to the field's real products", () => {
     const sc = { id: "S-1", route: "/a", file: "a", reqs: ["R-1"], states: [], size: "new", frames: [], mock: { title: "t", blocks: [{ type: "text", body: "x" }, { type: "text", body: "y" }], copy: {} } };
     const out = { flow: "f", noScreen: [], theme: theme({ brand: "#22C55E" }), screens: [sc] } as never;
     expect(designQuality(out).map((q) => q.check)).toEqual([]);
-    expect(designQuality(out, false, fitRefs(AIR, undefined, {})).map((q) => q.check)).toEqual(["design-off-reference", "design-no-basis"]);
+    expect(designQuality(out, false, fitRefs(AIR, undefined, {})).map((q) => q.check)).toEqual(["design-off-reference", "design-no-basis", "design-no-reading"]);
     expect(designQuality(out, true, fitRefs(AIR, undefined, {})).map((q) => q.check)).toEqual([]);
   });
 });
@@ -51,17 +62,21 @@ describe("theme fit to the field's real products", () => {
 describe("demo effects follow the theme", () => {
   const d = (fx?: string) => buildDemo({ title: "Aero", flow: "f", requirements: {}, noScreen: [], frames: {}, theme: theme({ ...(fx ? { fx } : {}) }), screens: [{ id: "S-1", route: "/a", file: "a", reqs: [], states: [], size: "new", frames: [] }] } as never);
   it("sets the body class from fx, modern by default", () => {
-    expect(d()).toContain('<body class="fx-modern">');
-    expect(d("futuristic")).toContain('<body class="fx-futuristic">');
-    expect(d("quiet")).toContain('<body class="fx-quiet">');
+    expect(d()).toContain('<body class="fx-modern ');
+    expect(d("futuristic")).toContain('<body class="fx-futuristic ');
+    expect(d("quiet")).toContain('<body class="fx-quiet ');
   });
 });
 
 describe("every state keeps the sample data on show", () => {
   const mock = { title: "Trips", copy: {}, blocks: [{ type: "stats", items: [{ label: "Miles", value: "48,210" }] }, { type: "table", columns: ["Flight", "Route"], rows: [["EK 202", "DXB to LHR"], ["EK 5", "LHR to DXB"]] }] };
   const page = (state: string) => buildDemo({ title: "Aero", flow: "f", requirements: {}, noScreen: [], frames: {}, screens: [{ id: "S-1", route: "/a", file: "a", reqs: [], states: [state], size: "new", frames: [], mock }] } as never);
+  it("opens on the normal page with its data, before the listed special states", () => {
+    expect(page("loading")).toMatch(/data-state="0" class="on">default<.*data-state="1">loading</s);
+    expect(page("loading").split('data-wf="0"')[1]!.split('data-wf="1"')[0]).toContain("EK 202");
+  });
   it("loading keeps the static parts real and turns only the data into skeleton", () => {
-    const h = page("loading");
+    const h = page("loading").split('data-wf="1"')[1]!.split("<details")[0]!;
     expect(h).toContain("Miles");            // stat label stays
     expect(h).toContain("<th>Flight</th>");  // column header stays
     expect(h).not.toContain("EK 202");       // the values are skeleton

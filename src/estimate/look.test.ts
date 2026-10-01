@@ -1,0 +1,206 @@
+import { describe, expect, it } from "vitest";
+import { buildDemo, demoStates } from "./demo.js";
+import { designQuality } from "../stages/design.js";
+import { icon, iconFor, verbIcon } from "./icons.js";
+import { contrast, palette } from "./palette.js";
+import { scene, sceneKind } from "./scenes.js";
+
+describe("palette", () => {
+  it("keeps every text colour readable (WCAG AA) on its surface, in both modes, for pale and dark brands", () => {
+    for (const brand of ["#1a56db", "#ffe066", "#0b0b2a", "#22c55e"]) for (const mode of ["light", "dark"] as const) {
+      const p = palette({ brand, mode, neutral: "cool" });
+      for (const k of ["ink", "ink2", "a1", "ok", "bad", "warn", "info"]) expect(contrast(p[k]!, p.sf!), `${brand} ${mode} ${k}`).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(p.mut!, p.sf!), `${brand} ${mode} mut`).toBeGreaterThanOrEqual(3);
+      expect(contrast(p.on!, p.br!), `${brand} ${mode} on`).toBeGreaterThanOrEqual(2.4);
+    }
+  });
+  it("gives a bright brand dark text in dark mode, and a deep brand white text", () => {
+    expect(palette({ brand: "#22c55e", mode: "dark", neutral: "cool" }).on).not.toBe("#ffffff");
+    expect(palette({ brand: "#0e7c66", mode: "light", neutral: "cool" }).on).toBe("#ffffff");
+  });
+  it("tints warm neutrals warm and pure neutrals grey", () => {
+    const pure = palette({ brand: "#1a56db", mode: "light", neutral: "pure" }).edge!;
+    expect(pure.slice(1, 3)).toBe(pure.slice(3, 5));
+    const [r, , b] = [1, 3, 5].map((i) => parseInt(palette({ brand: "#1a56db", mode: "light", neutral: "warm" }).edge!.slice(i, i + 2), 16));
+    expect(r!).toBeGreaterThan(b!);
+  });
+});
+
+describe("icons", () => {
+  it("picks icons by the words of a label and the verb of a button", () => {
+    expect(iconFor("Net worth")).not.toBe("");
+    expect(verbIcon("Add money")).toBe("card");
+    expect(verbIcon("Add flight")).toBe("plus");
+    expect(verbIcon("Export statement")).toBe("download");
+    expect(verbIcon("Looks good")).toBe("");
+    expect(icon("nope")).toBe("");
+    expect(icon("bell")).not.toContain("xmlns");
+  });
+});
+
+describe("scenes", () => {
+  it("draws what the card is about, from its own words before the page's", () => {
+    expect(sceneKind("Dubai · From PKR 62,000", "Explore destinations")).toBe("city");
+    expect(sceneKind("Running shoes · $89", "Shop")).toBe("product");
+    expect(scene("Dubai", "Explore", "x1", 0)).toContain('id="scx1');
+    expect(scene("Dubai", "Explore", "x1", 0)).toBe(scene("Dubai", "Explore", "x1", 0));
+  });
+});
+
+describe("demo drawing", () => {
+  const screen = (id: string) => ({ id, route: `/${id}`, file: "a.tsx", reqs: [], states: ["loading"], size: "new", frames: [], mock: { title: "Weekly", copy: {}, blocks: [
+    { type: "chart" as const, kind: "line" as const, title: "Passengers", points: [{ label: "W1", value: 3 }, { label: "W2", value: 5 }, { label: "W3", value: 4 }] },
+    { type: "cards" as const, visual: true, items: [{ title: "Dubai", meta: "From $420" }, { title: "Doha", meta: "From $380" }] },
+  ] } });
+  const html = () => buildDemo({ title: "Sky", flow: "f", screens: [screen("S-1"), screen("S-2")] as never, requirements: {}, noScreen: [] });
+  it("gives every gradient its own id, so one defined in a hidden state still paints in a shown one", () => {
+    const ids = [...html().matchAll(/<(?:linear|radial)Gradient id="([^"]+)"/g)].map((m) => m[1]);
+    expect(ids.length).toBeGreaterThan(2);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+  it("takes its frame and styles from the theme, not one template", () => {
+    const with_ = (theme: object) => buildDemo({ title: "Sky", flow: "f", screens: [screen("S-1")] as never, requirements: {}, noScreen: [], theme: { mood: "x", brand: "#0b5d4b", ...theme } as never });
+    expect(with_({})).toContain("sh-topbar"); // auto: no tables or figures, so a site
+    expect(with_({ shell: "sidebar" })).toContain('class="rail');
+    const minimal = with_({ shell: "minimal" });
+    expect(minimal).toContain("sh-minimal");
+    expect(minimal).not.toContain('class="tnav"');
+    expect(minimal).not.toContain('class="tabbar"');
+    expect(with_({ hero: "band" })).toContain('class="app hero"');
+    expect(with_({ charts: "mono", radius: "round" })).toMatch(/<body class="fx-modern sh-topbar ch-mono r-round">/);
+    const icons = with_({ imagery: "icons" });
+    expect(icons).toContain('class="pic tile"');
+    expect(icons).not.toContain('<div class="pic" ');
+  });
+  it("is the same every build, and fetches nothing", () => {
+    expect(html()).toBe(html());
+    expect(html()).not.toMatch(/https?:\/\//);
+  });
+});
+
+describe("devices, apps and frames", () => {
+  const sc = (id: string, route: string, title: string, o: object = {}) => ({ id, route, file: "a.tsx", reqs: [], states: [], size: "new", frames: [], mock: { title, copy: {}, blocks: [{ type: "text" as const, body: "x" }, { type: "text" as const, body: "y" }] }, ...o });
+  const screens = [
+    sc("S-1", "/home", "Good morning, Sana", { app: "customer" }),
+    sc("S-2", "/accounts/savings", "Savings ··9032", { app: "customer" }),
+    sc("S-3", "/customers", "Customers", { app: "admin" }),
+    sc("S-4", "/customers/4821", "Sana Malik", { app: "admin" }),
+  ];
+  const build = (apps?: object[], theme: object = {}, list = screens) => buildDemo({ title: "Meezan Plus", flow: "f", screens: list as never, requirements: {}, noScreen: [], theme: { mood: "x", brand: "#0B5CAD", ...theme } as never, ...(apps ? { apps: apps as never } : {}) });
+  const two = [{ id: "customer", name: "Customer app", device: "phone", shell: "tabs" }, { id: "admin", name: "Back office", device: "web", shell: "sidebar" }];
+  const section = (html: string, id: string) => html.slice(html.indexOf(`<section class="screen" id="${id}"`), html.indexOf("</section>", html.indexOf(`id="${id}"`)));
+  it("draws a phone app in a phone and a web app in a browser, each with its own frame", () => {
+    const html = build(two);
+    expect(section(html, "S-1")).toContain('class="canvas sh-tabs phone"');
+    expect(section(html, "S-1")).toContain('class="sbar');
+    expect(section(html, "S-1")).toContain('class="tabbar"');
+    expect(section(html, "S-3")).toContain('class="canvas sh-sidebar"');
+    expect(section(html, "S-3")).toContain("admin.meezanplus.app/customers");
+    expect(html).toContain("Customer app <span class=\"dv\">phone app</span>");
+  });
+  it("lists an app's sections in its navigation, names them as a product would, and keeps a detail page's section lit", () => {
+    const s1 = section(build(two), "S-1");
+    expect(s1).toContain("<span>Home</span>");
+    expect(s1).toContain("<span>Accounts</span>");
+    expect(s1).not.toContain("<span>Customers</span>");
+    const s4 = section(build(two), "S-4");
+    expect(s4).toMatch(/<a href="#S-3" class="on">.*?<span>Customers<\/span>/);
+    expect(s4).not.toContain("<span>Sana Malik</span>");
+  });
+  it("opens a drawer from a menu button", () => {
+    const s = section(build([{ ...two[0], shell: "drawer" }, two[1]]), "S-1");
+    expect(s).toContain('data-drawer aria-label="Menu"');
+    expect(s).toContain('class="dp" role="dialog"');
+    expect(s).not.toContain('class="tabbar"');
+  });
+  it("follows the reading's device when there is one app", () => {
+    const html = build(undefined, { reading: { users: "u", context: "c", device: "phone", tone: "t", hero: "h", traits: ["a", "b"] } }, screens.slice(0, 2));
+    expect(html).toContain('class="canvas sh-tabs phone"');
+  });
+  it("shows a page's trail and its own tabs", () => {
+    const html = build(two, {}, [sc("S-1", "/a/b", "Savings", { app: "customer", mock: { title: "Savings", crumbs: ["Accounts"], tabs: ["Overview", "Activity"], copy: {}, blocks: [{ type: "text", body: "x" }, { type: "text", body: "y" }] } }), screens[2]!]);
+    expect(html).toContain('<nav class="crumbs" aria-label="Breadcrumb"><span class="back">');
+    expect(html).toContain('<span aria-current="page">Savings</span>');
+    expect(html).toContain('<button type="button" role="tab" aria-selected="true" class="on">Overview</button>');
+  });
+});
+
+describe("overlays", () => {
+  const blocks = [
+    { type: "table" as const, columns: ["Payee", "Status"], rows: [["Ayesha", "Active"], ["Bilal", "Paused"]], statusColumn: 1 },
+    { type: "actions" as const, buttons: ["Add payee", "Freeze card"] },
+  ];
+  const overlays = [
+    { kind: "modal" as const, trigger: "Add payee", title: "Add payee", blocks: [{ type: "form" as const, fields: [{ label: "Name", kind: "text" as const }], submit: "Add" }], actions: [] },
+    { kind: "confirm" as const, trigger: "Freeze card", title: "Freeze this card?", text: "Payments stop until you unfreeze it.", blocks: [], actions: ["Freeze card", "Keep active"] },
+    { kind: "menu" as const, trigger: "More", title: "Payee actions", blocks: [], items: ["Edit", "Delete payee"], actions: [] },
+  ];
+  const sc = { id: "S-1", route: "/payees", file: "a.tsx", reqs: [], states: ["empty"], size: "new", frames: [], mock: { title: "Payees", copy: {}, blocks, overlays } };
+  const html = buildDemo({ title: "Pay", flow: "f", screens: [sc] as never, requirements: {}, noScreen: [], theme: { mood: "x", brand: "#0B5CAD" } as never });
+  it("gives each overlay its own tab after the screen's states", () => {
+    expect(demoStates(sc)).toEqual(["default", "empty", "Dialog: Add payee", "Confirm: Freeze this card?", "Menu: Payee actions"]);
+    expect(html).toMatch(/data-state="3"[^>]*>[^<]*Confirm: Freeze this card\?/);
+  });
+  it("draws the overlays on the normal page, closed, and open in their own tab", () => {
+    expect(html.match(/class="ovl k-modal"/g)?.length).toBe(3);
+    expect(html.match(/class="ovl k-modal open" data-open/g)?.length).toBe(1);
+    expect(html).toContain('data-trigger="More" role="menu"');
+    expect(html).toContain('class="btn primary danger"');
+    expect(html).toContain('class="mitem bad"');
+  });
+  it("checks every overlay opens from a button on its page", () => {
+    const out = (o: object[]) => ({ flow: "f", noScreen: [], screens: [{ ...sc, mock: { ...sc.mock, overlays: o } }] }) as never;
+    const checks = (o: object[]) => designQuality(out(o)).filter((q) => q.check === "design-overlay-trigger").length;
+    expect(checks(overlays)).toBe(0);
+    expect(checks([{ ...overlays[0], trigger: "New payee" }])).toBe(1);
+    expect(checks([{ ...overlays[2], items: [] }])).toBe(1);
+  });
+});
+
+describe("carousel", () => {
+  const car = (style: "promo" | "media") => ({ type: "carousel" as const, style, title: "Offers for you", items: [{ title: "0% instalments at Khaadi", meta: "Up to 6 months on your Visa", badge: "New", cta: "See offer" }, { title: "Profit up to 13.5%", meta: "Open a savings pot in a minute" }, { title: "Pay bills, earn points", meta: "Every bill paid in the app" }] });
+  const html = (style: "promo" | "media") => buildDemo({ title: "Pay", flow: "f", screens: [{ id: "S-1", route: "/home", file: "a.tsx", reqs: [], states: ["loading"], size: "new", frames: [], mock: { title: "Home", copy: {}, blocks: [car(style), { type: "text", body: "x" }] } }] as never, requirements: {}, noScreen: [], theme: { mood: "x", brand: "#0B5CAD" } as never });
+  it("draws slides with arrows and dots, one picture each", () => {
+    const h = html("promo");
+    expect(h).toContain('<div class="car k-promo" role="region" aria-roledescription="carousel" aria-label="Offers for you">');
+    expect(h.match(/aria-roledescription="slide"/g)?.length).toBe(3);
+    expect(h).toContain('data-car="1" aria-label="Next slide"');
+    expect(h.match(/<div class="dots"[^>]*>(<i[^>]*><\/i>)+<\/div>/)?.[0].match(/<i/g)?.length).toBe(3);
+    expect(h).toContain("See offer");
+    expect(html("media")).toContain('class="car k-media"');
+  });
+  it("counts a slide's button as one an overlay may open from", () => {
+    const sc = { id: "S-1", route: "/", file: "a", reqs: [], states: [], size: "new", frames: [], mock: { title: "Home", copy: {}, blocks: [car("promo"), { type: "text", body: "x" }], overlays: [{ kind: "sheet", trigger: "See offer", title: "Khaadi offer", blocks: [], actions: [] }] }, mockFull: { title: "Home", copy: {}, blocks: [car("promo")] } };
+    expect(designQuality({ flow: "f", noScreen: [], screens: [sc] } as never).map((q) => q.check)).not.toContain("design-overlay-trigger");
+  });
+});
+
+describe("linked screens", () => {
+  const blocks = [{ type: "table" as const, columns: ["Customer", "KYC"], rows: [["Sana Malik", "Verified"], ["Hamid Raza", "Pending"]], statusColumn: 1 }, { type: "actions" as const, buttons: ["Add customer"] }];
+  const sc = (links: object[]) => ({ id: "S-1", route: "/customers", file: "a", reqs: [], states: [], size: "new", frames: [], mock: { title: "Customers", copy: {}, blocks, links } });
+  const other = { id: "S-2", route: "/customers/1", file: "b", reqs: [], states: [], size: "new", frames: [], mock: { title: "Sana Malik", copy: {}, blocks: [{ type: "text", body: "x" }, { type: "text", body: "y" }] } };
+  const checks = (links: object[]) => designQuality({ flow: "f", noScreen: [], screens: [sc(links), other] } as never).filter((q) => q.check === "design-link").map((q) => q.message);
+  it("carries a page's links for the demo to wire up", () => {
+    const html = buildDemo({ title: "Bank", flow: "f", screens: [sc([{ from: "Sana Malik", to: "S-2" }]), other] as never, requirements: {}, noScreen: [] });
+    expect(html).toContain('data-links="[{&quot;from&quot;:&quot;Sana Malik&quot;,&quot;to&quot;:&quot;S-2&quot;}]"');
+  });
+  it("checks a link goes from something on the page to another screen", () => {
+    expect(checks([{ from: "Sana Malik", to: "S-2" }, { from: "add customer", to: "S-2" }])).toEqual([]);
+    expect(checks([{ from: "Sana Malik", to: "S-9" }])[0]).toContain("not a screen of this design");
+    expect(checks([{ from: "Sana Malik", to: "S-1" }])[0]).toContain("the same screen");
+    expect(checks([{ from: "Usman Tariq", to: "S-2" }])[0]).toContain("nothing on the page is labelled that");
+  });
+});
+
+describe("layout problems on the design card", () => {
+  it("lists what the screenshots found, at most eight", async () => {
+    const { designCard } = await import("../stages/estimate-approve.js");
+    const design = { flow: "f", screens: [], mapping: { unmappedReqs: [], orphanScreens: [] } } as never;
+    const issue = (i: number) => ({ screen: "Customers", state: "default", viewport: "phone" as const, kind: "clipped" as const, text: `Label ${i}` });
+    const card = designCard("r1", design, "abcdef12", { shots: { dir: "d", count: 2, issues: Array.from({ length: 10 }, (_, i) => issue(i)) } });
+    expect(card).toContain("## Layout problems in the demo (10)");
+    expect(card).toContain('- Customers, default, phone: "Label 0" is cut off');
+    expect(card).toContain("- and 2 more");
+    expect(designCard("r1", design, "abcdef12", { shots: { dir: "d", count: 2 } })).not.toContain("Layout problems");
+  });
+});

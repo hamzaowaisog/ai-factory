@@ -54,7 +54,9 @@ describe("the clickable demo", () => {
     const html = buildDemo({ ...base, screens: [screen(), screen({ id: "S-2", route: "/home", states: [] })] });
     expect(html).toMatch(/id="S-1"/);
     expect(html).toMatch(/id="S-2"/);
-    expect(html).toMatch(/data-state="1">error</);
+    // the normal page always comes first, even when the listed states are all special ones
+    expect(html).toMatch(/data-state="0" class="on">default</);
+    expect(html).toMatch(/data-state="2">error</);
     expect(html).toMatch(/href="#S-2"/);
     expect(html).toMatch(/The user shall sign in\./);
     expect(html).toMatch(/default-src 'none'/);

@@ -29,6 +29,7 @@ export function colourGap(a: string, b: string): number {
 }
 
 export const MAX_HUE_GAP = 40;
+const SERIOUS = new Set(["trust-finance", "care", "public", "operations"]);
 
 /** The same colour to the eye: hue within 4 degrees and saturation and lightness within 0.05. */
 export function closeShade(a: string, b: string): boolean {
@@ -36,20 +37,20 @@ export function closeShade(a: string, b: string): boolean {
   return hueGap(x.h, y.h) <= 4 && Math.abs(x.s - y.s) <= 0.05 && Math.abs(x.l - y.l) <= 0.05;
 }
 
-export interface FitRefs { brands: (RefBrand & { measured: boolean })[]; labels: string[] }
+export interface FitRefs { brands: (RefBrand & { measured: boolean })[]; labels: string[]; archetypes?: string[] }
 
 /** The reference brands a requirement text is briefed with (the same pick the design prompt uses), measured values preferred. */
 export function fitRefs(text: string, industries?: RefIndustry[], measured: Record<string, Measured> = loadMeasured()): FitRefs {
   const picked = pickIndustries(text, industries);
   const brands = picked.flatMap((p) => p.industry.brands).map((b) => resolveBrand(b, measured));
-  return { brands, labels: picked.map((p) => p.industry.label) };
+  return { brands, labels: picked.map((p) => p.industry.label), archetypes: [...new Set(picked.map((p) => p.industry.archetype))] };
 }
 
 const norm = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
 /**
- * Checks the theme against the references. `measured` brands count double: a colour read from the live site outranks a reported one,
- * so when any brand was measured the colour must match one of those first.
+ * Checks the theme against the references. The references are guardrails, not a template: a brand outside the field's colour family
+ * is allowed when the theme says why (`departure`, from the product reading), and never a colour the field would not trust.
  */
 export function themeFit(theme: DesignTheme | undefined, refs: FitRefs): { check: string; message: string }[] {
   if (!theme) return [];
@@ -57,10 +58,15 @@ export function themeFit(theme: DesignTheme | undefined, refs: FitRefs): { check
   if (refs.brands.length) {
     const colours = refs.brands.flatMap((b) => [b.brand, ...(b.accent ? [b.accent] : [])]);
     const near = colours.filter((c) => colourGap(theme.brand, c) <= MAX_HUE_GAP || (theme.accent && colourGap(theme.accent, c) <= MAX_HUE_GAP));
-    if (!near.length) {
+    if (!near.length && !theme.departure?.trim()) {
       const list = refs.brands.slice(0, 6).map((b) => `${b.name} ${b.brand.toUpperCase()}${b.accent ? ` + ${b.accent.toUpperCase()}` : ""}${b.measured ? " (measured)" : ""}`).join(", ");
-      bad.push({ check: "design-off-reference", message: `Brand ${theme.brand} is more than ${MAX_HUE_GAP} degrees of hue from every reference colour for ${refs.labels.join(" / ")} (${list}). Products in this field are coloured in that family: move the brand colour into it, or cite in "basis" why this product must differ.` });
+      bad.push({ check: "design-off-reference", message: `Brand ${theme.brand} is more than ${MAX_HUE_GAP} degrees of hue from every reference colour for ${refs.labels.join(" / ")} (${list}). Products in this field are coloured in that family: move the brand colour into it, or say in "departure" what in the product reading makes this product differ.` });
     }
+    // a field people trust with money, health or duties rarely takes a neon brand: only a product whose reading says why (Robinhood, Lemonade)
+    const serious = (refs.archetypes ?? []).some((a) => SERIOUS.has(a));
+    const x = hsl(theme.brand);
+    const electric = (x.h >= 70 && x.h <= 190) || (x.h >= 280 && x.h <= 335); // lime, green, cyan, magenta: blues, reds and oranges at full strength are ordinary bank colours
+    if (serious && electric && x.s >= 0.85 && x.l >= 0.45 && x.l <= 0.7 && !theme.departure?.trim()) bad.push({ check: "design-neon", message: `Brand ${theme.brand} is a neon-bright colour, which ${refs.labels.join(" / ")} products rarely use: people trust them with money, health or duties. Deepen it, or say in "departure" what in the product reading calls for it.` });
     // a look that is one brand's colour, to the shade, is a copy; real competitors differ
     const copied = refs.brands.find((b) => [b.brand, b.accent].some((c) => c && closeShade(theme.brand, c)));
     if (copied) bad.push({ check: "design-copied", message: `Brand ${theme.brand} is the same shade as ${copied.name}'s. Stay in the family but choose your own shade, as another competitor in the field would.` });

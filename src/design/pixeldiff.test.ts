@@ -1,7 +1,12 @@
 import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+// the test config turns screenshots off everywhere else; these tests are about the real browser
+const offBefore = process.env.FACTORY_NO_SCREENSHOTS;
+beforeAll(() => { delete process.env.FACTORY_NO_SCREENSHOTS; });
+afterAll(() => { if (offBefore !== undefined) process.env.FACTORY_NO_SCREENSHOTS = offBefore; });
 import { findChromium } from "../estimate/screenshots.js";
 import { pixelDiff } from "./pixeldiff.js";
 

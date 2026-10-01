@@ -88,7 +88,7 @@ function answerFor(system: string): unknown {
   if (system.includes("drawing the screen inventory")) {
     const d = uiDesign as { screens: Record<string, unknown>[] };
     const mock = { title: "Open orders", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["Continue"] }], copy: {} };
-    return { theme: { mood: "calm", brand: "#1f6feb", basis: [{ ref: "Linear", took: "hairlines" }, { ref: "Stripe", took: "one blue action" }] }, ...d, screens: d.screens.map((x) => ({ mock, mockFull: mock, ...x })) };
+    return { theme: { mood: "calm", brand: "#1f6feb", reading: { users: "clinic staff", context: "at a desk all day", device: "web", tone: "calm", hero: "the day's queue at a glance", traits: ["dense", "quiet"] }, basis: [{ ref: "Linear", took: "hairlines" }, { ref: "Stripe", took: "one blue action" }] }, ...d, screens: d.screens.map((x) => ({ mock, mockFull: mock, ...x })) };
   }
   if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "sign in and export reports" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: ui };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: "user signs in", kind: "happy" }, { text: "user exports a PDF", kind: "happy" }] }] };
@@ -325,7 +325,7 @@ describe("estimate mode for a request with UI (scripted model)", () => {
     expect(html).toMatch(/id="S-2"/);
     // the same page is what `factory ui` shows under Run: Preview
     const pv = readPreview(ledger);
-    expect("preview" in pv && pv.preview.site?.screens.map((x) => x.title)).toEqual(["S-1 /login", "S-2 /reports"]);
+    expect("preview" in pv && pv.preview.site?.screens.map((x) => x.title)).toEqual(["Open orders (/login)", "Open orders (/reports)"]);
     expect(previewFile(ledger, "index.html")?.body.toString()).toBe(html);
     const s = replay(ledger.events());
     for (const step of ["design", "design-baseline", "breakdown", "estimate", "approve-estimate", "export"]) expect(s.steps.get(step)?.status, step).toBe("completed");

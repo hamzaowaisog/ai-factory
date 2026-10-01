@@ -41,3 +41,16 @@ describe("deciding between a patch and a redraw", () => {
     expect(reworkCardLines(design(2))).toEqual([]);
   });
 });
+
+describe("keeping the pages a lead called fine", () => {
+  it("restores a fine page exactly and carries the earlier theme when the patch leaves it out", async () => {
+    const { keepFine } = await import("./design.js");
+    const old = { ...screen("S-1", "Flights"), states: ["empty"] };
+    const out = { flow: "f", screens: [screen("S-1", "Changed"), screen("S-2", "Changed too")] };
+    const theme = { brand: "#0a84ff" };
+    const r = keepFine(out as never, ["S-1"], { flow: "f", screens: [old] } as never, theme as never);
+    expect(r.screens[0]).toEqual(old);
+    expect(r.screens[1]).toMatchObject({ mock: { title: "Changed too" } });
+    expect((r as { theme?: unknown }).theme).toEqual(theme);
+  });
+});
