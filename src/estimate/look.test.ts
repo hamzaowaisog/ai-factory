@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildDemo, demoStates, toastLabel } from "./demo.js";
-import { designQuality, layoutFixes } from "../stages/design.js";
+import { amountOf, designQuality, domainFit, layoutFixes } from "../stages/design.js";
+import { MockBlock } from "../contracts/artifacts.js";
 import { icon, iconFor, verbIcon } from "./icons.js";
 import { contrast, palette } from "./palette.js";
 import { scene, sceneKind } from "./scenes.js";
@@ -353,5 +354,159 @@ describe("charts, fields and tables that fit the data", () => {
     expect(fails({ kind: "progress", points: [{ label: "Goal", value: 140 }] })).toContain("design-chart");
     expect(fails({ kind: "gauge", max: 100, points: [{ label: "Fuel", value: 120 }] })).toContain("design-chart");
     expect(fails({ kind: "gauge", max: 850, points: [{ label: "Score", value: 720 }] })).not.toContain("design-chart");
+  });
+});
+
+describe("domain components", () => {
+  const blk = (b: Record<string, unknown>) => MockBlock.parse(b);
+  const demo = (blocks: unknown[]) => buildDemo({ title: "Kargo", flow: "f", requirements: {}, noScreen: [],
+    screens: [{ id: "S-1", route: "/s", file: "a.tsx", reqs: [], states: ["loading"], size: "new", frames: [], mock: { title: "Home", copy: {}, blocks: blocks.map((b) => blk(b as never)) } }] as never });
+  const fit = (b: Record<string, unknown>) => domainFit("S-1", blk(b) as never).map((f) => f.message);
+  const cal = { type: "calendar", month: "March 2027", startsOn: 0, days: 31 };
+
+  it("draws a month from its first weekday, with marks, closed days and the picked day's free times", () => {
+    const html = demo([{ ...cal, picked: 9, off: [7], marks: [{ day: 9, label: "Dentist", tone: "ok" }], times: ["09:00", "09:30", "10:00"], taken: ["09:30"], time: "10:00" }]);
+    expect((html.match(/class="cd pad"/g) ?? []).length).toBe(0);
+    expect(html).toMatch(/class="cd on" data-day="9"/);
+    expect(html).toMatch(/class="cd off[^"]*" data-day="7"[^>]*disabled/);
+    expect(html).toContain('<em class="ok">Dentist</em>');
+    expect(html).toContain('<span class="sday">Tue 9</span>');
+    expect(html).toMatch(/class="slot"[^>]* disabled[^>]*>09:30/);
+    expect(html).toMatch(/class="slot on"[^>]*>10:00/);
+    expect(demo([{ ...cal, month: "May 2027", startsOn: 5 }]).match(/class="cd pad"/g)?.length).toBe(5);
+  });
+  it("draws a map with numbered stops and a route, a list beside it in the same order", () => {
+    const html = demo([{ type: "map", area: "Gulberg", route: true, pins: [{ label: "Warehouse" }, { label: "Stop 2: Liberty", tone: "warn" }] }]);
+    expect(html).toContain('class="rt"');
+    expect(html).toMatch(/class="mp info on" data-pin="0"[^>]*><span>1</);
+    expect(html).toMatch(/class="mpi" data-pin="1"><span class="mpn warn">2</);
+    expect(html).toContain("Gulberg");
+  });
+  it("draws a gallery as one large picture with thumbnails, or as a grid", () => {
+    const items = Array.from({ length: 7 }, (_, i) => ({ caption: `Room ${i + 1}` }));
+    const hero = demo([{ type: "gallery", items }]);
+    expect(hero).toContain("<b>1</b> / 7");
+    expect((hero.match(/class="gth/g) ?? []).length).toBe(5);
+    expect(hero).toContain('class="gmore">+2<');
+    expect(demo([{ type: "gallery", layout: "grid", items }])).toMatch(/class="gal grid"/);
+  });
+  it("draws uploads by status, a retry only on the failed one", () => {
+    const html = demo([{ type: "upload", label: "Lab reports", hint: "PDF or JPG, up to 10 MB", files: [{ name: "cbc.pdf", size: "1.2 MB", status: "done" }, { name: "xray.jpg", size: "4 MB", status: "uploading", progress: 40 }, { name: "scan.png", size: "9 MB", status: "failed" }] }]);
+    expect(html).toContain('class="uf done"');
+    expect(html).toContain("40%");
+    expect((html.match(/data-retry aria/g) ?? []).length).toBe(1);
+    expect(html).toContain(">PDF<");
+  });
+  it("draws a chat on two sides, a live status, quick replies and a box to write in", () => {
+    const html = demo([{ type: "chat", with: "Ali Raza", meta: "Online", messages: [{ from: "them", text: "I'm at the gate" }, { from: "me", text: "Coming down" }], quick: ["On my way"] }]);
+    expect(html).toContain('class="meta live"');
+    expect(html).toContain('class="msg theirs"');
+    expect(html).toContain('class="msg mine"');
+    expect(html).toContain('class="qrc" data-say>On my way');
+    expect(html).toContain('role="log"');
+  });
+  it("draws a board with counts, people's avatars on cards", () => {
+    const html = demo([{ type: "kanban", columns: [{ title: "To do", cards: [{ title: "Fix login", meta: "Sara Khan · Due Fri", badge: "High" }] }, { title: "Done", cards: [] }] }]);
+    expect(html).toContain("--cols:2");
+    expect(html).toMatch(/<b>To do<\/b><span class="kn">1</);
+    expect(html).toContain('draggable="true"');
+    expect(html).toContain("Due Fri");
+  });
+  it("draws plans with both periods' prices and one raised", () => {
+    const html = demo([{ type: "plans", periods: ["Monthly", "Yearly"], note: "Save 20%", items: [{ name: "Basic", price: "$9", alt: "$7", per: "/ month", features: ["1 user"], cta: "Choose Basic" }, { name: "Team", price: "$29", alt: "$23", per: "/ month", features: ["10 users"], cta: "Choose Team", featured: true, badge: "Most popular" }] }]);
+    expect(html).toContain('data-p0="$29" data-p1="$23"');
+    expect(html).toContain('class="card plan ft"');
+    expect(html).toContain("Save 20%");
+  });
+  it("draws ratings with stars filled to the score and the share at each star", () => {
+    const html = demo([{ type: "reviews", score: 4.6, count: "1,284 reviews", bars: [70, 18, 7, 3, 2], items: [{ name: "Hina Malik", rating: 5, text: "Quick and kind." }] }]);
+    expect(html).toContain("<strong>4.6</strong>");
+    expect(html).toContain("--p:92%");
+    expect(html).toContain("width:70%");
+  });
+  it("draws notifications in groups with the unread counted", () => {
+    const html = demo([{ type: "notifications", items: [{ title: "Payment received", time: "2m", unread: true, tone: "ok", group: "Today" }, { title: "Policy renewed", time: "Mon", group: "Earlier" }] }]);
+    expect(html).toContain('class="kn">1 new');
+    expect(html).toContain("<h5>Today</h5>");
+    expect(html).toContain('class="nt un"');
+    expect(html).toContain("data-readall");
+  });
+  it("draws results with their filters, the ticked ones as chips", () => {
+    const html = demo([{ type: "results", query: "Lahore", count: "214 stays", sort: ["Recommended", "Price"], facets: [{ title: "Type", options: ["Hotel", "Apartment"], picked: ["Hotel"] }, { title: "Price", kind: "range", options: ["PKR 5,000", "PKR 50,000"] }], items: [{ title: "Pearl Continental", meta: "Mall Road · 4.5", price: "PKR 32,000" }] }]);
+    expect(html).toContain('data-unpick="Hotel"');
+    expect(html).toMatch(/value="Hotel" checked/);
+    expect(html).toContain('type="range"');
+    expect(html).toContain("data-ftoggle");
+    expect(html).toContain('class="rp">PKR 32,000');
+  });
+  it("draws a comparison with ticks and dashes, the featured one tinted", () => {
+    const html = demo([{ type: "compare", cta: "Select", items: [{ name: "Silver" }, { name: "Gold", featured: true }], rows: [{ label: "Dental", values: ["No", "Yes"] }, { label: "Cover", values: ["PKR 1M", "PKR 3M"] }] }]);
+    expect(html).toContain('aria-label="Yes"');
+    expect(html).toContain('class="no"');
+    expect(html).toContain('<th class="ft"><b>Gold</b>');
+    expect((html.match(/>Select</g) ?? []).length).toBe(2);
+  });
+  it("draws a receipt with its lines and the amount due last", () => {
+    const html = demo([{ type: "receipt", title: "Invoice INV-2041", status: "Paid", lines: [{ item: "Consultation", qty: "1", amount: "PKR 3,000" }], totals: [{ label: "Subtotal", value: "PKR 3,000" }, { label: "Total", value: "PKR 3,000" }] }]);
+    expect(html).toContain('class="due"><dt>Total</dt>');
+    expect(html).toContain("<th class=\"n\">Qty</th>");
+  });
+
+  it("reads amounts as people write them", () => {
+    expect(amountOf("PKR 1,250.50")).toBe(1250.5);
+    expect(amountOf("-$5.00")).toBe(-5);
+    expect(amountOf("− Rs 300")).toBe(-300);
+    expect(amountOf("1.250,00 €")).toBe(1250);
+    expect(amountOf("Free")).toBe(0);
+    expect(amountOf("n/a")).toBeNaN();
+  });
+  it("sends back a calendar that is not the real month, or picks a closed day or a taken time", () => {
+    expect(fit(cal)).toEqual([]);
+    expect(fit({ ...cal, startsOn: 2 }).join()).toMatch(/starts on Monday/);
+    expect(fit({ ...cal, month: "Feb 2027", days: 30, startsOn: 0 }).join()).toMatch(/has 28 days/);
+    expect(fit({ ...cal, picked: 4, off: [4] }).join()).toMatch(/marked off/);
+    expect(fit({ ...cal, picked: 4, times: ["9:00", "9:30"], taken: ["9:00"], time: "9:00" }).join()).toMatch(/is taken/);
+    expect(fit({ ...cal, times: ["9:00", "9:30"] }).join()).toMatch(/no "picked"/);
+  });
+  it("sends back a one-sided chat, a lone route stop, an empty board and plans or comparisons that do not line up", () => {
+    expect(fit({ type: "chat", with: "Ali", messages: [{ from: "me", text: "Hi" }, { from: "me", text: "Hello?" }] })).toHaveLength(1);
+    expect(fit({ type: "map", route: true, pins: [{ label: "Depot" }] })).toHaveLength(1);
+    expect(fit({ type: "kanban", columns: [{ title: "A", cards: [] }, { title: "B", cards: [] }] })).toHaveLength(1);
+    const plan = (p: Record<string, unknown>) => ({ name: "A", price: "$9", features: ["x"], cta: "Go", ...p });
+    expect(fit({ type: "plans", periods: ["Monthly", "Yearly"], items: [plan({ alt: "$7" }), plan({ name: "B" })] }).join()).toMatch(/"B" has no "alt"/);
+    expect(fit({ type: "plans", items: [plan({ featured: true }), plan({ featured: true })] })).toHaveLength(1);
+    expect(fit({ type: "compare", items: [{ name: "A" }, { name: "B" }], rows: [{ label: "x", values: ["1", "2"] }, { label: "y", values: ["1", "2", "3"] }] }).join()).toMatch(/"y"/);
+    expect(fit({ type: "reviews", score: 4, count: "10", bars: [50, 20, 10, 5, 5], items: [{ name: "A", rating: 4, text: "ok" }] }).join()).toMatch(/add to 90%/);
+    expect(fit({ type: "results", count: "3", facets: [{ title: "Type", options: ["A", "B"], picked: ["C"] }], items: [{ title: "x", meta: "y" }] }).join()).toMatch(/"C"/);
+  });
+  it("sends back a receipt that does not add up", () => {
+    const rc = (totals: { label: string; value: string }[]) => fit({ type: "receipt", title: "Receipt", lines: [{ item: "A", amount: "$10.00" }, { item: "B", amount: "$5.00" }], totals });
+    expect(rc([{ label: "Subtotal", value: "$15.00" }, { label: "Discount", value: "$2.00" }, { label: "Tax", value: "$1.30" }, { label: "Total", value: "$14.30" }])).toEqual([]);
+    expect(rc([{ label: "Subtotal", value: "$15.00" }, { label: "Discount", value: "-$2.00" }, { label: "Total", value: "$13.00" }])).toEqual([]);
+    expect(rc([{ label: "Total", value: "$15.00" }])).toEqual([]);
+    expect(rc([{ label: "Subtotal", value: "$16.00" }, { label: "Total", value: "$16.00" }]).join()).toMatch(/add to 15/);
+    expect(rc([{ label: "Subtotal", value: "$15.00" }, { label: "Tax", value: "$1.50" }, { label: "Total", value: "$15.00" }]).join()).toMatch(/make 16.5/);
+    expect(rc([{ label: "Subtotal", value: "$15.00" }, { label: "Total", value: "$15.00" }, { label: "Paid", value: "$15.00" }, { label: "Balance due", value: "$0.00" }])).toEqual([]);
+    expect(rc([{ label: "Amount", value: "$12.00" }])).toHaveLength(1);
+  });
+  it("lets links, overlays and toasts start from the components", () => {
+    const base = { title: "Kargo", flow: "f", app: undefined, mapping: { unmappedReqs: [], orphanScreens: [] } };
+    const plans = blk({ type: "plans", items: [{ name: "A", price: "$9", features: ["x"], cta: "Choose A" }, { name: "B", price: "$19", features: ["y"], cta: "Choose B" }] });
+    const board = blk({ type: "kanban", columns: [{ title: "To do", cards: [{ title: "Fix login" }] }, { title: "Done", cards: [] }] });
+    const checks = designQuality({ ...base, screens: [
+      { id: "S-1", route: "/s", file: "a", reqs: ["R-1"], states: [], size: "new", frames: [], mock: { title: "Pricing", copy: {}, blocks: [plans, board], links: [{ from: "Fix login", to: "S-2" }], overlays: [{ kind: "confirm", trigger: "Choose B", title: "Upgrade?", blocks: [], actions: ["Upgrade"] }], toasts: [{ after: "Choose A", text: "Plan changed", tone: "ok" }] },
+        mockFull: { title: "Pricing", copy: {}, blocks: [plans, blk({ ...board, columns: [{ title: "To do", cards: [{ title: "Fix login" }, { title: "Ship" }] }, { title: "Done", cards: [] }] })] } },
+      { id: "S-2", route: "/t", file: "b", reqs: ["R-1"], states: [], size: "new", frames: [], mock: { title: "Task", copy: {}, blocks: [blk({ type: "text", body: "x" }), blk({ type: "actions", buttons: ["Save"] })] } },
+    ] } as never, {} as never).map((f) => f.check);
+    expect(checks).not.toContain("design-link");
+    expect(checks).not.toContain("design-overlay-trigger");
+    expect(checks).not.toContain("design-toast-trigger");
+    expect(checks).not.toContain("design-thin-full-mock");
+  });
+  it("asks for a busier board on the full-data page", () => {
+    const base = { title: "Kargo", flow: "f", app: undefined, mapping: { unmappedReqs: [], orphanScreens: [] } };
+    const board = blk({ type: "kanban", columns: [{ title: "To do", cards: [{ title: "Fix login" }] }, { title: "Done", cards: [] }] });
+    const checks = designQuality({ ...base, screens: [{ id: "S-1", route: "/s", file: "a", reqs: ["R-1"], states: [], size: "new", frames: [], mock: { title: "Board", copy: {}, blocks: [board, blk({ type: "actions", buttons: ["Add"] })] }, mockFull: { title: "Board", copy: {}, blocks: [board] } }] } as never, {} as never);
+    expect(checks.find((c) => c.check === "design-thin-full-mock")?.message).toMatch(/more cards/);
   });
 });

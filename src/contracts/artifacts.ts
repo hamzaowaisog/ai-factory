@@ -210,6 +210,51 @@ const blockSchema = (big: boolean) => z.discriminatedUnion("type", [
   /** sections opened one at a time (questions and answers, policy or settings groups), the first one open */
   z.object({ type: z.literal("accordion"), title: Str(40).optional(), items: z.array(z.object({ title: Str(60), body: Str(240) })).min(2).max(big ? 10 : 8) }),
   z.object({ type: z.literal("list"), items: z.array(z.object({ title: Str(60), meta: Str(80) })).min(1).max(big ? 10 : 6) }),
+  // the parts of products a field is known for, drawn as that product draws them
+  /**
+   * a month: "startsOn" is the weekday of the 1st (0 Monday to 6 Sunday), "days" its length; "marks" put bookings or events on days,
+   * "off" are days that cannot be picked; "times" are the picked day's slots ("taken" ones struck out, "time" the chosen one)
+   */
+  z.object({
+    type: z.literal("calendar"), month: Str(20), startsOn: z.number().int().min(0).max(6), days: z.number().int().min(28).max(31), picked: z.number().int().min(1).max(31).optional(),
+    marks: z.array(z.object({ day: z.number().int().min(1).max(31), label: Str(30).optional(), tone: z.enum(["ok", "warn", "bad", "info"]).default("info") })).max(big ? 24 : 12).default([]),
+    off: z.array(z.number().int().min(1).max(31)).max(31).default([]), times: z.array(Str(12)).min(2).max(big ? 16 : 12).optional(), taken: z.array(Str(12)).max(12).default([]), time: Str(12).optional(),
+  }),
+  /** places on a drawn map, each with its line in the list beside it; route joins them in order (a delivery run, a trip) */
+  z.object({ type: z.literal("map"), area: Str(40).optional(), pins: z.array(z.object({ label: Str(40), meta: Str(60).optional(), tone: z.enum(["ok", "warn", "bad", "info"]).default("info") })).min(1).max(big ? 12 : 8), route: z.boolean().optional() }),
+  /** pictures: "hero" is one large with the rest as thumbnails (a listing, a product), "grid" a wall of equal tiles (an album, a portfolio) */
+  z.object({ type: z.literal("gallery"), layout: z.enum(["hero", "grid"]).default("hero"), items: z.array(z.object({ caption: Str(40) })).min(2).max(big ? 16 : 10) }),
+  /** a drop zone and the files already added, each done, still uploading (progress 0 to 100) or failed */
+  z.object({ type: z.literal("upload"), label: Str(40), hint: Str(80).optional(), files: z.array(z.object({ name: Str(50), size: Str(12), status: z.enum(["done", "uploading", "failed"]).default("done"), progress: z.number().min(0).max(100).optional() })).max(5).default([]) }),
+  /** a conversation with one person or team ("with"), the user's messages "me"; quick are suggested replies */
+  z.object({ type: z.literal("chat"), with: Str(40), meta: Str(40).optional(), messages: z.array(z.object({ from: z.enum(["me", "them"]), text: Str(240), time: Str(12).optional() })).min(2).max(big ? 16 : 10), quick: z.array(Str(30)).max(4).optional(), placeholder: Str(40).optional() }),
+  /** work moving through stages: a column per stage, its cards in order; cards can be dragged between columns */
+  z.object({ type: z.literal("kanban"), columns: z.array(z.object({ title: Str(24), cards: z.array(z.object({ title: Str(50), meta: Str(50).optional(), badge: Str(20).optional() })).max(big ? 8 : 5) })).min(2).max(5) }),
+  /** plans side by side: "periods" switch the price (Monthly, Yearly), each plan's "alt" its price in the second; one may be featured */
+  z.object({
+    type: z.literal("plans"), periods: z.array(Str(16)).length(2).optional(), note: Str(30).optional(),
+    items: z.array(z.object({ name: Str(24), price: Str(20), alt: Str(20).optional(), per: Str(16).optional(), blurb: Str(80).optional(), features: z.array(Str(50)).min(1).max(8), cta: Str(24), featured: z.boolean().optional(), badge: Str(20).optional() })).min(2).max(4),
+  }),
+  /** a rating: the average out of 5, how many rated, the share at each of 5 to 1 stars ("bars", percents), and reviews */
+  z.object({ type: z.literal("reviews"), score: z.number().min(0).max(5), count: Str(24), bars: z.array(z.number().min(0).max(100)).length(5).optional(), items: z.array(z.object({ name: Str(40), rating: z.number().int().min(1).max(5), text: Str(240), time: Str(24).optional(), tag: Str(30).optional() })).min(1).max(big ? 10 : 6) }),
+  /** what happened for the user, newest first, in groups (Today, Earlier); unread ones stand out */
+  z.object({ type: z.literal("notifications"), items: z.array(z.object({ title: Str(80), meta: Str(80).optional(), time: Str(20), unread: z.boolean().optional(), tone: z.enum(["ok", "warn", "bad", "info"]).default("info"), group: Str(20).optional() })).min(1).max(big ? 14 : 8) }),
+  /**
+   * search results with filters beside them: facets of options ("picked" are ticked; kind range draws a slider between the first and
+   * last option), "sort" the orders offered, items the results (visual for things chosen by picture)
+   */
+  z.object({
+    type: z.literal("results"), query: Str(40).optional(), count: Str(30), sort: z.array(Str(30)).min(2).max(4).optional(), visual: z.boolean().optional(),
+    facets: z.array(z.object({ title: Str(24), kind: z.enum(["check", "range"]).default("check"), options: z.array(Str(30)).min(2).max(6), picked: z.array(Str(30)).max(6).default([]) })).min(1).max(4),
+    items: z.array(z.object({ title: Str(50), meta: Str(80), badge: Str(24).optional(), price: Str(20).optional() })).min(1).max(big ? 12 : 6),
+  }),
+  /** things compared feature by feature: one value per item on every row ("Yes" and "No" draw as a tick and a dash) */
+  z.object({ type: z.literal("compare"), items: z.array(z.object({ name: Str(30), meta: Str(30).optional(), featured: z.boolean().optional() })).min(2).max(4), rows: z.array(z.object({ label: Str(40), values: z.array(Str(30)).min(2).max(4) })).min(2).max(big ? 14 : 10), cta: Str(24).optional() }),
+  /** a receipt or invoice: who from and to, its facts (date, due, method), the lines, and the totals with the amount due last */
+  z.object({
+    type: z.literal("receipt"), title: Str(40), status: Str(20).optional(), from: Str(80).optional(), to: Str(80).optional(), facts: z.array(z.object({ label: Str(20), value: Str(30) })).max(4).default([]),
+    lines: z.array(z.object({ item: Str(60), qty: Str(10).optional(), amount: Str(20) })).min(1).max(big ? 14 : 8), totals: z.array(z.object({ label: Str(30), value: Str(20) })).min(1).max(5), note: Str(120).optional(),
+  }),
   z.object({ type: z.literal("actions"), buttons: z.array(Str(30)).min(1).max(4) }),
   z.object({ type: z.literal("text"), body: Str(240) }),
 ]);
