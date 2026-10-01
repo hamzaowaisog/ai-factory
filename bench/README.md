@@ -3,10 +3,14 @@
 Benchmarks for the estimates path (see `estimates-design.md`). Read-only: no model calls, no cost.
 
 ```
-npm run bench -- all                      # both checks; saves to bench/results/ (git-ignored)
+npm run bench -- all                      # calibrate + gates; saves to bench/results/ (git-ignored)
 npm run bench -- calibrate --home <dir>   # <dir> holds ledger/<runId>/ copied from another machine
 npm run bench -- gates
+npm run bench -- external                 # pinned public data (see external/README.md)
+npm run bench -- compare                  # an estimate read against that data
+npm run bench -- evidence <estimate.json> # e.g. bench/external/fixtures/estimate-sample.json
 npm run bench -- all --no-save
+npm run test:bench                        # the benchmarks' own tests (bench/vitest.config.ts)
 ```
 Exit code is 1 if a gate misses a seeded defect, flags clean input, or throws.
 
@@ -20,10 +24,18 @@ its steps from the other runs' steps of the same stage. Reports, per stage and f
 Needs at least 3 records per stage from *other* runs, so it prints bands but no coverage until more ledgers exist.
 Not yet available: per-unit cost (requirements, screens), stack and size band. Those need counted units in the ledger.
 
+It also prints two things the estimate itself reads (`src/estimate/durations.ts`, `calibrate.ts`):
+- **Factory task classes**: measured minutes and turns per task class (track/complexity), from finished build runs seeded
+  from an approved estimate. A class needs 3 records before its minutes replace the sized hours on the critical path.
+- **UI size: approved design vs built**: the UI change class the approved design allowed next to what integrate measured.
+
+Both stay empty until a build has finished from an approved estimate.
+
 ## gates: does each gate catch what it should?
 `gates/cases.ts` lists seeded defects (`must-fail`) and clean controls (`must-pass`) per gate. The runner calls the
 registered gate's predicate directly. Results: caught, missed, ok, false-positive, error, or **pending** when the
-gate isn't registered yet (E1-E6 today). Pending never fails the run.
+gate isn't registered. Pending never fails the run, but `bench.test.ts` requires none: every gate E1-E7 (with E1b, E1c)
+and B1-B7 has cases.
 
-E-gate cases use a provisional `EstimateFixture` (`gates/fixture.ts`). When a gate is built, adapt its cases' `input`
-to the real artifact; the mutators (one seeded defect each) carry over.
+The estimate-gate cases are in `gates/estimate-cases.ts`. They are built from the real estimate fixture
+(`src/estimate/fixture.ts`) and the real gate inputs, one seeded defect each. When a gate's input changes, change its case.

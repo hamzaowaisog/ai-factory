@@ -22,7 +22,7 @@ What the size decides:
 
 On real repos, the ported size check agrees with hand labels on 47 of 56 commits; the teammate's original got 32. It finds every page on two Next.js apps, where the original found none. See `docs/design-eval/results.md`.
 
-**Not built:** the screenshot step (it needs a Node + Chromium lab container), the design mock step, direction proposals for new apps (their data files are missing), the pixel diff, and the calls from discover and integrate.
+**Not built:** the screenshot step (it needs a Node + Chromium lab container), a mock rendered in the real app (the estimate's design step draws a screen inventory and a clickable wireframe demo instead, see `estimates-design.md`), direction proposals for new apps (their data files are missing), the pixel diff, and the calls from discover and integrate.
 
 ## The four sizes, precisely
 

@@ -2,7 +2,7 @@
 
 Question: for the same requirement, how do we make the estimate come out the same, or close enough to trust?
 
-This is research plus a read of the current code. Nothing here is built yet. Nothing was trained or benchmarked; external claims come from search results and are marked as such.
+This is research plus a read of the current code. Sections 1 to 8 are the research; **only the cross-run cache (section 9) is built**. Nothing was trained or benchmarked; external claims come from search results and are marked as such.
 
 ## 1. Where variation comes from
 

@@ -97,14 +97,15 @@ When something keeps failing, the factory climbs a fixed ladder (retry with the 
 
 | Built | Not yet |
 |---|---|
-| Brownfield mode on **.NET + Postgres** repos | Greenfield and estimate modes |
+| Brownfield mode on **.NET + Postgres** repos | Greenfield build mode (an estimate can start from requirements alone, but building one is not built) |
 | Clarify, 3-draft spec, merge, lint, critic, round trip | Accept that boots the app and records HTTP/DB evidence (today: "the locked test passed") |
 | Plan + approval card, stub commit, locked tests | Applying `steer` changes mid-run (recorded, not applied) |
 | Claude coding agent in a sealed container | Codex and jcode runners; Next.js/Node repos |
 | Test lab: restore → offline build → tests next to a throwaway Postgres | Review repair loop (blocking findings park the run); unlock card for a wrong test |
 | Ledger, crash-resume, failure ladder, cost caps, verify-evidence | URL-prefix package filter (today: allowlist by host name) |
 | GitHub PR delivery (optional) | Bitbucket PR delivery (today: branch ready locally) |
-| Design toolkit for web apps (no AI): how big a UI change is, shown on the approval card; style checks; `factory design` | The design mock step; the visual check (`design.capture`) is opt-in and advisory |
+| Design toolkit for web apps (no AI): how big a UI change is, shown on the approval card; style checks; `factory design` | A mock rendered in the real app; the visual check (`design.capture`) is opt-in and advisory |
+| **Estimate mode**: requirements or a repo plus a request to hours, API cost and elapsed time, with gates E1-E7, a lead's approval and two workbooks (`factory estimate`); building from an approved estimate under gates B1-B7 (`factory start --from-estimate`); benchmarks in `bench/` | Estimate-driven builds outside .NET; calibration from real hours until finished builds and more ledgers exist. See [docs/estimates-overview.md](docs/estimates-overview.md) |
 
 **Refused for now:** SQL Server, repos whose tests start their own containers (Testcontainers), Windows-only projects (WPF/WinForms/.NET Framework), Git LFS, submodules.
 
@@ -394,7 +395,7 @@ Answer the question card if one appears, read the approval card, then approve.
 ```bash
 factory estimate --file requirements.docx --project shop-api --no-repo --delivery-model hitl --rate backend=55 --rate default=40
 factory approve <run> <hash> --sign-off EST-4     # low-confidence lines need a sign-off
-factory waive <run> <hash> --reason "why"         # estimate gates E3, E4, E5; build gates B1, B3, B4, B6
+factory waive <run> <hash> --reason "why"         # estimate gates E1c, E3, E4, E5; build gates B1, B3, B4, B6, B7
 factory waive-budget <run> <hash> --reason "why"  # B5: let a run past its approved estimate go on to a higher limit
 factory edit-estimate <run> <hash> --anchor EST-1=6-12 --reason "why"   # recomputes, new card
 factory estimate --from-run <run> --delivery-model agentic              # the other delivery model
@@ -503,7 +504,6 @@ With a GitHub `forge:`, the pull request title and the branch carry the ticket k
 | `factory start --file request.md --project <p>` | Same, with the request from a Markdown or text file. |
 | `factory start --jira ABC-123 --project <p>` | Same, with the request from a Jira ticket (key or link): summary, description and latest comments. Needs Jira set up in `~/.factory/.env`. |
 
-The request can come from **any one** of a typed prompt, `--file` or `--jira`, or several at once (they're combined into one request, each part labelled). Up to about 25 KB of text in total; more is refused before anything is spent.
 | `factory status [run]` | All recent runs, or one run's steps, cost and open card. |
 | `factory show-card <run> [--pr]` | Prints the open card (or the PR text). |
 | `factory answer <run> <hash> Q-1=A …` | Answers a question card. Terminal only. |
@@ -517,6 +517,12 @@ The request can come from **any one** of a typed prompt, `--file` or `--jira`, o
 | `factory verify-evidence <run>` | Re-runs every gate decision from the ledger. |
 | `factory watch --project <p> [--once]` | Starts runs from Jira tickets labelled by allowed people, and posts updates to Jira and Slack. Decisions stay in the terminal. See *Start runs from Jira*. |
 | `factory ui [--port <n>]` | Local web screens: start runs and watch them live (four views per run, dashboard, design, preview), and estimate runs with an Estimate tab (totals, tasks, API cost, screens, workbook downloads, plus DRAFT workbooks before approval). The estimate form can attach design frames, the demo page has drawn wireframes, and the Design tab shows build screenshots before/after with a pixel diff when `design.capture` is set. Plan approvals, answers and waivers stay in the terminal; the estimate lead can approve or reject an estimate on its Estimate tab, and approve or send back the design card on the run page (a send-back needs a reason and the design is redrawn). |
+| `factory estimate …` | Estimates requirements instead of building them; the estimate commands (`approve`, `waive`, `edit-estimate`, `--revises`, `--from-run`) are in *Use it on your own .NET repo*. |
+| `factory start … --from-estimate <run>` | Builds an approved estimate, held to it by gates B1-B7. |
+| `factory waive <run> <hash> --reason <text>` | Waives a waivable gate (estimate E1c, E3-E5; build B1, B3, B4, B6, B7) with your name and reason. Terminal only. |
+| `factory edit-estimate <run> <hash> --anchor EST-1=6-12 --reason <text>` | Edits an estimate's anchors or ratios; recomputed in code, no model call, new card. Terminal only. |
+| `factory calibrate [--actual-hours <file>]` | Compares approved estimates with what the factory spent and, with a file of `estimate-run,actual-hours` lines, with real hours. Changes nothing. |
+| `factory logs <run> [-f] [--step <key>]` | Prints a run's log; `-f` follows it. |
 | `factory report [run] [--all] [--json]` | Step scorecard for one run. Across runs (`--all`): outcome numbers first (delivered, cost per delivered change, time from request to branch, human stops, first-time pass), then a per-stage table. `--all --json` prints `{outcomes, stages}`. From the ledgers only, no AI. |
 | `factory design inventory <repo>` | Scans a web app's look: theme settings, shared components and how often each is used, pages. No AI. |
 | `factory design size` | Says how big a UI change is (no UI, screen tweak, new screen, or a change to the shared look), from a plan's file list or a git diff, with reasons. |
@@ -526,7 +532,9 @@ The request can come from **any one** of a typed prompt, `--file` or `--jira`, o
 
 Run any `factory design` command with `--help` for its options.
 
-Decisions (`answer`, `approve`, `reject`, `steer`) only work from an interactive terminal, so no script, plugin or AI can approve its own plan.
+The request can come from **any one** of a typed prompt, `--file` or `--jira`, or several at once (they're combined into one request, each part labelled). Up to about 25 KB of text in total; more is refused before anything is spent.
+
+Decisions (`answer`, `approve`, `reject`, `steer`, `waive`, `waive-budget`, `waive-cap`, `edit-estimate`) only work from an interactive terminal, so no script, plugin or AI can approve its own plan.
 
 ---
 
@@ -598,10 +606,18 @@ ai-factory/
 │   ├── verify/      test lab: container runtime, .NET producer, TRX parsing
 │   ├── context/     context builder: snapshot, read-only tools, repo map, redaction
 │   ├── runners/     model runners: own read-only loop (API), Claude agent in a container, proxy
-│   ├── stages/      the pipeline steps and the executor
+│   ├── stages/      the pipeline steps and the executor (build and estimate)
+│   ├── estimate/    estimate mode: hours, cost, durations, gates E1-E7 and B1-B7, workbooks
 │   ├── design/      design toolkit: app scan, UI change size, style checks, brief cleaner
+│   ├── sources/     request inputs: .docx and exported Figma frames
+│   ├── watch/       Jira and Slack watcher
+│   ├── ui/          the local web screens (`factory ui`)
+│   ├── mcp/         the MCP server for Claude Code
+│   ├── selftest/    the free end-to-end check
 │   ├── config/      project config and secrets loading
 │   └── cli/         the `factory` command
+├── bench/           benchmarks for the estimates path: calibration, gate cases, pinned public data
+├── tests/           browser tests of the web screens (Playwright)
 ├── scripts/setup.sh  one-command setup (macOS, Ubuntu, WSL)
 ├── install.ps1       Windows installer (WSL + Ubuntu, then setup.sh)
 ├── docker/
@@ -610,6 +626,8 @@ ai-factory/
 └── docs/
     ├── design/      the design documents
     ├── design-step.md  where the design step plugs in, and what's still to wire
+    ├── estimates-overview.md, estimates-design.md  the estimates path
+    ├── estimate-consistency.md, estimate-local-model.md  research: repeatable estimates, a local sizing model
     ├── design-eval/ how the design toolkit scored on real Next.js commits
     └── project-example.yaml
 ```
@@ -634,6 +652,8 @@ Factory data lives outside the repo, in `~/.factory/`:
 npm test             # all tests, offline: no model calls, no Docker needed
 npm run typecheck
 npm run build
+npm run bench        # estimate benchmarks: calibration and gate cases, read-only (see bench/README.md)
+npm run test:bench   # the benchmarks' own tests
 npm run test:ui      # the web screens in a real browser (Playwright, run in Docker: nothing to install)
 npm run screens      # retake docs/screens/*.jpg, dark and light
 ```
@@ -645,6 +665,8 @@ npm run screens      # retake docs/screens/*.jpg, dark and light
 ## Design docs
 
 Start with [`docs/design/BUILD-BRIEF.md`](docs/design/BUILD-BRIEF.md), then [`docs/design/stages-aligned.md`](docs/design/stages-aligned.md) (the source of truth for stages). Component designs: run manager, gate engine, verify runner, context builder, adapters. The design step for UI changes is in [`docs/design-step.md`](docs/design-step.md), with its test results in [`docs/design-eval/results.md`](docs/design-eval/results.md). Test-lab speed-ups (each commit built once, Integrate reusing the task's run, known failures skipped), before and after: [`docs/design/test-lab-reuse.md`](docs/design/test-lab-reuse.md).
+
+The estimates path: [`docs/estimates-overview.md`](docs/estimates-overview.md) (one page), then [`docs/estimates-design.md`](docs/estimates-design.md) (the design, and its build status at the end). Why estimates can vary and what repeats them: [`docs/estimate-consistency.md`](docs/estimate-consistency.md); a local sizing model (research only): [`docs/estimate-local-model.md`](docs/estimate-local-model.md). Benchmarks and pinned public data: [`bench/README.md`](bench/README.md), [`bench/external/README.md`](bench/external/README.md). First real runs: [`docs/runs/2026-09-30-first-real-runs.md`](docs/runs/2026-09-30-first-real-runs.md).
 
 ---
 

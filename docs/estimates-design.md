@@ -245,14 +245,14 @@ How long a task takes is not decided by the model's opinion. A **duration harnes
 Internal data is the source of truth. An external source is **optional and later**:
 
 1. **Internal (self-benchmark).** Our own ledger: wall minutes, retries, cost and outcome per step and per task class, by stack and size. This is ground truth for the factory itself, and it improves with every run.
-2. **External (optional, later).** A published benchmark of agent task time and reliability, added only if the ledger stays too thin for too long. Public benchmarks measure open-source or lab tasks, not client work, and the available estimators are unvalidated, so it is a weak prior at best. If ever added, it is a **pinned offline snapshot** in the repo with its version and provenance recorded, never a live call, since the runtime has no network. It is not part of the first build.
+2. **External (a flagged prior only).** Published data on agent task time and reliability. Public benchmarks measure open-source or lab tasks, not client work, so they are a weak prior at best. They are **pinned offline snapshots** in the repo (`bench/external/`, with version, licence and caveats), never a live call, since the runtime has no network. The estimate reads one of them, the OpenHands tool-call rounds band (`src/estimate/assets/priors.json`), and only to flag a task class whose measured turns fall outside it. It never supplies a number.
 
 How they combine:
 - The harness classifies each task (for example, standard CRUD screen, integration, rules-heavy logic, migration unit).
 - It returns a duration and cost range per class from the internal data. Where the ledger has too few runs, the range is wide and labelled cold-start; it is not filled from an external source.
-- Where the two disagree beyond a tolerance, the item is flagged on the approval card. The internal measurement wins once it has enough runs.
+- Where the two disagree beyond a tolerance, the item is flagged on the approval card (`CHECK` line). The internal measurement always wins; the prior never changes a figure.
 - The harness sets the **factory time** and **cost**. Human gate time, client UAT and PM still come from counts and anchors.
-- The external option was researched at first pass (2026-09-30, from published docs only, nothing run) and is **not required for the build**:
+- The estimation methods below were researched at first pass (2026-09-30, from published docs only, nothing run). None is adopted; the public data actually read is listed in `bench/external/README.md`:
 
 | Candidate | Useful for us | Limit |
 |---|---|---|
@@ -261,7 +261,7 @@ How they combine:
 | ACEM (MIT) | Cost from tokens, revision, context growth and HITL intensity; p10/p50/p90 bands; labels cold-start, partial, calibrated | The authors say every constant is a placeholder and the model is unvalidated |
 | METR time horizons, SWE-bench Pro | Credible task-difficulty and resolve-rate priors, with public data | Well-specified open-source or lab tasks, no cost data for METR |
 
-- **Decision:** the harness is internal-only for the build. It borrows the structures (three-point ranges, rounds, Monte Carlo bands, and the cold-start / partial / calibrated confidence label). No external candidate is adopted. Until enough ledger runs exist, every duration and cost is labelled **cold-start**.
+- **Decision:** the harness is internal. It borrows the structures (three-point ranges, rounds, Monte Carlo bands, and the cold-start / partial / calibrated confidence label). No estimation method above is adopted; the only outside data used is the pinned rounds band as a flag. Until enough ledger runs exist (3 for partial, 15 for calibrated), every duration and cost is labelled **cold-start**.
 
 ### Internal benchmark record
 
@@ -297,12 +297,12 @@ A gate is a pure check over ledger artifacts. It fails closed: a gate that could
 | B1 | Scope lock | Every plan task maps to an approved estimate task | After plan; needs `estimateTaskId` on plan tasks |
 | B2 | Change request | A new or changed requirement creates estimate v2 with a diff against v1 | New estimate run whose parent is the approved one; same approval |
 | B3 | Size cap | Finished change is no bigger than approved | Extends `integrate.diff-size` and the design size-cap |
+| B4 | Unrequested behaviour | The diff traces to requirements; new behaviour with no requirement is flagged (extra screens, options, endpoints) | New review finding category |
+| B5 | Budget burn | Effort (human decisions counted at assumed gate times), **API credit spend** and time so far against the approved figure | Extends the spend caps. Warn at **80% of the approved maximum**, stop at **100%** |
 | B6 | Screens planned | Every approved screen that has a factory task is delivered by some plan task | After plan; needs the design in `estimateRef` |
 | B7 | Screen scope | The plan task that builds an approved screen may touch that screen's file (`src/estimate/design-link.ts`); waivable at the plan like B6 | After plan; needs the design in `estimateRef` |
-| B4 | Unrequested behaviour | The diff traces to requirements; new behaviour with no requirement is flagged (extra screens, options, endpoints) | New review finding category |
-| B5 | Budget burn | Effort, **API credit spend** and time so far against the approved figure | Extends the spend caps. Warn at **80% of the approved maximum**, stop at **100%** |
 
-In the solely agentic model B1–B4 stay as automatic checks, and the B5 stop at 100% opens a budget card for a person to decide. B1, B3, B4, B5 and B6 are waivable by a lead, with the reason recorded (B2 goes through a change request). All decisions (approve, reject, waive) happen in a terminal by a person, as elsewhere in the factory.
+In the solely agentic model B1–B4 stay as automatic checks, and the B5 stop at 100% opens a budget card for a person to decide. B1, B3, B4, B6 and B7 are waivable by a lead at the gate, and B5 by `factory waive-budget`, with the reason recorded (B2 goes through a change request). All decisions (approve, reject, waive) happen in a terminal by a person, as elsewhere in the factory.
 
 ## Budget
 
@@ -461,7 +461,7 @@ Built and tested, with a scripted model, through the real executor (`src/stages/
 | Slice | What exists |
 |---|---|
 | Schemas, mode manifest, deterministic core, workbook export and lint | `src/contracts/estimate.ts`, `src/estimate/*` |
-| Gates E1-E7 and B1-B5 as `defineGate` predicates | `src/estimate/gates.ts`; E1-E7 run inside the estimate steps, B1-B5 are predicates only (see below) |
+| Gates E1-E7 (with E1b, E1c) and B1-B7 as `defineGate` predicates | `src/estimate/gates.ts`; E-gates run inside the estimate steps, B-gates in the build run's plan, implement, integrate and review steps (see "Build from an estimate") |
 | Model steps | `breakdown` and `estimate` in `src/stages/estimate.ts` |
 | Document intake, per-module specify | `.docx` and pre-exported Figma frames in `src/sources/`; `splitModules` and the per-module intake, clarify and spec steps in `src/stages/modular.ts`. Each module asks its own clarify questions, so a large document means one question card per module |
 | Stack-agnostic ground | `estimateGroundStep`: no repo means every span is new build work (no model call); a repo gets the normal grounding step plus `src/context/survey.ts` and, for UI work, the design inventory |
@@ -475,11 +475,10 @@ Built and tested, with a scripted model, through the real executor (`src/stages/
 | Benchmark records | `src/estimate/records.ts` reads every other run in the ledger home; a phase with records replaces its cold-start figure |
 | Task-class durations and external prior | `src/estimate/durations.ts` records each approved estimate task a build delivered (class = track/complexity, active minutes, turns, cost). A class with 3 or more completed records gives its factory tasks a measured p10-p90 duration for the critical path; others keep the sized hours as an assumed duration. `elapsed.basis` says which, and the approval card lists it. `src/estimate/priors.ts` reads a pinned copy of the OpenHands rounds band (`assets/priors.json`, source and revision recorded) and flags a class whose median turns fall outside p10-p90; it never changes a number. `npm run bench` (calibrate, gates, compare, external, evidence) and `npm run test:bench` run the benchmarks; the gate cases use the real E1-E7 and B1-B6 predicates |
 | Cost overlay | Team file's Cost sheet when `--rate` is given; the client file never has it |
-
 | Edit on the card | `factory edit-estimate <run> <hash> --anchor EST-1=6-12 --ratio EST-4=2 --reason "..."`: the stored proposals are edited, the estimate is assembled again by the same code (no new model call), and a new card follows. The edit is listed in the estimate's assumptions |
 | Change request (B2) | `factory estimate --revises <run>`: a full estimate whose card shows what changed from the approved one; the file says version 2; `parentEstimate` points at the approved estimate |
 | Second delivery model | `factory estimate --from-run <run> --delivery-model agentic` (or `hitl`): a sibling run seeded with the approved spec, answers and tasks; only sizing is redone; the card compares it with the first |
-| Build from an estimate (B1-B5) | `factory start --from-estimate <run>`: inherits the spec (no clarify or specify); the plan step maps each plan task to an approved estimate task (B1) and parks a recorded requirement change (B2); integrate checks the change size against the approved cap (B3); review flags behaviour no requirement asked for (B4); before every step the run is checked against the approved budget, with a warning at 80% and a stop at 100% (B5). The stop opens a budget card; `factory waive-budget <run> <hash> --reason "..." [--ceiling 1.5]` lets the run go on to a higher ceiling (25% more by default, recorded with name and reason, and repeatable: the next stop is at the new ceiling). Effort is measured: human decisions in the ledger counted at the assumed gate times (answered questions, one approval section per approval or design card, waiver time for waiver, limit and budget cards; PR review comes after the run and is not counted), held against the estimate's own gate hours. The agentic model has no gate hours, so no effort limit. Each implement step records its `EST-n` |
+| Build from an estimate (B1-B7) | `factory start --from-estimate <run>`: inherits the spec (no clarify or specify); the plan step maps each plan task to an approved estimate task (B1) and parks a recorded requirement change (B2); integrate checks the change size against the approved cap (B3); review flags behaviour no requirement asked for (B4); before every step the run is checked against the approved budget, with a warning at 80% and a stop at 100% (B5). The stop opens a budget card; `factory waive-budget <run> <hash> --reason "..." [--ceiling 1.5]` lets the run go on to a higher ceiling (25% more by default, recorded with name and reason, and repeatable: the next stop is at the new ceiling). Effort is measured: human decisions in the ledger counted at the assumed gate times (answered questions, one approval section per approval or design card, waiver time for waiver, limit and budget cards; PR review comes after the run and is not counted), held against the estimate's own gate hours. The agentic model has no gate hours, so no effort limit. Each implement step records its `EST-n` |
 
 Added since 2026-09-30 (all in the web UI or the design step, covered in "In the web UI"):
 - Clarification questions are asked one at a time as option buttons; the chosen option is the answer. They can be answered in the terminal or on the run page, whichever comes first, for estimate and build runs alike.
