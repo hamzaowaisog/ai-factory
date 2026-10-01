@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { coversIntegrate, keepPassingTests, earlierTests, labelRegressions, previousAttempt, retryMode } from "./build.js";
+import { coversIntegrate, keepPassingTests, earlierTests, labelRegressions, previousAttempt, retryMode, TEST_SCOPE, testWriterTampering } from "./build.js";
+import { matchesAny } from "../util/glob.js";
 
 describe("earlier tasks' locked tests", () => {
   const plan = { tasks: [{ id: "TASK-1" }, { id: "TASK-2" }, { id: "TASK-3" }] };
@@ -97,5 +98,22 @@ describe("integrate reuses the last task's run", () => {
     expect(coversIntegrate({ ...run, valid: false }, "abc", ["t1"], ["b1"])).toBe(false);
     expect(coversIntegrate(run, "abc", ["t1", "t3"], ["b1"])).toBe(false);
     expect(coversIntegrate(run, "abc", ["t1"], ["b1", "b3"])).toBe(false);
+  });
+});
+
+describe("test writer: scope and tampering", () => {
+  it("scope is test folders only", () => {
+    for (const p of ["tests/Shop.Tests/OrdersTests.cs", "src/Shop.Tests/A.cs", "src/ShopTests/A.cs", "src/shop-tests/a.cs", "src/Shop_Test/A.cs", "test/a.cs", "src/Tests/A.cs", "x/test/a.cs"])
+      expect(matchesAny(p, TEST_SCOPE), p).toBe(true);
+    for (const p of ["src/Latest/A.cs", "src/Contest/A.cs", "src/Attestation/A.cs", "src/Shop/OrdersTests.cs", "src/latest-test.cs"])
+      expect(matchesAny(p, TEST_SCOPE), p).toBe(false);
+  });
+
+  it("may add files and lines; deleting, removing lines or adding skips fails", () => {
+    const f = (status: string, added: string[] = [], removed: string[] = []) => ({ status, path: "tests/A.Tests/X.cs", added, removed });
+    expect(testWriterTampering([f("A", ["[Fact] public void AC_1_1_X() {}"]), f("M", ["using Foo;"])])).toEqual([]);
+    expect(testWriterTampering([f("D")]).map((x) => x.check)).toEqual(["author-tests-deleted"]);
+    expect(testWriterTampering([f("M", ["[Fact] public void Old() {}"], ["[Fact] public void Old() { Assert.True(x); }"])]).map((x) => x.check)).toEqual(["author-tests-removed"]);
+    expect(testWriterTampering([f("M", ['[Fact(Skip = "later")]'])]).map((x) => x.check)).toEqual(["author-tests-skip"]);
   });
 });

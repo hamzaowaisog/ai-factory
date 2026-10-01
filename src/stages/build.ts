@@ -7,7 +7,7 @@ import type { Failure, IntentBody, LedgerEvent, PlanBody, SpecDraft, TestResult,
 import { scanText } from "../context/secrets.js";
 import { failure, runGate, type GateDef } from "../gates/engine.js";
 import {
-  configIntegrity, diffInScope, diffSize, failsOnBase, lockSetUnchanged, noEscapeHatches, noSecrets, testExpectations,
+  configIntegrity, diffInScope, diffSize, ESCAPE_HATCHES, failsOnBase, lockSetUnchanged, noEscapeHatches, noSecrets, testExpectations,
   type DiffSummary,
 } from "../gates/predicates.js";
 import { CONFIG_INTEGRITY_GLOBS } from "../gates/protected.js";
@@ -248,7 +248,26 @@ export function resolveTestIds(names: string[], resultIds: string[]): { ids: Rec
   return { ids, missing };
 }
 
-const TEST_SCOPE = ["**/*Test*/**", "**/*test*/**", "tests/**", "test/**"];
+// test folders only: FooTests, Foo.Tests, foo-test, tests, not Latest/ or Contest/ (no {a,b}: the in-container matcher lacks it)
+export const TEST_SCOPE = ["tests/**", "test/**", ...["Test", "Tests", "TEST", "TESTS"].map((n) => `**/*${n}/**`),
+  ...["", "*.", "*-", "*_"].flatMap((p) => ["test", "tests"].map((n) => `**/${p}${n}/**`))];
+
+const SKIP_MARKER = ESCAPE_HATCHES.find((h) => h.id === "skip-test")!.re;
+
+/**
+ * The test writer may only add: new files, or new lines in existing ones. A deleted file, a removed or
+ * rewritten line, or an added skip marker could drop part of the existing suite, and that would get locked.
+ */
+export function testWriterTampering(files: { status: string; path: string; added: string[]; removed: string[] }[]): Failure[] {
+  const fs: Failure[] = [];
+  for (const f of files) {
+    if (f.status === "D") fs.push(failure("author-tests-deleted", `Test author deleted an existing file: ${f.path}`, { location: f.path }));
+    else if (f.removed.length) fs.push(failure("author-tests-removed", `Test author removed or changed ${f.removed.length} existing line(s) in ${f.path}`, { location: f.path }));
+    const skip = f.added.find((l) => SKIP_MARKER.test(l));
+    if (skip) fs.push(failure("author-tests-skip", `Test author added a skip marker in ${f.path}: ${skip.trim().slice(0, 120)}`, { location: f.path }));
+  }
+  return fs;
+}
 
 export const authorTestsStep: StepDef = {
   key: "author-tests", stage: "author-tests", templateVersion: "2", coding: true,
@@ -319,6 +338,12 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
     const changed = await changedFiles(wt, start, commit);
     const notTests = changed.filter((c) => !matchesAny(c.path, TEST_SCOPE));
     if (notTests.length) return { kind: "fail", category: "safety", failures: notTests.map((c) => failure("author-tests-scope", `Test author changed a non-test file: ${c.path}`)), signature: "author-tests:scope" };
+    const lines = (patch: string, sign: string) => patch.split("\n").filter((l) => l.startsWith(sign) && !l.startsWith(sign.repeat(3))).map((l) => l.slice(1));
+    const tampered = testWriterTampering(await Promise.all(changed.map(async (c) => {
+      const patch = c.status === "D" ? "" : (await git(wt, ["diff", "--no-color", "-U0", start, commit, "--", c.path])).stdout;
+      return { ...c, added: lines(patch, "+"), removed: lines(patch, "-") };
+    })));
+    if (tampered.length) return { kind: "fail", category: "safety", failures: tampered, signature: "author-tests:tamper" };
     const missingAc = acs.filter((a) => a.level !== "manual" && !out.tests.some((t) => t.acId === a.id));
     if (missingAc.length) return { kind: "fail", category: "other", failures: missingAc.map((a) => failure("ac-coverage", `No test for ${a.id}`)), signature: "author-tests:coverage" };
 
