@@ -13,6 +13,7 @@ import { replay } from "../ledger/state.js";
 import { costCapUsd, MIN_CAP_USD } from "../ledger/caps.js";
 import { parseEstimateSettings } from "../estimate/settings.js";
 import { checkUploadedFrames, describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
+import { jiraFetcherFor } from "../sources/jira.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
 import { approvedEstimate, type Approved } from "../estimate/lineage.js";
@@ -134,7 +135,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
       path = join(dir, file.name);
       writeFileSync(path, file.text, { mode: 0o600 });
     }
-    req = approved ? { text: approved.request, sources: [{ kind: "prompt" as const }], attachments: [] } : await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim(), ...(frameFiles ? { frameFiles } : {}) }, {}, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
+    req = approved ? { text: approved.request, sources: [{ kind: "prompt" as const }], attachments: [] } : await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim(), ...(frameFiles ? { frameFiles } : {}) }, { fetchJira: jiraFetcherFor(cfg.jira?.allowedReporters) }, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
   } catch (e) {
     throw new StartError((e as Error).message);
   } finally {

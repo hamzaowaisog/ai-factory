@@ -365,7 +365,7 @@ describe("the queue: one run per repo at a time", () => {
 });
 
 describe("credit guards, checked before anything costs money", () => {
-  it("every run gets the per-ticket limit, which lowers the normal $10 minimum", async () => {
+  it("every run gets the per-ticket limit, which can only lower the run's normal cap", async () => {
     ticket("SHOP-1");
     const runId = await startFromJira("shop-api", "SHOP-1", 3, (id) => executed.push(id));
     const s = replay(Ledger.open(runId).events());

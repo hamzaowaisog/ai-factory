@@ -478,7 +478,7 @@ factory watch --project shop-api --once   # check once, to try the set-up
 - Starts **one run at a time** per repo. The next ticket waits until the current run stops for a person (a question or approval card), is delivered, or stops.
 - Each run is capped at `maxCostPerRun` (default $3), like `--max-cost`. On top of that are daily and monthly budgets (`dailyBudgetUsd`, default $10; `monthlyBudgetUsd`, default $100) and `maxRunsPerDay` (default 3). When a budget is used up, it starts nothing more, says so once a day in Slack and once on each waiting ticket, and picks them up when the budget allows.
 - A ticket runs once. To run it again, remove the label and add it again after its run has finished. Editing the ticket alone doesn't re-run it. If the watcher is stopped at the moment it starts a run, it finds that run when it comes back; if no run was created, it leaves the ticket alone (only its log says so) rather than risk a second paid run: remove and add the label to try again.
-- The run's request is the ticket's summary, description and latest comments, but only comments by people on the allowed list (anyone can comment on a ticket). `factory start --jira` does the same for a project with a `jira:` block.
+- The run's request is the ticket's summary, description and latest comments, but only comments by people on the allowed list (anyone can comment on a ticket). `factory start --jira` and a Jira key in `factory ui` do the same for a project with a `jira:` block.
 
 **What people see:**
 - Jira comments when the run starts, when a card waits for a person (with the command), when it stops and needs a look, and when it's delivered (the branch or pull request, the cost, and how many checks passed).
@@ -501,7 +501,7 @@ With a GitHub `forge:`, the pull request title and the branch carry the ticket k
 | `factory baseline --project <p>` | Builds and tests the untouched repo in the test lab. No AI. |
 | `factory start "<request>" --project <p> [--max-cost <usd>]` | Creates a run and executes until a card, a park or delivery. `--max-cost` lowers this run's spend limit: at that amount the run stops and asks you. |
 | `factory start --file request.md --project <p>` | Same, with the request from a Markdown or text file. |
-| `factory start --jira ABC-123 --project <p>` | Same, with the request from a Jira ticket (key or link): summary, description and latest comments. Needs Jira set up in `~/.factory/.env`. |
+| `factory start --jira ABC-123 --project <p>` | Same, with the request from a Jira ticket (key or link): summary, description and latest comments (only from allowed people when the project has a `jira:` block). Needs Jira set up in `~/.factory/.env`. |
 
 The request can come from **any one** of a typed prompt, `--file` or `--jira`, or several at once (they're combined into one request, each part labelled). Up to about 25 KB of text in total; more is refused before anything is spent.
 | `factory status [run]` | All recent runs, or one run's steps, cost and open card. |
