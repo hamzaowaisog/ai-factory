@@ -203,9 +203,9 @@ describe("factory ui: who can talk to it", () => {
 describe("factory ui: no decisions from the web", () => {
   it("the route list has no decision routes; the only write starts a run", () => {
     const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note/i;
-    for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
+    for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision") && !r.path.endsWith("/estimate-answers"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
     // the one exception: the estimate lead's approve or reject, on estimate cards only
-    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/runs/:id/estimate-decision"]);
+    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers"]);
   });
 
   it("decision-looking URLs don't exist", async () => {
@@ -654,5 +654,46 @@ describe("factory ui: the estimate lead's decision", () => {
     expect(d).toMatchObject({ by: "Sam Lead (via web)", decision: "approve", signOff: ["EST-1"] });
     // a repeat is a no-op and does not start the run again
     expect((await decisionPost(id, { ...ok, signOff: ["EST-1"], note: "ok" })).status).toBe(409);
+  });
+});
+
+describe("factory ui: answering an estimate run's questions", () => {
+  const answersPost = (id: string, body: unknown) =>
+    call(`/api/runs/${id}/estimate-answers`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+  const asked = [
+    { id: "Q-1", text: "Who can refund an order?", options: ["Support only", "Support and finance"], recommended: "Support only", reason: "smaller", impactReason: "changes who sees money", impact: 3, uncertainty: 3, score: 9, category: "roles", spans: [] },
+    { id: "Q-2", text: "Keep order history?", options: ["Yes", "No"], recommended: "Yes", reason: "usual", impactReason: "data kept", impact: 2, uncertainty: 2, score: 4, category: "scope", spans: [] },
+  ];
+
+  it("shows the questions on the run, refuses a plan card, and takes typed answers that continue the run", async () => {
+    const before = started.length;
+    expect((await answersPost(ids.waiting, { hash: "b".repeat(8), by: "Sam Lead", answers: {} })).status).toBe(409);
+    expect((await answersPost("nope", {})).status).toBe(404);
+    const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
+    const l = Ledger.open(id);
+    const body = l.putJson({ key: "clarify", asked, assumptions: [{ id: "ASM-1", text: "Currency is USD" }] });
+    l.writeCard(`questions-1-${body.slice(0, 8)}`, "# Questions");
+    await addEvents(id, [
+      { type: "step.started", key: "clarify/1", data: { rung: 0 } },
+      { type: "step.interrupted", key: "clarify/1", data: { reason: "waiting" } },
+      { type: "human.requested", data: { cardId: `questions-1-${body.slice(0, 8)}`, kind: "question", artifactSha: body, step: "clarify" } },
+    ]);
+    const view = (await call(`/api/runs/${id}`)).json();
+    expect(view.card.questions.map((q: { id: string }) => q.id)).toEqual(["Q-1", "Q-2"]);
+    expect(view.card.assumptions).toEqual([{ id: "ASM-1", text: "Currency is USD" }]);
+    const ok = { hash: body.slice(0, 8), by: "Sam Lead", answers: { "Q-1": "Support and finance" } };
+    expect((await answersPost(id, { ...ok, by: "" })).status).toBe(400);
+    expect((await answersPost(id, { ...ok, hash: "abcd" })).status).toBe(400);
+    expect((await answersPost(id, { ...ok, answers: { "Q-9": "x" } })).status).toBe(400);
+    expect((await answersPost(id, { ...ok, hash: "deadbeef" })).status).toBe(409);
+    expect(started.length).toBe(before);
+    const done = await answersPost(id, ok);
+    expect(done.status).toBe(200);
+    expect(done.json().recorded).toBe(true);
+    expect(started.at(-1)).toBe(id);
+    const d = replay(l.events()).decisions.at(-1) as unknown as { by: string; decision: string; answers: Record<string, string> };
+    expect(d).toMatchObject({ by: "Sam Lead (via web)", decision: "answer", answers: { "Q-1": "Support and finance" } });
+    // Q-2 was left out: it takes its recommended option when the step reads the decision
+    expect(d.answers["Q-2"]).toBeUndefined();
   });
 });

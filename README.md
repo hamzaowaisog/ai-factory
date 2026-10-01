@@ -308,7 +308,7 @@ factory show-card <run>
 factory answer <run> <hash> Q-1=A Q-2="only for guest checkouts"
 ```
 
-Unanswered questions take the recommended option. Low-risk question cards default automatically after 24 hours.
+In a terminal, `factory start` and `factory estimate` ask the questions right there (a letter, your own words, or Enter for the recommended option) and carry straight on, so a run does not stop for a second command. Set `FACTORY_NO_PROMPT=1` to switch that off; from a script or pipe the run still stops and prints the `factory answer` command. For estimate runs started in `factory ui`, the run page shows the same questions with the recommended option selected; type your name and send. Unanswered questions take the recommended option. Low-risk question cards default automatically after 24 hours.
 
 **2. Approval**
 
@@ -500,7 +500,7 @@ Setup registers an MCP server called **ai-factory** in Claude Code (if you have 
 | `factory_show_card` | Shows the open card or the PR text. |
 | `factory_verify_evidence` | Re-checks a run's decisions. |
 
-By design it **can't answer questions or approve plans**. Those always happen in your own terminal (`factory answer`, `factory approve`), so no AI can approve its own plan.
+By design it **can't approve plans**, and an MCP client can't answer questions. Those happen in your own terminal (`factory answer`, `factory approve`), so no AI can approve its own plan. The one web exception is the estimate lead, who can answer an estimate run's questions and approve its estimate on the `factory ui` run page (typed name and card hash required).
 
 ---
 

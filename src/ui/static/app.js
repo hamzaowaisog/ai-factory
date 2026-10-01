@@ -459,6 +459,7 @@ function pipeline(r) {
   const note = (() => {
     const parked = r.timeline.find((t) => t.status === "parked");
     if (r.status === "parked") return h("div", { class: "pipe-note bad" }, icon("alert"), h("div", {}, h("strong", {}, parked ? `Parked at ${parked.step}` : "Parked"), h("p", {}, r.parkedReason ?? "")));
+    if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Answer them in the panel below (or in the terminal); the run carries on right after.")));
     if (r.card) return h("div", { class: "pipe-note wait" }, icon("terminal"), h("div", {}, h("strong", {}, `Waiting for you in the terminal: ${r.card.kind} card`), h("p", {}, "The run continues after you decide there. The card and the command to paste are below.")));
     if (r.delivered) return h("div", { class: "pipe-note ok" }, icon("check"), h("div", {}, h("strong", {}, "Delivered"), h("p", {}, r.delivered.branch ? `Branch ${r.delivered.branch}` : "")));
     if (r.status === "running" && r.lastActivity) return h("div", { class: "pipe-note live" }, icon("activity"), h("div", {}, h("strong", {}, `Working on ${r.step}`), h("p", {}, r.lastActivity.msg, h("span", { class: "muted" }, ` · ${ago(r.lastActivity.ts)}`))));
@@ -499,8 +500,47 @@ function gatesPanel(r) {
     r.gates.length ? h("div", { class: "chips" }, chips) : h("p", { class: "muted small" }, "No gate results yet. Gates check each step's output (scope, locked tests, secrets, review) as the run goes."));
 }
 
+function questionPanel(r) {
+  const c = r.card;
+  const who = h("input", { type: "text", placeholder: "Your name", maxlength: "60", "aria-label": "Your name" });
+  const msg = h("p", { class: "small muted", role: "status" }, "");
+  const fields = c.questions.map((q) => {
+    const name = `q-${q.id}`;
+    const custom = h("input", { type: "text", placeholder: "or type your own answer", "aria-label": `Your own answer to ${q.id}` });
+    const radios = q.options.map((o) => {
+      const rb = h("input", { type: "radio", name, value: o });
+      if (o === q.recommended) rb.checked = true;
+      return h("label", { class: "small" }, rb, ` ${o}`, o === q.recommended ? h("span", { class: "muted" }, ` (recommended: ${q.reason})`) : null);
+    });
+    return { id: q.id, custom, radios, node: h("div", { class: "stack" }, h("strong", {}, `${q.id}  ${q.text}`), ...radios, custom, h("p", { class: "small muted" }, `Why it matters: ${q.why}`)) };
+  });
+  const send = h("button", { class: "btn", type: "button" }, icon("check"), "Send answers and continue");
+  send.addEventListener("click", async () => {
+    msg.textContent = "";
+    const answers = {};
+    for (const f of fields) {
+      const own = f.custom.value.trim();
+      const picked = f.radios.map((l) => l.querySelector("input")).find((i) => i.checked);
+      answers[f.id] = own || (picked ? picked.value : "");
+    }
+    try {
+      await api(`/api/runs/${encodeURIComponent(r.runId)}/estimate-answers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, by: who.value, answers }) });
+      msg.textContent = "Answers recorded. The run is continuing…";
+      send.disabled = true;
+    } catch (err) { msg.textContent = err.message; }
+  });
+  return h("section", { class: "card-box" },
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Questions before the estimate can go on"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    h("div", { class: "body stack" },
+      h("p", { class: "small muted" }, "The recommended option is selected. Change any, then send; your name is recorded with the answers."),
+      ...fields.map((f) => f.node),
+      c.assumptions?.length ? h("p", { class: "small muted" }, `Assumed unless you say otherwise on the approval card: ${c.assumptions.map((a) => a.id).join(", ")}`) : null,
+      who, h("div", { class: "row" }, send), msg));
+}
+
 function cardPanel(r) {
   const c = r.card;
+  if (c.questions) return questionPanel(r);
   return h("section", { class: "card-box" },
     h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Waiting for you in the terminal"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body" },

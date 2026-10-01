@@ -38,6 +38,20 @@ service, professional tool), each a few lines on how products of that kind are c
   an `archetype`. A file with the same id replaces the built-in. Invalid files are skipped and shown
   by `factory design refs list`.
 
+## Why projects in one family do not come out the same
+
+A family or field gives a starting point, not the answer. Three things keep two projects apart:
+
+- The brands shown start at a different place for each requirement (seeded by the requirement
+  text, so one requirement always gets the same brief). The first is marked `(lead)`.
+- The brief tells the model that field defaults are where products start: it must change at least
+  two of bar, corners, type, density, surface, neutrals or mode for this product's audience, and
+  say why in `mood`.
+- It must pick its own brand colour and may not reuse any listed brand's value, name or logo.
+
+This reduces sameness; it does not guarantee it. If two runs still look alike, add an industry
+file with more brands or sharper notes for that field.
+
 ## Reported versus measured
 
 The colours in `data.ts` are reported: gathered from brand pages and aggregator sites and rounded.

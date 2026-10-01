@@ -194,3 +194,40 @@ export async function decideEstimate(ledger: Ledger, input: EstimateDecisionInpu
     throw e;
   }
 }
+
+export interface EstimateAnswersInput { hash?: unknown; by?: unknown; answers?: unknown }
+
+/**
+ * The lead's answers to an estimate run's clarification questions, from the run page. Only question cards of estimate
+ * runs: the person types their name, names the card by its hash (checked under the ledger lock), and every answer must
+ * be for a question on the card. A question left out takes its recommended option, as in the terminal.
+ */
+export async function answerEstimateQuestions(ledger: Ledger, input: EstimateAnswersInput, deps: StartDeps = {}): Promise<{ recorded: boolean }> {
+  const state = replay(ledger.events());
+  const open = state.openCard;
+  if (state.info.mode !== "estimate" || open?.kind !== "question") throw new StartError("This run has no questions waiting for answers.", 409);
+  const hash = str(input.hash)?.trim() ?? "";
+  if (hash.length < 8) throw new StartError("Send the question card's hash from this page.");
+  const name = str(input.by)?.trim() ?? "";
+  if (name.length < 2 || name.length > 60 || /[\r\n]/.test(name)) throw new StartError("Type your name to answer; it is recorded with the answers.");
+  const body = ledger.getJson<{ asked: { id: string }[] }>(open.artifactSha);
+  const known = new Set((body?.asked ?? []).map((q) => q.id));
+  const raw = input.answers && typeof input.answers === "object" && !Array.isArray(input.answers) ? input.answers as Record<string, unknown> : {};
+  const answers: Record<string, string> = {};
+  for (const [id, v] of Object.entries(raw)) {
+    if (!known.has(id)) throw new StartError(`${id} is not a question on this card.`);
+    const t = str(v)?.trim();
+    if (t) {
+      if (t.length > 2000) throw new StartError(`The answer to ${id} is too long (2000 characters at most).`);
+      answers[id] = t;
+    }
+  }
+  try {
+    const r = await decide(ledger, { decision: "answer", hashPrefix: hash, by: `${name} (via web)`, data: { answers } });
+    if (r.kind === "recorded") (deps.execute ?? runDetached)(ledger.runId);
+    return { recorded: r.kind === "recorded" };
+  } catch (e) {
+    if (e instanceof DecisionError) throw new StartError(e.message, 409);
+    throw e;
+  }
+}

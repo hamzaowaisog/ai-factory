@@ -16,6 +16,7 @@ import { assertTty, decide, DecisionError } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay, statusLabel } from "../ledger/state.js";
 import { createRun, execute } from "../stages/executor.js";
+import { answerOpenQuestions, canPrompt, terminalIO } from "./interactive.js";
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
 import { parseEstimateSettings, type EstimateOptions } from "../estimate/settings.js";
 import { approvedEstimate, type Approved } from "../estimate/lineage.js";
@@ -37,9 +38,19 @@ function openRun(runId: string): Ledger {
   return Ledger.open(runId);
 }
 
+/** Run, and while the run only waits for answers to its questions, ask them here and carry on (a terminal only; elsewhere the run stops with the `factory answer` command). */
 async function runAndReport(runId: string): Promise<void> {
-  const r = await execute(runId, log);
-  log(`\n${r.status}: ${r.message}`);
+  for (;;) {
+    const r = await execute(runId, log);
+    if (r.status === "waiting" && canPrompt()) {
+      const io = terminalIO(log);
+      try {
+        if (await answerOpenQuestions(Ledger.open(runId), io)) continue;
+      } finally { io.close(); }
+    }
+    log(`\n${r.status}: ${r.message}`);
+    return;
+  }
 }
 
 const program = new Command();

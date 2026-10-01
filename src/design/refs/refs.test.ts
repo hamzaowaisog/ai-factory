@@ -38,6 +38,17 @@ describe("matching", () => {
   });
 });
 
+describe("brief variation", () => {
+  const air = INDUSTRIES.find((i) => i.id === "airline")!;
+  it("is the same for the same requirement and differs in lead example across requirements", () => {
+    const a = referenceBrief([air], {}, "requirement one");
+    expect(referenceBrief([air], {}, "requirement one")).toBe(a);
+    const leads = new Set(["r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8"].map((t) => /\(lead\) ([^:]+):/.exec(referenceBrief([air], {}, t))![1]));
+    expect(leads.size).toBeGreaterThan(1);
+    expect(a).toContain("change at least two of them");
+  });
+});
+
 describe("brief", () => {
   it("stays small and tells the model not to copy a brand", () => {
     const b = referenceBrief([INDUSTRIES.find((i) => i.id === "airline")!], {});

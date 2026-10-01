@@ -1,6 +1,7 @@
 // The design reference library: pick the industry a requirement belongs to and give the design step a
 // short brief of how real products in that field look. Only the matched industry is sent (a few
 // hundred tokens), never the whole library.
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
@@ -103,18 +104,22 @@ export function resolveBrand(b: RefBrand, measured: Record<string, Measured>): R
 const hue = (hex: string): string => hex.toUpperCase();
 
 /** What the design step reads: the field's brands, what they share and how to vary. Short on purpose. */
-export function referenceBrief(industries: RefIndustry[], measured: Record<string, Measured> = loadMeasured()): string {
+export function referenceBrief(industries: RefIndustry[], measured: Record<string, Measured> = loadMeasured(), seed = ""): string {
   return industries.map((i) => {
-    const brands = i.brands.map((raw) => {
+    // with a seed (the requirement text) the brands start at a different place per requirement, so two projects in one field are not
+    // handed the same lead example; the same text always gives the same brief
+    const start = seed ? parseInt(createHash("sha256").update(`${seed}|${i.id}`).digest("hex").slice(0, 8), 16) % i.brands.length : 0;
+    const order = [...i.brands.slice(start), ...i.brands.slice(0, start)];
+    const brands = order.map((raw, n) => {
       const b = resolveBrand(raw, measured);
-      return `- ${b.name}: ${hue(b.brand)}${b.accent ? ` + ${hue(b.accent)}` : ""}, ${b.mode}, ${b.chrome === "brand" ? "filled bar" : "plain bar"}, ${b.radius} corners; ${b.trait}${b.measured ? " [measured]" : ""}`;
+      return `- ${n === 0 && seed ? "(lead) " : ""}${b.name}: ${hue(b.brand)}${b.accent ? ` + ${hue(b.accent)}` : ""}, ${b.mode}, ${b.chrome === "brand" ? "filled bar" : "plain bar"}, ${b.radius} corners; ${b.trait}${b.measured ? " [measured]" : ""}`;
     });
     const u = i.usual;
     return [
       `${i.label} (colours are approximate reference values; use them to see the family, not to copy):`,
       ...brands,
       `Shared: ${i.pattern}`,
-      `Usual theme here: ${u.mode} mode, ${u.chrome} chrome, ${u.neutral} neutrals, ${u.font} type, ${u.radius} corners, ${u.density}, ${u.surface} surfaces.`,
+      `Field defaults: ${u.mode} mode, ${u.chrome} chrome, ${u.neutral} neutrals, ${u.font} type, ${u.radius} corners, ${u.density}, ${u.surface} surfaces. Defaults are where products in a field start, not where they end: change at least two of them (bar, corners, type, density, surface, neutrals, mode) because of who uses THIS product and what it must do, and say why in "mood".`,
     ].join("\n");
   }).join("\n\n")
     + "\nPick a brand colour in the same family as these, but do not reuse any one brand's exact value, name or logo. Make it feel like another competitor in the field.";
@@ -135,5 +140,5 @@ export function briefFor(text: string, industries: RefIndustry[] = allIndustries
   const picked = pickIndustries(text, industries);
   if (!picked.length) return archetypeBrief(matchIndustries(text, industries)[0]?.industry);
   const looks = [...new Set(picked.map((p) => p.industry.archetype))].map((id) => ARCHETYPES.find((a) => a.id === id)).filter((a) => !!a);
-  return `${referenceBrief(picked.map((p) => p.industry))}\nWider family: ${looks.map((a) => `${a!.label}: ${a!.look}`).join(" | ")}`;
+  return `${referenceBrief(picked.map((p) => p.industry), loadMeasured(), text)}\nWider family (shared by many fields, so differ from it deliberately): ${looks.map((a) => `${a!.label}: ${a!.look}`).join(" | ")}`;
 }
