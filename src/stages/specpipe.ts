@@ -10,7 +10,8 @@ import { clarifications, type ClarifyResult } from "./clarify.js";
 import { lintSpec, type LintResult } from "./speclint.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
-import { LANE, lightSpec } from "./lane.js";
+import { LANE, lightSpec, specLane } from "./lane.js";
+import { hasRepo } from "./estimate-ground.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -117,6 +118,13 @@ function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
   ];
 }
 
+/** Repo tools for a drafter. A requirements-only estimate has no repo (the snapshot is empty), so offering tools only buys wasted turns. */
+function repoAccess(ctx: StepContext) {
+  return ctx.state.info.mode === "estimate" && !hasRepo(ctx.state)
+    ? { tools: [] as ("read_file" | "search")[] }
+    : { tools: ["read_file", "search"] as ("read_file" | "search")[], repoTools: toolsFor(ctx) };
+}
+
 // ---------- steps ----------
 
 /** Three independent drafts: 2 × Opus + 1 × other family (Sonnet for a low-risk bugfix). The light lane writes one. */
@@ -131,8 +139,7 @@ export const draftsStep: StepDef = {
     const routes = (lowBugfix || light ? ["specify", "specify", "specify"] : ["specify", "specify", "specify-other"]).slice(0, light ? LANE.light.drafts : LANE.full.drafts);
     const models = lowBugfix || light ? routes.map(() => "claude-sonnet-5") : [undefined, undefined, undefined];
     const rs = await Promise.all(routes.map((route, n) => think(ctx, {
-      stage: "specify", route, model: models[n], cls: "read-large", budgetTokens: 30000, tools: ["read_file", "search"],
-      repoTools: toolsFor(ctx), schema: DraftOut, maxTurns: 8,
+      stage: "specify", route, model: models[n], cls: "read-large", budgetTokens: 30000, ...repoAccess(ctx), schema: DraftOut, maxTurns: 8,
       sections: [...draftSections(ctx, i), S.task(routes.length === 1 ? "Write the spec." : `Write the spec (independent draft ${n + 1}).`)],
     })));
     const bad = rs.find((r) => !r.ok);
@@ -238,7 +245,7 @@ export const specifyStep: StepDef = {
   inputs: (s) => (s.steps.get("merge")?.status === "completed" ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s) } : undefined),
   async run(ctx) {
     const i = inputsOf(ctx);
-    const lane = lightSpec(i.intent) ? LANE.light : LANE.full;
+    const lane = specLane(i.intent, ctx.state.info.mode);
     const merged = requireOutput<{ spec: Spec; conflicts: string[]; singleDraft?: boolean }>(ctx.state, ctx.ledger, "merge");
     // stability is only measured across drafts: with one draft there's nothing to report
     const stable = (stab: Record<string, number | undefined>, id: string) => (merged.singleDraft ? undefined : stab[id] ?? 1 / 3);
@@ -250,7 +257,7 @@ export const specifyStep: StepDef = {
     if (rejections.length) {
       ctx.log(`specify: revising for your rejection: ${rejections[rejections.length - 1]}`);
       const r = await think(ctx, {
-        stage: "specify", route: "specify", cls: "read-large", budgetTokens: 30000, tools: ["read_file", "search"], repoTools: toolsFor(ctx), schema: DraftOut, maxTurns: 8,
+        stage: "specify", route: "specify", cls: "read-large", budgetTokens: 30000, ...repoAccess(ctx), schema: DraftOut, maxTurns: 8,
         sections: [
           ...draftSections(ctx, i),
           S.artifact("spec", "spec", spec),
@@ -277,7 +284,7 @@ export const specifyStep: StepDef = {
       repairs++;
       ctx.log(`specify: repair ${repairs}/${lane.maxRepairs} for ${open.length} findings`);
       const r = await think(ctx, {
-        stage: "specify", route: "specify", cls: "read-large", budgetTokens: 30000, tools: ["read_file", "search"], repoTools: toolsFor(ctx), schema: DraftOut, maxTurns: 8,
+        stage: "specify", route: "specify", cls: "read-large", budgetTokens: 30000, ...repoAccess(ctx), schema: DraftOut, maxTurns: 8,
         sections: [
           ...draftSections(ctx, i),
           S.artifact("spec", "spec", spec),
@@ -300,7 +307,7 @@ export const specifyStep: StepDef = {
     const criticSha = ctx.ledger.putJson({ findings: checks!.critic, note: checks!.criticNote });
     return {
       kind: "done", outputs: { spec: specSha, critic: criticSha },
-      data: { repairs, openFindings: problems(checks!), conflicts: merged.conflicts, manualUi: [...manualUi], lane: lane === LANE.light ? "light" : "full" },
+      data: { repairs, openFindings: problems(checks!), conflicts: merged.conflicts, manualUi: [...manualUi], lane: lane === LANE.light ? "light" : lane === LANE.estimate ? "estimate" : "full" },
     };
   },
 };

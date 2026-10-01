@@ -20,7 +20,16 @@ export function lightBuild(intent: Intent, complexity: string | undefined): bool
 export const LANE = {
   light: { drafts: 1, maxRepairs: 1, criticEffort: "medium" as const, groundTurns: 8, testWriterTurns: 25, testWriterTurnsApi: 40, maxCharacterisation: 2 },
   full: { drafts: 3, maxRepairs: 3, criticEffort: undefined, groundTurns: 12, testWriterTurns: 60, testWriterTurnsApi: 60, maxCharacterisation: undefined },
+  // estimate mode: the spec only feeds an estimate, so keep the three drafts and the merge (the consistency check)
+  // but allow one repair and a medium critic. Worst case drops from 4 checks + 3 repairs to 2 checks + 1 repair.
+  estimate: { drafts: 3, maxRepairs: 1, criticEffort: "medium" as const, groundTurns: 12, testWriterTurns: 60, testWriterTurnsApi: 60, maxCharacterisation: undefined },
 };
+
+/** Which lane the spec pipeline runs in. */
+export function specLane(intent: Intent, mode: string | undefined): typeof LANE.light | typeof LANE.full | typeof LANE.estimate {
+  if (lightSpec(intent)) return LANE.light;
+  return mode === "estimate" ? LANE.estimate : LANE.full;
+}
 
 /**
  * The test writer's turn limit. Unit tests call a class directly; api and job tests also need the
