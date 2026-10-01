@@ -46,8 +46,26 @@ export function jiraConfigured(): boolean {
   return !!(secret("JIRA_BASE_URL") && secret("JIRA_EMAIL") && secret("JIRA_API_TOKEN"));
 }
 
+export interface JiraPerson { accountId?: string; emailAddress?: string; displayName?: string }
+
+/** Is this person on an allow-list of Jira account ids or emails (case-insensitive)? */
+export function allowedPerson(allowed: string[]): (who: JiraPerson | undefined) => boolean {
+  const ok = new Set(allowed.map((x) => x.toLowerCase()));
+  return (who) => !!who && ((!!who.accountId && ok.has(who.accountId.toLowerCase())) || (!!who.emailAddress && ok.has(who.emailAddress.toLowerCase())));
+}
+
+/**
+ * fetchJiraTicket for a project: with a `jira.allowedReporters` list, only comments by those people go
+ * into the request (anyone can comment on a ticket; the request must come from trusted people).
+ */
+export function jiraFetcherFor(allowed: string[] | undefined): typeof fetchJiraTicket {
+  if (!allowed?.length) return fetchJiraTicket;
+  const commentAuthors = allowedPerson(allowed);
+  return (keyOrUrl, opts = {}) => fetchJiraTicket(keyOrUrl, { commentAuthors, ...opts });
+}
+
 /** Fetch a ticket: summary, type, priority, labels, description and the latest comments. */
-export async function fetchJiraTicket(keyOrUrl: string, opts: { maxComments?: number; fetchFn?: typeof fetch } = {}): Promise<JiraTicket> {
+export async function fetchJiraTicket(keyOrUrl: string, opts: { maxComments?: number; fetchFn?: typeof fetch; /** only comments whose author passes are included */ commentAuthors?: (author: JiraPerson | undefined) => boolean } = {}): Promise<JiraTicket> {
   const key = parseJiraKey(keyOrUrl);
   const base = (secret("JIRA_BASE_URL") ?? "").replace(/\/+$/, "");
   const email = secret("JIRA_EMAIL");
@@ -70,8 +88,9 @@ export async function fetchJiraTicket(keyOrUrl: string, opts: { maxComments?: nu
   const j = (await res.json()) as { key: string; fields: Record<string, unknown> };
   const fl = j.fields;
   const name = (o: unknown) => (o && typeof o === "object" ? String((o as { name?: string }).name ?? "") : "");
-  const comments = ((fl.comment as { comments?: { author?: { displayName?: string }; body?: unknown; created?: string }[] } | undefined)?.comments ?? [])
-    .slice(-(opts.maxComments ?? 5));
+  const all = (fl.comment as { comments?: { author?: JiraPerson; body?: unknown; created?: string }[] } | undefined)?.comments ?? [];
+  const kept = opts.commentAuthors ? all.filter((c) => opts.commentAuthors!(c.author)) : all;
+  const comments = kept.slice(-(opts.maxComments ?? 5));
   const summary = String(fl.summary ?? "").trim();
   const lines = [
     `Jira ${j.key}: ${summary}`,
@@ -80,6 +99,7 @@ export async function fetchJiraTicket(keyOrUrl: string, opts: { maxComments?: nu
     "",
     adfToText(fl.description) || "(no description)",
     ...(comments.length ? ["", "Latest comments:", ...comments.map((c) => `- ${c.author?.displayName ?? "someone"}: ${adfToText(c.body).replace(/\n+/g, " ").trim()}`)] : []),
+    ...(kept.length < all.length ? ["", `(${all.length - kept.length} comment(s) from people not on the project's allowed list were left out.)`] : []),
   ];
   return { key: j.key, url: `${base}/browse/${j.key}`, summary, text: lines.join("\n").trim() };
 }

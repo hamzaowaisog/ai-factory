@@ -18,6 +18,7 @@ import { replay, statusLabel } from "../ledger/state.js";
 import { createRun, execute } from "../stages/executor.js";
 import { answerOpenQuestions, canPrompt, terminalIO } from "./interactive.js";
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
+import { jiraFetcherFor } from "../sources/jira.js";
 import { parseEstimateSettings, type EstimateOptions } from "../estimate/settings.js";
 import { approvedEstimate, type Approved } from "../estimate/lineage.js";
 import type { RequestSource } from "../sources/request.js";
@@ -74,7 +75,7 @@ program.command("start")
       if (prompt || o.file || o.jira) throw new Error("--from-estimate takes its request from the estimate; drop the prompt, --file and --jira. A changed requirement is a change request: factory estimate --revises <run>.");
       approved = approvedEstimate(openRun(o.fromEstimate).runId);
     }
-    const req = approved ? { text: approved.request, sources: [{ kind: "prompt" as const }] } : await gatherRequest({ prompt, file: o.file, jira: o.jira });
+    const req = approved ? { text: approved.request, sources: [{ kind: "prompt" as const }] } : await gatherRequest({ prompt, file: o.file, jira: o.jira }, { fetchJira: jiraFetcherFor(project.jira?.allowedReporters) });
     const runId = await createRun(req.text, o.project, userInfo().username, {
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
       sources: req.sources, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}),
@@ -122,7 +123,7 @@ program.command("estimate")
       lineage = { kind: "sibling", approved };
       req = { text: approved.request, sources: [{ kind: "prompt" }], attachments: [] };
     } else {
-      req = await gatherRequest({ prompt, file: o.file, jira: o.jira, frames: o.frames }, {}, { maxBytes: MAX_ESTIMATE_REQUEST_BYTES });
+      req = await gatherRequest({ prompt, file: o.file, jira: o.jira, frames: o.frames }, { fetchJira: jiraFetcherFor(project.jira?.allowedReporters) }, { maxBytes: MAX_ESTIMATE_REQUEST_BYTES });
       if (o.revises) lineage = { kind: "change", approved: approvedEstimate(openRun(o.revises).runId) };
     }
     const runId = await createRun(req.text, projectName, userInfo().username, {
