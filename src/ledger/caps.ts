@@ -13,12 +13,12 @@ export function costCapUsd(changeClass: ChangeClass | undefined, complexity: Com
   return { S: 5, M: 10, L: 20 }[complexity];
 }
 
-/** For now no cap goes below the medium one: the spec work alone can approach $5. */
-export const MIN_CAP_USD = 10;
+/** Guard only (a class cap is never zero or negative); the $5 bugfix and S caps apply as they are. */
+export const MIN_CAP_USD = 1;
 
 /**
- * The cost limit in force: before plan, the class cap (at least $10); after plan, what was spent up to
- * the plan plus the size's cap (at least $10); a human waiver replaces it.
+ * The cost limit in force: before plan, the class cap; after plan, what was spent up to the plan plus
+ * the size's cap; a human waiver replaces it.
  */
 export function currentCostCap(state: RunState): number {
   if (state.capOverrides.costUsd !== undefined) return state.capOverrides.costUsd; // a human waiver decides

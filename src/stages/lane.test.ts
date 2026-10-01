@@ -46,9 +46,9 @@ describe("a step's budget", () => {
   const state = (costUsd: number, over: Partial<RunState["info"]> = {}) =>
     ({ costUsd, capOverrides: {}, info: { changeClass: "bugfix", complexity: "S", spendAtPlan: 2.5, ...over } }) as unknown as RunState;
   it("is its own limit, but never more than what's left of the run's limit", () => {
-    // cap after the plan: $2.50 + $10 minimum = $12.50
+    // cap after the plan: $2.50 + $5 (S) = $7.50
     expect(stepBudgetUsd(state(3), 4)).toBe(4);
-    expect(stepBudgetUsd(state(10), 4)).toBeCloseTo(2.5);
+    expect(stepBudgetUsd(state(5), 4)).toBeCloseTo(2.5);
     // --max-cost 5 with $2.55 spent: the first real run's test writer would have had $2.45, not $4
     expect(stepBudgetUsd(state(2.55, { maxCostUsd: 5 }), 4)).toBeCloseTo(2.45);
     // nothing left: a small floor, so the step runs out and the cap card follows

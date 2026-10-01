@@ -462,7 +462,7 @@ Screenshots of every screen, dark and light: [docs/screens](docs/screens/). For 
    - `project`: the Jira project key, e.g. `SHOP`.
    - `label`: the label that starts a run (default `factory`).
    - `allowedReporters`: the emails or Jira account ids of the people whose label counts. Anyone else's label is ignored.
-4. `factory doctor` checks the login and the webhook.
+4. `factory doctor` checks that the Jira login and the Slack webhook are set in `~/.factory/.env` (it doesn't contact Jira or Slack). `factory watch --project <p> --once` tries them for real.
 
 **Run it:**
 
@@ -471,13 +471,14 @@ factory watch --project shop-api          # checks every minute; Ctrl+C stops it
 factory watch --project shop-api --once   # check once, to try the set-up
 ```
 
-**This computer must stay awake and online while the watcher runs.** It checks Jira from here, and the runs happen here. If the laptop sleeps, nothing starts until it wakes up. Tickets aren't lost: they wait.
+**This computer must stay awake and online while the watcher runs.** It checks Jira from here, and the runs happen here. If the laptop sleeps, nothing starts until it wakes up. Tickets aren't lost: they wait. The watcher finds newly labelled tickets with a search for recent changes, and keeps every ticket that has to wait (busy repo, budget, daily run limit) in `~/.factory/watch/<project>.json`, looking each one up by its key on every check until it starts, oldest first. A waiting ticket stops waiting if its label is removed or it leaves "To Do".
 
 **What it does with a ticket:**
-- Starts it only if the label was added by someone on the allowed list, the ticket is in a "To Do" status, and it isn't an epic or a sub-task. The description must also say enough (80 characters or more). Otherwise it posts one comment saying why.
+- Starts it only if the label was added by someone on the allowed list, the ticket is in a "To Do" status, and it isn't an epic or a sub-task. The description must also say enough (80 characters or more). The allowed list is checked first: a ticket labelled by anyone else gets no comment at all. For an allowed person's ticket that is skipped, it posts one comment saying why.
 - Starts **one run at a time** per repo. The next ticket waits until the current run stops for a person (a question or approval card), is delivered, or stops.
-- Each run is capped at `maxCostPerRun` (default $3), like `--max-cost`. On top of that are daily and monthly budgets (`dailyBudgetUsd`, default $10; `monthlyBudgetUsd`, default $100) and `maxRunsPerDay` (default 3). When a budget is used up, it starts nothing more, says so once in Slack and on the waiting ticket, and picks it up when the budget allows.
-- A ticket runs once. To run it again, remove the label and add it again after its run has finished. Editing the ticket alone doesn't re-run it.
+- Each run is capped at `maxCostPerRun` (default $3), like `--max-cost`. On top of that are daily and monthly budgets (`dailyBudgetUsd`, default $10; `monthlyBudgetUsd`, default $100) and `maxRunsPerDay` (default 3). When a budget is used up, it starts nothing more, says so once a day in Slack and once on each waiting ticket, and picks them up when the budget allows.
+- A ticket runs once. To run it again, remove the label and add it again after its run has finished. Editing the ticket alone doesn't re-run it. If the watcher is stopped at the moment it starts a run, it finds that run when it comes back; if no run was created, it leaves the ticket alone (only its log says so) rather than risk a second paid run: remove and add the label to try again.
+- The run's request is the ticket's summary, description and latest comments, but only comments by people on the allowed list (anyone can comment on a ticket). `factory start --jira` and a Jira key in `factory ui` do the same for a project with a `jira:` block.
 
 **What people see:**
 - Jira comments when the run starts, when a card waits for a person (with the command), when it stops and needs a look, and when it's delivered (the branch or pull request, the cost, and how many checks passed).
@@ -500,7 +501,7 @@ With a GitHub `forge:`, the pull request title and the branch carry the ticket k
 | `factory baseline --project <p>` | Builds and tests the untouched repo in the test lab. No AI. |
 | `factory start "<request>" --project <p> [--max-cost <usd>]` | Creates a run and executes until a card, a park or delivery. `--max-cost` lowers this run's spend limit: at that amount the run stops and asks you. |
 | `factory start --file request.md --project <p>` | Same, with the request from a Markdown or text file. |
-| `factory start --jira ABC-123 --project <p>` | Same, with the request from a Jira ticket (key or link): summary, description and latest comments. Needs Jira set up in `~/.factory/.env`. |
+| `factory start --jira ABC-123 --project <p>` | Same, with the request from a Jira ticket (key or link): summary, description and latest comments (only from allowed people when the project has a `jira:` block). Needs Jira set up in `~/.factory/.env`. |
 
 The request can come from **any one** of a typed prompt, `--file` or `--jira`, or several at once (they're combined into one request, each part labelled). Up to about 25 KB of text in total; more is refused before anything is spent.
 | `factory status [run]` | All recent runs, or one run's steps, cost and open card. |

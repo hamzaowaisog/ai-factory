@@ -52,8 +52,9 @@ export function setSkipInfra(v: boolean): void {
   skipInfra = v;
 }
 
-function apiProxyEnv(): Record<string, string | undefined> {
-  return { MODE: "api", ANTHROPIC_API_KEY: secret("ANTHROPIC_API_KEY"), OPENAI_API_KEY: secret("OPENAI_API_KEY") };
+/** Only agent containers reach this proxy and they only need Anthropic; host-side OpenAI calls go direct. */
+export function apiProxyEnv(): Record<string, string | undefined> {
+  return { MODE: "api", ANTHROPIC_API_KEY: secret("ANTHROPIC_API_KEY") };
 }
 
 /** A short hash of the proxy's settings and code: stored as a label, never the keys themselves. */

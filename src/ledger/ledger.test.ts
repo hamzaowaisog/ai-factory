@@ -178,17 +178,17 @@ describe("cost limits", () => {
     await l.append({ type: "step.completed", key: `${step}/1`, data }, HUMAN_WRITER);
   };
 
-  it("before plan: never below the medium $10, even for a bugfix", async () => {
+  it("before plan: the class cap, $5 for a bugfix", async () => {
     const l = await run("cap-1");
     await complete(l, "intake", { changeClass: "bugfix" });
     expect(replay(l.events()).info.changeClass).toBe("bugfix");
-    await spend(l, 6);
+    await spend(l, 4);
     expect(checkCaps(replay(l.events()))).toBeUndefined();
-    await spend(l, 4.5);
-    expect(checkCaps(replay(l.events()))).toMatchObject({ kind: "cost", waivable: true, proposal: { costUsd: 20 } });
+    await spend(l, 1.5);
+    expect(checkCaps(replay(l.events()))).toMatchObject({ kind: "cost", waivable: true, proposal: { costUsd: 10 } });
   });
 
-  it("after plan: spend so far + the size's cap (at least $10)", async () => {
+  it("after plan: spend so far + the size's cap", async () => {
     const l = await run("cap-2");
     await complete(l, "intake", { changeClass: "feature" });
     await spend(l, 4);
@@ -199,7 +199,7 @@ describe("cost limits", () => {
     const l2 = await run("cap-3");
     await spend(l2, 3);
     await complete(l2, "plan", { complexity: "S" });
-    expect(currentCostCap(replay(l2.events()))).toBe(13); // $3 + max($5, $10)
+    expect(currentCostCap(replay(l2.events()))).toBe(8); // $3 + $5
   });
 
   it("a hash-bound waiver raises the limit; it isn't counted as a gate waiver", async () => {
