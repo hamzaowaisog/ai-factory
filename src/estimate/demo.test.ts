@@ -48,15 +48,16 @@ describe("clickable demo", () => {
     expect(html).not.toContain("NaN");
   });
   it("takes its colours, mode, corners and motion from the design's theme", () => {
-    const theme = { mood: "calm clinical", mode: "light" as const, accent: "#0f766e", accent2: "#0369a1", radius: "round" as const, motion: "calm" as const };
+    const theme = { mood: "calm clinical", mode: "light" as const, brand: "#0f766e", accent: "#0369a1", radius: "round" as const, motion: "calm" as const };
     const html = buildDemo({ ...base, theme });
-    expect(html).toContain("--r:24px");
-    expect(html).toContain("--rise:8px");
+    expect(html).toContain("--r:18px");
+    expect(html).toContain("--rise:6px");
     expect(html).toContain("--drift:paused");
+    expect(html).toContain("--br:#0f766e");
     expect(html).toContain('content="light"');
-    expect(html).not.toContain("prefers-color-scheme:light){:root"); // a fixed mode does not follow the system
-    expect(themeCss({ ...theme, mode: "auto" })).toContain("prefers-color-scheme:light");
-    expect(themeCss()).toContain("--a1:#5eead4");
+    expect(html).not.toContain("prefers-color-scheme:dark){:root"); // a fixed mode does not follow the system
+    expect(themeCss({ ...theme, mode: "auto" })).toContain("prefers-color-scheme:dark");
+    expect(themeCss()).toContain("--br:#1a56db");
   });
   it("keeps a too-dark accent readable on a dark page and a too-light one on a light page", () => {
     const dark = themeCss({ mood: "x", mode: "dark", accent: "#101030", accent2: "#202040", radius: "soft", motion: "lively" });

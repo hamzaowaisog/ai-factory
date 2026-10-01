@@ -30,7 +30,9 @@ export async function ensureWorktree(ctx: StepContext, base: string): Promise<st
   if (ctx.state.workspace && existsSync(ctx.state.workspace.path)) return ctx.state.workspace.path;
   const short = ctx.runId.slice(-4) + "-" + ctx.runId.slice(0, 8);
   const wt = join(paths.worktrees(), short);
-  const branch = `factory/${ctx.runId}`;
+  // a run started from a Jira ticket carries its key, so Jira's GitHub app links the branch and PR
+  const jiraKey = ctx.state.info.sources?.find((s) => s.kind === "jira")?.key;
+  const branch = jiraKey ? `factory/${jiraKey}-${ctx.runId}` : `factory/${ctx.runId}`;
   await addWorktree(ctx.state.info.repoPath!, wt, branch, base, ctx.runId);
   await ctx.ledger.append({ type: "workspace.created", data: { path: wt, branch } }, ctx.writer);
   ctx.state.workspace = { path: wt, branch };

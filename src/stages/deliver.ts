@@ -19,6 +19,12 @@ import { header, requireOutput, type StepContext, type StepDef, type StepOutcome
 import { modelFor } from "./routing.js";
 import { S, think } from "./think.js";
 import { ensureWorktree } from "./workspace.js";
+import { recordTestLesson } from "../context/lessons.js";
+
+/** Only a delivered run teaches the next one where its tests go; never fails delivery. */
+function learnFrom(ctx: StepContext, wt: string, lockedFiles: string[]): void {
+  try { recordTestLesson(ctx.project.project, wt, lockedFiles); } catch (e) { ctx.log(`deliver: couldn't save the repo lesson: ${(e as Error).message}`); }
+}
 
 type Spec = z.infer<typeof SpecDraft>;
 type Plan = z.infer<typeof PlanBody>;
@@ -116,12 +122,51 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
   ].join("\n");
 }
 
-async function githubSink(ctx: StepContext, branch: string, title: string, body: string, draft: boolean) {
+function githubApi(ctx: Pick<StepContext, "project">) {
   const forge = ctx.project.forge!;
   const token = secret(forge.tokenEnv);
   if (!token) throw new Error(`${forge.tokenEnv} is missing in ~/.factory/.env`);
-  const api = `https://api.github.com/repos/${forge.repo}`;
-  const headers = { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "ai-factory" };
+  const root = forge.apiUrl.replace(/\/+$/, "");
+  const headers = { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "ai-factory", "Content-Type": "application/json" };
+  return { root, api: `${root}/repos/${forge.repo}`, headers, token };
+}
+
+/** Line numbers each file has in the new version inside the diff's hunks: GitHub only takes line comments there. */
+export function diffLines(unifiedZero: string): Map<string, Set<number>> {
+  const out = new Map<string, Set<number>>();
+  let file: string | undefined;
+  for (const line of unifiedZero.split("\n")) {
+    const f = /^\+\+\+ b\/(.+)$/.exec(line);
+    if (f) { file = f[1]; if (!out.has(file!)) out.set(file!, new Set()); continue; }
+    if (line.startsWith("+++ /dev/null")) { file = undefined; continue; }
+    const h = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/.exec(line);
+    if (h && file) {
+      const start = Number(h[1]), count = h[2] === undefined ? 1 : Number(h[2]);
+      for (let n = start; n < start + count; n++) out.get(file)!.add(n);
+    }
+  }
+  return out;
+}
+
+export interface ReviewPost { body: string; comments: { path: string; line: number; side: "RIGHT"; body: string }[] }
+
+/**
+ * The factory's own review as ONE GitHub review: findings on lines inside the diff become line comments,
+ * the rest go in the body (a comment outside the diff makes GitHub reject the whole call).
+ */
+export function reviewPost(runId: string, findings: { id: string; severity: string; category?: string; file?: string; line?: number; text: string }[], lines: Map<string, Set<number>>): ReviewPost {
+  const inDiff = findings.filter((f) => f.file && f.line && lines.get(f.file)?.has(f.line));
+  const elsewhere = findings.filter((f) => !inDiff.includes(f));
+  const head = findings.length ? `The AI factory reviewed this change: ${findings.length} finding${findings.length === 1 ? "" : "s"}, none blocking (blocking findings stop delivery).` : "The AI factory reviewed this change and found nothing to flag.";
+  return {
+    body: [head, ...(elsewhere.length ? ["", "Findings outside the changed lines:", ...elsewhere.map((f) => `- ${f.id} [${f.severity}${f.category ? `/${f.category}` : ""}]${f.file ? ` ${f.file}${f.line ? `:${f.line}` : ""}` : ""}: ${f.text}`)] : []), "", `<!-- factory-review:${runId} -->`].join("\n"),
+    comments: inDiff.map((f) => ({ path: f.file!, line: f.line!, side: "RIGHT" as const, body: `${f.id} [${f.severity}${f.category ? `/${f.category}` : ""}] ${f.text}` })),
+  };
+}
+
+async function githubSink(ctx: StepContext, branch: string, title: string, body: string, draft: boolean) {
+  const { api, headers } = githubApi(ctx);
+  const forge = ctx.project.forge!;
   const [owner] = forge.repo.split("/");
   return runSink(ctx.ledger, ctx.writer, {
     kind: "pr", idempotencyKey: `pr:${branch}`,
@@ -139,6 +184,40 @@ async function githubSink(ctx: StepContext, branch: string, title: string, body:
       return { externalId: pr.html_url, value: pr.number };
     },
   });
+}
+
+/** Post the review once: a retry finds it by its marker. */
+async function postReview(ctx: StepContext, prNumber: number, post: ReviewPost): Promise<void> {
+  const { api, headers } = githubApi(ctx);
+  const marker = `factory-review:${ctx.runId}`;
+  await runSink(ctx.ledger, ctx.writer, {
+    kind: "pr-review", idempotencyKey: `review:${ctx.runId}`,
+    lookup: async () => {
+      const res = await fetch(`${api}/pulls/${prNumber}/reviews?per_page=100`, { headers });
+      if (!res.ok) throw new Error(`GitHub review lookup failed: ${res.status}`);
+      const found = ((await res.json()) as { id: number; body?: string }[]).find((r) => r.body?.includes(marker));
+      return found ? { externalId: String(found.id), value: found.id } : undefined;
+    },
+    create: async () => {
+      const res = await fetch(`${api}/pulls/${prNumber}/reviews`, { method: "POST", headers, body: JSON.stringify({ event: "COMMENT", body: post.body, comments: post.comments }) });
+      if (!res.ok) throw new Error(`GitHub review failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
+      const r = (await res.json()) as { id: number };
+      return { externalId: String(r.id), value: r.id };
+    },
+  });
+}
+
+/** Draft → ready for review (GitHub has no REST call for this; it's a GraphQL mutation). */
+async function markReady(ctx: StepContext, prNumber: number): Promise<void> {
+  const { root, api, headers } = githubApi(ctx);
+  const pr = await fetch(`${api}/pulls/${prNumber}`, { headers });
+  if (!pr.ok) throw new Error(`GitHub PR lookup failed: ${pr.status}`);
+  const { node_id, draft } = (await pr.json()) as { node_id: string; draft?: boolean };
+  if (!draft) return;
+  const res = await fetch(`${root}/graphql`, { method: "POST", headers, body: JSON.stringify({ query: "mutation($id: ID!) { markPullRequestReadyForReview(input: {pullRequestId: $id}) { pullRequest { isDraft } } }", variables: { id: node_id } }) });
+  if (!res.ok) throw new Error(`GitHub ready-for-review failed: ${res.status}`);
+  const j = (await res.json()) as { errors?: { message: string }[] };
+  if (j.errors?.length) throw new Error(j.errors[0]!.message);
 }
 
 export const deliverStep: StepDef = {
@@ -193,22 +272,37 @@ export const deliverStep: StepDef = {
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
     const plan = requireOutput<Plan>(ctx.state, ctx.ledger, "plan");
     const body = prBody(ctx, { spec, plan, lock, run: requireOutput<TestRun>(ctx.state, ctx.ledger, "integrate"), review: requireOutput(ctx.state, ctx.ledger, "review"), manifestHash, commits });
-    const title = `factory: ${spec.requirements[0]?.ears.slice(0, 60) ?? ctx.runId}`;
+    const jiraKey = ctx.state.info.sources?.find((s) => s.kind === "jira")?.key;
+    const title = `${jiraKey ? `${jiraKey}: ` : "factory: "}${spec.requirements[0]?.ears.slice(0, 60) ?? ctx.runId}`;
     const bodySha = ctx.ledger.putArtifact(body);
     ctx.ledger.writeCard(`pr-${ctx.runId}`, `# ${title}\n\n${body}`);
     const branch = ctx.state.workspace!.branch;
 
     if (!ctx.project.forge) {
       ctx.log(`deliver: no forge configured; branch ${branch} is ready locally (PR text saved)`);
+      learnFrom(ctx, wt, lock.lock.map((l) => l.file));
       return { kind: "done", outputs: { manifest: manifestHash, prBody: bodySha }, treeSha: head, data: { local: true, branch, head, manifestHash } };
     }
     // push exactly: gated SHA + manifest commit
     const token = secret(ctx.project.forge.tokenEnv);
     if (!token) return { kind: "park", reason: `${ctx.project.forge.tokenEnv} is missing in ~/.factory/.env` };
     const auth = Buffer.from(`x-access-token:${token}`).toString("base64");
-    await git(wt, ["-c", `http.extraHeader=Authorization: Basic ${auth}`, "push", `https://github.com/${ctx.project.forge.repo}.git`, `${head}:refs/heads/${branch}`]);
-    const pr = await githubSink(ctx, branch, title, body, false).catch((e: Error) => { throw new Error(e.message.replaceAll(token, "«SECRET»")); });
-    return { kind: "done", outputs: { manifest: manifestHash, prBody: bodySha }, treeSha: head, data: { local: false, branch, head, prUrl: pr.externalId, manifestHash } };
+    // the auth header goes in through git's environment, never the command line: a failed push prints its
+    // command in the error (and so in the ledger and the park reason), and anyone can list a command line
+    await git(wt, ["push", ctx.project.forge.pushUrl ?? `https://github.com/${ctx.project.forge.repo}.git`, `${head}:refs/heads/${branch}`], {
+      env: { GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "http.extraHeader", GIT_CONFIG_VALUE_0: `Authorization: Basic ${auth}` },
+    });
+    // a draft first; the factory's review goes on it; then it's marked ready for people
+    const pr = await githubSink(ctx, branch, title, body, true).catch((e: Error) => { throw new Error(e.message.replaceAll(token, "«SECRET»")); });
+    const review = requireOutput<{ findings: { id: string; severity: string; category?: string; file?: string; line?: number; text: string }[] }>(ctx.state, ctx.ledger, "review");
+    const lines = diffLines(await gitOut(wt, ["diff", "--no-color", "-U0", ctx.state.info.baseCommit!, gated]));
+    const extra: string[] = [];
+    // the PR exists and the branch is pushed: a review or "ready" problem is noted, never a failed delivery
+    try { await postReview(ctx, pr.value, reviewPost(ctx.runId, review.findings, lines)); } catch (e) { extra.push(`review not posted: ${(e as Error).message.replaceAll(token, "«SECRET»").slice(0, 200)}`); }
+    try { await markReady(ctx, pr.value); } catch (e) { extra.push(`PR left as a draft: ${(e as Error).message.replaceAll(token, "«SECRET»").slice(0, 200)}`); }
+    for (const x of extra) ctx.log(`deliver: ${x}`);
+    learnFrom(ctx, wt, lock.lock.map((l) => l.file));
+    return { kind: "done", outputs: { manifest: manifestHash, prBody: bodySha }, treeSha: head, data: { local: false, branch, head, prUrl: pr.externalId, manifestHash, ...(extra.length ? { notes: extra } : {}) } };
   },
 };
 

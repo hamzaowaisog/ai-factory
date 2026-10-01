@@ -3,7 +3,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
-import type { Failure, IntentBody, LedgerEvent, PlanBody, SpecDraft, TestRun } from "../contracts/index.js";
+import type { Failure, IntentBody, LedgerEvent, PlanBody, SpecDraft, TestResult, TestRun } from "../contracts/index.js";
 import { scanText } from "../context/secrets.js";
 import { failure, runGate, type GateDef } from "../gates/engine.js";
 import {
@@ -20,16 +20,17 @@ import { buildPack } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
 import { sha256 } from "../util/hash.js";
 import { factoryHome } from "../util/paths.js";
-import { produceDotnetTests, type Probe, type ProduceOutput } from "../verify/dotnet.js";
+import { produceDotnetTests, skippableKnownFailures, type Probe, type ProduceOutput } from "../verify/dotnet.js";
 import type { Expectations } from "../verify/validate.js";
-import { header, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { header, outputOf, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { modelFor } from "./routing.js";
 import { family } from "../runners/types.js";
 import { S } from "./think.js";
 import { ensureWorktree, runtime, snapshotFor } from "./workspace.js";
 import { replay, splitKey } from "../ledger/state.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
-import { LANE, lightBuild } from "./lane.js";
+import { LANE, lightBuild, testWriterTurns } from "./lane.js";
+import { lessonPointers, readLessons, usableLessons } from "../context/lessons.js";
 import { sizeCap } from "../estimate/gates.js";
 import { designFidelityLint, designSizeCap } from "../design/gates.js";
 import { actualSize, approvedLevel, designOptions, fidelityLint, hasReactApp, touchesUiFiles } from "../design/build-checks.js";
@@ -74,23 +75,33 @@ const packagesDir = (runId: string) => {
   return d;
 };
 
-async function produce(ctx: StepContext, key: string, commit: string, stage: TestRun["stage"], exp: Expectations, onlyTests?: string[], filterExpr?: string, accept?: { probes: Probe[] }): Promise<ProduceOutput> {
+async function produce(ctx: StepContext, key: string, commit: string, stage: TestRun["stage"], exp: Expectations, onlyTests?: string[], filterExpr?: string, accept?: { probes: Probe[] }, resolveExp?: (results: TestResult[]) => Expectations): Promise<ProduceOutput> {
   const rt = runtime();
   await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
+  // full-suite runs (task, integrate) leave out tests that already fail on the base branch
+  const fullSuite = (stage === "task" || stage === "integrate") && !onlyTests?.length && !filterExpr;
+  const skipTests = fullSuite ? skippableKnownFailures(baselineResults(ctx), [...exp.expectPass, ...exp.expectFail.map((e) => e.id)]) : undefined;
   return produceDotnetTests({
-    runId: ctx.runId, key, repo: ctx.state.info.repoPath!, commit, stage, exp, project: ctx.project, rt, onlyTests, filterExpr, accept, knownFailures: knownFailures(ctx),
+    runId: ctx.runId, key, repo: ctx.state.info.repoPath!, commit, stage, exp, project: ctx.project, rt, onlyTests, filterExpr, accept, resolveExp, knownFailures: knownFailures(ctx),
     packagesDir: packagesDir(ctx.runId),
+    // later lab runs on a commit reuse its build; the baseline's commit is never built again
+    buildCache: stage === "baseline" ? undefined : join(factoryHome(), "tmp", ctx.runId, "builds"),
+    skipTests,
     onContainer: async (id, role) => { await ctx.ledger.append({ type: "container.started", key, data: { id, role } }, ctx.writer); },
     onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key, data: { id } }, ctx.writer); },
     onPhase: phaseTracer(ctx),
   });
 }
 
+/** This run's baseline results (empty before discover has finished). */
+function baselineResults(ctx: StepContext): TestResult[] {
+  const sha = ctx.state.steps.get("discover")?.outputs[0];
+  return sha ? ctx.ledger.getJson<TestRun>(sha).results : [];
+}
+
 /** Tests that failed in this run's baseline (the repo's known failures). */
 function knownFailures(ctx: StepContext): Set<string> {
-  const sha = ctx.state.steps.get("discover")?.outputs[0];
-  if (!sha) return new Set();
-  return new Set(ctx.ledger.getJson<TestRun>(sha).results.filter((r) => r.outcome === "failed").map((r) => r.id));
+  return new Set(baselineResults(ctx).filter((r) => r.outcome === "failed").map((r) => r.id));
 }
 
 /** Test-lab phases → trace; a failing phase's log tail is saved (masked) as a blob. */
@@ -258,6 +269,9 @@ export const authorTestsStep: StepDef = {
     await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
     await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
     await ensurePackages(ctx, start);
+    // what earlier runs on this repo learned about where tests go (only if those files still exist here)
+    const lessons = usableLessons(readLessons(ctx.project.project), wt);
+    if (lessons.length) ctx.log(`author-tests: pointing the test writer at ${lessons.map((l) => l.dir).join(", ")} (from earlier runs)`);
     // "already passes" is no longer a failure when the requirement has a failing test: don't push the writer to break a correct test
     const priorFailures = ctx.priorFailures.filter((f) => f.check !== "passes-on-base");
         // The test author sees ACs, stub signatures and harness rules. Never the plan's approach.
@@ -282,7 +296,7 @@ Rules:
         S.template("tpl-end", `
 - For each "api" criterion whose endpoint needs NO login, also give one HTTP probe: method, path, optional JSON body, and the status code the criterion expects once implemented. The factory sends it to the running app (with an empty test database) as evidence. Skip criteria that need a login or seeded data.
 Return the list of tests you wrote (acId, file, method name) and the probes.`),
-        ...(anchorFiles(spec).length ? [S.pointers(anchorFiles(spec).map((p) => ({ path: p, reason: "the code these criteria are about" })))] : []),
+        ...(anchorFiles(spec).length || lessons.length ? [S.pointers([...anchorFiles(spec).map((p) => ({ path: p, reason: "the code these criteria are about" })), ...lessonPointers(lessons)])] : []),
         S.artifact("acs", "acceptance-criteria", acs),
         S.artifact("stubs", "stubs", plan.stubs.map((s) => ({ path: s.path, content: s.content }))),
         ...(priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "Your previous attempt was rejected:\n" + priorFailures.slice(0, 20).map((f) => `- [${f.check}] ${f.message}`).join("\n") }] : []),
@@ -295,7 +309,7 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
       protectedGlobs: CONFIG_INTEGRITY_GLOBS, packagesDir: packagesDir(ctx.runId), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
       onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "author-tests", data: { id, role: "agent" } }, ctx.writer); },
       onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "author-tests", data: { id } }, ctx.writer); },
-    }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits: { maxTurns: light ? LANE.light.testWriterTurns : LANE.full.testWriterTurns, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
+    }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits: { maxTurns: testWriterTurns(light, acs.filter((a) => a.level !== "manual").map((a) => a.level)), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
     await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
     if (r.status === "config-error") return { kind: "park", reason: r.error ?? "The API rejected the coding agent's request" };
     if (r.status !== "ok") return { kind: "fail", category: r.status === "rate-limited" ? "rate-limit" : "other", failures: [failure(`agent-${r.status}`, r.error ?? r.status)], signature: `author-tests:${r.status}` };
@@ -308,12 +322,34 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
     const missingAc = acs.filter((a) => a.level !== "manual" && !out.tests.some((t) => t.acId === a.id));
     if (missingAc.length) return { kind: "fail", category: "other", failures: missingAc.map((a) => failure("ac-coverage", `No test for ${a.id}`)), signature: "author-tests:coverage" };
 
-    // find the real test IDs by method name (one quick run, no expectations)
+    // One lab run finds the real test IDs by method name AND is the first run on the old code: the IDs
+    // (and so the expectations) are only known from its results, so they're decided from them.
     const names = [...out.tests.map((t) => t.name), ...out.characterisation.map((c) => c.name)];
-    ctx.log("author-tests: finding the new tests");
-    const found = await produce(ctx, "author-tests/find", commit, "author-tests-on-base", { expectPass: [], expectFail: [], compareToBaseline: [] }, undefined,
-      names.map((n) => `FullyQualifiedName~.${n}`).join("|"));
-    const { ids, missing } = resolveTestIds(names, found.testRun.results.map((r) => r.id));
+    const none: Expectations = { expectPass: [], expectFail: [], compareToBaseline: [] };
+    let missing = names;
+    let tests: (z.infer<typeof AuthorOut>["tests"][number] & { testId: string; failsOnBase: boolean })[] = [];
+    let characterisation: (z.infer<typeof AuthorOut>["characterisation"][number] & { testId: string; passesOnBase: true })[] = [];
+    let exp = none;
+    const fromResults = (results: TestResult[]): Expectations => {
+      const r = resolveTestIds(names, results.map((x) => x.id));
+      missing = r.missing;
+      if (missing.length) return none;
+      // A criterion can describe behaviour that must keep working ("an upper-case grade stays upper case"):
+      // its test passes on the old code by design. Lock it as must-keep-passing, as long as its requirement
+      // still has a test that fails on the old code, which proves the change is needed.
+      const passedOnBase = new Set(results.filter((x) => x.outcome === "passed").map((x) => x.id));
+      tests = keepPassingTests(out.tests.flatMap((t) => r.ids[t.name]!.map((testId) => ({ ...t, testId, failsOnBase: true }))), passedOnBase);
+      characterisation = out.characterisation.flatMap((c) => r.ids[c.name]!.map((testId) => ({ ...c, testId, passesOnBase: true as const })));
+      exp = {
+        expectPass: [...characterisation.map((c) => c.testId), ...tests.filter((t) => !t.failsOnBase).map((t) => t.testId)],
+        expectFail: tests.filter((t) => t.failsOnBase).map((t) => ({ id: t.testId, kinds: ["assertion", "not-implemented", "exception"] })),
+        compareToBaseline: [],
+      };
+      return exp;
+    };
+    ctx.log("author-tests: finding the new tests and running them on the old code (1 of 2)");
+    const found = await produce(ctx, "author-tests/base-1", commit, "author-tests-on-base", none, undefined,
+      names.map((n) => `FullyQualifiedName~.${n}`).join("|"), undefined, fromResults);
     if (!found.build.ok || missing.length) {
       await resetHard(wt, start);
       const why = !found.build.ok
@@ -321,20 +357,9 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
         : missing.map((n) => failure("test-not-found", `No test method named ${n} ran. Is it public, in a test project, and marked [Fact]/[Theory]?`));
       return { kind: "fail", category: "other", failures: why, signature: `author-tests:${!found.build.ok ? "compile" : "not-found"}` };
     }
-    // A criterion can describe behaviour that must keep working ("an upper-case grade stays upper case"):
-    // its test passes on the old code by design. Lock it as must-keep-passing, as long as its requirement
-    // still has a test that fails on the old code, which proves the change is needed.
-    const passedOnBase = new Set(found.testRun.results.filter((r) => r.outcome === "passed").map((r) => r.id));
-    const tests = keepPassingTests(out.tests.flatMap((t) => ids[t.name]!.map((testId) => ({ ...t, testId, failsOnBase: true }))), passedOnBase);
-    const characterisation = out.characterisation.flatMap((c) => ids[c.name]!.map((testId) => ({ ...c, testId, passesOnBase: true })));
-    const exp: Expectations = {
-      expectPass: [...characterisation.map((c) => c.testId), ...tests.filter((t) => !t.failsOnBase).map((t) => t.testId)],
-      expectFail: tests.filter((t) => t.failsOnBase).map((t) => ({ id: t.testId, kinds: ["assertion", "not-implemented"] })),
-      compareToBaseline: [],
-    };
+    const run1 = storeRun(ctx, found);
     const only = [...tests.map((t) => t.testId), ...characterisation.map((c) => c.testId)];
-    ctx.log("author-tests: running the new tests on the old code, twice");
-    const run1 = storeRun(ctx, await produce(ctx, "author-tests/base-1", commit, "author-tests-on-base", exp, only));
+    ctx.log("author-tests: running the new tests on the old code again (2 of 2)");
     const run2 = storeRun(ctx, await produce(ctx, "author-tests/base-2", commit, "author-tests-on-base", exp, only));
     const acIds = new Set(acs.filter((a) => a.level === "api").map((a) => a.id));
     const lock: Lock = {
@@ -347,13 +372,14 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
     const familyNote = families.testAuthor === families.implementer
       ? `Single model family: tests written by ${model}, code by ${implementer} (both ${families.testAuthor}). A second-vendor coding runner isn't built yet.`
       : undefined;
-    const lockSha = ctx.ledger.putJson({ ...lock, unlocks: [], families, familyNote, header: header(ctx.runId, "acceptance-tests", "author-tests", "", model) });
+    // rules: which fails-on-base rules this lock was written under (verify-evidence re-checks old locks the old way)
+    const lockSha = ctx.ledger.putJson({ ...lock, unlocks: [], families, familyNote, rules: { productionExceptionOk: true }, header: header(ctx.runId, "acceptance-tests", "author-tests", "", model) });
     const g = await runGate(failsOnBase, ctx.ledger, ctx.writer, { run1: run1.testRun, run2: run2.testRun, tests: lockSha }, ctx.policy, { step: "author-tests", treeSha: commit });
     if (!g.passed) {
       await resetHard(wt, start);
       return { kind: "fail", category: "other", failures: g.failures ?? [], signature: failureSignature((g.failures ?? []).map((f) => f.message)) };
     }
-    return { kind: "done", outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, locked: lock.lock.length, familyNote } };
+    return { kind: "done", outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, locked: lock.lock.length, familyNote, ...(lessons.length ? { lessonsUsed: lessons.map((l) => l.csproj) } : {}) } };
   },
 };
 
@@ -607,6 +633,27 @@ export function implementStep(taskId: string): StepDef {
 }
 
 // ---------- integrate (D) ----------
+/**
+ * A task's test run can stand in for integrate's own when it judged the same commit, was valid, and
+ * already required everything integrate requires: every locked and characterisation test passing and
+ * no new failure against the whole baseline. Then a second build and full suite on that commit adds nothing.
+ */
+export function coversIntegrate(run: Pick<TestRun, "treeSha" | "valid" | "expectPass" | "compareToBaseline">, head: string, expectPass: string[], compareToBaseline: string[]): boolean {
+  if (!run.valid || run.treeSha !== head) return false;
+  const pass = new Set(run.expectPass), compared = new Set(run.compareToBaseline);
+  return expectPass.every((id) => pass.has(id)) && compareToBaseline.every((id) => compared.has(id));
+}
+
+/** The completed task step whose commit is `head` and whose test run covers integrate's expectations. */
+function reusableTaskRun(ctx: StepContext, head: string, expectPass: string[], compareToBaseline: string[]): { step: string; testRun: string } | undefined {
+  for (const r of ctx.state.steps.values()) {
+    if (!r.step.startsWith("implement/") || r.status !== "completed" || String(r.data?.commit) !== head) continue;
+    const sha = outputOf(ctx.state, r.step, "testRun");
+    if (sha && coversIntegrate(ctx.ledger.getJson<TestRun>(sha), head, expectPass, compareToBaseline)) return { step: r.step, testRun: sha };
+  }
+  return undefined;
+}
+
 export const integrateStep: StepDef = {
   key: "integrate", stage: "integrate", templateVersion: "1", coding: true,
   inputs: (s) => {
@@ -625,13 +672,19 @@ export const integrateStep: StepDef = {
     const wt = await ensureWorktree(ctx, head);
     const diff = await diffSummary(wt, ctx.state.info.baseCommit!, head, lock);
     const diffSha = ctx.ledger.putJson(diff);
-    const produced = await produce(ctx, "integrate", head, "integrate", {
-      expectPass: [...lock.tests.map((t) => t.testId), ...lock.characterisation.map((c) => c.testId)],
-      expectFail: [], compareToBaseline: baseline.results.map((b) => b.id),
-    });
-    const run = storeRun(ctx, produced);
+    const expectPass = [...lock.tests.map((t) => t.testId), ...lock.characterisation.map((c) => c.testId)];
+    const compareToBaseline = baseline.results.map((b) => b.id);
+    // the last task usually tested this exact commit with the full suite already: reuse that run
+    const reused = reusableTaskRun(ctx, head, expectPass, compareToBaseline);
+    let testRun: string;
+    if (reused) {
+      testRun = reused.testRun;
+      ctx.log(`integrate: ${reused.step} already ran the full suite on ${head.slice(0, 10)} with every locked test; reusing its run`);
+    } else {
+      testRun = storeRun(ctx, await produce(ctx, "integrate", head, "integrate", { expectPass, expectFail: [], compareToBaseline })).testRun;
+    }
     const gated = await gateAll(ctx, "integrate", head, [
-      [testExpectations, { run: run.testRun, baseline: baselineSha }],
+      [testExpectations, { run: testRun, baseline: baselineSha }],
       [lockSetUnchanged, { diff: diffSha, tests: ctx.state.steps.get("author-tests")!.outputs[0]! }],
       [diffSize, { diff: diffSha }],
       // B3: a run that follows an approved estimate may not grow past the size that was approved
@@ -644,7 +697,7 @@ export const integrateStep: StepDef = {
         }] as [GateDef, Record<string, string>]] : []),
     ]);
     if (gated) return { kind: "park", reason: `Integration failed: ${gated.failures.slice(0, 3).map((f) => f.message).join("; ")}` };
-    return { kind: "done", outputs: { testRun: run.testRun, diff: diffSha }, treeSha: head, data: { commit: head } };
+    return { kind: "done", outputs: { testRun, diff: diffSha }, treeSha: head, data: { commit: head, ...(reused ? { reusedRunFrom: reused.step } : {}) } };
   },
 };
 

@@ -18,6 +18,15 @@ export function lightBuild(intent: Intent, complexity: string | undefined): bool
 
 /** Limits per lane. The full lane is what every run used before the light lane existed. */
 export const LANE = {
-  light: { drafts: 1, maxRepairs: 1, criticEffort: "medium" as const, groundTurns: 8, testWriterTurns: 25, maxCharacterisation: 2 },
-  full: { drafts: 3, maxRepairs: 3, criticEffort: undefined, groundTurns: 12, testWriterTurns: 60, maxCharacterisation: undefined },
+  light: { drafts: 1, maxRepairs: 1, criticEffort: "medium" as const, groundTurns: 8, testWriterTurns: 25, testWriterTurnsApi: 40, maxCharacterisation: 2 },
+  full: { drafts: 3, maxRepairs: 3, criticEffort: undefined, groundTurns: 12, testWriterTurns: 60, testWriterTurnsApi: 60, maxCharacterisation: undefined },
 };
+
+/**
+ * The test writer's turn limit. Unit tests call a class directly; api and job tests also need the
+ * test host and fixtures found and wired up, which took more than 25 turns on a real repo.
+ */
+export function testWriterTurns(light: boolean, levels: string[]): number {
+  const lane = light ? LANE.light : LANE.full;
+  return levels.some((l) => l === "api" || l === "job") ? lane.testWriterTurnsApi : lane.testWriterTurns;
+}
