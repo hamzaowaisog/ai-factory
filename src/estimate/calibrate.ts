@@ -89,3 +89,22 @@ export function formatCalibration(cost: CostRow[], hours: HoursRow[]): string {
   }
   return lines.join("\n");
 }
+
+export interface UiSizeRow { buildRun: string; estimateRun: string; approved: string; actual: string; verdict: "within" | "bigger" | "smaller" }
+const LEVELS = ["none", "tweak", "new-screen", "design-system"];
+
+/** The UI change each build produced against the size class its approved design allowed (recorded at integrate). */
+export function uiSizeRows(runIds: string[] = Ledger.listRuns()): UiSizeRow[] {
+  const rows: UiSizeRow[] = [];
+  for (const id of runIds) {
+    try {
+      const state = replay(Ledger.open(id).events());
+      const ref = state.info.estimateRef;
+      const size = state.steps.get("integrate")?.data?.uiSize as { approved: string; actual: string } | undefined;
+      if (!ref || !size) continue;
+      const d = LEVELS.indexOf(size.actual) - LEVELS.indexOf(size.approved);
+      rows.push({ buildRun: id, estimateRun: ref.runId, ...size, verdict: d > 0 ? "bigger" : d < 0 ? "smaller" : "within" });
+    } catch { /* a run that cannot be read adds no row */ }
+  }
+  return rows;
+}

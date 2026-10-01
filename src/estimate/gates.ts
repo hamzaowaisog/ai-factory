@@ -2,6 +2,7 @@
 // check over ledger artifacts and fails closed: missing input counts as failed. E6 is in lint.ts.
 import type { z } from "zod";
 import type { Approval, Breakdown, Design, Estimate, PlanTask, Questions, ReviewFinding, Spec, SpecDraft } from "../contracts/index.js";
+import { screenScopeGaps, type ApprovedDesign } from "./design-link.js";
 import { defineGate, failure, verdict } from "../gates/engine.js";
 import type { DiffSummary } from "../gates/predicates.js";
 import { hashJson } from "../util/hash.js";
@@ -183,6 +184,18 @@ export const screensPlanned = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | 
   },
 });
 
+/** B7: the plan task that builds an approved screen may touch that screen's file, so the screen that was approved is the one built. */
+export const screenScope = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "estimateTaskId" | "fileScope">[] }; breakdown: Pick<Breakdown, "tasks">; design?: ApprovedDesign }>({
+  id: "build.b7-screen-scope", after: "plan", safety: false, waiver: "human",
+  predicate: ({ plan, breakdown, design }) => {
+    if (!design || design.skipped) return { passed: true, details: "the approved estimate has no design" };
+    return verdict(
+      screenScopeGaps(plan, breakdown, design).map((g) => failure("b7-screen-scope", `plan task ${g.task} builds approved screen ${g.screen}, but its file scope does not include ${g.file}`)),
+      "every plan task that builds an approved screen can touch that screen's file",
+    );
+  },
+});
+
 const reqHashes = (s: Pick<SpecDraft, "requirements">) => new Map(s.requirements.map((r) => [r.id, hashJson(r)]));
 
 /** A new or changed requirement must produce an estimate whose parent is the approved one. */
@@ -225,23 +238,33 @@ export const unrequestedBehaviour = defineGate<{ review: { findings: ReviewFindi
 });
 
 export interface Burn { effortHours: number; apiUsd: number; elapsedDays: number }
-export function burnRatios(spent: Burn, e: Pick<Estimate, "totals" | "apiCost" | "elapsed">): Record<keyof Burn, number> {
+type Budgeted = Pick<Estimate, "totals" | "apiCost" | "elapsed"> & Partial<Pick<Estimate, "gateHours">>;
+
+/**
+ * Spend as a share of the approved maximum. Measured effort is the human gate time the ledger can count
+ * (see budget.ts), so it is held against the estimate's own gate hours, not against the whole-project total,
+ * which also holds human tasks (UAT, design approval, PM) that no run measures. The solely agentic model
+ * has no gate hours, so it has no effort limit.
+ */
+export function burnRatios(spent: Burn, e: Budgeted): Record<keyof Burn, number> {
   const ratio = (a: number, b: number) => (b > 0 ? a / b : a > 0 ? Infinity : 0);
+  const gateMax = (e.gateHours ?? []).reduce((n, g) => n + g.hours.max, 0);
   return {
-    effortHours: ratio(spent.effortHours, e.totals.overall.max),
+    effortHours: gateMax > 0 ? ratio(spent.effortHours, gateMax) : 0,
     apiUsd: ratio(spent.apiUsd, e.apiCost.total.max),
     elapsedDays: ratio(spent.elapsedDays, e.elapsed.criticalPathDays.max),
   };
 }
 
-/** Warn at 80% of the approved maximum, stop at 100%. */
-export const budgetBurn = defineGate<{ spent: Burn; estimate: Pick<Estimate, "totals" | "apiCost" | "elapsed"> }>({
+/** Warn at 80% of the approved maximum, stop at 100%; a lead's waiver raises the ceiling (1 = the approved maximum). */
+export const budgetBurn = defineGate<{ spent: Burn; estimate: Budgeted; limit?: { ceiling: number } }>({
   id: "build.b5-budget-burn", after: "implement", safety: false, waiver: "human",
-  predicate: ({ spent, estimate }) => {
+  predicate: ({ spent, estimate, limit }) => {
+    const ceiling = limit?.ceiling ?? 1;
     const r = burnRatios(spent, estimate);
-    const over = (Object.keys(r) as (keyof Burn)[]).filter((k) => r[k] >= 1);
+    const over = (Object.keys(r) as (keyof Burn)[]).filter((k) => r[k] >= ceiling);
     if (over.length) return verdict(over.map((k) => failure("b5-burn", `${k} is at ${Math.round(r[k] * 100)}% of the approved maximum`)), "");
-    const warn = (Object.keys(r) as (keyof Burn)[]).filter((k) => r[k] >= BURN_WARN);
+    const warn = (Object.keys(r) as (keyof Burn)[]).filter((k) => r[k] >= BURN_WARN * ceiling);
     return { passed: true, details: warn.length ? `warning: ${warn.map((k) => `${k} ${Math.round(r[k] * 100)}%`).join(", ")} of the approved maximum` : "within the approved budget" };
   },
 });

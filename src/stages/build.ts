@@ -32,7 +32,10 @@ import { stepBudgetUsd } from "../ledger/caps.js";
 import { LANE, lightBuild, testWriterTurns } from "./lane.js";
 import { lessonPointers, readLessons, usableLessons } from "../context/lessons.js";
 import { sizeCap } from "../estimate/gates.js";
+import { buildWaiver } from "../estimate/build-waiver.js";
+import type { WaiverRow } from "../estimate/log.js";
 import { designFidelityLint, designSizeCap } from "../design/gates.js";
+import { screenBrief, screenFor, type ApprovedDesign } from "../estimate/design-link.js";
 import { actualSize, approvedLevel, designOptions, fidelityLint, hasReactApp, touchesUiFiles } from "../design/build-checks.js";
 import { buildInventory, inventorySummary } from "../design/inventory.js";
 import { dirSource } from "../design/source.js";
@@ -556,6 +559,10 @@ export function implementStep(taskId: string): StepDef {
       const owners = acOwners(plan, spec);
       const myTests = lock.tests.filter((t) => owners.get(t.acId) === task.id);
       const earlier = earlierTests(plan, owners, lock.tests, task.id);
+      const ref = ctx.state.info.estimateRef;
+      const approvedDesign = ref?.designSha ? ctx.ledger.getJson<ApprovedDesign>(ref.designSha) : undefined;
+      const screen = ref && approvedDesign ? screenFor(ctx.ledger.getJson(ref.breakdownSha), approvedDesign, task.estimateTaskId) : undefined;
+      const approvedScreen = approvedDesign && screen ? screenBrief(approvedDesign, screen) : undefined;
       const rt = runtime();
       await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
       await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
@@ -569,6 +576,8 @@ export function implementStep(taskId: string): StepDef {
 - Follow the exemplar files' style. Keep the change small.
 - You may run "dotnet build" and unit tests that need no database. The factory runs the full checks after you finish.`),
           S.artifact("task", "plan-task", { ...task, approach: task.approach }),
+          // the approved screen this task builds (route, states, sample content, and the look to follow)
+          ...(approvedScreen ? [S.artifact("approved-screen", "approved-screen", approvedScreen)] : []),
           S.artifact("acs", "acceptance-criteria", spec.requirements.filter((r) => task.reqs.includes(r.id))),
           S.artifact("tests", "locked-tests", myTests),
           S.pointers([...task.fileScope.map((p) => ({ path: p, reason: "you may change this" })), ...task.exemplars.map((p) => ({ path: p, reason: "follow this style" })), ...myTests.map((t) => ({ path: t.file, reason: `locked test for ${t.acId}; read, don't edit` }))]),
@@ -683,21 +692,35 @@ export const integrateStep: StepDef = {
     } else {
       testRun = storeRun(ctx, await produce(ctx, "integrate", head, "integrate", { expectPass, expectFail: [], compareToBaseline })).testRun;
     }
+    // the UI change as built, next to the size class the approved design allowed (both recorded, so estimates can be read against builds)
+    const dRef = ctx.state.info.estimateRef?.designSha;
+    const uiActual = dRef && touchesUiFiles(wt, ctx.state.info.baseCommit!, head) ? actualSize(wt, ctx.state.info.baseCommit!, head, designOptions(ctx.project.design)) : undefined;
+    const uiApproved = dRef ? approvedLevel(ctx.ledger.getJson(dRef)) : undefined;
     const gated = await gateAll(ctx, "integrate", head, [
       [testExpectations, { run: testRun, baseline: baselineSha }],
       [lockSetUnchanged, { diff: diffSha, tests: ctx.state.steps.get("author-tests")!.outputs[0]! }],
       [diffSize, { diff: diffSha }],
-      // B3: a run that follows an approved estimate may not grow past the size that was approved
-      ...(ctx.state.info.estimateRef ? [[sizeCap, { diff: diffSha, estimate: ctx.state.info.estimateRef.estimateSha }] as [GateDef, Record<string, string>]] : []),
       // design.size-cap: the UI change may not be bigger than the approved design allows (a skipped design allows none)
-      ...(ctx.state.info.estimateRef?.designSha && touchesUiFiles(wt, ctx.state.info.baseCommit!, head)
+      ...(uiActual
         ? [[designSizeCap, {
-          actual: ctx.ledger.putJson(actualSize(wt, ctx.state.info.baseCommit!, head, designOptions(ctx.project.design))),
-          approved: ctx.ledger.putJson({ level: approvedLevel(ctx.ledger.getJson(ctx.state.info.estimateRef.designSha)) }),
+          actual: ctx.ledger.putJson(uiActual),
+          approved: ctx.ledger.putJson({ level: uiApproved }),
         }] as [GateDef, Record<string, string>]] : []),
     ]);
     if (gated) return { kind: "park", reason: `Integration failed: ${gated.failures.slice(0, 3).map((f) => f.message).join("; ")}` };
-    return { kind: "done", outputs: { testRun, diff: diffSha }, treeSha: head, data: { commit: head, ...(reused ? { reusedRunFrom: reused.step } : {}) } };
+    // B3: a run that follows an approved estimate may not grow past the size that was approved; a lead can waive it for this commit
+    let waivers: Omit<WaiverRow, "step">[] = [];
+    const ref = ctx.state.info.estimateRef;
+    if (ref) {
+      const b3 = await runGate(sizeCap, ctx.ledger, ctx.writer, { diff: diffSha, estimate: ref.estimateSha }, ctx.policy, { step: "integrate", treeSha: head });
+      if (!b3.passed) {
+        const w = buildWaiver(ctx, "integrate", [{ def: sizeCap, failures: b3.failures ?? [failure(sizeCap.id, b3.details)] }], head,
+          `To stop and change the request instead: factory estimate --revises ${ref.runId}, then build that estimate.`);
+        if (w.kind === "ask") return w.outcome;
+        waivers = w.waivers;
+      }
+    }
+    return { kind: "done", outputs: { testRun, diff: diffSha }, treeSha: head, data: { commit: head, ...(reused ? { reusedRunFrom: reused.step } : {}), ...(uiApproved ? { uiSize: { approved: uiApproved, actual: uiActual?.level ?? "none" } } : {}), ...(waivers.length ? { waivers } : {}) } };
   },
 };
 

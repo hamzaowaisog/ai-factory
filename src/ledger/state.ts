@@ -102,6 +102,8 @@ export interface RunState {
   flags: { pauseRequested: boolean; stopRequested: boolean };
   /** Limits a human raised on a cap card (factory waive-cap). */
   capOverrides: { costUsd?: number; wallMinutes?: number; extraAttempts: number };
+  /** B5: how far past the approved estimate maximum a lead let the run go (1 = the maximum itself) */
+  budgetCeiling: number;
   sinks: Map<string, { intentSeq: number; externalId?: string }>;
 }
 
@@ -124,6 +126,7 @@ export function replay(events: LedgerEvent[]): RunState {
     flags: { pauseRequested: false, stopRequested: false },
     sinks: new Map(),
     capOverrides: { extraAttempts: 0 },
+    budgetCeiling: 1,
   };
 
   const rec = (step: StepKey): StepRecord => {
@@ -207,6 +210,10 @@ export function replay(events: LedgerEvent[]): RunState {
           if (typeof d2.costUsd === "number") s.capOverrides.costUsd = d2.costUsd;
           if (typeof d2.wallMinutes === "number") s.capOverrides.wallMinutes = d2.wallMinutes;
           if (typeof d2.extraAttempts === "number") s.capOverrides.extraAttempts += d2.extraAttempts;
+        }
+        if (dec.decision === "waive-budget") {
+          const c = Number((data as { ceiling?: number }).ceiling);
+          if (Number.isFinite(c) && c > s.budgetCeiling) s.budgetCeiling = c;
         }
         s.decisions.push(dec);
         if (dec.decision === "waive") s.waivers += 1;

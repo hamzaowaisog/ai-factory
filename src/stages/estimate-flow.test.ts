@@ -21,7 +21,7 @@ import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { approveEstimateStep, designBaselineStep, exportStep } from "./estimate-approve.js";
 import { estimateGroundStep, newBuildBehaviour } from "./estimate-ground.js";
-import { breakdownStep, estimateStep, setRecordsSource } from "./estimate.js";
+import { breakdownStep, estimateStep, setRecordsSource, setTaskRecordsSource } from "./estimate.js";
 import { designQuality, designStep, mapDesign, MAX_DESIGN_REVISIONS } from "./design.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
@@ -43,6 +43,7 @@ beforeEach(() => {
   _resetEnvCache();
   modelCalls = 0;
   setRecordsSource(() => []);
+  setTaskRecordsSource(() => []);
   answer = () => { throw new Error("the model must not be called"); };
   setProviderFactory(() => provider);
 });

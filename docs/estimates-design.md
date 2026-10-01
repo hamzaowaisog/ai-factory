@@ -122,6 +122,13 @@ The mock and clickable demo are the baseline the estimate stands on. Screen coun
 - What the demo must carry for the estimator: every screen and state, every navigation flow, form fields and validations visible, reuse of existing components marked, and each screen linked to its requirement ids.
 - **Work needed on the design module first** (it is a dependency of the estimate, not a side task): richer clickable flows, screen states (empty, loading, error), a per-screen size class, requirement links on every screen, and the pending wiring listed in "Prerequisites". The existing eval (56 labelled commits, drift lint) is the measure of progress.
 
+### Design and build agree (added 2026-10-01)
+
+- **Existing app keeps its look.** When the repo's UI inventory has pages and a design system (verdict consistent or partial), the design step is told to extend it: no theme is drawn or required, screens are marked reuse, tweak or new against the real pages, and the design records `themeSource: "repo"`. A new product (no repo, or no design system) still draws a theme (`themeSource: "new"`).
+- **The build is shown the approved screen.** The implement prompt for a task that builds an approved screen includes its route, file, states, sample content and the look to follow: the new theme, or "use the existing app's tokens and components".
+- **B7** checks at the plan that the task building a screen can touch that screen's file, so the approved screen is the one built.
+- **Size recorded.** Integrate stores the UI change class as built next to the class the approved design allowed (`uiSize`); `npm run bench -- calibrate` lists them.
+
 ## Size measurement
 
 Size is **counted from typed units**, not judged by feel. Code counts what it can. The model proposes units from text, and code checks each against a source quote.
@@ -291,10 +298,11 @@ A gate is a pure check over ledger artifacts. It fails closed: a gate that could
 | B2 | Change request | A new or changed requirement creates estimate v2 with a diff against v1 | New estimate run whose parent is the approved one; same approval |
 | B3 | Size cap | Finished change is no bigger than approved | Extends `integrate.diff-size` and the design size-cap |
 | B6 | Screens planned | Every approved screen that has a factory task is delivered by some plan task | After plan; needs the design in `estimateRef` |
+| B7 | Screen scope | The plan task that builds an approved screen may touch that screen's file (`src/estimate/design-link.ts`); waivable at the plan like B6 | After plan; needs the design in `estimateRef` |
 | B4 | Unrequested behaviour | The diff traces to requirements; new behaviour with no requirement is flagged (extra screens, options, endpoints) | New review finding category |
 | B5 | Budget burn | Effort, **API credit spend** and time so far against the approved figure | Extends the spend caps. Warn at **80% of the approved maximum**, stop at **100%** |
 
-In the solely agentic model B1–B4 stay as automatic checks, and the B5 stop at 100% still ends the run for a person to decide. B1–B5 are waivable by a lead, with the reason recorded. All decisions (approve, reject, waive) happen in a terminal by a person, as elsewhere in the factory.
+In the solely agentic model B1–B4 stay as automatic checks, and the B5 stop at 100% opens a budget card for a person to decide. B1, B3, B4, B5 and B6 are waivable by a lead, with the reason recorded (B2 goes through a change request). All decisions (approve, reject, waive) happen in a terminal by a person, as elsewhere in the factory.
 
 ## Budget
 
@@ -446,7 +454,7 @@ A walk-through of the spec (no hours) tested the design:
 6. Document intake and per-module specify.
 7. Stack-agnostic discover and ground for existing repos, and the design wiring.
 
-## Build status (2026-09-30)
+## Build status (2026-10-01)
 
 Built and tested, with a scripted model, through the real executor (`src/stages/estimate-e2e.test.ts`):
 
@@ -459,23 +467,30 @@ Built and tested, with a scripted model, through the real executor (`src/stages/
 | Stack-agnostic ground | `estimateGroundStep`: no repo means every span is new build work (no model call); a repo gets the normal grounding step plus `src/context/survey.ts` and, for UI work, the design inventory |
 | Design step and E1b | `design` step (UI requests only): the model proposes the screen inventory (flow, screens with route, states and size, the requirements each serves, a reason for each requirement with no screen); code checks the links both ways. `design-baseline` (E1b) then needs a person's approval of that inventory. It is an inventory of screens; a code-drawn clickable demo of it is what the lead approves (see "Design baseline"). E1c and B6 check the breakdown and the build plan against it |
 | E7 approval | `approve-estimate` step: one card, anchors first, hash-bound, sign-off for each low-confidence line (`factory approve --sign-off EST-2,EST-5`) |
-| Waivers | E3, E4, E5 only, after one retry: a waiver card, then `factory waive <run> <hash> --reason "..."`; recorded with the name and reason, shown on the card and in the team file's Gates sheet |
+| Waivers | E3, E4, E5 (estimate time) and B1, B3, B4, B6 (build time), after one retry where the model can fix it (E3-E5, B1, B6): a waiver card, then `factory waive <run> <hash> --reason "..."`; recorded with the name and reason, shown on the card and in the team file's Gates sheet. Build waivers are bound to the gate ids and a scope, not to failure text: the code commit for B3 and B4, the approved spec and tasks for B1 and B6, so a different commit needs a new decision (`src/estimate/build-waiver.ts`). B5 has its own card (below) |
 | Template (open item 3, decided) | Filling a copy works: the Folio3 template (Example_Estimation.xlsx, v 0.5) survives a load and save through ExcelJS with its sheets, merges, formulas and styles (only a column width or two on the QA sheet is dropped). The export uses its layout (sheet names, Summary rows 11 onwards, title block, Grand Total at the top, numbered modules, Other Development Activities, Research) and, when `estimateTemplate:` is set in the project config or `FACTORY_ESTIMATE_TEMPLATE` in the environment, draws on a fresh copy of it so its theme, fonts and cell styles carry over. Without it the same layout is drawn in plain styles. The repo ships a copy with every cell's text cleared (`src/estimate/assets/estimation-template.xlsx`: styles, theme, widths and sheet names only, no client data), used by default, so the template tests always run; a path in config or the environment overrides it |
 | QA sheet and notes blocks | The QA sheet uses the template's own shape: an Estimation Summary of eight items (Test Plan/Strategy, Test Environments, Validation and Smoke test cases, Validation testing, Smoke testing, Multi Browser Compatibility, UAT, Misc. Optional), then the validation detail by testing cycle with each feature a numbered module. Code places each QA task by plain words in its title (`qaPlace`); a feature test with requirements is validation cycle 1, a regression pass is cycle 2, anything else with no requirement is Misc. No hours are invented: cycle 2 and later exist only when the breakdown has tasks for them (the template's "half of cycle 1" formula is not applied). Every track sheet with work ends with the template's Assumptions & Constraints and Risks blocks. The Summary's special considerations (platforms, browsers, deployment, performance, security, documentation) come from the client's clarify answers: a question whose text names the topic gives the row its answer and its id; a topic nobody asked about reads "Not specified" |
 | Export | `export` step writes both workbooks to `<ledger>/export/` and lints each file cell by cell |
 | CLI | `factory estimate` with `--file` (Markdown, text or .docx), `--frames`, `--jira`, `--delivery-model`, `--stack-source`, `--no-design-in-total`, `--feedback-rounds`, `--rate track=usd`, `--no-repo`, `--client`, `--project-name`, `--pm`, `--max-cost` |
 | Benchmark records | `src/estimate/records.ts` reads every other run in the ledger home; a phase with records replaces its cold-start figure |
+| Task-class durations and external prior | `src/estimate/durations.ts` records each approved estimate task a build delivered (class = track/complexity, active minutes, turns, cost). A class with 3 or more completed records gives its factory tasks a measured p10-p90 duration for the critical path; others keep the sized hours as an assumed duration. `elapsed.basis` says which, and the approval card lists it. `src/estimate/priors.ts` reads a pinned copy of the OpenHands rounds band (`assets/priors.json`, source and revision recorded) and flags a class whose median turns fall outside p10-p90; it never changes a number. `npm run bench` (calibrate, gates, compare, external, evidence) and `npm run test:bench` run the benchmarks; the gate cases use the real E1-E7 and B1-B6 predicates |
 | Cost overlay | Team file's Cost sheet when `--rate` is given; the client file never has it |
 
 | Edit on the card | `factory edit-estimate <run> <hash> --anchor EST-1=6-12 --ratio EST-4=2 --reason "..."`: the stored proposals are edited, the estimate is assembled again by the same code (no new model call), and a new card follows. The edit is listed in the estimate's assumptions |
 | Change request (B2) | `factory estimate --revises <run>`: a full estimate whose card shows what changed from the approved one; the file says version 2; `parentEstimate` points at the approved estimate |
 | Second delivery model | `factory estimate --from-run <run> --delivery-model agentic` (or `hitl`): a sibling run seeded with the approved spec, answers and tasks; only sizing is redone; the card compares it with the first |
-| Build from an estimate (B1-B5) | `factory start --from-estimate <run>`: inherits the spec (no clarify or specify); the plan step maps each plan task to an approved estimate task (B1) and parks a recorded requirement change (B2); integrate checks the change size against the approved cap (B3); review flags behaviour no requirement asked for (B4); before every step the run is checked against the approved budget, with a warning at 80% and a stop at 100% (B5). Each implement step records its `EST-n` |
+| Build from an estimate (B1-B5) | `factory start --from-estimate <run>`: inherits the spec (no clarify or specify); the plan step maps each plan task to an approved estimate task (B1) and parks a recorded requirement change (B2); integrate checks the change size against the approved cap (B3); review flags behaviour no requirement asked for (B4); before every step the run is checked against the approved budget, with a warning at 80% and a stop at 100% (B5). The stop opens a budget card; `factory waive-budget <run> <hash> --reason "..." [--ceiling 1.5]` lets the run go on to a higher ceiling (25% more by default, recorded with name and reason, and repeatable: the next stop is at the new ceiling). Effort is measured: human decisions in the ledger counted at the assumed gate times (answered questions, one approval section per approval or design card, waiver time for waiver, limit and budget cards; PR review comes after the run and is not counted), held against the estimate's own gate hours. The agentic model has no gate hours, so no effort limit. Each implement step records its `EST-n` |
+
+Added since 2026-09-30 (all in the web UI or the design step, covered in "In the web UI"):
+- Clarification questions are asked one at a time as option buttons; the chosen option is the answer. They can be answered in the terminal or on the run page, whichever comes first, for estimate and build runs alike.
+- The design card can be approved or sent back on the web (typed name, hash, reason). A rejected design is redrawn with the lead's reason as input; the run parks only after four revisions.
+- The design step rejects a UI design that has no theme or no real sample content per screen, and asks again. The default look is softer and livelier.
+- A cross-run cache for model steps (`--fresh` skips it), and estimates without a project.
+- Not part of this feature: the specify pipeline (lane, spec loop, spec lint) is handled by another developer. An estimate-specific lean lane and L9 size skip were tried and reverted, so estimates use the normal specify loop.
 
 Not done:
 - **A rendered mock in the real app.** The design step produces a screen inventory, a clickable wireframe demo and screenshots of that demo (headless Chromium, one per screen and state at phone and desktop width, `src/estimate/screenshots.ts`; if no browser is found the card says so and the run goes on). Rendering a mock in the real app and the pixel comparisons (`docs/design-step.md`) are separate work.
-- **Effort in B5.** Human effort hours are not measured in the ledger yet, so only API credit spend and elapsed days can stop a run; effort counts as zero.
-- **Waiving B1-B4 and B5.** The predicates are marked waivable, but only E3, E4 and E5 have a waiver card. B1, B3 and B4 fail or park the step; a B5 stop ends the run. The way forward is a change request or a new estimate.
+- **Effort in B5 is counted, not timed.** It is the number of human decisions at the assumed gate times, a lower bound for long cards. Real minutes per decision would need the lead's time on the card, which is not recorded.
 - **A visual check of the workbook in Excel.** The export is verified by reading the files back and linting every cell, and by tests on a copy of the real template, but it has not been opened in Excel or LibreOffice (LibreOffice would not start in the build container).
 - **Cost calibration from `report.json` of the first real runs** stays open; records come from the ledger home only. `factory calibrate` (`src/estimate/calibrate.ts`) now compares each approved estimate with what its estimate run and its build run spent, and, given a file of `estimate-run,actual-hours` lines, with real hours of finished projects. It needs ledgers or hours that exist; it changes nothing. Try the estimate on `examples/requirements.md`.
 

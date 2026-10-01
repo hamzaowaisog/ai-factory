@@ -394,7 +394,8 @@ Answer the question card if one appears, read the approval card, then approve.
 ```bash
 factory estimate --file requirements.docx --project shop-api --no-repo --delivery-model hitl --rate backend=55 --rate default=40
 factory approve <run> <hash> --sign-off EST-4     # low-confidence lines need a sign-off
-factory waive <run> <hash> --reason "why"         # only for E3, E4 and E5
+factory waive <run> <hash> --reason "why"         # estimate gates E3, E4, E5; build gates B1, B3, B4, B6
+factory waive-budget <run> <hash> --reason "why"  # B5: let a run past its approved estimate go on to a higher limit
 factory edit-estimate <run> <hash> --anchor EST-1=6-12 --reason "why"   # recomputes, new card
 factory estimate --from-run <run> --delivery-model agentic              # the other delivery model
 factory estimate --revises <run> --file changed.md --project shop-api   # a change request (v2)
@@ -509,6 +510,7 @@ The request can come from **any one** of a typed prompt, `--file` or `--jira`, o
 | `factory approve <run> <hash> [--note]` | Approves the plan. Terminal only. |
 | `factory approve <run> <hash> --reject "<reason>"` | Rejects the plan: the spec and plan are revised with your reason and you get a new card. A second rejection parks the run. Terminal only. (`factory reject … --reason` does the same.) |
 | `factory resume <run>` | Continues a run (after a park, crash or restart). |
+| `factory waive-budget <run> <hash> --reason <text> [--ceiling <n>]` | Lets a run that reached its approved estimate (gate B5) continue to a higher limit, a multiple of the approved maximum (default: the card's suggestion, 25% more). Recorded with your name and reason. Terminal only. |
 | `factory waive-cap <run> <hash>` | Accepts going past a limit (cost, time or attempts) shown on a limit card, and continues. Uses the card's suggestion unless you give `--cost`, `--minutes` or `--attempts`. Terminal only. |
 | `factory pause <run>` / `stop <run>` | Pauses or stops at the next step boundary. |
 | `factory steer <run> <file>` | Records a requirement change (applying it isn't built yet). |

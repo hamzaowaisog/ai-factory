@@ -190,7 +190,7 @@ for (const d of ["approve", "reject"] as const) {
 
 program.command("waive").argument("<run>").argument("<hash>", "first characters of the waiver card's hash")
   .requiredOption("--reason <text>", "why the failing gate is acceptable (recorded with your name)")
-  .description("waive the estimate gate(s) on the open waiver card (terminal only; E3, E4 and E5 only)")
+  .description("waive the estimate gate(s) on the open waiver card (terminal only; estimate gates E3, E4, E5 and build gates B1, B3, B4, B6)")
   .action(async (run: string, hash: string, o: { reason: string }) => {
     assertTty();
     const l = openRun(run);
@@ -239,6 +239,23 @@ program.command("answer").argument("<run>").argument("<hash>", "first characters
     const r = await decide(l, { decision: "answer", hashPrefix: hash, data: { answers } });
     log(r.kind === "repeat" ? "Already recorded." : "Answers recorded; unanswered questions use the recommended option.");
     if (r.kind === "recorded") await runAndReport(l.runId);
+  });
+
+program.command("waive-budget").argument("<run>").argument("<hash>", "first characters of the budget card's hash")
+  .requiredOption("--reason <text>", "why going past the approved estimate is acceptable (recorded with your name)")
+  .option("--ceiling <n>", "new limit as a multiple of the approved maximum (default: the card's suggestion)")
+  .description("let a run that reached its approved estimate (gate B5) continue to a higher limit (terminal only)")
+  .action(async (run: string, hash: string, o: { reason: string; ceiling?: string }) => {
+    assertTty();
+    const l = openRun(run);
+    const card = replay(l.events()).openCard as ({ kind: string; proposed?: number } | undefined);
+    if (card?.kind !== "budget") throw new DecisionError("The open card isn't a budget card.");
+    const ceiling = o.ceiling !== undefined ? Number(o.ceiling) : card.proposed;
+    if (!Number.isFinite(ceiling) || (ceiling as number) <= 1) throw new DecisionError("--ceiling must be a number above 1 (a multiple of the approved maximum).");
+    const r = await decide(l, { decision: "waive-budget", hashPrefix: hash, data: { reason: o.reason, ceiling } });
+    if (r.kind === "repeat") return log("Already recorded.");
+    log(`Limit raised to ${Math.round((ceiling as number) * 100)}% of the approved maximum, recorded with your name. Continuing…`);
+    await runAndReport(l.runId);
   });
 
 program.command("waive-cap").argument("<run>").argument("<hash>", "first characters of the limit card's hash")

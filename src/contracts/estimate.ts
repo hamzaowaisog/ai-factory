@@ -150,6 +150,13 @@ export const Estimate = withHeader({
   elapsed: z.object({
     planningMinutes: z.number().nonnegative(),
     criticalPathDays: Range,
+    /** where factory task durations came from: measured by class in the ledger, or the cold-start fallback */
+    basis: z.object({
+      confidence: Confidence, records: z.number().int().nonnegative(),
+      byClass: z.array(z.object({ taskClass: z.string(), records: z.number().int().nonnegative(), confidence: Confidence, minutes: Range.optional(), turnsMedian: z.number().optional(), priorFlag: z.enum(["below p10", "above p90"]).optional() })),
+      /** the pinned external prior these were read against (a prior to compare with, never used in the numbers) */
+      prior: z.object({ source: z.string(), revision: z.string(), roundsP10: z.number(), roundsP50: z.number(), roundsP90: z.number() }).optional(),
+    }).optional(),
   }),
   settings: z.object({
     stackSource: z.enum(["client", "folio3", "undecided"]),

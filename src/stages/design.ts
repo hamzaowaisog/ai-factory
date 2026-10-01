@@ -69,9 +69,10 @@ const PLACEHOLDER = /lorem ipsum|\bitem \d\b|column [a-d]\b|test user|\bsample\b
  * without "mock" is drawn as a grey wireframe. Both are optional in the schema, so code insists on them for a request with UI
  * (a screen shown by an attached frame needs no mock) and the model is asked again with these reasons.
  */
-export function designQuality(out: z.infer<typeof DesignOut>): { check: string; message: string }[] {
+export function designQuality(out: z.infer<typeof DesignOut>, existing = false): { check: string; message: string }[] {
   const bad: { check: string; message: string }[] = [];
-  if (!out.theme) bad.push({ check: "design-no-theme", message: 'No "theme". Choose the product look (brand colour, mode, radius, font, surface, motion) from the ART DIRECTION rules; without it the demo shows a default look.' });
+  // an existing app keeps its own look: no theme is drawn, the build follows the repo's tokens and components
+  if (!out.theme && !existing) bad.push({ check: "design-no-theme", message: 'No "theme". Choose the product look (brand colour, mode, radius, font, surface, motion) from the ART DIRECTION rules; without it the demo shows a default look.' });
   for (const sc of out.screens) {
     if (!sc.mock) {
       if (!sc.frames.length) bad.push({ check: "design-no-mock", message: `Screen ${sc.id} has no "mock". Give it believable sample content (2 to 5 blocks) so the demo is not a wireframe.` });
@@ -110,8 +111,16 @@ export function mapDesign(reqIds: string[], out: z.infer<typeof DesignOut>, fram
   };
 }
 
+/** A repo whose UI already has pages and a design system (or partial one): the design extends it instead of inventing a look. */
+export const hasExistingLook = (inv: DesignInventory | undefined): inv is DesignInventory => !!inv && inv.pages.length > 0 && inv.verdict !== "none";
+
+const EXISTING_RULES = `EXISTING APP. The "existing" section is this product's real UI. Extend it; do not restyle it.
+- Do NOT return "theme": the app already has its look. The build will use the existing design tokens and shared components.
+- Mark a screen "reuse" or "tweak" when an existing page or shared component covers it, "new" only for a page that does not exist, "design-system" only for a new shared component or token.
+- Choose a route and file in the app's own structure (see its pages), and take the sample content from the same domain the existing pages show.`;
+
 const inventoryBrief = (inv: DesignInventory) => ({
-  framework: inv.stack.framework, styling: inv.stack.styling, componentSystem: inv.stack.componentSystem,
+  verdict: inv.verdict, tokens: inv.tokens.total, framework: inv.stack.framework, styling: inv.stack.styling, componentSystem: inv.stack.componentSystem,
   pages: inv.pages.slice(0, 40), sharedComponents: [...inv.primitives, ...inv.composites].slice(0, 40).map((c) => (c as { name?: string }).name ?? c),
 });
 
@@ -125,7 +134,7 @@ export function designRejections(s: RunState): string[] {
 }
 
 export const designStep: StepDef = {
-  key: "design", stage: "design", templateVersion: "8",
+  key: "design", stage: "design", templateVersion: "9",
   inputs: (s, l) => {
     if (s.steps.get("specify")?.status !== "completed" || s.steps.get("intake")?.status !== "completed") return undefined;
     const ui = !!l.getJson<Intent>(s.steps.get("intake")!.outputs[0]!)?.touchesUi;
@@ -149,6 +158,7 @@ export const designStep: StepDef = {
       stage: "design", route: "design", cls: "read-large", budgetTokens: 45000, tools: [], schema: DesignOut, maxTurns: 4,
       sections: [
         S.template("tpl", RULES),
+        ...(hasExistingLook(inv) ? [S.template("existing-rules", EXISTING_RULES)] : []),
         S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
         ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens })] : []),
         ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
@@ -167,13 +177,13 @@ export const designStep: StepDef = {
       ...map.duplicateRoutes.map((x) => failure("design-duplicate-route", `two screens share the route ${x}; one screen has one route (give states, not a second screen)`)),
       ...map.unknownFrames.map((x) => failure("design-unknown-frame", `${x} is not one of the attached frames`)),
       ...map.unusedFrames.map((x) => failure("design-frame-unused", `attached frame ${x} is on no screen`)),
-      ...designQuality(r.output).map((q) => failure(q.check, q.message)),
+      ...designQuality(r.output, hasExistingLook(inv)).map((q) => failure(q.check, q.message)),
     ];
     if (bad.length) return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}` };
     const artifact = {
       header: header(ctx.runId, "design", "design", "", r.model), flow: r.output.flow,
       screens: r.output.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: s.size, frames: s.frames, ...(s.mock ? { mock: s.mock } : {}) })),
-      mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: r.output.noScreen, ...(r.output.theme ? { theme: r.output.theme } : {}),
+      mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: r.output.noScreen, ...(hasExistingLook(inv) ? { themeSource: "repo" as const } : { themeSource: "new" as const, ...(r.output.theme ? { theme: r.output.theme } : {}) }),
     };
     return { kind: "done", outputs: { design: ctx.ledger.putJson(artifact) }, data: { screens: artifact.screens.length, states: artifact.screens.reduce((n, s) => n + Math.max(1, s.states.length), 0) } };
   },

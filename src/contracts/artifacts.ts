@@ -214,6 +214,8 @@ export const DesignBody = z.object({
   mapping: z.object({ unmappedReqs: z.array(Id), orphanScreens: z.array(Id) }),
   noScreen: z.array(z.object({ req: Id, reason: z.string() })).optional(),
   theme: DesignTheme.optional(),
+  /** "repo": the existing app's tokens and components are the look (no theme drawn); "new": the theme is the new product's */
+  themeSource: z.enum(["new", "repo"]).optional(),
   figmaUrl: z.string().optional(),
 });
 export const Design = withHeader(DesignBody.shape);

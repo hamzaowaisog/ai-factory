@@ -1,7 +1,7 @@
 // Spec side of the brownfield slice: intake → ground → specify (+lint, critic) → plan → approval card.
 import { z } from "zod";
 import {
-  CurrentBehaviourBody, IntentBody, maxRisk, PlanBody, type Risk, SpecDraft, type Complexity,
+  CurrentBehaviourBody, IntentBody, maxRisk, PlanBody, type Risk, SpecDraft, type Complexity, type Failure,
 } from "../contracts/index.js";
 import { checkEvidence } from "../context/tools.js";
 import { buildRepoMap } from "../context/repomap.js";
@@ -19,7 +19,10 @@ import { S, think, UNTRUSTED_NOTE } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { uiSizeForCard } from "../design/card.js";
 import { LANE, lightSpec } from "./lane.js";
-import { changeRequest, scopeLock, screensPlanned } from "../estimate/gates.js";
+import { changeRequest, scopeLock, screenScope, screensPlanned } from "../estimate/gates.js";
+import { buildWaiver, type BuildFailed } from "../estimate/build-waiver.js";
+import type { WaiverRow } from "../estimate/log.js";
+import { WAIVER_AFTER_ATTEMPT } from "./waiver.js";
 import type { Breakdown } from "../contracts/index.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -28,6 +31,9 @@ type Spec = z.infer<typeof SpecDraft>;
 type PlanT = z.infer<typeof PlanBody>;
 
 // ---------- risk rules (intake: risk = max(rules, model)) ----------
+/** Build gates a lead may waive at the plan: B1 (scope lock) and B6 (screens planned). B2 goes through a change request. */
+const WAIVABLE_AT_PLAN = new Set(["build.b1-scope-lock", "build.b6-screens-planned", "build.b7-screen-scope"]);
+
 const RISK_RULES: { tag: string; re: RegExp; risk: Risk }[] = [
   { tag: "auth", re: /\b(auth|login|password|permission|role|token|oauth|sso|jwt)\w*/i, risk: "high" },
   { tag: "payments", re: /\b(payment|billing|invoice|charge|refund|card|stripe)\w*/i, risk: "high" },
@@ -158,14 +164,15 @@ export const planStep: StepDef = {
         S.artifact("cb", "current-behaviour", cb),
         S.artifact("critic", "critic", critic),
         ...(approvedDesign ? [S.artifact("approved-design", "approved-design", approvedDesign)] : []),
-        ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task." : ""))] : []),
+        ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task, and that plan task's fileScope must include the approved screen's file." : ""))] : []),
         ...(planRejections(ctx.state).length ? [{ spec: { id: "rejection", source: "feedback" as const, trust: "trusted" as const, placement: "user" as const }, content: `The human reviewer rejected the previous plan. Their reasons (latest last):\n${planRejections(ctx.state).map((x) => `- ${x}`).join("\n")}\nThe plan must address them.` }] : []),
         S.task("Write the plan."),
       ],
     });
     if (!r.ok) return r.outcome;
     const plan = { header: header(ctx.runId, "plan", "plan", "", r.model), ...r.output, complexity: complexityOf(r.output) };
-    const fs = [];
+    const fs: Failure[] = [];
+    const waivable: BuildFailed[] = [];
     for (const st of plan.stubs) if (!plan.tasks.some((t) => t.fileScope.some((g) => g === st.path || st.path.startsWith(g.replace(/\*.*$/, ""))))) fs.push(failure("plan-stub", `Stub ${st.path} is outside every task's file scope`));
     const planSha = ctx.ledger.putJson(plan);
     const specSha = ctx.state.steps.get("specify")!.outputs[0]!;
@@ -177,15 +184,30 @@ export const planStep: StepDef = {
         [changeRequest, { spec: specSha, approvedSpec: ref.specSha, approvedEstimateSha: ref.estimateSha }],
         // B6: the approved screens are all planned (only when the estimate had a design)
         ...(ref.designSha ? [[screensPlanned, { plan: planSha, breakdown: ref.breakdownSha, design: ref.designSha }] as [GateDef, Record<string, string>]] : []),
+        // B7: the plan task that builds an approved screen can touch that screen's file
+        ...(ref.designSha ? [[screenScope, { plan: planSha, breakdown: ref.breakdownSha, design: ref.designSha }] as [GateDef, Record<string, string>]] : []),
       ];
       for (const [def, inputs] of checks) {
         const res = await runGate(def, ctx.ledger, ctx.writer, inputs, ctx.policy, { step: "plan" });
-        if (!res.passed) fs.push(...(res.failures ?? [failure(def.id, res.details)]));
+        if (res.passed) continue;
+        const list = res.failures ?? [failure(def.id, res.details)];
+        if (WAIVABLE_AT_PLAN.has(def.id)) waivable.push({ def, failures: list });
+        else fs.push(...list);
       }
+    }
+    // B1 and B6 can be waived by a lead once the model has had its retry; anything else fails the plan as before
+    let waivers: Omit<WaiverRow, "step">[] = [];
+    if (waivable.length) {
+      const w = !g.failures?.length && !fs.length && ctx.attempt >= WAIVER_AFTER_ATTEMPT && ref
+        ? buildWaiver(ctx, "plan", waivable, hashJson({ spec: specSha, breakdown: ref.breakdownSha }), `To stop and change the request instead: factory stop ${ctx.runId}`)
+        : undefined;
+      if (w?.kind === "ask") return w.outcome;
+      if (w?.kind === "waived") waivers = w.waivers;
+      else fs.push(...waivable.flatMap((x) => x.failures));
     }
     const all = [...(g.failures ?? []), ...fs];
     if (all.length) return { kind: "fail", category: "other", failures: all, signature: `plan:${all.map((f) => f.check).sort().join(",")}` };
-    return { kind: "done", outputs: { plan: planSha }, data: { complexity: plan.complexity, taskCount: plan.tasks.length, tasks: plan.tasks.map((t) => t.id) } };
+    return { kind: "done", outputs: { plan: planSha }, data: { complexity: plan.complexity, taskCount: plan.tasks.length, tasks: plan.tasks.map((t) => t.id), ...(waivers.length ? { waivers } : {}) } };
   },
 };
 

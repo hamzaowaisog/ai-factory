@@ -162,7 +162,8 @@ export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<B
     `- Overall: ${h(e.totals.overall)} (design ${e.settings.designInTotal ? "included" : "not included"})`, ``,
     `## Cost and time`,
     `- API credits: ${usd(e.apiCost.total)}, ${e.apiCost.confidence} (${e.apiCost.records} measured record${e.apiCost.records === 1 ? "" : "s"}); indicative, not a quote`,
-    `- Planning: ${e.elapsed.planningMinutes} min · build critical path: ${e.elapsed.criticalPathDays.min}-${e.elapsed.criticalPathDays.max} days`, ``,
+    `- Planning: ${e.elapsed.planningMinutes} min · build critical path: ${e.elapsed.criticalPathDays.min}-${e.elapsed.criticalPathDays.max} days`,
+    ...durationLines(e), ``,
     `## Low-confidence lines (estimators disagree; each needs your sign-off)`,
     ...list(flagged.map((t) => `- ${t.taskId} ${title.get(t.taskId) ?? ""}: ${h(t.hours)}`), "none"), ``,
     `## Suggested, not included`, ...list(e.suggested.map((s) => `- ${s.title}: ${s.reason}`), "none"), ``,
@@ -173,6 +174,19 @@ export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<B
     `Edit:    factory edit-estimate ${runId} ${hash.slice(0, 8)} --anchor ${e.anchors[0]?.taskId ?? "EST-1"}=<min>-<max> --ratio <EST-n>=<multiple> --reason "why"   (everything recomputes; you get a new card)`,
     `Reject:  factory reject ${runId} ${hash.slice(0, 8)} --reason "why"`, ``, `Card hash: ${hash.slice(0, 8)}`,
   ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
+}
+
+/** Where the build time came from, and any class whose measured turns disagree with the pinned external prior. */
+export function durationLines(e: Estimate): string[] {
+  const b = e.elapsed.basis;
+  if (!b) return [];
+  const measured = b.byClass.filter((c) => c.minutes);
+  const out = [`- Build time basis: ${b.confidence} (${measured.length} of ${b.byClass.length} task class${b.byClass.length === 1 ? "" : "es"} measured from earlier builds; the rest use the sized hours as an assumed duration)`];
+  for (const c of measured) out.push(`  - ${c.taskClass}: ${Math.round(c.minutes!.min)}-${Math.round(c.minutes!.max)} min per task, ${c.records} record${c.records === 1 ? "" : "s"}`);
+  for (const c of b.byClass.filter((x) => x.priorFlag)) {
+    out.push(`- CHECK ${c.taskClass}: median ${c.turnsMedian} turns per task is ${c.priorFlag} of the external prior (${b.prior!.roundsP10}-${b.prior!.roundsP90} tool rounds, ${b.prior!.source}). Our measurement stands; look at why.`);
+  }
+  return out;
 }
 
 export const approveEstimateStep: StepDef = {

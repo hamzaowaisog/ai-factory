@@ -5,7 +5,9 @@ import { Estimate, type ArtifactHeader, type Breakdown, type DeliveryModel, type
 import type { z } from "zod";
 import { DEFAULT_ASSUMPTIONS, type Assumptions, type Range } from "./assumptions.js";
 import { estimateApiCost, type BenchmarkRecord } from "./cost.js";
+import { taskDurations, type TaskRecord } from "./durations.js";
 import { gateHours, prCount } from "./gate-hours.js";
+import { loadRoundsPrior, withPrior } from "./priors.js";
 import { sizeTasks, type AnchorIn, type RatioIn } from "./hours.js";
 import { bandFor, uncertaintyFor, type InputGrades, type Units } from "./size.js";
 import { computeTotals, criticalPath, elapsedDays } from "./totals.js";
@@ -73,6 +75,8 @@ export interface AssembleInput {
   counts: { questions: number; criticFindings: number; planningMinutes: number };
   assumptions: string[];
   records?: BenchmarkRecord[];
+  /** per-task-class records of earlier builds (durations.ts); without them factory tasks keep their sized hours as duration */
+  taskRecords?: TaskRecord[];
   /** the approved estimate this one revises, or the sibling delivery model's */
   parentEstimate?: string;
   a?: Assumptions;
@@ -123,7 +127,7 @@ export function assembleEstimate(i: AssembleInput): z.infer<typeof Estimate> {
   }, a);
 
   const totals = computeTotals(b.tasks, tasks, [], gates, i.settings.designInTotal);
-  const dur = new Map(tasks.map((t) => [t.taskId, t.hours]));
+  const { duration: dur, basis } = taskDurations(b.tasks, tasks, i.taskRecords ?? [], a);
   const queue = gates.filter((g) => g.source === "Lead PR review").reduce((s, g) => s + g.hours.max, 0);
   const apiCost = estimateApiCost({
     planning: 1, design: units.screens > 0 ? 1 : 0, "breakdown-estimate": 1, build: factory, verification: factory,
@@ -143,7 +147,7 @@ export function assembleEstimate(i: AssembleInput): z.infer<typeof Estimate> {
     gateHours: gates,
     totals,
     apiCost,
-    elapsed: { planningMinutes: Math.round(i.counts.planningMinutes), criticalPathDays: elapsedDays(criticalPath(b.tasks, (id) => dur.get(id)!), queue, a) },
+    elapsed: { planningMinutes: Math.round(i.counts.planningMinutes), criticalPathDays: elapsedDays(criticalPath(b.tasks, (id) => dur.get(id)!), queue, a), ...(basis ? { basis: withPrior(basis, loadRoundsPrior()) } : {}) },
     settings: { stackSource: i.settings.stackSource, designInTotal: i.settings.designInTotal, feedbackRounds: i.settings.feedbackRounds },
     scenarios: [],
     suggested: [],

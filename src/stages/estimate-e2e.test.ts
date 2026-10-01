@@ -20,7 +20,7 @@ import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { createRun, execute } from "./executor.js";
 import { previewFile, readPreview } from "../ui/preview.js";
 import { approvedEstimate } from "../estimate/lineage.js";
-import { setRecordsSource } from "./estimate.js";
+import { setRecordsSource, setTaskRecordsSource } from "./estimate.js";
 import { setProviderFactory } from "./think.js";
 
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
@@ -119,6 +119,7 @@ beforeEach(() => {
   writeFileSync(join(home, "projects", "demo.yaml"), stringify({ project: "demo", repo: mkdtempSync(join(tmpdir(), "factory-est-repo-")), stack: "dotnet" }));
   setProviderFactory(() => provider);
   setRecordsSource(() => []);
+  setTaskRecordsSource(() => []);
   prompts = [];
   modular = false;
   intakeCalls = 0;

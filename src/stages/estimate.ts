@@ -9,6 +9,7 @@ import { consistency, designCoverage, forgottenWork, readiness, reqToTask, taskT
 import { estimateWorkbookLint } from "../estimate/lint.js";
 import { applyEdits, describeEdit, editsOf } from "../estimate/edits.js";
 import { loadBenchmarkRecords } from "../estimate/records.js";
+import { loadTaskRecords, type TaskRecord } from "../estimate/durations.js";
 import type { BenchmarkRecord } from "../estimate/cost.js";
 import { surveyText, type RepoSurvey } from "../context/survey.js";
 import { hashJson } from "../util/hash.js";
@@ -48,6 +49,8 @@ export async function gate(ctx: StepContext, step: string, def: GateDef, inputs:
 /** Where benchmark records come from: the ledger home. Tests swap it for a fixed list. */
 let recordsSource: (exceptRun: string) => BenchmarkRecord[] = loadBenchmarkRecords;
 export function setRecordsSource(f: (exceptRun: string) => BenchmarkRecord[]): void { recordsSource = f; }
+let taskRecordsSource: (exceptRun: string) => TaskRecord[] = loadTaskRecords;
+export function setTaskRecordsSource(f: (exceptRun: string) => TaskRecord[]): void { taskRecordsSource = f; }
 
 const failed = (signature: string, failures: Failure[]): StepOutcome => ({ kind: "fail", category: "other", failures, signature });
 
@@ -175,13 +178,14 @@ export const estimateStep: StepDef = {
       proposals = (rs as { ok: true; output: Proposal }[]).map((r) => r.output);
     }
     const records = recordsSource(ctx.runId);
+    const taskRecords = taskRecordsSource(ctx.runId);
 
     const uiTasks = breakdown.tasks.filter((t) => (t.track === "mobile" || t.track === "web") && !t.overhead);
     let estimate;
     try {
       estimate = assembleEstimate({
         header: header(ctx.runId, "estimate", "estimate", ctx.ledger.putJson({ breakdownSha, specSha, settings, proposals })) as never,
-        breakdown, breakdownSha, spec, specSha, proposals, settings, records, ...(ctx.state.info.parent ? { parentEstimate: ctx.state.info.parent.estimateSha } : {}),
+        breakdown, breakdownSha, spec, specSha, proposals, settings, records, taskRecords, ...(ctx.state.info.parent ? { parentEstimate: ctx.state.info.parent.estimateSha } : {}),
         grades: gradeInputs({ assumptions: c.assumptions.length, requirements: spec.requirements.length, uiTasks: uiTasks.length, uiTasksWithScreen: uiTasks.filter((t) => t.screen).length, hasRepo: !!ctx.state.info.repoPath, stackSource: settings.stackSource }),
         counts: { questions: c.answers.length, criticFindings: spec.critic.length, planningMinutes: ctx.state.activeMs / 60000 },
         assumptions: [...c.assumptions.map((a) => a.text), ...edits.map((e) => `Lead edit: ${describeEdit(e)}`), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs."],
@@ -203,6 +207,6 @@ export const estimateStep: StepDef = {
       return failed(`estimate:${all.map((f) => f.check).sort().join(",")}`, all);
     }
 
-    return { kind: "done", outputs: { estimate: ctx.ledger.putJson(estimate), proposals: ctx.ledger.putJson(proposals), records: ctx.ledger.putJson(records) }, data: { band, estimators: n, hours: estimate.totals.overall, records: records.length, ...(waivers.length ? { waivers } : {}) } };
+    return { kind: "done", outputs: { estimate: ctx.ledger.putJson(estimate), proposals: ctx.ledger.putJson(proposals), records: ctx.ledger.putJson(records), taskRecords: ctx.ledger.putJson(taskRecords) }, data: { band, estimators: n, hours: estimate.totals.overall, records: records.length, taskRecords: taskRecords.length, ...(waivers.length ? { waivers } : {}) } };
   },
 };

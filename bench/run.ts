@@ -35,6 +35,17 @@ if (cmd === "calibrate" || cmd === "all") {
   console.log("== Calibration ==\n" + formatBacktest(results, { runs, records: records.length }));
   if (skipped.length) console.log(`\nSkipped ${skipped.length} unreadable run(s):\n  ${skipped.join("\n  ")}`);
   history.calibration = { runs, records: records.length, results };
+  const { loadTaskRecords, classMinutes } = await import("../src/estimate/durations.js");
+  const tr = loadTaskRecords();
+  const classes = [...new Set(tr.map((r) => r.taskClass))].sort().map((c) => classMinutes(c, tr));
+  console.log("\n== Factory task classes (what the estimate's build time reads) ==");
+  console.log(classes.length ? classes.map((c) => `${c.taskClass.padEnd(34)} ${String(c.records).padStart(3)} record(s)  ${c.confidence.padEnd(10)} ${c.minutes ? `${c.minutes.min.toFixed(1)}-${c.minutes.max.toFixed(1)} min` : "not measured yet"}`).join("\n") : "No finished build has followed an approved estimate yet, so every factory task uses the sized hours as its duration (cold-start).");
+  history.taskClasses = classes;
+  const { uiSizeRows } = await import("../src/estimate/calibrate.js");
+  const ui = uiSizeRows();
+  console.log("\n== UI size: approved design vs built ==");
+  console.log(ui.length ? ui.map((r) => `${r.buildRun.slice(0, 40).padEnd(40)} approved ${r.approved.padEnd(13)} built ${r.actual.padEnd(13)} ${r.verdict}`).join("\n") : "No build with an approved design has finished yet.");
+  history.uiSize = ui;
 }
 
 if (cmd === "compare" || cmd === "all") {

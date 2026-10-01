@@ -186,7 +186,12 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
       if (typeof state.status === "object" || state.status === "delivered") return { status: String(typeof state.status === "object" ? `closed: ${state.status.closed}` : state.status), message: "Nothing to do." };
       if (state.openCard) return { status: "waiting", message: `Waiting for you: factory show-card ${runId}` };
       const burn = await budgetStop(ledger, writer, state, policy, log, warned);
-      if (burn) { await ledger.append({ type: "run.parked", data: { reason: burn } }, writer); return { status: "parked", message: burn }; }
+      if (burn) {
+        // B5: a hash-bound card; a lead lets the run go on (factory waive-budget) or decides on a change request
+        ledger.writeCard(burn.cardId, burn.markdown);
+        await ledger.append({ type: "human.requested", data: { cardId: burn.cardId, kind: "budget", artifactSha: burn.artifactSha, reason: burn.reason, proposed: burn.proposed } }, writer);
+        return { status: "waiting", message: `${burn.reason}. Decide with: factory show-card ${runId}` };
+      }
       const cap = checkCaps(state, policy.retryBudget);
       if (cap && !cap.waivable) { await ledger.append({ type: "run.parked", data: { reason: cap.reason } }, writer); return { status: "parked", message: cap.reason }; }
       if (cap) {

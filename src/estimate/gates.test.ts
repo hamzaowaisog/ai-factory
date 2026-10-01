@@ -138,4 +138,16 @@ describe("B5 budget burn", () => {
     expect(run(budgetBurn, { estimate, spent: { effortHours: 10, apiUsd: 10, elapsedDays: 1 } }).passed).toBe(false);
     expect(run(budgetBurn, { estimate, spent: { effortHours: 10, apiUsd: 1, elapsedDays: 6 } }).passed).toBe(false);
   });
+  it("holds measured effort against the estimate's own gate hours, and has no effort limit without them", () => {
+    const hitl = { ...estimate, gateHours: [{ source: "Clarify answers", hours: { min: 1, max: 2 }, assumed: true }, { source: "Lead PR review", hours: { min: 2, max: 4 }, assumed: true }] };
+    expect(run(budgetBurn, { estimate: hitl, spent: { effortHours: 5, apiUsd: 1, elapsedDays: 1 } }).passed).toBe(true);
+    expect(run(budgetBurn, { estimate: hitl, spent: { effortHours: 6, apiUsd: 1, elapsedDays: 1 } }).passed).toBe(false);
+    expect(run(budgetBurn, { estimate, spent: { effortHours: 500, apiUsd: 1, elapsedDays: 1 } }).passed).toBe(true);
+  });
+  it("a lead's higher ceiling moves the stop and the warning", () => {
+    const spent = { effortHours: 0, apiUsd: 10, elapsedDays: 1 };
+    expect(run(budgetBurn, { estimate, spent, limit: { ceiling: 1.25 } }).details).toMatch(/warning: apiUsd 100%/);
+    expect(run(budgetBurn, { estimate, spent: { ...spent, apiUsd: 10 }, limit: { ceiling: 1.25 } }).passed).toBe(true);
+    expect(run(budgetBurn, { estimate, spent: { ...spent, apiUsd: 12.5 }, limit: { ceiling: 1.25 } }).passed).toBe(false);
+  });
 });

@@ -13,7 +13,7 @@ import { DEFAULT_POLICY } from "../gates/policy.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
-import { breakdownStep, estimateStep, setRecordsSource } from "./estimate.js";
+import { breakdownStep, estimateStep, setRecordsSource, setTaskRecordsSource } from "./estimate.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
 import { NO_TRACE } from "../util/trace.js";
@@ -99,6 +99,7 @@ beforeEach(() => {
   _resetEnvCache();
   calls = [];
   setRecordsSource(() => []);
+  setTaskRecordsSource(() => []);
   setProviderFactory(() => provider);
 });
 
