@@ -19,6 +19,8 @@ import { checkRefRead, cleanRefRead, designRefsStep, type DesignRefsArt, type Re
 import type { StepContext, StepOutcome } from "./framework.js";
 import { designOnlySteps, estimateSteps } from "./modes.js";
 import { setProviderFactory } from "./think.js";
+import { matchFamilies, refFit } from "../design/ref-checks.js";
+import { themeValues } from "../estimate/demo.js";
 
 const sha = "a".repeat(64);
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
@@ -153,5 +155,87 @@ describe("design-refs", () => {
     await exec(ledger);
     const s = replay(ledger.events());
     expect(designStep.inputs(s, ledger)).toMatchObject({ refRead: s.steps.get("design-refs")!.outputs[0] });
+  });
+});
+
+// ---------- step 6: the design drawn from the references ----------
+
+const reading = (over: Partial<Record<"R-1" | "R-2", object>> = {}): DesignRefsArt => {
+  const brief = (palette: { name: string; hex: string }[], fonts: string[] = []) => ({ source: "screenshot" as const, palette, fonts, spacingPx: [], radiusPx: null, screens: [], untrustedNotes: [] });
+  return { dropped: [], refs: [
+    { id: "R-1", role: "match", source: "https://client.example", kind: "screen", measured: "exact", brief: brief([{ name: "brand", hex: "#533afd" }, { name: "page", hex: "#ffffff" }], ["sohne-var"]), type: { body: "grotesk", heading: "grotesk" }, navigation: "top-bar", reqs: [], ...over["R-1"] },
+    { id: "R-2", role: "layout", source: "dash.png", kind: "screen", measured: "approximate", brief: brief([{ name: "page", hex: "#f4f5f7" }]), type: {}, navigation: "sidebar", reqs: ["REQ-1"], ...over["R-2"] },
+  ] } as DesignRefsArt;
+};
+const look = { mood: "precise financial", mode: "light" as const, brand: "#533afd", neutral: "cool" as const, chrome: "plain" as const, font: "grotesk" as const, heading: "match" as const, mark: "glyph" as const, radius: "sharp" as const, density: "comfortable" as const, surface: "flat" as const, motion: "lively" as const, fx: "modern" as const, shell: "auto" as const, hero: "none" as const, charts: "soft" as const, imagery: "icons" as const, basis: [{ ref: "R-1", took: "violet primary action, 4 px corners" }] };
+const used = [{ id: "R-1", use: "used" as const, how: "the brand and type" }, { id: "R-2", use: "used" as const, how: "the order list's sidebar and table" }];
+
+describe("a design drawn from the references", () => {
+  it("passes a theme that takes a match reference's values and cites every reference", () => {
+    expect(refFit(look, [{ id: "S-1", refs: ["R-2"] }], used, reading())).toEqual([]);
+  });
+
+  it("refuses another brand, accent or type for a match reference", () => {
+    const checks = (t: object) => refFit({ ...look, ...t }, [], used, reading()).map((p) => p.check);
+    expect(checks({ brand: "#1f6feb" })).toEqual(["design-ref-colour"]);
+    expect(checks({ brand: "#5b40f8" })).toEqual([]); // the same colour to the eye
+    expect(checks({ accent: "#e11d48" })).toEqual(["design-ref-colour"]);
+    expect(checks({ font: "humanist" })).toEqual(["design-ref-font"]);
+    expect(checks({ heading: "serif" })).toEqual(["design-ref-font"]);
+    expect(checks({ basis: [{ ref: "Stripe", took: "violet" }] })).toEqual(["design-ref-basis"]);
+  });
+
+  it("keeps an inspire reference's colour family unless the theme says why", () => {
+    const inspire = reading({ "R-1": { role: "inspire" } });
+    expect(refFit({ ...look, brand: "#6d28d9" }, [], used, inspire)).toEqual([]);
+    expect(refFit({ ...look, brand: "#16a34a" }, [], used, inspire).map((p) => p.check)).toEqual(["design-ref-family"]);
+    expect(refFit({ ...look, brand: "#16a34a", departure: "a farm co-op's app: green is its own colour" }, [], used, inspire)).toEqual([]);
+  });
+
+  it("asks for every reference to be used or set aside with a reason, and only real ids", () => {
+    expect(refFit(look, [], [used[0]!], reading()).map((p) => p.check)).toEqual(["design-ref-unused"]);
+    expect(refFit(look, [{ id: "S-1", refs: ["R-2"] }], [used[0]!], reading())).toEqual([]);
+    expect(refFit(look, [], [used[0]!, { id: "R-2", use: "set-aside", how: "" }], reading()).map((p) => p.check)).toEqual(["design-ref-unused"]);
+    expect(refFit(look, [], [used[0]!, { id: "R-2", use: "set-aside", how: "shows a product the requirements do not ask for" }], reading())).toEqual([]);
+    expect(refFit(look, [{ id: "S-1", refs: ["R-9"] }], used, reading()).map((p) => p.check)).toEqual(["design-ref-unknown"]);
+    // a set-aside match reference no longer binds the brand
+    expect(refFit({ ...look, brand: "#1f6feb", basis: [{ ref: "R-2", took: "layout" }] }, [], [{ id: "R-1", use: "set-aside", how: "the requirements name another brand" }, used[1]!], reading())).toEqual([]);
+  });
+
+  it("checks only layout and use when the app keeps its own look", () => {
+    expect(refFit({ ...look, brand: "#1f6feb" }, [], used, reading(), true)).toEqual([]);
+  });
+
+  it("gives the theme a match reference's measured fonts, and the demo shows them first", () => {
+    expect(matchFamilies(reading())).toEqual({ body: "sohne-var" });
+    expect(matchFamilies(reading(), ["R-1"])).toBeUndefined();
+    expect(matchFamilies(reading({ "R-1": { measured: "approximate" } }))).toBeUndefined();
+    expect(themeValues({ ...look, families: { body: "sohne-var", heading: "Playfair" } }).font).toMatch(/^"sohne-var","Helvetica Neue"/);
+    expect(themeValues({ ...look, families: { body: 'x";}body{' } }).font).toMatch(/^"Helvetica Neue"/);
+  });
+
+  it("draws with the references in the briefing instead of the field's library, and keeps what shaped each screen", async () => {
+    const ledger = await newRun(true);
+    answer = good;
+    await exec(ledger);
+    const mock = { title: "Orders", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["New order"] }], copy: {} };
+    const reading2 = { users: "operations staff", context: "at a desk all day", device: "web", tone: "precise", hero: "today's open orders", traits: ["dense", "quiet"] };
+    answer = () => ({ theme: { ...look, reading: reading2 }, flow: "Staff open the order list", screens: [{ id: "S-1", route: "/orders", file: "app/orders/page.tsx", reqs: ["REQ-1"], states: [], size: "new", mock, mockFull: mock, refs: ["R-2"] }], noScreen: [], refUse: used });
+    seen = [];
+    const state = replay(ledger.events());
+    const ctx: StepContext = {
+      runId: state.info.runId, ledger, writer: HUMAN_WRITER, state, project: ProjectConfig.parse({ project: "demo", repo: "/x", stack: "dotnet" }),
+      policy: DEFAULT_POLICY, attempt: 1, rung: 0, priorFailures: [], log: () => undefined, trace: NO_TRACE, usage: async () => undefined,
+    };
+    const out = await designStep.run(ctx);
+    expect(out.kind, JSON.stringify(out)).toBe("done");
+    expect(seen[0]!.user).toContain("client-references");
+    expect(seen[0]!.user).not.toContain("how real products in this field look");
+    expect(seen[0]!.system).toContain("CLIENT REFERENCES");
+    expect(seen[0]!.images).toBe(2);
+    const d = ledger.getJson<{ screens: { refs?: string[] }[]; refUse: unknown[]; theme: { families?: unknown } }>((out as { outputs: Record<string, string> }).outputs.design!);
+    expect(d.screens[0]!.refs).toEqual(["R-2"]);
+    expect(d.refUse).toEqual(used);
+    expect(d.theme.families).toEqual({ body: "sohne-var" });
   });
 });

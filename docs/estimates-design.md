@@ -320,7 +320,12 @@ Greenfield is not built yet. The design work is built as one piece that any mode
     - **Cleaned by `cleanBrief`:** palette names are the parts, hex values only from intake (the model's roles first, then the roles code measured on a site); fonts only those intake measured; screen and region names plain words; notes filtered for instruction-like text and kept as `untrustedNotes` (read-only steps only). What was dropped is kept in the artifact and logged.
     - `factory design show` prints each reference's reading (kind, navigation, colour parts, requirements).
     - The design step does not use the reading yet (step 6). Tests: the step list with and without references, the briefing (pictures, measured values, fenced note), the allow-list, the checks, the skip with no UI, and the design step waiting. 710 tests pass.
-6. **Design step.** Reference brief, images in the call, rules per role, the five checks, template version 20.
+6. **Design step. Done.** With references, the design step reads the `design-refs` output (`src/design/ref-checks.ts`).
+    - Briefing: the typed reading as `client-references` (trusted), the reader's and the client's notes fenced as untrusted, the reference pictures, and the `ref-rules` template (match, inspire, layout, basis by R-id, screen `refs`, `refUse`).
+    - With any match or inspire reference (and no existing look), the field's library section, its live measuring and `themeFit` are dropped; with only match references the recent-looks check is skipped too. Layout-only references keep the library.
+    - Code checks (`refFit`): `design-ref-unknown`, `design-ref-unused` (every reference used or set aside with a reason), `design-ref-colour` (match brand and accent are the reference's colours), `design-ref-font` (match type styles), `design-ref-family` (inspire hue unless `departure`), `design-ref-basis` (basis cites R-ids). An app that keeps its own look gets only the first two.
+    - The artifact keeps each screen's `refs` and the top-level `refUse`; `theme.families` carries an exact match reference's own fonts (set by code), and the demo puts them first.
+    - Template version stays 19: a run with references already hashes differently through the `refRead` input, so runs without references keep their keys, inputs and briefing. The rendered layout check is step 7. 717 tests pass.
 7. **Rendered layout check** (`design-ref-layout`).
 8. **Factory UI.** Form section for every mode, `refs` in `POST /api/runs`, intake errors, References panel, references on the design card, `GET /api/runs/:id/references`.
 9. **Brownfield.** `designSteps()` before plan when the request touches UI and the run is not from an approved estimate; the restyle question on the clarify card.

@@ -691,6 +691,9 @@ export const HEADS: Record<DesignTheme["heading"], [string, number, string]> = {
   mono: ['ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace', 600, "-.03em"],
 };
 
+/** A family name for the front of a font stack; only plain names (code measured them, but they end up in CSS). */
+const fam = (f?: string): string => (f && /^[A-Za-z0-9][A-Za-z0-9 _-]{0,47}$/.test(f) ? `"${f}",` : "");
+
 /** Every value the look draws with, from the chosen theme: the demo's variables and the build's design tokens both come from here. */
 export function themeValues(theme?: DesignTheme) {
   const t = { ...DEFAULT_THEME, ...theme };
@@ -707,7 +710,9 @@ export function themeValues(theme?: DesignTheme) {
   return {
     theme: t, colours, shadow, lift, blur: glass ? "blur(16px) saturate(1.2)" : "none",
     radius: { sharp: 4, soft: 10, round: 18 }[t.radius], pad: t.density === "compact" ? 12 : 18, row: t.density === "compact" ? 40 : 52,
-    font: FONTS[t.font], head: { family: head[0], weight: head[1], tracking: head[2] },
+    // a match reference's own faces go first (they show where installed); the style's faces stand behind them
+    font: fam(t.families?.body) + FONTS[t.font],
+    head: { family: t.families?.heading ? fam(t.families.heading) + (head[0] === "inherit" ? FONTS[t.font] : head[0]) : head[0], weight: head[1], tracking: head[2] },
     ease: "cubic-bezier(.2,.8,.2,1)", spring: "cubic-bezier(.34,1.4,.64,1)", rise: t.motion === "calm" ? 6 : 10,
   };
 }

@@ -13,12 +13,14 @@ import type { DesignInventory } from "../design/inventory.js";
 import { DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
 import { header, outputOf, type StepDef } from "./framework.js";
+import { lookFromRefs, lookRefs, matchFamilies, refBrief as clientRefBrief, refFit, refNotes, REF_RULES, type RefUse } from "../design/ref-checks.js";
+import type { DesignRefsArt } from "./design-refs.js";
 import { ESTIMATE_SOURCES, intentOf, inventoryNamed, inventoryOf, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
 import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
 import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
 import { ensureMeasured } from "../design/refs/measure.js";
 import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } from "../design/looks.js";
-import { S, think, UNTRUSTED_NOTE } from "./think.js";
+import { S, think, UNTRUSTED_IMAGE_NOTE, UNTRUSTED_NOTE } from "./think.js";
 import { buildDemo, demoStates } from "../estimate/demo.js";
 import { localeFit } from "../estimate/locale.js";
 import { checkDemoLayout, LAYOUT_FAULT, type LayoutIssue } from "../estimate/screenshots.js";
@@ -43,6 +45,8 @@ export const DesignOut = z.object({
     app: z.string().optional(),
     /** the navigation group it is listed under in a sidebar or drawer (Money, Cards, Settings) */
     group: z.string().max(24).optional(),
+    /** the client's design references (R-1, ...) that shaped this screen */
+    refs: z.array(z.string()).optional(),
   })).min(1),
   /** the product's apps when it has more than one: a customer phone app and an admin portal each get their own device and frame */
   apps: z.array(DesignApp).max(4).optional(),
@@ -54,6 +58,8 @@ export const DesignOut = z.object({
   locale: DesignLocale.optional(),
   /** requirements that need no screen (an API rule, a job) and why */
   noScreen: z.array(z.object({ req: z.string(), reason: z.string().min(1) })).default([]),
+  /** with design references: how each was used, or why it was set aside */
+  refUse: z.array(z.object({ id: z.string(), use: z.enum(["used", "set-aside"]), how: z.string().max(200) })).optional(),
 });
 
 const RULES = `You are a principal UI/UX engineer with fifteen years shipping consumer and enterprise products, drawing the screen inventory of a UI request for an estimate. The approved inventory is what the estimate counts. Hold the work to the standard of a design review at a top product studio: clear visual hierarchy, one focal point per screen, consistent spacing rhythm, readable contrast, real content, every state considered. If it would not survive that review, redo it before answering.
@@ -122,13 +128,14 @@ const textOf = (v: unknown): string => typeof v === "string" ? v : Array.isArray
  * without "mock" is drawn as a grey wireframe. Both are optional in the schema, so code insists on them for a request with UI
  * (a screen shown by an attached frame needs no mock) and the model is asked again with these reasons.
  */
-export function designQuality(out: z.infer<typeof DesignOut>, existing = false, refs?: FitRefs, recent: Look[] = [], keptLook = false): { check: string; message: string }[] {
+export function designQuality(out: z.infer<typeof DesignOut>, existing = false, refs?: FitRefs, recent: Look[] = [], keptLook = false, fromRefs = false): { check: string; message: string }[] {
   const bad: { check: string; message: string }[] = [];
   // proof the look comes from real products in the field: colours near the references, and the references cited
-  if (refs && !existing) bad.push(...themeFit(out.theme, refs));
+  // (a look taken from the client's references is checked against them instead: refFit)
+  if (refs && !existing && !fromRefs) bad.push(...themeFit(out.theme, refs));
   // the look follows from this product's reading, and is not a recent project's again
   // (a change run that kept its approved look is not judged again: it may predate the reading)
-  if (refs && !existing && out.theme && !keptLook) bad.push(...readingFit(out.theme), ...lookRepeats(out.theme, recent));
+  if ((refs || fromRefs) && !existing && out.theme && !keptLook) bad.push(...readingFit(out.theme), ...lookRepeats(out.theme, recent));
   // an existing app keeps its own look: no theme is drawn, the build follows the repo's tokens and components
   bad.push(...appsFit(out));
   if (!out.theme && !existing) bad.push({ check: "design-no-theme", message: 'No "theme". Choose the product look (brand colour, mode, radius, font, surface, motion) from the ART DIRECTION rules; without it the demo shows a default look.' });
@@ -542,6 +549,23 @@ export function keepFine(out: z.infer<typeof DesignOut>, fine: string[], prev: D
   return { ...out, screens, ...(!out.theme && earlierTheme ? { theme: earlierTheme } : {}) };
 }
 
+/** The client's references for the design call: the typed reading (trusted), their words (untrusted) and their pictures. */
+function referenceSections(state: RunState, reading: DesignRefsArt) {
+  const notes = refNotes(reading);
+  const byId = new Map((state.info.references ?? []).map((r) => [r.id, r]));
+  return [
+    S.artifact("client-references", "references", clientRefBrief(reading)),
+    ...(notes ? [S.untrusted("client-reference-notes", "reference notes", `What the reading and the client said about the references:\n${notes}`)] : []),
+    ...reading.refs.flatMap((r) => (byId.get(r.id)?.images ?? []).map((im, k) => S.image(`${r.id}-img-${k + 1}`, `${r.id} ${im.label}`, im.sha, `${r.id} (${r.role}), ${im.label}`))),
+  ];
+}
+
+/** A match reference's measured fonts on the theme (set by code; the model only picks the styles). */
+function withFamilies(theme: Theme, reading: DesignRefsArt | undefined, use: RefUse[] | undefined): Theme {
+  const f = matchFamilies(reading, (use ?? []).filter((u) => u.use === "set-aside").map((u) => u.id));
+  return f ? { ...theme, families: f } : theme;
+}
+
 /**
  * The design step for any mode: `src` names the steps it reads (the estimate's by default). The key,
  * template version and inputs are the same for every mode, so the estimate's runs replay unchanged.
@@ -580,13 +604,21 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         }
         again = rw.redraw;
       }
+      // the client's references, as the design-refs step read them (runs with references only)
+      const refsSha = outputOf(ctx.state, "design-refs");
+      const refRead = refsSha ? ctx.ledger.getJson<DesignRefsArt & { skipped?: boolean }>(refsSha) : undefined;
+      const reading = refRead && !refRead.skipped && refRead.refs.length ? refRead : undefined;
+      // a look taken from match or inspire references replaces the field's library; layout references leave the look to it
+      const fromRefs = !!reading && lookFromRefs(reading) && !hasExistingLook(inv);
+      const matchOnly = fromRefs && lookRefs(reading).every((r) => r.role === "match");
       // about to draw: read the live sites of the field's brands first (best effort), so the brief and the colour check use real colours
-      if (!hasExistingLook(inv)) await ensureMeasured(pickIndustries(reqText).map((x) => x.industry.id)).catch(() => undefined);
+      if (!hasExistingLook(inv) && !fromRefs) await ensureMeasured(pickIndustries(reqText).map((x) => x.industry.id)).catch(() => undefined);
       const refBrief = briefFor(reqText);
       const refs = fitRefs(reqText);
       // a new look is compared with the factory's latest projects; a change keeps its approved look, and an existing app keeps the repo's
       const field = fieldOf(reqText);
-      const recent = hasExistingLook(inv) || (earlier && !earlier.skipped) ? [] : recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), undefined, field);
+      // (a client's brand may repeat an earlier project's: no recent-looks check when every look reference is matched)
+      const recent = hasExistingLook(inv) || (earlier && !earlier.skipped) || matchOnly ? [] : recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), undefined, field);
       const feedback = sentBack.length
         ? `The lead rejected the previous design ${sentBack.length === 1 ? "once" : `${sentBack.length} times`}. Their reasons, oldest first:\n${sentBack.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nRedraw it so each reason is met: keep what they did not criticise, change what they did, and do not repeat the earlier screens, theme or sample data where they objected.${again?.fine.length && prev ? ` The lead said these pages are fine, so keep them as they are: ${prev.screens.filter((x) => again!.fine.includes(x.id)).map(screenName).join(", ")}.` : ""}`
         : "";
@@ -595,10 +627,12 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         sections: [
           S.template("tpl", RULES),
           ...(hasExistingLook(inv) ? [S.template("existing-rules", EXISTING_RULES)] : []),
+          ...(reading ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
           S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
           ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens, ...(earlier.theme ? { theme: earlier.theme } : {}), ...(earlier.locale ? { locale: earlier.locale } : {}) })] : []),
           ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
-          S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`),
+          ...(fromRefs ? [] : [S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`)]),
+          ...(reading ? referenceSections(ctx.state, reading) : []),
           ...(recent.length ? [S.reference("recent-looks", lookBrief(recent, field))] : []),
           ...(feedback ? [S.reference("design-feedback", feedback)] : []),
           S.task("Draw the screen inventory."),
@@ -615,7 +649,8 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         ...map.duplicateRoutes.map((x) => failure("design-duplicate-route", `two screens share the route ${x}; one screen has one route (give states, not a second screen)`)),
         ...map.unknownFrames.map((x) => failure("design-unknown-frame", `${x} is not one of the attached frames`)),
         ...map.unusedFrames.map((x) => failure("design-frame-unused", `attached frame ${x} is on no screen`)),
-        ...designQuality(out, hasExistingLook(inv), refs, recent, !!earlier?.theme && JSON.stringify(earlier.theme) === JSON.stringify(out.theme)).map((q) => failure(q.check, q.message)),
+        ...designQuality(out, hasExistingLook(inv), refs, recent, !!earlier?.theme && JSON.stringify(earlier.theme) === JSON.stringify(out.theme), fromRefs).map((q) => failure(q.check, q.message)),
+        ...(reading ? refFit(out.theme, out.screens, out.refUse, reading, hasExistingLook(inv)).map((q) => failure(q.check, q.message)) : []),
         ...localeFit(out, reqText).map((q) => failure(q.check, q.message)),
         ...modeFit(out, reqText).map((q) => failure(q.check, q.message)),
       ];
@@ -632,10 +667,11 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       }
       const artifact = {
         header: header(ctx.runId, "design", "design", "", r.model), flow: out.flow,
-        screens: out.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: s.size, frames: s.frames, ...(s.mock ? { mock: s.mock } : {}), ...(s.mockFull ? { mockFull: s.mockFull } : {}), ...(s.app ? { app: s.app } : {}), ...(s.group ? { group: s.group } : {}) })),
+        screens: out.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: s.size, frames: s.frames, ...(s.mock ? { mock: s.mock } : {}), ...(s.mockFull ? { mockFull: s.mockFull } : {}), ...(s.app ? { app: s.app } : {}), ...(s.group ? { group: s.group } : {}), ...(reading && s.refs?.length ? { refs: s.refs } : {}) })),
+        ...(reading && out.refUse?.length ? { refUse: out.refUse } : {}),
         ...(out.apps?.length ? { apps: out.apps } : {}), ...(out.switcher ? { switcher: out.switcher } : {}), ...(out.locale ? { locale: out.locale } : {}),
         ...(prev ? { revision: sentBack.length, rework: [...(prev.rework ?? []), ...(again ? [again.round] : [])] } : {}),
-        mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(hasExistingLook(inv) ? { themeSource: "repo" as const } : { themeSource: "new" as const, ...(out.theme ? { theme: out.theme } : {}) }),
+        mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(hasExistingLook(inv) ? { themeSource: "repo" as const } : { themeSource: "new" as const, ...(out.theme ? { theme: withFamilies(out.theme, reading, out.refUse) } : {}) }),
       };
       return { kind: "done", outputs: { design: ctx.ledger.putJson(artifact) }, data: { screens: artifact.screens.length, states: artifact.screens.reduce((n, s) => n + Math.max(1, s.states.length), 0) } };
     },

@@ -412,6 +412,8 @@ export const DesignTheme = z.object({
   departure: Str(200).optional(),
   /** the real products this look draws on and what was taken from each: the proof the look is not invented */
   basis: z.array(z.object({ ref: Str(40), took: Str(120) })).max(5).optional(),
+  /** the font families of a match reference that measured them exactly (a site's CSS, a Figma file); set by code, never by the model. Shown first, the style's own faces behind them. */
+  families: z.object({ body: Str(48).optional(), heading: Str(48).optional() }).optional(),
 });
 export type DesignTheme = z.infer<typeof DesignTheme>;
 export type MockBlock = z.infer<typeof MockBlock>;
@@ -426,6 +428,8 @@ export const DesignBody = z.object({
     app: z.string().optional(),
     /** the navigation group it is listed under in a sidebar or drawer */
     group: z.string().optional(),
+    /** the design references (R-1, ...) that shaped this screen */
+    refs: z.array(z.string()).optional(),
   })),
   /** the product's apps when it has more than one (each with its own device and frame) */
   apps: z.array(DesignApp).optional(),
@@ -445,6 +449,8 @@ export const DesignBody = z.object({
     notDesign: z.array(z.object({ quote: z.string(), why: z.string() })), fine: z.array(z.string()),
   })).optional(),
   figmaUrl: z.string().optional(),
+  /** how each design reference was used, or why it was set aside */
+  refUse: z.array(z.object({ id: z.string(), use: z.enum(["used", "set-aside"]), how: z.string() })).optional(),
 });
 export const Design = withHeader(DesignBody.shape);
 
