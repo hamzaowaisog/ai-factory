@@ -18,6 +18,7 @@ import { _resetStarting } from "./start.js";
 import { ensureStandaloneProject } from "../config/project.js";
 // the page's Markdown renderer (plain browser JS, no DOM needed)
 import { renderMarkdown } from "./static/md.js";
+import { findChromium } from "../estimate/screenshots.js";
 
 const TOKEN = "test-token-0123456789abcdef";
 const PKEY = "preview-key-0123456789abcd";
@@ -205,8 +206,9 @@ describe("factory ui: no decisions from the web", () => {
   it("the route list has no decision routes; the only write starts a run", () => {
     const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note/i;
     for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision") && !r.path.endsWith("/estimate-answers") && !r.path.endsWith("/design-decision"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
-    // the one exception: the estimate lead's approve or reject, on estimate cards only (and exporting an approved design, which writes only under the run's exports/)
-    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/design-decision", "POST /api/runs/:id/exports"]);
+    // the one exception: the estimate lead's approve or reject, on estimate cards only (and exporting an approved design or generating
+    // its scaffold, which write only under the run's exports/ and scaffold/)
+    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/design-decision", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold"]);
   });
 
   it("decision-looking URLs don't exist", async () => {
@@ -1032,6 +1034,44 @@ describe("factory ui: design exports", () => {
     expect((await call(`/design-exports/${l.runId}/v1/9/tokens/tailwind.css`)).status).toBe(404);
   });
 
+  it("shows the UI target and the scaffold on the Code panel, previews another target, and generates a copy to download", async () => {
+    const l = await approvedDesignRun();
+    const v = (await call(`/api/runs/${l.runId}/scaffold`)).json();
+    // the web repo is Next.js with its own button: the kit goes under src/, and the repo's button is kept
+    expect(v).toMatchObject({ available: true, targets: ["next-shadcn", "vite-shadcn", "repo"], generated: [], view: { target: "next-shadcn", source: "detected", kit: { id: "shadcn" }, root: "src/", fresh: false } });
+    expect(v.view.screens).toEqual([expect.objectContaining({ id: "S-1", route: "/login", container: "src/components/screens/s-1/container.tsx" })]);
+    expect(v.view.kept).toContain("src/components/ui/button.tsx");
+    expect(v.view.designSystem.todo.join("\n")).toMatch(/DesignProviders/);
+    const other = (await call(`/api/runs/${l.runId}/scaffold/vite-shadcn`)).json();
+    expect(other.view).toMatchObject({ target: "vite-shadcn", source: "config" });
+    expect((await call(`/api/runs/${l.runId}/scaffold/repo`)).json().view).toMatchObject({ target: "repo", files: [] });
+    expect((await call(`/api/runs/${l.runId}/scaffold/angular`)).status).toBe(400);
+    const gen = (body: unknown, token?: string | null) => call(`/api/runs/${l.runId}/scaffold`, { method: "POST", token, headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+    expect((await gen({ target: "repo" })).status).toBe(409);
+    const g = await gen({ target: "vite-shadcn" });
+    expect(g.status).toBe(200);
+    expect(g.json()).toMatchObject({ target: "vite-shadcn", dir: join(l.dir, "scaffold", "vite-shadcn") });
+    expect(existsSync(join(l.dir, "scaffold", "vite-shadcn", "src", "components", "screens", "s-1", "screen.tsx"))).toBe(true);
+    expect((await call(`/api/runs/${l.runId}/scaffold`)).json().generated).toEqual(["vite-shadcn"]);
+    const zip = await call(`/scaffolds/${l.runId}/vite-shadcn.zip`);
+    expect([zip.status, zip.headers["content-type"]]).toEqual([200, "application/zip"]);
+    expect((await call(`/scaffolds/${l.runId}/vite-shadcn.zip`, { token: null })).status).toBe(401);
+    expect((await call(`/scaffolds/${l.runId}/next-shadcn.zip`)).status).toBe(404);
+    expect((await call(`/scaffolds/${l.runId}/..%2Fevents.jsonl`)).status).toBe(404);
+    // a run with no approved design says why, and generates nothing
+    expect((await call(`/api/runs/${ids.waiting}/scaffold`)).json()).toMatchObject({ available: false, why: expect.stringMatching(/no approved design/) });
+    expect((await call(`/api/runs/${ids.waiting}/scaffold`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: "{}" })).status).toBe(400);
+  });
+
+  it("a build started from the UI can name its UI target, like --ui-target", async () => {
+    _resetStarting();
+    const b = await post({ project: "web", prompt: "Add an orders page", uiTarget: "vite-shadcn" });
+    expect(b.status).toBe(201);
+    expect(replay(Ledger.open(b.json().runId).events()).info.uiTarget).toBe("vite-shadcn");
+    expect((await post({ project: "web", prompt: "x", uiTarget: "angular" })).json().error).toMatch(/The UI target takes next-shadcn, vite-shadcn, repo/);
+    expect((await post({ project: "web", mode: "estimate", prompt: "x", uiTarget: "repo" })).json().error).toMatch(/chosen for a build/);
+  });
+
   it("runs one export of a run at a time", async () => {
     const l = await approvedDesignRun();
     let release: () => void = () => undefined;
@@ -1046,5 +1086,36 @@ describe("factory ui: design exports", () => {
     release();
     await new Promise((r) => setTimeout(r, 10));
     expect(ui.exportJobs.list()[0]).toMatchObject({ status: "done", exportId: "v1/7" });
+  });
+});
+
+describe("factory ui: on a phone", () => {
+  // the top bar, the run tabs, the request tabs and the closed step drawer used to push the page sideways at phone width
+  it.skipIf(!findChromium())("fits a 375px screen on every main page, with the step drawer closed and open", { timeout: 60_000 }, async () => {
+    const { chromium } = await import("playwright-core");
+    const browser = await chromium.launch({ executablePath: findChromium()!, args: ["--no-sandbox"] });
+    try {
+      const page = await browser.newPage({ viewport: { width: 375, height: 812 }, isMobile: true });
+      const wide = async (hash: string) => {
+        await page.goto(`http://127.0.0.1:${port}/?t=${TOKEN}${hash}`);
+        await page.waitForSelector("main > *");
+        await page.waitForTimeout(400);
+        return [hash, await page.evaluate(() => document.documentElement.scrollWidth)];
+      };
+      const pages = ["#/new", "#/new/brownfield", "#/new/estimate", "#/runs", "#/dashboard", `#/runs/${ids.waiting}`, `#/runs/${ids.delivered}/design`];
+      const out = [];
+      for (const h of pages) out.push(await wide(h));
+      expect(out).toEqual(pages.map((h) => [h, 375]));
+      await wide(`#/runs/${ids.waiting}`);
+      await page.click(".node");
+      await page.waitForTimeout(400);
+      const open = await page.evaluate(() => ({ right: document.querySelector(".drawer")!.getBoundingClientRect().right, width: document.documentElement.scrollWidth }));
+      expect(open).toEqual({ right: 375, width: 375 });
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(400);
+      expect(await page.evaluate(() => getComputedStyle(document.querySelector(".drawer")!).visibility)).toBe("hidden");
+    } finally {
+      await browser.close();
+    }
   });
 });

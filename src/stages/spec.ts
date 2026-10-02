@@ -25,6 +25,7 @@ import { buildWaiver, type BuildFailed } from "../estimate/build-waiver.js";
 import type { WaiverRow } from "../estimate/log.js";
 import { WAIVER_AFTER_ATTEMPT } from "./waiver.js";
 import type { Breakdown } from "../contracts/index.js";
+import { checkPlanScaffold, designForScopeGate, scaffoldForPlan, scaffoldOfRun } from "./scaffold-run.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -151,6 +152,9 @@ export const planStep: StepDef = {
     const approvedDesign = design && !design.skipped ? { flow: design.flow, screens: design.screens } : undefined;
     // a new look comes with design tokens (estimate/tokens.ts); one task must be free to put them in the app's global stylesheet
     const newLook = !!approvedDesign && !!design?.theme && design.themeSource !== "repo";
+    // a design built with a kit: the scaffold's files are known now, so the design-system task comes first and each screen task
+    // fills in its container (docs/estimates-design.md, "Kit and scaffold"); a change request plans only the changed screens
+    const scaf = approvedDesign ? scaffoldOfRun(ctx, "store") : undefined;
     const approvedTasks = ref ? ctx.ledger.getJson<Breakdown>(ref.breakdownSha).tasks : [];
     const map = buildRepoMap(snap.root, snap.files, { budgetTokens: 4000, focus: cb.claims.flatMap((c) => c.anchors.map((a) => a.path)) }).map;
     const r = await think(ctx, {
@@ -172,6 +176,9 @@ export const planStep: StepDef = {
         ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task, and that plan task's fileScope must include the approved screen's file." : "") + (newLook ? " The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them." : ""))] : []),
         // a direct build whose approved design is a new look (a restyle to the client's reference) puts the tokens in once too
         ...(!ref && newLook ? [S.template("new-look", "The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them.")] : []),
+        ...(scaf?.layout ? [S.artifact("scaffold", "ui-scaffold", scaffoldForPlan(scaf)), S.template("scaffold-rules", `The approved design is built in ${scaf.target}: before any task starts, the factory writes the component kit, the theme, the frame and navigation, and every approved page (its blocks, states, layers and text, with the approved sample data) into the repo. Those generated files are not in any task's scope.
+- TASK-1 is the design-system task: its fileScope is exactly the ui-scaffold's designSystemTask.fileScope (plus nothing else UI), and its approach is the designSystemTask.todo list.
+- Then one task per screen in ui-scaffold.screens: its fileScope includes that screen's container (and the API or service files the behaviour needs). The task gives the page real data, API calls, validation and the behaviour the requirements ask for, in the container; it does not restyle or rebuild the page.${scaf.changed ? " This is a change to an approved design: only the screens listed changed, so plan only those (and the removed screens' clean-up in the design-system task)." : ""}`)] : []),
         ...(planRejections(ctx.state).length ? [{ spec: { id: "rejection", source: "feedback" as const, trust: "trusted" as const, placement: "user" as const }, content: `The human reviewer rejected the previous plan. Their reasons (latest last):\n${planRejections(ctx.state).map((x) => `- ${x}`).join("\n")}\nThe plan must address them.` }] : []),
         S.task("Write the plan."),
       ],
@@ -180,6 +187,7 @@ export const planStep: StepDef = {
     const plan = { header: header(ctx.runId, "plan", "plan", "", r.model), ...r.output, complexity: complexityOf(r.output) };
     const fs: Failure[] = [];
     const waivable: BuildFailed[] = [];
+    for (const m of scaf ? checkPlanScaffold(plan, scaf) : []) fs.push(failure("plan-scaffold", m));
     for (const st of plan.stubs) if (!plan.tasks.some((t) => t.fileScope.some((g) => g === st.path || st.path.startsWith(g.replace(/\*.*$/, ""))))) fs.push(failure("plan-stub", `Stub ${st.path} is outside every task's file scope`));
     const planSha = ctx.ledger.putJson(plan);
     const specSha = ctx.state.steps.get("specify")!.outputs[0]!;
@@ -192,7 +200,8 @@ export const planStep: StepDef = {
         // B6: the approved screens are all planned (only when the estimate had a design)
         ...(ref.designSha ? [[screensPlanned, { plan: planSha, breakdown: ref.breakdownSha, design: ref.designSha }] as [GateDef, Record<string, string>]] : []),
         // B7: the plan task that builds an approved screen can touch that screen's file
-        ...(ref.designSha ? [[screenScope, { plan: planSha, breakdown: ref.breakdownSha, design: ref.designSha }] as [GateDef, Record<string, string>]] : []),
+        // (with a scaffold the page is generated: the task's file is the screen's container)
+        ...(ref.designSha ? [[screenScope, { plan: planSha, breakdown: ref.breakdownSha, design: scaf?.layout ? ctx.ledger.putJson(designForScopeGate(ctx.ledger.getJson<{ screens: { id: string; file?: string }[] }>(ref.designSha), scaf)) : ref.designSha }] as [GateDef, Record<string, string>]] : []),
       ];
       for (const [def, inputs] of checks) {
         const res = await runGate(def, ctx.ledger, ctx.writer, inputs, ctx.policy, { step: "plan" });
@@ -214,7 +223,7 @@ export const planStep: StepDef = {
     }
     const all = [...(g.failures ?? []), ...fs];
     if (all.length) return { kind: "fail", category: "other", failures: all, signature: `plan:${all.map((f) => f.check).sort().join(",")}` };
-    return { kind: "done", outputs: { plan: planSha }, data: { complexity: plan.complexity, taskCount: plan.tasks.length, tasks: plan.tasks.map((t) => t.id), ...(waivers.length ? { waivers } : {}) } };
+    return { kind: "done", outputs: { plan: planSha }, data: { complexity: plan.complexity, taskCount: plan.tasks.length, tasks: plan.tasks.map((t) => t.id), ...(waivers.length ? { waivers } : {}), ...(scaf ? { uiTarget: scaf.target, ...(scaf.changed ? { changedScreens: scaf.changed } : {}) } : {}) } };
   },
 };
 

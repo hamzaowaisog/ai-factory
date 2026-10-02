@@ -3,7 +3,8 @@
 // (ledger/human.ts), so no AI or script can approve its own plan. Three exceptions, each needing a typed name
 // and the card's hash: the lead's approve or reject of an estimate card, the same on a design card (E1b), and
 // the answers to a clarification question card (so a run never stops waiting for a second command). Exporting an
-// approved design (POST /api/runs/:id/exports) only writes files under the run's own exports/ folder.
+// approved design (POST /api/runs/:id/exports) only writes files under the run's own exports/ folder, and generating its
+// scaffold (POST /api/runs/:id/scaffold) only under the run's own scaffold/ folder.
 // Other cards are shown read-only with the terminal command to paste.
 // Safety: bound to 127.0.0.1; a random token per start (in the printed link, then an HttpOnly
 // cookie) on every API call; Host and Origin checked so another website can't drive it; JSON-only
@@ -21,6 +22,7 @@ import { dashboardView, designView, estimateView, eventsView, draftFile, exportF
 import { previewFile } from "./preview.js";
 import { answerEstimateQuestions, checkRefs, decideDesign, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
+import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
 import type { ExportFormat } from "../design/export.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
@@ -158,6 +160,26 @@ export const ROUTES: readonly Route[] = [
       } catch (e) {
         return { status: (e as { status?: number }).status ?? 400, json: { error: (e as Error).message } };
       }
+    },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/scaffold", what: "the UI target the run's approved design is built in and the files its scaffold writes",
+    handle: ({ id }) => { const l = findRun(id!); return l ? ok(scaffoldPanel(l) as unknown as Json) : notFound(`No run ${id}`); },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/scaffold/:target", what: "the same for another target (next-shadcn, vite-shadcn, repo)",
+    handle: ({ id, target }) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try { return ok(scaffoldPanel(l, target) as unknown as Json); } catch (e) { return { status: (e as { status?: number }).status ?? 400, json: { error: (e as Error).message } }; }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/scaffold", what: "generate the scaffold (target) into the run's scaffold folder, to download as a zip and run",
+    handle: ({ id }, body) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try { return ok(generateScaffold(l, (body ?? {}) as Record<string, unknown>)); } catch (e) { return { status: (e as { status?: number }).status ?? 400, json: { error: (e as Error).message } }; }
     },
   },
 ];
@@ -332,6 +354,16 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       const f = l && rest.length ? await exportDownload(l, rest.join("/")) : undefined;
       if (!f) return send(res, 404, "No such export.", "text/plain; charset=utf-8");
       return send(res, 200, f.body, f.type, { "Content-Disposition": `attachment; filename="${f.name}"` });
+    }
+    if (method === "GET" && path.startsWith("/scaffolds/")) {
+      // a generated scaffold as a zip: same key as the API, only <run>/scaffold/<target>
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      const [, , runId = "", name = ""] = path.split("/");
+      let l;
+      try { l = findRun(decodeURIComponent(runId)); } catch { l = undefined; }
+      const f = l ? await scaffoldDownload(l, decodeURIComponent(name)) : undefined;
+      if (!f) return send(res, 404, "No such scaffold.", "text/plain; charset=utf-8");
+      return send(res, 200, f.body, "application/zip", { "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"` });
     }
     if (method === "GET" && path.startsWith("/shots/")) {
       // a picture from a run's visual check: same key as the API, png files in one folder only

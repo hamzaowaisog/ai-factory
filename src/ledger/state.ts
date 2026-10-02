@@ -90,6 +90,8 @@ export interface RunInfo {
   designRef?: DesignRef;
   /** `--design-export png,pdf`: formats exported as soon as the design is approved (docs/estimates-design.md, "Exports") */
   designExport?: string[];
+  /** `--ui-target`: the stack the approved design is built in when the project sets none (docs/estimates-design.md, "Kit and scaffold") */
+  uiTarget?: "next-shadcn" | "vite-shadcn" | "repo";
   createdAt: string;
 }
 

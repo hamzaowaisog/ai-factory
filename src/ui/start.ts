@@ -19,6 +19,7 @@ import { MAX_DOCX_BYTES } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
 import { exportSeededNow } from "../stages/design-export.js";
+import { uiTargetOption, type UiTarget } from "../design/kit/index.js";
 import { parseFormats, type ExportFormat } from "../design/export.js";
 import { approvedDesign, approvedEstimate, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
 import { checkRoutes, DESIGN_ROUTES, ESTIMATE_ROUTES } from "../stages/routing.js";
@@ -57,6 +58,8 @@ export interface StartInput {
   fromRun?: unknown;
   /** estimate and design runs: ask the model again instead of reusing stored answers, like --fresh */
   fresh?: unknown;
+  /** a build: the stack the approved design is built in when the project sets none, like --ui-target */
+  uiTarget?: unknown;
 }
 
 export interface StartDeps {
@@ -174,6 +177,11 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     if (input.designExport.length) try { designExport = parseFormats((input.designExport as string[]).join(",")); } catch (err) { throw new StartError((err as Error).message); }
   }
 
+  const uiTargetIn = str(input.uiTarget)?.trim();
+  if (uiTargetIn && estimating) throw new StartError("The UI target is chosen for a build; an estimate or design run builds nothing.");
+  let uiTarget: UiTarget | undefined;
+  try { uiTarget = uiTargetOption(uiTargetIn || undefined); } catch (err) { throw new StartError((err as Error).message.replace("--ui-target", "The UI target")); }
+
   const fromEstimate = str(input.fromEstimate)?.trim();
   if (fromEstimate && estimating) throw new StartError(designing ? "A design run starts from requirements, not from an estimate." : "A build starts from an estimate; an estimate cannot.");
   if (fromEstimate && (str(input.prompt)?.trim() || input.file || str(input.jira)?.trim())) {
@@ -269,6 +277,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     ...(fromDesign ? { fromDesign } : {}),
     ...(settings ? { mode: designing ? "design" as const : "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
     ...(designExport ? { designExport } : {}),
+    ...(uiTarget ? { uiTarget } : {}),
   });
   if (!standalone) starting.set(project, { runId, at: Date.now() });
   (deps.execute ?? runDetached)(runId, fresh ? { fresh } : undefined);

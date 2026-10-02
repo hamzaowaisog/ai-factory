@@ -65,6 +65,7 @@ const ICONS = {
   search: [["circle", { cx: 11, cy: 11, r: 6.5 }], ["path", { d: "M16 16l4.5 4.5" }]],
   download: [["path", { d: "M12 4v11.5M7 11l5 4.5 5-4.5M4 19.5h16" }]],
   user: [["circle", { cx: 12, cy: 8, r: 4 }], ["path", { d: "M4 21a8 8 0 0 1 16 0" }]],
+  code: [["path", { d: "M8.5 7l-5 5 5 5M15.5 7l5 5-5 5" }]],
   gauge: [["path", { d: "M3.5 16a8.5 8.5 0 1 1 17 0" }], ["path", { d: "M12 16l4-5" }]],
 };
 
@@ -490,6 +491,10 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const autoXBox = h("fieldset", { class: "xopts", id: "autox", "aria-label": "Export on approval" }, autoX, autoXFigma);
   const autoXBlock = estimating ? sect(designing ? 6 : 7, "Export on approval", "Optional.", autoXBox, autoXHint)
     : h("div", { class: "field" }, h("span", { class: "label" }, "Export the design on approval (optional)"), autoXBox, autoXHint);
+  // a build: the stack the approved design is built in when the project sets none, like --ui-target
+  const uiTarget = h("select", { id: "uitarget" }, h("option", { value: "" }, "Detect from the repo"), Object.entries(TARGET_LABELS).map(([v, t]) => h("option", { value: v }, t)));
+  const uiTargetBlock = !estimating ? h("div", { class: "field" }, h("label", { for: "uitarget" }, "UI target (optional)"), uiTarget,
+    h("div", { class: "hint" }, "What the approved design is built in when the project's design.uiTarget sets nothing (like --ui-target). A kit target puts the kit, the theme and every approved page into the repo before the agents start; the agents write the behaviour. Detection picks the kit for a Next.js or Vite app and the repo's own components otherwise.")) : null;
   const maxCost = h("input", { type: "number", id: "maxcost", min: "0.5", step: "0.5", placeholder: "normal limit" });
   const startLabel = designing ? "Start design" : estimating ? "Start estimate" : "Start run";
   const start = h("button", { class: "btn primary", type: "submit" }, startLabel, icon("arrow"));
@@ -510,6 +515,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
     settings,
     refBlock,
     autoXBlock,
+    uiTargetBlock,
     estimating ? sect(designing ? 7 : 8, "Cost", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
       h("div", { class: "opts" }, opt2("fresh", fresh, "Ask the model again", "Don't reuse answers stored from an identical earlier request (like --fresh). It costs more; use it when an answer should be redone.")))
       : h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
@@ -529,7 +535,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
       const bf = buildFrom();
       const from = !estimating ? (bf.kind === "e" ? { fromEstimate: bf.id } : bf.kind === "d" ? { fromDesign: bf.id } : {})
         : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises", fromrun: "fromRun" }[startFrom.value]]: seedRun.value } : {};
-      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
+      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
         ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { deliveryModel: delivery.value, stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
@@ -858,7 +864,8 @@ function tracePanel(r) {
 // the side drawer for one step
 const scrim = h("div", { class: "scrim", onclick: () => closeDrawer() });
 const drawer = h("aside", { class: "drawer", "aria-hidden": "true" });
-document.body.append(scrim, drawer);
+// the layer clips the closed drawer, so it never widens the page on a narrow screen
+document.body.append(scrim, h("div", { class: "drawer-layer" }, drawer));
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
 
 function markSelected() {
@@ -1435,9 +1442,70 @@ function exportPanel(rid, v) {
   return panel;
 }
 
+const TARGET_LABELS = { "next-shadcn": "Next.js + shadcn/ui", "vite-shadcn": "Vite + React + shadcn/ui", repo: "The repo's own components (no kit)" };
+const TARGET_SOURCE = { config: "the project's setting", run: "chosen when the run started", detected: "detected from the repo", default: "the default", phone: "a phone app", none: "nothing to go on" };
+
+/** The Code panel on the Design tab: the UI target, the files the scaffold writes before any agent starts, and a copy to download and run. */
+function codePanel(rid, v, tried) {
+  const head = h("div", { class: "panel-head" }, h("h2", {}, icon("code"), "Code: kit and scaffold"));
+  if (!v.available) return h("section", { class: "panel rise", id: "code-panel", vars: { "--i": 0 } }, head, h("p", { class: "small muted" }, v.why));
+  const x = v.view;
+  const pick = h("select", { "aria-label": "UI target" }, v.targets.map((t) => h("option", { value: t }, TARGET_LABELS[t] ?? t)));
+  pick.value = x.target;
+  const msg = h("div", { class: "small", role: "status" });
+  const redraw = async (target) => {
+    msg.replaceChildren(h("span", { class: "pulse" }), " Working out the files…");
+    try {
+      const nv = await api(`/api/runs/${encodeURIComponent(rid)}/scaffold${target ? `/${encodeURIComponent(target)}` : ""}`);
+      const next = codePanel(rid, nv, target);
+      next.classList.remove("rise");
+      panel.replaceWith(next);
+    } catch (err) { msg.textContent = err.message; }
+  };
+  pick.addEventListener("change", () => redraw(pick.value));
+  const zip = (t) => h("a", { href: `/scaffolds/${encodeURIComponent(rid)}/${t}.zip`, download: "" }, `${t}.zip`);
+  const gen = h("button", { class: "btn", type: "button", disabled: x.kit ? undefined : "" }, icon("download"), "Generate");
+  gen.addEventListener("click", async () => {
+    gen.disabled = true;
+    msg.replaceChildren(h("span", { class: "pulse" }), " Generating…");
+    try {
+      const r = await api(`/api/runs/${encodeURIComponent(rid)}/scaffold`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ target: x.target }) });
+      msg.replaceChildren(icon("check"), ` ${r.files} files in ${r.dir}. `, zip(r.target), h("span", { class: "faint" }, " · npm install && npm run dev, then add ?fixture=S-1:empty to a page to see any state."));
+    } catch (err) { msg.textContent = err.message; }
+    gen.disabled = false;
+  });
+  const by = (o) => x.files.filter((f) => f.owner === o).length;
+  const body = !x.kit
+    ? [h("p", { class: "small muted" }, "No scaffold: the screens are built with the repo's own components, each from its approved brief (the build's implement tasks write them).")]
+    : [
+      h("div", { class: "tags" },
+        h("span", { class: "tag" }, h("span", { class: "n" }, "kit"), `${x.kit.id} ${x.kit.version}`),
+        h("span", { class: "tag" }, h("span", { class: "n" }, "root"), x.root || "."),
+        x.fresh ? h("span", { class: "tag" }, "a fresh app") : null,
+        ...[["kit", "kit"], ["theme", "theme"], ["screen", "page"], ["glue", "frame and routes"], ["app", "app"]].map(([o, l]) => by(o) ? h("span", { class: "tag" }, h("span", { class: "n" }, l), String(by(o))) : null),
+        x.kept.length ? h("span", { class: "tag", title: x.kept.join("\n") }, h("span", { class: "n" }, "kept"), String(x.kept.length)) : null),
+      x.built ? h("p", { class: "small" }, icon("check"), ` The build wrote it${x.built.commit ? ` in ${x.built.commit.slice(0, 10)}` : ""} (${x.built.written} files) before any agent started.`) : h("p", { class: "small muted" }, "The build writes these files into the repo in its first commit after the design, before any agent starts. The agents fill in each screen's container with real data and behaviour; the pages as approved stay as they are."),
+      x.changed ? h("p", { class: "small" }, h("strong", {}, "Change request: "), x.changed.length ? `pages written again for ${x.changed.join(", ")}; the rest stay as built.` : "no page changed.") : null,
+      h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Screen"), h("th", {}, "Route"), h("th", {}, "Container (the task's file)"), h("th", {}, "States"))),
+        h("tbody", {}, x.screens.map((sc) => h("tr", {}, h("td", {}, `${sc.id} ${sc.title}`), h("td", { class: "mono" }, sc.route), h("td", { class: "mono small" }, sc.container), h("td", { class: "small", title: Object.keys(sc.states).map((k) => `?fixture=${sc.id}:${k}`).join("\n") }, String(Object.keys(sc.states).length))))))),
+      x.designSystem.todo.length ? h("div", {}, h("h3", { class: "small" }, "The design-system task (first in the plan)"), h("ul", { class: "reasons small" }, x.designSystem.todo.map((t) => h("li", {}, t)))) : null,
+      x.notes.length ? h("ul", { class: "reasons small muted" }, x.notes.map((n) => h("li", {}, n))) : null,
+      h("details", { class: "export-opts" }, h("summary", { class: "small" }, `All ${x.files.length} files`),
+        h("ul", { class: "small mono file-list" }, x.files.map((f) => h("li", {}, h("span", { class: "faint" }, `${f.owner} · ${f.regenerate ? "factory" : "repo's"} · `), f.path)))),
+    ];
+  const panel = h("section", { class: "panel rise", id: "code-panel", vars: { "--i": 0 } }, head,
+    h("p", { class: "small" }, h("strong", {}, TARGET_LABELS[x.target] ?? x.target), ` · ${tried ? "a preview of another target (the run keeps its own)" : TARGET_SOURCE[x.source] ?? x.source} · the repo: ${x.why}`),
+    x.repoApps.length ? h("p", { class: "small muted" }, `Built with the repo's own components: ${x.repoApps.join(", ")} (a phone app, or set so).`) : null,
+    h("div", { class: "row" }, pick, gen),
+    ...body,
+    msg,
+    v.generated.length ? h("p", { class: "small faint" }, "Generated copies: ", ...v.generated.flatMap((t, i) => [i ? ", " : "", zip(t)])) : null);
+  return panel;
+}
+
 async function designScreen(id) {
   skeleton("grid");
-  const [r, d, refv, xv] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/design`), api(`/api/runs/${encodeURIComponent(id)}/references`), api(`/api/runs/${encodeURIComponent(id)}/exports`)]);
+  const [r, d, refv, xv, sv] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/design`), api(`/api/runs/${encodeURIComponent(id)}/references`), api(`/api/runs/${encodeURIComponent(id)}/exports`), api(`/api/runs/${encodeURIComponent(id)}/scaffold`)]);
   let size;
   if ("none" in d.uiSize) size = h("p", { class: "muted" }, d.uiSize.none);
   else {
@@ -1481,6 +1549,7 @@ async function designScreen(id) {
             : [null, "layers", "Build this design", "Designed with no repo (a new product). Building a new product is not available yet; estimate it instead."],
         ]) : null,
         exportPanel(id, xv),
+        codePanel(id, sv),
         h("section", { class: "panel rise", vars: { "--i": 0 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("ruler"), "UI change size")), size),
         h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Style check")), style),
         visualPanel(id, d.visual),

@@ -16,6 +16,22 @@ import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../s
 import { EXPORT_MODES, listExports, parseFormats, parseList, type ExportOptions } from "../design/export.js";
 import { VIEWPORTS, type Viewport } from "../estimate/screenshots.js";
 import { exportForRun, exportSeededNow } from "../stages/design-export.js";
+import { replay } from "../ledger/state.js";
+import { loadKit, sampleDesign, scaffold, scaffoldSummary, UI_TARGETS, uiTargetOption, writeScaffold, type KitTarget, type ScaffoldLayout } from "../design/kit/index.js";
+import { scaffoldPreview, scaffoldView, type ScaffoldView } from "../stages/scaffold-run.js";
+
+/** `--ui-target next-shadcn|vite-shadcn|repo`, checked before a run exists. */
+export { uiTargetOption };
+export const UI_TARGET_HELP = `the stack the approved design is built in when the project sets none: ${UI_TARGETS.join(", ")} (default: detected from the repo's package.json)`;
+
+function printScaffold(v: ScaffoldView, log: (m: string) => void): void {
+  log(`UI target ${v.target} (${v.source === "config" ? "the project's setting" : v.source === "run" ? "the run's --ui-target" : v.source === "detected" ? "detected" : v.source === "phone" ? "a phone app" : "the default"}; the repo: ${v.why})`);
+  if (v.repoApps.length) log(`built with the repo's own components: ${v.repoApps.join(", ")}`);
+  if (!v.kit) return log("no scaffold: the screens are built with the repo's own components, each from its approved brief");
+  if (v.built) log(`the build wrote it${v.built.commit ? ` in ${v.built.commit.slice(0, 10)}` : ""} (${v.built.written} files); below is what it would write now`);
+  log(v.summary ?? "");
+  if (v.changed) log(`change request: pages written again for ${v.changed.join(", ") || "no screen"}`);
+}
 
 export { exportSeededNow };
 
@@ -152,6 +168,39 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
       log(`design ${e.line} v${e.version} (${e.designSha.slice(0, 8)}) exported to ${e.dir}`);
       for (const [f, n] of Object.entries(e.files.reduce<Record<string, number>>((a, x) => ({ ...a, [x.format]: (a[x.format] ?? 0) + 1 }), {}))) log(`  ${f.padEnd(7)} ${n} file(s)`);
       for (const n of e.notes) log(`  note: ${n}`);
+    });
+
+  design.command("scaffold").argument("[run]", "a run with an approved design (design, estimate or build)")
+    .option("--sample", "scaffold the kit's sample design (every block, field kind and layer) instead of a run's")
+    .option("--target <target>", `try this target: ${UI_TARGETS.join(", ")} (default: the run's)`)
+    .option("--out <dir>", "write the files here (a folder you can open, install and run; nothing goes into the repo)")
+    .option("--files", "list every file with its owner")
+    .option("--json", "print JSON")
+    .description("the approved design as code in the UI target's kit: the kit, the theme, a page per screen with its states and sample data, the frame and the routes. The build writes it into the repo before any agent starts; this shows it, or writes it to --out to run it (?fixture=S-1:empty opens any state).")
+    .action((run: string | undefined, o: { sample?: boolean; target?: string; out?: string; files?: boolean; json?: boolean }) => {
+      const target = uiTargetOption(o.target);
+      let v: ScaffoldView, layout: ScaffoldLayout | undefined;
+      if (o.sample) {
+        if (run) throw new Error("--sample scaffolds the kit's sample design; drop the run");
+        const t = (target ?? "next-shadcn") as KitTarget;
+        if (t === ("repo" as string)) throw new Error("--sample needs a kit target: next-shadcn or vite-shadcn");
+        layout = scaffold({ design: sampleDesign(), kit: loadKit(), target: t, product: "Sample", tag: "ai-factory sample design", apps: ["portal"] });
+        v = { target: t, source: "run", why: "the kit's sample design", apps: ["portal"], repoApps: ["mobile"], kit: layout.kit, root: layout.root, fresh: layout.fresh, designSystem: layout.designSystem, summary: scaffoldSummary(layout),
+          files: layout.files.map((f) => ({ path: f.path, owner: f.owner, regenerate: f.regenerate })), kept: [], screens: layout.screens, removed: [], notes: layout.notes };
+      } else {
+        if (!run) throw new Error("Name the run: factory design scaffold <run> (or --sample)");
+        const l = deps.openRun(run);
+        const state = replay(l.events());
+        const s = scaffoldPreview(state, l, loadProject(state.info.project), { ...(target ? { target } : {}) });
+        layout = s.layout;
+        v = scaffoldView(s, s.built);
+      }
+      const written = o.out && layout ? writeScaffold(layout, resolve(o.out)) : undefined;
+      if (o.json) return log(JSON.stringify({ ...v, ...(written ? { out: resolve(o.out!), written: written.length } : {}) }, null, 2));
+      printScaffold(v, log);
+      if (o.files) for (const f of v.files) log(`  ${f.owner.padEnd(6)} ${f.regenerate ? "factory" : "repo's "} ${f.path}`);
+      if (o.out && !layout) log("nothing written: the target uses the repo's own components");
+      if (written) log(`wrote ${written.length} files to ${resolve(o.out!)}${v.fresh ? ": npm install && npm run dev, then open a page with ?fixture=S-1:default" : ""}`);
     });
 
   design.command("check-refs").argument("<refs...>", "references as for --ref: [match:|inspire:|layout:]<file or link>[|note]")

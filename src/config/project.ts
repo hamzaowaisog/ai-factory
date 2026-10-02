@@ -97,6 +97,14 @@ export const ProjectConfig = z.object({
     /** design reference URLs may point at private addresses (an intranet style guide); off by default */
     allowPrivateRefs: z.boolean().default(false),
     /**
+     * The stack the approved design is built in (docs/estimates-design.md, "Kit and scaffold"): next-shadcn or vite-shadcn copy the
+     * factory's component kit, the theme and a page per screen into the repo before the agents start; repo builds with the repo's own
+     * components (no kit). Default: detected from package.json and components.json.
+     */
+    uiTarget: z.enum(["next-shadcn", "vite-shadcn", "repo"]).optional(),
+    /** the target of one app of a product with several (app id to target), over uiTarget */
+    uiTargets: z.record(z.string(), z.enum(["next-shadcn", "vite-shadcn", "repo"])).default({}),
+    /**
      * Take the app's pages before and after the change and compare them (docs/design-step.md, "Visual check").
      * The app is started from the repo's own commands ON THIS MACHINE, not in a container, so it is off unless
      * `allowHost` is true: you are agreeing to run the project's start command on the generated code here.
