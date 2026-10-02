@@ -219,6 +219,77 @@ function modeScreen() {
 
 // ---------- new run: request ----------
 
+// design references (any mode, like --ref): files and links, each with a role and a note. The same limits are checked again
+// on the server, and every reference is read before the run exists, so one that cannot be read costs nothing.
+const REF_MAX = 12, REF_FILE_MAX = 25e6, REF_DOCX_MAX = 50e6, REF_TOTAL_MAX = 50e6;
+const REF_ACCEPT = "image/*,.png,.jpg,.jpeg,.webp,.gif,.avif,.svg,.bmp,.pdf,.docx,.json";
+function refsPicker(meta) {
+  const rows = [];
+  const err = h("div", { class: "small ref-err", role: "status" });
+  const list = h("div", { class: "ref-list" });
+  const count = h("span", { class: "faint small" });
+  const fileInput = h("input", { type: "file", multiple: true, accept: REF_ACCEPT, id: "refs" });
+  const link = h("input", { type: "url", id: "reflink", placeholder: "https://client.com or a figma.com/design/… link", "aria-label": "Reference link" });
+  const say = (m) => { err.textContent = m || ""; };
+  const total = () => rows.reduce((n, r) => n + (r.file ? r.file.size : 0), 0);
+  const paint = () => {
+    list.replaceChildren(...rows.map((r, i) => h("div", { class: "ref-row" },
+      h("span", { class: "ref-id mono" }, `R-${i + 1}`),
+      h("span", { class: "ref-src" }, icon(r.file ? (/\.(pdf|docx|json)$/i.test(r.file.name) ? "file" : "image") : "browser"), h("span", { class: "mono", title: r.file ? r.file.name : r.url }, r.file ? r.file.name : r.url),
+        r.file ? h("span", { class: "faint small" }, `${Math.max(1, Math.round(r.file.size / 1000))} KB`) : null),
+      r.roleEl, r.noteEl,
+      h("button", { class: "btn sm ghost", type: "button", "aria-label": `Remove R-${i + 1}`, onclick: () => { rows.splice(i, 1); say(""); paint(); } }, icon("x")))));
+    count.textContent = rows.length ? `${rows.length} of ${REF_MAX}${total() ? ` · ${(total() / 1e6).toFixed(1)} MB` : ""}` : "";
+  };
+  const row = (x) => {
+    const roleEl = h("select", { "aria-label": "Role" }, h("option", { value: "auto" }, "auto"), h("option", { value: "match" }, "match: use its look exactly"), h("option", { value: "inspire" }, "inspire: its family and feel"), h("option", { value: "layout" }, "layout: how screens are arranged"));
+    const noteEl = h("input", { type: "text", maxlength: "500", placeholder: "note (optional), e.g. the table like this", "aria-label": "Note" });
+    return { ...x, roleEl, noteEl };
+  };
+  const key = (r) => (r.file ? r.file.name : r.url);
+  const add = (r) => {
+    if (rows.length >= REF_MAX) return say(`A run takes at most ${REF_MAX} design references.`), false;
+    if (rows.some((x) => key(x) === key(r))) return say(`${key(r)} is already attached.`), false;
+    if (r.file) {
+      if (/\.fig$/i.test(r.file.name)) return say(`${r.file.name}: a .fig file can't be read. Share a Figma link, or export the frames as PNG.`), false;
+      const cap = /\.docx$/i.test(r.file.name) ? REF_DOCX_MAX : REF_FILE_MAX;
+      if (r.file.size > cap) return say(`${r.file.name} is over ${cap / 1e6} MB.`), false;
+      if (total() + r.file.size > REF_TOTAL_MAX) return say(`The reference files would come to over ${REF_TOTAL_MAX / 1e6} MB together. Attach fewer, or link the site or Figma file instead.`), false;
+    }
+    rows.push(row(r));
+    return true;
+  };
+  const takeFiles = (files) => { say(""); for (const f of files ?? []) if (!add({ file: f })) break; paint(); fileInput.value = ""; };
+  const addLink = () => {
+    const u = link.value.trim();
+    if (!u) return;
+    if (!/^https:\/\/\S{3,}$/i.test(u)) return say("Give an https link to a website or a Figma file.");
+    say("");
+    if (add({ url: u })) link.value = "";
+    paint();
+  };
+  fileInput.addEventListener("change", () => takeFiles(fileInput.files));
+  link.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } });
+  const drop = h("label", { class: "drop slim", for: "refs" }, fileInput, icon("image"), h("strong", {}, "Drop or choose files"), h("span", { class: "small muted" }, "images, PDF, Word (.docx) or a Figma JSON export"));
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); takeFiles(e.dataTransfer?.files); });
+  const figma = meta.figma?.configured
+    ? h("div", { class: "hint" }, "Figma links are read with your FIGMA_TOKEN: frames as pictures, colours and fonts exactly.")
+    : h("div", { class: "jira-off" }, icon("alert"), h("span", {}, meta.figma?.why ?? "Figma links need FIGMA_TOKEN in ~/.factory/.env."));
+  const node = h("div", { class: "refs" },
+    drop,
+    h("div", { class: "ref-add" }, link, h("button", { class: "btn sm", type: "button", onclick: addLink }, icon("plus"), "Add link")),
+    figma, list, h("div", { class: "row" }, count, err),
+    h("div", { class: "hint" }, "Role: match uses its colours, type and corners exactly (a brand guide or Figma file starts as match); inspire keeps its colour family and feel; layout takes only how its screens are arranged. Auto picks for you. A site behind a login can't be read: attach screenshots instead."));
+  const b64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] ?? ""); r.onerror = () => no(new Error(`Could not read ${f.name}.`)); r.readAsDataURL(f); });
+  return {
+    node,
+    count: () => rows.length,
+    collect: () => Promise.all(rows.map(async (r) => ({ ...(r.file ? { kind: "file", name: r.file.name, data: await b64(r.file) } : { kind: "url", url: r.url }), role: r.roleEl.value, ...(r.noteEl.value.trim() ? { note: r.noteEl.value.trim() } : {}) }))),
+  };
+}
+
 async function requestScreen(kind = "brownfield") {
   const designing = kind === "design";
   // an estimate and a design-only run both start from requirements and may have no project
@@ -234,7 +305,7 @@ async function requestScreen(kind = "brownfield") {
   // a build can start from an approved estimate: its request, spec and tasks are inherited
   const fromEst = h("select", { id: "fromest" }, h("option", { value: "" }, "No estimate: a plain change request"),
     (meta.estimates ?? []).map((e) => h("option", { value: e.runId }, `${e.runId}  ·  ${e.project === "standalone-estimates" ? "no project" : e.project}  ·  ${e.request}`)));
-  const syncEst = () => { const b = document.getElementById("reqblock"); if (b) b.hidden = !!fromEst.value; };
+  const syncEst = () => { for (const id of ["reqblock", "refblock"]) { const b = document.getElementById(id); if (b) b.hidden = !!fromEst.value; } };
   fromEst.addEventListener("change", syncEst);
 
   // the three inputs, which can be combined like factory start
@@ -343,6 +414,10 @@ async function requestScreen(kind = "brownfield") {
     sect(5, "Design frames", "Exported from Figma (png, jpg, webp, svg or json). Optional.",
       h("label", { class: "drop slim", for: "frames" }, frameInput, icon("upload"), h("strong", {}, "Choose frame files"), frameList))) : null;
 
+  const refs = refsPicker(meta);
+  const refText = designing || estimating ? "Screenshots, a client's site, a Figma file, a brand guide (PDF or Word). The design is drawn from them; without any it follows the field's products. Optional." : "The UI change follows them. Optional.";
+  const refBlock = estimating ? h("section", { class: "sect", id: "refblock" }, h("div", { class: "sect-head" }, h("span", { class: "num" }, designing ? "5" : "6"), h("div", {}, h("h3", {}, "Design references"), h("p", { class: "muted small" }, refText))), refs.node)
+    : h("div", { class: "field", id: "refblock" }, h("span", { class: "label" }, "Design references (optional)"), refs.node, h("div", { class: "hint" }, refText));
   const maxCost = h("input", { type: "number", id: "maxcost", min: "0.5", step: "0.5", placeholder: "normal limit" });
   const startLabel = designing ? "Start design" : estimating ? "Start estimate" : "Start run";
   const start = h("button", { class: "btn primary", type: "submit" }, startLabel, icon("arrow"));
@@ -359,7 +434,8 @@ async function requestScreen(kind = "brownfield") {
       panels.prompt, panels.file, panels.jira,
       h("div", { class: "hint" }, "Use one input or several: they are combined into one request, like factory start does.")),
     settings,
-    estimating ? sect(designing ? 5 : 6, "Spend limit", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")))
+    refBlock,
+    estimating ? sect(designing ? 6 : 7, "Spend limit", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")))
       : h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
     h("div", { class: "row" }, start, h("span", { class: "hint" }, designing ? "Runs in the background. Questions and the design approval can be answered here on the run page or in your terminal." : "Runs in the background. Questions can be answered here on the run page or in your terminal; the plan approval stays in your terminal.")),
   );
@@ -370,7 +446,9 @@ async function requestScreen(kind = "brownfield") {
     start.replaceChildren(h("span", { class: "spin" }), "Reading the request…");
     try {
       const sent = estimating && frames.length ? await Promise.all(frames.map(async (f) => ({ name: f.name, data: await b64(f) }))) : undefined;
-      const body = { project: project.value, ...(!estimating && fromEst.value ? { fromEstimate: fromEst.value } : {}), prompt: fromEst.value ? "" : prompt.value, ...(sent ? { frames: sent } : {}), jira: jira.disabled || fromEst.value ? "" : jira.value, maxCost: maxCost.value, ...(file && !fromEst.value ? { file: { name: file.name, text: file.text } } : {}),
+      const sentRefs = refs.count() && !fromEst.value ? await refs.collect() : undefined;
+      if (sentRefs) start.replaceChildren(h("span", { class: "spin" }), `Reading the request and ${sentRefs.length} design reference${sentRefs.length === 1 ? "" : "s"}…`);
+      const body = { project: project.value, ...(!estimating && fromEst.value ? { fromEstimate: fromEst.value } : {}), prompt: fromEst.value ? "" : prompt.value, ...(sent ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || fromEst.value ? "" : jira.value, maxCost: maxCost.value, ...(file && !fromEst.value ? { file: { name: file.name, text: file.text } } : {}),
         ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { deliveryModel: delivery.value, stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
@@ -595,11 +673,15 @@ function designPanel(r) {
   const no = h("button", { class: "btn ghost", type: "button" }, "Send back");
   ok.addEventListener("click", () => act("approve"));
   no.addEventListener("click", () => act("reject"));
+  // the references the design was drawn from, each with the screens it shaped (filled in when they arrive)
+  const refsBox = h("div");
+  api(`/api/runs/${encodeURIComponent(r.runId)}/references`).then((v) => { if (v.references.length) refsBox.replaceChildren(h("h3", { class: "small" }, "Drawn from these references"), refsPanel(v, true)); }).catch(() => undefined);
   return h("section", { class: "card-box" },
     h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Approve the design"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body stack" },
       h("p", { class: "small muted" }, "The estimate stands on this design. Walk the clickable demo, then approve it or send it back with what to change."),
       h("div", { class: "row" }, h("a", { class: "btn", href: `#/runs/${r.runId}/preview` }, icon("cursor"), "Open the clickable demo")),
+      refsBox,
       md(c.markdown),
       who, why, h("div", { class: "row" }, ok, no), msg));
 }
@@ -1087,9 +1169,31 @@ function visualPanel(id, v) {
 }
 
 
+/** A run's design references: pictures, what was measured, how they were read and used, the screens they shaped. */
+function refsPanel(v, compact = false) {
+  if (!v.references.length) return compact ? null : h("p", { class: "muted small" }, v.none);
+  const swatch = (c) => h("span", { class: "sw", title: `${c.hex}${c.role ? ` ${c.role}` : ""}`, vars: { "--c": /^#[0-9a-f]{3,8}$/i.test(c.hex) ? c.hex : "transparent" } });
+  return h("div", { class: "ref-cards" }, v.references.map((r) => h("article", { class: "ref-card" },
+    r.images.length ? h("div", { class: "ref-pics" }, r.images.slice(0, compact ? 1 : 4).map((im) => h("button", { type: "button", class: "ref-pic", "aria-label": `${r.id} ${im.label}`, onclick: () => lightbox({ url: im.url, screen: `${r.id} · ${im.label}`, viewport: r.role }) }, h("img", { src: im.url, alt: `${r.id} ${im.label}`, loading: "lazy" }))))
+      : h("div", { class: "ref-pics none small muted" }, icon(r.kind === "url" ? "browser" : "file"), "no picture"),
+    h("div", { class: "ref-body" },
+      h("div", { class: "row" }, h("strong", { class: "mono" }, r.id), h("span", { class: `pill t-${r.role === "match" ? "ok" : r.role === "layout" ? "idle" : "live"}` }, r.role), h("span", { class: "faint small" }, r.kind)),
+      h("div", { class: "mono small ref-source", title: r.source }, r.source),
+      r.note ? h("div", { class: "small" }, h("span", { class: "faint" }, "note: "), r.note) : null,
+      compact ? null : [
+        r.colours.length ? h("div", { class: "row small" }, h("span", { class: "swatches" }, r.colours.slice(0, 8).map(swatch)), h("span", { class: "faint" }, r.measured === "exact" ? "exact" : "approximate")) : null,
+        r.fonts.length ? h("div", { class: "small" }, h("span", { class: "faint" }, "fonts: "), r.fonts.map((f) => f.family).join(", ")) : null,
+        r.read ? h("div", { class: "small" }, h("span", { class: "faint" }, "read as: "), [r.read.kind, r.read.navigation !== "unclear" ? r.read.navigation : null, r.read.reqs.length ? `for ${r.read.reqs.join(", ")}` : null].filter(Boolean).join(" · ")) : null,
+      ],
+      r.use ? h("div", { class: "small" }, h("span", { class: "faint" }, r.use.use === "used" ? "used: " : "set aside: "), r.use.how) : null,
+      r.screens.length ? h("div", { class: "tags" }, r.screens.map((x) => h("span", { class: "tag" }, h("span", { class: "n" }, x.id), x.title))) : null,
+      r.gaps.map((g) => h("div", { class: "small ref-gap" }, icon("alert"), `${g.screen} still differs:${g.nav ? ` not reached by ${g.nav}` : ""}${g.nav && g.missing.length ? ";" : ""}${g.missing.length ? ` no ${g.missing.join(", ")}` : ""}`)),
+    ))));
+}
+
 async function designScreen(id) {
   skeleton("grid");
-  const [r, d] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/design`)]);
+  const [r, d, refv] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/design`), api(`/api/runs/${encodeURIComponent(id)}/references`)]);
   let size;
   if ("none" in d.uiSize) size = h("p", { class: "muted" }, d.uiSize.none);
   else {
@@ -1130,6 +1234,7 @@ async function designScreen(id) {
         h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Style check")), style),
         visualPanel(id, d.visual),
         r.mode === "estimate" || r.mode === "design" ? h("a", { class: "slot rise", href: `#/runs/${encodeURIComponent(id)}/preview`, vars: { "--i": 3 } }, icon("cursor"), h("strong", {}, "Clickable prototype"), h("span", {}, "The demo and its screenshots are under Preview.")) : null,
+        h("section", { class: "panel rise", vars: { "--i": 4 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("image"), `References${refv.references.length ? ` (${refv.references.length})` : ""}`)), refsPanel(refv)),
       ),
       h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("grid"), "The app's pages and building blocks")), inv),
     )], true);

@@ -766,3 +766,83 @@ describe("factory ui: design card decisions", () => {
     expect(replay(b.l.events()).decisions.at(-1)).toMatchObject({ decision: "approve" });
   });
 });
+
+describe("factory ui: design references", () => {
+  const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==", "base64");
+  // the reading is stubbed: what matters here is what the page sends and what the run keeps
+  const gathered: unknown[] = [];
+  const gatherRefs = async (reqs: { kind: string; name?: string; url?: string; role?: string; note?: string }[]) => {
+    gathered.push(reqs);
+    return reqs.map((q, i) => ({
+      id: `R-${i + 1}`, kind: q.kind === "url" ? "url" as const : "image" as const, source: q.name ?? q.url ?? "", role: (q.role && q.role !== "auto" ? q.role : "inspire") as "inspire", roleGiven: !!q.role && q.role !== "auto",
+      ...(q.note ? { note: q.note } : {}), images: [{ bytes: PNG, width: 1, height: 1, label: "page" }], colours: [{ hex: "#1d4ed8", role: "primary" }], fonts: [], measured: "approximate" as const, notes: [],
+    }));
+  };
+  const withRefs = async () => {
+    await new Promise((r) => ui.server.close(r));
+    ui = createUiServer({ token: TOKEN, previewKey: PKEY, deps: { execute: (id) => started.push(id), gatherRefs: gatherRefs as never } });
+    port = await listen(ui, 0);
+  };
+  const file = (name: string, bytes = PNG) => ({ kind: "file", name, data: bytes.toString("base64") });
+
+  it("refuses bad references before any run exists, and with a build from an estimate", async () => {
+    await withRefs();
+    const before = Ledger.listRuns().length;
+    const cases: [unknown, RegExp][] = [
+      ["nope", /couldn't be read/],
+      [Array.from({ length: 13 }, (_, i) => file(`a${i}.png`)), /at most 12/],
+      [[{ ...file("a.png"), role: "copy" }], /role/i],
+      [[{ ...file("a.png"), note: "x".repeat(501) }], /note/i],
+      [[{ kind: "url", url: "http://client.com" }], /https/],
+      [[{ kind: "file", name: "dir/..", data: PNG.toString("base64") }], /name/i],
+      [[{ kind: "file", name: ".a.png", data: PNG.toString("base64") }], /name/i],
+      [[{ kind: "file", name: "a.png", data: "" }], /empty/i],
+    ];
+    for (const [refs, msg] of cases) {
+      const r = await post({ project: "web", mode: "estimate", prompt: "Build an order portal with login and a dashboard", refs });
+      expect(r.status, JSON.stringify(refs).slice(0, 80)).toBe(400);
+      expect(r.json().error).toMatch(msg);
+    }
+    const fromEst = await post({ project: "web", fromEstimate: "x", refs: [file("a.png")] });
+    expect(fromEst.status).toBe(400);
+    expect(fromEst.json().error).toMatch(/follows the design approved there/);
+    expect(gathered).toEqual([]);
+    expect(Ledger.listRuns().length).toBe(before);
+  });
+
+  it("a run started with references keeps them, lists them and serves their pictures by the key only", async () => {
+    await withRefs();
+    const r = await post({ mode: "design", prompt: "Build an order portal with login and a dashboard", refs: [{ ...file("../../home.png"), role: "match", note: "the table like this" }, { kind: "url", url: "https://client.example", role: "auto" }] });
+    expect(r.status).toBe(201);
+    const { runId, from } = r.json();
+    expect(from).toContain("design references R-1 home.png (match), R-2 https://client.example (inspire)");
+    const s = replay(Ledger.open(runId).events());
+    expect(s.info.references?.map((x) => [x.id, x.role, x.note])).toEqual([["R-1", "match", "the table like this"], ["R-2", "inspire", undefined]]);
+    const v = (await call(`/api/runs/${runId}/references`)).json();
+    expect(v.none).toBeUndefined();
+    expect(v.references.map((x: { id: string; images: { url: string }[] }) => [x.id, x.images[0]!.url])).toEqual([["R-1", `/refs/${runId}/R-1-1.png`], ["R-2", `/refs/${runId}/R-2-1.png`]]);
+    const pic = await call(`/refs/${runId}/R-1-1.png`);
+    expect(pic.status).toBe(200);
+    expect(pic.headers["content-type"]).toBe("image/png");
+    expect((await call(`/refs/${runId}/R-1-1.png`, { token: null })).status).toBe(401);
+    for (const bad of ["R-9-1.png", "R-1-1.jpg", "..%2Frun.json", "R-1-1.png/x", "%2E%2E"]) expect((await call(`/refs/${runId}/${bad}`)).status, bad).toBe(404);
+    expect((await call(`/refs/nope/R-1-1.png`)).status).toBe(404);
+    // a run without references says so
+    expect((await call(`/api/runs/${ids.delivered}/references`)).json()).toMatchObject({ references: [], none: expect.stringMatching(/No design references/) });
+  });
+
+  it("a symlinked picture is not served", async () => {
+    await withRefs();
+    const { runId } = (await post({ mode: "design", prompt: "Build an order portal with login and a dashboard", refs: [file("home.png")] })).json();
+    const dir = Ledger.open(runId).dir;
+    writeFileSync(join(home, "secret.png"), PNG);
+    symlinkSync(join(home, "secret.png"), join(dir, "refs", "R-1-2.png"));
+    expect((await call(`/refs/${runId}/R-1-2.png`)).status).toBe(404);
+  });
+
+  it("the projects view says whether Figma links can be read", async () => {
+    const p = (await call("/api/projects")).json();
+    expect(p.figma.configured).toBe(false);
+    expect(p.figma.why).toMatch(/FIGMA_TOKEN/);
+  });
+});

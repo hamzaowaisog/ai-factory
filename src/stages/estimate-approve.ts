@@ -39,6 +39,23 @@ const reasonOf = (d: unknown): string => String((d as { reason?: string }).reaso
 // ---------- E1b: design baseline ----------
 
 /** What the screenshots found wrong with the drawn pages, for the lead to see before approving. */
+/** The design references on the card: how each was used or why it was set aside, and what a screen still lacks of a layout reference. None without references. */
+export function refCardLines(design: DesignT, refs: { id: string; role: string; source: string }[] = []): string[] {
+  const use = design.refUse ?? [];
+  if (!use.length && !refs.length) return [];
+  const ids = [...new Set([...refs.map((r) => r.id), ...use.map((u) => u.id)])];
+  return [
+    `## Design references`,
+    ...ids.map((id) => {
+      const r = refs.find((x) => x.id === id), u = use.find((x) => x.id === id);
+      const shaped = design.screens.filter((x) => (x as { refs?: string[] }).refs?.includes(id)).map((x) => x.id);
+      return `- ${id}${r ? ` (${r.role}) ${r.source.slice(0, 80)}` : ""}: ${u ? `${u.use === "used" ? "used" : "set aside"}, ${u.how}` : "not listed by the design"}${shaped.length ? `; shaped ${shaped.join(", ")}` : ""}`;
+    }),
+    ...(design.refLayout ?? []).map((g) => `- ${g.screen} still differs from ${g.ref}:${g.nav ? ` not reached by ${g.nav}` : ""}${g.nav && g.missing.length ? ";" : ""}${g.missing.length ? ` no ${g.missing.join(", ")}` : ""}`),
+    ``,
+  ];
+}
+
 function layoutLines(issues: LayoutIssue[]): string[] {
   if (!issues.length) return [];
   const shown = issues.slice(0, 8).map((f) => `- ${f.screen}, ${f.state}, ${f.viewport}: "${f.text}" ${LAYOUT_FAULT[f.kind]}`);
@@ -57,7 +74,7 @@ const CARD_HEAD: Record<DesignPurpose, (runId: string) => string[]> = {
   design: (runId) => [`# Approve the design`, ``, `Run ${runId}, design only. Approving keeps this mock, clickable demo and look; nothing is sized or built yet. Afterwards an estimate sizes it (factory estimate --from-design ${runId}) and a build follows it (factory start --project <name> --from-design ${runId}) without drawing it again.`, ``],
 };
 
-export function designCard(runId: string, design: DesignT, hash: string, extra: { demo?: string; diff?: string[]; shots?: { dir: string; count: number; note?: string; issues?: LayoutIssue[] }; purpose?: DesignPurpose } = {}): string {
+export function designCard(runId: string, design: DesignT, hash: string, extra: { demo?: string; diff?: string[]; shots?: { dir: string; count: number; note?: string; issues?: LayoutIssue[] }; purpose?: DesignPurpose; refs?: { id: string; role: string; source: string }[] } = {}): string {
   return [
     ...CARD_HEAD[extra.purpose ?? "estimate"](runId),
     `Flow: ${design.flow}`, design.figmaUrl ? `Figma: ${design.figmaUrl}` : "",
@@ -67,7 +84,8 @@ export function designCard(runId: string, design: DesignT, hash: string, extra: 
     ...(extra.diff ? [`## Change from the approved design`, ...(extra.diff.length ? extra.diff.map((l) => `- ${l}`) : ["- no screen changed"]), ``] : []),
     ...reworkCardLines(design as never),
     `Screens (${design.screens.length}):`,
-    ...design.screens.map((s) => { const x = s as typeof s & { states?: string[]; size?: string; mock?: { title: string } }; const title = x.mock?.title ? `${x.mock.title}: ` : ""; return `- ${title}${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}${x.size ? `; ${x.size}` : ""}${x.states?.length ? `; states: ${x.states.join(", ")}` : ""}${uiLine(screenUi(s as never))}`; }), ``,
+    ...design.screens.map((s) => { const x = s as typeof s & { states?: string[]; size?: string; mock?: { title: string } }; const title = x.mock?.title ? `${x.mock.title}: ` : ""; return `- ${title}${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}${x.size ? `; ${x.size}` : ""}${x.states?.length ? `; states: ${x.states.join(", ")}` : ""}${(s as { refs?: string[] }).refs?.length ? `; from ${(s as { refs?: string[] }).refs!.join(", ")}` : ""}${uiLine(screenUi(s as never))}`; }), ``,
+    ...refCardLines(design, extra.refs),
     ...((f) => (f.length ? [`UI across the product (the estimate sizes every UI task with these): ${f.join("; ")}`, ``] : []))(uiFactors(design as never)),
     design.mapping.unmappedReqs.length ? `Requirements with no screen: ${design.mapping.unmappedReqs.join(", ")}` : "Every requirement has a screen.",
     design.mapping.orphanScreens.length ? `Screens with no requirement: ${design.mapping.orphanScreens.join(", ")}` : "Every screen links to a requirement.", ``,
@@ -174,7 +192,7 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
       if (taken.shots.length) writePreview(taken.shots);
       if (taken.note) ctx.log(`design-baseline: ${taken.note}`);
       if (taken.issues?.length) ctx.log(`design-baseline: ${taken.issues.length} layout problem(s) in the demo, listed on the card`);
-      return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle, { purpose, demo: demoFile, ...(diff ? { diff } : {}), shots: { dir: shotsDir, count: taken.shots.length, ...(taken.note ? { note: taken.note } : {}), ...(taken.issues?.length ? { issues: taken.issues } : {}) } }) } };
+      return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle, { purpose, demo: demoFile, ...(ctx.state.info.references?.length ? { refs: ctx.state.info.references } : {}), ...(diff ? { diff } : {}), shots: { dir: shotsDir, count: taken.shots.length, ...(taken.note ? { note: taken.note } : {}), ...(taken.issues?.length ? { issues: taken.issues } : {}) } }) } };
     },
   };
 }

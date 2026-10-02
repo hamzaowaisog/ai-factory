@@ -189,10 +189,10 @@ main { max-width: 1320px; margin: 0 auto; padding: 1.8rem 2rem 5rem; }
 .field { margin-bottom: 1.3rem; }
 .field > label, .label { display: block; font-weight: 650; margin-bottom: 0.45rem; }
 .hint { font-size: 0.85rem; color: var(--muted); margin-top: 0.4rem; }
-input[type=text], input[type=number], select, textarea {
+input[type=text], input[type=url], input[type=number], select, textarea {
   width: 100%; padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid var(--edge); background: var(--code); transition: border-color 0.2s, box-shadow 0.2s;
 }
-input[type=text], input[type=number], select { box-sizing: border-box; height: 2.9rem; line-height: 1.2; }
+input[type=text], input[type=url], input[type=number], select { box-sizing: border-box; height: 2.9rem; line-height: 1.2; }
 select option { background: var(--panel-solid); }
 textarea { min-height: 170px; resize: vertical; line-height: 1.5; }
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
@@ -585,3 +585,31 @@ details[open] > summary { color: var(--text); }
 .btn.ghost { background: transparent; color: inherit; box-shadow: inset 0 0 0 1px var(--edge); }
 .btn.ghost:hover { box-shadow: inset 0 0 0 1px var(--accent); }
 textarea[aria-label="Rejection reason"] { width: 100%; font: inherit; padding: 0.6rem 0.8rem; border-radius: 10px; border: 0; background: var(--panel-2); color: inherit; box-shadow: inset 0 0 0 1px var(--edge); resize: vertical; }
+
+/* design references: the picker on New run and the panels on the Design tab and design card */
+.refs { display: grid; gap: 0.7rem; }
+.ref-add { display: flex; gap: 0.5rem; }
+.ref-add input { flex: 1; min-width: 0; }
+.ref-list { display: grid; gap: 0.45rem; }
+.ref-list:empty { display: none; }
+.ref-row { display: grid; grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 1.2fr) auto; gap: 0.5rem; align-items: center; padding: 0.45rem 0.5rem; border-radius: 10px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--edge); }
+.ref-row select, .ref-row input { min-width: 0; }
+.ref-id { color: var(--accent-2); font-weight: 600; }
+.ref-src { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+.ref-src .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ref-src svg { width: 16px; height: 16px; flex: none; color: var(--muted); }
+.ref-err { color: var(--bad); }
+.ref-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.8rem; }
+.ref-card { display: grid; grid-template-rows: auto 1fr; border-radius: 12px; overflow: hidden; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--edge); }
+.ref-pics { display: flex; gap: 2px; background: var(--edge); }
+.ref-pics.none { align-items: center; justify-content: center; gap: 0.4rem; min-height: 64px; background: var(--panel); }
+.ref-pics.none svg { width: 18px; height: 18px; }
+.ref-pic { flex: 1; min-width: 0; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.ref-pic img { display: block; width: 100%; height: 120px; object-fit: cover; object-position: top; }
+.ref-body { display: grid; gap: 0.35rem; padding: 0.7rem 0.8rem; align-content: start; }
+.ref-source { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.swatches { display: inline-flex; gap: 3px; }
+.sw { width: 16px; height: 16px; border-radius: 4px; background: var(--c); box-shadow: inset 0 0 0 1px var(--edge-hi); }
+.ref-gap { display: flex; gap: 0.35rem; align-items: flex-start; color: var(--muted); }
+.ref-gap svg { width: 14px; height: 14px; flex: none; margin-top: 2px; color: var(--wait); }
+@media (max-width: 640px) { .ref-row { grid-template-columns: auto minmax(0, 1fr) auto; } .ref-row select, .ref-row input { grid-column: 1 / -1; } }

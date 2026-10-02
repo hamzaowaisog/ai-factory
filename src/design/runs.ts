@@ -21,7 +21,7 @@ export interface DesignRunView {
   /** "new" for a look drawn for this product, "repo" for the app's own look */
   themeSource?: string;
   screens: { id: string; title?: string; route: string; reqs: string[]; states: string[]; refs?: string[] }[];
-  references: (Pick<Reference, "id" | "kind" | "source" | "role" | "measured" | "colours" | "fonts" | "notes"> & { read?: { kind: string; navigation: string; reqs: string[]; palette: { name: string; hex: string }[] }; use?: { use: string; how: string } })[];
+  references: (Pick<Reference, "id" | "kind" | "source" | "role" | "measured" | "colours" | "fonts" | "notes"> & Partial<Pick<Reference, "note" | "radiusPx">> & { images?: { file: string; label: string }[] } & { read?: { kind: string; navigation: string; reqs: string[]; palette: { name: string; hex: string }[] }; use?: { use: string; how: string } })[];
   /** screens still differing from a layout reference after the fix round */
   refLayout?: { screen: string; ref: string; nav?: string; missing: string[] }[];
   files: { demo?: string; shots?: string; tokens?: string };
@@ -62,7 +62,8 @@ export function designRunView(ledger: Ledger): DesignRunView {
     screens: d && !d.skipped ? (d.screens ?? []).map((x) => ({ id: x.id, ...(x.mock?.title ? { title: x.mock.title } : {}), route: x.route, reqs: x.reqs, states: x.states ?? [], ...(x.refs?.length ? { refs: x.refs } : {}) })) : [],
     references: (s.info.references ?? []).map((r) => {
       const x = reading.find((y) => y.id === r.id), u = d && !d.skipped ? d.refUse?.find((y) => y.id === r.id) : undefined;
-      return { id: r.id, kind: r.kind, source: r.source, role: r.role, measured: r.measured, colours: r.colours, fonts: r.fonts, notes: r.notes, ...(x ? { read: { kind: x.kind, navigation: x.navigation, reqs: x.reqs, palette: x.brief.palette } } : {}), ...(u ? { use: { use: u.use, how: u.how } } : {}) };
+      return { id: r.id, kind: r.kind, source: r.source, role: r.role, measured: r.measured, colours: r.colours, fonts: r.fonts, notes: r.notes,
+        ...(r.note ? { note: r.note } : {}), ...(r.radiusPx !== undefined ? { radiusPx: r.radiusPx } : {}), images: r.images.map((im) => ({ file: im.file, label: im.label })), ...(x ? { read: { kind: x.kind, navigation: x.navigation, reqs: x.reqs, palette: x.brief.palette } } : {}), ...(u ? { use: { use: u.use, how: u.how } } : {}) };
     }),
     ...(d && !d.skipped && d.refLayout?.length ? { refLayout: d.refLayout } : {}),
     files: Object.fromEntries(Object.entries({ demo: has("preview/index.html") ?? has("design-demo.html"), shots: has("preview/shots"), tokens: has("preview/tokens.css") }).filter(([, v]) => v)) as DesignRunView["files"],

@@ -105,3 +105,22 @@ it("prints how each reference was used and what a screen still lacks", async () 
   expect(lines).toContain("/orders -> REQ-1; from R-2");
   expect(lines).toContain("S-1 differs from R-2: not reached by sidebar; no data table");
 });
+
+describe("the design card's references section", () => {
+  it("lists each reference with its use and the screens it shaped, then the leftover gaps; nothing without references", async () => {
+    const { refCardLines } = await import("../stages/estimate-approve.js");
+    const design = {
+      screens: [{ id: "S-1", refs: ["R-2"] }, { id: "S-2" }],
+      refUse: [{ id: "R-1", use: "set-aside", how: "a competitor's site, kept for its colours only" }, { id: "R-2", use: "used", how: "sidebar and table" }],
+      refLayout: [{ screen: "S-1", ref: "R-2", nav: "sidebar", missing: ["data table"] }],
+    };
+    expect(refCardLines(design as never, [{ id: "R-1", role: "inspire", source: "https://other.example" }, { id: "R-2", role: "layout", source: "orders.png" }])).toEqual([
+      "## Design references",
+      "- R-1 (inspire) https://other.example: set aside, a competitor's site, kept for its colours only",
+      "- R-2 (layout) orders.png: used, sidebar and table; shaped S-1",
+      "- S-1 still differs from R-2: not reached by sidebar; no data table",
+      "",
+    ]);
+    expect(refCardLines({ screens: [] } as never)).toEqual([]);
+  });
+});

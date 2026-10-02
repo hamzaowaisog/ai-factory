@@ -16,13 +16,13 @@ import { fileURLToPath } from "node:url";
 import "../gates/predicates.js";
 import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
-import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, runView, runsView, statsView } from "./data.js";
+import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
 import { answerEstimateQuestions, decideDesign, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
-/** Starting a run may carry design frames (base64 in the JSON), so that one route takes a bigger body. */
-export const MAX_UPLOAD_BODY_BYTES = 30_000_000;
+/** Starting a run may carry design frames and reference files (base64 in the JSON, up to 50 MB of references), so that one route takes a bigger body. */
+export const MAX_UPLOAD_BODY_BYTES = 80_000_000;
 const COOKIE = "factory_ui";
 
 type Json = Record<string, unknown> | unknown[];
@@ -43,7 +43,7 @@ const notFound = (what: string): Reply => ({ status: 404, json: { error: what } 
 
 /** Every API route. Read-only except starting a run; there is deliberately no decision route. */
 export const ROUTES: readonly Route[] = [
-  { method: "GET", path: "/api/projects", what: "projects and whether Jira is set up", handle: async () => ok(await projectsView()) },
+  { method: "GET", path: "/api/projects", what: "projects and whether Jira and Figma are set up", handle: async () => ok(await projectsView()) },
   { method: "GET", path: "/api/runs", what: "recent runs", handle: () => ok(runsView()) },
   {
     method: "GET", path: "/api/runs/:id", what: "one run: timeline, cost, trace, open card (read-only), delivery",
@@ -52,6 +52,10 @@ export const ROUTES: readonly Route[] = [
   {
     method: "GET", path: "/api/runs/:id/design", what: "the design step's data for a run",
     handle: ({ id }) => { const l = findRun(id!); return l ? ok(designView(l)) : notFound(`No run ${id}`); },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/references", what: "the run's design references: pictures, measured look, how they were read and used, the screens they shaped",
+    handle: ({ id }) => { const l = findRun(id!); return l ? ok(referencesView(l)) : notFound(`No run ${id}`); },
   },
   {
     method: "GET", path: "/api/runs/:id/estimate", what: "an estimate run's totals, tasks, API cost, approved design and exported files, or why there are none",
@@ -290,6 +294,16 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       let l, rel = "";
       try { l = findRun(decodeURIComponent(runId)); rel = rest.map(decodeURIComponent).join("/"); } catch { l = undefined; }
       const body = l ? visualShot(l, rel) : undefined;
+      if (!body) return send(res, 404, "No such picture.", "text/plain; charset=utf-8");
+      return send(res, 200, body, "image/png", { "Cache-Control": "no-store" });
+    }
+    if (method === "GET" && path.startsWith("/refs/")) {
+      // a design reference's picture: same key as the API, only refs/R-n-k.png of that run
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      const [, , runId = "", name = "", ...more] = path.split("/");
+      let l, file = "";
+      try { l = more.length ? undefined : findRun(decodeURIComponent(runId)); file = decodeURIComponent(name); } catch { l = undefined; }
+      const body = l ? refImage(l, file) : undefined;
       if (!body) return send(res, 404, "No such picture.", "text/plain; charset=utf-8");
       return send(res, 200, body, "image/png", { "Cache-Control": "no-store" });
     }

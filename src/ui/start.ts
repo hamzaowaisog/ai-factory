@@ -13,6 +13,9 @@ import { replay } from "../ledger/state.js";
 import { costCapUsd, MIN_CAP_USD } from "../ledger/caps.js";
 import { parseEstimateSettings } from "../estimate/settings.js";
 import { checkUploadedFrames, describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
+import { MAX_REFERENCES, RefRole } from "../contracts/reference.js";
+import { describeReferences, gatherReferences, MAX_REF_FILE_BYTES, type GatheredRef, type RefRequest } from "../sources/refs.js";
+import { MAX_DOCX_BYTES } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
 import { approvedEstimate, type Approved } from "../estimate/lineage.js";
@@ -40,12 +43,55 @@ export interface StartInput {
   frames?: unknown;
   /** a build from an approved estimate run (factory start --from-estimate): the request comes from the estimate */
   fromEstimate?: unknown;
+  /** design references, any mode, like --ref: [{ kind: "file", name, data: base64 } | { kind: "url", url }] each with role? and note? */
+  refs?: unknown;
 }
 
 export interface StartDeps {
   /** runs the executor in the background (tests pass a stub) */
   execute?: (runId: string) => void;
   gather?: typeof gatherRequest;
+  /** reads the design references (tests pass a stub) */
+  gatherRefs?: typeof gatherReferences;
+}
+
+/** All reference files of one start together (the page checks the same): the request body stays well under its limit. */
+export const MAX_REF_UPLOAD_BYTES = 50_000_000;
+const NOTE_MAX = 500;
+
+/**
+ * The references sent by the page, checked before anything is read: at most 12, a file's name and size, an https link,
+ * a role from the list, a short note. The same limits as --ref; reading them is gatherReferences, as on the command line.
+ */
+export function checkUploadedRefs(raw: unknown): RefRequest[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) throw new StartError("The design references couldn't be read.");
+  if (raw.length > MAX_REFERENCES) throw new StartError(`${raw.length} design references; a run takes at most ${MAX_REFERENCES}.`);
+  let total = 0;
+  return raw.map((x, i): RefRequest => {
+    const r = (x ?? {}) as Record<string, unknown>;
+    const at = `Design reference ${i + 1}`;
+    const role = r.role === undefined || r.role === "" || r.role === "auto" ? undefined : RefRole.safeParse(r.role).data;
+    if (r.role !== undefined && r.role !== "" && r.role !== "auto" && !role) throw new StartError(`${at}: the role must be auto, match, inspire or layout.`);
+    const note = typeof r.note === "string" ? r.note.trim() : "";
+    if (note.length > NOTE_MAX) throw new StartError(`${at}: the note is over ${NOTE_MAX} characters.`);
+    const extra = { ...(role ? { role } : {}), ...(note ? { note } : {}) };
+    if (r.kind === "url") {
+      const url = typeof r.url === "string" ? r.url.trim() : "";
+      if (!/^https:\/\/[^\s]{3,2000}$/i.test(url)) throw new StartError(`${at}: give an https link to a website or a Figma file.`);
+      return { kind: "url", url, ...extra };
+    }
+    if (r.kind !== "file" || typeof r.name !== "string" || typeof r.data !== "string") throw new StartError(`${at} couldn't be read.`);
+    const name = basename(r.name.replace(/\\/g, "/"));
+    if (!/^[^\0/]{1,120}$/.test(name) || name.startsWith(".")) throw new StartError(`${at}: the file name is not usable.`);
+    const bytes = Buffer.from(r.data, "base64");
+    if (!bytes.length) throw new StartError(`${name} is empty.`);
+    const cap = /\.docx$/i.test(name) ? MAX_DOCX_BYTES : MAX_REF_FILE_BYTES;
+    if (bytes.length > cap) throw new StartError(`${name} is over ${cap / 1e6} MB.`);
+    total += bytes.length;
+    if (total > MAX_REF_UPLOAD_BYTES) throw new StartError(`The reference files come to over ${MAX_REF_UPLOAD_BYTES / 1e6} MB together. Attach fewer, or link the site or Figma file instead.`);
+    return { kind: "file", name, bytes, ...extra };
+  });
 }
 
 /** The highest normal cost limit (a large change). --max-cost can only lower the limit, so more than this is refused. */
@@ -80,6 +126,8 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   if (fromEstimate && (str(input.prompt)?.trim() || input.file || str(input.jira)?.trim())) {
     throw new StartError("A build from an estimate takes its request from the estimate. Clear the request, or choose no estimate.");
   }
+  const refReqs = checkUploadedRefs(input.refs);
+  if (fromEstimate && refReqs.length) throw new StartError("A build from an estimate follows the design approved there. Remove the design references, or start a new design or estimate run with them.");
   let approved: Approved | undefined;
   if (fromEstimate) {
     try { approved = approvedEstimate(fromEstimate); } catch (err) { throw new StartError((err as Error).message); }
@@ -132,9 +180,10 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   })();
   if (busy) throw new StartError(`Run ${busy.runId} is already running on ${project}. Wait for it to stop at a card, park or finish.`, 409);
 
-  // everything is read before a run exists: a bad file or ticket costs nothing
+  // everything is read before a run exists: a bad file, ticket or reference costs nothing
   let dir: string | undefined;
   let req;
+  let references: GatheredRef[] = [];
   try {
     let path: string | undefined;
     if (file) {
@@ -144,6 +193,8 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
       writeFileSync(path, file.text, { mode: 0o600 });
     }
     req = approved ? { text: approved.request, sources: [{ kind: "prompt" as const }], attachments: [] } : await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim(), ...(frameFiles ? { frameFiles } : {}) }, {}, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
+    // a reference that cannot be read stops here, named with what to attach instead (R-2 (https://...): ...)
+    references = await (deps.gatherRefs ?? gatherReferences)(refReqs, { allowPrivate: !!cfg.design?.allowPrivateRefs });
   } catch (e) {
     throw new StartError((e as Error).message);
   } finally {
@@ -152,13 +203,13 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
 
   const runId = await createRun(req.text, project, `${userInfo().username} (via web)`, {
     ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
-    sources: req.sources,
+    sources: req.sources, ...(references.length ? { references } : {}),
     ...(approved ? { lineage: { kind: "build" as const, approved } } : {}),
     ...(settings ? { mode: designing ? "design" as const : "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
   });
   if (!standalone) starting.set(project, { runId, at: Date.now() });
   (deps.execute ?? runDetached)(runId);
-  return { runId, from: describeSources(req.sources) };
+  return { runId, from: describeSources(req.sources) + (references.length ? `; design references ${describeReferences(references)}` : "") };
 }
 
 export function _resetStarting(): void {

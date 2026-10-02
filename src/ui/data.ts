@@ -18,6 +18,8 @@ import { Ledger } from "../ledger/ledger.js";
 import { replay, splitKey, statusLabel, type RunState } from "../ledger/state.js";
 import { outcomes, scoreRun, stageStats, stageOf, type RunScore } from "../report.js";
 import { jiraConfigured } from "../sources/jira.js";
+import { figmaConfigured } from "../sources/figma.js";
+import { designRunView } from "../design/runs.js";
 import type { VisualCheck } from "../design/visual-check.js";
 import { exportWorkbooks } from "../estimate/export.js";
 import { exportInputFor } from "../stages/estimate-approve.js";
@@ -82,7 +84,7 @@ export function approvedEstimatesView(): ApprovedEstimateRow[] {
   return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
 }
 
-export async function projectsView(): Promise<{ projects: ProjectRow[]; estimates: ApprovedEstimateRow[]; jira: { configured: boolean; why?: string } }> {
+export async function projectsView(): Promise<{ projects: ProjectRow[]; estimates: ApprovedEstimateRow[]; jira: { configured: boolean; why?: string }; figma: { configured: boolean; why?: string } }> {
   const projects: ProjectRow[] = [];
   for (const name of projectNames()) {
     const busy = await busyRun(name);
@@ -93,6 +95,7 @@ export async function projectsView(): Promise<{ projects: ProjectRow[]; estimate
     projects,
     estimates: approvedEstimatesView(),
     jira: configured ? { configured } : { configured, why: "Jira isn't set up. Add JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN to ~/.factory/.env (factory doctor checks it)." },
+    figma: figmaConfigured() ? { configured: true } : { configured: false, why: "Figma links need FIGMA_TOKEN in ~/.factory/.env (a personal access token with read access to files). Until then, export the frames as PNG and attach them, or attach a Figma JSON export." },
   };
 }
 
@@ -479,6 +482,40 @@ export async function draftFile(ledger: Ledger, audience: string): Promise<{ bod
 }
 
 /** A picture from the run's visual check: only a .png inside <ledger>/design-check, never through a link. */
+// ---------- design references ----------
+
+/**
+ * A run's design references for the page: each R-n with its pictures (served by /refs/<run>/<file>), what was measured, how
+ * the design-refs step read it, how the design used it (or why it was set aside), the screens it shaped, and the screens
+ * still differing from a layout reference.
+ */
+export function referencesView(ledger: Ledger) {
+  const v = designRunView(ledger);
+  const base = `/refs/${encodeURIComponent(ledger.runId)}/`;
+  return {
+    runId: ledger.runId,
+    ...(v.references.length ? {} : { none: "No design references were attached to this run. Attach them on New run (any mode) or with --ref." }),
+    references: v.references.map((r) => ({
+      ...r, images: (r.images ?? []).map((im) => ({ url: base + encodeURIComponent(basename(im.file)), label: im.label })),
+      screens: v.screens.filter((x) => x.refs?.includes(r.id)).map((x) => ({ id: x.id, title: x.title ?? x.route })),
+      gaps: (v.refLayout ?? []).filter((g) => g.ref === r.id),
+    })),
+  };
+}
+
+/** One stored reference picture (refs/R-n-k.png), only that name pattern, inside the run's folder, no symlinks. */
+export function refImage(ledger: Ledger, name: string): Buffer | undefined {
+  if (!/^R-\d{1,2}-\d{1,2}\.png$/.test(name)) return undefined;
+  try {
+    const root = realpathSync(join(ledger.dir, "refs"));
+    const p = join(root, name);
+    if (lstatSync(p).isSymbolicLink()) return undefined;
+    const real = realpathSync(p);
+    if (!real.startsWith(root + sep) || !lstatSync(real).isFile()) return undefined;
+    return readFileSync(real);
+  } catch { return undefined; }
+}
+
 export function visualShot(ledger: Ledger, rel: string): Buffer | undefined {
   if (!/^(base|final|diff)\/[\w.-]+\.png$/.test(rel)) return undefined;
   try {
