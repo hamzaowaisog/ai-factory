@@ -64,7 +64,7 @@ The estimate does not start until the spec passes lint, critic, round trip and h
 | Group | Examples | Handling |
 |---|---|---|
 | Request | One line, brief, transcript, PRD or spec, RFP, tickets | Untrusted text; read-only steps only |
-| Design | Nothing, wireframes, exported Figma frames, screenshots, brand guide | Cleaned to typed fields; screens, routes and states are counted |
+| Design | Nothing, or references in any form: images (png, jpeg, ...), URLs, Figma links or exports, PDFs, brand guides, wireframes (see "Design references") | Turned into one form by code, read by a vision step, cleaned to typed fields; screens, routes and states are counted. None given: the look comes from the industry library as before |
 | Existing system | **The repo (the only artefact)** | Read in the locked room with no network |
 | Context | Stack, platforms, compliance, hosting, client policy | Project config, plus clarify for what is missing |
 | Run settings | **Delivery model (HITL or solely agentic; chosen at the start)**, stack source, Design in total, feedback rounds, optional rates | Set by a person, recorded in the run |
@@ -206,6 +206,106 @@ The mock and clickable demo are the baseline the estimate stands on. Screen coun
 - **Design tokens (added 2026-10-02).** A new look reaches the build as design tokens (`src/estimate/tokens.ts`): colours by name for each mode (both when the theme follows the viewer), body and heading type, corners, spacing, shadows, glass blur and motion, plus the same set as CSS variables (`--color-brand`, `--radius`, ...). They are the exact values the approved demo was drawn with (the demo and the tokens share `themeValues`). The implementer gets them with the approved screen and is told to add the CSS block to the global stylesheet once and style with the variables. The plan is told to put that stylesheet in the first screen task's file scope. The preview folder holds `tokens.css` and `tokens.json` for people. Not checked in code yet: nothing fails a build that hard-codes other colours (the fidelity lint only runs for a repo with a `design` block).
 - **B7** checks at the plan that the task building a screen can touch that screen's file, so the approved screen is the one built.
 - **Size recorded.** Integrate stores the UI change class as built next to the class the approved design allowed (`uiSize`); `npm run bench -- calibrate` lists them.
+
+### Design references (requirement 1, approved 2026-10-02; not built yet)
+
+The user can attach design references to any run (estimate, brownfield, and greenfield once that mode exists), from the terminal or the factory UI. The design is then based on the references and the requirements. **With no references nothing changes:** the product reading, the industry library, the live brand reads, the reference checks and the record of recent looks work as they do now, with no extra step and no extra cost.
+
+**What was found (research, 2026-10-02)**
+
+- Frames (png, jpg, webp, svg, json) and a .docx's images are already stored with the run, but only their file names reach the model: the pack's `images` is hard-coded to `[]` (`src/context/pack.ts`) and the API runner sends text only. Sending images is the main missing piece.
+- The pack rule (no images or untrusted text in a step that writes code) allows images in the design step and in a new read step; neither writes code.
+- `measureBrands` (`src/design/refs/measure.ts`) already opens a site in Chromium and reads computed colours, font and button corners; the Jira source (`src/sources/jira.ts`) is the pattern for a token in `~/.factory/.env`; `cleanBrief` (`src/design/brief.ts`) is the allow-list for design extracts and is not called anywhere yet; `fit.ts` has the colour family checks.
+- Colours sampled from a screenshot are near the brand colour, never equal to it (compositing, anti-aliasing, JPEG), so exact values come from a site's CSS or a Figma file, and images give look and layout. A vision model judges layout well and reads exact values badly, so code measures and the model only chooses from the measured list.
+- Figma REST API: a personal token works; a file read is about 120 requests a minute and an image export about 30 a minute per user, each answered within 55 seconds. Frame exports are capped.
+- Greenfield has no step list yet (`stepsFor` throws for it), and the build reads the approved design only through an estimate (`estimateRef.designSha`).
+
+**What the references decide**
+
+| Attached | Look (colours, type, corners) | Layout |
+|---|---|---|
+| Nothing | As now | As now |
+| `layout` references only | As now (library) | From the references for those screens |
+| `inspire` references | Within the references' colour family; the library fills gaps | References and requirements |
+| `match` references | The references' values exactly | References and requirements |
+
+- Roles are optional per reference. Without one, a Figma file or a brand guide is `match`, any other image or URL is `inspire`. The existing `--frames` become `layout` references.
+- The requirements beat a reference; a departure is written in the theme's `departure`.
+- Every reference is used or set aside with a reason.
+- A reference that cannot be read stops the run at intake with a plain message ("attach a screenshot or an export"). It never falls back to the library without saying so.
+- A brownfield repo whose look differs from a `match` reference: the clarify card asks whether to restyle. A restyle is a design-system change in size and in the estimate.
+
+**Input**
+
+- Terminal: `--ref <file|url>`, repeatable, with an optional role and note: `--ref match:https://client.com`, `--ref layout:dash.jpg "table like this"`.
+- Factory UI: a "Design references" section on the New run form for every mode (see below).
+- Each reference becomes `R-1`, `R-2`, ... in a `Reference` contract. At most 12 references and 20 images sent to a model (about 1.5k input tokens each).
+
+**Turned into one form at intake, by code (`src/sources/refs.ts`)**
+
+| Input | What code keeps |
+|---|---|
+| Any image (png, jpeg, webp, gif, avif, svg, bmp) | Decoded in Chromium (no new image library), PNG with the long edge at most 1568 px, main colours with their share of the area (marked approximate) |
+| URL | Screenshots at 390 and 1280 px; computed styles: colours by role, fonts, corners, spacing, shadows (exact) |
+| Figma link | With `FIGMA_TOKEN`: the file's styles (exact) and up to 8 frames as PNG |
+| PDF | Pages as images and the text (`pdfjs-dist`, one new dependency) |
+| DOCX | Embedded images and the text, as today |
+| Other formats, a login wall, a private Figma file | Stop with a plain message |
+
+Only URLs the user gives are fetched: https only, no cookies, private addresses refused unless the project config allows them. Pages behind a login are out of the first version; the user attaches screenshots.
+
+**`design-refs` step (new, read-only, only when references exist)**
+
+A vision model sees the images and the measured values and returns, per reference: its kind (brand, screen, component, mood board), which measured colour plays which role, the type style, corners and density, the navigation pattern, the layout regions, and the screen or requirement it relates to. The answer goes through `cleanBrief`. Text inside a reference is untrusted and never followed. A step that writes code never sees a reference, only typed tokens.
+
+**Design step**
+
+With references, a reference brief replaces the industry brief and the images go into the design call; `theme.basis` cites R-ids; template version 20. Checks in code (a failure goes back to the model, as today):
+
+| Check | Role | Fails when |
+|---|---|---|
+| `design-ref-colour` | match | the brand or accent is not near the reference value |
+| `design-ref-font` | match, exact source | the type pair differs from the reference |
+| `design-ref-family` | inspire | the brand is outside the reference palette's family with no `departure` |
+| `design-ref-layout` | layout | the rendered demo's regions (bar, sidebar, grid, tabs) differ from the reference's |
+| `design-ref-unused` | all | a reference is neither cited nor set aside |
+
+The recent-looks check is skipped for `match` (a client's brand may repeat); it stays for `inspire`.
+
+**Factory UI**
+
+- **New run form**, every mode (today frames are estimate-only and refused on a build run):
+  - a drop zone for files (any image, PDF, DOCX, Figma JSON), each listed with a role picker (auto, match, inspire, layout), an optional note and a remove button;
+  - a box to add URLs and Figma links, one per row, with the same role and note;
+  - the Figma line says whether `FIGMA_TOKEN` is set (from `/api/projects`, like Jira);
+  - the existing size limits, plus the 12-reference cap, are checked in the page and again on the server.
+- **Intake errors** (a site behind a login, a private Figma file, a format we cannot read) show on the run page with the reference named and what to attach instead.
+- **Design tab:** a References panel: each `R-n` with a thumbnail, its source and role, the measured colours and fonts (exact or approximate), and where it was used or why it was set aside.
+- **Design card (approval):** each screen shows the reference that shaped it beside the demo screenshot.
+- **API:** `POST /api/runs` takes `refs: [{ kind: "file" | "url", name?, data?, url?, role?, note? }]` (replacing `frames`, which stays as an alias); `GET /api/runs/:id/references` lists them; reference images are served only as PNG from the run's `refs/` folder with the preview key, like preview files.
+
+**Built to plug into greenfield**
+
+Greenfield is not built yet. The design work is built as one piece that any mode adds to its step list:
+
+- `designSteps(opts)` (`src/stages/design-pipeline.ts`) returns `[design-refs?, design, design-approval]`. Estimate, brownfield and later greenfield call it; nothing in it names a mode.
+- **Inputs through one reader**, not fixed step keys: `designInputs(state)` gives the spec, the UI intent, the repo inventory (absent for greenfield, which means a new look), the references and an earlier design. A mode whose steps are named differently passes its own reader.
+- **One approval step**, generic: the estimate's E1b becomes the shared design approval; the estimate keeps its wording ("the estimate stands on this design") as an option.
+- **One way out:** `approvedDesignFor(state)` returns the approved design from this run's own design step, or from the estimate a build was seeded from. Plan and implement read only this, so a build gets tokens and approved screens whichever way its design was approved (today only through `estimateRef.designSha`).
+- **Proof:** a test composes a stand-in greenfield list (intake, a seeded spec, `designSteps`, a plan stub) and checks it runs references, design and approval, and that the plan sees the approved design. When greenfield is built it adds `...designSteps()` and nothing else.
+
+**Build order**
+
+1. **Images to the model.** Fill the pack's `images` and send image blocks in the API runner (Anthropic; OpenAI as an option), images in the cache key. **Done 2026-10-02:** an image section (`S.image`, untrusted, user message only) puts a numbered `<untrusted_image n="k">` marker in the text and its ledger sha in `images`; each image counts 1,600 tokens and a briefing takes at most 20 (`src/util/image.ts`). The runner loads the bytes, reads the type from them (PNG, JPEG, GIF, WebP only, at most 5 MB) and sends `Image k:` then the picture before the briefing, for Anthropic, OpenAI Responses and local chat servers; a bad image stops the step before any model call. The pack sha and the cache key cover the images. The agent runner refuses images. `UNTRUSTED_IMAGE_NOTE` is the rule text for steps that show pictures.
+2. **Design pipeline as one piece.** `designSteps`, `designInputs`, `approvedDesignFor`, the generic approval step; estimate moved onto it with no change in behaviour (existing tests unchanged); the greenfield stand-in test.
+3. **Reference intake.** `--ref`, the `Reference` contract, images, URLs and DOCX, colours measured in Chromium.
+4. **Figma and PDF.** `FIGMA_TOKEN` (Jira pattern, rate limits respected), `pdfjs-dist`.
+5. **`design-refs` step.** Prompt, schema, `cleanBrief`, skipped without references.
+6. **Design step.** Reference brief, images in the call, rules per role, the five checks, template version 20.
+7. **Rendered layout check** (`design-ref-layout`).
+8. **Factory UI.** Form section for every mode, `refs` in `POST /api/runs`, intake errors, References panel, references on the design card, `GET /api/runs/:id/references`.
+9. **Brownfield.** `designSteps()` before plan when the request touches UI and the run is not from an approved estimate; the restyle question on the clarify card.
+10. **Docs, tests and a visual check.** Fixtures per input type; a run with no references unchanged; one live run each with a URL, a JPEG and a Figma link (needs `ANTHROPIC_API_KEY` and `FIGMA_TOKEN` in `~/.factory/.env`).
 
 ## Size measurement
 

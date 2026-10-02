@@ -9,6 +9,7 @@ import type { RepoTools } from "../context/tools.js";
 import { TOOL_DEFS } from "../context/tools.js";
 import { secret } from "../config/env.js";
 import { costUsd } from "./pricing.js";
+import { toModelImage, type ModelImage } from "../util/image.js";
 import { addUsage, configErrorText, emptyUsage, type Effort, type Job, type Result, type Runner } from "./types.js";
 
 export const MAX_REASKS = 2;
@@ -31,7 +32,46 @@ export interface Conversation {
   say(text: string): void;
 }
 export interface Provider {
-  start(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[]): Conversation;
+  /** `images` go with the first user message, each labelled "Image n" to match the briefing's markers. */
+  start(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[], images?: ModelImage[]): Conversation;
+}
+
+const imageLabel = (i: number) => `Image ${i + 1}:`;
+
+/** Anthropic: each image after its label, then the briefing (images before the text that refers to them). */
+export function anthropicUserContent(user: string, images: ModelImage[] = []): string | Anthropic.ContentBlockParam[] {
+  if (!images.length) return user;
+  return [
+    ...images.flatMap((m, i): Anthropic.ContentBlockParam[] => [
+      { type: "text", text: imageLabel(i) },
+      { type: "image", source: { type: "base64", media_type: m.mediaType, data: m.base64 } },
+    ]),
+    { type: "text", text: user },
+  ];
+}
+
+/** OpenAI Responses API: the same order, images as data URLs. */
+export function openaiResponsesUserContent(user: string, images: ModelImage[] = []): string | OpenAI.Responses.ResponseInputMessageContentList {
+  if (!images.length) return user;
+  return [
+    ...images.flatMap((m, i): OpenAI.Responses.ResponseInputMessageContentList => [
+      { type: "input_text", text: imageLabel(i) },
+      { type: "input_image", image_url: `data:${m.mediaType};base64,${m.base64}`, detail: "auto" },
+    ]),
+    { type: "input_text", text: user },
+  ];
+}
+
+/** OpenAI-compatible chat completions (local servers): the same order. A text-only local model rejects these. */
+export function chatUserContent(user: string, images: ModelImage[] = []): string | OpenAI.Chat.ChatCompletionContentPart[] {
+  if (!images.length) return user;
+  return [
+    ...images.flatMap((m, i): OpenAI.Chat.ChatCompletionContentPart[] => [
+      { type: "text", text: imageLabel(i) },
+      { type: "image_url", image_url: { url: `data:${m.mediaType};base64,${m.base64}` } },
+    ]),
+    { type: "text", text: user },
+  ];
 }
 
 export class RateLimitedError extends Error {}
@@ -55,9 +95,9 @@ export class AnthropicProvider implements Provider {
     this.client = new Anthropic({ apiKey, maxRetries: 2 });
   }
 
-  start(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[]): Conversation {
+  start(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[], images: ModelImage[] = []): Conversation {
     const client = this.client;
-    const messages: Anthropic.MessageParam[] = [{ role: "user", content: user }];
+    const messages: Anthropic.MessageParam[] = [{ role: "user", content: anthropicUserContent(user, images) }];
     // Stable prefix first: tools → system; cache it (context-builder §2.3).
     const toolParams: Anthropic.Tool[] = tools.map((t) => ({
       name: t.name, description: t.description, input_schema: t.schema as Anthropic.Tool.InputSchema,
@@ -122,8 +162,8 @@ export class OpenAIProvider implements Provider {
     this.local = opts.api ? opts.api === "chat" : !!opts.baseURL;
   }
 
-  start(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[]): Conversation {
-    return this.local ? this.chat(model, effort, system, user, tools) : this.responses(model, effort, system, user, tools);
+  start(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[], images: ModelImage[] = []): Conversation {
+    return this.local ? this.chat(model, effort, system, user, tools, images) : this.responses(model, effort, system, user, tools, images);
   }
 
   private rethrow(e: unknown): never {
@@ -133,9 +173,9 @@ export class OpenAIProvider implements Provider {
   }
 
   /** OpenAI: Responses API. Nothing is stored on OpenAI's side (store: false); the conversation is resent each turn. */
-  private responses(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[]): Conversation {
+  private responses(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[], images: ModelImage[]): Conversation {
     const client = this.client;
-    const input: OpenAI.Responses.ResponseInput = [{ role: "user", content: user }];
+    const input: OpenAI.Responses.ResponseInput = [{ role: "user", content: openaiResponsesUserContent(user, images) }];
     const toolParams: OpenAI.Responses.FunctionTool[] = tools.map((t) => ({ type: "function", name: t.name, description: t.description, parameters: t.schema, strict: false }));
     const rethrow = (e: unknown) => this.rethrow(e);
     return {
@@ -176,11 +216,11 @@ export class OpenAIProvider implements Provider {
   }
 
   /** Local OpenAI-compatible servers: chat completions. */
-  private chat(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[]): Conversation {
+  private chat(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[], images: ModelImage[]): Conversation {
     const client = this.client;
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: "developer", content: system },
-      { role: "user", content: user },
+      { role: "user", content: chatUserContent(user, images) },
     ];
     const toolParams: OpenAI.Chat.ChatCompletionTool[] = tools.map((t) => ({
       type: "function", function: { name: t.name, description: t.description, parameters: t.schema },
@@ -227,6 +267,8 @@ export class OpenAIProvider implements Provider {
 export interface ApiRunnerDeps {
   provider: (model: string) => Provider;
   tools?: RepoTools;
+  /** The bytes of a briefing image, by its ledger sha. Needed only when the pack has images. */
+  loadImage?: (sha: string) => Uint8Array;
   /** For the run trace: one call per model turn, after its tool calls were answered. */
   onTurn?: (t: TurnTrace) => void;
   /** Called after every model call so usage lands in the ledger even if we crash. */
@@ -264,7 +306,15 @@ export class ApiRunner implements Runner {
       },
     ];
     const system = `${job.pack.system}\n\nWhen you have the answer, call the ${SUBMIT} tool with it. Don't put the answer in plain text.`;
-    const convo = this.deps.provider(job.model).start(job.model, job.effort, system, job.pack.user, tools);
+    let images: ModelImage[];
+    try {
+      if (job.pack.images.length && !this.deps.loadImage) throw new Error("This briefing has images but the runner was given no way to load them");
+      images = job.pack.images.map((sha, i) => toModelImage(this.deps.loadImage!(sha), `Image ${i + 1}`));
+    } catch (e) {
+      // a broken or oversized image is the factory's mistake, not the model's: stop before paying for a call
+      return { status: "config-error", error: (e as Error).message, usage: { ...usage, wallMs: Date.now() - started } };
+    }
+    const convo = this.deps.provider(job.model).start(job.model, job.effort, system, job.pack.user, tools, images);
     let reasks = 0;
 
     const done = (status: Result<T>["status"], extra: Partial<Result<T>> = {}): Result<T> =>
