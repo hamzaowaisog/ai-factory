@@ -1,6 +1,6 @@
 // Scores one eval run against its case, then summarises repeats: pass rate, how much repeats agree, cost.
 // Pure functions over what the run left in its ledger; no model.
-import { hits, type EvalCase } from "./case.js";
+import { affirms, hits, type EvalCase } from "./case.js";
 import type { OracleAnswer } from "./oracle.js";
 
 export interface SpecLike {
@@ -48,6 +48,8 @@ export interface RunScore {
   lane?: string;
   costUsd: number;
   wallMin: number;
+  /** the spec's requirements, kept when an expected behaviour was missed: a person can tell a scorer miss from a model miss */
+  reqs?: string[];
 }
 
 export const reqText = (r: SpecLike["requirements"][number]) =>
@@ -59,7 +61,8 @@ export function scoreRun(c: EvalCase, o: RunOutcome): RunScore {
   const texts = reqs.map(reqText);
   const forbidTexts = [...texts, ...(o.spec?.nfrs ?? []).map((n) => `${n.text} ${n.metric}`)];
   const expectHit = c.expect.filter((e) => texts.some((t) => hits(e.match, t))).map((e) => e.id);
-  const forbidHit = c.forbid.filter((f) => forbidTexts.some((t) => hits(f.match, t))).map((f) => f.id);
+  // "no notification is sent" rules a thing out: only a clause that says it counts as scope creep
+  const forbidHit = c.forbid.filter((f) => forbidTexts.some((t) => affirms(f.match, t))).map((f) => f.id);
   const raised = [...o.questions.map((q) => `${q.text} ${q.options.join(" ")}`), ...o.assumptions];
   const gapsCaught = c.gaps.filter((g) => raised.some((t) => hits(g.match, t))).map((g) => g.id);
   const completed = o.status === "until" && !!o.spec;
@@ -72,6 +75,7 @@ export function scoreRun(c: EvalCase, o: RunOutcome): RunScore {
     requirements: reqs.length, acs: reqs.reduce((n, r) => n + r.acceptance.length, 0),
     openFindings: o.openFindings.length, repairs: o.repairs, lane: o.lane,
     costUsd: o.costUsd, wallMin: o.wallMs / 60_000,
+    ...(completed && expectHit.length < c.expect.length ? { reqs: reqs.map((r) => `${r.id}: ${r.ears}`) } : {}),
   };
 }
 
@@ -144,6 +148,8 @@ export function formatReport(sums: CaseSummary[], all: Overall, scores: RunScore
     for (const s of misses) {
       const why = !s.completed ? `stopped: ${s.status}` : [s.expectMiss.length ? `missing ${s.expectMiss.join(", ")}` : "", s.forbidHit.length ? `not asked for: ${s.forbidHit.join(", ")}` : ""].filter(Boolean).join("; ");
       lines.push(`  ${s.caseId} #${s.repeat}${s.runId ? ` (${s.runId})` : ""}: ${why}`);
+      // the spec's own words, so a person can see whether the behaviour is there in other terms
+      if (s.expectMiss.length && s.reqs?.length) for (const r of s.reqs.slice(0, 12)) lines.push(`      ${r.length > 160 ? `${r.slice(0, 159)}…` : r}`);
     }
   }
   return lines.join("\n");

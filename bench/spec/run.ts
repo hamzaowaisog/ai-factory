@@ -40,6 +40,18 @@ const likeName = opt("like");
 const like = likeName ? loadProject(likeName) : undefined;
 console.log(`${fake ? "Dry run (fake model)" : "PAID run"}: ${cases.length} cases × ${repeats} = ${cases.length * repeats} runs${spend ? `, at most $${(cases.length * repeats * maxCost).toFixed(0)} in total ($${maxCost} cap per run)` : ""}`);
 if (spend && !like) console.log("No --like project: prices and routes are the factory defaults (a model without a price is costed at the fallback rate).");
+if (spend) {
+  // the spec stage's models: a model with no price is costed at the fallback rate ($10/$50 per million), which
+  // overstates spend and can hit the per-run cap early (the GPT drafter and critic, unless a --like project prices them)
+  const { DEFAULT_ROUTES } = await import("../../src/stages/routing.js");
+  const { hasPrice, setPrice } = await import("../../src/runners/pricing.js");
+  for (const [m, p] of Object.entries(like?.prices ?? {})) setPrice(m, p);
+  const SPEC_STEPS = ["intake", "ground", "sketches", "sketch-align", "clarifier", "specify", "specify-other", "merge", "restater", "rt-align", "critic"];
+  const routes = { ...DEFAULT_ROUTES, ...(like?.steps ?? {}) } as Record<string, { model: string; escalate?: string[] }>;
+  const models = [...new Set(SPEC_STEPS.flatMap((s) => (routes[s] ? [routes[s]!.model, ...(routes[s]!.escalate ?? [])] : [])))];
+  const unpriced = models.filter((m) => !hasPrice(m));
+  if (unpriced.length) console.log(`WARNING: no price for ${unpriced.join(", ")}: these are costed at the fallback rate ($10 in / $50 out per million tokens), so reported cost is too high and runs may stop at the $${maxCost} cap early. Pass --like <a project with prices:> or add prices to it.`);
+}
 
 if (fake) {
   const { setProviderFactory } = await import("../../src/stages/think.js");

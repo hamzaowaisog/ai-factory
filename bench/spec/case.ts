@@ -65,6 +65,34 @@ export function hits(m: Matcher, text: string): boolean {
   return m.every((g) => g.some((a) => alt(a, t)));
 }
 
+/** Where in `text` (lower-cased) a plain alternative or /regex/ first hits, or -1. */
+function where(a: string, text: string): number {
+  const re = a.length > 2 && a.startsWith("/") && a.endsWith("/") ? new RegExp(a.slice(1, -1), "i") : new RegExp(`(?<![a-z0-9])${esc(a.toLowerCase())}`);
+  return text.search(re);
+}
+
+/** A negation before the hit in the same clause: "no notification is sent", "cannot be undone", "shall not email". */
+const NEGATED_BEFORE = /(?<![a-z0-9])(no|not|never|without|cannot|can't|won't|isn't|aren't|doesn't|don't|nor|neither|none)(?![a-z0-9])|n't(?![a-z])/;
+/** Keeping something as it is, after the hit: "the default address shall remain unchanged". */
+const PRESERVED_AFTER = /(?<![a-z0-9])(remain|remains|stay|stays|unchanged|untouched|unaffected|not changed|not modified|not altered)(?![a-z0-9])/;
+/**
+ * Clauses: a negation or "remains unchanged" only covers its own clause ("fee is recalculated while the address
+ * stays"); an acceptance criterion's given / when / then are separate clauses ("Given no orders … then an email is sent").
+ */
+const clauses = (text: string) => text.toLowerCase().split(/[.;!?\n]+|,\s*|\s+(?:while|but|whereas|however|although|and then|when|then)\s+/).map((c) => c.trim()).filter(Boolean);
+
+/**
+ * Like `hits`, for things the spec must NOT do: a clause counts only when it says it, not when it rules it
+ * out. A matched clause is ignored if a negation comes before the hit or a "remains unchanged" comes after it.
+ */
+export function affirms(m: Matcher, text: string): boolean {
+  return clauses(text).some((c) => {
+    if (!hits(m, c)) return false;
+    const at = Math.min(...m.flatMap((g) => g.map((a) => where(a, c)).filter((i) => i >= 0)));
+    return !(NEGATED_BEFORE.test(c.slice(0, at)) || PRESERVED_AFTER.test(c.slice(at)));
+  });
+}
+
 /** How many alternatives hit, over all groups: ranks two facts that both match a question. */
 export function strength(m: Matcher, text: string): number {
   const t = text.toLowerCase();

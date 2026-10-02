@@ -9,11 +9,11 @@ import { Ledger } from "../../src/ledger/ledger.js";
 import { replay } from "../../src/ledger/state.js";
 import { setProviderFactory } from "../../src/stages/think.js";
 import { createRun, execute } from "../../src/stages/executor.js";
-import { EvalCase, hits, loadCases, loadRepos, looseMatchers, strength } from "./case.js";
+import { affirms, EvalCase, hits, loadCases, loadRepos, looseMatchers, strength } from "./case.js";
 import { prepareRepo, runCase, writeProject } from "./eval.js";
 import { fakeProvider, fakeSpans } from "./fake.js";
 import { answer, answerCard } from "./oracle.js";
-import { overall, scoreRun, summariseCase, type RunOutcome } from "./score.js";
+import { formatReport, overall, scoreRun, summariseCase, type RunOutcome } from "./score.js";
 
 const CASE = EvalCase.parse({
   id: "demo-cancel-reason", repo: "demo", kind: "feature",
@@ -60,6 +60,32 @@ const outcome = (o: Partial<RunOutcome>): RunOutcome => ({
   caseId: CASE.id, repeat: 1, status: "until", message: "", costUsd: 1, wallMs: 60_000, questions: [], assumptions: [], oracle: [], openFindings: [], repairs: 0, ...o,
 });
 const req = (ears: string, then: string) => ({ id: "REQ-1", ears, acceptance: [{ given: "g", when: "w", then, level: "api" }] });
+
+describe("scope creep reads a negation as ruling a thing out", () => {
+  const notif = [["notif", "email", "sms"]];
+  it("ignores a forbidden thing the sentence rules out", () => {
+    for (const t of ["No notification is sent to the buyer.", "The system shall not send an email.", "It cannot be undone; there is no email.",
+      "Cancelling happens without notifying anyone.", "Never sends an SMS."]) expect(affirms(notif, t), t).toBe(false);
+    expect(affirms([["undo", "restore"]], "The delete is permanent and cannot be undone.")).toBe(false);
+    expect(affirms([["default address", "address book"]], "The buyer's default address shall remain unchanged.")).toBe(false);
+    expect(affirms([["default address"]], "Other orders and the default address are unaffected.")).toBe(false);
+  });
+  it("still counts a forbidden thing the spec does say, even next to a negation elsewhere", () => {
+    expect(affirms(notif, "The system shall send an email to the buyer.")).toBe(true);
+    // the negation is in another clause: the fee change still counts
+    expect(affirms([["recalculat", "shipping fee"]], "The shipping fee is recalculated while the address stays unchanged.")).toBe(true);
+    expect(affirms(notif, "No refund is issued, and an email is sent to the buyer.")).toBe(true);
+    expect(affirms(notif, "Given no orders when the buyer asks then a notification is sent")).toBe(true);
+  });
+  it("scores a negated forbid as no creep, and keeps the requirements when an expectation is missed", () => {
+    const negated = scoreRun(CASE, outcome({ spec: { requirements: [req("When a patient cancels, the system shall require a reason and return it.", "the response is 400 and no email is sent")], nfrs: [] } }));
+    expect(negated.forbidHit).toEqual([]);
+    const missed = scoreRun(CASE, outcome({ spec: { requirements: [req("The system shall cancel the appointment.", "the row is gone")], nfrs: [] } }));
+    expect(missed.reqs).toEqual(["REQ-1: The system shall cancel the appointment."]);
+    const report = formatReport([summariseCase(CASE, [missed])], overall([summariseCase(CASE, [missed])]), [missed]);
+    expect(report).toContain("REQ-1: The system shall cancel the appointment.");
+  });
+});
 
 describe("scoring", () => {
   it("passes a run whose spec holds every expected behaviour and nothing forbidden", () => {
