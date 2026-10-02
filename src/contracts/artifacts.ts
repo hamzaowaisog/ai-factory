@@ -289,6 +289,13 @@ export const MockToast = z.object({
 });
 export type MockToast = z.infer<typeof MockToast>;
 
+/**
+ * The page's words in the product's other language: each text exactly as the page shows it in English ("from") and the same text in
+ * that language ("to"). The content is written in English (code reads its statuses, amounts and dates); the demo shows the translation.
+ */
+export const Translation = z.array(z.object({ from: Str(240), to: Str(240) })).max(160);
+export type Translation = z.infer<typeof Translation>;
+
 export const ScreenMock = z.object({
   title: Str(60), subtitle: Str(120).optional(),
   blocks: z.array(MockBlock).min(1).max(6),
@@ -304,10 +311,12 @@ export const ScreenMock = z.object({
   toasts: z.array(MockToast).max(3).optional(),
   /** the words a state shows: the empty page, an error, a success message, a validation message */
   copy: z.object({ emptyTitle: Str(60).optional(), emptyHint: Str(120).optional(), error: Str(140).optional(), success: Str(140).optional(), validation: Str(140).optional() }).default({}),
+  /** the page's words in the design's other language (see DesignLocale); absent for an English-only product */
+  tr: Translation.optional(),
 });
 export type ScreenMock = z.infer<typeof ScreenMock>;
 /** The same screen with fine-grained data: every block of the normal page, denser (more rows, points and items), plus the graphs and figures a real day of use would show. */
-export const ScreenMockFull = z.object({ title: Str(60), subtitle: Str(120).optional(), blocks: z.array(MockBlockFull).min(1).max(9), tabs: ScreenMock.shape.tabs, crumbs: ScreenMock.shape.crumbs, copy: ScreenMock.shape.copy });
+export const ScreenMockFull = z.object({ title: Str(60), subtitle: Str(120).optional(), blocks: z.array(MockBlockFull).min(1).max(9), tabs: ScreenMock.shape.tabs, crumbs: ScreenMock.shape.crumbs, copy: ScreenMock.shape.copy, tr: Translation.optional() });
 export type ScreenMockFull = z.infer<typeof ScreenMockFull>;
 
 /** Who or what the app is acting for, switched from the frame (a bank's accounts, a SaaS workspace, a group's companies or branches). */
@@ -334,6 +343,27 @@ export const DesignApp = z.object({
   switcher: Switcher.optional(),
 });
 export type DesignApp = z.infer<typeof DesignApp>;
+
+/**
+ * The languages and local formats of the product, from its requirements: the languages it is offered in (the first is the one it
+ * opens in; a right-to-left one such as Arabic or Urdu mirrors the page), the market whose formats it uses, its money, how dates are
+ * written and which digits a right-to-left language shows. Absent: English, left to right.
+ */
+const Lang = z.string().regex(/^[a-z]{2,3}(-[A-Z]{2})?$/);
+export const DesignLocale = z.object({
+  languages: z.array(Lang).min(1).max(2),
+  /** ISO 3166 country code of the market: "PK", "AE", "SA", "US" */
+  region: z.string().regex(/^[A-Z]{2}$/),
+  /** ISO 4217 code of the money the product shows: "PKR", "AED" */
+  currency: z.string().regex(/^[A-Z]{3}$/),
+  /** how the sample content writes dates as numbers: 14/03/2027 (dmy), 03/14/2027 (mdy), 2027-03-14 (ymd) */
+  dates: z.enum(["dmy", "mdy", "ymd"]).default("dmy"),
+  /** the digits an Arabic-script language shows: latin 0-9 (most apps) or the script's own (٠١٢ in Arabic, ۰۱۲ in Urdu and Persian) */
+  digits: z.enum(["latin", "native"]).default("latin"),
+  /** words of the frame that no page carries, in the other language: navigation groups, app names, the switcher's names */
+  strings: Translation.optional(),
+});
+export type DesignLocale = z.infer<typeof DesignLocale>;
 
 /** The look the design step picks for the product: colours, light or dark, corners, motion. Drawn by the demo (code, no model). */
 const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
@@ -404,6 +434,8 @@ export const DesignBody = z.object({
   mapping: z.object({ unmappedReqs: z.array(Id), orphanScreens: z.array(Id) }),
   noScreen: z.array(z.object({ req: Id, reason: z.string() })).optional(),
   theme: DesignTheme.optional(),
+  /** the product's languages and local formats; absent, English left to right */
+  locale: DesignLocale.optional(),
   /** "repo": the existing app's tokens and components are the look (no theme drawn); "new": the theme is the new product's */
   themeSource: z.enum(["new", "repo"]).optional(),
   /** how many rejections this design already answers, and what each round changed (in the lead's terms) */

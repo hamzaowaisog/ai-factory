@@ -83,8 +83,12 @@ const P: Record<string, string> = {
 };
 
 export type IconName = keyof typeof P;
-export const icon = (name: string, cls = ""): string =>
-  P[name] ? `<svg viewBox="0 0 24 24" aria-hidden="true"${cls ? ` class="${cls}"` : ""}>${P[name]}</svg>` : "";
+// icons that point along the reading direction; a right-to-left page mirrors them (class "fl")
+const DIRECTED = new Set(["chevr", "chevl", "arrowr", "send", "logout"]);
+export const icon = (name: string, cls = ""): string => {
+  const c = [cls, DIRECTED.has(name) ? "fl" : ""].filter(Boolean).join(" ");
+  return P[name] ? `<svg viewBox="0 0 24 24" aria-hidden="true"${c ? ` class="${c}"` : ""}>${P[name]}</svg>` : "";
+};
 
 // first match wins, so the specific words come before the general ones
 const WORDS: [RegExp, IconName][] = [

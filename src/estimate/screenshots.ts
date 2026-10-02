@@ -139,6 +139,23 @@ async function walkDemo(demoFile: string, screens: ScreenShotInput[], outDir?: s
           await page.screenshot({ path: join(outDir, file), fullPage: true });
           shots.push({ file, screen: sc.title ?? `${sc.id} ${sc.route}`, state: st, viewport: vp });
         }
+        // a product in two languages: the page as it first shows, in the other one (mirrored when it reads right to left)
+        const other = (await page.evaluate(`(function(){var e=document.getElementById("i18n");var i=e&&JSON.parse(e.textContent);return i&&i.langs.length>1?i.labels[1]:""})()`)) as string;
+        if (!other) continue;
+        if (outDir && shots.length >= MAX_SHOTS) return { shots, issues, note: `stopped at ${MAX_SHOTS} screenshots` };
+        const st = `In ${other}`;
+        await page.locator(`#${sc.id.replace(/[^\w-]/g, "\\$&")} [data-state="0"]`).click();
+        await page.evaluate("window.__lang(1)");
+        await page.mouse.move(0, 0);
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.waitForTimeout(outDir ? 1600 : 150);
+        try { for (const f of (await page.evaluate(`${LAYOUT_CHECK}(${JSON.stringify(sc.id)})`)) as Omit<LayoutIssue, "screen" | "state" | "viewport">[]) issues.push({ ...f, screen: sc.title ?? `${sc.id} ${sc.route}`, state: st, viewport: vp }); } catch { /* not checked */ }
+        if (outDir) {
+          const file = `${slug(sc.id)}-${slug(st)}-${vp}.png`;
+          await page.screenshot({ path: join(outDir, file), fullPage: true });
+          shots.push({ file, screen: sc.title ?? `${sc.id} ${sc.route}`, state: st, viewport: vp });
+        }
+        await page.evaluate("window.__lang(0)");
       }
       await page.close();
     }

@@ -10,7 +10,7 @@ import { z } from "zod";
 import type { IntentBody, Spec } from "../contracts/index.js";
 import type { RunState } from "../ledger/state.js";
 import type { DesignInventory } from "../design/inventory.js";
-import { DesignApp, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
+import { DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
 import { header, readOutput, requireOutput, type StepDef } from "./framework.js";
 import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
@@ -19,6 +19,7 @@ import { ensureMeasured } from "../design/refs/measure.js";
 import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } from "../design/looks.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
 import { buildDemo, demoStates } from "../estimate/demo.js";
+import { localeFit } from "../estimate/locale.js";
 import { checkDemoLayout, LAYOUT_FAULT, type LayoutIssue } from "../estimate/screenshots.js";
 import { decideRework, designIndex, roundOf, screenName, Triage, TRIAGE_RULES, type ReworkPlan, type ReworkRound } from "./design-rework.js";
 
@@ -48,6 +49,8 @@ export const DesignOut = z.object({
   switcher: Switcher.optional(),
   /** the look of the product: chosen from what the requirements say it is and who uses it */
   theme: DesignTheme.optional(),
+  /** the languages the product is offered in and its local formats, when the requirements name them */
+  locale: DesignLocale.optional(),
   /** requirements that need no screen (an API rule, a job) and why */
   noScreen: z.array(z.object({ req: z.string(), reason: z.string().min(1) })).default([]),
 });
@@ -86,6 +89,8 @@ const RULES = `You are a principal UI/UX engineer with fifteen years shipping co
   imagery: the light of drawn pictures on cards, matched to the brand's mood: "day" (fresh, clear), "golden" (warm, hospitality, food), "dusk" (premium, nightlife), "mixed" (varied listings), or "icons" (icon tiles where a photo would be fake, such as B2B items, documents or services).
 - NAVIGATION. In a sidebar or drawer app with six or more sections, give each screen a "group" (two to four groups, such as Money, Cards, Settings) so the menu reads in sections; otherwise leave groups out. When the user acts for one of several accounts, workspaces, companies, branches or profiles (a business with two companies, a SaaS user in several workspaces, a family's profiles), add a "switcher": its kind, the current one, an optional meta line (a plan, a role) and one to four others. It sits in the frame (the sidebar's top, else the top bar).
 - APPS. When the requirements describe more than one app (a customer phone app and an admin portal, a driver app and a dispatch console), return "apps": each with an id (lowercase, such as "customer" or "admin"), a name, its device ("web" or "phone"), its own shell (as above, chosen for that app's users and device), who uses it and its own "switcher" when it has one; and give every screen the "app" it belongs to. The apps share the one theme: they are one product. A product with one app leaves "apps" out.
+- LANGUAGES. When the requirements name a language other than English, right to left, or a product in two languages (Urdu and English, Arabic and English), return "locale": "languages" the product is offered in, the one it opens in first (at most two; with two, one is "en"); "region" (the market, ISO code such as PK, AE, SA); "currency" (ISO code, such as PKR); "dates" (the market's order: "dmy", "mdy" or "ymd"); "digits" ("native" when the market writes numbers in its script's own digits, as in Saudi Arabia, else "latin"); "strings" the frame's words that no page carries (navigation group names, app names, the switcher's names) in the other language. Otherwise leave "locale" out.
+  The demo shows each page in either language, mirrored for a right-to-left one (Arabic, Urdu, Persian, Hebrew), with the market's first weekday and weekend; the build gets the same.
 - MOCK CONTENT. For every screen also give "mock": what the page shows, as a picture to react to, not a spec.
   Take every noun from the requirements' own domain: its entities, roles, statuses, units, currencies, places, names and formats. Make the sample data believable and varied (different lengths, several statuses, plausible dates and amounts that agree with each other). Never "Lorem ipsum", "Item 1", "Column A", "Test User" or "Sample".
   "title" and "subtitle" of the page; "crumbs" when the page sits under others (the trail above it, outermost first: "Accounts", "Savings ··4821"; a phone shows a back button instead); "tabs" when one record or area is seen several ways on the same page (Overview, Activity, Documents; the first is the one drawn), never as a stand-in for pages of their own; "blocks" in page order (2 to 5), each one of: stats (label, value, delta), filters (search placeholder, chips that narrow what is shown, and "segments" that switch how it is shown, such as List/Map or Day/Week/Month), table (columns, 4 to 6 rows of cells, statusColumn = index of the status column; "sortBy" (a column index) and "sortDir" when people sort it; "selectable" and "bulk" (what can be done to the ticked rows at once: "Export", "Mark paid") when people act on several rows together), form (fields with label, kind, placeholder or value, options; the submit label; kinds: text, select, date, textarea, toggle, radio (one of 2 to 5 options shown at once), checkbox (several options; value lists the ticked ones, comma-separated), number, currency (value with its code: "PKR 25,000"), otp (a one-time code), phone (value with its country code: "+92 300 1234567"), search (a select typed into, for long lists), slider (options are the two ends: "0 km", "50 km"), card (card number, expiry and code; never a real number); pick the kind the requirement's input is, not text for everything), chart (kind, title, labelled points, and "ranges" such as 7D/30D/1Y when the requirements let the period be changed; kinds: bar (amounts per period, 5 to 8 points), line (a level over time, 5 to 8 points), stacked (bars split into 2 to 4 "series", each point's "parts" in series order: revenue by channel per month), donut (shares of a whole, 2 to 6 points: spend by category), progress (1 to 4 goals, each value a percent: course completion, savings goals), gauge (one reading against its scale: one point, "max" the top of the scale, "unit": a credit score, a fuel level); pick the kind the requirement's numbers are), cards (title, meta, badge; visual true for things people choose by picture, like products, places, listings), carousel (slides seen one at a time, each title, meta, badge, cta: style "promo" for offers, announcements or onboarding on the brand colour, "media" for a row of things chosen by picture; only where the requirements show a few featured things in turn, never as a stand-in for a list), list (title, meta), accordion (sections opened one at a time, each title and body: questions and answers, a policy's sections, settings groups; never to hide the page's main content), steps (a progress or checkout path, current index), timeline (time, title, status done/now/next: tracking, history, itinerary), detail (a record's labelled facts; style "pass" for a ticket, booking or boarding pass, with a lead value like the route or amount), calendar (a month to pick a day in: "month" such as "March 2027", "startsOn" the weekday of the 1st (0 Monday to 6 Sunday) and "days" as that real month has them, "marks" on days with a tone and an optional short label (a booking, a deadline), "off" for closed days, "picked" day, and "times" with "taken" and the picked "time" when a slot is booked on the day: appointments, classes, rentals), map (places on a map: "area", "pins" each label, meta, tone, and "route" true when they are stops in order: stores near you, a delivery's stops, properties), gallery (pictures of one thing: layout "hero" for a large one with thumbnails (a listing, a product), "grid" for a wall of equal tiles (a portfolio, a room's photos); each item a caption), upload (a drop zone: label, hint with types and size limit, and the files already added, each name, size and status done, uploading with progress, or failed), chat (a conversation: "with" whom, meta such as "Online" or their role, "messages" from me or them with times, up to 4 "quick" replies: support, a driver, a tutor), kanban (work moving through stages: 2 to 5 "columns" each with a title and cards (title, meta such as "Sara Khan · Due Fri", badge)), plans (pricing: 2 to 4 items, each name, price, "per" (the unit, such as "/ month"), blurb, features, cta, at most one "featured" with a badge; with two "periods" ("Monthly", "Yearly") every item has "alt", its price per the same unit billed in the second period, and "note" says the saving), reviews (a rating: score out of 5, count ("1,284 reviews"), "bars" the percent at 5 down to 1 stars, and reviews each name, rating, text, time, tag), notifications (what happened for the user: items each title, meta, time, tone, unread, and "group" such as Today or Earlier), results (search results with filters beside them: query, count ("214 stays"), sort options, "facets" each a title, kind check (2 to 6 options, the ticked ones in "picked") or range (two ends in options, "picked" the value), and items each title, meta, badge, price; "visual" when chosen by picture), compare (2 to 4 things side by side: items each name, meta, at most one featured; "rows" each a label and one value per item, "Yes"/"No" where the answer is yes or no; "cta" the button under each), receipt (a receipt or invoice as a document: title with its number, status, from, to, up to 4 "facts" (date, method), "lines" each item, qty, amount, and "totals" in order with the amount due last (Subtotal, a discount as negative, tax, Total), so the numbers add up; optional note), actions (button labels), text (body).
@@ -99,6 +104,8 @@ const RULES = `You are a principal UI/UX engineer with fifteen years shipping co
 - FULL DATA. For every screen with figures, tables, charts, cards, lists or timelines also give "mockFull": the same page (same title, same block types, same order) with fine-grained data, the way it looks on a busy real day. Tables 8 to 14 rows using every status the product has, with varied lengths, dates and amounts that agree with the stats above them; every chart with more points (up to 14) and a believable shape (a trend, a seasonal dip, a spike with a cause); cards, lists and timelines at their fullest; stats whose deltas are consistent with the charts. Densify only the block types the normal page already has, because they came from the requirements; add a second chart or a detail block only when a requirement itself has something worth plotting or reading closely. It is the screen as the business would show it in a sales demo.
   The loading state is drawn from the normal page: titles, labels, column headers, filters, buttons and navigation stay real, and only the data turns into skeleton shapes. So write the normal page with real headers and labels.
   "copy" holds the words for the states the screen has, in the product's own voice: emptyTitle and emptyHint (when it can be empty), error, success, validation (one plain sentence each).
+  With a "locale" whose languages are not only English, write all sample content in English (code reads its statuses, amounts and dates), numbers with 0-9, dates in the locale's order and amounts in its currency, and give each page "tr": every word the page shows (title, subtitle, crumbs, tabs, labels, field labels and options, buttons, column headers, chips, statuses, chart titles, its layers', toasts' and states' words) with "from" exactly as written on the page and "to" in the other language, in its own script as a native speaker of the market writes it, never transliterated. Names of people, places, brands and codes stay as written. "mockFull" gets its own "tr" for words it adds.
+
 - If design frames are listed in the request (F-1, F-2, ...), each image frame is one screen or one state of a screen: put its id in that screen's "frames". Do not leave an image frame unused and do not cite a frame that is not listed.
 - If an approved earlier design is given, this is a change to it: keep the id, route, file and sample content of every screen that does not change, give new screens the next free ids, and drop a screen only when the new requirements remove it. Keep its look ("theme") exactly unless a requirement asks for a new one: the same product keeps its colours from one version to the next.
 - If an existing-system summary is given, mark a screen "reuse" or "tweak" only when an existing page or shared component really covers it.
@@ -330,6 +337,7 @@ async function demoLayout(title: string, out: z.infer<typeof DesignOut>, spec: S
     writeFileSync(file, buildDemo({
       title, flow: out.flow, screens: out.screens, requirements: Object.fromEntries(spec.requirements.map((r) => [r.id, r.ears])), noScreen: out.noScreen,
       ...(out.theme ? { theme: out.theme } : {}), ...(out.apps?.length ? { apps: out.apps } : {}), ...(out.switcher ? { switcher: out.switcher } : {}),
+      ...(out.locale ? { locale: out.locale } : {}),
     }));
     return await checkDemoLayout(file, out.screens.map((sc) => ({ id: sc.id, route: sc.route, states: demoStates(sc), title: `"${sc.mock?.title ?? sc.route}" (${sc.id})` })));
   } catch { return undefined; } finally { rmSync(dir, { recursive: true, force: true }); }
@@ -386,7 +394,7 @@ export function designRejections(s: RunState): string[] {
 
 type ScreenT = z.infer<typeof DesignOut>["screens"][number];
 type Theme = z.infer<typeof DesignTheme>;
-interface DesignArt { skipped?: boolean; flow: string; screens: ScreenT[]; apps?: z.infer<typeof DesignApp>[]; switcher?: z.infer<typeof Switcher>; noScreen: { req: string; reason: string }[]; theme?: Theme; themeSource?: "new" | "repo"; mapping: { unmappedReqs: string[]; orphanScreens: string[] }; revision?: number; rework?: ReworkRound[]; figmaUrl?: string }
+interface DesignArt { skipped?: boolean; flow: string; screens: ScreenT[]; apps?: z.infer<typeof DesignApp>[]; switcher?: z.infer<typeof Switcher>; locale?: DesignLocale; noScreen: { req: string; reason: string }[]; theme?: Theme; themeSource?: "new" | "repo"; mapping: { unmappedReqs: string[]; orphanScreens: string[] }; revision?: number; rework?: ReworkRound[]; figmaUrl?: string }
 
 const cut = (from: string, to: string): string => RULES.slice(RULES.indexOf(from), RULES.indexOf(to));
 const ART_RULES = (): string => cut("- ART DIRECTION.", "- MOCK CONTENT.");
@@ -524,7 +532,7 @@ export function keepFine(out: z.infer<typeof DesignOut>, fine: string[], prev: D
 }
 
 export const designStep: StepDef = {
-  key: "design", stage: "design", templateVersion: "17",
+  key: "design", stage: "design", templateVersion: "18",
   inputs: (s, l) => {
     if (s.steps.get("specify")?.status !== "completed" || s.steps.get("intake")?.status !== "completed") return undefined;
     const ui = !!l.getJson<Intent>(s.steps.get("intake")!.outputs[0]!)?.touchesUi;
@@ -538,7 +546,7 @@ export const designStep: StepDef = {
     const inv = readOutput<DesignInventory>(ctx.state, ctx.ledger, "ground", "design");
     const frames = listedFrames(ctx.state.info.request ?? "");
     const p = ctx.state.info.parent;
-    const earlier = p?.kind === "change" && p.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: unknown[]; theme?: Theme }>(p.designSha) : undefined;
+    const earlier = p?.kind === "change" && p.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: unknown[]; theme?: Theme; locale?: DesignLocale }>(p.designSha) : undefined;
     const reqText = spec.requirements.map((q) => q.ears).join("\n");
     const sentBack = designRejections(ctx.state).slice(0, MAX_DESIGN_REVISIONS);
     // a design that was sent back is fixed where the lead pointed, or redrawn when that is what the note needs
@@ -569,7 +577,7 @@ export const designStep: StepDef = {
         S.template("tpl", RULES),
         ...(hasExistingLook(inv) ? [S.template("existing-rules", EXISTING_RULES)] : []),
         S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
-        ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens, ...(earlier.theme ? { theme: earlier.theme } : {}) })] : []),
+        ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens, ...(earlier.theme ? { theme: earlier.theme } : {}), ...(earlier.locale ? { locale: earlier.locale } : {}) })] : []),
         ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
         S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`),
         ...(recent.length ? [S.reference("recent-looks", lookBrief(recent, field))] : []),
@@ -589,6 +597,7 @@ export const designStep: StepDef = {
       ...map.unknownFrames.map((x) => failure("design-unknown-frame", `${x} is not one of the attached frames`)),
       ...map.unusedFrames.map((x) => failure("design-frame-unused", `attached frame ${x} is on no screen`)),
       ...designQuality(out, hasExistingLook(inv), refs, recent, !!earlier?.theme && JSON.stringify(earlier.theme) === JSON.stringify(out.theme)).map((q) => failure(q.check, q.message)),
+      ...localeFit(out, reqText).map((q) => failure(q.check, q.message)),
     ];
     if (bad.length) return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}` };
     // the drawn demo is measured in a browser: text past the frame, cut off or on top of other text goes back for one fix round
@@ -604,7 +613,7 @@ export const designStep: StepDef = {
     const artifact = {
       header: header(ctx.runId, "design", "design", "", r.model), flow: out.flow,
       screens: out.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: s.size, frames: s.frames, ...(s.mock ? { mock: s.mock } : {}), ...(s.mockFull ? { mockFull: s.mockFull } : {}), ...(s.app ? { app: s.app } : {}), ...(s.group ? { group: s.group } : {}) })),
-      ...(out.apps?.length ? { apps: out.apps } : {}), ...(out.switcher ? { switcher: out.switcher } : {}),
+      ...(out.apps?.length ? { apps: out.apps } : {}), ...(out.switcher ? { switcher: out.switcher } : {}), ...(out.locale ? { locale: out.locale } : {}),
       ...(prev ? { revision: sentBack.length, rework: [...(prev.rework ?? []), ...(again ? [again.round] : [])] } : {}),
       mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(hasExistingLook(inv) ? { themeSource: "repo" as const } : { themeSource: "new" as const, ...(out.theme ? { theme: out.theme } : {}) }),
     };

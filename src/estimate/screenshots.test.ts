@@ -70,4 +70,51 @@ describe("demo screenshots", () => {
       expect(found.map((f) => f.text).join(" ")).not.toMatch(/Shortened|scrolls sideways/);
     } finally { await browser.close(); }
   }, 30_000);
+  it.skipIf(!findChromium())("shows a page in the product's other language: translated, mirrored, in native digits, its links and toasts still working", async () => {
+    const tr = (o: Record<string, string>) => Object.entries(o).map(([from, to]) => ({ from, to }));
+    const mock = {
+      title: "Pay", copy: {}, blocks: [{ type: "stats", items: [{ label: "Balance", value: "SAR 1,250.50" }] }, { type: "actions", buttons: ["Pay now", "Details"] }],
+      links: [{ from: "Details", to: "S-2" }], toasts: [{ after: "Pay now", text: "Payment sent", tone: "ok" }],
+      tr: tr({ Pay: "ادفع", Balance: "الرصيد", "Pay now": "ادفع الآن", Details: "التفاصيل", "Payment sent": "تم الدفع" }),
+    };
+    const sc = [{ ...screens[0]!, states: [], mock }, { ...screens[1]!, mock: { title: "Done", copy: {}, blocks: [{ type: "text", body: "All paid" }], tr: tr({ Done: "تم" }) } }];
+    const d = dir(); const f = join(d, "demo.html");
+    writeFileSync(f, buildDemo({ title: "Pay", flow: "f", screens: sc as never, requirements: {}, noScreen: [], locale: { languages: ["en", "ar"], region: "SA", currency: "SAR", dates: "dmy", digits: "native" } as never }));
+    const { chromium } = await import("playwright-core");
+    const browser = await chromium.launch({ executablePath: findChromium()!, args: ["--no-sandbox"] });
+    try {
+      const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, reducedMotion: "reduce" });
+      const errors: string[] = []; page.on("pageerror", (e) => errors.push(String(e)));
+      await page.goto(`file://${f}#S-1`);
+      const canvas = page.locator("#S-1 .canvas");
+      expect(await canvas.getAttribute("dir")).toBe("ltr");
+      expect(await canvas.innerText()).not.toContain("الرصيد");
+      await page.locator("#S-1 [data-lang]").click();
+      expect([await canvas.getAttribute("dir"), await canvas.getAttribute("lang")]).toEqual(["rtl", "ar"]);
+      const text = await canvas.innerText();
+      expect(text).toContain("الرصيد");
+      expect(text).toContain("ادفع الآن");
+      // Arabic digits with Arabic separators; the address bar stays as written
+      expect(text).toContain("١٬٢٥٠٫٥٠");
+      expect(await page.locator("#S-1 .win").innerText()).toContain("/pay");
+      expect(await page.locator("#S-1 [data-lang] span").textContent()).toBe("English");
+      // the toast an action shows comes in the language too, mirrored with the page
+      await page.locator("#S-1 .pane:not([hidden]) button", { hasText: "ادفع الآن" }).click();
+      const toast = page.locator("#S-1 .toast:not(.pin)");
+      await toast.waitFor();
+      expect([await toast.innerText(), await toast.getAttribute("dir")]).toEqual(["تم الدفع", "rtl"]);
+      // a button found by its English label still leads where it did
+      await page.locator("#S-1 .pane:not([hidden]) button", { hasText: "التفاصيل" }).click();
+      await page.waitForFunction(() => location.hash === "#S-2");
+      expect(await page.locator("#S-2 .canvas").innerText()).toContain("تم");
+      // and back to English, word for word
+      await page.locator("#S-2 [data-lang]").click();
+      expect(await page.locator("#S-2 .canvas").innerText()).toContain("Done");
+      expect(errors).toEqual([]);
+      await page.close();
+    } finally { await browser.close(); }
+    // the screenshots add each page as it shows in the other language
+    const r = await captureDemo(f, sc.map((x) => ({ id: x.id, route: x.route, states: [] })), join(d, "shots"));
+    expect(r.shots.filter((x) => x.state === "In Arabic").map((x) => x.file).sort()).toEqual(["s-1-in-arabic-desktop.png", "s-1-in-arabic-phone.png", "s-2-in-arabic-desktop.png", "s-2-in-arabic-phone.png"]);
+  }, 60_000);
 });

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildDemo, demoStates, toastLabel } from "./demo.js";
 import { amountOf, designQuality, domainFit, layoutFixes } from "../stages/design.js";
-import { MockBlock } from "../contracts/artifacts.js";
+import { MockBlock, ScreenMock } from "../contracts/artifacts.js";
+import { englishName, isRtl, localeBrief, localeFit, nativeDigits, nativeName, pageLabels, weekend, weekStart } from "./locale.js";
 import { icon, iconFor, verbIcon } from "./icons.js";
 import { contrast, palette } from "./palette.js";
 import { scene, sceneKind } from "./scenes.js";
@@ -508,5 +509,137 @@ describe("domain components", () => {
     const board = blk({ type: "kanban", columns: [{ title: "To do", cards: [{ title: "Fix login" }] }, { title: "Done", cards: [] }] });
     const checks = designQuality({ ...base, screens: [{ id: "S-1", route: "/s", file: "a", reqs: ["R-1"], states: [], size: "new", frames: [], mock: { title: "Board", copy: {}, blocks: [board, blk({ type: "actions", buttons: ["Add"] })] }, mockFull: { title: "Board", copy: {}, blocks: [board] } }] } as never, {} as never);
     expect(checks.find((c) => c.check === "design-thin-full-mock")?.message).toMatch(/more cards/);
+  });
+});
+
+describe("languages and markets (right to left, bilingual, local formats)", () => {
+  const P = (m: object) => ScreenMock.parse(m);
+  const tr = (o: Record<string, string>) => Object.entries(o).map(([from, to]) => ({ from, to }));
+  const mock = (extra: object = {}) => P({
+    title: "Accounts", copy: {}, crumbs: ["Home"],
+    blocks: [
+      { type: "stats", items: [{ label: "Balance", value: "Rs 245,300" }, { label: "Bills due", value: "3" }] },
+      { type: "table", columns: ["Date", "Payee", "Amount", "Status"], statusColumn: 3, rows: [["12/03/2026", "K-Electric", "Rs 8,450", "Paid"], ["28/02/2026", "PTCL", "Rs 2,999", "Failed"]] },
+      { type: "calendar", month: "March 2026", startsOn: 6, days: 31, picked: 12 },
+      { type: "actions", buttons: ["Send money"] },
+    ],
+    tr: tr({ Accounts: "اکاؤنٹس", Home: "ہوم", Balance: "بیلنس", "Bills due": "واجب الادا بل", Date: "تاریخ", Payee: "وصول کنندہ", Amount: "رقم", Status: "حیثیت", Paid: "ادا شدہ", Failed: "ناکام", "March 2026": "مارچ 2026", "Send money": "رقم بھیجیں" }),
+    ...extra,
+  });
+  const screen = (m = mock(), id = "S-1") => ({ id, route: `/${id}`, file: "a.tsx", reqs: [], states: [], size: "new", frames: [], mock: m });
+  const urdu = { languages: ["ur", "en"], region: "PK", currency: "PKR", dates: "dmy", digits: "latin" } as const;
+  const fit = (loc: object | undefined, screens = [screen()], req = "The app shall be offered in Urdu and English.") => localeFit({ ...(loc ? { locale: loc as never } : {}), screens: screens as never }, req);
+
+  it("knows which languages read right to left, their names, digits and the market's week", () => {
+    expect(["ar", "ur", "fa", "he", "ar-SA"].every(isRtl)).toBe(true);
+    expect(["en", "fr", "hi", "tr"].some(isRtl)).toBe(false);
+    expect([nativeName("ur"), nativeName("ar"), englishName("ur")]).toEqual(["اردو", "العربية", "Urdu"]);
+    expect([nativeDigits("ar")[3], nativeDigits("ur")[3], nativeDigits("en")]).toEqual(["٣", "۳", ""]);
+    // Monday = 0: Pakistan and the Emirates start on Monday, the US and Saudi Arabia on Sunday, Egypt on Saturday
+    expect(["PK", "AE", "GB", "US", "SA", "EG"].map(weekStart)).toEqual([0, 0, 0, 6, 6, 5]);
+    expect([weekend("PK"), weekend("SA"), weekend("IR")]).toEqual([[5, 6], [4, 5], [4]]);
+  });
+
+  it("accepts a bilingual design whose pages are all translated, in the language's own letters", () => {
+    expect(fit(urdu)).toEqual([]);
+    // a product in English only needs no locale
+    expect(fit(undefined, [screen()], "The user shall pay a bill.")).toEqual([]);
+  });
+
+  it("asks for a locale when the requirements name a language, right to left or two languages", () => {
+    for (const req of ["The app shall be in Urdu.", "Screens shall support RTL layout.", "The portal shall be bilingual."]) {
+      const bad = fit(undefined, [screen()], req);
+      expect(bad).toHaveLength(1);
+      expect(bad[0]!.message).toMatch(/no "locale"/);
+    }
+  });
+
+  it("lists the words a page shows with no translation, and catches transliteration", () => {
+    const partial = fit(urdu, [screen(mock({ tr: tr({ Accounts: "اکاؤنٹس", Home: "ہوم" }) }))]);
+    expect(partial.map((b) => b.message).join(" ")).toMatch(/S-1 has no Urdu for "Balance", "Bills due", "Date"/);
+    const latin = fit(urdu, [screen(mock({ tr: mock().tr!.map((t) => ({ from: t.from, to: `${t.from}-o` })) }))]);
+    expect(latin.map((b) => b.message).join(" ")).toMatch(/not written in its own letters/);
+  });
+
+  it("checks the market's formats: two languages include English, digits 0-9, dates in order, amounts in the currency", () => {
+    expect(fit({ ...urdu, languages: ["ur", "ar"] }).map((b) => b.message).join(" ")).toMatch(/English as one of them/);
+    const eastern = mock(); (eastern.blocks[0] as { items: { value: string }[] }).items[1]!.value = "۳";
+    expect(fit(urdu, [screen(eastern)]).map((b) => b.message).join(" ")).toMatch(/Arabic or Persian digits/);
+    expect(fit({ ...urdu, dates: "mdy" }).map((b) => b.message).join(" ")).toMatch(/"28\/02\/2026" are not written month\/day\/year/);
+    expect(fit({ ...urdu, currency: "AED" }).map((b) => b.message).join(" ")).toMatch(/Most amounts .* are in PKR, but the product's money .* is AED/);
+  });
+
+  it("names every word of a page that needs a translation, and not its data", () => {
+    const words = pageLabels(mock());
+    expect(words).toEqual(expect.arrayContaining(["Accounts", "Home", "Balance", "Date", "Status", "Paid", "Failed", "Send money"]));
+    expect(words).not.toEqual(expect.arrayContaining(["K-Electric", "Rs 8,450", "12/03/2026"]));
+  });
+
+  const build = (locale?: object, region = "PK") => buildDemo({
+    title: "Sahulat", flow: "f", screens: [screen(), screen(mock({ title: "Book a visit", tr: tr({ "Book a visit": "ملاقات بک کریں" }) }), "S-2")] as never, requirements: {}, noScreen: [],
+    ...(locale ? { locale: { ...urdu, region, ...locale } as never } : {}),
+  });
+
+  it("draws the canvas in the language it opens in, with the words of every page and the frame's language button", () => {
+    const html = build({});
+    expect(html).toMatch(/<div class="canvas [^"]*" dir="rtl" lang="ur">/);
+    expect(html).toContain('data-lang aria-label="Language"');
+    expect(html).toMatch(/data-lang[^>]*>.*?<span>English<\/span><\/button>/);
+    const data = JSON.parse(html.match(/<script type="application\/json" id="i18n">(.*?)<\/script>/)![1]!);
+    expect(data.langs).toEqual(["ur", "en"]);
+    expect(data.dirs).toEqual(["rtl", "ltr"]);
+    expect(data.labels).toEqual(["Urdu", "English"]);
+    expect(data.pages["S-1"].Balance).toBe("بیلنس");
+    // the demo's own words come built in, and every page's title is known to the frame (its navigation names other pages)
+    expect(data.words.Search).toBe("تلاش");
+    expect(data.words["Book a visit"]).toBe("ملاقات بک کریں");
+    // opening in English shows the canvas left to right
+    expect(build({ languages: ["en", "ur"] })).toMatch(/<div class="canvas [^"]*" dir="ltr" lang="en">/);
+  });
+
+  it("keeps a page in English only free of the language layer", () => {
+    const html = build();
+    expect(html).not.toContain('id="i18n"');
+    expect(html).not.toContain("data-lang aria-label");
+    expect(html).not.toMatch(/<div class="canvas [^"]*" dir=/);
+  });
+
+  it("cannot break out of the language data with a translation", () => {
+    const evil = "</script><script>alert(1)</script>";
+    const html = buildDemo({ title: "X", flow: "f", screens: [screen(mock({ tr: tr({ Accounts: evil }) }))] as never, requirements: {}, noScreen: [], locale: urdu as never });
+    expect(html).not.toContain(evil);
+    expect(html).toContain("\\u003c/script>");
+  });
+
+  it("starts the calendar's week on the market's first day and shades its weekend", () => {
+    const head = (html: string) => [...html.matchAll(/<span class="cwd">(\w+)<\/span>/g)].slice(0, 7).map((m) => m[1]);
+    const pads = (html: string) => (html.match(/<div class="cgrid[^"]*">(?:<span class="cwd">\w+<\/span>)+((?:<span class="cd pad"><\/span>)*)/)![1]!.match(/pad/g) ?? []).length;
+    const weekendDays = (html: string) => [...html.matchAll(/class="cd[^"]*\bwe\b[^"]*" data-day="(\d+)"/g)].map((m) => +m[1]!).slice(0, 2);
+    // March 2026 starts on a Sunday (startsOn 6)
+    const pk = build({});
+    expect(head(pk)).toEqual(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]);
+    expect(pads(pk)).toBe(6);
+    expect(weekendDays(pk)).toEqual([1, 7]);
+    const sa = build({ languages: ["ar", "en"] }, "SA");
+    expect(head(sa)).toEqual(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]);
+    expect(pads(sa)).toBe(0);
+    expect(weekendDays(sa)).toEqual([6, 7]);
+  });
+
+  it("mirrors through logical properties and flips the icons that point along the reading", () => {
+    const css = build({}).match(/<style>([\s\S]*?)<\/style>/)![1]!;
+    expect(css).not.toMatch(/[{;\s](?:margin|padding|border)-(?:left|right)\b/);
+    expect(css).not.toMatch(/text-align:(?:left|right)/);
+    expect(css).toContain("[dir=rtl] svg.fl{scale:-1 1}");
+    expect(icon("chevr")).toContain('class="fl"');
+    expect(icon("send", "x")).toContain('class="x fl"');
+    expect(icon("bell")).not.toContain("class=");
+  });
+
+  it("tells the build the languages, direction and market formats", () => {
+    const b = localeBrief(urdu as never);
+    expect(b).toMatchObject({ opensIn: "ur", region: "PK", currency: "PKR", weekStartsOn: "Monday", weekend: ["Saturday", "Sunday"] });
+    expect(b.languages).toEqual([{ code: "ur", name: "Urdu", direction: "rtl" }, { code: "en", name: "English", direction: "ltr" }]);
+    expect(String(b.note)).toMatch(/dir="rtl".*logical properties.*Intl\.NumberFormat\("ur-PK", \{ style: "currency", currency: "PKR" \}\)/);
   });
 });

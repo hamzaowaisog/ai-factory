@@ -1,14 +1,15 @@
 // The link between the approved design and the build (docs/estimates-design.md, "Design baseline"). The estimate counts
 // screens; this makes the build deliver the ones that were approved: the plan task that builds a screen must be allowed
 // to touch the screen's file (gate B7), and the implementer is shown the approved screen (route, states, sample content,
-// and the look: the new product's theme, or "use the existing app's tokens and components").
+// the look: the new product's theme, or "use the existing app's tokens and components", and its languages).
 import type { Breakdown } from "../contracts/index.js";
-import type { DesignTheme } from "../contracts/artifacts.js";
+import type { DesignLocale, DesignTheme } from "../contracts/artifacts.js";
+import { localeBrief } from "./locale.js";
 import { designTokens } from "./tokens.js";
 import { matchesAny } from "../util/glob.js";
 
 export interface ApprovedScreen { id: string; route: string; file: string; reqs: string[]; states?: string[]; size?: string; mock?: unknown; frames?: string[] }
-export interface ApprovedDesign { skipped?: boolean; flow?: string; screens: ApprovedScreen[]; theme?: unknown; themeSource?: "new" | "repo" }
+export interface ApprovedDesign { skipped?: boolean; flow?: string; screens: ApprovedScreen[]; theme?: unknown; themeSource?: "new" | "repo"; locale?: unknown }
 
 /** The approved screen an estimate task builds, if any. */
 export function screenFor(breakdown: Pick<Breakdown, "tasks">, design: ApprovedDesign | undefined, estimateTaskId: string | undefined): ApprovedScreen | undefined {
@@ -36,6 +37,7 @@ export function screenBrief(design: ApprovedDesign, s: ApprovedScreen): Record<s
       : design.theme,
     ...(tokens ? { tokens, tokensNote: TOKENS_NOTE } : {}),
     ...(s.mock ? { sampleContent: s.mock } : {}),
+    ...(design.locale && typeof design.locale === "object" ? { languages: localeBrief(design.locale as DesignLocale) } : {}),
   };
 }
 

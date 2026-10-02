@@ -101,6 +101,7 @@ export const designBaselineStep: StepDef = {
     const html = buildDemo({
       title: ctx.state.info.estimate?.projectName ?? ctx.runId, flow: d.flow, screens: d.screens.map((s) => ({ ...s, states: s.states ?? [], size: s.size ?? "new", frames: s.frames ?? [] })),
       requirements: Object.fromEntries(spec.requirements.map((r) => [r.id, r.ears])), noScreen: d.noScreen ?? [], frames, ...(d.theme ? { theme: d.theme } : {}), ...(d.apps?.length ? { apps: d.apps } : {}),
+      ...(d.switcher ? { switcher: d.switcher } : {}), ...(d.locale ? { locale: d.locale } : {}),
     });
     const demoSha = ctx.ledger.putArtifact(html);
     const demoFile = join(ctx.ledger.dir, "design-demo.html");
