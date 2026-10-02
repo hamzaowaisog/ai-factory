@@ -164,7 +164,7 @@ describe("carousel", () => {
   const html = (style: "promo" | "media") => buildDemo({ title: "Pay", flow: "f", screens: [{ id: "S-1", route: "/home", file: "a.tsx", reqs: [], states: ["loading"], size: "new", frames: [], mock: { title: "Home", copy: {}, blocks: [car(style), { type: "text", body: "x" }] } }] as never, requirements: {}, noScreen: [], theme: { mood: "x", brand: "#0B5CAD" } as never });
   it("draws slides with arrows and dots, one picture each", () => {
     const h = html("promo");
-    expect(h).toContain('<div class="car k-promo" role="region" aria-roledescription="carousel" aria-label="Offers for you">');
+    expect(h).toContain('<div data-b="carousel" class="car k-promo" role="region" aria-roledescription="carousel" aria-label="Offers for you">');
     expect(h.match(/aria-roledescription="slide"/g)?.length).toBe(3);
     expect(h).toContain('data-car="1" aria-label="Next slide"');
     expect(h.match(/<div class="dots"[^>]*>(<i[^>]*><\/i>)+<\/div>/)?.[0].match(/<i/g)?.length).toBe(3);
@@ -254,7 +254,7 @@ describe("controls, groups and switcher", () => {
     expect(h).not.toMatch(/svg\.lc-[nw]\{display:none\}/);
   });
   it("draws an accordion with the first answer open", () => {
-    expect(html()).toContain('<div class="card acc"><h4>Common questions</h4><details open><summary><span>When are carriers paid?</span>');
+    expect(html()).toContain('<div data-b="accordion" class="card acc"><h4>Common questions</h4><details open><summary><span>When are carriers paid?</span>');
   });
   it("groups the menu and puts the switcher under the brand", () => {
     const h = html();

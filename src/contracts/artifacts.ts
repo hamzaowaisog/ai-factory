@@ -451,6 +451,8 @@ export const DesignBody = z.object({
   figmaUrl: z.string().optional(),
   /** how each design reference was used, or why it was set aside */
   refUse: z.array(z.object({ id: z.string(), use: z.enum(["used", "set-aside"]), how: z.string() })).optional(),
+  /** screens that still differ from a layout reference they cite after the fix round (code-measured on the drawn demo) */
+  refLayout: z.array(z.object({ screen: z.string(), ref: z.string(), nav: z.string().optional(), missing: z.array(z.string()) })).optional(),
 });
 export const Design = withHeader(DesignBody.shape);
 

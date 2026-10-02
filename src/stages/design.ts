@@ -13,7 +13,7 @@ import type { DesignInventory } from "../design/inventory.js";
 import { DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
 import { header, outputOf, type StepDef } from "./framework.js";
-import { lookFromRefs, lookRefs, matchFamilies, refBrief as clientRefBrief, refFit, refNotes, REF_RULES, type RefUse } from "../design/ref-checks.js";
+import { lookFromRefs, lookRefs, matchFamilies, refBrief as clientRefBrief, refFit, refLayoutFixes, refLayoutGaps, refNotes, REF_RULES, type RefLayoutGap, type RefUse } from "../design/ref-checks.js";
 import type { DesignRefsArt } from "./design-refs.js";
 import { ESTIMATE_SOURCES, intentOf, inventoryNamed, inventoryOf, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
 import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
@@ -23,7 +23,7 @@ import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } f
 import { S, think, UNTRUSTED_IMAGE_NOTE, UNTRUSTED_NOTE } from "./think.js";
 import { buildDemo, demoStates } from "../estimate/demo.js";
 import { localeFit } from "../estimate/locale.js";
-import { checkDemoLayout, LAYOUT_FAULT, type LayoutIssue } from "../estimate/screenshots.js";
+import { checkDemoLayout, LAYOUT_FAULT, readDemoLayout, type LayoutIssue, type RenderedLayout } from "../estimate/screenshots.js";
 import { decideRework, designIndex, roundOf, screenName, Triage, TRIAGE_RULES, type ReworkPlan, type ReworkRound } from "./design-rework.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -347,8 +347,11 @@ export function layoutFixes(issues: LayoutIssue[]): { check: string; message: st
   return [...by.values()].slice(0, 10).map(({ i, where }) => ({ check: "design-layout", message: `On ${i.screen}, "${i.text}" ${LAYOUT_FAULT[i.kind]} in the drawn demo (${[...where].slice(0, 3).join("; ")}). Shorten it (labels, cells, chips and buttons must fit a phone: about 20 characters), split it, or choose a block that gives it room.` }));
 }
 
-/** Draws the demo of a design and measures its text in a browser. Undefined when it could not be checked. */
-async function demoLayout(title: string, out: z.infer<typeof DesignOut>, spec: Spec): Promise<LayoutIssue[] | undefined> {
+/**
+ * Draws the demo of a design and measures it in a browser: its text (`issues`), and, for the screens listed in `read`, what each
+ * shows as it first opens (`rendered`, for the reference layout check). Either is undefined when it could not be checked.
+ */
+async function demoLayout(title: string, out: z.infer<typeof DesignOut>, spec: Spec, read: string[] = []): Promise<{ issues?: LayoutIssue[]; rendered?: Record<string, RenderedLayout> }> {
   const dir = mkdtempSync(join(tmpdir(), "factory-design-"));
   try {
     const file = join(dir, "demo.html");
@@ -357,8 +360,10 @@ async function demoLayout(title: string, out: z.infer<typeof DesignOut>, spec: S
       ...(out.theme ? { theme: out.theme } : {}), ...(out.apps?.length ? { apps: out.apps } : {}), ...(out.switcher ? { switcher: out.switcher } : {}),
       ...(out.locale ? { locale: out.locale } : {}),
     }));
-    return await checkDemoLayout(file, out.screens.map((sc) => ({ id: sc.id, route: sc.route, states: demoStates(sc), title: `"${sc.mock?.title ?? sc.route}" (${sc.id})` })));
-  } catch { return undefined; } finally { rmSync(dir, { recursive: true, force: true }); }
+    const issues = await checkDemoLayout(file, out.screens.map((sc) => ({ id: sc.id, route: sc.route, states: demoStates(sc), title: `"${sc.mock?.title ?? sc.route}" (${sc.id})` }))).catch(() => undefined);
+    const rendered = read.length ? await readDemoLayout(file, read) : undefined;
+    return { ...(issues ? { issues } : {}), ...(rendered ? { rendered } : {}) };
+  } catch { return {}; } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
 /** The design frames listed in the request text (`- F-1 home.png`), in order. JSON exports are data, not screens. */
@@ -655,20 +660,27 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         ...modeFit(out, reqText).map((q) => failure(q.check, q.message)),
       ];
       if (bad.length) return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}` };
-      // the drawn demo is measured in a browser: text past the frame, cut off or on top of other text goes back for one fix round
-      // (after that round what is left is listed on the card); no browser, no check
-      if (!ctx.priorFailures.some((f) => f.check === "design-layout")) {
-        const issues = await demoLayout(ctx.state.info.estimate?.projectName ?? ctx.runId, out, spec);
-        if (issues?.length) {
-          ctx.log(`design: ${issues.length} layout problem(s) in the drawn demo, sent back for one fix`);
-          const fixes = layoutFixes(issues).map((q) => failure(q.check, q.message));
-          return { kind: "fail", category: "other", failures: fixes, signature: "design:design-layout" };
+      // the drawn demo is measured in a browser: text past the frame, cut off or on top of other text, and (with layout references)
+      // a screen that does not show its reference's navigation or regions, go back for one fix round together (after that round
+      // the text problems are listed on the card and the reference gaps kept on the design); no browser, no check
+      const layoutRefs = reading ? out.screens.filter((sc) => sc.refs?.some((id) => reading.refs.some((r) => r.id === id && r.role === "layout"))) : [];
+      const fixRound = ctx.priorFailures.some((f) => f.check === "design-layout" || f.check === "design-ref-layout");
+      let refGaps: RefLayoutGap[] = [];
+      if (!fixRound || layoutRefs.length) {
+        const drawn = await demoLayout(ctx.state.info.estimate?.projectName ?? ctx.runId, out, spec, layoutRefs.map((sc) => sc.id));
+        refGaps = reading && drawn.rendered ? refLayoutGaps(layoutRefs.map((sc) => ({ id: sc.id, refs: sc.refs, title: `${sc.mock?.title ?? ""} ${sc.route}` })), reading, drawn.rendered, out.refUse) : [];
+        const issues = fixRound ? [] : drawn.issues ?? [];
+        if (!fixRound && (issues.length || refGaps.length)) {
+          ctx.log(`design: ${issues.length} layout problem(s) and ${refGaps.length} reference layout gap(s) in the drawn demo, sent back for one fix`);
+          const fixes = [...layoutFixes(issues), ...(reading ? refLayoutFixes(refGaps, reading) : [])].map((q) => failure(q.check, q.message));
+          return { kind: "fail", category: "other", failures: fixes, signature: `design:${[...new Set(fixes.map((f) => f.check))].sort().join(",")}` };
         }
+        if (refGaps.length) ctx.log(`design: ${refGaps.length} reference layout gap(s) left after the fix round, kept on the design`);
       }
       const artifact = {
         header: header(ctx.runId, "design", "design", "", r.model), flow: out.flow,
         screens: out.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: s.size, frames: s.frames, ...(s.mock ? { mock: s.mock } : {}), ...(s.mockFull ? { mockFull: s.mockFull } : {}), ...(s.app ? { app: s.app } : {}), ...(s.group ? { group: s.group } : {}), ...(reading && s.refs?.length ? { refs: s.refs } : {}) })),
-        ...(reading && out.refUse?.length ? { refUse: out.refUse } : {}),
+        ...(reading && out.refUse?.length ? { refUse: out.refUse } : {}), ...(refGaps.length ? { refLayout: refGaps } : {}),
         ...(out.apps?.length ? { apps: out.apps } : {}), ...(out.switcher ? { switcher: out.switcher } : {}), ...(out.locale ? { locale: out.locale } : {}),
         ...(prev ? { revision: sentBack.length, rework: [...(prev.rework ?? []), ...(again ? [again.round] : [])] } : {}),
         mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(hasExistingLook(inv) ? { themeSource: "repo" as const } : { themeSource: "new" as const, ...(out.theme ? { theme: withFamilies(out.theme, reading, out.refUse) } : {}) }),

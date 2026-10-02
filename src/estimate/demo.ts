@@ -446,6 +446,9 @@ function receiptBlock(b: Block<"receipt">): string {
 }
 
 /** One block drawn from its sample content; `page` is the page's own words, which pick the pictures on cards. */
+/** A drawn block marked with its type (`data-b`), so the rendered page can be read back for the reference layout check. */
+const marked = (html: string, type: string): string => html.replace(/^<(\w+)/, `<$1 data-b="${type}"`);
+
 function renderBlock(b: MockBlock, k: StateKind, page = ""): string {
   switch (b.type) {
     case "stats":
@@ -624,7 +627,7 @@ export function compose(blocks: MockBlock[], draw: (b: MockBlock) => string): { 
   const out: string[] = [];
   for (let i = 0; i < list.length; i++) {
     const b = list[i]!, nx = list[i + 1];
-    if (b.type === "filters" && nx?.type === "table") { out.push(draw(nx).replace('<div class="card tbl">', `<div class="card tbl"><div class="toolbar">${draw(b)}</div>`)); i++; continue; }
+    if (b.type === "filters" && nx?.type === "table") { out.push(draw(nx).replace(/^(<div[^>]* class="card tbl"[^>]*>)/, (m) => `${m}<div class="toolbar">${draw(b)}</div>`)); i++; continue; }
     const pair = nx ? pairOf(b, nx) : "";
     if (pair) { out.push(`<div class="split ${pair}">${draw(b)}${draw(nx!)}</div>`); i++; continue; }
     out.push(draw(b));
@@ -644,7 +647,7 @@ function renderMock(m: ScreenMock, k: StateKind, state: string, open = -1, toast
   const c = m.copy;
   const words = pageWords(m);
   const keep = (b: MockBlock) => b.type === "filters" || b.type === "actions" || b.type === "stats" || b.type === "text";
-  const normal = compose(m.blocks, (b) => renderBlock(b, k, words));
+  const normal = compose(m.blocks, (b) => marked(renderBlock(b, k, words), b.type));
   // a trail of the pages above this one (a narrow screen shows only a back link to the nearest), and the page's own tabs under its title
   const crumbs = m.crumbs?.length ? `<nav class="crumbs" aria-label="Breadcrumb"><span class="back">${icon("chevl")}${esc(m.crumbs[m.crumbs.length - 1]!)}</span>${m.crumbs.map((c) => `<span class="c">${esc(c)}</span>${icon("chevr")}`).join("")}<span aria-current="page">${esc(m.title)}</span></nav>` : "";
   const tabs = m.tabs?.length ? `<div class="ptabs" role="tablist">${m.tabs.map((t, i) => `<button type="button" role="tab" aria-selected="${i === 0}"${i === 0 ? ' class="on"' : ""}>${esc(t)}</button>`).join("")}</div>` : "";

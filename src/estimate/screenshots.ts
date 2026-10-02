@@ -99,6 +99,53 @@ export const LAYOUT_CHECK = String.raw`(function(id){
     if(w>2&&h>2&&w*h>0.2*Math.min(a.r.width*a.r.height,q.r.width*q.r.height))add("overlap",a.text+" / "+q.text)}
   return out})`;
 
+/** What a screen's page shows as it first opens, read in the browser for the reference layout check (src/design/ref-checks.ts). */
+export interface RenderedLayout { frame: string; nav: string[]; blocks: string[] }
+
+/**
+ * Run in the page: the frame the screen is drawn in (its shell), the navigation a person sees (rail, top links, tab bar, menu
+ * button, page tabs, breadcrumbs) and the page's blocks top to bottom. Plain JS, as it is sent to the browser.
+ */
+export const REGION_READ = String.raw`(function(id){
+  var sec=document.getElementById(id),canvas=sec&&sec.querySelector(".canvas");if(!canvas)return null;
+  var pane=canvas.querySelector(".pane:not([hidden])")||canvas;
+  function vis(e){if(!e)return false;var r=e.getBoundingClientRect();if(r.width<2||r.height<2)return false;for(var x=e;x&&x!==document.body;x=x.parentElement){var c=getComputedStyle(x);if(c.display==="none"||c.visibility==="hidden")return false}return true}
+  function any(sel,root){var l=(root||canvas).querySelectorAll(sel);for(var i=0;i<l.length;i++)if(vis(l[i]))return true;return false}
+  var m=/\bsh-(\w+)/.exec(canvas.className),nav=[];
+  if(any(".rail"))nav.push("rail");if(any(".tnav a"))nav.push("top-links");if(any(".tabbar"))nav.push("tab-bar");if(any("[data-drawer]"))nav.push("menu-button");
+  if(any(".ptabs",pane))nav.push("page-tabs");if(any(".crumbs",pane))nav.push("crumbs");
+  var bl=[].slice.call(pane.querySelectorAll("[data-b]")).filter(function(e){return vis(e)&&!e.closest(".ovl,.preview")});
+  bl.sort(function(a,b){return a.getBoundingClientRect().top-b.getBoundingClientRect().top});
+  var blocks=[];bl.forEach(function(e){var t=e.getAttribute("data-b");if(blocks.indexOf(t)<0)blocks.push(t)});
+  return {frame:m?m[1]:"",nav:nav,blocks:blocks}})`;
+
+/**
+ * Each listed screen as it first opens, read at desktop width (a phone app is drawn in its phone frame there). Fast: motion
+ * reduced, nothing saved. Undefined when it could not run (no browser, switched off, a failure).
+ */
+export async function readDemoLayout(demoFile: string, ids: string[]): Promise<Record<string, RenderedLayout> | undefined> {
+  if (process.env.FACTORY_NO_SCREENSHOTS || process.env.FACTORY_DESIGN_LAYOUT_CHECK === "0" || !ids.length) return undefined;
+  const exe = findChromium();
+  if (!exe) return undefined;
+  let browser: { close(): Promise<void>; newPage(o: object): Promise<any> } | undefined;
+  try {
+    const { chromium } = await import("playwright-core");
+    browser = await chromium.launch({ executablePath: exe, args: ["--no-sandbox"], timeout: 30_000 });
+    const page = await browser.newPage({ viewport: VIEWPORTS.desktop, reducedMotion: "reduce" });
+    page.setDefaultTimeout(10_000);
+    const url = pathToFileURL(demoFile).href, out: Record<string, RenderedLayout> = {};
+    for (const id of ids) {
+      await page.goto(`${url}#${encodeURIComponent(id)}`);
+      await page.waitForTimeout(150);
+      const r = (await page.evaluate(`${REGION_READ}(${JSON.stringify(id)})`)) as RenderedLayout | null;
+      if (r) out[id] = r;
+    }
+    return out;
+  } catch { return undefined; } finally {
+    try { await browser?.close(); } catch { /* already gone */ }
+  }
+}
+
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "state";
 
 /** Screenshot the demo page. `outDir` gets `<screen>-<state>-<viewport>.png`. Never throws. */

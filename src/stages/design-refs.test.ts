@@ -21,6 +21,7 @@ import { designOnlySteps, estimateSteps } from "./modes.js";
 import { setProviderFactory } from "./think.js";
 import { matchFamilies, refFit } from "../design/ref-checks.js";
 import { themeValues } from "../estimate/demo.js";
+import { findChromium } from "../estimate/screenshots.js";
 
 const sha = "a".repeat(64);
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
@@ -237,5 +238,38 @@ describe("a design drawn from the references", () => {
     expect(d.screens[0]!.refs).toEqual(["R-2"]);
     expect(d.refUse).toEqual(used);
     expect(d.theme.families).toEqual({ body: "sohne-var" });
+  });
+});
+
+describe.skipIf(!findChromium())("the drawn demo against a layout reference (browser)", () => {
+  it("sends a screen without its reference's regions back once, then keeps what is left on the design", async () => {
+    const ledger = await newRun(true);
+    answer = good;
+    await exec(ledger);
+    const mock = { title: "Orders", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["New order"] }], copy: {} };
+    const reading2 = { users: "operations staff", context: "at a desk all day", device: "web", tone: "precise", hero: "today's open orders", traits: ["dense", "quiet"] };
+    answer = () => ({ theme: { ...look, reading: reading2 }, flow: "Staff open the order list", screens: [{ id: "S-1", route: "/orders", file: "app/orders/page.tsx", reqs: ["REQ-1"], states: [], size: "new", mock, mockFull: mock, refs: ["R-2"] }], noScreen: [], refUse: used });
+    const before = process.env.FACTORY_NO_SCREENSHOTS;
+    delete process.env.FACTORY_NO_SCREENSHOTS;
+    try {
+      const run = async (priorFailures: { check: string; message: string }[]) => {
+        const state = replay(ledger.events());
+        return designStep.run({
+          runId: state.info.runId, ledger, writer: HUMAN_WRITER, state, project: ProjectConfig.parse({ project: "demo", repo: "/x", stack: "dotnet" }),
+          policy: DEFAULT_POLICY, attempt: priorFailures.length ? 2 : 1, rung: 0, priorFailures: priorFailures as never, log: () => undefined, trace: NO_TRACE, usage: async () => undefined,
+        });
+      };
+      const first = await run([]);
+      expect(first.kind, JSON.stringify(first)).toBe("fail");
+      const fails = (first as { failures: { check: string; message: string }[] }).failures.filter((f) => f.check === "design-ref-layout");
+      expect(fails).toHaveLength(1);
+      expect(fails[0]!.message).toContain('"filters", "data table" are not on the drawn page');
+      const second = await run((first as { failures: { check: string; message: string }[] }).failures);
+      expect(second.kind, JSON.stringify(second)).toBe("done");
+      const d = ledger.getJson<{ refLayout?: unknown }>((second as { outputs: Record<string, string> }).outputs.design!);
+      expect(d.refLayout).toEqual([{ screen: "S-1", ref: "R-2", missing: ["filters", "data table"] }]);
+    } finally {
+      if (before !== undefined) process.env.FACTORY_NO_SCREENSHOTS = before;
+    }
   });
 });

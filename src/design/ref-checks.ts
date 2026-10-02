@@ -121,3 +121,120 @@ export const REF_RULES = `CLIENT REFERENCES. The client attached design referenc
 - Each screen lists in "refs" the reference ids that shaped it (layout or look); a screen shaped by none has none.
 - "refUse": one entry per reference: use "used" with how (one short sentence), or "set-aside" with why (it shows something the requirements do not ask for, it conflicts with a requirement). The requirements beat a reference: where you depart from one, say so in "departure".
 - A colour you use from a reference is written exactly as listed in "client-references"; never sample one from a picture.`;
+
+// ---------- the rendered layout check (step 7) ----------
+
+/** What the rendered demo shows for a screen (`readDemoLayout` in src/estimate/screenshots.ts). */
+export interface Rendered { frame: string; nav: string[]; blocks: string[] }
+
+/** A reference's navigation, as what the rendered frame must show (any one of them). none and unclear are not checked. */
+const NAV_SHOWS: Record<string, { shows: string[]; say: string; shell: string }> = {
+  "sidebar": { shows: ["rail"], say: "a sidebar", shell: '"sidebar"' },
+  "top-and-side": { shows: ["rail"], say: "a sidebar under a top bar", shell: '"sidebar"' },
+  "top-bar": { shows: ["top-links"], say: "links in a top bar", shell: '"topbar"' },
+  "bottom-tabs": { shows: ["tab-bar"], say: "a bottom tab bar", shell: '"tabs" (a phone app)' },
+  "tabs": { shows: ["page-tabs", "tab-bar"], say: "tabs", shell: '"tabs", or page "tabs"' },
+};
+
+/**
+ * A reference's region names (plain words from the reading) as the demo blocks that can draw them. A region that names
+ * none (an app bar, a footer, a pager) is not checked. The first rule that matches decides.
+ */
+const REGION_BLOCKS: [RegExp, string[]][] = [
+  [/\b(kanban|board)\b/, ["kanban"]],
+  [/\b(calendar|schedule|agenda)\b/, ["calendar"]],
+  [/\bmap\b/, ["map"]],
+  [/\b(chat|messages?|conversation)\b/, ["chat"]],
+  [/\b(pricing|plans?)\b/, ["plans"]],
+  [/\b(reviews?|ratings?)\b/, ["reviews"]],
+  [/\b(gallery|photos)\b/, ["gallery"]],
+  [/\b(carousel|slides?|banner)\b/, ["carousel"]],
+  [/\b(upload|drop ?zone)\b/, ["upload"]],
+  [/\b(stepper|steps|checkout progress)\b/, ["steps"]],
+  [/\b(receipt|invoice)\b/, ["receipt"]],
+  [/\b(stats?|kpis?|metrics?|totals|summary (cards|tiles|row))\b/, ["stats"]],
+  [/\b(charts?|graphs?|trend|sparklines?)\b/, ["chart"]],
+  [/\b(tables?|data ?grid|rows)\b/, ["table"]],
+  [/\b(filters?|chips|facets)\b/, ["filters", "results"]],
+  [/\b(forms?|fields|inputs)\b/, ["form"]],
+  [/\b(timeline|history|activity)\b/, ["timeline", "list", "notifications"]],
+  [/\b(notifications?|alerts feed)\b/, ["notifications", "list"]],
+  [/\b(cards?|tiles?|grid)\b/, ["cards", "results", "gallery", "plans", "compare"]],
+  [/\b(lists?|feed)\b/, ["list", "table", "results", "notifications", "timeline"]],
+  [/\b(details?|summary|profile)\b/, ["detail", "receipt"]],
+  [/\b(accordion|faq)\b/, ["accordion"]],
+];
+/** Region names that are the frame's navigation, not a block. */
+const REGION_NAV: [RegExp, string[], string][] = [
+  [/\b(sidebar|side ?nav|side menu|left menu)\b/, ["rail", "menu-button"], "a sidebar"],
+  [/\bbreadcrumbs?\b/, ["crumbs"], "breadcrumbs"],
+  [/\b(tab ?bar|bottom (tabs|nav))\b/, ["tab-bar"], "a bottom tab bar"],
+  [/\btabs\b/, ["page-tabs", "tab-bar"], "tabs"],
+];
+
+export function regionBlocks(region: string): string[] | undefined {
+  const r = region.toLowerCase();
+  return REGION_BLOCKS.find(([re]) => re.test(r))?.[1];
+}
+
+const words = (s: string) => new Set(s.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2).map((w) => w.replace(/s$/, "")));
+
+/** Which of a reference's pictured screens a design screen follows: the only one, or the one whose name shares most words with the page. */
+export function refScreenFor(r: RefRead, title: string): RefRead["brief"]["screens"][number] | undefined {
+  const list = r.brief.screens.filter((s) => s.regions.length);
+  if (list.length <= 1) return list[0];
+  const page = words(title);
+  const scored = list.map((s) => ({ s, n: [...words(s.id)].filter((w) => page.has(w)).length })).sort((a, b) => b.n - a.n);
+  return scored[0]!.n > 0 && scored[0]!.n > (scored[1]?.n ?? 0) ? scored[0]!.s : undefined;
+}
+
+/** One screen's difference from a layout reference it cites; kept on the design when the fix round leaves it. */
+export interface RefLayoutGap { screen: string; ref: string; nav?: string; missing: string[] }
+
+/**
+ * Code's check of the drawn demo against the layout references (`design-ref-layout`): each screen that cites a layout reference
+ * shows that reference's navigation, and the blocks that draw its regions. Only what can be read both ways is compared (a region
+ * that names no block, navigation read as none or unclear). A reference set aside binds nothing. Order is not checked.
+ */
+export function refLayoutGaps(
+  screens: { id: string; refs?: string[]; title: string }[],
+  reading: DesignRefsArt,
+  rendered: Record<string, Rendered>,
+  use: RefUse[] | undefined,
+): RefLayoutGap[] {
+  const setAside = new Set((use ?? []).filter((u) => u.use === "set-aside").map((u) => u.id));
+  const byId = new Map(reading.refs.filter((r) => r.role === "layout" && !setAside.has(r.id)).map((r) => [r.id, r]));
+  const gaps: RefLayoutGap[] = [];
+  for (const s of screens) {
+    const seen = rendered[s.id];
+    if (!seen) continue;
+    for (const id of s.refs ?? []) {
+      const r = byId.get(id);
+      if (!r) continue;
+      const want = NAV_SHOWS[r.navigation];
+      const nav = want && !want.shows.some((x) => seen.nav.includes(x)) ? r.navigation : undefined;
+      const missing: string[] = [];
+      for (const region of refScreenFor(r, s.title)?.regions ?? []) {
+        const name = region.name.toLowerCase();
+        const asNav = REGION_NAV.find(([re]) => re.test(name));
+        if (asNav) { if (!asNav[1].some((x) => seen.nav.includes(x))) missing.push(region.name); continue; }
+        const blocks = regionBlocks(name);
+        if (blocks && !blocks.some((b) => seen.blocks.includes(b))) missing.push(region.name);
+      }
+      if (nav || missing.length) gaps.push({ screen: s.id, ref: id, ...(nav ? { nav } : {}), missing: [...new Set(missing)] });
+    }
+  }
+  return gaps;
+}
+
+/** The gaps as failures for the one fix round. */
+export function refLayoutFixes(gaps: RefLayoutGap[], reading: DesignRefsArt): Problem[] {
+  return gaps.slice(0, 10).map((g) => {
+    const r = reading.refs.find((x) => x.id === g.ref)!, want = g.nav ? NAV_SHOWS[g.nav] : undefined;
+    const parts = [
+      ...(want ? [`it is reached by ${want.say}, but the drawn screen does not show one (set the app's "shell" to ${want.shell})`] : []),
+      ...(g.missing.length ? [`its ${g.missing.map((m) => `"${m}"`).join(", ")} ${g.missing.length === 1 ? "is" : "are"} not on the drawn page (add the block that shows ${g.missing.length === 1 ? "it" : "them"})`] : []),
+    ];
+    return { check: "design-ref-layout", message: `${g.screen} follows layout reference ${g.ref} (${r.source}), but ${parts.join("; and ")}. Follow the reference, or take ${g.ref} off this screen's "refs" if it does not apply, and say so in "refUse".` };
+  });
+}
