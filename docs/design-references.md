@@ -5,7 +5,7 @@ the same advice for every run and it is vague. This library replaces it with dat
 the field the requirement is in, and it costs a few hundred tokens per run instead of a research
 session.
 
-## References the user attaches (approved 2026-10-02, being built)
+## References the user attaches (approved 2026-10-02, built; live runs pending)
 
 This library is the fallback, not the first source. A user can attach design references to any run
 (a design-only run, estimate, brownfield, and greenfield once it exists), from the terminal (`--ref`) or the factory UI:

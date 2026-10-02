@@ -98,7 +98,7 @@ When something keeps failing, the factory climbs a fixed ladder (retry with the 
 | Built | Not yet |
 |---|---|
 | Brownfield mode on **.NET + Postgres** repos | Greenfield build mode (an estimate can start from requirements alone, but building one is not built; the design steps are made to plug into it) |
-| Images sent to thinking steps (untrusted, never to steps that write code) | Design references in any form, `--ref` and in the UI (being built: `docs/estimates-design.md`, "Design references") |
+| Images sent to thinking steps (untrusted, never to steps that write code) | Design references in any form, `--ref` and in the UI (`docs/estimates-design.md`, "Design references"; not yet run against a live model) |
 | Clarify, 3-draft spec, merge, lint, critic, round trip | Accept that boots the app and records HTTP/DB evidence (today: "the locked test passed") |
 | Plan + approval card, stub commit, locked tests | Applying `steer` changes mid-run (recorded, not applied) |
 | Claude coding agent in a sealed container | Codex and jcode runners; Next.js/Node repos |
@@ -446,7 +446,7 @@ A local web app to start runs and watch them. Cards show the exact command to pa
 
 | Screen | What it shows |
 |---|---|
-| New run | Brownfield, Estimate or Design (Greenfield isn't built yet) → project → prompt, a dropped `.md` file (up to 1 MB) and/or a Jira key → optional max cost. Estimate runs also take exported Figma frames and their run settings. A "Design references" section for every mode is being built. The request is checked before a run exists, the same way `factory start` checks it. A second run on a busy project is refused. |
+| New run | Brownfield, Estimate or Design (Greenfield isn't built yet) → project → prompt, a dropped `.md` file (up to 1 MB) and/or a Jira key → optional max cost. Estimate runs also take exported Figma frames and their run settings. Every mode has a "Design references" section: drop pictures, PDFs, Word or Figma JSON files, or add https and Figma links, each with a role and note. The request is checked before a run exists, the same way `factory start` checks it. A second run on a busy project is refused. |
 | Run: Interactive | The pipeline as a chain of steps. Click one for its attempts, why it retried, its gates, cost and time. Also shows cost against the limit, gates, the open card with its command, and the latest activity. |
 | Run: Graphical | Charts: cost per step, time per step, cost over time against the limit, retries per step. |
 | Run: Statistical | Totals: cost, limit left, machine vs wall-clock time, attempts, first-time pass, gates, human stops, tokens. |

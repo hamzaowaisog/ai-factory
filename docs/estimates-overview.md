@@ -28,7 +28,7 @@ Each model has its own estimate. The second is produced on request as a child ru
 | Gate | Checks |
 |---|---|
 | E1 Readiness | Spec is clean, no open questions |
-| E1b Design baseline | Mock and clickable demo approved (UI work); with design references attached, drawn from them (being built) |
+| E1b Design baseline | Mock and clickable demo approved (UI work); with design references attached, drawn from them |
 | E1c Design coverage | Every task's screen is in the approved design and every approved screen has a task |
 | E2 Requirement → task | Every requirement has a task |
 | E3 Task → requirement | Every task traces to a requirement; extras go to "Suggested, not included" |
