@@ -25,7 +25,7 @@ async function run(data: Record<string, unknown> = {}, intake?: { touchesUi?: bo
 }
 
 const SPEC = ["discover", "intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify"];
-const BUILD = ["plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-check", "review", "deliver"];
+const BUILD = ["plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"];
 
 describe("the design steps in a direct brownfield build", () => {
   it("draws and approves the design between the spec and the plan, reading the references first when there are some", async () => {

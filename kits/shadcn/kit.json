@@ -1,7 +1,7 @@
 {
   "kind": "ai-factory/ui-kit",
   "id": "shadcn",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "React components for the design's blocks, controls, layers and frame, on shadcn/ui patterns (Radix primitives, Tailwind v4). Copied into the repo, which then owns them.",
   "license": "The components under components/ui follow shadcn/ui (MIT, https://ui.shadcn.com).",
   "targets": {

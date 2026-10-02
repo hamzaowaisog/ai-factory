@@ -9,7 +9,7 @@ import { Crumbs } from "@/components/ui/crumbs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { stateKind } from "@/lib/fixture";
 import { useT } from "@/lib/i18n";
 import { useNav } from "@/lib/nav";
@@ -50,12 +50,13 @@ export function ScreenShell({ spec, state = "default", onAction, overlayBody, ch
   const [open, setOpen] = useState<{ i: number; at?: DOMRect } | null>(st?.overlay !== undefined ? { i: st.overlay } : null);
   const [tab, setTab] = useState(spec.tabs?.[0]);
 
-  const say = (i: number) => {
+  const say = (i: number, stay = false) => {
     const m = spec.toasts![i]!;
     const show = m.tone === "bad" ? toast.error : m.tone === "info" ? toast.info : toast.success;
-    show(t(m.text), m.undo ? { action: { label: t("Undo"), onClick: () => onAction?.("Undo") } } : undefined);
+    show(t(m.text), { ...(m.undo ? { action: { label: t("Undo"), onClick: () => onAction?.("Undo") } } : {}), ...(stay ? { duration: Infinity } : {}) });
   };
-  useEffect(() => { if (st?.toast !== undefined) say(st.toast); }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+  // a state that shows a message keeps it on screen (the page opened in that state, for a look or a test)
+  useEffect(() => { if (st?.toast !== undefined) say(st.toast, true); }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const act: Act = (label, el) => {
     const o = spec.overlays?.findIndex((x) => x.trigger === label) ?? -1;
@@ -100,8 +101,10 @@ export function ScreenShell({ spec, state = "default", onAction, overlayBody, ch
         </div>
       </header>
       {spec.tabs && (
-        <Tabs value={tab} onValueChange={(v) => { setTab(v); onAction?.(v); }}>
-          <TabsList className="max-w-full overflow-x-auto">{spec.tabs.map((x) => <TabsTrigger key={x} value={x}>{t(x)}</TabsTrigger>)}</TabsList>
+        <Tabs value={tab} onValueChange={setTab}>
+          {/* a tab is a control like any other: one that names a layer, a message or a link opens it, as in the demo */}
+          <TabsList className="max-w-full overflow-x-auto">{spec.tabs.map((x) => <TabsTrigger key={x} value={x} onClick={(e) => act(x, e.currentTarget)}>{t(x)}</TabsTrigger>)}</TabsList>
+          {spec.tabs.map((x) => <TabsContent key={x} value={x} forceMount hidden={x !== tab} tabIndex={-1} />)}
         </Tabs>
       )}
       {body}

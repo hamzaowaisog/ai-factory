@@ -1304,6 +1304,77 @@ async function estimateScreen(id) {
 // ---------- design ----------
 
 /** The build's before and after pictures of each page, with what moved. Evidence, not a verdict. */
+const LEVEL_TITLE = { tokens: "Tokens", structure: "Structure", a11y: "Accessibility", layout: "Layout", pixels: "Pixels" };
+const pageLabel = (p) => `${p.id} ${p.state} · ${p.viewport}${p.mode ? " · dark" : ""}${p.lang ? ` · ${p.lang}` : ""}`;
+
+/** The Fidelity panel: the built app against the approved design, level by level, a page's pictures side by side, and accepting them as the baseline. */
+function fidelityPanel(rid, v) {
+  const head = h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Fidelity to the approved design"));
+  const wrap = (...body) => h("section", { class: "panel rise", id: "fidelity-panel", vars: { "--i": 2 } }, head, ...body);
+  if (v.none) return wrap(h("p", { class: "muted small" }, v.none));
+  if (v.skipped && !v.pages.length) return wrap(h("p", { class: "muted small" }, `Not run: ${v.skipped}.`), h("p", { class: "small muted" }, "Turn it on with design.fidelity in the project config (docs/estimates-design.md, \"Fidelity and tests\"). By hand, on an app you started: ", h("code", {}, `factory design fidelity ${rid} --url http://localhost:3000`), "."));
+  const tone = (st) => (st === "PASS" ? "pass" : st === "FAIL" ? "fail" : "");
+  const levels = h("div", { class: "fid-levels" }, v.levels.map((l) => h("div", { class: `fid-level ${tone(l.status)}` },
+    h("div", { class: "row" }, icon(l.status === "PASS" ? "check" : l.status === "FAIL" ? "x" : "alert"), h("strong", {}, LEVEL_TITLE[l.level] ?? l.level), h("span", { class: "faint small" }, l.blocking ? "blocking" : "advice")),
+    h("div", { class: "small" }, `${l.status} · ${l.detail}`))));
+  const waived = v.waivers.length ? h("p", { class: "small" }, icon("alert"), ` Waived: ${v.waivers.map((w) => `${w.gateIds.join(", ")} by ${w.human} (${w.reason})`).join("; ")}`) : null;
+  const findings = v.findings.length ? h("details", { class: "export-opts", open: v.findings.some((f) => f.level !== "layout" && f.level !== "pixels") ? "" : undefined },
+    h("summary", { class: "small" }, `${v.findings.length} finding${v.findings.length === 1 ? "" : "s"}`),
+    h("ul", { class: "reasons small" }, v.findings.slice(0, 40).map((f) => h("li", {}, h("strong", {}, `${LEVEL_TITLE[f.level] ?? f.level}: `), f.message, h("span", { class: "faint" }, ` (${f.pages.length} page${f.pages.length === 1 ? "" : "s"})`))))) : h("p", { class: "small" }, icon("check"), " No findings.");
+  // one page at a time: the approved picture, the built one, the accepted one and the difference
+  const pages = v.pages.filter((p) => p.built);
+  const onlyFound = h("input", { type: "checkbox", id: "fid-only" });
+  const pick = h("select", { "aria-label": "Page" });
+  const fill = () => {
+    const list = onlyFound.checked ? pages.filter((p) => p.findings.length || p.noticeable) : pages;
+    const keep = pick.value;
+    pick.replaceChildren(...list.map((p) => h("option", { value: p.key }, `${pageLabel(p)}${p.findings.length ? ` · ${p.findings.length} finding${p.findings.length === 1 ? "" : "s"}` : ""}`)));
+    if (list.some((p) => p.key === keep)) pick.value = keep;
+    show();
+  };
+  const fig = (url, label) => h("figure", { class: "vshot" }, url ? h("button", { type: "button", class: "ref-pic", "aria-label": `Open ${label}`, onclick: () => lightbox({ url, screen: label, viewport: "" }) }, h("img", { src: url, alt: label, loading: "lazy" })) : h("div", { class: "slot small muted" }, "none"), h("figcaption", { class: "small muted" }, label));
+  const view = h("div", { class: "stack" });
+  const show = () => {
+    const p = pages.find((x) => x.key === pick.value);
+    if (!p) return view.replaceChildren(h("p", { class: "small muted" }, "No page to show."));
+    view.replaceChildren(...[
+      h("div", { class: "fid-shots" }, fig(p.approved, "Approved design"), fig(p.built, "Built app"), p.baseline ? fig(p.baseline, "Accepted baseline") : null, p.diff ? fig(p.diff, "Differences in red") : null),
+      p.ratio !== undefined ? h("p", { class: "small" }, h("span", { class: `tag${p.noticeable ? "" : " faint"}` }, `${(p.ratio * 100).toFixed(p.ratio < 0.1 ? 1 : 0)}% differs from the baseline`)) : null,
+      p.accepted ? h("p", { class: "small muted" }, `Baseline accepted by ${p.accepted.by} on ${p.accepted.at.slice(0, 10)}: ${p.accepted.reason}`) : null,
+      p.findings.length ? h("ul", { class: "reasons small" }, p.findings.map((f) => h("li", {}, h("strong", {}, `${LEVEL_TITLE[f.level] ?? f.level}: `), f.message))) : null].filter(Boolean));
+  };
+  pick.addEventListener("change", show);
+  onlyFound.addEventListener("change", fill);
+  // accept as the baseline: a typed name and a reason
+  const name = h("input", { type: "text", placeholder: "Your name", "aria-label": "Your name", autocomplete: "name" });
+  const reason = h("input", { type: "text", placeholder: "Why the built pages are right", "aria-label": "Reason" });
+  const msg = h("div", { class: "small", role: "status" });
+  const accept = async (all) => {
+    msg.replaceChildren(h("span", { class: "pulse" }), " Accepting…");
+    try {
+      const r = await api(`/api/runs/${encodeURIComponent(rid)}/fidelity/baseline`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(all ? { all: true, by: name.value, reason: reason.value } : { pages: [pick.value], by: name.value, reason: reason.value }) });
+      const nv = await api(`/api/runs/${encodeURIComponent(rid)}/fidelity`);
+      const next = fidelityPanel(rid, nv);
+      next.classList.remove("rise");
+      panel.replaceWith(next);
+      next.querySelector("[role=status]").replaceChildren(icon("check"), ` Accepted ${r.accepted.length} picture${r.accepted.length === 1 ? "" : "s"} as the baseline; the next check compares with them.`);
+    } catch (err) { msg.textContent = err.message; }
+  };
+  const one = h("button", { class: "btn", type: "button" }, icon("check"), "Accept this page");
+  const all = h("button", { class: "btn ghost", type: "button" }, `Accept all ${pages.length}`);
+  one.addEventListener("click", () => accept(false));
+  all.addEventListener("click", () => accept(true));
+  const panel = wrap(
+    h("p", { class: "small" }, h("span", { class: `chip ${v.overall === "pass" ? "pass" : v.overall === "fail" ? "fail" : ""}` }, `overall: ${v.overall}`), h("span", { class: "faint" }, ` ${v.pages.length} pages · ${v.ran.join(", ")}`)),
+    levels, waived, findings,
+    v.notes.length ? h("ul", { class: "small muted" }, v.notes.map((n) => h("li", {}, n))) : null,
+    pages.length ? h("div", { class: "row" }, pick, h("label", { class: "small", for: "fid-only" }, onlyFound, " only pages with findings")) : null,
+    view,
+    v.canAccept ? h("div", { class: "stack" }, h("h3", { class: "small" }, "Accept as the baseline"), h("div", { class: "row" }, name, reason), h("div", { class: "row" }, one, all), msg) : msg);
+  fill();
+  return panel;
+}
+
 function visualPanel(id, v) {
   const head = h("div", { class: "panel-head" }, h("h2", {}, icon("image"), "Before and after"));
   const wrap = (...body) => h("section", { class: "panel rise", vars: { "--i": 2 } }, head, ...body);
@@ -1373,6 +1444,7 @@ function exportList(rid, exports) {
         has("demo.zip") ? file(e, "demo.zip", "clickable demo (.zip)") : null,
         has("tokens/tokens.json") ? file(e, "tokens/tokens.json", "tokens.json") : null,
         has("tokens/tailwind.css") ? file(e, "tokens/tailwind.css", "tailwind.css") : null),
+      e.checks?.length ? h("div", { class: "chips" }, e.checks.map((c) => h("span", { class: `chip ${c.status === "PASS" ? "pass" : c.status === "FAIL" ? "fail" : ""}`, title: [c.detail, ...(c.items ?? [])].join("\n") }, icon(c.status === "PASS" ? "check" : c.status === "FAIL" ? "x" : "alert"), c.check))) : null,
       e.notes.length ? h("ul", { class: "small muted" }, e.notes.map((n) => h("li", {}, n))) : null);
   }));
 }
@@ -1506,6 +1578,7 @@ function codePanel(rid, v, tried) {
 async function designScreen(id) {
   skeleton("grid");
   const [r, d, refv, xv, sv] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/design`), api(`/api/runs/${encodeURIComponent(id)}/references`), api(`/api/runs/${encodeURIComponent(id)}/exports`), api(`/api/runs/${encodeURIComponent(id)}/scaffold`)]);
+  const fv = await api(`/api/runs/${encodeURIComponent(id)}/fidelity`).catch(() => ({ none: "The fidelity check could not be read." }));
   let size;
   if ("none" in d.uiSize) size = h("p", { class: "muted" }, d.uiSize.none);
   else {
@@ -1552,6 +1625,7 @@ async function designScreen(id) {
         codePanel(id, sv),
         h("section", { class: "panel rise", vars: { "--i": 0 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("ruler"), "UI change size")), size),
         h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Style check")), style),
+        fidelityPanel(id, fv),
         visualPanel(id, d.visual),
         // a brownfield build draws a design too when it touches UI (its timeline then has the design step)
         r.mode === "estimate" || r.mode === "design" || (r.timeline ?? []).some((t) => t.step === "design") ? h("a", { class: "slot rise", href: `#/runs/${encodeURIComponent(id)}/preview`, vars: { "--i": 3 } }, icon("cursor"), h("strong", {}, "Clickable prototype"), h("span", {}, "The demo and its screenshots are under Preview.")) : null,

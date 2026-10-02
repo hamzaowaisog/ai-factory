@@ -21,7 +21,7 @@ type DesignLike = { screens: { id: string; route: string; reqs: string[]; states
 export function designExportsView(ledger: Ledger, jobs: ExportJob[] = []) {
   const s = replay(ledger.events());
   const approved = approvedDesignFor<DesignLike>(s, ledger);
-  const exports = listExports(ledger.dir).map((e) => ({ id: e.id, at: e.at, line: e.line, version: e.version, designSha: e.designSha, formats: [...new Set(e.files.map((f) => f.format))], files: e.files.map((f) => ({ path: f.path, format: f.format, bytes: f.bytes })), notes: e.notes, options: e.options }));
+  const exports = listExports(ledger.dir).map((e) => ({ id: e.id, at: e.at, line: e.line, version: e.version, designSha: e.designSha, formats: [...new Set(e.files.map((f) => f.format))], files: e.files.map((f) => ({ path: f.path, format: f.format, bytes: f.bytes })), notes: e.notes, checks: e.checks ?? [], options: e.options }));
   const mine = jobs.filter((j) => j.runId === ledger.runId);
   if (!approved) {
     const why = s.openCard?.kind === "design-approval" ? "The design is waiting for approval. Approve it, then export it here."

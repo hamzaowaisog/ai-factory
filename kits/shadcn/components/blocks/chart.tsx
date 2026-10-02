@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Segmented } from "@/components/ui/segmented";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { BlockEvents, ChartData } from "./types";
@@ -62,7 +62,7 @@ export function ChartBlock({ kind = "bar", title, points, series, max, unit, ran
     <Card data-b={mark} className={cn("p-pad", className)}>
       <CardHeader className="flex-row items-center justify-between p-0 pb-3">
         <CardTitle>{t(title)}</CardTitle>
-        {ranges && <Tabs value={range} onValueChange={(v) => { setRange(v); onAction?.(v); }}><TabsList>{ranges.map((r) => <TabsTrigger key={r} value={r}>{t(r)}</TabsTrigger>)}</TabsList></Tabs>}
+        {ranges && <Segmented label={t("Range")} value={range} items={ranges.map((r) => ({ value: r, label: t(r) }))} onChange={(r) => { setRange(r); onAction?.(r); }} />}
       </CardHeader>
       {body}
     </Card>

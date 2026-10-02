@@ -21,10 +21,10 @@ export function UploadBlock({ label, hint, files = [], mark, onAction, className
           <FileText className="size-5 text-muted-foreground" />
           <div className="min-w-0 flex-1">
             <p className="truncate">{f.name} <span className="text-muted-foreground">{f.size}</span></p>
-            {f.status === "uploading" && <Progress value={f.progress ?? 0} className="mt-1 h-1.5" />}
+            {f.status === "uploading" && <Progress value={f.progress ?? 0} aria-label={f.name} className="mt-1 h-1.5" />}
             {f.status === "failed" && <p className="text-xs text-destructive">{t("Upload failed")}</p>}
           </div>
-          <button type="button" aria-label={`${t("Remove")} ${f.name}`} className="rounded p-1 hover:bg-muted" onClick={(e) => onAction?.("Remove", e.currentTarget)}><X className="size-4" /></button>
+          <button type="button" aria-label={`${t("Remove")} ${f.name}`} className="rounded-sm p-1 hover:bg-muted" onClick={(e) => onAction?.("Remove", e.currentTarget)}><X className="size-4" /></button>
         </div>
       ))}
     </Card>

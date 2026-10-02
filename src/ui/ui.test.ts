@@ -11,6 +11,7 @@ import { _resetEnvCache } from "../config/env.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { outcomes, scoreRun, stageStats } from "../report.js";
+import { ensurePackage } from "../stages/design-export.js";
 import { createRun } from "../stages/executor.js";
 import { cardCommands } from "./data.js";
 import { createUiServer, listen, MAX_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, ROUTES, staticDir, type UiServer } from "./server.js";
@@ -208,7 +209,7 @@ describe("factory ui: no decisions from the web", () => {
     for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision") && !r.path.endsWith("/estimate-answers") && !r.path.endsWith("/design-decision"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
     // the one exception: the estimate lead's approve or reject, on estimate cards only (and exporting an approved design or generating
     // its scaffold, which write only under the run's exports/ and scaffold/)
-    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/design-decision", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold"]);
+    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/design-decision", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold", "POST /api/runs/:id/fidelity/baseline"]);
   });
 
   it("decision-looking URLs don't exist", async () => {
@@ -1086,6 +1087,40 @@ describe("factory ui: design exports", () => {
     release();
     await new Promise((r) => setTimeout(r, 10));
     expect(ui.exportJobs.list()[0]).toMatchObject({ status: "done", exportId: "v1/7" });
+  });
+  it("the Fidelity panel: the run's check, its pictures by name only, and accepting them as the baseline with a name and a reason", async () => {
+    const l = await approvedDesignRun();
+    expect((await call(`/api/runs/${l.runId}/fidelity`)).json().none).toMatch(/design\.fidelity/);
+    await ensurePackage(l.runId);
+    const dir = join(l.dir, "design-fidelity");
+    mkdirSync(join(dir, "built"), { recursive: true });
+    writeFileSync(join(dir, "built", "s-1-error-phone.png"), "png");
+    const report = {
+      kind: "design-fidelity", overall: "fail", ran: ["Chromium"], notes: [],
+      levels: [{ level: "structure", check: "structure", blocking: true, status: "FAIL", detail: "1 finding" }],
+      findings: [{ level: "structure", message: "actions block is missing", pages: ["s-1-error-phone"] }],
+      pages: [{ key: "s-1-error-phone", id: "S-1", screen: "Sign in", state: "error", slug: "error", viewport: "phone", path: "/login", demoState: 0, built: "design-fidelity/built/s-1-error-phone.png" }],
+    };
+    writeFileSync(join(dir, "report.json"), JSON.stringify(report));
+    const v = (await call(`/api/runs/${l.runId}/fidelity`)).json();
+    expect(v).toMatchObject({ overall: "fail", canAccept: true, line: l.runId });
+    expect(v.pages[0]).toMatchObject({ key: "s-1-error-phone", built: `/fidelity-shots/${l.runId}/built/s-1-error-phone.png`, findings: [{ level: "structure", message: "actions block is missing" }] });
+    expect((await call(v.pages[0].built)).status).toBe(200);
+    expect((await call(v.pages[0].built, { token: null })).status).toBe(401);
+    expect((await call(`/fidelity-shots/${l.runId}/built/..%2Freport.json`)).status).toBe(404);
+    expect((await call(`/fidelity-shots/${l.runId}/other/s-1-error-phone.png`)).status).toBe(404);
+
+    const accept = (body: unknown, token?: string | null) => call(`/api/runs/${l.runId}/fidelity/baseline`, { method: "POST", token, headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+    expect((await accept({ all: true, by: "lead", reason: "ok" }, null)).status).toBe(401);
+    expect((await accept({ all: true, reason: "ok" })).json().error).toMatch(/your name/);
+    expect((await accept({ all: true, by: "lead" })).json().error).toMatch(/reason/);
+    expect((await accept({ pages: ["nope"], by: "lead", reason: "ok" })).json().error).toMatch(/Not pictured/);
+    const r = await accept({ pages: ["s-1-error-phone"], by: "lead", reason: "matches the design" });
+    expect([r.status, r.json()]).toEqual([200, { accepted: ["s-1-error-phone"] }]);
+    const after = (await call(`/api/runs/${l.runId}/fidelity`)).json();
+    expect(after.pages[0]).toMatchObject({ baseline: `/fidelity-shots/${l.runId}/baseline/s-1-error-phone.png`, accepted: { by: "lead (via web)", reason: "matches the design" } });
+    expect((await call(after.pages[0].baseline)).body).toBe("png");
+    expect(Ledger.open(l.runId).events().at(-1)!.data).toMatchObject({ decision: "accept-baseline", by: "lead (via web)" });
   });
 });
 

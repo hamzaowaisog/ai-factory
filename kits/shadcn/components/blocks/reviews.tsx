@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { BlockEvents, ReviewsData } from "./types";
 
 const Stars = ({ n }: { n: number }) => (
-  <span className="flex" aria-label={`${n} / 5`}>{[1, 2, 3, 4, 5].map((i) => <Star key={i} className={cn("size-4", i <= Math.round(n) ? "fill-warning text-warning" : "text-muted-foreground/40")} />)}</span>
+  <span className="flex" role="img" aria-label={`${n} / 5`}>{[1, 2, 3, 4, 5].map((i) => <Star key={i} className={cn("size-4", i <= Math.round(n) ? "fill-warning text-warning" : "text-muted-foreground/40")} />)}</span>
 );
 
 export function ReviewsBlock({ score, count, bars, items, mark, className }: ReviewsData & BlockEvents) {
@@ -18,7 +18,7 @@ export function ReviewsBlock({ score, count, bars, items, mark, className }: Rev
         <p className="font-heading text-4xl font-semibold">{score.toFixed(1)}</p>
         <Stars n={score} />
         <p className="text-sm text-muted-foreground">{t(count)}</p>
-        {bars && bars.map((b, i) => <div key={i} className="flex items-center gap-2 text-xs"><span className="w-3">{5 - i}</span><Progress value={b} className="h-1.5" /></div>)}
+        {bars && bars.map((b, i) => <div key={i} className="flex items-center gap-2 text-xs"><span className="w-3">{5 - i}</span><Progress value={b} aria-label={`${5 - i} / 5`} className="h-1.5" /></div>)}
       </div>
       <div className="grid gap-4">
         {items.map((r) => (

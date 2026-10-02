@@ -349,7 +349,7 @@ Greenfield is not built yet. The design work is built as one piece that any mode
     - Tests: the step list (direct, with references, no UI, from an estimate or design, planned before the change), the question and its answer, the card with no auto answer, the design kept and restyled, the card and estimate lines. 740 tests pass.
 10. **Docs, tests and a visual check.** Fixtures per input type; a run with no references unchanged; one live run each with a URL, a JPEG and a Figma link (needs `ANTHROPIC_API_KEY` and `FIGMA_TOKEN` in `~/.factory/.env`).
 
-### Design handoff (requirements 2 and 3, approved 2026-10-02; steps 1 to 4 built)
+### Design handoff (requirements 2 and 3, approved 2026-10-02; steps 1 to 5 built)
 
 Two requirements, planned together because they read the same thing:
 
@@ -608,7 +608,7 @@ As built (`src/design/export.ts`, `src/stages/design-export.ts`, `src/ui/exports
   - otherwise a run with no repo gets a fresh `next-shadcn` app, and an existing repo whose stack nothing shows is built with its own components, so a new app is never put into a repo unasked.
 
   A phone app is always built with the repo's components until the `expo` kit exists. One kit target serves every web app of a run. It is not asked on the clarify card: the project setting or `--ui-target` is the way to override detection.
-- **The kit** is `kits/shadcn/` (`kit.json`, version 1.0.0): shadcn/ui components on Radix and Tailwind v4, a component for every block, form field kind and layer the schema has, the frame (`app-frame`, `screen-shell`, `overlay`) and helpers (class names, translations, fixture states, navigation per target). `kit.json` lists both targets (paths, stylesheet, routes) and the packages. A kit file is rewritten per target: `// @client` becomes `"use client"` for Next.js, `x.next.tsx` / `x.vite.tsx` are a target's own file, and `@/` imports stay when the repo maps `@/*` to the source root and become relative otherwise. Code: `src/design/kit/kit.ts`.
+- **The kit** is `kits/shadcn/` (`kit.json`, version 1.1.0): shadcn/ui components on Radix and Tailwind v4, a component for every block, form field kind and layer the schema has, the frame (`app-frame`, `screen-shell`, `overlay`) and helpers (class names, translations, fixture states, navigation per target). `kit.json` lists both targets (paths, stylesheet, routes) and the packages. A kit file is rewritten per target: `// @client` becomes `"use client"` for Next.js, `x.next.tsx` / `x.vite.tsx` are a target's own file, and `@/` imports stay when the repo maps `@/*` to the source root and become relative otherwise. Code: `src/design/kit/kit.ts`.
 - **The theme generator** (`src/design/kit/theme.ts`, no Style Dictionary): the approved tokens under the names shadcn reads (`--background`, `--primary`, `--muted-foreground`, ...), the design's extras (success, warning, info, shadows, density, heading type), dark values for a product in both modes, and Tailwind v4 `@theme inline`. The values are the demo's, so the built pages use the colours the lead approved. The first line carries the design tag (`ai-factory design L vN` or the design's sha).
 - **The scaffold** (`src/design/kit/scaffold.ts`) is a pure function from the design to files, so the plan knows every path before anything is written:
   - the kit (written when absent; the repo owns it after) and the theme;
@@ -618,7 +618,7 @@ As built (`src/design/export.ts`, `src/stages/design-export.ts`, `src/ui/exports
 
   Every page opens in any state without a backend: `?fixture=S-3:empty`. Factory-owned files carry `Written by ai-factory` and are protected from the agents; containers and Next page files are the app's. In an existing repo nothing of its own is overwritten: what the kit needs there (packages, the stylesheet import, the providers) becomes the design-system task's to-do list. Checked by a build of both targets (`FACTORY_KIT_E2E=1`: npm install and a production build).
 - **Plan wiring** (`src/stages/scaffold-run.ts`, `planStep`). The plan is given the scaffold (`ui-scaffold`) and rules: TASK-1 is the design-system task (its file scope covers the design-system files), then one task per screen whose scope has its container; the tasks write behaviour only; a change request plans only the changed screens. `plan-scaffold` fails a plan whose first task is not the design-system task, that leaves a screen's container out of every scope, or that lists a generated file. Gate B7 checks each screen task against its container (the page is generated).
-- **Stub commit and implement** (`build.ts`). After the design package commit, the stub commit writes the scaffold and commits it on its own (`factory: scaffold <target> (kit shadcn 1.0.0) for <run>`), and records it as the `scaffold` output. Implement reads it:
+- **Stub commit and implement** (`build.ts`). After the design package commit, the stub commit writes the scaffold and commits it on its own (`factory: scaffold <target> (kit shadcn 1.1.0) for <run>`), and records it as the `scaffold` output. Implement reads it:
   - the generated files are added to the protected paths (`extraProtected`);
   - a screen task gets the behaviour-only prompt (container, screen, fixtures; data, `onAction` and state; no restyling; keep the fixture branch);
   - the design-system task gets its to-do list.
@@ -653,6 +653,86 @@ Like the other build gates, the blocking ones can be waived with a reason on the
 - **Baselines:** differences show on the accept card beside the approved picture. Accepting a deliberate change makes it the new baseline, recorded in the ledger, never silently.
 - **Exports are checked too:** the PDF has every screen, its fonts embedded, and a page count that matches the manifest; the PNG count matches the screens × states matrix.
 
+#### Fidelity and tests (as built)
+
+- **The step.** `design-fidelity` (no model) runs after `accept` in builds, before `design-check`. It runs only when all of these hold:
+  - the run has a kit scaffold (`next-shadcn` or `vite-shadcn`, not the repo's own components);
+  - the project opts in with `design.fidelity`, because the step builds and starts the app on this machine;
+  - the run has an approved design.
+
+  Otherwise it logs `fidelity check skipped: <why>` and passes. When it runs, it:
+  - installs the app (`npm install --no-audit --no-fund`), builds it and starts it on `$PORT` (`next build && next start`, or `vite build && vite preview`);
+  - opens every page the package pictures, at most `maxPages`. That is every state at phone and desktop width, the first state at tablet width, and the first state in dark mode and in the other language when the design has them.
+
+  The report and pictures go to the run's `design-fidelity/` folder. Code: `src/stages/design-fidelity.ts`, `src/design/fidelity-app.ts`, `src/design/fidelity-read.ts`.
+- **Config.** `design.fidelity` takes:
+  - `allowHost: true` (required);
+  - `install` and `start` (start reads `$PORT`);
+  - `port` (default 4320), `readyPath` (default `/`), `timeoutSec` (default 600) and `env`;
+  - `maxPages` (default 160).
+
+  See `docs/project-example.yaml`.
+- **The levels.**
+  - **Tokens:** every colour, font, corner and shadow drawn on the page is one of the design's. Scrims, round pills and focus rings in a design colour pass.
+  - **Structure:** what each state must show is worked out from `design.json`. That covers the page title and tabs, each block in order with its words, the state's message, the open layer and the toast. Blocks are matched by their `data-b` markers.
+  - **Accessibility:** axe critical and serious issues, keyboard focus order, and visible focus.
+  - **Layout:** advisory. It flags a block present on only one side, blocks in another order, and a block's width share off by more than 25% against the approved demo.
+  - **Pixels:** advisory, and compares only against an accepted baseline.
+
+  WebKit runs a structure and axe pass at phone width (findings prefixed `WebKit:`). When WebKit is not installed the report says so; install it with `npx playwright install webkit`.
+- **Gates.** `design.tokens`, `design.structure` and `design.a11y` (`src/design/gates.ts`). Each lists up to 20 findings with their pages, and a level that could not be checked fails. A failure goes to the waiver card: the gate wording is generic now ("Run X these gates fail:"), and a waiver covers that commit only.
+- **Baselines** (`src/design/baselines.ts`). Accepting copies the run's built pictures into the design line's `baselines/` folder, beside its versions, so a later version is compared with what was accepted before. It also writes `index.json` (file, sha256, run, design version, who, when, why). It needs a name and a reason, and refuses a page the run did not picture. The ledger records `human.decided` with `cardId design-baseline` and `decision accept-baseline`. Accepting happens from the command or the Fidelity panel, not on the accept card.
+- **Generated tests** (`src/design/kit/e2e.ts`). The scaffold writes `e2e/design/<screen>.spec.ts` for each kit screen, tagged `@S-n` and with the screen's requirement ids. Each spec tests:
+  - every state from its fixture;
+  - every link (desktop and tablet only);
+  - every layer (it opens from its trigger and closes on Escape);
+  - every toast (it shows after its action);
+  - every form's labels.
+
+  A layer's button opens the layer first, and a table's bulk action ticks a row first. It also writes `playwright.design.config.ts`, with these projects:
+  - `phone`, `tablet` and `desktop` on Chromium;
+  - `desktop-dark` when the design has dark mode;
+  - `webkit-phone`, unless `DESIGN_BROWSERS=chromium`.
+
+  Run them with `npm run test:design`:
+  - `DESIGN_BASE_URL` tests an app that is already running; otherwise the tests build and start it on port 3100;
+  - `DESIGN_CHANNEL=chrome` uses the installed Chrome.
+
+  A fresh app gets the `test:design` script and `@playwright/test` (`^1.55.0`), and its tsconfig leaves the e2e files out. An existing repo gets both as design-system to-dos. On the sample app: 107 passed, 5 skipped (phone click-throughs).
+- **Kit 1.1.0.** Tabs now act like any button, so an overlay triggered by a tab opens. The fixture toast stays visible (it does not time out). There is a `Segmented` control. The theme writes `0 0 #0000` for "no shadow".
+- **Export checks** (`src/design/export-check.ts`). Each export's `export.json` has `checks`, also shown as chips on the export list:
+  - `pdf.screens`: every screen's named destination `screen-<id>` is in the book;
+  - `pdf.fonts`: every font is embedded (Type3 or a font file);
+  - `pdf.pages`: at least the cover plus one page per screen;
+  - `png.count`: every screen × state has a picture, with one file per picture.
+
+  On the sample package all four pass (47 pages, 7 screens, 84 PNGs covering 21 screen states).
+- **Commands.**
+  - `factory design fidelity <run> [--url <base>] [--json]` shows the run's report. With `--url` it checks an app that is already running, without gates.
+  - `factory design baseline <run> [pages...] | --all --reason "..."` needs a terminal and records your login name. `--list` shows the accepted pictures.
+  - `factory design export` prints the checks.
+- **UI.** The Design tab has a **Fidelity to the approved design** panel:
+  - the overall result and what ran;
+  - the five levels (blocking or advice) and any waivers;
+  - the findings;
+  - a page picker (optionally only pages with findings), showing the approved picture, the built picture, the accepted baseline and the difference in red;
+  - the page's findings;
+  - **Accept this page** and **Accept all**, with a name and a reason.
+
+  API:
+  - `GET /api/runs/:id/fidelity`;
+  - `POST /api/runs/:id/fidelity/baseline`;
+  - pictures at `/fidelity-shots/<run>/<built|approved|baseline|diff>/<name>.png`, needing the key, by file name only.
+- **Tests.** `src/design/fidelity.test.ts` (15) covers:
+  - pages, words, expectations, structure, tokens and layout;
+  - the gates and baselines;
+  - the PDF facts and export checks;
+  - the presses, the spec, the config and the scaffold's e2e files;
+  - the step's skip.
+
+  Also: a UI route test (the panel, picture paths, accept validation, the ledger event), the waiver wording, and the kit's change request (S-2's spec is rewritten with it).
+- **Live run on the sample app** (70 pages, about 100 s): tokens, structure and accessibility pass. Layout gives 7 findings: the demo draws detail and receipt side by side and widths differ, which is why layout stays advisory until it is calibrated. Pixels are not checked until a baseline is accepted.
+
 #### Decisions (2026-10-02)
 
 | # | Decision |
@@ -678,7 +758,7 @@ Like the other build gates, the blocking ones can be waived with a reason on the
 2. **Design package.** Done (as built under "The design package"). The `design-export` step, `manifest.json`, `schemaVersion`, W3C tokens with semantic names, reproducible reference shots, versions and the side-by-side change card, and the repo `design/` folder on the first build commit.
 3. **Exports.** Done (as built under "Exports"). `factory design export` (png, pdf, html, tokens, json) and `export list`, `--design-export` on every mode, the export API and the **Export button** (on the Design tab; the design card links to it after approval), and the design PDF beside the estimate's client workbook.
 4. **Kit and scaffold.** Done (as built under "Kit and scaffold (as built)"). `uiTarget`, the token generator for web, the `next-shadcn` / `vite-shadcn` kit with its tests, the scaffold generator, and plan and implement wiring (design-system task first, behaviour-only implement prompt, only the changed screens for a change request); the `design kit`, `design target` and `design scaffold` commands, `--ui-target`, and the Code panel.
-5. **Fidelity and tests.** Fixture mode, the four levels with gates `design.tokens`, `design.structure` and `design.a11y`, tests generated from the design, the baseline workflow on the accept card.
+5. **Fidelity and tests.** Done (as built under "Fidelity and tests (as built)"). The `design-fidelity` step in fixture mode, the four levels with gates `design.tokens`, `design.structure` and `design.a11y`, Playwright tests generated from the design (Chromium at three widths, WebKit at phone width), baselines accepted with a reason into the ledger (from the command or the Fidelity panel), and export checks.
 6. **Figma.** `figma.json` and the AI Factory Import plugin (route A); the `figma` entry in the Export button; `factory design figma` (route B).
 7. **More kits on demand.** `expo` first, when a project needs a phone app.
 8. **Docs, tests and live runs.** These need `ANTHROPIC_API_KEY`, and a full Figma seat for route B.

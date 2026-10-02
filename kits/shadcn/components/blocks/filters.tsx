@@ -2,7 +2,7 @@
 import { Search } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Segmented } from "@/components/ui/segmented";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { BlockEvents, FiltersData } from "./types";
@@ -20,12 +20,10 @@ export function FiltersBlock({ search, chips = [], segments, mark, onAction, cla
       )}
       {chips.map((c) => (
         <button key={c} type="button" aria-pressed={on.includes(c)} onClick={() => { setOn(on.includes(c) ? on.filter((x) => x !== c) : [...on, c]); onAction?.(c); }}
-          className="rounded-full border px-3 py-1 text-xs aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary">{t(c)}</button>
+          className="rounded-full border px-3 py-1 text-xs aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-brand-text">{t(c)}</button>
       ))}
       {segments && (
-        <Tabs defaultValue={segments[0]} onValueChange={(v) => onAction?.(v)} className="ms-auto">
-          <TabsList>{segments.map((s) => <TabsTrigger key={s} value={s}>{t(s)}</TabsTrigger>)}</TabsList>
-        </Tabs>
+        <Segmented className="ms-auto" label={t("View")} items={segments.map((s) => ({ value: s, label: t(s) }))} onChange={(v) => onAction?.(v)} />
       )}
     </section>
   );

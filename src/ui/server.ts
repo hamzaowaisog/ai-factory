@@ -23,6 +23,7 @@ import { previewFile } from "./preview.js";
 import { answerEstimateQuestions, checkRefs, decideDesign, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
+import { acceptFromPage, fidelityPanel, fidelityShot } from "./fidelity.js";
 import type { ExportFormat } from "../design/export.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
@@ -180,6 +181,18 @@ export const ROUTES: readonly Route[] = [
       const l = findRun(id!);
       if (!l) return notFound(`No run ${id}`);
       try { return ok(generateScaffold(l, (body ?? {}) as Record<string, unknown>)); } catch (e) { return { status: (e as { status?: number }).status ?? 400, json: { error: (e as Error).message } }; }
+    },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/fidelity", what: "the build's check of the app against the approved design: levels, findings, each page's built, approved and accepted pictures",
+    handle: ({ id }) => { const l = findRun(id!); return l ? ok(fidelityPanel(l) as unknown as Json) : notFound(`No run ${id}`); },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/fidelity/baseline", what: "accept built pictures (pages, or all) as the design's baseline; needs a typed name and a reason, recorded in the run's ledger",
+    handle: async ({ id }, body) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try { return ok(await acceptFromPage(l, (body ?? {}) as Record<string, unknown>)); } catch (e) { return { status: (e as { status?: number }).status ?? 400, json: { error: (e as Error).message } }; }
     },
   },
 ];
@@ -372,6 +385,16 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       let l, rel = "";
       try { l = findRun(decodeURIComponent(runId)); rel = rest.map(decodeURIComponent).join("/"); } catch { l = undefined; }
       const body = l ? visualShot(l, rel) : undefined;
+      if (!body) return send(res, 404, "No such picture.", "text/plain; charset=utf-8");
+      return send(res, 200, body, "image/png", { "Cache-Control": "no-store" });
+    }
+    if (method === "GET" && path.startsWith("/fidelity-shots/")) {
+      // a picture of the fidelity check: same key as the API, png files in four folders only
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      const [, , runId = "", kind = "", name = ""] = path.split("/");
+      let l, file = "";
+      try { l = findRun(decodeURIComponent(runId)); file = decodeURIComponent(name); } catch { l = undefined; }
+      const body = l ? fidelityShot(l, kind, file) : undefined;
       if (!body) return send(res, 404, "No such picture.", "text/plain; charset=utf-8");
       return send(res, 200, body, "image/png", { "Cache-Control": "no-store" });
     }

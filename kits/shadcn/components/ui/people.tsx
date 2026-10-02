@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
 
 export function Avatar({ name, className, ...props }: { name: string } & ComponentProps<"span">) {
-  return <span data-slot="avatar" title={name} className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-card bg-primary/15 text-xs font-semibold text-primary", className)} {...props}>{initials(name)}</span>;
+  return <span data-slot="avatar" title={name} className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-card bg-primary/10 text-brand-text text-xs font-semibold", className)} {...props}>{initials(name)}</span>;
 }
 
 /** Overlapping avatars, five at most then "+N". */

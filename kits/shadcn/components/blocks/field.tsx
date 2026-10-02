@@ -59,7 +59,7 @@ function Control({ f, id, invalid }: { f: FieldSpec; id: string; invalid: boolea
       const lo = num(options[0]), hi = num(options[options.length - 1]) || 100;
       return <Slider defaultValue={[f.value ? num(f.value) : lo]} min={lo} max={hi} disabled={off} aria-labelledby={`${id}-l`} />;
     }
-    case "otp": return <OtpField length={f.value?.length || 6} value={code} onChange={setCode} disabled={off} />;
+    case "otp": return <OtpField length={f.value?.length || 6} value={code} onChange={setCode} disabled={off} labelledBy={`${id}-l`} />;
     case "card":
       return (
         <div className="grid grid-cols-[2fr_1fr_1fr] gap-2">

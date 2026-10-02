@@ -27,6 +27,7 @@ describe("build gate waivers (B1, B3, B4)", () => {
     if (ask.kind !== "ask" || ask.outcome.kind !== "wait") throw new Error("expected a card");
     const card = ask.outcome.card;
     expect(card).toMatchObject({ kind: "waiver" });
+    expect(card.markdown).toContain(`Run ${ledger.runId} these gates fail:`);
     expect(card.markdown).toMatch(/build\.b3-size-cap: 900 changed lines.*factory waive .* --reason.*advice line/s);
 
     await ledger.append({ type: "human.requested", data: { cardId: card.cardId, kind: "waiver", artifactSha: card.artifactSha } }, HUMAN_WRITER);

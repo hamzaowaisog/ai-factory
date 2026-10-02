@@ -4,7 +4,7 @@ import { useState } from "react";
 import { StatusBadge as Badge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Segmented } from "@/components/ui/segmented";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { BlockEvents, PlansData } from "./types";
@@ -16,7 +16,7 @@ export function PlansBlock({ periods, note, items, mark, onAction, className }: 
     <section data-b={mark} className={cn("grid gap-4", className)}>
       {periods && (
         <div className="flex items-center justify-center gap-2">
-          <Tabs value={second ? periods[1] : periods[0]} onValueChange={(v) => setSecond(v === periods[1])}><TabsList>{periods.map((p) => <TabsTrigger key={p} value={p}>{t(p)}</TabsTrigger>)}</TabsList></Tabs>
+          <Segmented label={t("Billing period")} value={second ? periods[1] : periods[0]} items={periods.map((p) => ({ value: p, label: t(p) }))} onChange={(v) => setSecond(v === periods[1])} />
           {note && <Badge tone="ok">{t(note)}</Badge>}
         </div>
       )}

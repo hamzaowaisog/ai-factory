@@ -19,6 +19,9 @@ import { exportForRun, exportSeededNow } from "../stages/design-export.js";
 import { replay } from "../ledger/state.js";
 import { loadKit, sampleDesign, scaffold, scaffoldSummary, UI_TARGETS, uiTargetOption, writeScaffold, type KitTarget, type ScaffoldLayout } from "../design/kit/index.js";
 import { scaffoldPreview, scaffoldView, type ScaffoldView } from "../stages/scaffold-run.js";
+import { checkRunningApp, fidelityOfRun, FIDELITY_DIR, formatFidelity, packageOfRun } from "../stages/design-fidelity.js";
+import { acceptBaselines, baselinesDir, readBaselineIndex } from "../design/baselines.js";
+import { assertTty } from "../ledger/human.js";
 
 /** `--ui-target next-shadcn|vite-shadcn|repo`, checked before a run exists. */
 export { uiTargetOption };
@@ -168,6 +171,7 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
       log(`design ${e.line} v${e.version} (${e.designSha.slice(0, 8)}) exported to ${e.dir}`);
       for (const [f, n] of Object.entries(e.files.reduce<Record<string, number>>((a, x) => ({ ...a, [x.format]: (a[x.format] ?? 0) + 1 }), {}))) log(`  ${f.padEnd(7)} ${n} file(s)`);
       for (const n of e.notes) log(`  note: ${n}`);
+      for (const c of e.checks ?? []) log(`  check  ${c.status.padEnd(4)} ${c.check}: ${c.detail}${c.items?.length ? `\n${c.items.slice(0, 8).map((x) => `           - ${x}`).join("\n")}` : ""}`);
     });
 
   design.command("scaffold").argument("[run]", "a run with an approved design (design, estimate or build)")
@@ -201,6 +205,46 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
       if (o.files) for (const f of v.files) log(`  ${f.owner.padEnd(6)} ${f.regenerate ? "factory" : "repo's "} ${f.path}`);
       if (o.out && !layout) log("nothing written: the target uses the repo's own components");
       if (written) log(`wrote ${written.length} files to ${resolve(o.out!)}${v.fresh ? ": npm install && npm run dev, then open a page with ?fixture=S-1:default" : ""}`);
+    });
+
+  design.command("fidelity").argument("<run>", "a build run whose screens are built with the kit")
+    .option("--url <base>", "check this running app now (e.g. http://localhost:3000, in fixture mode) instead of showing the build's last check")
+    .option("--json", "print JSON")
+    .description("the built app against the approved design: tokens, structure and accessibility (blocking gates, waivable), layout and pixels (advice). The build runs it after accept when the project sets design.fidelity; --url checks an app you started yourself")
+    .action(async (run: string, o: { url?: string; json?: boolean }) => {
+      const l = deps.openRun(run);
+      const state = replay(l.events());
+      const r = o.url ? await checkRunningApp(state, l, loadProject(state.info.project), o.url, log) : fidelityOfRun(state, l);
+      if (!r) return log(`Run ${l.runId} has no fidelity check yet: the build runs it after accept (design.fidelity in the project), or check a running app with --url`);
+      if (o.json) return log(JSON.stringify(r, null, 2));
+      for (const line of formatFidelity(r)) log(line);
+      if (r.pages.some((p) => p.built)) log(`pictures: ${join(l.dir, FIDELITY_DIR)}; accept them as the baseline with factory design baseline ${l.runId} --all --reason "..."`);
+    });
+
+  design.command("baseline").argument("<run>", "a run with a fidelity check").argument("[pages...]", "page keys from the check (s-1-default-desktop); or --all")
+    .option("--all", "every page the check pictured")
+    .option("--reason <text>", "why the built pages are right (recorded with your name)")
+    .option("--list", "show the accepted pictures of the run's design line")
+    .description("accept the built pictures as the baseline the next fidelity checks compare with (stored beside the design's versions, recorded in the run's ledger)")
+    .action(async (run: string, pages: string[], o: { all?: boolean; reason?: string; list?: boolean }) => {
+      const l = deps.openRun(run);
+      const state = replay(l.events());
+      const pkg = packageOfRun(state, l);
+      if (!pkg) throw new Error(`Run ${l.runId} has no design package in the store to keep baselines with`);
+      if (o.list) {
+        const idx = readBaselineIndex(pkg);
+        const rows = Object.entries(idx.pages);
+        if (!rows.length) return log(`design ${pkg.manifest.line}: no accepted pictures yet`);
+        for (const [k, e] of rows) log(`${k.padEnd(44)} v${e.designVersion} ${e.run} by ${e.by} ${e.at.slice(0, 10)}: ${e.reason}`);
+        return;
+      }
+      const report = fidelityOfRun(state, l);
+      if (!report) throw new Error(`Run ${l.runId} has no fidelity check to accept pictures from`);
+      if (!o.all && !pages.length) throw new Error("Name the pages to accept, or --all");
+      if (!o.reason?.trim()) throw new Error("Give a reason: --reason \"why the built pages are right\"");
+      assertTty();
+      const done = await acceptBaselines({ ledger: l, pkg, report, keys: o.all ? "all" : pages, by: userInfo().username, reason: o.reason });
+      log(`accepted ${done.length} picture(s) as the baseline of design ${pkg.manifest.line} (${baselinesDir(pkg)}); the next check compares with them`);
     });
 
   design.command("check-refs").argument("<refs...>", "references as for --ref: [match:|inspire:|layout:]<file or link>[|note]")

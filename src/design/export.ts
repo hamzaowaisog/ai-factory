@@ -18,6 +18,8 @@ import JSZip from "jszip";
 import { designTokens } from "../estimate/tokens.js";
 import { findChromium, VIEWPORTS, type Shot, type Viewport } from "../estimate/screenshots.js";
 import type { DesignTheme } from "../contracts/artifacts.js";
+import { checkExport } from "./export-check.js";
+import type { CheckResult } from "./fidelity.js";
 import { readDesignJson, w3cTokens, type DesignPackage, type PackageFile } from "./package.js";
 
 /** What can be exported now. `figma` comes with the Figma plugin (build step 6). */
@@ -48,6 +50,8 @@ export interface ExportRecord {
   files: (PackageFile & { format: ExportFormat })[];
   /** what could not be made, and why (no browser, nothing matched the filters) */
   notes: string[];
+  /** the checks on the files written: every screen in the PDF, fonts embedded, a picture per screen state */
+  checks?: CheckResult[];
 }
 
 /** "png,pdf", "all": the formats asked for, refusing what is not built yet. */
@@ -205,7 +209,7 @@ ul { margin: 1mm 0 3mm 5mm; padding: 0; } .head { display: flex; justify-content
 <section class="cover"><div class="brand"></div><h1>${esc(product)}</h1>
 <p class="muted" style="font-size:13pt;margin:0 0 8mm">Design ${esc(m.line)} · version ${m.version}${m.product.client ? ` · for ${esc(m.product.client)}` : ""}</p>
 <dl><dt>Approved</dt><dd>by ${esc(m.approved.by)} on ${esc(m.approved.at.slice(0, 10))}</dd><dt>Design sha</dt><dd><code>${esc(m.designSha)}</code></dd>
-<dt>Screens</dt><dd>${m.screens.length}</dd>${m.previous ? `<dt>Changes v${m.previous.version}</dt><dd>${(m.changes ?? []).map(esc).join("<br>") || "no screen changed"}</dd>` : ""}
+<dt>Screens</dt><dd>${m.screens.length}: ${screens.map((sc) => `<a href="#screen-${esc(sc.id)}">${esc(sc.id)}</a>`).join(", ")}</dd>${m.previous ? `<dt>Changes v${m.previous.version}</dt><dd>${(m.changes ?? []).map(esc).join("<br>") || "no screen changed"}</dd>` : ""}
 ${d.flow ? `<dt>Flow</dt><dd>${esc(d.flow)}</dd>` : ""}</dl></section>
 ${reading || theme ? `<section><h2>The product and its look</h2>${reading ? `<dl><dt>Who uses it</dt><dd>${esc(reading.users)}</dd><dt>Where</dt><dd>${esc(reading.context)}</dd><dt>Device</dt><dd>${esc(reading.device)}</dd><dt>Tone</dt><dd>${esc(reading.tone)}</dd><dt>What matters most</dt><dd>${esc(reading.hero)}</dd><dt>Traits</dt><dd>${(reading.traits ?? []).map(esc).join(", ")}</dd></dl>` : ""}
 ${theme?.basis?.length ? `<h3>Drawn from</h3><ul>${theme.basis.map((b) => `<li><b>${esc(b.ref)}</b>: ${esc(b.took)}</li>`).join("")}</ul>` : ""}
@@ -214,7 +218,7 @@ ${components.length && !wanted ? `<section><h2>Components</h2>${variants(compone
 ${screens.map((sc) => {
     const own = shots.filter((s) => s.id === sc.id);
     const links = (d.links ?? []).filter((l) => l.from === sc.id || l.from === sc.title).map((l) => l.to);
-    return `<section><div class="head"><h2>${esc(sc.title)}</h2><code class="muted">${esc(sc.id)} ${esc(sc.route)}</code></div>
+    return `<section id="screen-${esc(sc.id)}"><div class="head"><h2>${esc(sc.title)}</h2><code class="muted">${esc(sc.id)} ${esc(sc.route)}</code></div>
 ${sc.reqs.length ? `<h3>Requirements</h3><ul>${sc.reqs.map((r) => `<li><b>${esc(r)}</b>${o.requirements?.[r] ? ` ${esc(o.requirements[r])}` : ""}</li>`).join("")}</ul>` : ""}
 ${links.length ? `<p class="muted">Goes to: ${links.map(esc).join(", ")}</p>` : ""}
 <p class="muted">States: ${sc.states.map(esc).join(", ")}</p>
@@ -325,7 +329,9 @@ export async function exportDesign(pkg: DesignPackage, out: string, o: ExportOpt
     add("json", "json/design.json", readFileSync(join(pkg.dir, "design.json")));
     add("json", "json/manifest.json", readFileSync(join(pkg.dir, "manifest.json")));
   }
-  const record: ExportRecord = { kind: "ai-factory/design-export", line: m.line, version: m.version, designSha: m.designSha, at: new Date().toISOString(), options: o, files, notes };
+  const record: ExportRecord = { kind: "ai-factory/design-export", line: m.line, version: m.version, designSha: m.designSha, at: new Date().toISOString(), options: o, files, notes, checks: [] };
+  record.checks = checkExport(pkg, out, record, o.formats.includes("png") ? picked : []);
+  for (const c of record.checks) if (c.status !== "PASS") extra.log?.(`design export: ${c.check} ${c.status}: ${c.detail}`);
   writeFileSync(join(out, "export.json"), `${JSON.stringify(record, null, 2)}\n`);
   for (const n of notes) extra.log?.(`design export: ${n}`);
   return record;

@@ -123,6 +123,24 @@ export const ProjectConfig = z.object({
       /** extra environment for the app (no secrets from the factory are passed) */
       env: z.record(z.string(), z.string()).default({}),
     }).optional(),
+    /**
+     * Check the built app against the approved design (docs/estimates-design.md, "Fidelity and tests"): tokens, structure and
+     * accessibility block (waivable), layout and pixels advise. Only for a kit scaffold (next-shadcn, vite-shadcn). Like capture, the
+     * app is built and started ON THIS MACHINE, so it is off unless `allowHost` is true. The commands default to the kit's own.
+     */
+    fidelity: z.object({
+      allowHost: z.literal(true),
+      /** run once in the checkout first; default "npm install --no-audit --no-fund" */
+      install: z.string().optional(),
+      /** builds and starts the app on $PORT; default per target (next build && next start, vite build && vite preview) */
+      start: z.string().optional(),
+      port: z.number().int().min(1024).max(65000).default(4320),
+      readyPath: z.string().startsWith("/").default("/"),
+      timeoutSec: z.number().int().min(10).max(1800).default(600),
+      env: z.record(z.string(), z.string()).default({}),
+      /** most pages to open (the rest are noted, not checked) */
+      maxPages: z.number().int().min(1).max(400).default(160),
+    }).optional(),
   }).optional(),
   noGo: z.array(z.string()).default([]),
   /** USD per million tokens for models the factory has no price for (e.g. a GPT model). */

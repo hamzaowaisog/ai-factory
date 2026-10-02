@@ -17,6 +17,7 @@ type DesignBody = z.infer<typeof DesignBodySchema>;
 import { demoStates, overlayLabel, toastLabel, FULL_DATA } from "../../estimate/demo.js";
 import type { FileSource } from "../source.js";
 import { shadcnThemeCss } from "./theme.js";
+import { E2E_CONFIG, E2E_DIR, PLAYWRIGHT_VERSION, e2eFiles } from "./e2e.js";
 import { kitFiles, kitTarget, type Kit, type KitTarget } from "./kit.js";
 
 /** The first line of every file the factory owns: a later scaffold may write it again; anything without it is the repo's. */
@@ -337,6 +338,9 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     ].join("\n"), "glue", true);
   }
 
+  // the design's tests: a file per screen written, and their config
+  for (const f of e2eFiles({ design: o.design, screens: out, write: (id) => !changed || changed.has(id.toLowerCase()), tag: o.tag, next })) add(f.path, f.text, f.owner, f.regenerate);
+
   // a fresh app's skeleton, or what the design-system task must wire in an existing one
   const kitDeps = { ...o.kit.manifest.dependencies, ...o.kit.manifest.targetDependencies[o.target] };
   const devDeps = o.kit.manifest.devDependencies[o.target] ?? {};
@@ -349,15 +353,15 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     const name = o.product.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "app";
     add("package.json", lit({
       name, version: "0.1.0", private: true, type: "module",
-      scripts: next ? { dev: "next dev", build: "next build", start: "next start" } : { dev: "vite", build: "tsc -b && vite build", preview: "vite preview" },
-      dependencies: sorted(kitDeps), devDependencies: sorted(devDeps),
+      scripts: { ...(next ? { dev: "next dev", build: "next build", start: "next start" } : { dev: "vite", build: "tsc -b && vite build", preview: "vite preview" }), "test:design": `playwright test -c ${E2E_CONFIG}` },
+      dependencies: sorted(kitDeps), devDependencies: sorted({ ...devDeps, "@playwright/test": PLAYWRIGHT_VERSION }),
     }) + "\n", "app", false);
     add(stylesheet, css, "app", false);
     add(".gitignore", `${["node_modules", next ? ".next" : "dist", "*.tsbuildinfo", ...(next ? ["next-env.d.ts"] : [])].join("\n")}\n`, "app", false);
     if (next) {
       add("tsconfig.json", lit({
         compilerOptions: { target: "ES2022", lib: ["dom", "dom.iterable", "esnext"], allowJs: false, skipLibCheck: true, strict: true, noEmit: true, esModuleInterop: true, module: "esnext", moduleResolution: "bundler", resolveJsonModule: true, isolatedModules: true, jsx: "preserve", incremental: true, plugins: [{ name: "next" }], paths: { "@/*": [`./${root}*`] } },
-        include: ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"], exclude: ["node_modules"],
+        include: ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"], exclude: ["node_modules", E2E_DIR, E2E_CONFIG],
       }) + "\n", "app", false);
       add("next.config.ts", `import type { NextConfig } from "next";\n\nconst config: NextConfig = {};\n\nexport default config;\n`, "app", false);
       add("postcss.config.mjs", `export default { plugins: { "@tailwindcss/postcss": {} } };\n`, "app", false);
@@ -414,6 +418,7 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     const have = { ...(pkg?.dependencies ?? {}), ...(pkg?.devDependencies ?? {}) };
     const missing = Object.entries({ ...kitDeps, ...devDeps }).filter(([k]) => !(k in have) && !(next ? ["@tailwindcss/vite", "vite", "@vitejs/plugin-react"] : ["@tailwindcss/postcss"]).includes(k));
     if (missing.length) todo.push(`add the kit's packages to package.json: ${missing.map(([k, v]) => `${k}@${v}`).join(", ")}`);
+    if (out.length && !("@playwright/test" in have)) todo.push(`add @playwright/test@${PLAYWRIGHT_VERSION} to the devDependencies and a script \"test:design\": \"playwright test -c ${E2E_CONFIG}\" (the design's tests in ${E2E_DIR})`);
     const sheet = o.src!.list().find((f) => /(^|\/)(globals|index|app|main)\.css$/.test(f) && f.startsWith(root)) ?? stylesheet;
     dsFiles.push("package.json", sheet);
     todo.push(`import the theme and the kit's animations in ${sheet}: @import "tw-animate-css";${look ? ` @import "${relativeCss(sheet, themePath)}";` : ""} (after @import "tailwindcss")`);

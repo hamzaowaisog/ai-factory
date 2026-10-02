@@ -61,7 +61,7 @@ export function TableBlock({ columns, rows, statusColumn, sortBy, sortDir = "des
               <TableRow key={r.id} data-state={r.getIsSelected() ? "selected" : undefined} className="cursor-pointer" onClick={(e) => onAction?.(r.original[0] ?? "", e.currentTarget)}>
                 {selectable && <TableCell onClick={(e) => e.stopPropagation()}><Checkbox aria-label={t("Select row")} checked={r.getIsSelected()} onCheckedChange={(v) => r.toggleSelected(!!v)} /></TableCell>}
                 {r.getVisibleCells().map((c) => <TableCell key={c.id}>{flexRender(c.column.columnDef.cell, c.getContext())}</TableCell>)}
-                <TableCell><button type="button" aria-label={t("More")} className="rounded p-1 hover:bg-muted" onClick={(e) => { e.stopPropagation(); onAction?.("More", e.currentTarget); }}><Ellipsis className="size-4" /></button></TableCell>
+                <TableCell><button type="button" aria-label={t("More")} className="rounded-sm p-1 hover:bg-muted" onClick={(e) => { e.stopPropagation(); onAction?.("More", e.currentTarget); }}><Ellipsis className="size-4" /></button></TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -72,8 +72,8 @@ export function TableBlock({ columns, rows, statusColumn, sortBy, sortDir = "des
         {table.getRowModel().rows.map((r) => (
           <Card key={r.id} className="cursor-pointer p-pad" onClick={(e) => onAction?.(r.original[0] ?? "", e.currentTarget)}>
             <div className="flex items-start justify-between gap-2">
-              <p className="font-medium">{t(r.original[0] ?? "")}</p>
-              {statusColumn !== undefined && r.original[statusColumn] && <Badge tone={toneOf(r.original[statusColumn]!)}>{t(r.original[statusColumn]!)}</Badge>}
+              <p className="font-medium"><span className="sr-only">{t(columns[0] ?? "")}: </span>{t(r.original[0] ?? "")}</p>
+              {statusColumn !== undefined && r.original[statusColumn] && <Badge tone={toneOf(r.original[statusColumn]!)}><span className="sr-only">{t(columns[statusColumn] ?? "")}: </span>{t(r.original[statusColumn]!)}</Badge>}
             </div>
             <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
               {columns.slice(1).map((c, j) => (j + 1 === statusColumn ? null : <div key={c} className="contents"><dt className="text-muted-foreground">{t(c)}</dt><dd className="text-end">{t(r.original[j + 1] ?? "")}</dd></div>))}
@@ -81,7 +81,7 @@ export function TableBlock({ columns, rows, statusColumn, sortBy, sortDir = "des
           </Card>
         ))}
       </div>
-      {pages !== undefined && pages > 1 && <Pager page={at} pages={pages} onPage={(p) => setAt(Math.min(Math.max(1, p), pages))} />}
+      {pages !== undefined && pages > 1 && <Pager page={at} pages={pages} labels={[t("Previous page"), t("Next page")]} onPage={(p) => setAt(Math.min(Math.max(1, p), pages))} />}
     </section>
   );
 }

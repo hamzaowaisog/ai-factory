@@ -23,6 +23,10 @@ export const SHADCN_COLOURS: [string, string][] = [
   ["sidebar-accent", "surface-muted"], ["sidebar-accent-foreground", "text"], ["sidebar-border", "border"], ["sidebar-ring", "brand"],
 ];
 
+// "none" in a shadow variable empties the whole box-shadow list Tailwind composes (the focus ring with it), so no shadow is written
+// as a shadow that draws nothing
+const noShadow = (v: string): string => (v.trim() === "none" ? "0 0 #0000" : v);
+
 /**
  * The stylesheet the kit's components draw with. `tag` names the approved design it came from. Light mode is `:root`; a dark
  * product is `:root` in dark; a product in both follows the viewer's setting and the `dark` class or `data-theme` an app sets.
@@ -32,7 +36,7 @@ export function shadcnThemeCss(theme: DesignTheme, tag: string): string {
   const modes = Object.keys(t.colour) as ("light" | "dark")[];
   const vars = (m: "light" | "dark") => [
     ...SHADCN_COLOURS.map(([k, from]) => `--${k}: ${t.colour[m]![from]};`),
-    `--shadow-card: ${t.shadow[m]!.card};`, `--shadow-raised: ${t.shadow[m]!.raised};`,
+    `--shadow-card: ${noShadow(t.shadow[m]!.card)};`, `--shadow-raised: ${noShadow(t.shadow[m]!.raised)};`,
   ];
   const shared = [
     `--radius: ${t.radiusPx}px;`, `--font-body: ${t.type.body};`, `--font-heading: ${t.type.heading};`,
@@ -59,8 +63,12 @@ export function shadcnThemeCss(theme: DesignTheme, tag: string): string {
     `  --font-sans: var(--font-body);`, `  --font-body: var(--font-body);`, `  --font-heading: var(--font-heading);`,
     `  --radius-sm: max(0px, calc(var(--radius) - 4px));`, `  --radius-md: max(0px, calc(var(--radius) - 2px));`,
     `  --radius-lg: var(--radius);`, `  --radius-xl: calc(var(--radius) + 4px);`,
+    // Tailwind's other steps land on the design's (the fidelity check allows only these corners and shadows)
+    `  --radius-xs: var(--radius-sm);`, `  --radius-2xl: var(--radius-xl);`, `  --radius-3xl: var(--radius-xl);`, `  --radius-4xl: var(--radius-xl);`,
     `  --spacing-pad: var(--space-pad);`, `  --spacing-row: var(--space-row);`,
     `  --shadow-card: var(--shadow-card);`, `  --shadow-raised: var(--shadow-raised);`,
+    `  --shadow-2xs: var(--shadow-card);`, `  --shadow-xs: var(--shadow-card);`, `  --shadow-sm: var(--shadow-card);`, `  --shadow: var(--shadow-card);`,
+    `  --shadow-md: var(--shadow-raised);`, `  --shadow-lg: var(--shadow-raised);`, `  --shadow-xl: var(--shadow-raised);`, `  --shadow-2xl: var(--shadow-raised);`,
     `  --ease-standard: var(--ease);`, `  --ease-spring: var(--ease-spring);`,
     `}`,
     ``,

@@ -24,7 +24,7 @@ export function buildWaiver(ctx: StepContext, step: string, failed: BuildFailed[
   const lines = failed.flatMap((f) => f.failures.slice(0, 5).map((x) => `- ${f.def.id}: ${x.message}`));
   const md = [
     `# Waive build gate${failed.length > 1 ? "s" : ""}? (${step})`, ``,
-    `Run ${ctx.runId} follows an approved estimate and these gates fail:`, ``, ...lines, ``,
+    `Run ${ctx.runId}${ctx.state.info.estimateRef ? " follows an approved estimate and" : ""} these gates fail:`, ``, ...lines, ``,
     `A waiver is recorded with your name and reason. It covers these gates for this ${step === "plan" ? "approved scope" : "commit"} only; a different one needs a new decision.`,
     `To accept it as it stands:`,
     `  factory waive ${ctx.runId} ${bundle.slice(0, 8)} --reason "why this is fine"`,

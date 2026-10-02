@@ -9,6 +9,7 @@ import { approveStep, intakeStep, planStep } from "./spec.js";
 import { draftsStep, mergeStep, specifyStep } from "./specpipe.js";
 import { splitModules } from "../estimate/modules.js";
 import { designCheckStep } from "./design-check.js";
+import { designFidelityStep } from "./design-fidelity.js";
 import { approveEstimateStep, exportStep } from "./estimate-approve.js";
 import { designSteps } from "./design-pipeline.js";
 import { seedStep } from "./seed.js";
@@ -38,7 +39,7 @@ export function brownfieldSteps(state: RunState): StepDef[] {
     discoverStep, intakeStep, brownfieldGroundStep, ...spec, ...design, planStep, approveStep,
     stubCommitStep, authorTestsStep,
     ...tasks.map((t) => implementStep(t)),
-    integrateStep, acceptStep, designCheckStep, reviewStep, deliverStep,
+    integrateStep, acceptStep, designFidelityStep, designCheckStep, reviewStep, deliverStep,
   ];
 }
 

@@ -21,5 +21,5 @@ export function NoticeTitle({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("col-start-2 font-medium", className)} {...props} />;
 }
 export function NoticeDescription({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("col-start-2 text-muted-foreground", className)} {...props} />;
+  return <div className={cn("col-start-2 text-text-secondary", className)} {...props} />;
 }

@@ -194,7 +194,7 @@ describe("the scaffold", () => {
     const changedDesign = structuredClone(design);
     changedDesign.screens[1]!.mock!.title = "Invoice detail";
     const l2 = scaffold({ ...base, design: changedDesign, target: "next-shadcn", src: mem(built), root: "", alias: true, changed: ["S-2"] });
-    expect(l2.files.map((f) => f.path).filter((p) => p.includes("/s-"))).toEqual(["components/screens/s-2/fixtures.ts", "components/screens/s-2/screen.tsx"].filter((p) => built[p] !== l2.files.find((f) => f.path === p)?.text));
+    expect(l2.files.map((f) => f.path).filter((p) => p.includes("/s-"))).toEqual(["components/screens/s-2/fixtures.ts", "components/screens/s-2/screen.tsx", "e2e/design/s-2.spec.ts"].filter((p) => built[p] !== l2.files.find((f) => f.path === p)?.text));
     expect(l2.files.find((f) => f.path === "components/screens/s-2/screen.tsx")?.text).toContain("Invoice detail");
   });
 

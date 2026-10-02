@@ -12,13 +12,14 @@ function Slot({ char, isActive, hasFakeCaret }: SlotProps) {
 }
 
 /** A one-time code, one box per digit. */
-export function OtpField({ length = 6, value, onChange, disabled }: { length?: number; value?: string; onChange?: (v: string) => void; disabled?: boolean }) {
+export function OtpField({ length = 6, value, onChange, disabled, labelledBy }: { length?: number; value?: string; onChange?: (v: string) => void; disabled?: boolean; labelledBy?: string }) {
   return (
     <OTPInput
       maxLength={length}
       value={value ?? ""}
       onChange={(v) => onChange?.(v)}
       disabled={disabled}
+      aria-labelledby={labelledBy}
       containerClassName="flex items-center"
       render={({ slots }) => <div className="flex">{slots.map((s, i) => <Slot key={i} {...s} />)}</div>}
     />

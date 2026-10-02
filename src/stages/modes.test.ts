@@ -61,7 +61,7 @@ describe("mode manifests", () => {
     const l = Ledger.create("20260930-build-seed1");
     await l.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: "x", estimateRef: { runId: "r0", estimateSha: "e".repeat(64), breakdownSha: "b".repeat(64), specSha: "s".repeat(64), criticSha: "k".repeat(64) } } }, HUMAN_WRITER);
     const keys = brownfieldSteps(replay(l.events())).map((s) => s.key);
-    expect(keys).toEqual(["discover", "intake", "ground", "specify", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-check", "review", "deliver"]);
+    expect(keys).toEqual(["discover", "intake", "ground", "specify", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
   });
 
   it("design mode runs the estimate's road to the spec, then the design pipeline, and stops at the approved design", async () => {
@@ -87,7 +87,7 @@ describe("mode manifests", () => {
   it("a build from an approved design inherits its spec, like a build from an estimate", async () => {
     const l = Ledger.create("20261002-build-fromdesign");
     await l.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: "x", designRef: ref } }, HUMAN_WRITER);
-    expect(brownfieldSteps(replay(l.events())).map((s) => s.key)).toEqual(["discover", "intake", "ground", "specify", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-check", "review", "deliver"]);
+    expect(brownfieldSteps(replay(l.events())).map((s) => s.key)).toEqual(["discover", "intake", "ground", "specify", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
   });
 
   it("refuses a mode with no step list yet", async () => {
