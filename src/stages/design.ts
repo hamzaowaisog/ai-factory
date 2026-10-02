@@ -12,7 +12,7 @@ import type { RunState } from "../ledger/state.js";
 import type { DesignInventory } from "../design/inventory.js";
 import { DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
-import { header, type StepDef } from "./framework.js";
+import { header, outputOf, type StepDef } from "./framework.js";
 import { ESTIMATE_SOURCES, intentOf, inventoryNamed, inventoryOf, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
 import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
 import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
@@ -551,8 +551,11 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
     key: "design", stage: "design", templateVersion: "19",
     inputs: (s, l) => {
       if (!sourcesReady(s, src)) return undefined;
+      // with references the design waits for their reading (design-refs); without, the inputs are what they always were
+      const refRead = s.info.references?.length ? outputOf(s, "design-refs") : undefined;
+      if (s.info.references?.length && !refRead) return undefined;
       const ui = !!l.getJson<Intent>(s.steps.get(src.intent)!.outputs[0]!)?.touchesUi;
-      return { spec: s.steps.get(src.spec)!.outputs[0], ui, inventory: inventoryNamed(s, src), earlier: s.info.parent?.kind === "change" ? s.info.parent.designSha : undefined, frames: listedFrames(s.info.request ?? "").map((f) => f.id), rejections: designRejections(s).slice(0, MAX_DESIGN_REVISIONS) };
+      return { spec: s.steps.get(src.spec)!.outputs[0], ui, ...(refRead ? { refRead } : {}), inventory: inventoryNamed(s, src), earlier: s.info.parent?.kind === "change" ? s.info.parent.designSha : undefined, frames: listedFrames(s.info.request ?? "").map((f) => f.id), rejections: designRejections(s).slice(0, MAX_DESIGN_REVISIONS) };
     },
     async run(ctx) {
       const intent = intentOf<Intent>(ctx.state, ctx.ledger, src);

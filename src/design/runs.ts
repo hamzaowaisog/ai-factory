@@ -21,7 +21,7 @@ export interface DesignRunView {
   /** "new" for a look drawn for this product, "repo" for the app's own look */
   themeSource?: string;
   screens: { id: string; title?: string; route: string; reqs: string[]; states: string[] }[];
-  references: Pick<Reference, "id" | "kind" | "source" | "role" | "measured" | "colours" | "fonts" | "notes">[];
+  references: (Pick<Reference, "id" | "kind" | "source" | "role" | "measured" | "colours" | "fonts" | "notes"> & { read?: { kind: string; navigation: string; reqs: string[]; palette: { name: string; hex: string }[] } })[];
   files: { demo?: string; shots?: string; tokens?: string };
   costUsd: number;
   approvedBy?: string;
@@ -49,6 +49,8 @@ export function designRunView(ledger: Ledger): DesignRunView {
   const base = s.steps.get("design-baseline");
   const approvedBy = base?.status === "completed" && base.outputs[0] ? ledger.getJson<{ by?: string }>(base.outputs[0])?.by : undefined;
   const t = d?.theme;
+  const refsSha = s.steps.get("design-refs")?.status === "completed" ? s.steps.get("design-refs")!.outputs[0] : undefined;
+  const reading = refsSha ? ledger.getJson<{ refs?: { id: string; kind: string; navigation: string; reqs: string[]; brief: { palette: { name: string; hex: string }[] } }[] }>(refsSha)?.refs ?? [] : [];
   return {
     runId: ledger.runId, mode: s.info.mode, project: s.info.project, status: statusLabel(s.status), stage: stageOf(s),
     request: (s.info.request ?? "").split("\n").find((l) => l.trim())?.trim().slice(0, 120) ?? "",
@@ -56,7 +58,10 @@ export function designRunView(ledger: Ledger): DesignRunView {
     ...(t ? { theme: { mood: t.mood, mode: t.mode, brand: t.brand, font: t.font, radius: t.radius, density: t.density, ...(t.basis ? { basis: t.basis } : {}) } } : {}),
     ...(d?.themeSource ? { themeSource: d.themeSource } : {}),
     screens: d && !d.skipped ? (d.screens ?? []).map((x) => ({ id: x.id, ...(x.mock?.title ? { title: x.mock.title } : {}), route: x.route, reqs: x.reqs, states: x.states ?? [] })) : [],
-    references: (s.info.references ?? []).map((r) => ({ id: r.id, kind: r.kind, source: r.source, role: r.role, measured: r.measured, colours: r.colours, fonts: r.fonts, notes: r.notes })),
+    references: (s.info.references ?? []).map((r) => {
+      const x = reading.find((y) => y.id === r.id);
+      return { id: r.id, kind: r.kind, source: r.source, role: r.role, measured: r.measured, colours: r.colours, fonts: r.fonts, notes: r.notes, ...(x ? { read: { kind: x.kind, navigation: x.navigation, reqs: x.reqs, palette: x.brief.palette } } : {}) };
+    }),
     files: Object.fromEntries(Object.entries({ demo: has("preview/index.html") ?? has("design-demo.html"), shots: has("preview/shots"), tokens: has("preview/tokens.css") }).filter(([, v]) => v)) as DesignRunView["files"],
     costUsd: s.costUsd,
     ...(approvedBy ? { approvedBy } : {}),
@@ -92,7 +97,8 @@ export function formatDesignRun(v: DesignRunView): string[] {
     lines.push(`  references (${v.references.length}):`);
     for (const r of v.references) {
       const cols = r.colours.slice(0, 5).map((c) => `${c.hex}${c.role ? ` ${c.role}` : ""}`).join(", ");
-      lines.push(`    ${r.id} ${r.role.padEnd(7)} ${r.kind.padEnd(5)} ${r.source}${cols ? `  [${cols}${r.measured === "approximate" ? ", approximate" : ""}]` : ""}${r.fonts.length ? `  fonts ${r.fonts.map((f) => f.family).join(", ")}` : ""}`);
+      const rd = r.read ? `\n      read as ${r.read.kind}${r.read.navigation !== "unclear" ? `, ${r.read.navigation}` : ""}${r.read.palette.length ? `; ${r.read.palette.map((p) => `${p.name} ${p.hex}`).join(", ")}` : ""}${r.read.reqs.length ? `; for ${r.read.reqs.join(", ")}` : ""}` : "";
+      lines.push(`    ${r.id} ${r.role.padEnd(7)} ${r.kind.padEnd(5)} ${r.source}${cols ? `  [${cols}${r.measured === "approximate" ? ", approximate" : ""}]` : ""}${r.fonts.length ? `  fonts ${r.fonts.map((f) => f.family).join(", ")}` : ""}${rd}`);
     }
   }
   if (v.screens.length) {

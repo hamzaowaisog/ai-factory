@@ -57,7 +57,7 @@ export function estimateSteps(state: RunState): StepDef[] {
   }
   // an approved design-only run: its intake, grounding, answers, spec and approved design are inherited; only sizing is new
   if (state.info.designRef) return [...seededFromDesign(state), breakdownStep, estimateStep, approveEstimateStep, exportStep];
-  return [...requirementsHead(state), ...designSteps({ purpose: "estimate" }), breakdownStep, estimateStep, approveEstimateStep, exportStep];
+  return [...requirementsHead(state), ...designSteps({ purpose: "estimate", refs: !!state.info.references?.length }), breakdownStep, estimateStep, approveEstimateStep, exportStep];
 }
 
 /**
@@ -94,7 +94,7 @@ function seededFromDesign(state: RunState): StepDef[] {
  * the approved design on (`--from-design`).
  */
 export function designOnlySteps(state: RunState): StepDef[] {
-  return [...requirementsHead(state), ...designSteps({ purpose: "design" })];
+  return [...requirementsHead(state), ...designSteps({ purpose: "design", refs: !!state.info.references?.length })];
 }
 
 /** The ordered steps for the run's mode. */
