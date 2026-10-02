@@ -21,7 +21,8 @@ import { failure } from "../gates/engine.js";
 import type { RunState } from "../ledger/state.js";
 import { Ledger } from "../ledger/ledger.js";
 import { demoShotList, findPackage, nextVersion, type DesignPackage } from "../design/package.js";
-import { ensurePackage } from "./design-export.js";
+import { ensurePackage, exportRunPackage } from "./design-export.js";
+import { writeDesignBook } from "../design/export.js";
 import { hashJson } from "../util/hash.js";
 import type { ClarifyResult } from "./clarify.js";
 import { gate, settingsOf } from "./estimate.js";
@@ -362,6 +363,20 @@ export function exportInputFor(state: RunState, ledger: Ledger): ExportInput {
   return input;
 }
 
+/** The design book PDF of an estimate's approved design, written into the delivery folder; undefined when the request has no UI. */
+async function designBookFor(ctx: { state: RunState; ledger: Ledger; log: (m: string) => void }, dir: string, base: string): Promise<{ file: string; version: number } | { none: string } | undefined> {
+  try {
+    const pkg = await exportRunPackage(ctx.state, ctx.ledger, ctx.log);
+    if ("none" in pkg) return /no UI/.test(pkg.none) ? undefined : { none: pkg.none };
+    const file = join(dir, `${base}-design-v${pkg.manifest.version}.pdf`);
+    const spec = readOutput<{ requirements?: { id: string; ears: string }[] }>(ctx.state, ctx.ledger, "specify");
+    const why = await writeDesignBook(pkg, file, { requirements: Object.fromEntries((spec?.requirements ?? []).map((r) => [r.id, r.ears])) });
+    return why ? { none: why } : { file, version: pkg.manifest.version };
+  } catch (e) {
+    return { none: (e as Error).message.split("\n")[0]! };
+  }
+}
+
 export const exportStep: StepDef = {
   key: "export", stage: "estimate", templateVersion: "1",
   inputs: (s) => (s.steps.get("approve-estimate")?.status === "completed" ? { approval: s.steps.get("approve-estimate")!.outputs[0], estimate: s.steps.get("estimate")!.outputs[0] } : undefined),
@@ -376,8 +391,13 @@ export const exportStep: StepDef = {
       for (const i of lintWorkbook(await loadWorkbook(path), estimate, breakdown, audience)) failures.push(failure(`workbook-${i.check}`, `${audience} file: ${i.message}`));
     }
     if (failures.length) return { kind: "fail", category: "other", failures, signature: `export:${failures.map((f) => f.check).sort().join(",")}` };
-    const manifest = { team: files.team, client: files.client, teamSha256: sha256File(files.team), clientSha256: sha256File(files.client), estimateSha: outputOf(ctx.state, "estimate") };
-    ctx.log(`estimate workbooks written:\n  team   ${files.team}\n  client ${files.client}`);
-    return { kind: "done", outputs: { manifest: ctx.ledger.putJson(manifest) }, data: { team: files.team, client: files.client } };
+    // the approved design as its own PDF beside the client workbook (never inside the Excel); no browser is a note, not a failure
+    const book = await designBookFor(ctx, dir, ctx.runId);
+    const manifest = {
+      team: files.team, client: files.client, teamSha256: sha256File(files.team), clientSha256: sha256File(files.client), estimateSha: outputOf(ctx.state, "estimate"),
+      ...(book && "file" in book ? { design: book.file, designSha256: sha256File(book.file), designVersion: book.version } : {}), ...(book && "none" in book ? { designNote: book.none } : {}),
+    };
+    ctx.log(`estimate workbooks written:\n  team   ${files.team}\n  client ${files.client}${book && "file" in book ? `\n  design ${book.file}` : book ? `\n  design PDF not written: ${book.none}` : ""}`);
+    return { kind: "done", outputs: { manifest: ctx.ledger.putJson(manifest) }, data: { team: files.team, client: files.client, ...(book && "file" in book ? { design: book.file } : {}) } };
   },
 };

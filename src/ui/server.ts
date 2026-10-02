@@ -2,7 +2,8 @@
 // It can NEVER approve a plan, waive, unlock, steer, pause or stop: those decisions are TTY-only
 // (ledger/human.ts), so no AI or script can approve its own plan. Three exceptions, each needing a typed name
 // and the card's hash: the lead's approve or reject of an estimate card, the same on a design card (E1b), and
-// the answers to a clarification question card (so a run never stops waiting for a second command).
+// the answers to a clarification question card (so a run never stops waiting for a second command). Exporting an
+// approved design (POST /api/runs/:id/exports) only writes files under the run's own exports/ folder.
 // Other cards are shown read-only with the terminal command to paste.
 // Safety: bound to 127.0.0.1; a random token per start (in the printed link, then an HttpOnly
 // cookie) on every API call; Host and Origin checked so another website can't drive it; JSON-only
@@ -19,6 +20,7 @@ import { REPO_ROOT } from "../runners/netinfra.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
 import { answerEstimateQuestions, decideDesign, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
+import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
 /** Starting a run may carry design frames and reference files (base64 in the JSON, up to 50 MB of references), so that one route takes a bigger body. */
@@ -35,8 +37,8 @@ interface Route {
   handle(params: Record<string, string>, body: unknown, deps: StartDeps, ctx: RouteContext): Promise<Reply> | Reply;
 }
 
-/** Per-server values a route may need: the key in preview file URLs. */
-interface RouteContext { previewKey: string }
+/** Per-server values a route may need: the key in preview file URLs, and the design export jobs. */
+interface RouteContext { previewKey: string; jobs: ExportJobs }
 
 const ok = (json: Json): Reply => ({ status: 200, json });
 const notFound = (what: string): Reply => ({ status: 404, json: { error: what } });
@@ -128,6 +130,25 @@ export const ROUTES: readonly Route[] = [
       }
     },
   },
+  {
+    method: "GET", path: "/api/runs/:id/exports", what: "what the run's approved design can be exported as, the export jobs and earlier exports",
+    handle: ({ id }, _b, _d, ctx) => { const l = findRun(id!); return l ? ok(designExportsView(l, ctx.jobs.list())) : notFound(`No run ${id}`); },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/exports", what: "export the run's approved design (formats png, pdf, html, tokens, json; screens, states, widths, modes, langs, version, pdfPerScreen), as a job; files land in the run's exports folder",
+    handle: ({ id }, body, _d, ctx) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      const v = designExportsView(l);
+      if (!v.available) return { status: 409, json: { error: v.why } };
+      try {
+        const { job } = ctx.jobs.start(l.runId, exportRequest((body ?? {}) as Record<string, unknown>));
+        return { status: 202, json: { job } };
+      } catch (e) {
+        return { status: (e as { status?: number }).status ?? 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
 ];
 
 function match(route: Route, method: string, path: string): Record<string, string> | undefined {
@@ -191,9 +212,11 @@ export interface UiServerOptions {
   /** fixed preview key (tests); default: random per start */
   previewKey?: string;
   deps?: StartDeps;
+  /** the design export jobs (tests pass their own) */
+  exportJobs?: ExportJobs;
 }
 
-export interface UiServer { server: Server; token: string; previewKey: string }
+export interface UiServer { server: Server; token: string; previewKey: string; exportJobs: ExportJobs }
 
 function sameToken(a: string | undefined, b: string): boolean {
   if (!a) return false;
@@ -237,6 +260,7 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
   // a second key, only for preview file URLs (a sandboxed frame sends no cookie and no same-site Origin)
   const previewKey = opts.previewKey ?? randomBytes(18).toString("base64url");
   const deps = opts.deps ?? {};
+  const jobs = opts.exportJobs ?? new ExportJobs();
 
   const server = createServer((req, res) => {
     handle(req, res).catch((e: Error) => {
@@ -285,7 +309,18 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       const want = decodeURIComponent(audience);
       const f = !l ? undefined : want.startsWith("draft-") ? await draftFile(l, want.slice(6)) : exportFile(l, want);
       if (!f) return send(res, 404, "No such workbook.", "text/plain; charset=utf-8");
-      return send(res, 200, f.body, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", { "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"` });
+      const type = /\.pdf$/i.test(f.name) ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      return send(res, 200, f.body, type, { "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"` });
+    }
+    if (method === "GET" && path.startsWith("/design-exports/")) {
+      // a design export: same key as the API, only files an export recorded (or its whole folder as a zip)
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      const [, , runId = "", ...rest] = path.split("/");
+      let l;
+      try { l = findRun(decodeURIComponent(runId)); } catch { l = undefined; }
+      const f = l && rest.length ? await exportDownload(l, rest.join("/")) : undefined;
+      if (!f) return send(res, 404, "No such export.", "text/plain; charset=utf-8");
+      return send(res, 200, f.body, f.type, { "Content-Disposition": `attachment; filename="${f.name}"` });
     }
     if (method === "GET" && path.startsWith("/shots/")) {
       // a picture from a run's visual check: same key as the API, png files in one folder only
@@ -327,7 +362,7 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       if (raw === "too-big") return sendJson(res, 413, { error: `The request is over ${limit / 1_000_000} MB.` });
       try { body = raw ? JSON.parse(raw) : {}; } catch { return sendJson(res, 400, { error: "Bad JSON." }); }
     }
-    const r = await route.handle(params!, body, deps, { previewKey });
+    const r = await route.handle(params!, body, deps, { previewKey, jobs });
     return sendJson(res, r.status, r.json);
   }
 
@@ -347,7 +382,7 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
     res.end(req.method === "HEAD" ? undefined : f.body);
   }
 
-  return { server, token, previewKey };
+  return { server, token, previewKey, exportJobs: jobs };
 }
 
 /** Listen on 127.0.0.1 only. Tries the next ports when the default one is taken. */

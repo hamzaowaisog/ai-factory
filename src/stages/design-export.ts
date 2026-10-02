@@ -4,7 +4,8 @@
 import { Ledger } from "../ledger/ledger.js";
 import { replay, type RunState } from "../ledger/state.js";
 import { diffDesigns } from "../estimate/lineage.js";
-import { findPackage, nextVersion, packageDir, writePackage, type DesignManifest, type DesignPackage, type PackageInput } from "../design/package.js";
+import { findPackage, listPackages, nextVersion, packageDir, writePackage, type DesignManifest, type DesignPackage, type PackageInput } from "../design/package.js";
+import { exportDesign, nextExportDir, parseFormats, type ExportOptions, type ExportRecord } from "../design/export.js";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { DESIGN_TEMPLATE_VERSION } from "./design.js";
@@ -83,6 +84,41 @@ export async function ensurePackage(runId: string, log: Log = () => {}): Promise
   return "none" in r ? undefined : r;
 }
 
+/** The requirement texts of a run's spec, for the design book (id → EARS sentence). */
+function requirementTexts(state: RunState, ledger: Ledger): Record<string, string> {
+  const spec = readOutput<{ requirements?: { id: string; ears: string }[] }>(state, ledger, "specify");
+  return Object.fromEntries((spec?.requirements ?? []).map((r) => [r.id, r.ears]));
+}
+
+export interface RunExport extends ExportRecord { dir: string }
+
+/**
+ * Export a run's approved design (`factory design export`, the UI's Export button, `--design-export`).
+ * `version` picks another version of the same design line; `out` writes somewhere other than `<run>/exports/vN/<n>/`.
+ */
+export async function exportForRun(runId: string, o: ExportOptions & { version?: number; out?: string }, log: Log = () => {}): Promise<RunExport> {
+  const ledger = Ledger.open(runId);
+  const state = replay(ledger.events());
+  let pkg = await ensurePackage(runId, log);
+  if (!pkg) throw new Error(`${runId} has no approved design to export${state.status === "waiting" ? " yet (it is waiting for approval)" : ""}.`);
+  if (o.version !== undefined && o.version !== pkg.manifest.version) {
+    const line = listPackages(pkg.manifest.run.project).filter((p) => p.manifest.line === pkg!.manifest.line);
+    const want = line.find((p) => p.manifest.version === o.version);
+    if (!want) throw new Error(`Design ${pkg.manifest.line} has no v${o.version}; it has ${line.map((p) => `v${p.manifest.version}`).join(", ")}.`);
+    pkg = want;
+  }
+  const dir = o.out ?? nextExportDir(ledger.dir, pkg.manifest.version);
+  const { version: _v, out: _o, ...opts } = o;
+  const rec = await exportDesign(pkg, dir, opts, { requirements: requirementTexts(state, ledger), log });
+  return { ...rec, dir };
+}
+
+/** The formats a run asked to export as soon as its design is approved (`--design-export png,pdf`). */
+export function autoExportFormats(state: Pick<RunState, "info">): ExportOptions["formats"] {
+  const f = state.info.designExport;
+  return f?.length ? parseFormats(f.join(",")) : [];
+}
+
 /** The design package step for any mode's design pipeline, after the approval. */
 export const designExportStep: StepDef = {
   key: "design-export", stage: "design", templateVersion: "1",
@@ -92,6 +128,19 @@ export const designExportStep: StepDef = {
     if ("none" in r) return { kind: "done", outputs: { package: ctx.ledger.putJson({ skipped: true, reason: r.none }) }, data: { skipped: true } };
     const m = r.manifest;
     ctx.log(`design-export: design ${m.line} v${m.version} in ${r.dir} (${m.files.length} files, ${m.shots.length} pictures)`);
-    return { kind: "done", outputs: { package: ctx.ledger.putJson(m) }, data: { line: m.line, version: m.version, dir: r.dir, shots: m.shots.length } };
+    // `--design-export`: the files a person asked for, right after the approval; a failed export never stops the run
+    let exported: string | undefined;
+    const formats = autoExportFormats(ctx.state);
+    if (formats.length) {
+      try {
+        const dir = nextExportDir(ctx.ledger.dir, m.version);
+        const e = await exportDesign(r, dir, { formats }, { requirements: requirementTexts(ctx.state, ctx.ledger), log: ctx.log });
+        exported = dir;
+        ctx.log(`design-export: ${formats.join(", ")} exported (${e.files.length} files) to ${exported}`);
+      } catch (e) {
+        ctx.log(`design-export: the ${formats.join(", ")} export failed: ${(e as Error).message}`);
+      }
+    }
+    return { kind: "done", outputs: { package: ctx.ledger.putJson(m) }, data: { line: m.line, version: m.version, dir: r.dir, shots: m.shots.length, ...(exported ? { exported } : {}) } };
   },
 };

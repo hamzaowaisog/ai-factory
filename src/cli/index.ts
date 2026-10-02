@@ -21,7 +21,7 @@ import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../s
 import { describeReferences, gatherReferences, parseRefArg } from "../sources/refs.js";
 import { parseEstimateSettings, type EstimateOptions } from "../estimate/settings.js";
 import { approvedDesign, approvedEstimate, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
-import { registerDesignRunCommands } from "./design-runs.js";
+import { DESIGN_EXPORT_HELP, designExportOption, exportSeededNow, registerDesignRunCommands } from "./design-runs.js";
 import type { RequestSource } from "../sources/request.js";
 import { checkEdit, parseAnchorSpec, parseRatioSpec } from "../estimate/edits.js";
 import type { Proposal } from "../estimate/assemble.js";
@@ -67,8 +67,10 @@ program.command("start")
   .option("--from-design <run>", "build an approved design-only run (factory design start): inherits its spec and follows its approved screens and look")
   .option("--ref <ref>", 'a design reference: an image, an https link, a Figma link, a PDF, a .docx or a Figma JSON export; optional role match:, inspire: or layout: in front and a note after |, e.g. --ref "layout:dash.jpg|table like this"; repeat it', (v: string, prev: string[] = []) => [...prev, v])
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
+  .option("--design-export <formats>", DESIGN_EXPORT_HELP)
   .description("create a run from a prompt, a file or a Jira ticket (any one, or several) and execute until a card, a park, or delivery")
-  .action(async (prompt: string | undefined, o: { project: string; maxCost?: string; file?: string; jira?: string; fromEstimate?: string; fromDesign?: string; ref?: string[] }) => {
+  .action(async (prompt: string | undefined, o: { project: string; maxCost?: string; file?: string; jira?: string; fromEstimate?: string; fromDesign?: string; ref?: string[]; designExport?: string }) => {
+    const designExport = designExportOption(o.designExport);
     const project = loadProject(o.project);
     const problems = checkRoutes(project);
     if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
@@ -92,9 +94,10 @@ program.command("start")
     const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
     const runId = await createRun(req.text, o.project, userInfo().username, {
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
-      sources: req.sources, references, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}), ...(fromDesign ? { fromDesign } : {}),
+      sources: req.sources, references, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}), ...(fromDesign ? { fromDesign } : {}), ...(designExport ? { designExport } : {}),
     });
     log(`run ${runId} (request from ${fromDesign ? `design run ${fromDesign.runId}; the build follows its approved design` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""})`);
+    if (approved || fromDesign) await exportSeededNow(runId, designExport, log);
     await runAndReport(runId);
   });
 
@@ -119,9 +122,11 @@ program.command("estimate")
   .option("--from-design <run>", "size an approved design-only run (factory design start): its spec, answers and approved design are reused, only the sizing is new")
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .option("--fresh", "ask the model again even if the same requirements were estimated before (skips the stored answers)")
+  .option("--design-export <formats>", DESIGN_EXPORT_HELP)
   .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory; a lead approves it in the terminal, then two workbooks are written")
-  .action(async (prompt: string | undefined, o: EstimateOptions & { project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; fromRun?: string; revises?: string; fromDesign?: string; fresh?: boolean; ref?: string[] }) => {
+  .action(async (prompt: string | undefined, o: EstimateOptions & { project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; fromRun?: string; revises?: string; fromDesign?: string; fresh?: boolean; ref?: string[]; designExport?: string }) => {
     if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
+    const designExport = designExportOption(o.designExport);
     let fromDesign: ApprovedDesign | undefined;
     if (o.fromDesign) {
       if (o.fromRun || o.revises) throw new Error("--from-design starts a new estimate; it does not go with --from-run or --revises.");
@@ -160,8 +165,9 @@ program.command("estimate")
     const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
     const runId = await createRun(req.text, projectName, userInfo().username, {
       mode: "estimate", estimate: settings, sources: req.sources, attachments: req.attachments, references, ...(lineage ? { lineage } : {}), ...(fromDesign ? { fromDesign } : {}),
-      ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
+      ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}), ...(designExport ? { designExport } : {}),
     });
+    if (lineage?.kind === "sibling" || fromDesign) await exportSeededNow(runId, designExport, log);
     log(`estimate run ${runId} (requirements from ${fromDesign ? `design run ${fromDesign.runId}, with its approved design` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""}; ${settings.deliveryModel === "hitl" ? "HITL" : "solely agentic"})`);
     await runAndReport(runId);
   });

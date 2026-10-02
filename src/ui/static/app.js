@@ -62,6 +62,7 @@ const ICONS = {
   browser: [["rect", { x: 3, y: 4, width: 18, height: 16, rx: 2 }], ["path", { d: "M3 9h18M6.5 6.5h.01M9 6.5h.01" }]],
   bars: [["path", { d: "M5 20v-8M12 20V5M19 20v-5M3 20h18" }]],
   plus: [["path", { d: "M12 5v14M5 12h14" }]],
+  download: [["path", { d: "M12 4v11.5M7 11l5 4.5 5-4.5M4 19.5h16" }]],
   user: [["circle", { cx: 12, cy: 8, r: 4 }], ["path", { d: "M4 21a8 8 0 0 1 16 0" }]],
   gauge: [["path", { d: "M3.5 16a8.5 8.5 0 1 1 17 0" }], ["path", { d: "M12 16l4-5" }]],
 };
@@ -665,7 +666,8 @@ function designPanel(r) {
     msg.textContent = "";
     try {
       await api(`/api/runs/${encodeURIComponent(r.runId)}/design-decision`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, decision, by: who.value, reason: why.value }) });
-      msg.textContent = decision === "approve" ? "Approved. The estimate is continuing…" : "Sent back. Working on what you pointed at; a new card follows…";
+      msg.replaceChildren(decision === "approve" ? "Approved. The estimate is continuing… " : "Sent back. Working on what you pointed at; a new card follows…");
+      if (decision === "approve") msg.append(h("a", { href: `#/runs/${encodeURIComponent(r.runId)}/design` }, icon("download"), "Export the design"));
       ok.disabled = no.disabled = true;
     } catch (err) { msg.textContent = err.message; }
   };
@@ -680,7 +682,8 @@ function designPanel(r) {
     h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Approve the design"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body stack" },
       h("p", { class: "small muted" }, "The estimate stands on this design. Walk the clickable demo, then approve it or send it back with what to change."),
-      h("div", { class: "row" }, h("a", { class: "btn", href: `#/runs/${r.runId}/preview` }, icon("cursor"), "Open the clickable demo")),
+      h("div", { class: "row" }, h("a", { class: "btn", href: `#/runs/${r.runId}/preview` }, icon("cursor"), "Open the clickable demo"),
+        h("span", { class: "btn ghost", "aria-disabled": "true", title: "A design is exported once it is approved: PNG, PDF, the demo, tokens or JSON, from the Design tab." }, icon("download"), "Export after approval")),
       refsBox,
       md(c.markdown),
       who, why, h("div", { class: "row" }, ok, no), msg));
@@ -1096,7 +1099,9 @@ async function estimateScreen(id) {
   const dl = (audience, label, draft) => h("a", { class: "btn", href: `/export/${rid}/${draft ? "draft-" : ""}${audience}`, download: "" }, icon("file"), label);
   const files = e.files ? h("div", { class: "row" },
     e.files.team ? dl("team", "Team workbook (.xlsx)") : null,
-    e.files.client ? dl("client", "Client workbook (.xlsx)") : null)
+    e.files.client ? dl("client", "Client workbook (.xlsx)") : null,
+    e.files.design ? dl("design", "Design book (.pdf)") : null,
+    e.files.designNote ? h("span", { class: "small muted" }, `No design book: ${e.files.designNote}`) : null)
     : h("div", {}, h("div", { class: "row" }, dl("team", "Draft team workbook (.xlsx)", true), dl("client", "Draft client workbook (.xlsx)", true)),
       h("p", { class: "muted small" }, "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written after you approve in your terminal."));
   const tasks = table(["", "Task", "Track", "Who", "Hours", "Sized against", ""],
@@ -1191,9 +1196,104 @@ function refsPanel(v, compact = false) {
     ))));
 }
 
+/** What the export menu offers: each choice is a set of formats (and PDF per screen or not). */
+const EXPORT_CHOICES = [
+  { id: "png", label: "Pictures (PNG, zip)", formats: ["png"] },
+  { id: "pdf", label: "PDF design book", formats: ["pdf"] },
+  { id: "pdf-screens", label: "PDF, one per screen", formats: ["pdf"], pdfPerScreen: true },
+  { id: "html", label: "Clickable demo (zip)", formats: ["html"] },
+  { id: "tokens", label: "Design tokens (JSON, CSS, Tailwind)", formats: ["tokens"] },
+  { id: "json", label: "Design and manifest (JSON)", formats: ["json"] },
+  { id: "all", label: "Everything", formats: ["png", "pdf", "html", "tokens", "json"] },
+];
+
+/** Earlier exports of the run, newest first: the whole export as a zip, and its book or demo on their own. */
+function exportList(rid, exports) {
+  if (!exports.length) return h("p", { class: "small muted" }, "No exports yet.");
+  const base = `/design-exports/${encodeURIComponent(rid)}/`;
+  const file = (e, path, label) => h("a", { href: `${base}${e.id}/${path.split("/").map(encodeURIComponent).join("/")}`, download: "" }, label);
+  return h("ul", { class: "export-list" }, exports.map((e) => {
+    const has = (p) => e.files.some((f) => f.path === p);
+    return h("li", {},
+      h("div", { class: "row" },
+        h("a", { class: "btn small", href: `${base}${e.id}.zip`, download: "" }, icon("download"), `v${e.version} · export ${e.id.split("/")[1]}`),
+        h("span", { class: "tags" }, e.formats.map((f) => h("span", { class: "tag" }, f))),
+        h("span", { class: "small faint" }, `${e.files.length} file${e.files.length === 1 ? "" : "s"} · ${ago(e.at)}`)),
+      h("div", { class: "row small" },
+        has("design-book.pdf") ? file(e, "design-book.pdf", "design book (.pdf)") : null,
+        e.files.filter((f) => f.path.startsWith("pdf/")).map((f) => file(e, f.path, f.path.slice(4))),
+        has("demo.zip") ? file(e, "demo.zip", "clickable demo (.zip)") : null,
+        has("tokens/tokens.json") ? file(e, "tokens/tokens.json", "tokens.json") : null,
+        has("tokens/tailwind.css") ? file(e, "tokens/tailwind.css", "tailwind.css") : null),
+      e.notes.length ? h("ul", { class: "small muted" }, e.notes.map((n) => h("li", {}, n))) : null);
+  }));
+}
+
+/** The Export panel on the Design tab: pick what to export and for which screens, widths, modes and languages; it runs as a job on this machine. */
+function exportPanel(rid, v) {
+  const head = h("div", { class: "panel-head" }, h("h2", {}, icon("download"), "Export the design"));
+  const listBox = h("div", {}, exportList(rid, v.exports));
+  if (!v.available) return h("section", { class: "panel rise", vars: { "--i": 0 } }, head, h("p", { class: "small muted" }, v.why), v.exports.length ? listBox : null);
+  const d = v.design;
+  const checks = (name, items, all = true) => {
+    const boxes = items.map((it) => h("label", { class: "xopt" }, h("input", { type: "checkbox", name, value: it.value, checked: all ? "" : undefined }), it.label));
+    return { el: h("fieldset", { class: "opts" }, h("legend", { class: "small faint" }, name), boxes), picked: () => boxes.map((b) => b.querySelector("input")).filter((i) => i.checked).map((i) => i.value), total: boxes.length };
+  };
+  const choice = h("select", { "aria-label": "What to export" }, EXPORT_CHOICES.map((c) => h("option", { value: c.id }, c.label)), h("option", { value: "figma", disabled: "" }, "Figma (later)"));
+  choice.value = "all";
+  const screens = checks("screens", v.options.screens.map((x) => ({ value: x.id, label: x.id === "components" ? "Components" : `${x.id} ${x.title}` })));
+  const widths = checks("widths", v.options.widths.map((x) => ({ value: x, label: x })));
+  const modes = checks("modes", v.options.modes.map((x) => ({ value: x, label: x })));
+  const langs = checks("languages", v.options.langs.map((x) => ({ value: x, label: x })));
+  const version = v.versions.length > 1 ? h("select", { "aria-label": "Design version" }, v.versions.map((n) => h("option", { value: String(n) }, `v${n}`))) : null;
+  if (version && d.version) version.value = String(d.version);
+  const msg = h("div", { class: "small", role: "status" });
+  const go = h("button", { class: "btn", type: "button" }, icon("download"), "Export");
+  const only = (c) => (c.picked().length === c.total ? undefined : c.picked());
+  const watch = (job) => {
+    const tick = async () => {
+      if (!go.isConnected) return; // the page moved on
+      const nv = await api(`/api/runs/${encodeURIComponent(rid)}/exports`).catch(() => undefined);
+      const j = nv?.jobs.find((x) => x.id === job.id);
+      if (!nv || !j) return;
+      if (j.status === "running") { msg.replaceChildren(h("span", { class: "pulse" }), ` Exporting… ${j.lines.at(-1) ?? ""}`); setTimeout(tick, 1200); return; }
+      // drawn again from the fresh view (the package and its version exist after the first export), keeping the outcome
+      const next = exportPanel(rid, nv);
+      next.classList.remove("rise");
+      next.querySelector("[role=status]").replaceChildren(...(j.status === "failed" ? [icon("alert"), ` The export failed: ${j.error}`]
+        : [icon("check"), ` Exported as ${j.exportId}. `, h("a", { href: `/design-exports/${encodeURIComponent(rid)}/${j.exportId}.zip`, download: "" }, "Download it all (.zip)")]));
+      panel.replaceWith(next);
+    };
+    setTimeout(tick, 400); // after the panel is on the page
+  };
+  go.addEventListener("click", async () => {
+    const c = EXPORT_CHOICES.find((x) => x.id === choice.value);
+    if (!screens.picked().length || !widths.picked().length || !modes.picked().length || !langs.picked().length) { msg.textContent = "Pick at least one of each: screen, width, mode and language."; return; }
+    const body = { formats: c.formats, pdfPerScreen: !!c.pdfPerScreen, screens: only(screens), widths: only(widths), modes: only(modes), langs: only(langs), version: version ? Number(version.value) : undefined };
+    go.disabled = true;
+    msg.textContent = "Starting…";
+    try {
+      const { job } = await api(`/api/runs/${encodeURIComponent(rid)}/exports`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      watch(job);
+    } catch (err) { go.disabled = false; msg.textContent = err.message; }
+  });
+  const panel = h("section", { class: "panel rise", vars: { "--i": 0 } }, head,
+    h("p", { class: "small muted" }, d.version ? `Design ${d.line} v${d.version}, approved by ${d.approvedBy} ${ago(d.approvedAt)}. Files are tagged with the version and land in this run's exports folder.` : d.pending),
+    d.picturesNote ? h("p", { class: "small muted" }, d.picturesNote) : null,
+    h("div", { class: "row" }, choice, version, go),
+    h("details", { class: "export-opts" }, h("summary", { class: "small" }, "Screens, widths, modes and languages"), h("div", { class: "stack" }, screens.el, widths.el, modes.el, langs.el)),
+    h("p", { class: "small faint" }, v.figma),
+    msg,
+    h("h3", { class: "small" }, "Earlier exports"),
+    listBox);
+  const running = v.jobs.find((j) => j.status === "running");
+  if (running) { go.disabled = true; watch(running); }
+  return panel;
+}
+
 async function designScreen(id) {
   skeleton("grid");
-  const [r, d, refv] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/design`), api(`/api/runs/${encodeURIComponent(id)}/references`)]);
+  const [r, d, refv, xv] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/design`), api(`/api/runs/${encodeURIComponent(id)}/references`), api(`/api/runs/${encodeURIComponent(id)}/exports`)]);
   let size;
   if ("none" in d.uiSize) size = h("p", { class: "muted" }, d.uiSize.none);
   else {
@@ -1230,6 +1330,7 @@ async function designScreen(id) {
   mount([...runHeader(r, "design"),
     h("div", { class: "grid-2" },
       h("div", { class: "stack" },
+        exportPanel(id, xv),
         h("section", { class: "panel rise", vars: { "--i": 0 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("ruler"), "UI change size")), size),
         h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Style check")), style),
         visualPanel(id, d.visual),

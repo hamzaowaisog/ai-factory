@@ -12,7 +12,7 @@ import { pathToFileURL } from "node:url";
 
 export const VIEWPORTS = { phone: { width: 390, height: 844 }, tablet: { width: 820, height: 1180 }, desktop: { width: 1280, height: 800 } } as const;
 export type Viewport = keyof typeof VIEWPORTS;
-/** `id` is the screen's id; `mode` and `lang` say when the picture is the dark mode or another language (the screen as it first shows) */
+/** `id` is the screen's id; `mode` and `lang` (the language code) say when the picture is the dark mode or another language (the screen as it first shows) */
 export interface Shot { file: string; id?: string; screen: string; state: string; viewport: Viewport; mode?: "dark"; lang?: string }
 /** How the walk runs: `reproducible` gives the same picture on every run (the design package); `max` caps the pictures. */
 export interface WalkOptions { reproducible?: boolean; max?: number }
@@ -223,10 +223,10 @@ async function walkDemo(demoFile: string, screens: ScreenShotInput[], outDir?: s
           await step(k, st, vp !== "tablet" || k === 0);
         }
         // a product in two languages: the page as it first shows, in the other one (mirrored when it reads right to left)
-        const other = (await page.evaluate(`(function(){var e=document.getElementById("i18n");var i=e&&JSON.parse(e.textContent);return i&&i.langs.length>1?i.labels[1]:""})()`)) as string;
+        const other = (await page.evaluate(`(function(){var e=document.getElementById("i18n");var i=e&&JSON.parse(e.textContent);return i&&i.langs.length>1?{code:i.langs[1],label:i.labels[1]}:null})()`)) as { code: string; label: string } | null;
         if (other) {
           if (full()) return { shots, issues, note: `stopped at ${max} screenshots` };
-          await step(0, `In ${other}`, vp !== "tablet", "window.__lang(1)", { lang: other });
+          await step(0, `In ${other.label}`, vp !== "tablet", "window.__lang(1)", { lang: other.code });
           await page.evaluate("window.__lang(0)");
         }
         // a product in both colour modes: the page as it first shows, in dark mode

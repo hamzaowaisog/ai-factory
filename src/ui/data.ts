@@ -408,7 +408,7 @@ function inventorySummaryView(inv: DesignInventory, commit: string) {
 
 // ---------- estimate ----------
 
-interface ExportManifest { team: string; client: string }
+interface ExportManifest { team: string; client: string; /** the design book PDF beside the client workbook */ design?: string; designNote?: string }
 
 /** The estimate run's numbers and what they rest on, from the ledger: the same figures as the approval card and workbooks. */
 export function estimateView(ledger: Ledger) {
@@ -425,7 +425,7 @@ export function estimateView(ledger: Ledger) {
   const design = baseline?.ui && baseline.design ? ledger.getJson<z.infer<typeof DesignSchema>>(baseline.design) : undefined;
   const approval = s.steps.get("approve-estimate");
   const manifestSha = done("export");
-  const files = manifestSha ? (() => { const m = ledger.getJson<ExportManifest>(manifestSha); return { team: existsSync(m.team), client: existsSync(m.client) }; })() : undefined;
+  const files = manifestSha ? (() => { const m = ledger.getJson<ExportManifest>(manifestSha); return { team: existsSync(m.team), client: existsSync(m.client), design: !!m.design && existsSync(m.design), ...(m.designNote ? { designNote: m.designNote } : {}) }; })() : undefined;
   return {
     runId: ledger.runId,
     settings: s.info.estimate ?? {},
@@ -452,18 +452,19 @@ export function estimateView(ledger: Ledger) {
   };
 }
 
-/** A workbook the run exported, or undefined: only the two manifest paths, only inside the run's export folder, never through a link. */
+/** A workbook (or the design book PDF) the run exported, or undefined: only the manifest paths, only inside the run's export folder, never through a link. */
 export function exportFile(ledger: Ledger, audience: string): { body: Buffer; name: string } | undefined {
-  if (audience !== "team" && audience !== "client") return undefined;
+  if (audience !== "team" && audience !== "client" && audience !== "design") return undefined;
   const s = replay(ledger.events());
   const step = s.steps.get("export");
   if (step?.status !== "completed" || !step.outputs[0]) return undefined;
   const p = ledger.getJson<ExportManifest>(step.outputs[0])[audience];
+  if (!p) return undefined;
   try {
     const root = realpathSync(join(ledger.dir, "export"));
     if (lstatSync(p).isSymbolicLink()) return undefined;
     const real = realpathSync(p);
-    if (!real.startsWith(root + sep) || !/\.xlsx$/i.test(real) || !lstatSync(real).isFile()) return undefined;
+    if (!real.startsWith(root + sep) || !(audience === "design" ? /\.pdf$/i : /\.xlsx$/i).test(real) || !lstatSync(real).isFile()) return undefined;
     return { body: readFileSync(real), name: basename(real) };
   } catch { return undefined; }
 }

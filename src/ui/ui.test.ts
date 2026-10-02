@@ -204,8 +204,8 @@ describe("factory ui: no decisions from the web", () => {
   it("the route list has no decision routes; the only write starts a run", () => {
     const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note/i;
     for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision") && !r.path.endsWith("/estimate-answers") && !r.path.endsWith("/design-decision"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
-    // the one exception: the estimate lead's approve or reject, on estimate cards only
-    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/design-decision"]);
+    // the one exception: the estimate lead's approve or reject, on estimate cards only (and exporting an approved design, which writes only under the run's exports/)
+    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/design-decision", "POST /api/runs/:id/exports"]);
   });
 
   it("decision-looking URLs don't exist", async () => {
@@ -844,5 +844,86 @@ describe("factory ui: design references", () => {
     const p = (await call("/api/projects")).json();
     expect(p.figma.configured).toBe(false);
     expect(p.figma.why).toMatch(/FIGMA_TOKEN/);
+  });
+});
+
+describe("factory ui: design exports", () => {
+  const theme = { mood: "calm clinical", mode: "light", brand: "#1f6feb", neutral: "cool", chrome: "plain", font: "sans", radius: "soft", density: "comfortable", surface: "flat", motion: "lively", reading: { users: "clinic staff", context: "at a desk all day", device: "web", tone: "calm", hero: "the queue", traits: ["dense", "quiet"] }, basis: [{ ref: "Linear", took: "hairlines" }, { ref: "Stripe", took: "calm" }] };
+  const mock = { title: "Sign in", blocks: [{ type: "actions", buttons: ["Sign in"] }], copy: {} };
+  async function approvedDesignRun(): Promise<Ledger> {
+    const runId = await createRun("Build an order portal with login", "web", "tester", { mode: "design" } as never);
+    const l = Ledger.open(runId);
+    const designSha = l.putJson({ flow: "A user signs in", theme, noScreen: [], screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["error"], size: "new", mock, mockFull: mock }] });
+    const bundle = l.putJson({ design: designSha, demo: l.putArtifact(Buffer.from("<!doctype html><title>demo</title>")) });
+    const base = l.putJson({ ui: true, design: designSha, by: "lead" });
+    await addEvents(runId, [
+      { type: "step.completed", key: "design/1", inputsHash: "a".repeat(64), outputs: [designSha], data: { named: { design: designSha } } },
+      { type: "human.requested", data: { cardId: "design-1", kind: "approve", artifactSha: bundle, step: "design-baseline" } },
+      { type: "human.decided", data: { cardId: "design-1", decision: "approve", by: "lead", artifactSha: bundle } },
+      { type: "step.completed", key: "design-baseline/1", inputsHash: "a".repeat(64), outputs: [base], data: { named: { "design-baseline": base } } },
+    ]);
+    return l;
+  }
+  const start = (runId: string, body: unknown, token?: string | null) =>
+    call(`/api/runs/${runId}/exports`, { method: "POST", token, headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+
+  it("says why a run with no approved design cannot be exported, and refuses to start one", async () => {
+    const v = (await call(`/api/runs/${ids.waiting}/exports`)).json();
+    expect(v).toMatchObject({ available: false, why: expect.any(String), exports: [], jobs: [] });
+    expect((await start(ids.waiting, { formats: ["json"] })).status).toBe(409);
+    expect((await call("/api/runs/nope/exports")).status).toBe(404);
+  });
+
+  it("exports as a job, lists it with its version, and downloads its files and the whole export with the key", async () => {
+    const l = await approvedDesignRun();
+    const v = (await call(`/api/runs/${l.runId}/exports`)).json();
+    expect(v).toMatchObject({ available: true, formats: ["png", "pdf", "html", "tokens", "json"], figma: expect.stringMatching(/not built yet/), options: { widths: ["phone", "tablet", "desktop"], modes: ["light"], langs: ["en"] } });
+    expect(v.options.screens.map((s: { id: string }) => s.id)).toEqual(["S-1", "components"]);
+
+    expect((await start(l.runId, { formats: ["figma"] })).json().error).toMatch(/Figma plugin/);
+    expect((await start(l.runId, { formats: ["json"], widths: ["watch"] })).status).toBe(400);
+    expect((await start(l.runId, { formats: ["json"] }, null)).status).toBe(401);
+    const r = await start(l.runId, { formats: ["json", "tokens"] });
+    expect(r.status).toBe(202);
+    expect(r.json().job).toMatchObject({ runId: l.runId, status: "running", formats: ["tokens", "json"] });
+    for (let i = 0; i < 100 && ui.exportJobs.list()[0]!.status === "running"; i++) await new Promise((res) => setTimeout(res, 50));
+    const after = (await call(`/api/runs/${l.runId}/exports`)).json();
+    expect(after.jobs[0]).toMatchObject({ status: "done", exportId: "v1/1" });
+    expect(after.design).toMatchObject({ line: l.runId, version: 1, approvedBy: "lead" });
+    expect(after.exports).toHaveLength(1);
+    expect(after.exports[0]).toMatchObject({ id: "v1/1", version: 1, formats: ["tokens", "json"] });
+
+    const css = await call(`/design-exports/${l.runId}/v1/1/tokens/tailwind.css`);
+    expect(css.status).toBe(200);
+    expect(css.headers["content-type"]).toMatch(/text\/css/);
+    expect(css.headers["content-disposition"]).toMatch(/attachment; filename="design-.*-v1-export-1-tailwind\.css"/);
+    expect(css.body).toContain("@theme");
+    const zip = await call(`/design-exports/${l.runId}/v1/1.zip`);
+    expect([zip.status, zip.headers["content-type"]]).toEqual([200, "application/zip"]);
+    // the key, recorded files only, no way out of the folder
+    expect((await call(`/design-exports/${l.runId}/v1/1/tokens/tailwind.css`, { token: null })).status).toBe(401);
+    expect((await call(`/design-exports/${l.runId}/v1/1/export.json`)).status).toBe(404);
+    writeFileSync(join(l.dir, "exports", "v1", "1", "extra.css"), "x");
+    expect((await call(`/design-exports/${l.runId}/v1/1/extra.css`)).status).toBe(404);
+    expect((await call(`/design-exports/${l.runId}/v1/1/..%2F..%2F..%2Fevents.jsonl`)).status).toBe(404);
+    expect((await call(`/design-exports/${l.runId}/../../events.jsonl`)).status).toBe(404);
+    symlinkSync(join(l.dir, "exports", "v1", "1"), join(l.dir, "exports", "v1", "9"));
+    expect((await call(`/design-exports/${l.runId}/v1/9/tokens/tailwind.css`)).status).toBe(404);
+  });
+
+  it("runs one export of a run at a time", async () => {
+    const l = await approvedDesignRun();
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => { release = r; });
+    await new Promise((r) => ui.server.close(r));
+    const { ExportJobs } = await import("./exports.js");
+    ui = createUiServer({ token: TOKEN, previewKey: PKEY, exportJobs: new ExportJobs(async () => { await gate; return { version: 1, dir: "/x/7" } as never; }) });
+    port = await listen(ui, 0);
+    expect((await start(l.runId, { formats: ["json"] })).status).toBe(202);
+    const again = await start(l.runId, { formats: ["json"] });
+    expect([again.status, again.json().error]).toEqual([409, "An export of this run is already running."]);
+    release();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(ui.exportJobs.list()[0]).toMatchObject({ status: "done", exportId: "v1/7" });
   });
 });

@@ -88,6 +88,8 @@ export interface RunInfo {
    * held to the approved screens. Every artifact is copied into this ledger under its own hash.
    */
   designRef?: DesignRef;
+  /** `--design-export png,pdf`: formats exported as soon as the design is approved (docs/estimates-design.md, "Exports") */
+  designExport?: string[];
   createdAt: string;
 }
 
