@@ -504,6 +504,18 @@ describe("factory ui: design-only runs", () => {
     const fromEst = await post({ project: "web", mode: "design", fromEstimate: "x", prompt: "Build an order portal" });
     expect(fromEst.json().error).toMatch(/starts from requirements/);
   });
+
+  it("export on approval is recorded on the run and checked like --design-export", async () => {
+    const r = await post({ mode: "design", prompt: "Build an order portal with login and a dashboard", designExport: ["pdf", "png"] });
+    expect(r.status).toBe(201);
+    expect(replay(Ledger.open(r.json().runId).events()).info.designExport).toEqual(["png", "pdf"]);
+    expect(ui.exportJobs.list().some((j) => j.runId === r.json().runId)).toBe(false); // nothing to export until the design is approved
+    const none = await post({ mode: "design", prompt: "Build an order portal with login and a dashboard", designExport: [] });
+    expect(replay(Ledger.open(none.json().runId).events()).info.designExport).toBeUndefined();
+    expect((await post({ mode: "design", prompt: "Build an order portal", designExport: ["figma"] })).json().error).toMatch(/not built yet/);
+    expect((await post({ mode: "design", prompt: "Build an order portal", designExport: ["gif"] })).json().error).toMatch(/Unknown format/);
+    expect((await post({ mode: "design", prompt: "Build an order portal", designExport: "png" })).json().error).toMatch(/list of formats/);
+  });
 });
 
 describe("factory ui: estimate runs", () => {
@@ -582,6 +594,12 @@ describe("factory ui: estimate runs", () => {
     const built = replay(Ledger.open(r.json().runId).events());
     expect(built.info.request).toBe("Build an order portal with login and a dashboard");
     expect(built.info.estimateRef).toMatchObject({ runId: id, estimateSha: est });
+    // the estimate's design is approved already, so export on approval starts an export job at once
+    _resetStarting();
+    const x = await post({ project: "web", fromEstimate: id, designExport: ["pdf"] });
+    expect(x.status).toBe(201);
+    expect(replay(Ledger.open(x.json().runId).events()).info.designExport).toEqual(["pdf"]);
+    expect(ui.exportJobs.list().find((j) => j.runId === x.json().runId)).toMatchObject({ formats: ["pdf"] });
   });
 
   it("the estimate view says so for a build run and before the estimate exists", async () => {

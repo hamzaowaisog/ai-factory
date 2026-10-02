@@ -419,6 +419,23 @@ async function requestScreen(kind = "brownfield") {
   const refText = designing || estimating ? "Screenshots, a client's site, a Figma file, a brand guide (PDF or Word). The design is drawn from them; without any it follows the field's products. Optional." : "The UI change follows them. Optional.";
   const refBlock = estimating ? h("section", { class: "sect", id: "refblock" }, h("div", { class: "sect-head" }, h("span", { class: "num" }, designing ? "5" : "6"), h("div", {}, h("h3", {}, "Design references"), h("p", { class: "muted small" }, refText))), refs.node)
     : h("div", { class: "field", id: "refblock" }, h("span", { class: "label" }, "Design references (optional)"), refs.node, h("div", { class: "hint" }, refText));
+  // formats to export as soon as the design is approved, like --design-export (none by default: exports are on demand)
+  const autoX = [["png", "PNG pictures"], ["pdf", "PDF design book"], ["html", "Clickable demo (zip)"], ["tokens", "Design tokens"], ["json", "Design JSON"]]
+    .map(([v, t]) => h("label", { class: "xopt" }, h("input", { type: "checkbox", value: v }), t));
+  const autoXPicked = () => autoX.map((l) => l.querySelector("input")).filter((i) => i.checked).map((i) => i.value);
+  const autoXHint = h("div", { class: "hint" });
+  const syncAutoX = () => {
+    autoXHint.textContent = !estimating && fromEst.value
+      ? "The estimate's design is approved already, so it is exported as soon as the build starts. Files appear on the run's Design tab."
+      : "Exported right after the design is approved, to the run's Design tab (like --design-export). A request with no UI has no design to export. You can always export later from the Design tab.";
+  };
+  syncAutoX();
+  fromEst.addEventListener("change", syncAutoX);
+  // Figma waits for the AI Factory Figma plugin (build step 6), so it is shown, greyed, as in the Export panel
+  const autoXFigma = h("label", { class: "xopt", title: "Figma comes with the AI Factory Figma plugin (not built yet)." }, h("input", { type: "checkbox", disabled: "" }), "Figma (later)");
+  const autoXBox = h("fieldset", { class: "xopts", id: "autox", "aria-label": "Export on approval" }, autoX, autoXFigma);
+  const autoXBlock = estimating ? sect(designing ? 6 : 7, "Export on approval", "Optional.", autoXBox, autoXHint)
+    : h("div", { class: "field" }, h("span", { class: "label" }, "Export the design on approval (optional)"), autoXBox, autoXHint);
   const maxCost = h("input", { type: "number", id: "maxcost", min: "0.5", step: "0.5", placeholder: "normal limit" });
   const startLabel = designing ? "Start design" : estimating ? "Start estimate" : "Start run";
   const start = h("button", { class: "btn primary", type: "submit" }, startLabel, icon("arrow"));
@@ -436,7 +453,8 @@ async function requestScreen(kind = "brownfield") {
       h("div", { class: "hint" }, "Use one input or several: they are combined into one request, like factory start does.")),
     settings,
     refBlock,
-    estimating ? sect(designing ? 6 : 7, "Spend limit", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")))
+    autoXBlock,
+    estimating ? sect(designing ? 7 : 8, "Spend limit", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")))
       : h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
     h("div", { class: "row" }, start, h("span", { class: "hint" }, designing ? "Runs in the background. Questions and the design approval can be answered here on the run page or in your terminal." : "Runs in the background. Questions can be answered here on the run page or in your terminal; the plan approval stays in your terminal.")),
   );
@@ -449,7 +467,8 @@ async function requestScreen(kind = "brownfield") {
       const sent = estimating && frames.length ? await Promise.all(frames.map(async (f) => ({ name: f.name, data: await b64(f) }))) : undefined;
       const sentRefs = refs.count() && !fromEst.value ? await refs.collect() : undefined;
       if (sentRefs) start.replaceChildren(h("span", { class: "spin" }), `Reading the request and ${sentRefs.length} design reference${sentRefs.length === 1 ? "" : "s"}…`);
-      const body = { project: project.value, ...(!estimating && fromEst.value ? { fromEstimate: fromEst.value } : {}), prompt: fromEst.value ? "" : prompt.value, ...(sent ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || fromEst.value ? "" : jira.value, maxCost: maxCost.value, ...(file && !fromEst.value ? { file: { name: file.name, text: file.text } } : {}),
+      const designExport = autoXPicked();
+      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...(!estimating && fromEst.value ? { fromEstimate: fromEst.value } : {}), prompt: fromEst.value ? "" : prompt.value, ...(sent ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || fromEst.value ? "" : jira.value, maxCost: maxCost.value, ...(file && !fromEst.value ? { file: { name: file.name, text: file.text } } : {}),
         ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { deliveryModel: delivery.value, stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
@@ -657,8 +676,16 @@ function questionPanel(r) {
 }
 
 /** The design card (E1b): the card and demo link, and approve or send back with a reason (what it points at is fixed, or the design is redrawn; the run goes on). */
+// the design card's words for each kind of run (the terminal card has the same three, by its purpose)
+const DESIGN_CARD_TEXT = {
+  estimate: { intro: "The estimate stands on this design. Walk the clickable demo, then approve it or send it back with what to change.", approved: "Approved. The estimate is continuing… " },
+  design: { intro: "This is a design-only run: approving keeps this mock, clickable demo and look, and nothing is sized or built. Walk the clickable demo, then approve it or send it back with what to change.", approved: "Approved. The design is kept; size it with factory estimate --from-design, or build it with factory start --from-design. " },
+  build: { intro: "The build follows this design: its screens, states, sample content and look are what gets built. Walk the clickable demo, then approve it or send it back with what to change.", approved: "Approved. The build is going on to its plan… " },
+};
+
 function designPanel(r) {
   const c = r.card;
+  const words = DESIGN_CARD_TEXT[r.mode === "estimate" ? "estimate" : r.mode === "design" ? "design" : "build"];
   const who = nameInput();
   const why = h("textarea", { rows: "3", placeholder: "What should change? Name the page or the part, in your own words (for example: the booking page needs the price next to the button). Only what you point at is changed, and you get a new card.", "aria-label": "Rejection reason", maxlength: "2000" });
   const msg = h("p", { class: "small muted", role: "status" }, "");
@@ -666,7 +693,7 @@ function designPanel(r) {
     msg.textContent = "";
     try {
       await api(`/api/runs/${encodeURIComponent(r.runId)}/design-decision`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, decision, by: who.value, reason: why.value }) });
-      msg.replaceChildren(decision === "approve" ? "Approved. The estimate is continuing… " : "Sent back. Working on what you pointed at; a new card follows…");
+      msg.replaceChildren(decision === "approve" ? words.approved : "Sent back. Working on what you pointed at; a new card follows…");
       if (decision === "approve") msg.append(h("a", { href: `#/runs/${encodeURIComponent(r.runId)}/design` }, icon("download"), "Export the design"));
       ok.disabled = no.disabled = true;
     } catch (err) { msg.textContent = err.message; }
@@ -681,7 +708,7 @@ function designPanel(r) {
   return h("section", { class: "card-box" },
     h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Approve the design"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body stack" },
-      h("p", { class: "small muted" }, "The estimate stands on this design. Walk the clickable demo, then approve it or send it back with what to change."),
+      h("p", { class: "small muted" }, words.intro),
       h("div", { class: "row" }, h("a", { class: "btn", href: `#/runs/${r.runId}/preview` }, icon("cursor"), "Open the clickable demo"),
         h("span", { class: "btn ghost", "aria-disabled": "true", title: "A design is exported once it is approved: PNG, PDF, the demo, tokens or JSON, from the Design tab." }, icon("download"), "Export after approval")),
       refsBox,
@@ -1237,11 +1264,14 @@ function exportPanel(rid, v) {
   const d = v.design;
   const checks = (name, items, all = true) => {
     const boxes = items.map((it) => h("label", { class: "xopt" }, h("input", { type: "checkbox", name, value: it.value, checked: all ? "" : undefined }), it.label));
-    return { el: h("fieldset", { class: "opts" }, h("legend", { class: "small faint" }, name), boxes), picked: () => boxes.map((b) => b.querySelector("input")).filter((i) => i.checked).map((i) => i.value), total: boxes.length };
+    return { el: h("fieldset", { class: "xopts" }, h("legend", { class: "small faint" }, name), boxes), picked: () => boxes.map((b) => b.querySelector("input")).filter((i) => i.checked).map((i) => i.value), total: boxes.length };
   };
   const choice = h("select", { "aria-label": "What to export" }, EXPORT_CHOICES.map((c) => h("option", { value: c.id }, c.label)), h("option", { value: "figma", disabled: "" }, "Figma (later)"));
   choice.value = "all";
   const screens = checks("screens", v.options.screens.map((x) => ({ value: x.id, label: x.id === "components" ? "Components" : `${x.id} ${x.title}` })));
+  // every state on the demo's tabs, once (like --states); a picture of a dark or other-language page counts as its first state
+  const stateNames = [...new Map(v.options.screens.filter((x) => x.id !== "components").flatMap((x) => x.states).map((st) => [st.toLowerCase(), st])).values()];
+  const states = checks("states", stateNames.map((x) => ({ value: x, label: x })));
   const widths = checks("widths", v.options.widths.map((x) => ({ value: x, label: x })));
   const modes = checks("modes", v.options.modes.map((x) => ({ value: x, label: x })));
   const langs = checks("languages", v.options.langs.map((x) => ({ value: x, label: x })));
@@ -1268,8 +1298,8 @@ function exportPanel(rid, v) {
   };
   go.addEventListener("click", async () => {
     const c = EXPORT_CHOICES.find((x) => x.id === choice.value);
-    if (!screens.picked().length || !widths.picked().length || !modes.picked().length || !langs.picked().length) { msg.textContent = "Pick at least one of each: screen, width, mode and language."; return; }
-    const body = { formats: c.formats, pdfPerScreen: !!c.pdfPerScreen, screens: only(screens), widths: only(widths), modes: only(modes), langs: only(langs), version: version ? Number(version.value) : undefined };
+    if (!screens.picked().length || !states.picked().length || !widths.picked().length || !modes.picked().length || !langs.picked().length) { msg.textContent = "Pick at least one of each: screen, state, width, mode and language."; return; }
+    const body = { formats: c.formats, pdfPerScreen: !!c.pdfPerScreen, screens: only(screens), states: only(states), widths: only(widths), modes: only(modes), langs: only(langs), version: version ? Number(version.value) : undefined };
     go.disabled = true;
     msg.textContent = "Starting…";
     try {
@@ -1281,7 +1311,7 @@ function exportPanel(rid, v) {
     h("p", { class: "small muted" }, d.version ? `Design ${d.line} v${d.version}, approved by ${d.approvedBy} ${ago(d.approvedAt)}. Files are tagged with the version and land in this run's exports folder.` : d.pending),
     d.picturesNote ? h("p", { class: "small muted" }, d.picturesNote) : null,
     h("div", { class: "row" }, choice, version, go),
-    h("details", { class: "export-opts" }, h("summary", { class: "small" }, "Screens, widths, modes and languages"), h("div", { class: "stack" }, screens.el, widths.el, modes.el, langs.el)),
+    h("details", { class: "export-opts" }, h("summary", { class: "small" }, "Screens, states, widths, modes and languages"), h("div", { class: "stack" }, screens.el, states.el, widths.el, modes.el, langs.el)),
     h("p", { class: "small faint" }, v.figma),
     msg,
     h("h3", { class: "small" }, "Earlier exports"),

@@ -113,6 +113,20 @@ export async function exportForRun(runId: string, o: ExportOptions & { version?:
   return { ...rec, dir };
 }
 
+/**
+ * A run seeded from a design approved elsewhere (`--from-design`, `--from-estimate`, `--from-run`) never runs the
+ * design steps, so `--design-export` exports right away: the design is approved already.
+ */
+export async function exportSeededNow(runId: string, formats: string[] | undefined, log: (m: string) => void): Promise<void> {
+  if (!formats?.length) return;
+  try {
+    const e = await exportForRun(runId, { formats: parseFormats(formats.join(",")) }, log);
+    log(`design exported (${e.files.length} files, design ${e.line} v${e.version}) to ${e.dir}`);
+  } catch (err) {
+    log(`design export skipped: ${(err as Error).message}`);
+  }
+}
+
 /** The formats a run asked to export as soon as its design is approved (`--design-export png,pdf`). */
 export function autoExportFormats(state: Pick<RunState, "info">): ExportOptions["formats"] {
   const f = state.info.designExport;

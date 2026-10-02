@@ -21,6 +21,7 @@ import { dashboardView, designView, estimateView, eventsView, draftFile, exportF
 import { previewFile } from "./preview.js";
 import { answerEstimateQuestions, decideDesign, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
+import type { ExportFormat } from "../design/export.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
 /** Starting a run may carry design frames and reference files (base64 in the JSON, up to 50 MB of references), so that one route takes a bigger body. */
@@ -81,9 +82,11 @@ export const ROUTES: readonly Route[] = [
   { method: "GET", path: "/api/dashboard", what: "outcomes, the per-stage table and recent runs", handle: () => ok(dashboardView()) },
   {
     method: "POST", path: "/api/runs", what: "start a run (same checks as factory start), executed in the background",
-    handle: async (_p, body, deps) => {
+    handle: async (_p, body, deps, ctx) => {
       try {
-        const r = await startRun((body ?? {}) as Record<string, unknown>, deps);
+        // a build from an estimate exports its approved design at once, as an export job the Design tab shows
+        const exportNow = deps.exportNow ?? ((runId: string, formats: ExportFormat[]) => { try { ctx.jobs.start(runId, { formats }); } catch { /* one is already running */ } });
+        const r = await startRun((body ?? {}) as Record<string, unknown>, { ...deps, exportNow });
         return { status: 201, json: r };
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };

@@ -615,8 +615,8 @@ textarea[aria-label="Rejection reason"] { width: 100%; font: inherit; padding: 0
 @media (max-width: 640px) { .ref-row { grid-template-columns: auto minmax(0, 1fr) auto; } .ref-row select, .ref-row input { grid-column: 1 / -1; } }
 
 /* design export panel */
-.opts { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; border: 0; padding: 0; margin: 0; }
-.opts legend { padding: 0; margin-bottom: 0.2rem; text-transform: capitalize; }
+.xopts { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; border: 0; padding: 0; margin: 0; }
+.xopts legend { padding: 0; margin-bottom: 0.2rem; text-transform: capitalize; }
 .xopt { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; cursor: pointer; }
 .xopt input { accent-color: var(--accent); }
 .export-opts summary { cursor: pointer; }
@@ -626,3 +626,4 @@ textarea[aria-label="Rejection reason"] { width: 100%; font: inherit; padding: 0
 .export-list ul { margin: 0; padding-left: 1.1rem; }
 .btn.small { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
 .btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
+.xopt:has(input:disabled) { color: var(--faint, #999); cursor: not-allowed; }

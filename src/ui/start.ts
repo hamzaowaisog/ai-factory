@@ -18,6 +18,8 @@ import { describeReferences, gatherReferences, MAX_REF_FILE_BYTES, type Gathered
 import { MAX_DOCX_BYTES } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
+import { exportSeededNow } from "../stages/design-export.js";
+import { parseFormats, type ExportFormat } from "../design/export.js";
 import { approvedEstimate, type Approved } from "../estimate/lineage.js";
 import { checkRoutes, DESIGN_ROUTES, ESTIMATE_ROUTES } from "../stages/routing.js";
 import { factoryHome } from "../util/paths.js";
@@ -45,6 +47,8 @@ export interface StartInput {
   fromEstimate?: unknown;
   /** design references, any mode, like --ref: [{ kind: "file", name, data: base64 } | { kind: "url", url }] each with role? and note? */
   refs?: unknown;
+  /** formats to export as soon as the design is approved, like --design-export: ["png", "pdf"] */
+  designExport?: unknown;
 }
 
 export interface StartDeps {
@@ -53,6 +57,8 @@ export interface StartDeps {
   gather?: typeof gatherRequest;
   /** reads the design references (tests pass a stub) */
   gatherRefs?: typeof gatherReferences;
+  /** exports a run's already-approved design at once (a build from an estimate); the server runs it as an export job */
+  exportNow?: (runId: string, formats: ExportFormat[]) => void;
 }
 
 /** All reference files of one start together (the page checks the same): the request body stays well under its limit. */
@@ -119,6 +125,13 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     if (maxCostUsd > HIGHEST_NORMAL_CAP_USD) {
       throw new StartError(`Max cost can only lower the normal limit, and the highest normal limit is $${HIGHEST_NORMAL_CAP_USD}. Enter $${HIGHEST_NORMAL_CAP_USD} or less, or leave it empty.`);
     }
+  }
+
+  let designExport: ExportFormat[] | undefined;
+  if (input.designExport !== undefined && input.designExport !== null) {
+    if (!Array.isArray(input.designExport) || input.designExport.some((f) => typeof f !== "string")) throw new StartError("Export on approval is a list of formats.");
+    // none ticked is no export on approval
+    if (input.designExport.length) try { designExport = parseFormats((input.designExport as string[]).join(",")); } catch (err) { throw new StartError((err as Error).message); }
   }
 
   const fromEstimate = str(input.fromEstimate)?.trim();
@@ -206,9 +219,12 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     sources: req.sources, ...(references.length ? { references } : {}),
     ...(approved ? { lineage: { kind: "build" as const, approved } } : {}),
     ...(settings ? { mode: designing ? "design" as const : "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
+    ...(designExport ? { designExport } : {}),
   });
   if (!standalone) starting.set(project, { runId, at: Date.now() });
   (deps.execute ?? runDetached)(runId);
+  // a build from an estimate never runs the design steps: its design is approved already, so it exports now (as the command line does)
+  if (approved && designExport) (deps.exportNow ?? ((id, f) => void exportSeededNow(id, f, () => undefined)))(runId, designExport);
   return { runId, from: describeSources(req.sources) + (references.length ? `; design references ${describeReferences(references)}` : "") };
 }
 

@@ -15,26 +15,14 @@ import { describeReferences, gatherReferences, parseRefArg } from "../sources/re
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
 import { EXPORT_MODES, listExports, parseFormats, parseList, type ExportOptions } from "../design/export.js";
 import { VIEWPORTS, type Viewport } from "../estimate/screenshots.js";
-import { exportForRun } from "../stages/design-export.js";
+import { exportForRun, exportSeededNow } from "../stages/design-export.js";
+
+export { exportSeededNow };
 
 export const DESIGN_EXPORT_HELP = "export the design as soon as it is approved: png, pdf, html, tokens, json or all, comma separated (files in <run>/exports/vN/; factory design export makes more later)";
 
 /** `--design-export png,pdf`, checked before a run exists. */
 export const designExportOption = (v: string | undefined): string[] | undefined => (v ? parseFormats(v) : undefined);
-
-/**
- * A run seeded from a design approved elsewhere (`--from-design`, `--from-estimate`, `--from-run`) never runs the
- * design steps, so `--design-export` exports right away: the design is approved already.
- */
-export async function exportSeededNow(runId: string, formats: string[] | undefined, log: (m: string) => void): Promise<void> {
-  if (!formats?.length) return;
-  try {
-    const e = await exportForRun(runId, { formats: parseFormats(formats.join(",")) }, log);
-    log(`design exported (${e.files.length} files, design ${e.line} v${e.version}) to ${e.dir}`);
-  } catch (err) {
-    log(`design export skipped: ${(err as Error).message}`);
-  }
-}
 
 export interface DesignRunDeps {
   log: (m: string) => void;
