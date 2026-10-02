@@ -1,0 +1,66 @@
+id: vsa-late-cancellation
+repo: vsa
+kind: feature
+request: |
+  We're getting too many last-minute cancellations. Appointments should no longer be cancellable within 24 hours of
+  their start time. Put the window in SchedulingPolicies with the other rules.
+facts:
+  - id: F1
+    about: [[existing appointment, existing booking, already exist, already booked, previously booked, booked before, current appointment, grandfather, retroactive, apply to]]
+    answer: >-
+      Yes, it applies to every appointment at the moment someone tries to cancel it, including ones booked before
+      this change. Nothing in the database needs to change.
+  - id: F2
+    about: [[override, exception, admin, staff, role, bypass, emergency, who can, who may, who is allowed, anyone]]
+    answer: >-
+      No exceptions and no override for now; there are no user roles in the API. Staff who must cancel late will
+      handle it outside the system.
+  - id: F3
+    about: [[already cancel, cancelled twice, idempot, re-cancel, cancel again, cancelled again, cancelling again, canceled again, twice, repeat, cancel a cancelled]]
+    answer: >-
+      Cancelling an appointment that is already cancelled keeps working as today: it succeeds and nothing changes,
+      even inside the 24-hour window.
+  - id: F4
+    about: [[past, started, in progress, after start, already begun]]
+    answer: >-
+      An appointment whose start time has already passed counts as inside the window, so it cannot be cancelled
+      either.
+  - id: F5
+    about: [[exactly, boundary, edge, 24 hours, inclusive, exclusive, less than, at least]]
+    answer: >-
+      Exactly 24 hours before the start is still allowed; the block is for less than 24 hours (24 hours).
+  - id: F6
+    about: [[cancel, within, window, late, "24", too close, reject, block, refus, not allow], [error, status code, "400", "409", "422", response, message, http, bad request, conflict]]
+    answer: >-
+      Reject it as a validation error (400), like the other cancel rules, with a message saying appointments cannot
+      be cancelled less than 24 hours before they start.
+  - id: F7
+    about: [[fee, charge, penalt, no-show, complete]]
+    answer: No fees or penalties, and completing appointments is unaffected.
+gaps:
+  - id: G1
+    match: [[existing appointment, existing booking, already exist, already booked, previously booked, booked before, retroactive, grandfather, apply to existing, applies to existing, apply to all, applies to all, apply to already, applies to already]]
+    fact: F1
+  - id: G2
+    match: [[override, exception, admin, staff, role, bypass, emergency]]
+    fact: F2
+  - id: G3
+    match: [[already cancel, idempot, cancel again, cancelled again, cancelling again, canceled again, repeat, twice]]
+    fact: F3
+expect:
+  - id: E1
+    match: [["24"], [cancel], [reject, not allow, cannot, prevent, error, refuse, deny, fail, must not, shall not, "400", block]]
+    why: the core rule
+  - id: E2
+    match: [[exist, already booked, previously booked, booked before, regardless of when, any appointment, all appointment, every appointment], [cancel]]
+    why: F1 says the rule applies to existing appointments
+  - id: E3
+    match: [[already cancel, previously cancel], [success, succeed, idempot, unchanged, no change, "200", without error, no-op, ok]]
+    why: F3 says re-cancelling stays idempotent
+forbid:
+  - id: X1
+    match: [[fee, charge, penalt]]
+    why: nobody asked to charge for late cancellations
+  - id: X3
+    match: [[email, sms, notif]]
+    why: nobody asked to notify anyone

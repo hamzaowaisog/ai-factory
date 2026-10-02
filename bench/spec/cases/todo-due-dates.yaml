@@ -1,0 +1,67 @@
+id: todo-due-dates
+repo: todo
+kind: feature
+request: |
+  Let people put a due date on a todo when they create or edit it, and add a way to get just the overdue
+  ones from GET /todos. Should show up wherever we return a todo.
+facts:
+  - id: F1
+    about: [[due], [required, optional, mandatory, must, omit, "null", empty, blank]]
+    answer: The due date is optional. A todo without one is fine and simply never overdue.
+  - id: F2
+    about: [[date, due], [time, timezone, time zone, utc, local, datetime, dateonly, date only, hour, format]]
+    answer: It is a calendar date only (no time of day), sent and returned as YYYY-MM-DD. Compare against today's date in UTC.
+  - id: F3
+    about: [[overdue], [complet, done, finished, today, same day, includ, exclud, defin, mean, past]]
+    answer: Overdue means the due date is strictly before today (UTC) and the todo is not complete. Completed todos are never overdue; a todo due today is not overdue yet.
+  - id: F4
+    about: [[past, earlier, yesterday, before today, history, backdat], [allow, reject, valid, accept, permit, error]]
+    answer: Past due dates are allowed on create and edit; we don't validate against today.
+  - id: F5
+    about: [[existing, current todo, old todo, older todo, migrat, already exist, already created, existing data, database, column, backfill, schema]]
+    answer: Existing todos get no due date (null). A database migration adding the nullable column is expected.
+  - id: F6
+    about: [[clear, remove, unset, "null", edit, update, put, change, omit], [due, deadline]]
+    answer: Editing via PUT /todos/{id} sets the due date to whatever is sent; sending it as null or leaving it out clears it, same as how PUT replaces title and isComplete today.
+  - id: F7
+    about: [[overdue], [query, param, filter, flag, endpoint, route, how]]
+    answer: Something like GET /todos?overdue=true is fine. It still returns only the caller's own todos.
+  - id: F8
+    about: [[sort, order by, ordered by, ordering, sort order, remind, notif, email, priorit]]
+    answer: No sorting, reminders or notifications for now.
+gaps:
+  - id: G1
+    match: [[due], [required, optional, mandatory, must, omit, "null"]]
+    fact: F1
+  - id: G2
+    match: [[overdue], [complet, done, today, same day, includ, exclud, defin, mean]]
+    fact: F3
+  - id: G3
+    match: [[date, due], [time, timezone, time zone, utc, local, datetime, date only, dateonly, hour, format]]
+    fact: F2
+expect:
+  - id: E1
+    match: [[due], [creat, post, new todo, add]]
+    why: a due date can be set when creating a todo
+  - id: E2
+    match: [[due], [updat, edit, put, chang, clear, remov]]
+    why: a due date can be changed or cleared when editing
+  - id: E3
+    match: [[overdue], [complet, done, finished], [before today, earlier than today, past, prior to, less than today, before the current date]]
+    why: overdue filter returns only incomplete todos whose due date has passed
+  - id: E4
+    match: [[without a due, no due, "null", optional, omit, not provided, absent, missing], [due]]
+    why: the due date is optional
+  - id: E5
+    match: [[due], [return, response, includ, get, retriev, show]]
+    why: the due date is returned wherever a todo is returned
+forbid:
+  - id: X1
+    match: [[remind, notif, email, push]]
+    why: nobody asked for reminders
+  - id: X2
+    match: [[sort by, order by, sorted, ordered by, priority]]
+    why: sorting and priority were explicitly not wanted
+  - id: X3
+    match: [[todo.web, front end, frontend, user interface, calendar view, date picker]]
+    why: this ticket is about the API only

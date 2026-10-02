@@ -1,0 +1,52 @@
+id: vsa-specialty-filter
+repo: vsa
+kind: feature
+request: |
+  On GET /api/appointments, add a way to filter by the doctor's specialty, so the front desk can pull up e.g.
+  only the Cardiology appointments. It should work with the filters that are already there.
+facts:
+  - id: F1
+    about: [[specialty, specialit, filter], [case, exact, partial, contains, substring, prefix, fuzzy, match, like, spelling]]
+    answer: >-
+      Exact match on the whole specialty name, ignoring case: "cardiology" and "Cardiology" both match
+      Dr. Michael Chen's "Cardiology" appointments, but "cardio" matches nothing. No partial or fuzzy matching.
+  - id: F2
+    about: [[unknown, no match, doesn't exist, does not exist, not exist, invalid, unrecognized, nonexist, non-existent, empty result, empty page, empty list, no result, matches nothing, match nothing, no doctor has]]
+    answer: >-
+      A specialty that no doctor has is not an error; the endpoint returns 200 with an empty page, like any other
+      filter that matches nothing.
+  - id: F3
+    about: [[combin, together, other filter, existing filter, doctorid, status filter, by status, statusfilter, startdate, enddate, start date, end date, date range, date filter, patient]]
+    answer: >-
+      It is optional and combines with the existing patientId, doctorId, status, startDate and endDate filters
+      using AND. Paging and ordering by start time stay as they are.
+  - id: F4
+    about: [[multiple, several, more than one, list of, comma, array]]
+    answer: One specialty per request is enough; no multi-select.
+  - id: F5
+    about: [[blank, whitespace, empty string, empty value, trim]]
+    answer: An empty or whitespace-only specialty value is treated as if the filter was not given.
+gaps:
+  - id: G1
+    match: [[specialty, filter], [case, exact, partial, contains, substring, prefix, match]]
+    fact: F1
+  - id: G2
+    match: [[unknown, no match, not exist, doesn't exist, invalid, nonexist, no doctor, empty result, empty page, empty list]]
+    fact: F2
+expect:
+  - id: E1
+    match: [[specialty], [filter, only, restrict, limit, return, matching]]
+    why: the core ask
+  - id: E2
+    match: [[specialty], [case-insensitive, case insensitive, ignoring case, regardless of case, ignores case, any case, casing]]
+    why: F1 says the match ignores case
+  - id: E3
+    match: [[specialty], [combin, together, in addition, along with, and the, other filter, existing filter, doctorid, status, patientid]]
+    why: F3 says it combines with the existing filters
+forbid:
+  - id: X1
+    match: [[/\/api\/(specialt|doctors)/, list of specialties, specialties endpoint, specialty endpoint, lookup endpoint]]
+    why: nobody asked for an endpoint that lists specialties or doctors
+  - id: X2
+    match: [[fuzzy, levenshtein, full-text, full text search, autocomplete]]
+    why: exact case-insensitive match only

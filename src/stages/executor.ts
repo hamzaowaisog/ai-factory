@@ -142,7 +142,8 @@ function dropBuildCache(runId: string): void {
 
 export interface ExecuteResult { status: string; message: string }
 
-export async function execute(runId: string, echo: Log = () => undefined): Promise<ExecuteResult> {
+/** until: stop, without running it, at the first step after this one (the spec eval stops after specify). */
+export async function execute(runId: string, echo: Log = () => undefined, opts: { until?: string } = {}): Promise<ExecuteResult> {
   const ledger = Ledger.open(runId);
   // the run trace: every console line, model turn, tool call, container phase and gate, with timestamps
   const trace = new Tracer(ledger.dir, { echo, putBlob: (c) => ledger.putArtifact(c) });
@@ -208,6 +209,11 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
       const n = next(state, ledger, project);
       if (n.kind === "done") return { status: String(state.status), message: "All steps done." };
       if (n.kind === "blocked") throw new Error(`Step ${n.step} isn't ready but nothing before it is pending (bug)`);
+      if (opts.until) {
+        const keys = stepsFor(state).map((s) => s.key);
+        if (!keys.includes(opts.until)) throw new Error(`No step "${opts.until}" in this run`);
+        if (keys.indexOf(n.step.key) > keys.indexOf(opts.until)) return { status: "until", message: `Stopped before ${n.step.key}: ${opts.until} is done.` };
+      }
 
       const rec = state.steps.get(n.step.key);
       const attempt = (rec?.lastAttempt ?? 0) + 1;

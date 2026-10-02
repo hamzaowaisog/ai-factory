@@ -1,0 +1,58 @@
+id: todo-clear-completed
+repo: todo
+kind: feature
+request: |
+  Users want a way to clear out all their completed todos in one go instead of deleting them one at a time
+  with DELETE /todos/{id}. Add an endpoint for it. Admins should be able to use it too.
+facts:
+  - id: F1
+    about: [[admin], [own, their, everyone, all users, other users, every user, any user, scope, whose]]
+    answer: For everyone including admins it clears only the caller's own completed todos. Admins already can delete any single todo by id; this bulk endpoint does not reach other users' todos.
+  - id: F2
+    about: [[none, no completed, nothing, zero, no todos, no matching, return 404, returns 404, a 404, 404 not found, not found]]
+    answer: If there are no completed todos to clear it still succeeds (200 OK) and reports 0 removed. It is not a 404.
+  - id: F3
+    about: [[return, respon, body, payload, http, endpoint, status code], [count, how many, number, deleted, removed, cleared, "200", "204", no content, ok, success, succeed, status code, contain, includ]]
+    answer: 'Return 200 OK with the number of todos that were deleted, e.g. { "deleted": 3 }.'
+  - id: F4
+    about: [[undo, restore, soft, archive, recover, trash, permanent, hard]]
+    answer: It is a permanent delete, same as the existing single delete. No undo, no archive.
+  - id: F5
+    about: [[confirm, confirmation, rate, limit, auth, anonymous, unauthenticated]]
+    answer: Same rules as the other /todos endpoints; requires a signed-in user and the per-user rate limit applies. No confirmation step in the API.
+  - id: F6
+    about: [[route, url path, the url, which url, path, verb, method, endpoint name]]
+    answer: Something like DELETE /todos/completed is fine; we have no strong preference on the exact route.
+gaps:
+  - id: G1
+    match: [[admin], [own, everyone, all users, other users, every user, any user, scope, whose]]
+    fact: F1
+  - id: G2
+    match: [[none, no completed, nothing, zero, no todos, no matching, return 404, returns 404, a 404, 404 not found]]
+    fact: F2
+  - id: G3
+    match: [[undo, restore, soft, archive, recover, permanent]]
+    fact: F4
+expect:
+  - id: E1
+    match: [[delet, clear, remov], [complet, done]]
+    why: the core ask, bulk-remove the caller's completed todos
+  - id: E2
+    match: [[incomplete, not complete, uncompleted, open, pending, iscomplete is false, iscomplete set to false, remain], [todo, item]]
+    why: todos that are not complete must be left untouched
+  - id: E3
+    match: [[admin], [own, other user, another user, other users, only the, not affect, untouched, unaffected, remain]]
+    why: admins clear only their own completed todos, not everyone's
+  - id: E4
+    match: [[no completed, none, nothing, zero, count of 0, "0 todos", "of 0"], ["200", ok, success, succeed]]
+    why: nothing to clear is a success with a zero count, not a 404
+forbid:
+  - id: X1
+    match: [[soft delete, soft-delete, archive, trash, undo, restore, recycle]]
+    why: the delete is permanent; no archive or undo was asked for
+  - id: X2
+    match: [[notif, email, audit log, audit trail]]
+    why: nobody asked to notify or audit
+  - id: X3
+    match: [[todo.web, front end, frontend, button, user interface]]
+    why: this ticket is about the API only

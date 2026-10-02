@@ -1,0 +1,70 @@
+id: eshop-change-shipping-address
+repo: eshop
+kind: feature
+request: |
+  Customers keep contacting support to fix a typo in their delivery address after placing an order. Let customers
+  change the shipping address on an order themselves through the orders API, as long as it hasn't gone out yet.
+facts:
+  - id: F1
+    about: [[gone out, order status, which status, what status, current status, order state, which state, until when, when can, paid, stock confirmed, stockconfirmed, submitted, awaiting, shipped, cancel, deadline, eligible]]
+    answer: It can be changed while the order is Submitted, AwaitingValidation, StockConfirmed or Paid. "Gone out" means Shipped. A Shipped or Cancelled order cannot be changed.
+  - id: F2
+    about: [[shipped, cancelled, canceled, too late, not allowed, no longer, not eligible, ineligible, reject, refus], [error, fail, status code, response, return, http, bad request, "400", "409", conflict]]
+    answer: For a Shipped or Cancelled order return 400 Bad Request with a short message saying the address can no longer be changed, and leave the order as it was.
+  - id: F3
+    about: [[partial, which field, fields, all field, whole address, entire address, full address, street, city, state, country, zip, postal, required, optional, empty field, empty value, empty string, left empty, be empty, blank, missing field, validat, invalid]]
+    answer: The whole address is replaced in one go. Street, city, state, country and zip code are all required and must not be empty, the same rules as when the order is placed; a missing or empty field is a 400 and nothing changes.
+  - id: F4
+    about: [[who may, who can, who is allowed, owner, another user, other user, someone else, other customer, permission, authoriz, support, admin, staff]]
+    answer: Only the customer who placed the order may change it. An order that is not theirs is answered as not found (404), the same as a missing order. There is no support or admin role for this.
+  - id: F5
+    about: [[how many, limit, more than once, multiple, change it again, changed again, update it again, edit it again, repeat, number of times, how often, second time, second change]]
+    answer: No limit; they can change it as many times as they like while the order is still eligible.
+  - id: F6
+    about: [[idempot, request id, requestid, x-requestid, duplicate, retry, header]]
+    answer: Follow the existing cancel endpoint, require the x-requestid header, and treat a duplicate request id as already done.
+  - id: F7
+    about: [[return, respond, response, body, payload, status code, http], [success, succeed, ok, "200", "204", no content, response body, updated order, re-read]]
+    answer: On success return 200 OK with no body; the client can re-read the order.
+  - id: F8
+    about: [[buyer, profile, default address, saved address, address book, future order, other order]]
+    answer: Only this one order's shipping address changes. Do not touch the buyer's other orders or any saved or default address.
+  - id: F9
+    about: [[price, cost, total, tax, shipping fee, charge, payment, refund]]
+    answer: Changing the address does not change prices, totals or payment in any way.
+gaps:
+  - id: G1
+    match: [[gone out, order status, which status, what status, current status, order state, which state, until when, when can, paid, stock confirmed, stockconfirmed, shipped, eligible, deadline]]
+    fact: F1
+  - id: G2
+    match: [[partial, which field, fields, whole address, entire address, full address, required, optional, validat]]
+    fact: F3
+  - id: G3
+    match: [[who may, who can, who is allowed, owner, another user, other user, someone else, other customer, permission, authoriz]]
+    fact: F4
+expect:
+  - id: E1
+    match: [[address], [change, update, replace, modif, edit, correct]]
+    why: the core ask, a customer can change an order's shipping address
+  - id: E2
+    match: [[paid], [address], [allow, accept, succeed, success, update, change, permit, can, eligible]]
+    why: a paid but not yet shipped order is still eligible
+  - id: E3
+    match: [[shipped, cancelled, canceled], [reject, 400, bad request, refus, not allowed, not permitted, error, fail, cannot, deny, denied, no longer]]
+    why: shipped and cancelled orders are refused
+  - id: E4
+    match: [[another user, other user, someone else, different user, other customer, another customer, not the owner, not own, doesn't own, does not own, not belong, belongs to a different, belonging to another, not placed by], [404, not found, reject, refus, forbid, 403, deny, denied]]
+    why: only the customer who placed the order may change it
+  - id: E5
+    match: [[street, city, country, zip, postal], [required, missing, empty, blank, must be provided, must not be empty, mandatory, omitted]]
+    why: the full address is required, as when the order is placed
+forbid:
+  - id: X1
+    match: [[notif, sms, alert, send an email, sends an email, email the, email to]]
+    why: nobody asked to notify anyone of the change
+  - id: X2
+    match: [[shipping cost, shipping fee, reprice, re-price, recalculat, tax, refund]]
+    why: the person said prices and payment are unaffected
+  - id: X3
+    match: [[address book, saved address, default address, buyer profile, profile address]]
+    why: only this order's address changes, not the buyer's profile or other orders

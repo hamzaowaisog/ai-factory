@@ -1,0 +1,61 @@
+id: vsa-patient-double-booking
+repo: vsa
+kind: bugfix
+request: |
+  Front desk found John Smith booked at 10:00 tomorrow with both Dr. Sarah Wilson and Dr. Michael Chen. The
+  booking API (POST /api/appointments) accepted both without complaint. We already stop a doctor from being
+  double-booked; a patient shouldn't be able to be in two places at once either.
+facts:
+  - id: F1
+    about: [[cancel, complet, which status, what status, appointment status, status of, only scheduled, inactive, past]]
+    answer: >-
+      Only the patient's Scheduled appointments count, same as the existing doctor check. Cancelled or completed
+      appointments never block a new booking.
+  - id: F2
+    about: [[back-to-back, back to back, adjacent, consecutive, touch, boundary, edge, ends at, end time, exactly when, same minute, immediately]]
+    answer: >-
+      Back-to-back is fine: an appointment that ends at 10:00 does not overlap one that starts at 10:00. Only a real
+      time overlap is a conflict.
+  - id: F3
+    about: [[existing appointment, existing overlap, existing booking, existing double, existing data, existing record, existing conflict, already exist, already in the database, already overlap, already double, current data, clean, migrat, data fix, backfill, historical]]
+    answer: >-
+      Leave the overlapping appointments that are already in the database alone; the front desk will sort out the few
+      there are by hand. Only new bookings are checked.
+  - id: F4
+    about: [[error, status code, "409", "400", http, response, message, bad request, conflict], [overlap, double, clash, already has, busy, same time, reject, refus, book, conflict]]
+    answer: >-
+      Reject with 409 Conflict, like the doctor overlap, with a message saying the patient already has an appointment
+      at that time.
+  - id: F5
+    about: [[same doctor, which check first, which check, check order, order of the check, order of check, checked first, check first, comes first, precedence, which conflict, which message, both]]
+    answer: If both the doctor and the patient are busy, either conflict message is fine; it is still a 409.
+gaps:
+  - id: G1
+    match: [[cancel, complet, which status, what status, appointment status, status of, only scheduled]]
+    fact: F1
+  - id: G2
+    match: [[back-to-back, back to back, adjacent, consecutive, touch, boundary, edge, ends at, exactly]]
+    fact: F2
+  - id: G3
+    match: [[existing appointment, existing overlap, existing booking, existing double, existing data, existing record, already exist, already in, current data, clean, migrat, data fix, backfill]]
+    fact: F3
+expect:
+  - id: E1
+    match: [[patient], [overlap, conflict, double-book, double book, same time, clash, already has]]
+    why: the core fix
+  - id: E2
+    match: [[cancel], [ignor, exclud, not count, not block, does not, only scheduled, allow, permit, succeed, accept]]
+    why: F1 says cancelled appointments do not block
+  - id: E3
+    match: [[back-to-back, back to back, adjacent, consecutive, ends at, ends when, end time equal, equals the start, immediately after, touch]]
+    why: F2 says touching appointments are not an overlap
+forbid:
+  - id: X1
+    match: [[serializable, isolation level, advisory lock, row lock, pessimistic, select for update]]
+    why: the existing race-condition note is out of scope for this symptom
+  - id: X2
+    match: [[email, sms, notif]]
+    why: nobody asked to notify anyone
+  - id: X3
+    match: [[migrat, backfill, clean up, cleanup, auto-cancel, automatically cancel]]
+    why: F3 says existing overlaps are left alone

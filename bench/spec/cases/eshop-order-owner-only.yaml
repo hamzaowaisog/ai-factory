@@ -1,0 +1,50 @@
+id: eshop-order-owner-only
+repo: eshop
+kind: bugfix
+request: |
+  Support got a report that a signed-in customer could see somebody else's order (address, items, total) just by
+  changing the order number in GET /api/orders/{orderId}. Customers should only ever get at their own orders.
+  Please fix.
+facts:
+  - id: F1
+    about: [[another user, other user, someone else, different user, other customer, another customer, not theirs, not the owner, not own, doesn't own, does not own, belong, foreign], [403, 404, forbidden, not found, status, response, return, error, leak, exist]]
+    answer: Answer exactly as if the order did not exist, 404 Not Found with no body, so nobody can probe which order numbers exist. Do not return 403.
+  - id: F2
+    about: [[cancel, ship endpoint, ship order, shiporder, shipping an order, other endpoint, other operation, other route, put /api, write, modify]]
+    answer: Cancelling has the same hole (PUT /api/orders/cancel takes any order number). A customer must only be able to cancel their own order; trying to cancel someone else's must be refused as not found and leave that order untouched. Leave /ship alone, it is a back-office call and out of scope for this ticket.
+  - id: F3
+    about: [[admin, support, staff, role, back-office, back office, employee, operator, agent, privileged]]
+    answer: There is no admin or support role in the Ordering API today and we are not adding one here. Nobody may read another customer's order through these endpoints.
+  - id: F4
+    about: [[ownership, who owns, determine the owner, identify, buyer, identityguid, sub claim, claim, how do we know, who placed]]
+    answer: The owner is the customer who placed the order, i.e. the order's buyer whose identity matches the caller's user id ("sub" claim), the same match GET /api/orders already uses to list a user's orders.
+  - id: F5
+    about: [[list endpoint, list of orders, order list, listing, my orders, all orders, '/get \/api\/orders(?![\/{])/', history, summary, summaries]]
+    answer: The list endpoint GET /api/orders already filters by the caller and is fine; leave it as it is.
+gaps:
+  - id: G1
+    match: [[another user, other user, someone else, different user, other customer, another customer, not the owner, not own, doesn't own, does not own, belong], [403, 404, forbidden, not found, exist, leak]]
+    fact: F1
+  - id: G2
+    match: [[cancel, ship endpoint, ship order, shiporder, other endpoint, other operation, write, modify]]
+    fact: F2
+  - id: G3
+    match: [[admin, support, staff, role, back-office, back office, privileged]]
+    fact: F3
+expect:
+  - id: E1
+    match: [[another user, other user, someone else, different user, other customer, another customer, not the owner, not own, doesn't own, does not own, not belong, belongs to a different, belonging to another, not placed by], [404, not found]]
+    why: reading someone else's order must look exactly like a missing order
+  - id: E2
+    match: [[owner, own order, their own, placed by the caller, placed by the user, caller placed, belongs to the caller, belongs to the user, belonging to the caller], [200, ok, return, success, receive]]
+    why: the owner can still read their own order as before
+  - id: E3
+    match: [[cancel], [another user, other user, someone else, different user, other customer, another customer, not the owner, not own, doesn't own, does not own, not belong, belongs to a different, belonging to another, not placed by], [404, not found, reject, refus, unchanged, untouched, not cancel, remain, deny, denied]]
+    why: the same ownership rule closes the cancel hole without changing the other order
+forbid:
+  - id: X1
+    match: [[admin role, support role, staff role, back-office role, new role, impersonat, elevated]]
+    why: no privileged access role was asked for
+  - id: X2
+    match: [[audit, notif, email, alert]]
+    why: nobody asked to log or notify access attempts

@@ -1,0 +1,74 @@
+id: vsa-no-show
+repo: vsa
+kind: feature
+request: |
+  Doctors need a way to mark that a patient didn't turn up for their appointment, the same way they can complete or
+  cancel one today. We want no-shows to be visible as their own status in the appointments list so we can report on
+  them.
+facts:
+  - id: F1
+    about: [[when can, when may, when should, when is it allowed, before, start, future, early, not yet, upcoming, in the past, has passed]]
+    answer: >-
+      Only once the appointment's start time has passed. Marking a no-show before the appointment starts is
+      rejected as a validation error.
+  - id: F2
+    about: [[which status, what status, current status, appointment status, from status, only scheduled, state, transition, which appointment, complet, cancel]]
+    answer: >-
+      Only Scheduled appointments can be marked as a no-show. Completed or cancelled ones are rejected. Marking one
+      that is already a no-show again succeeds and changes nothing, like complete and cancel.
+  - id: F3
+    about: [[reason, note, comment, text, extra field, additional field, new field, field for, body]]
+    answer: No reason or notes are needed; existing appointment notes stay as they are.
+  - id: F4
+    about: [[existing appointment, existing data, already exist, old appointment, older appointment, past appointment, backfill, automatic, already happened, historical, migrat, background job, scheduled job]]
+    answer: >-
+      No backfill and nothing automatic. Old appointments still in Scheduled stay that way until someone marks them.
+  - id: F5
+    about: [[who can, who may, who should, who is allowed, doctor, patient, front desk, role, auth, permission]]
+    answer: >-
+      The API has no roles; whoever can call the complete and cancel endpoints can call this one. Doctors and front
+      desk use it.
+  - id: F6
+    about: [[appointments list, appointment list, list endpoint, the list, status filter, filter by, filtering, report, query, get /api, visible, shown, displayed, appear, response dto, appointmentdto]]
+    answer: >-
+      GET /api/appointments and GET /api/appointments/{id} should show the NoShow status, and the existing status
+      filter on the list should accept it. No separate report endpoint is needed.
+  - id: F7
+    about: [[fee, charge, penalt, block, ban, limit, consequence, strike]]
+    answer: No consequences for the patient for now; it is only recorded.
+  - id: F8
+    about: [[undo, revert, reverse, mistake, change back]]
+    answer: Undoing a no-show is out of scope for now.
+gaps:
+  - id: G1
+    match: [[before, start, future, not yet, early, upcoming]]
+    fact: F1
+  - id: G2
+    match: [[complet, cancel, which status, what status, current status, appointment status, only scheduled, state]]
+    fact: F2
+  - id: G3
+    match: [[existing appointment, existing data, already exist, old appointment, older appointment, past appointment, backfill, automatic, historical]]
+    fact: F4
+expect:
+  - id: E1
+    match: [[no-show, no show, noshow, did not attend, didn't attend, not attend], [mark, record, set, status, flag]]
+    why: the core ask
+  - id: E2
+    match: [[no-show, no show, noshow], [before, not yet, future, has not start, hasn't start, prior to, not started, has passed, after the start]]
+    why: F1 says it is only allowed after the start time
+  - id: E3
+    match: [[no-show, no show, noshow], [complet, cancel]]
+    why: F2 says completed and cancelled appointments are rejected
+  - id: E4
+    match: [[no-show, no show, noshow], [filter, list, query, get /api, search]]
+    why: F6 says the list shows and filters by the new status
+forbid:
+  - id: X1
+    match: [[fee, charge, penalt, ban, strike, block future]]
+    why: F7 says no consequences
+  - id: X2
+    match: [[email, sms, notif]]
+    why: nobody asked to notify anyone
+  - id: X3
+    match: [[background job, backfill, hosted service, scheduled job, batch, automatically mark]]
+    why: F4 says nothing automatic

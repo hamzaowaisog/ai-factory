@@ -1,0 +1,62 @@
+id: eshop-low-stock-items
+repo: eshop
+kind: feature
+request: |
+  Purchasing wants to see which products are running low so they know what to reorder. Add something to the catalog
+  API that lists items at or close to their restock level. Items we've already put on reorder shouldn't clutter
+  the list.
+facts:
+  - id: F1
+    about: [[running low, low stock, how low, considered low, count as low, what counts as low, close, near, threshold, restock level, restockthreshold, definition, define, margin, percent, how close, criteria, rule]]
+    answer: Low means AvailableStock is at or below the item's RestockThreshold. There is no extra "close to" margin; at or below the threshold is the whole rule.
+  - id: F2
+    about: [[reorder, onreorder, on reorder, already, clutter, exclude, hide, include reorder, include items already, include those, include them, flag]]
+    answer: Leave out items whose OnReorder flag is true, entirely. No option to show them; purchasing already knows about those.
+  - id: F3
+    about: [[zero, out of stock, sold out, no stock, stock of 0, stock is 0, no units, no threshold, threshold of 0, threshold is 0]]
+    answer: Sold-out items (stock 0) are included, they are the most urgent. The same at-or-below rule applies to every item, so an item with a threshold of 0 only shows up when its stock is 0.
+  - id: F4
+    about: [[sort, order by, ordered by, rank, lowest first, most urgent first, page, pagina, pagesize, page size, limit, how many]]
+    answer: Sort by AvailableStock ascending, lowest first (ties by name). Page it with the usual pageSize and pageIndex parameters like the other catalog list endpoints, default page size 10.
+  - id: F5
+    about: [[who can, who may, who should, who is allowed, auth, permission, access, role, purchasing team, purchasing role, only purchasing, secure, anonymous]]
+    answer: Same access as the other catalog read endpoints today; no new auth for this ticket.
+  - id: F6
+    about: [[which field, what field, fields, response shape, response format, response model, return type, returned data, what data, what should be returned, what should it return, what to return, in the response, response dto, new dto, separate dto, dedicated dto, payload, shape, column]]
+    answer: Returning the normal catalog items in the usual paginated shape is fine, as long as available stock and restock threshold are in them, which they already are.
+  - id: F7
+    about: [[version, v1, v2, route, url path, the url, which url, path, endpoint name]]
+    answer: Make it available on both API versions. Something like GET /api/catalog/items/lowstock is fine; no strong preference on the route.
+gaps:
+  - id: G1
+    match: [[running low, low stock, how low, considered low, count as low, close, near, threshold, restock level, definition, define, margin, percent, criteria]]
+    fact: F1
+  - id: G2
+    match: [[reorder, onreorder, on reorder, already, clutter, exclude, hide]]
+    fact: F2
+  - id: G3
+    match: [[zero, out of stock, sold out, no stock, threshold of 0, threshold is 0]]
+    fact: F3
+expect:
+  - id: E1
+    match: [[stock, availablestock], [restock threshold, restockthreshold, restock level, reorder level, reorder threshold], [at or below, less than or equal, <=, equal to or less, equal to or below, does not exceed, not exceed, at or under, or below, or less]]
+    why: the core rule, stock at or below the item's restock threshold
+  - id: E2
+    match: [[onreorder, on reorder, already reordered, reorder flag, being reordered, flagged for reorder], [exclud, omit, not includ, not return, filter out, filtered out, left out, not list, not appear, not be listed, not be returned, not be included]]
+    why: items already on reorder are left out
+  - id: E3
+    match: [[above, greater than, more than, exceeds, higher than], [restock threshold, restockthreshold, restock level, reorder level, reorder threshold], [exclud, omit, not includ, not return, not list, not appear, left out, not be listed, not be returned, not be included]]
+    why: items with healthy stock are not listed
+  - id: E4
+    match: [[sort, order], [stock], [ascending, lowest, fewest, smallest, least]]
+    why: lowest stock first so the most urgent items lead
+forbid:
+  - id: X1
+    match: [[purchase order, supplier, vendor, auto-reorder, automatically reorder, automatic reorder, place a reorder, places a reorder, trigger a reorder, triggers a reorder, set onreorder to true, sets onreorder to true]]
+    why: the ask is a read-only list; nothing should place or flag reorders
+  - id: X2
+    match: [[notif, email, alert]]
+    why: nobody asked for low-stock alerts
+  - id: X3
+    match: [[web app, webapp, user interface, dashboard, front end, frontend]]
+    why: the ticket is about the catalog API only

@@ -1,0 +1,59 @@
+id: todo-admin-list-all
+repo: todo
+kind: feature
+request: |
+  Admins can already open, edit and delete anyone's todo by id, but GET /todos only ever shows the admin's
+  own list, so in practice they can't find anything to moderate. Admins need to be able to see everyone's
+  todos and tell whose is whose. Regular users must keep seeing only their own.
+facts:
+  - id: F1
+    about: [[admin], [default, always, opt, query, parameter, flag, switch, separate endpoint, own list, toggle, instead]]
+    answer: An admin's plain GET /todos stays their own list as today. They see everyone's todos only when they ask for it explicitly, e.g. GET /todos?all=true.
+  - id: F2
+    about: [[owner, whose, who owns, which user, email, username, ownerid, identify, expose]]
+    answer: In the all-users view each todo includes its owner's id and user name. OwnerId must stay hidden from the normal per-user responses, as it is today.
+  - id: F3
+    about: [[non-admin, regular user, normal user, not an admin, ordinary user, without admin], [all, everyone, param, flag, query, "403", forbidden, ignore]]
+    answer: If a non-admin asks for all todos (all=true) return 403 Forbidden rather than silently giving them their own list.
+  - id: F4
+    about: [[filter by, filtering, filtered, specific user, by user, by owner, search, pagina, page, limit, sort, order by, ordered by, ordering]]
+    answer: No filtering, paging or sorting is needed for now; there are only a few hundred todos.
+  - id: F5
+    about: [[admin role, who is admin, how admin, role, claim, grant, make admin, assign]]
+    answer: Admin is the existing "admin" role on the token (CurrentUser.IsAdmin). Managing who is an admin is out of scope.
+gaps:
+  - id: G1
+    match: [[admin], [default, always, opt, query, parameter, flag, separate, own list, toggle, instead]]
+    fact: F1
+  - id: G2
+    match: [[owner, whose, user name, username, email, ownerid, identify]]
+    fact: F2
+  - id: G3
+    match: [[non-admin, regular user, normal user, not an admin, ordinary user, without admin], [all, param, flag, query, "403", forbidden, ignore]]
+    fact: F3
+expect:
+  - id: E1
+    match: [[admin], [all users, every user, everyone, all todos, other users, any user, all owners, regardless of owner]]
+    why: the core ask, admins can list everyone's todos
+  - id: E2
+    match: [[owner, user name, username, user id, userid], [each, every, includ, show, return, contain]]
+    why: the admin view says whose each todo is
+  - id: E3
+    match: [[non-admin, regular user, normal user, not an admin, ordinary user, without the admin, lacks the admin, user who is not, non admin, not admin, lacks admin, without admin], ["403", forbid]]
+    why: a non-admin asking for everyone's todos is refused
+  - id: E4
+    match: [[own, their, owned by the], [todo, list], [default, without, not request, plain, no param, omit, absent, unless]]
+    why: the default list remains the caller's own todos, admins included
+  - id: E5
+    match: [[ownerid, owner id, owner], [not, hidden, exclud, omit, without], [non-admin, regular, own list, default, per-user, normal]]
+    why: owner info stays out of normal per-user responses
+forbid:
+  - id: X1
+    match: [[assign role, grant admin, promote, manage role, role management, make admin, /roles]]
+    why: admin role management is out of scope
+  - id: X2
+    match: [[pagina, page size, pagesize, skip, offset, cursor]]
+    why: the person said no paging is needed
+  - id: X3
+    match: [[audit, notif, send an email, email the]]
+    why: nobody asked to log or notify moderation

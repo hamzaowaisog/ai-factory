@@ -27,3 +27,24 @@ gate isn't registered yet (E1-E6 today). Pending never fails the run.
 
 E-gate cases use a provisional `EstimateFixture` (`gates/fixture.ts`). When a gate is built, adapt its cases' `input`
 to the real artifact; the mutators (one seeded defect each) carry over.
+
+## spec: how good are the specs the factory writes?
+`spec/` runs the real pipeline from intake to the final spec on fixed cases, answers the question cards from each
+case's facts, stops before plan, and scores the spec. Cases are change requests against public .NET repos pinned
+at a commit (`spec/repos.yaml`); no client code. How to write one: `spec/CASES.md`.
+
+```
+npm run bench:spec -- --fake                       # free dry run: scripted model, temporary home; proves the plumbing only
+npm run bench:spec -- --spend --like <project>     # real models, real cost; prices and routes copied from <project>
+npm run bench:spec -- --spend --like <project> --case vsa-no-show --repeats 1 --max-cost 3
+```
+Every case runs `--repeats` times (default 3) under a hard per-run cap (`--max-cost`, default $4). Per case it
+reports: **pass** (reached a spec, every expected behaviour inside one requirement, nothing forbidden), **found**
+(share of expected behaviours), **creep** (runs that added something the request didn't ask for), **gaps**
+(planted ambiguities raised as a question or assumption), **agree** (expected behaviours that every repeat found or
+every repeat missed), requirement count range, cost and minutes. Results go to `spec/results/` (git-ignored).
+A paid run uses the factory home: it adds `eval-<repo>` projects and clones the pinned repos under `eval-repos/`.
+
+Limits to keep in mind: the scorers match words, so a spec that says the right thing in unusual words counts as a
+miss (fix the matcher, not the spec); the oracle answers from keyword-matched facts, so a question no fact covers
+gets the card's recommended option.
