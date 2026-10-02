@@ -49,15 +49,18 @@ function sizing(tasks: { id: string }[], scale = 1) {
 
 let answer: (system: string, call: number) => unknown;
 let calls: string[] = [];
+/** what each call was asked (the user message) */
+let asked: string[] = [];
 const provider: Provider = {
-  start(model, _e, system): Conversation {
+  start(model, _e, system, user): Conversation {
     calls.push(model);
+    asked.push(user);
     const n = calls.length;
     return { async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answer(system, n) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
 
-async function makeRun(specBody: unknown, opts: { estimate?: Record<string, unknown> } = {}) {
+async function makeRun(specBody: unknown, opts: { estimate?: Record<string, unknown>; design?: unknown } = {}) {
   const ledger = Ledger.create(`20260930-est-${Math.random().toString(16).slice(2, 8)}`);
   await ledger.append({ type: "run.created", data: { mode: "estimate", project: "demo", request: "a portal", ...(opts.estimate ? { estimate: opts.estimate } : {}) } }, HUMAN_WRITER);
   const complete = async (step: string, output: unknown, extra: Record<string, unknown> = {}) => {
@@ -69,6 +72,7 @@ async function makeRun(specBody: unknown, opts: { estimate?: Record<string, unkn
   await complete("clarify", round);
   await complete("clarify-2", { asked: [], answers: {}, assumptions: [], conflicts: [] });
   await complete("specify", specBody);
+  if (opts.design) await complete("design", opts.design);
   return ledger;
 }
 
@@ -98,6 +102,7 @@ beforeEach(() => {
   process.env.ANTHROPIC_API_KEY = "sk-ant-test-not-real-000000000000";
   _resetEnvCache();
   calls = [];
+  asked = [];
   setRecordsSource(() => []);
   setTaskRecordsSource(() => []);
   setProviderFactory(() => provider);
@@ -279,5 +284,40 @@ describe("cross-run cache", () => {
     calls = [];
     await breakdownOf(await makeRun(spec(3)));
     expect(calls).toHaveLength(1);
+  });
+});
+
+describe("UI complexity from the approved design", () => {
+  const design = {
+    flow: "track a delivery", theme: { mode: "auto" }, mapping: { unmappedReqs: [], orphanScreens: [] },
+    screens: [{
+      id: "S-1", route: "/track", file: "app/track/page.tsx", reqs: ["REQ-2"], states: ["loading", "error"],
+      mock: {
+        title: "Track", copy: {},
+        blocks: [{ type: "map", pins: [{ label: "Depot" }, { label: "Home" }], route: true }, { type: "chat", with: "Driver", messages: [{ from: "them", text: "Here" }, { from: "me", text: "Ok" }] }],
+        overlays: [{ kind: "confirm", trigger: "Cancel", title: "Cancel it?" }],
+      },
+    }],
+  };
+  const withScreen = () => { const b = breakdown(3); b.tasks[1] = { ...b.tasks[1]!, screen: "S-1" } as never; return b; };
+
+  /** the JSON of one artifact in a prompt */
+  const artifact = (user: string, id: string): any => { const at = user.indexOf(`<artifact id="${id}"`); return JSON.parse(user.slice(user.indexOf(">", at) + 1, user.indexOf("</artifact>", at))); };
+
+  it("gives the breakdown and the estimator each screen's level and drivers, and the product-wide factors", async () => {
+    const ledger = await makeRun(spec(3), { design });
+    answer = breakdownAnswer(withScreen());
+    expect((await exec(ledger, breakdownStep)).kind).toBe("done");
+    const d = artifact(asked[0]!, "design");
+    expect(d.screens[0].ui).toMatchObject({ level: "complex", drivers: expect.arrayContaining(["map with a route and stops", "live chat", "2 states (loading, error)"]) });
+    expect(d.uiFactors).toEqual(["both colour modes: every page in light and dark, with a switch"]);
+    answer = () => sizing(withScreen().tasks);
+    const out = await exec(ledger, estimateStep);
+    expect(out.kind).toBe("done");
+    const tasks = artifact(asked[1]!, "breakdown").tasks as { id: string; ui?: { level: string; drivers: string[] } }[];
+    expect(tasks.find((t) => t.id === "EST-2")!.ui).toEqual({ level: "complex", drivers: d.screens[0].ui.drivers });
+    // a backend task has no screen UI
+    expect(tasks.find((t) => t.id === "EST-1")!.ui).toBeUndefined();
+    expect(artifact(asked[1]!, "ui-factors")).toEqual(d.uiFactors);
   });
 });

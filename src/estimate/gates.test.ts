@@ -70,6 +70,22 @@ describe("E5 consistency", () => {
     expect(run(consistency, { breakdown: { tasks }, estimate: { tasks: hours.map((h, i) => sizing(`EST-${i + 1}`, h)) } }).passed).toBe(false);
     expect(run(consistency, { breakdown: { tasks }, estimate: { tasks: hours.map((h, i) => sizing(`EST-${i + 1}`, h, { flagged: i === 3 })) } }).passed).toBe(true);
   });
+  it("fails a screen the demo counts as complex sized below a simple one on the same track", () => {
+    const ui = { "S-1": "complex", "S-2": "simple", "S-3": "moderate" };
+    const web = [bt("EST-1", { track: "web", screen: "S-1" }), bt("EST-2", { track: "web", screen: "S-1" }), bt("EST-3", { track: "web", screen: "S-2" }), bt("EST-4", { track: "web", screen: "S-3" })];
+    const est = (h: number[], extra: Record<string, unknown>[] = []) => ({ tasks: h.map((x, i) => sizing(`EST-${i + 1}`, x, extra[i] ?? {})) });
+    // the complex screen's two tasks add up: 3 + 4 = 7 is above the simple screen's 6
+    expect(run(consistency, { breakdown: { tasks: web }, estimate: est([3, 4, 6, 2]), ui }).passed).toBe(true);
+    const bad = run(consistency, { breakdown: { tasks: web }, estimate: est([2, 2, 6, 2]), ui });
+    expect(bad.passed).toBe(false);
+    expect(bad.details).toMatch(/S-1 is complex .*EST-1, EST-2.* 4h, below simple screen S-2 at 6h/);
+    // moderate screens are not compared; a flagged task leaves its screen to the lead; another track or executor is its own group
+    expect(run(consistency, { breakdown: { tasks: web }, estimate: est([2, 2, 6, 2], [{ flagged: true }]), ui }).passed).toBe(true);
+    expect(run(consistency, { breakdown: { tasks: web.map((t, i) => (i === 2 ? { ...t, track: "mobile" } : t)) }, estimate: est([2, 2, 6, 2]), ui }).passed).toBe(true);
+    expect(run(consistency, { breakdown: { tasks: web }, estimate: est([2, 2, 6, 2], [{}, {}, { executor: "factory" }]), ui }).passed).toBe(true);
+    // with no counted design the check is not run
+    expect(run(consistency, { breakdown: { tasks: web }, estimate: est([2, 2, 6, 2]) }).passed).toBe(true);
+  });
 });
 
 describe("E7 lead approval", () => {

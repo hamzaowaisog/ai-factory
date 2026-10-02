@@ -13,6 +13,7 @@ import { considerationsFrom } from "../estimate/considerations.js";
 import { diffDesigns, diffEstimates } from "../estimate/lineage.js";
 import { buildDemo, demoStates, frameDataUri } from "../estimate/demo.js";
 import { designTokens } from "../estimate/tokens.js";
+import { screenUi, uiFactors, type ScreenUi } from "../estimate/ui-complexity.js";
 import { captureDemo, LAYOUT_FAULT, type LayoutIssue, type ShotResult, type Viewport } from "../estimate/screenshots.js";
 import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
 import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
@@ -43,18 +44,22 @@ function layoutLines(issues: LayoutIssue[]): string[] {
   return [`## Layout problems in the demo (${issues.length})`, ...shown, ...(issues.length > shown.length ? [`- and ${issues.length - shown.length} more`] : []), ``];
 }
 
+/** A screen's counted UI on the card: what the estimate will size it from. */
+const uiLine = (u: ScreenUi): string => `; UI: ${u.level ?? "not counted"}${u.drivers.length ? ` (${u.drivers.slice(0, 3).join("; ")})` : ""}`;
+
 export function designCard(runId: string, design: DesignT, hash: string, extra: { demo?: string; diff?: string[]; shots?: { dir: string; count: number; note?: string; issues?: LayoutIssue[] } } = {}): string {
   return [
     `# Approve the design baseline (E1b)`, ``,
     `Run ${runId}. The estimate of a UI request stands on the approved mock and clickable demo: screen counts, states and flows come from it.`, ``,
     `Flow: ${design.flow}`, design.figmaUrl ? `Figma: ${design.figmaUrl}` : "",
     extra.demo ? `Clickable demo (open in a browser, walk every screen and state before approving): ${extra.demo}` : "",
-    extra.shots?.count ? `Screenshots: ${extra.shots.count} in ${extra.shots.dir} (each screen and state, phone and desktop width)${extra.shots.note ? `; ${extra.shots.note}` : ""}` : extra.shots?.note ? `Screenshots: none (${extra.shots.note})` : "", ``,
+    extra.shots?.count ? `Screenshots: ${extra.shots.count} in ${extra.shots.dir} (each screen and state at phone and desktop width, each screen on a tablet${design.theme?.mode === "auto" ? " and in dark mode" : ""})${extra.shots.note ? `; ${extra.shots.note}` : ""}` : extra.shots?.note ? `Screenshots: none (${extra.shots.note})` : "", ``,
     ...layoutLines(extra.shots?.issues ?? []),
     ...(extra.diff ? [`## Change from the approved design`, ...(extra.diff.length ? extra.diff.map((l) => `- ${l}`) : ["- no screen changed"]), ``] : []),
     ...reworkCardLines(design as never),
     `Screens (${design.screens.length}):`,
-    ...design.screens.map((s) => { const x = s as typeof s & { states?: string[]; size?: string; mock?: { title: string } }; const title = x.mock?.title ? `${x.mock.title}: ` : ""; return `- ${title}${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}${x.size ? `; ${x.size}` : ""}${x.states?.length ? `; states: ${x.states.join(", ")}` : ""}`; }), ``,
+    ...design.screens.map((s) => { const x = s as typeof s & { states?: string[]; size?: string; mock?: { title: string } }; const title = x.mock?.title ? `${x.mock.title}: ` : ""; return `- ${title}${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}${x.size ? `; ${x.size}` : ""}${x.states?.length ? `; states: ${x.states.join(", ")}` : ""}${uiLine(screenUi(s as never))}`; }), ``,
+    ...((f) => (f.length ? [`UI across the product (the estimate sizes every UI task with these): ${f.join("; ")}`, ``] : []))(uiFactors(design as never)),
     design.mapping.unmappedReqs.length ? `Requirements with no screen: ${design.mapping.unmappedReqs.join(", ")}` : "Every requirement has a screen.",
     design.mapping.orphanScreens.length ? `Screens with no requirement: ${design.mapping.orphanScreens.join(", ")}` : "Every screen links to a requirement.", ``,
     `Approve: factory approve ${runId} ${hash.slice(0, 8)}`,

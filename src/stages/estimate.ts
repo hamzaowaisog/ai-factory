@@ -3,8 +3,9 @@
 // computes every sum and runs gates E1-E6 (docs/estimates-design.md, "How the hours are built").
 import { z } from "zod";
 import { BreakdownBody, IntentBody, type Breakdown, type Spec as SpecArtifact } from "../contracts/index.js";
-import type { Failure } from "../contracts/index.js";
+import type { Failure, ScreenMock } from "../contracts/index.js";
 import { failure, runGate, type GateDef } from "../gates/engine.js";
+import { designUi, uiFactors } from "../estimate/ui-complexity.js";
 import { consistency, designCoverage, forgottenWork, readiness, reqToTask, taskToReq } from "../estimate/gates.js";
 import { estimateWorkbookLint } from "../estimate/lint.js";
 import { applyEdits, describeEdit, editsOf } from "../estimate/edits.js";
@@ -52,6 +53,11 @@ export function setRecordsSource(f: (exceptRun: string) => BenchmarkRecord[]): v
 let taskRecordsSource: (exceptRun: string) => TaskRecord[] = loadTaskRecords;
 export function setTaskRecordsSource(f: (exceptRun: string) => TaskRecord[]): void { taskRecordsSource = f; }
 
+/** The approved design as the UI count reads it. */
+type DesignForUi = { skipped?: boolean; flow: string; screens: { id: string; route?: string; states?: string[]; size?: string; mock?: ScreenMock }[] } & Parameters<typeof uiFactors>[0];
+/** Each counted screen's level, for gate E5. */
+const uiLevels = (ui: NonNullable<ReturnType<typeof designUi>>) => Object.fromEntries(Object.entries(ui.screens).flatMap(([id, x]) => (x.level ? [[id, x.level]] : [])));
+
 const failed = (signature: string, failures: Failure[]): StepOutcome => ({ kind: "fail", category: "other", failures, signature });
 
 // ---------- breakdown ----------
@@ -65,12 +71,13 @@ Rules (checked by code):
 - track: backend | mobile | web | qa | design | gd | pm | pdm. executor: factory (the AI factory builds it, humans only at gates), joint (factory plus human steps such as keys or store accounts) or human (full human hours: client UAT, design approval, PM).
 - complexity: standard | rules-or-algorithm | external-dependency | compliance-sensitive | real-time | new-to-stack.
 - Task ids are EST-1, EST-2, ... Use dependsOn for real ordering only. Set "screen" to the approved design screen id (S-1, ...) when the task builds that screen; every approved screen should be built by some task.
+- Each approved screen carries "ui": its level (simple, moderate, complex) and what drives it, counted from the approved demo. A complex screen's parts (a map, a chat, a board, a form with a card field, overlays) are items of the task that builds it; split a complex screen into more than one task when its parts are separate work. "uiFactors" (two languages, right to left, both colour modes, several apps) apply to every UI task: list them as items where they add work.
 - checklist: go through auth, roles, environments, CI/CD, monitoring, error handling, migrations, notifications, reports and exports, admin tools, accessibility, feedback rounds, documentation and release. Mark each in, or out with a reason. A zero always has a reason.
 - Do not write hours. Sizing is a later step.
 ${UNTRUSTED_NOTE}`;
 
 export const breakdownStep: StepDef = {
-  key: "breakdown", stage: "breakdown", templateVersion: "1",
+  key: "breakdown", stage: "breakdown", templateVersion: "2",
   inputs: (s) => (s.steps.get("specify")?.status === "completed" && s.steps.get("design-baseline")?.status === "completed"
     ? { spec: s.steps.get("specify")!.outputs[0], c1: s.steps.get("clarify")?.outputs[0], c2: s.steps.get("clarify-2")?.outputs[0], baseline: s.steps.get("design-baseline")!.outputs[0], design: s.steps.get("design")?.outputs[0], survey: s.steps.get("ground")?.data?.named }
     : undefined),
@@ -84,7 +91,8 @@ export const breakdownStep: StepDef = {
 
     const intent = readOutput<Intent>(ctx.state, ctx.ledger, "intake");
     const survey = readOutput<RepoSurvey>(ctx.state, ctx.ledger, "ground", "survey");
-    const design = readOutput<{ skipped?: boolean; flow: string; screens: { id: string; route?: string }[] }>(ctx.state, ctx.ledger, "design");
+    const design = readOutput<DesignForUi>(ctx.state, ctx.ledger, "design");
+    const ui = design ? designUi(design) : undefined;
     const cacheKey = hashJson({ step: "breakdown", spec: specSha, answers: c.answers, survey: !!survey, design: done(ctx, "design") });
     const cached = waivedCache<BreakdownBodyT>(ctx, "breakdown", cacheKey);
     let body: BreakdownBodyT;
@@ -101,7 +109,7 @@ export const breakdownStep: StepDef = {
           S.artifact("answers", "answers", c.answers),
           S.artifact("assumptions", "assumptions", c.assumptions),
           ...(survey ? [S.profile("repo", `The existing system (a read of the repository, not the requirements):\n${surveyText(survey)}\nTasks that change existing code are sized by what they touch; new build work is sized by counted units.`)] : []),
-          ...(design && !design.skipped ? [S.artifact("design", "approved-design", { flow: design.flow, screens: design.screens })] : []),
+          ...(design && !design.skipped ? [S.artifact("design", "approved-design", { flow: design.flow, screens: design.screens.map((x) => ({ ...x, ...(ui?.screens[x.id] ? { ui: ui.screens[x.id] } : {}) })), ...(ui?.factors.length ? { uiFactors: ui.factors } : {}) })] : []),
           ...(intent ? [S.artifact("intent", "intent", { touchesUi: intent.touchesUi, riskTags: intent.riskTags })] : []),
           S.task("Write the work breakdown."),
         ],
@@ -132,13 +140,14 @@ export const breakdownStep: StepDef = {
 const ESTIMATE_RULES = `You are sizing the tasks of a work breakdown, in hours, by anchors and ratios.
 1. Pick a few ANCHOR tasks (1 to 8): typical tasks you can size in detail for THIS project's stack, design and constraints. Give each a min and max in hours and the reason it is a fair reference.
 2. Every task, anchors included, gets "anchorId" and a "ratio" against that anchor, with a reason that names what differs ("about twice the anchor: 12 fields instead of 6, plus a state machine"). An anchor is sized against itself at ratio 1.
-3. Size every task in the breakdown exactly once. For a factory task the hours are a relative size (used for cost and duration); its human time is added separately.
+3. A web or mobile task that builds an approved screen carries "ui": the screen's level (simple, moderate, complex) and what drives it, counted from the approved demo. Size it from those drivers and name the ones that differ from its anchor in the reason ("a map with a route and two overlays where the anchor is a plain list"). A complex screen is never smaller than a simple one on the same track. "uiFactors" apply to every UI task (two languages, right to left, both colour modes, several apps); say in the reason when one adds work.
+4. Size every task in the breakdown exactly once. For a factory task the hours are a relative size (used for cost and duration); its human time is added separately.
 Do not add anything up. Code computes every sum. Hours are for a competent engineer including unit tests, review fixes and handover of the task.
 ${UNTRUSTED_NOTE}`;
 
 export const estimateStep: StepDef = {
-  key: "estimate", stage: "estimate", templateVersion: "1",
-  inputs: (s) => (s.steps.get("breakdown")?.status === "completed" ? { breakdown: s.steps.get("breakdown")!.outputs[0], specify: s.steps.get("specify")!.outputs[0], settings: settingsOf(s), edits: editsOf(s) } : undefined),
+  key: "estimate", stage: "estimate", templateVersion: "2",
+  inputs: (s) => (s.steps.get("breakdown")?.status === "completed" ? { breakdown: s.steps.get("breakdown")!.outputs[0], specify: s.steps.get("specify")!.outputs[0], design: s.steps.get("design")?.outputs[0], settings: settingsOf(s), edits: editsOf(s) } : undefined),
   async run(ctx) {
     const settings = settingsOf(ctx.state);
     const breakdown = requireOutput<Breakdown>(ctx.state, ctx.ledger, "breakdown");
@@ -150,8 +159,12 @@ export const estimateStep: StepDef = {
     const band = bandOf(spec, breakdown);
     const n = estimatorsFor(band);
     ctx.log(`estimate: band ${band}, ${n} estimator${n > 1 ? "s" : ""}`);
-    const view = breakdown.tasks.map((t) => ({ id: t.id, title: t.title, feature: t.featureId, track: t.track, executor: t.executor, complexity: t.complexity, screen: t.screen, items: t.items, dependsOn: t.dependsOn, overhead: t.overhead }));
-    const cacheKey = hashJson({ step: "estimate", breakdown: breakdownSha, spec: specSha, settings });
+    // each screen's UI, counted from the approved demo, travels with the tasks that build it
+    const design = readOutput<DesignForUi>(ctx.state, ctx.ledger, "design");
+    const ui = design ? designUi(design) : undefined;
+    const uiOf = (t: { track: string; screen?: string | undefined }) => (t.track === "web" || t.track === "mobile") && t.screen ? ui?.screens[t.screen] : undefined;
+    const view = breakdown.tasks.map((t) => ({ id: t.id, title: t.title, feature: t.featureId, track: t.track, executor: t.executor, complexity: t.complexity, screen: t.screen, ...(uiOf(t) ? { ui: { level: uiOf(t)!.level ?? "unknown", drivers: uiOf(t)!.drivers } } : {}), items: t.items, dependsOn: t.dependsOn, overhead: t.overhead }));
+    const cacheKey = hashJson({ step: "estimate", breakdown: breakdownSha, spec: specSha, settings, ui: ui ?? null });
     const cached = waivedCache<Proposal[]>(ctx, "estimate", cacheKey);
     const edits = editsOf(ctx.state);
     // a lead's edits re-assemble the estimate from the proposals already made: no new model call
@@ -170,6 +183,7 @@ export const estimateStep: StepDef = {
           S.artifact("breakdown", "work-breakdown", { features: breakdown.features, tasks: view }),
           S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
           S.artifact("settings", "settings", settings),
+          ...(ui?.factors.length ? [S.artifact("ui-factors", "uiFactors", ui.factors)] : []),
           S.task(n === 1 ? "Size the tasks." : `Size the tasks (independent estimator ${k + 1} of ${n}).`),
         ],
       })));
@@ -197,7 +211,7 @@ export const estimateStep: StepDef = {
     // E5 is waivable (once per exact outcome); E6 never is
     const bad2: Failed[] = [];
     for (const def of cached ? [estimateWorkbookLint] : [consistency, estimateWorkbookLint]) {
-      const res = await gate(ctx, "estimate", def, { estimate, breakdown });
+      const res = await gate(ctx, "estimate", def, { estimate, breakdown, ...(ui ? { ui: uiLevels(ui) } : {}) });
       if (!res.passed) bad2.push({ def, failures: res.failures ?? [failure(def.id, res.details)] });
     }
     if (bad2.length) {

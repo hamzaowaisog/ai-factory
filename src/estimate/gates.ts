@@ -115,9 +115,9 @@ export const forgottenWork = defineGate<{ breakdown: Pick<Breakdown, "checklist"
 });
 
 /** Similar work (same track, complexity and executor) within a stated tolerance; an outlier must be flagged by the estimators. */
-export const consistency = defineGate<{ estimate: Pick<Estimate, "tasks">; breakdown: Pick<Breakdown, "tasks"> }>({
+export const consistency = defineGate<{ estimate: Pick<Estimate, "tasks">; breakdown: Pick<Breakdown, "tasks">; ui?: Record<string, "simple" | "moderate" | "complex"> }>({
   id: "estimate.e5-consistency", after: "estimate", safety: false, waiver: "human",
-  predicate: ({ estimate, breakdown }) => {
+  predicate: ({ estimate, breakdown, ui }) => {
     const byId = new Map(breakdown.tasks.map((t) => [t.id, t]));
     const groups = new Map<string, { id: string; avg: number; flagged: boolean }[]>();
     for (const s of estimate.tasks) {
@@ -136,9 +136,39 @@ export const consistency = defineGate<{ estimate: Pick<Estimate, "tasks">; break
         if ((x.avg > m * OUTLIER_FACTOR || x.avg < m / OUTLIER_FACTOR) && !x.flagged) fs.push(failure("e5-outlier", `${x.id} at ${x.avg}h is far from the ${key} median ${m}h and is not flagged`));
       }
     }
+    if (ui) fs.push(...uiOrder(estimate, breakdown, ui));
     return verdict(fs, "similar tasks are within tolerance");
   },
 });
+
+const RANK = { simple: 0, moderate: 1, complex: 2 } as const;
+/**
+ * A screen counted as more complex in the approved demo is not sized below a simpler one: each screen's web or mobile tasks are added
+ * up per track and executor, and a complex screen under a simple one fails (moderate sits between and is not compared). A screen
+ * with a flagged task is left out, as its range is already the lead's to judge.
+ */
+function uiOrder(estimate: Pick<Estimate, "tasks">, breakdown: Pick<Breakdown, "tasks">, ui: Record<string, keyof typeof RANK>) {
+  const sized = new Map(estimate.tasks.map((s) => [s.taskId, s]));
+  const groups = new Map<string, Map<string, { avg: number; flagged: boolean; ids: string[] }>>();
+  for (const t of breakdown.tasks) {
+    const s = sized.get(t.id), level = t.screen ? ui[t.screen] : undefined;
+    if (!s || !level || t.overhead || (t.track !== "web" && t.track !== "mobile")) continue;
+    const key = `${t.track}/${s.executor}`, g = groups.get(key) ?? new Map();
+    const x = g.get(t.screen!) ?? { avg: 0, flagged: false, ids: [] };
+    g.set(t.screen!, { avg: x.avg + (s.hours.min + s.hours.max) / 2, flagged: x.flagged || s.flagged, ids: [...x.ids, t.id] });
+    groups.set(key, g);
+  }
+  const fs = [];
+  for (const [key, g] of groups) {
+    const list = [...g].filter(([, x]) => !x.flagged);
+    const simple = list.filter(([id]) => ui[id] === "simple").sort((a, b) => b[1].avg - a[1].avg)[0];
+    if (!simple) continue;
+    for (const [id, x] of list) {
+      if (ui[id] === "complex" && x.avg < simple[1].avg) fs.push(failure("e5-ui-order", `screen ${id} is complex in the approved demo but its ${key} work (${x.ids.join(", ")}) is sized at ${Math.round(x.avg * 100) / 100}h, below simple screen ${simple[0]} at ${Math.round(simple[1].avg * 100) / 100}h`));
+    }
+  }
+  return fs;
+}
 
 export const leadApproval = defineGate<{ estimate: Estimate; approval?: { estimateHash: string; decision: "approved" | "rejected"; by: string; signedOff: string[] } }>({
   id: "estimate.e7-approval", after: "estimate", safety: false, waiver: "none",
