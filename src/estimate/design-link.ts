@@ -19,7 +19,7 @@ export function screenFor(breakdown: Pick<Breakdown, "tasks">, design: ApprovedD
 }
 
 /** How the implementer uses the tokens. */
-export const TOKENS_NOTE = "These are the approved look's design tokens: the exact values the approved demo was drawn with. If the app has no such variables yet and its global stylesheet is in your file scope, add the `css` block there once; then style with the variables (var(--color-brand), var(--radius), ...) or, where variables cannot reach, these values. Do not invent other colours, fonts, corners or shadows.";
+export const TOKENS_NOTE = "These are the approved look's design tokens: the exact values the approved demo was drawn with. If the app has no such variables yet and its global stylesheet is in your file scope, add the `css` block there once; then style with the variables (var(--color-brand), var(--radius), ...) or, where variables cannot reach, these values. Do not invent other colours, fonts, corners or shadows. When there is a light and a dark set, the app follows the viewer's setting, and a light/dark switch (where the app has a settings menu or top bar) sets data-theme=\"light\" or \"dark\" on the root element.";
 
 /** The approved look's tokens, or undefined when the look is the repo's or the theme cannot be read. */
 export function approvedTokens(design: ApprovedDesign): ReturnType<typeof designTokens> | undefined {

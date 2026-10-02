@@ -717,7 +717,8 @@ export function themeCss(theme?: DesignTheme): string {
   const v = themeValues(theme), t = v.theme;
   const set = (dark: boolean): string => `${Object.entries(v.colours(dark)).map(([k, c]) => `--${k}:${c}`).join(";")};--shadow:${v.shadow(dark)};--lift:${v.lift(dark)};--blur:${v.blur}`;
   const shared = `--r:${v.radius}px;--pad:${v.pad}px;--row:${v.row}px;--font:${v.font};--head:${v.head.family === "inherit" ? v.font : v.head.family};--hw:${v.head.weight};--hls:${v.head.tracking};--e:${v.ease};--spring:${v.spring};--rise:${v.rise}px;--drift:${t.motion === "calm" ? "paused" : "running"}`;
-  return t.mode === "auto" ? `:root{${shared};${set(false)}}@media(prefers-color-scheme:dark){:root{${set(true)}}}` : `:root{${shared};${set(t.mode === "dark")}}`;
+  // both modes: the system's choice first, then the one picked with the frame's switch
+  return t.mode === "auto" ? `:root{${shared};${set(false)}}@media(prefers-color-scheme:dark){:root{${set(true)}}}:root[data-mode=light]{color-scheme:light;${set(false)}}:root[data-mode=dark]{color-scheme:dark;${set(true)}}` : `:root{${shared};${set(t.mode === "dark")}}`;
 }
 
 const CSS = `
@@ -1226,6 +1227,7 @@ th.ck,td.ck{width:44px;padding-inline-end:0}tr.picked td{background:color-mix(in
 .canvas[dir=rtl] .badge{padding:0 8px 0 9px}.canvas[dir=rtl] .swb{padding:5px 5px 5px 9px}.canvas[dir=rtl] .topbar .swb{padding:4px 4px 4px 6px}.toast[dir=rtl] .lnk{padding:0 6px 0 0}.canvas[dir=rtl] .opt{padding:9px 11px 9px 14px}
 .canvas[dir=rtl] .aff>b{padding:0 12px 0 2px}.canvas[dir=rtl] .aff.srch>svg:last-of-type{margin:0 0 0 11px}.canvas[dir=rtl] .field .aff.phone .cc select{padding:0 12px 0 28px}.canvas[dir=rtl] .bulk{padding:8px 16px 8px 12px}
 .canvas[dir=rtl] .uf{padding:10px 12px 10px 8px}.canvas[dir=rtl] .srt select{padding:0 12px 0 32px}.canvas[dir=rtl] .pkc{padding:0 12px 0 8px}
+.md .su,:root[data-mode=dark] .md .mo{display:none}:root[data-mode=dark] .md .su{display:block}
 .ib.lg{display:inline-flex;align-items:center;width:auto;padding:0 8px;gap:6px}.lg span{font-size:12.5px;font-weight:600;white-space:nowrap}
 .canvas[dir=rtl] kbd{direction:ltr;unicode-bidi:isolate}
 `;
@@ -1257,6 +1259,9 @@ const JS = `
         var o=el.__a[a],t=on?tr(o.trim(),d):null;el.setAttribute(a,on?dg(t!==null?t:o):o)})})}
   function setLang(i){if(!I)return;LANG=i;$(".canvas,.toast").forEach(function(c){c.dir=I.dirs[i];c.lang=I.langs[i];apply(c)});$("[data-lang] span").forEach(function(x){x.textContent=I.names[1-i]})}
   window.__lang=setLang;
+  // the colour mode: the system's at first, the other one from the frame's switch
+  function setMode(m){if(!document.querySelector("button[data-mode]"))return;document.documentElement.setAttribute("data-mode",m);$("button[data-mode]").forEach(function(b){b.setAttribute("aria-label",m==="dark"?"Light mode":"Dark mode")})}
+  window.__mode=setMode;setMode(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light");
   if(I)new MutationObserver(function(ms){ms.forEach(function(m){[].forEach.call(m.addedNodes,function(n){var el=n.nodeType===1?n:n.parentNode;if(el&&el.closest&&el.closest(".canvas,.toast"))apply(n)})})}).observe(document.querySelector("main"),{childList:true,subtree:true});
 
   var still=matchMedia("(prefers-reduced-motion:reduce)").matches;
@@ -1317,6 +1322,7 @@ const JS = `
     s.addEventListener("click",function(e){
       // the frame's language button: every page shows in the other language
       if(e.target.closest&&e.target.closest("[data-lang]")){setLang(1-LANG);return}
+      if(e.target.closest&&e.target.closest("button[data-mode]")){setMode(document.documentElement.getAttribute("data-mode")==="dark"?"light":"dark");return}
       // the switcher: open its menu, or switch to another account, workspace or company
       var sb=e.target.closest?e.target.closest("[data-sw],.swm button"):null;$(".swm",s).forEach(function(m){if(!sb||!m.parentNode.contains(sb)){m.hidden=true;m.parentNode.querySelector("[data-sw]").setAttribute("aria-expanded","false")}});
       if(sb){var w=sb.closest(".sw"),m=w.querySelector(".swm"),btn=w.querySelector("[data-sw]");
@@ -1462,6 +1468,8 @@ export function buildDemo(d: DemoInput): string {
   } : undefined;
   const canvasLang = i18n ? ` dir="${i18n.dirs[0]}" lang="${esc(langs[0]!)}"` : "";
   const lang = i18n && langs.length > 1 ? `<button type="button" class="ib lg" data-lang aria-label="Language">${icon("globe")}<span>${esc(i18n.names[1]!)}</span></button>` : "";
+  // a product in both colour modes: the frame switches between them
+  const mode = d.theme?.mode === "auto" ? `<button type="button" class="ib md" data-mode aria-label="Dark mode">${icon("moon", "mo")}${icon("sun", "su")}</button>` : "";
   const slug = d.title.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24) || "app";
   const section = (o: Screen) => o.route.split(/[/?#]/).filter(Boolean)[0]?.toLowerCase() ?? "";
   const navName = (o: Screen) => { const t = label(o); return t.length <= 16 && !/[,#\d·]/.test(t) ? t : section(o) ? section(o).replace(/[-_]+/g, " ").replace(/^\w/, (c) => c.toUpperCase()) : "Home"; };
@@ -1502,7 +1510,7 @@ export function buildDemo(d: DemoInput): string {
     // who the app is acting for: the current one and the others, switched from the frame
     const sw = app.switcher;
     const switcher = sw ? `<span class="sw"><button type="button" class="swb" data-sw aria-haspopup="menu" aria-expanded="false" aria-label="Switch ${esc(sw.kind)}"><span class="swa">${esc(initials(sw.current) || "•")}</span><span class="swt"><b>${esc(sw.current)}</b>${sw.meta ? `<small>${esc(sw.meta)}</small>` : ""}</span>${icon("chevd")}</button><span class="swm" role="menu" hidden><small>Switch ${esc(sw.kind)}</small>${[sw.current, ...sw.others].map((o, k) => `<button type="button" role="menuitemradio" aria-checked="${k === 0}"${k === 0 ? ' class="on"' : ""}><span class="swa">${esc(initials(o) || "•")}</span><span>${esc(o)}</span>${k === 0 ? icon("check") : ""}</button>`).join("")}</span></span>` : "";
-    const tools = `${lang}<button type="button" class="ib" aria-label="Notifications">${icon("bell")}<i class="dot"></i></button><span class="me">${ME}</span>`;
+    const tools = `${lang}${mode}<button type="button" class="ib" aria-label="Notifications">${icon("bell")}<i class="dot"></i></button><span class="me">${ME}</span>`;
     const search = phone ? "" : `<button type="button" class="ib" aria-label="Search">${icon("search")}</button>`;
     const content = shown.length ? shown.map((f) => `<img src="${f!.dataUri}" alt="${esc(f!.name)}">`).join("") : states.map(pane).join("");
     const tabbar = shell === "minimal" || shell === "drawer" || nav.length < 2 ? "" : `<nav class="tabbar" aria-label="Tabs">${links(5)}</nav>`;
@@ -1512,7 +1520,7 @@ export function buildDemo(d: DemoInput): string {
     const app$ = shell === "sidebar"
       ? `<div class="shell"><nav class="rail${brandBar}" aria-label="Main">${bm}${switcher}<div class="rl">${menu}</div>${foot}</nav><div class="stage"><header class="topbar"><span class="nb">${bm}${switcher}</span><span class="q">${icon("search")}<span>Search</span><kbd>⌘K</kbd></span><span class="sp"></span>${tools}</header>${content}${tabbar}</div></div>`
       : shell === "minimal"
-      ? `<div class="stage">${head(`${bm}${switcher}<span class="sp"></span>${lang}<a class="help" href="#${esc(s.id)}">${icon("help")}<span>Help</span></a><span class="me">${ME}</span>`)}${content}</div>`
+      ? `<div class="stage">${head(`${bm}${switcher}<span class="sp"></span>${lang}${mode}<a class="help" href="#${esc(s.id)}">${icon("help")}<span>Help</span></a><span class="me">${ME}</span>`)}${content}</div>`
       : shell === "drawer"
       ? `<div class="stage">${head(`<button type="button" class="ib" data-drawer aria-label="Menu">${icon("menu")}</button>${bm}<span class="sp"></span>${switcher}${search}${tools}`)}${content}</div>${drawer}`
       : shell === "tabs"

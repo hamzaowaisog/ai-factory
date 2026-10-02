@@ -1,14 +1,16 @@
 // Screenshots of the clickable demo (docs/estimates-design.md, "Design baseline"): each screen in each state,
 // at phone and desktop width, taken from the demo page in headless Chromium. They are pictures of the
 // drawn screen (or of the cited Figma frame), so the card and `factory ui` show something to look at without
-// opening the page. Best effort: no browser, or a browser that fails, is reported in `note` and never
-// fails the run, and the approval is tied to the demo page, not to these files.
+// opening the page. Every state is checked at tablet width too, but the tablet, the other language and dark
+// mode are pictured only as each screen first shows, so the pictures stay few. Best effort: no browser, or a
+// browser that fails, is reported in `note` and never fails the run, and the approval is tied to the demo page,
+// not to these files.
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-export const VIEWPORTS = { phone: { width: 390, height: 844 }, desktop: { width: 1280, height: 800 } } as const;
+export const VIEWPORTS = { phone: { width: 390, height: 844 }, tablet: { width: 820, height: 1180 }, desktop: { width: 1280, height: 800 } } as const;
 export type Viewport = keyof typeof VIEWPORTS;
 export interface Shot { file: string; screen: string; state: string; viewport: Viewport }
 /** `title` is the page's name as the lead knows it; shots are labelled with it when given */
@@ -20,6 +22,9 @@ export interface ShotResult { shots: Shot[]; note?: string; issues?: LayoutIssue
 export const LAYOUT_FAULT = { overflow: "runs past the edge", clipped: "is cut off", overlap: "sits on top of other text" } as const;
 
 const MAX_SHOTS = 64;
+// phone and desktop first: they are pictured in every state, so a long product runs out of pictures on the tablet
+const WALK: Viewport[] = ["phone", "desktop", "tablet"];
+const DARK = "Dark mode";
 
 // where Playwright keeps its browsers on each system, and the binary inside each browser folder
 const PW_ROOTS = (): string[] => [
@@ -107,55 +112,62 @@ export async function checkDemoLayout(demoFile: string, screens: ScreenShotInput
   return r.note ? undefined : r.issues ?? [];
 }
 
-/** Each screen in each state at each width: the layout checked, and a screenshot saved when `outDir` is given. */
+/**
+ * Each screen in each state at each width: the layout checked, and a screenshot saved when `outDir` is given. The tablet is
+ * pictured as each screen first shows; a product in two languages is also pictured in the other one, and a product in both
+ * colour modes in dark mode (at phone and desktop width).
+ */
 async function walkDemo(demoFile: string, screens: ScreenShotInput[], outDir?: string): Promise<ShotResult> {
   if (!screens.length) return { shots: [] };
   const exe = findChromium();
   if (!exe) return { shots: [], note: "no browser found, so no screenshots were taken (set FACTORY_CHROMIUM to a Chromium binary)" };
   let browser: { close(): Promise<void>; newPage(o: object): Promise<any> } | undefined;
   const shots: Shot[] = [], issues: LayoutIssue[] = [];
+  const full = () => !!outDir && shots.length >= MAX_SHOTS;
   try {
     const { chromium } = await import("playwright-core");
     if (outDir) mkdirSync(outDir, { recursive: true });
     browser = await chromium.launch({ executablePath: exe, args: ["--no-sandbox"], timeout: 30_000 });
     const url = pathToFileURL(demoFile).href;
-    for (const vp of Object.keys(VIEWPORTS) as Viewport[]) {
+    for (const vp of WALK) {
       const page = await browser.newPage({ viewport: VIEWPORTS[vp], ...(outDir ? {} : { reducedMotion: "reduce" }) });
       page.setDefaultTimeout(10_000);
       for (const sc of screens) {
-        await page.goto(`${url}#${encodeURIComponent(sc.id)}`);
-        const states = sc.states.length ? sc.states : ["default"];
-        for (const [k, st] of states.entries()) {
-          if (outDir && shots.length >= MAX_SHOTS) return { shots, issues, note: `stopped at ${MAX_SHOTS} screenshots` };
-          await page.locator(`#${sc.id.replace(/[^\w-]/g, "\\$&")} [data-state="${k}"]`).click();
+        const screen = sc.title ?? `${sc.id} ${sc.route}`, sel = `#${sc.id.replace(/[^\w-]/g, "\\$&")}`;
+        /** show state `k` (after `before`, run in the page), check it, and picture it when `shoot` */
+        const step = async (k: number, st: string, shoot: boolean, before?: string) => {
+          await page.locator(`${sel} [data-state="${k}"]`).click();
+          if (before) await page.evaluate(before);
           // move the pointer off the tab (a hovered tab is drawn differently) and show the page from its top
           await page.mouse.move(0, 0);
           await page.evaluate(() => window.scrollTo(0, 0));
-          await page.waitForTimeout(outDir ? 1600 : 150); // the page animates in (at once with reduced motion)
+          await page.waitForTimeout(outDir && shoot ? 1600 : 150); // the page animates in (at once with reduced motion)
           // what a person would see is wrong with the page (best effort: a failed check is no fault of the page)
-          try { for (const f of (await page.evaluate(`${LAYOUT_CHECK}(${JSON.stringify(sc.id)})`)) as Omit<LayoutIssue, "screen" | "state" | "viewport">[]) issues.push({ ...f, screen: sc.title ?? `${sc.id} ${sc.route}`, state: st, viewport: vp }); } catch { /* not checked */ }
-          if (!outDir) continue;
+          try { for (const f of (await page.evaluate(`${LAYOUT_CHECK}(${JSON.stringify(sc.id)})`)) as Omit<LayoutIssue, "screen" | "state" | "viewport">[]) issues.push({ ...f, screen, state: st, viewport: vp }); } catch { /* not checked */ }
+          if (!outDir || !shoot) return;
           const file = `${slug(sc.id)}-${slug(st)}-${vp}.png`;
           await page.screenshot({ path: join(outDir, file), fullPage: true });
-          shots.push({ file, screen: sc.title ?? `${sc.id} ${sc.route}`, state: st, viewport: vp });
+          shots.push({ file, screen, state: st, viewport: vp });
+        };
+        await page.goto(`${url}#${encodeURIComponent(sc.id)}`);
+        const states = sc.states.length ? sc.states : ["default"];
+        for (const [k, st] of states.entries()) {
+          if (full()) return { shots, issues, note: `stopped at ${MAX_SHOTS} screenshots` };
+          await step(k, st, vp !== "tablet" || k === 0);
         }
         // a product in two languages: the page as it first shows, in the other one (mirrored when it reads right to left)
         const other = (await page.evaluate(`(function(){var e=document.getElementById("i18n");var i=e&&JSON.parse(e.textContent);return i&&i.langs.length>1?i.labels[1]:""})()`)) as string;
-        if (!other) continue;
-        if (outDir && shots.length >= MAX_SHOTS) return { shots, issues, note: `stopped at ${MAX_SHOTS} screenshots` };
-        const st = `In ${other}`;
-        await page.locator(`#${sc.id.replace(/[^\w-]/g, "\\$&")} [data-state="0"]`).click();
-        await page.evaluate("window.__lang(1)");
-        await page.mouse.move(0, 0);
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await page.waitForTimeout(outDir ? 1600 : 150);
-        try { for (const f of (await page.evaluate(`${LAYOUT_CHECK}(${JSON.stringify(sc.id)})`)) as Omit<LayoutIssue, "screen" | "state" | "viewport">[]) issues.push({ ...f, screen: sc.title ?? `${sc.id} ${sc.route}`, state: st, viewport: vp }); } catch { /* not checked */ }
-        if (outDir) {
-          const file = `${slug(sc.id)}-${slug(st)}-${vp}.png`;
-          await page.screenshot({ path: join(outDir, file), fullPage: true });
-          shots.push({ file, screen: sc.title ?? `${sc.id} ${sc.route}`, state: st, viewport: vp });
+        if (other) {
+          if (full()) return { shots, issues, note: `stopped at ${MAX_SHOTS} screenshots` };
+          await step(0, `In ${other}`, vp !== "tablet", "window.__lang(1)");
+          await page.evaluate("window.__lang(0)");
         }
-        await page.evaluate("window.__lang(0)");
+        // a product in both colour modes: the page as it first shows, in dark mode
+        if (await page.locator("button[data-mode]").count()) {
+          if (full()) return { shots, issues, note: `stopped at ${MAX_SHOTS} screenshots` };
+          await step(0, DARK, vp !== "tablet", 'window.__mode("dark")');
+          await page.evaluate('window.__mode("light")');
+        }
       }
       await page.close();
     }

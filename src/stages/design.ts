@@ -69,7 +69,7 @@ const RULES = `You are a principal UI/UX engineer with fifteen years shipping co
   How real products are coloured: a mostly neutral page (white or near-white, or a deliberate dark), near-black text, ONE brand colour used for the app bar, the primary action and selection, and status colours only where they carry meaning (green done, red wrong, amber attention). Colour is information, not decoration.
   The result must look current and expensive, the kind of product shipped this year: confident type scale, generous spacing, depth from soft layered surfaces, and motion everywhere it helps (entrances, hover lift, counting numbers, drawing charts, skeleton shimmer, state transitions). It must not look machine-made. Avoid purple-to-blue gradients with no source in the field, neon glows on a business tool, glass panels everywhere, several accent colours, rainbow icons, one huge radius on everything, and centred "three cards" layouts.
   mood: two or three words for the feeling (for example "calm clinical", "precise financial", "warm retail"). Invent the one that fits.
-  mode: "light" for most products, "dark" only when the audience works in it for hours (developer, trading, media, creative tools), "auto" to follow the viewer.
+  mode: "light" for most products, "dark" only when the audience works in it for hours (developer, trading, media, creative tools), "auto" for both, following the viewer's setting (whenever the requirements ask for a dark mode, a theme switch or the system's appearance; the demo then has a light/dark switch and every page is shown in both).
   brand: the one brand colour (#rrggbb), in the family of the references, as a competitor in the field would choose it. accent: optional second colour for a sparing highlight, only when the field has one (for example a gold on navy, or the red beside navy).
   neutral: "cool" (technical, finance, health), "warm" (food, hospitality, craft, education) or "pure" (editorial, minimal).
   chrome: "brand" fills the app bar with the brand colour (airlines, retail, telecom, many consumer apps); "plain" keeps it white or dark (SaaS, back-office, finance, health).
@@ -318,6 +318,16 @@ export function appsFit(out: Pick<z.infer<typeof DesignOut>, "apps" | "screens">
 }
 
 /** What the drawn demo showed wrong, as fixes the model can make: one per text and fault, with where it was seen. */
+// the requirements ask for both colour modes: a dark mode beside the light one, a switch between them, or the system's choice
+const BOTH_MODES = /\b(dark|night)[- ]mode\b|\b(light|dark)\s+(and|or|\/)\s+(light|dark)\b|\b(theme|appearance|colou?r[- ]scheme)\s+(switch|switcher|toggle|setting|preference)|\bsystem\s+(theme|appearance|colou?r[- ]scheme)\b/i;
+
+/** A product the requirements give both colour modes is drawn in both ("auto"), so the demo has the switch and the card shows each page dark too. */
+export function modeFit(out: { theme?: { mode?: string } | undefined }, reqText: string): { check: string; message: string }[] {
+  const asked = reqText.match(BOTH_MODES)?.[0];
+  if (!asked || out.theme?.mode === "auto") return [];
+  return [{ check: "design-mode", message: `The requirements ask for "${asked}", but "theme.mode" is "${out.theme?.mode ?? "light"}". Set it to "auto": the product then follows the viewer's setting, the demo has a light/dark switch, and each page is shown in both modes.` }];
+}
+
 export function layoutFixes(issues: LayoutIssue[]): { check: string; message: string }[] {
   const by = new Map<string, { i: LayoutIssue; where: Set<string> }>();
   for (const i of issues) {
@@ -532,7 +542,7 @@ export function keepFine(out: z.infer<typeof DesignOut>, fine: string[], prev: D
 }
 
 export const designStep: StepDef = {
-  key: "design", stage: "design", templateVersion: "18",
+  key: "design", stage: "design", templateVersion: "19",
   inputs: (s, l) => {
     if (s.steps.get("specify")?.status !== "completed" || s.steps.get("intake")?.status !== "completed") return undefined;
     const ui = !!l.getJson<Intent>(s.steps.get("intake")!.outputs[0]!)?.touchesUi;
@@ -598,6 +608,7 @@ export const designStep: StepDef = {
       ...map.unusedFrames.map((x) => failure("design-frame-unused", `attached frame ${x} is on no screen`)),
       ...designQuality(out, hasExistingLook(inv), refs, recent, !!earlier?.theme && JSON.stringify(earlier.theme) === JSON.stringify(out.theme)).map((q) => failure(q.check, q.message)),
       ...localeFit(out, reqText).map((q) => failure(q.check, q.message)),
+      ...modeFit(out, reqText).map((q) => failure(q.check, q.message)),
     ];
     if (bad.length) return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}` };
     // the drawn demo is measured in a browser: text past the frame, cut off or on top of other text goes back for one fix round

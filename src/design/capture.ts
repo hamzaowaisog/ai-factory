@@ -63,7 +63,7 @@ export function inspectPage(): { layout: LayoutBox[]; axe: A11yViolation[]; hori
   return { layout, axe, horizontalScroll: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 };
 }
 
-/** Screenshot each page at phone and desktop width and report what is on it. Never throws. */
+/** Screenshot each page at phone, tablet and desktop width and report what is on it. Never throws. */
 export async function captureReports(pages: PageInput[], outDir: string): Promise<CaptureResult> {
   if (process.env.FACTORY_NO_SCREENSHOTS) return { reports: [], files: [], note: "screenshots are switched off (FACTORY_NO_SCREENSHOTS)" };
   if (!pages.length) return { reports: [], files: [] };

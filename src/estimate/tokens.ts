@@ -21,7 +21,7 @@ export interface DesignTokens {
   /** The backdrop blur behind a see-through (glass) surface; "none" otherwise. */
   surfaceBlur: string;
   motion: { ease: string; spring: string; risePx: number; calm: boolean };
-  /** The same tokens as CSS custom properties (`--color-brand`, `--radius`, ...), with a dark block when the mode is auto. */
+  /** The same tokens as CSS custom properties (`--color-brand`, `--radius`, ...), with a dark block when the mode is auto, and `data-theme` blocks for an in-app switch. */
   css: string;
 }
 
@@ -41,7 +41,9 @@ export function designTokens(theme: DesignTheme): DesignTokens {
   ];
   const block = (lines: string[]) => lines.map((l) => `  ${l};`).join("\n");
   const css = mode === "auto"
+    // the viewer's setting first, then the one picked in the app (`data-theme` on the root element)
     ? `:root {\n${block([...shared, ...vars("light")])}\n}\n@media (prefers-color-scheme: dark) {\n  :root {\n${block(vars("dark")).replace(/^/gm, "  ")}\n  }\n}\n`
+      + `:root[data-theme="light"] {\n${block(["color-scheme:light", ...vars("light")])}\n}\n:root[data-theme="dark"] {\n${block(["color-scheme:dark", ...vars("dark")])}\n}\n`
     : `:root {\n${block([...shared, ...vars(modes[0]!)])}\n}\n`;
   return {
     colour, shadow, surfaceBlur: v.blur,

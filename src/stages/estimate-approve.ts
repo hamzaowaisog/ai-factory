@@ -13,7 +13,7 @@ import { considerationsFrom } from "../estimate/considerations.js";
 import { diffDesigns, diffEstimates } from "../estimate/lineage.js";
 import { buildDemo, demoStates, frameDataUri } from "../estimate/demo.js";
 import { designTokens } from "../estimate/tokens.js";
-import { captureDemo, LAYOUT_FAULT, type LayoutIssue, type ShotResult } from "../estimate/screenshots.js";
+import { captureDemo, LAYOUT_FAULT, type LayoutIssue, type ShotResult, type Viewport } from "../estimate/screenshots.js";
 import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
 import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
 import { failure } from "../gates/engine.js";
@@ -116,7 +116,7 @@ export const designBaselineStep: StepDef = {
       writeFileSync(join(previewDir, "tokens.css"), tk.css);
       writeFileSync(join(previewDir, "tokens.json"), JSON.stringify({ ...tk, css: undefined }, null, 2));
     }
-    const images: { file: string; screen: string; req?: string; viewport: "desktop" }[] = [];
+    const images: { file: string; screen: string; req?: string; viewport: Viewport }[] = [];
     for (const sc of d.screens) for (const fid of sc.frames ?? []) {
       const f = frames[fid];
       if (!f?.dataUri) continue;

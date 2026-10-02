@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildDemo, demoStates, toastLabel } from "./demo.js";
-import { amountOf, designQuality, domainFit, layoutFixes } from "../stages/design.js";
+import { buildDemo, demoStates, themeCss, toastLabel } from "./demo.js";
+import { amountOf, designQuality, domainFit, layoutFixes, modeFit } from "../stages/design.js";
 import { MockBlock, ScreenMock } from "../contracts/artifacts.js";
 import { englishName, isRtl, localeBrief, localeFit, nativeDigits, nativeName, pageLabels, weekend, weekStart } from "./locale.js";
 import { icon, iconFor, verbIcon } from "./icons.js";
@@ -274,7 +274,7 @@ describe("controls, groups and switcher", () => {
 });
 
 describe("layout problems sent back to the model", () => {
-  const issue = (state: string, viewport: "phone" | "desktop", text = "Reassign carrier to another lane") => ({ screen: '"Shipments" (S-2)', state, viewport, kind: "clipped" as const, text });
+  const issue = (state: string, viewport: "phone" | "tablet" | "desktop", text = "Reassign carrier to another lane") => ({ screen: '"Shipments" (S-2)', state, viewport, kind: "clipped" as const, text });
   it("names each problem once, with where it was seen, and asks for a fix", () => {
     const f = layoutFixes([issue("default", "phone"), issue("default", "desktop"), issue("Menu: Actions", "phone"), issue("default", "phone", "Other")]);
     expect(f).toHaveLength(2);
@@ -641,5 +641,41 @@ describe("languages and markets (right to left, bilingual, local formats)", () =
     expect(b).toMatchObject({ opensIn: "ur", region: "PK", currency: "PKR", weekStartsOn: "Monday", weekend: ["Saturday", "Sunday"] });
     expect(b.languages).toEqual([{ code: "ur", name: "Urdu", direction: "rtl" }, { code: "en", name: "English", direction: "ltr" }]);
     expect(String(b.note)).toMatch(/dir="rtl".*logical properties.*Intl\.NumberFormat\("ur-PK", \{ style: "currency", currency: "PKR" \}\)/);
+  });
+});
+
+describe("tablet width and both colour modes", () => {
+  const screens = [{ id: "S-1", route: "/home", file: "a.tsx", reqs: [], states: [], size: "new", frames: [] }];
+  const demo = (mode?: "light" | "dark" | "auto") => buildDemo({ title: "Sky", flow: "f", screens: screens as never, requirements: {}, noScreen: [], ...(mode ? { theme: { mode } as never } : {}) });
+  it("gives a product in both modes a light/dark switch, and a one-mode product none", () => {
+    const both = demo("auto");
+    expect(both).toContain('<button type="button" class="ib md" data-mode aria-label="Dark mode">');
+    expect(both).toContain('<meta name="color-scheme" content="light dark">');
+    expect(both).toContain("window.__mode=setMode");
+    for (const one of [demo(), demo("light"), demo("dark")]) expect(one).not.toContain("ib md");
+  });
+  it("lets the switch override the viewer's setting either way", () => {
+    const css = themeCss({ mode: "auto" } as never);
+    const at = (sel: string) => css.indexOf(sel);
+    expect(at("@media(prefers-color-scheme:dark)")).toBeGreaterThan(0);
+    // the picked mode comes after the system's, so it wins
+    expect(at(":root[data-mode=light]{color-scheme:light;")).toBeGreaterThan(at("@media(prefers-color-scheme:dark)"));
+    expect(at(":root[data-mode=dark]{color-scheme:dark;")).toBeGreaterThan(at("@media(prefers-color-scheme:dark)"));
+    expect(themeCss({ mode: "light" } as never)).not.toContain("data-mode");
+  });
+  it("asks for both modes when the requirements do", () => {
+    const req = (ears: string) => modeFit({ theme: { mode: "light" } }, ears);
+    for (const ears of ["The app shall offer a dark mode.", "Where the user chooses light or dark, the app shall use it.", "The app shall follow the system appearance.", "The settings page shall have a theme toggle."]) {
+      expect(req(ears)).toEqual([{ check: "design-mode", message: expect.stringContaining('Set it to "auto"') }]);
+    }
+    expect(modeFit({ theme: { mode: "auto" } }, "The app shall offer a dark mode.")).toEqual([]);
+    expect(modeFit({}, "The app shall offer a dark mode.")[0]!.message).toContain('"theme.mode" is "light"');
+    // a dark look alone is not a second mode
+    expect(req("The trading screen shall use a dark theme.")).toEqual([]);
+    expect(req("When the order is placed, the system shall confirm it.")).toEqual([]);
+  });
+  it("names the tablet width in a layout fix", () => {
+    const f = layoutFixes([{ screen: "Home", state: "default", viewport: "tablet", kind: "overflow", text: "Revenue" }]);
+    expect(f[0]!.message).toContain("default, tablet width");
   });
 });

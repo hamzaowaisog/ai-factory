@@ -57,7 +57,7 @@ describe.skipIf(!findChromium())("visual check", () => {
     const out = mkdtempSync(join(tmpdir(), "vis-out-"));
     const r = await visualCheck({ repo: dir, base, headDir: dir, cfg: cfg(), outDir: join(out, "design-check"), relDir: "design-check", tmpDir: out });
     expect(r.skipped).toBeUndefined();
-    expect(r.pages.map((p) => p.viewport).sort()).toEqual(["desktop", "phone"]);
+    expect(r.pages.map((p) => p.viewport).sort()).toEqual(["desktop", "phone", "tablet"]);
     for (const p of r.pages) {
       expect(p.noticeable).toBe(true);
       expect(p.ratio).toBeGreaterThan(0);

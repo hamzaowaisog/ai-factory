@@ -90,7 +90,7 @@ export function registerDesignCommands(program: Command): void {
   design.command("capture")
     .requiredOption("--page <name=url...>", "a page to take, as name=url (the app must already be running)")
     .requiredOption("--out <dir>", "folder for the screenshots and reports.json")
-    .description("screenshot and report pages of a running app at phone and desktop width")
+    .description("screenshot and report pages of a running app at phone, tablet and desktop width")
     .action(async (o: { page: string[]; out: string }) => {
       const pages = o.page.map((p) => { const i = p.indexOf("="); if (i < 1) throw new Error(`--page wants name=url, got "${p}"`); return { name: p.slice(0, i), url: p.slice(i + 1) }; });
       const r = await captureReports(pages, resolve(o.out));

@@ -47,6 +47,10 @@ describe("approved design reaches the build", () => {
     expect(Object.keys(tk.colour)).toEqual(["light", "dark"]);
     expect(tk.colour.dark!.background).not.toBe(tk.colour.light!.background);
     expect(tk.css).toMatch(/@media \(prefers-color-scheme: dark\) \{\n  :root \{\n    --color-background:/);
+    // an in-app switch overrides the viewer's setting either way
+    expect(tk.css).toContain(`:root[data-theme="dark"] {\n  color-scheme:dark;\n  --color-background:${tk.colour.dark!.background};`);
+    expect(tk.css).toContain(`:root[data-theme="light"] {\n  color-scheme:light;\n  --color-background:${tk.colour.light!.background};`);
+    expect(designTokens({ brand: "#1F6FEB", mode: "light", heading: "match", font: "sans" } as never).css).not.toContain("data-theme");
     expect(tk.type.heading).toBe(tk.type.body);
     expect(tk.css).toContain("--font-heading:var(--font-body);");
   });

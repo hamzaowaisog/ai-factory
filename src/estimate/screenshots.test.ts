@@ -28,15 +28,50 @@ describe("demo screenshots", () => {
     expect((await captureDemo(f, [], join(d, "s"))).shots).toEqual([]);
   });
 
-  it.skipIf(!findChromium())("takes each screen in each state at phone and desktop width", async () => {
+  it.skipIf(!findChromium())("takes each screen in each state at phone and desktop width, and as it first shows on a tablet", async () => {
     const d = dir(); const f = join(d, "demo.html"); writeFileSync(f, html);
     const out = join(d, "shots");
     const r = await captureDemo(f, screens, out);
     expect(r.note).toBeUndefined();
-    // S-1 has two states, S-2 none listed (one "default"): 3 per width
-    expect(r.shots.map((s) => s.file).sort()).toEqual(["s-1-default-desktop.png", "s-1-default-phone.png", "s-1-error-desktop.png", "s-1-error-phone.png", "s-2-default-desktop.png", "s-2-default-phone.png"]);
+    // S-1 has two states, S-2 none listed (one "default"): 3 at phone and desktop width, one per screen on the tablet
+    expect(r.shots.map((s) => s.file).sort()).toEqual([
+      "s-1-default-desktop.png", "s-1-default-phone.png", "s-1-default-tablet.png", "s-1-error-desktop.png", "s-1-error-phone.png",
+      "s-2-default-desktop.png", "s-2-default-phone.png", "s-2-default-tablet.png",
+    ]);
     for (const s of r.shots) { expect(existsSync(join(out, s.file))).toBe(true); expect(statSync(join(out, s.file)).size).toBeGreaterThan(500); }
-    expect(readdirSync(out)).toHaveLength(6);
+    expect(readdirSync(out)).toHaveLength(8);
+    // a light-only product has no colour switch and no dark pictures
+    expect(r.shots.some((s) => s.state === "Dark mode")).toBe(false);
+  }, 60_000);
+
+  it.skipIf(!findChromium())("switches a product in both colour modes to dark and back, and pictures each screen in dark mode", async () => {
+    const d = dir(); const f = join(d, "demo.html");
+    writeFileSync(f, buildDemo({ title: "Pay", flow: "pay then done", screens, requirements: {}, noScreen: [], theme: { mode: "auto" } as never }));
+    const { chromium } = await import("playwright-core");
+    const browser = await chromium.launch({ executablePath: findChromium()!, args: ["--no-sandbox"] });
+    // the background eases to its new colour, so wait for it to settle
+    const bg = async (p: { evaluate(s: string): Promise<unknown>; waitForTimeout(ms: number): Promise<void> }) => { await p.waitForTimeout(500); return p.evaluate('getComputedStyle(document.querySelector("#S-1 .canvas")).backgroundColor'); };
+    const dark = (c: unknown) => { const [r, g, b] = String(c).match(/\d+/g)!.map(Number); return r! + g! + b! < 200; };
+    try {
+      const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, reducedMotion: "reduce" });
+      const errors: string[] = []; page.on("pageerror", (e) => errors.push(String(e)));
+      await page.goto(`file://${f}#S-1`);
+      expect(dark(await bg(page))).toBe(false);
+      const sw = page.locator("#S-1 button[data-mode]");
+      expect(await sw.getAttribute("aria-label")).toBe("Dark mode");
+      await sw.click();
+      expect(dark(await bg(page))).toBe(true);
+      expect(await sw.getAttribute("aria-label")).toBe("Light mode");
+      await sw.click();
+      expect(dark(await bg(page))).toBe(false);
+      expect(errors).toEqual([]);
+      // a system set to dark opens the page dark
+      const night = await browser.newPage({ viewport: { width: 1280, height: 800 }, colorScheme: "dark" });
+      await night.goto(`file://${f}#S-1`);
+      expect(dark(await bg(night))).toBe(true);
+    } finally { await browser.close(); }
+    const r = await captureDemo(f, screens.map((x) => ({ id: x.id, route: x.route, states: x.states })), join(d, "shots"));
+    expect(r.shots.filter((x) => x.state === "Dark mode").map((x) => x.file).sort()).toEqual(["s-1-dark-mode-desktop.png", "s-1-dark-mode-phone.png", "s-2-dark-mode-desktop.png", "s-2-dark-mode-phone.png"]);
   }, 60_000);
 
   it.skipIf(!findChromium())("checks the layout without taking pictures, and says nothing when it cannot", async () => {
