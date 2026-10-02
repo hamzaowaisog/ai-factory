@@ -22,6 +22,7 @@ import { sha256 } from "../util/hash.js";
 import { factoryHome } from "../util/paths.js";
 import { produceDotnetTests, skippableKnownFailures, type Probe, type ProduceOutput } from "../verify/dotnet.js";
 import type { Expectations } from "../verify/validate.js";
+import { approvedDesignFor } from "./design-inputs.js";
 import { header, outputOf, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { modelFor } from "./routing.js";
 import { family } from "../runners/types.js";
@@ -560,7 +561,7 @@ export function implementStep(taskId: string): StepDef {
       const myTests = lock.tests.filter((t) => owners.get(t.acId) === task.id);
       const earlier = earlierTests(plan, owners, lock.tests, task.id);
       const ref = ctx.state.info.estimateRef;
-      const approvedDesign = ref?.designSha ? ctx.ledger.getJson<ApprovedDesign>(ref.designSha) : undefined;
+      const approvedDesign = approvedDesignFor<ApprovedDesign>(ctx.state, ctx.ledger)?.design;
       const screen = ref && approvedDesign ? screenFor(ctx.ledger.getJson(ref.breakdownSha), approvedDesign, task.estimateTaskId) : undefined;
       const approvedScreen = approvedDesign && screen ? screenBrief(approvedDesign, screen) : undefined;
       const rt = runtime();
@@ -694,7 +695,7 @@ export const integrateStep: StepDef = {
       testRun = storeRun(ctx, await produce(ctx, "integrate", head, "integrate", { expectPass, expectFail: [], compareToBaseline })).testRun;
     }
     // the UI change as built, next to the size class the approved design allowed (both recorded, so estimates can be read against builds)
-    const dRef = ctx.state.info.estimateRef?.designSha;
+    const dRef = approvedDesignFor(ctx.state, ctx.ledger)?.sha;
     const uiActual = dRef && touchesUiFiles(wt, ctx.state.info.baseCommit!, head) ? actualSize(wt, ctx.state.info.baseCommit!, head, designOptions(ctx.project.design)) : undefined;
     const uiApproved = dRef ? approvedLevel(ctx.ledger.getJson(dRef)) : undefined;
     const gated = await gateAll(ctx, "integrate", head, [

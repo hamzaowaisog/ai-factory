@@ -10,7 +10,8 @@ import { anchorsResolve, planChecks } from "../gates/predicates.js";
 import { isConfigIntegrityPath } from "../gates/protected.js";
 import { runGate, type GateDef } from "../gates/engine.js";
 import { hashJson } from "../util/hash.js";
-import { header, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { approvedDesignFor } from "./design-inputs.js";
+import { header, outputOf, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { acOwners } from "./build.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
 import { CriticOut } from "./specpipe.js";
@@ -133,7 +134,8 @@ function complexityOf(plan: PlanT): Complexity {
 
 export const planStep: StepDef = {
   key: "plan", stage: "plan", templateVersion: "2",
-  inputs: (s) => (s.steps.get("specify")?.status === "completed" ? { spec: s.steps.get("specify")!.outputs[0], rejections: planRejections(s) } : undefined),
+  // a design approved in this run counts; with none the key is dropped, so the hash is what it always was
+  inputs: (s) => (s.steps.get("specify")?.status === "completed" ? { spec: s.steps.get("specify")!.outputs[0], rejections: planRejections(s), design: outputOf(s, "design-baseline") } : undefined),
   async run(ctx) {
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
     const cb = requireOutput<CB>(ctx.state, ctx.ledger, "ground");
@@ -144,7 +146,8 @@ export const planStep: StepDef = {
     if (ref && ctx.state.pendingChanges.length) {
       return { kind: "park", reason: `A requirement change was recorded after the estimate was approved (gate B2). Estimate it as a change request: factory estimate --revises ${ref.runId}, then build the new estimate.` };
     }
-    const design = ref?.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: { id: string; route: string }[]; theme?: unknown; themeSource?: "new" | "repo" }>(ref.designSha) : undefined;
+    // the approved design: from the estimate this build was seeded from, or from this run's own design steps
+    const design = approvedDesignFor<{ skipped?: boolean; flow: string; screens: { id: string; route: string }[]; theme?: unknown; themeSource?: "new" | "repo" }>(ctx.state, ctx.ledger)?.design;
     const approvedDesign = design && !design.skipped ? { flow: design.flow, screens: design.screens } : undefined;
     // a new look comes with design tokens (estimate/tokens.ts); one task must be free to put them in the app's global stylesheet
     const newLook = !!approvedDesign && !!design?.theme && design.themeSource !== "repo";

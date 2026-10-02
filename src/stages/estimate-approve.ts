@@ -24,6 +24,7 @@ import { hashJson } from "../util/hash.js";
 import type { ClarifyResult } from "./clarify.js";
 import { gate, settingsOf } from "./estimate.js";
 import { listedFrames, MAX_DESIGN_REVISIONS } from "./design.js";
+import { ESTIMATE_SOURCES, intentOf, specOf, type DesignSources } from "./design-inputs.js";
 import { reworkCardLines } from "./design-rework.js";
 import { lookKey, recordLook } from "../design/looks.js";
 import { fieldOf } from "../design/refs/index.js";
@@ -47,10 +48,17 @@ function layoutLines(issues: LayoutIssue[]): string[] {
 /** A screen's counted UI on the card: what the estimate will size it from. */
 const uiLine = (u: ScreenUi): string => `; UI: ${u.level ?? "not counted"}${u.drivers.length ? ` (${u.drivers.slice(0, 3).join("; ")})` : ""}`;
 
-export function designCard(runId: string, design: DesignT, hash: string, extra: { demo?: string; diff?: string[]; shots?: { dir: string; count: number; note?: string; issues?: LayoutIssue[] } } = {}): string {
+/** What the approved design is for: the estimate sizes from it, a build builds it. */
+export type DesignPurpose = "estimate" | "build";
+
+const CARD_HEAD: Record<DesignPurpose, (runId: string) => string[]> = {
+  estimate: (runId) => [`# Approve the design baseline (E1b)`, ``, `Run ${runId}. The estimate of a UI request stands on the approved mock and clickable demo: screen counts, states and flows come from it.`, ``],
+  build: (runId) => [`# Approve the design`, ``, `Run ${runId}. The build follows the approved mock and clickable demo: its screens, states, sample content and look are what gets built.`, ``],
+};
+
+export function designCard(runId: string, design: DesignT, hash: string, extra: { demo?: string; diff?: string[]; shots?: { dir: string; count: number; note?: string; issues?: LayoutIssue[] }; purpose?: DesignPurpose } = {}): string {
   return [
-    `# Approve the design baseline (E1b)`, ``,
-    `Run ${runId}. The estimate of a UI request stands on the approved mock and clickable demo: screen counts, states and flows come from it.`, ``,
+    ...CARD_HEAD[extra.purpose ?? "estimate"](runId),
     `Flow: ${design.flow}`, design.figmaUrl ? `Figma: ${design.figmaUrl}` : "",
     extra.demo ? `Clickable demo (open in a browser, walk every screen and state before approving): ${extra.demo}` : "",
     extra.shots?.count ? `Screenshots: ${extra.shots.count} in ${extra.shots.dir} (each screen and state at phone and desktop width, each screen on a tablet${design.theme?.mode === "auto" ? " and in dark mode" : ""})${extra.shots.note ? `; ${extra.shots.note}` : ""}` : extra.shots?.note ? `Screenshots: none (${extra.shots.note})` : "", ``,
@@ -67,98 +75,108 @@ export function designCard(runId: string, design: DesignT, hash: string, extra: 
   ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
 }
 
-export const designBaselineStep: StepDef = {
-  key: "design-baseline", stage: "design", templateVersion: "1",
-  inputs: (s, l) => {
-    if (s.steps.get("specify")?.status !== "completed") return undefined;
-    const intake = s.steps.get("intake");
-    const ui = intake?.status === "completed" ? !!l.getJson<Intent>(intake.outputs[0]!)?.touchesUi : false;
-    return { spec: s.steps.get("specify")!.outputs[0], ui, design: outputOf(s, "design"), decisions: decisionsOn(s, "design-").length };
-  },
-  async run(ctx): Promise<StepOutcome> {
-    const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
-    if (!intent.touchesUi) {
-      const g = await gate(ctx, "design-baseline", designBaseline, { ui: false });
-      return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: false, gate: g.details }) }, data: { ui: false } };
-    }
-    const design = readOutput<DesignT & { skipped?: boolean }>(ctx.state, ctx.ledger, "design");
-    if (!design || design.skipped) {
-      return { kind: "park", reason: "This request has UI, so its estimate needs an approved mock and clickable demo (gate E1b), and the design step has not produced one for this run. Produce the design, then resume." };
-    }
-    const designSha = outputOf(ctx.state, "design")!;
-    const past = decisionsOn(ctx.state, "design-");
-    // the demo is drawn from the design, the requirement text and the attached frames; the approval is tied to that exact page
-    const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
-    const listed = listedFrames(ctx.state.info.request ?? "");
-    const frames: Record<string, { name: string; dataUri?: string }> = {};
-    let embedded = 0;
-    for (const f of listed) {
-      const file = join(ctx.ledger.dir, "attachments", "frames", basename(f.name));
-      const bytes = existsSync(file) ? readFileSync(file) : undefined;
-      const dataUri = bytes ? frameDataUri(f.name, bytes, embedded) : undefined;
-      if (dataUri && bytes) embedded += bytes.length;
-      frames[f.id] = { name: f.name, ...(dataUri ? { dataUri } : {}) };
-    }
-    const d = design;
-    // a lead knows pages by their titles; two pages with the same title also show the route so they stay apart
-    const named = (sc: (typeof d.screens)[number]) => sc.mock?.title?.trim();
-    const label = (sc: (typeof d.screens)[number]) => { const t = named(sc); return !t ? `${sc.id} ${sc.route}` : d.screens.filter((o) => named(o) === t).length > 1 ? `${t} (${sc.route})` : t; };
-    const html = buildDemo({
-      title: ctx.state.info.estimate?.projectName ?? ctx.runId, flow: d.flow, screens: d.screens.map((s) => ({ ...s, states: s.states ?? [], size: s.size ?? "new", frames: s.frames ?? [] })),
-      requirements: Object.fromEntries(spec.requirements.map((r) => [r.id, r.ears])), noScreen: d.noScreen ?? [], frames, ...(d.theme ? { theme: d.theme } : {}), ...(d.apps?.length ? { apps: d.apps } : {}),
-      ...(d.switcher ? { switcher: d.switcher } : {}), ...(d.locale ? { locale: d.locale } : {}),
-    });
-    const demoSha = ctx.ledger.putArtifact(html);
-    const demoFile = join(ctx.ledger.dir, "design-demo.html");
-    writeFileSync(demoFile, html);
-    // the same page for `factory ui` (Run: Preview): the walkable demo, plus each attached frame against the screen that cites it
-    const previewDir = join(ctx.ledger.dir, "preview");
-    mkdirSync(join(previewDir, "frames"), { recursive: true });
-    writeFileSync(join(previewDir, "index.html"), html);
-    // the look as design tokens, as the build will get them (a repo's own look has none: the build keeps the repo's)
-    if (d.theme && d.themeSource !== "repo") {
-      const tk = designTokens(d.theme);
-      writeFileSync(join(previewDir, "tokens.css"), tk.css);
-      writeFileSync(join(previewDir, "tokens.json"), JSON.stringify({ ...tk, css: undefined }, null, 2));
-    }
-    const images: { file: string; screen: string; req?: string; viewport: Viewport }[] = [];
-    for (const sc of d.screens) for (const fid of sc.frames ?? []) {
-      const f = frames[fid];
-      if (!f?.dataUri) continue;
-      copyFileSync(join(ctx.ledger.dir, "attachments", "frames", basename(f.name)), join(previewDir, "frames", basename(f.name)));
-      images.push({ file: `frames/${basename(f.name)}`, screen: label(sc), ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}), viewport: "desktop" });
-    }
-    const writePreview = (shots: ShotResult["shots"]) => writeFileSync(join(previewDir, "preview.json"), JSON.stringify({
-      site: { entry: "index.html", screens: d.screens.map((sc) => ({ path: `index.html#${sc.id}`, title: label(sc), ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}) })) },
-      images: [...images, ...shots.map((x) => ({ file: `shots/${x.file}`, screen: `${x.screen} - ${x.state}`, viewport: x.viewport }))],
-    }, null, 2));
-    writePreview([]);
-    const parentDesign = ctx.state.info.parent?.kind === "change" && ctx.state.info.parent.designSha ? ctx.ledger.getJson<Parameters<typeof diffDesigns>[0]>(ctx.state.info.parent.designSha) : undefined;
-    const diff = ctx.state.info.parent?.kind === "change" ? diffDesigns(parentDesign, d) : undefined;
-    const bundleOf = (round: number) => ctx.ledger.putJson({ design: designSha, demo: demoSha, round });
-    const last = past[past.length - 1];
-    // the latest decision counts only if it was on the card for this exact design
-    if (last && last.artifactSha === bundleOf(past.length - 1)) {
-      // a rejection sends the design back with the lead's reason (the design step reruns on its own and fixes or redraws); only after too many rounds does the run stop
-      if (last.decision === "reject" && past.filter((d) => d.decision === "reject").length > MAX_DESIGN_REVISIONS) return { kind: "park", reason: `The design was sent back ${past.filter((d) => d.decision === "reject").length} times${reasonOf(last) ? `, last time: ${reasonOf(last)}` : ""}. Change the request or attach a design frame to show what you want, then start again.` };
-      if (last.decision === "approve") {
-        const g = await gate(ctx, "design-baseline", designBaseline, { ui: true, design, approval: { decision: "approved", by: last.by } });
-        if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [failure("e1b", g.details)], signature: `e1b:${g.details.slice(0, 80)}` };
-        // remembered so the next projects are told to look different (best effort: never a reason to stop)
-        if (d.theme && d.themeSource !== "repo") try { recordLook(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), d.theme, undefined, undefined, fieldOf(requireOutput<Spec>(ctx.state, ctx.ledger, "specify").requirements.map((q) => q.ears).join("\n"))); } catch (e) { ctx.log(`design-baseline: look not recorded: ${(e as Error).message}`); }
-        return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, by: last.by }) }, data: { ui: true, screens: design.screens.length } };
+/**
+ * The design approval for any mode (E1b in the estimate). `src` names the steps it reads and `purpose`
+ * picks the card's wording; the key, version and inputs are the same for every mode.
+ */
+export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?: DesignPurpose } = {}): StepDef {
+  const src = opts.sources ?? ESTIMATE_SOURCES;
+  const purpose = opts.purpose ?? "estimate";
+  return {
+    key: "design-baseline", stage: "design", templateVersion: "1",
+    inputs: (s, l) => {
+      if (s.steps.get(src.spec)?.status !== "completed") return undefined;
+      const intake = s.steps.get(src.intent);
+      const ui = intake?.status === "completed" ? !!l.getJson<Intent>(intake.outputs[0]!)?.touchesUi : false;
+      return { spec: s.steps.get(src.spec)!.outputs[0], ui, design: outputOf(s, "design"), decisions: decisionsOn(s, "design-").length };
+    },
+    async run(ctx): Promise<StepOutcome> {
+      const intent = intentOf<Intent>(ctx.state, ctx.ledger, src);
+      if (!intent.touchesUi) {
+        const g = await gate(ctx, "design-baseline", designBaseline, { ui: false });
+        return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: false, gate: g.details }) }, data: { ui: false } };
       }
-    }
-    const bundle = bundleOf(past.length);
-    // pictures of the demo, only when a person is about to look at it; best effort, never a reason to stop
-    const shotsDir = join(previewDir, "shots");
-    const taken = await captureDemo(demoFile, d.screens.map((sc) => ({ id: sc.id, route: sc.route, states: demoStates(sc as never), title: label(sc) })), shotsDir);
-    if (taken.shots.length) writePreview(taken.shots);
-    if (taken.note) ctx.log(`design-baseline: ${taken.note}`);
-    if (taken.issues?.length) ctx.log(`design-baseline: ${taken.issues.length} layout problem(s) in the demo, listed on the card`);
-    return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle, { demo: demoFile, ...(diff ? { diff } : {}), shots: { dir: shotsDir, count: taken.shots.length, ...(taken.note ? { note: taken.note } : {}), ...(taken.issues?.length ? { issues: taken.issues } : {}) } }) } };
-  },
-};
+      const design = readOutput<DesignT & { skipped?: boolean }>(ctx.state, ctx.ledger, "design");
+      if (!design || design.skipped) {
+        return { kind: "park", reason: "This request has UI, so its estimate needs an approved mock and clickable demo (gate E1b), and the design step has not produced one for this run. Produce the design, then resume." };
+      }
+      const designSha = outputOf(ctx.state, "design")!;
+      const past = decisionsOn(ctx.state, "design-");
+      // the demo is drawn from the design, the requirement text and the attached frames; the approval is tied to that exact page
+      const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
+      const listed = listedFrames(ctx.state.info.request ?? "");
+      const frames: Record<string, { name: string; dataUri?: string }> = {};
+      let embedded = 0;
+      for (const f of listed) {
+        const file = join(ctx.ledger.dir, "attachments", "frames", basename(f.name));
+        const bytes = existsSync(file) ? readFileSync(file) : undefined;
+        const dataUri = bytes ? frameDataUri(f.name, bytes, embedded) : undefined;
+        if (dataUri && bytes) embedded += bytes.length;
+        frames[f.id] = { name: f.name, ...(dataUri ? { dataUri } : {}) };
+      }
+      const d = design;
+      // a lead knows pages by their titles; two pages with the same title also show the route so they stay apart
+      const named = (sc: (typeof d.screens)[number]) => sc.mock?.title?.trim();
+      const label = (sc: (typeof d.screens)[number]) => { const t = named(sc); return !t ? `${sc.id} ${sc.route}` : d.screens.filter((o) => named(o) === t).length > 1 ? `${t} (${sc.route})` : t; };
+      const html = buildDemo({
+        title: ctx.state.info.estimate?.projectName ?? ctx.runId, flow: d.flow, screens: d.screens.map((s) => ({ ...s, states: s.states ?? [], size: s.size ?? "new", frames: s.frames ?? [] })),
+        requirements: Object.fromEntries(spec.requirements.map((r) => [r.id, r.ears])), noScreen: d.noScreen ?? [], frames, ...(d.theme ? { theme: d.theme } : {}), ...(d.apps?.length ? { apps: d.apps } : {}),
+        ...(d.switcher ? { switcher: d.switcher } : {}), ...(d.locale ? { locale: d.locale } : {}),
+      });
+      const demoSha = ctx.ledger.putArtifact(html);
+      const demoFile = join(ctx.ledger.dir, "design-demo.html");
+      writeFileSync(demoFile, html);
+      // the same page for `factory ui` (Run: Preview): the walkable demo, plus each attached frame against the screen that cites it
+      const previewDir = join(ctx.ledger.dir, "preview");
+      mkdirSync(join(previewDir, "frames"), { recursive: true });
+      writeFileSync(join(previewDir, "index.html"), html);
+      // the look as design tokens, as the build will get them (a repo's own look has none: the build keeps the repo's)
+      if (d.theme && d.themeSource !== "repo") {
+        const tk = designTokens(d.theme);
+        writeFileSync(join(previewDir, "tokens.css"), tk.css);
+        writeFileSync(join(previewDir, "tokens.json"), JSON.stringify({ ...tk, css: undefined }, null, 2));
+      }
+      const images: { file: string; screen: string; req?: string; viewport: Viewport }[] = [];
+      for (const sc of d.screens) for (const fid of sc.frames ?? []) {
+        const f = frames[fid];
+        if (!f?.dataUri) continue;
+        copyFileSync(join(ctx.ledger.dir, "attachments", "frames", basename(f.name)), join(previewDir, "frames", basename(f.name)));
+        images.push({ file: `frames/${basename(f.name)}`, screen: label(sc), ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}), viewport: "desktop" });
+      }
+      const writePreview = (shots: ShotResult["shots"]) => writeFileSync(join(previewDir, "preview.json"), JSON.stringify({
+        site: { entry: "index.html", screens: d.screens.map((sc) => ({ path: `index.html#${sc.id}`, title: label(sc), ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}) })) },
+        images: [...images, ...shots.map((x) => ({ file: `shots/${x.file}`, screen: `${x.screen} - ${x.state}`, viewport: x.viewport }))],
+      }, null, 2));
+      writePreview([]);
+      const parentDesign = ctx.state.info.parent?.kind === "change" && ctx.state.info.parent.designSha ? ctx.ledger.getJson<Parameters<typeof diffDesigns>[0]>(ctx.state.info.parent.designSha) : undefined;
+      const diff = ctx.state.info.parent?.kind === "change" ? diffDesigns(parentDesign, d) : undefined;
+      const bundleOf = (round: number) => ctx.ledger.putJson({ design: designSha, demo: demoSha, round });
+      const last = past[past.length - 1];
+      // the latest decision counts only if it was on the card for this exact design
+      if (last && last.artifactSha === bundleOf(past.length - 1)) {
+        // a rejection sends the design back with the lead's reason (the design step reruns on its own and fixes or redraws); only after too many rounds does the run stop
+        if (last.decision === "reject" && past.filter((d) => d.decision === "reject").length > MAX_DESIGN_REVISIONS) return { kind: "park", reason: `The design was sent back ${past.filter((d) => d.decision === "reject").length} times${reasonOf(last) ? `, last time: ${reasonOf(last)}` : ""}. Change the request or attach a design frame to show what you want, then start again.` };
+        if (last.decision === "approve") {
+          const g = await gate(ctx, "design-baseline", designBaseline, { ui: true, design, approval: { decision: "approved", by: last.by } });
+          if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [failure("e1b", g.details)], signature: `e1b:${g.details.slice(0, 80)}` };
+          // remembered so the next projects are told to look different (best effort: never a reason to stop)
+          if (d.theme && d.themeSource !== "repo") try { recordLook(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), d.theme, undefined, undefined, fieldOf(spec.requirements.map((q) => q.ears).join("\n"))); } catch (e) { ctx.log(`design-baseline: look not recorded: ${(e as Error).message}`); }
+          return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, by: last.by }) }, data: { ui: true, screens: design.screens.length } };
+        }
+      }
+      const bundle = bundleOf(past.length);
+      // pictures of the demo, only when a person is about to look at it; best effort, never a reason to stop
+      const shotsDir = join(previewDir, "shots");
+      const taken = await captureDemo(demoFile, d.screens.map((sc) => ({ id: sc.id, route: sc.route, states: demoStates(sc as never), title: label(sc) })), shotsDir);
+      if (taken.shots.length) writePreview(taken.shots);
+      if (taken.note) ctx.log(`design-baseline: ${taken.note}`);
+      if (taken.issues?.length) ctx.log(`design-baseline: ${taken.issues.length} layout problem(s) in the demo, listed on the card`);
+      return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle, { purpose, demo: demoFile, ...(diff ? { diff } : {}), shots: { dir: shotsDir, count: taken.shots.length, ...(taken.note ? { note: taken.note } : {}), ...(taken.issues?.length ? { issues: taken.issues } : {}) } }) } };
+    },
+  };
+}
+
+export const designBaselineStep: StepDef = makeDesignApprovalStep();
 
 // ---------- E7: approve the estimate ----------
 

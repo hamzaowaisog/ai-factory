@@ -12,7 +12,8 @@ import type { RunState } from "../ledger/state.js";
 import type { DesignInventory } from "../design/inventory.js";
 import { DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
-import { header, readOutput, requireOutput, type StepDef } from "./framework.js";
+import { header, type StepDef } from "./framework.js";
+import { ESTIMATE_SOURCES, intentOf, inventoryNamed, inventoryOf, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
 import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
 import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
 import { ensureMeasured } from "../design/refs/measure.js";
@@ -541,93 +542,101 @@ export function keepFine(out: z.infer<typeof DesignOut>, fine: string[], prev: D
   return { ...out, screens, ...(!out.theme && earlierTheme ? { theme: earlierTheme } : {}) };
 }
 
-export const designStep: StepDef = {
-  key: "design", stage: "design", templateVersion: "19",
-  inputs: (s, l) => {
-    if (s.steps.get("specify")?.status !== "completed" || s.steps.get("intake")?.status !== "completed") return undefined;
-    const ui = !!l.getJson<Intent>(s.steps.get("intake")!.outputs[0]!)?.touchesUi;
-    return { spec: s.steps.get("specify")!.outputs[0], ui, inventory: s.steps.get("ground")?.data?.named, earlier: s.info.parent?.kind === "change" ? s.info.parent.designSha : undefined, frames: listedFrames(s.info.request ?? "").map((f) => f.id), rejections: designRejections(s).slice(0, MAX_DESIGN_REVISIONS) };
-  },
-  async run(ctx) {
-    const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
-    // no UI: nothing to draw; E1b passes on the intent alone
-    if (!intent.touchesUi) return { kind: "done", outputs: { design: ctx.ledger.putJson({ header: header(ctx.runId, "design", "design", ""), skipped: true, reason: "no UI in this request" }) }, data: { skipped: true } };
-    const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
-    const inv = readOutput<DesignInventory>(ctx.state, ctx.ledger, "ground", "design");
-    const frames = listedFrames(ctx.state.info.request ?? "");
-    const p = ctx.state.info.parent;
-    const earlier = p?.kind === "change" && p.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: unknown[]; theme?: Theme; locale?: DesignLocale }>(p.designSha) : undefined;
-    const reqText = spec.requirements.map((q) => q.ears).join("\n");
-    const sentBack = designRejections(ctx.state).slice(0, MAX_DESIGN_REVISIONS);
-    // a design that was sent back is fixed where the lead pointed, or redrawn when that is what the note needs
-    const prevSha = ctx.state.steps.get("design")?.outputs[0];
-    const prev = sentBack.length && prevSha ? ctx.ledger.getJson<DesignArt>(prevSha) : undefined;
-    let again: { round: ReworkRound; fine: string[] } | undefined;
-    if (prev && !prev.skipped && prev.screens?.length && (prev.revision ?? 0) < sentBack.length) {
-      const rw = await reworkDesign(ctx, spec, prev, sentBack, inv);
-      if (rw.done) {
-        const d = rw.done.design;
-        return { kind: "done", outputs: { design: ctx.ledger.putJson({ ...d, header: header(ctx.runId, "design", "design", "") }) }, data: { screens: d.screens.length, states: d.screens.reduce((n, x) => n + Math.max(1, (x.states ?? []).length), 0), rework: d.rework![d.rework!.length - 1]!.mode } };
+/**
+ * The design step for any mode: `src` names the steps it reads (the estimate's by default). The key,
+ * template version and inputs are the same for every mode, so the estimate's runs replay unchanged.
+ */
+export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
+  return {
+    key: "design", stage: "design", templateVersion: "19",
+    inputs: (s, l) => {
+      if (!sourcesReady(s, src)) return undefined;
+      const ui = !!l.getJson<Intent>(s.steps.get(src.intent)!.outputs[0]!)?.touchesUi;
+      return { spec: s.steps.get(src.spec)!.outputs[0], ui, inventory: inventoryNamed(s, src), earlier: s.info.parent?.kind === "change" ? s.info.parent.designSha : undefined, frames: listedFrames(s.info.request ?? "").map((f) => f.id), rejections: designRejections(s).slice(0, MAX_DESIGN_REVISIONS) };
+    },
+    async run(ctx) {
+      const intent = intentOf<Intent>(ctx.state, ctx.ledger, src);
+      // no UI: nothing to draw; E1b passes on the intent alone
+      if (!intent.touchesUi) return { kind: "done", outputs: { design: ctx.ledger.putJson({ header: header(ctx.runId, "design", "design", ""), skipped: true, reason: "no UI in this request" }) }, data: { skipped: true } };
+      const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
+      const inv = inventoryOf<DesignInventory>(ctx.state, ctx.ledger, src);
+      const frames = listedFrames(ctx.state.info.request ?? "");
+      const p = ctx.state.info.parent;
+      const earlier = p?.kind === "change" && p.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: unknown[]; theme?: Theme; locale?: DesignLocale }>(p.designSha) : undefined;
+      const reqText = spec.requirements.map((q) => q.ears).join("\n");
+      const sentBack = designRejections(ctx.state).slice(0, MAX_DESIGN_REVISIONS);
+      // a design that was sent back is fixed where the lead pointed, or redrawn when that is what the note needs
+      const prevSha = ctx.state.steps.get("design")?.outputs[0];
+      const prev = sentBack.length && prevSha ? ctx.ledger.getJson<DesignArt>(prevSha) : undefined;
+      let again: { round: ReworkRound; fine: string[] } | undefined;
+      if (prev && !prev.skipped && prev.screens?.length && (prev.revision ?? 0) < sentBack.length) {
+        const rw = await reworkDesign(ctx, spec, prev, sentBack, inv);
+        if (rw.done) {
+          const d = rw.done.design;
+          return { kind: "done", outputs: { design: ctx.ledger.putJson({ ...d, header: header(ctx.runId, "design", "design", "") }) }, data: { screens: d.screens.length, states: d.screens.reduce((n, x) => n + Math.max(1, (x.states ?? []).length), 0), rework: d.rework![d.rework!.length - 1]!.mode } };
+        }
+        again = rw.redraw;
       }
-      again = rw.redraw;
-    }
-    // about to draw: read the live sites of the field's brands first (best effort), so the brief and the colour check use real colours
-    if (!hasExistingLook(inv)) await ensureMeasured(pickIndustries(reqText).map((x) => x.industry.id)).catch(() => undefined);
-    const refBrief = briefFor(reqText);
-    const refs = fitRefs(reqText);
-    // a new look is compared with the factory's latest projects; a change keeps its approved look, and an existing app keeps the repo's
-    const field = fieldOf(reqText);
-    const recent = hasExistingLook(inv) || (earlier && !earlier.skipped) ? [] : recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), undefined, field);
-    const feedback = sentBack.length
-      ? `The lead rejected the previous design ${sentBack.length === 1 ? "once" : `${sentBack.length} times`}. Their reasons, oldest first:\n${sentBack.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nRedraw it so each reason is met: keep what they did not criticise, change what they did, and do not repeat the earlier screens, theme or sample data where they objected.${again?.fine.length && prev ? ` The lead said these pages are fine, so keep them as they are: ${prev.screens.filter((x) => again!.fine.includes(x.id)).map(screenName).join(", ")}.` : ""}`
-      : "";
-    const r = await think(ctx, {
-      stage: "design", route: "design", cls: "read-large", budgetTokens: 80000, tools: [], schema: DesignOut, maxTurns: 4,
-      sections: [
-        S.template("tpl", RULES),
-        ...(hasExistingLook(inv) ? [S.template("existing-rules", EXISTING_RULES)] : []),
-        S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
-        ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens, ...(earlier.theme ? { theme: earlier.theme } : {}), ...(earlier.locale ? { locale: earlier.locale } : {}) })] : []),
-        ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
-        S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`),
-        ...(recent.length ? [S.reference("recent-looks", lookBrief(recent, field))] : []),
-        ...(feedback ? [S.reference("design-feedback", feedback)] : []),
-        S.task("Draw the screen inventory."),
-      ],
-    });
-    if (!r.ok) return r.outcome;
-    const out = keepFine(r.output, again?.fine ?? [], prev, earlier && !earlier.skipped ? earlier.theme : undefined);
-    const map = mapDesign(spec.requirements.map((q) => q.id), out, frames.map((f) => f.id));
-    const bad = [
-      ...map.unknown.map((x) => failure("design-unknown-req", `${x} is not a requirement in the spec`)),
-      ...map.unmappedReqs.map((x) => failure("design-unmapped", `${x} is on no screen and not listed under noScreen`)),
-      ...map.orphanScreens.map((x) => failure("design-orphan", `screen ${x} serves no requirement`)),
-      ...map.duplicateIds.map((x) => failure("design-duplicate-id", `two screens share the id ${x}`)),
-      ...map.duplicateRoutes.map((x) => failure("design-duplicate-route", `two screens share the route ${x}; one screen has one route (give states, not a second screen)`)),
-      ...map.unknownFrames.map((x) => failure("design-unknown-frame", `${x} is not one of the attached frames`)),
-      ...map.unusedFrames.map((x) => failure("design-frame-unused", `attached frame ${x} is on no screen`)),
-      ...designQuality(out, hasExistingLook(inv), refs, recent, !!earlier?.theme && JSON.stringify(earlier.theme) === JSON.stringify(out.theme)).map((q) => failure(q.check, q.message)),
-      ...localeFit(out, reqText).map((q) => failure(q.check, q.message)),
-      ...modeFit(out, reqText).map((q) => failure(q.check, q.message)),
-    ];
-    if (bad.length) return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}` };
-    // the drawn demo is measured in a browser: text past the frame, cut off or on top of other text goes back for one fix round
-    // (after that round what is left is listed on the card); no browser, no check
-    if (!ctx.priorFailures.some((f) => f.check === "design-layout")) {
-      const issues = await demoLayout(ctx.state.info.estimate?.projectName ?? ctx.runId, out, spec);
-      if (issues?.length) {
-        ctx.log(`design: ${issues.length} layout problem(s) in the drawn demo, sent back for one fix`);
-        const fixes = layoutFixes(issues).map((q) => failure(q.check, q.message));
-        return { kind: "fail", category: "other", failures: fixes, signature: "design:design-layout" };
+      // about to draw: read the live sites of the field's brands first (best effort), so the brief and the colour check use real colours
+      if (!hasExistingLook(inv)) await ensureMeasured(pickIndustries(reqText).map((x) => x.industry.id)).catch(() => undefined);
+      const refBrief = briefFor(reqText);
+      const refs = fitRefs(reqText);
+      // a new look is compared with the factory's latest projects; a change keeps its approved look, and an existing app keeps the repo's
+      const field = fieldOf(reqText);
+      const recent = hasExistingLook(inv) || (earlier && !earlier.skipped) ? [] : recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), undefined, field);
+      const feedback = sentBack.length
+        ? `The lead rejected the previous design ${sentBack.length === 1 ? "once" : `${sentBack.length} times`}. Their reasons, oldest first:\n${sentBack.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nRedraw it so each reason is met: keep what they did not criticise, change what they did, and do not repeat the earlier screens, theme or sample data where they objected.${again?.fine.length && prev ? ` The lead said these pages are fine, so keep them as they are: ${prev.screens.filter((x) => again!.fine.includes(x.id)).map(screenName).join(", ")}.` : ""}`
+        : "";
+      const r = await think(ctx, {
+        stage: "design", route: "design", cls: "read-large", budgetTokens: 80000, tools: [], schema: DesignOut, maxTurns: 4,
+        sections: [
+          S.template("tpl", RULES),
+          ...(hasExistingLook(inv) ? [S.template("existing-rules", EXISTING_RULES)] : []),
+          S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
+          ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens, ...(earlier.theme ? { theme: earlier.theme } : {}), ...(earlier.locale ? { locale: earlier.locale } : {}) })] : []),
+          ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
+          S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`),
+          ...(recent.length ? [S.reference("recent-looks", lookBrief(recent, field))] : []),
+          ...(feedback ? [S.reference("design-feedback", feedback)] : []),
+          S.task("Draw the screen inventory."),
+        ],
+      });
+      if (!r.ok) return r.outcome;
+      const out = keepFine(r.output, again?.fine ?? [], prev, earlier && !earlier.skipped ? earlier.theme : undefined);
+      const map = mapDesign(spec.requirements.map((q) => q.id), out, frames.map((f) => f.id));
+      const bad = [
+        ...map.unknown.map((x) => failure("design-unknown-req", `${x} is not a requirement in the spec`)),
+        ...map.unmappedReqs.map((x) => failure("design-unmapped", `${x} is on no screen and not listed under noScreen`)),
+        ...map.orphanScreens.map((x) => failure("design-orphan", `screen ${x} serves no requirement`)),
+        ...map.duplicateIds.map((x) => failure("design-duplicate-id", `two screens share the id ${x}`)),
+        ...map.duplicateRoutes.map((x) => failure("design-duplicate-route", `two screens share the route ${x}; one screen has one route (give states, not a second screen)`)),
+        ...map.unknownFrames.map((x) => failure("design-unknown-frame", `${x} is not one of the attached frames`)),
+        ...map.unusedFrames.map((x) => failure("design-frame-unused", `attached frame ${x} is on no screen`)),
+        ...designQuality(out, hasExistingLook(inv), refs, recent, !!earlier?.theme && JSON.stringify(earlier.theme) === JSON.stringify(out.theme)).map((q) => failure(q.check, q.message)),
+        ...localeFit(out, reqText).map((q) => failure(q.check, q.message)),
+        ...modeFit(out, reqText).map((q) => failure(q.check, q.message)),
+      ];
+      if (bad.length) return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}` };
+      // the drawn demo is measured in a browser: text past the frame, cut off or on top of other text goes back for one fix round
+      // (after that round what is left is listed on the card); no browser, no check
+      if (!ctx.priorFailures.some((f) => f.check === "design-layout")) {
+        const issues = await demoLayout(ctx.state.info.estimate?.projectName ?? ctx.runId, out, spec);
+        if (issues?.length) {
+          ctx.log(`design: ${issues.length} layout problem(s) in the drawn demo, sent back for one fix`);
+          const fixes = layoutFixes(issues).map((q) => failure(q.check, q.message));
+          return { kind: "fail", category: "other", failures: fixes, signature: "design:design-layout" };
+        }
       }
-    }
-    const artifact = {
-      header: header(ctx.runId, "design", "design", "", r.model), flow: out.flow,
-      screens: out.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: s.size, frames: s.frames, ...(s.mock ? { mock: s.mock } : {}), ...(s.mockFull ? { mockFull: s.mockFull } : {}), ...(s.app ? { app: s.app } : {}), ...(s.group ? { group: s.group } : {}) })),
-      ...(out.apps?.length ? { apps: out.apps } : {}), ...(out.switcher ? { switcher: out.switcher } : {}), ...(out.locale ? { locale: out.locale } : {}),
-      ...(prev ? { revision: sentBack.length, rework: [...(prev.rework ?? []), ...(again ? [again.round] : [])] } : {}),
-      mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(hasExistingLook(inv) ? { themeSource: "repo" as const } : { themeSource: "new" as const, ...(out.theme ? { theme: out.theme } : {}) }),
-    };
-    return { kind: "done", outputs: { design: ctx.ledger.putJson(artifact) }, data: { screens: artifact.screens.length, states: artifact.screens.reduce((n, s) => n + Math.max(1, s.states.length), 0) } };
-  },
-};
+      const artifact = {
+        header: header(ctx.runId, "design", "design", "", r.model), flow: out.flow,
+        screens: out.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: s.size, frames: s.frames, ...(s.mock ? { mock: s.mock } : {}), ...(s.mockFull ? { mockFull: s.mockFull } : {}), ...(s.app ? { app: s.app } : {}), ...(s.group ? { group: s.group } : {}) })),
+        ...(out.apps?.length ? { apps: out.apps } : {}), ...(out.switcher ? { switcher: out.switcher } : {}), ...(out.locale ? { locale: out.locale } : {}),
+        ...(prev ? { revision: sentBack.length, rework: [...(prev.rework ?? []), ...(again ? [again.round] : [])] } : {}),
+        mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(hasExistingLook(inv) ? { themeSource: "repo" as const } : { themeSource: "new" as const, ...(out.theme ? { theme: out.theme } : {}) }),
+      };
+      return { kind: "done", outputs: { design: ctx.ledger.putJson(artifact) }, data: { screens: artifact.screens.length, states: artifact.screens.reduce((n, s) => n + Math.max(1, s.states.length), 0) } };
+    },
+  };
+}
+
+export const designStep: StepDef = makeDesignStep();

@@ -8,9 +8,9 @@ import { breakdownStep, estimateStep } from "./estimate.js";
 import { approveStep, groundStep, intakeStep, planStep } from "./spec.js";
 import { draftsStep, mergeStep, specifyStep } from "./specpipe.js";
 import { splitModules } from "../estimate/modules.js";
-import { designStep } from "./design.js";
 import { designCheckStep } from "./design-check.js";
-import { approveEstimateStep, designBaselineStep, exportStep } from "./estimate-approve.js";
+import { approveEstimateStep, exportStep } from "./estimate-approve.js";
+import { designSteps } from "./design-pipeline.js";
 import { seedStep } from "./seed.js";
 import { estimateGroundStep } from "./estimate-ground.js";
 import { combineClarifyStep, combineIntakeStep, combineSpecsStep, moduleClarifySteps, moduleIntakeSteps, moduleSteps } from "./modular.js";
@@ -58,7 +58,7 @@ export function estimateSteps(state: RunState): StepDef[] {
       ...moduleClarifySteps(modules, 1), combineClarifyStep(modules, 1), ...moduleClarifySteps(modules, 2), combineClarifyStep(modules, 2),
       ...moduleSteps(modules), combineSpecsStep(modules)]
     : [intakeStep, estimateGroundStep, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
-  return [...head, designStep, designBaselineStep, breakdownStep, estimateStep, approveEstimateStep, exportStep];
+  return [...head, ...designSteps({ purpose: "estimate" }), breakdownStep, estimateStep, approveEstimateStep, exportStep];
 }
 
 /** The ordered steps for the run's mode. */
