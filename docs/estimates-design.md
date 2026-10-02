@@ -69,7 +69,7 @@ The estimate does not start until the spec passes lint, critic, round trip and h
 | Context | Stack, platforms, compliance, hosting, client policy | Project config, plus clarify for what is missing |
 | Run settings | **Delivery model (HITL or solely agentic; chosen at the start)**, stack source, Design in total, feedback rounds, optional rates | Set by a person, recorded in the run |
 
-Document intake accepts a **.docx** (text, tables, embedded images) and **pre-exported Figma frames** placed with the request. The environment is isolated, so links in the request text are not fetched. **Being built (2026-10-02):** design references in any form (`--ref` and the UI), including URLs and Figma links the user gives on purpose; those, and only those, are fetched at intake (see "Design references").
+Document intake accepts a **.docx** (text, tables, embedded images) and **pre-exported Figma frames** placed with the request. The environment is isolated, so links in the request text are not fetched. **Design references** (`--ref`, built 2026-10-02 for images, URLs and Word documents; Figma, PDF and the UI are being built): links the user gives on purpose, and only those, are opened at intake (see "Design references").
 
 **Stack source** is a run setting:
 - **Client-specified:** a fixed constraint.
@@ -237,7 +237,7 @@ The user can attach design references to any run (estimate, brownfield, and gree
 
 **Input**
 
-- Terminal: `--ref <file|url>`, repeatable, with an optional role and note: `--ref match:https://client.com`, `--ref layout:dash.jpg "table like this"`.
+- Terminal: `--ref <file|url>` on `factory estimate` and `factory start`, repeatable, with an optional role in front and a note after `|`: `--ref match:https://client.com`, `--ref "layout:dash.jpg|table like this"`. Refused with `--from-estimate` and `--from-run`, which reuse an approved design (new references there are a change request: `--revises`).
 - Factory UI: a "Design references" section on the New run form for every mode (see below).
 - Each reference becomes `R-1`, `R-2`, ... in a `Reference` contract. At most 12 references and 20 images sent to a model (about 1.5k input tokens each).
 
@@ -246,10 +246,10 @@ The user can attach design references to any run (estimate, brownfield, and gree
 | Input | What code keeps |
 |---|---|
 | Any image (png, jpeg, webp, gif, avif, svg, bmp) | Decoded in Chromium (no new image library), PNG with the long edge at most 1568 px, main colours with their share of the area (marked approximate) |
-| URL | Screenshots at 390 and 1280 px; computed styles: colours by role, fonts, corners, spacing, shadows (exact) |
+| URL | Screenshots at 390 and 1280 px; computed styles: colours by role (brand, theme, header, button, page, text, link), body and heading fonts, the main button's corners, shadows (exact) |
 | Figma link | With `FIGMA_TOKEN`: the file's styles (exact) and up to 8 frames as PNG |
 | PDF | Pages as images and the text (`pdfjs-dist`, one new dependency) |
-| DOCX | Embedded images and the text, as today |
+| DOCX | Up to 6 embedded images (the largest, in document order; emf, wmf and tiff left out with a note) and the first 4,000 characters of text |
 | Other formats, a login wall, a private Figma file | Stop with a plain message |
 
 Only URLs the user gives are fetched: https only, no cookies, private addresses refused unless the project config allows them. Pages behind a login are out of the first version; the user attaches screenshots.
@@ -298,7 +298,7 @@ Greenfield is not built yet. The design work is built as one piece that any mode
 
 1. **Images to the model.** Fill the pack's `images` and send image blocks in the API runner (Anthropic; OpenAI as an option), images in the cache key. **Done 2026-10-02:** an image section (`S.image`, untrusted, user message only) puts a numbered `<untrusted_image n="k">` marker in the text and its ledger sha in `images`; each image counts 1,600 tokens and a briefing takes at most 20 (`src/util/image.ts`). The runner loads the bytes, reads the type from them (PNG, JPEG, GIF, WebP only, at most 5 MB) and sends `Image k:` then the picture before the briefing, for Anthropic, OpenAI Responses and local chat servers; a bad image stops the step before any model call. The pack sha and the cache key cover the images. The agent runner refuses images. `UNTRUSTED_IMAGE_NOTE` is the rule text for steps that show pictures.
 2. **Design pipeline as one piece.** `designSteps`, `DesignSources`, `approvedDesignFor`, the generic approval step; estimate moved onto it with no change in behaviour (existing tests unchanged); the greenfield stand-in test. **Done 2026-10-02:** `makeDesignStep(sources)` and `makeDesignApprovalStep({ sources, purpose })` with the estimate's `designStep` and `designBaselineStep` as their defaults (same keys, template versions 19 and 1, same inputs); `designSteps` in `estimateSteps`; `approvedDesignFor` in plan, implement and the integrate size-cap. All 674 existing tests pass unchanged, plus 4 new ones.
-3. **Reference intake.** `--ref`, the `Reference` contract, images, URLs and DOCX, colours measured in Chromium.
+3. **Reference intake.** `--ref`, the `Reference` contract, images, URLs and DOCX, colours measured in Chromium. **Done 2026-10-02:** `src/sources/refs.ts` and `src/contracts/reference.ts`. `--ref` on `estimate` and `start`; everything is read before the run exists, so a reference that cannot be read stops with `R-n (source): what to attach instead` and costs nothing. Pictures are decoded in Chromium, stored as PNG (long edge 1568 px, under 5 MB) with up to 8 main colours and their share (approximate). A site is opened with no cookies, every request checked (https only; private addresses refused, also for redirects and sub-requests, unless `design.allowPrivateRefs`), a login page, 401/403 or an error status stops it; it gives two screenshots and its computed look (exact). A brand guide (by its name or opening text) defaults to `match`, anything else to `inspire`. At most 12 references and 20 pictures. Pictures are stored as ledger artifacts and as `refs/R-n-k.png`, and the references go in `run.created` (`info.references`). Figma links and PDFs are refused with a plain message until step 4. Checked live against stripe.com (brand `#533afd` read from its button, 15 s). 12 new tests.
 4. **Figma and PDF.** `FIGMA_TOKEN` (Jira pattern, rate limits respected), `pdfjs-dist`.
 5. **`design-refs` step.** Prompt, schema, `cleanBrief`, skipped without references.
 6. **Design step.** Reference brief, images in the call, rules per role, the five checks, template version 20.

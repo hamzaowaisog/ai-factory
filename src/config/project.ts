@@ -94,6 +94,8 @@ export const ProjectConfig = z.object({
     brandFonts: z.array(z.string()).default([]),
     /** a nav change counts as a new screen, not a tweak */
     navRaises: z.boolean().default(false),
+    /** design reference URLs may point at private addresses (an intranet style guide); off by default */
+    allowPrivateRefs: z.boolean().default(false),
     /**
      * Take the app's pages before and after the change and compare them (docs/design-step.md, "Visual check").
      * The app is started from the repo's own commands ON THIS MACHINE, not in a container, so it is off unless

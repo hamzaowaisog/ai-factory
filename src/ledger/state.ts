@@ -1,5 +1,5 @@
 // RunState is derived only by replaying the ledger (run-manager §2.2, §2.4). Never stored.
-import type { ChangeClass, Complexity, LedgerEvent, Mode, RunStatus } from "../contracts/index.js";
+import type { ChangeClass, Complexity, LedgerEvent, Mode, Reference, RunStatus } from "../contracts/index.js";
 import { hashJson } from "../util/hash.js";
 
 /** Step key without the attempt: "plan", "implement/TASK-2". */
@@ -65,6 +65,8 @@ export interface RunInfo {
   requestFile?: string;
   /** where the request came from: typed prompt, file, Jira ticket */
   sources?: { kind: "prompt" | "file" | "jira" | "docx" | "frames"; name?: string; key?: string; url?: string; summary?: string }[];
+  /** design references the user attached (R-1, R-2, ...), read at intake; their pictures are ledger artifacts */
+  references?: Reference[];
   versions?: Record<string, string>;
   /** spend when the plan completed; the post-plan cost limit adds the size's cap to it */
   spendAtPlan?: number;

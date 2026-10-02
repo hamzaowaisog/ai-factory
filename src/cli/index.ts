@@ -18,6 +18,7 @@ import { replay, statusLabel } from "../ledger/state.js";
 import { createRun, execute } from "../stages/executor.js";
 import { answerOpenQuestions, canPrompt, terminalIO } from "./interactive.js";
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
+import { describeReferences, gatherReferences, parseRefArg } from "../sources/refs.js";
 import { parseEstimateSettings, type EstimateOptions } from "../estimate/settings.js";
 import { approvedEstimate, type Approved } from "../estimate/lineage.js";
 import type { RequestSource } from "../sources/request.js";
@@ -62,9 +63,10 @@ program.command("start")
   .option("--file <path>", "the request as a Markdown or text file")
   .option("--jira <key>", "the request as a Jira ticket (ABC-123 or its link)")
   .option("--from-estimate <run>", "build an approved estimate: inherits its spec, plans against its tasks, and is held to its size and budget (gates B1-B5)")
+  .option("--ref <ref>", 'a design reference: an image, an https link or a .docx; optional role match:, inspire: or layout: in front and a note after |, e.g. --ref "layout:dash.jpg|table like this"; repeat it', (v: string, prev: string[] = []) => [...prev, v])
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .description("create a run from a prompt, a file or a Jira ticket (any one, or several) and execute until a card, a park, or delivery")
-  .action(async (prompt: string | undefined, o: { project: string; maxCost?: string; file?: string; jira?: string; fromEstimate?: string }) => {
+  .action(async (prompt: string | undefined, o: { project: string; maxCost?: string; file?: string; jira?: string; fromEstimate?: string; ref?: string[] }) => {
     const project = loadProject(o.project);
     const problems = checkRoutes(project);
     if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
@@ -72,14 +74,16 @@ program.command("start")
     let approved: Approved | undefined;
     if (o.fromEstimate) {
       if (prompt || o.file || o.jira) throw new Error("--from-estimate takes its request from the estimate; drop the prompt, --file and --jira. A changed requirement is a change request: factory estimate --revises <run>.");
+      if (o.ref?.length) throw new Error("--from-estimate builds the design approved with the estimate; drop --ref. To change the design, estimate a change request with the references: factory estimate --revises <run> --ref ...");
       approved = approvedEstimate(openRun(o.fromEstimate).runId);
     }
     const req = approved ? { text: approved.request, sources: [{ kind: "prompt" as const }] } : await gatherRequest({ prompt, file: o.file, jira: o.jira });
+    const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
     const runId = await createRun(req.text, o.project, userInfo().username, {
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
-      sources: req.sources, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}),
+      sources: req.sources, references, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}),
     });
-    log(`run ${runId} (request from ${describeSources(req.sources)})`);
+    log(`run ${runId} (request from ${describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""})`);
     await runAndReport(runId);
   });
 
@@ -89,6 +93,7 @@ program.command("estimate")
   .option("--file <path>", "the requirements as a Markdown, text or Word (.docx) file")
   .option("--frames <dir>", "a folder of design frames exported from Figma (png, jpg, webp, svg or json)")
   .option("--jira <key>", "the requirements as a Jira ticket (ABC-123 or its link)")
+  .option("--ref <ref>", 'a design reference: an image, an https link or a .docx; optional role match:, inspire: or layout: in front and a note after |, e.g. --ref "layout:dash.jpg|table like this"; repeat it', (v: string, prev: string[] = []) => [...prev, v])
   .option("--delivery-model <model>", "hitl (supervisor + agents) or agentic (no supervisor gates)", "hitl")
   .option("--stack-source <source>", "client (fixed), folio3 (we decide) or undecided (a default pack, stated as an assumption)", "undecided")
   .option("--no-design-in-total", "keep Design out of the Summary total (the row still shows)")
@@ -103,9 +108,10 @@ program.command("estimate")
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .option("--fresh", "ask the model again even if the same requirements were estimated before (skips the stored answers)")
   .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory; a lead approves it in the terminal, then two workbooks are written")
-  .action(async (prompt: string | undefined, o: EstimateOptions & { project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; fromRun?: string; revises?: string; fresh?: boolean }) => {
+  .action(async (prompt: string | undefined, o: EstimateOptions & { project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; fromRun?: string; revises?: string; fresh?: boolean; ref?: string[] }) => {
     if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
     if (o.fromRun && o.revises) throw new Error("Use --from-run or --revises, not both.");
+    if (o.fromRun && o.ref?.length) throw new Error("--from-run reuses the approved design; drop --ref. New references are a change request: factory estimate --revises <run> --ref ...");
     // no --project: the requirements stand alone, so there is no repo to read
     const projectName = o.project ?? (await import("../config/project.js")).ensureStandaloneProject();
     const project = loadProject(projectName);
@@ -125,11 +131,13 @@ program.command("estimate")
       req = await gatherRequest({ prompt, file: o.file, jira: o.jira, frames: o.frames }, {}, { maxBytes: MAX_ESTIMATE_REQUEST_BYTES });
       if (o.revises) lineage = { kind: "change", approved: approvedEstimate(openRun(o.revises).runId) };
     }
+    // read before the run exists: a reference that cannot be read stops here and costs nothing
+    const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
     const runId = await createRun(req.text, projectName, userInfo().username, {
-      mode: "estimate", estimate: settings, sources: req.sources, attachments: req.attachments, ...(lineage ? { lineage } : {}),
+      mode: "estimate", estimate: settings, sources: req.sources, attachments: req.attachments, references, ...(lineage ? { lineage } : {}),
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
     });
-    log(`estimate run ${runId} (requirements from ${describeSources(req.sources)}; ${settings.deliveryModel === "hitl" ? "HITL" : "solely agentic"})`);
+    log(`estimate run ${runId} (requirements from ${describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""}; ${settings.deliveryModel === "hitl" ? "HITL" : "solely agentic"})`);
     await runAndReport(runId);
   });
 

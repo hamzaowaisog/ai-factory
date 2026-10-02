@@ -24,7 +24,7 @@ brand guide. Each becomes `R-1`, `R-2`, ... with an optional role:
 - The requirements beat a reference; a departure is written in `departure`. Every reference is used or set aside with a reason (`design-ref-unused`).
 - A reference that cannot be read (a login wall, a private Figma file, an unknown format) stops the run at intake with a plain message. It never falls back to this library without saying so.
 
-Full plan and build order: `docs/estimates-design.md`, "Design references". Done so far: images reach the model (step 1); the design steps are one piece any mode plugs in (step 2).
+Full plan and build order: `docs/estimates-design.md`, "Design references". Done so far: images reach the model (step 1); the design steps are one piece any mode plugs in (step 2); `--ref` reads images, sites and Word documents into `R-n` at intake (step 3; the design step does not use them yet).
 
 ## How it works (no references, or for what they leave open)
 
