@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const offBefore = process.env.FACTORY_NO_SCREENSHOTS;
 beforeAll(() => { delete process.env.FACTORY_NO_SCREENSHOTS; });
 afterAll(() => { if (offBefore !== undefined) process.env.FACTORY_NO_SCREENSHOTS = offBefore; });
+import { ScreenMock } from "../contracts/artifacts.js";
 import { buildDemo } from "./demo.js";
 import { captureDemo, checkDemoLayout, findChromium, LAYOUT_CHECK } from "./screenshots.js";
 
@@ -105,6 +106,43 @@ describe("demo screenshots", () => {
       expect(found.map((f) => f.text).join(" ")).not.toMatch(/Shortened|scrolls sideways/);
     } finally { await browser.close(); }
   }, 30_000);
+
+  it.skipIf(!findChromium())("does not read Urdu's tall Nastaliq letters as text on top of the lines around them", async () => {
+    // Nastaliq glyph boxes are about 2.5 times the font size, taller than the line (where the font is installed)
+    const page = `<!doctype html><body style="margin:0"><section id="S-1"><div class="canvas" dir="rtl" lang="ur" style="width:360px;font:14px 'Noto Nastaliq Urdu',serif;line-height:1.2"><div class="pane">
+      <h3 style="font-size:21px;margin:0">اکاؤنٹس</h3><p style="margin:0">آپ کی رقم ایک نظر میں</p>
+      <ul style="margin:0;padding:0;list-style:none"><li>بیلنس</li><li>واجب الادا بل</li><li>اخراجات</li></ul>
+      <div style="position:relative"><span>رقم</span><span style="position:absolute;right:2px;top:1px">حیثیت</span></div>
+    </div></div></section></body>`;
+    const { chromium } = await import("playwright-core");
+    const browser = await chromium.launch({ executablePath: findChromium()!, args: ["--no-sandbox"] });
+    try {
+      const p = await browser.newPage({ viewport: { width: 400, height: 400 } });
+      await p.setContent(page);
+      // only the two words really drawn on top of each other
+      expect(await p.evaluate(`${LAYOUT_CHECK}("S-1")`)).toEqual([{ kind: "overlap", text: "رقم / حیثیت" }]);
+    } finally { await browser.close(); }
+  }, 30_000);
+
+  it.skipIf(!findChromium())("puts a calendar's times under the month when it sits in a narrow column, beside them when there is room", async () => {
+    const cal = { type: "calendar", month: "March 2026", startsOn: 6, days: 31, picked: 12, times: ["10:00", "11:30", "14:00", "15:30"], taken: ["11:30"], time: "14:00" };
+    const form = { type: "form", fields: [{ label: "Branch", kind: "select", options: ["Gulberg", "DHA"] }, { label: "Reason", kind: "textarea" }], submit: "Book" };
+    const sc = [
+      { id: "S-1", route: "/book", file: "a.tsx", reqs: [], states: [], size: "new", frames: [], mock: ScreenMock.parse({ title: "Book a visit", copy: {}, blocks: [cal, form] }) },
+      { id: "S-2", route: "/plan", file: "b.tsx", reqs: [], states: [], size: "new", frames: [], mock: ScreenMock.parse({ title: "Plan", copy: {}, blocks: [cal] }) },
+    ];
+    const d = dir(); const f = join(d, "demo.html");
+    writeFileSync(f, buildDemo({ title: "Book", flow: "f", screens: sc as never, requirements: {}, noScreen: [] }));
+    const { chromium } = await import("playwright-core");
+    const browser = await chromium.launch({ executablePath: findChromium()!, args: ["--no-sandbox"] });
+    try {
+      const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, reducedMotion: "reduce" });
+      const below = async (id: string) => { await page.goto(`file://${f}#${id}`); return page.locator(`#${id} .pane:not([hidden]) .cal`).evaluate((c) => c.querySelector(".slots")!.getBoundingClientRect().top >= c.querySelector(".cgrid")!.getBoundingClientRect().bottom); };
+      expect(await below("S-1")).toBe(true);
+      expect(await below("S-2")).toBe(false);
+    } finally { await browser.close(); }
+    expect(await checkDemoLayout(f, sc.map((x) => ({ id: x.id, route: x.route, states: [] })))).toEqual([]);
+  }, 60_000);
   it.skipIf(!findChromium())("shows a page in the product's other language: translated, mirrored, in native digits, its links and toasts still working", async () => {
     const tr = (o: Record<string, string>) => Object.entries(o).map(([from, to]) => ({ from, to }));
     const mock = {

@@ -68,7 +68,8 @@ export function findChromium(): string | undefined {
 /**
  * Run in the page: measures every line of text in the screen's visible state (open overlays included) and returns what is wrong
  * with it. Scrolling rows (tables, slides) may run past their box on purpose; text cut with an ellipsis or a line clamp is
- * shortened on purpose. Plain JS, as it is sent to the browser.
+ * shortened on purpose. A line is measured at its line height, so a script whose glyph boxes are taller than its lines (Urdu's
+ * Nastaliq) is not read as overlapping the lines around it. Plain JS, as it is sent to the browser.
  */
 export const LAYOUT_CHECK = String.raw`(function(id){
   var sec=document.getElementById(id),pane=sec&&sec.querySelector(".pane:not([hidden])");if(!pane)return[];
@@ -85,7 +86,11 @@ export const LAYOUT_CHECK = String.raw`(function(id){
       if(e!==canvas){var o=c.overflowX+" "+c.overflowY;if(/auto|scroll/.test(o))scrolls=true;else if(!box&&!scrolls&&/hidden|clip/.test(o))box=e}}
     if(hidden)continue;
     var range=document.createRange();range.selectNodeContents(n);var rs=range.getClientRects(),layer=el.closest(".ovl,.toast");
-    for(var i=0;i<rs.length;i++){var r=rs[i];if(r.width<1||r.height<1)continue;lines.push({r:r,node:n,text:text,layer:layer});
+    // a script with tall glyph boxes (Nastaliq's is about 2.5 times its size) spills past its line: measure each line at its line height
+    var cs=getComputedStyle(el),fs=parseFloat(cs.fontSize)||14,cap=Math.max(parseFloat(cs.lineHeight)||fs*1.2,fs*1.2);
+    for(var i=0;i<rs.length;i++){var r=rs[i];if(r.width<1||r.height<1)continue;
+      if(r.height>cap){var mid=(r.top+r.bottom)/2;r={left:r.left,right:r.right,top:mid-cap/2,bottom:mid+cap/2,width:r.width,height:cap}}
+      lines.push({r:r,node:n,text:text,layer:layer});
       if(!scrolls&&(r.right>frame.right+1||r.left<frame.left-1))add("overflow",text);
       if(box&&!cut&&!scrolls){var b=box.getBoundingClientRect();if(b.width>2&&b.height>2&&(r.right>b.right+2||r.left<b.left-2||r.bottom>b.bottom+2||r.top<b.top-2))add("clipped",text)}}}
   lines=lines.slice(0,600);

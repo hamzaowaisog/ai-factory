@@ -222,7 +222,7 @@ function skeleton(b: MockBlock): string {
   const bar = (w: number, h = 12) => `<i class="sk" style="width:${w}%;height:${h}px"></i>`;
   switch (b.type) {
     case "stats": return `<div class="stats">${b.items.map((it) => `<div class="stat"><div class="sh"><span class="k">${esc(it.label)}</span></div>${bar(55, 26)}${it.delta ? bar(30, 10) : ""}</div>`).join("")}</div>`;
-    case "table": return `<div class="card tbl"><table><thead><tr>${b.columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${[0, 1, 2, 3, 4].map((r) => `<tr>${b.columns.map((_, i) => `<td>${bar(i === 0 ? 70 : 40 + ((r * 13 + i * 29) % 45), 12)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    case "table": return `<div class="card tbl"><div class="scroll"><table><thead><tr>${b.columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${[0, 1, 2, 3, 4].map((r) => `<tr>${b.columns.map((_, i) => `<td>${bar(i === 0 ? 70 : 40 + ((r * 13 + i * 29) % 45), 12)}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
     case "form": return `<div class="card form">${b.fields.map((f) => `<div class="field"><label>${esc(f.label)}</label>${f.kind === "toggle" ? bar(12, 22) : f.kind === "otp" ? bar(60, 46) : f.kind === "slider" ? bar(100, 8) : bar(100, f.kind === "radio" || f.kind === "checkbox" ? 64 : 38)}</div>`).join("")}<div class="row"><button type="button" class="btn primary" disabled>${esc(b.submit)}</button></div></div>`;
     case "chart":
       if (b.kind === "donut" || b.kind === "progress" || b.kind === "gauge") return `<div class="card chart"><div class="ch"><h4>${esc(b.title)}</h4></div><div class="skround">${(b.kind === "progress" ? b.points.slice(0, 4) : [0]).map(() => '<i class="sk"></i>').join("")}</div></div>`;
@@ -1097,7 +1097,8 @@ th.ck,td.ck{width:44px;padding-inline-end:0}tr.picked td{background:color-mix(in
 .crumbs>:not(.back){display:none}.crumbs .back{display:inline-flex}.topbar .nb{display:flex}.stage:has(>.tabbar) .toast.pin{bottom:92px}
 .pane{--px:14px;padding:18px 14px 24px}.ph .pa{width:100%}.ph .pa .btn{flex:1;justify-content:center}.form{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stats>.stat:last-child:nth-child(odd){grid-column:1/-1}.stat .v{font-size:22px}.spark{display:none}.search{min-width:0;flex:1}.toolbar .filters{flex-direction:column;align-items:stretch}.chips{overflow:auto;flex-wrap:nowrap}.bars{padding-inline-start:30px}.bars .g{inset-inline-start:30px}.bars .g em{inset-inline-start:-30px;width:24px}}
 /* the parts of products a field is known for: calendar, map, gallery, upload, chat, kanban, plans, reviews, notifications, results, compare, receipt */
-.cal{display:grid;gap:22px}.cal.wt{grid-template-columns:minmax(0,1.7fr) minmax(190px,1fr);align-items:start}
+/* the times sit beside the month while both fit, and under it in a narrow column (beside a form, or on a phone) */
+.cal{display:grid;gap:22px}.cal.wt{display:flex;flex-wrap:wrap;align-items:flex-start}.cal.wt>*{flex:1 1 190px;min-width:0}.cal.wt>:first-child{flex:1.7 1 300px}
 .calh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.calh b{font:var(--hw) 16px var(--head);letter-spacing:var(--hls)}.calh .row{gap:2px}
 .cgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}.cgrid .cwd{font-size:11.5px;font-weight:600;color:var(--mut);text-align:center;padding:2px 0 6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cd{position:relative;display:grid;justify-items:center;align-content:start;gap:3px;min-height:48px;min-width:0;padding:6px 2px 4px;border:0;border-radius:calc(var(--r) - 2px);background:none;cursor:pointer;font-variant-numeric:tabular-nums}
@@ -1202,7 +1203,7 @@ th.ck,td.ck{width:44px;padding-inline-end:0}tr.picked td{background:color-mix(in
 .rtot .due{padding-top:10px;border-top:1px solid var(--edge2);font-weight:700;color:var(--ink)}.rtot .due dd{font:700 20px var(--head);letter-spacing:-.02em}
 .rnote{margin:0;font-size:12.5px;color:var(--mut);padding-top:12px;border-top:1px dashed var(--edge2)}
 @container app (max-width:760px){.res{grid-template-columns:1fr}.rside{display:none}.res.fopen .rside{display:grid}.fbtn{display:inline-flex}.revs{grid-template-columns:1fr;gap:20px}}
-@container app (max-width:640px){.cal.wt,.mapc,.gal.hero{grid-template-columns:1fr}.cgrid.lab .cd{min-height:48px;justify-items:center;padding:6px 2px 4px;border-color:transparent}.cgrid.lab .cd b{justify-self:center;width:30px;height:30px;font-size:13.5px}.cgrid.lab .evs{display:none}.cgrid.lab .cdots{display:flex}
+@container app (max-width:640px){.mapc,.gal.hero{grid-template-columns:1fr}.cgrid.lab .cd{min-height:48px;justify-items:center;padding:6px 2px 4px;border-color:transparent}.cgrid.lab .cd b{justify-self:center;width:30px;height:30px;font-size:13.5px}.cgrid.lab .evs{display:none}.cgrid.lab .cdots{display:flex}
 .cd b{width:28px;height:28px}.mapv{min-height:240px}.mpl{border-inline-start:0;border-top:1px solid var(--edge);max-height:none}.gt{contain:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);grid-auto-rows:auto}.gth .pic{aspect-ratio:1}
 .cmpb table{min-width:0}.cmpb th:first-child{min-width:92px}.cmpb thead th,.cmpb tbody th,.cmpb td{padding:10px 8px}.cmpb thead th b{font-size:13.5px}.cmpb tfoot .btn{padding:0 8px;font-size:12.5px}
 .kb{grid-template-columns:repeat(var(--cols),80%);scroll-snap-type:x mandatory}.kcol{scroll-snap-align:start}.ri.vis .pic{width:88px}.rp{font-size:14px}.msg{max-width:86%}.drop{padding:16px}}
