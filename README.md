@@ -106,6 +106,7 @@ When something keeps failing, the factory climbs a fixed ladder (retry with the 
 | Ledger, crash-resume, failure ladder, cost caps, verify-evidence | URL-prefix package filter (today: allowlist by host name) |
 | GitHub PR delivery (optional) | Bitbucket PR delivery (today: branch ready locally) |
 | Design toolkit for web apps (no AI): how big a UI change is, shown on the approval card; style checks; `factory design` | A mock rendered in the real app; the visual check (`design.capture`) is opt-in and advisory |
+| | Design handoff: a versioned design package, exports (PNG, PDF, demo, tokens, Figma) from `factory design export` and an Export button in the UI, stack kits and fidelity checks (`docs/estimates-design.md`, "Design handoff"; approved, not built) |
 | **Estimate mode**: requirements or a repo plus a request to hours, API cost and elapsed time, with gates E1-E7, a lead's approval and two workbooks (`factory estimate`); building from an approved estimate under gates B1-B7 (`factory start --from-estimate`); benchmarks in `bench/` | Estimate-driven builds outside .NET; calibration from real hours until finished builds and more ledgers exist. See [docs/estimates-overview.md](docs/estimates-overview.md) |
 
 **Refused for now:** SQL Server, repos whose tests start their own containers (Testcontainers), Windows-only projects (WPF/WinForms/.NET Framework), Git LFS, submodules.

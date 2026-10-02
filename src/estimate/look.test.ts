@@ -445,7 +445,7 @@ describe("domain components", () => {
     expect(html).toContain('aria-label="Yes"');
     expect(html).toContain('class="no"');
     expect(html).toContain('<th class="ft"><b>Gold</b>');
-    expect((html.match(/>Select</g) ?? []).length).toBe(2);
+    expect((html.split('id="components"')[0]!.match(/>Select</g) ?? []).length).toBe(2);
   });
   it("draws a receipt with its lines and the amount due last", () => {
     const html = demo([{ type: "receipt", title: "Invoice INV-2041", status: "Paid", lines: [{ item: "Consultation", qty: "1", amount: "PKR 3,000" }], totals: [{ label: "Subtotal", value: "PKR 3,000" }, { label: "Total", value: "PKR 3,000" }] }]);

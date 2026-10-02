@@ -164,16 +164,41 @@ export type Spec = z.infer<typeof Spec>;
 /** What a screen shows, with believable sample data: drawn into the clickable demo (code, no model). Kept small on purpose. */
 const Str = (n: number) => z.string().max(n);
 /**
+ * A button: a plain label (the first of a group is the main one), or the label with its look. variant: primary (the one main
+ * action), secondary, ghost (quiet, in toolbars and rows), danger (deletes, cancels or takes something away) or link; icon: a word
+ * for its picture ("download", "plus"; else chosen from the verb); iconOnly: only the picture shows, the label is its name for
+ * screen readers and its tooltip; state: disabled (not possible yet) or loading (working); hint: a tooltip; menu: the button is a
+ * split button, its arrow opening these other choices ("Export" with "CSV", "PDF").
+ */
+export const ButtonSpec = z.object({
+  label: Str(30), variant: z.enum(["primary", "secondary", "ghost", "danger", "link"]).optional(), icon: Str(20).optional(), iconOnly: z.boolean().optional(),
+  state: z.enum(["disabled", "loading"]).optional(), hint: Str(80).optional(), menu: z.array(Str(30)).min(1).max(6).optional(),
+});
+export type ButtonSpec = z.infer<typeof ButtonSpec>;
+export const Button = z.union([Str(30), ButtonSpec]);
+export type Button = z.infer<typeof Button>;
+/** A button's label, however it was given. */
+export const btnText = (b: Button): string => (typeof b === "string" ? b : b.label);
+/** Every label a button can be pressed by: its own and its split menu's. */
+export const btnLabels = (b: Button): string[] => (typeof b === "string" ? [b] : [b.label, ...(b.menu ?? [])]);
+
+/**
  * One field of a form. Beyond text, select, date, textarea and toggle: radio (one of the options, shown at once), checkbox (several
  * of the options; the value lists the ticked ones, comma-separated), number, currency (the value or placeholder carries the code or
  * sign, "PKR 25,000"), otp (a one-time code, its length from the value or 6), phone (country code then number, "+92 300 1234567"),
  * search (a select you type into, for long option lists), slider (a value between the first and last option, "0" and "50 km"),
- * card (card number, expiry and security code; placeholders only, never a real number).
+ * card (card number, expiry and security code; placeholders only, never a real number), password (hidden, with show and hide),
+ * email, time, daterange (a start and an end date; the value "12 Mar 2026 - 18 Mar 2026"), multiselect (several of a long list,
+ * picked ones as chips; the value lists them comma-separated), combobox (type to filter a long list, one picked) and consent
+ * (one "I agree" box; the label is the sentence).
+ * required: marked and checked; help: a line under the field; disabled or readOnly: shown but not editable; error: its own
+ * message in the validation state ("Enter a valid IBAN"); hint: a tooltip beside the label.
  */
 export const FormField = z.object({
-  label: Str(40),
-  kind: z.enum(["text", "select", "date", "textarea", "toggle", "radio", "checkbox", "number", "currency", "otp", "phone", "search", "slider", "card"]).default("text"),
-  placeholder: Str(60).optional(), value: Str(80).optional(), options: z.array(Str(40)).max(8).optional(),
+  label: Str(80),
+  kind: z.enum(["text", "select", "date", "textarea", "toggle", "radio", "checkbox", "number", "currency", "otp", "phone", "search", "slider", "card", "password", "email", "time", "daterange", "multiselect", "combobox", "consent"]).default("text"),
+  placeholder: Str(60).optional(), value: Str(80).optional(), options: z.array(Str(40)).max(12).optional(),
+  required: z.boolean().optional(), help: Str(100).optional(), disabled: z.boolean().optional(), readOnly: z.boolean().optional(), error: Str(100).optional(), hint: Str(80).optional(),
 });
 export type FormField = z.infer<typeof FormField>;
 /** The block shapes; `big` lifts the size limits for the full-data state (more rows, points and items). */
@@ -183,11 +208,13 @@ const blockSchema = (big: boolean) => z.discriminatedUnion("type", [
   z.object({ type: z.literal("filters"), search: Str(40).optional(), chips: z.array(Str(30)).max(6).default([]), segments: z.array(Str(16)).min(2).max(4).optional() }),
   /**
    * sortBy: the column the rows are sorted by (its header shows the direction, every header sorts on click); selectable: a tick box
-   * on each row; bulk: what can be done to the ticked rows at once ("Export", "Mark paid"), shown in a bar when any is ticked
+   * on each row; bulk: what can be done to the ticked rows at once ("Export", "Mark paid"), shown in a bar when any is ticked;
+   * pages: how many pages of rows there are when the rows are one page of many (the pager works), page: the one shown
    */
   z.object({
     type: z.literal("table"), columns: z.array(Str(30)).min(1).max(6), rows: z.array(z.array(Str(60))).min(1).max(big ? 14 : 6), statusColumn: z.number().int().min(0).optional(),
-    sortBy: z.number().int().min(0).optional(), sortDir: z.enum(["asc", "desc"]).default("desc"), selectable: z.boolean().optional(), bulk: z.array(Str(24)).min(1).max(3).optional(),
+    sortBy: z.number().int().min(0).optional(), sortDir: z.enum(["asc", "desc"]).default("desc"), selectable: z.boolean().optional(), bulk: z.array(Button).min(1).max(3).optional(),
+    pages: z.number().int().min(1).max(999).optional(), page: z.number().int().min(1).optional(),
   }),
   z.object({ type: z.literal("form"), fields: z.array(FormField).min(1).max(big ? 8 : 6), submit: Str(30).default("Save") }),
   /**
@@ -201,15 +228,17 @@ const blockSchema = (big: boolean) => z.discriminatedUnion("type", [
     points: z.array(z.object({ label: Str(16), value: z.number(), parts: z.array(z.number()).min(2).max(4).optional() })).min(1).max(big ? 14 : 8),
     series: z.array(Str(20)).min(2).max(4).optional(), max: z.number().positive().optional(), unit: Str(8).optional(), ranges: z.array(Str(12)).min(2).max(5).optional(),
   }),
-  z.object({ type: z.literal("cards"), visual: z.boolean().optional(), items: z.array(z.object({ title: Str(50), meta: Str(80), badge: Str(24).optional() })).min(1).max(big ? 9 : 6) }),
+  /** people: who is on it (a team, attendees, assignees), drawn as overlapping avatars, five at most then "+N" */
+  z.object({ type: z.literal("cards"), visual: z.boolean().optional(), items: z.array(z.object({ title: Str(50), meta: Str(80), badge: Str(24).optional(), people: z.array(Str(40)).max(12).optional() })).min(1).max(big ? 9 : 6) }),
   /** slides seen one at a time: "promo" for offers, announcements or onboarding (wide, on the brand colour), "media" for a row of things chosen by picture */
   z.object({ type: z.literal("carousel"), style: z.enum(["promo", "media"]).default("media"), title: Str(40).optional(), items: z.array(z.object({ title: Str(50), meta: Str(80), badge: Str(24).optional(), cta: Str(24).optional() })).min(2).max(big ? 10 : 6) }),
   z.object({ type: z.literal("steps"), items: z.array(Str(30)).min(2).max(6), current: z.number().int().min(0).default(0) }),
   z.object({ type: z.literal("timeline"), items: z.array(z.object({ time: Str(24), title: Str(60), meta: Str(80).optional(), status: z.enum(["done", "now", "next"]).default("next") })).min(1).max(big ? 10 : 6) }),
-  z.object({ type: z.literal("detail"), style: z.enum(["card", "pass"]).default("card"), title: Str(50).optional(), lead: z.object({ label: Str(30), value: Str(40) }).optional(), rows: z.array(z.object({ label: Str(30), value: Str(60) })).min(1).max(8) }),
+  /** a record's facts; a row with "badge" shows its value as a status (Active, Overdue); people: who it belongs to or is shared with */
+  z.object({ type: z.literal("detail"), style: z.enum(["card", "pass"]).default("card"), title: Str(50).optional(), lead: z.object({ label: Str(30), value: Str(40) }).optional(), rows: z.array(z.object({ label: Str(30), value: Str(60), badge: z.boolean().optional() })).min(1).max(8), people: z.array(Str(40)).max(12).optional() }),
   /** sections opened one at a time (questions and answers, policy or settings groups), the first one open */
   z.object({ type: z.literal("accordion"), title: Str(40).optional(), items: z.array(z.object({ title: Str(60), body: Str(240) })).min(2).max(big ? 10 : 8) }),
-  z.object({ type: z.literal("list"), items: z.array(z.object({ title: Str(60), meta: Str(80) })).min(1).max(big ? 10 : 6) }),
+  z.object({ type: z.literal("list"), items: z.array(z.object({ title: Str(60), meta: Str(80), badge: Str(24).optional(), people: z.array(Str(40)).max(12).optional() })).min(1).max(big ? 10 : 6) }),
   // the parts of products a field is known for, drawn as that product draws them
   /**
    * a month: "startsOn" is the weekday of the 1st (0 Monday to 6 Sunday), "days" its length; "marks" put bookings or events on days,
@@ -255,7 +284,20 @@ const blockSchema = (big: boolean) => z.discriminatedUnion("type", [
     type: z.literal("receipt"), title: Str(40), status: Str(20).optional(), from: Str(80).optional(), to: Str(80).optional(), facts: z.array(z.object({ label: Str(20), value: Str(30) })).max(4).default([]),
     lines: z.array(z.object({ item: Str(60), qty: Str(10).optional(), amount: Str(20) })).min(1).max(big ? 14 : 8), totals: z.array(z.object({ label: Str(30), value: Str(20) })).min(1).max(5), note: Str(120).optional(),
   }),
-  z.object({ type: z.literal("actions"), buttons: z.array(Str(30)).min(1).max(4) }),
+  z.object({ type: z.literal("actions"), buttons: z.array(Button).min(1).max(4) }),
+  /** a message inside the page (not a toast): a tone, an optional title, the text and an optional button ("Verify now") */
+  z.object({ type: z.literal("alert"), tone: z.enum(["info", "ok", "warn", "bad"]).default("info"), title: Str(60).optional(), text: Str(200), action: Str(24).optional() }),
+  /**
+   * the controls above a list or report that are not a form: a search, dropdowns that sort or narrow it ("Sort by", "Status",
+   * each with its options and the one chosen) and buttons (a split "Export" button, "Columns")
+   */
+  z.object({
+    type: z.literal("toolbar"), search: Str(40).optional(),
+    selects: z.array(z.object({ label: Str(24), options: z.array(Str(30)).min(2).max(8), value: Str(30).optional() })).max(3).default([]),
+    buttons: z.array(Button).max(3).default([]),
+  }),
+  /** how far things have got, as bars: a profile's completeness, a quota used, a course, a goal (each a percent 0-100) */
+  z.object({ type: z.literal("progress"), title: Str(40).optional(), items: z.array(z.object({ label: Str(40), value: z.number().min(0).max(100), meta: Str(30).optional() })).min(1).max(4) }),
   z.object({ type: z.literal("text"), body: Str(240) }),
 ]);
 export const MockBlock = blockSchema(false);
@@ -265,7 +307,8 @@ export const MockBlockFull = blockSchema(true);
  * short menu. It opens from one of the page's own buttons (`trigger`, its label; "More" for a table row's menu).
  */
 export const MockOverlay = z.object({
-  kind: z.enum(["modal", "drawer", "sheet", "confirm", "menu"]),
+  /** popover: a small panel beside its button (a quick filter, a date range, a share link), not a dialog */
+  kind: z.enum(["modal", "drawer", "sheet", "confirm", "menu", "popover"]),
   trigger: Str(40),
   title: Str(60),
   text: Str(200).optional(),
@@ -274,7 +317,7 @@ export const MockOverlay = z.object({
   /** a menu's entries */
   items: z.array(Str(40)).max(8).optional(),
   /** its buttons, the main one first ("Freeze card", "Keep it active") */
-  actions: z.array(Str(30)).max(2).default([]),
+  actions: z.array(Button).max(2).default([]),
 });
 export type MockOverlay = z.infer<typeof MockOverlay>;
 
@@ -298,6 +341,8 @@ export type Translation = z.infer<typeof Translation>;
 
 export const ScreenMock = z.object({
   title: Str(60), subtitle: Str(120).optional(),
+  /** the record's status beside the title (Active, Overdue, Draft), on a page about one record */
+  badge: Str(20).optional(),
   blocks: z.array(MockBlock).min(1).max(6),
   /** the page's own tabs (Overview, Activity, Documents), the first one open; for one record seen several ways, not for pages of their own */
   tabs: z.array(Str(24)).min(2).max(6).optional(),
@@ -316,7 +361,7 @@ export const ScreenMock = z.object({
 });
 export type ScreenMock = z.infer<typeof ScreenMock>;
 /** The same screen with fine-grained data: every block of the normal page, denser (more rows, points and items), plus the graphs and figures a real day of use would show. */
-export const ScreenMockFull = z.object({ title: Str(60), subtitle: Str(120).optional(), blocks: z.array(MockBlockFull).min(1).max(9), tabs: ScreenMock.shape.tabs, crumbs: ScreenMock.shape.crumbs, copy: ScreenMock.shape.copy, tr: Translation.optional() });
+export const ScreenMockFull = z.object({ title: Str(60), subtitle: Str(120).optional(), badge: ScreenMock.shape.badge, blocks: z.array(MockBlockFull).min(1).max(9), tabs: ScreenMock.shape.tabs, crumbs: ScreenMock.shape.crumbs, copy: ScreenMock.shape.copy, tr: Translation.optional() });
 export type ScreenMockFull = z.infer<typeof ScreenMockFull>;
 
 /** Who or what the app is acting for, switched from the frame (a bank's accounts, a SaaS workspace, a group's companies or branches). */

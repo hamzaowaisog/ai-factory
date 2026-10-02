@@ -33,6 +33,17 @@ Full plan: `docs/estimates-design.md`, "Design references". In short:
 - **One design pipeline.** `designSteps({ sources, purpose })` (`src/stages/design-pipeline.ts`, built) returns `[design-refs?, design, design-baseline]` and is what estimate (today), brownfield and later greenfield add to their step lists. `sources` names the steps it reads (intent, spec, repo inventory if any); `purpose` picks the approval card's wording. Plan, implement and the size-cap read the result only through `approvedDesignFor(state, ledger)`, so a build gets the approved screens and tokens whether its design was approved in the same run or in the estimate it came from. Greenfield has no step list yet; when it is built it adds `...designSteps()`.
 - **Brownfield builds get the design step** before plan when the request touches UI and the run is not seeded from an approved estimate. When a `match` reference meets an app with its own look, the clarify card asks whether to keep the app's look (recommended) or restyle it; a restyle is a design-system change. (Code cannot tell whether the two looks differ, since the inventory keeps token names but not values, so it always asks.)
 
+## Design handoff: package, exports, stack conversion and fidelity (approved 2026-10-02, not built)
+
+Full plan: `docs/estimates-design.md`, "Design handoff". In short:
+
+- **Common controls first.** Button variants and states, password, email, time, date range, multi-select, combobox and consent fields, field required/help/disabled/error, inline alerts, toolbars, linear progress, working paging, popovers and tooltips. A Components page shows every control in every state. Design-time accessibility checks (`design-a11y`): contrast, touch targets, focus, labels.
+- **Design package.** A `design-export` step writes `design/vN/` (manifest, `design.json` with a `schemaVersion`, W3C tokens, the demo, reproducible reference shots). It is never changed after approval, kept in the factory store and the repo, and a change makes a new version.
+- **Exports.** `factory design export <run> --format png|pdf|html|tokens|json|figma|all` in every mode, `--design-export` to run it on approval, and an **Export button** on the design card and Design tab (PNG, PDF design book, demo, tokens, JSON, Figma).
+- **Figma.** Our own "AI Factory Import" plugin reads `figma.json`. Figma's MCP server can write only from allowlisted clients over OAuth, so the factory cannot call it; using it through Claude Code is an optional route (`factory design figma`).
+- **Stack conversion.** A `uiTarget` per app, tokens generated for the stack, a kit per target (`next-shadcn` / `vite-shadcn` first), and screens scaffolded by code once, with the model writing behaviour only.
+- **Fidelity.** This replaces the base-versus-head comparison as the check against the design. The built app runs in fixture mode and is compared with the package's shots. Tokens, structure and accessibility block (`design.tokens`, `design.structure`, `design.a11y`); layout is advisory until calibrated; pixels never block. Playwright tests are generated from the design's states, links, overlays, toasts and forms.
+
 ## The four sizes, precisely
 
 The classifier (`src/design/size.ts`) takes a list of files, each marked add, modify or delete. In git mode it also reads each file before and after the change.

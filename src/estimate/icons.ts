@@ -81,6 +81,11 @@ const P: Record<string, string> = {
   percent: '<path d="M18.5 5.5 5.5 18.5"/><circle cx="7" cy="7" r="2.3"/><circle cx="17" cy="17" r="2.3"/>',
   key: '<circle cx="8" cy="15.5" r="4"/><path d="m11 12.5 8.5-8.5M16.5 7l2.5 2.5M14.5 9l2 2"/>',
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 1 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 1 0 5.7 5.7l1-1"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>',
+  eyeoff: '<path d="M10 5.8A9 9 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.6 3.4M6.6 6.6C3.9 8.4 2.5 12 2.5 12S6 18.5 12 18.5a9 9 0 0 0 5.4-1.8M9.9 9.9a3 3 0 0 0 4.2 4.2M4 4l16 16"/>',
+  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/>',
+  trash: '<path d="M4.5 7h15M10 4h4M6.5 7l.8 11.2A1.5 1.5 0 0 0 8.8 19.5h6.4a1.5 1.5 0 0 0 1.5-1.3L17.5 7M10 11v5M14 11v5"/>',
+  columns: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M9.3 5v14M14.7 5v14"/>',
 };
 
 export type IconName = keyof typeof P;
@@ -162,5 +167,7 @@ const VERBS: [RegExp, IconName][] = [
   [/^(refresh|retry|sync|reload)\b/i, "refresh"],
   [/^(call)\b/i, "phone"],
   [/^(track|view on map|directions)\b/i, "pin"],
+  [/^(delete|remove|discard)\b/i, "trash"],
+  [/^(columns|customi[sz]e columns)\b/i, "columns"],
 ];
 export const verbIcon = (label: string): string => VERBS.find(([re]) => re.test(label.trim()))?.[1] ?? "";

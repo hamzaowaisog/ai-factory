@@ -11,7 +11,7 @@ import { designBaseline, leadApproval } from "../estimate/gates.js";
 import { exportWorkbooks, type ExportInput } from "../estimate/export.js";
 import { considerationsFrom } from "../estimate/considerations.js";
 import { diffDesigns, diffEstimates } from "../estimate/lineage.js";
-import { buildDemo, demoStates, frameDataUri } from "../estimate/demo.js";
+import { buildDemo, COMPONENTS_ID, demoStates, frameDataUri } from "../estimate/demo.js";
 import { designTokens } from "../estimate/tokens.js";
 import { screenUi, uiFactors, type ScreenUi } from "../estimate/ui-complexity.js";
 import { captureDemo, LAYOUT_FAULT, type LayoutIssue, type ShotResult, type Viewport } from "../estimate/screenshots.js";
@@ -189,7 +189,7 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
       const bundle = bundleOf(past.length);
       // pictures of the demo, only when a person is about to look at it; best effort, never a reason to stop
       const shotsDir = join(previewDir, "shots");
-      const taken = await captureDemo(demoFile, d.screens.map((sc) => ({ id: sc.id, route: sc.route, states: demoStates(sc as never), title: label(sc) })), shotsDir);
+      const taken = await captureDemo(demoFile, [...d.screens.map((sc) => ({ id: sc.id, route: sc.route, states: demoStates(sc as never), title: label(sc) })), ...(d.screens.some((sc) => sc.mock) && !d.screens.some((sc) => sc.id === COMPONENTS_ID) ? [{ id: COMPONENTS_ID, route: "/components", states: ["All states"], title: "Components" }] : [])], shotsDir);
       if (taken.shots.length) writePreview(taken.shots);
       if (taken.note) ctx.log(`design-baseline: ${taken.note}`);
       if (taken.issues?.length) ctx.log(`design-baseline: ${taken.issues.length} layout problem(s) in the demo, listed on the card`);

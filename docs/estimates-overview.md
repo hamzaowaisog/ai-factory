@@ -54,3 +54,5 @@ A small bug fix through the factory: about **$1–2 and 20–30 minutes**, mostl
 
 ## Status
 Built end to end: `factory estimate` to two workbooks, and `factory start --from-estimate` to build it under gates B1-B7. Both new and existing projects work for the estimate; the build side is still .NET only. What is not done is listed at the end of [estimates-design.md](estimates-design.md#build-status-2026-10-01).
+
+Planned next (approved 2026-10-02, not built): the approved design becomes a versioned design package. It can be exported as PNG, a PDF design book, the demo, tokens or a Figma file, from `factory design export` or the Export button in the UI; the client delivery includes the design PDF. The build converts it to the chosen UI stack and checks it against the design. See [Design handoff](estimates-design.md#design-handoff-requirements-2-and-3-approved-2026-10-02-not-built-yet).

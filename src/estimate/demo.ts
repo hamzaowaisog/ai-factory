@@ -10,7 +10,7 @@ import { palette } from "./palette.js";
 import { icon, iconFor, verbIcon } from "./icons.js";
 import { hash, scene } from "./scenes.js";
 import { demoWords, englishName, isRtl, nativeDigits, nativeName, translationTable, weekStart, weekend } from "./locale.js";
-import type { DesignApp, DesignLocale, DesignTheme, FormField, MockBlock, MockOverlay, MockToast, ScreenMock, Switcher } from "../contracts/artifacts.js";
+import type { Button, DesignApp, DesignLocale, DesignTheme, FormField, MockBlock, MockOverlay, MockToast, ScreenMock, Switcher } from "../contracts/artifacts.js";
 import type { DesignOut } from "../stages/design.js";
 import type { z } from "zod";
 
@@ -235,7 +235,8 @@ function skeleton(b: MockBlock): string {
     case "detail": return `<div class="card detail ${b.style}">${b.title ? `<div class="dh"><b>${esc(b.title)}</b></div>` : ""}<dl>${b.rows.map((r) => `<div><dt>${esc(r.label)}</dt><dd>${bar(70, 14)}</dd></div>`).join("")}</dl></div>`;
     case "accordion": return `<div class="card acc">${b.title ? `<h4>${esc(b.title)}</h4>` : ""}${b.items.map((it) => `<details><summary><span>${esc(it.title)}</span>${icon("chevd")}</summary></details>`).join("")}</div>`;
     case "filters": return renderBlock(b, "normal");
-    case "actions": return renderBlock(b, "normal");
+    case "actions": case "toolbar": case "alert": return renderBlock(b, "normal");
+    case "progress": return `<div class="card prgs">${b.title ? `<h4>${esc(b.title)}</h4>` : ""}${b.items.map((it) => `<div class="pi"><span class="pl">${esc(it.label)}</span>${bar(100, 6)}</div>`).join("")}</div>`;
     case "calendar": return `<div class="card cal"><div><div class="calh"><b>${esc(b.month)}</b></div><div class="cgrid">${WEEK.map((w) => `<span class="cwd">${w}</span>`).join("")}${Array.from({ length: 35 }, () => '<i class="sk cd"></i>').join("")}</div></div></div>`;
     case "map": return `<div class="card mapc"><i class="sk mapv"></i><div class="mpl">${b.pins.slice(0, 4).map(() => `<div class="li">${bar(55, 13)}${bar(35, 10)}</div>`).join("")}</div></div>`;
     case "gallery": return `<div class="gal grid">${b.items.slice(0, 6).map(() => '<i class="sk pic-sk"></i>').join("")}</div>`;
@@ -255,20 +256,60 @@ const segs = (items: string[], label: string): string => `<div class="seg" role=
 
 const btnLabel = (t: string): string => { const v = verbIcon(t); return `${v ? icon(v) : ""}<span>${esc(t)}</span>`; };
 
+let tipN = 0;
+/** A tooltip on what it wraps: shown on hover and keyboard focus, and named to screen readers through aria-describedby. */
+const withTip = (html: string, tip: string | undefined): string => {
+  if (!tip) return html;
+  const id = `tip${++tipN}`;
+  return `<span class="tipw">${html.replace(/^<(\w+)/, `<$1 aria-describedby="${id}"`)}<span class="tip" role="tooltip" id="${id}">${esc(tip)}</span></span>`;
+};
+/** A button's picture: the word it was given when it names one, else one for that word's meaning, else its verb's. */
+const btnIcon = (b: { label: string; icon?: string }): string => (b.icon ? icon(b.icon) || icon(iconFor(b.icon)) || icon(verbIcon(b.icon)) : "") || icon(verbIcon(b.label));
+/**
+ * One button as the design gave it: a plain label (the first of its group is the main one, the rest secondary) or its variant,
+ * icon, state, tooltip and split menu. `act` is what pressing it does in the demo (busy, then the page's toast).
+ */
+export function buttonHtml(given: Button, first: boolean, act = "act", plain = "secondary"): string {
+  const b = typeof given === "string" ? { label: given } : given;
+  const variant = "variant" in b && b.variant ? b.variant : first ? "primary" : plain;
+  const cls = ["btn", { primary: "primary", secondary: "", ghost: "ghost", danger: "primary danger", link: "link" }[variant]];
+  const sp = typeof given === "string" ? undefined : given;
+  if (sp?.iconOnly) cls.push("icon");
+  if (sp?.state === "loading") cls.push("loading");
+  const off = sp?.state === "disabled" || sp?.state === "loading";
+  const attrs = `${off ? " disabled" : ` data-act="${act}"`}${sp?.state === "loading" ? ' aria-busy="true"' : ""}`;
+  const pic = btnIcon(b);
+  const inner = sp?.iconOnly ? `${pic || icon("more")}<span class="vh">${esc(b.label)}</span>` : `${sp?.state === "loading" ? '<i class="spin" aria-hidden="true"></i>' : pic}<span>${esc(b.label)}</span>`;
+  const main = `<button type="button" class="${cls.filter(Boolean).join(" ")}"${sp?.iconOnly ? ` aria-label="${esc(b.label)}"` : ""}${attrs}>${inner}</button>`;
+  const tipped = withTip(main, sp?.hint ?? (sp?.iconOnly ? b.label : undefined));
+  if (!sp?.menu?.length) return tipped;
+  // a split button: the main action, and an arrow opening the other choices
+  const caret = `<button type="button" class="${cls.filter((c) => c !== "icon" && c !== "loading").join(" ")} caret" data-dd aria-haspopup="menu" aria-expanded="false" aria-label="More ${esc(b.label)} options"${off ? " disabled" : ""}>${icon("chevd")}</button>`;
+  const menu = `<span class="ddm" role="menu" hidden>${sp.menu.map((m) => `<button type="button" role="menuitem" data-act="${act}">${btnLabel(m)}</button>`).join("")}</span>`;
+  return `<span class="splitb">${tipped}${caret}${menu}</span>`;
+}
+
+/** Who is on something: up to five overlapping avatars, then how many more. */
+const people = (names: string[] | undefined): string => {
+  if (!names?.length) return "";
+  const more = names.length - 5;
+  return `<span class="ppl" role="img" aria-label="${esc(names.join(", "))}">${names.slice(0, 5).map((n) => avatar(n)).join("")}${more > 0 ? `<i class="pmore">+${more}</i>` : ""}</span>`;
+};
+
 // fields the person picks rather than types: the validation state never flags them
 const CHOSEN = new Set(["select", "toggle", "radio", "checkbox", "slider"]);
 const CURRENCY = /^\s*([A-Z]{3}|[$€£¥₹₨]|Rs\.?)\s?/;
 const DIAL = ["+1", "+44", "+92", "+91", "+971", "+966", "+974", "+20"];
 
 /** The richer form fields (choices shown at once, amounts, codes, phone numbers, sliders, cards); undefined for the basic kinds. */
-function fieldHtml(f: FormField, id: string, bad: boolean, label: string, err: string, cls: string): string | undefined {
+function fieldHtml(f: FormField, id: string, bad: boolean, label: string, err: string, cls: string, lab = esc(f.label)): string | undefined {
   const v = f.value ?? "", ph = f.placeholder ?? "";
   const inv = bad ? ' aria-invalid="true"' : "";
   const opts = f.options?.length ? f.options : v ? [v] : [];
   switch (f.kind) {
     case "radio": case "checkbox": {
       const on = f.kind === "radio" ? [opts.includes(v) ? v : opts[0]] : v.split(/\s*,\s*/).filter(Boolean);
-      return `<fieldset class="${cls} wide opts-f"><legend>${esc(f.label)}</legend><div class="opts${opts.length <= 3 ? " tiles" : ""}">${opts.map((o) => `<label class="opt"><input type="${f.kind}" name="${id}"${on.includes(o) ? " checked" : ""}><span>${esc(o)}</span></label>`).join("")}</div>${err}</fieldset>`;
+      return `<fieldset class="${cls} wide opts-f"${f.disabled ? " disabled" : ""}><legend>${lab}</legend><div class="opts${opts.length <= 3 ? " tiles" : ""}">${opts.map((o) => `<label class="opt"><input type="${f.kind}" name="${id}"${on.includes(o) ? " checked" : ""}><span>${esc(o)}</span></label>`).join("")}</div>${err}</fieldset>`;
     }
     case "number":
       return `<div class="${cls}">${label}<span class="num"><button type="button" class="ib" data-step="-1" aria-label="Less">−</button><input id="${id}" type="text" inputmode="numeric" placeholder="${esc(ph)}" value="${esc(bad ? "" : v)}"${inv}><button type="button" class="ib" data-step="1" aria-label="More">+</button></span>${err}</div>`;
@@ -300,6 +341,30 @@ function fieldHtml(f: FormField, id: string, bad: boolean, label: string, err: s
     case "card":
       // placeholders only: the demo never shows a card number someone could take for a real one
       return `<div class="${cls} wide">${label}<span class="cardin${bad ? " bad" : ""}">${icon("card")}<input id="${id}" type="text" inputmode="numeric" autocomplete="off" placeholder="${esc(ph && !/\d{5,}/.test(ph.replace(/\s/g, "")) ? ph : "Card number")}"${inv}><input type="text" inputmode="numeric" placeholder="MM / YY" aria-label="Expiry"><input type="text" inputmode="numeric" placeholder="CVC" aria-label="Security code"></span>${err}</div>`;
+    case "password":
+      return `<div class="${cls}">${label}<span class="aff pw"><input id="${id}" type="password" autocomplete="off" placeholder="${esc(ph)}" value="${esc(bad ? "" : v)}"${inv}><button type="button" class="ib" data-pw aria-label="Show password" aria-pressed="false">${icon("eye", "on")}${icon("eyeoff", "off")}</button></span>${err}</div>`;
+    case "email":
+      return `<div class="${cls}">${label}<input id="${id}" type="email" inputmode="email" autocomplete="off" placeholder="${esc(ph)}" value="${esc(bad ? "" : v)}"${inv}>${err}</div>`;
+    case "time": {
+      // a time field holds 24-hour "HH:MM"; "9:30 AM" is read into it
+      const m = /(\d{1,2}):(\d{2})\s*([ap]\.?m\.?)?/i.exec(v);
+      const h = m ? (+m[1]! % 12) + (m[3] && /^p/i.test(m[3]) ? 12 : m[3] ? 0 : Math.floor(+m[1]! / 12) * 12) : 0;
+      return `<div class="${cls}">${label}<input id="${id}" type="time" value="${m && !bad ? `${String(h).padStart(2, "0")}:${m[2]}` : ""}"${inv}>${err}</div>`;
+    }
+    case "daterange": {
+      const [a = "", b = ""] = v.split(/\s+(?:-|–|—|to)\s+/);
+      const [pa = "Start date", pb = "End date"] = ph.split(/\s+(?:-|–|—|to)\s+/);
+      return `<div class="${cls} wide">${label}<span class="aff dr">${icon("calendar")}<input id="${id}" type="text" aria-label="Start date" placeholder="${esc(pa)}" value="${esc(bad ? "" : a)}"${inv}><i aria-hidden="true">→</i><input type="text" aria-label="End date" placeholder="${esc(pb)}" value="${esc(bad ? "" : b)}"${inv}></span>${err}</div>`;
+    }
+    case "multiselect": case "combobox": {
+      // type to filter the options; a multiselect keeps each pick as a chip, a combobox takes one
+      const multi = f.kind === "multiselect", picked = multi ? v.split(/\s*,\s*/).filter(Boolean) : [];
+      const chips = multi ? picked.map((o) => `<span class="mc">${esc(o)}<button type="button" data-unchip aria-label="Remove ${esc(o)}">${icon("close")}</button></span>`).join("") : "";
+      const list = opts.map((o) => `<li role="option" aria-selected="${multi ? picked.includes(o) : o === v}">${esc(o)}${icon("check")}</li>`).join("");
+      return `<div class="${cls} wide">${label}<span class="aff cbx${multi ? " multi" : ""}" data-cbx>${chips}<input id="${id}" type="text" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="${id}l" autocomplete="off" placeholder="${esc(ph || (multi ? "Add…" : "Type to search"))}" value="${esc(multi || bad ? "" : v)}"${inv}>${icon("chevd")}<ul class="lb" id="${id}l" role="listbox"${multi ? ' aria-multiselectable="true"' : ""} hidden>${list}</ul></span>${err}</div>`;
+    }
+    case "consent":
+      return `<div class="${cls} wide consent"><label class="opt"><input id="${id}" type="checkbox"${!bad && /^(yes|true|on|checked|agreed?)$/i.test(v) ? " checked" : ""}${inv}><span>${lab}</span></label>${err}</div>`;
     default:
       return undefined;
   }
@@ -449,6 +514,18 @@ function receiptBlock(b: Block<"receipt">): string {
 /** A drawn block marked with its type (`data-b`), so the rendered page can be read back for the reference layout check. */
 const marked = (html: string, type: string): string => html.replace(/^<(\w+)/, `<$1 data-b="${type}"`);
 
+/**
+ * A table's footer: how many rows, and a pager. One page of many has working Previous and Next buttons and the page numbers
+ * around the one shown (the first and last always, gaps as "…").
+ */
+function pager(rows: number, pages = 1, at = 1): string {
+  const n = Math.max(1, pages), p = Math.min(Math.max(1, at), n);
+  if (n < 2) return `<div class="tfoot"><span>${rows} ${rows === 1 ? "result" : "results"}</span><span class="pager"><button type="button" class="ib" aria-label="Previous page" disabled>${icon("chevl")}</button><b>1</b><button type="button" class="ib" aria-label="Next page" disabled>${icon("chevr")}</button></span></div>`;
+  const nums = [...new Set([1, p - 1, p, p + 1, n].filter((x) => x >= 1 && x <= n))].sort((a, b) => a - b);
+  const list = nums.map((x, i) => `${i && x - nums[i - 1]! > 1 ? '<i class="gap">…</i>' : ""}<button type="button" class="pg${x === p ? " on" : ""}" data-page="${x}"${x === p ? ' aria-current="page"' : ""} aria-label="Page ${x}">${x}</button>`).join("");
+  return `<div class="tfoot"><span class="pgof">Page <b class="pn">${p}</b> of ${n}</span><nav class="pager" aria-label="Pages" data-pages="${n}"><button type="button" class="ib" data-page="prev" aria-label="Previous page"${p === 1 ? " disabled" : ""}>${icon("chevl")}</button>${list}<button type="button" class="ib" data-page="next" aria-label="Next page"${p === n ? " disabled" : ""}>${icon("chevr")}</button></nav></div>`;
+}
+
 function renderBlock(b: MockBlock, k: StateKind, page = ""): string {
   switch (b.type) {
     case "stats":
@@ -476,31 +553,43 @@ function renderBlock(b: MockBlock, k: StateKind, page = ""): string {
         const dir = i === sortBy ? (b.sortDir === "asc" ? "ascending" : "descending") : "none";
         return `<th${cls} aria-sort="${dir}"><button type="button" class="sh" data-sort="${i}">${esc(c)}${icon("chevd", dir === "ascending" ? "flip" : "")}</button></th>`;
       };
-      const bulk = b.bulk?.length ? `<div class="bulk"${ticked ? "" : " hidden"}><b><span class="bn">${ticked}</span> selected</b><span class="bb">${b.bulk.map((t, i) => `<button type="button" class="btn${i === 0 ? " primary" : ""}" data-act="act">${btnLabel(t)}</button>`).join("")}</span><button type="button" class="lnk" data-clear>Clear</button></div>` : "";
+      const bulk = b.bulk?.length ? `<div class="bulk"${ticked ? "" : " hidden"}><b><span class="bn">${ticked}</span> selected</b><span class="bb">${b.bulk.map((t, i) => buttonHtml(t, i === 0)).join("")}</span><button type="button" class="lnk" data-clear>Clear</button></div>` : "";
       return `<div class="card tbl">${bulk}<div class="scroll"><table><thead><tr>${pick ? `<th class="ck"><input type="checkbox" aria-label="Select all"${ticked && ticked >= rows.length ? " checked" : ""}></th>` : ""}${b.columns.map(th).join("")}<th class="act"><span class="vh">Actions</span></th></tr></thead><tbody>${rows.map((r, ri) => `<tr${ri < ticked ? ' class="picked"' : ""}>${pick ? `<td class="ck"><input type="checkbox" aria-label="Select ${esc(r[0] ?? "row")}"${ri < ticked ? " checked" : ""}></td>` : ""}${b.columns.map((_, i) => {
         const v = r[i] ?? "";
         const cell = sc === i ? `<span class="badge ${tone(v)}">${esc(v)}</span>` : i === 0 && person && v ? `<span class="who">${avatar(v)}${esc(v)}</span>` : i === 0 && code ? `<span class="code">${esc(v)}</span>` : esc(v);
         const key = sortBy === undefined ? "" : ` data-v="${esc(String(sortKey(v)))}"`;
         return `<td${isNum[i] ? ' class="n"' : i === 0 ? ' class="first"' : ""}${key}>${cell}</td>`;
-      }).join("")}<td class="act"><button type="button" class="ib" aria-label="More">${icon("more")}</button></td></tr>`).join("")}</tbody></table></div><div class="tfoot"><span>${b.rows.length} ${b.rows.length === 1 ? "result" : "results"}</span><span class="pager"><button type="button" class="ib" aria-label="Previous page" disabled>${icon("chevl")}</button><b>1</b><button type="button" class="ib" aria-label="Next page" disabled>${icon("chevr")}</button></span></div></div>`;
+      }).join("")}<td class="act"><button type="button" class="ib" aria-label="More">${icon("more")}</button></td></tr>`).join("")}</tbody></table></div>${pager(b.rows.length, b.pages, b.page)}</div>`;
     }
     case "form": {
-      // the validation state flags the typed-in fields the person left empty (at most two), or the first one when all are filled
-      const typed = b.fields.map((f, i) => (CHOSEN.has(f.kind) ? -1 : i)).filter((i) => i >= 0);
+      // the validation state flags the fields the design gave an error for and the required ones left empty (at most two); with
+      // neither, the typed-in fields left empty, or the first one when all are filled. A disabled or read-only field is never flagged.
+      const open = (f: FormField) => !f.disabled && !f.readOnly;
+      const typed = b.fields.map((f, i) => (CHOSEN.has(f.kind) || f.kind === "consent" || !open(f) ? -1 : i)).filter((i) => i >= 0);
+      const told = b.fields.map((f, i) => (open(f) && (f.error || (f.required && !f.value)) ? i : -1)).filter((i) => i >= 0);
       const blank = typed.filter((i) => !b.fields[i]!.value);
-      const flagged = new Set((blank.length ? blank : typed).slice(0, blank.length ? 2 : 1));
-      return `<form class="card form" onsubmit="return false">${b.fields.map((f, i) => {
+      const flagged = new Set(told.length ? told.slice(0, 2) : (blank.length ? blank : typed).slice(0, blank.length ? 2 : 1));
+      return `<form class="card form" onsubmit="return false" novalidate>${b.fields.map((f, i) => {
         const bad = k === "validation" && flagged.has(i);
         const id = `f${Math.abs(hash(f.label + i))}`;
-        const label = `<label for="${id}">${esc(f.label)}</label>`;
-        const err = bad ? `<span class="err" role="alert">${icon("alert")}${esc(`Enter ${f.label.toLowerCase()}`)}</span>` : "";
-        const cls = `field${bad ? " bad" : ""}${f.kind === "textarea" ? " wide" : ""}`;
-        if (f.kind === "select") return `<div class="${cls}">${label}<span class="sel"><select id="${id}">${(f.options?.length ? f.options : [f.value ?? f.placeholder ?? "Select"]).map((o) => `<option${o === f.value ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>${icon("chevd")}</span>${err}</div>`;
-        if (f.kind === "textarea") return `<div class="${cls}">${label}<textarea id="${id}" rows="3" placeholder="${esc(f.placeholder ?? "")}">${esc(f.value ?? "")}</textarea>${err}</div>`;
-        if (f.kind === "toggle") return `<div class="field tog wide"><label for="${id}">${esc(f.label)}</label><input id="${id}" type="checkbox" role="switch"${f.value && !/^(no|off|false)$/i.test(f.value) ? " checked" : ""}></div>`;
-        const more = fieldHtml(f, id, bad, label, err, cls);
-        if (more) return more;
-        return `<div class="${cls}">${label}<input id="${id}" type="${f.kind === "date" ? "date" : "text"}" placeholder="${esc(f.placeholder ?? "")}" value="${esc(bad ? "" : f.value ?? "")}"${bad ? ' aria-invalid="true"' : ""}>${err}</div>`;
+        // the label carries the required mark and a tooltip; help sits under the field, the error under that
+        const tip = f.hint ? withTip(`<button type="button" class="ib tipb" aria-label="About ${esc(f.label)}">${icon("info")}</button>`, f.hint) : "";
+        const lab = `${esc(f.label)}${f.required ? '<span class="req" aria-hidden="true">*</span>' : ""}`;
+        const label = `<span class="lr"><label for="${id}">${lab}</label>${tip}</span>`;
+        const help = f.help ? `<span class="help" id="${id}h">${esc(f.help)}</span>` : "";
+        const err = (help) + (bad ? `<span class="err" role="alert" id="${id}e">${icon("alert")}${esc(f.error ?? (f.kind === "consent" ? "Tick this to continue" : `Enter ${f.label.toLowerCase()}`))}</span>` : "");
+        const cls = `field${bad ? " bad" : ""}${f.kind === "textarea" ? " wide" : ""}${f.disabled ? " off" : ""}${f.readOnly ? " ro" : ""}`;
+        const html = (() => {
+          if (f.kind === "select") return `<div class="${cls}">${label}<span class="sel"><select id="${id}">${(f.options?.length ? f.options : [f.value ?? f.placeholder ?? "Select"]).map((o) => `<option${o === f.value ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>${icon("chevd")}</span>${err}</div>`;
+          if (f.kind === "textarea") return `<div class="${cls}">${label}<textarea id="${id}" rows="3" placeholder="${esc(f.placeholder ?? "")}">${esc(f.value ?? "")}</textarea>${err}</div>`;
+          if (f.kind === "toggle") return `<div class="field tog wide${f.disabled ? " off" : ""}">${label}<input id="${id}" type="checkbox" role="switch"${f.value && !/^(no|off|false)$/i.test(f.value) ? " checked" : ""}>${help}</div>`;
+          return fieldHtml(f, id, bad, label, err, cls, lab)
+            ?? `<div class="${cls}">${label}<input id="${id}" type="${f.kind === "date" ? "date" : "text"}" placeholder="${esc(f.placeholder ?? "")}" value="${esc(bad ? "" : f.value ?? "")}"${bad ? ' aria-invalid="true"' : ""}>${err}</div>`;
+        })();
+        // the field's own control takes its state: required, not editable, and what describes it
+        const desc = [f.help ? `${id}h` : "", bad ? `${id}e` : ""].filter(Boolean).join(" ");
+        const more = `${f.required ? " required" : ""}${f.disabled ? " disabled" : ""}${f.readOnly ? " readonly" : ""}${desc ? ` aria-describedby="${desc}"` : ""}`;
+        return more ? html.replace(` id="${id}"`, ` id="${id}"${more}`) : html;
       }).join("")}<div class="row end"><button type="submit" class="btn primary" data-act="submit">${esc(b.submit)}${icon("arrowr")}</button></div></form>`;
     }
     case "chart": {
@@ -528,7 +617,7 @@ function renderBlock(b: MockBlock, k: StateKind, page = ""): string {
       return `<div class="card tl">${b.items.map((it) => `<div class="ev ${it.status}"><span class="t">${esc(it.time)}</span><i>${it.status === "done" ? icon("check") : ""}</i><div><b>${esc(it.title)}</b>${it.meta ? `<span class="meta">${esc(it.meta)}</span>` : ""}</div></div>`).join("")}</div>`;
     case "detail": {
       const seed = b.rows.map((r) => r.value).join("|");
-      return `<div class="card detail ${b.style}">${b.title || b.lead ? `<div class="dh">${b.title ? `<b>${esc(b.title)}</b>` : ""}${b.lead ? `<div><span class="k">${esc(b.lead.label)}</span><strong>${esc(b.lead.value)}</strong></div>` : ""}</div>` : ""}<dl>${b.rows.map((r) => `<div><dt>${esc(r.label)}</dt><dd>${esc(r.value)}</dd></div>`).join("")}</dl>${b.style === "pass" ? `<div class="tear" aria-hidden="true"></div>${barcode(seed)}` : ""}</div>`;
+      return `<div class="card detail ${b.style}">${b.title || b.lead ? `<div class="dh">${b.title ? `<b>${esc(b.title)}</b>` : ""}${b.lead ? `<div><span class="k">${esc(b.lead.label)}</span><strong>${esc(b.lead.value)}</strong></div>` : ""}</div>` : ""}<dl>${b.rows.map((r) => `<div><dt>${esc(r.label)}</dt><dd>${r.badge ? `<span class="badge ${tone(r.value)}">${esc(r.value)}</span>` : esc(r.value)}</dd></div>`).join("")}</dl>${b.people?.length ? `<div class="dppl">${people(b.people)}<span class="meta">${esc(b.people.length === 1 ? b.people[0]! : `${b.people[0]} and ${b.people.length - 1} more`)}</span></div>` : ""}${b.style === "pass" ? `<div class="tear" aria-hidden="true"></div>${barcode(seed)}` : ""}</div>`;
     }
     case "cards": {
       const n = b.items.length, cols = n % 4 === 0 ? 4 : n % 3 === 0 || n > 4 ? 3 : n;
@@ -536,8 +625,8 @@ function renderBlock(b: MockBlock, k: StateKind, page = ""): string {
       const meta = (m: string) => m.split(/\s+·\s+/).map((part) => (/(?:[$€£¥₹₨]|PKR|USD|AED|SAR|Rs\.?)\s?\d|\d\s?(?:\/night|per night|\/mo)/i.test(part) ? `<b class="price">${esc(part)}</b>` : esc(part))).join('<span class="sep">·</span>');
       return `<div class="cards${b.visual ? " vis" : ""}" style="--cols:${cols}">${b.items.map((it, i) => {
         const badge = it.badge ? `<span class="badge ${tone(it.badge)}">${esc(it.badge)}</span>` : "";
-        if (!b.visual) { const ic = iconFor(`${it.title} ${it.meta}`) || iconFor(page) || "layers"; return `<div class="card item"><div class="row sp"><span class="chipi">${icon(ic)}</span>${badge}</div><b>${esc(it.title)}</b><span class="meta">${meta(it.meta)}</span></div>`; }
-        return `<div class="card item">${scene(`${it.title} ${it.meta} ${it.badge ?? ""}`, page, uid(), i, look.imagery)}${it.badge ? `<span class="ontop">${badge}</span>` : ""}<button type="button" class="fav" aria-label="Save">${icon("heart")}</button><div class="ib-body"><div class="row sp"><b>${esc(it.title)}</b>${icon("arrowr", "go")}</div><span class="meta">${meta(it.meta)}</span></div></div>`;
+        if (!b.visual) { const ic = iconFor(`${it.title} ${it.meta}`) || iconFor(page) || "layers"; return `<div class="card item"><div class="row sp"><span class="chipi">${icon(ic)}</span>${badge}</div><b>${esc(it.title)}</b><span class="meta">${meta(it.meta)}</span>${people(it.people)}</div>`; }
+        return `<div class="card item">${scene(`${it.title} ${it.meta} ${it.badge ?? ""}`, page, uid(), i, look.imagery)}${it.badge ? `<span class="ontop">${badge}</span>` : ""}<button type="button" class="fav" aria-label="Save">${icon("heart")}</button><div class="ib-body"><div class="row sp"><b>${esc(it.title)}</b>${icon("arrowr", "go")}</div><span class="meta">${meta(it.meta)}</span>${people(it.people)}</div></div>`;
       }).join("")}</div>`;
     }
     case "carousel": {
@@ -558,10 +647,23 @@ function renderBlock(b: MockBlock, k: StateKind, page = ""): string {
         const m = MONEY.exec(it.meta), rest = m ? it.meta.slice(0, m.index).replace(/\s*·\s*$/, "") : it.meta;
         const amt = m ? m[1]!.trim() : "";
         const lead = PERSON.test(it.title) ? avatar(it.title) : `<span class="chipi">${icon(iconFor(`${it.title} ${it.meta}`) || iconFor(page) || "layers")}</span>`;
-        return `<div class="li">${lead}<div class="lt"><b>${esc(it.title)}</b><span class="meta">${esc(rest)}</span></div>${amt ? `<span class="amt ${/^[+]/.test(amt) ? "in" : /^[-−]/.test(amt) ? "out" : ""}">${esc(amt)}</span>` : icon("chevr", "chev")}</div>`;
+        return `<div class="li">${lead}<div class="lt"><b>${esc(it.title)}</b><span class="meta">${esc(rest)}</span>${people(it.people)}</div>${it.badge ? `<span class="badge ${tone(it.badge)}">${esc(it.badge)}</span>` : ""}${amt ? `<span class="amt ${/^[+]/.test(amt) ? "in" : /^[-−]/.test(amt) ? "out" : ""}">${esc(amt)}</span>` : icon("chevr", "chev")}</div>`;
       }).join("")}</div>`;
     case "actions":
-      return `<div class="row">${b.buttons.map((t, i) => `<button type="button" class="btn${i === 0 ? " primary" : ""}" data-act="act">${btnLabel(t)}</button>`).join("")}</div>`;
+      return `<div class="row">${b.buttons.map((t, i) => buttonHtml(t, i === 0)).join("")}</div>`;
+    case "alert": {
+      const ic = { info: "info", ok: "checkc", warn: "alert", bad: "alert" }[b.tone];
+      return `<div class="banner ${b.tone} alert" role="${b.tone === "bad" || b.tone === "warn" ? "alert" : "status"}"><span class="bi">${icon(ic)}</span><span class="at">${b.title ? `<b>${esc(b.title)}</b>` : ""}<span>${esc(b.text)}</span></span>${b.action ? `<button type="button" class="btn" data-act="act">${btnLabel(b.action)}</button>` : ""}</div>`;
+    }
+    case "toolbar": {
+      const sel = b.selects.map((x) => `<label class="tsel"><span>${esc(x.label)}</span><span class="sel"><select aria-label="${esc(x.label)}">${x.options.map((o) => `<option${o === x.value ? " selected" : ""}>${esc(o)}</option>`).join("")}</select>${icon("chevd")}</span></label>`).join("");
+      return `<div class="tbar">${b.search ? `<label class="search">${icon("search")}<input type="search" placeholder="${esc(b.search)}" aria-label="${esc(b.search)}"></label>` : ""}${sel}${b.buttons.length ? `<span class="tbb">${b.buttons.map((x) => buttonHtml(x, false)).join("")}</span>` : ""}</div>`;
+    }
+    case "progress":
+      return `<div class="card prgs">${b.title ? `<h4>${esc(b.title)}</h4>` : ""}${b.items.map((it) => {
+        const v = Math.round(Math.max(0, Math.min(100, it.value)));
+        return `<div class="pi"><div class="row sp"><span class="pl">${esc(it.label)}</span><b>${v}%</b></div><span class="meter${v >= 100 ? " full" : ""}" role="progressbar" aria-label="${esc(it.label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${v}"><i style="width:${v}%"></i></span>${it.meta ? `<span class="meta">${esc(it.meta)}</span>` : ""}</div>`;
+      }).join("")}</div>`;
     case "calendar": return calendarBlock(b);
     case "map": return mapBlock(b);
     case "gallery": return galleryBlock(b, page);
@@ -583,10 +685,12 @@ const DANGER = /\b(delete|remove|cancel|freeze|block|revoke|deactivate|close acc
 /** A layer over the page, open or ready to open from the button it names. */
 function renderOverlay(o: MockOverlay, open: boolean, page: string): string {
   const form = o.blocks.find((b) => b.type === "form");
-  const acts = o.kind === "menu" ? [] : o.actions.length ? o.actions : form?.type === "form" ? [form.submit] : ["Done"];
-  const primary = acts[0], second = acts[1] ?? (o.kind === "confirm" || form ? "Cancel" : "");
-  const danger = !!primary && DANGER.test(primary);
-  const foot = primary ? `<div class="ova">${second ? `<button type="button" class="btn">${esc(second)}</button>` : ""}<button type="button" class="btn primary${danger ? " danger" : ""}">${btnLabel(primary)}</button></div>` : "";
+  const acts: Button[] = o.kind === "menu" ? [] : o.actions.length ? o.actions : form?.type === "form" ? [form.submit] : o.kind === "popover" ? [] : ["Done"];
+  const primary = acts[0], second: Button | undefined = acts[1] ?? (o.kind === "confirm" || form ? "Cancel" : undefined);
+  const plainDanger = typeof primary === "string" && DANGER.test(primary);
+  const danger = primary !== undefined && (plainDanger || (typeof primary !== "string" && primary.variant === "danger"));
+  const main = primary === undefined ? "" : typeof primary === "string" ? `<button type="button" class="btn primary${danger ? " danger" : ""}">${btnLabel(primary)}</button>` : buttonHtml(primary, true, "ov");
+  const foot = primary !== undefined ? `<div class="ova">${second !== undefined ? (typeof second === "string" ? `<button type="button" class="btn">${esc(second)}</button>` : buttonHtml(second, false, "ov")) : ""}${main}</div>` : "";
   const head = o.kind === "confirm"
     ? `<span class="ci${danger ? " bad" : ""}">${icon(danger ? "alert" : "checkc")}</span><h4>${esc(o.title)}</h4>`
     : `<div class="ovh"><h4>${esc(o.title)}</h4><button type="button" class="ib" data-close aria-label="Close">${icon("close")}</button></div>`;
@@ -627,7 +731,7 @@ export function compose(blocks: MockBlock[], draw: (b: MockBlock) => string): { 
   const out: string[] = [];
   for (let i = 0; i < list.length; i++) {
     const b = list[i]!, nx = list[i + 1];
-    if (b.type === "filters" && nx?.type === "table") { out.push(draw(nx).replace(/^(<div[^>]* class="card tbl"[^>]*>)/, (m) => `${m}<div class="toolbar">${draw(b)}</div>`)); i++; continue; }
+    if ((b.type === "filters" || b.type === "toolbar") && nx?.type === "table") { out.push(draw(nx).replace(/^(<div[^>]* class="card tbl"[^>]*>)/, (m) => `${m}<div class="toolbar">${draw(b)}</div>`)); i++; continue; }
     const pair = nx ? pairOf(b, nx) : "";
     if (pair) { out.push(`<div class="split ${pair}">${draw(b)}${draw(nx!)}</div>`); i++; continue; }
     out.push(draw(b));
@@ -646,18 +750,18 @@ const renderToast = (t: MockToast, shown: boolean): string =>
 function renderMock(m: ScreenMock, k: StateKind, state: string, open = -1, toast = -1): string {
   const c = m.copy;
   const words = pageWords(m);
-  const keep = (b: MockBlock) => b.type === "filters" || b.type === "actions" || b.type === "stats" || b.type === "text";
+  const keep = (b: MockBlock) => b.type === "filters" || b.type === "toolbar" || b.type === "actions" || b.type === "alert" || b.type === "stats" || b.type === "text";
   const normal = compose(m.blocks, (b) => marked(renderBlock(b, k, words), b.type));
   // a trail of the pages above this one (a narrow screen shows only a back link to the nearest), and the page's own tabs under its title
   const crumbs = m.crumbs?.length ? `<nav class="crumbs" aria-label="Breadcrumb"><span class="back">${icon("chevl")}${esc(m.crumbs[m.crumbs.length - 1]!)}</span>${m.crumbs.map((c) => `<span class="c">${esc(c)}</span>${icon("chevr")}`).join("")}<span aria-current="page">${esc(m.title)}</span></nav>` : "";
   const tabs = m.tabs?.length ? `<div class="ptabs" role="tablist">${m.tabs.map((t, i) => `<button type="button" role="tab" aria-selected="${i === 0}"${i === 0 ? ' class="on"' : ""}>${esc(t)}</button>`).join("")}</div>` : "";
-  const head = (actions: string) => `<div class="ph"><div>${crumbs}<h3>${esc(m.title)}</h3>${m.subtitle ? `<p class="sub">${esc(m.subtitle)}</p>` : ""}</div>${actions ? `<div class="pa">${actions}</div>` : ""}${tabs}</div>`;
+  const head = (actions: string) => `<div class="ph"><div>${crumbs}${m.badge ? `<div class="tt"><h3>${esc(m.title)}</h3><span class="badge ${tone(m.badge)}">${esc(m.badge)}</span></div>` : `<h3>${esc(m.title)}</h3>`}${m.subtitle ? `<p class="sub">${esc(m.subtitle)}</p>` : ""}</div>${actions ? `<div class="pa">${actions}</div>` : ""}${tabs}</div>`;
   let body: string;
   // loading keeps everything static (title, labels, headers, filters, buttons) and turns only the data into shimmering shapes, under a progress bar;
   // empty previews what the page fills with; error keeps the last good data dimmed behind the message; "Full data" is a state of its own
   if (k === "loading") body = `<div class="prog" role="progressbar" aria-label="Loading"><i></i></div>${compose(m.blocks, skeleton).body}`;
   else if (k === "empty") {
-    const lead = m.blocks.filter((b) => b.type === "filters").map((b) => renderBlock(b, k, words)).join("");
+    const lead = m.blocks.filter((b) => b.type === "filters" || b.type === "toolbar").map((b) => renderBlock(b, k, words)).join("");
     const sample = m.blocks.find((b) => !keep(b));
     const ic = iconFor(words) || "inbox";
     body = `${lead}<div class="card empty"><span class="halo">${icon(ic)}</span><h4>${esc(c.emptyTitle ?? "Nothing here yet")}</h4><p>${esc(c.emptyHint ?? "When there is something to show, it appears here.")}</p></div>${sample ? `<div class="preview"><span class="pv">What this fills with</span>${renderBlock(sample, k, words)}</div>` : ""}`;
@@ -1239,6 +1343,53 @@ th.ck,td.ck{width:44px;padding-inline-end:0}tr.picked td{background:color-mix(in
 .md .su,:root[data-mode=dark] .md .mo{display:none}:root[data-mode=dark] .md .su{display:block}
 .ib.lg{display:inline-flex;align-items:center;width:auto;padding:0 8px;gap:6px}.lg span{font-size:12.5px;font-weight:600;white-space:nowrap}
 .canvas[dir=rtl] kbd{direction:ltr;unicode-bidi:isolate}
+/* common controls: button variants and states, split buttons, tooltips */
+.btn.ghost{background:transparent;border-color:transparent;box-shadow:none;color:var(--ink2)}.btn.ghost:hover{background:var(--sf2);color:var(--ink)}
+.btn.link{background:none;border-color:transparent;box-shadow:none;color:var(--a1);padding:0 4px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:color-mix(in srgb,var(--a1) 40%,transparent)}.btn.link:hover{background:none;text-decoration-color:currentColor}
+.btn.icon{width:38px;padding:0}.btn.icon svg{width:18px;height:18px}
+.btn:disabled{opacity:.48;cursor:not-allowed;box-shadow:none}.btn:disabled:active{transform:none}.btn.primary:disabled{background:color-mix(in srgb,var(--br) 55%,var(--sf2))}
+.btn.loading{opacity:.85;cursor:progress}.spin{width:15px;height:15px;border-radius:50%;border:2px solid currentColor;border-inline-end-color:transparent;animation:spin .7s linear infinite;flex:none}@keyframes spin{to{transform:rotate(360deg)}}
+.splitb{position:relative;display:inline-flex}.splitb>.btn:first-child,.splitb>.tipw:first-child .btn{border-start-end-radius:0;border-end-end-radius:0}.splitb .caret{width:34px;padding:0;border-start-start-radius:0;border-end-start-radius:0;margin-inline-start:-1px}.splitb .btn.primary.caret{box-shadow:inset 1px 0 0 color-mix(in srgb,var(--on) 28%,transparent)}
+.ddm{position:absolute;top:calc(100% + 6px);inset-inline-end:0;z-index:6;min-width:170px;display:grid;padding:6px;background:var(--sf);border:1px solid var(--edge);border-radius:calc(var(--r) + 2px);box-shadow:0 12px 32px -8px rgba(16,24,40,.22);animation:menu .16s var(--e) both}.ddm[hidden]{display:none}
+.ddm button{display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border:0;background:none;border-radius:7px;cursor:pointer;text-align:start;font-size:13.5px;color:var(--ink)}.ddm button:hover,.ddm button:focus-visible{background:var(--sf2);outline:0}.ddm svg{width:16px;height:16px;color:var(--ink2)}
+.tipw{position:relative;display:inline-flex}.tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);z-index:8;width:max-content;max-width:240px;padding:6px 9px;border-radius:7px;background:var(--ink);color:var(--bg);font-size:12px;font-weight:500;line-height:1.4;white-space:normal;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s,transform .15s,visibility .15s}
+.tipw:hover>.tip,.tipw:focus-within>.tip,.tip.show{opacity:1;visibility:visible;transform:translate(-50%,0)}
+.ib.tipb{width:24px;height:24px;margin-block:-4px;color:var(--mut)}.ib.tipb svg{width:15px;height:15px}
+/* fields: the label row, required, help, not editable */
+.field .lr{display:flex;align-items:center;gap:4px;min-width:0}.req{color:var(--bad);margin-inline-start:3px;font-weight:700}
+.help{font-size:12.5px;color:var(--mut);line-height:1.45}
+.field.off{opacity:.6}.field.off input,.field.off select,.field.off textarea{cursor:not-allowed;background:var(--sf2)}.field input:disabled,.field select:disabled,.field textarea:disabled{cursor:not-allowed;background:var(--sf2);color:var(--mut)}
+.field.ro input,.field input[readonly]{background:var(--sf2);border-style:dashed;box-shadow:none}
+.tog .lr label{font-size:14px;font-weight:500}.tog .help{flex-basis:100%}.tog{flex-wrap:wrap;row-gap:4px}
+.aff.pw .ib{width:40px;height:38px;border-radius:0;color:var(--mut)}.aff.pw .ib .off,.aff.pw .ib[aria-pressed=true] .on{display:none}.aff.pw .ib[aria-pressed=true] .off{display:block}
+.aff.dr{gap:0}.aff.dr>svg{margin:0 2px 0 11px;color:var(--mut);width:16px;height:16px}.aff.dr i{font-style:normal;color:var(--mut);padding:0 2px}.field .aff.dr input{flex:1;padding:0 8px}
+.cbx{position:relative;flex-wrap:wrap;min-height:40px;padding:4px 30px 4px 4px;gap:4px}.cbx>svg{position:absolute;inset-inline-end:11px;top:12px;width:16px;height:16px;color:var(--mut);pointer-events:none}.field .cbx input{flex:1;min-width:90px;height:30px;padding:0 8px}
+.mc{display:inline-flex;align-items:center;gap:2px;height:28px;padding:0 4px 0 10px;border-radius:7px;background:color-mix(in srgb,var(--a1) 10%,var(--sf));color:var(--ink);font-size:12.5px;font-weight:600;max-width:100%}.mc button{display:grid;place-items:center;width:24px;height:24px;border:0;background:none;border-radius:5px;color:var(--ink2);cursor:pointer}.mc button:hover{background:color-mix(in srgb,var(--a1) 16%,transparent)}.mc svg{width:12px;height:12px}
+.lb{position:absolute;top:calc(100% + 4px);inset-inline-start:-1px;inset-inline-end:-1px;z-index:6;margin:0;padding:5px;list-style:none;max-height:220px;overflow:auto;background:var(--sf);border:1px solid var(--edge);border-radius:10px;box-shadow:0 12px 32px -8px rgba(16,24,40,.22)}.lb[hidden]{display:none}
+.lb li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:13.5px}.lb li:hover,.lb li.act{background:var(--sf2)}.lb li svg{width:15px;height:15px;color:var(--a1);visibility:hidden}.lb li[aria-selected=true]{font-weight:600}.lb li[aria-selected=true] svg{visibility:visible}.lb li.no{display:none}
+.consent .opt{display:flex;align-items:flex-start;gap:10px;font-size:13.5px;font-weight:400;color:var(--ink2);line-height:1.45;cursor:pointer}.consent .opt input{margin-top:2px}.field.consent.bad .opt input{outline:2px solid var(--bad);outline-offset:2px}
+/* the new blocks: an inline alert, a toolbar, progress bars; paging; a page's status; who is on something */
+.banner.info{color:var(--info);background:color-mix(in srgb,var(--info) 6%,var(--sf))}.banner.alert{align-items:flex-start}.banner.alert .bi{margin-top:1px}.banner .at{display:grid;gap:2px;flex:1;min-width:0;color:var(--ink2)}.banner .at b{color:var(--ink);font-weight:650}.banner.alert .btn{align-self:center}
+.tbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;min-width:0}.tbar .search{flex:1 1 220px;max-width:340px;height:36px}.tsel{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--mut);white-space:nowrap}.tsel .sel select{height:36px;min-width:120px;border:1px solid var(--edge2);border-radius:9px;background:var(--sf);color:var(--ink);font:inherit;font-size:13px;font-weight:500;padding-inline-start:11px;cursor:pointer}.tsel .sel svg{top:10px}.tbb{display:flex;gap:8px;margin-inline-start:auto}.tbar .btn{height:36px}
+.toolbar .tbar{width:100%}
+.prgs{display:grid;gap:14px}.prgs h4{margin:0;font-size:15px;font-weight:650}.pi{display:grid;gap:4px}.pi .pl{font-size:13.5px;font-weight:500;color:var(--ink)}.pi b{font-size:13px;font-variant-numeric:tabular-nums}.pi .meter{margin-top:2px;height:8px}.pi .meter.full i{background:var(--ok)}.pi .meta{font-size:12px;color:var(--mut)}
+.pager .pg{min-width:28px;height:28px;padding:0 6px;border:1px solid transparent;border-radius:7px;background:none;font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer}.pager .pg:hover{background:var(--sf2)}.pager .pg.on{background:var(--sf2);border-color:var(--edge);color:var(--ink)}.pager .gap{font-style:normal;color:var(--mut);padding:0 2px}.pgof b{color:var(--ink)}
+.tt{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.tt .badge{position:relative;top:1px}
+.ppl{display:inline-flex;align-items:center;flex:none}.ppl .av{width:26px;height:26px;font-size:10px;box-shadow:0 0 0 2px var(--sf)}.ppl .av{font-size:9.5px;letter-spacing:-.02em}.ppl .av+.av{margin-inline-start:-6px}.pmore{display:grid;place-items:center;min-width:26px;height:26px;padding:0 5px;margin-inline-start:-6px;border-radius:99px;background:var(--sf2);color:var(--ink2);font-style:normal;font-size:10.5px;font-weight:700;box-shadow:0 0 0 2px var(--sf)}
+.card.item .ppl{margin-top:4px}.li .lt .ppl{display:flex;width:max-content;margin-top:5px}.li .badge{flex:none}.dppl{display:flex;align-items:center;gap:10px;padding:12px var(--pad) 4px}
+.k-popover .ovs{background:transparent;backdrop-filter:none}.k-popover .ovp{top:70px;inset-inline-end:24px;width:min(320px,calc(100% - 32px));padding:16px;gap:12px;border-radius:calc(var(--r) + 2px);transform-origin:top right;animation:menu .18s var(--e) both}.k-popover .ovh h4{font-size:15px}
+/* a phone's controls are big enough for a thumb (44 px); the web's for a pointer (24 px) */
+.canvas.phone .btn,.canvas.phone .field input,.canvas.phone .field select,.canvas.phone .tsel .sel select,.canvas.phone .tbar .search,.canvas.phone .field .aff{min-height:44px}.canvas.phone .btn.icon,.canvas.phone .splitb .caret{min-width:44px}.canvas.phone .pager .ib,.canvas.phone .pager .pg{min-width:44px;min-height:44px}
+.canvas.phone :is(.ib,.mc button,.lb li){position:relative}.canvas.phone :is(.ib,.mc button)::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}.canvas.phone .lb li{min-height:44px;display:flex;align-items:center}
+/* the Components page: each control in each of its states, the states forced so they can be seen at once */
+.kit{display:grid;gap:18px}.kit .kg{display:grid;gap:12px;padding:var(--pad);border:1px solid var(--edge);border-radius:var(--r);background:var(--sf);box-shadow:var(--shadow)}.kit h4{margin:0;font-size:15px;font-weight:650}.kit .knote{margin:-6px 0 0;font-size:12.5px;color:var(--mut)}
+.kgrid{display:grid;grid-template-columns:90px repeat(var(--n),minmax(96px,1fr));gap:12px 14px;align-items:start;overflow-x:auto;padding:2px}.kgrid>.kh{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}.kgrid>.kl{font-size:13px;font-weight:600;color:var(--ink2);padding-top:8px}.kgrid .field input,.kgrid .field select{min-width:0;width:100%}.kgrid .field{gap:4px}
+.kwrap{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.btn.primary.danger:hover,.btn.primary.danger.is-hover{background:color-mix(in srgb,var(--bad) 88%,#000)}.btn.primary.danger.is-active,.btn.primary.danger:active{background:color-mix(in srgb,var(--bad) 80%,#000)}.btn.primary.danger:disabled{background:color-mix(in srgb,var(--bad) 55%,var(--sf2))}.canvas.phone .tfoot .pgof{display:none}.tipw.show .tip{opacity:1;visibility:visible;transform:translate(-50%,0)}.kwrap.ktip{padding-top:40px;gap:24px}
+.btn.is-hover{background:var(--sf2)}.btn.primary.is-hover{background:color-mix(in srgb,var(--br) 90%,#000)}.btn.ghost.is-hover{background:var(--sf2)}.btn.is-focus,.chip.is-focus{outline:2px solid var(--a1);outline-offset:2px}.btn.is-active{transform:scale(.97);background:color-mix(in srgb,var(--ink) 8%,var(--sf))}.btn.primary.is-active{background:color-mix(in srgb,var(--br) 82%,#000)}
+.field input.is-focus,.field select.is-focus{border-color:var(--a1);box-shadow:0 0 0 4px color-mix(in srgb,var(--a1) 14%,transparent)}.field input.is-hover,.field select.is-hover{border-color:color-mix(in srgb,var(--ink) 30%,var(--edge2))}
+.kswatch{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}.kswatch div{display:grid;gap:2px;font-size:12px;color:var(--ink2)}.kswatch i{display:block;height:40px;border-radius:8px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 10%,transparent)}.kswatch b{color:var(--ink);font-size:12.5px}.kswatch code{font-size:11px;color:var(--mut)}
+@container app (max-width:640px){.tbar .search{max-width:none;flex-basis:100%}.tbb{margin-inline-start:0}.tsel{flex:1}.tsel .sel{flex:1}.tsel .sel select{width:100%;min-width:0}}
+.canvas[dir=rtl] .tip{transform:translate(50%,4px);left:auto;right:50%}.canvas[dir=rtl] .tipw:hover>.tip,.canvas[dir=rtl] .tipw:focus-within>.tip{transform:translate(50%,0)}.canvas[dir=rtl] .k-popover .ovp{transform-origin:top left}
 `;
 
 const JS = `
@@ -1291,7 +1442,7 @@ const JS = `
     $(".app button,.app tbody tr,.app .card.item,.app .li,.app .slide,.app .kc,.app .ri,.app .nt,.app .mpi",p).forEach(function(el){if(el.closest(".ovl"))return;var to=L[name(el)];if(to){el.setAttribute("data-go",to);el.classList.add("go")}})});
   function label(b){return (ot(b).trim()||oa(b,"aria-label")||"").toLowerCase()}
   // a menu opens under the button that opened it
-  function place(ov){if(!ov.classList.contains("k-menu"))return;var lab=ov.getAttribute("data-trigger").toLowerCase();
+  function place(ov){if(!ov.classList.contains("k-menu")&&!ov.classList.contains("k-popover"))return;var lab=ov.getAttribute("data-trigger").toLowerCase();
     var b=$("button",ov.closest(".pane")).filter(function(x){return !x.closest(".ovl")&&label(x)===lab})[0];if(!b)return;
     var r=b.getBoundingClientRect(),o=ov.getBoundingClientRect(),p=ov.querySelector(".ovp");p.style.top=Math.round(r.bottom-o.top+6)+"px";
     if(getComputedStyle(ov).direction==="rtl"){p.style.right="auto";p.style.left=Math.round(Math.max(8,r.left-o.left))+"px"}else{p.style.left="";p.style.right=Math.round(Math.max(8,o.right-r.right))+"px"}}
@@ -1316,7 +1467,7 @@ const JS = `
     s.addEventListener("input",function(e){var t=e.target;
       if(t.type==="range"){var o=t.parentNode.querySelector("output");t.style.setProperty("--p",((t.value-t.min)/(t.max-t.min||1)*100)+"%");if(o)o.textContent=(t.getAttribute("data-pre")||"")+Number(t.value).toLocaleString("en")+(t.getAttribute("data-suf")||"");return}
       if(t.closest&&t.closest(".otp")&&t.value&&t.nextElementSibling)t.nextElementSibling.focus()});
-    s.addEventListener("change",function(e){var t=e.target;if(!t.closest)return;if(t.closest(".rside .fo"))refine(t.closest(".res"));else if(t.closest(".srt"))fade(t.closest(".rmain").querySelector(".rlist"))});
+    s.addEventListener("change",function(e){var t=e.target;if(!t.closest)return;if(t.closest(".tsel")){var tp=t.closest(".pane");$(".tbl tbody,.cards,.list",tp).forEach(function(x){fade(x)});return}if(t.closest(".rside .fo"))refine(t.closest(".res"));else if(t.closest(".srt"))fade(t.closest(".rmain").querySelector(".rlist"))});
     // a board's cards are dragged between its columns; the counts follow
     var dragged=null;
     s.addEventListener("dragstart",function(e){var k=e.target.closest&&e.target.closest(".kc");if(!k)return;dragged=k;k.classList.add("drag");e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",k.textContent)}catch(x){}});
@@ -1326,12 +1477,42 @@ const JS = `
       var l=c.querySelector(".kl"),after=$(".kc:not(.drag)",l).filter(function(x){var r=x.getBoundingClientRect();return e.clientY<r.top+r.height/2})[0];if(after){if(after!==dragged.nextSibling)l.insertBefore(dragged,after)}else if(l.lastElementChild!==dragged)l.appendChild(dragged)});
     s.addEventListener("drop",function(e){if(!dragged)return;e.preventDefault();var kb=dragged.closest(".kb");$(".kcol",kb).forEach(function(c){c.querySelector(".kn").textContent=c.querySelectorAll(".kc").length;c.classList.remove("over")});
       toast(s,"Moved to "+dragged.closest(".kcol").querySelector("header b").textContent,"info")});
+    // a combobox: its list opens as it is typed in, showing the options that match
+    function lbOpen(c,on){var l=c.querySelector(".lb"),i=c.querySelector("input");l.hidden=!on;i.setAttribute("aria-expanded",String(on))}
+    function lbClose(keep){$("[data-cbx]",s).forEach(function(c){if(c!==keep)lbOpen(c,false)})}
+    s.addEventListener("focusin",function(e){var c=e.target.closest&&e.target.closest("[data-cbx]");if(c&&e.target.tagName==="INPUT"&&!e.target.disabled&&!e.target.readOnly){lbClose(c);lbOpen(c,true)}});
+    s.addEventListener("input",function(e){var c=e.target.closest&&e.target.closest("[data-cbx]");if(!c)return;var q=e.target.value.trim().toLowerCase();lbOpen(c,true);$(".lb li",c).forEach(function(li){li.classList.toggle("no",!!q&&ot(li).toLowerCase().indexOf(q)<0)})});
     s.addEventListener("input",function(e){var t=e.target;if(!t.matches||!t.matches('input[type=search]'))return;
       var q=t.value.toLowerCase(),pane=t.closest(".pane");$("tbody tr,.cards .item,.list .li",pane).forEach(function(r){r.style.display=r.textContent.toLowerCase().indexOf(q)>-1?"":"none"})});
     s.addEventListener("click",function(e){
       // the frame's language button: every page shows in the other language
       if(e.target.closest&&e.target.closest("[data-lang]")){setLang(1-LANG);return}
       if(e.target.closest&&e.target.closest("button[data-mode]")){setMode(document.documentElement.getAttribute("data-mode")==="dark"?"light":"dark");return}
+      // a split button's arrow opens its other choices; a click anywhere else closes them
+      var dd=e.target.closest?e.target.closest("[data-dd]"):null;$(".ddm",s).forEach(function(m){if(!dd||m.parentNode!==dd.parentNode){m.hidden=true;var c=m.parentNode.querySelector("[data-dd]");if(c)c.setAttribute("aria-expanded","false")}});
+      if(dd){var dm=dd.parentNode.querySelector(".ddm");dm.hidden=!dm.hidden;dd.setAttribute("aria-expanded",String(!dm.hidden));return}
+      // a password's eye shows and hides it
+      var pw=e.target.closest?e.target.closest("[data-pw]"):null;
+      if(pw){var pin2=pw.parentNode.querySelector("input"),shown=pin2.type==="password";pin2.type=shown?"text":"password";pw.setAttribute("aria-pressed",String(shown));pw.setAttribute("aria-label",shown?"Hide password":"Show password");return}
+      // a combobox: pick an option (a multiselect adds it as a chip, or takes it off again), or drop a chip
+      var cbx=e.target.closest?e.target.closest("[data-cbx]"):null;lbClose(cbx);
+      var unc=e.target.closest?e.target.closest("[data-unchip]"):null;
+      if(unc){var mc=unc.closest(".mc"),cv2=ot(mc).trim(),cb2=unc.closest("[data-cbx]");$(".lb li",cb2).forEach(function(li){if(ot(li).trim()===cv2)li.setAttribute("aria-selected","false")});mc.remove();return}
+      var opt=e.target.closest?e.target.closest(".lb li"):null;
+      if(opt){var cb3=opt.closest("[data-cbx]"),inp3=cb3.querySelector("input"),v3=ot(opt).trim();
+        if(cb3.classList.contains("multi")){var had=opt.getAttribute("aria-selected")==="true";opt.setAttribute("aria-selected",String(!had));
+          if(had)$(".mc",cb3).forEach(function(x){if(ot(x).trim()===v3)x.remove()});else{var chip=document.createElement("span");chip.className="mc";chip.textContent=v3;chip.insertAdjacentHTML("beforeend",'<button type="button" data-unchip aria-label="Remove">'+SVG('<path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/>')+'</button>');cb3.insertBefore(chip,inp3)}
+          inp3.value="";$(".lb li",cb3).forEach(function(li){li.classList.remove("no")});inp3.focus();return}
+        $(".lb li",cb3).forEach(function(li){li.setAttribute("aria-selected",String(li===opt))});inp3.value=v3;lbOpen(cb3,false);return}
+      // a table's pager: step to another page (the rows are the sample, so they only refresh)
+      var pg=e.target.closest?e.target.closest(".pager [data-page]"):null;
+      if(pg){var nav=pg.closest(".pager"),tot=+nav.getAttribute("data-pages"),cur2=+(nav.querySelector(".pg.on")||{textContent:"1"}).textContent,to2=pg.getAttribute("data-page");
+        to2=to2==="prev"?cur2-1:to2==="next"?cur2+1:+to2;to2=Math.max(1,Math.min(tot,to2));
+        var nums=[1,to2-1,to2,to2+1,tot].filter(function(x,i,a){return x>=1&&x<=tot&&a.indexOf(x)===i}).sort(function(a,b){return a-b}),h="";
+        nums.forEach(function(x,i){if(i&&x-nums[i-1]>1)h+='<i class="gap">…</i>';h+='<button type="button" class="pg'+(x===to2?' on" aria-current="page"':'"')+' data-page="'+x+'" aria-label="Page '+x+'">'+x+'</button>'});
+        $(".pg,.gap",nav).forEach(function(x){x.remove()});nav.querySelector("[data-page=next]").insertAdjacentHTML("beforebegin",h);
+        nav.querySelector("[data-page=prev]").disabled=to2===1;nav.querySelector("[data-page=next]").disabled=to2===tot;var pn=nav.closest(".tfoot").querySelector(".pn");if(pn)pn.textContent=to2;
+        fade(nav.closest(".tbl").querySelector("tbody"));return}
       // the switcher: open its menu, or switch to another account, workspace or company
       var sb=e.target.closest?e.target.closest("[data-sw],.swm button"):null;$(".swm",s).forEach(function(m){if(!sb||!m.parentNode.contains(sb)){m.hidden=true;m.parentNode.querySelector("[data-sw]").setAttribute("aria-expanded","false")}});
       if(sb){var w=sb.closest(".sw"),m=w.querySelector(".swm"),btn=w.querySelector("[data-sw]");
@@ -1385,6 +1566,7 @@ const JS = `
         var uv=rf.getAttribute("data-unpick");$(".fo input",rs).forEach(function(x){if(uv===null||x.value===uv)x.checked=false});refine(rs);return}
       var ob=e.target.closest?e.target.closest("button"):null,inOv=e.target.closest?e.target.closest(".ovl"):null;
       if(inOv){if(e.target.classList.contains("ovs")||(ob&&(ob.hasAttribute("data-close")||ob.closest(".ova")||ob.classList.contains("mitem")))){inOv.classList.remove("open");if(ob&&(ob.classList.contains("primary")||ob.classList.contains("mitem")))said(s,ob,ot(ob).trim()+" done")}return}
+      if(ob&&ob.closest(".ddm")){var ddm=ob.closest(".ddm");ddm.hidden=true;ddm.parentNode.querySelector("[data-dd]").setAttribute("aria-expanded","false")}
       if(ob&&ob.closest(".pane")){var lab=label(ob),ov=$(".ovl",ob.closest(".pane")).filter(function(o){return o.getAttribute("data-trigger").toLowerCase()===lab})[0];if(ov){ov.classList.add("open");place(ov);return}}
       var cb=e.target.closest?e.target.closest("[data-car]"):null;if(cb){var tr=cb.closest(".car").querySelector(".track"),sl=tr.querySelector(".slide");tr.scrollBy({left:(+cb.getAttribute("data-car"))*(sl?sl.getBoundingClientRect().width+16:tr.clientWidth),behavior:"smooth"});return}
       // a link leads to another screen of the demo, unless a button of its own inside it was pressed (save, a slide's offer)
@@ -1408,7 +1590,10 @@ const JS = `
   // the dots follow the slide in view
   document.addEventListener("scroll",function(e){var tr=e.target;if(!tr.classList||!tr.classList.contains("track"))return;var c=tr.closest(".car"),sl=tr.querySelectorAll(".slide");if(!sl.length)return;
     var w=sl[0].getBoundingClientRect().width+16,i=Math.round(tr.scrollLeft/w);if(tr.scrollLeft+tr.clientWidth>=tr.scrollWidth-4)i=sl.length-1;$(".dots i",c).forEach(function(d,k){d.classList.toggle("on",k===i)})},true);
-  document.addEventListener("keydown",function(e){if(e.key==="Escape"){$(".swm").forEach(function(m){m.hidden=true});$(".canvas.dopen").forEach(function(c){c.classList.remove("dopen")});$(".ovl.open").forEach(function(o){o.classList.remove("open")})}});
+  document.addEventListener("click",function(e){var t=e.target;if(!t.closest)return;
+    if(!t.closest(".splitb"))$(".ddm").forEach(function(m){if(m.hidden)return;m.hidden=true;var c=m.parentNode.querySelector("[data-dd]");if(c)c.setAttribute("aria-expanded","false")});
+    if(!t.closest("[data-cbx]"))$("[data-cbx] .lb").forEach(function(l){l.hidden=true;var i=l.parentNode.querySelector("input");if(i)i.setAttribute("aria-expanded","false")})});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"){$(".swm,.ddm,.lb").forEach(function(m){m.hidden=true});$(".canvas.dopen").forEach(function(c){c.classList.remove("dopen")});$(".ovl.open").forEach(function(o){o.classList.remove("open")})}});
   if(I)setLang(0);
   window.addEventListener("hashchange",show);show();
 })();
@@ -1445,8 +1630,71 @@ interface AppFrame { id: string; name: string; device: "web" | "phone"; shell: F
 // a phone's status bar: the time, then signal, wifi and battery, drawn as the system draws them
 const SYS = '<svg viewBox="0 0 18 11" aria-hidden="true"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="6" rx="1"/><rect x="10" y="2.5" width="3" height="8.5" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/></svg><svg viewBox="0 0 16 11" aria-hidden="true"><path d="M8 2.2c2.3 0 4.4.9 6 2.4l1.3-1.4A10.4 10.4 0 0 0 8 .3 10.4 10.4 0 0 0 .7 3.2L2 4.6a8.6 8.6 0 0 1 6-2.4Zm0 3.6c1.3 0 2.5.5 3.4 1.3l1.3-1.4A6.8 6.8 0 0 0 8 3.9a6.8 6.8 0 0 0-4.7 1.8l1.3 1.4c.9-.8 2.1-1.3 3.4-1.3Zm0 3.5L9.9 7.4a2.8 2.8 0 0 0-3.8 0Z"/></svg><svg viewBox="0 0 27 12" aria-hidden="true"><rect x=".5" y=".5" width="23" height="11" rx="3.2" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="17" height="8" rx="2"/><path d="M25 4v4c.8-.3 1.3-1.1 1.3-2S25.8 4.3 25 4Z" opacity=".45"/></svg>';
 
+/** The id of the demo's Components page (the design system sheet): a screen's own id never takes it. */
+export const COMPONENTS_ID = "components";
+const BTN_ROWS: [string, NonNullable<Exclude<Button, string>["variant"]>][] = [["Primary", "primary"], ["Secondary", "secondary"], ["Ghost", "ghost"], ["Danger", "danger"], ["Link", "link"]];
+const BTN_STATES = ["Default", "Hover", "Focus", "Pressed", "Disabled", "Loading"];
+const FIELD_STATES = ["Default", "Hover", "Focus", "Error", "Disabled"];
+
+/**
+ * The Components page: every control the design uses, in each of its states, drawn with the product's own look, for the
+ * people who build it (and the review). The core controls are always shown; the richer ones only when a page uses them.
+ */
+function componentsKit(screens: Screen[], colours: Record<string, string>): string {
+  const blocks = screens.flatMap((s) => [...(s.mock?.blocks ?? []), ...(s.mockFull?.blocks ?? [])]);
+  const uses = new Set(blocks.map((b) => b.type));
+  const kinds = new Set(blocks.flatMap((b) => (b.type === "form" ? b.fields.map((f) => f.kind) : [])));
+  const group = (title: string, note: string, body: string) => `<section class="kg"><h4>${esc(title)}</h4><p class="knote">${esc(note)}</p>${body}</section>`;
+  const grid = (cols: string[], rows: [string, string[]][]) => `<div class="kgrid" style="--n:${cols.length}"><span></span>${cols.map((c) => `<span class="kh">${esc(c)}</span>`).join("")}${rows.map(([l, cells]) => `<span class="kl">${esc(l)}</span>${cells.map((c) => `<div>${c}</div>`).join("")}`).join("")}</div>`;
+  const forced = (html: string, st: string) => {
+    const c = { Hover: "is-hover", Focus: "is-focus", Pressed: "is-active" }[st];
+    return c ? html.replace(/class="btn/, `class="btn ${c}`) : html;
+  };
+  const buttons = grid(BTN_STATES, BTN_ROWS.map(([name, variant]) => [name, BTN_STATES.map((st) => forced(buttonHtml({ label: "Save", variant, ...(st === "Disabled" ? { state: "disabled" as const } : st === "Loading" ? { state: "loading" as const } : {}) }, false, "act"), st))]));
+  const extra = `<div class="kwrap">${buttonHtml({ label: "Export", variant: "secondary", icon: "download", menu: ["Export as PDF", "Export as CSV"] }, false)}${buttonHtml({ label: "More options", iconOnly: true, icon: "more", variant: "ghost" }, false)}${buttonHtml({ label: "Delete", iconOnly: true, icon: "trash", variant: "ghost", hint: "Delete this item" }, false)}</div>`;
+  const input = (st: string, k: number) => {
+    const id = `kf${k}`, bad = st === "Error", off = st === "Disabled", c = { Hover: " is-hover", Focus: " is-focus" }[st] ?? "";
+    return `<div class="field${bad ? " bad" : ""}${off ? " off" : ""}"><label for="${id}">Email</label><input id="${id}" class="${c.trim()}" type="email" value="${bad ? "" : "ana@example.com"}"${bad ? ` aria-invalid="true" aria-describedby="${id}e"` : ""}${off ? " disabled" : ""}>${bad ? `<span class="err" id="${id}e">${icon("alert")}Enter an email</span>` : ""}</div>`;
+  };
+  const select = (st: string, k: number) => {
+    const id = `ks${k}`, bad = st === "Error", off = st === "Disabled", c = { Hover: " is-hover", Focus: " is-focus" }[st] ?? "";
+    return `<div class="field${bad ? " bad" : ""}${off ? " off" : ""}"><label for="${id}">Role</label><span class="sel"><select id="${id}" class="${c.trim()}"${bad ? ` aria-invalid="true"` : ""}${off ? " disabled" : ""}><option>${bad ? "Select a role" : "Editor"}</option></select>${icon("chevd")}</span>${bad ? `<span class="err">${icon("alert")}Choose a role</span>` : ""}</div>`;
+  };
+  const fields = grid(FIELD_STATES, [["Text input", FIELD_STATES.map((st, k) => input(st, k))], ["Select", FIELD_STATES.map((st, k) => select(st, k))]]);
+  // every kind of field a page uses, plus the core choices, as one form
+  const core: FormField[] = [
+    { label: "Plan", kind: "radio", options: ["Monthly", "Yearly"], value: "Monthly" },
+    { label: "Notify me", kind: "checkbox", options: ["Email", "SMS"], value: "Email" },
+    { label: "Dark mode", kind: "toggle", value: "on" },
+  ] as FormField[];
+  const SAMPLE: Record<string, Partial<FormField>> = {
+    password: { label: "Password", value: "secret123" }, email: { label: "Work email", placeholder: "you@company.com" }, time: { label: "Start time", value: "09:30" },
+    daterange: { label: "Dates", value: "Mar 3 - Mar 9" }, multiselect: { label: "Tags", options: ["Design", "Build", "Review", "Ship"], value: "Design, Review" },
+    combobox: { label: "Country", options: ["Pakistan", "Portugal", "Peru"], placeholder: "Search a country" }, consent: { label: "I agree to the terms" },
+    date: { label: "Due date" }, number: { label: "Quantity", value: "2" }, textarea: { label: "Notes" }, money: { label: "Amount", value: "$120.00" }, phone: { label: "Phone" }, slider: { label: "Budget", value: "40" }, otp: { label: "Code" },
+  };
+  const rich = [...kinds].filter((k) => !["text", "select", "radio", "checkbox", "toggle"].includes(k)).map((k) => ({ kind: k, label: k[0]!.toUpperCase() + k.slice(1), ...SAMPLE[k] }) as FormField);
+  const form = renderBlock({ type: "form", fields: [...core, ...rich, { label: "Full name", kind: "text", required: true, help: "As on your ID", hint: "We use it on invoices" } as FormField], submit: "Save" } as MockBlock, "normal");
+  const badges = `<div class="kwrap">${["Active", "Pending", "Failed", "Draft"].map((t) => `<span class="badge ${tone(t)}">${t}</span>`).join("")}</div>`;
+  const alerts = `<div class="kit">${(["info", "ok", "warn", "bad"] as const).map((t) => renderBlock({ type: "alert", tone: t, title: { info: "Heads up", ok: "Saved", warn: "Check this", bad: "Something failed" }[t], text: { info: "New reports are ready to view.", ok: "Your changes are live.", warn: "Two invoices are past due.", bad: "We could not reach the bank. Try again." }[t], ...(t === "bad" ? { action: "Retry" } : {}) } as MockBlock, "normal")).join("")}</div>`;
+  const prog = renderBlock({ type: "progress", title: "Upload", items: [{ label: "Report.pdf", value: 72, meta: "1.4 of 2 MB" }, { label: "Photos", value: 30, meta: "3 of 10" }] } as MockBlock, "normal");
+  const tip = `<div class="kwrap ktip">${withTip(`<button type="button" class="btn">${icon("info")}<span>Hover me</span></button>`, "A short tip").replace('class="tipw"', 'class="tipw show"')}${people(["Ana Lima", "Bo Chen", "Cy Diaz", "Di Eze", "Ed Fox", "Fay Gil", "Gus Ho"])}</div>`;
+  const NAMES: [string, string][] = [["br", "Brand"], ["on", "On brand"], ["a1", "Accent"], ["ink", "Text"], ["ink2", "Text 2"], ["mut", "Muted"], ["bg", "Page"], ["sf", "Card"], ["sf2", "Raised"], ["edge", "Border"], ["ok", "Success"], ["warn", "Warning"], ["bad", "Error"], ["info", "Info"]];
+  const swatches = `<div class="kswatch">${NAMES.map(([k, n]) => `<div><i style="background:var(--${k})"></i><b>${n}</b><code>${esc(colours[k] ?? "")}</code></div>`).join("")}</div>`;
+  return `<div class="kit">${[
+    group("Colours", "The product's palette; text colours read at 4.5:1 or more on every surface.", swatches),
+    group("Buttons", "Each variant in each state. Hover, focus and pressed are shown as they look when they happen.", buttons + extra),
+    group("Fields", "Text and select fields in each state; errors say what to do, and disabled fields cannot be changed.", fields),
+    group("Form controls", "Choices, switches and every kind of field the pages use, with required marks, help and a tooltip.", form),
+    group("Badges and people", "Status badges and avatar groups.", badges + tip),
+    group("Alerts", "Inline messages in each tone.", alerts),
+    ...(uses.has("progress") || uses.has("table") ? [group("Progress and paging", "Linear progress and a table's pager.", prog + `<div class="tbl">${pager(48, 6, 2)}</div>`)] : []),
+  ].join("")}</div>`;
+}
+
 export function buildDemo(d: DemoInput): string {
   uidN = 0;
+  tipN = 0;
   look = { ...DEFAULT_THEME, ...d.theme };
   market = { start: weekStart(d.locale?.region), weekend: weekend(d.locale?.region) };
   const screens = d.screens;
@@ -1551,6 +1799,14 @@ export function buildDemo(d: DemoInput): string {
   const side = apps.length > 1
     ? apps.map((a) => `<h3>${esc(a.name)} <span class="dv">${a.device === "phone" ? "phone app" : "web"}</span></h3><ul>${screens.filter((s) => appOf(s) === a).map(item).join("")}</ul>`).join("")
     : `<h3>Screens</h3><ul>${screens.map(item).join("")}</ul>`;
+  // the design system sheet: a web window of its own, listed apart from the product's screens (only when a page is drawn)
+  const kitOn = screens.some((s) => s.mock) && !screens.some((s) => s.id === COMPONENTS_ID);
+  const kit = kitOn ? `<section class="screen" id="${COMPONENTS_ID}" data-i="${screens.length}" hidden>
+<div class="top"><h2>Components <code>/components</code></h2><span class="tag">design system</span></div>
+<p class="file">Every control the pages use, in each state, in the product's look.</p>
+<div class="states" role="tablist"><button role="tab" data-state="0" class="on">All states</button></div>
+<div class="canvas sh-topbar"${canvasLang}><div class="win" aria-hidden="true"><span class="tl"><i></i><i></i><i></i></span><span class="url">${icon("lock")}${esc(slug)}.app/components</span></div><div class="stage"><div class="pane" data-wf="0"><div class="wrap"><div class="app" data-kind="normal" aria-label="All states"><div class="ph"><div><h3>Components</h3><p class="sub">The design system the pages are built from</p></div></div><div class="body">${componentsKit(screens, themeValues(d.theme).colours(d.theme?.mode === "dark"))}</div></div></div></div></div></div>
+</section>` : "";
   const none = d.noScreen.map((n) => `<li><b>${esc(n.req)}</b> ${esc(d.requirements[n.req] ?? "")} <i>(no screen: ${esc(n.reason)})</i></li>`).join("");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -1558,8 +1814,8 @@ export function buildDemo(d: DemoInput): string {
 <title>${esc(d.title)} - design demo</title>
 <meta name="color-scheme" content="${d.theme?.mode === "dark" ? "dark" : d.theme?.mode === "auto" ? "light dark" : "light"}">
 <style>${themeCss(d.theme)}${CSS}</style></head><body class="fx-${esc(look.fx)} sh-${apps[0]!.shell} ch-${look.charts} r-${look.radius}">
-<aside><h1>${esc(d.title)}</h1><p>${esc(d.flow)}</p>${side}${none ? `<h3>No screen</h3><ul>${none}</ul>` : ""}</aside>
-<main>${screens.map(panel).join("\n")}</main>
+<aside><h1>${esc(d.title)}</h1><p>${esc(d.flow)}</p>${side}${none ? `<h3>No screen</h3><ul>${none}</ul>` : ""}${kit ? `<h3>Design system</h3><ul><li><a href="#${COMPONENTS_ID}">Components <code>/components</code></a></li></ul>` : ""}</aside>
+<main>${screens.map(panel).join("\n")}${kit}</main>
 ${i18n ? `<script type="application/json" id="i18n">${JSON.stringify(i18n).replace(/</g, "\\u003c")}</script>` : ""}
 <script>${JS}</script></body></html>
 `;

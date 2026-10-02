@@ -71,10 +71,48 @@ export function palette(o: { brand: string; accent?: string; mode: "light" | "da
   // text on the brand: white, or the darkest ink when that reads better (a bright green or yellow brand takes dark text)
   const deep = dark ? n(0.16) : g.ink;
   const on = contrast(br, "#ffffff") >= 4.5 || contrast(br, "#ffffff") >= contrast(br, deep) ? "#ffffff" : deep;
-  const a1 = readable(o.brand, g.sf), a2 = readable(o.accent ?? o.brand, g.sf);
-  const st = (L: number, C: number, h: number) => readable(fromLch([L, C, h]), g.sf);
+  // text sits on the page, on cards and on the raised grey: each colour must read on the hardest of them (the raised grey is
+  // the darkest surface of a light page and the lightest of a dark one)
+  const hard = (hex: string) => readable(readable(readable(hex, g.sf2), g.sf), g.bg);
+  const a1 = hard(o.brand), a2 = hard(o.accent ?? o.brand);
+  const st = (L: number, C: number, h: number) => hard(fromLch([L, C, h]));
   return {
-    ...g, br, on, a1, a2,
+    ...g, mut: hard(g.mut), ink2: hard(g.ink2), br, on, a1, a2,
     ok: st(dark ? 0.8 : 0.52, 0.15, 152), bad: st(dark ? 0.74 : 0.55, 0.19, 25), warn: st(dark ? 0.82 : 0.6, 0.15, 70), info: st(dark ? 0.78 : 0.55, 0.12, 245),
   };
+}
+
+/** One colour pair that does not read well enough: which text on which surface, in which mode, and by how much. */
+export interface ContrastIssue { mode: "light" | "dark"; text: string; on: string; ratio: number; need: number }
+
+/**
+ * The palette's text and controls checked against the surfaces they sit on (WCAG 2.2): body, secondary and muted text, links and
+ * status colours at 4.5 on the page, cards and raised grey; the focus ring at 3 (a non-text indicator); a button's label on the
+ * brand at 4.5, or 3 when no choice of white or dark ink reaches 4.5 (the label is bold, but the brand should still be darkened).
+ * `colours` is one mode's palette; a translucent (glass) surface is checked as the page beneath it.
+ */
+export function contrastIssues(colours: Palette, mode: "light" | "dark"): ContrastIssue[] {
+  const out: ContrastIssue[] = [];
+  const solid = (c: string | undefined) => (c && /^#[0-9a-f]{6}$/i.test(c) ? c : undefined);
+  const bg = solid(colours.bg)!, surfaces = { bg, sf: solid(colours.sf) ?? bg, sf2: solid(colours.sf2) ?? bg };
+  const test = (text: string, on: string, need: number) => {
+    const a = solid(colours[text]), b = (surfaces as Record<string, string>)[on] ?? solid(colours[on]);
+    if (!a || !b) return;
+    const r = contrast(a, b);
+    if (r + 1e-9 < need) out.push({ mode, text, on, ratio: Math.round(r * 100) / 100, need });
+  };
+  for (const on of ["bg", "sf", "sf2"]) {
+    for (const t of ["ink", "ink2", "mut", "a1", "a2", "ok", "bad", "warn", "info"]) test(t, on, 4.5);
+    if (on !== "sf2") test("a1", on, 3);
+  }
+  const brand = solid(colours.br), label = solid(colours.on);
+  if (brand && label) {
+    const best = Math.max(contrast(brand, "#ffffff"), contrast(brand, solid(colours.ink) ?? "#000000"));
+    const r = contrast(label, brand), need = best >= 4.5 ? 4.5 : 3;
+    if (r + 1e-9 < need) out.push({ mode, text: "on", on: "br", ratio: Math.round(r * 100) / 100, need });
+  }
+  // the same pair failing on several surfaces is one finding, at its worst
+  const seen = new Map<string, ContrastIssue>();
+  for (const i of out) { const k = `${i.mode}/${i.text}/${i.need}`, was = seen.get(k); if (!was || i.ratio < was.ratio) seen.set(k, i); }
+  return [...seen.values()];
 }

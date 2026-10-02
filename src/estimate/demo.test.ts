@@ -21,7 +21,7 @@ describe("clickable demo", () => {
     expect(html).toContain("INV-20418");
     expect(html).toContain("No overdue invoices");
     expect(html).toContain("We couldn&#39;t load invoices.");
-    expect(html.match(/class="pane"/g)?.length).toBe(4);
+    expect(html.split('id="components"')[0]!.match(/class="pane"/g)?.length).toBe(4);
     expect(html).toContain('class="badge bad"');
   });
   it("lists the normal page first and keeps screenshots in the same order", () => {

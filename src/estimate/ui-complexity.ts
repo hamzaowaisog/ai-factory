@@ -18,7 +18,10 @@ export interface ScreenUi {
 export const UI_LEVELS = { moderate: 8, complex: 16 } as const;
 
 // the field kinds that are more than a text box: each needs its own control, formatting or validation
-const RICH_FIELDS: Record<string, string> = { otp: "one-time code", card: "card number", phone: "phone with country code", search: "search-as-you-type", slider: "slider", currency: "currency amount", checkbox: "multi-choice", date: "date picker" };
+const RICH_FIELDS: Record<string, string> = { otp: "one-time code", card: "card number", phone: "phone with country code", search: "search-as-you-type", slider: "slider", currency: "currency amount", checkbox: "multi-choice", date: "date picker",
+  password: "password with show/hide", time: "time picker", daterange: "date range picker", multiselect: "multi-select with chips", combobox: "searchable dropdown" };
+// a button with more than one label: a split button opens a menu of its other choices
+const splits = (bs: unknown[] | undefined): number => (bs ?? []).filter((x) => typeof x === "object" && !!(x as { menu?: unknown[] }).menu?.length).length;
 // domain components: the parts a field is known for, each a small app of its own
 const COMPONENTS: Record<string, [number, string]> = {
   map: [5, "map with pins"], chat: [5, "live chat"], kanban: [5, "drag-and-drop board"], calendar: [4, "calendar with bookable times"],
@@ -32,26 +35,39 @@ type Part = [number, string];
 function blockParts(b: MockBlock): Part[] {
   switch (b.type) {
     case "table": {
-      const extra = [b.sortBy !== undefined ? "sorting" : "", b.selectable ? "row selection" : "", b.bulk?.length ? "bulk actions" : ""].filter(Boolean);
+      const extra = [b.sortBy !== undefined ? "sorting" : "", b.selectable ? "row selection" : "", b.bulk?.length ? "bulk actions" : "", (b.pages ?? 1) > 1 ? "paging" : ""].filter(Boolean);
       return [[2 + extra.length, `table${extra.length ? ` with ${and(extra)}` : ""}`]];
     }
     case "form": {
       const rich = [...new Set(b.fields.map((f) => RICH_FIELDS[f.kind]).filter((x): x is string => !!x))];
+      // fields that are required, or show an error, need their rules written and their messages drawn
+      if (b.fields.some((f) => f.required || f.error)) rich.push("field validation");
       return [[1 + Math.ceil(b.fields.length / 2) + rich.length, `form of ${b.fields.length} field${b.fields.length > 1 ? "s" : ""}${rich.length ? ` (${rich.join(", ")})` : ""}`]];
     }
     case "chart": return [[2, `${b.kind} chart`]];
     case "filters": return [[b.segments ? 2 : 1, b.segments ? "filters with a segmented switch" : "search and filters"]];
     case "carousel": return [[2, "carousel"]];
     case "map": return [[COMPONENTS.map![0] + (b.route ? 2 : 0), b.route ? "map with a route and stops" : COMPONENTS.map![1]]];
-    case "stats": case "cards": case "steps": case "timeline": case "detail": case "accordion": case "list": return [[1, ""]];
-    case "actions": case "text": return [];
+    case "cards": case "list": case "detail": {
+      const ppl = b.type === "detail" ? !!b.people?.length : b.items.some((it) => "people" in it && !!(it as { people?: string[] }).people?.length);
+      return [[ppl ? 2 : 1, ppl ? "avatar groups" : ""]];
+    }
+    case "stats": case "steps": case "timeline": case "accordion": return [[1, ""]];
+    case "actions": { const n = splits(b.buttons); return n ? [[n, `${plural(n, "split button")}`]] : []; }
+    case "text": return [];
+    case "alert": return [[1, "inline alert"]];
+    case "progress": return [[1, "progress bars"]];
+    case "toolbar": {
+      const extra = [b.selects.length ? `${plural(b.selects.length, "dropdown")}` : "", splits(b.buttons) ? "a split button" : ""].filter(Boolean);
+      return [[1 + b.selects.length + splits(b.buttons), `toolbar${extra.length ? ` with ${and(extra)}` : ""}`]];
+    }
     default: { const c = COMPONENTS[b.type]; return c ? [c] : [[1, ""]]; }
   }
 }
 
 function overlayParts(o: MockOverlay): Part {
-  const form = (o.blocks ?? []).some((b) => b.type === "form");
-  return [form ? 3 : 2, form ? `${o.kind} with a form` : o.kind];
+  const form = (o.blocks ?? []).some((b) => b.type === "form"), split = splits(o.actions);
+  return [(form ? 3 : 2) + split, `${o.kind}${form ? " with a form" : ""}${split ? " and a split button" : ""}`];
 }
 
 const and = (xs: string[]): string => xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`;

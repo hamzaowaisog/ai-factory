@@ -3,7 +3,7 @@
 // other language (`tr`), and the demo shows the page in either language, mirrored for a right-to-left one, with the market's
 // first weekday, weekend and digits. This file holds what code knows about languages and markets, and the checks the design step
 // runs on a design's locale.
-import type { DesignLocale, ScreenMock, Translation } from "../contracts/artifacts.js";
+import type { Button, DesignLocale, ScreenMock, Translation } from "../contracts/artifacts.js";
 
 const RTL = new Set(["ar", "ur", "fa", "he", "ps", "sd", "ug", "yi", "dv", "ckb"]);
 const ARABIC_SCRIPT = new Set(["ar", "ur", "fa", "ps", "sd", "ug", "ckb"]);
@@ -81,19 +81,25 @@ export const otherLanguage = (loc?: DesignLocale): string | undefined => loc?.la
  * the words of its layers, toasts and states. Names, places, amounts and codes in the data may stay as written.
  */
 export function pageLabels(m: ScreenMock): string[] {
-  const out: string[] = [m.title, m.subtitle ?? "", ...(m.crumbs ?? []), ...(m.tabs ?? []), ...Object.values(m.copy ?? {})];
+  const out: string[] = [m.title, m.subtitle ?? "", m.badge ?? "", ...(m.crumbs ?? []), ...(m.tabs ?? []), ...Object.values(m.copy ?? {})];
+  // a button's label, its tooltip and its split menu's choices
+  const btns = (list: Button[]) => list.flatMap((x) => (typeof x === "string" ? [x] : [x.label, x.hint ?? "", ...(x.menu ?? [])]));
   const blocks = (list: ScreenMock["blocks"]) => {
     for (const b of list) {
       switch (b.type) {
         case "stats": out.push(...b.items.map((s) => s.label)); break;
         case "filters": out.push(b.search ?? "", ...b.chips, ...(b.segments ?? [])); break;
-        case "table": out.push(...b.columns, ...(b.bulk ?? []), ...(b.statusColumn !== undefined ? b.rows.map((r) => r[b.statusColumn!] ?? "") : [])); break;
-        case "form": out.push(...b.fields.flatMap((f) => [f.label, ...(f.options ?? [])]), b.submit); break;
+        case "table": out.push(...b.columns, ...btns(b.bulk ?? []), ...(b.statusColumn !== undefined ? b.rows.map((r) => r[b.statusColumn!] ?? "") : [])); break;
+        case "form": out.push(...b.fields.flatMap((f) => [f.label, f.help ?? "", f.error ?? "", f.hint ?? "", ...(f.options ?? [])]), b.submit); break;
         case "chart": out.push(b.title, ...(b.ranges ?? []), ...(b.series ?? [])); break;
         case "cards": out.push(...b.items.map((i) => i.badge ?? "")); break;
-        case "actions": out.push(...b.buttons); break;
+        case "list": out.push(...b.items.map((i) => i.badge ?? "")); break;
+        case "actions": out.push(...btns(b.buttons)); break;
+        case "alert": out.push(b.title ?? "", b.text, b.action ?? ""); break;
+        case "toolbar": out.push(b.search ?? "", ...b.selects.flatMap((x) => [x.label, ...x.options]), ...btns(b.buttons)); break;
+        case "progress": out.push(b.title ?? "", ...b.items.flatMap((i) => [i.label, i.meta ?? ""])); break;
         case "steps": out.push(...b.items); break;
-        case "detail": out.push(b.title ?? "", b.lead?.label ?? "", ...b.rows.map((r) => r.label)); break;
+        case "detail": out.push(b.title ?? "", b.lead?.label ?? "", ...b.rows.flatMap((r) => (r.badge ? [r.label, r.value] : [r.label]))); break;
         case "carousel": out.push(b.title ?? "", ...b.items.flatMap((i) => [i.badge ?? "", i.cta ?? ""])); break;
         case "kanban": out.push(...b.columns.map((c) => c.title)); break;
         case "plans": out.push(...b.items.flatMap((i) => [i.name, i.cta, ...i.features]), ...(b.periods ?? [])); break;
@@ -108,7 +114,7 @@ export function pageLabels(m: ScreenMock): string[] {
     }
   };
   blocks(m.blocks);
-  for (const o of m.overlays ?? []) { out.push(o.title, o.text ?? "", ...o.actions, ...(o.items ?? [])); blocks(o.blocks); }
+  for (const o of m.overlays ?? []) { out.push(o.title, o.text ?? "", ...btns(o.actions), ...(o.items ?? [])); blocks(o.blocks); }
   for (const t of m.toasts ?? []) out.push(t.text);
   // a word is a label, not data: numbers, codes and amounts read the same in both languages
   return [...new Set(out.map((s) => s.trim()).filter((s) => s && /\p{L}{2}/u.test(s) && !/^[A-Z]{2,5}$/.test(s)))];

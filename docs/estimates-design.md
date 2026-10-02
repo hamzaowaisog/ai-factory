@@ -349,6 +349,276 @@ Greenfield is not built yet. The design work is built as one piece that any mode
     - Tests: the step list (direct, with references, no UI, from an estimate or design, planned before the change), the question and its answer, the card with no auto answer, the design kept and restyled, the card and estimate lines. 740 tests pass.
 10. **Docs, tests and a visual check.** Fixtures per input type; a run with no references unchanged; one live run each with a URL, a JPEG and a Figma link (needs `ANTHROPIC_API_KEY` and `FIGMA_TOKEN` in `~/.factory/.env`).
 
+### Design handoff (requirements 2 and 3, approved 2026-10-02; step 1 built)
+
+Two requirements, planned together because they read the same thing:
+
+- **Requirement 2:** after a design is approved, how it is stored, and how it becomes screens in the project's chosen tech stack.
+- **Requirement 3:** the approved design can be exported to Figma, as PNGs, as a PDF and in other forms, from commands and from an Export button in the factory UI, in brownfield, greenfield and estimate runs.
+
+They apply to every mode that uses the design pipeline (`designSteps`): estimate, design-only, brownfield and greenfield once it exists.
+
+**What we have today (checked in the code, 2026-10-02)**
+
+- **Storage.** The approved design is one JSON object in the run's ledger (`putJson`). Later runs find it through `approvedDesignFor` (`src/stages/design-inputs.ts`) and `--from-design` / `--from-estimate`. The approval step also writes `<run>/preview/`: the demo (`index.html`), `tokens.css`, `tokens.json`, frames and screenshots (`src/stages/estimate-approve.ts`).
+- **Conversion.** An implement task that builds an approved screen gets `screenBrief` (`src/estimate/design-link.ts`): route, file, states, sample content, the look and the tokens. The model writes the screen from scratch. B7 checks the plan task can touch the screen's file.
+- **Checks.** The token and component lint (`design.fidelity-lint`), the UI size cap (`design.size-cap`) and the opt-in visual check. The visual check compares the base commit with the head, not with the approved mock.
+
+**Gaps**
+
+1. The design lives only inside one run's ledger. There is no versioned copy per project or in the repo, and no way to change it after approval.
+2. The model rebuilds tables, forms and charts on every screen, so screens drift from each other and from the demo.
+3. Nothing compares the built screens with the approved demo.
+4. Tokens come out as CSS only, and `Stack` is `dotnet | node-express | react-vite | nextjs`. There is no UI target per app (a phone app and an admin portal need different stacks).
+5. There is no export beyond the run's preview folder, and nothing goes to Figma.
+6. Some common controls cannot be described (see "Common controls" below).
+
+**Research (2026-10-02)**
+
+- **Converting designs to code.**
+  - Screenshot to code (screenshot-to-code, v0, the Design2Code benchmark) gets layouts and states wrong, and we don't need it: the approved design is typed data built from a fixed set of about 30 block types.
+  - What works:
+    - tokens in the W3C Design Tokens format (stable since 2025.10), generated for each platform, as Style Dictionary does;
+    - a mapping from design components to the codebase's real components (Figma Code Connect);
+    - ready-made component kits copied into the repo (the shadcn registry);
+    - screenshot comparison to check the result.
+  - Compiling one component to many frameworks (Mitosis) is heavy and limited, and is not used.
+- **Writing to Figma.**
+  - Figma's official MCP server can write: `use_figma` (frames, components, variants, variables, auto layout, text), `generate_figma_design` (captures a running web page, localhost included, as editable layers) and `create_new_file`. Limits:
+    - Only the remote server (`mcp.figma.com/mcp`) writes.
+    - It takes OAuth only, from clients on Figma's allowlist (Claude Code, Cursor, VS Code, Codex, ...). Personal access tokens are refused and a custom OAuth app cannot get the MCP scope. **The factory runtime cannot call it**, and its locked network rules it out anyway.
+    - Writing needs a full seat and edit access to the file; a Dev seat is read-only.
+    - It is free during the beta and will become a usage-based paid feature.
+    - `use_figma` handles no images and no custom fonts yet, and answers at most 20 KB per call.
+    - `generate_figma_design` gives flat layers (no components or variants).
+  - Figma's REST API (what our `FIGMA_TOKEN` reader uses) cannot create layers.
+  - A Figma plugin can do everything, images and fonts included, with any client and any plan that can edit the file.
+  - Community MCP servers that bridge to a plugin over a websocket work from any client, but they are third-party code with write access to client files. They are not used.
+- Sources:
+  - [Figma: write to canvas](https://developers.figma.com/docs/figma-mcp-server/write-to-canvas)
+  - [Figma MCP tools](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/)
+  - [Figma MCP FAQs](https://help.figma.com/hc/en-us/articles/39252411778583-Figma-MCP-server-FAQs)
+  - [GitHub changelog, 2026-03-06](https://github.blog/changelog/2026-03-06-figma-mcp-server-can-now-generate-design-layers-from-vs-code/)
+  - [Scalekit: Figma MCP vs API](https://www.scalekit.com/blog/figma-mcp-vs-api)
+
+**Principles (UI/UX, engineering and QA review, agreed 2026-10-02)**
+
+1. **Block only on checks that give the same answer every time.** The demo and a real stack always differ in pixels (fonts, anti-aliasing, how each kit renders), so pixels never block. Tokens, structure and accessibility do.
+2. **The approved design generates tests as well as code.** Every state, link, overlay, toast and form field becomes a test, tagged with its requirement id.
+3. **Screen code is generated once and then owned by the repo.** The generator never runs again over code the model or a developer has edited. A later design version becomes a change task built from the diff.
+4. **Code does the look; the model does the behaviour.** Generated presentational components take props; the model writes the containers (data, APIs, validation, state).
+5. **Build one kit first.** Add a stack only when a real project needs it.
+
+```
+requirements ─► design (approved, vN) ─► design package vN ─┬─► exports: png · pdf · html · tokens · json · figma   (req 3)
+                                                            └─► build: theme → kit → scaffold → model → fidelity   (req 2)
+```
+
+#### Common controls (built first; Done, design template 20)
+
+What the design can describe today:
+
+| Control | Today |
+|---|---|
+| Dropdown | Form field `select` (single choice, up to 8 options), `search` (type to filter), the sort control on results, the `menu` overlay |
+| Checkbox | Form field `checkbox` (tiles at 3 or fewer options), table row tick boxes with select all, filter facets |
+| Radio | Form field `radio` (tiles at 3 or fewer options) |
+| Toggle | Form field `toggle` |
+| Buttons | `actions` (1 to 4 labels, the first primary), form submit, buttons on cards, plans and overlays; danger only guessed on a confirm |
+| Other inputs | text, textarea, date, number, currency, phone, one-time code, slider, card, upload |
+| Navigation, overlays, feedback | Sidebar, top bar, bottom tabs, drawer, tabs, breadcrumbs, segments, switcher; modal, drawer, sheet, confirm, menu; toasts; empty, loading, error, success and validation states |
+
+Added in design template 20 (Done), with plain labels still accepted where a field becomes an object:
+
+- **Buttons:** `{ label, variant, icon?, iconOnly?, state? }`:
+  - `variant`: primary, secondary, ghost, danger or link;
+  - `state`: disabled or loading.
+
+  This applies to `actions`, overlay actions, bulk actions and toolbar buttons. A button may also carry a `hint` (its tooltip) and a `menu` of up to six more choices, which makes it a split button.
+- **Fields:**
+  - new kinds `password` (show/hide), `email`, `time`, `daterange`, `multiselect`, `combobox` (type to filter, picked items as chips) and `consent` (one "I agree" checkbox);
+  - per field: `required`, `help`, `disabled`, `readOnly` and `error` (its own message for the validation state).
+- **Blocks:**
+  - `alert`: an inline banner, with a tone, title, text and an optional action;
+  - `toolbar`: dropdowns, search and buttons outside a form, such as "Sort by" or a split "Export" button;
+  - linear `progress`: one to four bars.
+- **Tables:** paging that works (`pages`, `page`).
+- **Overlays:** `popover`, and tooltips as a `hint` on a button or field.
+- **Small parts:**
+  - a standalone status `badge` beside a page title or a detail value (Active, Overdue), not only inside cards, tables and results;
+  - an avatar group (`people`: up to five names, then +N) on cards, list rows and detail.
+- **The Components page.** A demo page, generated by code, showing every control the design uses, in the project's theme, in each state: default, hover, focus, pressed, disabled, error, loading. It is pictured and exported like a screen. It is what the Figma export turns into components and variants, what a stack kit must match, and a page of the design PDF.
+- **Accessibility checks in the design step, by code:**
+  - WCAG 2.2 AA contrast for every text-on-surface token pair, in each mode;
+  - touch targets of at least 44 px on a phone (24 px on the web);
+  - a visible focus token;
+  - a label on every field.
+
+  A theme that fails goes back to the model (`design-a11y`). As built:
+  - the palette now makes every text colour readable on the page, cards and the raised grey, so a generated theme passes by construction;
+  - the check (`contrastIssues` in `src/estimate/palette.ts`, `a11yFit` in `src/stages/design.ts`) covers the cases the palette cannot fix, and asks for a name on every field and button;
+  - button labels on the brand need 4.5:1, or 3:1 when neither white nor dark ink reaches 4.5:1 on that brand;
+  - touch targets are sized by the demo's CSS (44 px on a phone, with a larger hit area around small icons) and measured by a browser test, not by the model.
+- **UI complexity** (`src/estimate/ui-complexity.ts`) counts the new parts: the new field kinds, field validation, table paging, the alert, toolbar (each dropdown and split button), progress, split buttons and avatar groups.
+- **As built, the demo:** split menus, paging, show/hide password, combobox filtering and multiselect chips, the popover and tooltips all work; menus and lists close on Escape or a click elsewhere. The Components page is listed under "Design system" in the walkthrough, pictured on the approval card, and leaves out the rarer parts no page uses.
+- Later, only when a project needs them: rating input (reviews are shown today but cannot be given), tags input (combobox chips cover most uses), colour picker, tree view, rich text.
+
+#### The design package (requirement 2: storage)
+
+A new step, `design-export`, runs after `design-baseline` is approved. It writes a package that does not depend on any stack:
+
+```
+design/vN/
+  manifest.json   version, schemaVersion, design sha, approved by and when, run id, references used, template version
+  design.json     the approved design: screens, blocks, states, overlays, toasts, links, theme, locale
+  tokens.json     W3C Design Tokens: primitive values, and semantic names the code uses (color.brand, color.text-muted)
+  demo/           the clickable demo as static files
+  shots/          reference screenshots: screen × state × width × mode × language, and the Components page
+```
+
+- **Never changed after approval.** The ledger stays the source of truth (the package is an export of it), and `design.json` carries a `schemaVersion` with migrations.
+- **Kept in two places:** the factory project store, and the repo's `design/` folder, committed with the first build commit so developers and later brownfield runs see it.
+- **Reproducible shots:** a frozen clock, no animation, fonts loaded, fixed viewports and the approved sample data. The same package gives the same pictures on every run; the fidelity check and the exports depend on this.
+- **A change after approval** makes v(N+1): the design step runs again on the change, and the approval card shows the old and new screens side by side. The build pins a version by sha, and only the screens that changed are planned again, as change tasks.
+
+#### Exports (requirement 3)
+
+One command for any run with an approved design (estimate, design-only, brownfield, greenfield):
+
+```
+factory design export <run> [--format png|pdf|html|tokens|json|figma|all] [--out <dir>]
+                            [--screens S-1,S-3] [--states ...] [--widths phone,tablet,desktop]
+                            [--mode light,dark] [--lang en,ar] [--version vN] [--pdf-per-screen]
+factory design export list <run>
+factory design figma <run> [--file <figma url>]
+```
+
+| Format | What it gives |
+|---|---|
+| `png` | Every screen × state × width × mode × language, and the Components page, named `S-1_empty_phone_dark_ar.png` |
+| `pdf` | One design book: cover, the product reading, the look and tokens, the Components page, then each screen with its states, the flow and its requirement links. `--pdf-per-screen` gives one PDF per screen. Drawn by Chromium's `page.pdf` with the fonts embedded; no new dependency |
+| `html` | The clickable demo as a standalone zip |
+| `tokens` | `tokens.json` (W3C), `tokens.css` and the Tailwind v4 `@theme` block; the stack outputs below as they are built |
+| `json` | `design.json` and `manifest.json` |
+| `figma` | `figma.json` for the AI Factory Figma plugin |
+| `all` | All of the above |
+
+- **Default is on demand.** `--design-export png,pdf` on `factory estimate`, `factory start`, `factory design start` (and greenfield later) exports automatically right after the design is approved.
+- **Files go to** `<run>/exports/vN/...`. Every file is tagged with the design version and sha, so a PDF sent to a client always matches what was approved.
+- **The estimate** puts the design PDF beside the client workbook as its own file, not inside the Excel.
+- **Factory UI: an Export button** on the design card and the run's Design tab, in every mode that has an approved design. Its menu offers:
+  - PNG (zip);
+  - PDF (design book, or one per screen);
+  - Clickable demo (zip);
+  - Design tokens;
+  - Design JSON;
+  - **Figma**: download `figma.json` for the plugin, and "Open in Figma with Claude Code" (route B below), which shows the command to run;
+  - Everything.
+
+  The options shown are the same as on the command line (screens, widths, modes, languages). An export runs as a job on the server (`POST /api/runs/:id/exports`, `GET /api/runs/:id/exports`), shows progress, and the files are downloaded through the run's session key like the preview. Earlier exports are listed with their version.
+
+#### Figma
+
+- **Supported route (A): our own Figma plugin, "AI Factory Import".**
+  - The user opens it in Figma and picks a `figma.json`. It builds:
+    - a page per app;
+    - a frame per screen × state × width, with auto layout;
+    - a components page with a component and variants for each control and block in each state;
+    - variables (light and dark modes) from the tokens;
+    - the screenshots as images where layers would be lossy (maps, charts as pictures in the first version).
+  - The plugin reads only the chosen file, has no network access and needs only edit rights on the file. It lives in this repo (`figma-plugin/`), is built with the factory, and is installed from its manifest (published to the team's Figma organisation later).
+- **Optional route (B): Claude Code with Figma's MCP server.**
+  - `factory design figma <run>` serves the approved demo on localhost and prints, or hands to Claude Code, the instructions to capture each screen and state with `generate_figma_design` and add the token variables with `use_figma`.
+  - It needs Claude Code (or another allowlisted client) signed in to Figma, a full seat and the beta. It runs only when the user starts it, outside the locked runtime, with no factory secrets.
+  - The result is flat layers, good for review.
+  - The Figma file link is recorded in the manifest.
+- **Not used:** community MCP bridges.
+- **Coming back from Figma.** If a designer changes the file, its link is attached as a `match` reference (the existing read-only `FIGMA_TOKEN` reader). That makes design v(N+1) through the normal approval card. The build always follows the approved package, never Figma directly.
+
+#### Conversion to the chosen stack (requirement 2)
+
+1. **A UI target per app.** `uiTarget` is set per app in the design (`next-shadcn`, `vite-shadcn`, later `expo`), and is separate from the backend `Stack`; a .NET backend with a Next.js portal is normal. It comes from the stack source (client, Folio3, undecided) and the app's device. An undecided target is asked on the clarify card before the build.
+2. **Tokens → the stack's theme, by our own small generators** (no Style Dictionary):
+   - CSS variables and Tailwind v4's CSS-first `@theme` for React, Next.js and Vite;
+   - later, `theme.ts` for React Native, `ThemeData` for Flutter and a `wwwroot` stylesheet for Blazor.
+
+   Code only ever uses the semantic names.
+3. **A kit per UI target.** A versioned package in the factory, with its own component tests, copied into the project the shadcn way (the repo owns it).
+   - It maps every control and block to a component. For `next-shadcn`:
+     - Button, Select, Combobox (Command), Checkbox, RadioGroup, Switch and Input;
+     - Dialog, Sheet, DropdownMenu, Popover, Tooltip and Alert;
+     - Progress, Pagination, Tabs, Breadcrumb, Accordion, Calendar with a date picker, and Sonner (toasts);
+     - TanStack Table for tables, Recharts for charts, Leaflet for maps.
+   - The kit sets how each block changes with width once, for every screen: a table becomes cards on a phone, a sidebar becomes a drawer, a toolbar folds into a menu.
+   - It goes into the repo in the first task (the design-system task) with the tokens.
+   - **Brownfield:** the mapping points at the repo's own components from the design inventory, not the kit.
+4. **Screen scaffold by code, generated once.** From `design.json` and the kit:
+   - the route file, frame and navigation;
+   - each block as a presentational component;
+   - the states, overlays, toasts and translated text;
+   - fixtures made from the approved sample data.
+
+   The implement task (the model) then writes the containers: data, APIs, validation and the behaviour the requirements ask for. It is told not to restyle. A UI target with no kit falls back to today's route (the model writes the screen from `screenBrief`).
+5. **Planning.** The plan's first UI task is the design-system task (tokens, kit, frame); then one task per screen, whose file scope covers its scaffold (B7 already checks this).
+6. **Kits in order:** `next-shadcn` and `vite-shadcn` first; `expo` when a project needs a phone app; Flutter, Angular and Blazor only on demand.
+
+#### Fidelity and tests (QA)
+
+The built app runs in fixture mode (`?fixture=S-3:empty`, any state without a backend), at the widths, modes and languages of the package's `shots/`. It is checked at four levels:
+
+| Level | What it checks | Gate |
+|---|---|---|
+| 1. Tokens | Every colour, font, radius and shadow computed on the page is in the token set | Blocking (`design.tokens`) |
+| 2. Structure | Every approved block, field, button, column, tab and label is there with the approved text (the `data-b` markers) | Blocking (`design.structure`) |
+| 3. Accessibility | axe-core critical and serious issues, keyboard tab order, focus visible | Blocking (`design.a11y`) |
+| 4. Layout and pixels | Layout boxes within a tolerance (`compareLayout`), pixel diff (`pixelDiff`) | Advisory. Layout becomes blocking once calibrated on real runs; pixels never block |
+
+Like the other build gates, the blocking ones can be waived with a reason on the waiver card.
+
+- **Tests generated from `design.json`** (Playwright, in the repo, tagged with requirement ids):
+  - every state, from its fixture;
+  - every link (it navigates);
+  - every overlay (it opens from its trigger);
+  - every toast (it shows after its action);
+  - every form (required fields, field kinds, error text).
+
+  This traces each requirement to its screen, its components and its tests.
+- **Devices and browsers:** phone, tablet and desktop widths on Chromium, and WebKit at phone width. Dark mode and right to left only when the design has them.
+- **Baselines:** differences show on the accept card beside the approved picture. Accepting a deliberate change makes it the new baseline, recorded in the ledger, never silently.
+- **Exports are checked too:** the PDF has every screen, its fonts embedded, and a page count that matches the manifest; the PNG count matches the screens × states matrix.
+
+#### Decisions (2026-10-02)
+
+| # | Decision |
+|---|---|
+| 1 | The common controls, the Components page and the design-time accessibility checks come first |
+| 2 | Package kept in the factory store and the repo's `design/`; never changed after approval; `schemaVersion` with migrations |
+| 3 | Screens are scaffolded by code once; the model writes behaviour; later versions arrive as change tasks |
+| 4 | First kit `next-shadcn` / `vite-shadcn` only; `expo` when a project needs it |
+| 5 | Fidelity at four levels: tokens, structure and accessibility block; layout advisory then blocking; pixels never block |
+| 6 | Our own token generators, with semantic tokens and Tailwind v4 `@theme` |
+| 7 | A change after approval makes a new version, with old and new shown on the approval card; only the changed screens are planned again |
+| 8 | Figma through our own plugin; the Claude Code + MCP route is optional; no community bridges |
+| 9 | PDF: one design book by default, `--pdf-per-screen` as an option |
+| 10 | Exports on demand, from the command or the UI's Export button; `--design-export` makes them automatic on approval |
+| 11 | The estimate's client delivery includes the design PDF as its own file |
+
+#### Build order
+
+1. **Common controls.** Done.
+   - The schema additions, drawn and working in the demo, with data checks.
+   - The Components page; `design-a11y`; UI complexity points.
+   - Design template 20. `docs/design-references.md` lists the new controls.
+2. **Design package.** The `design-export` step, `manifest.json`, `schemaVersion`, W3C tokens with semantic names, reproducible reference shots, versions and the side-by-side change card, and the repo `design/` folder on the first build commit.
+3. **Exports.** `factory design export` (png, pdf, html, tokens, json) and `export list`, `--design-export` on every mode, the export API and the **Export button** on the design card and Design tab, and the design PDF beside the estimate's client workbook.
+4. **Kit and scaffold.** `uiTarget`, the token generator for web, the `next-shadcn` / `vite-shadcn` kit with its tests, the scaffold generator, and plan and implement wiring (design-system task first, behaviour-only implement prompt).
+5. **Fidelity and tests.** Fixture mode, the four levels with gates `design.tokens`, `design.structure` and `design.a11y`, tests generated from the design, the baseline workflow on the accept card.
+6. **Figma.** `figma.json` and the AI Factory Import plugin (route A); the `figma` entry in the Export button; `factory design figma` (route B).
+7. **More kits on demand.** `expo` first, when a project needs a phone app.
+8. **Docs, tests and live runs.** These need `ANTHROPIC_API_KEY`, and a full Figma seat for route B.
+
+Steps 1 to 3 are useful on their own: clients get PNG and PDF exports straight away. If a client needs Figma before code, step 6 can move ahead of step 4.
+
 ## Size measurement
 
 Size is **counted from typed units**, not judged by feel. Code counts what it can. The model proposes units from text, and code checks each against a source quote.
@@ -656,6 +926,7 @@ A walk-through of the spec (no hours) tested the design:
 - Stack source is a run setting (client, Folio3, or undecided).
 - Budget-burn thresholds: warn at 80% of the approved maximum, stop at 100%.
 - Specify per module; .docx and pre-exported Figma frames as inputs; up to two scenarios per estimate.
+- **Design handoff** (2026-10-02, see "Design handoff"): an approved design becomes a versioned design package (factory store and the repo's `design/`); it is exported on demand (PNG, PDF design book, demo, tokens, JSON, Figma through our own plugin) from `factory design export` or the UI's Export button; the build converts it to the chosen UI target by code (tokens, a per-stack kit, a scaffold generated once) with the model writing behaviour; fidelity blocks on tokens, structure and accessibility, never on pixels.
 
 ## Open items
 
@@ -713,6 +984,7 @@ Not done:
 - **A rendered mock in the real app.** The design step produces a screen inventory, a clickable wireframe demo and screenshots of that demo (headless Chromium, one per screen and state at phone and desktop width, plus each screen at tablet width and, for a product in both colour modes, in dark mode, `src/estimate/screenshots.ts`; if no browser is found the card says so and the run goes on). Rendering a mock in the real app and the pixel comparisons (`docs/design-step.md`) are separate work.
 - **Effort in B5 is counted, not timed.** It is the number of human decisions at the assumed gate times, a lower bound for long cards. Real minutes per decision would need the lead's time on the card, which is not recorded.
 - **A visual check of the workbook in Excel.** The export is verified by reading the files back and linting every cell, and by tests on a copy of the real template, but it has not been opened in Excel or LibreOffice (LibreOffice would not start in the build container).
+- **Design handoff** (requirements 2 and 3, approved 2026-10-02): planned under "Design handoff". Step 1 (common controls, design template 20) is Done; step 2 (design package) is next.
 - **Design references** (approved 2026-10-02): built (steps 1 to 9 and 3b under "Design references"); only step 10's live runs remain, which need `ANTHROPIC_API_KEY` and `FIGMA_TOKEN`. No reference path has run against a real model yet.
 - **Cost calibration from `report.json` of the first real runs** stays open; records come from the ledger home only. `factory calibrate` (`src/estimate/calibrate.ts`) now compares each approved estimate with what its estimate run and its build run spent, and, given a file of `estimate-run,actual-hours` lines, with real hours of finished projects. It needs ledgers or hours that exist; it changes nothing. Try the estimate on `examples/requirements.md`.
 

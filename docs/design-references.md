@@ -26,6 +26,8 @@ brand guide. Each becomes `R-1`, `R-2`, ... with an optional role:
 
 Full plan and build order: `docs/estimates-design.md`, "Design references". Done so far: images reach the model (step 1); the design steps are one piece any mode plugs in (step 2); `--ref` reads images, sites and Word documents into `R-n` at intake (step 3; the design step does not use them yet); a design can be seen on its own with `factory design start`, shown with `factory design show|open`, references checked for free with `factory design check-refs`, and an approved design sized or built with `--from-design` (step 3b); Figma links (with `FIGMA_TOKEN`), Figma JSON exports and PDFs are read too (step 4); a read-only `design-refs` step describes each reference from its pictures and measured values, before the design (step 5). The design step uses that reading: the references replace the field's library for the look, each by its role, and code checks every reference is used or set aside and that match colours and type are kept (step 6). The drawn demo is read in a browser, and a screen that cites a layout reference must show that reference's navigation and regions (step 7). The Factory UI takes references on New run in every mode and shows them, with what they shaped, on the Design tab and the design card (step 8). A direct brownfield build that touches UI draws and approves its design before plan; when the app has its own look and a reference is `match`, the questions card asks whether to keep the app's look or restyle it (step 9).
 
+A designer's changes in Figma after an export come back the same way: the file's link is attached as a `match` reference, and the change goes through the approval card as a new design version (`docs/estimates-design.md`, "Design handoff").
+
 ## How it works (no references, or for what they leave open)
 
 1. `src/design/refs/data.ts` holds 24 industries (airline, bank, fintech, health, pharmacy, retail,
@@ -122,6 +124,30 @@ factory design refs list                 # industries, brands, measured or repor
 factory design refs show airline         # the brief the design step would get
 factory design refs show "<requirement text>"
 ```
+
+## Controls a design can use (design template 20)
+
+The references set the look; the controls are the same in every field. Besides the blocks, the page frames, overlays and states, a page can use these:
+
+- **Buttons:** a plain label, or `{ label, variant, icon, iconOnly, state, hint, menu }`.
+  - Variants: primary, secondary, ghost, danger and link.
+  - States: disabled and loading.
+  - `hint` is the button's tooltip, and an icon-only button gets its label as one.
+  - `menu` makes it a split button.
+- **Form fields:**
+  - text, email, password (show/hide), textarea, number, currency, phone, date, date range, time, select, multiselect (chips), combobox (type to filter), radio, checkbox, toggle, slider, one-time code, card and consent;
+  - each field can be `required`, have `help` and a `hint` tooltip, be `disabled` or `readOnly`, and carry its own `error` for the validation state.
+- **Blocks:**
+  - `alert`: an inline banner in four tones;
+  - `toolbar`: search, up to three dropdowns and buttons, set on the table it filters;
+  - linear `progress`;
+  - tables with working `pages`.
+- **Small parts:**
+  - a page `badge` beside the title;
+  - badge values in detail rows;
+  - `people` (avatar groups) on cards, list rows and detail;
+  - a `popover` overlay.
+- **The Components page.** The demo draws every control the pages use, in each state, in the chosen look. A reference's look can be checked there at a glance.
 
 ## Extending
 
