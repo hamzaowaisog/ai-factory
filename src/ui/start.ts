@@ -20,7 +20,7 @@ import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
 import { exportSeededNow } from "../stages/design-export.js";
 import { parseFormats, type ExportFormat } from "../design/export.js";
-import { approvedEstimate, type Approved } from "../estimate/lineage.js";
+import { approvedDesign, approvedEstimate, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
 import { checkRoutes, DESIGN_ROUTES, ESTIMATE_ROUTES } from "../stages/routing.js";
 import { factoryHome } from "../util/paths.js";
 import { busyRun, projectNames } from "./data.js";
@@ -49,11 +49,19 @@ export interface StartInput {
   refs?: unknown;
   /** formats to export as soon as the design is approved, like --design-export: ["png", "pdf"] */
   designExport?: unknown;
+  /** an approved design-only run to size (estimate) or build (brownfield), like --from-design: its request and design carry over */
+  fromDesign?: unknown;
+  /** estimate runs: a change request to an approved estimate, like --revises (new requirements; the card shows what changed) */
+  revises?: unknown;
+  /** estimate runs: the other delivery model over an approved estimate, like --from-run (its spec and tasks, sized again) */
+  fromRun?: unknown;
+  /** estimate and design runs: ask the model again instead of reusing stored answers, like --fresh */
+  fresh?: unknown;
 }
 
 export interface StartDeps {
-  /** runs the executor in the background (tests pass a stub) */
-  execute?: (runId: string) => void;
+  /** runs the executor in the background (tests pass a stub); `fresh` skips the stored model answers (--fresh) */
+  execute?: (runId: string, opts?: { fresh?: boolean }) => void;
   gather?: typeof gatherRequest;
   /** reads the design references (tests pass a stub) */
   gatherRefs?: typeof gatherReferences;
@@ -112,9 +120,41 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   const designing = input.mode === "design";
   // an estimate and a design-only run both start from requirements: no project needed, frames allowed
   const estimating = input.mode === "estimate" || designing;
+
+  // what the run starts from besides requirements: the same choices, and the same refusals, as the command line
+  const fromDesignId = str(input.fromDesign)?.trim(), revisesId = str(input.revises)?.trim(), fromRunId = str(input.fromRun)?.trim();
+  if (designing && (fromDesignId || revisesId || fromRunId)) throw new StartError("A design run starts from requirements. To size or build an approved design, start an estimate or a build from it.");
+  if (!estimating && (revisesId || fromRunId)) throw new StartError("A change request and the other delivery model are estimates: start them under New run, Estimate.");
+  if ([fromDesignId, revisesId, fromRunId, str(input.fromEstimate)?.trim()].filter(Boolean).length > 1) throw new StartError("Start from one thing at a time: an approved design, an estimate to change, or an estimate to size again.");
+  const asked = !!(str(input.prompt)?.trim() || input.file || str(input.jira)?.trim() || (Array.isArray(input.frames) && input.frames.length));
+  const refsGiven = Array.isArray(input.refs) && input.refs.length > 0;
+  let fromDesign: ApprovedDesign | undefined;
+  if (fromDesignId) {
+    if (asked) throw new StartError("An approved design brings its own requirements. Clear the request, file, Jira key and frames.");
+    if (refsGiven) throw new StartError("This follows the design approved in that run; remove the design references. To change the design, start a new design run with them.");
+    try { fromDesign = approvedDesign(fromDesignId); } catch (err) { throw new StartError((err as Error).message); }
+    if (!estimating && !fromDesign.repo) throw new StartError(`${fromDesign.runId} was designed with no repo (a new product). Building a new product (greenfield) is not available yet; estimate it instead (New run, Estimate, from this design).`);
+  }
+  let sibling: Approved | undefined, change: Approved | undefined;
+  if (fromRunId) {
+    if (asked) throw new StartError("The other delivery model sizes the same approved requirements again. Clear the request, file, Jira key and frames.");
+    if (refsGiven) throw new StartError("The other delivery model reuses the approved design; remove the design references. New references are a change request.");
+    try { sibling = approvedEstimate(fromRunId); } catch (err) { throw new StartError((err as Error).message); }
+  }
+  if (revisesId) try { change = approvedEstimate(revisesId); } catch (err) { throw new StartError((err as Error).message); }
+  // a run made from another one belongs to that one's project, unless a different one was picked
+  const seededFrom = fromDesign?.project ?? (sibling ?? change ? replay(Ledger.open((sibling ?? change)!.runId).events()).info.project : undefined);
+  const picked = str(input.project);
+  if (estimating && seededFrom && picked && picked !== STANDALONE_PROJECT && picked !== seededFrom) {
+    throw new StartError(`That run is for project ${seededFrom === STANDALONE_PROJECT ? "none (requirements only)" : seededFrom}, not ${picked}.`);
+  }
+  if (!estimating && fromDesign && fromDesign.project !== picked) throw new StartError(`${fromDesign.runId} was designed for project ${fromDesign.project}, not ${picked ?? "none"}.`);
+  const wanted = estimating && seededFrom ? seededFrom : picked;
   // an estimate may have no project: the requirements stand alone and there is no repo to read
-  const standalone = estimating && (!str(input.project) || str(input.project) === STANDALONE_PROJECT);
-  const project = standalone ? STANDALONE_PROJECT : str(input.project);
+  const standalone = estimating && (!wanted || wanted === STANDALONE_PROJECT);
+  const project = standalone ? STANDALONE_PROJECT : wanted;
+  const fresh = input.fresh === true;
+  if (fresh && !estimating) throw new StartError("Asking the model again (fresh) is for estimate and design runs.");
   if (!project) throw new StartError("Pick a project.");
   if (!standalone && !projectNames().includes(project)) throw new StartError(`No project "${project}". Add one with: factory init <repo>`);
 
@@ -175,10 +215,17 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
       settings = parseEstimateSettings({
         deliveryModel: String(e.deliveryModel ?? "hitl"), stackSource: String(e.stackSource ?? "undecided"),
         designInTotal: e.designInTotal !== false, feedbackRounds: String(e.feedbackRounds ?? "2"),
-        repo: standalone ? false : e.noRepo !== true, ...(str(e.client) ? { client: str(e.client)!.trim() } : {}),
+        repo: standalone || fromDesign?.settings.noRepo ? false : e.noRepo !== true, ...(str(e.client) ? { client: str(e.client)!.trim() } : {}),
         ...(str(e.projectName) ? { projectName: str(e.projectName)!.trim() } : {}), ...(str(e.pm) ? { pm: str(e.pm)!.trim() } : {}),
       });
     } catch (err) { throw new StartError((err as Error).message); }
+    // the design run's product details stand unless given again
+    if (fromDesign && settings) settings = { ...settings, ...Object.fromEntries(Object.entries({ client: fromDesign.settings.client, projectName: fromDesign.settings.projectName }).filter(([k, v]) => v && !(settings as Record<string, unknown>)[k])) };
+    // the other delivery model: the approved estimate's settings, only the delivery model changes
+    if (sibling && settings) {
+      if (settings.deliveryModel === sibling.deliveryModel) throw new StartError(`That estimate is already ${sibling.deliveryModel === "hitl" ? "HITL" : "solely agentic"}. Pick the other delivery model.`);
+      settings = { ...(sibling.settings as typeof settings), deliveryModel: settings.deliveryModel };
+    }
   }
 
   // the same checks, in the same order, as `factory start`
@@ -205,7 +252,8 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
       path = join(dir, file.name);
       writeFileSync(path, file.text, { mode: 0o600 });
     }
-    req = approved ? { text: approved.request, sources: [{ kind: "prompt" as const }], attachments: [] } : await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim(), ...(frameFiles ? { frameFiles } : {}) }, {}, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
+    const seed = approved ?? sibling ?? fromDesign;
+    req = seed ? { text: seed.request, sources: [{ kind: "prompt" as const }], attachments: [] } : await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim(), ...(frameFiles ? { frameFiles } : {}) }, {}, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
     // a reference that cannot be read stops here, named with what to attach instead (R-2 (https://...): ...)
     references = await (deps.gatherRefs ?? gatherReferences)(refReqs, { allowPrivate: !!cfg.design?.allowPrivateRefs });
   } catch (e) {
@@ -217,15 +265,37 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   const runId = await createRun(req.text, project, `${userInfo().username} (via web)`, {
     ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
     sources: req.sources, ...(references.length ? { references } : {}),
-    ...(approved ? { lineage: { kind: "build" as const, approved } } : {}),
+    ...(approved ? { lineage: { kind: "build" as const, approved } } : sibling ? { lineage: { kind: "sibling" as const, approved: sibling } } : change ? { lineage: { kind: "change" as const, approved: change } } : {}),
+    ...(fromDesign ? { fromDesign } : {}),
     ...(settings ? { mode: designing ? "design" as const : "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
     ...(designExport ? { designExport } : {}),
   });
   if (!standalone) starting.set(project, { runId, at: Date.now() });
-  (deps.execute ?? runDetached)(runId);
-  // a build from an estimate never runs the design steps: its design is approved already, so it exports now (as the command line does)
-  if (approved && designExport) (deps.exportNow ?? ((id, f) => void exportSeededNow(id, f, () => undefined)))(runId, designExport);
-  return { runId, from: describeSources(req.sources) + (references.length ? `; design references ${describeReferences(references)}` : "") };
+  (deps.execute ?? runDetached)(runId, fresh ? { fresh } : undefined);
+  // a run seeded with an approved design never runs the design steps, so it exports now (as the command line does)
+  if ((approved || sibling || fromDesign) && designExport) (deps.exportNow ?? ((id, f) => void exportSeededNow(id, f, () => undefined)))(runId, designExport);
+  const origin = fromDesign ? `design run ${fromDesign.runId}` : sibling ? `estimate ${sibling.runId} (the other delivery model)` : undefined;
+  return { runId, from: (origin ?? describeSources(req.sources)) + (change ? `; changes estimate ${change.runId}` : "") + (references.length ? `; design references ${describeReferences(references)}` : "") };
+}
+
+/**
+ * Read design references without starting a run, like `factory design check-refs`: no model and no cost. What each
+ * gives (pictures, colours, fonts, corners) or, for one that cannot be read, why and what to attach instead.
+ */
+export async function checkRefs(input: { refs?: unknown; project?: unknown }, deps: StartDeps = {}) {
+  const reqs = checkUploadedRefs(input.refs);
+  if (!reqs.length) throw new StartError("Add a reference to check.");
+  const project = str(input.project);
+  const allowPrivate = project && projectNames().includes(project) ? !!loadProject(project).design?.allowPrivateRefs : false;
+  let refs: GatheredRef[];
+  try { refs = await (deps.gatherRefs ?? gatherReferences)(reqs, { allowPrivate }); } catch (err) { throw new StartError((err as Error).message); }
+  return {
+    references: refs.map((r) => ({
+      id: r.id, kind: r.kind, source: r.source, role: r.role, roleGiven: r.roleGiven, measured: r.measured,
+      pictures: r.images.map((im) => ({ label: im.label, width: im.width, height: im.height })),
+      colours: r.colours, fonts: r.fonts, ...(r.radiusPx !== undefined ? { radiusPx: r.radiusPx } : {}), textChars: r.text?.length ?? 0, notes: r.notes,
+    })),
+  };
 }
 
 export function _resetStarting(): void {

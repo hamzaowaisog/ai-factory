@@ -15,6 +15,7 @@ import { createRun } from "../stages/executor.js";
 import { cardCommands } from "./data.js";
 import { createUiServer, listen, MAX_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, ROUTES, staticDir, type UiServer } from "./server.js";
 import { _resetStarting } from "./start.js";
+import { ensureStandaloneProject } from "../config/project.js";
 // the page's Markdown renderer (plain browser JS, no DOM needed)
 import { renderMarkdown } from "./static/md.js";
 
@@ -205,7 +206,7 @@ describe("factory ui: no decisions from the web", () => {
     const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note/i;
     for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision") && !r.path.endsWith("/estimate-answers") && !r.path.endsWith("/design-decision"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
     // the one exception: the estimate lead's approve or reject, on estimate cards only (and exporting an approved design, which writes only under the run's exports/)
-    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/design-decision", "POST /api/runs/:id/exports"]);
+    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/design-decision", "POST /api/runs/:id/exports"]);
   });
 
   it("decision-looking URLs don't exist", async () => {
@@ -602,6 +603,44 @@ describe("factory ui: estimate runs", () => {
     expect(ui.exportJobs.list().find((j) => j.runId === x.json().runId)).toMatchObject({ formats: ["pdf"] });
   });
 
+  it("an estimate can change an approved one (--revises) or size it under the other delivery model (--from-run), and can ask the model again (--fresh)", async () => {
+    const id = await createRun("Build an order portal with login and a dashboard", "web", "tester", { mode: "estimate", estimate: { deliveryModel: "hitl", stackSource: "client", feedbackRounds: 3 } } as never);
+    const l = Ledger.open(id);
+    const est = l.putJson({ deliveryModel: "hitl" }), bd = l.putJson({ tasks: [] }), spec = l.putJson({ title: "s" });
+    await addEvents(id, [...step("breakdown", 0, {}, [bd]), ...step("specify", 0, {}, [spec]), ...step("estimate", 0, {}, [est]), ...step("approve-estimate"), ...step("export")]);
+    expect((await call("/api/projects")).json().estimates[0]).toMatchObject({ runId: id, deliveryModel: "hitl" });
+    const refusals: [unknown, RegExp][] = [
+      [{ project: "web", mode: "estimate", fromRun: id, estimate: { deliveryModel: "hitl" } }, /already HITL/],
+      [{ project: "web", mode: "estimate", fromRun: id, prompt: "and more", estimate: { deliveryModel: "agentic" } }, /Clear the request/],
+      [{ project: "web", mode: "estimate", fromRun: id, revises: id }, /one thing at a time/],
+      [{ project: "web", revises: id, prompt: "Add a CSV export to the orders page" }, /are estimates/],
+      [{ project: "api", mode: "estimate", revises: id, prompt: "Add a CSV export to the orders page" }, /for project web, not api/],
+      [{ project: "web", mode: "design", fromRun: id, prompt: "x" }, /starts from requirements/],
+      [{ project: "web", mode: "estimate", revises: "nope", prompt: "Add a CSV export to the orders page" }, /./],
+      [{ project: "web", prompt: "Show the order count please", fresh: true }, /estimate and design runs/],
+    ];
+    for (const [body, msg] of refusals) {
+      const r = await post(body);
+      expect(r.status, JSON.stringify(body)).toBe(400);
+      expect(r.json().error).toMatch(msg);
+    }
+    const calls: [string, unknown][] = [];
+    await new Promise((r) => ui.server.close(r));
+    ui = createUiServer({ token: TOKEN, previewKey: PKEY, deps: { execute: (rid, o) => calls.push([rid, o]) } });
+    port = await listen(ui, 0);
+    const sib = await post({ project: "web", mode: "estimate", fromRun: id, estimate: { deliveryModel: "agentic", stackSource: "folio3" } });
+    expect(sib.status).toBe(201);
+    const t = replay(Ledger.open(sib.json().runId).events());
+    expect(t.info.request).toBe("Build an order portal with login and a dashboard");
+    expect(t.info.parent).toMatchObject({ runId: id, kind: "sibling" });
+    expect(t.info.estimate).toMatchObject({ deliveryModel: "agentic", stackSource: "client", feedbackRounds: 3 }); // only the model changes
+    _resetStarting();
+    const ch = await post({ project: "web", mode: "estimate", revises: id, prompt: "Add a CSV export to the orders page", fresh: true });
+    expect(ch.status).toBe(201);
+    expect(replay(Ledger.open(ch.json().runId).events()).info.parent).toMatchObject({ runId: id, kind: "change" });
+    expect(calls).toEqual([[sib.json().runId, undefined], [ch.json().runId, { fresh: true }]]);
+  });
+
   it("the estimate view says so for a build run and before the estimate exists", async () => {
     const built = await call(`/api/runs/${ids.delivered}/estimate`);
     expect(built.status).toBe(200);
@@ -828,6 +867,23 @@ describe("factory ui: design references", () => {
     expect(Ledger.listRuns().length).toBe(before);
   });
 
+  it("checks references without starting a run, like factory design check-refs", async () => {
+    await withRefs();
+    const before = Ledger.listRuns().length;
+    const check = (body: unknown) => call("/api/check-refs", { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+    const r = await check({ project: "web", refs: [{ ...file("shot.png"), role: "match" }, { kind: "url", url: "https://client.com" }] });
+    expect(r.status).toBe(200);
+    const [a, b] = r.json().references;
+    expect(a).toMatchObject({ id: "R-1", source: "shot.png", role: "match", roleGiven: true, pictures: [{ label: "page", width: 1, height: 1 }], colours: [{ hex: "#1d4ed8" }], textChars: 0 });
+    expect(a.pictures[0].bytes).toBeUndefined();
+    expect(b).toMatchObject({ id: "R-2", kind: "url", roleGiven: false });
+    expect((await check({ refs: [] })).json().error).toMatch(/Add a reference/);
+    expect((await check({ refs: [{ kind: "url", url: "http://client.com" }] })).status).toBe(400);
+    expect((await call("/api/check-refs", { method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example" }, body: "{}" })).status).toBe(403);
+    expect(Ledger.listRuns().length).toBe(before);
+    expect(started).toEqual([]);
+  });
+
   it("a run started with references keeps them, lists them and serves their pictures by the key only", async () => {
     await withRefs();
     const r = await post({ mode: "design", prompt: "Build an order portal with login and a dashboard", refs: [{ ...file("../../home.png"), role: "match", note: "the table like this" }, { kind: "url", url: "https://client.example", role: "auto" }] });
@@ -884,6 +940,53 @@ describe("factory ui: design exports", () => {
   }
   const start = (runId: string, body: unknown, token?: string | null) =>
     call(`/api/runs/${runId}/exports`, { method: "POST", token, headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+
+  /** An approved design run with the outputs an estimate or build carries on (intake, spec, design, baseline). */
+  async function seedableDesignRun(project?: string): Promise<string> {
+    if (!project) ensureStandaloneProject();
+    const runId = await createRun("Build an order portal with login", project ?? "standalone-estimates", "tester", { mode: "design", ...(project ? {} : { estimate: { noRepo: true } }) } as never);
+    const l = Ledger.open(runId);
+    const designSha = l.putJson({ flow: "A user signs in", theme, noScreen: [], screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["error"], size: "new", mock, mockFull: mock }] });
+    await addEvents(runId, [...step("intake", 0, {}, [l.putJson({ text: "x" })]), ...step("specify", 0, {}, [l.putJson({ title: "s" })]), ...step("design", 0, {}, [designSha]),
+      ...step("design-baseline", 0, { ui: true }, [l.putJson({ ui: true, design: designSha, by: "lead" })])]);
+    return runId;
+  }
+
+  it("an estimate or a build can start from an approved design run, like --from-design", async () => {
+    const pending = await createRun("Build an order portal with login", "web", "tester", { mode: "design" } as never);
+    expect((await post({ project: "web", mode: "estimate", fromDesign: pending })).json().error).toMatch(/no approved design yet/);
+    const id = await seedableDesignRun("web");
+    const alone = await seedableDesignRun();
+    const listed = (await call("/api/projects")).json().designs;
+    expect(listed.map((d: { runId: string; repo: boolean }) => [d.runId, d.repo]).sort()).toEqual([[alone, false], [id, true]].sort());
+    expect((await call(`/api/runs/${id}`)).json().repo).toBe(true);
+    const refusals: [unknown, RegExp][] = [
+      [{ project: "web", mode: "estimate", fromDesign: id, prompt: "and more" }, /brings its own requirements/],
+      [{ project: "web", mode: "estimate", fromDesign: id, refs: [{ kind: "url", url: "https://client.com" }] }, /remove the design references/],
+      [{ project: "web", mode: "design", fromDesign: id }, /starts from requirements/],
+      [{ project: "api", mode: "estimate", fromDesign: id }, /for project web, not api/],
+      [{ project: "api", fromDesign: id }, /designed for project web, not api/],
+      [{ project: "web", fromDesign: alone }, /greenfield/],
+      [{ project: "web", fromDesign: id, fromEstimate: "x" }, /one thing at a time/],
+      [{ project: "web", mode: "estimate", fromDesign: ids.delivered }, /not a design run/],
+    ];
+    for (const [body, msg] of refusals) {
+      const r = await post(body);
+      expect(r.status, JSON.stringify(body)).toBe(400);
+      expect(r.json().error).toMatch(msg);
+    }
+    const e = await post({ mode: "estimate", fromDesign: id, estimate: { deliveryModel: "agentic" } });
+    expect(e.status).toBe(201);
+    const s = replay(Ledger.open(e.json().runId).events());
+    expect(s.info).toMatchObject({ mode: "estimate", project: "web", request: "Build an order portal with login", designRef: { runId: id } });
+    const e2 = await post({ mode: "estimate", fromDesign: alone });
+    expect(replay(Ledger.open(e2.json().runId).events()).info.estimate).toMatchObject({ noRepo: true });
+    _resetStarting();
+    const b = await post({ project: "web", fromDesign: id, designExport: ["json"] });
+    expect(b.status).toBe(201);
+    expect(replay(Ledger.open(b.json().runId).events()).info).toMatchObject({ mode: "brownfield", designRef: { runId: id } });
+    expect(ui.exportJobs.list().find((j) => j.runId === b.json().runId)).toMatchObject({ formats: ["json"] });
+  });
 
   it("says why a run with no approved design cannot be exported, and refuses to start one", async () => {
     const v = (await call(`/api/runs/${ids.waiting}/exports`)).json();

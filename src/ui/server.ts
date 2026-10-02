@@ -19,12 +19,12 @@ import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
-import { answerEstimateQuestions, decideDesign, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
+import { answerEstimateQuestions, checkRefs, decideDesign, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
 import type { ExportFormat } from "../design/export.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
-/** Starting a run may carry design frames and reference files (base64 in the JSON, up to 50 MB of references), so that one route takes a bigger body. */
+/** Starting a run (and checking references) may carry design frames and reference files (base64 in the JSON, up to 50 MB of references), so those routes take a bigger body. */
 export const MAX_UPLOAD_BODY_BYTES = 80_000_000;
 const COOKIE = "factory_ui";
 
@@ -91,6 +91,14 @@ export const ROUTES: readonly Route[] = [
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/check-refs", what: "read design references without starting a run (like factory design check-refs): what each gives, or why it cannot be read",
+    handle: async (_p, body, deps) => {
+      try { return ok(await checkRefs((body ?? {}) as Record<string, unknown>, deps)); } catch (e) {
+        return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
       }
     },
   },
@@ -360,7 +368,7 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       if (!String(req.headers["content-type"] ?? "").startsWith("application/json")) return sendJson(res, 415, { error: "Send JSON." });
       // a cookie alone isn't enough without a same-site Origin (curl sends the key in a header)
       if (origin === undefined && !sameToken(headerToken, token)) return sendJson(res, 403, { error: "A POST needs the page's origin or the key header." });
-      const limit = route.path === "/api/runs" ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES;
+      const limit = route.path === "/api/runs" || route.path === "/api/check-refs" ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES;
       const raw = await readBody(req, limit);
       if (raw === "too-big") return sendJson(res, 413, { error: `The request is over ${limit / 1_000_000} MB.` });
       try { body = raw ? JSON.parse(raw) : {}; } catch { return sendJson(res, 400, { error: "Bad JSON." }); }

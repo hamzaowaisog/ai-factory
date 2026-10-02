@@ -68,7 +68,7 @@ export async function busyRun(project: string): Promise<{ runId: string } | unde
   return { runId: info?.runId ?? "" };
 }
 
-export interface ApprovedEstimateRow { runId: string; project: string; request: string; createdAt: string }
+export interface ApprovedEstimateRow { runId: string; project: string; request: string; createdAt: string; deliveryModel: string }
 
 /** Estimate runs that are approved and exported: the ones a build can start from (factory start --from-estimate). */
 export function approvedEstimatesView(): ApprovedEstimateRow[] {
@@ -78,13 +78,30 @@ export function approvedEstimatesView(): ApprovedEstimateRow[] {
       const s = replay(Ledger.open(id).events());
       if (s.info.mode !== "estimate") continue;
       if (!["estimate", "approve-estimate", "export"].every((k) => s.steps.get(k)?.status === "completed")) continue;
-      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt });
+      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt, deliveryModel: s.info.estimate?.deliveryModel ?? "hitl" });
     } catch { /* a broken ledger doesn't hide the others */ }
   }
   return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
 }
 
-export async function projectsView(): Promise<{ projects: ProjectRow[]; estimates: ApprovedEstimateRow[]; jira: { configured: boolean; why?: string }; figma: { configured: boolean; why?: string } }> {
+export interface ApprovedDesignRow { runId: string; project: string; request: string; createdAt: string; repo: boolean }
+
+/** Design-only runs with an approved design that has screens: the ones an estimate or a build can start from (--from-design). */
+export function approvedDesignsView(): ApprovedDesignRow[] {
+  const rows: ApprovedDesignRow[] = [];
+  for (const id of Ledger.listRuns()) {
+    try {
+      const s = replay(Ledger.open(id).events());
+      if (s.info.mode !== "design") continue;
+      const base = s.steps.get("design-baseline");
+      if (base?.status !== "completed" || !(base.data as { ui?: boolean } | undefined)?.ui) continue;
+      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt, repo: !!s.info.repoPath && !!s.info.baseCommit });
+    } catch { /* a broken ledger doesn't hide the others */ }
+  }
+  return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
+}
+
+export async function projectsView(): Promise<{ projects: ProjectRow[]; estimates: ApprovedEstimateRow[]; designs: ApprovedDesignRow[]; jira: { configured: boolean; why?: string }; figma: { configured: boolean; why?: string } }> {
   const projects: ProjectRow[] = [];
   for (const name of projectNames()) {
     const busy = await busyRun(name);
@@ -94,6 +111,7 @@ export async function projectsView(): Promise<{ projects: ProjectRow[]; estimate
   return {
     projects,
     estimates: approvedEstimatesView(),
+    designs: approvedDesignsView(),
     jira: configured ? { configured } : { configured, why: "Jira isn't set up. Add JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN to ~/.factory/.env (factory doctor checks it)." },
     figma: figmaConfigured() ? { configured: true } : { configured: false, why: "Figma links need FIGMA_TOKEN in ~/.factory/.env (a personal access token with read access to files). Until then, export the frames as PNG and attach them, or attach a Figma JSON export." },
   };
@@ -237,6 +255,8 @@ export function runView(ledger: Ledger) {
     runId: ledger.runId,
     mode: s.info.mode,
     project: s.info.project,
+    // a repo to build in (a design or estimate made with no project has none)
+    repo: !!s.info.repoPath && !!s.info.baseCommit,
     request: s.info.request ?? "",
     sources: s.info.sources ?? [],
     createdAt: s.info.createdAt,

@@ -62,6 +62,7 @@ const ICONS = {
   browser: [["rect", { x: 3, y: 4, width: 18, height: 16, rx: 2 }], ["path", { d: "M3 9h18M6.5 6.5h.01M9 6.5h.01" }]],
   bars: [["path", { d: "M5 20v-8M12 20V5M19 20v-5M3 20h18" }]],
   plus: [["path", { d: "M12 5v14M5 12h14" }]],
+  search: [["circle", { cx: 11, cy: 11, r: 6.5 }], ["path", { d: "M16 16l4.5 4.5" }]],
   download: [["path", { d: "M12 4v11.5M7 11l5 4.5 5-4.5M4 19.5h16" }]],
   user: [["circle", { cx: 12, cy: 8, r: 4 }], ["path", { d: "M4 21a8 8 0 0 1 16 0" }]],
   gauge: [["path", { d: "M3.5 16a8.5 8.5 0 1 1 17 0" }], ["path", { d: "M12 16l4-5" }]],
@@ -224,7 +225,7 @@ function modeScreen() {
 // on the server, and every reference is read before the run exists, so one that cannot be read costs nothing.
 const REF_MAX = 12, REF_FILE_MAX = 25e6, REF_DOCX_MAX = 50e6, REF_TOTAL_MAX = 50e6;
 const REF_ACCEPT = "image/*,.png,.jpg,.jpeg,.webp,.gif,.avif,.svg,.bmp,.pdf,.docx,.json";
-function refsPicker(meta) {
+function refsPicker(meta, projectOf = () => "") {
   const rows = [];
   const err = h("div", { class: "small ref-err", role: "status" });
   const list = h("div", { class: "ref-list" });
@@ -284,14 +285,43 @@ function refsPicker(meta) {
     figma, list, h("div", { class: "row" }, count, err),
     h("div", { class: "hint" }, "Role: match uses its colours, type and corners exactly (a brand guide or Figma file starts as match); inspire keeps its colour family and feel; layout takes only how its screens are arranged. Auto picks for you. A site behind a login can't be read: attach screenshots instead."));
   const b64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] ?? ""); r.onerror = () => no(new Error(`Could not read ${f.name}.`)); r.readAsDataURL(f); });
+  const collect = () => Promise.all(rows.map(async (r) => ({ ...(r.file ? { kind: "file", name: r.file.name, data: await b64(r.file) } : { kind: "url", url: r.url }), role: r.roleEl.value, ...(r.noteEl.value.trim() ? { note: r.noteEl.value.trim() } : {}) })));
+  // read them now, like factory design check-refs: no model and no cost, and nothing is kept
+  const checked = h("div", { class: "ref-check", role: "status" });
+  const checkBtn = h("button", { class: "btn sm", type: "button" }, icon("search"), "Check references");
+  checkBtn.addEventListener("click", async () => {
+    if (!rows.length) { checked.replaceChildren(h("p", { class: "small muted" }, "Add a reference to check.")); return; }
+    checkBtn.disabled = true;
+    checked.replaceChildren(h("p", { class: "small muted" }, h("span", { class: "spin" }), ` Reading ${rows.length} reference${rows.length === 1 ? "" : "s"}…`));
+    try {
+      const v = await api("/api/check-refs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: projectOf(), refs: await collect() }) });
+      checked.replaceChildren(...v.references.map(checkedRef));
+    } catch (e) { checked.replaceChildren(h("div", { class: "small ref-err" }, icon("alert"), e.message)); }
+    checkBtn.disabled = false;
+  });
+  node.append(h("div", { class: "row" }, checkBtn, h("span", { class: "hint" }, "Reads them now and shows what each gives, like factory design check-refs. No model, no cost.")), checked);
   return {
     node,
     count: () => rows.length,
-    collect: () => Promise.all(rows.map(async (r) => ({ ...(r.file ? { kind: "file", name: r.file.name, data: await b64(r.file) } : { kind: "url", url: r.url }), role: r.roleEl.value, ...(r.noteEl.value.trim() ? { note: r.noteEl.value.trim() } : {}) }))),
+    collect,
   };
 }
 
-async function requestScreen(kind = "brownfield") {
+/** One checked reference: what was read from it (pictures, colours, fonts, corners) and its notes. */
+function checkedRef(r) {
+  const swatch = (c) => h("span", { class: "sw", title: `${c.hex}${c.role ? ` ${c.role}` : ""}`, vars: { "--c": /^#[0-9a-f]{3,8}$/i.test(c.hex) ? c.hex : "transparent" } });
+  return h("article", { class: "ref-card checked" }, h("div", { class: "ref-body" },
+    h("div", { class: "row" }, h("strong", { class: "mono" }, r.id), h("span", { class: `pill t-${r.role === "match" ? "ok" : r.role === "layout" ? "idle" : "live"}` }, r.roleGiven ? r.role : `${r.role} (auto)`), h("span", { class: "faint small" }, `${r.kind} · ${r.measured === "exact" ? "measured exactly" : "approximate"}`)),
+    h("div", { class: "mono small ref-source", title: r.source }, r.source),
+    h("div", { class: "small" }, h("span", { class: "faint" }, "pictures: "), r.pictures.length ? r.pictures.map((p) => `${p.label} (${p.width}×${p.height})`).join(", ") : "none"),
+    r.colours.length ? h("div", { class: "row small" }, h("span", { class: "faint" }, "colours: "), h("span", { class: "swatches" }, r.colours.slice(0, 10).map(swatch)), h("span", { class: "mono faint" }, r.colours.slice(0, 4).map((c) => c.hex).join(" "))) : h("div", { class: "small" }, h("span", { class: "faint" }, "colours: "), "none read"),
+    h("div", { class: "small" }, h("span", { class: "faint" }, "fonts: "), r.fonts.length ? r.fonts.map((f) => f.family).join(", ") : "none read"),
+    r.radiusPx !== undefined ? h("div", { class: "small" }, h("span", { class: "faint" }, "corners: "), `${r.radiusPx}px`) : null,
+    r.textChars ? h("div", { class: "small" }, h("span", { class: "faint" }, "text: "), `${r.textChars.toLocaleString()} characters`) : null,
+    r.notes.length ? h("ul", { class: "small muted" }, r.notes.map((n) => h("li", {}, n))) : null));
+}
+
+async function requestScreen(kind = "brownfield", preset = []) {
   const designing = kind === "design";
   // an estimate and a design-only run both start from requirements and may have no project
   const estimating = kind === "estimate" || designing;
@@ -303,11 +333,33 @@ async function requestScreen(kind = "brownfield") {
     meta.projects.map((p) => h("option", { value: p.name, disabled: !!p.busy }, p.busy ? `${p.name}  (run ${p.busy.runId} is running)` : p.name)));
   if (!estimating && meta.projects.length === 1 && !meta.projects[0].busy) project.value = meta.projects[0].name;
 
-  // a build can start from an approved estimate: its request, spec and tasks are inherited
-  const fromEst = h("select", { id: "fromest" }, h("option", { value: "" }, "No estimate: a plain change request"),
-    (meta.estimates ?? []).map((e) => h("option", { value: e.runId }, `${e.runId}  ·  ${e.project === "standalone-estimates" ? "no project" : e.project}  ·  ${e.request}`)));
-  const syncEst = () => { for (const id of ["reqblock", "refblock"]) { const b = document.getElementById(id); if (b) b.hidden = !!fromEst.value; } };
+  const projectLabel = (p) => (p === "standalone-estimates" ? "no project" : p);
+  // a build can start from an approved estimate (its request, spec and tasks are inherited, like --from-estimate) or
+  // an approved design run (its request and design, like --from-design); values are e:<run> and d:<run>
+  const estimates = meta.estimates ?? [], designs = meta.designs ?? [];
+  const fromEst = h("select", { id: "fromest" }, h("option", { value: "" }, "Nothing: a plain change request"),
+    estimates.length ? h("optgroup", { label: "Approved estimates" }, estimates.map((e) => h("option", { value: `e:${e.runId}` }, `${e.runId}  ·  ${projectLabel(e.project)}  ·  ${e.request}`))) : null,
+    designs.length ? h("optgroup", { label: "Approved designs" }, designs.map((d) => h("option", { value: `d:${d.runId}`, disabled: !d.repo }, `${d.runId}  ·  ${projectLabel(d.project)}  ·  ${d.request}${d.repo ? "" : "  (no repo: estimate it instead)"}`))) : null);
+  const buildFrom = () => ({ kind: fromEst.value.slice(0, 1), id: fromEst.value.slice(2) });
+  // the run it starts from decides the project
+  const seedProject = (p) => { if (p && p !== "standalone-estimates" && [...project.options].some((o) => o.value === p && !o.disabled)) project.value = p; };
+  const syncEst = () => {
+    for (const id of ["reqblock", "refblock"]) { const b = form.querySelector(`#${id}`); if (b) b.hidden = !!fromEst.value; }
+    const { kind: k, id } = buildFrom();
+    seedProject((k === "e" ? estimates : designs).find((x) => x.runId === id)?.project);
+  };
   fromEst.addEventListener("change", syncEst);
+
+  // an estimate can start from something already approved instead of new requirements: a design run (--from-design),
+  // a change to an approved estimate (--revises, with new requirements) or the other delivery model (--from-run)
+  const startFrom = h("select", { id: "startfrom" },
+    h("option", { value: "" }, "New requirements"),
+    h("option", { value: "design", disabled: !designs.length }, `An approved design run${designs.length ? "" : " (none yet)"}`),
+    h("option", { value: "revises", disabled: !estimates.length }, `A change request to an approved estimate${estimates.length ? "" : " (none yet)"}`),
+    h("option", { value: "fromrun", disabled: !estimates.length }, `The other delivery model of an approved estimate${estimates.length ? "" : " (none yet)"}`));
+  const seedRun = h("select", { id: "seedrun", "aria-label": "Run to start from" });
+  const seedHint = h("div", { class: "hint" });
+  const seedBox = h("div", { class: "fld", id: "seedbox" }, h("label", { for: "seedrun" }, "Run"), seedRun, seedHint);
 
   // the three inputs, which can be combined like factory start
   const prompt = h("textarea", { id: "prompt", placeholder: estimating ? "Paste the requirements: notes, a brief, a transcript, an email thread. e.g. A customer portal where buyers log in, see their orders and download invoices." : "e.g. Show the number of orders next to the Your orders heading, and keep the heading text." });
@@ -396,6 +448,7 @@ async function requestScreen(kind = "brownfield") {
       : "With a project the factory reads its code, so changes are sized from the files they touch.";
   };
   if (estimating) { project.addEventListener("change", syncProject); syncProject(); }
+  const fresh = h("input", { type: "checkbox", id: "fresh" });
   const settings = designing ? h("div", { class: "est" },
     sect(3, "Product", "Shown on the demo. All optional.",
       h("div", { class: "est-grid" }, fld("client", "Client", hdr), fld("projname", "Product name", projName)),
@@ -412,10 +465,10 @@ async function requestScreen(kind = "brownfield") {
         opt2("norepo", noRepo, "The requirements stand alone", "There is no existing code to read. Always on when no project is chosen."))),
     sect(4, "Workbook header", "Shown at the top of the team and client workbooks. All optional.",
       h("div", { class: "est-grid" }, fld("client", "Client", hdr), fld("projname", "Project name", projName), fld("pm", "Project manager", pm))),
-    sect(5, "Design frames", "Exported from Figma (png, jpg, webp, svg or json). Optional.",
-      h("label", { class: "drop slim", for: "frames" }, frameInput, icon("upload"), h("strong", {}, "Choose frame files"), frameList))) : null;
+    Object.assign(sect(5, "Design frames", "Exported from Figma (png, jpg, webp, svg or json). Optional.",
+      h("label", { class: "drop slim", for: "frames" }, frameInput, icon("upload"), h("strong", {}, "Choose frame files"), frameList)), { id: "framesblock" })) : null;
 
-  const refs = refsPicker(meta);
+  const refs = refsPicker(meta, () => project.value);
   const refText = designing || estimating ? "Screenshots, a client's site, a Figma file, a brand guide (PDF or Word). The design is drawn from them; without any it follows the field's products. Optional." : "The UI change follows them. Optional.";
   const refBlock = estimating ? h("section", { class: "sect", id: "refblock" }, h("div", { class: "sect-head" }, h("span", { class: "num" }, designing ? "5" : "6"), h("div", {}, h("h3", {}, "Design references"), h("p", { class: "muted small" }, refText))), refs.node)
     : h("div", { class: "field", id: "refblock" }, h("span", { class: "label" }, "Design references (optional)"), refs.node, h("div", { class: "hint" }, refText));
@@ -425,12 +478,13 @@ async function requestScreen(kind = "brownfield") {
   const autoXPicked = () => autoX.map((l) => l.querySelector("input")).filter((i) => i.checked).map((i) => i.value);
   const autoXHint = h("div", { class: "hint" });
   const syncAutoX = () => {
-    autoXHint.textContent = !estimating && fromEst.value
-      ? "The estimate's design is approved already, so it is exported as soon as the build starts. Files appear on the run's Design tab."
+    autoXHint.textContent = (!estimating && fromEst.value) || (!designing && ["design", "fromrun"].includes(startFrom.value))
+      ? `The ${(!estimating && buildFrom().kind === "d") || startFrom.value === "design" ? "design run's" : "estimate's"} design is approved already, so it is exported as soon as the run starts. Files appear on the run's Design tab.`
       : "Exported right after the design is approved, to the run's Design tab (like --design-export). A request with no UI has no design to export. You can always export later from the Design tab.";
   };
   syncAutoX();
   fromEst.addEventListener("change", syncAutoX);
+  startFrom.addEventListener("change", syncAutoX);
   // Figma waits for the AI Factory Figma plugin (build step 6), so it is shown, greyed, as in the Export panel
   const autoXFigma = h("label", { class: "xopt", title: "Figma comes with the AI Factory Figma plugin (not built yet)." }, h("input", { type: "checkbox", disabled: "" }), "Figma (later)");
   const autoXBox = h("fieldset", { class: "xopts", id: "autox", "aria-label": "Export on approval" }, autoX, autoXFigma);
@@ -441,12 +495,14 @@ async function requestScreen(kind = "brownfield") {
   const start = h("button", { class: "btn primary", type: "submit" }, startLabel, icon("arrow"));
   const form = h("form", { class: "form", novalidate: true },
     err,
-    estimating ? sect(1, "Project", designing ? "Pick one to follow its look, or choose none for a new product." : "Pick one to read its code, or choose none to estimate from the requirements alone.", h("div", { class: "fld" }, project, standaloneNote))
+    estimating ? sect(1, designing ? "Project" : "Start from and project", designing ? "Pick one to follow its look, or choose none for a new product." : "New requirements, or something already approved. Pick a project to read its code, or none to estimate from the requirements alone.",
+      designing ? null : h("div", { class: "est-grid" }, h("div", { class: "fld" }, h("label", { for: "startfrom" }, "Start from"), startFrom), seedBox),
+      h("div", { class: "fld" }, designing ? null : h("label", { for: "project" }, "Project"), project, standaloneNote))
       : h("div", { class: "field" }, h("label", { for: "project" }, "Project"), project, h("div", { class: "hint" }, "From ~/.factory/projects. Add one with factory init <repo>.")),
-    !estimating ? h("div", { class: "field" }, h("label", { for: "fromest" }, "Estimate (optional)"), fromEst,
-      h("div", { class: "hint" }, (meta.estimates ?? []).length
-        ? "Build an approved estimate: its request, spec and tasks carry over, and the build is held to its size and budget. Choose none for a plain change request."
-        : "No approved estimates yet. Approve one first (New run, then Estimate) to build from it; until then this is a plain change request.")) : null,
+    !estimating ? h("div", { class: "field" }, h("label", { for: "fromest" }, "Build from (optional)"), fromEst,
+      h("div", { class: "hint" }, estimates.length || designs.length
+        ? "An approved estimate: its request, spec and tasks carry over, and the build is held to its size and budget (like --from-estimate). An approved design run: its request and design carry over (like --from-design). Choose nothing for a plain change request."
+        : "Nothing approved yet. Approve an estimate or a design run first (New run) to build from it; until then this is a plain change request.")) : null,
     h("div", { id: "reqblock", class: estimating ? "sect" : "field" }, estimating ? h("div", { class: "sect-head" }, h("span", { class: "num" }, "2"), h("div", {}, h("h3", {}, "Requirements"), h("p", { class: "muted small" }, "Paste them, upload a file or give a Jira key. They are combined into one request."))) : h("span", { class: "label" }, "Request"),
       h("div", { class: "tabs-in", role: "tablist" }, tabs.prompt, tabs.file, tabs.jira),
       panels.prompt, panels.file, panels.jira,
@@ -454,7 +510,8 @@ async function requestScreen(kind = "brownfield") {
     settings,
     refBlock,
     autoXBlock,
-    estimating ? sect(designing ? 7 : 8, "Spend limit", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")))
+    estimating ? sect(designing ? 7 : 8, "Cost", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
+      h("div", { class: "opts" }, opt2("fresh", fresh, "Ask the model again", "Don't reuse answers stored from an identical earlier request (like --fresh). It costs more; use it when an answer should be redone.")))
       : h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
     h("div", { class: "row" }, start, h("span", { class: "hint" }, designing ? "Runs in the background. Questions and the design approval can be answered here on the run page or in your terminal." : "Runs in the background. Questions can be answered here on the run page or in your terminal; the plan approval stays in your terminal.")),
   );
@@ -465,10 +522,14 @@ async function requestScreen(kind = "brownfield") {
     start.replaceChildren(h("span", { class: "spin" }), "Reading the request…");
     try {
       const sent = estimating && frames.length ? await Promise.all(frames.map(async (f) => ({ name: f.name, data: await b64(f) }))) : undefined;
-      const sentRefs = refs.count() && !fromEst.value ? await refs.collect() : undefined;
+      const seeded = !estimating ? !!fromEst.value : ["design", "fromrun"].includes(startFrom.value);
+      const sentRefs = refs.count() && !seeded ? await refs.collect() : undefined;
       if (sentRefs) start.replaceChildren(h("span", { class: "spin" }), `Reading the request and ${sentRefs.length} design reference${sentRefs.length === 1 ? "" : "s"}…`);
       const designExport = autoXPicked();
-      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...(!estimating && fromEst.value ? { fromEstimate: fromEst.value } : {}), prompt: fromEst.value ? "" : prompt.value, ...(sent ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || fromEst.value ? "" : jira.value, maxCost: maxCost.value, ...(file && !fromEst.value ? { file: { name: file.name, text: file.text } } : {}),
+      const bf = buildFrom();
+      const from = !estimating ? (bf.kind === "e" ? { fromEstimate: bf.id } : bf.kind === "d" ? { fromDesign: bf.id } : {})
+        : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises", fromrun: "fromRun" }[startFrom.value]]: seedRun.value } : {};
+      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
         ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { deliveryModel: delivery.value, stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
@@ -479,6 +540,43 @@ async function requestScreen(kind = "brownfield") {
       err.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
     }
   });
+  const settingsSects = settings ? [...settings.children].filter((x) => x.id !== "framesblock") : [];
+  const syncStart = () => {
+    const how = startFrom.value;
+    const rows = how === "design" ? designs : how ? estimates : [];
+    const keep = seedRun.value;
+    seedRun.replaceChildren(...rows.map((x) => h("option", { value: x.runId }, `${x.runId}  ·  ${projectLabel(x.project)}${how === "fromrun" ? `  ·  ${x.deliveryModel === "agentic" ? "solely agentic" : "HITL"}` : ""}  ·  ${x.request}`)));
+    if (rows.some((x) => x.runId === keep)) seedRun.value = keep;
+    seedBox.hidden = !how;
+    const run = rows.find((x) => x.runId === seedRun.value);
+    // the run decides the project; a design or the other model brings its own requirements, references and frames
+    project.disabled = !!run;
+    if (run) { project.value = run.project === "standalone-estimates" ? "" : run.project; syncProject(); }
+    const own = how === "design" || how === "fromrun";
+    for (const id of ["reqblock", "refblock", "framesblock"]) { const b = form.querySelector(`#${id}`); if (b) b.hidden = own; }
+    // the other delivery model keeps the approved settings and swaps only the model
+    for (const x of settingsSects) x.hidden = how === "fromrun";
+    if (how === "fromrun" && run) delivery.value = run.deliveryModel === "agentic" ? "hitl" : "agentic";
+    if (how === "revises" && run) delivery.value = run.deliveryModel === "agentic" ? "agentic" : "hitl";
+    seedHint.textContent = !run ? "" : how === "design"
+      ? "Sized from that design run's requirements and its approved design; the design steps are not run again (like --from-design)."
+      : how === "revises" ? "Write only what changes in Requirements. The estimate is redone against the approved one and gets the next design version (like --revises)."
+      : `Sized again as ${delivery.value === "agentic" ? "solely agentic" : "HITL"}, with the same requirements, design and settings (like --from-run).`;
+    syncAutoX();
+  };
+  if (!designing && estimating) {
+    startFrom.addEventListener("change", syncStart);
+    seedRun.addEventListener("change", syncStart);
+    // a link from a run page: #/new/estimate/<design|revises|fromrun>/<run>
+    if (["design", "revises", "fromrun"].includes(preset[0]) && !startFrom.querySelector(`option[value=${preset[0]}]`).disabled) startFrom.value = preset[0];
+    syncStart();
+    if (preset[1] && [...seedRun.options].some((o) => o.value === preset[1])) { seedRun.value = preset[1]; syncStart(); }
+  }
+  // #/new/brownfield/<design|estimate>/<run>
+  if (!estimating && preset[1]) {
+    const v = `${preset[0] === "design" ? "d" : "e"}:${preset[1]}`;
+    if ([...fromEst.options].some((o) => o.value === v && !o.disabled)) { fromEst.value = v; syncEst(); syncAutoX(); }
+  }
   mount([
     h("div", { class: "page-head" }, h("div", {},
       h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", designing ? "Design" : estimating ? "Estimate" : "Brownfield"),
@@ -679,7 +777,7 @@ function questionPanel(r) {
 // the design card's words for each kind of run (the terminal card has the same three, by its purpose)
 const DESIGN_CARD_TEXT = {
   estimate: { intro: "The estimate stands on this design. Walk the clickable demo, then approve it or send it back with what to change.", approved: "Approved. The estimate is continuing… " },
-  design: { intro: "This is a design-only run: approving keeps this mock, clickable demo and look, and nothing is sized or built. Walk the clickable demo, then approve it or send it back with what to change.", approved: "Approved. The design is kept; size it with factory estimate --from-design, or build it with factory start --from-design. " },
+  design: { intro: "This is a design-only run: approving keeps this mock, clickable demo and look, and nothing is sized or built. Walk the clickable demo, then approve it or send it back with what to change.", approved: "Approved. The design is kept; estimate or build it from the Design tab (like --from-design). " },
   build: { intro: "The build follows this design: its screens, states, sample content and look are what gets built. Walk the clickable demo, then approve it or send it back with what to change.", approved: "Approved. The build is going on to its plan… " },
 };
 
@@ -1101,6 +1199,16 @@ const table = (head, rows, numCols = []) => h("div", { class: "table-wrap" }, h(
   h("thead", {}, h("tr", {}, head.map((t, i) => h("th", { class: numCols.includes(i) ? "num" : undefined }, t)))),
   h("tbody", {}, rows.map((cells) => h("tr", {}, cells.map((c, i) => h("td", { class: numCols.includes(i) ? "num" : undefined }, c)))))));
 
+/** What can start from an approved run: links to the New run forms, set to start from it (like the command line's flags). */
+function nextPanel(text, links) {
+  return h("section", { class: "panel rise next-panel", vars: { "--i": 0 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("arrow"), "Next")),
+    h("p", { class: "small muted" }, text),
+    h("div", { class: "row" }, links.map(([href, ico, label, why]) => href
+      ? h("a", { class: "btn", href }, icon(ico), label)
+      : h("span", { class: "btn disabled", "aria-disabled": "true", title: why }, icon(ico), label))),
+    links.filter(([href, , , why]) => !href && why).map(([, , , why]) => h("p", { class: "small faint" }, why)));
+}
+
 async function estimateScreen(id) {
   skeleton("grid");
   const [r, e] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/estimate`)]);
@@ -1174,7 +1282,13 @@ async function estimateScreen(id) {
   }
   mount([...head,
     h("div", { class: "grid-2" },
-      h("div", { class: "stack" }, decide, panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", costTable),
+      h("div", { class: "stack" }, decide,
+        e.approved && e.files ? nextPanel("This estimate is approved. Build it, size a change to it, or size it again under the other delivery model.", [
+          [`#/new/brownfield/estimate/${rid}`, "layers", "Build this estimate"],
+          [`#/new/estimate/revises/${rid}`, "pen", "Change request"],
+          [`#/new/estimate/fromrun/${rid}`, "ruler", e.deliveryModel === "agentic" ? "Estimate as HITL" : "Estimate as solely agentic"],
+        ]) : null,
+        panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", costTable),
         e.assumptions.length ? panel(3, "Assumptions", "alert", h("ul", { class: "reasons small" }, e.assumptions.map((x) => h("li", {}, x)))) : null),
       h("div", { class: "stack" }, panel(1, "Screens", "browser", design), panel(2, "Tasks", "layers", tasks, ...extra))),
   ], true);
@@ -1360,6 +1474,12 @@ async function designScreen(id) {
   mount([...runHeader(r, "design"),
     h("div", { class: "grid-2" },
       h("div", { class: "stack" },
+        // a design-only run, once approved, is sized or built from here (like --from-design)
+        r.mode === "design" && xv.available ? nextPanel("This design is approved. Size it, or build it in its project.", [
+          [`#/new/estimate/design/${encodeURIComponent(id)}`, "ruler", "Estimate this design"],
+          r.repo ? [`#/new/brownfield/design/${encodeURIComponent(id)}`, "layers", "Build this design"]
+            : [null, "layers", "Build this design", "Designed with no repo (a new product). Building a new product is not available yet; estimate it instead."],
+        ]) : null,
         exportPanel(id, xv),
         h("section", { class: "panel rise", vars: { "--i": 0 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("ruler"), "UI change size")), size),
         h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Style check")), style),
@@ -1432,8 +1552,9 @@ async function route() {
   document.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("on", a.dataset.nav === top));
   document.title = `AI Factory · ${{ new: "New run", runs: parts[1] ? parts[1] : "Runs", dashboard: "Dashboard" }[top] ?? ""}`;
   try {
-    if (top === "new" && parts[1] === "brownfield") await requestScreen();
-    else if (top === "new" && parts[1] === "estimate") await requestScreen("estimate");
+    // #/new/estimate/<design|revises|fromrun>/<run> and #/new/brownfield/<design|estimate>/<run> start from that run
+    if (top === "new" && parts[1] === "brownfield") await requestScreen("brownfield", parts.slice(2));
+    else if (top === "new" && parts[1] === "estimate") await requestScreen("estimate", parts.slice(2));
     else if (top === "new" && parts[1] === "design") await requestScreen("design");
     else if (top === "runs" && parts[1] && parts[2] === "estimate") await estimateScreen(parts[1]);
     else if (top === "new") modeScreen();
