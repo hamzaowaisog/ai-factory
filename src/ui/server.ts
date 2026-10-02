@@ -22,6 +22,7 @@ import { dashboardView, designView, estimateView, eventsView, draftFile, exportF
 import { previewFile } from "./preview.js";
 import { answerEstimateQuestions, checkRefs, decideDesign, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
+import { figmaPluginZip } from "../design/figma.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
 import { acceptFromPage, fidelityPanel, fidelityShot } from "./fidelity.js";
 import type { ExportFormat } from "../design/export.js";
@@ -367,6 +368,11 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       const f = l && rest.length ? await exportDownload(l, rest.join("/")) : undefined;
       if (!f) return send(res, 404, "No such export.", "text/plain; charset=utf-8");
       return send(res, 200, f.body, f.type, { "Content-Disposition": `attachment; filename="${f.name}"` });
+    }
+    if (method === "GET" && path === "/figma-plugin.zip") {
+      // the AI Factory Import plugin for Figma, to import from its manifest: same key as the API
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      return send(res, 200, await figmaPluginZip(), "application/zip", { "Content-Disposition": 'attachment; filename="ai-factory-figma-plugin.zip"' });
     }
     if (method === "GET" && path.startsWith("/scaffolds/")) {
       // a generated scaffold as a zip: same key as the API, only <run>/scaffold/<target>

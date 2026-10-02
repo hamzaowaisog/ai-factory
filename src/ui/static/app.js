@@ -474,7 +474,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const refBlock = estimating ? h("section", { class: "sect", id: "refblock" }, h("div", { class: "sect-head" }, h("span", { class: "num" }, designing ? "5" : "6"), h("div", {}, h("h3", {}, "Design references"), h("p", { class: "muted small" }, refText))), refs.node)
     : h("div", { class: "field", id: "refblock" }, h("span", { class: "label" }, "Design references (optional)"), refs.node, h("div", { class: "hint" }, refText));
   // formats to export as soon as the design is approved, like --design-export (none by default: exports are on demand)
-  const autoX = [["png", "PNG pictures"], ["pdf", "PDF design book"], ["html", "Clickable demo (zip)"], ["tokens", "Design tokens"], ["json", "Design JSON"]]
+  const autoX = [["png", "PNG pictures"], ["pdf", "PDF design book"], ["html", "Clickable demo (zip)"], ["tokens", "Design tokens"], ["json", "Design JSON"], ["figma", "Figma (figma.json)"]]
     .map(([v, t]) => h("label", { class: "xopt" }, h("input", { type: "checkbox", value: v }), t));
   const autoXPicked = () => autoX.map((l) => l.querySelector("input")).filter((i) => i.checked).map((i) => i.value);
   const autoXHint = h("div", { class: "hint" });
@@ -486,9 +486,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   syncAutoX();
   fromEst.addEventListener("change", syncAutoX);
   startFrom.addEventListener("change", syncAutoX);
-  // Figma waits for the AI Factory Figma plugin (build step 6), so it is shown, greyed, as in the Export panel
-  const autoXFigma = h("label", { class: "xopt", title: "Figma comes with the AI Factory Figma plugin (not built yet)." }, h("input", { type: "checkbox", disabled: "" }), "Figma (later)");
-  const autoXBox = h("fieldset", { class: "xopts", id: "autox", "aria-label": "Export on approval" }, autoX, autoXFigma);
+  const autoXBox = h("fieldset", { class: "xopts", id: "autox", "aria-label": "Export on approval" }, autoX);
   const autoXBlock = estimating ? sect(designing ? 6 : 7, "Export on approval", "Optional.", autoXBox, autoXHint)
     : h("div", { class: "field" }, h("span", { class: "label" }, "Export the design on approval (optional)"), autoXBox, autoXHint);
   // a build: the stack the approved design is built in when the project sets none, like --ui-target
@@ -1423,7 +1421,8 @@ const EXPORT_CHOICES = [
   { id: "html", label: "Clickable demo (zip)", formats: ["html"] },
   { id: "tokens", label: "Design tokens (JSON, CSS, Tailwind)", formats: ["tokens"] },
   { id: "json", label: "Design and manifest (JSON)", formats: ["json"] },
-  { id: "all", label: "Everything", formats: ["png", "pdf", "html", "tokens", "json"] },
+  { id: "figma", label: "Figma (figma.json for the AI Factory Import plugin)", formats: ["figma"] },
+  { id: "all", label: "Everything", formats: ["png", "pdf", "html", "tokens", "json", "figma"] },
 ];
 
 /** Earlier exports of the run, newest first: the whole export as a zip, and its book or demo on their own. */
@@ -1443,7 +1442,8 @@ function exportList(rid, exports) {
         e.files.filter((f) => f.path.startsWith("pdf/")).map((f) => file(e, f.path, f.path.slice(4))),
         has("demo.zip") ? file(e, "demo.zip", "clickable demo (.zip)") : null,
         has("tokens/tokens.json") ? file(e, "tokens/tokens.json", "tokens.json") : null,
-        has("tokens/tailwind.css") ? file(e, "tokens/tailwind.css", "tailwind.css") : null),
+        has("tokens/tailwind.css") ? file(e, "tokens/tailwind.css", "tailwind.css") : null,
+        has("figma.json") ? file(e, "figma.json", "figma.json") : null),
       e.checks?.length ? h("div", { class: "chips" }, e.checks.map((c) => h("span", { class: `chip ${c.status === "PASS" ? "pass" : c.status === "FAIL" ? "fail" : ""}`, title: [c.detail, ...(c.items ?? [])].join("\n") }, icon(c.status === "PASS" ? "check" : c.status === "FAIL" ? "x" : "alert"), c.check))) : null,
       e.notes.length ? h("ul", { class: "small muted" }, e.notes.map((n) => h("li", {}, n))) : null);
   }));
@@ -1459,7 +1459,7 @@ function exportPanel(rid, v) {
     const boxes = items.map((it) => h("label", { class: "xopt" }, h("input", { type: "checkbox", name, value: it.value, checked: all ? "" : undefined }), it.label));
     return { el: h("fieldset", { class: "xopts" }, h("legend", { class: "small faint" }, name), boxes), picked: () => boxes.map((b) => b.querySelector("input")).filter((i) => i.checked).map((i) => i.value), total: boxes.length };
   };
-  const choice = h("select", { "aria-label": "What to export" }, EXPORT_CHOICES.map((c) => h("option", { value: c.id }, c.label)), h("option", { value: "figma", disabled: "" }, "Figma (later)"));
+  const choice = h("select", { "aria-label": "What to export" }, EXPORT_CHOICES.map((c) => h("option", { value: c.id }, c.label)));
   choice.value = "all";
   const screens = checks("screens", v.options.screens.map((x) => ({ value: x.id, label: x.id === "components" ? "Components" : `${x.id} ${x.title}` })));
   // every state on the demo's tabs, once (like --states); a picture of a dark or other-language page counts as its first state
@@ -1505,7 +1505,7 @@ function exportPanel(rid, v) {
     d.picturesNote ? h("p", { class: "small muted" }, d.picturesNote) : null,
     h("div", { class: "row" }, choice, version, go),
     h("details", { class: "export-opts" }, h("summary", { class: "small" }, "Screens, states, widths, modes and languages"), h("div", { class: "stack" }, screens.el, states.el, widths.el, modes.el, langs.el)),
-    h("p", { class: "small faint" }, v.figma),
+    h("p", { class: "small faint" }, v.figma.note, " ", h("a", { href: v.figma.plugin, download: "" }, "Download the plugin (.zip)")),
     msg,
     h("h3", { class: "small" }, "Earlier exports"),
     listBox);

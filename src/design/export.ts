@@ -10,6 +10,7 @@
 //     demo.zip             the clickable demo, standalone
 //     tokens/tokens.json, tokens.css, tailwind.css (a Tailwind v4 @theme block)
 //     json/design.json, manifest.json
+//     figma.json           the design as layers, components and variables for the AI Factory Import plugin (figma-plugin/)
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -19,11 +20,12 @@ import { designTokens } from "../estimate/tokens.js";
 import { findChromium, VIEWPORTS, type Shot, type Viewport } from "../estimate/screenshots.js";
 import type { DesignTheme } from "../contracts/artifacts.js";
 import { checkExport } from "./export-check.js";
+import { figmaDoc } from "./figma.js";
 import type { CheckResult } from "./fidelity.js";
 import { readDesignJson, w3cTokens, type DesignPackage, type PackageFile } from "./package.js";
 
-/** What can be exported now. `figma` comes with the Figma plugin (build step 6). */
-export const EXPORT_FORMATS = ["png", "pdf", "html", "tokens", "json"] as const;
+/** What can be exported. `figma` is `figma.json` for the AI Factory Import plugin (figma-plugin/). */
+export const EXPORT_FORMATS = ["png", "pdf", "html", "tokens", "json", "figma"] as const;
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 export const EXPORT_MODES = ["light", "dark"] as const;
 
@@ -57,13 +59,12 @@ export interface ExportRecord {
 /** "png,pdf", "all": the formats asked for, refusing what is not built yet. */
 export function parseFormats(list: string): ExportFormat[] {
   const asked = list.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
-  if (!asked.length) throw new Error("Name at least one format: png, pdf, html, tokens, json or all.");
+  if (!asked.length) throw new Error("Name at least one format: png, pdf, html, tokens, json, figma or all.");
   const out = new Set<ExportFormat>();
   for (const f of asked) {
     if (f === "all") EXPORT_FORMATS.forEach((x) => out.add(x));
-    else if (f === "figma") throw new Error("The figma export comes with the AI Factory Figma plugin, which is not built yet. Export png or pdf for now.");
     else if ((EXPORT_FORMATS as readonly string[]).includes(f)) out.add(f as ExportFormat);
-    else throw new Error(`Unknown format "${f}". Use png, pdf, html, tokens, json or all.`);
+    else throw new Error(`Unknown format "${f}". Use png, pdf, html, tokens, json, figma or all.`);
   }
   return EXPORT_FORMATS.filter((f) => out.has(f));
 }
@@ -329,8 +330,17 @@ export async function exportDesign(pkg: DesignPackage, out: string, o: ExportOpt
     add("json", "json/design.json", readFileSync(join(pkg.dir, "design.json")));
     add("json", "json/manifest.json", readFileSync(join(pkg.dir, "manifest.json")));
   }
+  if (o.formats.includes("figma")) {
+    const r = await figmaDoc(pkg, picked, tag, extra.log);
+    if (r.why) notes.push(`figma: ${r.why}`);
+    else if (!r.doc!.frames.length) notes.push(`figma: ${picked.length ? "no picture's view could be read from the demo" : "no picture matches the options"}`);
+    else {
+      add("figma", "figma.json", JSON.stringify(r.doc));
+      for (const n of r.doc!.notes) notes.push(`figma: ${n}`);
+    }
+  }
   const record: ExportRecord = { kind: "ai-factory/design-export", line: m.line, version: m.version, designSha: m.designSha, at: new Date().toISOString(), options: o, files, notes, checks: [] };
-  record.checks = checkExport(pkg, out, record, o.formats.includes("png") ? picked : []);
+  record.checks = checkExport(pkg, out, record, o.formats.includes("png") || o.formats.includes("figma") ? picked : []);
   for (const c of record.checks) if (c.status !== "PASS") extra.log?.(`design export: ${c.check} ${c.status}: ${c.detail}`);
   writeFileSync(join(out, "export.json"), `${JSON.stringify(record, null, 2)}\n`);
   for (const n of notes) extra.log?.(`design export: ${n}`);

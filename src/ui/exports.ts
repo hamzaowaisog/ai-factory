@@ -38,7 +38,8 @@ export function designExportsView(ledger: Ledger, jobs: ExportJob[] = []) {
     design: pkg ? { line: pkg.manifest.line, version: pkg.manifest.version, designSha: pkg.manifest.designSha, approvedBy: pkg.manifest.approved.by, approvedAt: pkg.manifest.approved.at, pictures: pkg.manifest.shots.length, picturesNote: pkg.manifest.shotsNote }
       : { designSha: approved.sha, pending: "The design package is written with the first export." },
     versions: pkg ? listPackages(s.info.project).filter((p) => p.manifest.line === pkg.manifest.line).map((p) => p.manifest.version) : [],
-    formats: [...EXPORT_FORMATS], figma: "Figma comes with the AI Factory Figma plugin (not built yet).",
+    formats: [...EXPORT_FORMATS],
+    figma: { plugin: "/figma-plugin.zip", note: "Figma: export figma.json, then in the Figma desktop app (any plan, the free one too) import the AI Factory Import plugin once (Plugins > Development > Import plugin from manifest..., its manifest.json), run it in the file and pick figma.json. No Figma token or paid seat is needed." },
     options: { screens: [...screens, ...(screens.length ? [{ id: "components", title: "Components", states: ["All states"] }] : [])], widths: Object.keys(VIEWPORTS), modes, langs: d.locale?.languages ?? ["en"] },
     exports, jobs: mine,
   };

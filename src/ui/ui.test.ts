@@ -516,7 +516,8 @@ describe("factory ui: design-only runs", () => {
     expect(ui.exportJobs.list().some((j) => j.runId === r.json().runId)).toBe(false); // nothing to export until the design is approved
     const none = await post({ mode: "design", prompt: "Build an order portal with login and a dashboard", designExport: [] });
     expect(replay(Ledger.open(none.json().runId).events()).info.designExport).toBeUndefined();
-    expect((await post({ mode: "design", prompt: "Build an order portal", designExport: ["figma"] })).json().error).toMatch(/not built yet/);
+    const fig = await post({ mode: "design", prompt: "Build an order portal with login and a dashboard", designExport: ["figma"] });
+    expect(replay(Ledger.open(fig.json().runId).events()).info.designExport).toEqual(["figma"]);
     expect((await post({ mode: "design", prompt: "Build an order portal", designExport: ["gif"] })).json().error).toMatch(/Unknown format/);
     expect((await post({ mode: "design", prompt: "Build an order portal", designExport: "png" })).json().error).toMatch(/list of formats/);
   });
@@ -1001,10 +1002,18 @@ describe("factory ui: design exports", () => {
   it("exports as a job, lists it with its version, and downloads its files and the whole export with the key", async () => {
     const l = await approvedDesignRun();
     const v = (await call(`/api/runs/${l.runId}/exports`)).json();
-    expect(v).toMatchObject({ available: true, formats: ["png", "pdf", "html", "tokens", "json"], figma: expect.stringMatching(/not built yet/), options: { widths: ["phone", "tablet", "desktop"], modes: ["light"], langs: ["en"] } });
+    expect(v).toMatchObject({ available: true, formats: ["png", "pdf", "html", "tokens", "json", "figma"], figma: { plugin: "/figma-plugin.zip", note: expect.stringMatching(/no Figma token or paid seat/i) }, options: { widths: ["phone", "tablet", "desktop"], modes: ["light"], langs: ["en"] } });
     expect(v.options.screens.map((s: { id: string }) => s.id)).toEqual(["S-1", "components"]);
 
-    expect((await start(l.runId, { formats: ["figma"] })).json().error).toMatch(/Figma plugin/);
+    expect((await start(l.runId, { formats: ["sketch"] })).json().error).toMatch(/Unknown format/);
+    // the plugin, with the key: its manifest, code and window
+    expect((await call("/figma-plugin.zip", { token: null })).status).toBe(401);
+    const plug = await call("/figma-plugin.zip");
+    expect(plug.status).toBe(200);
+    expect(plug.headers["content-type"]).toBe("application/zip");
+    expect(plug.headers["content-disposition"]).toMatch(/ai-factory-figma-plugin\.zip/);
+    expect(plug.body.slice(0, 2)).toBe("PK");
+    for (const f of ["manifest.json", "code.js", "ui.html"]) expect(plug.body).toContain(`ai-factory-figma-plugin/${f}`);
     expect((await start(l.runId, { formats: ["json"], widths: ["watch"] })).status).toBe(400);
     expect((await start(l.runId, { formats: ["json"] }, null)).status).toBe(401);
     const r = await start(l.runId, { formats: ["json", "tokens"] });

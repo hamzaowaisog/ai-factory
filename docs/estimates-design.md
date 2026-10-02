@@ -349,7 +349,7 @@ Greenfield is not built yet. The design work is built as one piece that any mode
     - Tests: the step list (direct, with references, no UI, from an estimate or design, planned before the change), the question and its answer, the card with no auto answer, the design kept and restyled, the card and estimate lines. 740 tests pass.
 10. **Docs, tests and a visual check.** Fixtures per input type; a run with no references unchanged; one live run each with a URL, a JPEG and a Figma link (needs `ANTHROPIC_API_KEY` and `FIGMA_TOKEN` in `~/.factory/.env`).
 
-### Design handoff (requirements 2 and 3, approved 2026-10-02; steps 1 to 5 built)
+### Design handoff (requirements 2 and 3, approved 2026-10-02; steps 1 to 6 built, 7 and 8 skipped)
 
 Two requirements, planned together because they read the same thing:
 
@@ -502,8 +502,9 @@ factory design export <run> [--format png|pdf|html|tokens|json|figma|all] [--out
                             [--screens S-1,S-3] [--states ...] [--widths phone,tablet,desktop]
                             [--mode light,dark] [--lang en,ar] [--version vN] [--pdf-per-screen]
 factory design export list <run>
-factory design figma <run> [--file <figma url>]
 ```
+
+(`factory design figma`, route B below, is not built.)
 
 | Format | What it gives |
 |---|---|
@@ -512,7 +513,7 @@ factory design figma <run> [--file <figma url>]
 | `html` | The clickable demo as a standalone zip |
 | `tokens` | `tokens.json` (W3C), `tokens.css` and the Tailwind v4 `@theme` block; the stack outputs below as they are built |
 | `json` | `design.json` and `manifest.json` |
-| `figma` | `figma.json` for the AI Factory Figma plugin |
+| `figma` | `figma.json` for the AI Factory Import plugin (route A below) |
 | `all` | All of the above |
 
 - **Default is on demand.** `--design-export png,pdf` on `factory estimate`, `factory start`, `factory design start` (and greenfield later) exports automatically right after the design is approved.
@@ -524,7 +525,7 @@ factory design figma <run> [--file <figma url>]
   - Clickable demo (zip);
   - Design tokens;
   - Design JSON;
-  - **Figma**: download `figma.json` for the plugin, and "Open in Figma with Claude Code" (route B below), which shows the command to run;
+  - **Figma**: `figma.json` for the plugin, and a link to download the plugin;
   - Everything.
 
   The options shown are the same as on the command line (screens, widths, modes, languages). An export runs as a job on the server (`POST /api/runs/:id/exports`, `GET /api/runs/:id/exports`), shows progress, and the files are downloaded through the run's session key like the preview. Earlier exports are listed with their version.
@@ -532,7 +533,7 @@ factory design figma <run> [--file <figma url>]
 
 As built (`src/design/export.ts`, `src/stages/design-export.ts`, `src/ui/exports.ts`):
 
-- **Command.** `factory design export <run>` with `--format` (default `all`), `--out`, `--screens`, `--states`, `--widths`, `--mode`, `--lang`, `--version vN`, `--pdf-per-screen` and `--json`; `factory design export list <run>` lists earlier exports. `figma` is refused for now with "comes with the AI Factory Figma plugin, which is not built yet" (step 6). `--version` picks another version of the same design line and names the versions there are when it is missing. A run with no approved design is refused, and one waiting for approval says so.
+- **Command.** `factory design export <run>` with `--format` (default `all`), `--out`, `--screens`, `--states`, `--widths`, `--mode`, `--lang`, `--version vN`, `--pdf-per-screen` and `--json`; `factory design export list <run>` lists earlier exports. `figma` writes `figma.json` (see "Figma (as built)"), and the command then prints the two lines that bring it into Figma. `--version` picks another version of the same design line and names the versions there are when it is missing. A run with no approved design is refused, and one waiting for approval says so.
 - **Where.** Each export is its own numbered folder, `<run>/exports/vN/<n>/`, with `export.json` written last (line, version, design sha, options, every file with its sha-256 and format, and notes). `--out` writes elsewhere.
 - **Versions.** An export has two numbers, and only the first is a design version:
   - **`vN` is the design version**, taken from the package, never chosen by the export. A design's first approval is v1 of a *line* named after the run that approved it; every run that draws its own design (an estimate, `factory design start`, a brownfield run with UI) starts its own line at v1. Only a change request (`factory estimate --revises <run>`) adds a version to an existing line: its design becomes the next free version of the line of the design it changes: `max(highest version in the line, the version it changes) + 1`. Two changes made from v1 become v2 and v3, and each records v1 as its `previous` with its own screen diff. A run seeded from another run's design (`--from-design`, `--from-estimate`, a sibling estimate) has no version of its own: it exports the package of the run it came from. A package is never changed, so the same `vN` always holds the same design sha (`writePackage` refuses a different design under a taken version).
@@ -547,11 +548,12 @@ As built (`src/design/export.ts`, `src/stages/design-export.ts`, `src/ui/exports
   - `html`: `demo.zip` (the approved `index.html` and a README), dated at the approval, so the same version always gives the same bytes.
   - `tokens`: `tokens/tokens.json` (W3C), `tokens/tokens.css` and `tokens/tailwind.css` (a Tailwind v4 `@theme` block with colours, fonts, radius, spacing, shadows and easing, and the dark values under `prefers-color-scheme` and `[data-theme]`).
   - `json`: `json/design.json` and `json/manifest.json`.
-- **Never a failure.** What cannot be made is a note in `export.json`, and the rest is still written: no browser (no PDF), a package with no pictures, a design that keeps the app's own look (no tokens), or filters that match no picture.
+  - `figma`: `figma.json`, layers read from the approved demo in Chromium (see "Figma (as built)").
+- **Never a failure.** What cannot be made is a note in `export.json`, and the rest is still written: no browser (no PDF, no figma.json), a package with no pictures, a design that keeps the app's own look (no tokens), or filters that match no picture.
 - **`--design-export`** on `factory start`, `factory estimate` and `factory design start` (and Export on approval on the UI's New run form) is recorded on the run. The `design-export` step exports those formats right after it writes the package; a failed export is logged and the run goes on. A run seeded from another run's design (`--from-design`, `--from-estimate`, a sibling) has no design step of its own, so it exports at once when the run is created.
 - **The estimate.** The `export` step writes `<run>-design-vN.pdf` beside the client workbook (never inside the Excel), and the manifest records its path, sha-256 and version, or a `designNote` saying why there is none (no browser). An estimate with no UI has no book.
 - **UI.** `GET /api/runs/:id/exports` (what can be exported: the design's version, versions in its line, screens with states, widths, modes, languages, earlier exports and jobs) and `POST /api/runs/:id/exports` (a job: 202, one at a time per run, 409 while one runs, 400 for bad options). Downloads are `/design-exports/<run>/vN/<n>.zip` (the whole export) and `/design-exports/<run>/vN/<n>/<file>` (only files the export recorded), with the session key, no symlinks and nothing outside the run's `exports/`. These are the only writes the UI makes besides starting a run and the lead's decisions, and they write only under `exports/`.
-- **The Export button** is on the run's Design tab: a menu (PNG zip, PDF design book, PDF one per screen, clickable demo zip, tokens, JSON, Figma greyed out "later", Everything), a version picker when the line has several, the screens, states, widths, modes and languages as checkboxes, progress while the job runs, and the earlier exports with their version and direct links to the book, demo and tokens. The design card is shown only before approval, when there is nothing to export yet, so it carries a greyed "Export after approval" button, and after Approve its message links to the Design tab's Export. The estimate page has a "Design book (.pdf)" link beside the workbooks. The New run form (Design, Estimate and Brownfield) has an **Export on approval** checklist (PNG, PDF design book, demo, tokens, JSON), the same as `--design-export` (`designExport` in `POST /api/runs`, checked the same way; figma is refused); a build from an estimate exports at once, as an export job the Design tab shows. The web design card is worded for its run: an estimate stands on the design, a design-only run keeps it and sizes or builds nothing, a build follows it.
+- **The Export button** is on the run's Design tab: a menu (PNG zip, PDF design book, PDF one per screen, clickable demo zip, tokens, JSON, Figma, Everything), a version picker when the line has several, the screens, states, widths, modes and languages as checkboxes, progress while the job runs, and the earlier exports with their version and direct links to the book, demo and tokens. The design card is shown only before approval, when there is nothing to export yet, so it carries a greyed "Export after approval" button, and after Approve its message links to the Design tab's Export. The estimate page has a "Design book (.pdf)" link beside the workbooks. The New run form (Design, Estimate and Brownfield) has an **Export on approval** checklist (PNG, PDF design book, demo, tokens, JSON, Figma), the same as `--design-export` (`designExport` in `POST /api/runs`, checked the same way); a build from an estimate exports at once, as an export job the Design tab shows. The web design card is worded for its run: an estimate stands on the design, a design-only run keeps it and sizes or builds nothing, a build follows it.
 - **The other design commands in the UI** (`src/ui/start.ts`, `src/ui/static/app.js`). `POST /api/runs` takes `fromDesign` (estimate or build), `revises` and `fromRun` (estimate only) and `fresh` (estimate and design runs), with the command line's refusals: one starting point at a time; a design or the other delivery model brings its own requirements, so a request, file, Jira key, frames or references are refused; a run seeded from another belongs to that run's project; a design with no repo cannot be built; the other delivery model must differ and keeps the approved settings. `fresh` starts the background run with `FACTORY_NO_CACHE=1`. A seeded run with Export on approval exports at once, as with `--from-estimate`. The Estimate form has **Start from** (new requirements, an approved design run, a change request to an approved estimate, the other delivery model) with a run picker; the project follows the run and the sections it brings are hidden. The Brownfield form's **Build from** lists approved estimates and approved design runs (a design with no repo shown greyed). Both forms take links: `#/new/estimate/<design|revises|fromrun>/<run>` and `#/new/brownfield/<estimate|design>/<run>`. An approved design-only run's Design tab and an approved estimate's Estimate tab have a **Next** panel with those links. **Check references** in the references section posts to `POST /api/check-refs`, which reads them as `factory design check-refs` does (no run, no model, no cost) and shows each one's pictures, colours, fonts, corners and notes. `/api/projects` lists approved design runs (`designs`) and each approved estimate's delivery model.
 
 #### Figma
@@ -564,13 +566,44 @@ As built (`src/design/export.ts`, `src/stages/design-export.ts`, `src/ui/exports
     - variables (light and dark modes) from the tokens;
     - the screenshots as images where layers would be lossy (maps, charts as pictures in the first version).
   - The plugin reads only the chosen file, has no network access and needs only edit rights on the file. It lives in this repo (`figma-plugin/`), is built with the factory, and is installed from its manifest (published to the team's Figma organisation later).
-- **Optional route (B): Claude Code with Figma's MCP server.**
+- **Optional route (B): Claude Code with Figma's MCP server.** Not built (2026-10-03): it needs a paid Figma seat, and route A covers the need on the free plan.
   - `factory design figma <run>` serves the approved demo on localhost and prints, or hands to Claude Code, the instructions to capture each screen and state with `generate_figma_design` and add the token variables with `use_figma`.
   - It needs Claude Code (or another allowlisted client) signed in to Figma, a full seat and the beta. It runs only when the user starts it, outside the locked runtime, with no factory secrets.
   - The result is flat layers, good for review.
   - The Figma file link is recorded in the manifest.
 - **Not used:** community MCP bridges.
 - **Coming back from Figma.** If a designer changes the file, its link is attached as a `match` reference (the existing read-only `FIGMA_TOKEN` reader). That makes design v(N+1) through the normal approval card. The build always follows the approved package, never Figma directly.
+
+#### Figma (as built)
+
+Route A only (`src/design/figma.ts`, `figma-plugin/`). No Figma token, API key or paid seat is needed: a development plugin imported from its manifest runs on every plan, the free Starter plan included.
+
+- **Command and UI.** `factory design export <run> --format figma` (also in `all` and `--design-export`) writes `figma.json`, then prints the two lines to run it in Figma. The Design tab's Export menu has **Figma (figma.json for the AI Factory Import plugin)**, says how to use it, and links **Download the plugin (.zip)** (`GET /figma-plugin.zip`, with the session key). Export on approval has Figma too.
+- **How the layers are read.** For each picture the export asks for (the same screen, state, width, mode and language filters as PNG), the approved demo is opened in Chromium. It is set up the way its pictures were taken (the state's tab, `__lang`, `__mode("dark")`, a fixed clock, no motion, scale 1), and a walker reads the stage:
+  - **frames:** fill, gradient, border per side, corners, shadows, clipping;
+  - **text:** the characters, font families, weight, italic, size, line height, letter spacing, case, underline and strike, colour, alignment and line count, plus input placeholders and values;
+  - **icons:** SVG, with `currentColor` resolved;
+  - **pictures:** native controls (check boxes, radios, selects, ranges), images, canvases and background images, cropped from a screenshot of the same view.
+
+  Any CSS colour (`oklch`, `color-mix`, `color(srgb ...)`) is read through a canvas. Auto layout is worked out from positions: children one after another with equal gaps and lined up on the other axis become a horizontal or vertical auto layout with its padding (fixed sizes, so nothing moves). Other frames keep absolute positions. Each frame gets its approved picture as a hidden, locked "Approved picture (reference)" layer, for comparison. A frame has at most 4000 layers.
+- **`figma.json`** (`kind: "ai-factory/figma"`, `schemaVersion` 1): the tag, line, version, design sha, product and apps, the tokens as variables (`color/<name>` per mode, `radius/base`, `space/pad`, `space/row`, `font/body`, `font/heading`, `font/heading-weight`; only when the package has tokens), the fonts used, notes, and the frames (screen, title, app, state, width, mode, language, direction, size, layer tree and picture). The sample design gives 84 frames and about 15,000 layers in about 14 MB.
+- **The check.** `figma.frames` (in `export.json`) passes when every screen state that has a picture in the package has a frame with layers.
+- **The plugin** ("AI Factory Import", `figma-plugin/`: `manifest.json`, `code.js`, `ui.html`, `README.md`). It is a plain script with no build step, no network access (`allowedDomains: ["none"]`) and `documentAccess: dynamic-page`. It reads the chosen file in its window and builds:
+  - a page per app, named `<app> - <line> vN`, with each screen's frames in a row (light, dark and other languages beside each other);
+  - a variable collection with Light and Dark modes. The free plan allows one mode per collection, so there the dark values go in a second collection (`... - Dark`), and a note says so;
+  - colours that equal a token, bound to its variable, and dark frames set to the dark mode (or bound to the dark collection);
+  - fonts that this Figma has, matched by family and nearest weight. A missing font is shown in Inter and named in a note;
+  - a "Component sets" page: each grid on the Components page becomes a component set with `Variant=<row>, State=<column>` variants, and each row of chips becomes one with `Name=<label>` variants. They are copies; the screens' layers stay plain frames;
+  - plugin data on each frame (screen, state, width, mode, language, design sha), so a frame can be traced back to the design.
+
+  It ends with a summary: pages, frames, layers, auto layouts, component sets and variants, variables, bound colours and notes. A file of another kind or a newer `schemaVersion` is refused.
+- **Install** (once per Figma user): in the Figma desktop app, Plugins > Development > Import plugin from manifest..., then pick `figma-plugin/manifest.json` (from the repo or the downloaded zip). Then in any file you can edit: Plugins > Development > AI Factory Import, choose `figma.json`, Import.
+- **Limits.**
+  - The plugin has been tested against a stand-in for Figma's plugin API, not inside Figma itself. The first real import should be checked against the reference pictures.
+  - `::before` and `::after` content (such as status dots) is not read, and text can wrap a little differently from Chromium.
+  - The Components page's dark and other-language frames are named after its single state ("All states").
+  - No `factory design figma` (route B). Nothing is read back from Figma automatically; a changed file comes back as a `match` reference, as planned.
+- **Tests** (`src/design/figma.test.ts`): auto layout from positions, the variables, layers read from a page in Chromium (any colour syntax, inputs, icons, native controls, the component grid), a full export of the sample demo with its check, and the plugin run against a stand-in for Figma on a plan with modes and on the free plan (pages, frames, auto layout, bound colours, the dark collection, component sets and unique variant names, the font note, refusals).
 
 #### Conversion to the chosen stack (requirement 2)
 
@@ -759,9 +792,9 @@ Like the other build gates, the blocking ones can be waived with a reason on the
 3. **Exports.** Done (as built under "Exports"). `factory design export` (png, pdf, html, tokens, json) and `export list`, `--design-export` on every mode, the export API and the **Export button** (on the Design tab; the design card links to it after approval), and the design PDF beside the estimate's client workbook.
 4. **Kit and scaffold.** Done (as built under "Kit and scaffold (as built)"). `uiTarget`, the token generator for web, the `next-shadcn` / `vite-shadcn` kit with its tests, the scaffold generator, and plan and implement wiring (design-system task first, behaviour-only implement prompt, only the changed screens for a change request); the `design kit`, `design target` and `design scaffold` commands, `--ui-target`, and the Code panel.
 5. **Fidelity and tests.** Done (as built under "Fidelity and tests (as built)"). The `design-fidelity` step in fixture mode, the four levels with gates `design.tokens`, `design.structure` and `design.a11y`, Playwright tests generated from the design (Chromium at three widths, WebKit at phone width), baselines accepted with a reason into the ledger (from the command or the Fidelity panel), and export checks.
-6. **Figma.** `figma.json` and the AI Factory Import plugin (route A); the `figma` entry in the Export button; `factory design figma` (route B).
-7. **More kits on demand.** `expo` first, when a project needs a phone app.
-8. **Docs, tests and live runs.** These need `ANTHROPIC_API_KEY`, and a full Figma seat for route B.
+6. **Figma.** Done, route A only (as built under "Figma (as built)"). `figma.json` from `factory design export --format figma` and the Export button, and the AI Factory Import plugin, with no Figma token or paid seat. Route B (`factory design figma`) is not built.
+7. **More kits on demand.** Skipped for now (2026-10-03): no project needs a phone app yet. `expo` comes first when one does.
+8. **Docs, tests and live runs.** Skipped for now (2026-10-03), with step 7. Docs and tests were written with each step; live runs need `ANTHROPIC_API_KEY` (route B's full Figma seat no longer applies).
 
 Steps 1 to 3 are useful on their own: clients get PNG and PDF exports straight away. If a client needs Figma before code, step 6 can move ahead of step 4.
 
@@ -1130,7 +1163,7 @@ Not done:
 - **A rendered mock in the real app.** The design step produces a screen inventory, a clickable wireframe demo and screenshots of that demo (headless Chromium, one per screen and state at phone and desktop width, plus each screen at tablet width and, for a product in both colour modes, in dark mode, `src/estimate/screenshots.ts`; if no browser is found the card says so and the run goes on). Rendering a mock in the real app and the pixel comparisons (`docs/design-step.md`) are separate work.
 - **Effort in B5 is counted, not timed.** It is the number of human decisions at the assumed gate times, a lower bound for long cards. Real minutes per decision would need the lead's time on the card, which is not recorded.
 - **A visual check of the workbook in Excel.** The export is verified by reading the files back and linting every cell, and by tests on a copy of the real template, but it has not been opened in Excel or LibreOffice (LibreOffice would not start in the build container).
-- **Design handoff** (requirements 2 and 3, approved 2026-10-02): planned under "Design handoff". Steps 1 (common controls, design template 20), 2 (design package), 3 (exports) and 4 (kit and scaffold) are Done; step 5 (fidelity and tests) is next. The kit builds in both targets; no build run has yet gone from an approved design through the scaffold to working containers with a real model.
+- **Design handoff** (requirements 2 and 3, approved 2026-10-02): planned under "Design handoff". Steps 1 (common controls, design template 20), 2 (design package), 3 (exports), 4 (kit and scaffold), 5 (fidelity and tests) and 6 (Figma, route A: our own plugin, no paid seat) are Done; steps 7 and 8 are skipped for now (no mobile requirement). The Figma plugin has not yet been run inside Figma itself. The kit builds in both targets; no build run has yet gone from an approved design through the scaffold to working containers with a real model.
 - **Design references** (approved 2026-10-02): built (steps 1 to 9 and 3b under "Design references"); only step 10's live runs remain, which need `ANTHROPIC_API_KEY` and `FIGMA_TOKEN`. No reference path has run against a real model yet.
 - **Cost calibration from `report.json` of the first real runs** stays open; records come from the ledger home only. `factory calibrate` (`src/estimate/calibrate.ts`) now compares each approved estimate with what its estimate run and its build run spent, and, given a file of `estimate-run,actual-hours` lines, with real hours of finished projects. It needs ledgers or hours that exist; it changes nothing. Try the estimate on `examples/requirements.md`.
 

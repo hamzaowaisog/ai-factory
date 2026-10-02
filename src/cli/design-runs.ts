@@ -14,6 +14,7 @@ import { checkRoutes, DESIGN_ROUTES } from "../stages/routing.js";
 import { describeReferences, gatherReferences, parseRefArg } from "../sources/refs.js";
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
 import { EXPORT_MODES, listExports, parseFormats, parseList, type ExportOptions } from "../design/export.js";
+import { figmaHowTo } from "../design/figma.js";
 import { VIEWPORTS, type Viewport } from "../estimate/screenshots.js";
 import { exportForRun, exportSeededNow } from "../stages/design-export.js";
 import { replay } from "../ledger/state.js";
@@ -130,7 +131,7 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
 
   design.command("export").argument("<run>", "a run with an approved design (design, estimate or build), or the word list")
     .argument("[listRun]", "with list: the run whose exports to list")
-    .option("--format <formats>", "png, pdf, html, tokens, json or all, comma separated (figma comes with the Figma plugin)", "all")
+    .option("--format <formats>", "png, pdf, html, tokens, json, figma or all, comma separated (figma: figma.json for the AI Factory Import plugin in figma-plugin/)", "all")
     .option("--out <dir>", "write here instead of <run>/exports/vN/<n>/")
     .option("--screens <ids>", "only these screens, e.g. S-1,S-3 (components for the Components page)")
     .option("--states <names>", "only these states as on the demo's tabs, e.g. default,empty,error")
@@ -140,7 +141,7 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
     .option("--version <vN>", "another version of the same design (v1, v2, ...); the run's own version by default")
     .option("--pdf-per-screen", "one PDF per screen instead of one design book")
     .option("--json", "print JSON")
-    .description("export the approved design: pictures, a PDF design book, the clickable demo (zip), tokens (W3C, CSS, Tailwind) and the design as JSON. Every file carries the design's version and sha. `factory design export list <run>` lists earlier exports.")
+    .description("export the approved design: pictures, a PDF design book, the clickable demo (zip), tokens (W3C, CSS, Tailwind), the design as JSON and figma.json for the AI Factory Import plugin (no Figma token or paid seat). Every file carries the design's version and sha. `factory design export list <run>` lists earlier exports.")
     .action(async (run: string, listRun: string | undefined, o: { format: string; out?: string; screens?: string; states?: string; widths?: string; mode?: string; lang?: string; version?: string; pdfPerScreen?: boolean; json?: boolean }) => {
       if (run === "list") {
         if (!listRun) throw new Error("Name the run: factory design export list <run>");
@@ -172,6 +173,7 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
       for (const [f, n] of Object.entries(e.files.reduce<Record<string, number>>((a, x) => ({ ...a, [x.format]: (a[x.format] ?? 0) + 1 }), {}))) log(`  ${f.padEnd(7)} ${n} file(s)`);
       for (const n of e.notes) log(`  note: ${n}`);
       for (const c of e.checks ?? []) log(`  check  ${c.status.padEnd(4)} ${c.check}: ${c.detail}${c.items?.length ? `\n${c.items.slice(0, 8).map((x) => `           - ${x}`).join("\n")}` : ""}`);
+      if (e.files.some((f) => f.format === "figma")) for (const l of figmaHowTo(join(e.dir, "figma.json"))) log(`  figma  ${l}`);
     });
 
   design.command("scaffold").argument("[run]", "a run with an approved design (design, estimate or build)")

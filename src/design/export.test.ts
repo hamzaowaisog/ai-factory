@@ -73,10 +73,10 @@ async function pkgWithShots(): Promise<DesignPackage> {
 }
 
 describe("export options", () => {
-  it("reads the formats, expands all and refuses Figma (not built yet) and unknown ones", () => {
+  it("reads the formats, expands all (Figma included) and refuses unknown ones", () => {
     expect(parseFormats("pdf, png")).toEqual(["png", "pdf"]);
-    expect(parseFormats("all")).toEqual(["png", "pdf", "html", "tokens", "json"]);
-    expect(() => parseFormats("figma")).toThrow(/Figma plugin, which is not built yet/);
+    expect(parseFormats("all")).toEqual(["png", "pdf", "html", "tokens", "json", "figma"]);
+    expect(parseFormats("figma")).toEqual(["figma"]);
     expect(() => parseFormats("svg")).toThrow(/Unknown format "svg"/);
     expect(() => parseFormats(" ")).toThrow(/at least one format/);
   });

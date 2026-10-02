@@ -84,5 +84,24 @@ export function checkExport(pkg: DesignPackage, out: string, record: Pick<Export
       ? { check: "png.count", status: "FAIL", detail: `${pairs.length - gaps.length} of ${pairs.length} screen states pictured`, items }
       : { check: "png.count", status: "PASS", detail: `${pngs.length} PNG(s) cover all ${pairs.length} screen states (screens × states)` });
   }
+  const fig = record.files.find((f) => f.format === "figma");
+  if (fig) {
+    // figma.json: it reads as the plugin's schema, and has a frame of every screen in every state asked for, each with layers
+    let doc: { kind?: string; schemaVersion?: number; frames?: { screen: string; state: string; nodes: number; root?: unknown }[] } | undefined;
+    try { doc = JSON.parse(readFileSync(join(out, fig.path), "utf8")); } catch { doc = undefined; }
+    if (!doc || doc.kind !== "ai-factory/figma" || !Array.isArray(doc.frames)) out_.push({ check: "figma.frames", status: "FAIL", detail: "figma.json does not read as the plugin's file" });
+    else {
+      const have = new Set(doc.frames.filter((f) => f.root && f.nodes > 1).map((f) => `${f.screen}|${slug(f.state)}`));
+      // a screen state is only pictured, so only checked, where the package has a picture of it
+      const shown = new Set(pictured_(pictured));
+      const pairs = wantedPairs(pkg, record.options).filter(([id, st]) => shown.has(`${id}|${slug(st)}`));
+      const gaps = pairs.filter(([id, st]) => !have.has(`${id}|${slug(st)}`)).map(([id, st]) => `${id} ${st}: no frame`);
+      out_.push(gaps.length
+        ? { check: "figma.frames", status: "FAIL", detail: `${pairs.length - gaps.length} of ${pairs.length} screen states have a frame`, items: gaps }
+        : { check: "figma.frames", status: "PASS", detail: `${doc.frames.length} frame(s) with ${doc.frames.reduce((n, f) => n + f.nodes, 0)} layer(s) cover all ${pairs.length} screen states` });
+    }
+  }
   return out_;
 }
+
+const pictured_ = (shots: { id?: string; stateBase: string }[]): string[] => shots.map((s) => `${s.id}|${slug(s.stateBase)}`);
