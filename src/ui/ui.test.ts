@@ -488,6 +488,24 @@ describe("factory ui: a run started from the web, watched live", () => {
   });
 });
 
+describe("factory ui: design-only runs", () => {
+  it("starts a design run from requirements, with or without a project, and keeps only the product details", async () => {
+    const r = await post({ project: "web", mode: "design", prompt: "Build an order portal with login and a dashboard", design: { client: "Acme", projectName: "Orders", noRepo: false }, estimate: { deliveryModel: "nonsense" } });
+    expect(r.status).toBe(201);
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info.mode).toBe("design");
+    expect(s.info.estimate).toEqual({ client: "Acme", projectName: "Orders" });
+    expect(s.info.repoPath).toBeTruthy();
+    const alone = await post({ mode: "design", prompt: "Build an order portal with login and a dashboard" });
+    expect(alone.status).toBe(201);
+    const t = replay(Ledger.open(alone.json().runId).events());
+    expect(t.info.estimate).toEqual({ noRepo: true });
+    expect(t.info.repoPath).toBeUndefined();
+    const fromEst = await post({ project: "web", mode: "design", fromEstimate: "x", prompt: "Build an order portal" });
+    expect(fromEst.json().error).toMatch(/starts from requirements/);
+  });
+});
+
 describe("factory ui: estimate runs", () => {
   it("takes design frames with the request, stores them beside the run and lists them in the request text", async () => {
     const png = Buffer.from("not really a png").toString("base64");
@@ -510,7 +528,7 @@ describe("factory ui: estimate runs", () => {
       [{ ...base, mode: "estimate", frames: [{ name: "a.png", data }, { name: "a.png", data }] }, /sent twice/],
       [{ ...base, mode: "estimate", frames: [{ name: "a.png", data: "***" }] }, /did not arrive intact/],
       [{ ...base, mode: "estimate", frames: [] }, /No frames/],
-      [{ ...base, frames: [{ name: "a.png", data }] }, /belong to estimate runs/],
+      [{ ...base, frames: [{ name: "a.png", data }] }, /belong to estimate and design runs/],
     ];
     for (const [body, msg] of cases) {
       const r = await post(body);

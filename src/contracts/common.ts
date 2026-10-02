@@ -19,8 +19,14 @@ export type Complexity = z.infer<typeof Complexity>;
 export const ChangeClass = z.enum(["bugfix", "feature", "refactor", "migration", "config"]);
 export type ChangeClass = z.infer<typeof ChangeClass>;
 
-export const Mode = z.enum(["brownfield", "greenfield", "estimate"]);
+export const Mode = z.enum(["brownfield", "greenfield", "estimate", "design"]);
 export type Mode = z.infer<typeof Mode>;
+
+/**
+ * Modes that work from requirements and stop before any code is written: an estimate, and a design-only
+ * run (`factory design start`). They read long documents, may have no repo, and reuse stored answers.
+ */
+export const readsRequirements = (mode: Mode | string | undefined): boolean => mode === "estimate" || mode === "design";
 
 export const StageName = z.enum([
   // contracts §1

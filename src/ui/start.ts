@@ -16,7 +16,7 @@ import { checkUploadedFrames, describeSources, gatherRequest, MAX_ESTIMATE_REQUE
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
 import { approvedEstimate, type Approved } from "../estimate/lineage.js";
-import { checkRoutes, ESTIMATE_ROUTES } from "../stages/routing.js";
+import { checkRoutes, DESIGN_ROUTES, ESTIMATE_ROUTES } from "../stages/routing.js";
 import { factoryHome } from "../util/paths.js";
 import { busyRun, projectNames } from "./data.js";
 
@@ -30,11 +30,13 @@ export interface StartInput {
   file?: unknown; // { name, text }
   jira?: unknown;
   maxCost?: unknown;
-  /** "estimate" starts an estimate run (factory estimate); anything else is a brownfield build */
+  /** "estimate" starts an estimate run (factory estimate), "design" a design-only run (factory design start); anything else is a brownfield build */
   mode?: unknown;
   /** estimate settings, read like the factory estimate flags */
   estimate?: unknown;
-  /** estimate runs: design frames as [{ name, data: base64 }], like a folder given to --frames */
+  /** design-only settings: { noRepo, client, projectName } */
+  design?: unknown;
+  /** estimate and design runs: design frames as [{ name, data: base64 }], like a folder given to --frames */
   frames?: unknown;
   /** a build from an approved estimate run (factory start --from-estimate): the request comes from the estimate */
   fromEstimate?: unknown;
@@ -55,7 +57,9 @@ const str = (v: unknown): string | undefined => (typeof v === "string" && v.trim
 const starting = new Map<string, { runId: string; at: number }>();
 
 export async function startRun(input: StartInput, deps: StartDeps = {}): Promise<{ runId: string; from: string }> {
-  const estimating = input.mode === "estimate";
+  const designing = input.mode === "design";
+  // an estimate and a design-only run both start from requirements: no project needed, frames allowed
+  const estimating = input.mode === "estimate" || designing;
   // an estimate may have no project: the requirements stand alone and there is no repo to read
   const standalone = estimating && (!str(input.project) || str(input.project) === STANDALONE_PROJECT);
   const project = standalone ? STANDALONE_PROJECT : str(input.project);
@@ -72,7 +76,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   }
 
   const fromEstimate = str(input.fromEstimate)?.trim();
-  if (fromEstimate && estimating) throw new StartError("A build starts from an estimate; an estimate cannot.");
+  if (fromEstimate && estimating) throw new StartError(designing ? "A design run starts from requirements, not from an estimate." : "A build starts from an estimate; an estimate cannot.");
   if (fromEstimate && (str(input.prompt)?.trim() || input.file || str(input.jira)?.trim())) {
     throw new StartError("A build from an estimate takes its request from the estimate. Clear the request, or choose no estimate.");
   }
@@ -95,13 +99,18 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   // estimate mode: the same settings checks as `factory estimate`, before anything is read
   let settings: ReturnType<typeof parseEstimateSettings> | undefined;
   let frameFiles: { name: string; bytes: Buffer }[] | undefined;
-  if (input.frames !== undefined && !estimating) throw new StartError("Design frames belong to estimate runs.");
+  if (input.frames !== undefined && !estimating) throw new StartError("Design frames belong to estimate and design runs.");
   if (estimating) {
     if (input.frames !== undefined) {
       try { frameFiles = checkUploadedFrames(input.frames); } catch (err) { throw new StartError((err as Error).message); }
     }
     const e = (input.estimate ?? {}) as Record<string, unknown>;
-    try {
+    const g = (input.design ?? {}) as Record<string, unknown>;
+    if (designing) settings = {
+      ...(standalone || g.noRepo === true ? { noRepo: true } : {}),
+      ...(str(g.client) ? { client: str(g.client)!.trim().slice(0, 120) } : {}), ...(str(g.projectName) ? { projectName: str(g.projectName)!.trim().slice(0, 120) } : {}),
+    };
+    else try {
       settings = parseEstimateSettings({
         deliveryModel: String(e.deliveryModel ?? "hitl"), stackSource: String(e.stackSource ?? "undecided"),
         designInTotal: e.designInTotal !== false, feedbackRounds: String(e.feedbackRounds ?? "2"),
@@ -114,7 +123,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   // the same checks, in the same order, as `factory start`
   if (standalone) ensureStandaloneProject();
   const cfg = loadProject(project);
-  const problems = checkRoutes(cfg, estimating ? ESTIMATE_ROUTES : undefined);
+  const problems = checkRoutes(cfg, designing ? DESIGN_ROUTES : estimating ? ESTIMATE_ROUTES : undefined);
   if (problems.length) throw new StartError(`Setup problems:\n- ${problems.join("\n- ")}`);
 
   const busy = standalone ? undefined : (await busyRun(project)) ?? (() => {
@@ -145,7 +154,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
     sources: req.sources,
     ...(approved ? { lineage: { kind: "build" as const, approved } } : {}),
-    ...(settings ? { mode: "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
+    ...(settings ? { mode: designing ? "design" as const : "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
   });
   if (!standalone) starting.set(project, { runId, at: Date.now() });
   (deps.execute ?? runDetached)(runId);

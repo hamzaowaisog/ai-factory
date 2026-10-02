@@ -1,5 +1,5 @@
 // A design reference the user attached (docs/estimates-design.md, "Design references"): any image, a
-// website URL, a Word document (later a Figma link or a PDF), turned into one form at intake by code.
+// website URL, a Word document, a PDF, a Figma link or export, turned into one form at intake by code.
 import { z } from "zod";
 
 /** How a reference shapes the design: its exact values, its colour family, or only the layout of its screens. */

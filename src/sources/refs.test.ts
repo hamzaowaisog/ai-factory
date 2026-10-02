@@ -49,6 +49,27 @@ async function docx(text: string, images: Record<string, Buffer>): Promise<Buffe
   return z.generateAsync({ type: "nodebuffer" });
 }
 
+/** A small PDF: each page painted one colour on its left three quarters, with a line of text. */
+function pdf(pages: { rgb: [number, number, number]; text: string }[]): Buffer {
+  const objs: string[] = [];
+  const font = 3 + pages.length * 2;
+  objs[1] = "<< /Type /Catalog /Pages 2 0 R >>";
+  objs[2] = `<< /Type /Pages /Kids [${pages.map((_, i) => `${3 + i * 2} 0 R`).join(" ")}] /Count ${pages.length} >>`;
+  pages.forEach((pg, i) => {
+    const stream = `${pg.rgb.map((c) => (c / 255).toFixed(3)).join(" ")} rg 0 0 300 300 re f 0 0 0 rg BT /F1 18 Tf 20 20 Td (${pg.text}) Tj ET`;
+    objs[3 + i * 2] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Contents ${4 + i * 2} 0 R /Resources << /Font << /F1 ${font} 0 R >> >> >>`;
+    objs[4 + i * 2] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
+  });
+  objs[font] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+  let out = "%PDF-1.4\n";
+  const offsets: number[] = [];
+  for (let n = 1; n < objs.length; n++) { offsets[n] = out.length; out += `${n} 0 obj\n${objs[n]}\nendobj\n`; }
+  const xref = out.length;
+  out += `xref\n0 ${objs.length}\n0000000000 65535 f \n${offsets.slice(1).map((o) => `${String(o).padStart(10, "0")} 00000 n \n`).join("")}`;
+  out += `trailer\n<< /Size ${objs.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(out, "latin1");
+}
+
 const PUBLIC: RefDeps = { resolve: async () => ["93.184.216.34"] };
 const browser = !!findChromium();
 
@@ -82,7 +103,8 @@ describe("links the factory may open", () => {
   it("opens only https links to public addresses, unless the project allows private ones", async () => {
     await expect(checkRefUrl("http://client.com", false, PUBLIC)).rejects.toThrow(/only https/);
     await expect(checkRefUrl("https://user:pw@client.com", false, PUBLIC)).rejects.toThrow(/user name or password/);
-    await expect(checkRefUrl("https://www.figma.com/design/abc/x", false, PUBLIC)).rejects.toThrow(/Figma links are not read yet/);
+    // a Figma link is read through Figma's API, not opened, so no address check
+    expect((await checkRefUrl("https://www.figma.com/design/abc/x", false, { resolve: async () => ["10.0.0.5"] })).hostname).toBe("www.figma.com");
     await expect(checkRefUrl("https://localhost:3000", false, PUBLIC)).rejects.toThrow(/private address/);
     await expect(checkRefUrl("https://10.0.0.5/", false, PUBLIC)).rejects.toThrow(/private address/);
     await expect(checkRefUrl("https://intranet.acme.com", false, { resolve: async () => ["10.0.0.5"] })).rejects.toThrow(/allowPrivateRefs/);
@@ -97,8 +119,10 @@ describe("intake refusals before any browser", () => {
   it("stops on too many references, a repeat, and formats it does not read, naming the reference", async () => {
     await expect(gatherReferences(Array.from({ length: 13 }, (_, i) => file(`${i}.png`)))).rejects.toThrow(/at most 12/);
     await expect(gatherReferences([file("a.png"), file("a.png")])).rejects.toThrow(/given twice/);
-    await expect(gatherReferences([file("brief.pdf")], {}, { chromium: () => undefined })).rejects.toThrow(/R-1 \(brief.pdf\): PDF references are not read yet/);
-    await expect(gatherReferences([file("export.json")], {}, { chromium: () => undefined })).rejects.toThrow(/Figma files are not read yet/);
+    await expect(gatherReferences([file("brief.pdf")], {}, { chromium: () => undefined })).rejects.toThrow(/R-1 \(brief.pdf\): the file is not a PDF/);
+    await expect(gatherReferences([file("export.json")], {}, { chromium: () => undefined })).rejects.toThrow(/R-1 \(export.json\): the file is not valid JSON/);
+    await expect(gatherReferences([file("design.fig")], {}, { chromium: () => undefined })).rejects.toThrow(/a .fig file cannot be read; give the file's Figma link/);
+    await expect(gatherReferences([{ kind: "url", url: "https://www.figma.com/design/AbCdEfGhIjKlMn/App" }], {}, { chromium: () => undefined, figma: { token: () => undefined } })).rejects.toThrow(/needs FIGMA_TOKEN/);
     await expect(gatherReferences([file("deck.key")], {}, { chromium: () => undefined })).rejects.toThrow(/R-1 \(deck.key\): not a format design references take/);
     expect(await gatherReferences([])).toEqual([]);
   });
@@ -160,6 +184,45 @@ describe.skipIf(!browser)("intake in the browser", () => {
     expect(r.images.map((i) => i.label)).toEqual(["cover.png"]);
     expect(r.colours[0]!.hex).toBe("#0a8c46");
     expect(r.notes.join(" ")).toMatch(/1 image\(s\) in a format a browser cannot show/);
+  });
+
+  it("reads a PDF: its first pages as pictures, its text, and a brand guide is matched", async () => {
+    const pages = Array.from({ length: 8 }, (_, i) => ({ rgb: [10, 140, 70] as [number, number, number], text: i === 0 ? "Acme brand guidelines" : `Page ${i + 1}` }));
+    const r = (await gatherReferences([{ kind: "file", name: "acme.pdf", bytes: pdf(pages) }]))[0]!;
+    expect(r).toMatchObject({ kind: "pdf", role: "match", roleGiven: false, measured: "approximate" });
+    expect(r.images.map((i) => i.label)).toEqual(["page 1", "page 2", "page 3", "page 4", "page 5", "page 6"]);
+    expect(Math.max(r.images[0]!.width, r.images[0]!.height)).toBeLessThanOrEqual(1568);
+    expect(sniffImage(r.images[0]!.bytes)).toBe("image/png");
+    expect(r.colours[0]!.hex).toBe("#0a8c46");
+    expect(r.text).toContain("Acme brand guidelines");
+    expect(r.text).toContain("Page 8");
+    expect(r.notes).toContain("the first 6 of 8 pages kept as pictures");
+    const plain = (await gatherReferences([{ kind: "file", name: "menu.pdf", bytes: pdf([{ rgb: [200, 30, 30], text: "Lunch menu" }]) }]))[0]!;
+    expect(plain.role).toBe("inspire");
+  });
+
+  it("stops on a damaged PDF", async () => {
+    await expect(gatherReferences([{ kind: "file", name: "bad.pdf", bytes: Buffer.from("%PDF-1.4\nnot really a pdf") }])).rejects.toThrow(/R-1 \(bad.pdf\): .*(not a readable PDF|could not be read|no page could be drawn)/);
+  });
+
+  it("reads a Figma link: its frames as pictures and its exact look", async () => {
+    const frame = { id: "1:2", name: "Home", type: "FRAME", absoluteBoundingBox: { x: 0, y: 0, width: 1440, height: 900 }, fills: [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }], children: [
+      { id: "1:3", name: "Button", type: "FRAME", cornerRadius: 8, absoluteBoundingBox: { x: 0, y: 0, width: 160, height: 44 }, fills: [{ type: "SOLID", color: { r: 0.4, g: 0.2, b: 0.9 } }], children: [{ id: "1:4", type: "TEXT", characters: "Sign up", style: { fontFamily: "Inter", fontSize: 16 }, fills: [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }] }] },
+    ] };
+    const fetchFake = (async (url: string) => {
+      const u = String(url);
+      if (u.includes("/v1/files/AbCdEfGhIjKlMn?depth=2")) return Response.json({ name: "App", document: { id: "0:0", type: "DOCUMENT", children: [{ id: "0:1", type: "CANVAS", children: [frame] }] } });
+      if (u.includes("/v1/files/AbCdEfGhIjKlMn/nodes")) return Response.json({ nodes: { "1:2": { document: frame, styles: {} } } });
+      if (u.includes("/v1/images/")) return Response.json({ err: null, images: { "1:2": "https://figma-alpha-api.s3.example/1.png" } });
+      if (u.startsWith("https://figma-alpha-api")) return new Response(png(144, 90, [255, 255, 255], [102, 51, 230]));
+      return new Response("", { status: 404 });
+    }) as typeof fetch;
+    const r = (await gatherReferences([{ kind: "url", url: "https://www.figma.com/design/AbCdEfGhIjKlMn/App" }], {}, { figma: { fetch: fetchFake, token: () => "t" } }))[0]!;
+    expect(r).toMatchObject({ kind: "figma", role: "match", measured: "exact", radiusPx: 8 });
+    expect(r.images.map((i) => i.label)).toEqual(["Home"]);
+    expect(r.colours.find((c) => c.role === "brand")?.hex).toBe("#6633e6");
+    expect(r.colours.find((c) => c.role === "page")?.hex).toBe("#ffffff");
+    expect(r.fonts).toEqual([{ family: "Inter", use: "body" }]);
   });
 
   it("stores the pictures with the run: ledger artifacts for the model and PNG files for the UI", async () => {

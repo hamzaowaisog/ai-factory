@@ -8,7 +8,7 @@ session.
 ## References the user attaches (approved 2026-10-02, being built)
 
 This library is the fallback, not the first source. A user can attach design references to any run
-(estimate, brownfield, and greenfield once it exists), from the terminal (`--ref`) or the factory UI:
+(a design-only run, estimate, brownfield, and greenfield once it exists), from the terminal (`--ref`) or the factory UI:
 any image (png, jpeg, webp, gif, avif, svg, bmp), a website URL, a Figma link or export, a PDF or a
 brand guide. Each becomes `R-1`, `R-2`, ... with an optional role:
 
@@ -24,7 +24,7 @@ brand guide. Each becomes `R-1`, `R-2`, ... with an optional role:
 - The requirements beat a reference; a departure is written in `departure`. Every reference is used or set aside with a reason (`design-ref-unused`).
 - A reference that cannot be read (a login wall, a private Figma file, an unknown format) stops the run at intake with a plain message. It never falls back to this library without saying so.
 
-Full plan and build order: `docs/estimates-design.md`, "Design references". Done so far: images reach the model (step 1); the design steps are one piece any mode plugs in (step 2); `--ref` reads images, sites and Word documents into `R-n` at intake (step 3; the design step does not use them yet).
+Full plan and build order: `docs/estimates-design.md`, "Design references". Done so far: images reach the model (step 1); the design steps are one piece any mode plugs in (step 2); `--ref` reads images, sites and Word documents into `R-n` at intake (step 3; the design step does not use them yet); a design can be seen on its own with `factory design start`, shown with `factory design show|open`, references checked for free with `factory design check-refs`, and an approved design sized or built with `--from-design` (step 3b); Figma links (with `FIGMA_TOKEN`), Figma JSON exports and PDFs are read too (step 4).
 
 ## How it works (no references, or for what they leave open)
 

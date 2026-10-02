@@ -1,7 +1,7 @@
 // Shared plumbing for thinking steps: build the pack in the locked room, run ApiRunner,
 // store pack + output in the ledger, map runner results to step outcomes.
 import type { z } from "zod";
-import type { PackClass, StageName } from "../contracts/index.js";
+import { readsRequirements, type PackClass, type StageName } from "../contracts/index.js";
 import { buildPack, PackOverBudgetError, type ResolvedSection } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
 import { estimateTokens } from "../context/tokens.js";
@@ -46,11 +46,11 @@ export type ThinkResult<T> =
   | { ok: false; outcome: StepOutcome };
 
 /**
- * An estimate reads requirements documents far longer than a change request. The text is what it is, so in
- * estimate mode the budget grows by the size of the untrusted document (capped), and the usual room stays.
+ * An estimate (or a design-only run) reads requirements documents far longer than a change request. The text is what it is, so in
+ * those modes the budget grows by the size of the untrusted document (capped), and the usual room stays.
  */
 export function budgetFor(ctx: Pick<StepContext, "state">, base: number | undefined, sections: ResolvedSection[], model: string): number | undefined {
-  if (base === undefined || ctx.state.info.mode !== "estimate") return base;
+  if (base === undefined || !readsRequirements(ctx.state.info.mode)) return base;
   const doc = sections.filter((x) => x.spec.trust === "untrusted").reduce((n, x) => n + estimateTokens(x.content, model), 0);
   return doc > base / 2 ? Math.min(180_000, base + doc) : base;
 }
@@ -79,9 +79,9 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
   }
   const packSha = ctx.ledger.putJson(pack);
 
-  // estimate mode: the same briefing, model and repository state gives the stored answer (src/estimate/cache.ts)
+  // estimate and design modes: the same briefing, model and repository state gives the stored answer (src/estimate/cache.ts)
   const reads = spec.tools.length > 0 && !!ctx.state.info.repoPath;
-  const cacheable = ctx.state.info.mode === "estimate" && !cacheDisabled() && !(reads && !ctx.state.info.baseCommit);
+  const cacheable = readsRequirements(ctx.state.info.mode) && !cacheDisabled() && !(reads && !ctx.state.info.baseCommit);
   const key = cacheable
     ? cacheKey({ model, effort, system: pack.system, user: pack.user, images: pack.images, tools: pack.tools, ...(reads ? { repoCommit: ctx.state.info.baseCommit } : {}) })
     : undefined;

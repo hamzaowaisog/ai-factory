@@ -27,8 +27,10 @@ function printSize(r: SizeResult, json?: boolean): void {
   for (const w of r.reasons) out(`  - ${w}`);
 }
 
-export function registerDesignCommands(program: Command): void {
-  const design = program.command("design").description("design toolkit: inventory, UI change size, fidelity lint, brief cleaner (no model, no network)");
+/** `first` adds commands ahead of the toolkit's (the design runs), so they head the help. */
+export function registerDesignCommands(program: Command, first?: (design: Command) => void): Command {
+  const design = program.command("design").description("design runs (start, show, list, open, check-refs) and the design toolkit: inventory, UI change size, fidelity lint, brief cleaner, industry references");
+  first?.(design);
 
   design.command("inventory").argument("<repo>", "path to a React or Next.js repo")
     .option("--ref <commit>", "read the files at this commit instead of the working folder")
@@ -161,4 +163,5 @@ export function registerDesignCommands(program: Command): void {
       for (const x of r.results) out(`${x.reading?.brand ? "ok   " : "none "} ${x.name.padEnd(20)} ${x.reading?.brand ?? x.error ?? "no colour found"}`);
       out(`${r.saved} brand(s) stored in ${measuredPath()}${r.note ? `\nnote: ${r.note}` : ""}`);
     });
+  return design;
 }

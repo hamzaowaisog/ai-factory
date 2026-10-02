@@ -5,18 +5,23 @@
 //    1568 px, and their main colours are sampled (approximate);
 //  - a site is opened at phone and desktop width with no cookies: two screenshots, and colours, fonts,
 //    corners and shadows from its computed styles (exact);
-//  - a Word document gives its images (as pictures) and its text.
+//  - a Word document gives its images (as pictures) and its text;
+//  - a PDF is rendered in Chromium with pdf.js: its first pages as pictures, and its text;
+//  - a Figma link is read through the REST API with FIGMA_TOKEN (figma.ts): frames as pictures and the
+//    look from its nodes (exact); a Figma JSON export gives the look only.
 // Only the URLs the user gives are fetched: https only, private addresses refused unless the project allows them.
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { basename, dirname, extname, join } from "node:path";
+import { createRequire } from "node:module";
+import { basename, dirname, extname, join, normalize, sep } from "node:path";
 import type { Browser, BrowserContext } from "playwright-core";
 import { MAX_REFERENCES, RefRole, type RefColour, type Reference } from "../contracts/reference.js";
 import type { Ledger } from "../ledger/ledger.js";
 import { findChromium } from "../estimate/screenshots.js";
 import { MAX_IMAGE_BYTES, MAX_PACK_IMAGES } from "../util/image.js";
 import { readDocx } from "./docx.js";
+import { FIGMA_DEFAULT_ROLE, figmaLook, readFigmaJson, readFigmaLink, type FigmaDeps } from "./figma.js";
 import { MAX_DOCX_BYTES } from "./request.js";
 
 /** What the user gave: a file (from disk or the web form) or a link, with an optional role and note. */
@@ -35,13 +40,15 @@ export const MAX_REF_FILE_BYTES = 25_000_000;
 /** pictures kept from one document (the largest, in document order) */
 export const MAX_DOC_IMAGES = 6;
 export const MAX_REF_TEXT = 4000;
+/** pages of a PDF rendered as pictures (the first ones: a brand guide or a deck shows its look early) */
+export const MAX_PDF_PAGES = 6;
 const NOTE_MAX = 500;
 
 const IMAGE_MIME: Record<string, string> = {
   ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif",
   ".avif": "image/avif", ".svg": "image/svg+xml", ".bmp": "image/bmp",
 };
-const TAKES = "any image (png, jpeg, webp, gif, avif, svg, bmp), a website link (https), or a Word document (.docx)";
+const TAKES = "any image (png, jpeg, webp, gif, avif, svg, bmp), a website or Figma link (https), a PDF, a Word document (.docx), or a Figma JSON export";
 
 // ---------- what the user typed ----------
 
@@ -81,6 +88,7 @@ export function isPrivateAddress(ip: string): boolean {
 }
 
 const isFigma = (u: URL) => /(^|\.)figma\.com$/i.test(u.hostname);
+const isFigmaLink = (raw: string) => { try { return isFigma(new URL(raw)); } catch { return false; } };
 
 export interface RefDeps {
   /** DNS lookup (tests replace it) */
@@ -89,6 +97,8 @@ export interface RefDeps {
   fulfil?: (url: string) => { status: number; body: string; contentType?: string } | undefined;
   /** the browser executable; default: the one the screenshots use */
   chromium?: () => string | undefined;
+  /** the Figma API (tests replace its fetch and token) */
+  figma?: FigmaDeps;
 }
 
 /** The link as a URL the factory may open, or why not. */
@@ -97,7 +107,8 @@ export async function checkRefUrl(raw: string, allowPrivate: boolean, deps: RefD
   try { u = new URL(raw); } catch { throw new RefIntakeError(`"${raw.slice(0, 80)}" is not a link.`); }
   if (u.protocol !== "https:") throw new RefIntakeError(`${raw}: only https links are read.`);
   if (u.username || u.password) throw new RefIntakeError(`${u.hostname}: a link with a user name or password in it is not read; attach a screenshot instead.`);
-  if (isFigma(u)) throw new RefIntakeError(`${raw}: Figma links are not read yet; export the frames as PNG and attach them.`);
+  // a Figma link is read through Figma's API (a fixed public host), never opened in the browser
+  if (isFigma(u)) return u;
   if (allowPrivate) return u;
   const host = u.hostname.replace(/^\[|\]$/g, "");
   if (/^localhost$|\.localhost$|\.local$|\.internal$/i.test(host)) throw new RefIntakeError(`${raw} is a private address; set design.allowPrivateRefs in the project config to allow it, or attach a screenshot.`);
@@ -202,6 +213,59 @@ const STYLES = String.raw`(function(){
   return { colours: colours, fonts: fonts, radiusPx: radius, shadows: shadows, password: password };
 })()`;
 
+/** pdf.js is served to the page from node_modules under this made-up origin; nothing else is fetched. */
+const PDF_ORIGIN = "https://pdfjs.factory.invalid";
+const PDF_DIRS = ["build", "cmaps", "standard_fonts", "wasm", "iccs"];
+let pdfjsRoot: string | undefined;
+function pdfjsDir(): string {
+  if (!pdfjsRoot) pdfjsRoot = dirname(createRequire(import.meta.url).resolve("pdfjs-dist/package.json"));
+  return pdfjsRoot;
+}
+const SERVED_TYPES: Record<string, string> = { ".mjs": "text/javascript", ".js": "text/javascript", ".wasm": "application/wasm", ".bcmap": "application/octet-stream", ".pfb": "application/octet-stream", ".ttf": "font/ttf", ".icc": "application/octet-stream" };
+
+/** Render a PDF's first pages to PNG data URLs and read its text (pdf.js, in the page). */
+const PDF_READ = String.raw`(async function(origin, maxPages, maxEdge, maxText){
+  const pdfjs = await import(origin + "/build/pdf.min.mjs");
+  pdfjs.GlobalWorkerOptions.workerSrc = origin + "/build/pdf.worker.min.mjs";
+  let doc;
+  try {
+    doc = await pdfjs.getDocument({ url: origin + "/doc.pdf", cMapUrl: origin + "/cmaps/", cMapPacked: true, standardFontDataUrl: origin + "/standard_fonts/", wasmUrl: origin + "/wasm/", isEvalSupported: false, enableXfa: false }).promise;
+  } catch (e) {
+    const name = (e && e.name) || "";
+    return { error: name === "PasswordException" ? "password" : name === "InvalidPDFException" ? "invalid" : "unreadable: " + String((e && e.message) || e).slice(0, 160) };
+  }
+  const pages = [], failed = [];
+  let text = "";
+  for (let i = 1; i <= doc.numPages; i++) {
+    if (i > maxPages && text.length >= maxText) break;
+    const page = await doc.getPage(i);
+    if (text.length < maxText) {
+      try {
+        const tc = await page.getTextContent();
+        const t = tc.items.map(function (it) { return (it.str || "") + (it.hasEOL ? "\n" : ""); }).join(" ").replace(/[ \t]+/g, " ").trim();
+        if (t) text += (text ? "\n\n" : "") + t;
+      } catch (e) { /* a page with no readable text */ }
+    }
+    if (i <= maxPages) {
+      try {
+        const base = page.getViewport({ scale: 1 });
+        const scale = Math.min(2, maxEdge / Math.max(base.width, base.height));
+        const vp = page.getViewport({ scale: scale });
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, Math.floor(vp.width)); c.height = Math.max(1, Math.floor(vp.height));
+        const g = c.getContext("2d");
+        g.fillStyle = "#ffffff"; g.fillRect(0, 0, c.width, c.height);
+        await page.render({ canvasContext: g, canvas: c, viewport: vp }).promise;
+        pages.push({ n: i, src: c.toDataURL("image/png") });
+      } catch (e) { failed.push(i); }
+    }
+    page.cleanup();
+  }
+  const count = doc.numPages;
+  await doc.destroy();
+  return { count: count, pages: pages, failed: failed, text: text };
+})`;
+
 interface Decoded { png: Buffer; width: number; height: number; colours: { hex: string; share: number }[] }
 
 class Browsing {
@@ -226,6 +290,42 @@ class Browsing {
       const r = (await page.evaluate(`${DECODE}(${JSON.stringify(src)}, ${REF_LONG_EDGE}, ${MAX_IMAGE_BYTES - 200_000})`)) as { error?: string; png: string; width: number; height: number; colours: { hex: string; share: number }[] };
       if (r.error) return undefined;
       return { png: Buffer.from(r.png, "base64"), width: r.width, height: r.height, colours: r.colours };
+    } finally {
+      await ctx.close().catch(() => undefined);
+    }
+  }
+
+  /** A PDF's first pages as pictures (with their colours) and its text. */
+  async pdf(bytes: Buffer): Promise<{ count: number; pages: (Decoded & { label: string })[]; failed: number[]; text: string }> {
+    const ctx = await (await this.get()).newContext({ javaScriptEnabled: true, serviceWorkers: "block", acceptDownloads: false });
+    try {
+      const root = pdfjsDir();
+      await ctx.route("**/*", (route) => {
+        const url = new URL(route.request().url());
+        if (url.origin !== PDF_ORIGIN) return url.protocol === "data:" || url.protocol === "blob:" ? route.continue() : route.abort();
+        if (url.pathname === "/") return route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>pdf</title>" });
+        if (url.pathname === "/doc.pdf") return route.fulfill({ status: 200, contentType: "application/pdf", body: bytes });
+        const rel = normalize(decodeURIComponent(url.pathname).slice(1));
+        if (!PDF_DIRS.includes(rel.split(sep)[0] ?? "") || rel.includes("..")) return route.fulfill({ status: 404, body: "" });
+        const file = join(root, rel);
+        if (!existsSync(file)) return route.fulfill({ status: 404, body: "" });
+        return route.fulfill({ status: 200, contentType: SERVED_TYPES[extname(file)] ?? "application/octet-stream", body: readFileSync(file) });
+      });
+      const page = await ctx.newPage();
+      page.setDefaultTimeout(60_000);
+      await page.goto(`${PDF_ORIGIN}/`);
+      const r = (await page.evaluate(`${PDF_READ}(${JSON.stringify(PDF_ORIGIN)}, ${MAX_PDF_PAGES}, ${REF_LONG_EDGE}, ${MAX_REF_TEXT})`)) as { error?: string; count: number; pages: { n: number; src: string }[]; failed: number[]; text: string };
+      if (r.error === "password") throw new RefIntakeError("the PDF is protected by a password; save a copy without one, or attach its pages as images.");
+      if (r.error === "invalid") throw new RefIntakeError("the file is not a readable PDF; it may be damaged. Export it again, or attach its pages as images.");
+      if (r.error) throw new RefIntakeError(`the PDF could not be read (${r.error}). Attach its pages as images instead.`);
+      const pages: (Decoded & { label: string })[] = [];
+      const failed = [...r.failed];
+      for (const p of r.pages) {
+        const d = (await page.evaluate(`${DECODE}(${JSON.stringify(p.src)}, ${REF_LONG_EDGE}, ${MAX_IMAGE_BYTES - 200_000})`)) as { error?: string; png: string; width: number; height: number; colours: { hex: string; share: number }[] };
+        if (d.error) { failed.push(p.n); continue; }
+        pages.push({ png: Buffer.from(d.png, "base64"), width: d.width, height: d.height, colours: d.colours, label: `page ${p.n}` });
+      }
+      return { count: r.count, pages, failed: failed.sort((a, b) => a - b), text: r.text };
     } finally {
       await ctx.close().catch(() => undefined);
     }
@@ -277,7 +377,7 @@ class Browsing {
 
 const brandGuide = (s: string) => /brand|style[\s_-]?guide|guidelines/i.test(s);
 
-/** The role a reference gets when the user names none: a brand guide (later a Figma file) is matched, anything else inspires. */
+/** The role a reference gets when the user names none: a Figma file or a brand guide is matched, anything else inspires. */
 export function defaultRole(kind: Reference["kind"], name: string, text = ""): RefRole {
   if (kind === "figma") return "match";
   return brandGuide(name) || brandGuide(text.slice(0, 2000)) ? "match" : "inspire";
@@ -302,6 +402,25 @@ export async function gatherReferences(reqs: RefRequest[], opts: { allowPrivate?
     for (const [i, r] of reqs.entries()) {
       const id = `R-${i + 1}`;
       const base = { id, roleGiven: !!r.role, ...(r.note?.trim() ? { note: r.note.trim() } : {}), fonts: [], notes: [] as string[] };
+      if (r.kind === "url" && isFigmaLink(r.url.trim())) {
+        await checkRefUrl(r.url.trim(), !!opts.allowPrivate, deps).catch((e: Error) => fail(id, r.url, e.message));
+        const f = await readFigmaLink(r.url.trim(), deps.figma).catch((e: Error) => fail(id, r.url, e.message));
+        const notes = [...f.look.notes, ...f.notes];
+        const images: GatheredRef["images"] = [];
+        for (const fr of f.frames) {
+          if (!fr.png) continue;
+          const d = await b.decode(fr.png, "image/png");
+          if (!d) { notes.push(`frame "${fr.name}" could not be decoded and was left out`); continue; }
+          images.push({ bytes: d.png, width: d.width, height: d.height, label: fr.name.slice(0, 60) });
+        }
+        if (!images.length && !f.look.colours.length) fail(id, r.url, "no frame could be exported and no colours were found. Export the frames as PNG and attach them.");
+        out.push({
+          ...base, kind: "figma", source: r.url.trim(), role: r.role ?? FIGMA_DEFAULT_ROLE, images,
+          colours: f.look.colours, fonts: f.look.fonts, ...(f.look.radiusPx !== undefined ? { radiusPx: f.look.radiusPx } : {}), shadows: f.look.shadows,
+          measured: "exact", notes,
+        });
+        continue;
+      }
       if (r.kind === "url") {
         const u = await checkRefUrl(r.url.trim(), !!opts.allowPrivate, deps).catch((e: Error) => fail(id, r.url, e.message));
         const site = await b.site(u, !!opts.allowPrivate).catch((e: Error) => fail(id, r.url, e.message));
@@ -316,8 +435,39 @@ export async function gatherReferences(reqs: RefRequest[], opts: { allowPrivate?
       }
       const ext = extname(r.name).toLowerCase();
       if (!r.bytes.length) fail(id, r.name, "the file is empty.");
-      if (ext === ".pdf") fail(id, r.name, "PDF references are not read yet; attach its pages as images (png or jpeg).");
-      if (ext === ".json" || ext === ".fig") fail(id, r.name, "Figma files are not read yet; export the frames as PNG and attach them.");
+      if (ext !== ".docx" && r.bytes.length > MAX_REF_FILE_BYTES) fail(id, r.name, `the file is over ${MAX_REF_FILE_BYTES / 1e6} MB.`);
+      if (ext === ".fig") fail(id, r.name, "a .fig file cannot be read; give the file's Figma link (with FIGMA_TOKEN set), or export the frames as PNG.");
+      if (ext === ".json") {
+        // a Figma JSON export: the look from its nodes, exact; it holds no pictures
+        let fj: ReturnType<typeof readFigmaJson>;
+        try { fj = readFigmaJson(r.bytes.toString("utf8")); } catch (e) { fail(id, r.name, (e as Error).message); }
+        const look = figmaLook(fj!.roots, fj!.styles);
+        if (!look.colours.length && !look.fonts.length) fail(id, r.name, "the Figma export has no colours or fonts in it.");
+        out.push({
+          ...base, kind: "figma", source: r.name, role: r.role ?? FIGMA_DEFAULT_ROLE, images: [],
+          colours: look.colours, fonts: look.fonts, ...(look.radiusPx !== undefined ? { radiusPx: look.radiusPx } : {}), shadows: look.shadows,
+          measured: "exact", notes: [...look.notes, "a JSON export has no pictures; export the frames as PNG too to show the screens"],
+        });
+        continue;
+      }
+      if (ext === ".pdf") {
+        if (r.bytes.subarray(0, 1024).indexOf("%PDF-") < 0) fail(id, r.name, "the file is not a PDF (it has no PDF header).");
+        const pdf = await b.pdf(r.bytes).catch((e: Error) => fail(id, r.name, e.message));
+        const text = pdf.text.trim();
+        if (!pdf.pages.length && !text) fail(id, r.name, "no page could be drawn and the PDF has no text.");
+        const notes: string[] = [];
+        if (pdf.count > MAX_PDF_PAGES) notes.push(`the first ${MAX_PDF_PAGES} of ${pdf.count} pages kept as pictures`);
+        if (pdf.failed.length) notes.push(`page(s) ${pdf.failed.join(", ")} could not be drawn and were left out`);
+        if (text.length > MAX_REF_TEXT) notes.push(`text cut to the first ${MAX_REF_TEXT} characters`);
+        out.push({
+          ...base, kind: "pdf", source: r.name, role: r.role ?? defaultRole("pdf", r.name, text),
+          images: pdf.pages.map((p) => ({ bytes: p.png, width: p.width, height: p.height, label: p.label })),
+          // the first page (a cover or the palette page) stands for the document's colours
+          colours: (pdf.pages[0]?.colours ?? []).map((c) => ({ ...c, exact: false })),
+          ...(text ? { text: text.slice(0, MAX_REF_TEXT) } : {}), measured: "approximate", notes,
+        });
+        continue;
+      }
       if (ext === ".docx") {
         if (r.bytes.length > MAX_DOCX_BYTES) fail(id, r.name, `the document is over ${MAX_DOCX_BYTES / 1e6} MB.`);
         const doc = await readDocx(r.bytes).catch((e: Error) => fail(id, r.name, e.message));

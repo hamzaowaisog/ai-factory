@@ -12,7 +12,7 @@ export function seedStep(key: string, stage: string, main: (i: RunInfo) => strin
       const { main: sha, ...rest } = shas(ctx.state.info);
       const named: Record<string, string> = { [key]: sha! };
       for (const [k, v] of Object.entries(rest)) if (v) named[k] = v;
-      return { kind: "done", outputs: named, data: { seeded: true, openFindings: [], repairs: 0, conflicts: [], manualUi: [], from: ctx.state.info.parent?.runId ?? ctx.state.info.estimateRef?.runId } };
+      return { kind: "done", outputs: named, data: { seeded: true, openFindings: [], repairs: 0, conflicts: [], manualUi: [], from: ctx.state.info.parent?.runId ?? ctx.state.info.estimateRef?.runId ?? ctx.state.info.designRef?.runId } };
     },
   };
 }

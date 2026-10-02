@@ -48,12 +48,13 @@ function layoutLines(issues: LayoutIssue[]): string[] {
 /** A screen's counted UI on the card: what the estimate will size it from. */
 const uiLine = (u: ScreenUi): string => `; UI: ${u.level ?? "not counted"}${u.drivers.length ? ` (${u.drivers.slice(0, 3).join("; ")})` : ""}`;
 
-/** What the approved design is for: the estimate sizes from it, a build builds it. */
-export type DesignPurpose = "estimate" | "build";
+/** What the approved design is for: the estimate sizes from it, a build builds it, a design-only run keeps it for later. */
+export type DesignPurpose = "estimate" | "build" | "design";
 
 const CARD_HEAD: Record<DesignPurpose, (runId: string) => string[]> = {
   estimate: (runId) => [`# Approve the design baseline (E1b)`, ``, `Run ${runId}. The estimate of a UI request stands on the approved mock and clickable demo: screen counts, states and flows come from it.`, ``],
   build: (runId) => [`# Approve the design`, ``, `Run ${runId}. The build follows the approved mock and clickable demo: its screens, states, sample content and look are what gets built.`, ``],
+  design: (runId) => [`# Approve the design`, ``, `Run ${runId}, design only. Approving keeps this mock, clickable demo and look; nothing is sized or built yet. Afterwards an estimate sizes it (factory estimate --from-design ${runId}) and a build follows it (factory start --project <name> --from-design ${runId}) without drawing it again.`, ``],
 };
 
 export function designCard(runId: string, design: DesignT, hash: string, extra: { demo?: string; diff?: string[]; shots?: { dir: string; count: number; note?: string; issues?: LayoutIssue[] }; purpose?: DesignPurpose } = {}): string {
@@ -98,7 +99,9 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
       }
       const design = readOutput<DesignT & { skipped?: boolean }>(ctx.state, ctx.ledger, "design");
       if (!design || design.skipped) {
-        return { kind: "park", reason: "This request has UI, so its estimate needs an approved mock and clickable demo (gate E1b), and the design step has not produced one for this run. Produce the design, then resume." };
+        return { kind: "park", reason: purpose === "estimate"
+          ? "This request has UI, so its estimate needs an approved mock and clickable demo (gate E1b), and the design step has not produced one for this run. Produce the design, then resume."
+          : "This request has UI, and the design step has not produced a mock and clickable demo for this run. Produce the design, then resume." };
       }
       const designSha = outputOf(ctx.state, "design")!;
       const past = decisionsOn(ctx.state, "design-");

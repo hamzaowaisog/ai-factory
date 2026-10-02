@@ -34,6 +34,8 @@ export const DEFAULT_ROUTES: Record<string, StepRoute> = {
 export const THINKING_STEPS = new Set(["intake", "ground", "specify", "specify-other", "critic", "plan", "breakdown", "estimate", "design", "design-triage", "review", "sketches", "sketch-align", "clarifier", "merge", "restater", "rt-align", "impact"]);
 /** The model steps an estimate run uses: it never plans, writes tests or code, or reviews, so it does not need those routes set up. */
 export const ESTIMATE_ROUTES = ["intake", "ground", "sketches", "sketch-align", "clarifier", "specify", "specify-other", "merge", "restater", "rt-align", "critic", "breakdown", "estimate", "design", "design-triage"] as const;
+/** A design-only run: the estimate's steps up to the spec, then the design (no breakdown, no sizing). */
+export const DESIGN_ROUTES = ESTIMATE_ROUTES.filter((r) => r !== "breakdown" && r !== "estimate");
 export const CODING_STEPS = new Set(["author-tests", "implement", "conflict-resolve"]);
 
 export function routeFor(project: ProjectConfig, stage: string): StepRoute {

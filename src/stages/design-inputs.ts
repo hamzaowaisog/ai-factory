@@ -32,12 +32,12 @@ export const inventoryOf = <T>(s: RunState, l: Ledger, src: DesignSources): T | 
 export const inventoryNamed = (s: RunState, src: DesignSources): unknown => (src.inventory ? s.steps.get(src.inventory.step)?.data?.named : undefined);
 
 /**
- * The design a build follows: the one approved in the estimate the run was seeded from, or else the
- * one approved in this run's own design steps (a mode that draws and builds in one run). Undefined
+ * The design a build follows: the one approved in the estimate or the design-only run the run was
+ * seeded from, or else the one approved in this run's own design steps (a mode that draws and builds in one run). Undefined
  * when there is none, or when the request has no UI.
  */
 export function approvedDesignFor<T = unknown>(state: RunState, ledger: Ledger): { sha: string; design: T } | undefined {
-  const fromEstimate = state.info.estimateRef?.designSha;
+  const fromEstimate = state.info.estimateRef?.designSha ?? state.info.designRef?.designSha;
   if (fromEstimate) return { sha: fromEstimate, design: ledger.getJson<T>(fromEstimate) };
   const baseline = readOutput<{ ui?: boolean; design?: string }>(state, ledger, "design-baseline");
   const sha = baseline?.ui && baseline.design ? baseline.design : undefined;

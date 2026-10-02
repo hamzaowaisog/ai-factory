@@ -72,7 +72,7 @@ export interface RunInfo {
   spendAtPlan?: number;
   /** `factory start --max-cost`: a lower limit for this run */
   maxCostUsd?: number;
-  /** estimate mode: the run settings a person chose at the start (missing fields take the defaults) */
+  /** estimate and design modes: the run settings a person chose at the start (missing fields take the defaults); a design run uses only noRepo, client and projectName */
   estimate?: { deliveryModel?: "hitl" | "agentic"; stackSource?: "client" | "folio3" | "undecided"; designInTotal?: boolean; feedbackRounds?: number; /** optional hourly rates in USD per track, plus "default" */ rates?: Record<string, number>; /** a request with no repo (requirements only) */ noRepo?: boolean; client?: string; projectName?: string; pm?: string };
   /**
    * estimate mode: the approved estimate this run revises ("change": new requirements, full pipeline) or
@@ -82,7 +82,29 @@ export interface RunInfo {
   parent?: { runId: string; kind: "change" | "sibling"; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string; clarifySha?: string; clarify2Sha?: string; /** the approved design and its baseline approval (absent on estimates made before the design step) */ designSha?: string; baselineSha?: string };
   /** a build run seeded from an approved estimate: it inherits the spec and plans against the estimate's tasks (gates B1-B5) */
   estimateRef?: { runId: string; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string; /** the approved screen inventory the build is held to */ designSha?: string };
+  /**
+   * a run seeded from an approved design-only run (`--from-design`): an estimate inherits its intake,
+   * grounding, answers, spec and approved design and only sizes them; a build inherits the spec and is
+   * held to the approved screens. Every artifact is copied into this ledger under its own hash.
+   */
+  designRef?: DesignRef;
   createdAt: string;
+}
+
+/** What a run seeded from an approved design-only run carries (`src/estimate/lineage.ts`, `approvedDesign`). */
+export interface DesignRef {
+  runId: string;
+  designSha: string;
+  baselineSha: string;
+  intakeSha: string;
+  specSha: string;
+  criticSha?: string;
+  clarifySha?: string;
+  clarify2Sha?: string;
+  /** the ground step's outputs: current behaviour, and with a repo the survey and the design inventory */
+  groundSha?: string;
+  surveySha?: string;
+  inventorySha?: string;
 }
 
 export interface RunState {

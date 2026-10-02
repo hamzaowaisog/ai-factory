@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
-import { brownfieldSteps, estimateSteps, stepsFor } from "./modes.js";
+import { brownfieldSteps, designOnlySteps, estimateSteps, stepsFor } from "./modes.js";
 
 beforeEach(() => {
   process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "factory-modes-"));
@@ -62,6 +62,32 @@ describe("mode manifests", () => {
     await l.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: "x", estimateRef: { runId: "r0", estimateSha: "e".repeat(64), breakdownSha: "b".repeat(64), specSha: "s".repeat(64), criticSha: "k".repeat(64) } } }, HUMAN_WRITER);
     const keys = brownfieldSteps(replay(l.events())).map((s) => s.key);
     expect(keys).toEqual(["discover", "intake", "ground", "specify", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-check", "review", "deliver"]);
+  });
+
+  it("design mode runs the estimate's road to the spec, then the design pipeline, and stops at the approved design", async () => {
+    const d = await stateFor("design");
+    const keys = stepsFor(d).map((s) => s.key);
+    expect(keys).toEqual(designOnlySteps(d).map((s) => s.key));
+    expect(keys).toEqual(["intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "design", "design-baseline"]);
+    for (const k of ["breakdown", "estimate", "approve-estimate", "export", "plan", "implement"]) expect(keys).not.toContain(k);
+  });
+
+  const ref = { runId: "d0", designSha: "d".repeat(64), baselineSha: "a".repeat(64), intakeSha: "i".repeat(64), specSha: "s".repeat(64), criticSha: "k".repeat(64), clarifySha: "c".repeat(64), groundSha: "g".repeat(64), surveySha: "v".repeat(64) };
+
+  it("an estimate from an approved design inherits intake, grounding, answers, spec and design, and only sizes them", async () => {
+    const l = Ledger.create("20261002-estimate-fromdesign");
+    await l.append({ type: "run.created", data: { mode: "estimate", project: "p", request: "x", designRef: ref } }, HUMAN_WRITER);
+    const steps = estimateSteps(replay(l.events()));
+    expect(steps.map((s) => s.key)).toEqual(["intake", "ground", "clarify", "specify", "design", "design-baseline", "breakdown", "estimate", "approve-estimate", "export"]);
+    // the ground seed keeps the survey under its name, where breakdown reads it
+    const ground = await steps[1]!.run({ state: replay(l.events()) } as never);
+    expect(ground).toMatchObject({ kind: "done", outputs: { ground: "g".repeat(64), survey: "v".repeat(64) }, data: { seeded: true, from: "d0" } });
+  });
+
+  it("a build from an approved design inherits its spec, like a build from an estimate", async () => {
+    const l = Ledger.create("20261002-build-fromdesign");
+    await l.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: "x", designRef: ref } }, HUMAN_WRITER);
+    expect(brownfieldSteps(replay(l.events())).map((s) => s.key)).toEqual(["discover", "intake", "ground", "specify", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-check", "review", "deliver"]);
   });
 
   it("refuses a mode with no step list yet", async () => {

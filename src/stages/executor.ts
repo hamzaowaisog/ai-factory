@@ -26,7 +26,8 @@ import { runtime } from "./workspace.js";
 import type { RequestSource } from "../sources/request.js";
 import { storeReferences, type GatheredRef } from "../sources/refs.js";
 import { budgetStop } from "../estimate/budget.js";
-import { copyArtifacts, type Approved } from "../estimate/lineage.js";
+import { copyArtifacts, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
+import { readsRequirements } from "../contracts/index.js";
 
 export type Log = (msg: string) => void;
 
@@ -36,7 +37,7 @@ export function policyFor(project: ProjectConfig): Policy {
 
 function versions(): Record<string, string> {
   const pkg = JSON.parse(readFileSync(join(REPO_ROOT, "package.json"), "utf8")) as { version: string; dependencies: Record<string, string> };
-  return { factory: pkg.version, node: process.version, "mode:brownfield": "1", "mode:estimate": "1", ...Object.fromEntries(Object.entries(pkg.dependencies).filter(([k]) => /anthropic|openai|zod/.test(k))) };
+  return { factory: pkg.version, node: process.version, "mode:brownfield": "1", "mode:estimate": "1", "mode:design": "1", ...Object.fromEntries(Object.entries(pkg.dependencies).filter(([k]) => /anthropic|openai|zod/.test(k))) };
 }
 
 function slug(text: string): string {
@@ -70,11 +71,11 @@ export function readRequestFile(path: string, maxBytes = MAX_REQUEST_FILE_BYTES)
 }
 
 /** `factory start`: create the ledger. Execution happens in `execute`. */
-export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "estimate"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved } } = {}): Promise<string> {
+export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "estimate" | "design"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved }; fromDesign?: ApprovedDesign } = {}): Promise<string> {
   if (opts.maxCostUsd !== undefined && !(opts.maxCostUsd > 0)) throw new Error("--max-cost must be a positive number of dollars");
   const project = loadProject(projectName);
-  // an estimate from requirements alone has no repo to check or read
-  const noRepo = opts.mode === "estimate" && opts.estimate?.noRepo === true;
+  // an estimate or design from requirements alone has no repo to check or read
+  const noRepo = readsRequirements(opts.mode) && opts.estimate?.noRepo === true;
   if (!noRepo) {
     assertSupportedPath(project.repo);
     assertDeliverable(project);
@@ -84,6 +85,11 @@ export async function createRun(request: string, projectName: string, operator: 
   const ledger = Ledger.create(runId);
   const lin = opts.lineage;
   if (lin) copyArtifacts(ledger, lin.approved);
+  if (opts.fromDesign) {
+    copyArtifacts(ledger, opts.fromDesign);
+    // a spec with no critic record of its own: an empty one, stated as inherited
+    if (!opts.fromDesign.ref.criticSha) opts.fromDesign.ref.criticSha = ledger.putJson({ findings: [], note: `inherited from approved design ${opts.fromDesign.runId}` });
+  }
   // an estimate has no critic record of its own to hand a build run: an empty one, stated as inherited
   if (lin?.kind === "build" && !lin.approved.criticSha) lin.approved.criticSha = ledger.putJson({ findings: [], note: `inherited from approved estimate ${lin.approved.runId}` });
   const requestSha = ledger.putArtifact(request);
@@ -100,6 +106,7 @@ export async function createRun(request: string, projectName: string, operator: 
       ...(references.length ? { references } : {}),
       ...(opts.estimate ? { estimate: opts.estimate } : {}),
       ...(lin && lin.kind !== "build" ? { parent: { runId: lin.approved.runId, kind: lin.kind, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.clarifySha ? { clarifySha: lin.approved.clarifySha } : {}), ...(lin.approved.clarify2Sha ? { clarify2Sha: lin.approved.clarify2Sha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}), ...(lin.approved.baselineSha ? { baselineSha: lin.approved.baselineSha } : {}) } } : {}),
+      ...(opts.fromDesign ? { designRef: opts.fromDesign.ref } : {}),
       ...(lin?.kind === "build" ? { estimateRef: { runId: lin.approved.runId, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}) } } : {}),
     },
   }, HUMAN_WRITER);

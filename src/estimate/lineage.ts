@@ -3,7 +3,7 @@
 // build run seeded from the estimate. Each reads the approved run's artifacts and copies them into the new
 // ledger under their own hashes, so the new run stands alone and every hash still matches.
 import { Ledger } from "../ledger/ledger.js";
-import { replay, type RunInfo } from "../ledger/state.js";
+import { replay, type DesignRef, type RunInfo } from "../ledger/state.js";
 import type { Breakdown, Estimate } from "../contracts/index.js";
 import type { Range } from "./assumptions.js";
 
@@ -49,8 +49,49 @@ export function approvedEstimate(runId: string): Approved {
   };
 }
 
+/** An approved design-only run (`factory design start`), as a later estimate or build inherits it. */
+export interface ApprovedDesign {
+  runId: string;
+  request: string;
+  project: string;
+  /** whether the design run read a repo (a build needs one) */
+  repo: boolean;
+  ref: DesignRef;
+  /** the design run's own settings (no repo, client, product name), carried into an estimate */
+  settings: NonNullable<RunInfo["estimate"]>;
+  artifacts: Record<string, unknown>;
+}
+
+/** The approved design of a design-only run. Throws, in plain words, when it is not approved or has no UI. */
+export function approvedDesign(runId: string): ApprovedDesign {
+  const ledger = Ledger.open(runId);
+  const s = replay(ledger.events());
+  if (s.info.mode !== "design") throw new Error(`${runId} is not a design run (factory design start). ${s.info.mode === "estimate" ? "An estimate's design goes to a build with --from-estimate." : ""}`.trim());
+  const base = s.steps.get("design-baseline");
+  if (base?.status !== "completed") throw new Error(`${runId} has no approved design yet. Approve it first (factory show-card ${runId}).`);
+  if (!(base.data as { ui?: boolean } | undefined)?.ui) throw new Error(`${runId} has no UI to design (the request does not touch any screen), so there is no design to carry on.`);
+  const out = (step: string, name?: string): string | undefined => {
+    const r = s.steps.get(step);
+    return r?.status === "completed" ? (name ? (r.data?.named as Record<string, string> | undefined)?.[name] : r.outputs[0]) : undefined;
+  };
+  const ref: DesignRef = {
+    runId, designSha: out("design")!, baselineSha: out("design-baseline")!, intakeSha: out("intake")!, specSha: out("specify")!,
+    ...Object.fromEntries(Object.entries({
+      criticSha: out("specify", "critic"), clarifySha: out("clarify"), clarify2Sha: out("clarify-2"),
+      groundSha: out("ground"), surveySha: out("ground", "survey"), inventorySha: out("ground", "design"),
+    }).filter(([, v]) => v)),
+  };
+  for (const k of ["designSha", "intakeSha", "specSha"] as const) if (!ref[k]) throw new Error(`${runId} is missing its ${k.replace("Sha", "")} output; it cannot be carried on.`);
+  const artifacts: Record<string, unknown> = {};
+  for (const [k, sha] of Object.entries(ref)) if (k !== "runId" && sha) artifacts[sha] = ledger.getJson(sha);
+  return {
+    runId, request: s.info.request ?? "", project: s.info.project, repo: !!s.info.repoPath && !!s.info.baseCommit, ref,
+    settings: s.info.estimate ?? {}, artifacts,
+  };
+}
+
 /** Put the approved run's artifacts into the new ledger; each must land under the hash it had. */
-export function copyArtifacts(to: Ledger, a: Approved): void {
+export function copyArtifacts(to: Ledger, a: Pick<Approved, "runId" | "artifacts">): void {
   for (const [sha, value] of Object.entries(a.artifacts)) {
     const got = to.putJson(value);
     if (got !== sha) throw new Error(`Artifact ${sha.slice(0, 8)} from ${a.runId} did not keep its hash when copied (${got.slice(0, 8)}).`);

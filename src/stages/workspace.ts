@@ -1,6 +1,7 @@
 // Per-run snapshot (locked room), worktree (coding) and container runtime access.
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { readsRequirements } from "../contracts/common.js";
 import { createSnapshot, snapshotDir, type Snapshot } from "../context/snapshot.js";
 import { Redactor } from "../context/secrets.js";
 import { RepoTools } from "../context/tools.js";
@@ -12,8 +13,8 @@ import type { StepContext } from "./framework.js";
 export function snapshotFor(ctx: Pick<StepContext, "runId" | "state" | "project">): Snapshot {
   const { repoPath, baseCommit } = ctx.state.info;
   if (!repoPath || !baseCommit) {
-    // an estimate from requirements alone reads an empty repository: no files, nothing to anchor to
-    if (ctx.state.info.mode !== "estimate") throw new Error("Run has no repo");
+    // an estimate or design from requirements alone reads an empty repository: no files, nothing to anchor to
+    if (!readsRequirements(ctx.state.info.mode)) throw new Error("Run has no repo");
     const dir = snapshotDir(ctx.runId, "empty");
     mkdirSync(dir, { recursive: true });
     return { root: dir, commit: "0".repeat(40), files: [] };

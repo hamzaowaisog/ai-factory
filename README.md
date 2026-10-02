@@ -199,6 +199,12 @@ JIRA_EMAIL=you@yourcompany.com
 JIRA_API_TOKEN=...        # id.atlassian.com → Security → Create API token
 ```
 
+To use Figma links as design references (`--ref https://www.figma.com/design/...`), add a Figma personal access token with read access to files (optional; exported PNGs and PDFs need nothing):
+
+```ini
+FIGMA_TOKEN=...           # Figma → Settings → Security → Personal access tokens
+```
+
 <details>
 <summary><b>What the setup does</b> (and how to do it by hand)</summary>
 
@@ -391,7 +397,9 @@ factory logs <run> --follow        # in a second terminal
 
 Answer the question card if one appears, read the approval card, then approve.
 
-**Estimating instead of building.** `factory estimate` takes requirements (a prompt, `--file` as Markdown, text or Word, `--frames` for exported Figma frames, or `--jira`; and design references via `--ref`: any image, an https link or a Word document, with an optional role and note, e.g. `--ref "layout:dash.jpg|table like this"`; Figma links and PDFs are being built) and produces an effort, API-cost and elapsed-time estimate of delivering them through the factory. A lead approves it on the terminal, then two workbooks (team and client) are written under the run's `export/` folder. See `docs/estimates-design.md`. The workbooks are drawn on Folio3's estimation template, which the repo ships with its text cleared (`src/estimate/assets/estimation-template.xlsx`), so nothing needs setting. To use a newer template file instead, set `estimateTemplate: /path/to/Example_Estimation.xlsx` in the project config (or `FACTORY_ESTIMATE_TEMPLATE` in the environment).
+**Seeing the design first.** `factory design start "<requirements>" --ref <image, link or Figma>` runs only the road to the design: clarify, spec, then the mock, clickable demo and look, which a lead approves (`factory approve`, or on the run page). `factory design show <run>` and `factory design open <run>` show it. An approved design is then sized with `factory estimate --from-design <run>` or built with `factory start --project <p> --from-design <run>`, without drawing it again. The web screens have the same choice under New run, Design.
+
+**Estimating instead of building.** `factory estimate` takes requirements (a prompt, `--file` as Markdown, text or Word, `--frames` for exported Figma frames, or `--jira`; and design references via `--ref`: any image, an https link, a Figma link (needs `FIGMA_TOKEN`, a Figma personal access token, in `~/.factory/.env`), a Figma JSON export, a PDF or a Word document, with an optional role and note; e.g. `--ref "layout:dash.jpg|table like this"`) and produces an effort, API-cost and elapsed-time estimate of delivering them through the factory. A lead approves it on the terminal, then two workbooks (team and client) are written under the run's `export/` folder. See `docs/estimates-design.md`. The workbooks are drawn on Folio3's estimation template, which the repo ships with its text cleared (`src/estimate/assets/estimation-template.xlsx`), so nothing needs setting. To use a newer template file instead, set `estimateTemplate: /path/to/Example_Estimation.xlsx` in the project config (or `FACTORY_ESTIMATE_TEMPLATE` in the environment).
 
 ```bash
 factory estimate --file requirements.docx --project shop-api --no-repo --delivery-model hitl --rate backend=55 --rate default=40
@@ -438,7 +446,7 @@ A local web app to start runs and watch them. Cards show the exact command to pa
 
 | Screen | What it shows |
 |---|---|
-| New run | Brownfield or Estimate (Greenfield isn't built yet) → project → prompt, a dropped `.md` file (up to 1 MB) and/or a Jira key → optional max cost. Estimate runs also take exported Figma frames and their run settings. A "Design references" section for every mode is being built. The request is checked before a run exists, the same way `factory start` checks it. A second run on a busy project is refused. |
+| New run | Brownfield, Estimate or Design (Greenfield isn't built yet) → project → prompt, a dropped `.md` file (up to 1 MB) and/or a Jira key → optional max cost. Estimate runs also take exported Figma frames and their run settings. A "Design references" section for every mode is being built. The request is checked before a run exists, the same way `factory start` checks it. A second run on a busy project is refused. |
 | Run: Interactive | The pipeline as a chain of steps. Click one for its attempts, why it retried, its gates, cost and time. Also shows cost against the limit, gates, the open card with its command, and the latest activity. |
 | Run: Graphical | Charts: cost per step, time per step, cost over time against the limit, retries per step. |
 | Run: Statistical | Totals: cost, limit left, machine vs wall-clock time, attempts, first-time pass, gates, human stops, tokens. |
@@ -525,6 +533,12 @@ With a GitHub `forge:`, the pull request title and the branch carry the ticket k
 | `factory calibrate [--actual-hours <file>]` | Compares approved estimates with what the factory spent and, with a file of `estimate-run,actual-hours` lines, with real hours. Changes nothing. |
 | `factory logs <run> [-f] [--step <key>]` | Prints a run's log; `-f` follows it. |
 | `factory report [run] [--all] [--json]` | Step scorecard for one run. Across runs (`--all`): outcome numbers first (delivered, cost per delivered change, time from request to branch, human stops, first-time pass), then a per-stage table. `--all --json` prints `{outcomes, stages}`. From the ledgers only, no AI. |
+| `factory design start "<requirements>" [--project <p>] [--ref <ref>]…` | Design only: clarifies the requirements, writes the spec and draws the design (mock, clickable demo, look) from them and any references, then stops at the design card. Nothing is sized or built. Takes `--file`, `--jira`, `--frames`, `--client`, `--project-name`, `--no-repo`, `--max-cost`. Without `--project` the design is for a new product. |
+| `factory design show <run> [--json]` | A run's design: stage (drafting, waiting for approval, approved), look, references with their colours and fonts, screens, and where the demo, screenshots and tokens are. Works on estimate runs too. |
+| `factory design list [--all]` | Design runs with their stage, screens and cost (`--all` adds estimate runs). |
+| `factory design open <run>` | Opens the run's clickable demo in your browser. |
+| `factory design check-refs <ref>…` | Reads references as `--ref` would, without a run, a model or any cost: pictures, colours, fonts and corners found, or why one cannot be read. `--out <dir>` saves the pictures. |
+| `factory estimate --from-design <run>` / `factory start --project <p> --from-design <run>` | Sizes or builds an approved design run without drawing it again: its spec and approved design carry over (a build needs a design run made with that project). |
 | `factory design inventory <repo>` | Scans a web app's look: theme settings, shared components and how often each is used, pages. No AI. |
 | `factory design size` | Says how big a UI change is (no UI, screen tweak, new screen, or a change to the shared look), from a plan's file list or a git diff, with reasons. |
 | `factory design lint` | Checks a change uses only the theme's colours and the app's existing components, and adds no new shared components. |
@@ -610,7 +624,7 @@ ai-factory/
 │   ├── stages/      the pipeline steps and the executor (build and estimate)
 │   ├── estimate/    estimate mode: hours, cost, durations, gates E1-E7 and B1-B7, workbooks
 │   ├── design/      design toolkit: app scan, UI change size, style checks, brief cleaner
-│   ├── sources/     request inputs: .docx, exported Figma frames, Jira (design references being built)
+│   ├── sources/     request inputs: .docx, exported Figma frames, Jira, design references (images, sites, Figma, PDF, Word)
 │   ├── watch/       Jira and Slack watcher
 │   ├── ui/          the local web screens (`factory ui`)
 │   ├── mcp/         the MCP server for Claude Code

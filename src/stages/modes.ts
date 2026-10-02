@@ -18,8 +18,11 @@ import { combineClarifyStep, combineIntakeStep, combineSpecsStep, moduleClarifyS
 export function brownfieldSteps(state: RunState): StepDef[] {
   const tasks = (state.steps.get("plan")?.status === "completed" ? (state.steps.get("plan")!.data?.tasks as string[] | undefined) : undefined) ?? [];
   // a build run seeded from an approved estimate inherits its spec (no clarify, no specify) and is held to it (gates B1-B5)
+  // a build from an approved design-only run inherits that run's spec the same way, so its screens and requirements line up
   const spec: StepDef[] = state.info.estimateRef
     ? [seedStep("specify", "specify", (i) => i.estimateRef?.specSha, { critic: (i) => i.estimateRef?.criticSha })]
+    : state.info.designRef
+    ? [seedStep("specify", "specify", (i) => i.designRef?.specSha, { critic: (i) => i.designRef?.criticSha })]
     : [clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
   return [
     discoverStep, intakeStep, groundStep, ...spec, planStep, approveStep,
@@ -52,13 +55,46 @@ export function estimateSteps(state: RunState): StepDef[] {
       estimateStep, approveEstimateStep, exportStep,
     ];
   }
+  // an approved design-only run: its intake, grounding, answers, spec and approved design are inherited; only sizing is new
+  if (state.info.designRef) return [...seededFromDesign(state), breakdownStep, estimateStep, approveEstimateStep, exportStep];
+  return [...requirementsHead(state), ...designSteps({ purpose: "estimate" }), breakdownStep, estimateStep, approveEstimateStep, exportStep];
+}
+
+/**
+ * From the requirements to the spec, shared by the estimate and the design-only run: intake, ground,
+ * two clarify rounds and the spec pipeline, per module for a large document.
+ */
+export function requirementsHead(state: RunState): StepDef[] {
   const modules = splitModules(state.info.request ?? "");
-  const head: StepDef[] = modules.length
+  return modules.length
     ? [...moduleIntakeSteps(modules), combineIntakeStep(modules), estimateGroundStep,
       ...moduleClarifySteps(modules, 1), combineClarifyStep(modules, 1), ...moduleClarifySteps(modules, 2), combineClarifyStep(modules, 2),
       ...moduleSteps(modules), combineSpecsStep(modules)]
     : [intakeStep, estimateGroundStep, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
-  return [...head, ...designSteps({ purpose: "estimate" }), breakdownStep, estimateStep, approveEstimateStep, exportStep];
+}
+
+/** The steps of an approved design-only run, seeded into a new run under the same keys (`info.designRef`). */
+function seededFromDesign(state: RunState): StepDef[] {
+  const ref = state.info.designRef!;
+  return [
+    seedStep("intake", "intake", (i) => i.designRef?.intakeSha),
+    ...(ref.groundSha ? [seedStep("ground", "ground", (i) => i.designRef?.groundSha, { survey: (i) => i.designRef?.surveySha, design: (i) => i.designRef?.inventorySha })] : []),
+    ...(ref.clarifySha ? [seedStep("clarify", "clarify", (i) => i.designRef?.clarifySha)] : []),
+    ...(ref.clarify2Sha ? [seedStep("clarify-2", "clarify", (i) => i.designRef?.clarify2Sha)] : []),
+    seedStep("specify", "specify", (i) => i.designRef?.specSha, { critic: (i) => i.designRef?.criticSha }),
+    seedStep("design", "design", (i) => i.designRef?.designSha),
+    seedStep("design-baseline", "design", (i) => i.designRef?.baselineSha),
+  ];
+}
+
+/**
+ * Design-only mode (`factory design start`, docs/estimates-design.md, "Design references", step 3b):
+ * the estimate's road from the requirements to the spec, then the design pipeline, and it stops at the
+ * approved design and clickable demo: no breakdown, sizing or workbooks. An estimate or a build carries
+ * the approved design on (`--from-design`).
+ */
+export function designOnlySteps(state: RunState): StepDef[] {
+  return [...requirementsHead(state), ...designSteps({ purpose: "design" })];
 }
 
 /** The ordered steps for the run's mode. */
@@ -66,6 +102,7 @@ export function stepsFor(state: RunState): StepDef[] {
   switch (state.info.mode) {
     case "brownfield": return brownfieldSteps(state);
     case "estimate": return estimateSteps(state);
+    case "design": return designOnlySteps(state);
     default: throw new Error(`No step list for mode "${state.info.mode}" yet`);
   }
 }

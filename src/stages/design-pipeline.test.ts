@@ -19,6 +19,8 @@ import { designSteps } from "./design-pipeline.js";
 import { designBaselineStep } from "./estimate-approve.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
+import { approvedDesign, copyArtifacts } from "../estimate/lineage.js";
+import { designOnlySteps, estimateSteps } from "./modes.js";
 
 const sha = "a".repeat(64);
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
@@ -140,5 +142,45 @@ describe("design pipeline", () => {
     const s = replay(ledger.events());
     s.info.estimateRef = { runId: "e", designSha: seeded } as never;
     expect(approvedDesignFor(s, ledger)?.sha).toBe(seeded);
+  });
+
+  it("a design-only run asks in its own words, and its approved design carries into an estimate under the same hashes", async () => {
+    const ledger = await newRun("design");
+    await complete(ledger, "intake", intent(true));
+    await complete(ledger, "ground", { cb: sha });
+    await complete(ledger, "clarify", { questions: [] });
+    await complete(ledger, "specify", spec);
+    const steps = designOnlySteps(replay(ledger.events()));
+    const draw = steps.find((x) => x.key === "design")!, approve = steps.find((x) => x.key === "design-baseline")!;
+    answer = drawn;
+    expect((await exec(ledger, draw)).kind).toBe("done");
+    const card = await exec(ledger, approve);
+    const md = (card as { card: { markdown: string } }).card.markdown;
+    expect(md).toMatch(/^# Approve the design\n/);
+    expect(md).toContain("design only");
+    expect(md).toContain(`factory estimate --from-design ${ledger.runId}`);
+    expect(md).not.toMatch(/E1b/);
+    expect(() => approvedDesign(ledger.runId)).toThrow(/no approved design yet/);
+    await decide(ledger, card, "design-baseline", "approve");
+    expect((await exec(ledger, approve)).kind).toBe("done");
+
+    const a = approvedDesign(ledger.runId);
+    expect(a.ref).toMatchObject({ runId: ledger.runId, designSha: replay(ledger.events()).steps.get("design")!.outputs[0] });
+    // a new estimate run: the artifacts land under their own hashes and the seeded steps hand them on
+    const est = Ledger.create(`20261002-dpipe-est-${Math.random().toString(16).slice(2, 6)}`);
+    copyArtifacts(est, a);
+    await est.append({ type: "run.created", data: { mode: "estimate", project: "demo", request: a.request, operator: "sam", designRef: a.ref } }, HUMAN_WRITER);
+    for (const step of estimateSteps(replay(est.events())).filter((x) => !["breakdown", "estimate", "approve-estimate", "export"].includes(x.key))) {
+      expect((await exec(est, step)).kind).toBe("done");
+    }
+    expect(modelCalls).toBe(1);
+    const s = replay(est.events());
+    expect(approvedDesignFor<{ screens: { id: string }[] }>(s, est)?.design.screens.map((x) => x.id)).toEqual(["S-1"]);
+    expect(estimateSteps(s).find((x) => x.key === "breakdown")!.inputs(s, est)).toBeTruthy();
+  });
+
+  it("refuses to carry on a design that is not from a design run", async () => {
+    const ledger = await newRun("estimate");
+    expect(() => approvedDesign(ledger.runId)).toThrow(/not a design run/);
   });
 });

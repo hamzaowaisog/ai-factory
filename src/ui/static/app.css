@@ -138,7 +138,9 @@ main { max-width: 1320px; margin: 0 auto; padding: 1.8rem 2rem 5rem; }
 .stack > * + * { margin-top: 1.2rem; }
 .grid-2 { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 1.2rem; align-items: start; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; }
-@media (max-width: 1040px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+.grid-3.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1280px) { .grid-3.grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1040px) { .grid-2, .grid-3, .grid-3.grid-4 { grid-template-columns: 1fr; } }
 .muted { color: var(--muted); }
 .faint { color: var(--faint); }
 .small { font-size: 0.86rem; }
