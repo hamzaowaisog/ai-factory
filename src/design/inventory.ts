@@ -31,6 +31,9 @@ export interface DesignInventory {
   rules: string[];
 }
 
+/** The repo has a look of its own to keep: pages, and a verdict other than none. */
+export const hasExistingLook = (inv: DesignInventory | undefined): inv is DesignInventory => !!inv && inv.pages.length > 0 && inv.verdict !== "none";
+
 const SOURCE_EXT = /\.(tsx|jsx)$/;
 const NOT_SOURCE = /\.(test|spec|stories)\.|(^|\/)(__tests__|__mocks__|\.storybook)\//;
 

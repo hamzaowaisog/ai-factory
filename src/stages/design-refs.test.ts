@@ -14,6 +14,8 @@ import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { NO_TRACE } from "../util/trace.js";
 import { designStep } from "./design.js";
+import { clarifyStep, restyleQuestion, type ClarifyResult } from "./clarify.js";
+import type { DesignInventory } from "../design/inventory.js";
 import { designSteps } from "./design-pipeline.js";
 import { checkRefRead, cleanRefRead, designRefsStep, type DesignRefsArt, type RefReadOut } from "./design-refs.js";
 import type { StepContext, StepOutcome } from "./framework.js";
@@ -271,5 +273,76 @@ describe.skipIf(!findChromium())("the drawn demo against a layout reference (bro
     } finally {
       if (before !== undefined) process.env.FACTORY_NO_SCREENSHOTS = before;
     }
+  });
+});
+
+describe("an app with its own look and a match reference", () => {
+  const inventory = { schemaVersion: 1, verdict: "consistent", tokens: { light: 12, dark: 0, theme: 0, total: 12, names: { light: [], dark: [], theme: [] } }, stack: { framework: "next", styling: "tailwind", componentSystem: "shadcn" },
+    pages: [{ path: "app/orders/page.tsx", kind: "page", route: "/orders", layout: [], heading: "Orders" }], primitives: [{ path: "components/ui/button.tsx", key: "button" }], composites: [] } as unknown as DesignInventory;
+  const ctxOf = (ledger: Ledger): StepContext => {
+    const state = replay(ledger.events());
+    return { runId: state.info.runId, ledger, writer: HUMAN_WRITER, state, project: ProjectConfig.parse({ project: "demo", repo: "/x", stack: "dotnet" }),
+      policy: DEFAULT_POLICY, attempt: 1, rung: 0, priorFailures: [], log: () => undefined, trace: NO_TRACE, usage: async () => undefined };
+  };
+  async function withLook(answerQ?: (q: ReturnType<typeof restyleQuestion>) => string) {
+    const ledger = await newRun(true);
+    const cb = ledger.putJson({ claims: [], notFound: [] }), design = ledger.putJson(inventory);
+    await ledger.append({ type: "step.completed", key: "ground/1", inputsHash: sha, outputs: [cb, design], data: { named: { cb, design } } }, HUMAN_WRITER);
+    if (answerQ) {
+      const q = restyleQuestion(replay(ledger.events()).info.references!, inventory, ["I-1"], 1)!;
+      const r: ClarifyResult = { round: 1, asked: [q], assumptions: [], differences: [], conflicts: [], answers: { "Q-1": answerQ(q) }, answeredBy: "sam" };
+      const o = ledger.putJson(r);
+      await ledger.append({ type: "step.completed", key: "clarify/1", inputsHash: sha, outputs: [o], data: { named: { clarify: o } } }, HUMAN_WRITER);
+    }
+    answer = good;
+    await exec(ledger);
+    return ledger;
+  }
+  const mock = { title: "Orders", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["New order"] }], copy: {} };
+  const screen = { id: "S-1", route: "/orders", file: "app/orders/page.tsx", reqs: ["REQ-1"], states: [], size: "tweak", mock, mockFull: mock, refs: ["R-2"] };
+  const reading2 = { users: "operations staff", context: "at a desk all day", device: "web", tone: "precise", hero: "today's open orders", traits: ["dense", "quiet"] };
+
+  it("puts the restyle question on the round-1 card, with no auto answer", async () => {
+    const ledger = await withLook();
+    let k = 0;
+    answer = () => (++k <= 3 ? { spans: [] } : k === 4 ? { differences: [] } : { questions: [], conflicts: [] });
+    const out = await clarifyStep.run(ctxOf(ledger));
+    expect(out.kind, JSON.stringify(out)).toBe("wait");
+    const card = (out as { card: { markdown: string; deadline?: string } }).card;
+    expect(card.markdown).toContain("**Q-1** R-1 (https://client.example) is marked match");
+    expect(card.markdown).toContain("A. Keep the app's own look; use R-1 for layout and content only   ← recommended");
+    expect(card.deadline).toBeUndefined();
+  });
+
+  it("keeps the app's look unless the person chose the restyle", async () => {
+    const ledger = await withLook((q) => q!.options[0]!);
+    answer = () => ({ flow: "Staff open the order list", screens: [screen], noScreen: [], refUse: used });
+    seen = [];
+    const out = await designStep.run(ctxOf(ledger));
+    expect(out.kind, JSON.stringify(out)).toBe("done");
+    expect(seen[0]!.system).toContain("EXISTING APP");
+    expect(seen[0]!.system).not.toContain("RESTYLE");
+    const d = ledger.getJson<{ themeSource: string; restyle?: boolean; theme?: unknown }>((out as { outputs: Record<string, string> }).outputs.design!);
+    expect(d).toMatchObject({ themeSource: "repo" });
+    expect(d.restyle).toBeUndefined();
+    expect(designStep.inputs(replay(ledger.events()), ledger)).not.toHaveProperty("restyle");
+  });
+
+  it("restyled, the theme is the match reference's, checked as for a new product, and the design says so", async () => {
+    const ledger = await withLook((q) => q!.options[1]!);
+    expect(designStep.inputs(replay(ledger.events()), ledger)).toMatchObject({ restyle: true });
+    answer = () => ({ flow: "Staff open the order list", screens: [screen], noScreen: [], refUse: used, theme: { ...look, brand: "#1f6feb", reading: reading2 } });
+    const off = await designStep.run(ctxOf(ledger));
+    expect(off.kind).toBe("fail");
+    expect((off as { failures: { check: string }[] }).failures.map((f) => f.check)).toContain("design-ref-colour");
+    answer = () => ({ flow: "Staff open the order list", screens: [screen], noScreen: [], refUse: used, theme: { ...look, reading: reading2 } });
+    seen = [];
+    const out = await designStep.run(ctxOf(ledger));
+    expect(out.kind, JSON.stringify(out)).toBe("done");
+    expect(seen[0]!.system).toContain("RESTYLE");
+    expect(seen[0]!.system).not.toContain("EXISTING APP");
+    expect(seen[0]!.user).toContain("existing-ui");
+    const d = ledger.getJson<{ themeSource: string; restyle?: boolean; theme: { brand: string } }>((out as { outputs: Record<string, string> }).outputs.design!);
+    expect(d).toMatchObject({ themeSource: "new", restyle: true, theme: { brand: "#533afd" } });
   });
 });

@@ -20,6 +20,8 @@ export interface DesignRunView {
   theme?: { mood?: string; mode?: string; brand?: string; font?: string; radius?: string; density?: string; basis?: { ref: string; took: string }[] };
   /** "new" for a look drawn for this product, "repo" for the app's own look */
   themeSource?: string;
+  /** the existing app is restyled to the match references (the questions card) */
+  restyle?: boolean;
   screens: { id: string; title?: string; route: string; reqs: string[]; states: string[]; refs?: string[] }[];
   references: (Pick<Reference, "id" | "kind" | "source" | "role" | "measured" | "colours" | "fonts" | "notes"> & Partial<Pick<Reference, "note" | "radiusPx">> & { images?: { file: string; label: string }[] } & { read?: { kind: string; navigation: string; reqs: string[]; palette: { name: string; hex: string }[] }; use?: { use: string; how: string } })[];
   /** screens still differing from a layout reference after the fix round */
@@ -31,7 +33,7 @@ export interface DesignRunView {
   from?: string;
 }
 
-interface DesignOut { skipped?: boolean; screens?: { id: string; route: string; reqs: string[]; states?: string[]; mock?: { title?: string }; refs?: string[] }[]; refUse?: { id: string; use: string; how: string }[]; refLayout?: DesignRunView["refLayout"]; theme?: DesignRunView["theme"] & Record<string, unknown>; themeSource?: string }
+interface DesignOut { skipped?: boolean; screens?: { id: string; route: string; reqs: string[]; states?: string[]; mock?: { title?: string }; refs?: string[] }[]; refUse?: { id: string; use: string; how: string }[]; refLayout?: DesignRunView["refLayout"]; theme?: DesignRunView["theme"] & Record<string, unknown>; themeSource?: string; restyle?: boolean }
 
 function stageOf(s: RunState): DesignStage {
   const base = s.steps.get("design-baseline");
@@ -58,7 +60,7 @@ export function designRunView(ledger: Ledger): DesignRunView {
     request: (s.info.request ?? "").split("\n").find((l) => l.trim())?.trim().slice(0, 120) ?? "",
     ...(s.openCard?.kind === "design-approval" ? { card: s.openCard.artifactSha.slice(0, 8) } : {}),
     ...(t ? { theme: { mood: t.mood, mode: t.mode, brand: t.brand, font: t.font, radius: t.radius, density: t.density, ...(t.basis ? { basis: t.basis } : {}) } } : {}),
-    ...(d?.themeSource ? { themeSource: d.themeSource } : {}),
+    ...(d?.themeSource ? { themeSource: d.themeSource } : {}), ...(d?.restyle ? { restyle: true } : {}),
     screens: d && !d.skipped ? (d.screens ?? []).map((x) => ({ id: x.id, ...(x.mock?.title ? { title: x.mock.title } : {}), route: x.route, reqs: x.reqs, states: x.states ?? [], ...(x.refs?.length ? { refs: x.refs } : {}) })) : [],
     references: (s.info.references ?? []).map((r) => {
       const x = reading.find((y) => y.id === r.id), u = d && !d.skipped ? d.refUse?.find((y) => y.id === r.id) : undefined;
@@ -97,6 +99,7 @@ export function formatDesignRun(v: DesignRunView): string[] {
     lines.push(`  look: ${[v.theme.mood, v.theme.mode, v.theme.brand, v.theme.font, v.theme.radius && `${v.theme.radius} corners`, v.theme.density].filter(Boolean).join(" · ")}`);
     for (const b of v.theme.basis ?? []) lines.push(`    based on ${b.ref}: ${b.took}`);
   } else if (v.themeSource === "repo") lines.push("  look: the app's own (tokens and components from the repo)");
+  if (v.restyle) lines.push("  restyle: the app is restyled to the match reference's look (chosen on the questions card): a design-system change");
   if (v.references.length) {
     lines.push(`  references (${v.references.length}):`);
     for (const r of v.references) {

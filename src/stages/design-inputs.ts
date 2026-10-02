@@ -20,6 +20,8 @@ export interface DesignSources {
 }
 
 export const ESTIMATE_SOURCES: DesignSources = { intent: "intake", spec: "specify", inventory: { step: "ground", name: "design" } };
+/** A direct brownfield build reads the same steps: its ground step keeps the repo's design inventory too. */
+export const BROWNFIELD_SOURCES: DesignSources = { intent: "intake", spec: "specify", inventory: { step: "ground", name: "design" } };
 
 export const sourcesReady = (s: RunState, src: DesignSources): boolean =>
   s.steps.get(src.spec)?.status === "completed" && s.steps.get(src.intent)?.status === "completed";

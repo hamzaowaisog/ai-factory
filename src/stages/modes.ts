@@ -5,14 +5,15 @@ import { deliverStep, reviewStep } from "./deliver.js";
 import type { StepDef } from "./framework.js";
 import { clarify2Step, clarifyStep } from "./clarify.js";
 import { breakdownStep, estimateStep } from "./estimate.js";
-import { approveStep, groundStep, intakeStep, planStep } from "./spec.js";
+import { approveStep, intakeStep, planStep } from "./spec.js";
 import { draftsStep, mergeStep, specifyStep } from "./specpipe.js";
 import { splitModules } from "../estimate/modules.js";
 import { designCheckStep } from "./design-check.js";
 import { approveEstimateStep, exportStep } from "./estimate-approve.js";
 import { designSteps } from "./design-pipeline.js";
 import { seedStep } from "./seed.js";
-import { estimateGroundStep } from "./estimate-ground.js";
+import { brownfieldGroundStep, estimateGroundStep } from "./estimate-ground.js";
+import { BROWNFIELD_SOURCES } from "./design-inputs.js";
 import { combineClarifyStep, combineIntakeStep, combineSpecsStep, moduleClarifySteps, moduleIntakeSteps, moduleSteps } from "./modular.js";
 
 export function brownfieldSteps(state: RunState): StepDef[] {
@@ -24,8 +25,15 @@ export function brownfieldSteps(state: RunState): StepDef[] {
     : state.info.designRef
     ? [seedStep("specify", "specify", (i) => i.designRef?.specSha, { critic: (i) => i.designRef?.criticSha })]
     : [clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
+  // a direct build that touches UI draws its design and a person approves it before plan (a build from an approved
+  // estimate or design follows that one); once intake says there is no UI the steps drop out, so such a run is as before
+  const intake = state.steps.get("intake");
+  const noUi = intake?.status === "completed" && intake.data?.touchesUi === false;
+  // (a run that planned without them, started before builds drew designs, goes on as it was rather than replanning)
+  const plannedWithout = state.steps.has("plan") && !state.steps.has("design");
+  const design = state.info.estimateRef || state.info.designRef || noUi || plannedWithout ? [] : designSteps({ sources: BROWNFIELD_SOURCES, purpose: "build", refs: !!state.info.references?.length });
   return [
-    discoverStep, intakeStep, groundStep, ...spec, planStep, approveStep,
+    discoverStep, intakeStep, brownfieldGroundStep, ...spec, ...design, planStep, approveStep,
     stubCommitStep, authorTestsStep,
     ...tasks.map((t) => implementStep(t)),
     integrateStep, acceptStep, designCheckStep, reviewStep, deliverStep,

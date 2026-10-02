@@ -9,10 +9,12 @@ import { join } from "node:path";
 import { z } from "zod";
 import type { IntentBody, Spec } from "../contracts/index.js";
 import type { RunState } from "../ledger/state.js";
-import type { DesignInventory } from "../design/inventory.js";
+import { hasExistingLook, type DesignInventory } from "../design/inventory.js";
+import type { Ledger } from "../ledger/ledger.js";
+import { restyleChosen, type ClarifyResult } from "./clarify.js";
 import { DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
-import { header, outputOf, type StepDef } from "./framework.js";
+import { header, outputOf, readOutput, type StepDef } from "./framework.js";
 import { lookFromRefs, lookRefs, matchFamilies, refBrief as clientRefBrief, refFit, refLayoutFixes, refLayoutGaps, refNotes, REF_RULES, type RefLayoutGap, type RefUse } from "../design/ref-checks.js";
 import type { DesignRefsArt } from "./design-refs.js";
 import { ESTIMATE_SOURCES, intentOf, inventoryNamed, inventoryOf, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
@@ -391,7 +393,12 @@ export function mapDesign(reqIds: string[], out: z.infer<typeof DesignOut>, fram
 }
 
 /** A repo whose UI already has pages and a design system (or partial one): the design extends it instead of inventing a look. */
-export const hasExistingLook = (inv: DesignInventory | undefined): inv is DesignInventory => !!inv && inv.pages.length > 0 && inv.verdict !== "none";
+export { hasExistingLook };
+
+const RESTYLE_RULES = `RESTYLE. The "existing" section is this product's real UI, and the client chose to restyle the whole app to the match reference(s) listed below.
+- Return "theme" from those references (their colours, type and corners), as for a new product: it replaces the app's tokens on every page.
+- Keep the app's pages, routes, files and shared components: mark a screen "reuse" or "tweak" when an existing page or shared component covers it (it is restyled, not rebuilt), "new" only for a page that does not exist.
+- Take the sample content from the same domain the existing pages show.`;
 
 const EXISTING_RULES = `EXISTING APP. The "existing" section is this product's real UI. Extend it; do not restyle it.
 - Do NOT return "theme": the app already has its look. The build will use the existing design tokens and shared components.
@@ -565,6 +572,9 @@ function referenceSections(state: RunState, reading: DesignRefsArt) {
   ];
 }
 
+/** The match references the person chose on the questions card to restyle the app to (undefined: keep the app's look). */
+const restyleOf = (s: RunState, l: Ledger): string[] | undefined => restyleChosen(readOutput<ClarifyResult>(s, l, "clarify"));
+
 /** A match reference's measured fonts on the theme (set by code; the model only picks the styles). */
 function withFamilies(theme: Theme, reading: DesignRefsArt | undefined, use: RefUse[] | undefined): Theme {
   const f = matchFamilies(reading, (use ?? []).filter((u) => u.use === "set-aside").map((u) => u.id));
@@ -584,7 +594,9 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const refRead = s.info.references?.length ? outputOf(s, "design-refs") : undefined;
       if (s.info.references?.length && !refRead) return undefined;
       const ui = !!l.getJson<Intent>(s.steps.get(src.intent)!.outputs[0]!)?.touchesUi;
-      return { spec: s.steps.get(src.spec)!.outputs[0], ui, ...(refRead ? { refRead } : {}), inventory: inventoryNamed(s, src), earlier: s.info.parent?.kind === "change" ? s.info.parent.designSha : undefined, frames: listedFrames(s.info.request ?? "").map((f) => f.id), rejections: designRejections(s).slice(0, MAX_DESIGN_REVISIONS) };
+      // the restyle chosen on the questions card (runs with match references and an app of their own only)
+      const restyle = s.info.references?.length ? !!restyleOf(s, l) : false;
+      return { spec: s.steps.get(src.spec)!.outputs[0], ui, ...(refRead ? { refRead } : {}), ...(restyle ? { restyle } : {}), inventory: inventoryNamed(s, src), earlier: s.info.parent?.kind === "change" ? s.info.parent.designSha : undefined, frames: listedFrames(s.info.request ?? "").map((f) => f.id), rejections: designRejections(s).slice(0, MAX_DESIGN_REVISIONS) };
     },
     async run(ctx) {
       const intent = intentOf<Intent>(ctx.state, ctx.ledger, src);
@@ -613,17 +625,20 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const refsSha = outputOf(ctx.state, "design-refs");
       const refRead = refsSha ? ctx.ledger.getJson<DesignRefsArt & { skipped?: boolean }>(refsSha) : undefined;
       const reading = refRead && !refRead.skipped && refRead.refs.length ? refRead : undefined;
+      // the app keeps its own look unless the person chose, on the questions card, to restyle it to the match references
+      const restyle = !!reading && hasExistingLook(inv) && !!restyleOf(ctx.state, ctx.ledger);
+      const existing = hasExistingLook(inv) && !restyle;
       // a look taken from match or inspire references replaces the field's library; layout references leave the look to it
-      const fromRefs = !!reading && lookFromRefs(reading) && !hasExistingLook(inv);
+      const fromRefs = !!reading && lookFromRefs(reading) && !existing;
       const matchOnly = fromRefs && lookRefs(reading).every((r) => r.role === "match");
       // about to draw: read the live sites of the field's brands first (best effort), so the brief and the colour check use real colours
-      if (!hasExistingLook(inv) && !fromRefs) await ensureMeasured(pickIndustries(reqText).map((x) => x.industry.id)).catch(() => undefined);
+      if (!existing && !fromRefs) await ensureMeasured(pickIndustries(reqText).map((x) => x.industry.id)).catch(() => undefined);
       const refBrief = briefFor(reqText);
       const refs = fitRefs(reqText);
       // a new look is compared with the factory's latest projects; a change keeps its approved look, and an existing app keeps the repo's
       const field = fieldOf(reqText);
       // (a client's brand may repeat an earlier project's: no recent-looks check when every look reference is matched)
-      const recent = hasExistingLook(inv) || (earlier && !earlier.skipped) || matchOnly ? [] : recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), undefined, field);
+      const recent = existing || restyle || (earlier && !earlier.skipped) || matchOnly ? [] : recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), undefined, field);
       const feedback = sentBack.length
         ? `The lead rejected the previous design ${sentBack.length === 1 ? "once" : `${sentBack.length} times`}. Their reasons, oldest first:\n${sentBack.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nRedraw it so each reason is met: keep what they did not criticise, change what they did, and do not repeat the earlier screens, theme or sample data where they objected.${again?.fine.length && prev ? ` The lead said these pages are fine, so keep them as they are: ${prev.screens.filter((x) => again!.fine.includes(x.id)).map(screenName).join(", ")}.` : ""}`
         : "";
@@ -631,7 +646,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         stage: "design", route: "design", cls: "read-large", budgetTokens: 80000, tools: [], schema: DesignOut, maxTurns: 4,
         sections: [
           S.template("tpl", RULES),
-          ...(hasExistingLook(inv) ? [S.template("existing-rules", EXISTING_RULES)] : []),
+          ...(existing ? [S.template("existing-rules", EXISTING_RULES)] : restyle ? [S.template("restyle-rules", RESTYLE_RULES)] : []),
           ...(reading ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
           S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
           ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens, ...(earlier.theme ? { theme: earlier.theme } : {}), ...(earlier.locale ? { locale: earlier.locale } : {}) })] : []),
@@ -654,8 +669,8 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         ...map.duplicateRoutes.map((x) => failure("design-duplicate-route", `two screens share the route ${x}; one screen has one route (give states, not a second screen)`)),
         ...map.unknownFrames.map((x) => failure("design-unknown-frame", `${x} is not one of the attached frames`)),
         ...map.unusedFrames.map((x) => failure("design-frame-unused", `attached frame ${x} is on no screen`)),
-        ...designQuality(out, hasExistingLook(inv), refs, recent, !!earlier?.theme && JSON.stringify(earlier.theme) === JSON.stringify(out.theme), fromRefs).map((q) => failure(q.check, q.message)),
-        ...(reading ? refFit(out.theme, out.screens, out.refUse, reading, hasExistingLook(inv)).map((q) => failure(q.check, q.message)) : []),
+        ...designQuality(out, existing, refs, recent, !!earlier?.theme && JSON.stringify(earlier.theme) === JSON.stringify(out.theme), fromRefs).map((q) => failure(q.check, q.message)),
+        ...(reading ? refFit(out.theme, out.screens, out.refUse, reading, existing).map((q) => failure(q.check, q.message)) : []),
         ...localeFit(out, reqText).map((q) => failure(q.check, q.message)),
         ...modeFit(out, reqText).map((q) => failure(q.check, q.message)),
       ];
@@ -680,10 +695,10 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const artifact = {
         header: header(ctx.runId, "design", "design", "", r.model), flow: out.flow,
         screens: out.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: s.size, frames: s.frames, ...(s.mock ? { mock: s.mock } : {}), ...(s.mockFull ? { mockFull: s.mockFull } : {}), ...(s.app ? { app: s.app } : {}), ...(s.group ? { group: s.group } : {}), ...(reading && s.refs?.length ? { refs: s.refs } : {}) })),
-        ...(reading && out.refUse?.length ? { refUse: out.refUse } : {}), ...(refGaps.length ? { refLayout: refGaps } : {}),
+        ...(reading && out.refUse?.length ? { refUse: out.refUse } : {}), ...(refGaps.length ? { refLayout: refGaps } : {}), ...(restyle ? { restyle: true } : {}),
         ...(out.apps?.length ? { apps: out.apps } : {}), ...(out.switcher ? { switcher: out.switcher } : {}), ...(out.locale ? { locale: out.locale } : {}),
         ...(prev ? { revision: sentBack.length, rework: [...(prev.rework ?? []), ...(again ? [again.round] : [])] } : {}),
-        mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(hasExistingLook(inv) ? { themeSource: "repo" as const } : { themeSource: "new" as const, ...(out.theme ? { theme: withFamilies(out.theme, reading, out.refUse) } : {}) }),
+        mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(existing ? { themeSource: "repo" as const } : { themeSource: "new" as const, ...(out.theme ? { theme: withFamilies(out.theme, reading, out.refUse) } : {}) }),
       };
       return { kind: "done", outputs: { design: ctx.ledger.putJson(artifact) }, data: { screens: artifact.screens.length, states: artifact.screens.reduce((n, s) => n + Math.max(1, s.states.length), 0) } };
     },

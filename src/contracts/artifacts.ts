@@ -453,6 +453,8 @@ export const DesignBody = z.object({
   refUse: z.array(z.object({ id: z.string(), use: z.enum(["used", "set-aside"]), how: z.string() })).optional(),
   /** screens that still differ from a layout reference they cite after the fix round (code-measured on the drawn demo) */
   refLayout: z.array(z.object({ screen: z.string(), ref: z.string(), nav: z.string().optional(), missing: z.array(z.string()) })).optional(),
+  /** the existing app is restyled to its match references (chosen on the questions card): the theme is theirs, not the repo's */
+  restyle: z.boolean().optional(),
 });
 export const Design = withHeader(DesignBody.shape);
 

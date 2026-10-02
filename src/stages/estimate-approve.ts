@@ -51,6 +51,7 @@ export function refCardLines(design: DesignT, refs: { id: string; role: string; 
       const shaped = design.screens.filter((x) => (x as { refs?: string[] }).refs?.includes(id)).map((x) => x.id);
       return `- ${id}${r ? ` (${r.role}) ${r.source.slice(0, 80)}` : ""}: ${u ? `${u.use === "used" ? "used" : "set aside"}, ${u.how}` : "not listed by the design"}${shaped.length ? `; shaped ${shaped.join(", ")}` : ""}`;
     }),
+    ...(design.restyle ? ["- The app is restyled to the match reference's look (chosen on the questions card): a design-system change, every existing page's look changes."] : []),
     ...(design.refLayout ?? []).map((g) => `- ${g.screen} still differs from ${g.ref}:${g.nav ? ` not reached by ${g.nav}` : ""}${g.nav && g.missing.length ? ";" : ""}${g.missing.length ? ` no ${g.missing.join(", ")}` : ""}`),
     ``,
   ];

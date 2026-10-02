@@ -88,7 +88,7 @@ ${UNTRUSTED_NOTE}
       touchesUi: r.output.touchesUi || ruleUi(request(ctx)),
     };
     const sha = ctx.ledger.putJson({ header: header(ctx.runId, "intent", "intake", "", r.model), ...intent });
-    return { kind: "done", outputs: { intent: sha }, data: { changeClass: intent.changeClass, risk: intent.risk } };
+    return { kind: "done", outputs: { intent: sha }, data: { changeClass: intent.changeClass, risk: intent.risk, touchesUi: intent.touchesUi } };
   },
 };
 
@@ -170,6 +170,8 @@ export const planStep: StepDef = {
         S.artifact("critic", "critic", critic),
         ...(approvedDesign ? [S.artifact("approved-design", "approved-design", approvedDesign)] : []),
         ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task, and that plan task's fileScope must include the approved screen's file." : "") + (newLook ? " The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them." : ""))] : []),
+        // a direct build whose approved design is a new look (a restyle to the client's reference) puts the tokens in once too
+        ...(!ref && newLook ? [S.template("new-look", "The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them.")] : []),
         ...(planRejections(ctx.state).length ? [{ spec: { id: "rejection", source: "feedback" as const, trust: "trusted" as const, placement: "user" as const }, content: `The human reviewer rejected the previous plan. Their reasons (latest last):\n${planRejections(ctx.state).map((x) => `- ${x}`).join("\n")}\nThe plan must address them.` }] : []),
         S.task("Write the plan."),
       ],

@@ -1233,7 +1233,8 @@ async function designScreen(id) {
         h("section", { class: "panel rise", vars: { "--i": 0 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("ruler"), "UI change size")), size),
         h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Style check")), style),
         visualPanel(id, d.visual),
-        r.mode === "estimate" || r.mode === "design" ? h("a", { class: "slot rise", href: `#/runs/${encodeURIComponent(id)}/preview`, vars: { "--i": 3 } }, icon("cursor"), h("strong", {}, "Clickable prototype"), h("span", {}, "The demo and its screenshots are under Preview.")) : null,
+        // a brownfield build draws a design too when it touches UI (its timeline then has the design step)
+        r.mode === "estimate" || r.mode === "design" || (r.timeline ?? []).some((t) => t.step === "design") ? h("a", { class: "slot rise", href: `#/runs/${encodeURIComponent(id)}/preview`, vars: { "--i": 3 } }, icon("cursor"), h("strong", {}, "Clickable prototype"), h("span", {}, "The demo and its screenshots are under Preview.")) : null,
         h("section", { class: "panel rise", vars: { "--i": 4 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("image"), `References${refv.references.length ? ` (${refv.references.length})` : ""}`)), refsPanel(refv)),
       ),
       h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("grid"), "The app's pages and building blocks")), inv),

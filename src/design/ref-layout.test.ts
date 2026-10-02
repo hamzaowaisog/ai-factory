@@ -122,5 +122,11 @@ describe("the design card's references section", () => {
       "",
     ]);
     expect(refCardLines({ screens: [] } as never)).toEqual([]);
+    expect(refCardLines({ screens: [], restyle: true, refUse: [{ id: "R-1", use: "used", how: "brand and type" }] } as never, [{ id: "R-1", role: "match", source: "guide.pdf" }])).toEqual([
+      "## Design references",
+      "- R-1 (match) guide.pdf: used, brand and type",
+      "- The app is restyled to the match reference's look (chosen on the questions card): a design-system change, every existing page's look changes.",
+      "",
+    ]);
   });
 });

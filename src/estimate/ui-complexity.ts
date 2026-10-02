@@ -80,7 +80,7 @@ export function screenUi(s: { states?: string[]; size?: string; mock?: ScreenMoc
 }
 
 /** What adds UI work to every screen of the product: more than one app, two languages, right to left, both colour modes. */
-export function uiFactors(d: { apps?: { name: string; device: string }[]; locale?: DesignLocale; theme?: { mode?: string }; themeSource?: string }): string[] {
+export function uiFactors(d: { apps?: { name: string; device: string }[]; locale?: DesignLocale; theme?: { mode?: string }; themeSource?: string; restyle?: boolean }): string[] {
   const out: string[] = [];
   if ((d.apps?.length ?? 0) > 1) out.push(`${d.apps!.length} apps (${d.apps!.map((a) => `${a.name}, ${a.device === "phone" ? "phone" : "web"}`).join("; ")}), each with its own frame and navigation`);
   const langs = d.locale?.languages ?? [];
@@ -89,6 +89,7 @@ export function uiFactors(d: { apps?: { name: string; device: string }[]; locale
   if (d.locale?.digits === "native") out.push("the script's own digits in every number");
   if (d.theme?.mode === "auto") out.push("both colour modes: every page in light and dark, with a switch");
   if (d.themeSource === "repo") out.push("the existing app's look and components are reused");
+  if (d.restyle) out.push("the existing app is restyled to the client's reference: every existing page's look changes (a design-system change)");
   return out;
 }
 

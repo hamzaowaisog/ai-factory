@@ -5,7 +5,9 @@ import { z } from "zod";
 import { CurrentBehaviourBody, IntentBody, type Risk } from "../contracts/index.js";
 import { failure } from "../gates/engine.js";
 import { hashJson } from "../util/hash.js";
-import { requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { hasExistingLook, type DesignInventory } from "../design/inventory.js";
+import type { Reference } from "../contracts/reference.js";
 import { lightSpec } from "./lane.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
 
@@ -47,7 +49,11 @@ export const ClarifierOut = z.object({
 });
 export type ClarifierQuestion = z.infer<typeof ClarifierOut>["questions"][number];
 
-export interface ScoredQuestion extends ClarifierQuestion { uncertainty: 1 | 2 | 3; score: number }
+export interface ScoredQuestion extends ClarifierQuestion {
+  uncertainty: 1 | 2 | 3; score: number;
+  /** set by code: the match references the app would be restyled to (the restyle question) */
+  restyle?: string[];
+}
 export interface Assumption { id: string; text: string; risk: Risk; fromSpan: string[]; fromQuestion: string }
 export interface ClarifyResult {
   round: number;
@@ -138,6 +144,39 @@ export function resolveAnswer(q: ScoredQuestion, raw: string): string {
     if (o) return o;
   }
   return t;
+}
+
+// ---------- the restyle question (code's, not the model's) ----------
+
+/**
+ * The app has a look of its own and the client attached match references: whether to restyle is the
+ * client's call, so code asks it on the round-1 card (docs/estimates-design.md, "Design references").
+ * Keeping the app's look is recommended: the references then shape layout and content only. Asked
+ * whenever both meet: the repo's token values are not read, so code cannot tell they already agree.
+ */
+export function restyleQuestion(refs: Pick<Reference, "id" | "source" | "role">[], inv: DesignInventory | undefined, spans: string[], n: number): ScoredQuestion | undefined {
+  const match = refs.filter((r) => r.role === "match");
+  if (!match.length || !hasExistingLook(inv)) return undefined;
+  const ids = match.map((r) => r.id).join(" and ");
+  const named = match.map((r) => `${r.id} (${r.source.length > 60 ? `${r.source.slice(0, 57)}...` : r.source})`).join(" and ");
+  const shared = inv.primitives.length + inv.composites.length;
+  const keep = `Keep the app's own look; use ${ids} for layout and content only`;
+  return {
+    id: `Q-${n}`, category: "scope",
+    text: `${named} ${match.length > 1 ? "are" : "is"} marked match (use ${match.length > 1 ? "their" : "its"} look exactly), but this app already has its own look (${inv.tokens.total} design tokens, ${shared} shared components). Which look should this change use?`,
+    options: [keep, `Restyle the whole app to ${ids}'s look (a design-system change: new colours, type and corners on every page)`],
+    recommended: keep, reason: "the smallest change: the rest of the app keeps matching what this request adds",
+    spans, impact: 3, impactReason: "a restyle changes every page's look, not only this request's screens, and the size of the work",
+    uncertainty: 3, score: 9, restyle: match.map((r) => r.id),
+  };
+}
+
+/** The match references to restyle the app to, when the person chose that on the card; otherwise undefined (keep the app's look). */
+export function restyleChosen(r: ClarifyResult | undefined): string[] | undefined {
+  const q = r?.asked.find((x) => x.restyle?.length);
+  if (!q || !r?.answers) return undefined;
+  const a = (r.answers[q.id] ?? q.recommended).trim();
+  return a === q.options[1] || /^restyle\b/i.test(a) ? q.restyle : undefined;
 }
 
 // ---------- steps ----------
@@ -235,7 +274,9 @@ export const clarifyStep: StepDef = {
       if (!cl.ok) return cl.outcome;
       const scored = scoreQuestions(cl.output.questions, sk.diffs, cb);
       const { asked, assumptions } = selectQuestions(scored, lightSpec(intent) ? LIGHT_QUESTIONS : ROUND1_CAP);
-      pending = { round: 1, asked, assumptions, differences: sk.diffs, conflicts: cl.output.conflicts, sketches: sk.sketches };
+      // runs with match references only: the app's own look against the client's (on top of the model's questions)
+      const restyle = restyleQuestion(ctx.state.info.references ?? [], readOutput<DesignInventory>(ctx.state, ctx.ledger, "ground", "design"), intent.spans.map((s) => s.id), asked.length + 1);
+      pending = { round: 1, asked: restyle ? [...asked, restyle] : asked, assumptions, differences: sk.diffs, conflicts: cl.output.conflicts, sketches: sk.sketches };
     }
     const { sketches: _s, ...result } = pending;
     void _s;
