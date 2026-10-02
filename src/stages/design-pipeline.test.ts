@@ -96,7 +96,7 @@ describe("design pipeline", () => {
     let planSaw: { sha: string; design: { screens: { id: string }[] } } | undefined;
     const plan: StepDef = { key: "plan", stage: "plan", templateVersion: "1", inputs: () => ({}), async run(ctx) { planSaw = approvedDesignFor(ctx.state, ctx.ledger); return { kind: "done", outputs: { plan: ctx.ledger.putJson({}) } }; } };
     const steps = designSteps({ sources: GF, purpose: "build" });
-    expect(steps.map((x) => x.key)).toEqual(["design", "design-baseline"]);
+    expect(steps.map((x) => x.key)).toEqual(["design", "design-baseline", "design-export"]);
     const [draw, approve] = steps as [StepDef, StepDef];
 
     const ledger = await newRun("greenfield");

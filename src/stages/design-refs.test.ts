@@ -90,8 +90,8 @@ const good = (): RefReadOut => ({ refs: [
 
 describe("design-refs", () => {
   it("is in the step list only when the run has references; without, the list is what it always was", async () => {
-    expect(designSteps().map((s) => s.key)).toEqual(["design", "design-baseline"]);
-    expect(designSteps({ refs: true }).map((s) => s.key)).toEqual(["design-refs", "design", "design-baseline"]);
+    expect(designSteps().map((s) => s.key)).toEqual(["design", "design-baseline", "design-export"]);
+    expect(designSteps({ refs: true }).map((s) => s.key)).toEqual(["design-refs", "design", "design-baseline", "design-export"]);
     const plain = replay((await newRun(false)).events());
     const withRefs = replay((await newRun(true)).events());
     expect(estimateSteps(plain).map((s) => s.key)).not.toContain("design-refs");

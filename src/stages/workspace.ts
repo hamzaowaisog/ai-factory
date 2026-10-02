@@ -9,6 +9,7 @@ import { addWorktree } from "../ledger/git.js";
 import { paths } from "../util/paths.js";
 import { DockerCli, type ContainerRuntime } from "../verify/runtime.js";
 import type { StepContext } from "./framework.js";
+import type { RunState } from "../ledger/state.js";
 
 export function snapshotFor(ctx: Pick<StepContext, "runId" | "state" | "project">): Snapshot {
   const { repoPath, baseCommit } = ctx.state.info;
@@ -47,4 +48,13 @@ export function runtime(): ContainerRuntime {
 }
 export function setRuntime(r: ContainerRuntime): void {
   rt = r;
+}
+
+/**
+ * Where the build's own changes start: the commit holding the design package when the first build commit
+ * put one in the repo, else the base. Diffs that judge the work (size, the UI size cap, the review) start here,
+ * so the package's files never count as the change.
+ */
+export function codeBase(state: Pick<RunState, "info" | "steps">): string {
+  return String(state.steps.get("stub-commit")?.data?.designCommit ?? state.info.baseCommit);
 }

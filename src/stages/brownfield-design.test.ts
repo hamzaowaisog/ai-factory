@@ -29,10 +29,10 @@ const BUILD = ["plan", "approve", "stub-commit", "author-tests", "integrate", "a
 
 describe("the design steps in a direct brownfield build", () => {
   it("draws and approves the design between the spec and the plan, reading the references first when there are some", async () => {
-    expect(await run()).toEqual([...SPEC, "design", "design-baseline", ...BUILD]);
-    expect(await run({}, { touchesUi: true })).toEqual([...SPEC, "design", "design-baseline", ...BUILD]);
+    expect(await run()).toEqual([...SPEC, "design", "design-baseline", "design-export", ...BUILD]);
+    expect(await run({}, { touchesUi: true })).toEqual([...SPEC, "design", "design-baseline", "design-export", ...BUILD]);
     const refs = [{ id: "R-1", kind: "image", source: "a.png", role: "inspire", roleGiven: false, images: [], colours: [], fonts: [], measured: "approximate", notes: [] }];
-    expect(await run({ references: refs })).toEqual([...SPEC, "design-refs", "design", "design-baseline", ...BUILD]);
+    expect(await run({ references: refs })).toEqual([...SPEC, "design-refs", "design", "design-baseline", "design-export", ...BUILD]);
   });
 
   it("drops them once intake finds no UI, and a build from an approved estimate or design follows that one", async () => {

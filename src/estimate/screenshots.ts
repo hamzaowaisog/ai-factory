@@ -12,7 +12,10 @@ import { pathToFileURL } from "node:url";
 
 export const VIEWPORTS = { phone: { width: 390, height: 844 }, tablet: { width: 820, height: 1180 }, desktop: { width: 1280, height: 800 } } as const;
 export type Viewport = keyof typeof VIEWPORTS;
-export interface Shot { file: string; screen: string; state: string; viewport: Viewport }
+/** `id` is the screen's id; `mode` and `lang` say when the picture is the dark mode or another language (the screen as it first shows) */
+export interface Shot { file: string; id?: string; screen: string; state: string; viewport: Viewport; mode?: "dark"; lang?: string }
+/** How the walk runs: `reproducible` gives the same picture on every run (the design package); `max` caps the pictures. */
+export interface WalkOptions { reproducible?: boolean; max?: number }
 /** `title` is the page's name as the lead knows it; shots are labelled with it when given */
 export interface ScreenShotInput { id: string; route: string; states: string[]; title?: string }
 /** A fault of the drawn page a person would notice: text past the app's edge, text cut off by its box, or two texts on top of each other. */
@@ -149,9 +152,9 @@ export async function readDemoLayout(demoFile: string, ids: string[]): Promise<R
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "state";
 
 /** Screenshot the demo page. `outDir` gets `<screen>-<state>-<viewport>.png`. Never throws. */
-export async function captureDemo(demoFile: string, screens: ScreenShotInput[], outDir: string): Promise<ShotResult> {
+export async function captureDemo(demoFile: string, screens: ScreenShotInput[], outDir: string, o: WalkOptions = {}): Promise<ShotResult> {
   if (process.env.FACTORY_NO_SCREENSHOTS) return { shots: [], note: "screenshots are switched off (FACTORY_NO_SCREENSHOTS)" };
-  return walkDemo(demoFile, screens, outDir);
+  return walkDemo(demoFile, screens, outDir, o);
 }
 
 /**
@@ -169,55 +172,67 @@ export async function checkDemoLayout(demoFile: string, screens: ScreenShotInput
  * pictured as each screen first shows; a product in two languages is also pictured in the other one, and a product in both
  * colour modes in dark mode (at phone and desktop width).
  */
-async function walkDemo(demoFile: string, screens: ScreenShotInput[], outDir?: string): Promise<ShotResult> {
+// a fixed moment for reproducible pictures: a demo that shows "today" shows the same day on every run
+const FIXED_TIME = new Date("2026-01-15T10:00:00Z");
+// nothing moves and no caret blinks, so the same page gives the same pixels
+const STILL_CSS = "*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}";
+
+async function walkDemo(demoFile: string, screens: ScreenShotInput[], outDir?: string, o: WalkOptions = {}): Promise<ShotResult> {
   if (!screens.length) return { shots: [] };
   const exe = findChromium();
   if (!exe) return { shots: [], note: "no browser found, so no screenshots were taken (set FACTORY_CHROMIUM to a Chromium binary)" };
   let browser: { close(): Promise<void>; newPage(o: object): Promise<any> } | undefined;
   const shots: Shot[] = [], issues: LayoutIssue[] = [];
-  const full = () => !!outDir && shots.length >= MAX_SHOTS;
+  const max = o.max ?? MAX_SHOTS, repro = !!o.reproducible;
+  const full = () => !!outDir && shots.length >= max;
   try {
     const { chromium } = await import("playwright-core");
     if (outDir) mkdirSync(outDir, { recursive: true });
     browser = await chromium.launch({ executablePath: exe, args: ["--no-sandbox"], timeout: 30_000 });
     const url = pathToFileURL(demoFile).href;
     for (const vp of WALK) {
-      const page = await browser.newPage({ viewport: VIEWPORTS[vp], ...(outDir ? {} : { reducedMotion: "reduce" }) });
+      const page = await browser.newPage({ viewport: VIEWPORTS[vp], ...(outDir && !repro ? {} : { reducedMotion: "reduce" }), ...(repro ? { deviceScaleFactor: 1, locale: "en-US", timezoneId: "UTC", bypassCSP: true } : {}) });
       page.setDefaultTimeout(10_000);
+      if (repro) await page.clock.setFixedTime(FIXED_TIME);
       for (const sc of screens) {
         const screen = sc.title ?? `${sc.id} ${sc.route}`, sel = `#${sc.id.replace(/[^\w-]/g, "\\$&")}`;
         /** show state `k` (after `before`, run in the page), check it, and picture it when `shoot` */
-        const step = async (k: number, st: string, shoot: boolean, before?: string) => {
+        const step = async (k: number, st: string, shoot: boolean, before?: string, extra: Pick<Shot, "mode" | "lang"> = {}) => {
           await page.locator(`${sel} [data-state="${k}"]`).click();
           if (before) await page.evaluate(before);
           // move the pointer off the tab (a hovered tab is drawn differently) and show the page from its top
           await page.mouse.move(0, 0);
           await page.evaluate(() => window.scrollTo(0, 0));
-          await page.waitForTimeout(outDir && shoot ? 1600 : 150); // the page animates in (at once with reduced motion)
+          if (repro) {
+            // the same pixels every run: no motion, the fonts loaded, the page settled
+            await page.addStyleTag({ content: STILL_CSS });
+            await page.evaluate("document.fonts.ready.then(function(){return 1})");
+            await page.waitForTimeout(250);
+          } else await page.waitForTimeout(outDir && shoot ? 1600 : 150); // the page animates in (at once with reduced motion)
           // what a person would see is wrong with the page (best effort: a failed check is no fault of the page)
           try { for (const f of (await page.evaluate(`${LAYOUT_CHECK}(${JSON.stringify(sc.id)})`)) as Omit<LayoutIssue, "screen" | "state" | "viewport">[]) issues.push({ ...f, screen, state: st, viewport: vp }); } catch { /* not checked */ }
           if (!outDir || !shoot) return;
           const file = `${slug(sc.id)}-${slug(st)}-${vp}.png`;
           await page.screenshot({ path: join(outDir, file), fullPage: true });
-          shots.push({ file, screen, state: st, viewport: vp });
+          shots.push({ file, id: sc.id, screen, state: st, viewport: vp, ...extra });
         };
         await page.goto(`${url}#${encodeURIComponent(sc.id)}`);
         const states = sc.states.length ? sc.states : ["default"];
         for (const [k, st] of states.entries()) {
-          if (full()) return { shots, issues, note: `stopped at ${MAX_SHOTS} screenshots` };
+          if (full()) return { shots, issues, note: `stopped at ${max} screenshots` };
           await step(k, st, vp !== "tablet" || k === 0);
         }
         // a product in two languages: the page as it first shows, in the other one (mirrored when it reads right to left)
         const other = (await page.evaluate(`(function(){var e=document.getElementById("i18n");var i=e&&JSON.parse(e.textContent);return i&&i.langs.length>1?i.labels[1]:""})()`)) as string;
         if (other) {
-          if (full()) return { shots, issues, note: `stopped at ${MAX_SHOTS} screenshots` };
-          await step(0, `In ${other}`, vp !== "tablet", "window.__lang(1)");
+          if (full()) return { shots, issues, note: `stopped at ${max} screenshots` };
+          await step(0, `In ${other}`, vp !== "tablet", "window.__lang(1)", { lang: other });
           await page.evaluate("window.__lang(0)");
         }
         // a product in both colour modes: the page as it first shows, in dark mode
         if (await page.locator("button[data-mode]").count()) {
-          if (full()) return { shots, issues, note: `stopped at ${MAX_SHOTS} screenshots` };
-          await step(0, DARK, vp !== "tablet", 'window.__mode("dark")');
+          if (full()) return { shots, issues, note: `stopped at ${max} screenshots` };
+          await step(0, DARK, vp !== "tablet", 'window.__mode("dark")', { mode: "dark" });
           await page.evaluate('window.__mode("light")');
         }
       }

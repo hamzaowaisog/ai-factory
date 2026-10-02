@@ -612,9 +612,12 @@ function withFamilies(theme: Theme, reading: DesignRefsArt | undefined, use: Ref
  * The design step for any mode: `src` names the steps it reads (the estimate's by default). The key,
  * template version and inputs are the same for every mode, so the estimate's runs replay unchanged.
  */
+/** The design step's template version (recorded in each design package). */
+export const DESIGN_TEMPLATE_VERSION = "20";
+
 export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
   return {
-    key: "design", stage: "design", templateVersion: "20",
+    key: "design", stage: "design", templateVersion: DESIGN_TEMPLATE_VERSION,
     inputs: (s, l) => {
       if (!sourcesReady(s, src)) return undefined;
       // with references the design waits for their reading (design-refs); without, the inputs are what they always were

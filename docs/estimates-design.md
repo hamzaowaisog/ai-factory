@@ -349,7 +349,7 @@ Greenfield is not built yet. The design work is built as one piece that any mode
     - Tests: the step list (direct, with references, no UI, from an estimate or design, planned before the change), the question and its answer, the card with no auto answer, the design kept and restyled, the card and estimate lines. 740 tests pass.
 10. **Docs, tests and a visual check.** Fixtures per input type; a run with no references unchanged; one live run each with a URL, a JPEG and a Figma link (needs `ANTHROPIC_API_KEY` and `FIGMA_TOKEN` in `~/.factory/.env`).
 
-### Design handoff (requirements 2 and 3, approved 2026-10-02; step 1 built)
+### Design handoff (requirements 2 and 3, approved 2026-10-02; steps 1 and 2 built)
 
 Two requirements, planned together because they read the same thing:
 
@@ -463,7 +463,7 @@ Added in design template 20 (Done), with plain labels still accepted where a fie
 - **As built, the demo:** split menus, paging, show/hide password, combobox filtering and multiselect chips, the popover and tooltips all work; menus and lists close on Escape or a click elsewhere. The Components page is listed under "Design system" in the walkthrough, pictured on the approval card, and leaves out the rarer parts no page uses.
 - Later, only when a project needs them: rating input (reviews are shown today but cannot be given), tags input (combobox chips cover most uses), colour picker, tree view, rich text.
 
-#### The design package (requirement 2: storage)
+#### The design package (requirement 2: storage; Done)
 
 A new step, `design-export`, runs after `design-baseline` is approved. It writes a package that does not depend on any stack:
 
@@ -480,6 +480,18 @@ design/vN/
 - **Kept in two places:** the factory project store, and the repo's `design/` folder, committed with the first build commit so developers and later brownfield runs see it.
 - **Reproducible shots:** a frozen clock, no animation, fonts loaded, fixed viewports and the approved sample data. The same package gives the same pictures on every run; the fidelity check and the exports depend on this.
 - **A change after approval** makes v(N+1): the design step runs again on the change, and the approval card shows the old and new screens side by side. The build pins a version by sha, and only the screens that changed are planned again, as change tasks.
+
+As built (`src/design/package.ts`, `src/stages/design-export.ts`):
+
+- **Where.** The store is `<FACTORY_HOME>/designs/<project>/<line>/vN/`; the repo is `design/<line>/vN/`. The *line* is the run that approved v1, and every later version of that design keeps it, so two designs in one repo never clash. Besides the files above, the package holds `tokens.css` (the same look as CSS variables). There is no `tokens.json` when the look is the repo's own (`themeSource: "repo"`); the manifest says `look: "repo"`.
+- **Manifest.** `kind`, `schemaVersion` (1), line, version, `designSha`, `demoSha`, run, product, `approved {by, at}`, template version, `designSchemaVersion`, references (with each one's use), screens, `previous` and `changes` (a change only), shots, and every file's sha-256. `checkPackage` finds a missing or changed file. `readDesignJson` applies migrations and refuses a format newer than the factory knows.
+- **Written once.** The folder is filled under a temporary name and then moved into place, so it is never half written. Writing the same design again returns the existing package; a different design in the same version is refused.
+- **Tokens.** W3C Design Tokens 2025.10. `primitive.color.<mode>.*` holds the values (colour objects with `components` and `hex`). The semantic names (`color.brand`, `color.text-muted`, ...) are aliases into the default mode, and a product with both modes names the dark alias under `$extensions["ai.factory.modes"]`. Also included: font family and weight, radius, space, shadow, and motion (`cubicBezier`).
+- **Reproducible shots.** Chromium with the clock fixed at 2026-01-15 10:00 UTC, reduced motion, animations and transitions off, caret hidden, fonts awaited, scale 1, `en-US` locale and UTC. Capped at 240 pictures. A test checks that two captures are byte for byte the same. Without a browser, the manifest says why there are no pictures.
+- **When.** The `design-export` step comes last in every mode's design pipeline. A run seeded from another run's design (a sibling estimate, `--from-design`, a build from an estimate) uses that run's package. A run approved before packages existed gets its package written the first time one is needed. Brownfield runs whose stubs were already committed do not gain the step, so they are not redone.
+- **Versions and the change card.** A change request's design becomes the next version in the line of the design it changes, with `previous` and `changes` (the screen diff). If the earlier package is missing, it is written first. The change card says "this change becomes vN of design L (vM was approved in R)". The earlier version's matching pictures are copied into `preview/before/`, so the run page's Preview shows them before / after. A run with no earlier pictures says so on the card.
+- **The first build commit.** `stub-commit` copies the package into `design/<line>/vN/` (manifest last) and commits it on its own (`factory: design L vN (approved by X) for <run>`) before the stubs. Diffs that judge the build start after that commit (`codeBase`): the size check, the UI size cap, the review and the PR lines. The secret scan still covers everything. The design inventory and the size checks skip `design/<line>/vN/`, so later runs never read the package as app code.
+- **Left for step 4.** Planning only the screens that changed, as change tasks, is part of the plan wiring.
 
 #### Exports (requirement 3)
 
@@ -609,7 +621,7 @@ Like the other build gates, the blocking ones can be waived with a reason on the
    - The schema additions, drawn and working in the demo, with data checks.
    - The Components page; `design-a11y`; UI complexity points.
    - Design template 20. `docs/design-references.md` lists the new controls.
-2. **Design package.** The `design-export` step, `manifest.json`, `schemaVersion`, W3C tokens with semantic names, reproducible reference shots, versions and the side-by-side change card, and the repo `design/` folder on the first build commit.
+2. **Design package.** Done (as built under "The design package"). The `design-export` step, `manifest.json`, `schemaVersion`, W3C tokens with semantic names, reproducible reference shots, versions and the side-by-side change card, and the repo `design/` folder on the first build commit.
 3. **Exports.** `factory design export` (png, pdf, html, tokens, json) and `export list`, `--design-export` on every mode, the export API and the **Export button** on the design card and Design tab, and the design PDF beside the estimate's client workbook.
 4. **Kit and scaffold.** `uiTarget`, the token generator for web, the `next-shadcn` / `vite-shadcn` kit with its tests, the scaffold generator, and plan and implement wiring (design-system task first, behaviour-only implement prompt).
 5. **Fidelity and tests.** Fixture mode, the four levels with gates `design.tokens`, `design.structure` and `design.a11y`, tests generated from the design, the baseline workflow on the accept card.

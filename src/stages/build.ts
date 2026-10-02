@@ -1,6 +1,6 @@
 // Build side of the brownfield slice (stages-aligned §1): discover/baseline → stub commit →
 // author-tests (fails on base twice → lock) → implement ⟲ task verify → integrate → accept.
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
 import type { Failure, IntentBody, LedgerEvent, PlanBody, SpecDraft, TestResult, TestRun } from "../contracts/index.js";
@@ -27,8 +27,10 @@ import { header, outputOf, requireOutput, type StepContext, type StepDef, type S
 import { modelFor } from "./routing.js";
 import { family } from "../runners/types.js";
 import { S } from "./think.js";
-import { ensureWorktree, runtime, snapshotFor } from "./workspace.js";
+import { codeBase, ensureWorktree, runtime, snapshotFor } from "./workspace.js";
 import { replay, splitKey } from "../ledger/state.js";
+import { REPO_DESIGN_DIR, repoFiles, type DesignPackage } from "../design/package.js";
+import { exportRunPackage } from "./design-export.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import { LANE, lightBuild, testWriterTurns } from "./lane.js";
 import { lessonPointers, readLessons, usableLessons } from "../context/lessons.js";
@@ -207,20 +209,50 @@ export const discoverStep: StepDef = {
 };
 
 // ---------- stub commit (D) ----------
+/**
+ * The approved design's package for the repo (docs/estimates-design.md, "The design package"): this run's own,
+ * or the one of the estimate or design run it follows. Undefined without an approved design; a package that
+ * cannot be written is logged and the build goes on without it.
+ */
+async function packageForBuild(ctx: StepContext): Promise<DesignPackage | undefined> {
+  if (!approvedDesignFor(ctx.state, ctx.ledger)) return undefined;
+  try {
+    const r = await exportRunPackage(ctx.state, ctx.ledger, ctx.log);
+    if ("none" in r) { ctx.log(`stub-commit: no design package (${r.none})`); return undefined; }
+    return r;
+  } catch (e) {
+    ctx.log(`stub-commit: the design package was not added to the repo: ${(e as Error).message}`);
+    return undefined;
+  }
+}
+
 export const stubCommitStep: StepDef = {
   key: "stub-commit", stage: "stub-commit", templateVersion: "1",
-  inputs: (s) => (s.steps.get("approve")?.status === "completed" ? { plan: s.steps.get("plan")!.outputs[0], approval: s.steps.get("approve")!.outputs[0] } : undefined),
+  // (the design package is an input only when this run wrote one, so runs from before packages keep their hash)
+  inputs: (s) => (s.steps.get("approve")?.status === "completed" ? { plan: s.steps.get("plan")!.outputs[0], approval: s.steps.get("approve")!.outputs[0], ...(outputOf(s, "design-export") ? { design: outputOf(s, "design-export") } : {}) } : undefined),
   coding: true,
   async run(ctx) {
     const plan = requireOutput<Plan>(ctx.state, ctx.ledger, "plan");
     const wt = await ensureWorktree(ctx, ctx.state.info.baseCommit!);
     await resetHard(wt, ctx.state.info.baseCommit!);
+    // the approved design goes in first, as its own commit: developers and later runs read it from the repo
+    const pkg = await packageForBuild(ctx);
+    let designCommit: string | undefined;
+    if (pkg) {
+      for (const f of repoFiles(pkg)) {
+        mkdirSync(dirname(join(wt, f.path)), { recursive: true });
+        copyFileSync(f.from, join(wt, f.path));
+      }
+      const m = pkg.manifest;
+      designCommit = await commitAll(wt, `factory: design ${m.line} v${m.version} (approved by ${m.approved.by}) for ${ctx.runId}`);
+    }
     for (const s of plan.stubs) {
       mkdirSync(dirname(join(wt, s.path)), { recursive: true });
       writeFileSync(join(wt, s.path), s.content);
     }
     const commit = plan.stubs.length ? await commitAll(wt, `factory: interface stubs for ${ctx.runId}`) : await headSha(wt);
-    return { kind: "done", outputs: { stubs: ctx.ledger.putJson({ commit, files: plan.stubs.map((s) => s.path) }) }, treeSha: commit, data: { commit } };
+    const design = pkg ? { line: pkg.manifest.line, version: pkg.manifest.version, designSha: pkg.manifest.designSha, dir: `${REPO_DESIGN_DIR}/${pkg.manifest.line}/v${pkg.manifest.version}` } : undefined;
+    return { kind: "done", outputs: { stubs: ctx.ledger.putJson({ commit, files: plan.stubs.map((s) => s.path), ...(design ? { design, designCommit } : {}) }) }, treeSha: commit, data: { commit, ...(design ? { designCommit, design } : {}) } };
   },
 };
 
@@ -681,7 +713,7 @@ export const integrateStep: StepDef = {
     const baseline = ctx.ledger.getJson<TestRun>(baselineSha);
     const head = String(integrateStep.inputs(ctx.state, ctx.ledger)!.head);
     const wt = await ensureWorktree(ctx, head);
-    const diff = await diffSummary(wt, ctx.state.info.baseCommit!, head, lock);
+    const diff = await diffSummary(wt, codeBase(ctx.state), head, lock);
     const diffSha = ctx.ledger.putJson(diff);
     const expectPass = [...lock.tests.map((t) => t.testId), ...lock.characterisation.map((c) => c.testId)];
     const compareToBaseline = baseline.results.map((b) => b.id);
@@ -696,7 +728,7 @@ export const integrateStep: StepDef = {
     }
     // the UI change as built, next to the size class the approved design allowed (both recorded, so estimates can be read against builds)
     const dRef = approvedDesignFor(ctx.state, ctx.ledger)?.sha;
-    const uiActual = dRef && touchesUiFiles(wt, ctx.state.info.baseCommit!, head) ? actualSize(wt, ctx.state.info.baseCommit!, head, designOptions(ctx.project.design)) : undefined;
+    const uiActual = dRef && touchesUiFiles(wt, codeBase(ctx.state), head) ? actualSize(wt, codeBase(ctx.state), head, designOptions(ctx.project.design)) : undefined;
     const uiApproved = dRef ? approvedLevel(ctx.ledger.getJson(dRef)) : undefined;
     const gated = await gateAll(ctx, "integrate", head, [
       [testExpectations, { run: testRun, baseline: baselineSha }],

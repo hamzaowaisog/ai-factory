@@ -31,7 +31,9 @@ export function brownfieldSteps(state: RunState): StepDef[] {
   const noUi = intake?.status === "completed" && intake.data?.touchesUi === false;
   // (a run that planned without them, started before builds drew designs, goes on as it was rather than replanning)
   const plannedWithout = state.steps.has("plan") && !state.steps.has("design");
-  const design = state.info.estimateRef || state.info.designRef || noUi || plannedWithout ? [] : designSteps({ sources: BROWNFIELD_SOURCES, purpose: "build", refs: !!state.info.references?.length });
+  // (a run whose first build commit was made before design packages existed goes on without one, rather than redoing its commits)
+  const committedWithout = state.steps.get("stub-commit")?.status === "completed" && !state.steps.has("design-export");
+  const design = state.info.estimateRef || state.info.designRef || noUi || plannedWithout ? [] : designSteps({ sources: BROWNFIELD_SOURCES, purpose: "build", refs: !!state.info.references?.length, exportPackage: !committedWithout });
   return [
     discoverStep, intakeStep, brownfieldGroundStep, ...spec, ...design, planStep, approveStep,
     stubCommitStep, authorTestsStep,

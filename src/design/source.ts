@@ -13,6 +13,8 @@ export interface FileSource {
 }
 
 export const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", ".next", "out", "coverage", ".turbo", ".vercel", ".contentlayer"]);
+/** A file of an approved design package in a repo (`design/<line>/vN/...`, src/design/package.ts): not app code, so it is never read as the app. */
+export const DESIGN_PACKAGE_PATH = /(^|\/)design\/[^/]+\/v\d+\//;
 
 const HARDENING = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-c", "protocol.file.allow=never"];
 
@@ -40,7 +42,7 @@ export function dirSource(root: string): FileSource {
         }
       };
       walk(root);
-      files = out.sort();
+      files = out.filter((f) => !DESIGN_PACKAGE_PATH.test(f)).sort();
       return files;
     },
     read(path) {
@@ -58,7 +60,7 @@ export function gitSource(repo: string, commit: string): FileSource {
   return {
     list() {
       files ??= gitSync(repo, ["ls-tree", "-r", "--name-only", "-z", commit]).split("\0").filter(Boolean)
-        .filter((f) => !f.split("/").some((seg) => SKIP_DIRS.has(seg))).sort();
+        .filter((f) => !f.split("/").some((seg) => SKIP_DIRS.has(seg)) && !DESIGN_PACKAGE_PATH.test(f)).sort();
       return files;
     },
     read(path) {

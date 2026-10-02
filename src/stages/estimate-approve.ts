@@ -3,7 +3,7 @@
 //   approve-estimate (E7)  a lead approves in a terminal, tied to the estimate's hash
 //   export                 deterministic code writes the team and client workbooks, then lints them cell by cell
 import { createHash } from "node:crypto";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import type { z } from "zod";
 import type { Breakdown, Design, Estimate, IntentBody, Spec } from "../contracts/index.js";
@@ -11,7 +11,7 @@ import { designBaseline, leadApproval } from "../estimate/gates.js";
 import { exportWorkbooks, type ExportInput } from "../estimate/export.js";
 import { considerationsFrom } from "../estimate/considerations.js";
 import { diffDesigns, diffEstimates } from "../estimate/lineage.js";
-import { buildDemo, COMPONENTS_ID, demoStates, frameDataUri } from "../estimate/demo.js";
+import { buildDemo, frameDataUri } from "../estimate/demo.js";
 import { designTokens } from "../estimate/tokens.js";
 import { screenUi, uiFactors, type ScreenUi } from "../estimate/ui-complexity.js";
 import { captureDemo, LAYOUT_FAULT, type LayoutIssue, type ShotResult, type Viewport } from "../estimate/screenshots.js";
@@ -19,7 +19,9 @@ import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
 import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
 import { failure } from "../gates/engine.js";
 import type { RunState } from "../ledger/state.js";
-import type { Ledger } from "../ledger/ledger.js";
+import { Ledger } from "../ledger/ledger.js";
+import { demoShotList, findPackage, nextVersion, type DesignPackage } from "../design/package.js";
+import { ensurePackage } from "./design-export.js";
 import { hashJson } from "../util/hash.js";
 import type { ClarifyResult } from "./clarify.js";
 import { gate, settingsOf } from "./estimate.js";
@@ -75,14 +77,22 @@ const CARD_HEAD: Record<DesignPurpose, (runId: string) => string[]> = {
   design: (runId) => [`# Approve the design`, ``, `Run ${runId}, design only. Approving keeps this mock, clickable demo and look; nothing is sized or built yet. Afterwards an estimate sizes it (factory estimate --from-design ${runId}) and a build follows it (factory start --project <name> --from-design ${runId}) without drawing it again.`, ``],
 };
 
-export function designCard(runId: string, design: DesignT, hash: string, extra: { demo?: string; diff?: string[]; shots?: { dir: string; count: number; note?: string; issues?: LayoutIssue[] }; purpose?: DesignPurpose; refs?: { id: string; role: string; source: string }[] } = {}): string {
+/** The approved version a change request changes, on its card: what it becomes and how many pictures sit side by side. */
+export interface CompareCard { line: string; was: number; becomes: number; runId: string; pairs: number; dir?: string; note?: string }
+
+const compareLines = (c: CompareCard): string[] => [
+  `Version: this change becomes v${c.becomes} of design ${c.line} (v${c.was} was approved in ${c.runId}).`,
+  c.pairs ? `Side by side: ${c.pairs} picture(s) of v${c.was} next to the new ones (Preview on the run page, before / after)${c.dir ? `; the earlier pictures are in ${c.dir}` : ""}.` : `Side by side: none${c.note ? ` (${c.note})` : ""}.`, ``,
+];
+
+export function designCard(runId: string, design: DesignT, hash: string, extra: { demo?: string; diff?: string[]; compare?: CompareCard; shots?: { dir: string; count: number; note?: string; issues?: LayoutIssue[] }; purpose?: DesignPurpose; refs?: { id: string; role: string; source: string }[] } = {}): string {
   return [
     ...CARD_HEAD[extra.purpose ?? "estimate"](runId),
     `Flow: ${design.flow}`, design.figmaUrl ? `Figma: ${design.figmaUrl}` : "",
     extra.demo ? `Clickable demo (open in a browser, walk every screen and state before approving): ${extra.demo}` : "",
     extra.shots?.count ? `Screenshots: ${extra.shots.count} in ${extra.shots.dir} (each screen and state at phone and desktop width, each screen on a tablet${design.theme?.mode === "auto" ? " and in dark mode" : ""})${extra.shots.note ? `; ${extra.shots.note}` : ""}` : extra.shots?.note ? `Screenshots: none (${extra.shots.note})` : "", ``,
     ...layoutLines(extra.shots?.issues ?? []),
-    ...(extra.diff ? [`## Change from the approved design`, ...(extra.diff.length ? extra.diff.map((l) => `- ${l}`) : ["- no screen changed"]), ``] : []),
+    ...(extra.diff ? [`## Change from the approved design`, ...(extra.compare ? compareLines(extra.compare) : []), ...(extra.diff.length ? extra.diff.map((l) => `- ${l}`) : ["- no screen changed"]), ``] : []),
     ...reworkCardLines(design as never),
     `Screens (${design.screens.length}):`,
     ...design.screens.map((s) => { const x = s as typeof s & { states?: string[]; size?: string; mock?: { title: string } }; const title = x.mock?.title ? `${x.mock.title}: ` : ""; return `- ${title}${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}${x.size ? `; ${x.size}` : ""}${x.states?.length ? `; states: ${x.states.join(", ")}` : ""}${(s as { refs?: string[] }).refs?.length ? `; from ${(s as { refs?: string[] }).refs!.join(", ")}` : ""}${uiLine(screenUi(s as never))}`; }), ``,
@@ -165,9 +175,9 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
         copyFileSync(join(ctx.ledger.dir, "attachments", "frames", basename(f.name)), join(previewDir, "frames", basename(f.name)));
         images.push({ file: `frames/${basename(f.name)}`, screen: label(sc), ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}), viewport: "desktop" });
       }
-      const writePreview = (shots: ShotResult["shots"]) => writeFileSync(join(previewDir, "preview.json"), JSON.stringify({
+      const writePreview = (shots: ShotResult["shots"], before: Set<string> = new Set()) => writeFileSync(join(previewDir, "preview.json"), JSON.stringify({
         site: { entry: "index.html", screens: d.screens.map((sc) => ({ path: `index.html#${sc.id}`, title: label(sc), ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}) })) },
-        images: [...images, ...shots.map((x) => ({ file: `shots/${x.file}`, screen: `${x.screen} - ${x.state}`, viewport: x.viewport }))],
+        images: [...images, ...shots.map((x) => ({ file: `shots/${x.file}`, screen: `${x.screen} - ${x.state}`, viewport: x.viewport, ...(before.has(x.file) ? { before: `before/${x.file}` } : {}) }))],
       }, null, 2));
       writePreview([]);
       const parentDesign = ctx.state.info.parent?.kind === "change" && ctx.state.info.parent.designSha ? ctx.ledger.getJson<Parameters<typeof diffDesigns>[0]>(ctx.state.info.parent.designSha) : undefined;
@@ -189,13 +199,41 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
       const bundle = bundleOf(past.length);
       // pictures of the demo, only when a person is about to look at it; best effort, never a reason to stop
       const shotsDir = join(previewDir, "shots");
-      const taken = await captureDemo(demoFile, [...d.screens.map((sc) => ({ id: sc.id, route: sc.route, states: demoStates(sc as never), title: label(sc) })), ...(d.screens.some((sc) => sc.mock) && !d.screens.some((sc) => sc.id === COMPONENTS_ID) ? [{ id: COMPONENTS_ID, route: "/components", states: ["All states"], title: "Components" }] : [])], shotsDir);
-      if (taken.shots.length) writePreview(taken.shots);
+      const taken = await captureDemo(demoFile, demoShotList(d.screens), shotsDir);
+      // a change request: the approved version's pictures beside the new ones (the run page shows before / after)
+      const compare = diff ? await beforePictures(ctx, previewDir, taken.shots.map((x) => x.file)) : undefined;
+      if (taken.shots.length) writePreview(taken.shots, compare?.files);
       if (taken.note) ctx.log(`design-baseline: ${taken.note}`);
       if (taken.issues?.length) ctx.log(`design-baseline: ${taken.issues.length} layout problem(s) in the demo, listed on the card`);
-      return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle, { purpose, demo: demoFile, ...(ctx.state.info.references?.length ? { refs: ctx.state.info.references } : {}), ...(diff ? { diff } : {}), shots: { dir: shotsDir, count: taken.shots.length, ...(taken.note ? { note: taken.note } : {}), ...(taken.issues?.length ? { issues: taken.issues } : {}) } }) } };
+      return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle, { purpose, demo: demoFile, ...(ctx.state.info.references?.length ? { refs: ctx.state.info.references } : {}), ...(diff ? { diff } : {}), ...(compare ? { compare: compare.card } : {}), shots: { dir: shotsDir, count: taken.shots.length, ...(taken.note ? { note: taken.note } : {}), ...(taken.issues?.length ? { issues: taken.issues } : {}) } }) } };
     },
   };
+}
+
+/**
+ * The approved version's pictures next to a change request's (best effort): its package is found, or written
+ * when the earlier run has none yet, and each of its pictures with the same name as a new one is copied into
+ * `preview/before/`. The card says what version the change becomes.
+ */
+async function beforePictures(ctx: { state: RunState; log: (m: string) => void }, previewDir: string, shots: string[]): Promise<{ files: Set<string>; card: CompareCard } | undefined> {
+  const p = ctx.state.info.parent;
+  if (p?.kind !== "change" || !p.designSha) return undefined;
+  const project = ctx.state.info.project;
+  let pkg: DesignPackage | undefined;
+  try { pkg = findPackage(project, p.designSha) ?? (Ledger.exists(p.runId) ? await ensurePackage(p.runId, ctx.log) : undefined); } catch (e) { ctx.log(`design-baseline: the approved version's package could not be read: ${(e as Error).message}`); }
+  if (!pkg) return { files: new Set(), card: { line: p.runId, was: 1, becomes: 2, runId: p.runId, pairs: 0, note: "the approved version has no pictures" } };
+  const files = new Set<string>();
+  const dir = join(previewDir, "before");
+  rmSync(dir, { recursive: true, force: true });
+  for (const f of shots) {
+    const from = join(pkg.dir, "shots", f);
+    if (!existsSync(from)) continue;
+    mkdirSync(dir, { recursive: true });
+    copyFileSync(from, join(dir, f));
+    files.add(f);
+  }
+  const m = pkg.manifest;
+  return { files, card: { line: m.line, was: m.version, becomes: Math.max(nextVersion(project, m.line), m.version + 1), runId: m.run.id, pairs: files.size, ...(files.size ? { dir: join(pkg.dir, "shots") } : { note: m.shots.length ? "no picture of the same screen and state" : m.shotsNote ?? "the approved version has no pictures" }) } };
 }
 
 export const designBaselineStep: StepDef = makeDesignApprovalStep();
