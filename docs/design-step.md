@@ -12,7 +12,7 @@ The four pieces, and where each sits in a run:
 | **UI change size** | Sorts a change into **no UI**, **screen tweak**, **new screen** or **design-system change**, with a plain list of reasons | **After plan**, from the plan's file list; again **after integrate**, from the real diff | Built. The approval card now shows the size |
 | **Size-cap check** | Fails when the finished diff is a bigger UI change than the size that was approved | **After integrate**, as a gate | Wired into integrate |
 | **Fidelity check** | Lint of the diff: theme tokens only, existing components only, no new building blocks. Also traces requirements to screens both ways, and compares layout and accessibility between the approved mock and the final screens | **After implement** (lint) and at **accept** (screenshots) | Lint wired into implement. Comparisons built; `factory design capture` and `compare` take the screenshots by hand |
-| **Brief cleaner** | Turns an untrusted design extract (Figma export, screenshot reading, brand guide) into typed fields only | Before **design-read**, in the locked room | Built |
+| **Brief cleaner** | Turns an untrusted design extract (Figma export, screenshot reading, brand guide) into typed fields only | In the **`design-refs`** step (the design-read of `stages-aligned.md`), in the locked room | Built; first caller is `design-refs` (being built, see below) |
 
 What the size decides:
 - **No UI:** no design step.
@@ -23,6 +23,15 @@ What the size decides:
 On real repos, the ported size check agrees with hand labels on 47 of 56 commits; the teammate's original got 32. It finds every page on two Next.js apps, where the original found none. See `docs/design-eval/results.md`.
 
 **Not built:** the screenshot step (it needs a Node + Chromium lab container), a mock rendered in the real app (the estimate's design step draws a screen inventory and a themed clickable demo with every state and a Full data tab instead, see `estimates-design.md`), direction proposals for new apps (their data files are missing), the pixel diff, and the calls from discover and integrate.
+
+## Design references and one design pipeline for every mode (approved 2026-10-02, being built)
+
+Full plan: `docs/estimates-design.md`, "Design references". In short:
+
+- **References in any form, in every mode.** `--ref <file|url>` (role `match`, `inspire` or `layout`, optional note) on the terminal, and a "Design references" section on the factory UI's New run form for every mode. Images, URLs, Figma links and exports, PDFs and brand guides are turned into one form by code at intake (pictures as PNG, measured colours, exact styles where the source has them). A read-only vision step, `design-refs`, reads them into typed fields through the brief cleaner. With no references, nothing changes.
+- **Images reach the model (built).** A thinking step can carry image sections (`S.image`): untrusted, in the user message only, numbered `<untrusted_image n="k">` markers, at most 20 per briefing, 1,600 tokens each. The runner reads the type from the bytes (PNG, JPEG, GIF, WebP, at most 5 MB) and sends Anthropic, OpenAI and local chat servers `Image k:` then the picture. Agent steps (which write code) refuse images; they get only the typed design and tokens.
+- **One design pipeline.** `designSteps()` returns `[design-refs?, design, design-approval]` and is what estimate, brownfield and later greenfield add to their step lists. Its inputs come through `designInputs(state)` (spec, UI intent, repo inventory if any, references, earlier design), and plan and implement read the result only through `approvedDesignFor(state)`, so a build gets the approved screens and tokens whether its design was approved in the same run or in the estimate it came from. Greenfield has no step list yet; when it is built it adds `...designSteps()`.
+- **Brownfield builds get the design step** before plan when the request touches UI and the run is not seeded from an approved estimate. A `match` reference whose look differs from the repo's is asked about on the clarify card; a restyle is a design-system change.
 
 ## The four sizes, precisely
 

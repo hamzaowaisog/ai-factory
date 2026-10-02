@@ -211,7 +211,7 @@ Format: **purpose** · runner / model · inputs → output · gate(s) after · h
 
 ## 6. Gap decisions (Claude, 2026-09-27; owner per Ahsan's delegation)
 These close the "undecided" items above. All are reversible defaults.
-- **Design (C10):** split in two. `design-read` (L, LR, read-large, T3) turns the spec and any Figma frames or images into a `design` artifact: flows, screen list and REQ↔screen map. `design-mock` (A, CA, agent class) builds the React+Vite mock in a scratch folder from the derived `design` artifact only. The mock's URL goes on the approval card.
+- **Design (C10):** split in two. `design-read` (L, LR, read-large, T3) turns the spec and any Figma frames or images into a `design` artifact: flows, screen list and REQ↔screen map. `design-mock` (A, CA, agent class) builds the React+Vite mock in a scratch folder from the derived `design` artifact only. The mock's URL goes on the approval card. **Update 2026-10-02:** `design-read` is being built as `design-refs` (runs only when the user attached references; images now reach locked-room steps), and the estimate's design step draws the screens and a code-drawn clickable demo instead of an agent-built mock. The design steps are one piece (`designSteps()`) that estimate, brownfield and greenfield add to their lists; see `docs/estimates-design.md`, "Design references".
 - **Accept (C11):** deterministic only; no model. CB's read-small entry for accept is removed.
 - **Budgets and runners:**
   - ground: L, T3 Opus 5.5, 40K (Ahsan 2026-09-27; research-e2e-prompt-ground.md). Seeded with non-AI search hits; approval card shows "files planned but not grounded". Recall vs Sonnet measured on the eval [EVAL].

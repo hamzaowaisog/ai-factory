@@ -5,7 +5,28 @@ the same advice for every run and it is vague. This library replaces it with dat
 the field the requirement is in, and it costs a few hundred tokens per run instead of a research
 session.
 
-## How it works
+## References the user attaches (approved 2026-10-02, being built)
+
+This library is the fallback, not the first source. A user can attach design references to any run
+(estimate, brownfield, and greenfield once it exists), from the terminal (`--ref`) or the factory UI:
+any image (png, jpeg, webp, gif, avif, svg, bmp), a website URL, a Figma link or export, a PDF or a
+brand guide. Each becomes `R-1`, `R-2`, ... with an optional role:
+
+| Attached | Look (colours, type, corners) | Layout |
+|---|---|---|
+| Nothing | **This library, exactly as below** (no extra step, no extra cost) | From the requirements |
+| `layout` references only | This library | From the references for those screens |
+| `inspire` references | Within the references' colour family; this library fills the gaps | References and requirements |
+| `match` references (default for a Figma file or brand guide) | The references' values exactly | References and requirements |
+
+- Exact values come from a site's CSS or the Figma file; colours measured from a picture are marked approximate. A vision step (`design-refs`, read-only) reads the pictures; the model picks colours from what code measured and never types one.
+- With references, `theme.basis` cites R-ids instead of the briefed brands. The reference checks in step 5 below measure against the reference palette for `inspire`; `match` has its own checks (`design-ref-colour`, `design-ref-font`). The record of recent looks is skipped for `match` (a client's brand may repeat) and kept for `inspire`.
+- The requirements beat a reference; a departure is written in `departure`. Every reference is used or set aside with a reason (`design-ref-unused`).
+- A reference that cannot be read (a login wall, a private Figma file, an unknown format) stops the run at intake with a plain message. It never falls back to this library without saying so.
+
+Full plan and build order: `docs/estimates-design.md`, "Design references". Done so far: images reach the model (step 1).
+
+## How it works (no references, or for what they leave open)
 
 1. `src/design/refs/data.ts` holds 24 industries (airline, bank, fintech, health, pharmacy, retail,
    grocery, food, travel, mobility, media, devtools, logistics, telecom, education, government,

@@ -97,7 +97,8 @@ When something keeps failing, the factory climbs a fixed ladder (retry with the 
 
 | Built | Not yet |
 |---|---|
-| Brownfield mode on **.NET + Postgres** repos | Greenfield build mode (an estimate can start from requirements alone, but building one is not built) |
+| Brownfield mode on **.NET + Postgres** repos | Greenfield build mode (an estimate can start from requirements alone, but building one is not built; the design steps are made to plug into it) |
+| Images sent to thinking steps (untrusted, never to steps that write code) | Design references in any form, `--ref` and in the UI (being built: `docs/estimates-design.md`, "Design references") |
 | Clarify, 3-draft spec, merge, lint, critic, round trip | Accept that boots the app and records HTTP/DB evidence (today: "the locked test passed") |
 | Plan + approval card, stub commit, locked tests | Applying `steer` changes mid-run (recorded, not applied) |
 | Claude coding agent in a sealed container | Codex and jcode runners; Next.js/Node repos |
@@ -390,7 +391,7 @@ factory logs <run> --follow        # in a second terminal
 
 Answer the question card if one appears, read the approval card, then approve.
 
-**Estimating instead of building.** `factory estimate` takes requirements (a prompt, `--file` as Markdown, text or Word, `--frames` for exported Figma frames, or `--jira`) and produces an effort, API-cost and elapsed-time estimate of delivering them through the factory. A lead approves it on the terminal, then two workbooks (team and client) are written under the run's `export/` folder. See `docs/estimates-design.md`. The workbooks are drawn on Folio3's estimation template, which the repo ships with its text cleared (`src/estimate/assets/estimation-template.xlsx`), so nothing needs setting. To use a newer template file instead, set `estimateTemplate: /path/to/Example_Estimation.xlsx` in the project config (or `FACTORY_ESTIMATE_TEMPLATE` in the environment).
+**Estimating instead of building.** `factory estimate` takes requirements (a prompt, `--file` as Markdown, text or Word, `--frames` for exported Figma frames, or `--jira`; design references in any form via `--ref` are being built) and produces an effort, API-cost and elapsed-time estimate of delivering them through the factory. A lead approves it on the terminal, then two workbooks (team and client) are written under the run's `export/` folder. See `docs/estimates-design.md`. The workbooks are drawn on Folio3's estimation template, which the repo ships with its text cleared (`src/estimate/assets/estimation-template.xlsx`), so nothing needs setting. To use a newer template file instead, set `estimateTemplate: /path/to/Example_Estimation.xlsx` in the project config (or `FACTORY_ESTIMATE_TEMPLATE` in the environment).
 
 ```bash
 factory estimate --file requirements.docx --project shop-api --no-repo --delivery-model hitl --rate backend=55 --rate default=40
@@ -433,11 +434,11 @@ factory show-card <run> --pr       # paste this as the PR description
 factory ui           # prints a link like http://127.0.0.1:4321/?t=… ; open it in your browser
 ```
 
-A local web app to start runs and watch them. Decisions stay in your terminal: every card shows the exact command to paste, with a copy button, and the page has no approve, reject, answer, stop or pause button.
+A local web app to start runs and watch them. Cards show the exact command to paste, with a copy button. An estimate run's question card, design card and estimate card can also be answered on the page (a typed name and the card's hash); a build run's approval, stop and pause stay in your terminal.
 
 | Screen | What it shows |
 |---|---|
-| New run | Brownfield (Greenfield and Estimate aren't built yet) → project → prompt, a dropped `.md` file (up to 1 MB) and/or a Jira key → optional max cost. The request is checked before a run exists, the same way `factory start` checks it. A second run on a busy project is refused. |
+| New run | Brownfield or Estimate (Greenfield isn't built yet) → project → prompt, a dropped `.md` file (up to 1 MB) and/or a Jira key → optional max cost. Estimate runs also take exported Figma frames and their run settings. A "Design references" section for every mode is being built. The request is checked before a run exists, the same way `factory start` checks it. A second run on a busy project is refused. |
 | Run: Interactive | The pipeline as a chain of steps. Click one for its attempts, why it retried, its gates, cost and time. Also shows cost against the limit, gates, the open card with its command, and the latest activity. |
 | Run: Graphical | Charts: cost per step, time per step, cost over time against the limit, retries per step. |
 | Run: Statistical | Totals: cost, limit left, machine vs wall-clock time, attempts, first-time pass, gates, human stops, tokens. |
@@ -609,7 +610,7 @@ ai-factory/
 │   ├── stages/      the pipeline steps and the executor (build and estimate)
 │   ├── estimate/    estimate mode: hours, cost, durations, gates E1-E7 and B1-B7, workbooks
 │   ├── design/      design toolkit: app scan, UI change size, style checks, brief cleaner
-│   ├── sources/     request inputs: .docx and exported Figma frames
+│   ├── sources/     request inputs: .docx, exported Figma frames, Jira (design references being built)
 │   ├── watch/       Jira and Slack watcher
 │   ├── ui/          the local web screens (`factory ui`)
 │   ├── mcp/         the MCP server for Claude Code
