@@ -10,6 +10,8 @@ import { scanText } from "../context/secrets.js";
 import { secret } from "../config/env.js";
 import { failure, runGate } from "../gates/engine.js";
 import { unrequestedBehaviour } from "../estimate/gates.js";
+import { buildWaiver } from "../estimate/build-waiver.js";
+import type { WaiverRow } from "../estimate/log.js";
 import { noSecrets, reviewBlocking, shaBinding } from "../gates/predicates.js";
 import { changedFiles, commitAll, git, gitOut, resetHard } from "../ledger/git.js";
 import { runSink } from "../ledger/sinks.js";
@@ -18,7 +20,7 @@ import { hashJson } from "../util/hash.js";
 import { header, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { modelFor } from "./routing.js";
 import { S, think } from "./think.js";
-import { ensureWorktree } from "./workspace.js";
+import { ensureWorktree, codeBase } from "./workspace.js";
 import { recordTestLesson } from "../context/lessons.js";
 
 /** Only a delivered run teaches the next one where its tests go; never fails delivery. */
@@ -60,7 +62,7 @@ export const reviewStep: StepDef = {
     const run = requireOutput<TestRun>(ctx.state, ctx.ledger, "integrate");
     const head = gatedSha(ctx);
     const wt = await ensureWorktree(ctx, head);
-    let diff = (await git(wt, ["diff", "--no-color", "-U5", ctx.state.info.baseCommit!, head])).stdout;
+    let diff = (await git(wt, ["diff", "--no-color", "-U5", codeBase(ctx.state), head])).stdout;
     if (diff.length > 80_000) diff = diff.slice(0, 80_000) + "\n… (diff truncated; use read_file for the rest)";
     const r = await think(ctx, {
       stage: "review", route: "review", cls: "read-large", budgetTokens: 40000, tools: [], schema: ReviewBody, maxTurns: 4,
@@ -78,13 +80,23 @@ export const reviewStep: StepDef = {
     const implementer = modelFor(ctx.project, "implement", 0).model;
     const fam = ctx.ledger.putJson({ implementer: family(implementer), reviewer: family(r.model) });
     const g = await runGate(reviewBlocking, ctx.ledger, ctx.writer, { review: reviewSha, families: fam }, ctx.policy, { step: "review", treeSha: head });
-    // B4: a run that follows an approved estimate may not add behaviour no requirement asked for
-    if (ctx.state.info.estimateRef) {
+    // B4: a run that follows an approved estimate may not add behaviour no requirement asked for; a lead can waive it for this commit
+    let waivers: Omit<WaiverRow, "step">[] = [];
+    const ref = ctx.state.info.estimateRef;
+    // a build from an approved design is held to its requirements too (PR #11 review, item 10)
+    const dref = ref ? undefined : ctx.state.info.designRef;
+    if (ref || dref) {
       const b4 = await runGate(unrequestedBehaviour, ctx.ledger, ctx.writer, { review: reviewSha }, ctx.policy, { step: "review", treeSha: head });
-      if (!b4.passed) return { kind: "park", reason: `Behaviour nobody asked for (gate B4): ${(b4.failures ?? []).slice(0, 3).map((f) => f.message).join(" | ")}. Add a requirement through a change request (factory estimate --revises ${ctx.state.info.estimateRef.runId}) or remove it.` };
+      if (!b4.passed) {
+        const w = buildWaiver(ctx, "review", [{ def: unrequestedBehaviour, failures: b4.failures ?? [failure(unrequestedBehaviour.id, b4.details)] }], head,
+          ref ? `To add it properly instead: a change request (factory estimate --revises ${ref.runId}); or remove it and stop this run with factory stop ${ctx.runId}.`
+            : `To add it properly instead: change the design approved in ${dref!.runId} (a new design run) and build from that; or remove it and stop this run with factory stop ${ctx.runId}.`);
+        if (w.kind === "ask") return w.outcome;
+        waivers = w.waivers;
+      }
     }
     if (!g.passed) return { kind: "park", reason: `Review found blocking problems: ${(g.failures ?? []).slice(0, 3).map((f) => f.message).join(" | ")}` };
-    return { kind: "done", outputs: { review: reviewSha }, data: { findings: r.output.findings.length, note: r.note } };
+    return { kind: "done", outputs: { review: reviewSha }, data: { findings: r.output.findings.length, note: r.note, ...(waivers.length ? { waivers } : {}) } };
   },
 };
 
@@ -295,7 +307,7 @@ export const deliverStep: StepDef = {
     // a draft first; the factory's review goes on it; then it's marked ready for people
     const pr = await githubSink(ctx, branch, title, body, true).catch((e: Error) => { throw new Error(e.message.replaceAll(token, "«SECRET»")); });
     const review = requireOutput<{ findings: { id: string; severity: string; category?: string; file?: string; line?: number; text: string }[] }>(ctx.state, ctx.ledger, "review");
-    const lines = diffLines(await gitOut(wt, ["diff", "--no-color", "-U0", ctx.state.info.baseCommit!, gated]));
+    const lines = diffLines(await gitOut(wt, ["diff", "--no-color", "-U0", codeBase(ctx.state), gated]));
     const extra: string[] = [];
     // the PR exists and the branch is pushed: a review or "ready" problem is noted, never a failed delivery
     try { await postReview(ctx, pr.value, reviewPost(ctx.runId, review.findings, lines)); } catch (e) { extra.push(`review not posted: ${(e as Error).message.replaceAll(token, "«SECRET»").slice(0, 200)}`); }

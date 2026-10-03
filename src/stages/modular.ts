@@ -111,6 +111,7 @@ export function combineClarify(results: ClarifyResult[]): ClarifyResult {
   return {
     round: results[0]?.round ?? 1, asked, assumptions, differences: results.flatMap((r) => r.differences ?? []),
     conflicts: results.flatMap((r) => r.conflicts ?? []), answers, ...(by.length ? { answeredBy: by.join(", ") } : {}),
+    ...(results.some((r) => r.assumedBy) ? { assumedBy: "factory" as const } : {}),
   };
 }
 

@@ -24,8 +24,11 @@ import { stepsFor } from "./modes.js";
 import { availableRungs, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
 import type { RequestSource } from "../sources/request.js";
+import { storeReferences, type GatheredRef } from "../sources/refs.js";
 import { budgetStop } from "../estimate/budget.js";
-import { copyArtifacts, type Approved } from "../estimate/lineage.js";
+import { copyArtifacts, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
+import { triggerTune } from "../estimate/tune.js";
+import { readsRequirements } from "../contracts/index.js";
 
 export type Log = (msg: string) => void;
 
@@ -35,7 +38,7 @@ export function policyFor(project: ProjectConfig): Policy {
 
 function versions(): Record<string, string> {
   const pkg = JSON.parse(readFileSync(join(REPO_ROOT, "package.json"), "utf8")) as { version: string; dependencies: Record<string, string> };
-  return { factory: pkg.version, node: process.version, "mode:brownfield": "1", "mode:estimate": "1", ...Object.fromEntries(Object.entries(pkg.dependencies).filter(([k]) => /anthropic|openai|zod/.test(k))) };
+  return { factory: pkg.version, node: process.version, "mode:brownfield": "1", "mode:estimate": "1", "mode:design": "1", ...Object.fromEntries(Object.entries(pkg.dependencies).filter(([k]) => /anthropic|openai|zod/.test(k))) };
 }
 
 function slug(text: string): string {
@@ -69,11 +72,11 @@ export function readRequestFile(path: string, maxBytes = MAX_REQUEST_FILE_BYTES)
 }
 
 /** `factory start`: create the ledger. Execution happens in `execute`. */
-export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "estimate"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved } } = {}): Promise<string> {
+export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "estimate" | "design"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved }; fromDesign?: ApprovedDesign; designExport?: string[]; uiTarget?: RunInfo["uiTarget"] } = {}): Promise<string> {
   if (opts.maxCostUsd !== undefined && !(opts.maxCostUsd > 0)) throw new Error("--max-cost must be a positive number of dollars");
   const project = loadProject(projectName);
-  // an estimate from requirements alone has no repo to check or read
-  const noRepo = opts.mode === "estimate" && opts.estimate?.noRepo === true;
+  // an estimate or design from requirements alone has no repo to check or read
+  const noRepo = readsRequirements(opts.mode) && opts.estimate?.noRepo === true;
   if (!noRepo) {
     assertSupportedPath(project.repo);
     assertDeliverable(project);
@@ -83,9 +86,16 @@ export async function createRun(request: string, projectName: string, operator: 
   const ledger = Ledger.create(runId);
   const lin = opts.lineage;
   if (lin) copyArtifacts(ledger, lin.approved);
+  if (opts.fromDesign) {
+    copyArtifacts(ledger, opts.fromDesign);
+    // a spec with no critic record of its own: an empty one, stated as inherited
+    if (!opts.fromDesign.ref.criticSha) opts.fromDesign.ref.criticSha = ledger.putJson({ findings: [], note: `inherited from approved design ${opts.fromDesign.runId}` });
+  }
   // an estimate has no critic record of its own to hand a build run: an empty one, stated as inherited
   if (lin?.kind === "build" && !lin.approved.criticSha) lin.approved.criticSha = ledger.putJson({ findings: [], note: `inherited from approved estimate ${lin.approved.runId}` });
   const requestSha = ledger.putArtifact(request);
+  // design references were read before the run existed; their pictures are stored now, under the run
+  const references = storeReferences(ledger, opts.references ?? []);
   await ledger.append({
     type: "run.created",
     data: {
@@ -94,8 +104,12 @@ export async function createRun(request: string, projectName: string, operator: 
       ...(opts.maxCostUsd !== undefined ? { maxCostUsd: opts.maxCostUsd } : {}),
       ...(opts.requestFile ? { requestFile: opts.requestFile } : {}),
       ...(opts.sources?.length ? { sources: opts.sources } : {}),
+      ...(references.length ? { references } : {}),
       ...(opts.estimate ? { estimate: opts.estimate } : {}),
       ...(lin && lin.kind !== "build" ? { parent: { runId: lin.approved.runId, kind: lin.kind, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.clarifySha ? { clarifySha: lin.approved.clarifySha } : {}), ...(lin.approved.clarify2Sha ? { clarify2Sha: lin.approved.clarify2Sha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}), ...(lin.approved.baselineSha ? { baselineSha: lin.approved.baselineSha } : {}) } } : {}),
+      ...(opts.fromDesign ? { designRef: opts.fromDesign.ref } : {}),
+      ...(opts.designExport?.length ? { designExport: opts.designExport } : {}),
+      ...(opts.uiTarget ? { uiTarget: opts.uiTarget } : {}),
       ...(lin?.kind === "build" ? { estimateRef: { runId: lin.approved.runId, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}) } } : {}),
     },
   }, HUMAN_WRITER);
@@ -109,6 +123,25 @@ export async function createRun(request: string, projectName: string, operator: 
 
 export type NextStep = { kind: "run"; step: StepDef; hash: string } | { kind: "done" } | { kind: "blocked"; step: string };
 
+/**
+ * The template versions a completed step may have been run with: the current one and, for a numbered version, every earlier
+ * number. A newer prompt template is for new runs; a step a paused run already completed keeps the version it ran with.
+ */
+export function earlierVersions(v: string): string[] {
+  const n = /^\d+$/.test(v) ? Number(v) : 0;
+  return [v, ...Array.from({ length: Math.max(0, n - 1) }, (_, i) => String(n - 1 - i))];
+}
+
+/**
+ * A step's hash for its inputs now, and whether it is already done: completed with the same inputs and model, under the current
+ * template or an earlier one (only a change of inputs or model runs a completed step again).
+ */
+export function stepDone(state: RunState, step: Pick<StepDef, "key" | "templateVersion" | "coding">, inp: unknown, model: string | undefined): { hash: string; done: boolean } {
+  const hashAt = (templateVersion: string) => inputsHash({ inputs: [JSON.stringify(inp)], stageDef: step.key, templateVersion, model, taskStartSha: step.coding ? String((inp as { taskStartSha?: string }).taskStartSha ?? "") : undefined });
+  const hash = hashAt(step.templateVersion);
+  return { hash, done: earlierVersions(step.templateVersion).some((v) => canSkip(state, step.key, v === step.templateVersion ? hash : hashAt(v))) };
+}
+
 /** Pure: the first step whose recorded inputsHash doesn't match its current inputs. */
 export function next(state: RunState, ledger: Ledger, project: ProjectConfig): NextStep {
   for (const step of stepsFor(state)) {
@@ -116,8 +149,8 @@ export function next(state: RunState, ledger: Ledger, project: ProjectConfig): N
     if (!inp) return { kind: "blocked", step: step.key };
     let model: string | undefined;
     try { model = routeFor(project, step.stage).model; } catch { model = undefined; }
-    const hash = inputsHash({ inputs: [JSON.stringify(inp)], stageDef: step.key, templateVersion: step.templateVersion, model, taskStartSha: step.coding ? String((inp as { taskStartSha?: string }).taskStartSha ?? "") : undefined });
-    if (canSkip(state, step.key, hash)) continue;
+    const { hash, done } = stepDone(state, step, inp, model);
+    if (done) continue;
     return { kind: "run", step, hash };
   }
   return { kind: "done" };
@@ -163,6 +196,7 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
   }
   const writer = lock;
   const warned = new Set<string>();
+  let completed = 0;
   trace.startHeartbeat();
   trace.event("run", `executor started (pid ${process.pid})`);
   try {
@@ -186,7 +220,12 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
       if (typeof state.status === "object" || state.status === "delivered") return { status: String(typeof state.status === "object" ? `closed: ${state.status.closed}` : state.status), message: "Nothing to do." };
       if (state.openCard) return { status: "waiting", message: `Waiting for you: factory show-card ${runId}` };
       const burn = await budgetStop(ledger, writer, state, policy, log, warned);
-      if (burn) { await ledger.append({ type: "run.parked", data: { reason: burn } }, writer); return { status: "parked", message: burn }; }
+      if (burn) {
+        // B5: a hash-bound card; a lead lets the run go on (factory waive-budget) or decides on a change request
+        ledger.writeCard(burn.cardId, burn.markdown);
+        await ledger.append({ type: "human.requested", data: { cardId: burn.cardId, kind: "budget", artifactSha: burn.artifactSha, reason: burn.reason, proposed: burn.proposed } }, writer);
+        return { status: "waiting", message: `${burn.reason}. Decide with: factory show-card ${runId}` };
+      }
       const cap = checkCaps(state, policy.retryBudget);
       if (cap && !cap.waivable) { await ledger.append({ type: "run.parked", data: { reason: cap.reason } }, writer); return { status: "parked", message: cap.reason }; }
       if (cap) {
@@ -243,6 +282,7 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
           const named = outcome.outputs;
           const treeSha = outcome.treeSha && /^[0-9a-f]{40}$/.test(outcome.treeSha) ? outcome.treeSha : undefined;
           await ledger.append({ type: "step.completed", key, inputsHash: n.hash, treeSha, outputs: Object.values(named), data: { ...(outcome.data ?? {}), named } }, writer);
+          completed++;
           const after = replay(ledger.events()).costUsd;
           log(`✓ ${n.step.key} ($${(after - state.costUsd).toFixed(2)}, total $${after.toFixed(2)})`);
           if (n.step.key === "deliver") {
@@ -296,6 +336,11 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
   } finally {
     trace.setStep(undefined);
     try { saveReport(ledger); } catch { /* the scorecard never breaks a run */ }
+    // Phase 3: an estimate or a build that followed one may carry new evidence; the catalogue tunes itself in the background
+    try {
+      const s = replay(ledger.events());
+      if (completed && (s.steps.get("estimate")?.status === "completed" || s.info.estimateRef)) triggerTune();
+    } catch { /* tuning never breaks a run */ }
     trace.event("run", "executor stopped");
     trace.stopHeartbeat();
     ledger.onAppend = undefined;
