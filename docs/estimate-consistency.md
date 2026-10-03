@@ -345,7 +345,7 @@ Agreed in chat on 2026-10-03. After every estimate and every build, the factory 
   - The estimate's `catalogue.tuned` holds the generation and the last tuning's builds and projects.
   - The status text reads, for example, "self-tuned once, last from 12 builds and 0 finished projects; this version not yet measured". It appears on the approval card, the web UI pill, the team workbook and the bench.
   - The client's copy never mentions it.
-  - `factory calibrate --tune` shows what would change, without writing; add `--apply` to write it now. `factory calibrate --history` lists every version and why it changed. `npm run bench -- calibrate` prints the plan too.
+  - `factory calibrate --tune` shows what would change and keeps it as the proposal (nothing is sized from it); `--apply` promotes exactly that stored proposal, and refuses one made from an older version (2026-10-04, PR #11 re-review item 3). `factory calibrate --history` lists every version and why it changed. `npm run bench -- calibrate` prints the plan too.
 - **Tests.**
   - `src/estimate/tune.test.ts`: band, half step, cap and bound; waiting; fitted versus tuned; the hours scale; convergence inside the band; flagging; the lock; measuring the newest version.
   - `src/estimate/catalogue-store.test.ts`: version naming, newest version, older versions readable, no overwrite, the hours scale in the multiplier.

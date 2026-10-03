@@ -108,7 +108,7 @@ it("prints how each reference was used and what a screen still lacks", async () 
 
 describe("the design card's references section", () => {
   it("lists each reference with its use and the screens it shaped, then the leftover gaps; nothing without references", async () => {
-    const { refCardLines } = await import("../stages/estimate-approve.js");
+    const { refCardLines } = await import("../stages/design-approve.js");
     const design = {
       screens: [{ id: "S-1", refs: ["R-2"] }, { id: "S-2" }],
       refUse: [{ id: "R-1", use: "set-aside", how: "a competitor's site, kept for its colours only" }, { id: "R-2", use: "used", how: "sidebar and table" }],

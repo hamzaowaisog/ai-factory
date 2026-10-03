@@ -1,6 +1,8 @@
 // The existing app's look, read from its stylesheets (PR #11 review, item 6): an app of its own is drawn in its own brand
 // colour, corners, type and light or dark, not in a look the factory makes up. No model, no network: CSS custom properties
-// (--primary, --color-brand, ...), SCSS variables ($primary) and the body's font, in the shape the demo draws with.
+// (--primary, --color-brand, ...), SCSS variables ($primary) and the body's font, in the shape the demo draws with. Since the
+// PR #11 re-review (item 6) also a Tailwind config's colours, corners and fonts, and MUI, antd and Chakra theme objects in
+// JS/TS, read as text (the code is never run). Stylesheets win where both name the same thing.
 import type { DesignTheme } from "../contracts/artifacts.js";
 import { cssTokens } from "./inventory.js";
 import type { FileSource } from "./source.js";
@@ -72,7 +74,31 @@ function fontOf(value: string): DesignTheme["font"] {
   return "sans";
 }
 
-/** The app's look, or undefined when its stylesheets name no brand colour. */
+/** Where a JS theme lives: a Tailwind config, or a file whose name says theme, or an app entry that often holds it. */
+const THEME_FILE = /(^|\/)tailwind\.config\.(js|cjs|mjs|ts)$|(^|\/)[^/]*theme[^/]*\.(js|jsx|ts|tsx|mjs)$|(^|\/)(App|main|index|_app|layout|providers?)\.(jsx|tsx|js|ts)$/i;
+const MAX_THEME_BYTES = 200_000;
+const str = `["'\`]([^"'\`]+)["'\`]`;
+
+/** Named values a JS theme sets, under the names the stylesheet reading uses; each with a label for the card. */
+export function jsThemeVars(code: string): { name: string; value: string; label: string; dark?: boolean }[] {
+  const out: { name: string; value: string; label: string; dark?: boolean }[] = [];
+  const add = (name: string, value: string | undefined, label: string, dark?: boolean) => { if (value) out.push({ name, value, label, ...(dark ? { dark } : {}) }); };
+  const first = (re: RegExp) => re.exec(code)?.[1];
+  // a colour key: a string, or an object's DEFAULT / main / 500 / 600 (Tailwind scales, MUI palettes, Chakra scales)
+  for (const key of ["primary", "brand", "accent", "secondary"]) {
+    const v = first(new RegExp(`\\b${key}\\s*:\\s*${str}`)) ?? first(new RegExp(`\\b${key}\\s*:\\s*\\{[^}]*?\\b(?:DEFAULT|main|500|600)\\s*:\\s*${str}`));
+    add(key === "secondary" ? "color-accent" : key, v, `${key} in a JS theme`);
+  }
+  add("primary", first(new RegExp(`\\bcolorPrimary\\s*:\\s*${str}`)), "colorPrimary (antd)");
+  add("background", first(new RegExp(`\\bbackground\\s*:\\s*\\{[^}]*?\\bdefault\\s*:\\s*${str}`)) ?? first(new RegExp(`\\bcolorBg(?:Layout|Base)\\s*:\\s*${str}`)) ?? first(new RegExp(`\\bbackground\\s*:\\s*${str}`)), "background in a JS theme");
+  const radius = first(/\bborderRadius\s*:\s*(\d+(?:\.\d+)?)\b(?!\s*[%a-z])/) ?? first(new RegExp(`\\bborderRadius\\s*:\\s*\\{[^}]*?\\b(?:DEFAULT|md|lg)\\s*:\\s*${str}`)) ?? first(new RegExp(`\\bborderRadius\\s*:\\s*${str}`));
+  add("radius", radius && /^\d+(\.\d+)?$/.test(radius) ? `${radius}px` : radius, "borderRadius in a JS theme");
+  add("font-sans", first(new RegExp(`\\bfontFamily\\s*:\\s*\\{[^}]*?\\bsans\\s*:\\s*\\[?\\s*${str}`)) ?? first(new RegExp(`\\bfontFamily\\s*:\\s*\\[?\\s*${str}`)), "fontFamily in a JS theme");
+  if (/\bmode\s*:\s*["'`]dark["'`]|\bdarkAlgorithm\b|initialColorMode\s*:\s*["'`]dark["'`]/.test(code)) add("color-scheme", "dark", "dark mode in a JS theme", true);
+  return out;
+}
+
+/** The app's look, or undefined when its stylesheets and theme files name no brand colour. */
 export function repoLook(src: FileSource): RepoLook | undefined {
   const vars = new Map<string, { value: string; file: string; dark: boolean }>();
   let bodyFont: { value: string; file: string } | undefined;
@@ -86,15 +112,31 @@ export function repoLook(src: FileSource): RepoLook | undefined {
     for (const m of css.matchAll(/^\s*[$@]([\w-]+)\s*:\s*([^;]+?)\s*(?:!default)?\s*;/gm)) if (!vars.has(m[1]!)) vars.set(m[1]!, { value: m[2]!, file: f, dark: false });
     bodyFont ??= (() => { const m = /(?:^|[}\s])(?:body|html|:root)\s*\{[^}]*font-family\s*:\s*([^;}]+)/.exec(css); return m ? { value: m[1]!, file: f } : undefined; })();
   }
+  // JS themes: only where the stylesheets did not already name it (a Tailwind config's "hsl(var(--primary))" reads as nothing)
+  const labels = new Map<string, string>();
+  let jsDark = false;
+  // a Tailwind config or a theme file first; an app entry (inline styles too) only fills what they left out
+  const rank = (f: string) => (/tailwind\.config\./.test(f) ? 0 : /theme/i.test(f.split("/").pop()!) ? 1 : 2);
+  for (const f of src.list().filter((f) => THEME_FILE.test(f) && !NOT_STYLE.test(f)).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))) {
+    const code = src.read(f) ?? "";
+    if (code.length > MAX_THEME_BYTES) continue;
+    for (const v of jsThemeVars(code)) {
+      if (v.name === "color-scheme") { jsDark = true; continue; }
+      if (vars.has(v.name) || (BRAND.includes(v.name) || BACKGROUND.includes(v.name)) && !toHex(v.value)) continue;
+      vars.set(v.name, { value: v.value, file: f, dark: false });
+      labels.set(v.name, v.label);
+    }
+  }
   const pick = (names: string[]) => names.map((n) => vars.get(n)).find((x) => x !== undefined);
   const colour = (names: string[]) => names.map((n) => ({ n, v: vars.get(n) })).map((x) => ({ ...x, hex: x.v ? toHex(x.v.value) : undefined })).filter((x) => x.hex);
   const brands = colour(BRAND);
   const brand = brands.find((x) => !grey(x.hex!)) ?? brands[0];
   if (!brand) return undefined;
-  const from = [`brand ${brand.hex} (--${brand.n}, ${brand.v!.file})`];
+  const from = [`brand ${brand.hex} (${labels.get(brand.n) ?? `--${brand.n}`}, ${brand.v!.file})`];
   const bg = colour(BACKGROUND)[0];
-  const mode: DesignTheme["mode"] = bg && lightness(bg.hex!) < 0.35 ? "dark" : "light";
+  const mode: DesignTheme["mode"] = bg ? (lightness(bg.hex!) < 0.35 ? "dark" : "light") : jsDark ? "dark" : "light";
   if (bg) from.push(`${mode} (background ${bg.hex})`);
+  else if (jsDark) from.push("dark (the JS theme's dark mode)");
   const r = pick(RADIUS);
   const radius = r ? radiusOf(r.value) : undefined;
   if (radius) from.push(`${radius} corners (${r!.value})`);
@@ -110,4 +152,57 @@ export function repoLook(src: FileSource): RepoLook | undefined {
     } as DesignTheme,
     from,
   };
+}
+
+/**
+ * The values an existing app draws with, read from its source (the PR #11 re-review, item 8): every colour, first font, corner
+ * and shadow its stylesheets and theme files name, to compare a page changed in place with the app's own look instead of an
+ * approved theme. Read as text, never run. Empty fonts or shadows mean none were named (then they are not compared).
+ */
+export interface OwnTokens { colours: string[]; fonts: string[]; radii: number[]; shadows: string[]; from: string[]; tailwind: boolean }
+
+const COLOUR_LITERAL = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch)\([^)]*\)/gi;
+const lengthPx = (v: string): number | undefined => {
+  const m = /^(-?[\d.]+)(px|rem|em)?$/.exec(v.trim());
+  return m ? parseFloat(m[1]!) * (!m[2] || m[2] === "px" ? 1 : 16) : undefined;
+};
+const firstFont = (v: string): string | undefined => {
+  const f = v.split(",")[0]!.trim().replace(/^["'`]|["'`]$/g, "");
+  return f && !/^var\(|^inherit$|^initial$/.test(f) ? f : undefined;
+};
+
+export function ownTokens(src: FileSource): OwnTokens | undefined {
+  const colours = new Set<string>(["#ffffff", "#000000"]), fonts = new Set<string>(), radii = new Set<number>([0]), shadows = new Set<string>();
+  const from: string[] = [];
+  const files = src.list().filter((f) => !NOT_STYLE.test(f) && (STYLE.test(f) || THEME_FILE.test(f)));
+  for (const f of files.sort()) {
+    const text = src.read(f) ?? "";
+    if (text.length > MAX_THEME_BYTES) continue;
+    const before = colours.size + fonts.size + radii.size + shadows.size;
+    for (const m of text.matchAll(COLOUR_LITERAL)) { const h = toHex(m[0]); if (h) colours.add(h); }
+    if (STYLE.test(f)) {
+      // custom properties hold the shadcn-style bare channels ("222 47% 11%") too
+      for (const t of cssTokens(text)) {
+        const h = toHex(t.value);
+        if (h) colours.add(h);
+        if (/radius/.test(t.name)) { const px = lengthPx(t.value); if (px !== undefined) radii.add(px); }
+        if (/font/.test(t.name)) { const ff = firstFont(t.value); if (ff) fonts.add(ff); }
+        if (/shadow/.test(t.name) && /\d/.test(t.value)) shadows.add(t.value);
+      }
+      for (const m of text.matchAll(/font-family\s*:\s*([^;}]+)/g)) { const ff = firstFont(m[1]!); if (ff) fonts.add(ff); }
+      for (const m of text.matchAll(/border(?:-[a-z]+)*-radius\s*:\s*([^;}]+)/g)) for (const part of m[1]!.split(/\s+/)) { const px = lengthPx(part); if (px !== undefined) radii.add(px); }
+      for (const m of text.matchAll(/box-shadow\s*:\s*([^;}]+)/g)) if (/\d/.test(m[1]!) && !/^var\(/.test(m[1]!.trim())) shadows.add(m[1]!.trim());
+    } else {
+      for (const m of text.matchAll(new RegExp(`\\bfontFamily\\s*:\\s*\\{?[^}\\]]*?\\[?\\s*${str}`, "g"))) { const ff = firstFont(m[1]!); if (ff) fonts.add(ff); }
+      for (const m of text.matchAll(/\bborderRadius\s*:\s*(\d+(?:\.\d+)?)\b(?!\s*[%a-z])/g)) radii.add(Number(m[1]));
+      for (const m of text.matchAll(new RegExp(`\\b(?:borderRadius|DEFAULT|sm|md|lg|xl)\\s*:\\s*${str}`, "g"))) { const px = lengthPx(m[1]!); if (px !== undefined) radii.add(px); }
+      for (const m of text.matchAll(new RegExp(`\\b(?:boxShadow|shadow)\\s*:\\s*${str}`, "g"))) if (/\d/.test(m[1]!)) shadows.add(m[1]!);
+    }
+    if (colours.size + fonts.size + radii.size + shadows.size > before) from.push(f);
+  }
+  if (!from.length) return undefined;
+  const tailwind = src.list().some((f) => /(^|\/)tailwind\.config\./.test(f)) || files.some((f) => STYLE.test(f) && /@tailwind\b|@import\s+["']tailwindcss/.test(src.read(f) ?? ""));
+  // Tailwind's own corner steps (rounded-sm .. rounded-3xl) are the app's too; its colour palette is not listed here
+  if (tailwind) for (const px of [2, 4, 6, 8, 12, 16, 24]) radii.add(px);
+  return { colours: [...colours], fonts: [...fonts], radii: [...radii].sort((a, b) => a - b), shadows: [...shadows], from, tailwind };
 }

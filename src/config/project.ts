@@ -138,8 +138,9 @@ export const ProjectConfig = z.object({
     }).optional(),
     /**
      * Check the built app against the approved design (docs/estimates-design.md, "Fidelity and tests"): tokens, structure and
-     * accessibility block (waivable), layout and pixels advise. On by default whenever the factory generated the screens (a kit
-     * scaffold: next-shadcn, vite-shadcn), with the kit's own commands; this object only changes them. The app is installed and
+     * accessibility block (waivable), layout and pixels advise. On by default: for a kit scaffold (next-shadcn, vite-shadcn) with
+     * the kit's own commands, and for screens changed in place in an existing app with its own start or preview script (each opened
+     * at its route; its structure, and its tokens against the app's own values, are advice). This object only changes them. The app is installed and
      * started in containers (the agent image: the install reaches only the package feeds, the app has no network); `false`
      * switches the check off.
      */
@@ -151,7 +152,7 @@ export const ProjectConfig = z.object({
       allowHost: z.literal(true).optional(),
       /** run once in the checkout first; default "npm install --no-audit --no-fund" */
       install: z.string().optional(),
-      /** builds and starts the app on $PORT; default per target (next build && next start, vite build && vite preview) */
+      /** builds and starts the app on $PORT; default per target (next build && next start, vite build && vite preview), or for an existing app its own scripts (npm run build && npm start, or its preview) */
       start: z.string().optional(),
       port: z.number().int().min(1024).max(65000).default(4320),
       readyPath: z.string().startsWith("/").default("/"),

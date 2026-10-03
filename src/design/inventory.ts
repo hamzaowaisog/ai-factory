@@ -30,7 +30,7 @@ export interface DesignInventory {
   offSystem: { hexColors: number; arbitraryValues: number; inlineStyle: number; classNameCount: number; ratio: number; examples: string[] };
   verdict: Verdict;
   rules: string[];
-  /** the app's own look read from its stylesheets, which an existing app's demo is drawn in */
+  /** the app's own look read from its stylesheets and JS theme, which an existing app's demo is drawn in */
   look?: RepoLook;
 }
 

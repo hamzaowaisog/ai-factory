@@ -18,6 +18,7 @@ import { inPage, readBlocks, readColours, readFocus, readStyles, type ReadBlock,
 import { fontList } from "./package.js";
 import { NOTICEABLE_RATIO, pixelDiff } from "./pixeldiff.js";
 import { routerPath, screenStates } from "./kit/scaffold.js";
+import type { OwnTokens } from "./repo-look.js";
 
 type Design = Pick<z.infer<typeof DesignBody>, "screens" | "theme" | "locale" | "themeSource">;
 
@@ -38,8 +39,11 @@ export interface FidelityPage {
   path: string;
   /** the state's tab in the approved demo */
   demoState: number;
+  /** a screen changed in place in the app's own code: opened at its route as it runs (no fixtures), its structure advice */
+  inPlace?: true;
 }
-export interface FidelityFinding { level: FidelityLevel; message: string; pages: string[] }
+/** advice: seen, shown and listed, but not a reason to fail its level's gate */
+export interface FidelityFinding { level: FidelityLevel; message: string; pages: string[]; advice?: true }
 export interface FidelityPageResult extends FidelityPage {
   /** the built page's picture, under the report's folder */
   built?: string;
@@ -67,9 +71,11 @@ export const samplePath = (route: string): string => routerPath(route).replace(/
 
 /**
  * The pages to open, as the package pictures them: every state at phone and desktop width, the first state at tablet width, and
- * the first state in dark mode and in the other language when the design has them. Only the screens built with the kit.
+ * the first state in dark mode and in the other language when the design has them, for the screens built with the kit. A screen
+ * changed in place (inPlace) has no fixtures to pick a state with, so it is opened once per width at its route as the app runs
+ * it; only a fixed route (no :id) can be opened that way.
  */
-export function fidelityPages(design: Design, screenIds: string[]): FidelityPage[] {
+export function fidelityPages(design: Design, screenIds: string[], inPlace: string[] = []): FidelityPage[] {
   const dark = !!design.theme && Object.keys(designTokens({ ...DEFAULT_THEME, ...design.theme }).colour).length > 1;
   const other = (design.locale?.languages ?? []).find((l) => l !== "en");
   const out: FidelityPage[] = [];
@@ -88,8 +94,19 @@ export function fidelityPages(design: Design, screenIds: string[]): FidelityPage
       if (other) page(0, { lang: other });
       if (dark) page(0, { mode: "dark" });
     }
+    for (const s of design.screens.filter((x) => inPlace.includes(x.id) && !screenIds.includes(x.id) && fixedRoute(x.route))) {
+      out.push({ key: `${slug(s.id)}-as-built-${vp}`, id: s.id, screen: s.mock?.title ?? s.route, state: demoStates(s)[0] ?? "default", slug: "as-built", viewport: vp, path: routerPath(s.route), demoState: 0, inPlace: true });
+    }
   }
   return out;
+}
+
+/** A route the app can be opened at as it is: no parameter to fill. */
+export const fixedRoute = (route: string): boolean => route.startsWith("/") && !/[:[*]/.test(route);
+
+/** An existing app's own values as a token set: its colours as bytes, its fonts, corners and shadows. */
+export function ownTokenSet(t: Pick<OwnTokens, "colours" | "fonts" | "radii" | "shadows">): TokenSet {
+  return { colours: t.colours.map((h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number]), fonts: t.fonts, radii: t.radii, shadows: t.shadows };
 }
 
 /** The approved picture of a page: the package's shot of the same screen, state, width, mode and language. */
@@ -223,7 +240,7 @@ export function tokenFindings(styles: ReadStyle[], set: TokenSet): string[] {
       if (s.rgb && s.rgb[3] < 1 && s.rgb[0] + s.rgb[1] + s.rgb[2] === 0) continue;
       if (s.rgb && !isColour(s.rgb)) out.push(`colour rgb(${s.rgb.slice(0, 3).join(", ")}) is not a design colour (${s.where}${s.count > 1 ? `, ${s.count} places` : ""})`);
     } else if (s.prop === "font") {
-      if (s.value && !set.fonts.some((f) => norm(f) === norm(s.value))) out.push(`font "${s.value}" is not the design's (${set.fonts.join(" or ")}) (${s.where})`);
+      if (s.value && set.fonts.length && !set.fonts.some((f) => norm(f) === norm(s.value))) out.push(`font "${s.value}" is not the design's (${set.fonts.join(" or ")}) (${s.where})`);
     } else if (s.prop === "radius") {
       const px = parseFloat(s.value);
       const round = px >= 999 || (s.size !== undefined && px >= s.size / 2 - 0.5);
@@ -236,7 +253,7 @@ export function tokenFindings(styles: ReadStyle[], set: TokenSet): string[] {
         if (rgb.length > 3 && rgb[3] === 0) continue;
         // a focus or selection ring: a solid band of a design colour
         if (x === 0 && y === 0 && blur === 0 && spread! > 0) { if (!isColour(rgb)) out.push(`ring colour rgb(${rgb.slice(0, 3).join(", ")}) is not a design colour (${s.where})`); continue; }
-        if (!shadowGeo.has(l.g.join(" "))) { out.push(`shadow ${l.g.map((v) => `${v}px`).join(" ")} is not one of the design's (${s.where})`); break; }
+        if (set.shadows.length && !shadowGeo.has(l.g.join(" "))) { out.push(`shadow ${l.g.map((v) => `${v}px`).join(" ")} is not one of the design's (${s.where})`); break; }
       }
     }
   }
@@ -282,6 +299,10 @@ export interface FidelityRunInput {
   design: Design;
   /** the screens built with the kit */
   screens: string[];
+  /** the screens changed in place in the app's own code (no kit, no fixtures) */
+  inPlace?: string[];
+  /** with no approved theme (the app keeps its own look): the app's own values, read from its source at the base commit */
+  ownTokens?: OwnTokens;
   /** the approved demo (the package's demo/index.html) and its pictures */
   demoFile?: string; shotsDir?: string; shots?: { file: string; id?: string; state: string; viewport: string; mode?: string; lang?: string }[];
   /** accepted built pictures by page key (absolute paths) */
@@ -336,23 +357,29 @@ async function focusFindings(page: Page): Promise<string[]> {
 /** Run the four levels on a running app. Never throws: a browser that cannot start is the report's `skipped`. */
 export async function runFidelity(o: FidelityRunInput): Promise<FidelityReport> {
   const log = o.log ?? (() => {});
-  const all = fidelityPages(o.design, o.screens);
+  const all = fidelityPages(o.design, o.screens, o.inPlace);
   const max = o.max ?? 160;
   const pages = all.slice(0, max);
   const notes: string[] = all.length > max ? [`${all.length - max} page(s) past the first ${max} were not checked`] : [];
   const empty = (skipped: string): FidelityReport => ({ kind: "design-fidelity", levels: levelsOf([], [], skipped), findings: [], pages: [], overall: "unchecked", ran: [], notes, skipped });
   if (process.env.FACTORY_NO_SCREENSHOTS) return empty("the browser is switched off (FACTORY_NO_SCREENSHOTS)");
-  if (!pages.length) return empty("no screen is built with the kit");
+  const dynamic = o.design.screens.filter((s) => o.inPlace?.includes(s.id) && !o.screens.includes(s.id) && !fixedRoute(s.route));
+  if (dynamic.length) notes.push(`${dynamic.map((s) => `${s.id} (${s.route})`).join(", ")} changed in place but not opened: a route with a parameter needs data the check does not have`);
+  if (!pages.length) return empty(o.inPlace?.length ? "no changed screen has a route that can be opened" : "no screen is built with the kit");
   const exe = findChromium();
   if (!exe) return empty("no browser found (set FACTORY_CHROMIUM to a Chromium binary)");
   const axe = loadAxe();
   if (!axe) notes.push("axe-core is not installed, so accessibility was checked by the keyboard walk only");
   const byScreen = new Map(o.design.screens.map((s) => [s.id, s]));
-  // the tokens are checked against the approved theme only; an app that keeps its own look has its own tokens
+  // the tokens are checked against the approved theme; an app that keeps its own look against its own values, read from its
+  // source (advice: a value the source does not name as text, a Tailwind palette class say, is not always a new one)
   const theme = approvedTheme(o.design);
-  const noTokens = theme ? undefined : "the app keeps its own look: its tokens are not compared with an approved theme";
+  const own = theme ? undefined : o.ownTokens;
+  const noTokens = theme || own ? undefined : "the app keeps its own look and its source names no colours, fonts or corners to compare with";
   if (noTokens) notes.push(noTokens);
-  const raw: { level: FidelityLevel; message: string; page: string }[] = [];
+  if (own) notes.push(`the app keeps its own look: its tokens are compared with the values its source names (${own.from.slice(0, 4).join(", ")}${own.from.length > 4 ? `, +${own.from.length - 4}` : ""}), as advice${own.tailwind ? "; Tailwind's palette is not read, so a Tailwind colour class can show as a finding" : ""}`);
+  if (pages.some((p) => p.inPlace)) notes.push("screens changed in place are opened as the app runs them (no fixtures, no network), once per width; their structure is advice");
+  const raw: { level: FidelityLevel; message: string; page: string; advice?: boolean }[] = [];
   const results: FidelityPageResult[] = [];
   const ran = new Set<string>();
   let browser: { close(): Promise<void>; newPage(o: object): Promise<Page> } | undefined;
@@ -370,7 +397,7 @@ export async function runFidelity(o: FidelityRunInput): Promise<FidelityReport> 
       const demo = demoUrl ? await browser!.newPage(opts) : undefined;
       for (const p of pages.filter((x) => x.viewport === vp)) {
         const s = byScreen.get(p.id)!;
-        const add = (level: FidelityLevel, list: string[]) => list.forEach((message) => raw.push({ level, message, page: p.key }));
+        const add = (level: FidelityLevel, list: string[], advice = false) => list.forEach((message) => raw.push({ level, message, page: p.key, ...(advice ? { advice } : {}) }));
         try {
           await app.emulateMedia({ colorScheme: p.mode === "dark" ? "dark" : "light" });
           ran.add(`Chromium ${vp}${p.mode ? " dark" : ""}${p.lang ? ` ${p.lang}` : ""}`);
@@ -384,12 +411,13 @@ export async function runFidelity(o: FidelityRunInput): Promise<FidelityReport> 
             tokens.set(mode, { colours: bytes.filter((b): b is [number, number, number, number] => !!b).map((b) => [b[0], b[1], b[2]]), fonts: v.fonts, radii: v.radii, shadows: v.shadows });
           }
           if (theme) add("tokens", tokenFindings((await app.evaluate(inPage(readStyles))) as ReadStyle[], tokens.get(mode)!));
+          else if (own) add("tokens", tokenFindings((await app.evaluate(inPage(readStyles))) as ReadStyle[], ownTokenSet(own)), true);
           // structure, in the design's own words (the other language is pictured, not read)
           const got = (await app.evaluate(inPage(readBlocks, ""))) as ReadBlock[];
           if (!p.lang) {
             const words = (await app.evaluate(`(function(){var m=document.querySelector("main")||document.body;return m.innerText+" "+(m.querySelector("[aria-busy]")?"aria-busy":"")})()`)) as string;
             const toasts = (await app.evaluate(`(function(){return [].map.call(document.querySelectorAll("[data-sonner-toast],[role=status]"),function(e){return e.innerText}).join(" ")})()`)) as string;
-            add("structure", structureFindings(expectedFor(s, p.slug, vp === "phone"), got, words, toasts));
+            add("structure", structureFindings(expectedFor(s, p.inPlace ? Object.keys(screenStates(s))[0] ?? "default" : p.slug, vp === "phone"), got, words, toasts), !!p.inPlace);
           }
           // accessibility: axe on every page; the keyboard once per screen and state
           if (axe) add("a11y", await axeFindings(app, axe));
@@ -441,14 +469,14 @@ export async function runFidelity(o: FidelityRunInput): Promise<FidelityReport> 
       const app = await wk!.newPage({ viewport: VIEWPORTS.phone, reducedMotion: "reduce", locale: "en-US", timezoneId: "UTC" });
       ran.add("WebKit phone");
       for (const p of phone) {
-        const add = (level: FidelityLevel, list: string[]) => list.forEach((message) => raw.push({ level, message: `WebKit: ${message}`, page: `${p.key}-webkit` }));
+        const add = (level: FidelityLevel, list: string[], advice = false) => list.forEach((message) => raw.push({ level, message: `WebKit: ${message}`, page: `${p.key}-webkit`, ...(advice ? { advice } : {}) }));
         try {
           await app.goto(new URL(p.path, o.baseUrl).href, { waitUntil: "load", timeout: 30_000 });
           await settle(app);
           const got = (await app.evaluate(inPage(readBlocks, ""))) as ReadBlock[];
           const words = (await app.evaluate(`(function(){var m=document.querySelector("main")||document.body;return m.innerText+" "+(m.querySelector("[aria-busy]")?"aria-busy":"")})()`)) as string;
           const toasts = (await app.evaluate(`(function(){return [].map.call(document.querySelectorAll("[data-sonner-toast],[role=status]"),function(e){return e.innerText}).join(" ")})()`)) as string;
-          add("structure", structureFindings(expectedFor(byScreen.get(p.id)!, p.slug, true), got, words, toasts));
+          add("structure", structureFindings(expectedFor(byScreen.get(p.id)!, p.inPlace ? Object.keys(screenStates(byScreen.get(p.id)!))[0] ?? "default" : p.slug, true), got, words, toasts), !!p.inPlace);
           if (axe) add("a11y", await axeFindings(app, axe));
         } catch (e) {
           add("structure", [`the page could not be read: ${(e instanceof Error ? e.message : String(e)).split("\n")[0]}`]);
@@ -481,11 +509,11 @@ export async function runFidelity(o: FidelityRunInput): Promise<FidelityReport> 
 }
 
 /** One finding per level and message, with every page it was seen on. */
-function group(raw: { level: FidelityLevel; message: string; page: string }[]): FidelityFinding[] {
+function group(raw: { level: FidelityLevel; message: string; page: string; advice?: boolean }[]): FidelityFinding[] {
   const by = new Map<string, FidelityFinding>();
   for (const r of raw) {
-    const k = `${r.level}|${r.message}`;
-    const f = by.get(k) ?? { level: r.level, message: r.message, pages: [] };
+    const k = `${r.level}|${r.advice ? "advice|" : ""}${r.message}`;
+    const f = by.get(k) ?? { level: r.level, message: r.message, pages: [], ...(r.advice ? { advice: true as const } : {}) };
     if (!f.pages.includes(r.page)) f.pages.push(r.page);
     by.set(k, f);
   }
@@ -499,9 +527,11 @@ function levelsOf(findings: FidelityFinding[], pages: FidelityPageResult[], skip
     // no approved theme: the tokens level is not this check's to pass or fail, so it does not hold the run as unchecked
     if (level === "tokens" && noTokens && !skipped) return { level, blocking: false, check: "design.tokens", status: "UNCHECKED" as CheckStatus, detail: noTokens };
     const blocking = BLOCKING.includes(level);
-    const status: CheckStatus = skipped || !read ? "UNCHECKED" : f.length ? (blocking ? "FAIL" : "WARN") : level === "pixels" && !compared ? "UNCHECKED" : "PASS";
+    // advice (an own look's tokens, an in-place screen's structure) warns; only the rest fails a blocking level
+    const hard = f.filter((x) => !x.advice);
+    const status: CheckStatus = skipped || !read ? "UNCHECKED" : hard.length && blocking ? "FAIL" : f.length ? "WARN" : level === "pixels" && !compared ? "UNCHECKED" : "PASS";
     const detail = skipped ?? (!read ? "no page could be read"
-      : f.length ? `${f.length} finding(s) on ${new Set(f.flatMap((x) => x.pages)).size} of ${read} page(s)`
+      : f.length ? `${f.length} finding(s) on ${new Set(f.flatMap((x) => x.pages)).size} of ${read} page(s)${blocking && !hard.length ? ", advice only" : ""}`
       : level === "pixels" && !compared ? "no accepted pictures to compare with yet" : `${read} page(s) checked`);
     return { level, blocking, check: `design.${level}`, status, detail, ...(f.length ? { items: f.slice(0, 20).map((x) => `${x.message} (${x.pages.length} page${x.pages.length > 1 ? "s" : ""})`) } : {}) };
   });

@@ -2,9 +2,11 @@
 // check over ledger artifacts and fails closed: missing input counts as failed. E6 is in lint.ts.
 import type { z } from "zod";
 import type { Approval, Breakdown, Design, Estimate, PlanTask, Questions, ReviewFinding, Spec, SpecDraft } from "../contracts/index.js";
-import { screenScopeGaps, type ApprovedDesign } from "./design-link.js";
 import { matchesAny } from "../util/glob.js";
 import { defineGate, failure, verdict } from "../gates/engine.js";
+// the design gates (E1b, E1c, B6, B7 and their design-run forms) are in src/design/gates.ts (the PR #11 re-review, item 14);
+// imported here so that everything that registers the estimate gates registers them too
+import "../design/gates.js";
 import type { DiffSummary } from "../gates/predicates.js";
 import { hashJson } from "../util/hash.js";
 import { effortHours } from "./hours.js";
@@ -38,48 +40,6 @@ export const readiness = defineGate<{ spec: Spec; questions?: Questions }>({
     else for (const q of questions.questions) if (!q.answer) fs.push(failure("e1-questions", `question ${q.id} is still open`));
     if (spec.requirements.length === 0) fs.push(failure("e1-empty", "the spec has no requirements"));
     return verdict(fs, `${spec.requirements.length} requirements, lint, critic and round trip clean, no open questions`);
-  },
-});
-
-export const designBaseline = defineGate<{ ui: boolean; design?: z.infer<typeof Design>; approval?: Pick<z.infer<typeof Approval>, "decision" | "by">; note?: boolean }>({
-  id: "estimate.e1b-design-baseline", after: "design", safety: false, waiver: "none",
-  predicate: ({ ui, design, approval, note }) => {
-    if (!ui) return { passed: true, details: "no UI in this request" };
-    // a small fix's text note is approved by the person who approves the estimate (E7), on the same card
-    const withEstimate = note && design?.note === true;
-    const fs = [];
-    if (!design) fs.push(failure("e1b-design", "the request has UI but there is no design"));
-    else {
-      for (const s of design.screens) if (s.reqs.length === 0) fs.push(failure("e1b-screen", `screen ${s.id} links to no requirement`));
-      for (const r of design.mapping.unmappedReqs) fs.push(failure("e1b-mapping", `requirement ${r} has no screen`));
-      for (const s of design.mapping.orphanScreens) fs.push(failure("e1b-mapping", `screen ${s} maps to no requirement`));
-      if (design.screens.length === 0) fs.push(failure("e1b-design", "the design has no screens"));
-      const ids = design.screens.map((x) => x.id);
-      for (const x of new Set(ids.filter((v, i) => ids.indexOf(v) !== i))) fs.push(failure("e1b-duplicate", `two screens share the id ${x}`));
-    }
-    if (!withEstimate && (approval?.decision !== "approved" || !approval.by)) fs.push(failure("e1b-approval", "the mock and clickable demo are not approved by a person"));
-    return verdict(fs, withEstimate ? `design note: ${design!.screens.length} page(s) linked to requirements, approved with the estimate (E7)` : `${design?.screens.length ?? 0} screens approved and linked to requirements`);
-  },
-});
-
-type ScreenLike = { id: string; route?: string };
-
-/** The breakdown and the approved design agree: each task's screen exists, each approved screen is built, no id or route twice. */
-export const designCoverage = defineGate<{ design?: { skipped?: boolean; screens: ScreenLike[] }; breakdown: Pick<Breakdown, "tasks"> }>({
-  id: "estimate.e1c-design-coverage", after: "breakdown", safety: false, waiver: "human",
-  predicate: ({ design, breakdown }) => {
-    const screens = design && !design.skipped ? design.screens : [];
-    const ids = new Set(screens.map((s) => s.id));
-    const fs = [];
-    const dup = (xs: string[]) => [...new Set(xs.filter((x, i) => xs.indexOf(x) !== i))];
-    for (const x of dup(screens.map((s) => s.id))) fs.push(failure("e1c-duplicate-id", `two approved screens share the id ${x}`));
-    for (const x of dup(screens.flatMap((s) => (s.route ? [s.route.trim().toLowerCase().replace(/\/+$/, "") || "/"] : [])))) fs.push(failure("e1c-duplicate-route", `two approved screens share the route ${x}`));
-    for (const t of breakdown.tasks) {
-      if (t.screen && !ids.has(t.screen)) fs.push(failure("e1c-unknown-screen", `${t.id} builds screen ${t.screen}, which is not in the approved design${screens.length ? "" : " (there is none)"}`));
-    }
-    const built = new Set(breakdown.tasks.map((t) => t.screen).filter(Boolean));
-    for (const s of screens) if (!built.has(s.id)) fs.push(failure("e1c-unbuilt-screen", `approved screen ${s.id} is built by no task`));
-    return verdict(fs, screens.length ? `all ${screens.length} approved screens are built by a task, and every task screen is approved` : "no approved screens, and no task cites one");
   },
 });
 
@@ -216,69 +176,6 @@ export const scopeLock = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "esti
         : approved.has(t.estimateTaskId) ? [] : [failure("b1-unknown", `plan task ${t.id} maps to ${t.estimateTaskId}, which is not in the approved estimate`)]),
       "every plan task maps to an approved estimate task",
     );
-  },
-});
-
-/** B6: a build that follows an approved estimate plans every approved screen, through the estimate tasks that build it. */
-export const screensPlanned = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "estimateTaskId">[] }; breakdown: Pick<Breakdown, "tasks">; design?: { skipped?: boolean; screens: ScreenLike[] } }>({
-  id: "build.b6-screens-planned", after: "plan", safety: false, waiver: "human",
-  predicate: ({ plan, breakdown, design }) => {
-    if (!design || design.skipped) return { passed: true, details: "the approved estimate has no design" };
-    const planned = new Set(plan.tasks.map((t) => t.estimateTaskId).filter(Boolean));
-    const fs = [];
-    for (const s of design.screens) {
-      const builders = breakdown.tasks.filter((t) => t.screen === s.id && t.executor !== "human");
-      // a screen that only humans build (no factory task) is outside this plan
-      if (builders.length && !builders.some((t) => planned.has(t.id))) fs.push(failure("b6-screen", `approved screen ${s.id} is built by ${builders.map((t) => t.id).join(", ")}, and the plan delivers none of them`));
-    }
-    return verdict(fs, `every approved screen with a factory task is in the plan (${design.screens.length})`);
-  },
-});
-
-/** B7: the plan task that builds an approved screen may touch that screen's file, so the screen that was approved is the one built. */
-export const screenScope = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "estimateTaskId" | "fileScope">[] }; breakdown: Pick<Breakdown, "tasks">; design?: ApprovedDesign }>({
-  id: "build.b7-screen-scope", after: "plan", safety: false, waiver: "human",
-  predicate: ({ plan, breakdown, design }) => {
-    if (!design || design.skipped) return { passed: true, details: "the approved estimate has no design" };
-    return verdict(
-      screenScopeGaps(plan, breakdown, design).map((g) => failure("b7-screen-scope", `plan task ${g.task} builds approved screen ${g.screen}, but its file scope does not include ${g.file}`)),
-      "every plan task that builds an approved screen can touch that screen's file",
-    );
-  },
-});
-
-/**
- * B1 for a build from an approved design (`--from-design`, no estimate): every plan task delivers requirements of the approved
- * spec, and none delivers one the design run did not approve (PR #11 review, item 10).
- */
-export const designScopeLock = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "reqs">[] }; approvedSpec: Pick<SpecDraft, "requirements"> }>({
-  id: "build.b1-design-scope", after: "plan", safety: false, waiver: "human",
-  predicate: ({ plan, approvedSpec }) => {
-    const approved = new Set(approvedSpec.requirements.map((r) => r.id));
-    return verdict(
-      plan.tasks.flatMap((t) => !t.reqs.length
-        ? [failure("b1-unmapped", `plan task ${t.id} delivers no approved requirement`)]
-        : t.reqs.filter((r) => !approved.has(r)).map((r) => failure("b1-unknown", `plan task ${t.id} delivers ${r}, which the approved design's spec does not have`))),
-      "every plan task delivers approved requirements",
-    );
-  },
-});
-
-/**
- * B6 and B7 for a build from an approved design: each approved screen is delivered by a plan task that serves its
- * requirements, and one of those tasks can touch the screen's file, so the screen that was approved is the one built.
- */
-export const designScreensPlanned = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "reqs" | "fileScope">[] }; design?: ApprovedDesign }>({
-  id: "build.b6-design-screens", after: "plan", safety: false, waiver: "human",
-  predicate: ({ plan, design }) => {
-    if (!design || design.skipped) return { passed: true, details: "the approved design has no screens" };
-    const fs = [];
-    for (const s of design.screens) {
-      const serving = plan.tasks.filter((t) => t.reqs.some((r) => s.reqs.includes(r)));
-      if (!serving.length) fs.push(failure("b6-screen", `approved screen ${s.id} (${s.route}) serves ${s.reqs.join(", ")}, and no plan task delivers them`));
-      else if (s.file && !serving.some((t) => matchesAny(s.file, t.fileScope))) fs.push(failure("b7-screen-scope", `approved screen ${s.id} is delivered by ${serving.map((t) => t.id).join(", ")}, but none of their file scopes includes ${s.file}`));
-    }
-    return verdict(fs, `every approved screen (${design.screens.length}) is planned, by a task that can touch its file`);
   },
 });
 

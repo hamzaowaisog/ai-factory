@@ -92,7 +92,7 @@ describe("tuning against the ledger home", () => {
 
   it("reports without writing on an empty home, and lets one tuner run at a time", () => {
     const p = tuneNow({ mode: "apply" })!;
-    expect(p).toMatchObject({ from: root.version, changes: [], builds: 0, projects: 0 });
+    expect(p).toMatchObject({ from: root.version, changes: [], builds: 0, projects: 0, refused: expect.stringMatching(/no proposal is waiting/) });
     expect(currentCatalogue().version).toBe(root.version);
     expect(withTuneLock(() => withTuneLock(() => "inner"))).toBeUndefined();
     expect(withTuneLock(() => "free again")).toBe("free again");
@@ -115,9 +115,18 @@ describe("tuning against the ledger home", () => {
     expect(readProposal(root.version)?.version).toBe(`${root.version}+t2`);
     expect(currentCatalogue().version).toBe(`${root.version}+t1`);
     expect(storedVersions(root.version).map((c) => c.version)).toEqual([`${root.version}+t1`]);
+    // a person promotes exactly the stored proposal, not a plan measured again (here the home has no evidence at all)
+    const applied = tuneNow({ mode: "apply" })!;
+    expect(applied).toMatchObject({ promoted: true, from: `${root.version}+t1`, to: `${root.version}+t2`, changes: next.changes });
+    expect(currentCatalogue()).toEqual(next.catalogue);
+    expect(readProposal(root.version)).toBeUndefined();
+    // a proposal made from an older version is refused, not promoted over the newer one
+    saveProposal(next.catalogue!);
+    expect(tuneNow({ mode: "apply" })).toMatchObject({ refused: expect.stringMatching(/was made from .*\+t1, not the current .*\+t2/) });
+    expect(currentCatalogue().version).toBe(`${root.version}+t2`);
     // with nothing off, the tuner clears a stale proposal instead of keeping it
     tuneNow({ mode: "propose" });
     expect(readProposal(root.version)).toBeUndefined();
-    expect(currentCatalogue().version).toBe(`${root.version}+t1`);
+    expect(currentCatalogue().version).toBe(`${root.version}+t2`);
   });
 });
