@@ -12,6 +12,8 @@ export { SizeStep };
 /** factory tasks only: how hard the agent's work is to check (more retries), and how complete its context is */
 export const VerifyGrade = z.enum(["easy", "moderate", "hard"]);
 export const ContextGrade = z.enum(["complete", "partial"]);
+export type VerifyGrade = z.infer<typeof VerifyGrade>;
+export type ContextGrade = z.infer<typeof ContextGrade>;
 
 const Hours = z.object({ min: z.number().positive(), max: z.number().positive() }).refine((r) => r.min <= r.max, "min must not exceed max");
 

@@ -97,3 +97,45 @@ describe("records from a build run", () => {
     expect(loadTaskRecords()).toHaveLength(1);
   });
 });
+
+describe("size picks paired with build actuals (Phase 2)", () => {
+  it("records the predicted kind, size and hours with the actuals, and pairs the approved estimate's decision log with them", async () => {
+    const { mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { HUMAN_WRITER, Ledger } = await import("../ledger/ledger.js");
+    const { taskRecordsFromRun } = await import("./durations.js");
+    const { decisionPairs, formatPairs, sizeDecisions } = await import("./decisions.js");
+    process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "factory-pairs-"));
+    expect(formatPairs([])).toMatch(/No finished build/);
+    const f = fixture();
+    const breakdown = { ...f.breakdown, tasks: f.breakdown.tasks.map((t) => ({ ...t, kind: t.id === "EST-2" ? "ui-form" : "be-crud" })) };
+    const estimate = { ...f.estimate, catalogue: { version: "2026-10-03.1", status: "draft" as const, stack: "default" }, tasks: f.estimate.tasks.map((t) => ({ ...t, size: "large" as const })) };
+    const proposals = [0, 1, 2].map((n) => ({ anchors: [], stack: { basis: "assumed" as const }, tasks: breakdown.tasks.map((t) => ({ taskId: t.id, anchorId: t.id, ratio: 1, reason: "r", size: n === 2 ? "typical" as const : "large" as const, ...(t.executor !== "human" ? { verify: "easy" as const, context: "complete" as const } : {}) })) }));
+    const log = sizeDecisions(proposals, breakdown.tasks, () => "moderate", { catalogue: "2026-10-03.1", stack: "default", band: "M" });
+
+    const est = Ledger.create("20261002-est-0001");
+    await est.append({ type: "run.created", data: { mode: "estimate", project: "p", request: "x" } }, HUMAN_WRITER);
+    const breakdownSha = est.putJson(breakdown);
+    const estimateSha = est.putJson(estimate);
+    const decisions = est.putJson(log);
+    await est.append({ type: "step.completed", key: "estimate/1", inputsHash: "a".repeat(64), outputs: [estimateSha, decisions], data: { named: { estimate: estimateSha, decisions } } }, HUMAN_WRITER);
+    const build = Ledger.create("20261002-build-0001");
+    await build.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: "x", estimateRef: { runId: est.runId, estimateSha, breakdownSha, specSha: "b".repeat(64) } } }, HUMAN_WRITER);
+    await build.append({ type: "step.started", key: "implement/T-1/1" }, HUMAN_WRITER);
+    await build.append({ type: "usage", key: "implement/T-1/1", data: { "gen_ai.request.model": "m", "gen_ai.usage.cost_usd": 0.5 } }, HUMAN_WRITER);
+    await build.append({ type: "step.completed", key: "implement/T-1/1", inputsHash: "c".repeat(64), outputs: [], data: { estimateTaskId: "EST-2" } }, HUMAN_WRITER);
+
+    const sized = estimate.tasks.find((t) => t.taskId === "EST-2")!;
+    expect(taskRecordsFromRun(build)[0]).toMatchObject({ estimateTaskId: "EST-2", kind: "ui-form", size: "large", hours: sized.hours, catalogue: "2026-10-03.1" });
+    const pairs = decisionPairs([build.runId, est.runId]);
+    expect(pairs.map((p) => `${p.taskId} ${p.question} ${p.choice}`)).toEqual(["EST-2 size large", "EST-2 verify easy", "EST-2 context complete"]);
+    expect(pairs[0]).toMatchObject({ estimateRun: est.runId, buildRun: build.runId, confidence: 0.67, votes: ["large", "large", "typical"], features: { kind: "ui-form", ui: "moderate" }, hours: sized.hours, actual: { turns: 1, attempts: 1, outcome: "completed" } });
+    expect(formatPairs(pairs)).toMatch(/3 decision\(s\) paired with build actuals, from 1 build run/);
+
+    // a lead's edit re-ran the estimate after the one the build followed: that log no longer matches, so it pairs nothing
+    const other = est.putJson({ ...estimate, assumptions: ["edited"] });
+    await est.append({ type: "step.completed", key: "estimate/1", inputsHash: "d".repeat(64), outputs: [other, decisions], data: { named: { estimate: other, decisions } } }, HUMAN_WRITER);
+    expect(decisionPairs([build.runId])).toEqual([]);
+  });
+});

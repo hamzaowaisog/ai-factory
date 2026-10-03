@@ -187,7 +187,7 @@ Build order: F, D, C, A+B, Split, E. Prompt template versions go up (breakdown 3
 
 ### Not in Phase 1
 
-Retrieval of approved past tasks and near-match reuse (Phase 2); catalogue calibration from actual hours and measured ACEM retry and context factors (Phase 3).
+The Phase 2 decision log and actuals are built (section 11); retrieval of approved past tasks as references (Phase 2, section 12); catalogue calibration from actual hours and measured ACEM retry and context factors (Phase 3).
 
 ### Needs from the team
 
@@ -204,3 +204,74 @@ Retrieval of approved past tasks and near-match reuse (Phase 2); catalogue calib
 - **E done.** `src/estimate/assets/defaults.json` (version `2026-10-03.1`, **draft**) lists 19 standard topics: sign-in, roles, admin, languages, colour modes, platforms, browsers, accessibility, notifications, payments, file uploads, reporting, search, data migration, audit, volumes, offline, environments and hosting. Each has a standard answer. `src/estimate/defaults.ts` loads and checks the file. The clarifier prompt lists the topic ids (not the answers) in a `standard-topics` section and tags each question with `topic` when it fits. When a question is not asked (always in a hands-off run), `assumedFrom` takes the table's answer for a known topic: "→ assumed (standard answer, sign-in): …", and the assumption records `fromDefault`. An unknown topic, or none, keeps the model's recommendation. A question a person is asked is unchanged. Both clarify steps are template version 2, and their cache keys include the defaults version.
 
 **Phase 1 is code-complete.** What is left is the live measurement: `npm run bench -- consistency` with the API key, once before sign-off and again after.
+
+## 11. Phase 2 (first part): decision log and actuals, as built
+
+Approved in chat on 2026-10-03. The goal is to collect the evidence needed to try Jev (TypeSafe AI "System One", the Decider's second backend, `docs/design/core-design.md` §10a-2) against the model later. Nothing here changes an estimate's figures. The other Phase 2 item, approved past tasks as references, is section 12.
+
+- **Decision log.** Each catalogue-sized estimate writes a named output `decisions` on the estimate step (`src/estimate/decisions.ts`, `sizeDecisions`). There is one record per task per question:
+  - `size` for every task;
+  - `verify` and `context` for factory and joint tasks.
+
+  Each record uses the Decider's shape (`docs/design/contracts.md` §4): `question`, `choice`, `backend: "llm"`, `features` and `confidence`. Other fields:
+  - The choice is the lead estimator's pick, the one the hours are built on.
+  - `votes` lists every estimator's pick, lead first.
+  - `confidence` is the share of estimators that agreed with the lead. It measures agreement and is not a calibrated probability.
+
+  The features are derived from the breakdown only: kind, track, complexity, executor, the screen's UI level, the counts of items and dependencies, overhead, screen (0/1), band, stack and catalogue version. No titles, item text, reasons or client words are included. That is the rule for sending data to Jev.
+
+  The log also records the catalogue version, stack, band, number of estimators and the count of a lead's `edits`. An edited estimate's hours are no longer the picks' alone.
+
+  An estimate sized by anchors (a breakdown without kinds) writes no log. The step's data carries `decisions: <count>`.
+
+  To support this, each proposal task now keeps the estimator's `verify` and `context` next to `size` (`proposalFromSizes`). Cached proposals from before this change have no grades, so they log size only.
+- **Actuals.** `TaskRecord` (`src/estimate/durations.ts`) now carries what the approved estimate predicted for the task, next to the build's `activeMin`, turns, attempts, cost and outcome:
+  - `kind` (from the breakdown);
+  - `size` and sized `hours` (from the estimate);
+  - `catalogue` version.
+
+  Records are still made only for build runs that followed an approved estimate (`estimateRef`).
+- **Pairs.** `decisionPairs()` joins each build's task records with the decision log of the estimate the build followed. It reads the log only when the estimate step's latest output is the approved estimate's sha. If the step ran again afterwards, that log no longer matches and pairs nothing.
+
+  Two places show the pairs:
+  - `factory calibrate --decisions` prints one JSON line per pair: decision, estimate and build run ids, sized hours, and actual minutes, turns, attempts, cost and outcome. With no pairs yet it says so.
+  - `npm run bench -- calibrate` prints a summary per question and choice: tasks, mean agreement and median minutes.
+- **Tests.**
+  - `src/stages/estimate.test.ts` checks the following:
+    - the log's shape, votes and confidence (2 of 3 = 0.67);
+    - that human tasks have no grades;
+    - that no title or reason leaks into the log;
+    - that the anchor path writes no log.
+  - `src/estimate/durations.test.ts` builds an estimate run and a build run, then checks the predicted fields on the task record, the three pairs, the summary, and that a re-run estimate pairs nothing.
+
+**How the Jev comparison would run later.** Once enough builds have followed catalogue-sized estimates, export the pairs with `factory calibrate --decisions`. Then ask Jev for the same questions from the same `features`, and compare both against actual minutes and attempts on held-out runs. Switch the Decider's backend only if Jev is measurably better. Until then the backend stays `llm` and no data leaves the machine.
+
+## 12. Phase 2 (second part): approved past tasks as references, as built
+
+Approved in chat on 2026-10-03, with one rule from the user: estimates are approved by the factory, not a lead, so the flow is human-free. An estimate therefore counts as approved when its approve-estimate step passed. In a hands-off run (the default) that means the factory approved it after gate E7. A run with `--review` counts once a person approves it.
+
+- **Finding matches.** `src/estimate/references.ts` does the lookup.
+  - `pastTasksOfRun` reads one run's approved estimate: its approval, then the estimate, then the breakdown. It returns each task's kind, track, complexity, executor, item count, size and hours. The screen's UI level comes from that estimate's decision log (section 11), because the breakdown does not keep it.
+  - Runs without an approval, with a non-approved decision, or sized by anchors (no catalogue) give nothing.
+  - `loadPastTasks` keeps only tasks on the same catalogue version.
+  - `nearMatches` keeps past tasks with the same kind, track, complexity and executor. It ranks them by same UI level first, then the smallest difference in item count, then the newest approval, and returns at most 2 per task.
+  - Matching reads categories and counts only. No text is compared.
+- **Using them.** When any task has matches, the estimate step adds a reference section, `past-tasks`, to the prompt. It has one line per task: each match's size, hours, whether the UI level is the same, and how far apart the item counts are.
+  - Size rule 6 says: count against the scale as usual; when the task counts the same as a past one, give the same size; when the size differs, say in the reason what differs.
+  - The hours still come from the catalogue, not from the past task.
+  - The cache key includes the references, so a new approved estimate means a fresh sizing.
+  - The estimate step is template version 5.
+- **Recording and showing.** These records travel with the estimate:
+  - Each estimate task stores `references` (run, task, size, hours; at most 2).
+  - An assumption line counts the referenced tasks.
+  - The decision log adds two features, `pastMatches` and `pastSize`, so a backend compared later sees the same inputs.
+
+  The approval card has a section "Sized with approved past tasks as references". It names the task, its size, and each reference. A task whose size differs from every reference is marked "sized differently: see its reason". The web UI's estimate page shows a "Like EST-n of <run> (size, hours)" line under the task's reason.
+- **Tests.**
+  - `src/estimate/references.test.ts` covers filtering, ranking, the cap of 2 and the text.
+  - `src/stages/estimate.test.ts` runs a full sequence: a hands-off run is estimated and approved by the factory and becomes a reference, while an unapproved run does not. A later run's prompt then carries the references, its hours stay on the catalogue, and the card, assumptions and decision features show them.
+
+**Risk to watch.** With approvals made by the factory, references can carry a sizing mistake forward from one estimate to the next. Three limits apply:
+- References are hints; the estimators still count against the written scale.
+- Only the same catalogue version counts, so changing the catalogue resets the pool.
+- The decision log records how often a pick followed its reference (`pastSize`), so the actuals pairing (section 11) can show whether reuse drifts.

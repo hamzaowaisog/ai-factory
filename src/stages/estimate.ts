@@ -9,6 +9,8 @@ import { designUi, uiFactors } from "../estimate/ui-complexity.js";
 import { consistency, designCoverage, forgottenWork, readiness, reqToTask, taskKind, taskToReq } from "../estimate/gates.js";
 import { catalogueText, loadCatalogue } from "../estimate/catalogue.js";
 import { proposalFromSizes, SizeOut, stacksFor } from "../estimate/catalogue-size.js";
+import { sizeDecisions } from "../estimate/decisions.js";
+import { loadPastTasks, nearMatches, referencesText, type PastTask, type TaskReference } from "../estimate/references.js";
 import { estimateWorkbookLint } from "../estimate/lint.js";
 import { applyEdits, describeEdit, editsOf } from "../estimate/edits.js";
 import { loadBenchmarkRecords } from "../estimate/records.js";
@@ -68,6 +70,8 @@ export async function gate(ctx: StepContext, step: string, def: GateDef, inputs:
 let recordsSource: (exceptRun: string) => BenchmarkRecord[] = loadBenchmarkRecords;
 export function setRecordsSource(f: (exceptRun: string) => BenchmarkRecord[]): void { recordsSource = f; }
 let taskRecordsSource: (exceptRun: string) => TaskRecord[] = loadTaskRecords;
+let pastTasksSource: (exceptRun: string, catalogue: string) => PastTask[] = loadPastTasks;
+export function setPastTasksSource(f: (exceptRun: string, catalogue: string) => PastTask[]): void { pastTasksSource = f; }
 export function setTaskRecordsSource(f: (exceptRun: string) => TaskRecord[]): void { taskRecordsSource = f; }
 
 /** The approved design as the UI count reads it. */
@@ -166,17 +170,20 @@ const ESTIMATE_RULES = `You are sizing the tasks of a work breakdown, in hours, 
 Do not add anything up. Code computes every sum. Hours are for a competent engineer including unit tests, review fixes and handover of the task.
 ${UNTRUSTED_NOTE}`;
 
+const referenced = (refs: Map<string, TaskReference[]>): number => [...refs.values()].filter((r) => r.length).length;
+
 const SIZE_RULES = `You are sizing the tasks of a work breakdown against the task catalogue. You do not write hours: code reads them from the catalogue.
 1. Every task has a "kind". For each task pick "size": small, typical, large or very-large, by its kind's written scale in the "task-kinds" section. Count what the task covers (fields, rules, states, filters, flows, entities) against that scale; when a count sits on a boundary, pick the smaller step.
 2. "reason" names what you counted ("9 fields and 2 relations: typical"), so another estimator counting the same task lands on the same step.
 3. A web or mobile task that builds an approved screen carries "ui" (simple, moderate, complex), counted from the approved demo; code applies it, so do not size the screen up for it again. "uiFactors" apply to every UI task; size the shell (ui-shell) for them.
 4. For a factory or joint task also give "verify" and "context". verify: easy (a test or the compiler proves it), moderate (tests plus review), hard (needs a person, a device, a third party or judgement to check). context: complete (the spec, design and stack say everything the agent needs), partial (it has to assume or discover something).
 5. Say in "stack" the stack and architecture you priced: backend, web, mobile, database, hosting and architecture (for example "ASP.NET Core Web API", "Next.js + shadcn/ui", "PostgreSQL", "Azure App Service", "modular monolith"), leaving out a part the work does not need. Keep everything the "known-stack" section gives; basis "repo" when the repo decides it, "request" when the requirements name it, otherwise "assumed", with what you assumed in "notes".
-6. Size every task in the breakdown exactly once.
+6. The "past-tasks" section, when present, lists for some tasks the closest tasks of earlier approved estimates (same kind, track, complexity and executor) and the size each was given. Count this task against the scale as usual; when it counts the same as a past task, give the same size. When you pick a different size, say in "reason" what differs ("14 fields where the approved one had 8").
+7. Size every task in the breakdown exactly once.
 ${UNTRUSTED_NOTE}`;
 
 export const estimateStep: StepDef = {
-  key: "estimate", stage: "estimate", templateVersion: "4",
+  key: "estimate", stage: "estimate", templateVersion: "5",
   inputs: (s) => (s.steps.get("breakdown")?.status === "completed" ? { breakdown: s.steps.get("breakdown")!.outputs[0], specify: s.steps.get("specify")!.outputs[0], design: s.steps.get("design")?.outputs[0], settings: settingsOf(s), edits: editsOf(s) } : undefined),
   async run(ctx) {
     const settings = settingsOf(ctx.state);
@@ -197,7 +204,11 @@ export const estimateStep: StepDef = {
     const known = knownStack(ctx.state, ctx.ledger, ctx.project);
     // a breakdown whose every task has a kind is sized against the catalogue; an older one by anchors and ratios
     const catalogue = breakdown.tasks.every((t) => t.kind) ? loadCatalogue() : undefined;
-    const cacheKey = hashJson({ step: "estimate", breakdown: breakdownSha, spec: specSha, settings, ui: ui ?? null, known, ...(catalogue ? { catalogue: catalogue.version } : {}) });
+    // Phase 2: the closest tasks of earlier approved estimates on the same catalogue version, shown as references
+    const past = catalogue ? pastTasksSource(ctx.runId, catalogue.version) : [];
+    const refs = new Map<string, TaskReference[]>(breakdown.tasks.map((t) => [t.id, nearMatches(t, uiOf(t)?.level, past)]));
+    const refText = referencesText(refs);
+    const cacheKey = hashJson({ step: "estimate", breakdown: breakdownSha, spec: specSha, settings, ui: ui ?? null, known, ...(catalogue ? { catalogue: catalogue.version } : {}), ...(refText ? { refs: refText } : {}) });
     const cached = waivedCache<Proposal[]>(ctx, "estimate", cacheKey);
     const edits = editsOf(ctx.state);
     // a lead's edits re-assemble the estimate from the proposals already made: no new model call
@@ -219,6 +230,7 @@ export const estimateStep: StepDef = {
           S.artifact("settings", "settings", settings),
           S.artifact("known-stack", "known-stack", known),
           ...(ui?.factors.length ? [S.artifact("ui-factors", "uiFactors", ui.factors)] : []),
+          ...(catalogue && refText ? [S.reference("past-tasks", `Closest tasks of earlier approved estimates (catalogue ${catalogue.version}), with the size each was given:\n${refText}`)] : []),
           S.task(`Size the tasks (independent estimator ${k + 1} of ${n}).`),
         ],
       })));
@@ -252,8 +264,10 @@ export const estimateStep: StepDef = {
         assumptions: [...c.assumptions.map((a) => a.text), ...edits.map((e) => `Lead edit: ${describeEdit(e)}`), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs.",
           ...(catalogue ? [catalogue.status === "draft"
             ? `Task hours come from the task catalogue ${catalogue.version}, a DRAFT a delivery lead has not signed off yet.`
-            : `Task hours come from the task catalogue ${catalogue.version}, signed off by ${catalogue.signedOffBy}.`] : [])],
+            : `Task hours come from the task catalogue ${catalogue.version}, signed off by ${catalogue.signedOffBy}.`] : []),
+          ...(referenced(refs) ? [`${referenced(refs)} task(s) were sized with the closest tasks of earlier approved estimates as references; the hours still come from the catalogue.`] : [])],
       });
+      for (const t of estimate.tasks) { const r = refs.get(t.taskId); if (r?.length) t.references = r.map(({ runId, taskId, size, hours }) => ({ runId, taskId, size, hours })); }
     } catch (e) {
       return failed(`estimate:${(e as Error).message.slice(0, 80)}`, [failure("estimate-proposal", (e as Error).message)]);
     }
@@ -271,6 +285,8 @@ export const estimateStep: StepDef = {
       return failed(`estimate:${all.map((f) => f.check).sort().join(",")}`, all);
     }
 
-    return { kind: "done", outputs: { estimate: ctx.ledger.putJson(estimate), proposals: ctx.ledger.putJson(proposals), records: ctx.ledger.putJson(records), taskRecords: ctx.ledger.putJson(taskRecords) }, data: { band, estimators: n, hours: estimate.totals.overall, records: records.length, taskRecords: taskRecords.length, ...(waivers.length ? { waivers } : {}) } };
+    // Phase 2: every size pick, logged as a decision record with derived features, so another backend can be compared later
+    const decisions = estimate.catalogue ? sizeDecisions(proposals, breakdown.tasks, (t) => uiOf(t)?.level, { catalogue: estimate.catalogue.version, stack: estimate.catalogue.stack, band, edits: edits.length }, (id) => refs.get(id) ?? []) : undefined;
+    return { kind: "done", outputs: { estimate: ctx.ledger.putJson(estimate), proposals: ctx.ledger.putJson(proposals), records: ctx.ledger.putJson(records), taskRecords: ctx.ledger.putJson(taskRecords), ...(decisions ? { decisions: ctx.ledger.putJson(decisions) } : {}) }, data: { band, estimators: n, hours: estimate.totals.overall, records: records.length, taskRecords: taskRecords.length, ...(decisions ? { decisions: decisions.decisions.length } : {}), ...(waivers.length ? { waivers } : {}) } };
   },
 };

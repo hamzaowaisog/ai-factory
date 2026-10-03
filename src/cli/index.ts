@@ -427,8 +427,15 @@ program.command("report").argument("[run]")
 program.command("calibrate")
   .option("--actual-hours <file>", "a file of `estimate-run,actual-hours` lines for finished projects")
   .option("--json", "print JSON")
+  .option("--decisions", "print each logged size pick paired with what its build took, one JSON line each (for comparing a backend such as Jev)")
   .description("compare approved estimates with what the factory spent (and, with a file, with real hours)")
-  .action(async (o: { actualHours?: string; json?: boolean }) => {
+  .action(async (o: { actualHours?: string; json?: boolean; decisions?: boolean }) => {
+    if (o.decisions) {
+      const { decisionPairs, formatPairs } = await import("../estimate/decisions.js");
+      const pairs = decisionPairs();
+      log(pairs.length ? pairs.map((p) => JSON.stringify(p)).join("\n") : formatPairs(pairs));
+      return;
+    }
     const { costRows, formatCalibration, hoursRows } = await import("../estimate/calibrate.js");
     const cost = costRows();
     const hours = o.actualHours ? hoursRows(o.actualHours) : [];

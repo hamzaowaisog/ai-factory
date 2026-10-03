@@ -269,6 +269,7 @@ export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<B
     ...(extra.diff ? [`## ${extra.diff.title}`, ...extra.diff.lines.map((l) => `- ${l}`), ``] : []),
     `## Anchors (check these first: every other task is sized against one)`,
     ...e.anchors.map((a) => `- ${a.taskId} ${title.get(a.taskId) ?? ""}: ${h(a.hours)}. ${a.reason}`), ``,
+    ...(e.tasks.some((t) => t.references?.length) ? [`## Sized with approved past tasks as references`, ...e.tasks.filter((t) => t.references?.length).map((t) => `- ${t.taskId} ${title.get(t.taskId) ?? ""}: ${t.size?.replace("-", " ") ?? "-"}; like ${t.references!.map((r) => `${r.taskId} of ${r.runId} (${r.size.replace("-", " ")}, ${h(r.hours)})`).join(", ")}${t.references!.every((r) => r.size !== t.size) ? " (sized differently: see its reason)" : ""}`), ``] : []),
     ...(e.tasks.some((t) => t.splitAdvised) ? [`## Split before the build (agent work this size fails and retries more)`, ...e.tasks.filter((t) => t.splitAdvised).map((t) => `- ${t.taskId} ${title.get(t.taskId) ?? ""}: ${h(t.hours)}${t.size === "very-large" ? ", very large" : `, over ${e.catalogue?.splitAboveHours} h`}`), ``] : []),
     `## Totals`,
     ...Object.entries(e.totals.byTrack).map(([t, r]) => `- ${t}: ${h(r!)}`),

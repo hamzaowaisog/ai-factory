@@ -170,6 +170,8 @@ export const TaskSizing = z.object({
   size: SizeStep.optional(),
   /** a factory or joint task too big to build as one piece (very large, or over the catalogue's split threshold): split it before the build */
   splitAdvised: z.boolean().optional(),
+  /** the closest tasks of earlier approved estimates the estimators were shown (Phase 2); the hours still come from the catalogue */
+  references: z.array(z.object({ runId: z.string(), taskId: EstimateTaskId, size: SizeStep, hours: Range })).max(2).optional(),
   /** independent estimators' readings for M and up (spread sets the range and flags the item) */
   estimators: z.array(Range).max(3).default([]),
   flagged: z.boolean().default(false),

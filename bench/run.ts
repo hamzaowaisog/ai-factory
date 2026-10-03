@@ -49,6 +49,11 @@ if (cmd === "calibrate" || cmd === "all") {
   console.log("\n== UI size: approved design vs built ==");
   console.log(ui.length ? ui.map((r) => `${r.buildRun.slice(0, 40).padEnd(40)} approved ${r.approved.padEnd(13)} built ${r.actual.padEnd(13)} ${r.verdict}`).join("\n") : "No build with an approved design has finished yet.");
   history.uiSize = ui;
+  const { decisionPairs, formatPairs } = await import("../src/estimate/decisions.js");
+  const pairs = decisionPairs();
+  console.log("\n== Size picks vs build actuals (decision log, for comparing a backend such as Jev) ==");
+  console.log(formatPairs(pairs));
+  history.decisionPairs = pairs.length;
 }
 
 if (cmd === "compare" || cmd === "all") {

@@ -10,6 +10,7 @@ import { gateHours, prCount } from "./gate-hours.js";
 import { loadRoundsPrior, withPrior } from "./priors.js";
 import { sizeTasks, type AnchorIn, type RatioIn } from "./hours.js";
 import { bandFor, uncertaintyFor, type InputGrades, type Units } from "./size.js";
+import type { ContextGrade, VerifyGrade } from "./catalogue.js";
 import { computeTotals, criticalPath, elapsedDays } from "./totals.js";
 
 type Body = Pick<Breakdown, "features" | "tasks">;
@@ -17,7 +18,7 @@ type Body = Pick<Breakdown, "features" | "tasks">;
 /** What one estimator returns: reference tasks estimated in detail, and a ratio to an anchor for every task. */
 export interface Proposal {
   anchors: { taskId: string; hours: Range; reason: string }[];
-  tasks: { taskId: string; anchorId: string; ratio: number; reason: string; size?: SizeStep }[];
+  tasks: { taskId: string; anchorId: string; ratio: number; reason: string; size?: SizeStep; verify?: VerifyGrade; context?: ContextGrade }[];
   /** the stack the estimator priced (proposals made before it was asked for have none) */
   stack?: StackChoice;
 }

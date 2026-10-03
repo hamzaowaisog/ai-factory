@@ -13,8 +13,10 @@ import { DEFAULT_POLICY } from "../gates/policy.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
-import { breakdownStep, estimateStep, setRecordsSource, setTaskRecordsSource } from "./estimate.js";
+import { breakdownStep, estimateStep, setPastTasksSource, setRecordsSource, setTaskRecordsSource } from "./estimate.js";
+import type { DecisionLog } from "../estimate/decisions.js";
 import { approveEstimateStep } from "./estimate-approve.js";
+import { loadPastTasks, pastTasksOfRun } from "../estimate/references.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
 import { NO_TRACE } from "../util/trace.js";
@@ -117,6 +119,7 @@ beforeEach(() => {
   asked = [];
   setRecordsSource(() => []);
   setTaskRecordsSource(() => []);
+  setPastTasksSource(() => []);
   setProviderFactory(() => provider);
 });
 
@@ -219,6 +222,16 @@ describe("estimate step", () => {
     expect(t("EST-1").estimators[0]).toEqual({ min: 12.8, max: 19.2 });
     expect(e.catalogue).toEqual({ version: "2026-10-03.1", status: "draft", stack: "dotnet", splitAboveHours: 16 });
     expect(e.assumptions.some((x) => /catalogue 2026-10-03\.1, a DRAFT/.test(x))).toBe(true);
+    // Phase 2: every pick is logged as a decision record, lead's choice with the estimators' agreement, derived features only
+    const log = ledger.getJson((out as { outputs: Record<string, string> }).outputs.decisions!) as DecisionLog;
+    expect(log).toMatchObject({ catalogue: "2026-10-03.1", stack: "dotnet", estimators: 3, edits: 0 });
+    const d = (id: string, q: string) => log.decisions.find((x) => x.taskId === id && x.question === q);
+    expect(d("EST-1", "size")).toMatchObject({ choice: "typical", backend: "llm", votes: ["typical", "large", "typical"], confidence: 0.67, features: { kind: "be-crud", track: "backend", executor: "factory" } });
+    expect(d("EST-1", "verify")).toMatchObject({ choice: "moderate", confidence: 1 });
+    expect(d("EST-4", "size")).toBeDefined();
+    expect(d("EST-4", "verify")).toBeUndefined(); // a human task has no grades
+    expect(JSON.stringify(log)).not.toMatch(/Build 1|reading \d/); // no titles or reasons travel with the features
+    expect((out as { data: Record<string, unknown> }).data.decisions).toBe(log.decisions.length);
     expect(replay(ledger.events()).gates.map((g) => `${g.gateId}:${g.passed}`)).toContain("estimate.e6-lint:true");
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
   });
@@ -236,6 +249,39 @@ describe("estimate step", () => {
     expect(e.assumptions).toContain("Split before the build: EST-1 (agent work over 16 h or very large is split into smaller tasks; the hours stay as estimated).");
     const card = await exec(ledger, approveEstimateStep);
     expect((card as { card: { markdown: string } }).card.markdown).toMatch(/## Split before the build[^\n]*\n- EST-1 Build 1: 20-30 h, very large/);
+  });
+
+  it("shows the closest tasks of an agent-approved past estimate as references; the hours still come from the catalogue", async () => {
+    // a hands-off run: estimated, then approved by the factory (gate E7), with no person involved
+    const first = await withBreakdown(3, { humanReview: false });
+    answer = () => sizing(tasksOf(3), 1, "large");
+    expect((await exec(first, estimateStep)).kind).toBe("done");
+    expect(await exec(first, approveEstimateStep)).toMatchObject({ kind: "done", data: { by: "factory", auto: true } });
+    const past = pastTasksOfRun(first);
+    expect(past.map((p) => `${p.taskId} ${p.kind} ${p.size} ${p.ui}`)).toEqual(["EST-1 be-crud large none", "EST-2 ui-form large none", "EST-3 be-crud large none", "EST-4 pm-management large none"]);
+    // an estimate that is not approved yet is no reference
+    const unapproved = await withBreakdown(3);
+    answer = () => sizing(tasksOf(3));
+    await exec(unapproved, estimateStep);
+    expect(pastTasksOfRun(unapproved)).toEqual([]);
+
+    setPastTasksSource(loadPastTasks);
+    const ledger = await withBreakdown(3);
+    answer = () => sizing(tasksOf(3));
+    const out = await exec(ledger, estimateStep);
+    expect(out.kind).toBe("done");
+    const section = artifactIn(asked.at(-1)!, "Closest tasks of earlier approved estimates");
+    expect(section).toMatch(/- EST-1: large \(12\.8-19\.2 h; same UI level; same item count\), large/);
+    const e = Estimate.parse(ledger.getJson((out as { outputs: Record<string, string> }).outputs.estimate!));
+    const t1 = e.tasks.find((t) => t.taskId === "EST-1")!;
+    expect(t1.hours).toEqual({ min: 8, max: 12 }); // typical picked: the reference does not move the hours
+    expect(t1.references).toHaveLength(2);
+    expect(t1.references![0]).toMatchObject({ runId: first.runId, size: "large", hours: { min: 12.8, max: 19.2 } });
+    expect(e.assumptions).toContain("4 task(s) were sized with the closest tasks of earlier approved estimates as references; the hours still come from the catalogue.");
+    const log = ledger.getJson((out as { outputs: Record<string, string> }).outputs.decisions!) as DecisionLog;
+    expect(log.decisions.find((d) => d.taskId === "EST-1" && d.question === "size")!.features).toMatchObject({ pastMatches: 2, pastSize: "large" });
+    const card = await exec(ledger, approveEstimateStep);
+    expect((card as { card: { markdown: string } }).card.markdown).toMatch(/## Sized with approved past tasks as references\n- EST-1 Build 1: typical; like EST-1 of \S+ \(large, 12\.8-19\.2 h\), EST-3 of \S+ \(large, [^)]+\) \(sized differently: see its reason\)/);
   });
 
   it("fails a factory task sized without its verify and context grades, feeding the reason back", async () => {
@@ -265,6 +311,7 @@ describe("estimate step", () => {
     expect(calls).toHaveLength(3);
     const e = Estimate.parse(ledger.getJson((out as { outputs: Record<string, string> }).outputs.estimate!));
     expect(e.band).toBe("M");
+    expect((out as { outputs: Record<string, string> }).outputs.decisions).toBeUndefined(); // no catalogue picks to log
     expect(e.tasks[0]!.estimators).toHaveLength(2);
     expect(e.tasks.every((t) => t.flagged)).toBe(true);
     // estimator 2 read the anchor 4x higher; the median of 1x, 4x, 1x is the 1x reading

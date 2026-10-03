@@ -17,6 +17,11 @@ export interface TaskRecord {
   taskClass: string;
   stack?: string;
   sizeBand?: string;
+  /** what the approved estimate predicted for the task, so predicted and actual sit in one record (Phase 2) */
+  kind?: string;
+  size?: string;
+  hours?: Range;
+  catalogue?: string;
   activeMin: number;
   costUsd: number;
   /** model turns, comparable to a tool round in external data */
@@ -33,8 +38,9 @@ export function taskRecordsFromRun(ledger: Ledger): TaskRecord[] {
   const ref = state.info.estimateRef;
   if (!ref) return [];
   const bd = Ledger.open(ref.runId).getJson<Pick<Breakdown, "tasks">>(ref.breakdownSha);
-  const est = Ledger.open(ref.runId).getJson<Pick<Estimate, "band">>(ref.estimateSha);
+  const est = Ledger.open(ref.runId).getJson<Pick<Estimate, "band" | "tasks" | "catalogue">>(ref.estimateSha);
   const task = new Map(bd.tasks.map((t) => [t.id, t]));
+  const sizing = new Map((est.tasks ?? []).map((t) => [t.taskId, t]));
   const turns = new Map<string, number>();
   for (const e of ledger.events()) if (e.type === "usage" && e.key) { const s = splitKey(e.key).step; turns.set(s, (turns.get(s) ?? 0) + 1); }
   const score = new Map(scoreRun(ledger).steps.map((s) => [s.step, s]));
@@ -46,8 +52,10 @@ export function taskRecordsFromRun(ledger: Ledger): TaskRecord[] {
     if (!step.startsWith("implement/") || !t || !sc) continue;
     const prev = by.get(t.id);
     const outcome = r.status === "completed" ? "completed" : "partial";
+    const z = sizing.get(t.id);
     by.set(t.id, {
       runId: state.info.runId, estimateTaskId: t.id, taskClass: classOf(t), sizeBand: est.band,
+      ...(t.kind ? { kind: t.kind } : {}), ...(z?.size ? { size: z.size } : {}), ...(z ? { hours: z.hours } : {}), ...(est.catalogue ? { catalogue: est.catalogue.version } : {}),
       activeMin: (prev?.activeMin ?? 0) + sc.activeSec / 60, costUsd: (prev?.costUsd ?? 0) + sc.costUsd,
       turns: (prev?.turns ?? 0) + (turns.get(step) ?? 0), attempts: (prev?.attempts ?? 0) + sc.attempts,
       outcome: prev && prev.outcome !== "completed" ? prev.outcome : outcome,

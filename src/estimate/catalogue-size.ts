@@ -64,15 +64,16 @@ export function proposalFromSizes(c: Catalogue, out: SizeOut, tasks: SizeTask[])
     const base = kind?.hours[t.track];
     if (!kind || !base) throw new Error(`${t.id} has no catalogue hours for kind ${t.kind ?? "(none)"} on ${t.track}`);
     const { mult, parts } = multiplier(c, t, s, stacks);
+    const grades = { ...(s.verify && t.executor !== "human" ? { verify: s.verify } : {}), ...(s.context && t.executor !== "human" ? { context: s.context } : {}) };
     const why = `${s.reason} [${kind.id} ${t.track} ${base.min}-${base.max} h, ${parts.join(", ")}]`;
     const group = `${kind.id}/${t.track}`;
     const a = groupAnchor.get(group);
     if (!a) {
       groupAnchor.set(group, { id: t.id, mult });
       anchors.push({ taskId: t.id, hours: { min: r2(base.min * mult), max: r2(base.max * mult) }, reason: why });
-      sized.push({ taskId: t.id, anchorId: t.id, ratio: 1, reason: why, size: s.size });
+      sized.push({ taskId: t.id, anchorId: t.id, ratio: 1, reason: why, size: s.size, ...grades });
     } else {
-      sized.push({ taskId: t.id, anchorId: a.id, ratio: r3(mult / a.mult), reason: why, size: s.size });
+      sized.push({ taskId: t.id, anchorId: a.id, ratio: r3(mult / a.mult), reason: why, size: s.size, ...grades });
     }
   }
   return { anchors, tasks: sized, stack: out.stack };
