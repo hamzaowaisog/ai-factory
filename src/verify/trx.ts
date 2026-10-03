@@ -22,7 +22,7 @@ export function classifyFailure(message: string, stack = ""): FailureKind {
   if (/NotImplementedException|not implemented/i.test(text)) return "not-implemented";
   if (/timed? ?out|TimeoutException|exceeded .*timeout/i.test(message)) return "timeout";
   if (/Npgsql\.NpgsqlException|SocketException|Connection refused|could not connect to server|ECONNREFUSED/i.test(text)) return "infra";
-  if (/Xunit\.Sdk\.|Assert\.|AssertionException|AssertFailedException|NUnit\.Framework\.Assert|FluentAssertions|Shouldly|Expected[: ]|Assert\.\w+\(\) Failure/.test(text)) return "assertion";
+  if (/Xunit\.Sdk\.|Assert\.|AssertionException|AssertFailedException|NUnit\.Framework\.Assert|FluentAssertions|Shouldly|Expected[: ]|Assert\.\w+\(\) Failure|AssertionError/.test(text)) return "assertion";
   return "exception";
 }
 

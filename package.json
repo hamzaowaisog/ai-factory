@@ -14,6 +14,7 @@
     "build": "tsc -p tsconfig.json && node -e \"require('node:fs').cpSync('src/ui/static', 'dist/ui/static', { recursive: true }); require('node:fs').cpSync('src/estimate/assets', 'dist/estimate/assets', { recursive: true }); require('node:fs').cpSync('kits', 'dist/kits', { recursive: true })\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:kit": "FACTORY_KIT_E2E=1 vitest run src/design/kit/kit.test.ts",
+    "test:lab": "FACTORY_LAB_E2E=1 vitest run src/verify/node-lab.test.ts",
     "test": "vitest run",
     "bench": "tsx bench/run.ts",
     "test:bench": "vitest run --config bench/vitest.config.ts",

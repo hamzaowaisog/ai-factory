@@ -20,7 +20,7 @@ import { hashJson } from "../util/hash.js";
 import { header, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { modelFor } from "./routing.js";
 import { S, think } from "./think.js";
-import { ensureWorktree, codeBase } from "./workspace.js";
+import { ensureWorktree, uiBase } from "./workspace.js";
 import { recordTestLesson } from "../context/lessons.js";
 
 /** Only a delivered run teaches the next one where its tests go; never fails delivery. */
@@ -62,7 +62,7 @@ export const reviewStep: StepDef = {
     const run = requireOutput<TestRun>(ctx.state, ctx.ledger, "integrate");
     const head = gatedSha(ctx);
     const wt = await ensureWorktree(ctx, head);
-    let diff = (await git(wt, ["diff", "--no-color", "-U5", codeBase(ctx.state), head])).stdout;
+    let diff = (await git(wt, ["diff", "--no-color", "-U5", uiBase(ctx.state), head])).stdout;
     if (diff.length > 80_000) diff = diff.slice(0, 80_000) + "\n… (diff truncated; use read_file for the rest)";
     const r = await think(ctx, {
       stage: "review", route: "review", cls: "read-large", budgetTokens: 40000, tools: [], schema: ReviewBody, maxTurns: 4,
@@ -307,7 +307,7 @@ export const deliverStep: StepDef = {
     // a draft first; the factory's review goes on it; then it's marked ready for people
     const pr = await githubSink(ctx, branch, title, body, true).catch((e: Error) => { throw new Error(e.message.replaceAll(token, "«SECRET»")); });
     const review = requireOutput<{ findings: { id: string; severity: string; category?: string; file?: string; line?: number; text: string }[] }>(ctx.state, ctx.ledger, "review");
-    const lines = diffLines(await gitOut(wt, ["diff", "--no-color", "-U0", codeBase(ctx.state), gated]));
+    const lines = diffLines(await gitOut(wt, ["diff", "--no-color", "-U0", uiBase(ctx.state), gated]));
     const extra: string[] = [];
     // the PR exists and the branch is pushed: a review or "ready" problem is noted, never a failed delivery
     try { await postReview(ctx, pr.value, reviewPost(ctx.runId, review.findings, lines)); } catch (e) { extra.push(`review not posted: ${(e as Error).message.replaceAll(token, "«SECRET»").slice(0, 200)}`); }

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
-import { brownfieldSteps, designOnlySteps, estimateSteps, stepsFor } from "./modes.js";
+import { brownfieldSteps, designOnlySteps, estimateSteps, greenfieldSteps, stepsFor } from "./modes.js";
 
 beforeEach(() => {
   process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "factory-modes-"));
@@ -22,6 +22,21 @@ describe("mode manifests", () => {
     const e = await stateFor("estimate");
     expect(stepsFor(b).map((s) => s.key)).toEqual(brownfieldSteps(b).map((s) => s.key));
     expect(stepsFor(e).map((s) => s.key)).toEqual(estimateSteps(e).map((s) => s.key));
+  });
+
+  it("greenfield builds an approved design for a new product: seeded spec, then every build step and gate", async () => {
+    const l = Ledger.create("20261003-greenfield-abcd");
+    const ref = { runId: "d0", designSha: "d".repeat(64), baselineSha: "a".repeat(64), intakeSha: "i".repeat(64), specSha: "s".repeat(64), criticSha: "k".repeat(64), groundSha: "g".repeat(64), clarifySha: "c".repeat(64) };
+    await l.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: "x", designRef: ref } }, HUMAN_WRITER);
+    const s = replay(l.events());
+    expect(stepsFor(s).map((x) => x.key)).toEqual(["discover", "intake", "ground", "clarify", "specify", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
+    // a design run with no ground output of its own: what exists is nothing, stated without a model call
+    const l2 = Ledger.create("20261003-greenfield-efgh");
+    const { groundSha: _g, clarifySha: _c, ...bare } = ref;
+    await l2.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: "x", designRef: bare } }, HUMAN_WRITER);
+    expect(greenfieldSteps(replay(l2.events())).map((x) => x.key)).toEqual(["discover", "intake", "specify", "ground", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
+    const none = await stateFor("greenfield");
+    expect(() => greenfieldSteps(none)).toThrow(/approved design/);
   });
 
   it("estimate mode reuses the spec pipeline, adds breakdown, estimate, approval and export, and stops before any build step", async () => {

@@ -21,6 +21,7 @@ import { REPO_ROOT } from "../runners/netinfra.js";
 import { setPrice } from "../runners/pricing.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { stepsFor } from "./modes.js";
+import { greenfieldRefusal } from "../config/greenfield.js";
 import { availableRungs, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
 import type { RequestSource } from "../sources/request.js";
@@ -72,7 +73,7 @@ export function readRequestFile(path: string, maxBytes = MAX_REQUEST_FILE_BYTES)
 }
 
 /** `factory start`: create the ledger. Execution happens in `execute`. */
-export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "estimate" | "design"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved }; fromDesign?: ApprovedDesign; designExport?: string[]; uiTarget?: RunInfo["uiTarget"] } = {}): Promise<string> {
+export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "greenfield" | "estimate" | "design"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved }; fromDesign?: ApprovedDesign; designExport?: string[]; uiTarget?: RunInfo["uiTarget"] } = {}): Promise<string> {
   if (opts.maxCostUsd !== undefined && !(opts.maxCostUsd > 0)) throw new Error("--max-cost must be a positive number of dollars");
   const project = loadProject(projectName);
   // an estimate or design from requirements alone has no repo to check or read
@@ -81,6 +82,12 @@ export async function createRun(request: string, projectName: string, operator: 
     assertSupportedPath(project.repo);
     assertDeliverable(project);
   }
+  // greenfield: an approved design with no repo, built into this project's empty repo (the callers check first; this is the guard)
+  if (opts.mode === "greenfield") {
+    if (!opts.fromDesign || opts.fromDesign.repo) throw new Error("A greenfield run builds an approved design for a new product (one designed with no repo).");
+    const why = greenfieldRefusal(opts.fromDesign.runId, project);
+    if (why) throw new Error(why);
+  } else if (opts.fromDesign && !opts.fromDesign.repo && !readsRequirements(opts.mode)) throw new Error(`${opts.fromDesign.runId} is a new product (designed with no repo): build it as a greenfield run.`);
   const baseCommit = noRepo ? undefined : await resolveRef(project.repo, project.baseBranch);
   const runId = newRunId(request);
   const ledger = Ledger.create(runId);

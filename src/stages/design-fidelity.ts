@@ -14,7 +14,7 @@ import { withApp } from "../design/app-runner.js";
 import { readBaselines } from "../design/baselines.js";
 import { runFidelity, type FidelityReport } from "../design/fidelity-app.js";
 import { FIDELITY_GATES } from "../design/gates.js";
-import { findPackage } from "../design/package.js";
+import { packageForRun } from "../design/package.js";
 import { buildWaiver, type BuildFailed } from "../estimate/build-waiver.js";
 import type { WaiverRow } from "../estimate/log.js";
 import { failure, runGate } from "../gates/engine.js";
@@ -64,7 +64,7 @@ export const designFidelityStep: StepDef = {
     const cfg = fidelityConfig(ctx.project);
     const approved = approvedDesignFor<Parameters<typeof runFidelity>[0]["design"]>(ctx.state, ctx.ledger);
     if (!approved) return skip("the run has no approved design");
-    const pkg = findPackage(ctx.state.info.project, approved.sha);
+    const pkg = packageForRun(ctx.state.info, approved.sha);
     const wt = await ensureWorktree(ctx, head);
     const outDir = join(ctx.ledger.dir, FIDELITY_DIR);
     rmSync(outDir, { recursive: true, force: true });
@@ -119,7 +119,7 @@ export function fidelityOfRun(state: RunState, ledger: Ledger): FidelityReport |
 /** The design package of the run's approved design, when it is in the store. */
 export function packageOfRun(state: RunState, ledger: Ledger): DesignPackage | undefined {
   const a = approvedDesignFor(state, ledger);
-  return a ? findPackage(state.info.project, a.sha) : undefined;
+  return a ? packageForRun(state.info, a.sha) : undefined;
 }
 
 /**
@@ -132,7 +132,7 @@ export async function checkRunningApp(state: RunState, ledger: Ledger, project: 
   const built = readOutput<ScaffoldRecord>(state, ledger, "stub-commit", "scaffold");
   const screens = built?.screens ?? scaffoldPreview(state, ledger, project).layout?.screens;
   if (!screens?.length) throw new Error("The screens are built with the repo's own components: the fidelity check is for a kit scaffold");
-  const pkg = findPackage(state.info.project, approved.sha);
+  const pkg = packageForRun(state.info, approved.sha);
   const outDir = join(ledger.dir, FIDELITY_DIR);
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });

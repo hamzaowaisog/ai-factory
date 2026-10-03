@@ -13,7 +13,7 @@ import { designFidelityStep } from "./design-fidelity.js";
 import { approveEstimateStep, exportStep } from "./estimate-approve.js";
 import { designSteps } from "./design-pipeline.js";
 import { seedStep } from "./seed.js";
-import { brownfieldGroundStep, estimateGroundStep } from "./estimate-ground.js";
+import { brownfieldGroundStep, estimateGroundStep, newProductGroundStep } from "./estimate-ground.js";
 import { BROWNFIELD_SOURCES } from "./design-inputs.js";
 import { combineClarifyStep, combineIntakeStep, combineSpecsStep, moduleClarifySteps, moduleIntakeSteps, moduleSteps } from "./modular.js";
 
@@ -38,6 +38,25 @@ export function brownfieldSteps(state: RunState): StepDef[] {
   return [
     discoverStep, intakeStep, brownfieldGroundStep, ...spec, ...design, planStep, approveStep,
     stubCommitStep, authorTestsStep,
+    ...tasks.map((t) => implementStep(t)),
+    integrateStep, acceptStep, designFidelityStep, designCheckStep, reviewStep, deliverStep,
+  ];
+}
+
+/**
+ * Greenfield (the PR #11 review's follow-up, after the split): an approved design for a new product, built into an empty repo.
+ *   discover (an empty baseline) -> intake, ground, clarify and specify, seeded from the design run (the design itself via designRef)
+ *   -> plan -> approve -> stub-commit (the scaffold: a fresh next-shadcn app, its kit, theme and every approved page)
+ *   -> author-tests -> implement per task -> integrate -> accept -> fidelity -> design-check -> review -> deliver.
+ * Every gate of a build runs: it is brownfield's build half on a repo whose only code is the scaffold.
+ */
+export function greenfieldSteps(state: RunState): StepDef[] {
+  if (!state.info.designRef) throw new Error("A greenfield run is built from an approved design (--from-design); this one has none.");
+  const tasks = (state.steps.get("plan")?.status === "completed" ? (state.steps.get("plan")!.data?.tasks as string[] | undefined) : undefined) ?? [];
+  return [
+    // the approved design itself is read through designRef, as in a brownfield build --from-design (no design steps of its own)
+    discoverStep, ...seededFromDesign(state).filter((s) => !s.key.startsWith("design")), ...(state.info.designRef.groundSha ? [] : [newProductGroundStep]),
+    planStep, approveStep, stubCommitStep, authorTestsStep,
     ...tasks.map((t) => implementStep(t)),
     integrateStep, acceptStep, designFidelityStep, designCheckStep, reviewStep, deliverStep,
   ];
@@ -112,6 +131,7 @@ export function designOnlySteps(state: RunState): StepDef[] {
 export function stepsFor(state: RunState): StepDef[] {
   switch (state.info.mode) {
     case "brownfield": return brownfieldSteps(state);
+    case "greenfield": return greenfieldSteps(state);
     case "estimate": return estimateSteps(state);
     case "design": return designOnlySteps(state);
     default: throw new Error(`No step list for mode "${state.info.mode}" yet`);

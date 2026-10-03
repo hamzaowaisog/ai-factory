@@ -17,7 +17,7 @@ type DesignBody = z.infer<typeof DesignBodySchema>;
 import { demoStates, overlayLabel, toastLabel, FULL_DATA } from "../demo.js";
 import type { FileSource } from "../source.js";
 import { shadcnThemeCss } from "./theme.js";
-import { E2E_CONFIG, E2E_DIR, PLAYWRIGHT_VERSION, e2eFiles } from "./e2e.js";
+import { E2E_CONFIG, E2E_DIR, PLAYWRIGHT_VERSION, UNIT_TEST_DIR, VITEST_CONFIG, VITEST_VERSION, e2eFiles } from "./e2e.js";
 import { kitFiles, kitTarget, type Kit, type KitTarget } from "./kit.js";
 
 /** The first line of every file the factory owns: a later scaffold may write it again; anything without it is the repo's. */
@@ -369,9 +369,17 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     const name = o.product.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "app";
     add("package.json", lit({
       name, version: "0.1.0", private: true, type: "module",
-      scripts: { ...(next ? { dev: "next dev", build: "next build", start: "next start" } : { dev: "vite", build: "tsc -b && vite build", preview: "vite preview" }), "test:design": `playwright test -c ${E2E_CONFIG}` },
-      dependencies: sorted(kitDeps), devDependencies: sorted({ ...devDeps, "@playwright/test": PLAYWRIGHT_VERSION }),
+      scripts: { ...(next ? { dev: "next dev", build: "next build", start: "next start" } : { dev: "vite", build: "tsc -b && vite build", preview: "vite preview" }), test: "vitest run", "test:design": `playwright test -c ${E2E_CONFIG}` },
+      dependencies: sorted(kitDeps), devDependencies: sorted({ ...devDeps, "@playwright/test": PLAYWRIGHT_VERSION, vitest: VITEST_VERSION }),
     }) + "\n", "app", false);
+    // the factory's acceptance tests (a build of a new product writes them in tests/): vitest runs those, never the design's Playwright tests
+    add(VITEST_CONFIG, [
+      `import { fileURLToPath, URL } from "node:url";`, `import { defineConfig } from "vitest/config";`, ``,
+      `export default defineConfig({`,
+      `  resolve: { alias: { "@": fileURLToPath(new URL(${q(`./${root}`)}, import.meta.url)) } },`,
+      `  test: { include: [${q(`${UNIT_TEST_DIR}/**/*.test.ts`)}, ${q(`${UNIT_TEST_DIR}/**/*.test.tsx`)}], exclude: ["node_modules/**", ${q(`${E2E_DIR}/**`)}], passWithNoTests: true },`,
+      `});`, ``,
+    ].join("\n"), "app", false);
     add(stylesheet, css, "app", false);
     add(".gitignore", `${["node_modules", next ? ".next" : "dist", "*.tsbuildinfo", ...(next ? ["next-env.d.ts"] : [])].join("\n")}\n`, "app", false);
     if (next) {

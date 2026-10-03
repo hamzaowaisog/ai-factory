@@ -60,8 +60,9 @@ export function codeBase(state: Pick<RunState, "info" | "steps">): string {
 }
 
 /**
- * Where the agents' UI change starts: after the scaffold commit when the factory generated the approved pages, else the code
- * base. The design size cap measures from here, so the kit, theme and pages the factory wrote are not counted (PR #11 review, item 11).
+ * Where the agents' change starts: after the scaffold commit when the factory generated the approved pages, else the code
+ * base. The design size cap measures from here, so the kit, theme and pages the factory wrote are not counted (PR #11 review, item 11);
+ * so do the diff size, the test-infrastructure lock, the review and the PR lines (greenfield: a new product's whole app is scaffold).
  */
 export function uiBase(state: Pick<RunState, "info" | "steps">): string {
   const scaffold = state.steps.get("stub-commit")?.data?.scaffold as { commit?: string } | undefined;

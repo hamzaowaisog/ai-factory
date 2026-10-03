@@ -10,6 +10,8 @@ export const EventType = z.enum([
   "sink.intent", "sink.done", "usage",
   "workspace.created", "workspace.removed", "container.started", "container.removed",
   "ledger.repaired", "version.changed",
+  // a copy of the run's scaffold taken out of the factory (design scaffold --out, the UI's generate and zip download)
+  "scaffold.copied",
 ]);
 export type EventType = z.infer<typeof EventType>;
 
