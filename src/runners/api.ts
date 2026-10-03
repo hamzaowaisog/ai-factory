@@ -35,6 +35,16 @@ export interface Provider {
 }
 
 export class RateLimitedError extends Error {}
+
+/**
+ * Worth waiting for, not a failed attempt: 429, 5xx, 529, and the same errors sent inside a stream. A streamed
+ * error arrives after HTTP 200, so the SDK raises it with no status, only its type ("overloaded_error").
+ */
+export function transientAnthropic(e: unknown): boolean {
+  if (e instanceof Anthropic.RateLimitError || e instanceof Anthropic.InternalServerError) return true;
+  if (!(e instanceof Anthropic.APIError)) return false;
+  return e.status === 529 || ["overloaded_error", "rate_limit_error", "api_error"].includes(String(e.type ?? ""));
+}
 /** 400/401/403/404: retrying won't help. */
 export class ConfigError extends Error {
   constructor(readonly status: number | undefined, message: string) { super(message); }
@@ -79,9 +89,7 @@ export class AnthropicProvider implements Provider {
             messages,
           } as Anthropic.MessageStreamParams).finalMessage();
         } catch (e) {
-          if (e instanceof Anthropic.RateLimitError || e instanceof Anthropic.InternalServerError || (e instanceof Anthropic.APIError && e.status === 529)) {
-            throw new RateLimitedError((e as Error).message);
-          }
+          if (transientAnthropic(e)) throw new RateLimitedError((e as Error).message);
           if (e instanceof Anthropic.APIError && CONFIG_STATUSES.has(e.status as number)) throw new ConfigError(e.status as number, (e as Error).message);
           throw e;
         }

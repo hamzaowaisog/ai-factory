@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { ContextPack } from "../contracts/index.js";
-import { ApiRunner, RateLimitedError, type Conversation, type Provider, type Turn } from "./api.js";
+import Anthropic from "@anthropic-ai/sdk";
+import { ApiRunner, RateLimitedError, transientAnthropic, type Conversation, type Provider, type Turn } from "./api.js";
 import { costUsd } from "./pricing.js";
 import { family } from "./types.js";
 
@@ -119,3 +120,13 @@ describe("audit fixes", () => {
   });
 });
 
+
+describe("Anthropic errors worth waiting for", () => {
+  it("an overload sent inside a stream (no status, type overloaded_error) waits like a 529; a bad request doesn't", () => {
+    const body = { type: "error", error: { details: null, type: "overloaded_error", message: "Overloaded" } };
+    expect(transientAnthropic(new Anthropic.APIError(undefined, body, undefined, new Headers(), "overloaded_error"))).toBe(true);
+    expect(transientAnthropic(new Anthropic.APIError(529, body, undefined, new Headers()))).toBe(true);
+    expect(transientAnthropic(new Anthropic.APIError(400, { type: "error", error: { type: "invalid_request_error" } }, undefined, new Headers(), "invalid_request_error"))).toBe(false);
+    expect(transientAnthropic(new Error("x"))).toBe(false);
+  });
+});
