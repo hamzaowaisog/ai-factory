@@ -191,7 +191,7 @@ The Phase 2 decision log and actuals are built (section 11); retrieval of approv
 
 ### Needs from the team
 
-- A delivery lead to sign off the catalogue hours, its factors and the 16 h split threshold (they set every estimate), and the standard answers in `src/estimate/assets/defaults.json`. Signing off means setting `status: "signed-off"` and `signedOffBy` in each file and bumping its version.
+- ~~A delivery lead to sign off the catalogue and the standard answers.~~ Superseded on 2026-10-03: the flow is human-free and nobody signs these files off. The catalogue's status comes from evidence, and the standard answers are listed on every estimate as its assumptions (section 13).
 - `ANTHROPIC_API_KEY` in `~/.factory/.env` for the suite's live runs. Everything else is built and tested without it.
 
 ### Build status
@@ -203,7 +203,7 @@ The Phase 2 decision log and actuals are built (section 11); retrieval of approv
 - **Split done.** A factory or joint task sized very large, or above the catalogue's `splitAboveHours` (16 h, a draft figure like the hours), is marked `splitAdvised` on the estimate. Its hours stay as estimated. Human tasks are never marked. The approval card lists these tasks under "Split before the build", the assumptions name them, and the web UI shows a "split before build" pill. The threshold is recorded on the estimate (`catalogue.splitAboveHours`). Anchor-sized estimates have no catalogue, so no split advice.
 - **E done.** `src/estimate/assets/defaults.json` (version `2026-10-03.1`, **draft**) lists 19 standard topics: sign-in, roles, admin, languages, colour modes, platforms, browsers, accessibility, notifications, payments, file uploads, reporting, search, data migration, audit, volumes, offline, environments and hosting. Each has a standard answer. `src/estimate/defaults.ts` loads and checks the file. The clarifier prompt lists the topic ids (not the answers) in a `standard-topics` section and tags each question with `topic` when it fits. When a question is not asked (always in a hands-off run), `assumedFrom` takes the table's answer for a known topic: "→ assumed (standard answer, sign-in): …", and the assumption records `fromDefault`. An unknown topic, or none, keeps the model's recommendation. A question a person is asked is unchanged. Both clarify steps are template version 2, and their cache keys include the defaults version.
 
-**Phase 1 is code-complete.** What is left is the live measurement: `npm run bench -- consistency` with the API key, once before sign-off and again after.
+**Phase 1 is code-complete.** What is left is the live measurement: `npm run bench -- consistency` with the API key, once now and again after the catalogue is calibrated (section 13).
 
 ## 11. Phase 2 (first part): decision log and actuals, as built
 
@@ -263,7 +263,7 @@ Approved in chat on 2026-10-03, with one rule from the user: estimates are appro
   - The estimate step is template version 5.
 - **Recording and showing.** These records travel with the estimate:
   - Each estimate task stores `references` (run, task, size, hours; at most 2).
-  - An assumption line counts the referenced tasks.
+  - The references stay on internal views (the card and the web UI). Since section 13, no assumption line names them on the client's copy.
   - The decision log adds two features, `pastMatches` and `pastSize`, so a backend compared later sees the same inputs.
 
   The approval card has a section "Sized with approved past tasks as references". It names the task, its size, and each reference. A task whose size differs from every reference is marked "sized differently: see its reason". The web UI's estimate page shows a "Like EST-n of <run> (size, hours)" line under the task's reason.
@@ -275,3 +275,38 @@ Approved in chat on 2026-10-03, with one rule from the user: estimates are appro
 - References are hints; the estimators still count against the written scale.
 - Only the same catalogue version counts, so changing the catalogue resets the pool.
 - The decision log records how often a pick followed its reference (`pastSize`), so the actuals pairing (section 11) can show whether reuse drifts.
+
+## 13. No sign-off: catalogue status from evidence, and internal-only wording, as built
+
+Agreed in chat on 2026-10-03. Estimates are approved by the factory, so no person signs off the catalogue or the standard answers. The client's copy does not carry the catalogue's status. The status stays on the estimate as data and shows on internal views only.
+
+- **Files.**
+  - `catalogue.json` and `defaults.json` no longer have `status` or `signedOffBy`. Their versions are unchanged, because the hours and answers did not change.
+  - The catalogue gains `calibration`: the thresholds below, labelled ASSUMED placeholders until real data exists.
+  - `defaults.json` is now described as the factory's standard assumptions.
+- **Status from evidence.** `src/estimate/catalogue-status.ts` computes the status:
+  - `factorChecks` works within one kind and track. It compares the median build minutes of each pick with its baseline: large, small and very large against typical; hard and easy against moderate; partial against complete. It uses only completed tasks of this catalogue version, from the decision pairs (section 11).
+  - A comparison needs `minPerCell` (5) finished tasks on each side. It holds when the measured ratio is within the catalogue's factor ×/÷ `tolerance` (1.5).
+  - **draft** until `calibrated-factors` is reached.
+  - **calibrated-factors** when there are at least `minBuilds` (10) builds and `minChecks` (6) comparisons, and at least `holdShare` (80%) of them hold.
+  - **calibrated-hours** when the factors are calibrated and at least `minProjects` (10) finished projects of this version have real hours, with at least 80% inside their estimate's overall range.
+  - Real hours are read from `~/.factory/actual-hours.csv`: `estimate-run,actual-hours` lines, the format `factory calibrate --actual-hours` reads.
+  - Agent minutes can test only the catalogue's ratios, never its absolute hours. That is why the hours need real project hours.
+- **On the estimate.** `catalogue.status` (draft, calibrated-factors or calibrated-hours) is set by the estimate step, along with `catalogue.evidence` (builds, checks, held, projects, projectsWithin). The step reads the evidence through `setCatalogueEvidenceSource`, which tests can replace.
+- **Where it shows.**
+  - It appears on internal views only:
+    - the approval card ("Hours from task catalogue … : reference hours, not yet measured");
+    - the web UI's Task catalogue fact, as a pill;
+    - the team workbook's Confidence sheet, in the rows "Task catalogue" and "Catalogue status";
+    - `npm run bench -- calibrate`, which prints the status and every factor check.
+  - The estimate's assumptions, which the client file prints, no longer carry the catalogue line or the references line.
+  - The wording in `catalogueStatusText` never names a person.
+- **Standard answers.**
+  - The assumption text is now plain: "… → assumed: <answer>".
+  - Which topic it came from stays in `fromDefault`. The web UI's "Assumed by the factory" list shows it as a "standard answer: <topic>" tag.
+  - The client still sees every assumption, because the assumptions are part of what is priced.
+- **Tests.**
+  - `src/estimate/catalogue-status.test.ts`: factor checks, all three statuses and their thresholds, other versions ignored, and the wording.
+  - `export.test.ts`: the status appears in the team file and not in the client file.
+  - `estimate.test.ts`: the assumptions do not mention the catalogue, and the card carries the status without "delivery lead" or "signed off".
+  - `catalogue.test.ts` and `spec-rules.test.ts` updated for the files without sign-off.

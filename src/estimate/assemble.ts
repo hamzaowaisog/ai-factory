@@ -83,7 +83,7 @@ export interface AssembleInput {
   /** the approved estimate this one revises, or the sibling delivery model's */
   parentEstimate?: string;
   /** the task catalogue the proposals were built from (catalogue sizing); absent for anchor sizing */
-  catalogue?: { version: string; status: "draft" | "signed-off"; stack: string; splitAboveHours?: number };
+  catalogue?: NonNullable<Estimate["catalogue"]>;
   a?: Assumptions;
 }
 

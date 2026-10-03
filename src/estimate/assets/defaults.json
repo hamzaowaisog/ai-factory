@@ -1,8 +1,6 @@
 {
   "version": "2026-10-03.1",
-  "status": "draft",
-  "signedOffBy": null,
-  "note": "DRAFT standard answers, written by the factory from common delivery practice. When a hands-off estimate assumes an answer on one of these topics, it uses the standard answer instead of the model's pick, so reworded requirements are priced on the same scope. A delivery lead must sign them off. docs/estimate-consistency.md, section 10, step E.",
+  "note": "The factory's standard assumptions, written from common delivery practice. When an estimate assumes an answer on one of these topics, it uses the standard answer instead of the model's pick, so reworded requirements are priced on the same scope. Every estimate lists each assumption it made, so the client sees and can correct them; no person signs this file off. docs/estimate-consistency.md, sections 10 (step E) and 13.",
   "topics": [
     { "id": "sign-in", "question": "How do users sign in?", "answer": "Email and password, with a reset link by email; no social or single sign-on." },
     { "id": "roles", "question": "Which user roles are there?", "answer": "Two roles: an administrator and a standard user." },

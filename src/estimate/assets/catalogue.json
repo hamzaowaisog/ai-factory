@@ -1,8 +1,10 @@
 {
   "version": "2026-10-03.1",
-  "status": "draft",
-  "signedOffBy": null,
-  "note": "DRAFT hours, written by the factory from common delivery practice, not measured. A delivery lead must sign them off before quotes rely on them. Hours are for a competent engineer at the TYPICAL size, including unit tests, review fixes and handover. docs/estimate-consistency.md, section 10.",
+  "note": "Reference hours, written by the factory from common delivery practice and not yet measured. Hours are for a competent engineer at the TYPICAL size, including unit tests, review fixes and handover. The status an estimate shows is computed from evidence (docs/estimate-consistency.md, section 13): no person signs this file off.",
+  "calibration": {
+    "note": "ASSUMED thresholds, placeholders until real data exists; change them with a version bump.",
+    "minBuilds": 10, "minPerCell": 5, "minChecks": 6, "tolerance": 1.5, "holdShare": 0.8, "minProjects": 10
+  },
   "sizes": { "small": 0.6, "typical": 1, "large": 1.6, "very-large": 2.5 },
   "factors": {
     "complexity": { "standard": 1, "rules-or-algorithm": 1.3, "external-dependency": 1.4, "compliance-sensitive": 1.4, "real-time": 1.5, "new-to-stack": 1.3 },

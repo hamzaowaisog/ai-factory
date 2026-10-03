@@ -202,7 +202,7 @@ describe("estimate step", () => {
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
   });
 
-  it("sizes a kinded breakdown from the catalogue: the model picks steps, code reads the hours, and the draft status shows", async () => {
+  it("sizes a kinded breakdown from the catalogue: the model picks steps, code reads the hours, and the status stays off the client's copy", async () => {
     const ledger = await withBreakdown(3, { deliveryModel: "agentic" });
     let k = 0;
     // three estimators word their reasons differently, and one reads every task a step larger
@@ -220,8 +220,12 @@ describe("estimate step", () => {
     expect(t("EST-1").reason).toMatch(/\[be-crud backend 8-12 h, typical\]/);
     // the large reading is one of three: the median keeps typical
     expect(t("EST-1").estimators[0]).toEqual({ min: 12.8, max: 19.2 });
-    expect(e.catalogue).toEqual({ version: "2026-10-03.1", status: "draft", stack: "dotnet", splitAboveHours: 16 });
-    expect(e.assumptions.some((x) => /catalogue 2026-10-03\.1, a DRAFT/.test(x))).toBe(true);
+    expect(e.catalogue).toEqual({ version: "2026-10-03.1", status: "draft", stack: "dotnet", splitAboveHours: 16, evidence: { builds: 0, checks: 0, held: 0, projects: 0, projectsWithin: 0 } });
+    // the status is data on the estimate and shown on internal views; the assumptions (the client's copy) never mention it
+    expect(e.assumptions.some((x) => /catalogue|signed off|DRAFT/i.test(x))).toBe(false);
+    const card = (await exec(ledger, approveEstimateStep)) as { card: { markdown: string } };
+    expect(card.card.markdown).toContain("Hours from task catalogue 2026-10-03.1 (stack dotnet): reference hours, not yet measured.");
+    expect(card.card.markdown).not.toMatch(/delivery lead|signed off/);
     // Phase 2: every pick is logged as a decision record, lead's choice with the estimators' agreement, derived features only
     const log = ledger.getJson((out as { outputs: Record<string, string> }).outputs.decisions!) as DecisionLog;
     expect(log).toMatchObject({ catalogue: "2026-10-03.1", stack: "dotnet", estimators: 3, edits: 0 });
@@ -277,7 +281,7 @@ describe("estimate step", () => {
     expect(t1.hours).toEqual({ min: 8, max: 12 }); // typical picked: the reference does not move the hours
     expect(t1.references).toHaveLength(2);
     expect(t1.references![0]).toMatchObject({ runId: first.runId, size: "large", hours: { min: 12.8, max: 19.2 } });
-    expect(e.assumptions).toContain("4 task(s) were sized with the closest tasks of earlier approved estimates as references; the hours still come from the catalogue.");
+    expect(e.assumptions.some((x) => /references/.test(x))).toBe(false); // internal: on the card, not the client's copy
     const log = ledger.getJson((out as { outputs: Record<string, string> }).outputs.decisions!) as DecisionLog;
     expect(log.decisions.find((d) => d.taskId === "EST-1" && d.question === "size")!.features).toMatchObject({ pastMatches: 2, pastSize: "large" });
     const card = await exec(ledger, approveEstimateStep);

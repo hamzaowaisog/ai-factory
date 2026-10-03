@@ -14,7 +14,7 @@ import type { CostPhase } from "./cost.js";
 
 export type Verdict = "under" | "within" | "over";
 export interface CostRow { estimateRun: string; buildRun?: string; group: "estimate run" | "build run"; estimated: { min: number; max: number }; actual: number; verdict: Verdict; ratio: number }
-export interface HoursRow { estimateRun: string; estimated: { min: number; max: number }; actual: number; verdict: Verdict; ratio: number }
+export interface HoursRow { estimateRun: string; estimated: { min: number; max: number }; actual: number; verdict: Verdict; ratio: number; /** the catalogue version the estimate was sized from */ catalogue?: string }
 
 const ESTIMATE_PHASES: CostPhase[] = ["planning", "design", "breakdown-estimate"];
 
@@ -67,7 +67,7 @@ export function hoursRows(file: string): HoursRow[] {
       const sha = replay(ledger.events()).steps.get("estimate")?.outputs[0];
       if (!sha) continue;
       const est = Estimate.parse(ledger.getJson(sha));
-      rows.push({ estimateRun: run, estimated: est.totals.overall, actual: hours, ...judge(est.totals.overall, hours) });
+      rows.push({ estimateRun: run, estimated: est.totals.overall, actual: hours, ...judge(est.totals.overall, hours), ...(est.catalogue ? { catalogue: est.catalogue.version } : {}) });
     } catch { /* unknown run */ }
   }
   return rows;

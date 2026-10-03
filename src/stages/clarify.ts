@@ -114,7 +114,7 @@ export function assumedFrom(q: ScoredQuestion, n: number, defaults?: Pick<Defaul
   const std = q.topic ? defaults?.topics.find((t) => t.id === q.topic) : undefined;
   const base = { id: `ASM-${n}`, risk: (q.impact === 3 ? "high" : "low") as Risk, fromSpan: q.spans, fromQuestion: q.id };
   // a standard topic takes the table's answer, so every wording of the requirements assumes the same thing
-  return std ? { ...base, text: `${q.text} → assumed (standard answer, ${std.id}): ${std.answer}`, fromDefault: std.id } : { ...base, text: `${q.text} → assumed: ${q.recommended}` };
+  return std ? { ...base, text: `${q.text} → assumed: ${std.answer}`, fromDefault: std.id } : { ...base, text: `${q.text} → assumed: ${q.recommended}` };
 }
 
 export function selectQuestions(scored: ScoredQuestion[], cap: number, idStart = 1, defaults?: Pick<Defaults, "topics">): { asked: ScoredQuestion[]; assumptions: Assumption[] } {

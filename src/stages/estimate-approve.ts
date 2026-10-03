@@ -9,6 +9,7 @@ import type { z } from "zod";
 import type { Breakdown, Design, Estimate, IntentBody, Spec } from "../contracts/index.js";
 import { designBaseline, FACTORY_APPROVER, leadApproval } from "../estimate/gates.js";
 import { humanReview } from "../estimate/settings.js";
+import { catalogueStatusText } from "../estimate/catalogue-status.js";
 import { exportWorkbooks, type ExportInput } from "../estimate/export.js";
 import { considerationsFrom } from "../estimate/considerations.js";
 import { diffDesigns, diffEstimates } from "../estimate/lineage.js";
@@ -264,7 +265,7 @@ export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<B
   return [
     `# Approve the estimate (E7)`, ``,
     `Run ${runId} · ${e.deliveryModel === "hitl" ? "HITL (supervisor + agents)" : "solely agentic"} · size ${e.band} · uncertainty ${e.uncertainty}`,
-    ...(e.catalogue ? [`Hours from task catalogue ${e.catalogue.version} (stack ${e.catalogue.stack})${e.catalogue.status === "draft" ? ": DRAFT, not yet signed off by a delivery lead" : ", signed off"}.`] : []),
+    ...(e.catalogue ? [`Hours from task catalogue ${e.catalogue.version} (stack ${e.catalogue.stack}): ${catalogueStatusText(e.catalogue)}.`] : []),
     extra.note ? `\n${extra.note}` : "", ``,
     ...(extra.diff ? [`## ${extra.diff.title}`, ...extra.diff.lines.map((l) => `- ${l}`), ``] : []),
     `## Anchors (check these first: every other task is sized against one)`,

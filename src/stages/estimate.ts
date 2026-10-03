@@ -7,7 +7,8 @@ import type { Failure, ScreenMock } from "../contracts/index.js";
 import { failure, runGate, type GateDef } from "../gates/engine.js";
 import { designUi, uiFactors } from "../estimate/ui-complexity.js";
 import { consistency, designCoverage, forgottenWork, readiness, reqToTask, taskKind, taskToReq } from "../estimate/gates.js";
-import { catalogueText, loadCatalogue } from "../estimate/catalogue.js";
+import { catalogueText, loadCatalogue, type Catalogue } from "../estimate/catalogue.js";
+import { loadCatalogueEvidence, type CatalogueEvidence } from "../estimate/catalogue-status.js";
 import { proposalFromSizes, SizeOut, stacksFor } from "../estimate/catalogue-size.js";
 import { sizeDecisions } from "../estimate/decisions.js";
 import { loadPastTasks, nearMatches, referencesText, type PastTask, type TaskReference } from "../estimate/references.js";
@@ -70,6 +71,8 @@ export async function gate(ctx: StepContext, step: string, def: GateDef, inputs:
 let recordsSource: (exceptRun: string) => BenchmarkRecord[] = loadBenchmarkRecords;
 export function setRecordsSource(f: (exceptRun: string) => BenchmarkRecord[]): void { recordsSource = f; }
 let taskRecordsSource: (exceptRun: string) => TaskRecord[] = loadTaskRecords;
+let catalogueEvidenceSource: (c: Catalogue) => CatalogueEvidence = loadCatalogueEvidence;
+export function setCatalogueEvidenceSource(f: (c: Catalogue) => CatalogueEvidence): void { catalogueEvidenceSource = f; }
 let pastTasksSource: (exceptRun: string, catalogue: string) => PastTask[] = loadPastTasks;
 export function setPastTasksSource(f: (exceptRun: string, catalogue: string) => PastTask[]): void { pastTasksSource = f; }
 export function setTaskRecordsSource(f: (exceptRun: string) => TaskRecord[]): void { taskRecordsSource = f; }
@@ -170,8 +173,6 @@ const ESTIMATE_RULES = `You are sizing the tasks of a work breakdown, in hours, 
 Do not add anything up. Code computes every sum. Hours are for a competent engineer including unit tests, review fixes and handover of the task.
 ${UNTRUSTED_NOTE}`;
 
-const referenced = (refs: Map<string, TaskReference[]>): number => [...refs.values()].filter((r) => r.length).length;
-
 const SIZE_RULES = `You are sizing the tasks of a work breakdown against the task catalogue. You do not write hours: code reads them from the catalogue.
 1. Every task has a "kind". For each task pick "size": small, typical, large or very-large, by its kind's written scale in the "task-kinds" section. Count what the task covers (fields, rules, states, filters, flows, entities) against that scale; when a count sits on a boundary, pick the smaller step.
 2. "reason" names what you counted ("9 fields and 2 relations: typical"), so another estimator counting the same task lands on the same step.
@@ -250,6 +251,8 @@ export const estimateStep: StepDef = {
       }
     }
     const records = recordsSource(ctx.runId);
+    // the catalogue's status comes from evidence, never a person's sign-off; it stays off the client's copy
+    const evidence = catalogue ? catalogueEvidenceSource(catalogue) : undefined;
     const taskRecords = taskRecordsSource(ctx.runId);
 
     const uiTasks = breakdown.tasks.filter((t) => (t.track === "mobile" || t.track === "web") && !t.overhead);
@@ -258,14 +261,10 @@ export const estimateStep: StepDef = {
       estimate = assembleEstimate({
         header: header(ctx.runId, "estimate", "estimate", ctx.ledger.putJson({ breakdownSha, specSha, settings, proposals })) as never,
         breakdown, breakdownSha, spec, specSha, proposals, settings, records, taskRecords,
-        ...(catalogue ? { catalogue: { version: catalogue.version, status: catalogue.status, stack: stacksFor(catalogue, proposals[0]!.stack ?? { basis: "assumed" }).join(" + "), splitAboveHours: catalogue.splitAboveHours } } : {}), ...(ctx.state.info.parent ? { parentEstimate: ctx.state.info.parent.estimateSha } : {}),
+        ...(catalogue && evidence ? { catalogue: { version: catalogue.version, status: evidence.status, evidence: { builds: evidence.builds, checks: evidence.checks.length, held: evidence.checks.filter((x) => x.held).length, projects: evidence.projects, projectsWithin: evidence.projectsWithin }, stack: stacksFor(catalogue, proposals[0]!.stack ?? { basis: "assumed" }).join(" + "), splitAboveHours: catalogue.splitAboveHours } } : {}), ...(ctx.state.info.parent ? { parentEstimate: ctx.state.info.parent.estimateSha } : {}),
         grades: gradeInputs({ assumptions: c.assumptions.length, requirements: spec.requirements.length, uiTasks: uiTasks.length, uiTasksWithScreen: uiTasks.filter((t) => t.screen).length, hasRepo: !!ctx.state.info.repoPath, stackSource: settings.stackSource }),
         counts: { questions: c.answers.length, criticFindings: spec.critic.length, planningMinutes: ctx.state.activeMs / 60000 },
-        assumptions: [...c.assumptions.map((a) => a.text), ...edits.map((e) => `Lead edit: ${describeEdit(e)}`), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs.",
-          ...(catalogue ? [catalogue.status === "draft"
-            ? `Task hours come from the task catalogue ${catalogue.version}, a DRAFT a delivery lead has not signed off yet.`
-            : `Task hours come from the task catalogue ${catalogue.version}, signed off by ${catalogue.signedOffBy}.`] : []),
-          ...(referenced(refs) ? [`${referenced(refs)} task(s) were sized with the closest tasks of earlier approved estimates as references; the hours still come from the catalogue.`] : [])],
+        assumptions: [...c.assumptions.map((a) => a.text), ...edits.map((e) => `Lead edit: ${describeEdit(e)}`), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs."],
       });
       for (const t of estimate.tasks) { const r = refs.get(t.taskId); if (r?.length) t.references = r.map(({ runId, taskId, size, hours }) => ({ runId, taskId, size, hours })); }
     } catch (e) {

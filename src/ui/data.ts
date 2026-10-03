@@ -23,6 +23,7 @@ import { designRunView } from "../design/runs.js";
 import type { VisualCheck } from "../design/visual-check.js";
 import { exportWorkbooks } from "../estimate/export.js";
 import { humanReview } from "../estimate/settings.js";
+import { catalogueStatusText } from "../estimate/catalogue-status.js";
 import { exportInputFor } from "../stages/estimate-approve.js";
 import { stepsFor } from "../stages/modes.js";
 import { factoryHome } from "../util/paths.js";
@@ -463,7 +464,7 @@ export function estimateView(ledger: Ledger) {
     suggested: est.suggested,
     assumptions: est.assumptions,
     ...(est.stack ? { stack: est.stack } : {}),
-    ...(est.catalogue ? { catalogue: est.catalogue } : {}),
+    ...(est.catalogue ? { catalogue: { ...est.catalogue, statusText: catalogueStatusText(est.catalogue) } } : {}),
     design: baseline === undefined ? { pending: true } : !design ? { ui: false } : {
       ui: true, flow: design.flow,
       screens: design.screens.map((x) => ({ id: x.id, route: x.route, size: x.size ?? "new", states: x.states ?? [], reqs: x.reqs, frames: x.frames ?? [] })),
@@ -477,8 +478,8 @@ export function estimateView(ledger: Ledger) {
     // a hands-off run: nobody was asked, so what clarify found unclear is listed as the factory's assumptions
     ...(!humanReview(s.info) ? { handsOff: true, factoryAssumptions: ["clarify", "clarify-2"].flatMap((k) => {
       const sha = done(k);
-      const r = sha ? ledger.getJson<{ assumedBy?: string; assumptions?: { id: string; text: string; risk: string }[] }>(sha) : undefined;
-      return r?.assumedBy ? (r.assumptions ?? []).map((a) => ({ id: a.id, text: a.text, risk: a.risk })) : [];
+      const r = sha ? ledger.getJson<{ assumedBy?: string; assumptions?: { id: string; text: string; risk: string; fromDefault?: string }[] }>(sha) : undefined;
+      return r?.assumedBy ? (r.assumptions ?? []).map((a) => ({ id: a.id, text: a.text, risk: a.risk, ...(a.fromDefault ? { fromDefault: a.fromDefault } : {}) })) : [];
     }) } : {}),
     files,
   };

@@ -54,6 +54,16 @@ if (cmd === "calibrate" || cmd === "all") {
   console.log("\n== Size picks vs build actuals (decision log, for comparing a backend such as Jev) ==");
   console.log(formatPairs(pairs));
   history.decisionPairs = pairs.length;
+  const { loadCatalogue } = await import("../src/estimate/catalogue.js");
+  const { catalogueEvidence, catalogueStatusText, actualHoursFile } = await import("../src/estimate/catalogue-status.js");
+  const { hoursRows } = await import("../src/estimate/calibrate.js");
+  const { existsSync } = await import("node:fs");
+  const cat = loadCatalogue();
+  const ev = catalogueEvidence(cat, pairs, existsSync(actualHoursFile()) ? hoursRows(actualHoursFile()) : []);
+  console.log(`\n== Task catalogue ${cat.version}: ${ev.status} ==`);
+  console.log(`${catalogueStatusText({ status: ev.status, evidence: ev })}. ${ev.builds} build(s), ${ev.checks.filter((x) => x.held).length} of ${ev.checks.length} factor check(s) held, ${ev.projectsWithin} of ${ev.projects} finished project(s) within range (thresholds in the catalogue's "calibration", assumed).`);
+  for (const x of ev.checks) console.log(`  ${x.question} ${x.pick} vs base, ${x.kind} ${x.track}: expected ${x.expected}x, measured ${x.measured}x (${x.tasks} tasks) ${x.held ? "holds" : "DOES NOT HOLD"}`);
+  history.catalogue = { version: cat.version, status: ev.status, builds: ev.builds, checks: ev.checks.length, held: ev.checks.filter((x) => x.held).length, projects: ev.projects, projectsWithin: ev.projectsWithin };
 }
 
 if (cmd === "compare" || cmd === "all") {

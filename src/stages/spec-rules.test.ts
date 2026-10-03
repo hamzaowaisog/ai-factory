@@ -36,7 +36,7 @@ describe("clarify rules", () => {
 
   it("assumes a standard topic's table answer in place of the model's pick, the same for every wording", () => {
     const d = loadDefaults();
-    expect(d.status).toBe("draft");
+    expect(d).not.toHaveProperty("signedOffBy");
     const scored = scoreQuestions([
       q({ id: "a", text: "Do users log in with Google?", topic: "sign-in", options: ["Google", "email"], recommended: "Google" }),
       q({ id: "b", text: "Which sign-in methods are allowed?", topic: "sign-in", options: ["SSO", "email"], recommended: "SSO" }),
@@ -46,18 +46,18 @@ describe("clarify rules", () => {
     const { assumptions } = selectQuestions(scored, 0, 1, d);
     const std = "Email and password, with a reset link by email; no social or single sign-on.";
     expect(assumptions.slice(0, 2).map((x) => [x.text, x.fromDefault])).toEqual([
-      [`Do users log in with Google? → assumed (standard answer, sign-in): ${std}`, "sign-in"],
-      [`Which sign-in methods are allowed? → assumed (standard answer, sign-in): ${std}`, "sign-in"],
+      // the text the client reads is a plain assumption; which standard answer it came from stays internal (fromDefault)
+      [`Do users log in with Google? → assumed: ${std}`, "sign-in"],
+      [`Which sign-in methods are allowed? → assumed: ${std}`, "sign-in"],
     ]);
     // an unknown topic or none keeps the model's recommendation
     expect(assumptions.slice(2).map((x) => [x.text, x.fromDefault])).toEqual([["Is the logo blue? → assumed: a", undefined], ["Which colour scheme? → assumed: a", undefined]]);
     expect(topicsText(d)).toMatch(/^- sign-in: How do users sign in\?$/m);
   });
 
-  it("rejects a defaults table with a duplicate topic or an unnamed sign-off", () => {
+  it("rejects a defaults table with a duplicate topic", () => {
     const d = loadDefaults();
     expect(() => Defaults.parse({ ...d, topics: [d.topics[0], d.topics[0]] })).toThrow(/listed twice/);
-    expect(() => Defaults.parse({ ...d, status: "signed-off" })).toThrow(/name who signed/);
   });
 
   it("reads letter answers", () => {

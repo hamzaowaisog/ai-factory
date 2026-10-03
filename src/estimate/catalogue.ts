@@ -1,7 +1,8 @@
 // The pinned task catalogue (docs/estimate-consistency.md, section 10, steps A and C). Every breakdown task has a
 // kind from it; the estimator picks a size step against the kind's written definition, and code reads the hours.
 // The model never invents the reference hours, so reworded requirements land on the same numbers.
-// The file is versioned and carries its sign-off status: "draft" until a delivery lead signs the hours off.
+// The file is versioned. No person signs it off: the status an estimate shows is computed from evidence
+// (catalogue-status.ts): draft until enough builds and finished projects have measured it.
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,9 +20,23 @@ const Hours = z.object({ min: z.number().positive(), max: z.number().positive() 
 
 export const Catalogue = z.object({
   version: z.string().min(1),
-  status: z.enum(["draft", "signed-off"]),
-  signedOffBy: z.string().nullable(),
   note: z.string(),
+  /** when the factory may call the catalogue measured (catalogue-status.ts); assumed placeholders until real data exists */
+  calibration: z.object({
+    note: z.string(),
+    /** builds of this version that followed an estimate, before any factor is judged */
+    minBuilds: z.number().int().positive(),
+    /** finished tasks on each side of one factor comparison */
+    minPerCell: z.number().int().positive(),
+    /** factor comparisons needed */
+    minChecks: z.number().int().positive(),
+    /** a measured factor holds when it is within the catalogue's factor x or / this */
+    tolerance: z.number().min(1),
+    /** share of comparisons (or of projects) that must hold */
+    holdShare: z.number().min(0).max(1),
+    /** finished projects with real hours (the actual-hours file) before the hours are judged */
+    minProjects: z.number().int().positive(),
+  }),
   sizes: z.record(SizeStep, z.number().positive()),
   /** multipliers code applies on top of the size: the task's complexity flag, its screen's UI level, and the factory grades */
   factors: z.object({
@@ -50,9 +65,11 @@ export const Catalogue = z.object({
   for (const [name, s] of Object.entries(c.stacks)) {
     for (const k of Object.keys(s.factors ?? {})) if (!ids.includes(k)) ctx.addIssue({ code: "custom", path: ["stacks", name, "factors"], message: `unknown kind ${k}` });
   }
-  if (c.status === "signed-off" && !c.signedOffBy) ctx.addIssue({ code: "custom", path: ["signedOffBy"], message: "a signed-off catalogue names who signed it off" });
 });
 export type Catalogue = z.infer<typeof Catalogue>;
+/** what an estimate says about the catalogue it was sized from, computed from evidence (catalogue-status.ts) */
+export const CatalogueStatus = z.enum(["draft", "calibrated-factors", "calibrated-hours"]);
+export type CatalogueStatus = z.infer<typeof CatalogueStatus>;
 export type Kind = Catalogue["kinds"][number];
 
 const FILE = join(dirname(fileURLToPath(import.meta.url)), "assets", "catalogue.json");

@@ -10,19 +10,19 @@ const c = loadCatalogue();
 const write = (body: unknown) => { const f = join(mkdtempSync(join(tmpdir(), "cat-")), "c.json"); writeFileSync(f, JSON.stringify(body)); return f; };
 
 describe("task catalogue", () => {
-  it("loads the repo catalogue as a draft with a scale for every kind and a typical size factor of 1", () => {
-    expect(c.status).toBe("draft");
-    expect(c.signedOffBy).toBeNull();
+  it("loads the repo catalogue with a scale for every kind, a typical size factor of 1, and no person's sign-off", () => {
+    expect(c).not.toHaveProperty("status");
+    expect(c).not.toHaveProperty("signedOffBy");
+    expect(c.calibration.holdShare).toBeGreaterThan(0);
     expect(c.sizes.typical).toBe(1);
     expect(c.kinds.length).toBeGreaterThan(20);
     for (const k of c.kinds) expect(Object.keys(k.scale).sort()).toEqual(["large", "small", "typical", "very-large"]);
   });
 
-  it("rejects a duplicate kind, a stack factor for an unknown kind, and a sign-off without a name", () => {
+  it("rejects a duplicate kind and a stack factor for an unknown kind", () => {
     const k = c.kinds[0]!;
     expect(() => loadCatalogue(write({ ...c, kinds: [k, k] }))).toThrow(/listed twice/);
     expect(() => loadCatalogue(write({ ...c, stacks: { x: { note: "n", factors: { "be-nope": 1.2 } } } }))).toThrow(/unknown kind be-nope/);
-    expect(() => loadCatalogue(write({ ...c, status: "signed-off", signedOffBy: null }))).toThrow(/names who signed/);
   });
 
   it("says why a task's kind does not fit: missing, unknown, or on the wrong track", () => {

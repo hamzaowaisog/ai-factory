@@ -207,7 +207,11 @@ export const Estimate = withHeader({
   anchors: z.array(Anchor).min(1),
   tasks: z.array(TaskSizing).min(1),
   /** the task catalogue the hours came from, and its sign-off status; absent on anchor-sized estimates */
-  catalogue: z.object({ version: z.string(), status: z.enum(["draft", "signed-off"]), stack: z.string(), splitAboveHours: z.number().positive().optional() }).optional(),
+  /** the task catalogue the hours came from; status is computed from evidence (no person signs it off) and shown on internal views only */
+  catalogue: z.object({
+    version: z.string(), status: z.enum(["draft", "calibrated-factors", "calibrated-hours"]), stack: z.string(), splitAboveHours: z.number().positive().optional(),
+    evidence: z.object({ builds: z.number().int().nonnegative(), checks: z.number().int().nonnegative(), held: z.number().int().nonnegative(), projects: z.number().int().nonnegative(), projectsWithin: z.number().int().nonnegative() }).optional(),
+  }).optional(),
   /** how estimators' readings were merged: by median (2026-10-03 on); absent on older estimates, whose readings widened the range */
   merge: z.literal("median").optional(),
   overheads: z.array(z.object({ name: z.string(), track: Track.optional(), hours: Range, reason: z.string() })).default([]),

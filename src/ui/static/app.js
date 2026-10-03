@@ -1226,7 +1226,7 @@ async function estimateScreen(id) {
     fact("Elapsed", `${e.elapsed.criticalPathDays.min}–${e.elapsed.criticalPathDays.max} days on the critical path, plus ${e.elapsed.planningMinutes} min planning`),
     fact("Size and certainty", h("span", { class: "tags" }, h("span", { class: "tag" }, e.band), h("span", { class: "tag" }, `${e.uncertainty} uncertainty`), e.complexity ? h("span", { class: "tag" }, e.complexity) : null)),
     e.catalogue ? fact("Task catalogue", h("span", { class: "tags" }, h("span", { class: "tag" }, e.catalogue.version), h("span", { class: "tag" }, `stack ${e.catalogue.stack}`),
-      e.catalogue.status === "draft" ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "draft: hours not yet signed off") : h("span", { class: "pill t-ok" }, h("span", { class: "d" }), "signed off"))) : [],
+      h("span", { class: `pill ${e.catalogue.status === "draft" ? "t-wait" : "t-ok"}` }, h("span", { class: "d" }), e.catalogue.statusText))) : [],
     fact("Delivery model", e.deliveryModel === "hitl" ? "HITL: a supervisor plus agents" : "Solely agentic"),
     fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : "", e.handsOff ? "hands-off (no human review)" : ""].filter(Boolean).join(" · ")),
     fact("Approval", e.approved ? h("span", { class: "pill t-ok" }, h("span", { class: "d" }), `${e.approved.auto ? "approved by the factory (no human review)" : `approved by ${e.approved.by || "?"}`}${e.approved.hash ? ` (${e.approved.hash})` : ""}`)
@@ -1292,7 +1292,7 @@ async function estimateScreen(id) {
         e.stack ? panel(3, "Stack priced", "layers", h("dl", { class: "facts" }, [["Backend", e.stack.backend], ["Web", e.stack.web], ["Mobile", e.stack.mobile], ["Database", e.stack.database], ["Hosting", e.stack.hosting], ["Architecture", e.stack.architecture]].filter((r) => r[1]).flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])),
           h("p", { class: "small muted" }, e.stack.basis === "repo" ? "From the repo." : e.stack.basis === "request" ? "Named in the requirements." : `Assumed by the estimate${e.stack.notes ? `: ${e.stack.notes}` : "."}`)) : null,
         e.factoryAssumptions?.length ? panel(3, "Assumed by the factory", "alert", h("p", { class: "small muted" }, "Nobody was asked: the requirements came refined, so each open question took its recommended answer. Confirm these with the client."),
-          h("ul", { class: "reasons small" }, e.factoryAssumptions.map((a) => h("li", {}, h("span", { class: "mono" }, a.id), " ", a.text, a.risk === "high" ? h("span", { class: "tag" }, "high risk") : null)))) : null,
+          h("ul", { class: "reasons small" }, e.factoryAssumptions.map((a) => h("li", {}, h("span", { class: "mono" }, a.id), " ", a.text, a.fromDefault ? h("span", { class: "tag faint" }, `standard answer: ${a.fromDefault}`) : null, a.risk === "high" ? h("span", { class: "tag" }, "high risk") : null)))) : null,
         e.assumptions.length ? panel(3, "Assumptions", "alert", h("ul", { class: "reasons small" }, e.assumptions.map((x) => h("li", {}, x)))) : null),
       h("div", { class: "stack" }, panel(1, "Screens", "browser", design), panel(2, "Tasks", "layers", tasks, ...extra))),
   ], true);
