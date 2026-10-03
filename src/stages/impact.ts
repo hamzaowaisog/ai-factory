@@ -16,6 +16,7 @@ import { header, readOutput, requireOutput, type StepDef } from "./framework.js"
 import { snapshotFor } from "./workspace.js";
 import type { RunState } from "../ledger/state.js";
 import type { Ledger } from "../ledger/ledger.js";
+import { runLenses, type LensFinding, type LensStat } from "./impact-lens.js";
 
 type CB = z.infer<typeof CurrentBehaviourBody>;
 
@@ -27,6 +28,8 @@ export interface ImpactResult {
   risk: Risk;
   riskWhy: string[];
   symbols: string[]; routes: string[]; entities: string[];
+  /** per-lens cost and counts, when the lenses ran */
+  lensStats?: LensStat[];
 }
 
 /** check items kept in the artifact (the card shows fewer) */
@@ -46,7 +49,7 @@ export function seedsOf(spec: Pick<Spec, "requirements">, cb: CB): Seed[] {
 const RANK: Record<Risk, number> = { low: 0, medium: 1, high: 2 };
 
 /** Merge the code layer into one list per file (must-change > breaks > check) and judge the risk. */
-export function mergeImpact(spec: Pick<Spec, "requirements">, ripple: RippleResult, base: Risk): ImpactResult {
+export function mergeImpact(spec: Pick<Spec, "requirements">, ripple: RippleResult, base: Risk, lensFindings: LensFinding[] = []): ImpactResult {
   const items = new Map<string, ImpactItem>();
   for (const r of spec.requirements) {
     if (r.op === "ADDED") continue;
@@ -61,6 +64,14 @@ export function mergeImpact(spec: Pick<Spec, "requirements">, ripple: RippleResu
       reason: `${c.kind === "reference" ? "uses" : c.kind} ${c.seed}${c.hop === 2 ? " (through its interface)" : ""}`,
       evidence: { path, lineStart: c.line, lineEnd: c.line, quote: c.quote },
     });
+  }
+  // lens findings (already checked): new files are added; a file the code layer only had as "check" may be raised
+  const order: Level[] = ["must-change", "breaks", "check"];
+  for (const f of [...lensFindings].sort((a, b) => order.indexOf(a.level) - order.indexOf(b.level))) {
+    const had = items.get(f.path);
+    if (had && (had.level !== "check" || f.level === "check")) continue;
+    items.set(f.path, { path: f.path, level: f.level, lens: f.lens, reason: `${f.reqId ? `${f.reqId}: ` : ""}${f.why} (${f.lens} lens)`,
+      evidence: { path: f.path, lineStart: f.lineStart, lineEnd: f.lineEnd, quote: f.quote } });
   }
   const list = [...items.values()];
   const kept = [...list.filter((i) => i.level !== "check"), ...list.filter((i) => i.level === "check").slice(0, MAX_CHECK)];
@@ -131,10 +142,13 @@ export const impactStep: StepDef = {
     const intent = requireOutput<{ risk: Risk }>(ctx.state, ctx.ledger, "intake");
     const snap = snapshotFor(ctx);
     const read = (p: string) => { try { return readFileSync(join(snap.root, p), "utf8"); } catch { return undefined; } };
-    const ripple = rippleCandidates({ files: snap.files, read }, seedsOf(spec, cb));
-    const impact = mergeImpact(spec, ripple, intent.risk);
+    const seeds = seedsOf(spec, cb);
+    const ripple = rippleCandidates({ files: snap.files, read }, seeds);
+    const lenses = ctx.project.impact?.lenses ? await runLenses(ctx, snap, spec, seeds, ripple) : undefined;
+    const impact: ImpactResult = { ...mergeImpact(spec, ripple, intent.risk, lenses?.findings), ...(lenses ? { lensStats: lenses.stats } : {}) };
+    for (const l of lenses?.stats ?? []) ctx.log(`impact lens ${l.lens}: ${l.findings} findings, ${l.bad} bad quotes${l.retried ? " (asked again)" : ""}, $${l.usd.toFixed(3)}${l.error ? `; skipped: ${l.error}` : ""}`);
     ctx.log(`impact: ${impact.counts["must-change"]} must change, ${impact.counts.breaks} break, ${impact.counts.check} to check; risk ${impact.risk}`);
     const sha = ctx.ledger.putJson({ header: header(ctx.runId, "impact", "impact", ""), ...impact });
-    return { kind: "done", outputs: { impact: sha }, data: { risk: impact.risk, counts: impact.counts } };
+    return { kind: "done", outputs: { impact: sha }, data: { risk: impact.risk, counts: impact.counts, ...(lenses ? { lensUsd: Object.fromEntries(lenses.stats.map((l) => [l.lens, Number(l.usd.toFixed(4))])) } : {}) } };
   },
 };

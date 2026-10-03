@@ -114,6 +114,8 @@ export const ProjectConfig = z.object({
       env: z.record(z.string(), z.string()).default({}),
     }).optional(),
   }).optional(),
+  /** impact step: also run the four model lenses (route impact-lens; costs credits). Off by default: code search only. */
+  impact: z.object({ lenses: z.boolean().default(false) }).optional(),
   noGo: z.array(z.string()).default([]),
   /** USD per million tokens for models the factory has no price for (e.g. a GPT model). */
   prices: z.record(z.string(), z.object({

@@ -105,6 +105,15 @@ describe("ripple code layer: Next.js", () => {
     "components/__tests__/UserCard.test.tsx": "import { UserCard } from '../UserCard'; render(<UserCard />)",
   });
 
+  it("a name imported from another module is not a caller", () => {
+    const r = rippleCandidates(src({
+      "lib/session.ts": "export async function getSession() {}",
+      "app/page.tsx": "import { getSession } from \"@/lib/session\"\nconst s = await getSession()",
+      "lib/auth.ts": "import { getSession } from \"next-auth/react\"\nconst s = await getSession()",
+    }), [{ path: "lib/session.ts" }]);
+    expect(candidateFiles(r)).toEqual(["app/page.tsx"]);
+  });
+
   it("route handlers by path, callers by export name, tests by folder", () => {
     expect(routesOf("app/api/users/[id]/route.ts", "")).toEqual(["/api/users/[id]"]);
     const r = rippleCandidates(next, [{ path: "app/api/users/[id]/route.ts" }, { path: "components/UserCard.tsx" }]);

@@ -165,9 +165,15 @@ export function rippleCandidates(src: Source, seeds: Seed[]): RippleResult {
   const direct = new Set<string>(seeds.flatMap((s) => symbolNames(s.symbol)));
   const routes = new Set<string>(), settings = new Set<string>(), roles = new Set<string>();
   const viaInterface = new Set<string>();
+  // JS/TS exports and the module paths that lead to them ("lib/session" for lib/session.ts, "lib/x" for lib/x/index.ts)
+  const moduleOf = new Map<string, string[]>();
   for (const f of seedFiles) {
     const text = src.read(f) ?? "";
     const types = declared(f, text);
+    if (/\.[mc]?[tj]sx?$/.test(f)) {
+      const stem = f.replace(/\.[^./]+$/, "");
+      for (const t of types) moduleOf.set(t, [...(moduleOf.get(t) ?? []), stem, stem.replace(/\/index$/, "")]);
+    }
     for (const t of [...types, ...extensionMethods(f, text)]) direct.add(t);
     if (removedFiles.has(f)) for (const t of [...types, ...extensionMethods(f, text)]) removedSymbols.add(t);
     for (const i of interfacesOf(text, types)) viaInterface.add(i);
@@ -201,6 +207,7 @@ export function rippleCandidates(src: Source, seeds: Seed[]): RippleResult {
     if (!text) continue;
     const lines = text.split("\n");
     const test = isTest(f), migration = MIGRATION.test(f), front = FRONTEND.test(f) && !/\.cs$/i.test(f);
+    const foreign = front ? importedElsewhere(text, moduleOf) : new Set<string>();
     lines.forEach((raw, i) => {
       const line = raw.trim();
       if (!line || line.startsWith("//") || line.startsWith("using ") || line.startsWith("import ") && !front) return;
@@ -222,7 +229,7 @@ export function rippleCandidates(src: Source, seeds: Seed[]): RippleResult {
       if (front) for (const [r, re] of routeRes) if (re.test(raw)) add({ ...at, lens: "screens", seed: r, kind: "route-call", hop: 1, breaks: removedFiles.size > 0 && seedsRouteRemoved(r, seeds, src) });
       // callers (or tests, or Razor screens): references to changed types
       for (const [s, re, hop] of [...symRes, ...ifaceRes]) {
-        if (!re.test(raw)) continue;
+        if (foreign.has(s) || !re.test(raw)) continue;
         const di = /\bAdd(Scoped|Transient|Singleton|HostedService|DbContext)\b/.test(raw);
         const lens: Lens = test ? "tests" : /\.(razor|cshtml)$/i.test(f) ? "screens" : "callers";
         const kind: Candidate["kind"] = test ? "test" : lens === "screens" ? "razor" : di ? "di" : hop === 2 ? "interface" : /(Dto|Request|Response|Command|Query)\b/.test(f.split("/").pop()!.replace(/\.\w+$/, "")) ? "dto" : "reference";
@@ -235,6 +242,20 @@ export function rippleCandidates(src: Source, seeds: Seed[]): RippleResult {
   }
   for (const l of LENSES) lenses[l] = lenses[l].sort((a, b) => rank(a) - rank(b) || a.path.localeCompare(b.path) || a.line - b.line).slice(0, MAX_PER_LENS);
   return { symbols, routes: [...routes], entities, settings: [...settings], roles: [...roles], lenses };
+}
+
+/** Names this JS/TS file imports from some other module than the seed that exports them (same name, other thing). */
+function importedElsewhere(text: string, moduleOf: Map<string, string[]>): Set<string> {
+  const out = new Set<string>();
+  if (!moduleOf.size) return out;
+  for (const m of text.matchAll(/import\s+(?:type\s+)?([^'";]*?)\s+from\s+['"]([^'"]+)['"]/g)) {
+    const spec = m[2]!.replace(/^(\.{1,2}\/|[@~]\/|\/)+/, "").replace(/\.[mc]?[tj]sx?$/, "");
+    for (const name of m[1]!.match(/[A-Za-z_$][\w$]*/g) ?? []) {
+      const stems = moduleOf.get(name);
+      if (stems && !stems.some((st) => st.endsWith(spec))) out.add(name);
+    }
+  }
+  return out;
 }
 
 /** A route served by a file a REMOVED requirement anchors: calls to it break. */

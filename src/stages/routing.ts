@@ -29,9 +29,11 @@ export const DEFAULT_ROUTES: Record<string, StepRoute> = {
   "author-tests": { runner: "claude-agent", model: OPUS, escalate: [], effort: "high" },
   implement: { runner: "claude-agent", model: SONNET, escalate: [OPUS], effort: "high" },
   review: { runner: "api", model: "gpt-5.5", escalate: [], effort: "high" },
+  /** impact lenses: only when the project turns them on */
+  "impact-lens": { runner: "api", model: SONNET, escalate: [], effort: "medium" },
 };
 
-export const THINKING_STEPS = new Set(["intake", "ground", "specify", "specify-other", "critic", "plan", "breakdown", "estimate", "design", "review", "sketches", "sketch-align", "clarifier", "merge", "restater", "rt-align", "impact"]);
+export const THINKING_STEPS = new Set(["intake", "ground", "specify", "specify-other", "critic", "plan", "breakdown", "estimate", "design", "review", "sketches", "sketch-align", "clarifier", "merge", "restater", "rt-align", "impact", "impact-lens"]);
 /** The model steps an estimate run uses: it never plans, writes tests or code, or reviews, so it does not need those routes set up. */
 export const ESTIMATE_ROUTES = ["intake", "ground", "sketches", "sketch-align", "clarifier", "specify", "specify-other", "merge", "restater", "rt-align", "critic", "breakdown", "estimate", "design"] as const;
 export const CODING_STEPS = new Set(["author-tests", "implement", "conflict-resolve"]);
