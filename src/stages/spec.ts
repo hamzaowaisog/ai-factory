@@ -232,7 +232,7 @@ export function plannedFiles(plan: PlanT): string[] {
   return [...new Set(plan.tasks.flatMap((t) => t.fileScope))].sort();
 }
 
-export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; /** reworks the spec step made (the light lane allows 1) */ repairs?: number; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string }): string {
+export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; /** reworks the spec step made (the light lane allows 1) */ repairs?: number; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string; /** spec over the size budget: the human decides */ size?: string }): string {
   const grounded = new Set(a.cb.claims.flatMap((c) => c.anchors.map((x) => x.path)));
   const files = plannedFiles(a.plan);
   const notGrounded = files.filter((f) => !grounded.has(f));
@@ -281,6 +281,7 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
     ...(a.critic.note ? [`_${a.critic.note}_`] : []),
     ...(a.open.length ? [``, `## Still open after ${a.repairs ?? 3} repair${a.repairs === 1 ? "" : "s"}`, ...a.open.map((o) => `- ${o}`)] : []),
     ...(a.roundTrip && !a.roundTrip.droppedSpans.length && !a.roundTrip.inventedCapabilities.length ? [``, `Round trip: the spec restated back matches your request (nothing dropped, nothing added).`] : []),
+    ...(a.size ? [``, `**${a.size}**`] : []),
     ``,
     `## Decide`,
     `  factory approve ${ctx.runId} <hash> --note "your risk note"`,
@@ -313,6 +314,7 @@ export const approveStep: StepDef = {
       clar: clarifications(readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify"), readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify-2")),
       open: (ctx.state.steps.get("specify")!.data?.openFindings as string[] | undefined) ?? [],
       repairs: ctx.state.steps.get("specify")!.data?.repairs as number | undefined,
+      size: ctx.state.steps.get("specify")!.data?.sizeNote as string | undefined,
       roundTrip: requireOutput<{ roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] } }>(ctx.state, ctx.ledger, "specify").roundTrip,
       uiSize: uiSizeForCard(snapshotFor(ctx), plannedFiles(requireOutput<PlanT>(ctx.state, ctx.ledger, "plan"))),
     });

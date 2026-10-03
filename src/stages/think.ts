@@ -13,6 +13,7 @@ import { cacheDisabled, cacheGet, cacheKey, cachePut } from "../estimate/cache.j
 
 const kTok = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n));
 import { modelFor } from "./routing.js";
+import { blockedText, modelAllowed } from "../gates/policy.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import { replay } from "../ledger/state.js";
 import type { Effort } from "../runners/types.js";
@@ -56,10 +57,14 @@ export function budgetFor(ctx: Pick<StepContext, "state">, base: number | undefi
 }
 
 export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<ThinkResult<T>> {
-  const routed = modelFor(ctx.project, spec.route, ctx.rung);
+  const routed = modelFor(ctx.project, spec.route, ctx.rung, ctx.policy);
   const effort = spec.effort && ctx.rung === 0 ? spec.effort : routed.effort;
   const { singleFamilyNote } = routed;
   const model = spec.model ?? routed.model;
+  // the run's policy decides the models: park, never swap (a fixed model here, e.g. the light lane's, too)
+  if (spec.model ? !modelAllowed(ctx.policy, model) : routed.blocked) {
+    return { ok: false, outcome: { kind: "park", reason: spec.model ? blockedText(spec.stage, model, ctx.policy) : routed.blocked! } };
+  }
   const sections = [...spec.sections];
   if (ctx.priorFailures.length) {
     sections.push({

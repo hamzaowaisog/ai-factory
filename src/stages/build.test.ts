@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { coversIntegrate, keepPassingTests, earlierTests, labelRegressions, previousAttempt, retryMode } from "./build.js";
+import { coversIntegrate, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, TEST_SCOPE, testWriterTampering } from "./build.js";
+import { matchesAny } from "../util/glob.js";
 
 describe("earlier tasks' locked tests", () => {
   const plan = { tasks: [{ id: "TASK-1" }, { id: "TASK-2" }, { id: "TASK-3" }] };
@@ -97,5 +98,40 @@ describe("integrate reuses the last task's run", () => {
     expect(coversIntegrate({ ...run, valid: false }, "abc", ["t1"], ["b1"])).toBe(false);
     expect(coversIntegrate(run, "abc", ["t1", "t3"], ["b1"])).toBe(false);
     expect(coversIntegrate(run, "abc", ["t1"], ["b1", "b3"])).toBe(false);
+  });
+});
+
+describe("test writer: scope and tampering", () => {
+  it("scope is test folders only", () => {
+    for (const p of ["tests/Shop.Tests/OrdersTests.cs", "src/Shop.Tests/A.cs", "src/ShopTests/A.cs", "src/shop-tests/a.cs", "src/Shop_Test/A.cs", "test/a.cs", "src/Tests/A.cs", "x/test/a.cs", "src/MyApp.Tests.Unit/A.cs", "src/MyApp.Test.Helpers/A.cs", "web/src/__tests__/a.ts", "src/MyApp.tests.integration/A.cs", "src/my-app-tests.e2e/a.ts"])
+      expect(matchesAny(p, TEST_SCOPE), p).toBe(true);
+    for (const p of ["src/Latest/A.cs", "src/Contest/A.cs", "src/Attestation/A.cs", "src/Shop/OrdersTests.cs", "src/latest-test.cs", "src/Latest.Api/A.cs", "src/Contest.Web/A.cs", "src/latest.api/a.cs", "src/contest.web/a.cs"])
+      expect(matchesAny(p, TEST_SCOPE), p).toBe(false);
+  });
+
+  it("may add files and lines; deleting, removing lines or adding skips fails", () => {
+    const f = (status: string, added: string[] = [], removed: string[] = []) => ({ status, path: "tests/A.Tests/X.cs", added, removed });
+    expect(testWriterTampering([f("A", ["[Fact] public void AC_1_1_X() {}"]), f("M", ["using Foo;"])])).toEqual([]);
+    expect(testWriterTampering([f("D")]).map((x) => x.check)).toEqual(["author-tests-deleted"]);
+    expect(testWriterTampering([f("M", ["[Fact] public void Old() {}"], ["[Fact] public void Old() { Assert.True(x); }"])]).map((x) => x.check)).toEqual(["author-tests-removed"]);
+    expect(testWriterTampering([f("M", ['[Fact(Skip = "later")]'])]).map((x) => x.check)).toEqual(["author-tests-skip"]);
+    expect(testWriterTampering([f("M", ['<Compile Remove="OrdersTests.cs" />'])]).map((x) => x.check)).toEqual(["author-tests-skip"]);
+    expect(testWriterTampering([f("A", ["<IsTestProject>false</IsTestProject>"])]).map((x) => x.check)).toEqual(["author-tests-skip"]);
+  });
+
+  it("reads -U0 patches by hunk: '--' content lines count, a last line re-added for a missing newline doesn't", () => {
+    const patch = ["diff --git a/x.sql b/x.sql", "--- a/x.sql", "+++ b/x.sql", "@@ -2 +1,0 @@", "--- seed", "@@ -9 +9,2 @@", "-}", "\\ No newline at end of file", "+}", "+// AC_1_1"].join("\n");
+    expect(patchLines(patch)).toEqual({ added: ["}", "// AC_1_1"], removed: ["-- seed"] });
+  });
+
+  it("a removed line whose text also appears among the additions still counts (an existing test can't lose its [Fact])", () => {
+    // removes [Fact] from the existing test, adds a new test that has its own [Fact]
+    const patch = ["diff --git a/T.cs b/T.cs", "--- a/T.cs", "+++ b/T.cs", "@@ -3 +2,0 @@", "-    [Fact]", "@@ -5,0 +5,3 @@", "+", "+    [Fact]", "+    public void AC_1_1_New() { }"].join("\n");
+    const lines = patchLines(patch);
+    expect(lines.removed).toEqual(["    [Fact]"]);
+    expect(testWriterTampering([{ status: "M", path: "tests/A.Tests/T.cs", ...lines }]).map((x) => x.check)).toEqual(["author-tests-removed"]);
+    // a closing brace removed mid-file and re-added elsewhere is still a removal; only the no-newline last line is forgiven
+    const brace = ["diff --git a/T.cs b/T.cs", "--- a/T.cs", "+++ b/T.cs", "@@ -4 +3,0 @@", "-}", "@@ -9,0 +9,1 @@", "+}"].join("\n");
+    expect(patchLines(brace).removed).toEqual(["}"]);
   });
 });

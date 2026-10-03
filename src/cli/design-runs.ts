@@ -1,6 +1,7 @@
 // `factory design start|show|list|open|check-refs` (docs/estimates-design.md, "Design references", step 3b):
 // a design on its own, from requirements and references, without an estimate or a build. The approved
 // design is carried on with `factory estimate --from-design` or `factory start --from-design`.
+import { jiraFetcherFor } from "../sources/jira.js";
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
@@ -90,7 +91,7 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
       const problems = checkRoutes(project, DESIGN_ROUTES);
       if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
       // everything is read before a run exists: a bad file, ticket or reference costs nothing
-      const req = await gatherRequest({ prompt, file: o.file, jira: o.jira, frames: o.frames }, {}, { maxBytes: MAX_ESTIMATE_REQUEST_BYTES });
+      const req = await gatherRequest({ prompt, file: o.file, jira: o.jira, frames: o.frames }, { fetchJira: jiraFetcherFor(project.jira?.allowedReporters) }, { maxBytes: MAX_ESTIMATE_REQUEST_BYTES });
       const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
       const settings = { ...(o.project && o.repo ? {} : { noRepo: true }), ...(o.client ? { client: o.client } : {}), ...(o.projectName ? { projectName: o.projectName } : {}) };
       const runId = await createRun(req.text, projectName, userInfo().username, {

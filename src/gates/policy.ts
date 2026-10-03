@@ -1,4 +1,5 @@
 // Policy and the stricter-only merge (gate-engine §2.9, contracts §3).
+import { AsyncLocalStorage } from "node:async_hooks";
 export interface Policy {
   allowedAgents: string[];
   allowedModels: string[];
@@ -63,6 +64,20 @@ export function mergePolicy(base: Policy, ...layers: Partial<Policy>[]): Policy 
   return p;
 }
 
-export function modelAllowed(p: Policy, model: string): boolean {
+export function modelAllowed(p: Pick<Policy, "allowedModels">, model: string): boolean {
   return p.allowedModels.includes("*") || p.allowedModels.includes(model);
+}
+
+/** Park reason for a model the run's policy doesn't list. */
+export function blockedText(stage: string, model: string, p: Pick<Policy, "allowedModels">): string {
+  return `${stage} needs ${model} but this run's policy allows only ${p.allowedModels.join(", ") || "no models"}; allow ${model} or route ${stage} to an allowed model`;
+}
+
+/** The running step's policy, so runners check the final model wherever a step picked it. */
+const active = new AsyncLocalStorage<Policy>();
+export function withPolicy<T>(p: Policy, f: () => T): T {
+  return active.run(p, f);
+}
+export function activePolicy(): Policy | undefined {
+  return active.getStore();
 }

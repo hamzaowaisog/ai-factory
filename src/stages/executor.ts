@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } 
 import { basename, dirname, join } from "node:path";
 import type { Failure, LedgerEvent } from "../contracts/index.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
-import { DEFAULT_POLICY, mergePolicy, type Policy } from "../gates/policy.js";
+import { DEFAULT_POLICY, mergePolicy, withPolicy, type Policy } from "../gates/policy.js";
 import { DEFAULT_LADDER, nextOnFailure, type AttemptRecord, type LadderAction } from "../gates/ladder.js";
 import { checkCaps } from "../ledger/caps.js";
 import { ExecutionLock, LockBusyError } from "../ledger/exec-lock.js";
@@ -249,7 +249,7 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
       };
       let outcome: StepOutcome;
       try {
-        outcome = await n.step.run(ctx);
+        outcome = await withPolicy(policy, () => n.step.run(ctx));
       } catch (e) {
         const msg = (e as Error).message;
         log(`  error: ${msg}`);

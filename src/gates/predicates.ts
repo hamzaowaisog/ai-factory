@@ -132,6 +132,21 @@ export const testExpectations = defineGate<{ run: TestRun; baseline?: TestRun }>
         const r = byId.get(id);
         if (r?.outcome === "failed" && !r.flaky && !baseFailed.has(id)) fs.push(failure("new-failure", `New failure vs baseline: ${id}`, { testId: id, frames: r.frames ?? [] }));
       }
+      // a baseline test that ran then and is gone or skipped now; not after a failed build (already reported),
+      // nor the known failures the run left out on purpose (skipped by method, so compare by method)
+      const buildFailed = run.results.some((r) => r.failureKind === "compile") || (!run.results.length && !run.reportShas.length);
+      const ran = new Set(baseline?.results.filter((r) => r.outcome === "passed" || r.outcome === "failed").map((r) => r.id) ?? []);
+      const method = (id: string) => id.replace(/^[^:]*::/, "").replace(/\(.*$/, "");
+      const leftOut = new Set((run.skippedKnownFailures ?? []).map(method));
+      const expected = new Set([...run.expectPass, ...run.expectFail.map((e) => e.id)]);
+      // by method, not row: theory row names carry their arguments (records, AutoFixture), which may change
+      const noArgs = (id: string) => id.replace(/\(.*$/, "");
+      const ranNow = new Set(run.results.filter((r) => r.outcome === "passed" || r.outcome === "failed").map((r) => noArgs(r.id)));
+      const gone = new Set<string>();
+      for (const id of buildFailed ? [] : run.compareToBaseline) {
+        const m = noArgs(id);
+        if (ran.has(id) && !expected.has(id) && !leftOut.has(method(id)) && !ranNow.has(m) && !gone.has(m)) { gone.add(m); fs.push(failure("missing-test", `Test missing vs baseline: ${m}`, { testId: id })); }
+      }
     }
     return verdict(fs, `${run.results.length} tests, expectations met`);
   },

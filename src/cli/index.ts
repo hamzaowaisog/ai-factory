@@ -19,6 +19,7 @@ import { createRun, execute } from "../stages/executor.js";
 import { answerOpenQuestions, canPrompt, terminalIO } from "./interactive.js";
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
 import { describeReferences, gatherReferences, parseRefArg } from "../sources/refs.js";
+import { jiraFetcherFor } from "../sources/jira.js";
 import { parseEstimateSettings, type EstimateOptions } from "../estimate/settings.js";
 import { approvedDesign, approvedEstimate, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
 import { DESIGN_EXPORT_HELP, designExportOption, exportSeededNow, registerDesignRunCommands, UI_TARGET_HELP, uiTargetOption } from "./design-runs.js";
@@ -92,7 +93,7 @@ program.command("start")
       if (!fromDesign.repo) throw new Error(`${fromDesign.runId} was designed with no repo (a new product). Building a new product (greenfield) is not available yet; estimate it with: factory estimate --from-design ${fromDesign.runId}`);
       if (fromDesign.project !== o.project) throw new Error(`${fromDesign.runId} was designed for project ${fromDesign.project}, not ${o.project}.`);
     }
-    const req = approved ? { text: approved.request, sources: [{ kind: "prompt" as const }] } : fromDesign ? { text: fromDesign.request, sources: [{ kind: "prompt" as const }] } : await gatherRequest({ prompt, file: o.file, jira: o.jira });
+    const req = approved ? { text: approved.request, sources: [{ kind: "prompt" as const }] } : fromDesign ? { text: fromDesign.request, sources: [{ kind: "prompt" as const }] } : await gatherRequest({ prompt, file: o.file, jira: o.jira }, { fetchJira: jiraFetcherFor(project.jira?.allowedReporters) });
     const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
     const runId = await createRun(req.text, o.project, userInfo().username, {
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
@@ -160,7 +161,7 @@ program.command("estimate")
     } else if (fromDesign) {
       req = { text: fromDesign.request, sources: [{ kind: "prompt" }], attachments: [] };
     } else {
-      req = await gatherRequest({ prompt, file: o.file, jira: o.jira, frames: o.frames }, {}, { maxBytes: MAX_ESTIMATE_REQUEST_BYTES });
+      req = await gatherRequest({ prompt, file: o.file, jira: o.jira, frames: o.frames }, { fetchJira: jiraFetcherFor(project.jira?.allowedReporters) }, { maxBytes: MAX_ESTIMATE_REQUEST_BYTES });
       if (o.revises) lineage = { kind: "change", approved: approvedEstimate(openRun(o.revises).runId) };
     }
     // read before the run exists: a reference that cannot be read stops here and costs nothing

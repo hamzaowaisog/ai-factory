@@ -251,7 +251,7 @@ describe("factory ui: what the screens show", () => {
     expect(task).toMatchObject({ status: "completed", attempts: 2 });
     expect(task.tries[0]).toMatchObject({ attempt: 1, outcome: "failed", why: "CS1002: ; expected in Orders.cs", next: "retry: same rung, fresh attempt" });
     expect(task.tries[1]).toMatchObject({ attempt: 2, outcome: "completed", rung: 1 });
-    expect(r.cost.capUsd).toBe(3.5 + 10); // spent up to the plan + the size cap (at least $10)
+    expect(r.cost.capUsd).toBe(3.5 + 5); // spent up to the plan + the size cap (S: $5)
     expect(r.delivered).toMatchObject({ branch: `factory/${ids.delivered}`, local: true, evidence: { ok: true, total: 0 } });
     expect(r.delivered.prText).toContain("## What changed");
     expect(r.card).toBeUndefined();

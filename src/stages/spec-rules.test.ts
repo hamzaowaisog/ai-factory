@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { resolveAnswer, scoreQuestions, selectQuestions, verifyDifferences, type ClarifierQuestion, type Sketch } from "./clarify.js";
-import { checkMerge, criticBlocks, roundTripCheck } from "./specpipe.js";
-import { lintSpec } from "./speclint.js";
+import { checkMerge, criticBlocks, criticTemplate, lostCoverage, problems, roundTripCheck, sameProblems } from "./specpipe.js";
+import { lintSpec, mentions, requestExcluded, sizeNote } from "./speclint.js";
 
 const sketch = (texts: string[]): Sketch => ({ spans: [{ id: "I-1", behaviours: texts.map((t) => ({ text: t, kind: "happy" as const })) }] });
 const q = (over: Partial<ClarifierQuestion>): ClarifierQuestion => ({
@@ -70,6 +70,78 @@ describe("spec rules", () => {
     expect(failed).toEqual(["L2 req-ac", "L3 ears", "L4 vague", "L10 trace"]);
     const good = lintSpec(spec([req("REQ-1")]), { spans: ["I-1"], changeClass: "feature", anchorOk: () => true }).filter((l) => !l.passed);
     expect(good).toEqual([]);
+  });
+});
+
+describe("only people put scope out of scope", () => {
+  const req = (id: string, sources = ["I-1"]) => ({ id, ears: "When a name is given, the Greeter shall return Hello and the name.", op: "ADDED" as const, sources, acceptance: [{ id: `AC-${id.slice(4)}.1`, given: "a name", when: "greet", then: "the response is Hello Ann", level: "api" as const }] });
+  const spec = (outOfScope: string[], reqs = [req("REQ-1")]) => ({ requirements: reqs, nfrs: [], outOfScope, assumptions: [] });
+  const trace = (sp: ReturnType<typeof spec>, spans: string[], decisions: string[] = [], excluded: string[] = []) =>
+    lintSpec(sp, { spans, changeClass: "feature", anchorOk: () => true, decisions, excluded }).find((l) => l.check === "L10 trace")!;
+
+  it("matches span ids as exact tokens: I-1 isn't in I-12", () => {
+    expect(mentions("I-12 later (Q-1)", "I-1")).toBe(false);
+    expect(mentions("I-1, I-12 later (Q-1)", "I-1")).toBe(true);
+    expect(mentions("ASM-10", "ASM-1")).toBe(false);
+    // L10: only I-12 is named, so I-1 (uncovered here) is still dropped
+    const t = trace(spec(["I-12 SMS reminders (Q-1)"], [req("REQ-1", ["I-2"])]), ["I-1", "I-2", "I-12"], ["Q-1"]);
+    expect(t.details).toContain("intent span I-1 isn't covered");
+    expect(t.details).not.toContain("I-12");
+  });
+
+  it("out of scope with no answer or assumption cited counts as dropped", () => {
+    const t = trace(spec(["I-2 bulk reminders (deferred to run 2)"]), ["I-1", "I-2"], ["Q-1", "ASM-1"]);
+    expect(t).toMatchObject({ passed: false, blocking: true, details: "intent span I-2 was moved out of scope without a decision from you; cover it or ask" });
+    // citing an id the run doesn't have doesn't count either
+    expect(trace(spec(["I-2 bulk reminders (Q-9)"]), ["I-1", "I-2"], ["Q-1"]).passed).toBe(false);
+    const rt = roundTripCheck(["I-1", "I-2"], ["Q-1"], spec(["I-2 deferred to run 2"]), [{ n: 1, text: "greets" }], [{ n: 1, spans: ["I-1"], answers: [] }]);
+    expect(rt.droppedSpans).toEqual(["I-2"]);
+  });
+
+  it("out of scope citing an answer or assumption, or excluded by the request, counts as covered", () => {
+    expect(trace(spec(["I-2 bulk reminders (Q-1: not now)"]), ["I-1", "I-2"], ["Q-1"]).passed).toBe(true);
+    expect(trace(spec(["I-2 bulk reminders per ASM-3"]), ["I-1", "I-2"], ["ASM-3"]).passed).toBe(true);
+    expect(requestExcluded([{ id: "I-1", text: "remind by email" }, { id: "I-2", text: "no need for SMS" }, { id: "I-3", text: "users don't get duplicate reminders" }])).toEqual(["I-2"]);
+    expect(trace(spec(["I-2 SMS, as the request says"]), ["I-1", "I-2"], [], ["I-2"]).passed).toBe(true);
+    const rt = roundTripCheck(["I-1", "I-2"], ["Q-1"], spec(["I-2 (Q-1)"]), [{ n: 1, text: "greets" }], [{ n: 1, spans: ["I-1"], answers: [] }]);
+    expect(rt.droppedSpans).toEqual([]);
+  });
+
+  const big = spec(["x"], Array.from({ length: 21 }, (_, n) => req(`REQ-${n + 1}`)));
+  it("size: skipped in estimate mode", () => {
+    expect(lintSpec(big, { spans: ["I-1"], changeClass: "feature", anchorOk: () => true, estimate: true }).map((l) => l.check)).not.toContain("L9 size");
+  });
+
+  it("size: never sent to repair, shown on the approval card instead", async () => {
+    const lint = lintSpec(big, { spans: ["I-1"], changeClass: "feature", anchorOk: () => true });
+    expect(lint.find((l) => l.check === "L9 size")).toMatchObject({ passed: false, blocking: false });
+    expect(problems({ lint, critic: [], roundTrip: { droppedSpans: [], inventedCapabilities: [] } })).toEqual([]);
+    const note = sizeNote(big, "feature")!;
+    expect(note).toBe("This spec has 21 requirements, about 2 runs' worth of work for a feature; approve it as one run or reject with which part to cut.");
+    expect(sizeNote(spec(["x"]), "feature")).toBeUndefined();
+    const { approvalCard } = await import("./spec.js");
+    const ctx = { runId: "r1", state: { costUsd: 0, info: { request: "remind" } } } as never;
+    const card = approvalCard(ctx, {
+      intent: { source: "cli", spans: [{ id: "I-1", text: "remind" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "full", touchesUi: false },
+      spec: big, plan: { tasks: [], options: [], chosen: "O-1", adr: "", protectedPathsDeclared: [], newDependencies: [], stubs: [], complexity: "L" } as never,
+      critic: { findings: [] }, cb: { claims: [], notFound: [] }, risk: "low", clar: { answers: [], assumptions: [], conflicts: [] }, open: [], size: note,
+    });
+    expect(card).toContain(`**${note}**`);
+  });
+
+  it("a repair that drops a covered span is caught; identical problems stop repairs", () => {
+    expect(lostCoverage(spec([], [req("REQ-1", ["I-1"]), req("REQ-2", ["I-2", "Q-1"])]), spec(["I-2 later"], [req("REQ-1", ["I-1"])]), ["I-1", "I-2"])).toEqual(["I-2"]);
+    expect(lostCoverage(spec([], [req("REQ-1", ["I-1", "I-2"])]), spec([], [req("REQ-1", ["I-1"]), req("REQ-2", ["I-2"])]), ["I-1", "I-2"])).toEqual([]);
+    expect(sameProblems(["[critic high] REQ-1 No empty path.", "[lint L3 ears] x"], ["[lint L3 ears] x", "[critic high]  REQ-1 no empty path"])).toBe(true);
+    expect(sameProblems(["[lint L3 ears] x"], ["[lint L3 ears] x", "[round trip] span I-2 isn't covered by the spec"])).toBe(false);
+  });
+
+  it("critic: a repo-less run gets no existing-code rubric", () => {
+    const none = criticTemplate(false), repo = criticTemplate(true);
+    expect(repo).toContain("5 claims about existing behaviour without anchors");
+    expect(repo).toContain("6 state transitions and existing data");
+    expect(none.split("\n")[1]).not.toMatch(/anchors|existing data|\b5 |\b6 /);
+    expect(none).toContain("There is no existing codebase: this is new work. Don't flag missing anchors, unknown existing data or missing repository.");
   });
 });
 

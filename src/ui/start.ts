@@ -16,6 +16,7 @@ import { checkUploadedFrames, describeSources, gatherRequest, MAX_ESTIMATE_REQUE
 import { MAX_REFERENCES, RefRole } from "../contracts/reference.js";
 import { describeReferences, gatherReferences, MAX_REF_FILE_BYTES, type GatheredRef, type RefRequest } from "../sources/refs.js";
 import { MAX_DOCX_BYTES } from "../sources/request.js";
+import { jiraFetcherFor } from "../sources/jira.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
 import { exportSeededNow } from "../stages/design-export.js";
@@ -261,7 +262,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
       writeFileSync(path, file.text, { mode: 0o600 });
     }
     const seed = approved ?? sibling ?? fromDesign;
-    req = seed ? { text: seed.request, sources: [{ kind: "prompt" as const }], attachments: [] } : await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim(), ...(frameFiles ? { frameFiles } : {}) }, {}, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
+    req = seed ? { text: seed.request, sources: [{ kind: "prompt" as const }], attachments: [] } : await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim(), ...(frameFiles ? { frameFiles } : {}) }, { fetchJira: jiraFetcherFor(cfg.jira?.allowedReporters) }, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
     // a reference that cannot be read stops here, named with what to attach instead (R-2 (https://...): ...)
     references = await (deps.gatherRefs ?? gatherReferences)(refReqs, { allowPrivate: !!cfg.design?.allowPrivateRefs });
   } catch (e) {

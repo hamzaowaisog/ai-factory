@@ -103,6 +103,22 @@ describe("test gates", () => {
     expect(v.failures?.map((f) => f.testId)).toEqual(["U::New"]);
   });
 
+  it("a baseline test that's gone or skipped now fails, except known failures left out on purpose or a failed build", () => {
+    const base = run([{ id: "U::Gone", outcome: "passed", durationMs: 1 }, { id: "U::Skip", outcome: "failed", durationMs: 1 },
+      { id: "U::Known(1)", outcome: "failed", durationMs: 1 }, { id: "U::WasSkipped", outcome: "skipped", durationMs: 1 }, { id: "U::Ok", outcome: "passed", durationMs: 1 }]);
+    const cmp = { compareToBaseline: base.results.map((r) => r.id), skippedKnownFailures: ["U::Known(2)"] };
+    const now = run([{ id: "U::Skip", outcome: "skipped", durationMs: 1 }, { id: "U::Ok", outcome: "passed", durationMs: 1 }], cmp);
+    const v = testExpectations.predicate({ run: now, baseline: base }, DEFAULT_POLICY);
+    expect(v.failures?.map((f) => [f.check, f.testId])).toEqual([["missing-test", "U::Gone"], ["missing-test", "U::Skip"]]);
+    expect(v.failures?.[0]!.message).toBe("Test missing vs baseline: U::Gone");
+    // theory rows whose names carry changed arguments (a record grew a field, AutoFixture values) aren't missing
+    const rowsBase = run([{ id: "U::Rows(o: Order { Id = 1 })", outcome: "passed", durationMs: 1 }, { id: "V::Rows(x: 1)", outcome: "passed", durationMs: 1 }]);
+    const rowsNow = run([{ id: "U::Rows(o: Order { Id = 1, Note = null })", outcome: "passed", durationMs: 1 }], { compareToBaseline: rowsBase.results.map((r) => r.id) });
+    expect(testExpectations.predicate({ run: rowsNow, baseline: rowsBase }, DEFAULT_POLICY).failures?.map((f) => f.message)).toEqual(["Test missing vs baseline: V::Rows"]);
+    const broken = run([{ id: "T::A", outcome: "failed", failureKind: "compile", durationMs: 0, message: "Build failed" }], { ...cmp, expectPass: ["T::A"] });
+    expect(testExpectations.predicate({ run: broken, baseline: base }, DEFAULT_POLICY).failures?.map((f) => f.check)).toEqual(["locked-failed"]);
+  });
+
   it("AC tests must fail on base with assertion or not-implemented, twice", () => {
     const good = run([{ id: "T::A", outcome: "failed", failureKind: "not-implemented", durationMs: 1 }]);
     expect(failsOnBase.predicate({ run1: good, run2: good, tests: tests() }, DEFAULT_POLICY).passed).toBe(true);

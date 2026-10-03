@@ -48,10 +48,14 @@ export interface BuildPackInput {
 
 const ORDER: SectionSpec["source"][] = ["template", "stackpack", "profile", "rules", "artifact", "doc", "image", "pointers", "feedback", "task", "recap"];
 
+// the wrapper's own tags inside untrusted text are defanged (< → &lt;) so the text can't close it early
+const defang = (text: string) => text.replace(/<(\s*\/?\s*untrusted_document\b)/gi, "&lt;$1");
+const attr = (v: string) => v.replace(/"/g, "&quot;");
+
 function wrap(s: ResolvedSection, text: string, imageN?: number): string {
   switch (s.spec.source) {
     case "doc":
-      return `<untrusted_document id="${s.docId ?? s.spec.id}" source="${s.source ?? "unknown"}">\n${text}\n</untrusted_document>`;
+      return `<untrusted_document id="${attr(s.docId ?? s.spec.id)}" source="${attr(s.source ?? "unknown")}">\n${defang(text)}\n</untrusted_document>`;
     case "artifact":
       return `<artifact id="${s.spec.id}" kind="${s.artifactKind ?? s.spec.ref ?? ""}" sha="${(s.artifactSha ?? "").slice(0, 12)}">\n${text}\n</artifact>`;
     case "pointers":

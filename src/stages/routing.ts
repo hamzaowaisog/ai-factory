@@ -2,7 +2,8 @@
 import type { ProjectConfig, StepRoute } from "../config/project.js";
 import { hasSecret } from "../config/env.js";
 import type { Rung } from "../gates/ladder.js";
-import type { Effort } from "../runners/types.js";
+import { blockedText, modelAllowed, type Policy } from "../gates/policy.js";
+import { family, type Effort } from "../runners/types.js";
 
 const OPUS = "claude-opus-5-5";
 const SONNET = "claude-sonnet-5";
@@ -46,16 +47,32 @@ export function routeFor(project: ProjectConfig, stage: string): StepRoute {
   return r;
 }
 
-/** Model + effort for a ladder rung. */
-export function modelFor(project: ProjectConfig, stage: string, rung: number): { model: string; effort: Effort; singleFamilyNote?: string } {
+/**
+ * Model + effort for a ladder rung. With a policy that lists its models (no "*"), the final model must
+ * be on the list: a GPT step without an OpenAI key falls back to Opus only if Opus is listed, and an
+ * escalation is checked too; otherwise `blocked` says why (the caller parks, never swaps silently).
+ * No policy or "*": the old behaviour (the Opus fallback still noted).
+ */
+export function modelFor(project: ProjectConfig, stage: string, rung: number, policy?: Pick<Policy, "allowedModels">): { model: string; effort: Effort; singleFamilyNote?: string; blocked?: string } {
   const r = routeFor(project, stage);
+  const effort: Effort = rung >= 1 ? "xhigh" : (r.effort ?? "high");
+  if (policy && !policy.allowedModels.includes("*")) {
+    const want = rung >= 2 && r.escalate[0] ? r.escalate[0] : r.model;
+    let model = want, note: string | undefined;
+    if (/^gpt|^o\d/.test(want) && !hasSecret("OPENAI_API_KEY")) {
+      if (!modelAllowed(policy, OPUS)) return { model: want, effort, blocked: `${stage} needs ${want} but OPENAI_API_KEY is missing; add the key or allow ${OPUS} for this step` };
+      model = OPUS;
+      note = `No OpenAI key: ${stage} ran on ${OPUS} (same family as the implementer)`;
+    }
+    if (!modelAllowed(policy, model)) return { model, effort, blocked: blockedText(stage, model, policy) };
+    return { model, effort, singleFamilyNote: note };
+  }
   let model = r.model;
   let note: string | undefined;
   if (/^gpt|^o\d/.test(model) && !hasSecret("OPENAI_API_KEY")) {
     model = OPUS;
     note = `No OpenAI key: ${stage} ran on ${OPUS} (same family as the implementer)`;
   }
-  const effort: Effort = rung >= 1 ? "xhigh" : (r.effort ?? "high");
   if (rung >= 2 && r.escalate[0]) model = r.escalate[0];
   return { model, effort, singleFamilyNote: note };
 }
@@ -66,9 +83,9 @@ export function availableRungs(project: ProjectConfig, stage: string, localOnly:
   // deterministic steps (discover, stub-commit, integrate, accept, deliver, cards) have no model: retry only
   if (!r) return new Set<Rung>(["retry"]);
   const s = new Set<Rung>(["retry", "raise-effort"]);
-  if (r.escalate.length) s.add("stronger-model");
+  // localOnly: no escalation to a hosted model
+  if (r.escalate.length && (!localOnly || family(r.escalate[0]!) === "local")) s.add("stronger-model");
   // "other-vendor" is added once the Codex runner exists, and never under localOnly.
-  void localOnly;
   return s;
 }
 
