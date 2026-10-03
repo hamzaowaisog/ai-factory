@@ -21,6 +21,7 @@ import { uiSizeForCard } from "../design/card.js";
 import { LANE, lightSpec } from "./lane.js";
 import { changeRequest, scopeLock, screensPlanned } from "../estimate/gates.js";
 import type { Breakdown } from "../contracts/index.js";
+import { affectsLines, planCoverageFailures, planNote, readImpact } from "./impact.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -142,6 +143,8 @@ export const planStep: StepDef = {
     const approvedDesign = design && !design.skipped ? { flow: design.flow, screens: design.screens } : undefined;
     const approvedTasks = ref ? ctx.ledger.getJson<Breakdown>(ref.breakdownSha).tasks : [];
     const map = buildRepoMap(snap.root, snap.files, { budgetTokens: 4000, focus: cb.claims.flatMap((c) => c.anchors.map((a) => a.path)) }).map;
+    const impact = readImpact(ctx.state, ctx.ledger);
+    const impactNote = impact ? planNote(impact) : "";
     const r = await think(ctx, {
       stage: "plan", route: "plan", cls: "read-large", budgetTokens: 30000, tools: ["read_file", "search", "repo_map"],
       repoTools: toolsFor(ctx), schema: PlanBody, maxTurns: 12,
@@ -158,6 +161,7 @@ export const planStep: StepDef = {
         S.artifact("cb", "current-behaviour", cb),
         S.artifact("critic", "critic", critic),
         ...(approvedDesign ? [S.artifact("approved-design", "approved-design", approvedDesign)] : []),
+        ...(impactNote ? [S.template("impact", impactNote)] : []),
         ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task." : ""))] : []),
         ...(planRejections(ctx.state).length ? [{ spec: { id: "rejection", source: "feedback" as const, trust: "trusted" as const, placement: "user" as const }, content: `The human reviewer rejected the previous plan. Their reasons (latest last):\n${planRejections(ctx.state).map((x) => `- ${x}`).join("\n")}\nThe plan must address them.` }] : []),
         S.task("Write the plan."),
@@ -167,6 +171,7 @@ export const planStep: StepDef = {
     const plan = { header: header(ctx.runId, "plan", "plan", "", r.model), ...r.output, complexity: complexityOf(r.output) };
     const fs = [];
     for (const st of plan.stubs) if (!plan.tasks.some((t) => t.fileScope.some((g) => g === st.path || st.path.startsWith(g.replace(/\*.*$/, ""))))) fs.push(failure("plan-stub", `Stub ${st.path} is outside every task's file scope`));
+    if (impact) fs.push(...planCoverageFailures(plan, impact));
     const planSha = ctx.ledger.putJson(plan);
     const specSha = ctx.state.steps.get("specify")!.outputs[0]!;
     const g = await runGate(planChecks, ctx.ledger, ctx.writer, { plan: planSha, spec: specSha }, ctx.policy, { step: "plan" });
@@ -194,7 +199,7 @@ export function plannedFiles(plan: PlanT): string[] {
   return [...new Set(plan.tasks.flatMap((t) => t.fileScope))].sort();
 }
 
-export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; /** reworks the spec step made (the light lane allows 1) */ repairs?: number; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string; /** spec over the size budget: the human decides */ size?: string }): string {
+export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; /** reworks the spec step made (the light lane allows 1) */ repairs?: number; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string; /** spec over the size budget: the human decides */ size?: string; /** ripple effects outside the plan (impact step) */ affects?: string[] }): string {
   const grounded = new Set(a.cb.claims.flatMap((c) => c.anchors.map((x) => x.path)));
   const files = plannedFiles(a.plan);
   const notGrounded = files.filter((f) => !grounded.has(f));
@@ -225,6 +230,7 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
     ...files.map((f) => `- ${f}${notGrounded.includes(f) ? "  ← not found by grounding; check it" : ""}${protectedTouched.includes(f) ? "  ← protected file" : ""}`),
     ...(a.plan.newDependencies.length ? [``, `New packages: ${a.plan.newDependencies.map((d) => `${d.name} ${d.version}`).join(", ")}`] : []),
     ...(a.uiSize ? [``, a.uiSize] : []),
+    ...(a.affects?.length ? [``, `## Will also affect (found by code search, not in the plan)`, ...a.affects] : []),
     ``,
     `## Plan`,
     `Options: ${a.plan.options.map((o) => `${o.id}${o.id === a.plan.chosen ? " (chosen)" : ""}: ${o.summary}`).join(" | ")}`,
@@ -269,16 +275,18 @@ export const approveStep: StepDef = {
     // (a rejection changes the spec and plan inputs, so the spec and plan re-run before we get here again;
     //  the second rejection parks the run through the caps check)
     const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
+    const impact = readImpact(ctx.state, ctx.ledger);
     const md = approvalCard(ctx, {
       intent, spec: requireOutput<Spec>(ctx.state, ctx.ledger, "specify"),
       plan: requireOutput(ctx.state, ctx.ledger, "plan"), critic: requireOutput(ctx.state, ctx.ledger, "specify", "critic"),
-      cb: requireOutput<CB>(ctx.state, ctx.ledger, "ground"), risk: intent.risk,
+      cb: requireOutput<CB>(ctx.state, ctx.ledger, "ground"), risk: impact?.risk ?? intent.risk,
       clar: clarifications(readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify"), readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify-2")),
       open: (ctx.state.steps.get("specify")!.data?.openFindings as string[] | undefined) ?? [],
       repairs: ctx.state.steps.get("specify")!.data?.repairs as number | undefined,
       size: ctx.state.steps.get("specify")!.data?.sizeNote as string | undefined,
       roundTrip: requireOutput<{ roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] } }>(ctx.state, ctx.ledger, "specify").roundTrip,
       uiSize: uiSizeForCard(snapshotFor(ctx), plannedFiles(requireOutput<PlanT>(ctx.state, ctx.ledger, "plan"))),
+      ...(impact ? { affects: affectsLines(impact, plannedFiles(requireOutput<PlanT>(ctx.state, ctx.ledger, "plan"))) } : {}),
     });
     const card = `${md}\n\nCard hash: ${bundleSha.slice(0, 8)}`;
     return { kind: "wait", card: { cardId: `approval-${bundleSha.slice(0, 8)}`, kind: "approval", artifactSha: bundleSha, markdown: card } };
