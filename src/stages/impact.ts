@@ -47,7 +47,7 @@ export function seedsOf(spec: Pick<Spec, "requirements">, cb: CB): Seed[] {
   const seeds: Seed[] = cb.claims.flatMap((c) => c.anchors.map((a) => ({ path: a.path, ...(a.symbol ? { symbol: a.symbol } : {}) })));
   for (const r of spec.requirements) {
     if (r.op === "ADDED") continue;
-    for (const a of r.anchors ?? []) seeds.push({ path: a.path, ...(r.op === "REMOVED" ? { removed: true } : {}) });
+    for (const a of r.anchors ?? []) seeds.push({ path: a.path, changing: true, ...(r.op === "REMOVED" ? { removed: true } : {}) });
   }
   return seeds;
 }
@@ -90,7 +90,13 @@ export function mergeImpact(spec: Pick<Spec, "requirements">, ripple: RippleResu
   let risk: Risk = "low";
   const raise = (to: Risk, reason: string) => { why.push(reason); if (RANK[to] > RANK[risk]) risk = to; };
   if (counts.breaks) raise("high", `${counts.breaks} file${counts.breaks === 1 ? "" : "s"} still use what a REMOVED requirement takes away`);
-  if (ripple.lenses.data.length) raise("high", `the change reaches stored data (${[...new Set(ripple.lenses.data.map((c) => c.seed))].join(", ")})`);
+  // stored data raises risk only when the change itself touches it: an entity the spec's changing code declares or names,
+  // or a lens finding that quotes it as must-change/breaks. An entity ground cited only as context doesn't count
+  // (a real run: Appointment.cs read for context made a two-handler fix "high").
+  const changingData = new Set(ripple.changingData);
+  const dataHits = [...new Set([...ripple.lenses.data.filter((c) => changingData.has(c.seed)).map((c) => c.seed),
+    ...lensFindings.filter((f) => f.lens === "data" && f.level !== "check").map((f) => f.path)])];
+  if (dataHits.length) raise("high", `the change reaches stored data (${dataHits.join(", ")})`);
   // screens and many users raise risk only outside the module the change lives in: inside it they are expected
   const outside = new Set(ripple.outside);
   const farScreens = new Set(ripple.lenses.screens.filter((c) => outside.has(c.path)).map((c) => c.path));

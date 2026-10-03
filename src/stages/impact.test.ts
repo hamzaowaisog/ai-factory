@@ -28,8 +28,8 @@ describe("impact: merge and risk", () => {
   it("seeds: ground anchors and MODIFIED/REMOVED anchors; REMOVED ones are marked", () => {
     expect(seedsOf(spec, cb)).toEqual([
       { path: "src/Shop/Orders/OrderService.cs", symbol: "OrderService.Cancel" },
-      { path: "src/Shop/Orders/OrderService.cs" },
-      { path: "src/Shop/Orders/Legacy.cs", removed: true },
+      { path: "src/Shop/Orders/OrderService.cs", changing: true },
+      { path: "src/Shop/Orders/Legacy.cs", changing: true, removed: true },
     ]);
   });
 
@@ -48,8 +48,23 @@ describe("impact: merge and risk", () => {
     const quiet = mergeImpact({ requirements: [] }, rippleCandidates(src, [{ path: "src/Shop/Jobs/Nightly.cs" }]), "low");
     expect(quiet.risk).toBe("low");
     expect(mergeImpact({ requirements: [] }, rippleCandidates(src, [{ path: "src/Shop/Jobs/Nightly.cs" }]), "medium").risk).toBe("medium");
-    const data = mergeImpact({ requirements: [] }, rippleCandidates(src, [{ path: "src/Shop/Orders/Order.cs" }]), "low");
+    const data = mergeImpact({ requirements: [] }, rippleCandidates(src, [{ path: "src/Shop/Orders/Order.cs", changing: true }]), "low");
     expect(data.risk).toBe("high");
+    expect(data.riskWhy.join(" ")).toMatch(/stored data \(Order/);
+  });
+
+  it("an entity ground cites only as context doesn't make it 'stored data' risk (real run: Appointment.cs → false high)", () => {
+    // ground read the entity for context; the requirements anchor the handler that changes
+    const changed = { requirements: [req("REQ-1", "MODIFIED", "src/Shop/Orders/OrderService.cs")] };
+    const ctxCb = { claims: [{ id: "C1", text: "", spans: [], anchors: [ev("src/Shop/Orders/Order.cs"), ev("src/Shop/Orders/OrderService.cs")] }], notFound: [] };
+    const r = rippleCandidates(src, seedsOf(changed, ctxCb));
+    expect(r.lenses.data.length).toBeGreaterThan(0); // still listed for a person to check
+    expect(r.changingData).toEqual([]);
+    const i = mergeImpact(changed, r, "low");
+    expect(i.riskWhy.join(" ")).not.toMatch(/stored data/);
+    // a lens that quotes the entity as must-change for a requirement does count
+    const lensHit = { lens: "data" as const, path: "src/Shop/Data/ShopDb.cs", lineStart: 1, lineEnd: 1, quote: "x", level: "must-change" as const, reqId: "REQ-1", why: "y" };
+    expect(mergeImpact(changed, r, "low", [lensHit]).risk).toBe("high");
   });
 
   it("plan gate: must-change and breaks paths need a file scope or a mention; check paths never fail", () => {

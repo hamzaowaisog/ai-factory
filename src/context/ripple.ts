@@ -16,6 +16,8 @@ export interface Seed {
   symbol?: string;
   /** from a REMOVED requirement: whatever still uses it breaks */
   removed?: boolean;
+  /** anchored by a MODIFIED/REMOVED requirement: the spec says this code changes (ground's anchors may be context only) */
+  changing?: boolean;
 }
 
 export interface Candidate {
@@ -43,6 +45,8 @@ export interface RippleResult {
   lenses: Record<Lens, Candidate[]>;
   /** candidate files outside the modules (csproj / package + feature folder) the seeds live in; tests never count */
   outside: string[];
+  /** entities (and their table names) that code the spec changes declares or names: only these count as "stored data" risk */
+  changingData: string[];
 }
 
 export interface Source { files: string[]; read(path: string): string | undefined }
@@ -248,7 +252,11 @@ export function rippleCandidates(src: Source, seeds: Seed[]): RippleResult {
   for (const l of LENSES) lenses[l] = lenses[l].sort((a, b) => rank(a) - rank(b) || a.path.localeCompare(b.path) || a.line - b.line).slice(0, MAX_PER_LENS);
   const seedModules = new Set(seedFiles.map((f) => moduleOf(f, src.files)));
   const outside = [...new Set(LENSES.flatMap((l) => lenses[l]).map((c) => c.path))].filter((f) => !isTest(f) && !seedModules.has(moduleOf(f, src.files)));
-  return { symbols, routes: [...routes], entities, settings: [...settings], roles: [...roles], lenses, outside };
+  const changingFiles = new Set(seeds.filter((s) => s.changing || s.removed).map((s) => s.path));
+  const changingNames = new Set([...seeds.filter((s) => s.changing || s.removed).flatMap((s) => symbolNames(s.symbol)),
+    ...seedFiles.filter((f) => changingFiles.has(f)).flatMap((f) => declared(f, src.read(f) ?? ""))]);
+  const changingData = [...new Set(entities.filter((e) => changingNames.has(e)).flatMap((e) => [e, ...(tables.get(e) ?? [])]))];
+  return { symbols, routes: [...routes], entities, settings: [...settings], roles: [...roles], lenses, outside, changingData };
 }
 
 /** Names this JS/TS file imports from some other module than the seed that exports them (same name, other thing). */
