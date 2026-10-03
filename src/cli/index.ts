@@ -428,8 +428,36 @@ program.command("calibrate")
   .option("--actual-hours <file>", "a file of `estimate-run,actual-hours` lines for finished projects")
   .option("--json", "print JSON")
   .option("--decisions", "print each logged size pick paired with what its build took, one JSON line each (for comparing a backend such as Jev)")
+  .option("--tune", "measure the current task catalogue version and show what self-tuning would change (nothing is written)")
+  .option("--apply", "with --tune: write the new catalogue version now instead of waiting for the next run")
+  .option("--history", "list the task catalogue versions and why each one changed")
+  .option("--auto", "the background tuner after a run (writes the new version, one log line)")
   .description("compare approved estimates with what the factory spent (and, with a file, with real hours)")
-  .action(async (o: { actualHours?: string; json?: boolean; decisions?: boolean }) => {
+  .action(async (o: { actualHours?: string; json?: boolean; decisions?: boolean; tune?: boolean; apply?: boolean; history?: boolean; auto?: boolean }) => {
+    if (o.tune || o.auto) {
+      const { formatTunePlan, tuneNow } = await import("../estimate/tune.js");
+      const plan = tuneNow({ apply: !!o.auto || !!o.apply });
+      if (o.auto) { log(`${new Date().toISOString()} ${plan ? `${plan.from}: ${plan.to ? `-> ${plan.to} (${plan.changes.map((x) => `${x.path} ${x.from}->${x.to}`).join(", ")})` : "no change"}${plan.flagged.length ? `; check the wording: ${plan.flagged.join(", ")}` : ""}` : "another tuner is running"}`); return; }
+      if (!plan) { log("Another tuner is running; try again in a moment."); return; }
+      if (o.json) { log(JSON.stringify(plan, null, 2)); return; }
+      log(formatTunePlan(plan));
+      if (plan.to) log(o.apply ? `Written. New estimates are sized from ${plan.to}.` : "Nothing written (add --apply, or let the next run do it).");
+      return;
+    }
+    if (o.history) {
+      const { loadCatalogue } = await import("../estimate/catalogue.js");
+      const { storedVersions } = await import("../estimate/catalogue-store.js");
+      const root = loadCatalogue();
+      const all = [root, ...storedVersions(root.version)];
+      if (o.json) { log(JSON.stringify(all.map((c) => ({ version: c.version, hoursScale: c.hoursScale ?? 1, tuned: c.tuned })), null, 2)); return; }
+      log(`${root.version}  the repo file (reference hours)`);
+      for (const c of all.slice(1)) {
+        const t = c.tuned!;
+        log(`${c.version}  ${t.at.slice(0, 10)}, from ${t.builds} build(s) and ${t.projects} project(s): ${t.changes.map((x) => `${x.path} ${x.from}->${x.to}${x.limited ? ` (${x.limited})` : ""}`).join(", ")}${t.flagged.length ? `; check the wording: ${t.flagged.join(", ")}` : ""}`);
+      }
+      log(`New estimates are sized from ${all.at(-1)!.version}.`);
+      return;
+    }
     if (o.decisions) {
       const { decisionPairs, formatPairs } = await import("../estimate/decisions.js");
       const pairs = decisionPairs();

@@ -17,6 +17,8 @@ import { breakdownStep, estimateStep, setPastTasksSource, setRecordsSource, setT
 import type { DecisionLog } from "../estimate/decisions.js";
 import { approveEstimateStep } from "./estimate-approve.js";
 import { loadPastTasks, pastTasksOfRun } from "../estimate/references.js";
+import { loadCatalogue } from "../estimate/catalogue.js";
+import { saveTuned, tunedVersion } from "../estimate/catalogue-store.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
 import { NO_TRACE } from "../util/trace.js";
@@ -238,6 +240,28 @@ describe("estimate step", () => {
     expect((out as { data: Record<string, unknown> }).data.decisions).toBe(log.decisions.length);
     expect(replay(ledger.events()).gates.map((g) => `${g.gateId}:${g.passed}`)).toContain("estimate.e6-lint:true");
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+  });
+
+  it("pins a run to the catalogue version its breakdown was made with, while new runs take the newest tuned version", async () => {
+    const root = loadCatalogue();
+    const tuned = (gen: number, hoursScale: number) => ({ ...root, version: tunedVersion(root.version, gen), hoursScale, tuned: { parent: root.version, at: "2026-10-03T00:00:00Z", builds: 12, projects: 10, changes: [{ path: "hoursScale", from: 1, to: hoursScale, measured: 1.5, evidence: 10 }], flagged: [] } });
+    saveTuned(tuned(1, 1.25));
+    const ledger = await withBreakdown(3, { deliveryModel: "agentic" });
+    expect(replay(ledger.events()).steps.get("breakdown")?.data?.catalogue).toBe(`${root.version}+t1`);
+    // a newer version arrives after the breakdown: this run keeps t1
+    saveTuned(tuned(2, 1.5));
+    answer = () => sizing(tasksOf(3));
+    const out = await exec(ledger, estimateStep);
+    const e = Estimate.parse(ledger.getJson((out as { outputs: Record<string, string> }).outputs.estimate!));
+    expect(e.catalogue).toMatchObject({ version: `${root.version}+t1`, status: "draft", tuned: { generation: 1, builds: 12, projects: 10 } });
+    const card = (await exec(ledger, approveEstimateStep)) as { card: { markdown: string } };
+    expect(card.card.markdown).toContain(`Hours from task catalogue ${root.version}+t1 (stack dotnet): self-tuned once, last from 12 builds and 10 finished projects; this version not yet measured.`);
+    expect(e.assumptions.some((x) => /tuned|catalogue/i.test(x))).toBe(false); // the client's copy never says so
+    expect(e.tasks.find((x) => x.taskId === "EST-1")).toMatchObject({ hours: { min: 10, max: 15 } }); // be-crud 8-12 x1.25
+    expect(e.tasks.find((x) => x.taskId === "EST-1")!.reason).toMatch(/tuned hours x1\.25/);
+    // a new run is sized from t2
+    const fresh = await withBreakdown(3, { deliveryModel: "agentic" });
+    expect(replay(fresh.events()).steps.get("breakdown")?.data?.catalogue).toBe(`${root.version}+t2`);
   });
 
   it("advises splitting agent work that is very large or over the catalogue's threshold, never a human task", async () => {

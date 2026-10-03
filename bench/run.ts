@@ -54,15 +54,21 @@ if (cmd === "calibrate" || cmd === "all") {
   console.log("\n== Size picks vs build actuals (decision log, for comparing a backend such as Jev) ==");
   console.log(formatPairs(pairs));
   history.decisionPairs = pairs.length;
-  const { loadCatalogue } = await import("../src/estimate/catalogue.js");
+  const { currentCatalogue, generationOf } = await import("../src/estimate/catalogue-store.js");
   const { catalogueEvidence, catalogueStatusText, actualHoursFile } = await import("../src/estimate/catalogue-status.js");
   const { hoursRows } = await import("../src/estimate/calibrate.js");
   const { existsSync } = await import("node:fs");
-  const cat = loadCatalogue();
-  const ev = catalogueEvidence(cat, pairs, existsSync(actualHoursFile()) ? hoursRows(actualHoursFile()) : []);
+  const cat = currentCatalogue();
+  const hrs = existsSync(actualHoursFile()) ? hoursRows(actualHoursFile()) : [];
+  const ev = catalogueEvidence(cat, pairs, hrs);
   console.log(`\n== Task catalogue ${cat.version}: ${ev.status} ==`);
-  console.log(`${catalogueStatusText({ status: ev.status, evidence: ev })}. ${ev.builds} build(s), ${ev.checks.filter((x) => x.held).length} of ${ev.checks.length} factor check(s) held, ${ev.projectsWithin} of ${ev.projects} finished project(s) within range (thresholds in the catalogue's "calibration", assumed).`);
+  console.log(`${catalogueStatusText({ status: ev.status, evidence: ev, ...(cat.tuned ? { tuned: { generation: generationOf(cat.version), builds: cat.tuned.builds, projects: cat.tuned.projects } } : {}) })}. ${ev.builds} build(s), ${ev.checks.filter((x) => x.held).length} of ${ev.checks.length} factor check(s) held, ${ev.projectsWithin} of ${ev.projects} finished project(s) within range (thresholds in the catalogue's "calibration", assumed).`);
   for (const x of ev.checks) console.log(`  ${x.question} ${x.pick} vs base, ${x.kind} ${x.track}: expected ${x.expected}x, measured ${x.measured}x (${x.tasks} tasks) ${x.held ? "holds" : "DOES NOT HOLD"}`);
+  const { formatTunePlan, planTune } = await import("../src/estimate/tune.js");
+  const { loadCatalogue } = await import("../src/estimate/catalogue.js");
+  const plan = planTune(cat, loadCatalogue(), pairs, hrs);
+  console.log(`\n== Self-tuning (what the next run would write) ==\n${formatTunePlan(plan)}`);
+  history.tuning = { from: plan.from, ...(plan.to ? { to: plan.to } : {}), changes: plan.changes.length, fitted: plan.fitted.length, flagged: plan.flagged };
   history.catalogue = { version: cat.version, status: ev.status, builds: ev.builds, checks: ev.checks.length, held: ev.checks.filter((x) => x.held).length, projects: ev.projects, projectsWithin: ev.projectsWithin };
 }
 

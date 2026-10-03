@@ -20,10 +20,10 @@ Every estimate is solely agentic. HITL was the other option and is no longer off
 1. Requirements are refined first. No soft estimates.
 2. For UI work, the **mock and clickable demo** are approved first. They are the sizing baseline.
 3. Requirements become features and tasks. Each task cites its requirement.
-4. The model proposes a few reference tasks; every other task is sized against one, with the reason stated. Code does all arithmetic.
+4. Every task has a kind from the task catalogue. The model picks a size step against the kind's written scale (with the closest approved past tasks as references); code reads the hours from the catalogue and does all arithmetic. The catalogue tunes itself from finished builds and real project hours, within limits, as new versions; a run keeps the version it was sized with.
 5. Three independent estimators size every job. Each task takes the middle reading (the median), so one estimator that reads high or low does not move the estimate; a task they disagree on is flagged.
 6. Duration and API cost come from **our own measured runs** (per phase, and per task class for build time). Until enough runs exist, they are labelled cold-start with wide ranges. A pinned public benchmark is only a flagged prior and never changes a number.
-7. Gates check the result. A lead approves it. Two files are exported from one data model: team file and client file.
+7. Gates check the result. The factory approves it (hands-off, the default), or a lead with `--review`. Two files are exported from one data model: team file and client file.
 
 ## Gates
 | Gate | Checks |
@@ -33,11 +33,11 @@ Every estimate is solely agentic. HITL was the other option and is no longer off
 | E1c Design coverage | Every task's screen is in the approved design and every approved screen has a task |
 | E2 Requirement → task | Every requirement has a task |
 | E3 Task → requirement | Every task traces to a requirement; extras go to "Suggested, not included" |
-| E2c Task kind | Every task has a kind from the pinned task catalogue, on a track that kind fits |
+| E2c Task kind | Every task has a kind from the task catalogue, on a track that kind fits |
 | E4 Forgotten work | CI/CD, environments, monitoring, etc. each marked in, or out with a reason |
 | E5 Consistency | Similar tasks, similar hours; no unexplained outlier |
 | E6 Workbook lint | Code recomputes every total and link |
-| E7 Lead approval | Terminal approval tied to the estimate's hash |
+| E7 Approval | The factory approves once the gates pass (or a lead, with `--review`), tied to the estimate's hash |
 | B1 Scope lock | Every plan task maps to an approved estimate task |
 | B2 Change request | New or changed requirement creates estimate v2 with a diff |
 | B3 Size cap | Finished change no bigger than approved |

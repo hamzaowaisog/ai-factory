@@ -27,6 +27,7 @@ import type { RequestSource } from "../sources/request.js";
 import { storeReferences, type GatheredRef } from "../sources/refs.js";
 import { budgetStop } from "../estimate/budget.js";
 import { copyArtifacts, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
+import { triggerTune } from "../estimate/tune.js";
 import { readsRequirements } from "../contracts/index.js";
 
 export type Log = (msg: string) => void;
@@ -176,6 +177,7 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
   }
   const writer = lock;
   const warned = new Set<string>();
+  let completed = 0;
   trace.startHeartbeat();
   trace.event("run", `executor started (pid ${process.pid})`);
   try {
@@ -261,6 +263,7 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
           const named = outcome.outputs;
           const treeSha = outcome.treeSha && /^[0-9a-f]{40}$/.test(outcome.treeSha) ? outcome.treeSha : undefined;
           await ledger.append({ type: "step.completed", key, inputsHash: n.hash, treeSha, outputs: Object.values(named), data: { ...(outcome.data ?? {}), named } }, writer);
+          completed++;
           const after = replay(ledger.events()).costUsd;
           log(`✓ ${n.step.key} ($${(after - state.costUsd).toFixed(2)}, total $${after.toFixed(2)})`);
           if (n.step.key === "deliver") {
@@ -314,6 +317,11 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
   } finally {
     trace.setStep(undefined);
     try { saveReport(ledger); } catch { /* the scorecard never breaks a run */ }
+    // Phase 3: an estimate or a build that followed one may carry new evidence; the catalogue tunes itself in the background
+    try {
+      const s = replay(ledger.events());
+      if (completed && (s.steps.get("estimate")?.status === "completed" || s.info.estimateRef)) triggerTune();
+    } catch { /* tuning never breaks a run */ }
     trace.event("run", "executor stopped");
     trace.stopHeartbeat();
     ledger.onAppend = undefined;

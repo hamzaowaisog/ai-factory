@@ -2,7 +2,8 @@
 // kind from it; the estimator picks a size step against the kind's written definition, and code reads the hours.
 // The model never invents the reference hours, so reworded requirements land on the same numbers.
 // The file is versioned. No person signs it off: the status an estimate shows is computed from evidence
-// (catalogue-status.ts): draft until enough builds and finished projects have measured it.
+// (catalogue-status.ts): draft until enough builds and finished projects have measured it. The repo file is the
+// root; the factory writes tuned versions of it to the ledger home (catalogue-store.ts, tune.ts).
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,6 +38,31 @@ export const Catalogue = z.object({
     /** finished projects with real hours (the actual-hours file) before the hours are judged */
     minProjects: z.number().int().positive(),
   }),
+  /** how the factory tunes itself from evidence (tune.ts): it stops inside the band, moves part way, and never far */
+  tuning: z.object({
+    note: z.string(),
+    /** a measured value within this share of the catalogue counts as fitted: no change */
+    band: z.number().min(0).max(1),
+    /** the share of the way (on a ratio scale) a change moves toward the measured value */
+    step: z.number().gt(0).max(1),
+    /** the largest change of one value in one version, as a share */
+    cap: z.number().gt(0).max(1),
+    /** a value never goes below floor x or above ceiling x the repo catalogue's value */
+    floor: z.number().gt(0).max(1),
+    ceiling: z.number().min(1),
+  }),
+  /** a tuned version's multiplier on every kind's hours, measured from finished projects; 1 in the repo file */
+  hoursScale: z.number().positive().optional(),
+  /** a tuned version: the version it was made from, and why (tune.ts). The repo file has none. */
+  tuned: z.object({
+    parent: z.string(),
+    at: z.string(),
+    builds: z.number().int().nonnegative(),
+    projects: z.number().int().nonnegative(),
+    changes: z.array(z.object({ path: z.string(), from: z.number(), to: z.number(), measured: z.number(), evidence: z.number().int(), limited: z.enum(["cap", "bound"]).optional() })),
+    /** values that kept hitting a limit: likely a wording problem in the kind's scale, not a numbers problem */
+    flagged: z.array(z.string()),
+  }).optional(),
   sizes: z.record(SizeStep, z.number().positive()),
   /** multipliers code applies on top of the size: the task's complexity flag, its screen's UI level, and the factory grades */
   factors: z.object({

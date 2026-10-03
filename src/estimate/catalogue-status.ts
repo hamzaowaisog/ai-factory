@@ -85,9 +85,12 @@ export function loadCatalogueEvidence(c: Catalogue): CatalogueEvidence {
 }
 
 /** The status in words, for the internal views (card, web UI, team workbook). Never on the client's copy. */
-export function catalogueStatusText(c: { status: CatalogueStatus; evidence?: { builds: number; projects: number } | undefined }): string {
+export function catalogueStatusText(c: { status: CatalogueStatus; evidence?: { builds: number; projects: number } | undefined; tuned?: { generation: number; builds: number; projects: number } | undefined }): string {
   const n = (x: number, one: string) => `${x} ${one}${x === 1 ? "" : "s"}`;
-  if (c.status === "calibrated-hours") return `hours measured against ${n(c.evidence?.projects ?? 0, "finished project")}`;
-  if (c.status === "calibrated-factors") return `size factors measured from ${n(c.evidence?.builds ?? 0, "build")}; hours not yet measured against finished projects`;
-  return "reference hours, not yet measured";
+  // a tuned version starts its own evidence afresh (tune.ts), so its draft is not the repo file's reference hours
+  const tuned = c.tuned ? `self-tuned ${c.tuned.generation === 1 ? "once" : `${c.tuned.generation} times`}, last from ${n(c.tuned.builds, "build")} and ${n(c.tuned.projects, "finished project")}` : "";
+  const status = c.status === "calibrated-hours" ? `hours measured against ${n(c.evidence?.projects ?? 0, "finished project")}`
+    : c.status === "calibrated-factors" ? `size factors measured from ${n(c.evidence?.builds ?? 0, "build")}; hours not yet measured against finished projects`
+    : tuned ? "this version not yet measured" : "reference hours, not yet measured";
+  return tuned ? `${tuned}; ${status}` : status;
 }

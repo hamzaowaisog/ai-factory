@@ -178,7 +178,7 @@ run(stage_prompt, workdir, context_files[], allowed_tools, output_schema, limits
 - Each task gets an **AI-leverage tag** (high: CRUD, forms, auth scaffolding; medium: integrations; low: domain logic such as scoring engines, compliance). The AI-adjusted hours sit next to the human baseline, never replacing it. Leverage factors are labelled assumptions until real data exists.
 - Non-engineering disciplines (PM, PDM, QA, design) come from ratios in past sheets, labelled as ratios.
 - The model proposes tasks and ranges. **Code** computes buffers, rollups and cost, so arithmetic is never hallucinated.
-- Calibration loop: every factory build logs actual effort per task, which replaces the assumed factors over time.
+- Calibration loop: every factory build logs actual effort per task, which replaces the assumed factors over time. Built for estimates: the task catalogue tunes itself from build actuals and real project hours (docs/estimate-consistency.md, section 14).
 
 ## 9. Governance and security
 

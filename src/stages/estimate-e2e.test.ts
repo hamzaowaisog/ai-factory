@@ -22,6 +22,7 @@ import { previewFile, readPreview } from "../ui/preview.js";
 import { approvedEstimate } from "../estimate/lineage.js";
 import { setRecordsSource, setTaskRecordsSource } from "./estimate.js";
 import { setProviderFactory } from "./think.js";
+import { setTuneTrigger } from "../estimate/tune.js";
 
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
 const REQS = [
@@ -116,6 +117,8 @@ const provider: Provider = {
   },
 };
 
+/** background tuning starts counted, never spawned */
+let tunes = 0;
 beforeEach(() => {
   const home = mkdtempSync(join(tmpdir(), "factory-est-e2e-"));
   process.env.FACTORY_HOME = home;
@@ -126,6 +129,8 @@ beforeEach(() => {
   setProviderFactory(() => provider);
   setRecordsSource(() => []);
   setTaskRecordsSource(() => []);
+  tunes = 0;
+  setTuneTrigger(() => { tunes++; });
   prompts = [];
   drafterTools = [];
   criticSystems = [];
@@ -142,6 +147,7 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     });
     const r1 = await execute(runId);
     expect(r1.status, r1.message).toBe("waiting");
+    expect(tunes).toBe(0); // no estimate yet: nothing new to tune from
     const ledger = Ledger.open(runId);
     const q = replay(ledger.events()).openCard!;
     expect(q.kind).toBe("question");
@@ -197,6 +203,7 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     });
     const r = await execute(runId);
     expect(r.status, r.message).not.toBe("waiting");
+    expect(tunes).toBe(1); // the finished estimate starts background tuning once
     const ledger = Ledger.open(runId);
     const s = replay(ledger.events());
     expect(s.decisions).toEqual([]);

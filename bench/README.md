@@ -31,8 +31,11 @@ It also prints two things the estimate itself reads (`src/estimate/durations.ts`
 - **Factory task classes**: measured minutes and turns per task class (track/complexity), from finished build runs seeded
   from an approved estimate. A class needs 3 records before its minutes replace the sized hours on the critical path.
 - **UI size: approved design vs built**: the UI change class the approved design allowed next to what integrate measured.
+- **Size picks vs build actuals**: the decision log paired with what each task's build took (docs/estimate-consistency.md, section 11).
+- **Task catalogue**: the current version's status from evidence and every factor check (section 13).
+- **Self-tuning**: what the next background tuning would change, what is fitted and what it still waits for (section 14).
 
-Both stay empty until a build has finished from an approved estimate.
+They stay empty (or "waiting") until a build has finished from an approved estimate.
 
 ## gates: does each gate catch what it should?
 `gates/cases.ts` lists seeded defects (`must-fail`) and clean controls (`must-pass`) per gate. The runner calls the

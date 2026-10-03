@@ -48,5 +48,8 @@ describe("catalogue status from evidence", () => {
     expect(catalogueStatusText({ status: "draft" })).toBe("reference hours, not yet measured");
     expect(catalogueStatusText({ status: "calibrated-factors", evidence: { builds: 12, projects: 0 } })).toBe("size factors measured from 12 builds; hours not yet measured against finished projects");
     expect(catalogueStatusText({ status: "calibrated-hours", evidence: { builds: 12, projects: 1 } })).toBe("hours measured against 1 finished project");
+    // a self-tuned version says so, and its own evidence starts afresh
+    expect(catalogueStatusText({ status: "draft", tuned: { generation: 1, builds: 12, projects: 0 } })).toBe("self-tuned once, last from 12 builds and 0 finished projects; this version not yet measured");
+    expect(catalogueStatusText({ status: "calibrated-factors", evidence: { builds: 10, projects: 0 }, tuned: { generation: 3, builds: 14, projects: 10 } })).toBe("self-tuned 3 times, last from 14 builds and 10 finished projects; size factors measured from 10 builds; hours not yet measured against finished projects");
   });
 });

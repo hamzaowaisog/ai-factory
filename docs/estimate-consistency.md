@@ -93,7 +93,7 @@ No result I found measures LLM effort estimation for software work specifically.
 ## 7. Before building
 
 - Measure first: run one requirement (`examples/estimate-requirements.md`) 5 to 10 times with the real key and record the spread of total hours. That tells us the real size of the problem and whether B alone is enough. This needs an `ANTHROPIC_API_KEY`, which this environment does not have.
-- Decide cache scope (per project or global) and whether a cache hit should still require lead approval (I would say yes).
+- Decide cache scope (per project or global) and whether a cache hit should still require lead approval (I would say yes; superseded: the factory approves at E7 since 2026-10-03).
 
 ## 8. Local models trained on our own data
 
@@ -119,7 +119,7 @@ Keep the hosted model for what needs language understanding: clarify, specify an
 Candidate features, all already computed or countable by the pipeline (`size.ts`, `assemble.ts`): counted units per track, complexity flag share, size band, task type, whether the work touches existing code, repo size and stack, number of screens, number of requirements, uncertainty grade inputs (assumptions, answered questions, critic findings).
 Target: actual hours per task class, or per project when task-level hours are unavailable.
 Model: gradient-boosted trees or regularised linear regression. These are deterministic, explainable, cheap, and workable on dozens to hundreds of projects. Output a range (quantile regression or residual spread), not a point.
-Guard rails: the model's output still passes the existing gates (E1-E7); the lead still approves; the estimate labels itself `calibrated` only when the model was trained on at least a stated number of projects (threshold to be decided from the first data, not guessed now).
+Guard rails: the model's output still passes the existing gates (E1-E7); the estimate is still approved at E7 (by the factory since 2026-10-03); the estimate labels itself `calibrated` only when the model was trained on at least a stated number of projects (threshold to be decided from the first data, not guessed now).
 
 ### Data to start collecting now
 
@@ -187,7 +187,7 @@ Build order: F, D, C, A+B, Split, E. Prompt template versions go up (breakdown 3
 
 ### Not in Phase 1
 
-The Phase 2 decision log and actuals are built (section 11); retrieval of approved past tasks as references (Phase 2, section 12); catalogue calibration from actual hours and measured ACEM retry and context factors (Phase 3).
+All built since: the Phase 2 decision log and actuals (section 11), approved past tasks as references (section 12), the catalogue's status from evidence (section 13), and Phase 3, where the catalogue tunes its factors and hours from builds and real project hours (section 14).
 
 ### Needs from the team
 
@@ -198,12 +198,12 @@ The Phase 2 decision log and actuals are built (section 11); retrieval of approv
 
 - **F done.** `bench/consistency/` (`cases/`, `report.ts`, `run.ts`, `consistency.test.ts`), `npm run bench -- consistency`. As built: the runner uses the standalone project and settings `stackSource: undecided, noRepo, humanReview: false`; it answers only a design-approval card (`by: bench`) and stops on any other card; a run that did not finish counts as a failed sample, and a group needs at least two finished estimates to pass. The baseline numbers (before D-E) still need a live run with the API key.
 - **D done.** `mergeEstimators` (`src/estimate/hours.ts`) takes the median of the mins and of the maxes; the flag rule is unchanged. `estimatorsFor` returns 3 for every band. The estimate records `merge: "median"`; gate E6 (`src/estimate/lint.ts`) then recomputes the exact median. An estimate without the field (made before) is checked by the old widening rule, so `factory verify-evidence` still passes on old runs. The lead estimator's anchors, ratios and reasons are still the ones shown and edited; a lead's edit applies to every estimator's reading, as before.
-- **C done.** The catalogue is `src/estimate/assets/catalogue.json` (version `2026-10-03.1`, status **draft**, 25 kinds: backend, UI, QA, design, ops, PM; size factors small 0.6, typical 1, large 1.6, very large 2.5; stacks default, dotnet and nextjs with no factors yet), loaded and checked by `src/estimate/catalogue.ts`. The breakdown prompt lists the kinds (section `task-kinds`) and the rules for splitting work into one kind per task; `BreakdownTask.kind` is optional in the contract so old breakdowns still read. New gate **E2c** (`estimate.e2c-task-kind`, no waiver) fails a task with no kind, an unknown kind, or a kind on a track it does not list. It reads the catalogue's version and kinds from its recorded inputs, not the live file. The breakdown step is template version 3 and its cache key includes the catalogue version. The consistency suite now counts tasks by kind. The hours in the catalogue are not used yet; that is A.
-- **A + B done.** When every breakdown task has a kind, the estimator no longer writes hours. Per task it gives a `size` (small, typical, large, very large, read against the kind's written scale) and a `reason` naming what it counted; a factory or joint task also gets `verify` (easy, moderate, hard) and `context` (complete, partial). Code (`src/estimate/catalogue-size.ts`) computes the kind's typical hours on the task's track × size × complexity flag (skipped when the kind `covers` it: be-rules, be-integration, ui-complex) × the screen's UI level × verify × context × any stack factor. All the factors live in the catalogue file, so the lead signs off one file. The result goes into the existing anchor-and-ratio shape: the first task of each kind and track is that group's anchor at ratio 1, and the others are ratios of it (rounded to 3 places). The median merge, gate E6, gates E5 and a lead's edits then work unchanged. The estimate records `catalogue: {version, status, stack}` and each task's `size`. The approval card, the web UI's estimate page ("Task catalogue" fact plus a kind · size tag on each task) and the assumptions all say when the catalogue is a draft. A breakdown without kinds (approved before C) is still sized by anchors and ratios. The estimate step is template version 4, and its cache key includes the catalogue version.
+- **C done.** The catalogue is `src/estimate/assets/catalogue.json` (version `2026-10-03.1`, 25 kinds; labelled status **draft** until section 13 replaced that with a status computed from evidence, and section 14 adds tuned versions; backend, UI, QA, design, ops, PM; size factors small 0.6, typical 1, large 1.6, very large 2.5; stacks default, dotnet and nextjs with no factors yet), loaded and checked by `src/estimate/catalogue.ts`. The breakdown prompt lists the kinds (section `task-kinds`) and the rules for splitting work into one kind per task; `BreakdownTask.kind` is optional in the contract so old breakdowns still read. New gate **E2c** (`estimate.e2c-task-kind`, no waiver) fails a task with no kind, an unknown kind, or a kind on a track it does not list. It reads the catalogue's version and kinds from its recorded inputs, not the live file. The breakdown step is template version 3 and its cache key includes the catalogue version. The consistency suite now counts tasks by kind. The hours in the catalogue are not used yet; that is A.
+- **A + B done.** When every breakdown task has a kind, the estimator no longer writes hours. Per task it gives a `size` (small, typical, large, very large, read against the kind's written scale) and a `reason` naming what it counted; a factory or joint task also gets `verify` (easy, moderate, hard) and `context` (complete, partial). Code (`src/estimate/catalogue-size.ts`) computes the kind's typical hours on the task's track × size × complexity flag (skipped when the kind `covers` it: be-rules, be-integration, ui-complex) × the screen's UI level × verify × context × any stack factor. All the factors live in the catalogue file (no one signs it off since section 13; the factory tunes it, section 14). The result goes into the existing anchor-and-ratio shape: the first task of each kind and track is that group's anchor at ratio 1, and the others are ratios of it (rounded to 3 places). The median merge, gate E6, gates E5 and a lead's edits then work unchanged. The estimate records `catalogue: {version, status, stack}` and each task's `size`. The approval card and the web UI's estimate page ("Task catalogue" fact plus a kind · size tag on each task) show the catalogue's status; since section 13 the assumptions (the client's copy) no longer do. A breakdown without kinds (approved before C) is still sized by anchors and ratios. The estimate step is template version 4, and its cache key includes the catalogue version.
 - **Split done.** A factory or joint task sized very large, or above the catalogue's `splitAboveHours` (16 h, a draft figure like the hours), is marked `splitAdvised` on the estimate. Its hours stay as estimated. Human tasks are never marked. The approval card lists these tasks under "Split before the build", the assumptions name them, and the web UI shows a "split before build" pill. The threshold is recorded on the estimate (`catalogue.splitAboveHours`). Anchor-sized estimates have no catalogue, so no split advice.
-- **E done.** `src/estimate/assets/defaults.json` (version `2026-10-03.1`, **draft**) lists 19 standard topics: sign-in, roles, admin, languages, colour modes, platforms, browsers, accessibility, notifications, payments, file uploads, reporting, search, data migration, audit, volumes, offline, environments and hosting. Each has a standard answer. `src/estimate/defaults.ts` loads and checks the file. The clarifier prompt lists the topic ids (not the answers) in a `standard-topics` section and tags each question with `topic` when it fits. When a question is not asked (always in a hands-off run), `assumedFrom` takes the table's answer for a known topic: "→ assumed (standard answer, sign-in): …", and the assumption records `fromDefault`. An unknown topic, or none, keeps the model's recommendation. A question a person is asked is unchanged. Both clarify steps are template version 2, and their cache keys include the defaults version.
+- **E done.** `src/estimate/assets/defaults.json` (version `2026-10-03.1`; no sign-off since section 13) lists 19 standard topics: sign-in, roles, admin, languages, colour modes, platforms, browsers, accessibility, notifications, payments, file uploads, reporting, search, data migration, audit, volumes, offline, environments and hosting. Each has a standard answer. `src/estimate/defaults.ts` loads and checks the file. The clarifier prompt lists the topic ids (not the answers) in a `standard-topics` section and tags each question with `topic` when it fits. When a question is not asked (always in a hands-off run), `assumedFrom` takes the table's answer for a known topic: "→ assumed (standard answer, sign-in): …" (plain "→ assumed: …" since section 13, the topic kept in `fromDefault`), and the assumption records `fromDefault`. An unknown topic, or none, keeps the model's recommendation. A question a person is asked is unchanged. Both clarify steps are template version 2, and their cache keys include the defaults version.
 
-**Phase 1 is code-complete.** What is left is the live measurement: `npm run bench -- consistency` with the API key, once now and again after the catalogue is calibrated (section 13).
+**Phase 1 is code-complete.** What is left is the live measurement: `npm run bench -- consistency` with the API key, once now and again after the catalogue has measured or tuned itself (sections 13 and 14).
 
 ## 11. Phase 2 (first part): decision log and actuals, as built
 
@@ -310,3 +310,44 @@ Agreed in chat on 2026-10-03. Estimates are approved by the factory, so no perso
   - `export.test.ts`: the status appears in the team file and not in the client file.
   - `estimate.test.ts`: the assumptions do not mention the catalogue, and the card carries the status without "delivery lead" or "signed off".
   - `catalogue.test.ts` and `spec-rules.test.ts` updated for the files without sign-off.
+
+## 14. Phase 3: the catalogue tunes itself, as built
+
+Agreed in chat on 2026-10-03. After every estimate and every build, the factory measures the current catalogue version against what happened. When a value is off, it writes a new version. No person and no model call are involved: it is arithmetic over the ledgers. The aim is a fit, neither under nor over. It is not an exact match to the last few projects, because that would chase noise and make estimates swing, which is what Phase 1 removed.
+
+- **When.**
+  - When an executor stops after completing at least one step, it starts the tuner, in a run that has a finished estimate or that is a build following one (`src/stages/executor.ts`, `triggerTune`).
+  - The tuner is `factory calibrate --auto` as a detached process, so no run waits on it. It writes one line per run to `~/.factory/catalogues/tune.log`.
+  - An exclusive lock file keeps it to one tuner at a time; a lock older than ten minutes is taken over.
+  - A failure never touches the run. Tests count the trigger and never spawn it. `FACTORY_NO_TUNE=1` turns it off.
+  - An estimate brings no actuals by itself. New evidence comes from finished builds and from `actual-hours.csv`, so most runs end with "no change".
+- **What it measures** (`src/estimate/tune.ts`, `planTune`):
+  - **Size, verify and context factors**, from the section 13 factor checks of this version. For each pick, it takes the measured ratio over the catalogue's ratio in every kind and track, then pools them with a geometric mean weighted by tasks. Baseline picks (typical, moderate, complete) stay at 1.
+  - **Hours**, from finished projects of this version: actual hours over the estimate's midpoint, pooled with a geometric mean. The result becomes one `hoursScale` on every kind's hours. Code applies it as a multiplier, and a task's reason shows "tuned hours ×N". The kinds' hours in the file are never rewritten. A scale per kind would need more projects than are expected for a while.
+- **Guardrails**, in the catalogue's `tuning` block (starting values; change them with a version bump):
+  - It waits for the section 13 minimums: `minBuilds` (10) builds for the factors, each comparison with `minPerCell` (5) tasks a side, and `minProjects` (10) projects for the hours.
+  - `band` 0.1: a value measured within ±10% is fitted and left alone. This is where the tuning stops.
+  - `step` 0.5: otherwise the value moves half way toward the measured value, on a ratio scale. It converges rather than overshooting. In the test, a true ratio of 2.2 goes 1.6 → 1.876 → 2.032, then stops inside the band.
+  - `cap` 0.2: a value changes by at most ±20% per version.
+  - `floor` 0.5 and `ceiling` 2: a value never goes outside 0.5× to 2× the repo file's value.
+  - Each version is judged only on builds and projects sized with it, so no evidence is counted twice.
+  - A value that hits the cap or a bound in two versions in a row is **flagged**. The kind's size wording is then more likely wrong than its number. Wording is a manual change.
+- **Versions** (`src/estimate/catalogue-store.ts`):
+  - The repo file is the root. Tuned versions are written once to `~/.factory/catalogues/<root>+t<n>.json` and never edited.
+  - Each version records `tuned`: its parent, when it was made, the builds and projects used, every change (from, to, measured, evidence, limited by cap or bound) and the flagged values.
+  - New runs use the newest version of the current root. The breakdown step records the version (`data.catalogue`), and the estimate step sizes from that exact version, so re-running or exporting a run gives the same numbers.
+  - The breakdown's stored-answer key uses the root, because tuning changes numbers, never kinds.
+  - Bumping the repo file's version starts a new root.
+  - Approved past tasks (section 12) match across tuned versions of one root, because size wording is shared.
+- **Where it shows** (internal only, as section 13):
+  - The estimate's `catalogue.tuned` holds the generation and the last tuning's builds and projects.
+  - The status text reads, for example, "self-tuned once, last from 12 builds and 0 finished projects; this version not yet measured". It appears on the approval card, the web UI pill, the team workbook and the bench.
+  - The client's copy never mentions it.
+  - `factory calibrate --tune` shows what would change, without writing; add `--apply` to write it now. `factory calibrate --history` lists every version and why it changed. `npm run bench -- calibrate` prints the plan too.
+- **Tests.**
+  - `src/estimate/tune.test.ts`: band, half step, cap and bound; waiting; fitted versus tuned; the hours scale; convergence inside the band; flagging; the lock; measuring the newest version.
+  - `src/estimate/catalogue-store.test.ts`: version naming, newest version, older versions readable, no overwrite, the hours scale in the multiplier.
+  - `estimate.test.ts`: a run stays pinned while a newer version arrives, and a new run takes it; the card text; nothing in the assumptions.
+  - `estimate-e2e.test.ts`: the trigger fires once after a finished estimate and not before.
+  - `catalogue-status.test.ts`: the tuned wording.
+- **Not yet.** Jev is on hold. Rewording the size scale stays manual, guided by the flags. The starting limits are to be revisited once real data exists.

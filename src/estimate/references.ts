@@ -1,6 +1,6 @@
 // Approved past tasks as references (docs/estimate-consistency.md, section 12, Phase 2). When a catalogue-sized
-// estimate is made, each task is matched against the tasks of earlier approved estimates on the same catalogue
-// version: same kind, track, complexity and executor, ranked by UI level, then by how close the item count is, then
+// estimate is made, each task is matched against the tasks of earlier approved estimates on the same catalogue root
+// (any tuned version of it): same kind, track, complexity and executor, ranked by UI level, then by how close the item count is, then
 // newest first. The estimators see the closest matches and their sizes; they still pick a size from the catalogue
 // scale, so the hours still come from code. An estimate counts as approved when its approve-estimate step passed,
 // whether the factory approved it (hands-off, gate E7) or a person did. Matching reads categories and counts only.
@@ -8,6 +8,7 @@ import type { Breakdown, Estimate, SizeStep } from "../contracts/index.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Range } from "./assumptions.js";
+import { rootOf } from "./catalogue-store.js";
 import { decisionLogFor } from "./decisions.js";
 
 export interface PastTask {
@@ -53,12 +54,16 @@ export function pastTasksOfRun(ledger: Ledger): PastTask[] {
   });
 }
 
-/** Tasks of every other run's approved, catalogue-sized estimate on this catalogue version. An unreadable run adds nothing. */
+/**
+ * Tasks of every other run's approved, catalogue-sized estimate on this catalogue's root. Tuned versions of one root
+ * share the kinds and the size wording (tuning changes numbers only), so their sizes stay comparable.
+ * An unreadable run adds nothing.
+ */
 export function loadPastTasks(exceptRun: string, catalogue: string): PastTask[] {
   const out: PastTask[] = [];
   for (const id of Ledger.listRuns()) {
     if (id === exceptRun) continue;
-    try { out.push(...pastTasksOfRun(Ledger.open(id)).filter((p) => p.catalogue === catalogue)); } catch { /* skip */ }
+    try { out.push(...pastTasksOfRun(Ledger.open(id)).filter((p) => rootOf(p.catalogue) === rootOf(catalogue))); } catch { /* skip */ }
   }
   return out;
 }

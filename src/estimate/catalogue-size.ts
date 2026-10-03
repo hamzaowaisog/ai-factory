@@ -43,6 +43,8 @@ export function multiplier(c: Catalogue, t: SizeTask, s: SizeOut["tasks"][number
   if (t.ui) parts.push([`${t.ui} UI`, c.factors.ui[t.ui]]);
   if (t.executor !== "human") parts.push([`verify ${s.verify}`, c.factors.verify[s.verify!]], [`context ${s.context}`, c.factors.context[s.context!]]);
   for (const n of stacks) { const f = c.stacks[n]?.factors?.[kind.id]; if (f) parts.push([`${n} stack`, f]); }
+  // a tuned version's hours scale, measured from finished projects (tune.ts)
+  if (c.hoursScale && c.hoursScale !== 1) parts.push(["tuned hours", c.hoursScale]);
   const shown = parts.filter(([, f]) => f !== 1);
   return { mult: parts.reduce((m, [, f]) => m * f, 1), parts: shown.length ? shown.map(([n, f]) => `${n} x${f}`) : ["typical"] };
 }

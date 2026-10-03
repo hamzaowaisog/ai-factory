@@ -7,7 +7,8 @@ import type { Failure, ScreenMock } from "../contracts/index.js";
 import { failure, runGate, type GateDef } from "../gates/engine.js";
 import { designUi, uiFactors } from "../estimate/ui-complexity.js";
 import { consistency, designCoverage, forgottenWork, readiness, reqToTask, taskKind, taskToReq } from "../estimate/gates.js";
-import { catalogueText, loadCatalogue, type Catalogue } from "../estimate/catalogue.js";
+import { catalogueText, type Catalogue } from "../estimate/catalogue.js";
+import { catalogueAt, currentCatalogue, generationOf, rootOf } from "../estimate/catalogue-store.js";
 import { loadCatalogueEvidence, type CatalogueEvidence } from "../estimate/catalogue-status.js";
 import { proposalFromSizes, SizeOut, stacksFor } from "../estimate/catalogue-size.js";
 import { sizeDecisions } from "../estimate/decisions.js";
@@ -118,8 +119,9 @@ export const breakdownStep: StepDef = {
     const survey = readOutput<RepoSurvey>(ctx.state, ctx.ledger, "ground", "survey");
     const design = readOutput<DesignForUi>(ctx.state, ctx.ledger, "design");
     const ui = design ? designUi(design) : undefined;
-    const catalogue = loadCatalogue();
-    const cacheKey = hashJson({ step: "breakdown", catalogue: catalogue.version, spec: specSha, answers: c.answers, survey: !!survey, design: done(ctx, "design") });
+    // the newest tuned version; tuning changes numbers, never the kinds, so a stored breakdown is keyed on the root
+    const catalogue = currentCatalogue();
+    const cacheKey = hashJson({ step: "breakdown", catalogue: rootOf(catalogue.version), spec: specSha, answers: c.answers, survey: !!survey, design: done(ctx, "design") });
     const cached = waivedCache<BreakdownBodyT>(ctx, "breakdown", cacheKey);
     let body: BreakdownBodyT;
     let model: string | undefined;
@@ -158,7 +160,7 @@ export const breakdownStep: StepDef = {
     }
 
     const artifact = { header: header(ctx.runId, "work-breakdown", "breakdown", ctx.ledger.putJson({ specSha, body }), model), ...body, specSha } as Breakdown;
-    return { kind: "done", outputs: { breakdown: ctx.ledger.putJson(artifact) }, data: { tasks: body.tasks.length, features: body.features.length, ...(waivers.length ? { waivers } : {}) } };
+    return { kind: "done", outputs: { breakdown: ctx.ledger.putJson(artifact) }, data: { tasks: body.tasks.length, features: body.features.length, catalogue: catalogue.version, ...(waivers.length ? { waivers } : {}) } };
   },
 };
 
@@ -204,7 +206,9 @@ export const estimateStep: StepDef = {
     const view = breakdown.tasks.map((t) => ({ id: t.id, title: t.title, feature: t.featureId, track: t.track, ...(t.kind ? { kind: t.kind } : {}), executor: t.executor, complexity: t.complexity, screen: t.screen, ...(uiOf(t) ? { ui: { level: uiOf(t)!.level ?? "unknown", drivers: uiOf(t)!.drivers } } : {}), items: t.items, dependsOn: t.dependsOn, overhead: t.overhead }));
     const known = knownStack(ctx.state, ctx.ledger, ctx.project);
     // a breakdown whose every task has a kind is sized against the catalogue; an older one by anchors and ratios
-    const catalogue = breakdown.tasks.every((t) => t.kind) ? loadCatalogue() : undefined;
+    // the run is pinned to the catalogue version its breakdown was made with, so a re-run sizes from the same numbers
+    const pinned = ctx.state.steps.get("breakdown")?.data?.catalogue;
+    const catalogue = breakdown.tasks.every((t) => t.kind) ? (typeof pinned === "string" ? catalogueAt(pinned) : currentCatalogue()) : undefined;
     // Phase 2: the closest tasks of earlier approved estimates on the same catalogue version, shown as references
     const past = catalogue ? pastTasksSource(ctx.runId, catalogue.version) : [];
     const refs = new Map<string, TaskReference[]>(breakdown.tasks.map((t) => [t.id, nearMatches(t, uiOf(t)?.level, past)]));
@@ -261,7 +265,7 @@ export const estimateStep: StepDef = {
       estimate = assembleEstimate({
         header: header(ctx.runId, "estimate", "estimate", ctx.ledger.putJson({ breakdownSha, specSha, settings, proposals })) as never,
         breakdown, breakdownSha, spec, specSha, proposals, settings, records, taskRecords,
-        ...(catalogue && evidence ? { catalogue: { version: catalogue.version, status: evidence.status, evidence: { builds: evidence.builds, checks: evidence.checks.length, held: evidence.checks.filter((x) => x.held).length, projects: evidence.projects, projectsWithin: evidence.projectsWithin }, stack: stacksFor(catalogue, proposals[0]!.stack ?? { basis: "assumed" }).join(" + "), splitAboveHours: catalogue.splitAboveHours } } : {}), ...(ctx.state.info.parent ? { parentEstimate: ctx.state.info.parent.estimateSha } : {}),
+        ...(catalogue && evidence ? { catalogue: { version: catalogue.version, status: evidence.status, evidence: { builds: evidence.builds, checks: evidence.checks.length, held: evidence.checks.filter((x) => x.held).length, projects: evidence.projects, projectsWithin: evidence.projectsWithin }, ...(catalogue.tuned ? { tuned: { generation: generationOf(catalogue.version), builds: catalogue.tuned.builds, projects: catalogue.tuned.projects } } : {}), stack: stacksFor(catalogue, proposals[0]!.stack ?? { basis: "assumed" }).join(" + "), splitAboveHours: catalogue.splitAboveHours } } : {}), ...(ctx.state.info.parent ? { parentEstimate: ctx.state.info.parent.estimateSha } : {}),
         grades: gradeInputs({ assumptions: c.assumptions.length, requirements: spec.requirements.length, uiTasks: uiTasks.length, uiTasksWithScreen: uiTasks.filter((t) => t.screen).length, hasRepo: !!ctx.state.info.repoPath, stackSource: settings.stackSource }),
         counts: { questions: c.answers.length, criticFindings: spec.critic.length, planningMinutes: ctx.state.activeMs / 60000 },
         assumptions: [...c.assumptions.map((a) => a.text), ...edits.map((e) => `Lead edit: ${describeEdit(e)}`), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs."],
