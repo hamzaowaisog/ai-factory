@@ -19,7 +19,7 @@ import { describeSources } from "../sources/request.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { uiSizeForCard } from "../design/card.js";
-import { LANE, lightSpec } from "./lane.js";
+import { complexityOf, LANE, lightSpec } from "./lane.js";
 import { changeRequest, designScopeLock, designScreensPlanned, scopeLock, screenScope, screensPlanned } from "../estimate/gates.js";
 import { buildWaiver, type BuildFailed } from "../estimate/build-waiver.js";
 import type { WaiverRow } from "../estimate/log.js";
@@ -127,12 +127,6 @@ If nothing exists yet for a span (new behaviour), list it under notFound with wh
 };
 
 // ---------- plan ----------
-function complexityOf(plan: PlanT): Complexity {
-  const loc = plan.tasks.reduce((n, t) => n + t.plannedLoc, 0);
-  if (plan.tasks.length <= 2 && loc <= 150) return "S";
-  if (plan.tasks.length <= 5 && loc <= 600) return "M";
-  return "L";
-}
 
 export const planStep: StepDef = {
   key: "plan", stage: "plan", templateVersion: "2",
