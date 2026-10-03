@@ -421,6 +421,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const rounds = h("input", { type: "number", id: "rounds", min: "0", max: "10", step: "1", value: "2" });
   const designIn = h("input", { type: "checkbox", id: "designin", checked: true });
   const noRepo = h("input", { type: "checkbox", id: "norepo" });
+  const review = h("input", { type: "checkbox", id: "review" });
   const hdr = h("input", { type: "text", id: "client", placeholder: "client name (workbook header)" });
   const projName = h("input", { type: "text", id: "projname", placeholder: "project name (workbook header)" });
   const pm = h("input", { type: "text", id: "pm", placeholder: "project manager (workbook header)" });
@@ -463,7 +464,8 @@ async function requestScreen(kind = "brownfield", preset = []) {
         fld("rounds", "Client feedback rounds", rounds, "Rounds of change the client may ask for, allowed for in the hours.")),
       h("div", { class: "opts" },
         opt2("designin", designIn, "Design counts in the total", "Turn off to keep Design out of the Summary total (its row still shows)."),
-        opt2("norepo", noRepo, "The requirements stand alone", "There is no existing code to read. Always on when no project is chosen."))),
+        opt2("norepo", noRepo, "The requirements stand alone", "There is no existing code to read. Always on when no project is chosen."),
+        opt2("review", review, "A person reviews it", "Answer the clarify questions and approve the estimate before the workbooks are written. Off: hands-off, the questions become assumptions and the estimate approves itself once its checks pass (unless the project sets estimate.humanReview)."))),
     sect(4, "Workbook header", "Shown at the top of the team and client workbooks. All optional.",
       h("div", { class: "est-grid" }, fld("client", "Client", hdr), fld("projname", "Project name", projName), fld("pm", "Project manager", pm))),
     Object.assign(sect(5, "Design frames", "Exported from Figma (png, jpg, webp, svg or json). Optional.",
@@ -534,7 +536,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
       const from = !estimating ? (bf.kind === "e" ? { fromEstimate: bf.id } : bf.kind === "d" ? { fromDesign: bf.id } : {})
         : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises", fromrun: "fromRun" }[startFrom.value]]: seedRun.value } : {};
       const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
-        ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { deliveryModel: delivery.value, stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value } } : {}) };
+        ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { deliveryModel: delivery.value, stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(review.checked ? { humanReview: true } : {}) } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
     } catch (e) {
@@ -585,7 +587,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
     h("div", { class: "page-head" }, h("div", {},
       h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", designing ? "Design" : estimating ? "Estimate" : "Brownfield"),
       h("h1", {}, designing ? "What should be designed?" : estimating ? "What should be estimated?" : "What should change?"),
-      h("p", { class: "sub" }, designing ? "Paste or upload the requirements. You get a mock, a clickable demo and a look to approve (on the run page or in the terminal); nothing is sized or built." : estimating ? "Paste or upload the requirements. The lead approves the estimate on its tab or in the terminal, then the team and client workbooks are written." : "The request is read and checked before a run exists: a bad file or ticket costs nothing."))),
+      h("p", { class: "sub" }, designing ? "Paste or upload the requirements. You get a mock, a clickable demo and a look to approve (on the run page or in the terminal); nothing is sized or built." : estimating ? "Paste or upload the refined requirements. The estimate runs hands-off and writes the team and client workbooks once its checks pass; tick \"A person reviews it\" to answer the questions and approve it yourself. A UI request still waits for its design to be approved." : "The request is read and checked before a run exists: a bad file or ticket costs nothing."))),
     h("div", { class: "panel" }, form),
   ], true);
 }
@@ -1233,8 +1235,10 @@ async function estimateScreen(id) {
     fact("Elapsed", `${e.elapsed.criticalPathDays.min}–${e.elapsed.criticalPathDays.max} days on the critical path, plus ${e.elapsed.planningMinutes} min planning`),
     fact("Size and certainty", h("span", { class: "tags" }, h("span", { class: "tag" }, e.band), h("span", { class: "tag" }, `${e.uncertainty} uncertainty`), e.complexity ? h("span", { class: "tag" }, e.complexity) : null)),
     fact("Delivery model", e.deliveryModel === "hitl" ? "HITL: a supervisor plus agents" : "Solely agentic"),
-    fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : ""].filter(Boolean).join(" · ")),
-    fact("Approval", e.approved ? h("span", { class: "pill t-ok" }, h("span", { class: "d" }), `approved by ${e.approved.by || "?"}${e.approved.hash ? ` (${e.approved.hash})` : ""}`) : h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "waiting for approval in your terminal")),
+    fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : "", e.handsOff ? "hands-off (no human review)" : ""].filter(Boolean).join(" · ")),
+    fact("Approval", e.approved ? h("span", { class: "pill t-ok" }, h("span", { class: "d" }), `${e.approved.auto ? "approved by the factory (no human review)" : `approved by ${e.approved.by || "?"}`}${e.approved.hash ? ` (${e.approved.hash})` : ""}`)
+      : h("span", { class: "pill t-wait" }, h("span", { class: "d" }), e.handsOff ? "approves itself once its checks pass" : "waiting for approval in your terminal")),
+    e.approved?.unsigned?.length ? fact("Not signed off", h("span", {}, h("span", { class: "mono small" }, e.approved.unsigned.join(", ")), h("span", { class: "small muted" }, " low-confidence, not signed off by a person"))) : null,
   );
   const dl = (audience, label, draft) => h("a", { class: "btn", href: `/export/${rid}/${draft ? "draft-" : ""}${audience}`, download: "" }, icon("file"), label);
   const files = e.files ? h("div", { class: "row" },
@@ -1243,7 +1247,7 @@ async function estimateScreen(id) {
     e.files.design ? dl("design", "Design book (.pdf)") : null,
     e.files.designNote ? h("span", { class: "small muted" }, `No design book: ${e.files.designNote}`) : null)
     : h("div", {}, h("div", { class: "row" }, dl("team", "Draft team workbook (.xlsx)", true), dl("client", "Draft client workbook (.xlsx)", true)),
-      h("p", { class: "muted small" }, "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written after you approve in your terminal."));
+      h("p", { class: "muted small" }, e.handsOff ? "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written once the estimate passes its checks." : "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written after you approve in your terminal."));
   const tasks = table(["", "Task", "Track", "Who", "Hours", "Sized against", ""],
     e.tasks.map((t) => [h("span", { class: "mono small" }, t.id), h("div", {}, h("div", {}, t.title), h("div", { class: "small muted" }, t.reason)), t.track ?? "-", t.executor, hrs(t.hours),
       t.anchor === t.id ? h("span", { class: "tag" }, "anchor") : `${t.anchor} × ${t.ratio}`, t.flagged ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "estimators disagree") : ""]), [4]);
@@ -1296,6 +1300,8 @@ async function estimateScreen(id) {
         panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", costTable),
         e.stack ? panel(3, "Stack priced", "layers", h("dl", { class: "facts" }, [["Backend", e.stack.backend], ["Web", e.stack.web], ["Mobile", e.stack.mobile], ["Database", e.stack.database], ["Hosting", e.stack.hosting], ["Architecture", e.stack.architecture]].filter((r) => r[1]).flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])),
           h("p", { class: "small muted" }, e.stack.basis === "repo" ? "From the repo." : e.stack.basis === "request" ? "Named in the requirements." : `Assumed by the estimate${e.stack.notes ? `: ${e.stack.notes}` : "."}`)) : null,
+        e.factoryAssumptions?.length ? panel(3, "Assumed by the factory", "alert", h("p", { class: "small muted" }, "Nobody was asked: the requirements came refined, so each open question took its recommended answer. Confirm these with the client."),
+          h("ul", { class: "reasons small" }, e.factoryAssumptions.map((a) => h("li", {}, h("span", { class: "mono" }, a.id), " ", a.text, a.risk === "high" ? h("span", { class: "tag" }, "high risk") : null)))) : null,
         e.assumptions.length ? panel(3, "Assumptions", "alert", h("ul", { class: "reasons small" }, e.assumptions.map((x) => h("li", {}, x)))) : null),
       h("div", { class: "stack" }, panel(1, "Screens", "browser", design), panel(2, "Tasks", "layers", tasks, ...extra))),
   ], true);

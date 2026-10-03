@@ -1,6 +1,6 @@
 // End to end: an estimate from requirements alone, through the real executor, with a scripted model.
 // One question card, then the lead's approval card, then two workbooks on disk.
-import { draftFile } from "../ui/data.js";
+import { draftFile, estimateView } from "../ui/data.js";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -188,6 +188,32 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     expect(team.getWorksheet("Cost")).toBeTruthy();
     expect(client.getWorksheet("Cost")).toBeUndefined();
     expect(client.getWorksheet("Anchors")).toBeUndefined();
+  });
+
+  it("runs hands-off: no question card, no approval card, the questions become the factory's assumptions", async () => {
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", {
+      mode: "estimate", estimate: { deliveryModel: "hitl", stackSource: "client", designInTotal: true, feedbackRounds: 2, noRepo: true, humanReview: false },
+    });
+    const r = await execute(runId);
+    expect(r.status, r.message).not.toBe("waiting");
+    const ledger = Ledger.open(runId);
+    const s = replay(ledger.events());
+    expect(s.decisions).toEqual([]);
+    for (const step of ["clarify", "clarify-2", "specify", "estimate", "approve-estimate", "export"]) expect(s.steps.get(step)?.status, step).toBe("completed");
+    const c1 = ledger.getJson<{ asked: unknown[]; assumptions: { text: string; risk: string }[]; assumedBy?: string }>(s.steps.get("clarify")!.outputs[0]!)!;
+    expect(c1.asked).toEqual([]);
+    expect(c1.assumedBy).toBe("factory");
+    expect(c1.assumptions).toEqual([expect.objectContaining({ text: "Web or mobile? → assumed: web", risk: "high" })]);
+    expect(s.steps.get("clarify-2")!.data).toMatchObject({ skipped: true, handsOff: true });
+    expect(s.steps.get("approve-estimate")!.data).toMatchObject({ by: "factory", auto: true });
+    expect(s.gates.find((g) => g.gateId === "estimate.e7-approval")).toMatchObject({ passed: true });
+    // an estimate the factory approved is still one a build can follow
+    expect(approvedEstimate(runId).runId).toBe(runId);
+    // the Estimate tab says who approved it and lists what the factory assumed
+    const v = estimateView(ledger) as { handsOff?: boolean; approved?: { auto?: boolean; by: string }; factoryAssumptions?: { id: string; risk: string }[] };
+    expect(v.handsOff).toBe(true);
+    expect(v.approved).toMatchObject({ by: "factory", auto: true });
+    expect(v.factoryAssumptions).toEqual([expect.objectContaining({ id: "ASM-1", risk: "high" })]);
   });
 
   it("specifies a large document module by module, joins the modules, and estimates the whole", async () => {

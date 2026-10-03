@@ -493,7 +493,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   put(S, `B${r}`, "List of Special Considerations, where applicable:", "consHead", { font: { bold: true, size: 12 } }); r++;
   put(S, `B${r}`, "Tasks", "consTh", plainHead); put(S, `C${r}`, "Action", "consTh", plainHead); put(S, `D${r}`, "", "consTh", plainHead); put(S, `E${r}`, "Comments", "consTh", plainHead); r++;
   const present = (["backend", "mobile", "web"] as Track[]).filter((t) => tasksOf([t]).length);
-  const cons = (k: ConsiderationKey): [string, string] => { const c = input.considerations?.[k]; return c ? [c.answer, `Clarify answer ${c.from}`] : ["Not specified", "Confirm with the client"]; };
+  const cons = (k: ConsiderationKey): [string, string] => { const c = input.considerations?.[k]; return c ? [c.answer, c.from.startsWith("ASM-") ? `Factory assumption ${c.from}, confirm with the client` : `Clarify answer ${c.from}`] : ["Not specified", "Confirm with the client"]; };
   const considerations: [string, string, string][] = [
     ["Application type (mobile, desktop, web)", present.map((t) => (t === "web" ? "Web" : t === "mobile" ? "Mobile" : "Backend")).join(" + ") || "Not specified", "From the tracks that have work"],
     ["Platforms/OS supported", ...cons("platforms")], ["Browsers supported", ...cons("browsers")],

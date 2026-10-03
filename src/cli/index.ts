@@ -120,13 +120,14 @@ program.command("estimate")
   .option("--client <name>", "client name for the workbook header")
   .option("--project-name <name>", "project name for the workbook header")
   .option("--pm <name>", "project manager for the workbook header")
+  .option("--review", "a person answers the clarify questions and approves the estimate (default: the project's estimate.humanReview, else hands-off)")
   .option("--from-run <run>", "the other delivery model over an approved estimate: reuses its spec and tasks, sizes them again (set --delivery-model to the other one)")
   .option("--revises <run>", "a change request: the new requirements revise an approved estimate, and the card shows what changed")
   .option("--from-design <run>", "size an approved design-only run (factory design start): its spec, answers and approved design are reused, only the sizing is new")
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .option("--fresh", "ask the model again even if the same requirements were estimated before (skips the stored answers)")
   .option("--design-export <formats>", DESIGN_EXPORT_HELP)
-  .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory; a lead approves it in the terminal, then two workbooks are written")
+  .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory, then write two workbooks; hands-off unless --review (a person answers the questions and approves it)")
   .action(async (prompt: string | undefined, o: EstimateOptions & { project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; fromRun?: string; revises?: string; fromDesign?: string; fresh?: boolean; ref?: string[]; designExport?: string }) => {
     if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
     const designExport = designExportOption(o.designExport);
@@ -146,6 +147,7 @@ program.command("estimate")
     const project = loadProject(projectName);
     const problems = checkRoutes(project, ESTIMATE_ROUTES);
     if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
+    o.review = o.review ?? project.estimate?.humanReview;
     let settings = parseEstimateSettings(o.project && !fromDesign?.settings.noRepo ? o : { ...o, repo: false });
     // the design run's product details stand unless given again
     if (fromDesign) settings = { ...settings, ...Object.fromEntries(Object.entries({ client: fromDesign.settings.client, projectName: fromDesign.settings.projectName }).filter(([k, v]) => v && !(settings as Record<string, unknown>)[k])) };
@@ -155,7 +157,7 @@ program.command("estimate")
       const approved = approvedEstimate(openRun(o.fromRun).runId);
       if (settings.deliveryModel === approved.deliveryModel) throw new Error(`That estimate is already ${approved.deliveryModel}. Give --delivery-model ${approved.deliveryModel === "hitl" ? "agentic" : "hitl"} for the other one.`);
       // the same inputs as the approved run, under the other delivery model
-      settings = { ...approved.settings, deliveryModel: settings.deliveryModel };
+      settings = { ...approved.settings, deliveryModel: settings.deliveryModel, humanReview: settings.humanReview };
       lineage = { kind: "sibling", approved };
       req = { text: approved.request, sources: [{ kind: "prompt" }], attachments: [] };
     } else if (fromDesign) {

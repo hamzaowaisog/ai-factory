@@ -22,6 +22,7 @@ import { figmaConfigured } from "../sources/figma.js";
 import { designRunView } from "../design/runs.js";
 import type { VisualCheck } from "../design/visual-check.js";
 import { exportWorkbooks } from "../estimate/export.js";
+import { humanReview } from "../estimate/settings.js";
 import { exportInputFor } from "../stages/estimate-approve.js";
 import { stepsFor } from "../stages/modes.js";
 import { factoryHome } from "../util/paths.js";
@@ -468,7 +469,16 @@ export function estimateView(ledger: Ledger) {
       unmapped: design.mapping.unmappedReqs, noScreen: design.noScreen ?? [],
     },
     pending: s.openCard?.kind === "estimate-approval" ? { hash: s.openCard.artifactSha.slice(0, 8), flagged: est.tasks.filter((t) => t.flagged).map((t) => t.taskId) } : undefined,
-    approved: approval?.status === "completed" ? { by: String((approval.data as { by?: string } | undefined)?.by ?? ""), hash: String((approval.data as { hash?: string } | undefined)?.hash ?? "") } : undefined,
+    approved: approval?.status === "completed" ? (() => {
+      const a = (approval.data ?? {}) as { by?: string; hash?: string; auto?: boolean; unsigned?: string[] };
+      return { by: String(a.by ?? ""), hash: String(a.hash ?? ""), ...(a.auto ? { auto: true, unsigned: a.unsigned ?? [] } : {}) };
+    })() : undefined,
+    // a hands-off run: nobody was asked, so what clarify found unclear is listed as the factory's assumptions
+    ...(!humanReview(s.info) ? { handsOff: true, factoryAssumptions: ["clarify", "clarify-2"].flatMap((k) => {
+      const sha = done(k);
+      const r = sha ? ledger.getJson<{ assumedBy?: string; assumptions?: { id: string; text: string; risk: string }[] }>(sha) : undefined;
+      return r?.assumedBy ? (r.assumptions ?? []).map((a) => ({ id: a.id, text: a.text, risk: a.risk })) : [];
+    }) } : {}),
     files,
   };
 }

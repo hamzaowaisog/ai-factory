@@ -562,8 +562,12 @@ describe("factory ui: estimate runs", () => {
     expect(r.status).toBe(201);
     const s = replay(Ledger.open(r.json().runId).events());
     expect(s.info.mode).toBe("estimate");
-    expect(s.info.estimate).toMatchObject({ client: "Acme" });
+    // hands-off unless the form asks for a person's review
+    expect(s.info.estimate).toMatchObject({ client: "Acme", humanReview: false });
     expect((await call(`/api/runs/${r.json().runId}`)).json().mode).toBe("estimate");
+    const reviewed = await post({ project: "", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { humanReview: true } });
+    expect(reviewed.status, reviewed.body).toBe(201);
+    expect(replay(Ledger.open(reviewed.json().runId).events()).info.estimate).toMatchObject({ humanReview: true });
   });
 
   it("starts an estimate with no project: requirements alone, no repo, and the stand-in config stays out of the project list", async () => {

@@ -13,6 +13,8 @@ export interface EstimateOptions {
   client?: string;
   projectName?: string;
   pm?: string;
+  /** a person answers the clarify questions and approves the estimate; off (hands-off) by default */
+  review?: boolean;
 }
 
 export const RATE_KEYS = ["backend", "mobile", "web", "qa", "design", "gd", "pm", "pdm", "default"] as const;
@@ -40,5 +42,14 @@ export function parseEstimateSettings(o: EstimateOptions): NonNullable<RunInfo["
     ...(Object.keys(rates).length ? { rates } : {}),
     ...(o.repo ? {} : { noRepo: true }),
     ...(o.client ? { client: o.client } : {}), ...(o.projectName ? { projectName: o.projectName } : {}), ...(o.pm ? { pm: o.pm } : {}),
+    humanReview: o.review === true,
   };
+}
+
+/**
+ * Whether a person reviews this run: answers the clarify questions and approves the estimate (E7). Only an estimate
+ * run can go hands-off; one started before the switch (no `humanReview` recorded) keeps its reviews.
+ */
+export function humanReview(info: Pick<RunInfo, "mode" | "estimate">): boolean {
+  return info.mode !== "estimate" || info.estimate?.humanReview !== false;
 }

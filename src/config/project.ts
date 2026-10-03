@@ -84,6 +84,8 @@ export const ProjectConfig = z.object({
   referenceDb: z.object({ connEnv: z.string() }).optional(),
   /** the Folio3 estimation template (.xlsx) the estimate workbooks are drawn on; FACTORY_ESTIMATE_TEMPLATE also works */
   estimateTemplate: z.string().optional(),
+  /** estimate runs: humanReview true makes a person answer the clarify questions and approve the estimate (E7); `factory estimate --review` does it for one run */
+  estimate: z.object({ humanReview: z.boolean().default(false) }).optional(),
   /** Front end of the repo, when it has one (docs/design-step.md): overrides what the design checks would detect. */
   design: z.object({
     /** source root, e.g. "src/" ("" is the repo root); default: detected */

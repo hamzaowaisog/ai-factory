@@ -100,6 +100,14 @@ describe("E7 lead approval", () => {
     expect(run(leadApproval, { estimate, approval: { ...ok, decision: "rejected" } }).passed).toBe(false);
     expect(run(leadApproval, { estimate, approval: { ...ok, signedOff: [] } }).passed).toBe(false);
   });
+  it("a hands-off run: the factory approves, listing each low-confidence line as not signed off by a person", () => {
+    const auto = { estimateHash: hashJson(estimate), decision: "approved", by: "factory", signedOff: [], auto: true, unsigned: ["EST-1"] };
+    const v = run(leadApproval, { estimate, approval: auto });
+    expect(v.passed).toBe(true);
+    expect(v.details).toBe("approved by the factory (no human review); 1 low-confidence task not signed off by a person");
+    expect(run(leadApproval, { estimate, approval: { ...auto, unsigned: [] } }).passed).toBe(false);
+    expect(run(leadApproval, { estimate, approval: { ...auto, by: "lead" } }).passed).toBe(false);
+  });
 });
 
 describe("B1 scope lock", () => {

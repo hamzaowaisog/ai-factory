@@ -43,8 +43,10 @@ The estimate:
 ```
 intake → [discover, ground: existing repo] → clarify → spec drafts → merge → specify (E1)
        → design: mock + clickable demo (UI only) → design baseline approved (E1b)
-       → breakdown → estimate → gates E2–E6 → lead approval (E7) → export
+       → breakdown → estimate → gates E2–E6 → approval (E7: the factory, or a lead with review on) → export
 ```
+
+Hands-off by default: clarify asks nobody and the factory approves the estimate (see "Hands-off estimates"). The design approval (E1b) still waits for a person.
 
 | Step | New or reused | What it does |
 |---|---|---|
@@ -54,10 +56,19 @@ intake → [discover, ground: existing repo] → clarify → spec drafts → mer
 | **breakdown** | New | Requirements → features → tasks (functionality identification) |
 | **estimate** | New | Size band, anchors, sizing, one or three estimators, merge |
 | **estimate gates** | New | E2–E6, defined with `defineGate` |
-| **approve-estimate** | New (same card mechanism) | The lead approves in a terminal, tied to the estimate's hash |
+| **approve-estimate** | New (same card mechanism) | Hands-off: the factory approves once the gates pass. With review on, the lead approves in a terminal, tied to the estimate's hash |
 | **export** | New | Deterministic code writes the two workbooks |
 
 The estimate does not start until the spec passes lint, critic, round trip and has no open questions (gate E1), and, for any request with UI, the mock and clickable demo are approved (gate E1b). If it doesn't, the run goes back to clarify. It does not produce a soft estimate.
+
+### Hands-off estimates (agreed and built 2026-10-03)
+
+Estimates are made from requirements that are already refined, so by default nobody is asked anything and nobody approves the figures: the run goes from the requirements to the workbooks on its own. The one stop left is the design approval (E1b): a request with UI still waits for a person to approve its mock and clickable demo.
+
+- **The switch.** `info.estimate.humanReview`, recorded when the run starts: `factory estimate --review`, the "A person reviews it" box on the UI's start form, or the project's `estimate.humanReview: true` (default false). With it on, the run asks its questions and waits for the lead's approval, sign-off and edits as before. A run started before the switch has nothing recorded and keeps its reviews; a run keeps its choice for life. `humanReview(info)` in `src/estimate/settings.ts`; only estimate mode goes hands-off (design-only and build runs keep their questions). A sibling (`--from-run`) takes the review choice given now, not its parent's.
+- **Clarify: assumptions only.** Round 1 still reads the requirements (three sketches, differences, the clarifier), then asks nobody: every question takes its recommended answer as an assumption (`selectQuestions(..., 0)`, `assumedFrom`), a high-impact one marked high risk; a restyle question becomes a high-risk assumption to keep the app's look. The result carries `assumedBy: "factory"`, kept when modules are joined. Round 2 is skipped (nothing was asked), which saves its model calls.
+- **E7: the factory approves.** Once the gates pass, `approve-estimate` records an approval `by: "factory"`, `auto: true`, tied to the estimate's hash. Low-confidence tasks are not signed off by anyone, so the approval lists them as `unsigned`; the gate checks each is listed (`FACTORY_APPROVER`, `leadApproval`) and its detail says "approved by the factory (no human review); N low-confidence tasks not signed off by a person", which reaches the team workbook's Gates sheet. `--from-estimate` builds and `--from-run` / `--revises` accept it like a lead's.
+- **What the reader sees.** The client and team workbooks' special considerations take a topic the factory assumed as "Assumed: ..." with "Factory assumption ASM-n, confirm with the client" as its source (an answer still wins). The Estimate tab shows "hands-off (no human review)" in the settings, "approved by the factory (no human review)", the tasks not signed off, and an "Assumed by the factory" panel listing each assumption with its risk.
 
 ## Inputs
 
@@ -87,7 +98,7 @@ Required inputs by type:
 | Migration | Source and target, repo | Inventory of what moves, data volumes |
 | Takeover | Repo access | Any docs, a running environment |
 
-A missing "must have" doesn't block the run. It becomes a clarify question, and if unanswered, a labelled assumption.
+A missing "must have" doesn't block the run. It becomes a clarify question, and if unanswered, a labelled assumption (in a hands-off run nobody is asked: it is an assumption straight away).
 
 Each input dimension (scope clarity, design availability, technical context, code access, constraints known) gets a grade: missing, vague, adequate or precise. The grades feed the internal uncertainty grade.
 
@@ -963,7 +974,7 @@ A gate is a pure check over ledger artifacts. It fails closed: a gate that could
 | E5 | Consistency | Similar tasks within a stated tolerance; no unexplained outlier; a screen counted as complex in the approved demo not sized below a simple one | Lead |
 | E6 | Workbook lint | Code recomputes every total and cross-sheet link; known template faults cannot appear | None |
 | — | Breakdown shape | Checked when the breakdown is read (the schema, so the model is asked again): unique task ids, known features, and `dependsOn` naming only real tasks, never itself and never in a loop (EST-2 → EST-3 → EST-2; `dependencyLoops` in `src/contracts/estimate.ts`). A build orders tasks by `dependsOn`, so a loop cannot be built | None |
-| E7 | Lead approval | Terminal approval tied to the estimate's hash; low-confidence lines need sign-off. In the solely agentic model the approver is the client-side owner, not a supervisor gate in the build | None |
+| E7 | Lead approval | Terminal approval tied to the estimate's hash; low-confidence lines need sign-off. In the solely agentic model the approver is the client-side owner, not a supervisor gate in the build. Hands-off (the default): the factory approves, and every low-confidence line is listed as not signed off by a person | None |
 
 ### During the build
 
@@ -1024,7 +1035,7 @@ Two files come from one data model, so they cannot disagree.
 - **Total:** `SUM(track rows) + IF(include Design = "Yes", Design)`. The switch is a visible cell and the Design row always shows.
 - **Delivery model** shown in the header, and one estimate per model.
 - **Lines** for API credit cost (with a per-phase breakdown) and elapsed time (planning time shown apart).
-- **Special considerations** filled from the inputs and clarify answers.
+- **Special considerations** filled from the inputs and clarify answers (in a hands-off run, the factory's assumptions, labelled as such).
 - **Assumptions and Risks** that are safe for the client.
 - **Parameters block:** every percentage and rate the formulas use, in one place.
 
@@ -1144,7 +1155,7 @@ Built and tested, with a scripted model, through the real executor (`src/stages/
 | Document intake, per-module specify | `.docx` and pre-exported Figma frames in `src/sources/`; `splitModules` and the per-module intake, clarify and spec steps in `src/stages/modular.ts`. Each module asks its own clarify questions, so a large document means one question card per module |
 | Stack-agnostic ground | `estimateGroundStep`: no repo means every span is new build work (no model call); a repo gets the normal grounding step plus `src/context/survey.ts` and, for UI work, the design inventory |
 | Design step and E1b | `design` step (UI requests only): the model proposes the screen inventory (flow, screens with route, states and size, the requirements each serves, a reason for each requirement with no screen); code checks the links both ways. `design-baseline` (E1b) then needs a person's approval of that inventory. It is an inventory of screens with themed sample content; a code-drawn clickable demo of it is what the lead approves (see "Design baseline"). E1c and B6 check the breakdown and the build plan against it |
-| E7 approval | `approve-estimate` step: one card, anchors first, hash-bound, sign-off for each low-confidence line (`factory approve --sign-off EST-2,EST-5`) |
+| E7 approval | `approve-estimate` step: one card, anchors first, hash-bound, sign-off for each low-confidence line (`factory approve --sign-off EST-2,EST-5`). Hands-off by default: the factory approves with the low-confidence lines listed as unsigned (see "Hands-off estimates") |
 | Waivers | E3, E4, E5 (estimate time) and B1, B3, B4, B6 (build time), after one retry where the model can fix it (E3-E5, B1, B6): a waiver card, then `factory waive <run> <hash> --reason "..."`; recorded with the name and reason, shown on the card and in the team file's Gates sheet. Build waivers are bound to the gate ids and a scope, not to failure text: the code commit for B3 and B4, the approved spec and tasks for B1 and B6, so a different commit needs a new decision (`src/estimate/build-waiver.ts`). B5 has its own card (below) |
 | Template (open item 3, decided) | Filling a copy works: the Folio3 template (Example_Estimation.xlsx, v 0.5) survives a load and save through ExcelJS with its sheets, merges, formulas and styles (only a column width or two on the QA sheet is dropped). The export uses its layout (sheet names, Summary rows 11 onwards, title block, Grand Total at the top, numbered modules, Other Development Activities, Research) and, when `estimateTemplate:` is set in the project config or `FACTORY_ESTIMATE_TEMPLATE` in the environment, draws on a fresh copy of it so its theme, fonts and cell styles carry over. Without it the same layout is drawn in plain styles. The repo ships a copy with every cell's text cleared (`src/estimate/assets/estimation-template.xlsx`: styles, theme, widths and sheet names only, no client data), used by default, so the template tests always run; a path in config or the environment overrides it |
 | QA sheet and notes blocks | The QA sheet uses the template's own shape: an Estimation Summary of eight items (Test Plan/Strategy, Test Environments, Validation and Smoke test cases, Validation testing, Smoke testing, Multi Browser Compatibility, UAT, Misc. Optional), then the validation detail by testing cycle with each feature a numbered module. Code places each QA task by plain words in its title (`qaPlace`); a feature test with requirements is validation cycle 1, a regression pass is cycle 2, anything else with no requirement is Misc. No hours are invented: cycle 2 and later exist only when the breakdown has tasks for them (the template's "half of cycle 1" formula is not applied). Every track sheet with work ends with the template's Assumptions & Constraints and Risks blocks. The Summary's special considerations (platforms, browsers, deployment, performance, security, documentation) come from the client's clarify answers: a question whose text names the topic gives the row its answer and its id; a topic nobody asked about reads "Not specified" |

@@ -226,6 +226,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
         designInTotal: e.designInTotal !== false, feedbackRounds: String(e.feedbackRounds ?? "2"),
         repo: standalone || fromDesign?.settings.noRepo ? false : e.noRepo !== true, ...(str(e.client) ? { client: str(e.client)!.trim() } : {}),
         ...(str(e.projectName) ? { projectName: str(e.projectName)!.trim() } : {}), ...(str(e.pm) ? { pm: str(e.pm)!.trim() } : {}),
+        ...(typeof e.humanReview === "boolean" ? { review: e.humanReview } : {}),
       });
     } catch (err) { throw new StartError((err as Error).message); }
     // the design run's product details stand unless given again
@@ -233,13 +234,15 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     // the other delivery model: the approved estimate's settings, only the delivery model changes
     if (sibling && settings) {
       if (settings.deliveryModel === sibling.deliveryModel) throw new StartError(`That estimate is already ${sibling.deliveryModel === "hitl" ? "HITL" : "solely agentic"}. Pick the other delivery model.`);
-      settings = { ...(sibling.settings as typeof settings), deliveryModel: settings.deliveryModel };
+      settings = { ...(sibling.settings as typeof settings), deliveryModel: settings.deliveryModel, humanReview: settings.humanReview };
     }
   }
 
   // the same checks, in the same order, as `factory start`
   if (standalone) ensureStandaloneProject();
   const cfg = loadProject(project);
+  // the form left the review unset: the project's choice (hands-off unless it says otherwise)
+  if (estimating && !designing && settings && typeof ((input.estimate ?? {}) as Record<string, unknown>).humanReview !== "boolean") settings = { ...settings, humanReview: cfg.estimate?.humanReview === true };
   const problems = checkRoutes(cfg, designing ? DESIGN_ROUTES : estimating ? ESTIMATE_ROUTES : undefined);
   if (problems.length) throw new StartError(`Setup problems:\n- ${problems.join("\n- ")}`);
 

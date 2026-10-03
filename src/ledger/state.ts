@@ -73,7 +73,7 @@ export interface RunInfo {
   /** `factory start --max-cost`: a lower limit for this run */
   maxCostUsd?: number;
   /** estimate and design modes: the run settings a person chose at the start (missing fields take the defaults); a design run uses only noRepo, client and projectName */
-  estimate?: { deliveryModel?: "hitl" | "agentic"; stackSource?: "client" | "folio3" | "undecided"; designInTotal?: boolean; feedbackRounds?: number; /** optional hourly rates in USD per track, plus "default" */ rates?: Record<string, number>; /** a request with no repo (requirements only) */ noRepo?: boolean; client?: string; projectName?: string; pm?: string };
+  estimate?: { deliveryModel?: "hitl" | "agentic"; stackSource?: "client" | "folio3" | "undecided"; designInTotal?: boolean; feedbackRounds?: number; /** optional hourly rates in USD per track, plus "default" */ rates?: Record<string, number>; /** a request with no repo (requirements only) */ noRepo?: boolean; client?: string; projectName?: string; pm?: string; /** estimate mode: a person answers the clarify questions and approves the estimate (E7); false runs hands-off. Missing on runs started before the switch, which keep their reviews */ humanReview?: boolean };
   /**
    * estimate mode: the approved estimate this run revises ("change": new requirements, full pipeline) or
    * re-estimates under the other delivery model ("sibling": seeded with the approved spec and breakdown).
