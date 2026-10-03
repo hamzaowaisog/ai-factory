@@ -20,6 +20,7 @@ import { modelFor } from "./routing.js";
 import { S, think } from "./think.js";
 import { ensureWorktree } from "./workspace.js";
 import { recordTestLesson } from "../context/lessons.js";
+import { followUpSection, readImpact } from "./impact.js";
 
 /** Only a delivered run teaches the next one where its tests go; never fails delivery. */
 function learnFrom(ctx: StepContext, wt: string, lockedFiles: string[]): void {
@@ -271,7 +272,8 @@ export const deliverStep: StepDef = {
 
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
     const plan = requireOutput<Plan>(ctx.state, ctx.ledger, "plan");
-    const body = prBody(ctx, { spec, plan, lock, run: requireOutput<TestRun>(ctx.state, ctx.ledger, "integrate"), review: requireOutput(ctx.state, ctx.ledger, "review"), manifestHash, commits });
+    const body = prBody(ctx, { spec, plan, lock, run: requireOutput<TestRun>(ctx.state, ctx.ledger, "integrate"), review: requireOutput(ctx.state, ctx.ledger, "review"), manifestHash, commits })
+      + followUpSection(readImpact(ctx.state, ctx.ledger));
     const jiraKey = ctx.state.info.sources?.find((s) => s.kind === "jira")?.key;
     const title = `${jiraKey ? `${jiraKey}: ` : "factory: "}${spec.requirements[0]?.ears.slice(0, 60) ?? ctx.runId}`;
     const bodySha = ctx.ledger.putArtifact(body);

@@ -12,6 +12,7 @@ import { designStep } from "./design.js";
 import { designCheckStep } from "./design-check.js";
 import { approveEstimateStep, designBaselineStep, exportStep } from "./estimate-approve.js";
 import { seedStep } from "./seed.js";
+import { impactStep } from "./impact.js";
 import { estimateGroundStep } from "./estimate-ground.js";
 import { combineClarifyStep, combineIntakeStep, combineSpecsStep, moduleClarifySteps, moduleIntakeSteps, moduleSteps } from "./modular.js";
 
@@ -22,7 +23,7 @@ export function brownfieldSteps(state: RunState): StepDef[] {
     ? [seedStep("specify", "specify", (i) => i.estimateRef?.specSha, { critic: (i) => i.estimateRef?.criticSha })]
     : [clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
   return [
-    discoverStep, intakeStep, groundStep, ...spec, planStep, approveStep,
+    discoverStep, intakeStep, groundStep, ...spec, impactStep, planStep, approveStep,
     stubCommitStep, authorTestsStep,
     ...tasks.map((t) => implementStep(t)),
     integrateStep, acceptStep, designCheckStep, reviewStep, deliverStep,

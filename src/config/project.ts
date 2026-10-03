@@ -114,6 +114,17 @@ export const ProjectConfig = z.object({
       env: z.record(z.string(), z.string()).default({}),
     }).optional(),
   }).optional(),
+  /** impact step: also run the four model lenses (route impact-lens; costs credits). Off by default: code search only. */
+  impact: z.object({ lenses: z.boolean().default(false) }).optional(),
+  /**
+   * Repos that use this one (e.g. its frontend), on this machine, read-only: the impact step searches them for calls
+   * to changed routes and changed type names and lists what needs a matching change there. Never edited, never cloned.
+   */
+  linked: z.array(z.object({
+    name: z.string().regex(/^[\w.-]+$/),
+    path: z.string().refine((p) => !/^[a-z+]+:\/\/|^git@/i.test(p), "a local path, not a URL"),
+    role: z.string(),
+  })).optional(),
   noGo: z.array(z.string()).default([]),
   /** USD per million tokens for models the factory has no price for (e.g. a GPT model). */
   prices: z.record(z.string(), z.object({
