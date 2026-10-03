@@ -42,6 +42,7 @@ function breakdown(n: number, over: { drop?: number; noChecklist?: boolean } = {
 function sizing(tasks: { id: string }[], scale = 1) {
   const first = tasks[0]!.id;
   return {
+    stack: { backend: "ASP.NET Core Web API", database: "PostgreSQL", architecture: "modular monolith", basis: "assumed" as const, notes: "no stack named in the request" },
     anchors: [{ taskId: first, hours: { min: 4 * scale, max: 8 * scale }, reason: "a typical screen plus endpoint for this stack" }],
     tasks: tasks.map((t, i) => ({ taskId: t.id, anchorId: first, ratio: i === 0 ? 1 : 1.5, reason: i === 0 ? "the anchor" : "a bit more fields than the anchor" })),
   };
@@ -172,6 +173,7 @@ describe("estimate step", () => {
     expect(calls).toHaveLength(1);
     const e = Estimate.parse(ledger.getJson((out as { outputs: Record<string, string> }).outputs.estimate!));
     expect(e.band).toBe("S");
+    expect(e.stack).toMatchObject({ backend: "ASP.NET Core Web API", database: "PostgreSQL", basis: "assumed" });
     expect(e.tasks).toHaveLength(4);
     // factory tasks add no human effort; only the PM task and the gate hours do (HITL)
     expect(e.totals.byTrack.backend?.min).toBeGreaterThan(0); // the lead PR review gate lands on backend

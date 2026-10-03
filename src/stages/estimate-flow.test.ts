@@ -550,6 +550,7 @@ describe("design step", () => {
 // ---------- edits on the card ----------
 describe("editing an estimate on its card", () => {
   const sizing = {
+    stack: { backend: "ASP.NET Core Web API", database: "PostgreSQL", architecture: "modular monolith", basis: "assumed" as const, notes: "no stack named in the request" },
     anchors: [{ taskId: "EST-1", hours: { min: 4, max: 8 }, reason: "a typical endpoint for this stack" }],
     tasks: [
       { taskId: "EST-1", anchorId: "EST-1", ratio: 1, reason: "the anchor" },
@@ -580,6 +581,8 @@ describe("editing an estimate on its card", () => {
     const now = ledger.getJson<Estimate>((again as { outputs: Record<string, string> }).outputs.estimate!);
     expect(replay(ledger.events()).steps.get("estimate")!.outputs[0]).not.toBe(before);
     expect(now.anchors[0]!.hours).toEqual({ min: 8, max: 16 });
+    // the priced stack survives a lead's edit
+    expect(now.stack).toMatchObject({ backend: "ASP.NET Core Web API", basis: "assumed" });
     expect(now.tasks.find((t) => t.taskId === "EST-2")!.ratio).toBe(3);
     expect(now.assumptions.some((a) => /Lead edit: anchor EST-1 set to 8-16 h, EST-2 ratio set to 3 \(lead: the stack is new to us\)/.test(a))).toBe(true);
     // every total followed the edit, and the new estimate gets its own card

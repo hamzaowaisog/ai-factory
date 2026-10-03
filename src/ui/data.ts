@@ -461,6 +461,7 @@ export function estimateView(ledger: Ledger) {
     scenarios: est.scenarios,
     suggested: est.suggested,
     assumptions: est.assumptions,
+    ...(est.stack ? { stack: est.stack } : {}),
     design: baseline === undefined ? { pending: true } : !design ? { ui: false } : {
       ui: true, flow: design.flow,
       screens: design.screens.map((x) => ({ id: x.id, route: x.route, size: x.size ?? "new", states: x.states ?? [], reqs: x.reqs, frames: x.frames ?? [] })),

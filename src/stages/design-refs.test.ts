@@ -13,7 +13,9 @@ import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { NO_TRACE } from "../util/trace.js";
-import { designStep } from "./design.js";
+import { designStep, makeDesignStep } from "./design.js";
+import { ESTIMATE_SOURCES } from "./design-inputs.js";
+import { kitComponents } from "../design/kit/kit.js";
 import { clarifyStep, restyleQuestion, type ClarifyResult } from "./clarify.js";
 import type { DesignInventory } from "../design/inventory.js";
 import { designSteps } from "./design-pipeline.js";
@@ -344,5 +346,27 @@ describe("an app with its own look and a match reference", () => {
     expect(seen[0]!.user).toContain("existing-ui");
     const d = ledger.getJson<{ themeSource: string; restyle?: boolean; theme: { brand: string } }>((out as { outputs: Record<string, string> }).outputs.design!);
     expect(d).toMatchObject({ themeSource: "new", restyle: true, theme: { brand: "#533afd" } });
+  });
+});
+
+describe("a new app from a starter (no repo to read)", () => {
+  it("draws onto the mode's fixed component list, and only when the app has no look of its own", async () => {
+    const ledger = await newRun(false);
+    const starter = kitComponents();
+    expect(starter.components.map((c) => c.name)).toEqual(expect.arrayContaining(["Input", "Dialog", "StatsBlock"]));
+    const step = makeDesignStep({ ...ESTIMATE_SOURCES, inventory: undefined, components: starter });
+    const state = replay(ledger.events());
+    expect(step.inputs(state, ledger)).toMatchObject({ starter: { source: expect.stringMatching(/^ai-factory kit shadcn/) } });
+    // without a list the inputs are what they always were
+    expect(designStep.inputs(state, ledger)).not.toHaveProperty("starter");
+    answer = () => { throw new Error("stop after the first call"); };
+    const ctx: StepContext = {
+      runId: state.info.runId, ledger, writer: HUMAN_WRITER, state, project: ProjectConfig.parse({ project: "demo", repo: "/x", stack: "dotnet" }),
+      policy: DEFAULT_POLICY, attempt: 1, rung: 0, priorFailures: [], log: () => undefined, trace: NO_TRACE, usage: async () => undefined,
+    };
+    await step.run(ctx).catch(() => undefined);
+    expect(seen[0]!.system).toContain("NEW APP FROM A STARTER");
+    expect(seen[0]!.user).toContain("starter-components");
+    expect(seen[0]!.user).toContain("StatsBlock");
   });
 });

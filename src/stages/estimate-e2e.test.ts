@@ -42,6 +42,7 @@ const breakdown = {
   checklist: [{ item: "auth", included: true }, { item: "monitoring", included: false, reason: "client hosts and monitors" }],
 };
 const sizing = {
+  stack: { backend: "ASP.NET Core Web API", database: "PostgreSQL", architecture: "modular monolith", basis: "assumed" as const, notes: "no stack named in the request" },
   anchors: [{ taskId: "EST-1", hours: { min: 4, max: 8 }, reason: "a typical endpoint with validation for this stack" }],
   tasks: [
     { taskId: "EST-1", anchorId: "EST-1", ratio: 1, reason: "the anchor" },
@@ -79,7 +80,7 @@ const bigBreakdown = () => ({
   checklist: breakdown.checklist,
 });
 const bigSizing = () => ({
-  anchors: sizing.anchors,
+  anchors: sizing.anchors, stack: sizing.stack,
   tasks: [1, 2, 3, 4, 5].map((n) => ({ taskId: `EST-${n}`, anchorId: "EST-1", ratio: n === 1 ? 1 : 1.25, reason: n === 1 ? "the anchor" : "a little more than the anchor" })),
 });
 function answerFor(system: string): unknown {

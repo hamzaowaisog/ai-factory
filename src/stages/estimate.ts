@@ -2,7 +2,7 @@
 // ratios, one or three independent estimators, merged by code). The model proposes; code counts,
 // computes every sum and runs gates E1-E6 (docs/estimates-design.md, "How the hours are built").
 import { z } from "zod";
-import { BreakdownBody, IntentBody, type Breakdown, type Spec as SpecArtifact } from "../contracts/index.js";
+import { BreakdownBody, IntentBody, StackChoice, type Breakdown, type Spec as SpecArtifact } from "../contracts/index.js";
 import type { Failure, ScreenMock } from "../contracts/index.js";
 import { failure, runGate, type GateDef } from "../gates/engine.js";
 import { designUi, uiFactors } from "../estimate/ui-complexity.js";
@@ -19,6 +19,7 @@ import { assembleEstimate, bandOf, DEFAULT_SETTINGS, estimatorsFor, gradeInputs,
 import { clarifications, type ClarifyResult } from "./clarify.js";
 import { header, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import type { RunState } from "../ledger/state.js";
+import type { Ledger } from "../ledger/ledger.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -32,7 +33,21 @@ export const ProposalOut = z.object({
     reason: z.string().min(1),
   })).min(1).max(8),
   tasks: z.array(z.object({ taskId: z.string(), anchorId: z.string(), ratio: z.number().positive(), reason: z.string().min(1) })).min(1),
+  stack: StackChoice,
 });
+
+/** What is already known of the stack before the estimate prices it: the repo's, and the UI target a person chose. */
+export function knownStack(state: RunState, ledger: Ledger, project: { stack?: string }): Record<string, unknown> {
+  const repo = !!state.info.repoPath && !state.info.estimate?.noRepo;
+  const inv = repo ? readOutput<{ stack?: { framework?: string; styling?: string; componentSystem?: string } }>(state, ledger, "ground", "design") : undefined;
+  return {
+    repo,
+    ...(repo && project.stack ? { backend: project.stack === "dotnet" ? ".NET" : project.stack } : {}),
+    ...(inv?.stack?.framework && inv.stack.framework !== "unknown" ? { web: [inv.stack.framework, inv.stack.componentSystem].filter((x) => x && x !== "none" && x !== "unknown").join(" + ") } : {}),
+    ...(state.info.uiTarget ? { uiTarget: state.info.uiTarget } : {}),
+    stackChosenBy: settingsOf(state).stackSource,
+  };
+}
 
 /** The run settings a person chose at the start, with defaults for anything missing. */
 export function settingsOf(state: RunState): EstimateSettings {
@@ -141,12 +156,13 @@ const ESTIMATE_RULES = `You are sizing the tasks of a work breakdown, in hours, 
 1. Pick a few ANCHOR tasks (1 to 8): typical tasks you can size in detail for THIS project's stack, design and constraints. Give each a min and max in hours and the reason it is a fair reference.
 2. Every task, anchors included, gets "anchorId" and a "ratio" against that anchor, with a reason that names what differs ("about twice the anchor: 12 fields instead of 6, plus a state machine"). An anchor is sized against itself at ratio 1.
 3. A web or mobile task that builds an approved screen carries "ui": the screen's level (simple, moderate, complex) and what drives it, counted from the approved demo. Size it from those drivers and name the ones that differ from its anchor in the reason ("a map with a route and two overlays where the anchor is a plain list"). A complex screen is never smaller than a simple one on the same track. "uiFactors" apply to every UI task (two languages, right to left, both colour modes, several apps); say in the reason when one adds work.
-4. Size every task in the breakdown exactly once. For a factory task the hours are a relative size (used for cost and duration); its human time is added separately.
+4. Say in "stack" the stack and architecture you priced: backend, web, mobile, database, hosting and architecture (for example "ASP.NET Core Web API", "Next.js + shadcn/ui", "PostgreSQL", "Azure App Service", "modular monolith"), leaving out a part the work does not need. Keep everything the "known-stack" section gives; basis "repo" when the repo decides it, "request" when the requirements name it, otherwise "assumed", with what you assumed in "notes".
+5. Size every task in the breakdown exactly once. For a factory task the hours are a relative size (used for cost and duration); its human time is added separately.
 Do not add anything up. Code computes every sum. Hours are for a competent engineer including unit tests, review fixes and handover of the task.
 ${UNTRUSTED_NOTE}`;
 
 export const estimateStep: StepDef = {
-  key: "estimate", stage: "estimate", templateVersion: "2",
+  key: "estimate", stage: "estimate", templateVersion: "3",
   inputs: (s) => (s.steps.get("breakdown")?.status === "completed" ? { breakdown: s.steps.get("breakdown")!.outputs[0], specify: s.steps.get("specify")!.outputs[0], design: s.steps.get("design")?.outputs[0], settings: settingsOf(s), edits: editsOf(s) } : undefined),
   async run(ctx) {
     const settings = settingsOf(ctx.state);
@@ -164,7 +180,8 @@ export const estimateStep: StepDef = {
     const ui = design ? designUi(design) : undefined;
     const uiOf = (t: { track: string; screen?: string | undefined }) => (t.track === "web" || t.track === "mobile") && t.screen ? ui?.screens[t.screen] : undefined;
     const view = breakdown.tasks.map((t) => ({ id: t.id, title: t.title, feature: t.featureId, track: t.track, executor: t.executor, complexity: t.complexity, screen: t.screen, ...(uiOf(t) ? { ui: { level: uiOf(t)!.level ?? "unknown", drivers: uiOf(t)!.drivers } } : {}), items: t.items, dependsOn: t.dependsOn, overhead: t.overhead }));
-    const cacheKey = hashJson({ step: "estimate", breakdown: breakdownSha, spec: specSha, settings, ui: ui ?? null });
+    const known = knownStack(ctx.state, ctx.ledger, ctx.project);
+    const cacheKey = hashJson({ step: "estimate", breakdown: breakdownSha, spec: specSha, settings, ui: ui ?? null, known });
     const cached = waivedCache<Proposal[]>(ctx, "estimate", cacheKey);
     const edits = editsOf(ctx.state);
     // a lead's edits re-assemble the estimate from the proposals already made: no new model call
@@ -183,6 +200,7 @@ export const estimateStep: StepDef = {
           S.artifact("breakdown", "work-breakdown", { features: breakdown.features, tasks: view }),
           S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
           S.artifact("settings", "settings", settings),
+          S.artifact("known-stack", "known-stack", known),
           ...(ui?.factors.length ? [S.artifact("ui-factors", "uiFactors", ui.factors)] : []),
           S.task(n === 1 ? "Size the tasks." : `Size the tasks (independent estimator ${k + 1} of ${n}).`),
         ],

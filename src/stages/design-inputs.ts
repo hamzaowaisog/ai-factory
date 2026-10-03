@@ -17,6 +17,22 @@ export interface DesignSources {
   spec: string;
   /** the step and named output holding the repo's design inventory, when the mode has a repo */
   inventory?: { step: string; name: string };
+  /**
+   * A fixed list of components to draw onto when there is no app of its own to read, such as a starter
+   * template a new app is scaffolded from (greenfield). Used only when the repo has no look of its own;
+   * an existing app's inventory always wins. `kitComponents()` gives the factory's own kit as one.
+   */
+  components?: StarterComponents;
+}
+
+/** The components a new app starts with (a starter template's or a UI kit's), named the way its code names them. */
+export interface StarterComponents {
+  /** where the list comes from: "starter template acme-web 2.3", "ai-factory kit shadcn 1.1.0" */
+  source: string;
+  framework?: string;
+  styling?: string;
+  componentSystem?: string;
+  components: { name: string; kind?: string; variants?: string[] }[];
 }
 
 export const ESTIMATE_SOURCES: DesignSources = { intent: "intake", spec: "specify", inventory: { step: "ground", name: "design" } };

@@ -1,7 +1,7 @@
 // Turns the estimators' proposals (anchors, ratios, reasons) into a full Estimate. The model proposed
 // every number it is allowed to propose; everything here is arithmetic, so the same proposals always
 // give the same estimate (docs/estimates-design.md, "How the hours are built").
-import { Estimate, type ArtifactHeader, type Breakdown, type DeliveryModel, type Executor, type SizeBand, type SpecDraft, type Track } from "../contracts/index.js";
+import { Estimate, type ArtifactHeader, type Breakdown, type DeliveryModel, type Executor, type SizeBand, type SpecDraft, type StackChoice, type Track } from "../contracts/index.js";
 import type { z } from "zod";
 import { DEFAULT_ASSUMPTIONS, type Assumptions, type Range } from "./assumptions.js";
 import { estimateApiCost, type BenchmarkRecord } from "./cost.js";
@@ -18,6 +18,8 @@ type Body = Pick<Breakdown, "features" | "tasks">;
 export interface Proposal {
   anchors: { taskId: string; hours: Range; reason: string }[];
   tasks: { taskId: string; anchorId: string; ratio: number; reason: string }[];
+  /** the stack the estimator priced (proposals made before it was asked for have none) */
+  stack?: StackChoice;
 }
 
 export interface EstimateSettings {
@@ -148,6 +150,7 @@ export function assembleEstimate(i: AssembleInput): z.infer<typeof Estimate> {
     totals,
     apiCost,
     elapsed: { planningMinutes: Math.round(i.counts.planningMinutes), criticalPathDays: elapsedDays(criticalPath(b.tasks, (id) => dur.get(id)!), queue, a), ...(basis ? { basis: withPrior(basis, loadRoundsPrior()) } : {}) },
+    ...(lead.stack ? { stack: lead.stack } : {}),
     settings: { stackSource: i.settings.stackSource, designInTotal: i.settings.designInTotal, feedbackRounds: i.settings.feedbackRounds },
     scenarios: [],
     suggested: [],

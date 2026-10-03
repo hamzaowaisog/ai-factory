@@ -293,6 +293,7 @@ Greenfield is not built yet. The design work is built as one piece that any mode
 - **Inputs through named sources**, not fixed step keys: `DesignSources` (`src/stages/design-inputs.ts`) names the step holding the intent, the step holding the spec, and the repo's design inventory when the mode has a repo (left out for greenfield, which means a new look). The estimate passes `ESTIMATE_SOURCES` (intake, specify, ground's design inventory).
 - **One approval step**, generic: `makeDesignApprovalStep({ sources, purpose })` is the estimate's E1b and the shared design approval. `purpose: "estimate"` keeps the E1b card word for word; `"build"` says the build follows the approved design.
 - **One way out:** `approvedDesignFor(state, ledger)` returns the approved design from the estimate a build was seeded from, or else from this run's own approved design steps. Plan and implement read only this, so a build gets tokens and approved screens whichever way its design was approved. The plan's inputs carry this run's approval, so a design approved in the run replans; with none the hash is what it was.
+- **A fixed component list for a new app** (2026-10-03): with no repo to read, a mode can give `DesignSources.components` (`StarterComponents`: where the list comes from, the framework and component system, and each component's name, kind and variants), such as greenfield's starter template. The design step then draws onto it ("NEW APP FROM A STARTER": every screen new, "design-system" only for a component the starter lacks). It is used only when the repo has no look of its own; an existing app's inventory always wins. `kitComponents()` (`src/design/kit/kit.ts`) gives the factory's shadcn kit as such a list. Without it, the inputs and prompt are what they were.
 - **Proof** (`design-pipeline.test.ts`): a stand-in greenfield list (its own intake and spec steps, `designSteps`, a plan stub) draws, asks for approval in build words, approves, and the plan sees the approved design; the estimate's steps have the same keys, versions and inputs as before. When greenfield is built it adds `...designSteps({ sources, purpose: "build" })` and nothing else.
 
 **Build order**
@@ -872,6 +873,10 @@ The number of PRs comes from grouping tasks. Fewer, larger PRs shorten the revie
 
 All times are labelled **assumed** and editable per run. The ledger's event log records when a card was shown and decided, so measured values can replace them later.
 
+### The stack priced
+
+The estimate records the stack and architecture it priced as fields, `estimate.stack` (`StackChoice` in `src/contracts/estimate.ts`): `backend`, `web`, `mobile`, `database`, `hosting`, `architecture` (each left out when the work does not need it), `basis` (`repo`, `request` or `assumed`) and `notes` (what was assumed). The estimator fills it in, given what is already known (`knownStack`: the repo's backend and web framework, the chosen UI target, and who chooses the stack), and a lead's edit keeps it. A build, greenfield in particular, builds what was priced instead of choosing again. The Estimate tab shows it under **Stack priced**. Estimates made before 2026-10-03 have none. The estimate step's template version is 3.
+
 ### Other outputs
 - **Factory running cost:** see "Cost in API credits" below.
 - **Elapsed time:** the critical path through dependencies and, in HITL, the gate queue. Waiting for external keys, accounts and approvals appears as a dependency in duration, not as effort.
@@ -957,6 +962,7 @@ A gate is a pure check over ledger artifacts. It fails closed: a gate that could
 | E4 | Forgotten-work checklist | Each generic item marked in, or out with a reason | Lead |
 | E5 | Consistency | Similar tasks within a stated tolerance; no unexplained outlier; a screen counted as complex in the approved demo not sized below a simple one | Lead |
 | E6 | Workbook lint | Code recomputes every total and cross-sheet link; known template faults cannot appear | None |
+| — | Breakdown shape | Checked when the breakdown is read (the schema, so the model is asked again): unique task ids, known features, and `dependsOn` naming only real tasks, never itself and never in a loop (EST-2 → EST-3 → EST-2; `dependencyLoops` in `src/contracts/estimate.ts`). A build orders tasks by `dependsOn`, so a loop cannot be built | None |
 | E7 | Lead approval | Terminal approval tied to the estimate's hash; low-confidence lines need sign-off. In the solely agentic model the approver is the client-side owner, not a supervisor gate in the build | None |
 
 ### During the build

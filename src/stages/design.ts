@@ -432,6 +432,10 @@ const EXISTING_RULES = `EXISTING APP. The "existing" section is this product's r
 - Mark a screen "reuse" or "tweak" when an existing page or shared component covers it, "new" only for a page that does not exist, "design-system" only for a new shared component or token.
 - Choose a route and file in the app's own structure (see its pages), and take the sample content from the same domain the existing pages show.`;
 
+const STARTER_RULES = `NEW APP FROM A STARTER. There is no app yet; it is scaffolded from the starter in the "starter" section, whose components are listed there.
+- Every screen is "new". Draw each screen with blocks those components cover, and mark a screen "design-system" only when it needs a shared component the starter does not have.
+- Choose routes and sample content for this product; the starter has no pages of its own to follow.`;
+
 const inventoryBrief = (inv: DesignInventory) => ({
   verdict: inv.verdict, tokens: inv.tokens.total, framework: inv.stack.framework, styling: inv.stack.styling, componentSystem: inv.stack.componentSystem,
   pages: inv.pages.slice(0, 40), sharedComponents: [...inv.primitives, ...inv.composites].slice(0, 40).map((c) => (c as { name?: string }).name ?? c),
@@ -626,7 +630,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const ui = !!l.getJson<Intent>(s.steps.get(src.intent)!.outputs[0]!)?.touchesUi;
       // the restyle chosen on the questions card (runs with match references and an app of their own only)
       const restyle = s.info.references?.length ? !!restyleOf(s, l) : false;
-      return { spec: s.steps.get(src.spec)!.outputs[0], ui, ...(refRead ? { refRead } : {}), ...(restyle ? { restyle } : {}), inventory: inventoryNamed(s, src), earlier: s.info.parent?.kind === "change" ? s.info.parent.designSha : undefined, frames: listedFrames(s.info.request ?? "").map((f) => f.id), rejections: designRejections(s).slice(0, MAX_DESIGN_REVISIONS) };
+      return { spec: s.steps.get(src.spec)!.outputs[0], ui, ...(refRead ? { refRead } : {}), ...(restyle ? { restyle } : {}), inventory: inventoryNamed(s, src), ...(src.components ? { starter: src.components } : {}), earlier: s.info.parent?.kind === "change" ? s.info.parent.designSha : undefined, frames: listedFrames(s.info.request ?? "").map((f) => f.id), rejections: designRejections(s).slice(0, MAX_DESIGN_REVISIONS) };
     },
     async run(ctx) {
       const intent = intentOf<Intent>(ctx.state, ctx.ledger, src);
@@ -658,6 +662,8 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       // the app keeps its own look unless the person chose, on the questions card, to restyle it to the match references
       const restyle = !!reading && hasExistingLook(inv) && !!restyleOf(ctx.state, ctx.ledger);
       const existing = hasExistingLook(inv) && !restyle;
+      // no app of its own: the mode's fixed component list (a starter template's), when it gives one
+      const starter = !hasExistingLook(inv) && src.components?.components.length ? src.components : undefined;
       // a look taken from match or inspire references replaces the field's library; layout references leave the look to it
       const fromRefs = !!reading && lookFromRefs(reading) && !existing;
       const matchOnly = fromRefs && lookRefs(reading).every((r) => r.role === "match");
@@ -676,11 +682,12 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         stage: "design", route: "design", cls: "read-large", budgetTokens: 80000, tools: [], schema: DesignOut, maxTurns: 4,
         sections: [
           S.template("tpl", RULES),
-          ...(existing ? [S.template("existing-rules", EXISTING_RULES)] : restyle ? [S.template("restyle-rules", RESTYLE_RULES)] : []),
+          ...(existing ? [S.template("existing-rules", EXISTING_RULES)] : restyle ? [S.template("restyle-rules", RESTYLE_RULES)] : starter ? [S.template("starter-rules", STARTER_RULES)] : []),
           ...(reading ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
           S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
           ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens, ...(earlier.theme ? { theme: earlier.theme } : {}), ...(earlier.locale ? { locale: earlier.locale } : {}) })] : []),
           ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
+          ...(starter ? [S.artifact("starter", "starter-components", starter)] : []),
           ...(fromRefs ? [] : [S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`)]),
           ...(reading ? referenceSections(ctx.state, reading) : []),
           ...(recent.length ? [S.reference("recent-looks", lookBrief(recent, field))] : []),

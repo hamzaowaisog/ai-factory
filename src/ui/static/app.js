@@ -1294,6 +1294,8 @@ async function estimateScreen(id) {
           [`#/new/estimate/fromrun/${rid}`, "ruler", e.deliveryModel === "agentic" ? "Estimate as HITL" : "Estimate as solely agentic"],
         ]) : null,
         panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", costTable),
+        e.stack ? panel(3, "Stack priced", "layers", h("dl", { class: "facts" }, [["Backend", e.stack.backend], ["Web", e.stack.web], ["Mobile", e.stack.mobile], ["Database", e.stack.database], ["Hosting", e.stack.hosting], ["Architecture", e.stack.architecture]].filter((r) => r[1]).flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])),
+          h("p", { class: "small muted" }, e.stack.basis === "repo" ? "From the repo." : e.stack.basis === "request" ? "Named in the requirements." : `Assumed by the estimate${e.stack.notes ? `: ${e.stack.notes}` : "."}`)) : null,
         e.assumptions.length ? panel(3, "Assumptions", "alert", h("ul", { class: "reasons small" }, e.assumptions.map((x) => h("li", {}, x)))) : null),
       h("div", { class: "stack" }, panel(1, "Screens", "browser", design), panel(2, "Tasks", "layers", tasks, ...extra))),
   ], true);

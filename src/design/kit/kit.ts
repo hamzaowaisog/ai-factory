@@ -54,6 +54,17 @@ export type KitTargetInfo = z.infer<typeof Target>;
 
 export interface Kit { manifest: KitManifest; dir: string; files: string[] }
 
+/** The kit's components as a fixed list for the design step (`StarterComponents` in src/stages/design-inputs.ts). */
+export function kitComponents(kit: Kit = loadKit(), target: KitTarget = "next-shadcn"): { source: string; framework: string; styling: string; componentSystem: string; components: { name: string; kind: string }[] } {
+  const m = kit.manifest;
+  const seen = new Set<string>();
+  const components: { name: string; kind: string }[] = [];
+  for (const [kind, group] of [["block", m.blocks], ["control", m.controls], ["overlay", m.overlays], ["part", m.parts]] as const) {
+    for (const p of Object.values(group)) if (!seen.has(p.component)) { seen.add(p.component); components.push({ name: p.component, kind }); }
+  }
+  return { source: `ai-factory kit ${m.id} ${m.version}`, framework: m.targets[target]?.framework ?? target, styling: "tailwind v4", componentSystem: "shadcn/ui", components };
+}
+
 /** The kit that draws a target (one for now: shadcn). */
 export const kitIdFor = (_t: KitTarget): string => "shadcn";
 
