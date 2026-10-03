@@ -42,9 +42,21 @@ agentEnv:                          # dummy values so the app compiles where the 
 #   uiDir: "src/components/ui"       # the building-block folder
 #   brandFonts: ["Acme Sans"]        # fonts the design brief may name besides Google Fonts
 #   navRaises: false                 # true: a navigation change counts as a new screen
+#   uiTarget: next-shadcn            # what the approved design is built in: next-shadcn, vite-shadcn, or repo (its own components);
+#                                    # unset: --ui-target, then detection from the repo (factory design target <repo>)
+#   uiTargets: { mobile: repo }      # per app id of a product with several, over uiTarget
 #   capture:                         # opt-in visual check after a UI-changing build (docs/design-step.md)
 #     allowHost: true                # REQUIRED: you agree to run the start command on this machine
 #     install: "npm ci"
 #     start: "npm run start -- -p $PORT"
 #     pages: [{ name: home, path: "/" }, { name: orders, path: "/orders" }]
 #     readyPath: "/"
+#   fidelity:                        # check of a kit build against the approved design, after accept; on by default for kit scaffolds,
+#                                    # `fidelity: false` switches it off (docs/estimates-design.md, "Fidelity and tests")
+#     allowHost: true                # optional: run the app on this machine instead of in containers (the default, 2026-10-04)
+#     install: "npm install --no-audit --no-fund"   # the default
+#     start: "npx next build && npx next start -p $PORT"   # default per target (vite: vite build && vite preview)
+#     port: 4320
+#     readyPath: "/"
+#     timeoutSec: 600
+#     maxPages: 160                  # pages opened at most (states x widths x modes x languages)

@@ -1,0 +1,25 @@
+{
+  "version": "2026-10-03.1",
+  "note": "The factory's standard assumptions, written from common delivery practice. When an estimate assumes an answer on one of these topics, it uses the standard answer instead of the model's pick, so reworded requirements are priced on the same scope. Every estimate lists each assumption it made, so the client sees and can correct them; no person signs this file off. docs/estimate-consistency.md, sections 10 (step E) and 13.",
+  "topics": [
+    { "id": "sign-in", "question": "How do users sign in?", "answer": "Email and password, with a reset link by email; no social or single sign-on." },
+    { "id": "roles", "question": "Which user roles are there?", "answer": "Two roles: an administrator and a standard user." },
+    { "id": "admin", "question": "How are records and users administered?", "answer": "Administrators work in the same app on admin-only screens; no separate back office." },
+    { "id": "languages", "question": "Which languages does the product support?", "answer": "English only, left to right." },
+    { "id": "colour-modes", "question": "Light mode, dark mode or both?", "answer": "Light mode only." },
+    { "id": "platforms", "question": "Which platforms are built?", "answer": "A responsive web app for desktop and mobile browsers; no native apps unless the requirements name them." },
+    { "id": "browsers", "question": "Which browsers are supported?", "answer": "The latest two versions of Chrome, Edge, Safari and Firefox." },
+    { "id": "accessibility", "question": "What accessibility level is required?", "answer": "WCAG 2.1 AA on the main flows." },
+    { "id": "notifications", "question": "How are users notified?", "answer": "Email only, from fixed templates; no SMS or push." },
+    { "id": "payments", "question": "How are payments taken?", "answer": "One payment provider (Stripe), cards only; card data stays with the provider." },
+    { "id": "file-uploads", "question": "What files can users upload?", "answer": "Images and PDFs up to 10 MB each, kept in cloud storage." },
+    { "id": "reporting", "question": "What reporting is needed?", "answer": "On-screen lists with filters and CSV export; no custom report builder." },
+    { "id": "search", "question": "How does search work?", "answer": "Search by name or title with simple filters; no full-text search engine." },
+    { "id": "data-migration", "question": "Is there existing data to bring in?", "answer": "No; the system starts empty, with seed data for set-up." },
+    { "id": "audit", "question": "What history of changes is kept?", "answer": "Who created and last changed each record, and when; no full audit trail." },
+    { "id": "volumes", "question": "How many users and records are expected?", "answer": "Up to 1,000 users and 100,000 records in the first year." },
+    { "id": "offline", "question": "Must the product work offline?", "answer": "No; online only." },
+    { "id": "environments", "question": "Which environments are set up?", "answer": "Two: staging and production, with a build pipeline." },
+    { "id": "hosting", "question": "Where is it hosted?", "answer": "One cloud region, in the client's cloud account." }
+  ]
+}

@@ -7,3 +7,6 @@ coverage/
 *.log
 test-results/
 playwright-report/
+
+# local Claude Code settings (personal paths)
+.claude/

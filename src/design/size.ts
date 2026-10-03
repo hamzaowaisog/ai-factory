@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import { basename, posix } from "node:path";
 import { cssTokens } from "./inventory.js";
 import { detectLayout, pageOf, type AppLayout } from "./layout.js";
-import { gitSource, gitSync, type FileSource } from "./source.js";
+import { DESIGN_PACKAGE_PATH, gitSource, gitSync, type FileSource } from "./source.js";
 
 export const LEVELS = ["none", "tweak", "new-screen", "design-system"] as const;
 export type Level = (typeof LEVELS)[number];
@@ -64,7 +64,7 @@ export function nameWords(path: string): string[] {
 }
 
 export function isUiPath(path: string): boolean {
-  return UI_EXT.test(path) && !NOT_UI.test(path);
+  return UI_EXT.test(path) && !NOT_UI.test(path) && !DESIGN_PACKAGE_PATH.test(path);
 }
 
 // ---------- line-level checks (git mode) ----------
@@ -167,7 +167,7 @@ export function sizeChange(input: SizeInput, opts: SizeOptions = {}): SizeResult
   for (const f of input.files) {
     const p = f.path.replace(/\\/g, "/").replace(/^\.\//, "");
     const page = pageOf(p, layout);
-    const tokenConfig = TOKEN_CONFIG.test(p) && !NOT_UI.test(p);
+    const tokenConfig = TOKEN_CONFIG.test(p) && !NOT_UI.test(p) && !DESIGN_PACKAGE_PATH.test(p);
     if (!isUiPath(p) && !tokenConfig && !(page && /\.(ts|js|mdx|md)$/.test(p))) continue;
     uiFiles++;
     const before = probe?.before(f.from ?? p);

@@ -119,6 +119,37 @@ describe("buildPack", () => {
     })).toThrow(PackBuildError);
   });
 
+  it("sends images in order, marks each in the text and counts them toward the budget", () => {
+    const img = (id: string, sha: string) => sec(id, "image", "untrusted", "user", "", { imageSha: sha, source: "upload" });
+    const p = buildPack({
+      stage: "design", cls: "read-large", model: "m", recipeVersion: "1", tools: [], redactor: new Redactor(),
+      sections: [sec("task", "task", "trusted", "user", "Draw it."), img("R-1", "a".repeat(64)), img("R-2", "b".repeat(64))],
+    });
+    expect(p.images).toEqual(["a".repeat(64), "b".repeat(64)]);
+    expect(p.user).toContain('<untrusted_image n="1" id="R-1" source="upload">');
+    expect(p.user).toContain('<untrusted_image n="2" id="R-2"');
+    expect(p.user.indexOf("untrusted_image")).toBeLessThan(p.user.indexOf("Draw it."));
+    expect(p.manifest.packTokens).toBeGreaterThan(2 * 1600);
+    expect(p.manifest.sections.find((x) => x.id === "R-1")?.tokens).toBeGreaterThanOrEqual(1600);
+    // a different image is a different briefing
+    const q = buildPack({
+      stage: "design", cls: "read-large", model: "m", recipeVersion: "1", tools: [], redactor: new Redactor(),
+      sections: [sec("task", "task", "trusted", "user", "Draw it."), img("R-1", "c".repeat(64)), img("R-2", "b".repeat(64))],
+    });
+    expect(q.manifest.packSha).not.toBe(p.manifest.packSha);
+  });
+
+  it("refuses images in a writing step, as trusted or system text, without bytes, or too many", () => {
+    const base = { cls: "read-large" as const, model: "m", recipeVersion: "1", tools: [], redactor: new Redactor() };
+    const img = (extra: Partial<ResolvedSection> = {}, trust: SectionSpec["trust"] = "untrusted", placement: SectionSpec["placement"] = "user") =>
+      sec("R-1", "image", trust, placement, "", { imageSha: "a".repeat(64), ...extra });
+    expect(() => buildPack({ ...base, stage: "implement", sections: [img()] })).toThrow(/can't take untrusted/);
+    expect(() => buildPack({ ...base, stage: "design", sections: [img({}, "trusted")] })).toThrow(/must be untrusted/);
+    expect(() => buildPack({ ...base, stage: "design", sections: [img({}, "untrusted", "system")] })).toThrow(PackBuildError);
+    expect(() => buildPack({ ...base, stage: "design", sections: [img({ imageSha: undefined })] })).toThrow(/stored image/);
+    expect(() => buildPack({ ...base, stage: "design", budgetTokens: 100_000, sections: Array.from({ length: 21 }, () => img()) })).toThrow(/at most 20/);
+  });
+
   it("trims only the pointer tail, then fails with a reason", () => {
     const pointers = Array.from({ length: 10 }, (_, i) => ({ path: `src/F${i}.cs`, reason: "x".repeat(200) }));
     const p = buildPack({

@@ -84,6 +84,8 @@ export const ProjectConfig = z.object({
   referenceDb: z.object({ connEnv: z.string() }).optional(),
   /** the Folio3 estimation template (.xlsx) the estimate workbooks are drawn on; FACTORY_ESTIMATE_TEMPLATE also works */
   estimateTemplate: z.string().optional(),
+  /** estimate runs: a person answers the clarify questions and approves the estimate (E7) by default; humanReview false makes the project's estimates hands-off (opt-in; `factory estimate --hands-off` does it for one run) */
+  estimate: z.object({ humanReview: z.boolean().default(true) }).optional(),
   /** Front end of the repo, when it has one (docs/design-step.md): overrides what the design checks would detect. */
   design: z.object({
     /** source root, e.g. "src/" ("" is the repo root); default: detected */
@@ -92,8 +94,29 @@ export const ProjectConfig = z.object({
     uiDir: z.string().optional(),
     /** brand fonts the design brief may name besides Google Fonts */
     brandFonts: z.array(z.string()).default([]),
+    /**
+     * A small UI fix in an app of its own gets a text design note approved with the estimate, not a drawn demo and a card of its
+     * own (docs/estimates-design.md, "Design note for a small fix"). false: every UI request gets the full design.
+     */
+    lightNote: z.boolean().default(true),
+    /**
+     * Commit the approved design package (design.json, tokens, the demo, up to 240 pictures) into the client's branch under
+     * `.factory/design/<line>/vN/`. Off by default (PR #11 review, item 12): the package stays in the factory's store, and the
+     * build reads it from there.
+     */
+    commitPackage: z.boolean().default(false),
     /** a nav change counts as a new screen, not a tweak */
     navRaises: z.boolean().default(false),
+    /** design reference URLs may point at private addresses (an intranet style guide); off by default */
+    allowPrivateRefs: z.boolean().default(false),
+    /**
+     * The stack the approved design is built in (docs/estimates-design.md, "Kit and scaffold"): next-shadcn or vite-shadcn copy the
+     * factory's component kit, the theme and a page per screen into the repo before the agents start; repo builds with the repo's own
+     * components (no kit). Default: detected from package.json and components.json.
+     */
+    uiTarget: z.enum(["next-shadcn", "vite-shadcn", "repo"]).optional(),
+    /** the target of one app of a product with several (app id to target), over uiTarget */
+    uiTargets: z.record(z.string(), z.enum(["next-shadcn", "vite-shadcn", "repo"])).default({}),
     /**
      * Take the app's pages before and after the change and compare them (docs/design-step.md, "Visual check").
      * The app is started from the repo's own commands ON THIS MACHINE, not in a container, so it is off unless
@@ -113,6 +136,30 @@ export const ProjectConfig = z.object({
       /** extra environment for the app (no secrets from the factory are passed) */
       env: z.record(z.string(), z.string()).default({}),
     }).optional(),
+    /**
+     * Check the built app against the approved design (docs/estimates-design.md, "Fidelity and tests"): tokens, structure and
+     * accessibility block (waivable), layout and pixels advise. On by default whenever the factory generated the screens (a kit
+     * scaffold: next-shadcn, vite-shadcn), with the kit's own commands; this object only changes them. The app is installed and
+     * started in containers (the agent image: the install reaches only the package feeds, the app has no network); `false`
+     * switches the check off.
+     */
+    fidelity: z.union([z.literal(false), z.object({
+      /**
+       * true runs the app ON THIS MACHINE instead, in the run's worktree with a scratch HOME (for a factory host with no
+       * container runtime): you are agreeing to run the agents' generated code and its install scripts here, with network access.
+       */
+      allowHost: z.literal(true).optional(),
+      /** run once in the checkout first; default "npm install --no-audit --no-fund" */
+      install: z.string().optional(),
+      /** builds and starts the app on $PORT; default per target (next build && next start, vite build && vite preview) */
+      start: z.string().optional(),
+      port: z.number().int().min(1024).max(65000).default(4320),
+      readyPath: z.string().startsWith("/").default("/"),
+      timeoutSec: z.number().int().min(10).max(1800).default(600),
+      env: z.record(z.string(), z.string()).default({}),
+      /** most pages to open (the rest are noted, not checked) */
+      maxPages: z.number().int().min(1).max(400).default(160),
+    })]).optional(),
   }).optional(),
   /** impact step: also run the four model lenses (route impact-lens; costs credits). Off by default: code search only. */
   impact: z.object({ lenses: z.boolean().default(false) }).optional(),

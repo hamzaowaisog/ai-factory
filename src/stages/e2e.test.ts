@@ -271,7 +271,7 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(done.status).toBe("delivered");
     const s2 = replay(ledger.events());
     expect(s2.status).toBe("delivered");
-    for (const step of ["discover", "intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "plan", "approve", "stub-commit", "author-tests", "implement/TASK-1", "integrate", "accept", "design-check", "review", "deliver"]) {
+    for (const step of ["discover", "intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "plan", "approve", "stub-commit", "author-tests", "implement/TASK-1", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]) {
       expect(s2.steps.get(step)?.status, step).toBe("completed");
     }
     // author-tests ran the AC test on base twice and it failed for the right reason

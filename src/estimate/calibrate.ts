@@ -14,7 +14,7 @@ import type { CostPhase } from "./cost.js";
 
 export type Verdict = "under" | "within" | "over";
 export interface CostRow { estimateRun: string; buildRun?: string; group: "estimate run" | "build run"; estimated: { min: number; max: number }; actual: number; verdict: Verdict; ratio: number }
-export interface HoursRow { estimateRun: string; estimated: { min: number; max: number }; actual: number; verdict: Verdict; ratio: number }
+export interface HoursRow { estimateRun: string; estimated: { min: number; max: number }; actual: number; verdict: Verdict; ratio: number; /** the catalogue version the estimate was sized from */ catalogue?: string }
 
 const ESTIMATE_PHASES: CostPhase[] = ["planning", "design", "breakdown-estimate"];
 
@@ -67,7 +67,7 @@ export function hoursRows(file: string): HoursRow[] {
       const sha = replay(ledger.events()).steps.get("estimate")?.outputs[0];
       if (!sha) continue;
       const est = Estimate.parse(ledger.getJson(sha));
-      rows.push({ estimateRun: run, estimated: est.totals.overall, actual: hours, ...judge(est.totals.overall, hours) });
+      rows.push({ estimateRun: run, estimated: est.totals.overall, actual: hours, ...judge(est.totals.overall, hours), ...(est.catalogue ? { catalogue: est.catalogue.version } : {}) });
     } catch { /* unknown run */ }
   }
   return rows;
@@ -88,4 +88,23 @@ export function formatCalibration(cost: CostRow[], hours: HoursRow[]): string {
     lines.push(`${hours.filter((r) => r.verdict === "within").length} of ${hours.length} within range.`);
   }
   return lines.join("\n");
+}
+
+export interface UiSizeRow { buildRun: string; estimateRun: string; approved: string; actual: string; verdict: "within" | "bigger" | "smaller" }
+const LEVELS = ["none", "tweak", "new-screen", "design-system"];
+
+/** The UI change each build produced against the size class its approved design allowed (recorded at integrate). */
+export function uiSizeRows(runIds: string[] = Ledger.listRuns()): UiSizeRow[] {
+  const rows: UiSizeRow[] = [];
+  for (const id of runIds) {
+    try {
+      const state = replay(Ledger.open(id).events());
+      const ref = state.info.estimateRef;
+      const size = state.steps.get("integrate")?.data?.uiSize as { approved: string; actual: string } | undefined;
+      if (!ref || !size) continue;
+      const d = LEVELS.indexOf(size.actual) - LEVELS.indexOf(size.approved);
+      rows.push({ buildRun: id, estimateRun: ref.runId, ...size, verdict: d > 0 ? "bigger" : d < 0 ? "smaller" : "within" });
+    } catch { /* a run that cannot be read adds no row */ }
+  }
+  return rows;
 }

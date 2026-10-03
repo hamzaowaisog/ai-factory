@@ -14,6 +14,7 @@ import { DEFAULT_ASSUMPTIONS, type Assumptions } from "./assumptions.js";
 import type { Consideration, ConsiderationKey } from "./considerations.js";
 import { effortHours } from "./hours.js";
 import { evalFormula, type CellValue } from "./xl-formula.js";
+import { catalogueStatusText } from "./catalogue-status.js";
 
 export type Audience = "team" | "client";
 
@@ -493,7 +494,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   put(S, `B${r}`, "List of Special Considerations, where applicable:", "consHead", { font: { bold: true, size: 12 } }); r++;
   put(S, `B${r}`, "Tasks", "consTh", plainHead); put(S, `C${r}`, "Action", "consTh", plainHead); put(S, `D${r}`, "", "consTh", plainHead); put(S, `E${r}`, "Comments", "consTh", plainHead); r++;
   const present = (["backend", "mobile", "web"] as Track[]).filter((t) => tasksOf([t]).length);
-  const cons = (k: ConsiderationKey): [string, string] => { const c = input.considerations?.[k]; return c ? [c.answer, `Clarify answer ${c.from}`] : ["Not specified", "Confirm with the client"]; };
+  const cons = (k: ConsiderationKey): [string, string] => { const c = input.considerations?.[k]; return c ? [c.answer, c.from.startsWith("ASM-") ? `Factory assumption ${c.from}, confirm with the client` : `Clarify answer ${c.from}`] : ["Not specified", "Confirm with the client"]; };
   const considerations: [string, string, string][] = [
     ["Application type (mobile, desktop, web)", present.map((t) => (t === "web" ? "Web" : t === "mobile" ? "Mobile" : "Backend")).join(" + ") || "Not specified", "From the tracks that have work"],
     ["Platforms/OS supported", ...cons("platforms")], ["Browsers supported", ...cons("browsers")],
@@ -548,6 +549,8 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     ck(5, "Cost confidence", e.apiCost.confidence); ck(6, "Benchmark records", e.apiCost.records);
     ck(7, "Flagged tasks (estimators disagree)", e.tasks.filter((t) => t.flagged).length);
     ck(8, "Spec sha", e.specSha); ck(9, "Breakdown sha", e.breakdownSha);
+    // internal only: where the hours came from and how far they are measured (never on the client's copy)
+    if (e.catalogue) { ck(10, "Task catalogue", `${e.catalogue.version} (stack ${e.catalogue.stack})`); ck(11, "Catalogue status", catalogueStatusText(e.catalogue)); }
 
     const A = sheet("Anchors");
     A.getColumn("B").width = 10; A.getColumn("C").width = 40; A.getColumn("D").width = 10; A.getColumn("E").width = 10; A.getColumn("F").width = 60;

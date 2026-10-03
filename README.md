@@ -97,14 +97,17 @@ When something keeps failing, the factory climbs a fixed ladder (retry with the 
 
 | Built | Not yet |
 |---|---|
-| Brownfield mode on **.NET + Postgres** repos | Greenfield and estimate modes |
+| Brownfield mode on **.NET + Postgres** repos | Greenfield build mode (an estimate can start from requirements alone, but building one is not built; the design steps are made to plug into it) |
+| Images sent to thinking steps (untrusted, never to steps that write code) | Design references in any form, `--ref` and in the UI (`docs/estimates-design.md`, "Design references"; not yet run against a live model) |
 | Clarify, 3-draft spec, merge, lint, critic, round trip | Accept that boots the app and records HTTP/DB evidence (today: "the locked test passed") |
 | Plan + approval card, stub commit, locked tests | Applying `steer` changes mid-run (recorded, not applied) |
 | Claude coding agent in a sealed container | Codex and jcode runners; Next.js/Node repos |
 | Test lab: restore → offline build → tests next to a throwaway Postgres | Review repair loop (blocking findings park the run); unlock card for a wrong test |
 | Ledger, crash-resume, failure ladder, cost caps, verify-evidence | URL-prefix package filter (today: allowlist by host name) |
 | GitHub PR delivery (optional) | Bitbucket PR delivery (today: branch ready locally) |
-| Design toolkit for web apps (no AI): how big a UI change is, shown on the approval card; style checks; `factory design` | The design mock step; the visual check (`design.capture`) is opt-in and advisory |
+| Design toolkit for web apps (no AI): how big a UI change is, shown on the approval card; style checks; `factory design` | A mock rendered in the real app; the visual check (`design.capture`) is opt-in and advisory |
+| Design handoff, steps 1-6: common controls, a versioned design package (v1 on approval, v2... per change request, never changed), exports (PNG, PDF design book, demo zip, tokens, JSON, and `figma.json` for our own AI Factory Import Figma plugin, no paid seat) from `factory design export`, `--design-export` and an Export panel in the UI; the approved design built in `next-shadcn` / `vite-shadcn` (the shadcn kit, the theme and every screen scaffolded in the stub commit, agents writing behaviour only) with `--ui-target`, `factory design scaffold` and a Code panel; the fidelity check after accept (`design.fidelity`: tokens, structure and accessibility gates, layout and pixel advice, baselines accepted with a reason, a Fidelity panel), Playwright tests generated per screen, and checked exports | Design handoff, the rest: the `expo` kit and live runs, skipped until a project needs a phone app; the Claude Code + Figma MCP route (needs a paid seat) (`docs/estimates-design.md`, "Design handoff") |
+| **Estimate mode**: requirements or a repo plus a request to hours, API cost and elapsed time, with gates E1-E7, a person's questions and approval by default (`--hands-off` to opt out; a build never follows a hands-off estimate) and two workbooks (`factory estimate`); building from an approved estimate under gates B1-B7 (`factory start --from-estimate`); benchmarks in `bench/` | Estimate-driven builds outside .NET; calibration from real hours until finished builds and more ledgers exist. See [docs/estimates-overview.md](docs/estimates-overview.md) |
 
 **Refused for now:** SQL Server, repos whose tests start their own containers (Testcontainers), Windows-only projects (WPF/WinForms/.NET Framework), Git LFS, submodules.
 
@@ -195,6 +198,12 @@ To start runs from Jira tickets (`--jira`), add these three lines too (optional)
 JIRA_BASE_URL=https://yourcompany.atlassian.net
 JIRA_EMAIL=you@yourcompany.com
 JIRA_API_TOKEN=...        # id.atlassian.com → Security → Create API token
+```
+
+To use Figma links as design references (`--ref https://www.figma.com/design/...`), add a Figma personal access token with read access to files (optional; exported PNGs and PDFs need nothing):
+
+```ini
+FIGMA_TOKEN=...           # Figma → Settings → Security → Personal access tokens
 ```
 
 <details>
@@ -309,7 +318,7 @@ factory show-card <run>
 factory answer <run> <hash> Q-1=A Q-2="only for guest checkouts"
 ```
 
-In a terminal, `factory start` and `factory estimate` ask the questions right there (a letter, your own words, or Enter for the recommended option) and carry straight on, so a run does not stop for a second command. Set `FACTORY_NO_PROMPT=1` to switch that off; from a script or pipe the run still stops and prints the `factory answer` command. For estimate runs started in `factory ui`, the run page shows the same questions with the recommended option selected; type your name and send. Unanswered questions take the recommended option. Low-risk question cards default automatically after 24 hours.
+In a terminal, `factory start` and `factory estimate` ask the questions right there (a letter, your own words, or Enter for the recommended option) and carry straight on, so a run does not stop for a second command. Set `FACTORY_NO_PROMPT=1` to switch that off; from a script or pipe the run still stops and prints the `factory answer` command. On any run (estimate or build) the run page in `factory ui` asks them one at a time as option buttons (the recommended one is marked and pre-selected; picking an option moves on), then a review step lists your choices and you send them with your name. The chosen options are the answers; there is no free-text box. Both channels work on the same card: a terminal run waiting at the prompt notices when the web page answers (and stops asking), and the page shows the card as answered when the terminal got there first. Unanswered questions take the recommended option. Low-risk question cards default automatically after 24 hours.
 
 **2. Approval**
 
@@ -389,14 +398,20 @@ factory logs <run> --follow        # in a second terminal
 
 Answer the question card if one appears, read the approval card, then approve.
 
-**Estimating instead of building.** `factory estimate` takes requirements (a prompt, `--file` as Markdown, text or Word, `--frames` for exported Figma frames, or `--jira`) and produces an effort, API-cost and elapsed-time estimate of delivering them through the factory. A lead approves it on the terminal, then two workbooks (team and client) are written under the run's `export/` folder. See `docs/estimates-design.md`. The workbooks are drawn on Folio3's estimation template, which the repo ships with its text cleared (`src/estimate/assets/estimation-template.xlsx`), so nothing needs setting. To use a newer template file instead, set `estimateTemplate: /path/to/Example_Estimation.xlsx` in the project config (or `FACTORY_ESTIMATE_TEMPLATE` in the environment).
+**Seeing the design first.** `factory design start "<requirements>" --ref <image, link or Figma>` runs only the road to the design: clarify, spec, then the mock, clickable demo and look, which a lead approves (`factory approve`, or on the run page). `factory design show <run>` and `factory design open <run>` show it. An approved design is then sized with `factory estimate --from-design <run>` or built with `factory start --project <p> --from-design <run>`, without drawing it again. The web screens have the same choice under New run, Design. Once approved, `factory design export <run>` (or the Export panel on the run's Design tab) writes PNGs, a PDF design book, the demo, tokens, JSON and `figma.json` to `<run>/exports/vN/<n>/`; add `--design-export png,pdf` to `factory design start`, `factory estimate` or `factory start` to export as soon as the design is approved. An approved estimate also gets the design book beside its client workbook.
+
+**Into Figma, on any plan.** `factory design export <run> --format figma` (or Figma in the Export panel) writes `figma.json`: every screen and state as frames with auto layout, text and icons, the tokens as variables, the controls as component sets, and the approved pictures as hidden reference layers. It needs no Figma token or paid seat. Install the plugin once in the Figma desktop app: Plugins > Development > Import plugin from manifest..., then pick `figma-plugin/manifest.json` (or the manifest in the Export panel's plugin zip). Then, in any file you can edit, run Plugins > Development > AI Factory Import and choose `figma.json`. See `figma-plugin/README.md`.
+
+**Estimating instead of building.** `factory estimate` takes requirements (a prompt, `--file` as Markdown, text or Word, `--frames` for exported Figma frames, or `--jira`; and design references via `--ref`: any image, an https link, a Figma link (needs `FIGMA_TOKEN`, a Figma personal access token, in `~/.factory/.env`), a Figma JSON export, a PDF or a Word document, with an optional role and note; e.g. `--ref "layout:dash.jpg|table like this"`) and produces an effort, API-cost and elapsed-time estimate of delivering them through the factory. By default a person answers the clarify questions and approves the estimate (on the terminal, or on the run page). Add `--hands-off` (or set `estimate.humanReview: false` in the project config) to opt out: clarify asks nobody (each open question becomes a labelled assumption with its recommended answer) and the factory approves the estimate once its gates pass. A build never follows a hands-off estimate (`--from-estimate` refuses it), since a build is held to a budget a person approved. Every estimate is solely agentic. A request with UI also waits for a person to approve its design. Then two workbooks (team and client) are written under the run's `export/` folder. See `docs/estimates-design.md`. The workbooks are drawn on Folio3's estimation template, which the repo ships with its text cleared (`src/estimate/assets/estimation-template.xlsx`), so nothing needs setting. To use a newer template file instead, set `estimateTemplate: /path/to/Example_Estimation.xlsx` in the project config (or `FACTORY_ESTIMATE_TEMPLATE` in the environment).
 
 ```bash
-factory estimate --file requirements.docx --project shop-api --no-repo --delivery-model hitl --rate backend=55 --rate default=40
+factory estimate --file requirements.docx --project shop-api --no-repo --rate backend=55 --rate default=40
+factory estimate --file requirements.docx            # a lead answers the questions and approves it:
 factory approve <run> <hash> --sign-off EST-4     # low-confidence lines need a sign-off
-factory waive <run> <hash> --reason "why"         # only for E3, E4 and E5
+factory estimate --file requirements.docx --hands-off # opt out: the factory approves (not buildable)
+factory waive <run> <hash> --reason "why"         # estimate gates E1c, E3, E4, E5; build gates B1, B3, B4, B6, B7
+factory waive-budget <run> <hash> --reason "why"  # B5: let a run past its approved estimate go on to a higher limit
 factory edit-estimate <run> <hash> --anchor EST-1=6-12 --reason "why"   # recomputes, new card
-factory estimate --from-run <run> --delivery-model agentic              # the other delivery model
 factory estimate --revises <run> --file changed.md --project shop-api   # a change request (v2)
 factory start --from-estimate <run> --project shop-api                  # build it, held to the estimate
 factory estimate --file requirements.md --fresh                         # ask the model again, ignoring stored answers
@@ -431,17 +446,17 @@ factory show-card <run> --pr       # paste this as the PR description
 factory ui           # prints a link like http://127.0.0.1:4321/?t=… ; open it in your browser
 ```
 
-A local web app to start runs and watch them. Decisions stay in your terminal: every card shows the exact command to paste, with a copy button, and the page has no approve, reject, answer, stop or pause button.
+A local web app to start runs and watch them. Cards show the exact command to paste, with a copy button. Only an estimate run's cards are decided on the page: its question card and its estimate card (a typed name and the card's hash). Every other decision, including approving a design, answering a build run's questions and accepting a fidelity baseline, is made in your terminal; the page shows the command.
 
 | Screen | What it shows |
 |---|---|
-| New run | Brownfield (Greenfield and Estimate aren't built yet) → project → prompt, a dropped `.md` file (up to 1 MB) and/or a Jira key → optional max cost. The request is checked before a run exists, the same way `factory start` checks it. A second run on a busy project is refused. |
+| New run | Brownfield, Estimate or Design (Greenfield isn't built yet) → project → prompt, a dropped `.md` file (up to 1 MB) and/or a Jira key → optional max cost. Estimate runs also take exported Figma frames and their run settings. Every mode has a "Design references" section: drop pictures, PDFs, Word or Figma JSON files, or add https and Figma links, each with a role and note. The request is checked before a run exists, the same way `factory start` checks it. A second run on a busy project is refused. |
 | Run: Interactive | The pipeline as a chain of steps. Click one for its attempts, why it retried, its gates, cost and time. Also shows cost against the limit, gates, the open card with its command, and the latest activity. |
 | Run: Graphical | Charts: cost per step, time per step, cost over time against the limit, retries per step. |
 | Run: Statistical | Totals: cost, limit left, machine vs wall-clock time, attempts, first-time pass, gates, human stops, tokens. |
 | Run: Text | Every ledger event, filterable by step, type and search, with live follow; click one for its details. Also the trace lines. |
 | Run: Design | How big the UI change is and why, and the app's pages and building blocks ("no web UI found" for a .NET-only repo). |
-| Run: Preview | Clickable demo of a UI estimate's approved screens, and the attached Figma frames against the screens that cite them: phone/tablet/desktop widths, a screen list, a gallery with a before/after slider. For an estimate run it shows the demo and its screenshots; with nothing to show, it says so. |
+| Run: Preview | Clickable demo of a UI estimate's approved screens, and the attached Figma frames against the screens that cite them: phone/tablet/desktop widths, a screen list, a gallery with a before/after slider. For an estimate run it shows the demo (its states, dialogs, menus and toasts, and links between screens) and its screenshots; the preview folder also holds the look as design tokens (`tokens.css`, `tokens.json`). With nothing to show, it says so. |
 | Dashboard | Outcome numbers across runs (like `factory report --all`), per-stage bars, recent runs. |
 
 Safety: it only listens on this computer (127.0.0.1), needs the key from the printed link (a new one each start), refuses requests from other websites, and never sends keys or `.env` values to the browser (ledger text is secret-masked). A preview runs in a locked frame that can't reach the app, the network or your files.
@@ -503,20 +518,41 @@ With a GitHub `forge:`, the pull request title and the branch carry the ticket k
 | `factory start --file request.md --project <p>` | Same, with the request from a Markdown or text file. |
 | `factory start --jira ABC-123 --project <p>` | Same, with the request from a Jira ticket (key or link): summary, description and latest comments (only from allowed people when the project has a `jira:` block). Needs Jira set up in `~/.factory/.env`. |
 
-The request can come from **any one** of a typed prompt, `--file` or `--jira`, or several at once (they're combined into one request, each part labelled). Up to about 25 KB of text in total; more is refused before anything is spent.
 | `factory status [run]` | All recent runs, or one run's steps, cost and open card. |
 | `factory show-card <run> [--pr]` | Prints the open card (or the PR text). |
 | `factory answer <run> <hash> Q-1=A …` | Answers a question card. Terminal only. |
 | `factory approve <run> <hash> [--note]` | Approves the plan. Terminal only. |
 | `factory approve <run> <hash> --reject "<reason>"` | Rejects the plan: the spec and plan are revised with your reason and you get a new card. A second rejection parks the run. Terminal only. (`factory reject … --reason` does the same.) |
 | `factory resume <run>` | Continues a run (after a park, crash or restart). |
+| `factory waive-budget <run> <hash> --reason <text> [--ceiling <n>]` | Lets a run that reached its approved estimate (gate B5) continue to a higher limit, a multiple of the approved maximum (default: the card's suggestion, 25% more). Recorded with your name and reason. Terminal only. |
 | `factory waive-cap <run> <hash>` | Accepts going past a limit (cost, time or attempts) shown on a limit card, and continues. Uses the card's suggestion unless you give `--cost`, `--minutes` or `--attempts`. Terminal only. |
 | `factory pause <run>` / `stop <run>` | Pauses or stops at the next step boundary. |
 | `factory steer <run> <file>` | Records a requirement change (applying it isn't built yet). |
 | `factory verify-evidence <run>` | Re-runs every gate decision from the ledger. |
 | `factory watch --project <p> [--once]` | Starts runs from Jira tickets labelled by allowed people, and posts updates to Jira and Slack. Decisions stay in the terminal. See *Start runs from Jira*. |
-| `factory ui [--port <n>]` | Local web screens: start runs and watch them live (four views per run, dashboard, design, preview), and estimate runs with an Estimate tab (totals, tasks, API cost, screens, workbook downloads, plus DRAFT workbooks before approval). The estimate form can attach design frames, the demo page has drawn wireframes, and the Design tab shows build screenshots before/after with a pixel diff when `design.capture` is set. Plan approvals, answers and waivers stay in the terminal; the estimate lead can approve or reject an estimate on its Estimate tab. |
+| `factory ui [--port <n>]` | Local web screens: start runs and watch them live (four views per run, dashboard, design, preview), and estimate runs with an Estimate tab (totals, tasks, API cost, screens, workbook downloads, plus DRAFT workbooks before approval). The estimate form can attach design frames, the demo page draws each screen as a themed page with its states and a Full data tab (wireframes only where a screen has no sample content), the Design tab has an Export panel for an approved design (formats, screens, states, widths, modes, languages, design version; earlier exports to download) and a Code panel (the UI target and why, the scaffold's screens, containers and files, another target to preview, Generate with a zip to run in fixture mode), and the New run form can export on approval like `--design-export` and pick a build's UI target like `--ui-target`. The screens work at phone width (375 px) with no sideways scroll. The Estimate form can start from an approved design run (`--from-design`), a change request to an approved estimate (`--revises`) or the other delivery model (`--from-run`), and can ask the model again (`--fresh`); a Brownfield build can start from an approved estimate or design run; the references section has a Check references button (`factory design check-refs`); approved Design and Estimate tabs have Next buttons that open these forms. It also shows build screenshots before/after with a pixel diff when `design.capture` is set. Plan approvals, answers and waivers stay in the terminal; the estimate lead can approve or reject an estimate on its Estimate tab, and approve or send back the design card on the run page (a send-back needs a reason; only what it points at is fixed, or the design is redrawn if that is what it needs). |
+| `factory estimate …` | Estimates requirements instead of building them; the estimate commands (`approve`, `waive`, `edit-estimate`, `--revises`, `--hands-off`) are in *Use it on your own .NET repo*. |
+| `factory start … --from-estimate <run>` | Builds an approved estimate, held to it by gates B1-B7. |
+| `factory waive <run> <hash> --reason <text>` | Waives a waivable gate (estimate E1c, E3-E5; build B1, B3, B4, B6, B7) with your name and reason. Terminal only. |
+| `factory edit-estimate <run> <hash> --anchor EST-1=6-12 --reason <text>` | Edits an estimate's anchors or ratios; recomputed in code, no model call, new card. Terminal only. |
+| `factory calibrate [--actual-hours <file>] [--decisions]` | Compares approved estimates with what the factory spent and, with a file of `estimate-run,actual-hours` lines, with real hours. `--decisions` prints each logged size pick paired with what its build took, one JSON line each (docs/estimate-consistency.md, section 11). Changes nothing. |
+| `factory calibrate --tune` / `--apply` / `--history` | After every estimate and build the factory proposes a tuned task catalogue in the background; nothing is sized from it until a person promotes it (docs/estimate-consistency.md, section 14). `--tune` shows what the tuning would change; `--apply` promotes it as a new version; `--history` lists the versions, why each changed, and a waiting proposal. |
+| `factory logs <run> [-f] [--step <key>]` | Prints a run's log; `-f` follows it. |
 | `factory report [run] [--all] [--json]` | Step scorecard for one run. Across runs (`--all`): outcome numbers first (delivered, cost per delivered change, time from request to branch, human stops, first-time pass), then a per-stage table. `--all --json` prints `{outcomes, stages}`. From the ledgers only, no AI. |
+| `factory design start "<requirements>" [--project <p>] [--ref <ref>]…` | Design only: clarifies the requirements, writes the spec and draws the design (mock, clickable demo, look) from them and any references, then stops at the design card. Nothing is sized or built. Takes `--file`, `--jira`, `--frames`, `--client`, `--project-name`, `--no-repo`, `--max-cost`. Without `--project` the design is for a new product. |
+| `factory design show <run> [--json]` | A run's design: stage (drafting, waiting for approval, approved), look, references with their colours and fonts, screens, and where the demo, screenshots and tokens are. Works on estimate runs too. |
+| `factory design list [--all]` | Design runs with their stage, screens and cost (`--all` adds estimate runs). |
+| `factory design open <run>` | Opens the run's clickable demo in your browser. |
+| `factory design check-refs <ref>…` | Reads references as `--ref` would, without a run, a model or any cost: pictures, colours, fonts and corners found, or why one cannot be read. `--out <dir>` saves the pictures. |
+| `factory design export <run> [--format png,pdf,html,tokens,json,figma\|all] [--version vN] [--pdf-per-screen] [--out <dir>]` | Exports the approved design: pictures, a PDF design book (or one PDF per screen), the clickable demo as a zip, tokens (W3C, CSS, Tailwind) and the design as JSON. Filters: `--screens`, `--states`, `--widths`, `--mode`, `--lang`. Each export goes to its own folder, `<run>/exports/vN/<n>/`: `vN` is the design version (`--version` picks another version of the same design), `<n>` counts the exports of it, and nothing is overwritten. Every file is tagged with the design's version and sha. `figma` writes `figma.json` for the AI Factory Import plugin (see below). |
+| `factory design export list <run>` | A run's earlier exports, newest first, with their version, formats and folder. |
+| `factory design kit list` / `factory design kit show [next-shadcn\|vite-shadcn]` | The UI kits, and what a target's kit has: framework, paths, packages, the component that draws each block, field kind and layer, and how blocks change with width. `--json`. |
+| `factory design target <repo> [--ref <ref>] [--project <p>]` | Which UI target a build in that repo would use and why (the project's setting, or detection: Next.js or Vite with React takes the kit, another UI library keeps its own components). `--json`. |
+| `factory design scaffold [run] [--target <t>] [--out <dir>] [--files]` | The files a build writes for a run's approved design: the kit, the theme, each screen's page, sample data and container (the agents' file), routes and frame, and the design-system task's to-dos. `--out` writes them (open any state with `?fixture=S-3:empty`); `--sample` uses a built-in sample design. `--json`. |
+| `factory design fidelity <run> [--url <base>] [--json]` | The run's check of the built app against the approved design: each level (tokens, structure, accessibility block; layout, pixels advise), the findings and pages. `--url` checks an app you started (in fixture mode), without gates. |
+| `factory design baseline <run> [pages…] [--all] --reason "…"` / `--list` | Accepts the run's built pictures as the design line's baseline (the next check compares pixels with them), recorded in the ledger with your name and reason. Needs a terminal. `--list` shows what is accepted. |
+| `factory start … --ui-target <next-shadcn\|vite-shadcn\|repo>` | What the approved design is built in when the project's `design.uiTarget` sets nothing; otherwise detected from the repo. |
+| `factory estimate --from-design <run>` / `factory start --project <p> --from-design <run>` | Sizes or builds an approved design run without drawing it again: its spec and approved design carry over (a build needs a design run made with that project). |
 | `factory design inventory <repo>` | Scans a web app's look: theme settings, shared components and how often each is used, pages. No AI. |
 | `factory design size` | Says how big a UI change is (no UI, screen tweak, new screen, or a change to the shared look), from a plan's file list or a git diff, with reasons. |
 | `factory design lint` | Checks a change uses only the theme's colours and the app's existing components, and adds no new shared components. |
@@ -525,7 +561,9 @@ The request can come from **any one** of a typed prompt, `--file` or `--jira`, o
 
 Run any `factory design` command with `--help` for its options.
 
-Decisions (`answer`, `approve`, `reject`, `steer`) only work from an interactive terminal, so no script, plugin or AI can approve its own plan.
+The request can come from **any one** of a typed prompt, `--file` or `--jira`, or several at once (they're combined into one request, each part labelled). Up to about 25 KB of text in total; more is refused before anything is spent.
+
+Decisions (`answer`, `approve`, `reject`, `steer`, `waive`, `waive-budget`, `waive-cap`, `edit-estimate`) only work from an interactive terminal, so no script, plugin or AI can approve its own plan.
 
 ---
 
@@ -597,10 +635,18 @@ ai-factory/
 │   ├── verify/      test lab: container runtime, .NET producer, TRX parsing
 │   ├── context/     context builder: snapshot, read-only tools, repo map, redaction
 │   ├── runners/     model runners: own read-only loop (API), Claude agent in a container, proxy
-│   ├── stages/      the pipeline steps and the executor
+│   ├── stages/      the pipeline steps and the executor (build and estimate)
+│   ├── estimate/    estimate mode: hours, cost, durations, gates E1-E7 and B1-B7, workbooks
 │   ├── design/      design toolkit: app scan, UI change size, style checks, brief cleaner
+│   ├── sources/     request inputs: .docx, exported Figma frames, Jira, design references (images, sites, Figma, PDF, Word)
+│   ├── watch/       Jira and Slack watcher
+│   ├── ui/          the local web screens (`factory ui`)
+│   ├── mcp/         the MCP server for Claude Code
+│   ├── selftest/    the free end-to-end check
 │   ├── config/      project config and secrets loading
 │   └── cli/         the `factory` command
+├── bench/           benchmarks for the estimates path: calibration, gate cases, pinned public data
+├── tests/           browser tests of the web screens (Playwright)
 ├── scripts/setup.sh  one-command setup (macOS, Ubuntu, WSL)
 ├── install.ps1       Windows installer (WSL + Ubuntu, then setup.sh)
 ├── docker/
@@ -609,6 +655,8 @@ ai-factory/
 └── docs/
     ├── design/      the design documents
     ├── design-step.md  where the design step plugs in, and what's still to wire
+    ├── estimates-overview.md, estimates-design.md  the estimates path
+    ├── estimate-consistency.md, estimate-local-model.md  research: repeatable estimates, a local sizing model
     ├── design-eval/ how the design toolkit scored on real Next.js commits
     └── project-example.yaml
 ```
@@ -633,6 +681,8 @@ Factory data lives outside the repo, in `~/.factory/`:
 npm test             # all tests, offline: no model calls, no Docker needed
 npm run typecheck
 npm run build
+npm run bench        # estimate benchmarks: calibration and gate cases, read-only (see bench/README.md)
+npm run test:bench   # the benchmarks' own tests
 npm run test:ui      # the web screens in a real browser (Playwright, run in Docker: nothing to install)
 npm run screens      # retake docs/screens/*.jpg, dark and light
 ```
@@ -644,6 +694,8 @@ npm run screens      # retake docs/screens/*.jpg, dark and light
 ## Design docs
 
 Start with [`docs/design/BUILD-BRIEF.md`](docs/design/BUILD-BRIEF.md), then [`docs/design/stages-aligned.md`](docs/design/stages-aligned.md) (the source of truth for stages). Component designs: run manager, gate engine, verify runner, context builder, adapters. The design step for UI changes is in [`docs/design-step.md`](docs/design-step.md), with its test results in [`docs/design-eval/results.md`](docs/design-eval/results.md). Test-lab speed-ups (each commit built once, Integrate reusing the task's run, known failures skipped), before and after: [`docs/design/test-lab-reuse.md`](docs/design/test-lab-reuse.md).
+
+The estimates path: [`docs/estimates-overview.md`](docs/estimates-overview.md) (one page), then [`docs/estimates-design.md`](docs/estimates-design.md) (the design, and its build status at the end). Why estimates can vary and what repeats them: [`docs/estimate-consistency.md`](docs/estimate-consistency.md); a local sizing model (research only): [`docs/estimate-local-model.md`](docs/estimate-local-model.md). Benchmarks and pinned public data: [`bench/README.md`](bench/README.md), [`bench/external/README.md`](bench/external/README.md). First real runs: [`docs/runs/2026-09-30-first-real-runs.md`](docs/runs/2026-09-30-first-real-runs.md).
 
 ---
 

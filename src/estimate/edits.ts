@@ -48,6 +48,7 @@ export function applyEdits(proposals: Proposal[], edits: Edit[]): Proposal[] {
     if (bad.length) throw new Error(`edit by ${e.by}: ${bad.join("; ")}`);
     // the lead's word is final: every estimator's reading of that anchor or ratio follows it
     cur = cur.map((p) => ({
+      ...p,
       anchors: p.anchors.map((a) => (e.anchors?.[a.taskId] ? { ...a, hours: e.anchors[a.taskId]! } : a)),
       tasks: p.tasks.map((t) => (e.ratios?.[t.taskId] !== undefined && !p.anchors.some((a) => a.taskId === t.taskId) ? { ...t, ratio: e.ratios[t.taskId]! } : t)),
     }));

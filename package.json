@@ -11,9 +11,12 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && node -e \"require('node:fs').cpSync('src/ui/static', 'dist/ui/static', { recursive: true }); require('node:fs').cpSync('src/estimate/assets', 'dist/estimate/assets', { recursive: true })\"",
+    "build": "tsc -p tsconfig.json && node -e \"require('node:fs').cpSync('src/ui/static', 'dist/ui/static', { recursive: true }); require('node:fs').cpSync('src/estimate/assets', 'dist/estimate/assets', { recursive: true }); require('node:fs').cpSync('kits', 'dist/kits', { recursive: true })\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:kit": "FACTORY_KIT_E2E=1 vitest run src/design/kit/kit.test.ts",
     "test": "vitest run",
+    "bench": "tsx bench/run.ts",
+    "test:bench": "vitest run --config bench/vitest.config.ts",
     "factory": "tsx src/cli/index.ts",
     "test:ui": "bash scripts/test-ui.sh tests/ui/ui.pw.ts",
     "screens": "SCREENS=1 bash scripts/test-ui.sh tests/ui/screens.pw.ts"
@@ -28,17 +31,21 @@
     "fast-xml-parser": "5.11.1",
     "jszip": "3.10.2",
     "openai": "7.23.0",
+    "pdfjs-dist": "5.7.284",
     "playwright-core": "1.63.0",
     "proper-lockfile": "4.1.2",
     "yaml": "2.9.1",
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "1.63.0",
     "@types/node": "22.20.4",
     "@types/proper-lockfile": "4.1.4",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vitest": "5.0.2"
+  },
+  "overrides": {
+    "@napi-rs/canvas": "0.1.100"
   }
 }

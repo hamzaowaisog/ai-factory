@@ -1,6 +1,6 @@
 // Build side of the brownfield slice (stages-aligned §1): discover/baseline → stub commit →
 // author-tests (fails on base twice → lock) → implement ⟲ task verify → integrate → accept.
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
 import type { Failure, IntentBody, LedgerEvent, PlanBody, SpecDraft, TestResult, TestRun } from "../contracts/index.js";
@@ -22,17 +22,25 @@ import { sha256 } from "../util/hash.js";
 import { factoryHome } from "../util/paths.js";
 import { produceDotnetTests, skippableKnownFailures, type Probe, type ProduceOutput } from "../verify/dotnet.js";
 import type { Expectations } from "../verify/validate.js";
-import { header, outputOf, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { approvedDesignFor } from "./design-inputs.js";
+import { header, outputOf, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { modelFor } from "./routing.js";
 import { family } from "../runners/types.js";
 import { S } from "./think.js";
-import { ensureWorktree, runtime, snapshotFor } from "./workspace.js";
+import { codeBase, ensureWorktree, runtime, snapshotFor, uiBase } from "./workspace.js";
 import { replay, splitKey } from "../ledger/state.js";
+import { REPO_DESIGN_DIR, repoFiles, type DesignPackage } from "../design/package.js";
+import { exportRunPackage } from "./design-export.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import { LANE, lightBuild, testWriterTurns } from "./lane.js";
 import { lessonPointers, readLessons, usableLessons } from "../context/lessons.js";
 import { sizeCap } from "../estimate/gates.js";
+import { buildWaiver } from "../estimate/build-waiver.js";
+import type { WaiverRow } from "../estimate/log.js";
 import { designFidelityLint, designSizeCap } from "../design/gates.js";
+import { screenBrief, screenFacts, screenFor, screenForTask, type ApprovedDesign } from "../estimate/design-link.js";
+import { scaffoldSummary, writeScaffold } from "../design/kit/index.js";
+import { scaffoldOfRun, type ScaffoldRecord } from "./scaffold-run.js";
 import { actualSize, approvedLevel, designOptions, fidelityLint, hasReactApp, touchesUiFiles } from "../design/build-checks.js";
 import { buildInventory, inventorySummary } from "../design/inventory.js";
 import { dirSource } from "../design/source.js";
@@ -203,20 +211,65 @@ export const discoverStep: StepDef = {
 };
 
 // ---------- stub commit (D) ----------
+/**
+ * The approved design's package for the repo (docs/estimates-design.md, "The design package"): this run's own,
+ * or the one of the estimate or design run it follows. Undefined without an approved design; a package that
+ * cannot be written is logged and the build goes on without it.
+ */
+async function packageForBuild(ctx: StepContext): Promise<DesignPackage | undefined> {
+  if (!approvedDesignFor(ctx.state, ctx.ledger)) return undefined;
+  try {
+    const r = await exportRunPackage(ctx.state, ctx.ledger, ctx.log);
+    if ("none" in r) { ctx.log(`stub-commit: no design package (${r.none})`); return undefined; }
+    return r;
+  } catch (e) {
+    ctx.log(`stub-commit: the design package was not added to the repo: ${(e as Error).message}`);
+    return undefined;
+  }
+}
+
 export const stubCommitStep: StepDef = {
   key: "stub-commit", stage: "stub-commit", templateVersion: "1",
-  inputs: (s) => (s.steps.get("approve")?.status === "completed" ? { plan: s.steps.get("plan")!.outputs[0], approval: s.steps.get("approve")!.outputs[0] } : undefined),
+  // (the design package is an input only when this run wrote one, so runs from before packages keep their hash)
+  inputs: (s) => (s.steps.get("approve")?.status === "completed" ? { plan: s.steps.get("plan")!.outputs[0], approval: s.steps.get("approve")!.outputs[0], ...(outputOf(s, "design-export") ? { design: outputOf(s, "design-export") } : {}) } : undefined),
   coding: true,
   async run(ctx) {
     const plan = requireOutput<Plan>(ctx.state, ctx.ledger, "plan");
     const wt = await ensureWorktree(ctx, ctx.state.info.baseCommit!);
     await resetHard(wt, ctx.state.info.baseCommit!);
+    // the approved design package: read from the factory's store; committed first, as its own commit, only when the project asks
+    const pkg = await packageForBuild(ctx);
+    const commitPackage = !!ctx.project.design?.commitPackage;
+    let designCommit: string | undefined;
+    if (pkg && commitPackage) {
+      for (const f of repoFiles(pkg)) {
+        mkdirSync(dirname(join(wt, f.path)), { recursive: true });
+        copyFileSync(f.from, join(wt, f.path));
+      }
+      const m = pkg.manifest;
+      designCommit = await commitAll(wt, `factory: design ${m.line} v${m.version} (approved by ${m.approved.by}) for ${ctx.runId}`);
+    }
+    // then the approved design as code in the UI target's kit, as its own commit (docs/estimates-design.md, "Kit and scaffold")
+    const scaf = pkg ? scaffoldOfRun(ctx, pkg) : undefined;
+    let scaffoldRec: ScaffoldRecord | undefined;
+    if (scaf?.layout) {
+      const l = scaf.layout;
+      const written = writeScaffold(l, wt);
+      const scaffoldCommit = written.length ? await commitAll(wt, `factory: scaffold ${l.target} (kit ${l.kit.id} ${l.kit.version}) for ${ctx.runId}`) : undefined;
+      scaffoldRec = { target: scaf.target, source: scaf.source, why: scaf.detected.why, kit: l.kit, root: l.root, fresh: l.fresh, written, kept: l.kept, protected: l.protected, screens: l.screens, removed: l.removed, designSystem: l.designSystem, notes: l.notes, summary: scaffoldSummary(l), ...(scaf.changed ? { changed: scaf.changed } : {}), ...(scaffoldCommit ? { commit: scaffoldCommit } : {}) };
+      ctx.log(`stub-commit: scaffold ${l.target}: ${written.length} files written${l.kept.length ? `, ${l.kept.length} kept (the repo's own)` : ""}`);
+    } else if (scaf) ctx.log(`stub-commit: UI target ${scaf.target} (${scaf.source}; ${scaf.detected.why}): no scaffold, the screens are built with the repo's own components`);
     for (const s of plan.stubs) {
       mkdirSync(dirname(join(wt, s.path)), { recursive: true });
       writeFileSync(join(wt, s.path), s.content);
     }
     const commit = plan.stubs.length ? await commitAll(wt, `factory: interface stubs for ${ctx.runId}`) : await headSha(wt);
-    return { kind: "done", outputs: { stubs: ctx.ledger.putJson({ commit, files: plan.stubs.map((s) => s.path) }) }, treeSha: commit, data: { commit } };
+    const design = pkg ? { line: pkg.manifest.line, version: pkg.manifest.version, designSha: pkg.manifest.designSha, ...(commitPackage ? { dir: `${REPO_DESIGN_DIR}/${pkg.manifest.line}/v${pkg.manifest.version}` } : {}) } : undefined;
+    const scaffoldSha = scaffoldRec ? ctx.ledger.putJson(scaffoldRec) : undefined;
+    return {
+      kind: "done", outputs: { stubs: ctx.ledger.putJson({ commit, files: plan.stubs.map((s) => s.path), ...(design ? { design, designCommit } : {}) }), ...(scaffoldSha ? { scaffold: scaffoldSha } : {}) }, treeSha: commit,
+      data: { commit, ...(design ? { designCommit, design } : {}), ...(scaffoldRec ? { scaffold: { target: scaffoldRec.target, kit: `${scaffoldRec.kit.id} ${scaffoldRec.kit.version}`, files: scaffoldRec.written.length, screens: scaffoldRec.screens.length, ...(scaffoldRec.commit ? { commit: scaffoldRec.commit } : {}) } } : scaf ? { uiTarget: scaf.target } : {}) },
+    };
   },
 };
 
@@ -295,7 +348,7 @@ export function testWriterTampering(files: { status: string; path: string; added
 }
 
 export const authorTestsStep: StepDef = {
-  key: "author-tests", stage: "author-tests", templateVersion: "2", coding: true,
+  key: "author-tests", stage: "author-tests", templateVersion: "3", coding: true,
   inputs: (s) => (s.steps.get("stub-commit")?.status === "completed" ? { stubs: s.steps.get("stub-commit")!.outputs[0], spec: s.steps.get("specify")!.outputs[0] } : undefined),
   async run(ctx) {
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
@@ -320,6 +373,8 @@ export const authorTestsStep: StepDef = {
     const priorFailures = ctx.priorFailures.filter((f) => f.check !== "passes-on-base");
         // The test author sees ACs, stub signatures and harness rules. Never the plan's approach.
     const acs = spec.requirements.flatMap((r) => r.acceptance.map((a) => ({ req: r.id, ...a })));
+    // the approved screens behind these criteria: what the person approved is what the tests expect (PR #11 review, item 13)
+    const screens = screenFacts(approvedDesignFor<ApprovedDesign>(ctx.state, ctx.ledger)?.design, [...new Set(acs.map((a) => a.req))]);
     const pack = buildPack({
       stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
       sections: [
@@ -342,6 +397,7 @@ Rules:
 Return the list of tests you wrote (acId, file, method name) and the probes.`),
         ...(anchorFiles(spec).length || lessons.length ? [S.pointers([...anchorFiles(spec).map((p) => ({ path: p, reason: "the code these criteria are about" })), ...lessonPointers(lessons)])] : []),
         S.artifact("acs", "acceptance-criteria", acs),
+        ...(screens.length ? [S.artifact("approved-screens", "approved-screens", screens), S.template("approved-screens-rules", `The approved-screens section lists the screens a person approved for these requirements: route, states, and the exact words on them (title, buttons, field labels, column headers, empty, error, success and validation messages, toasts; "change" for a design note). Where a criterion is about what the user sees or is told, take the expected values from there, word for word, and do not invent other wording. A criterion with no screen there is tested as before.`)] : []),
         S.artifact("stubs", "stubs", plan.stubs.map((s) => ({ path: s.path, content: s.content }))),
         ...(priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "Your previous attempt was rejected:\n" + priorFailures.slice(0, 20).map((f) => `- [${f.check}] ${f.message}`).join("\n") }] : []),
         S.task(`Write the acceptance and characterisation tests now.${priorFailures.length ? " The previous attempt failed for the reasons above; fix them." : ""}`),
@@ -557,7 +613,7 @@ const PREV_CHANGE_CAP = 40_000;
 export function implementStep(taskId: string): StepDef {
   const key = `implement/${taskId}`;
   return {
-    key, stage: "implement", templateVersion: "1", coding: true,
+    key, stage: "implement", templateVersion: "2", coding: true,
     inputs: (s) => {
       if (s.steps.get("author-tests")?.status !== "completed") return undefined;
       const plan = s.steps.get("plan")!.outputs[0];
@@ -605,6 +661,17 @@ export function implementStep(taskId: string): StepDef {
       const owners = acOwners(plan, spec);
       const myTests = lock.tests.filter((t) => owners.get(t.acId) === task.id);
       const earlier = earlierTests(plan, owners, lock.tests, task.id);
+      const ref = ctx.state.info.estimateRef;
+      const approvedDesign = approvedDesignFor<ApprovedDesign>(ctx.state, ctx.ledger)?.design;
+      const screen = ref && approvedDesign ? screenFor(ctx.ledger.getJson(ref.breakdownSha), approvedDesign, task.estimateTaskId) : undefined;
+      // the scaffold the stub commit wrote: a task that fills in a screen's container is told to write behaviour only, the
+      // design-system task gets the scaffold's to-do list, and no task may change the files the factory generated
+      const scaf = readOutput<ScaffoldRecord>(ctx.state, ctx.ledger, "stub-commit", "scaffold");
+      const scaffoldScreen = scaf?.screens.find((x) => matchesAny(x.container, task.fileScope));
+      const designSystemTask = !!scaf && scaf.designSystem.files.some((f) => matchesAny(f, task.fileScope));
+      // every task that builds an approved screen gets its brief: an estimated build, --from-design, a kit or a repo of its own
+      const briefScreen = screen ?? (scaffoldScreen ? approvedDesign?.screens.find((x) => x.id === scaffoldScreen.id) : undefined) ?? screenForTask(approvedDesign, task);
+      const approvedScreen = approvedDesign && briefScreen ? screenBrief(approvedDesign, briefScreen) : undefined;
       const rt = runtime();
       await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
       await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
@@ -618,6 +685,14 @@ export function implementStep(taskId: string): StepDef {
 - Follow the exemplar files' style. Keep the change small.
 - You may run "dotnet build" and unit tests that need no database. The factory runs the full checks after you finish.`),
           S.artifact("task", "plan-task", { ...task, approach: task.approach }),
+          // the approved screen this task builds (route, states, sample content, and the look to follow)
+          ...(approvedScreen ? [S.artifact("approved-screen", "approved-screen", approvedScreen)] : []),
+          ...(scaf ? [S.profile("scaffold", `The approved design is already code in this repo (${scaf.target}, kit ${scaf.kit.id} ${scaf.kit.version}):\n${scaf.summary}`)] : []),
+          ...(scaffoldScreen ? [S.template("behaviour-only", `This task fills in ${scaffoldScreen.id}'s container, ${scaffoldScreen.container}. The page itself is ${scaffoldScreen.screen}: the approved blocks, states, layers and text, generated from the approved design and not editable. Its sample data is ${scaffoldScreen.fixtures}, which is the shape the real data must take.
+- Write behaviour only: load the real data in the fixtures' shape and pass it as \`data\`, handle the page's actions in \`onAction(label, at)\`, and pass \`state\` for loading, empty, error, success and validation (the states the design drew: ${Object.keys(scaffoldScreen.states).join(", ")}).
+- Do not restyle or rebuild the page: no new markup, classes, colours or components for what the page already draws. Keep the fixture branch (\`?fixture=${scaffoldScreen.id}:<state>\` shows the approved sample data with no backend).
+- Server code, API clients and validation go in the other files of your scope.`)] : []),
+          ...(designSystemTask ? [S.template("design-system", `This is the design-system task. The generated files are already in the repo (the scaffold commit). Finish the wiring:\n${scaf!.designSystem.todo.map((t) => `- ${t}`).join("\n") || "- nothing left to wire: check the app builds"}\nDo not change the generated files.`)] : []),
           S.artifact("acs", "acceptance-criteria", spec.requirements.filter((r) => task.reqs.includes(r.id))),
           S.artifact("tests", "locked-tests", myTests),
           S.pointers([...task.fileScope.map((p) => ({ path: p, reason: "you may change this" })), ...task.exemplars.map((p) => ({ path: p, reason: "follow this style" })), ...myTests.map((t) => ({ path: t.file, reason: `locked test for ${t.acId}; read, don't edit` }))]),
@@ -632,7 +707,7 @@ export function implementStep(taskId: string): StepDef {
       });
       const r = await new ClaudeAgentRunner(rt, {
         runId: ctx.runId, key: `${key}/${ctx.attempt}`, fileScope: task.fileScope, lockedFiles: lock.lock.map((l) => l.file), onProgress: agentTracer(ctx, "implementer"),
-        extraProtected: [], packagesDir: packagesDir(ctx.runId), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
+        extraProtected: scaf?.protected ?? [], packagesDir: packagesDir(ctx.runId), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
         onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key, data: { id, role: "agent" } }, ctx.writer); },
         onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key, data: { id } }, ctx.writer); },
       }).run({ step: "implement", model, effort, pack, schema: ImplementOut, limits: { maxTurns: 80, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
@@ -720,7 +795,7 @@ export const integrateStep: StepDef = {
     const baseline = ctx.ledger.getJson<TestRun>(baselineSha);
     const head = String(integrateStep.inputs(ctx.state, ctx.ledger)!.head);
     const wt = await ensureWorktree(ctx, head);
-    const diff = await diffSummary(wt, ctx.state.info.baseCommit!, head, lock);
+    const diff = await diffSummary(wt, codeBase(ctx.state), head, lock);
     const diffSha = ctx.ledger.putJson(diff);
     const expectPass = [...lock.tests.map((t) => t.testId), ...lock.characterisation.map((c) => c.testId)];
     const compareToBaseline = baseline.results.map((b) => b.id);
@@ -733,21 +808,37 @@ export const integrateStep: StepDef = {
     } else {
       testRun = storeRun(ctx, await produce(ctx, "integrate", head, "integrate", { expectPass, expectFail: [], compareToBaseline })).testRun;
     }
+    // the UI change as built, next to the size class the approved design allowed (both recorded, so estimates can be read against builds)
+    const dRef = approvedDesignFor(ctx.state, ctx.ledger)?.sha;
+    // measured from the scaffold commit: the pages the factory generated from the approved design are not the agents' change
+    const uiFrom = uiBase(ctx.state);
+    const uiActual = dRef && touchesUiFiles(wt, uiFrom, head) ? actualSize(wt, uiFrom, head, designOptions(ctx.project.design)) : undefined;
+    const uiApproved = dRef ? approvedLevel(ctx.ledger.getJson(dRef)) : undefined;
     const gated = await gateAll(ctx, "integrate", head, [
       [testExpectations, { run: testRun, baseline: baselineSha }],
       [lockSetUnchanged, { diff: diffSha, tests: ctx.state.steps.get("author-tests")!.outputs[0]! }],
       [diffSize, { diff: diffSha }],
-      // B3: a run that follows an approved estimate may not grow past the size that was approved
-      ...(ctx.state.info.estimateRef ? [[sizeCap, { diff: diffSha, estimate: ctx.state.info.estimateRef.estimateSha }] as [GateDef, Record<string, string>]] : []),
       // design.size-cap: the UI change may not be bigger than the approved design allows (a skipped design allows none)
-      ...(ctx.state.info.estimateRef?.designSha && touchesUiFiles(wt, ctx.state.info.baseCommit!, head)
+      ...(uiActual
         ? [[designSizeCap, {
-          actual: ctx.ledger.putJson(actualSize(wt, ctx.state.info.baseCommit!, head, designOptions(ctx.project.design))),
-          approved: ctx.ledger.putJson({ level: approvedLevel(ctx.ledger.getJson(ctx.state.info.estimateRef.designSha)) }),
+          actual: ctx.ledger.putJson(uiActual),
+          approved: ctx.ledger.putJson({ level: uiApproved }),
         }] as [GateDef, Record<string, string>]] : []),
     ]);
     if (gated) return { kind: "park", reason: `Integration failed: ${gated.failures.slice(0, 3).map((f) => f.message).join("; ")}` };
-    return { kind: "done", outputs: { testRun, diff: diffSha }, treeSha: head, data: { commit: head, ...(reused ? { reusedRunFrom: reused.step } : {}) } };
+    // B3: a run that follows an approved estimate may not grow past the size that was approved; a lead can waive it for this commit
+    let waivers: Omit<WaiverRow, "step">[] = [];
+    const ref = ctx.state.info.estimateRef;
+    if (ref) {
+      const b3 = await runGate(sizeCap, ctx.ledger, ctx.writer, { diff: diffSha, estimate: ref.estimateSha }, ctx.policy, { step: "integrate", treeSha: head });
+      if (!b3.passed) {
+        const w = buildWaiver(ctx, "integrate", [{ def: sizeCap, failures: b3.failures ?? [failure(sizeCap.id, b3.details)] }], head,
+          `To stop and change the request instead: factory estimate --revises ${ref.runId}, then build that estimate.`);
+        if (w.kind === "ask") return w.outcome;
+        waivers = w.waivers;
+      }
+    }
+    return { kind: "done", outputs: { testRun, diff: diffSha }, treeSha: head, data: { commit: head, ...(reused ? { reusedRunFrom: reused.step } : {}), ...(uiApproved ? { uiSize: { approved: uiApproved, actual: uiActual?.level ?? "none" } } : {}), ...(waivers.length ? { waivers } : {}) } };
   },
 };
 

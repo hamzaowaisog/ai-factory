@@ -9,7 +9,7 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 
-export interface AppSpec { cwd: string; install?: string; start: string; port: number; readyPath: string; timeoutSec: number; env: Record<string, string> }
+export interface AppSpec { cwd: string; install?: string; start: string; port: number; readyPath: string; timeoutSec: number; env: Record<string, string>; /** the log prefix; default "visual check" */ what?: string }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -28,7 +28,7 @@ export async function withApp<T>(spec: AppSpec, fn: (baseUrl: string) => Promise
   let tail = "";
   try {
     if (spec.install) {
-      log(`visual check: ${spec.install}`);
+      log(`${spec.what ?? "visual check"}: ${spec.install}`);
       try { await run("sh", ["-c", spec.install], { cwd: spec.cwd, env: appEnv(spec, home), timeout: spec.timeoutSec * 1000, maxBuffer: 16 * 1024 * 1024 }); }
       catch (e) { throw new Error(`install failed: ${String((e as { stderr?: string }).stderr ?? (e as Error).message).trim().split("\n").slice(-3).join(" | ")}`); }
     }

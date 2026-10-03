@@ -6,6 +6,7 @@ export * from "./estimate.js";
 export * from "./verify.js";
 export * from "./ledger.js";
 export * from "./pack.js";
+export * from "./reference.js";
 
 export type JSONSchema = Record<string, unknown>;
 

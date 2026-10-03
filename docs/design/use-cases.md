@@ -48,6 +48,7 @@ The whole design (core-design.md §1–14, contracts.md, plan-audit.md) walked a
 | GF4 | Initial scope is many features | **Gap G4** | Spec → run sequence (walking skeleton first) |
 | GF5 | Creating the remote repo | ✓ with note | Deterministic forge sink after human gate; POC: human creates it, factory pushes |
 | GF6 | CI pipeline for the new repo | ✓ | From blueprint; protected afterwards |
+| GF7 | New app with design references, or none | **Ready to plug in** | Greenfield adds `...designSteps()` (references, design, approval); not built while greenfield has no step list |
 
 ## 3. Estimate + MVP
 
@@ -55,12 +56,13 @@ The whole design (core-design.md §1–14, contracts.md, plan-audit.md) walked a
 |---|---|---|---|
 | ES1 | Brief text → estimate sheet (xlsx) | ✓ | clarify/specify (L) → breakdown (L) → code math (D) |
 | ES2 | Brief with PDFs, RFP or Figma | ✓ with note | Attachments extracted by L stages; every claim cites its source page |
+| ES8 | Client gives design references (images, URLs, Figma, brand guide) | **Being built** (2026-10-02) | `--ref` or the UI form; turned into one form at intake, read by `design-refs`; the design follows them by role (match, inspire, layout). Same in brownfield and greenfield. No references: look from the industry library as before |
 | ES3 | Estimate for a change to an existing client repo | ✓ | discover + impact feed leverage tags and ranges |
 | ES4 | Disciplines outside our stacks (Mobile, Design, PM, QA) | ✓ with note | Ratios from past sheets, labelled; prototype is web only |
 | ES5 | Client changes the brief after the estimate | ✓ | Same change mechanism; estimate v2 with a diff against v1 |
 | ES6 | Client needs to click the MVP | **Gap G10** | Preview packaging |
 | ES7 | Estimate accepted → start building | **Gap G4** | Estimate's spec + breakdown seed the greenfield run sequence (no re-spec) |
-| ES8 | Calibration from actual effort | ✓ (later) | Actuals per task logged by every build run |
+| ES8 | Calibration from actual effort | ✓ | Actuals per task logged by every build run; the factory proposes a tuned task catalogue from them and from real project hours; a person promotes it (docs/estimate-consistency.md, section 14) |
 
 ## 4. Cross-cutting
 

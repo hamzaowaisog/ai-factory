@@ -1,6 +1,6 @@
 // End to end: an estimate from requirements alone, through the real executor, with a scripted model.
 // One question card, then the lead's approval card, then two workbooks on disk.
-import { draftFile } from "../ui/data.js";
+import { draftFile, estimateView } from "../ui/data.js";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -20,8 +20,9 @@ import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { createRun, execute } from "./executor.js";
 import { previewFile, readPreview } from "../ui/preview.js";
 import { approvedEstimate } from "../estimate/lineage.js";
-import { setRecordsSource } from "./estimate.js";
+import { setRecordsSource, setTaskRecordsSource } from "./estimate.js";
 import { setProviderFactory } from "./think.js";
+import { setTuneTrigger } from "../estimate/tune.js";
 
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
 const REQS = [
@@ -35,18 +36,19 @@ const draft = {
 const breakdown = {
   features: [{ id: "F-1", title: "Sign in", reqs: ["REQ-1"] }, { id: "F-2", title: "Reports", reqs: ["REQ-2"] }],
   tasks: [
-    { id: "EST-1", title: "Sign-in endpoint", featureId: "F-1", reqs: ["REQ-1"], items: ["email and password", "lockout after 5 tries"], track: "backend", executor: "factory", dependsOn: [], complexity: "standard" },
-    { id: "EST-2", title: "PDF report", featureId: "F-2", reqs: ["REQ-2"], items: ["one-page summary"], track: "backend", executor: "factory", dependsOn: ["EST-1"], complexity: "external-dependency" },
-    { id: "EST-3", title: "Client UAT", featureId: "F-1", reqs: [], items: [], track: "qa", executor: "human", dependsOn: ["EST-2"], complexity: "standard", overhead: "client acceptance testing" },
+    { id: "EST-1", title: "Sign-in endpoint", featureId: "F-1", reqs: ["REQ-1"], items: ["email and password", "lockout after 5 tries"], track: "backend", kind: "be-auth", executor: "factory", dependsOn: [], complexity: "standard" },
+    { id: "EST-2", title: "PDF report", featureId: "F-2", reqs: ["REQ-2"], items: ["one-page summary"], track: "backend", kind: "be-files", executor: "factory", dependsOn: ["EST-1"], complexity: "external-dependency" },
+    { id: "EST-3", title: "Client UAT", featureId: "F-1", reqs: [], items: [], track: "qa", kind: "qa-uat", executor: "human", dependsOn: ["EST-2"], complexity: "standard", overhead: "client acceptance testing" },
   ],
   checklist: [{ item: "auth", included: true }, { item: "monitoring", included: false, reason: "client hosts and monitors" }],
 };
 const sizing = {
+  stack: { backend: "ASP.NET Core Web API", database: "PostgreSQL", architecture: "modular monolith", basis: "assumed" as const, notes: "no stack named in the request" },
   anchors: [{ taskId: "EST-1", hours: { min: 4, max: 8 }, reason: "a typical endpoint with validation for this stack" }],
   tasks: [
-    { taskId: "EST-1", anchorId: "EST-1", ratio: 1, reason: "the anchor" },
-    { taskId: "EST-2", anchorId: "EST-1", ratio: 1.5, reason: "a PDF library on top of the same shape" },
-    { taskId: "EST-3", anchorId: "EST-1", ratio: 1, reason: "a day of client testing" },
+    { taskId: "EST-1", anchorId: "EST-1", ratio: 1, reason: "the anchor", size: "typical", verify: "moderate", context: "complete" },
+    { taskId: "EST-2", anchorId: "EST-1", ratio: 1.5, reason: "a PDF library on top of the same shape", size: "typical", verify: "moderate", context: "complete" },
+    { taskId: "EST-3", anchorId: "EST-1", ratio: 1, reason: "a day of client testing", size: "typical", verify: "moderate", context: "complete" },
   ],
 };
 
@@ -68,19 +70,19 @@ const UI_DESIGN = {
   noScreen: [],
 };
 let uiDesign: unknown = UI_DESIGN;
-const withScreens = (b: typeof breakdown) => ({ ...b, tasks: b.tasks.map((t) => (t.id === "EST-1" ? { ...t, track: "web", screen: "S-1" } : t.id === "EST-2" ? { ...t, track: "web", screen: "S-2" } : t)) });
+const withScreens = (b: typeof breakdown) => ({ ...b, tasks: b.tasks.map((t) => (t.id === "EST-1" ? { ...t, track: "web", kind: "ui-form", screen: "S-1" } : t.id === "EST-2" ? { ...t, track: "web", kind: "ui-detail", screen: "S-2" } : t)) });
 const MODULE_SPANS = ["ALPHA sign in flow", "BETA report export flow"];
 const bigBreakdown = () => ({
   features: [{ id: "F-1", title: "Alpha", reqs: ["REQ-1", "REQ-2"] }, { id: "F-2", title: "Beta", reqs: ["REQ-3", "REQ-4"] }],
   tasks: [
-    ...[1, 2, 3, 4].map((n) => ({ id: `EST-${n}`, title: `Build ${n}`, featureId: n <= 2 ? "F-1" : "F-2", reqs: [`REQ-${n}`], items: [`item ${n}`], track: "backend", executor: "factory", dependsOn: n > 1 ? [`EST-${n - 1}`] : [], complexity: "standard" })),
-    { id: "EST-5", title: "Client UAT", featureId: "F-1", reqs: [], items: [], track: "qa", executor: "human", dependsOn: ["EST-4"], complexity: "standard", overhead: "client acceptance testing" },
+    ...[1, 2, 3, 4].map((n) => ({ id: `EST-${n}`, title: `Build ${n}`, featureId: n <= 2 ? "F-1" : "F-2", reqs: [`REQ-${n}`], items: [`item ${n}`], track: "backend", kind: "be-crud", executor: "factory", dependsOn: n > 1 ? [`EST-${n - 1}`] : [], complexity: "standard" })),
+    { id: "EST-5", title: "Client UAT", featureId: "F-1", reqs: [], items: [], track: "qa", kind: "qa-uat", executor: "human", dependsOn: ["EST-4"], complexity: "standard", overhead: "client acceptance testing" },
   ],
   checklist: breakdown.checklist,
 });
 const bigSizing = () => ({
-  anchors: sizing.anchors,
-  tasks: [1, 2, 3, 4, 5].map((n) => ({ taskId: `EST-${n}`, anchorId: "EST-1", ratio: n === 1 ? 1 : 1.25, reason: n === 1 ? "the anchor" : "a little more than the anchor" })),
+  anchors: sizing.anchors, stack: sizing.stack,
+  tasks: [1, 2, 3, 4, 5].map((n) => ({ taskId: `EST-${n}`, anchorId: "EST-1", ratio: n === 1 ? 1 : 1.25, reason: n === 1 ? "the anchor" : "a little more than the anchor", size: "typical", verify: "moderate", context: "complete" })),
 });
 function answerFor(system: string): unknown {
   prompts.push(system.slice(0, 60));
@@ -88,7 +90,11 @@ function answerFor(system: string): unknown {
   if (modular && system.includes("sizing the tasks")) return bigSizing();
   if (modular && system.includes("turning a finished spec")) return bigBreakdown();
   if (modular && system.includes("Requirements analyst")) return { questions: [], conflicts: [] };
-  if (system.includes("drawing the screen inventory")) return uiDesign;
+  if (system.includes("drawing the screen inventory")) {
+    const d = uiDesign as { screens: Record<string, unknown>[] };
+    const mock = { title: "Open orders", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["Continue"] }], copy: {} };
+    return { theme: { mood: "calm", brand: "#1f6feb", reading: { users: "clinic staff", context: "at a desk all day", device: "web", tone: "calm", hero: "the day's queue at a glance", traits: ["dense", "quiet"] }, basis: [{ ref: "Linear", took: "hairlines" }, { ref: "Stripe", took: "one blue action" }] }, ...d, screens: d.screens.map((x) => ({ mock, mockFull: mock, ...x })) };
+  }
   if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "sign in and export reports" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: ui };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: "user signs in", kind: "happy" }, { text: "user exports a PDF", kind: "happy" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [] };
@@ -111,6 +117,8 @@ const provider: Provider = {
   },
 };
 
+/** background tuning starts counted, never spawned */
+let tunes = 0;
 beforeEach(() => {
   const home = mkdtempSync(join(tmpdir(), "factory-est-e2e-"));
   process.env.FACTORY_HOME = home;
@@ -120,6 +128,9 @@ beforeEach(() => {
   writeFileSync(join(home, "projects", "demo.yaml"), stringify({ project: "demo", repo: mkdtempSync(join(tmpdir(), "factory-est-repo-")), stack: "dotnet" }));
   setProviderFactory(() => provider);
   setRecordsSource(() => []);
+  setTaskRecordsSource(() => []);
+  tunes = 0;
+  setTuneTrigger(() => { tunes++; });
   prompts = [];
   drafterTools = [];
   criticSystems = [];
@@ -136,6 +147,7 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     });
     const r1 = await execute(runId);
     expect(r1.status, r1.message).toBe("waiting");
+    expect(tunes).toBe(0); // no estimate yet: nothing new to tune from
     const ledger = Ledger.open(runId);
     const q = replay(ledger.events()).openCard!;
     expect(q.kind).toBe("question");
@@ -146,7 +158,8 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     const card = replay(ledger.events()).openCard!;
     expect(card.kind).toBe("estimate-approval");
     const md = ledger.readCard(card.cardId);
-    expect(md).toMatch(/## Anchors[\s\S]*EST-1 Sign-in endpoint: 4-8 h/);
+    // hours from the catalogue: be-auth at the typical size is 10-16 h
+    expect(md).toMatch(/## Anchors[\s\S]*EST-1 Sign-in endpoint: 10-16 h/);
     expect(md).toMatch(/estimate\.e1-readiness/);
     // before approval the web UI can still hand out a draft of each workbook
     for (const who of ["team", "client"]) {
@@ -182,6 +195,34 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     expect(team.getWorksheet("Cost")).toBeTruthy();
     expect(client.getWorksheet("Cost")).toBeUndefined();
     expect(client.getWorksheet("Anchors")).toBeUndefined();
+  });
+
+  it("runs hands-off: no question card, no approval card, the questions become the factory's assumptions", async () => {
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", {
+      mode: "estimate", estimate: { deliveryModel: "hitl", stackSource: "client", designInTotal: true, feedbackRounds: 2, noRepo: true, humanReview: false },
+    });
+    const r = await execute(runId);
+    expect(r.status, r.message).not.toBe("waiting");
+    expect(tunes).toBe(1); // the finished estimate starts background tuning once
+    const ledger = Ledger.open(runId);
+    const s = replay(ledger.events());
+    expect(s.decisions).toEqual([]);
+    for (const step of ["clarify", "clarify-2", "specify", "estimate", "approve-estimate", "export"]) expect(s.steps.get(step)?.status, step).toBe("completed");
+    const c1 = ledger.getJson<{ asked: unknown[]; assumptions: { text: string; risk: string }[]; assumedBy?: string }>(s.steps.get("clarify")!.outputs[0]!)!;
+    expect(c1.asked).toEqual([]);
+    expect(c1.assumedBy).toBe("factory");
+    expect(c1.assumptions).toEqual([expect.objectContaining({ text: "Web or mobile? → assumed: web", risk: "high" })]);
+    expect(s.steps.get("clarify-2")!.data).toMatchObject({ skipped: true, handsOff: true });
+    expect(s.steps.get("approve-estimate")!.data).toMatchObject({ by: "factory", auto: true });
+    expect(s.gates.find((g) => g.gateId === "estimate.e7-approval")).toMatchObject({ passed: true });
+    // an estimate the factory approved can be revised, but no build is held to a budget nobody approved
+    expect(approvedEstimate(runId).runId).toBe(runId);
+    expect(() => approvedEstimate(runId, { build: true })).toThrow(/approved by the factory/);
+    // the Estimate tab says who approved it and lists what the factory assumed
+    const v = estimateView(ledger) as { handsOff?: boolean; approved?: { auto?: boolean; by: string }; factoryAssumptions?: { id: string; risk: string }[] };
+    expect(v.handsOff).toBe(true);
+    expect(v.approved).toMatchObject({ by: "factory", auto: true });
+    expect(v.factoryAssumptions).toEqual([expect.objectContaining({ id: "ASM-1", risk: "high" })]);
   });
 
   it("specifies a large document module by module, joins the modules, and estimates the whole", async () => {
@@ -332,7 +373,7 @@ describe("estimate mode for a request with UI (scripted model)", () => {
     expect(html).toMatch(/id="S-2"/);
     // the same page is what `factory ui` shows under Run: Preview
     const pv = readPreview(ledger);
-    expect("preview" in pv && pv.preview.site?.screens.map((x) => x.title)).toEqual(["S-1 /login", "S-2 /reports"]);
+    expect("preview" in pv && pv.preview.site?.screens.map((x) => x.title)).toEqual(["Open orders (/login)", "Open orders (/reports)"]);
     expect(previewFile(ledger, "index.html")?.body.toString()).toBe(html);
     const s = replay(ledger.events());
     for (const step of ["design", "design-baseline", "breakdown", "estimate", "approve-estimate", "export"]) expect(s.steps.get(step)?.status, step).toBe("completed");

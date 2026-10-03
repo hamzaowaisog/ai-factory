@@ -25,6 +25,9 @@ export const DEFAULT_ROUTES: Record<string, StepRoute> = {
   breakdown: { runner: "api", model: OPUS, escalate: [], effort: "high" },
   estimate: { runner: "api", model: OPUS, escalate: [], effort: "high" },
   design: { runner: "api", model: OPUS, escalate: [], effort: "high" },
+  "design-triage": { runner: "api", model: HAIKU, escalate: [SONNET], effort: "low" },
+  /** reads the design references the user attached (runs with references only) */
+  "design-read": { runner: "api", model: SONNET, escalate: [OPUS], effort: "medium" },
   plan: { runner: "api", model: OPUS, escalate: [], effort: "high" },
   "author-tests": { runner: "claude-agent", model: OPUS, escalate: [], effort: "high" },
   implement: { runner: "claude-agent", model: SONNET, escalate: [OPUS], effort: "high" },
@@ -33,9 +36,11 @@ export const DEFAULT_ROUTES: Record<string, StepRoute> = {
   "impact-lens": { runner: "api", model: SONNET, escalate: [], effort: "medium" },
 };
 
-export const THINKING_STEPS = new Set(["intake", "ground", "specify", "specify-other", "critic", "plan", "breakdown", "estimate", "design", "review", "sketches", "sketch-align", "clarifier", "merge", "restater", "rt-align", "impact", "impact-lens"]);
+export const THINKING_STEPS = new Set(["intake", "ground", "specify", "specify-other", "critic", "plan", "breakdown", "estimate", "design", "design-triage", "design-read", "review", "sketches", "sketch-align", "clarifier", "merge", "restater", "rt-align", "impact", "impact-lens"]);
 /** The model steps an estimate run uses: it never plans, writes tests or code, or reviews, so it does not need those routes set up. */
-export const ESTIMATE_ROUTES = ["intake", "ground", "sketches", "sketch-align", "clarifier", "specify", "specify-other", "merge", "restater", "rt-align", "critic", "breakdown", "estimate", "design"] as const;
+export const ESTIMATE_ROUTES = ["intake", "ground", "sketches", "sketch-align", "clarifier", "specify", "specify-other", "merge", "restater", "rt-align", "critic", "breakdown", "estimate", "design", "design-triage", "design-read"] as const;
+/** A design-only run: the estimate's steps up to the spec, then the design (no breakdown, no sizing). */
+export const DESIGN_ROUTES = ESTIMATE_ROUTES.filter((r) => r !== "breakdown" && r !== "estimate");
 export const CODING_STEPS = new Set(["author-tests", "implement", "conflict-resolve"]);
 
 export function routeFor(project: ProjectConfig, stage: string): StepRoute {

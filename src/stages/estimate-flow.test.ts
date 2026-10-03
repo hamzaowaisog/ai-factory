@@ -19,12 +19,13 @@ import { computeTotals } from "../estimate/totals.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
-import { approveEstimateStep, designBaselineStep, exportStep } from "./estimate-approve.js";
+import { approveEstimateStep, designBaselineStep, exportStep, makeDesignApprovalStep } from "./estimate-approve.js";
 import { estimateGroundStep, newBuildBehaviour } from "./estimate-ground.js";
-import { breakdownStep, estimateStep, setRecordsSource } from "./estimate.js";
-import { designStep, mapDesign } from "./design.js";
+import { breakdownStep, estimateStep, setRecordsSource, setTaskRecordsSource } from "./estimate.js";
+import { designQuality, designStep, mapDesign, MAX_DESIGN_REVISIONS } from "./design.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
+import { lightUi, LIGHT_UI_REQS } from "./lane.js";
 import { NO_TRACE } from "../util/trace.js";
 
 const sha = "a".repeat(64);
@@ -43,6 +44,7 @@ beforeEach(() => {
   _resetEnvCache();
   modelCalls = 0;
   setRecordsSource(() => []);
+  setTaskRecordsSource(() => []);
   answer = () => { throw new Error("the model must not be called"); };
   setProviderFactory(() => provider);
 });
@@ -76,8 +78,9 @@ async function decide(ledger: Ledger, out: StepOutcome, step: string, decision: 
 }
 
 // ---------- fixtures ----------
+const KIND: Record<string, string> = { backend: "be-crud", web: "ui-form", pm: "pm-management" };
 const task = (id: string, featureId: string, track: string, executor: string, extra: object = {}) =>
-  ({ id, title: `Task ${id}`, featureId, reqs: ["REQ-1"], items: ["field a"], track, executor, dependsOn: [], complexity: "standard", ...extra });
+  ({ id, title: `Task ${id}`, featureId, reqs: ["REQ-1"], items: ["field a"], track, kind: KIND[track], executor, dependsOn: [], complexity: "standard", ...extra });
 const breakdown = {
   header: { kind: "work-breakdown", schemaVersion: 1, runId: "r", producedBy: { stage: "breakdown" }, inputsHash: sha, createdAt: "2026-09-30T00:00:00Z" },
   features: [{ id: "F-1", title: "Login", reqs: ["REQ-1"] }],
@@ -213,9 +216,23 @@ describe("design baseline (E1b)", () => {
     await complete(other, "intake", uiIntent(true));
     await complete(other, "design", design());
     await decide(other, await exec(other, designBaselineStep), "design-baseline", "reject", { reason: "missing the error states" });
-    const parked = await exec(other, designBaselineStep);
+    // a rejection is not a stop: the design is sent back with the reason (its step now has new inputs) and a fresh card follows
+    expect(designStep.inputs(replay(other.events()), other)).toMatchObject({ rejections: ["missing the error states"] });
+    expect((await exec(other, designBaselineStep)).kind).toBe("wait");
+  });
+  it("sends a rejected design back to be redrawn, and stops only after too many rounds", async () => {
+    const ledger = await newRun();
+    await complete(ledger, "specify", spec);
+    await complete(ledger, "intake", uiIntent(true));
+    await complete(ledger, "design", design());
+    const before = designStep.inputs(replay(ledger.events()), ledger);
+    for (let i = 0; i <= MAX_DESIGN_REVISIONS; i++) {
+      await decide(ledger, await exec(ledger, designBaselineStep), "design-baseline", "reject", { reason: `round ${i + 1}` });
+      if (i < MAX_DESIGN_REVISIONS) expect(designStep.inputs(replay(ledger.events()), ledger)).not.toEqual(before);
+    }
+    const parked = await exec(ledger, designBaselineStep);
     expect(parked.kind).toBe("park");
-    expect((parked as { reason: string }).reason).toMatch(/missing the error states/);
+    expect((parked as { reason: string }).reason).toMatch(/sent back 5 times.*round 5/);
   });
   it("fails an approved design whose screen links to no requirement", async () => {
     const ledger = await newRun();
@@ -381,10 +398,14 @@ describe("export step", () => {
 // ---------- design step ----------
 describe("design step", () => {
   const twoReqs = { ...spec, requirements: [...spec.requirements, { id: "REQ-2", ears: "The system shall export a PDF report.", op: "ADDED", sources: ["I-1"], acceptance: [] }] };
-  const out = (over: Record<string, unknown> = {}) => ({
+  const theme = { mood: "calm clinical", mode: "light", brand: "#1f6feb", neutral: "cool", chrome: "plain", font: "sans", radius: "soft", density: "comfortable", surface: "flat", motion: "lively", reading: { users: "clinic staff", context: "at a desk all day", device: "web", tone: "calm", hero: "the day's queue at a glance", traits: ["dense", "quiet"] }, basis: [{ ref: "Epic MyChart", took: "calm white page, one blue action" }, { ref: "Linear", took: "hairline borders, compact tables" }] };
+  const mock = { title: "Sign in", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["Sign in"] }], copy: {} };
+  /** a finished-looking answer: every screen without a frame gets sample content, and the product has a theme */
+  const dress = (o: { screens: Record<string, unknown>[] } & Record<string, unknown>) => ({ theme, ...o, screens: o.screens.map((s) => (s.mock || (s.frames as unknown[] | undefined)?.length ? s : { ...s, mock, mockFull: mock })) });
+  const out = (over: Record<string, unknown> = {}) => dress({
     flow: "A user signs in, lands on the dashboard", screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["error"], size: "new" }],
     noScreen: [{ req: "REQ-2", reason: "a scheduled job, no screen" }], ...over,
-  });
+  } as never);
   async function uiRun(touchesUi = true) {
     const ledger = await newRun();
     await complete(ledger, "intake", uiIntent(touchesUi));
@@ -459,16 +480,84 @@ describe("design step", () => {
     await decide(ledger, card, "design-baseline", "approve");
     expect((await exec(ledger, designBaselineStep)).kind).toBe("done");
   });
+
+  describe("sending the design back", () => {
+    const page = (title: string, extra: object = {}) => ({ title, blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["Go"] }], copy: {}, ...extra });
+    const sc = (id: string, route: string, title: string, reqs: string[]) => ({ id, route, file: `${id}.tsx`, reqs, states: [], size: "new", mock: page(title), mockFull: page(title) });
+    const three = () => ({ flow: "f", screens: [sc("S-1", "/find", "Find a flight", ["REQ-1"]), sc("S-2", "/book", "Book your flight", ["REQ-2"]), sc("S-3", "/trips", "My trips", ["REQ-1"])], noScreen: [] });
+    const triage = (o: object) => ({ verdict: "patch", summary: "s", items: [], fine: [], notDesign: [], ...o });
+    async function rejected(reason: string) {
+      const ledger = await uiRun();
+      answer = () => dress(three() as never);
+      await exec(ledger, designStep);
+      const card = await exec(ledger, designBaselineStep);
+      await decide(ledger, card, "design-baseline", "reject", { reason });
+      return ledger;
+    }
+    const queue = (...xs: unknown[]) => { answer = () => { if (!xs.length) throw new Error("one model call too many"); return xs.shift(); }; };
+    const latest = (ledger: Ledger) => ledger.getJson<{ screens: { id: string; mock?: { title: string } }[]; rework?: { mode: string; patched: string[]; lines: string[]; kept: string[] }[]; revision?: number }>(replay(ledger.events()).steps.get("design")!.outputs[0]!);
+    const item = (o: object) => ({ part: "screen", screen: "S-2", quote: "the booking page is crowded", change: "fewer blocks, clearer steps", confidence: "high", ...o });
+
+    it("fixes only the page the lead named: one cheap read and one page call, the rest untouched", async () => {
+      const ledger = await rejected("the booking page is way too crowded, the trips list is fine");
+      const before = latest(ledger);
+      const fixed = sc("S-2", "/book", "Book your flight", ["REQ-2"]);
+      queue(triage({ items: [item({})], fine: ["S-3"] }), { screen: { ...fixed, mock: page("Book your flight", { blocks: [{ type: "steps", items: ["Seats", "Extras", "Pay"], current: 0 }, { type: "actions", buttons: ["Continue"] }] }) } });
+      modelCalls = 0;
+      const o = await exec(ledger, designStep);
+      expect(o.kind).toBe("done");
+      expect(modelCalls).toBe(2);
+      const after = latest(ledger);
+      expect(after.screens[0]).toEqual(before.screens[0]);
+      expect(after.screens[2]).toEqual(before.screens[2]);
+      expect(after.screens[1]).not.toEqual(before.screens[1]);
+      expect(after.rework![0]).toMatchObject({ mode: "patch", patched: ["S-2"], kept: ["Find a flight", "My trips"] });
+      expect(after.rework![0]!.lines[0]).toMatch(/^Book your flight: fewer blocks, clearer steps \(you said: "the booking page is crowded"\)/);
+      const md = ((await exec(ledger, designBaselineStep)) as { card: { markdown: string } }).card.markdown;
+      expect(md).toMatch(/## What changed from your feedback/);
+      expect(md).toMatch(/Kept exactly as before: Find a flight, My trips\./);
+      expect(md).toMatch(/- Book your flight: S-2 \/book/);
+    });
+    it("redraws everything when the note is about the structure, and says so", async () => {
+      const ledger = await rejected("the whole flow is wrong, there should be a basket page");
+      queue(triage({ verdict: "redraw", items: [item({ part: "screen", screen: undefined, confidence: "low" })] }), dress(three() as never));
+      modelCalls = 0;
+      expect((await exec(ledger, designStep)).kind).toBe("done");
+      expect(modelCalls).toBe(2);
+      expect(latest(ledger).rework![0]).toMatchObject({ mode: "redraw" });
+      expect(latest(ledger).rework![0]!.lines[0]).toMatch(/organised, so I redrew all of it/);
+    });
+    it("draws nothing for a request no requirement covers, and says it is not a design change", async () => {
+      const ledger = await rejected("add a way to transfer a ticket to a friend");
+      const before = latest(ledger);
+      queue(triage({ notDesign: [{ quote: "transfer a ticket to a friend", why: "no requirement covers it" }] }));
+      modelCalls = 0;
+      expect((await exec(ledger, designStep)).kind).toBe("done");
+      expect(modelCalls).toBe(1);
+      expect(latest(ledger).screens).toEqual(before.screens);
+      expect(((await exec(ledger, designBaselineStep)) as { card: { markdown: string } }).card.markdown).toMatch(/Not changed: "transfer a ticket to a friend".*factory estimate --revises/);
+    });
+    it("falls back to a full redraw when the fixed page keeps failing its checks", async () => {
+      const ledger = await rejected("the booking page is crowded");
+      const wrong = { screen: sc("S-9", "/other", "Book your flight", ["REQ-2"]) };
+      queue(triage({ items: [item({})] }), wrong, wrong, dress(three() as never));
+      modelCalls = 0;
+      expect((await exec(ledger, designStep)).kind).toBe("done");
+      expect(modelCalls).toBe(4);
+      expect(latest(ledger).rework![0]!.lines[0]).toMatch(/did not hold up to the checks/);
+    });
+  });
 });
 
 // ---------- edits on the card ----------
 describe("editing an estimate on its card", () => {
   const sizing = {
+    stack: { backend: "ASP.NET Core Web API", database: "PostgreSQL", architecture: "modular monolith", basis: "assumed" as const, notes: "no stack named in the request" },
     anchors: [{ taskId: "EST-1", hours: { min: 4, max: 8 }, reason: "a typical endpoint for this stack" }],
     tasks: [
-      { taskId: "EST-1", anchorId: "EST-1", ratio: 1, reason: "the anchor" },
-      { taskId: "EST-2", anchorId: "EST-1", ratio: 2, reason: "twice the fields" },
-      { taskId: "EST-3", anchorId: "EST-1", ratio: 0.25, reason: "light" },
+      { taskId: "EST-1", anchorId: "EST-1", ratio: 1, reason: "the anchor", size: "typical", verify: "moderate", context: "complete" },
+      { taskId: "EST-2", anchorId: "EST-1", ratio: 2, reason: "twice the fields", size: "typical", verify: "moderate", context: "complete" },
+      { taskId: "EST-3", anchorId: "EST-1", ratio: 0.25, reason: "light", size: "typical", verify: "moderate", context: "complete" },
     ],
   };
   async function sized() {
@@ -476,7 +565,8 @@ describe("editing an estimate on its card", () => {
     await complete(ledger, "intake", uiIntent(false));
     await complete(ledger, "clarify", { round: 1, asked: [], assumptions: [], differences: [], conflicts: [] });
     await complete(ledger, "specify", spec);
-    await complete(ledger, "breakdown", breakdown);
+    // anchor sizing (a breakdown from before task kinds), where a lead edits anchors and ratios freely
+    await complete(ledger, "breakdown", { ...breakdown, tasks: breakdown.tasks.map(({ kind: _k, ...t }) => t) });
     answer = () => sizing;
     const first = await exec(ledger, estimateStep);
     expect(first.kind).toBe("done");
@@ -494,6 +584,8 @@ describe("editing an estimate on its card", () => {
     const now = ledger.getJson<Estimate>((again as { outputs: Record<string, string> }).outputs.estimate!);
     expect(replay(ledger.events()).steps.get("estimate")!.outputs[0]).not.toBe(before);
     expect(now.anchors[0]!.hours).toEqual({ min: 8, max: 16 });
+    // the priced stack survives a lead's edit
+    expect(now.stack).toMatchObject({ backend: "ASP.NET Core Web API", basis: "assumed" });
     expect(now.tasks.find((t) => t.taskId === "EST-2")!.ratio).toBe(3);
     expect(now.assumptions.some((a) => /Lead edit: anchor EST-1 set to 8-16 h, EST-2 ratio set to 3 \(lead: the stack is new to us\)/.test(a))).toBe(true);
     // every total followed the edit, and the new estimate gets its own card
@@ -506,5 +598,104 @@ describe("editing an estimate on its card", () => {
   it("shows the edit command on the card", async () => {
     const ledger = await sized();
     expect(((await exec(ledger, approveEstimateStep)) as { card: { markdown: string } }).card.markdown).toMatch(/factory edit-estimate .* --anchor EST-1=<min>-<max>/);
+  });
+});
+
+describe("design quality (a finished look, not a wireframe)", () => {
+  const base = { flow: "f", noScreen: [] };
+  const sc = (extra: object = {}) => ({ id: "S-1", route: "/a", file: "a.tsx", reqs: ["R-1"], states: [], size: "new", frames: [], ...extra });
+  const mockOf = (blocks: unknown[]) => ({ title: "T", blocks, copy: {} });
+  const two = [{ type: "actions", buttons: ["Go"] }, { type: "text", body: "Hello" }];
+  it("asks for a theme and for sample content on every screen without a frame", () => {
+    const checks = (o: object) => designQuality({ ...base, ...o } as never).map((q) => q.check);
+    expect(checks({ screens: [sc()] })).toEqual(["design-no-theme", "design-no-mock"]);
+    expect(checks({ theme: { brand: "#112233" }, screens: [sc({ mock: mockOf(two) })] })).toEqual([]);
+    expect(checks({ theme: {}, screens: [sc({ mock: mockOf([{ type: "stats", items: [{ label: "A", value: "1" }] }, two[0]]) })] })).toEqual(["design-no-full-mock"]);
+    expect(checks({ theme: {}, screens: [sc({ frames: ["F-1"] })] })).toEqual([]);
+  });
+  it("rejects thin pages, short tables and placeholder text", () => {
+    const checks = (m: unknown) => designQuality({ ...base, theme: {}, screens: [sc({ mock: m })] } as never).map((q) => q.check).filter((c) => !c.includes("full-mock"));
+    expect(checks(mockOf([two[0]]))).toEqual(["design-thin-mock"]);
+    expect(checks(mockOf([...two, { type: "table", columns: ["A"], rows: [["x"]] }]))).toEqual(["design-thin-mock"]);
+    expect(checks(mockOf([{ type: "list", items: [{ title: "Item 1", meta: "m" }] }, two[0]]))).toEqual(["design-placeholder"]);
+  });
+});
+
+describe("a small UI fix gets a design note (PR #11 review, item 9)", () => {
+  const twoReqs = { ...spec, requirements: [...spec.requirements, { id: "REQ-2", ears: "The system shall show a Remember me checkbox on sign in.", op: "ADDED", sources: ["I-1"], acceptance: [] }] };
+  const existing = { pages: [{ path: "app/login/page.tsx", kind: "page", route: "/login", layout: ["Button", "Input"], heading: "Sign in" }], verdict: "consistent", tokens: { total: 12 }, primitives: [], composites: [], stack: {} };
+  const note = (size = "tweak") => ({
+    flow: "The user signs in on the existing page", noScreen: [],
+    screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1", "REQ-2"], size, change: "Add a Remember me checkbox under the password field, using the existing Checkbox." }],
+  });
+  async function smallFix(intent = uiIntent(true)) {
+    const ledger = await newRun();
+    await complete(ledger, "intake", intent);
+    const inv = ledger.putJson(existing);
+    await ledger.append({ type: "step.completed", key: "ground/1", inputsHash: sha, outputs: [inv], data: { named: { design: inv } } }, HUMAN_WRITER);
+    await complete(ledger, "specify", twoReqs);
+    return ledger;
+  }
+
+  it("writes a text note in one small call, passes E1b with no card of its own, and shows the note on the estimate card", async () => {
+    const ledger = await smallFix();
+    answer = () => note();
+    const o = await exec(ledger, designStep);
+    expect(o.kind).toBe("done");
+    expect(modelCalls).toBe(1);
+    const d = ledger.getJson<{ note: boolean; screens: { change: string; mock?: unknown }[]; themeSource: string }>((o as { outputs: Record<string, string> }).outputs.design!);
+    expect(d).toMatchObject({ note: true, themeSource: "repo" });
+    expect(d.screens[0]!.mock).toBeUndefined();
+    const base = await exec(ledger, designBaselineStep);
+    expect(base.kind).toBe("done");
+    expect(existsSync(join(ledger.dir, "design-demo.html"))).toBe(false);
+    await complete(ledger, "breakdown", breakdown);
+    await complete(ledger, "estimate", estimateOf());
+    const card = await exec(ledger, approveEstimateStep);
+    const md = (card as { card: { markdown: string } }).card.markdown;
+    expect(md).toContain("## Design note (a small change to existing pages: no demo is drawn, and approving the estimate approves this note)");
+    expect(md).toContain("- S-1 /login (app/login/page.tsx; tweak) -> REQ-1, REQ-2: Add a Remember me checkbox");
+  });
+
+  it("outside an estimate the note gets its own card, and only a person's approval passes it (PR #11 re-review, blocker 1)", async () => {
+    for (const purpose of ["build", "design"] as const) {
+      const ledger = await smallFix();
+      answer = () => note();
+      expect((await exec(ledger, designStep)).kind).toBe("done");
+      const step = makeDesignApprovalStep({ purpose });
+      const card = await exec(ledger, step);
+      expect(card.kind).toBe("wait");
+      const md = (card as { card: { markdown: string } }).card.markdown;
+      expect(md).toContain("approve this note, or reject it with the reason");
+      expect(md).not.toContain("approving the estimate");
+      expect(md).toContain("- S-1 /login (app/login/page.tsx; tweak) -> REQ-1, REQ-2: Add a Remember me checkbox");
+      expect(existsSync(join(ledger.dir, "design-demo.html"))).toBe(false);
+      await decide(ledger, card, "design-baseline", "approve");
+      const done = await exec(ledger, step);
+      expect(done.kind).toBe("done");
+      expect(ledger.getJson((done as { outputs: Record<string, string> }).outputs.baseline!)).toMatchObject({ ui: true, note: true, by: "lead" });
+    }
+  });
+
+  it("draws the full design when the note needs a new page", async () => {
+    const ledger = await smallFix();
+    let calls = 0;
+    answer = () => (++calls === 1 ? note("new") : { flow: "x", screens: [] });
+    await exec(ledger, designStep).catch(() => undefined);
+    expect(calls).toBeGreaterThan(1); // the note, then the full design (retried here on an empty answer)
+  });
+
+  it("is the path only for a light, low-risk change in an app of its own with no frames, references or earlier design", () => {
+    const small = { risk: "low" as const, rigor: "light" as const, changeClass: "feature" as const };
+    const o = { existingLook: true, frames: 0, references: 0, earlierDesign: false, reqs: 2 };
+    expect(lightUi(small, o)).toBe(true);
+    expect(lightUi({ ...small, rigor: "full" }, o)).toBe(false);
+    expect(lightUi({ ...small, risk: "medium" }, o)).toBe(false);
+    expect(lightUi(small, { ...o, existingLook: false })).toBe(false);
+    expect(lightUi(small, { ...o, frames: 1 })).toBe(false);
+    expect(lightUi(small, { ...o, references: 1 })).toBe(false);
+    expect(lightUi(small, { ...o, earlierDesign: true })).toBe(false);
+    expect(lightUi(small, { ...o, reqs: LIGHT_UI_REQS + 1 })).toBe(false);
+    expect(lightUi(small, { ...o, off: true })).toBe(false);
   });
 });

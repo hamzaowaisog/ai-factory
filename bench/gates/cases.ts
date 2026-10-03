@@ -3,10 +3,7 @@
 //   must-pass  the input is clean: the gate has to let it through (a fail here is a FALSE POSITIVE)
 // Gates that aren't registered yet report "pending", so this file can grow ahead of the gates.
 import type { DiffSummary } from "../../src/gates/predicates.js";
-import {
-  cleanFixture, dropTasksFor, goldPlate, maxSumsMin, openQuestion, outlier, silentOut, typedTotal,
-  type EstimateFixture,
-} from "./fixture.js";
+import { ESTIMATE_CASES } from "./estimate-cases.js";
 
 export interface GateCase {
   id: string;
@@ -31,26 +28,4 @@ const existing: GateCase[] = [
   { id: "lock-set/deleted", gateId: "task.lock-set-unchanged", description: "locked test file deleted", expect: "must-fail", input: { diff: { ...diff([]), lockedNow: { "t.test.ts": null } }, tests: { lock: [{ file: "t.test.ts", sha: "s1" }] } } },
 ];
 
-// ---------- estimate gates (E1-E6): pending until they are built ----------
-// The input is the provisional EstimateFixture. When a gate lands, adapt its cases' `input` to the real artifact.
-
-const est = (id: string, gateId: string, description: string, expect: GateCase["expect"], input: EstimateFixture): GateCase => ({ id, gateId, description, expect, input });
-const clean = cleanFixture();
-
-const estimate: GateCase[] = [
-  est("E1/clean", "E1", "spec has no open questions", "must-pass", clean),
-  est("E1/open-question", "E1", "an open question remains", "must-fail", openQuestion(clean)),
-  est("E2/clean", "E2", "every requirement has a task", "must-pass", clean),
-  est("E2/dropped-requirement", "E2", "a requirement lost its only task", "must-fail", dropTasksFor("R3")(clean)),
-  est("E3/clean", "E3", "every task cites a requirement or a named overhead", "must-pass", clean),
-  est("E3/gold-plating", "E3", "a task with no requirement and no overhead", "must-fail", goldPlate(clean)),
-  est("E4/clean", "E4", "every checklist item in, or out with a reason", "must-pass", clean),
-  est("E4/silent-out", "E4", "an item marked out with no reason", "must-fail", silentOut(clean)),
-  est("E5/clean", "E5", "similar tasks are within tolerance", "must-pass", clean),
-  est("E5/outlier", "E5", "one screen is ten times its peers", "must-fail", outlier(clean)),
-  est("E6/clean", "E6", "every total matches its rows", "must-pass", clean),
-  est("E6/max-sums-min", "E6", "max total sums the min column", "must-fail", maxSumsMin(clean)),
-  est("E6/typed-total", "E6", "a typed-in total that doesn't match its rows", "must-fail", typedTotal(clean)),
-];
-
-export const CASES: GateCase[] = [...existing, ...estimate];
+export const CASES: GateCase[] = [...existing, ...ESTIMATE_CASES];

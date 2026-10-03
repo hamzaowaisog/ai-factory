@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BreakdownBody, Estimate, EstimateTaskId, toJsonSchema } from "./index.js";
+import { BreakdownBody, dependencyLoops, Estimate, EstimateTaskId, toJsonSchema } from "./index.js";
 
 const sha = "a".repeat(64);
 const header = { kind: "estimate", schemaVersion: 1, runId: "r", producedBy: { stage: "estimate" }, inputsHash: sha, createdAt: "2026-09-30T00:00:00Z" };
@@ -21,6 +21,18 @@ describe("breakdown", () => {
     expect(BreakdownBody.safeParse(breakdown([task("EST-1", { dependsOn: ["EST-9"] })])).success).toBe(false);
     expect(BreakdownBody.safeParse(breakdown([task("EST-1", { dependsOn: ["EST-1"] })])).success).toBe(false);
     expect(BreakdownBody.safeParse(breakdown([task("EST-1", { featureId: "F-9" })])).success).toBe(false);
+  });
+
+  it("rejects dependency loops, naming each loop once from its first task", () => {
+    const r = BreakdownBody.safeParse(breakdown([
+      task("EST-1"), task("EST-2", { dependsOn: ["EST-3"] }), task("EST-3", { dependsOn: ["EST-1", "EST-4"] }), task("EST-4", { dependsOn: ["EST-2"] }),
+      task("EST-5", { dependsOn: ["EST-6"] }), task("EST-6", { dependsOn: ["EST-5"] }),
+    ]));
+    expect(r.success).toBe(false);
+    expect(r.error!.issues.map((i) => i.message)).toEqual(["dependency loop: EST-2 -> EST-3 -> EST-4 -> EST-2", "dependency loop: EST-5 -> EST-6 -> EST-5"]);
+    expect(dependencyLoops([{ id: "EST-1", dependsOn: ["EST-1"] }, { id: "EST-2", dependsOn: ["EST-1", "EST-9"] }])).toEqual([]);
+    // a diamond is not a loop
+    expect(dependencyLoops([{ id: "EST-1", dependsOn: [] }, { id: "EST-2", dependsOn: ["EST-1"] }, { id: "EST-3", dependsOn: ["EST-1"] }, { id: "EST-4", dependsOn: ["EST-2", "EST-3"] }])).toEqual([]);
   });
 
   it("only takes EST-<number> ids", () => {

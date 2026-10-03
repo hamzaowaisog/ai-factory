@@ -13,6 +13,24 @@ export interface FileSource {
 }
 
 export const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", ".next", "out", "coverage", ".turbo", ".vercel", ".contentlayer"]);
+/**
+ * A file of an approved design package committed into a repo (`.factory/design/<line>/vN/...`, src/design/package.ts): not app
+ * code, so it is never read as the app. (PR #11 review, item 12: packages used to go to `design/<line>/vN/`, a shape a client's
+ * own folders can have, so that older place is skipped only where a factory manifest says it is a package; see `withoutPackages`.)
+ */
+export const DESIGN_PACKAGE_PATH = /(^|\/)\.factory\/design\/[^/]+\/v\d+\//;
+const LEGACY_MANIFEST = /^((?:.*\/)?design\/[^/]+\/v\d+\/)manifest\.json$/;
+
+/** A listing without design packages: the current place, and the older `design/<line>/vN/` only where its manifest is the factory's. */
+export function withoutPackages(files: string[], read: (p: string) => string | undefined): string[] {
+  const legacy = files.flatMap((f) => {
+    const m = LEGACY_MANIFEST.exec(f);
+    if (!m) return [];
+    const text = read(f) ?? "";
+    return /"designSha"\s*:/.test(text) && /"templateVersion"\s*:/.test(text) ? [m[1]!] : [];
+  });
+  return files.filter((f) => !DESIGN_PACKAGE_PATH.test(f) && !legacy.some((d) => f.startsWith(d)));
+}
 
 const HARDENING = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-c", "protocol.file.allow=never"];
 
@@ -25,7 +43,7 @@ export function gitSync(repo: string, args: string[]): string {
 
 export function dirSource(root: string): FileSource {
   let files: string[] | undefined;
-  return {
+  const src: FileSource = {
     list() {
       if (files) return files;
       const out: string[] = [];
@@ -40,7 +58,7 @@ export function dirSource(root: string): FileSource {
         }
       };
       walk(root);
-      files = out.sort();
+      files = withoutPackages(out, (f) => src.read(f)).sort();
       return files;
     },
     read(path) {
@@ -49,16 +67,17 @@ export function dirSource(root: string): FileSource {
       try { return readFileSync(p, "utf8"); } catch { return undefined; }
     },
   };
+  return src;
 }
 
 /** Files at a commit, without checking anything out. */
 export function gitSource(repo: string, commit: string): FileSource {
   let files: string[] | undefined;
   const cache = new Map<string, string | undefined>();
-  return {
+  const src: FileSource = {
     list() {
-      files ??= gitSync(repo, ["ls-tree", "-r", "--name-only", "-z", commit]).split("\0").filter(Boolean)
-        .filter((f) => !f.split("/").some((seg) => SKIP_DIRS.has(seg))).sort();
+      files ??= withoutPackages(gitSync(repo, ["ls-tree", "-r", "--name-only", "-z", commit]).split("\0").filter(Boolean)
+        .filter((f) => !f.split("/").some((seg) => SKIP_DIRS.has(seg))), (f) => src.read(f)).sort();
       return files;
     },
     read(path) {
@@ -69,4 +88,5 @@ export function gitSource(repo: string, commit: string): FileSource {
       return text;
     },
   };
+  return src;
 }
