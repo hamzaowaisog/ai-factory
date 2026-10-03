@@ -1,17 +1,19 @@
 // Impact (ripple effects): between the spec and the plan, list what else the change touches, from code only
 // (src/context/ripple.ts; no model, no credits). Three levels:
-//   must-change — code the MODIFIED/REMOVED requirements anchor: the spec says it changes
+//   must-change — a lens (model, optional) quoted it and named the requirement that needs it changed
 //   breaks      — code that still uses something a REMOVED requirement takes away
-//   check       — code that uses the changed code (callers, data, screens, tests, settings): worth a look
-// The plan must cover every must-change and breaks path (a task's file scope or a mention in its notes);
-// the approval card shows the first few under "Will also affect". Risk goes up for breaks and data changes.
+//   check       — everything else: code the requirements point at (often context, not a change: a real run
+//                 delivered while leaving such a file alone), callers, data, screens, tests, settings
+// The plan must cover every must-change and breaks path (a task's file scope or a mention in its notes), never
+// a test file (tests are written separately, outside any plan scope). The approval card shows the first few
+// under "Will also affect", requirement-anchored files first. Risk goes up for breaks and data changes.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { z } from "zod";
 import type { CurrentBehaviourBody, Evidence, Risk, Spec } from "../contracts/index.js";
 import { failure } from "../gates/engine.js";
 import { matchesAny } from "../util/glob.js";
-import { candidateFiles, LENSES, rippleCandidates, type Lens, type RippleResult, type Seed } from "../context/ripple.js";
+import { candidateFiles, isTestPath, LENSES, rippleCandidates, type Lens, type RippleResult, type Seed } from "../context/ripple.js";
 import { header, readOutput, requireOutput, type StepDef } from "./framework.js";
 import { snapshotFor } from "./workspace.js";
 import type { RunState } from "../ledger/state.js";
@@ -53,14 +55,14 @@ export function mergeImpact(spec: Pick<Spec, "requirements">, ripple: RippleResu
   const items = new Map<string, ImpactItem>();
   for (const r of spec.requirements) {
     if (r.op === "ADDED") continue;
-    for (const a of r.anchors ?? []) if (!items.has(a.path)) items.set(a.path, { path: a.path, level: "must-change", reason: `${r.id} (${r.op}) changes it`, evidence: a });
+    for (const a of r.anchors ?? []) if (!items.has(a.path)) items.set(a.path, { path: a.path, level: "check", reason: `${r.id} (${r.op}) points at it`, evidence: a });
   }
   const all = LENSES.flatMap((l) => ripple.lenses[l]);
   for (const path of candidateFiles(ripple)) {
     if (items.has(path)) continue;
     const c = all.find((x) => x.path === path)!; // candidateFiles is ranked: the first hit is the strongest
     items.set(path, {
-      path, level: c.breaks ? "breaks" : "check", lens: c.lens,
+      path, level: c.breaks && !isTestPath(path) ? "breaks" : "check", lens: c.lens,
       reason: `${c.kind === "reference" ? "uses" : c.kind} ${c.seed}${c.hop === 2 ? " (through its interface)" : ""}`,
       evidence: { path, lineStart: c.line, lineEnd: c.line, quote: c.quote },
     });
@@ -69,8 +71,9 @@ export function mergeImpact(spec: Pick<Spec, "requirements">, ripple: RippleResu
   const order: Level[] = ["must-change", "breaks", "check"];
   for (const f of [...lensFindings].sort((a, b) => order.indexOf(a.level) - order.indexOf(b.level))) {
     const had = items.get(f.path);
-    if (had && (had.level !== "check" || f.level === "check")) continue;
-    items.set(f.path, { path: f.path, level: f.level, lens: f.lens, reason: `${f.reqId ? `${f.reqId}: ` : ""}${f.why} (${f.lens} lens)`,
+    const level: Level = isTestPath(f.path) ? "check" : f.level;
+    if (had && (had.level !== "check" || level === "check")) continue;
+    items.set(f.path, { path: f.path, level, lens: f.lens, reason: `${f.reqId ? `${f.reqId}: ` : ""}${f.why} (${f.lens} lens)`,
       evidence: { path: f.path, lineStart: f.lineStart, lineEnd: f.lineEnd, quote: f.quote } });
   }
   const list = [...items.values()];

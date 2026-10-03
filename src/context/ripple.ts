@@ -61,6 +61,7 @@ const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const word = (name: string) => new RegExp(`(?<![A-Za-z0-9_])${esc(name)}(?![A-Za-z0-9_])`);
 const usable = (n: string) => n.length >= 4 && !GENERIC.has(n.toLowerCase()) && /^[A-Za-z_][A-Za-z0-9_]*$/.test(n);
 const isTest = (p: string) => TEST.test(p);
+export const isTestPath = isTest;
 
 /** "OrderService.Cancel" → ["OrderService"]; "MapGet /orders/{id}" → []: the type a symbol names, if any. */
 function symbolNames(symbol: string | undefined): string[] {

@@ -125,6 +125,6 @@ describe("impact lenses (fake provider)", () => {
     const screens = impact.lensStats!.find((l) => l.lens === "screens")!;
     expect(screens.error).toBeTruthy();
     expect(screens.findings).toBe(0);
-    expect(impact.items.find((i) => i.path === "src/Orders/OrderService.cs")!.level).toBe("must-change");
+    expect(impact.items.find((i) => i.path === "src/Orders/OrderService.cs")).toMatchObject({ level: "check", reason: "REQ-1 (MODIFIED) points at it" });
   });
 });

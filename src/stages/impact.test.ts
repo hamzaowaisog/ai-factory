@@ -29,12 +29,13 @@ describe("impact: merge and risk", () => {
     ]);
   });
 
-  it("levels: requirement anchors must change, users of removed code break, other users are to check", () => {
-    expect(level("src/Shop/Orders/OrderService.cs")).toBe("must-change");
-    expect(level("src/Shop/Orders/Legacy.cs")).toBe("must-change");
+  it("levels: users of removed code break; requirement anchors and other users are to check (anchors can be context)", () => {
+    expect(level("src/Shop/Orders/OrderService.cs")).toBe("check");
+    expect(level("src/Shop/Orders/Legacy.cs")).toBe("check");
+    expect(impact.items.find((i) => i.path === "src/Shop/Orders/OrderService.cs")!.reason).toBe("REQ-1 (MODIFIED) points at it");
     expect(level("src/Shop/Jobs/Nightly.cs")).toBe("breaks");
     expect(level("src/Shop/Program.cs")).toBe("check");
-    expect(impact.counts.check).toBe(13);
+    expect(impact.counts.check).toBe(15); // 13 users + the 2 requirement anchors
   });
 
   it("risk: breaks make it high, with the reason; low base without ripple stays low", () => {
@@ -52,11 +53,23 @@ describe("impact: merge and risk", () => {
     expect(planCoverageFailures(plan(["src/Shop/Orders/**"]), impact).map((f) => f.message)).toEqual([expect.stringMatching(/^src\/Shop\/Jobs\/Nightly\.cs breaks/)]);
     expect(planCoverageFailures(plan(["src/Shop/Orders/**", "src/Shop/Jobs/Nightly.cs"]), impact)).toEqual([]);
     expect(planCoverageFailures(plan(["src/Shop/Orders/**"], "Nightly.cs keeps working: it moves to the new export"), impact)).toEqual([]);
-    expect(planCoverageFailures(plan(["src/Shop/Orders/OrderService.cs"]), impact).map((f) => f.check)).toEqual(["impact-uncovered", "impact-uncovered"]);
+    // a requirement-anchored file the plan leaves alone never fails it (a real delivered run did exactly that)
+    expect(planCoverageFailures(plan(["src/Shop/Jobs/Nightly.cs"]), impact)).toEqual([]);
+  });
+
+  it("a test file that uses removed code is 'check', never 'breaks': plans can't scope tests", () => {
+    const t = { ...files, "tests/Shop.Tests/NightlyTests.cs": "new LegacyExport();" };
+    const s2 = { files: Object.keys(t), read: (p: string) => t[p] };
+    const i2 = mergeImpact(spec, rippleCandidates(s2, seedsOf(spec, cb)), "low");
+    expect(i2.items.find((i) => i.path === "tests/Shop.Tests/NightlyTests.cs")!.level).toBe("check");
+    const lens = { lens: "tests" as const, lineStart: 1, lineEnd: 1, quote: "x", reqId: "REQ-1", why: "y" };
+    const i3 = mergeImpact(spec, rippleCandidates(s2, seedsOf(spec, cb)), "low", [{ ...lens, path: "tests/Shop.Tests/NightlyTests.cs", level: "must-change" }, { ...lens, path: "src/Shop/Program.cs", level: "must-change" }]);
+    expect(i3.items.find((i) => i.path === "tests/Shop.Tests/NightlyTests.cs")!.level).toBe("check");
+    expect(i3.items.find((i) => i.path === "src/Shop/Program.cs")!.level).toBe("must-change");
   });
 
   it("card: files outside the plan, breaks first, at most 8 lines with a 'more' line", () => {
-    const lines = affectsLines(impact, ["src/Shop/Orders/OrderService.cs", "src/Shop/Orders/Legacy.cs"]);
+    const lines = affectsLines(impact, ["src/Shop/Orders/OrderService.cs", "src/Shop/Orders/Legacy.cs", "src/Shop/Orders/Order.cs"]);
     expect(lines).toHaveLength(CARD_LINES);
     expect(lines[0]).toMatch(/^- src\/Shop\/Jobs\/Nightly\.cs \(breaks\): uses LegacyExport/);
     expect(lines.at(-1)).toMatch(/…and \d+ more/);
