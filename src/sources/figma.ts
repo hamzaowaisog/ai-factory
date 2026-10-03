@@ -4,6 +4,7 @@
 // shadows; exact values), and up to 8 frames are exported as pictures. The model never reads the JSON.
 import { secret } from "../config/env.js";
 import type { RefColour, Reference } from "../contracts/reference.js";
+import { isPrivateAddress, readResponseCapped } from "../util/safe-fetch.js";
 
 export const FIGMA_API = "https://api.figma.com";
 /** frames exported from one file */
@@ -12,6 +13,8 @@ export const MAX_FIGMA_FRAMES = 8;
 const MIN_FRAME_PX = 200;
 const MAX_NODES = 40_000;
 const MAX_RESPONSE_BYTES = 60_000_000;
+/** one exported frame picture (PR #11 review, item 17: downloads are read up to a cap, never whole) */
+export const MAX_FRAME_PNG_BYTES = 25_000_000;
 /** the longest a rate limit is waited out, per wait */
 const MAX_WAIT_S = 60;
 
@@ -238,8 +241,8 @@ async function call<T>(path: string, deps: FigmaDeps, token: string): Promise<T>
     if (res.status === 403) throw new FigmaError("the token cannot open this file. Share the file with the token's Figma account (view access is enough), or attach the frames as PNG.");
     if (res.status === 404) throw new FigmaError("Figma has no such file or node for this token. Check the link, share the file with the token's account, or attach the frames as PNG.");
     if (!res.ok) throw new FigmaError(`Figma answered ${res.status}. Try again, or attach the frames as PNG.`);
-    const text = await res.text();
-    if (text.length > MAX_RESPONSE_BYTES) throw new FigmaError("the Figma file is too large to read; link one page or frame (its link has a node-id) instead.");
+    let text: string;
+    try { text = (await readResponseCapped(res, MAX_RESPONSE_BYTES)).toString("utf8"); } catch { throw new FigmaError("the Figma file is too large to read; link one page or frame (its link has a node-id) instead."); }
     try { return JSON.parse(text) as T; } catch { throw new FigmaError("Figma's answer could not be read."); }
   }
 }
@@ -295,8 +298,10 @@ export async function readFigmaLink(raw: string, deps: FigmaDeps = {}): Promise<
     let png: Buffer | undefined;
     if (url && /^https:\/\//.test(url)) {
       try {
-        const res = await f(url, { signal: AbortSignal.timeout(60_000) });
-        if (res.ok) png = Buffer.from(await res.arrayBuffer());
+        if (isPrivateAddress(new URL(url).hostname)) throw new FigmaError("private address");
+        const res = await f(url, { signal: AbortSignal.timeout(60_000), redirect: "error" });
+        if (res.ok) png = await readResponseCapped(res, MAX_FRAME_PNG_BYTES);
+        else await res.body?.cancel().catch(() => undefined);
       } catch { /* noted below */ }
     }
     if (!png) notes.push(`frame "${n.name ?? n.id}" could not be exported as a picture`);

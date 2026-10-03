@@ -127,6 +127,50 @@ describe("plan against an approved design (B6)", () => {
   });
 });
 
+describe("plan against a design approved in a design-only run (--from-design; PR #11 review, item 10)", () => {
+  const spec2 = { ...spec, requirements: [...spec.requirements, { ...spec.requirements[0]!, id: "REQ-2", ears: "The system shall show a receipt." }] };
+  async function fromDesign() {
+    const { dir, commit } = repo();
+    const ledger = Ledger.create(`20261003-bgd-${Math.random().toString(16).slice(2, 6)}`);
+    const designSha = ledger.putJson({ flow: "greet, then receipt", screens: [{ id: "S-1", route: "/hi", file: "src/index.ts", reqs: ["REQ-1"] }, { id: "S-2", route: "/receipt", file: "src/receipt.ts", reqs: ["REQ-2"] }] });
+    const sp = ledger.putJson(spec2);
+    await ledger.append({ type: "run.created", data: { mode: "brownfield", project: "demo", request: "x", repoPath: dir, baseCommit: commit, baseRef: "main", designRef: { runId: "d0", designSha, baselineSha: sha, intakeSha: sha, specSha: sp } } }, HUMAN_WRITER);
+    const done = async (step: string, out: unknown, named: Record<string, string> = {}) => {
+      const o = ledger.putJson(out);
+      await ledger.append({ type: "step.completed", key: `${step}/1`, inputsHash: sha, outputs: [o], data: { named: { [step]: o, ...named } } }, HUMAN_WRITER);
+    };
+    await done("intake", { source: "cli", spans: [{ id: "I-1", text: "greet" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: true });
+    await done("ground", { claims: [], notFound: [{ span: "I-1", searched: ["x"] }] });
+    await done("specify", spec2, { critic: ledger.putJson({ findings: [] }) });
+    return ledger;
+  }
+  const task = (id: string, reqs: string[], fileScope: string[]) => ({ ...plan().tasks[0]!, id, reqs, fileScope, estimateTaskId: undefined });
+
+  it("fails a plan that leaves out a screen, delivers an unapproved requirement, or cannot touch a screen's file", async () => {
+    const ledger = await fromDesign();
+    answer = () => ({ ...plan(), tasks: [task("TASK-1", ["REQ-1", "REQ-9"], ["src/index.ts"])] });
+    let out = await runPlan(ledger);
+    expect(out.kind).toBe("fail");
+    let fails = (out as { failures: { check: string; message: string }[] }).failures;
+    expect(fails.map((f) => f.check)).toEqual(expect.arrayContaining(["b1-unknown", "b6-screen"]));
+    expect(fails.find((f) => f.check === "b6-screen")!.message).toContain("S-2");
+    answer = () => ({ ...plan(), tasks: [task("TASK-1", ["REQ-1"], ["src/index.ts"]), task("TASK-2", ["REQ-2"], ["src/other.ts"])] });
+    out = await runPlan(ledger);
+    fails = (out as { failures: { check: string; message: string }[] }).failures;
+    expect(fails.map((f) => f.check)).toEqual(["b7-screen-scope"]);
+    expect(fails[0]!.message).toContain("src/receipt.ts");
+  });
+
+  it("accepts a plan that builds every approved screen from the approved requirements, and records the gates", async () => {
+    const ledger = await fromDesign();
+    answer = () => ({ ...plan(), tasks: [task("TASK-1", ["REQ-1"], ["src/index.ts"]), task("TASK-2", ["REQ-2"], ["src/receipt.ts"])] });
+    const out = await runPlan(ledger);
+    expect(out.kind, JSON.stringify(out)).toBe("done");
+    const gates = replay(ledger.events()).gates.map((g) => `${g.gateId}:${g.passed}`);
+    expect(gates).toEqual(expect.arrayContaining(["build.b1-design-scope:true", "build.b2-change-request:true", "build.b6-design-screens:true"]));
+  });
+});
+
 describe("plan against an approved estimate (B1, B2)", () => {
   it("accepts a plan whose every task maps to an approved estimate task, and records both gates", async () => {
     const { ledger } = await seededRun();

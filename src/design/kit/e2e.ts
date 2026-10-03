@@ -5,9 +5,9 @@
 // later scaffold writes them again from the design.
 import type { z } from "zod";
 import type { DesignBody as DesignBodySchema } from "../../contracts/artifacts.js";
-import { DEFAULT_THEME } from "../../estimate/demo.js";
-import { VIEWPORTS } from "../../estimate/screenshots.js";
-import { designTokens } from "../../estimate/tokens.js";
+import { DEFAULT_THEME } from "../demo.js";
+import { VIEWPORTS } from "../screenshots.js";
+import { designTokens } from "../tokens.js";
 import { expectedFor, samplePath } from "../fidelity-app.js";
 import { OWNED_MARK, screenStates, type ScaffoldFile, type ScaffoldScreen } from "./scaffold.js";
 
@@ -16,7 +16,8 @@ type Screen = DesignBody["screens"][number];
 
 export const E2E_DIR = "e2e/design";
 export const E2E_CONFIG = "playwright.design.config.ts";
-export const PLAYWRIGHT_VERSION = "^1.55.0";
+/** exact, like the kit's packages (PR #11 review, item 19): a scaffold installs the same versions every time */
+export const PLAYWRIGHT_VERSION = "1.63.0";
 
 const q = (s: string): string => JSON.stringify(s);
 const esc = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -193,7 +194,7 @@ export function e2eConfig(o: { tag: string; next: boolean; dark: boolean }): str
 
 /** The test files for the screens written (all, or a change request's), and the config. */
 export function e2eFiles(o: { design: Pick<DesignBody, "screens" | "theme" | "locale">; screens: ScaffoldScreen[]; write: (id: string) => boolean; tag: string; next: boolean }): ScaffoldFile[] {
-  const dark = Object.keys(designTokens({ ...DEFAULT_THEME, ...o.design.theme }).colour).length > 1;
+  const dark = !!o.design.theme && Object.keys(designTokens({ ...DEFAULT_THEME, ...o.design.theme }).colour).length > 1;
   const files: ScaffoldFile[] = [];
   for (const x of o.screens) {
     const s = o.design.screens.find((d) => d.id === x.id);

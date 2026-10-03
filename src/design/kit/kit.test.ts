@@ -10,6 +10,7 @@ import {
   detectUiTarget, kitFiles, loadKit, OWNED_MARK, resolveUiTarget, scaffold, shadcnThemeCss, SHADCN_COLOURS, targetPath, targetText, writeScaffold, nextRouteDir, routerPath,
 } from "./index.js";
 import { sampleDesign } from "./sample.js";
+import { PLAYWRIGHT_VERSION } from "./e2e.js";
 
 type Ts = typeof import("typescript");
 const ts = createRequire(import.meta.url)("typescript") as Ts;
@@ -20,6 +21,16 @@ const exportsOf = (text: string) => [...text.matchAll(/export\s+(?:async\s+)?(?:
   .concat([...text.matchAll(/export\s*\{([^}]+)\}/g)].flatMap((m) => m[1]!.split(",").map((x) => x.trim().split(/\s+as\s+/).pop()!.replace(/^type\s+/, ""))));
 
 describe("the shadcn kit", () => {
+  it("pins every package exactly and carries shadcn/ui's licence with its components (PR #11 review, item 19)", () => {
+    const m = kit.manifest;
+    const all = { ...m.dependencies, ...Object.assign({}, ...Object.values(m.targetDependencies)), ...Object.assign({}, ...Object.values(m.devDependencies)) } as Record<string, string>;
+    for (const [n, v] of Object.entries(all)) expect(v, n).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(PLAYWRIGHT_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(existsSync(join(kit.dir, "NOTICE"))).toBe(true);
+    const files = kitFiles(kit, "next-shadcn", { root: "", alias: true });
+    expect(files.find((f) => f.path === "components/ui/LICENSE")?.text).toMatch(/MIT License[\s\S]*shadcn/);
+    expect(files.some((f) => /(^|\/)NOTICE$/.test(f.path))).toBe(false);
+  });
   it("draws every block, form field and layer the design schema has", () => {
     const blockTypes = MockBlock.options.map((o) => (o.shape.type as unknown as { value: string }).value);
     expect(blockTypes.length).toBe(29);
@@ -70,9 +81,12 @@ describe("the shadcn kit", () => {
 });
 
 describe("the repo's stack", () => {
-  it("Next.js or Vite with React takes the kit; another stack or UI library builds with its own", () => {
+  it("Next.js or Vite with React takes the kit when it uses shadcn/ui or has no pages yet; another stack, UI library or a Tailwind-only app builds with its own", () => {
     const pkg = (deps: Record<string, string>) => JSON.stringify({ dependencies: deps });
-    expect(detectUiTarget(mem({ "package.json": pkg({ next: "15", react: "19" }), "app/page.tsx": "" }))).toMatchObject({ target: "next-shadcn", root: "", alias: false });
+    expect(detectUiTarget(mem({ "package.json": pkg({ next: "15", react: "19" }), "app/page.tsx": "", "components/ui/button.tsx": "" }))).toMatchObject({ target: "next-shadcn", root: "", alias: false });
+    // an app with pages but no shadcn/ui keeps its own: no second app beside it
+    expect(detectUiTarget(mem({ "package.json": pkg({ next: "15", react: "19", tailwindcss: "4" }), "app/page.tsx": "" }))).toMatchObject({ target: "repo", why: "Next.js with Tailwind but not shadcn/ui: its own components and pages stay" });
+    expect(detectUiTarget(mem({ "package.json": pkg({ vite: "7", react: "19" }), "src/pages/Home.tsx": "" })).target).toBe("repo");
     expect(detectUiTarget(mem({ "package.json": pkg({ next: "15", react: "19" }), "src/app/page.tsx": "", "tsconfig.json": `{ "compilerOptions": { "paths": { "@/*": ["./src/*"] } } }`, "components.json": "{}" })))
       .toMatchObject({ target: "next-shadcn", root: "src/", alias: true, why: "Next.js with shadcn/ui" });
     expect(detectUiTarget(mem({ "package.json": pkg({ vite: "7", react: "19" }) }))).toMatchObject({ target: "vite-shadcn", root: "src/" });
@@ -176,7 +190,9 @@ describe("the scaffold", () => {
     expect(todo).toContain("radix-ui@");
     expect(todo).not.toContain("lucide-react@");
     expect(todo).toContain(`@import "./design-theme.css"`);
-    expect(todo).toContain("DesignProviders");
+    expect(todo).not.toContain("DesignProviders");
+    expect(todo).toContain("from the app's own navigation in app/layout.tsx");
+    expect(l.files.some((f) => /components\/screens\/(frame\.ts|providers\.tsx)$/.test(f.path))).toBe(false);
     expect(todo).toContain("button.tsx");
     expect(l.designSystem.files).toEqual(["package.json", "app/globals.css", "app/layout.tsx"]);
   });
@@ -211,8 +227,9 @@ describe("the scaffold", () => {
       try {
         writeScaffold(scaffold({ ...base, target }), dir);
         execFileSync("npm", ["install", "--no-audit", "--no-fund"], { cwd: dir, stdio: "pipe" });
-        if (target === "vite-shadcn") execFileSync("npx", ["tsc", "-p", ".", "--noEmit"], { cwd: dir, stdio: "pipe" });
         execFileSync("npx", target === "vite-shadcn" ? ["vite", "build"] : ["next", "build"], { cwd: dir, stdio: "pipe", env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" } });
+        // every kit file typechecks in both targets (after the build, which writes next-env.d.ts)
+        execFileSync("npx", ["tsc", "-p", ".", "--noEmit"], { cwd: dir, stdio: "pipe" });
       } finally { rmSync(dir, { recursive: true, force: true }); }
     }
   });

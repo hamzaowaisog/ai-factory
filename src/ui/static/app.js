@@ -419,7 +419,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const rounds = h("input", { type: "number", id: "rounds", min: "0", max: "10", step: "1", value: "2" });
   const designIn = h("input", { type: "checkbox", id: "designin", checked: true });
   const noRepo = h("input", { type: "checkbox", id: "norepo" });
-  const review = h("input", { type: "checkbox", id: "review" });
+  const handsOff = h("input", { type: "checkbox", id: "handsoff" });
   const hdr = h("input", { type: "text", id: "client", placeholder: "client name (workbook header)" });
   const projName = h("input", { type: "text", id: "projname", placeholder: "project name (workbook header)" });
   const pm = h("input", { type: "text", id: "pm", placeholder: "project manager (workbook header)" });
@@ -462,7 +462,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
       h("div", { class: "opts" },
         opt2("designin", designIn, "Design counts in the total", "Turn off to keep Design out of the Summary total (its row still shows)."),
         opt2("norepo", noRepo, "The requirements stand alone", "There is no existing code to read. Always on when no project is chosen."),
-        opt2("review", review, "A person reviews it", "Answer the clarify questions and approve the estimate before the workbooks are written. Off: hands-off, the questions become assumptions and the estimate approves itself once its checks pass (unless the project sets estimate.humanReview)."))),
+        opt2("handsoff", handsOff, "Hands-off (no human review)", "Nobody is asked: the clarify questions become assumptions and the factory approves the estimate once its checks pass. Off (the default): a person answers the questions and approves it, on the run page or in the terminal. A build cannot follow a hands-off estimate: to build it, estimate it again with a review."))),
     sect(4, "Workbook header", "Shown at the top of the team and client workbooks. All optional.",
       h("div", { class: "est-grid" }, fld("client", "Client", hdr), fld("projname", "Project name", projName), fld("pm", "Project manager", pm))),
     Object.assign(sect(5, "Design frames", "Exported from Figma (png, jpg, webp, svg or json). Optional.",
@@ -533,7 +533,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
       const from = !estimating ? (bf.kind === "e" ? { fromEstimate: bf.id } : bf.kind === "d" ? { fromDesign: bf.id } : {})
         : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises" }[startFrom.value]]: seedRun.value } : {};
       const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
-        ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(review.checked ? { humanReview: true } : {}) } } : {}) };
+        ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(handsOff.checked ? { humanReview: false } : {}) } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
     } catch (e) {
@@ -578,7 +578,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
     h("div", { class: "page-head" }, h("div", {},
       h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", designing ? "Design" : estimating ? "Estimate" : "Brownfield"),
       h("h1", {}, designing ? "What should be designed?" : estimating ? "What should be estimated?" : "What should change?"),
-      h("p", { class: "sub" }, designing ? "Paste or upload the requirements. You get a mock, a clickable demo and a look to approve (on the run page or in the terminal); nothing is sized or built." : estimating ? "Paste or upload the refined requirements. The estimate runs hands-off and writes the team and client workbooks once its checks pass; tick \"A person reviews it\" to answer the questions and approve it yourself. A UI request still waits for its design to be approved." : "The request is read and checked before a run exists: a bad file or ticket costs nothing."))),
+      h("p", { class: "sub" }, designing ? "Paste or upload the requirements. You get a mock, a clickable demo and a look to approve (on the run page or in the terminal); nothing is sized or built." : estimating ? "Paste or upload the refined requirements. A person answers the clarify questions and approves the estimate, on its run page or in the terminal; then the team and client workbooks are written. Tick \"Hands-off\" to let the factory approve it once its checks pass. A UI request also waits for its design to be approved." : "The request is read and checked before a run exists: a bad file or ticket costs nothing."))),
     h("div", { class: "panel" }, form),
   ], true);
 }
@@ -770,50 +770,35 @@ function questionPanel(r) {
     body);
 }
 
-/** The design card (E1b): the card and demo link, and approve or send back with a reason (what it points at is fixed, or the design is redrawn; the run goes on). */
+/** The design card (E1b): the card, the demo link and the references. The decision is made in the terminal (only estimate cards are decided on this page). */
 // the design card's words for each kind of run (the terminal card has the same three, by its purpose)
 const DESIGN_CARD_TEXT = {
-  estimate: { intro: "The estimate stands on this design. Walk the clickable demo, then approve it or send it back with what to change.", approved: "Approved. The estimate is continuing… " },
-  design: { intro: "This is a design-only run: approving keeps this mock, clickable demo and look, and nothing is sized or built. Walk the clickable demo, then approve it or send it back with what to change.", approved: "Approved. The design is kept; estimate or build it from the Design tab (like --from-design). " },
-  build: { intro: "The build follows this design: its screens, states, sample content and look are what gets built. Walk the clickable demo, then approve it or send it back with what to change.", approved: "Approved. The build is going on to its plan… " },
+  estimate: "The estimate stands on this design. Walk the clickable demo, then approve it or send it back with what to change, in your terminal.",
+  design: "This is a design-only run: approving keeps this mock, clickable demo and look, and nothing is sized or built. Walk the clickable demo, then approve it or send it back with what to change, in your terminal.",
+  build: "The build follows this design: its screens, states, sample content and look are what gets built. Walk the clickable demo, then approve it or send it back with what to change, in your terminal.",
 };
 
 function designPanel(r) {
   const c = r.card;
-  const words = DESIGN_CARD_TEXT[r.mode === "estimate" ? "estimate" : r.mode === "design" ? "design" : "build"];
-  const who = nameInput();
-  const why = h("textarea", { rows: "3", placeholder: "What should change? Name the page or the part, in your own words (for example: the booking page needs the price next to the button). Only what you point at is changed, and you get a new card.", "aria-label": "Rejection reason", maxlength: "2000" });
-  const msg = h("p", { class: "small muted", role: "status" }, "");
-  const act = async (decision) => {
-    msg.textContent = "";
-    try {
-      await api(`/api/runs/${encodeURIComponent(r.runId)}/design-decision`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, decision, by: who.value, reason: why.value }) });
-      msg.replaceChildren(decision === "approve" ? words.approved : "Sent back. Working on what you pointed at; a new card follows…");
-      if (decision === "approve") msg.append(h("a", { href: `#/runs/${encodeURIComponent(r.runId)}/design` }, icon("download"), "Export the design"));
-      ok.disabled = no.disabled = true;
-    } catch (err) { msg.textContent = err.message; }
-  };
-  const ok = h("button", { class: "btn", type: "button" }, icon("check"), "Approve the design");
-  const no = h("button", { class: "btn ghost", type: "button" }, "Send back");
-  ok.addEventListener("click", () => act("approve"));
-  no.addEventListener("click", () => act("reject"));
+  const intro = DESIGN_CARD_TEXT[r.mode === "estimate" ? "estimate" : r.mode === "design" ? "design" : "build"];
   // the references the design was drawn from, each with the screens it shaped (filled in when they arrive)
   const refsBox = h("div");
   api(`/api/runs/${encodeURIComponent(r.runId)}/references`).then((v) => { if (v.references.length) refsBox.replaceChildren(h("h3", { class: "small" }, "Drawn from these references"), refsPanel(v, true)); }).catch(() => undefined);
   return h("section", { class: "card-box" },
-    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Approve the design"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Approve the design in your terminal"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body stack" },
-      h("p", { class: "small muted" }, words.intro),
+      h("p", { class: "small muted" }, intro),
       h("div", { class: "row" }, h("a", { class: "btn", href: `#/runs/${r.runId}/preview` }, icon("cursor"), "Open the clickable demo"),
         h("span", { class: "btn ghost", "aria-disabled": "true", title: "A design is exported once it is approved: PNG, PDF, the demo, tokens or JSON, from the Design tab." }, icon("download"), "Export after approval")),
+      h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd)))),
       refsBox,
-      md(c.markdown),
-      who, why, h("div", { class: "row" }, ok, no), msg));
+      md(c.markdown)));
 }
 
 function cardPanel(r) {
   const c = r.card;
-  if (c.questions) return questionPanel(r);
+  // only an estimate run's questions are answered on this page; every other card is decided in the terminal
+  if (c.questions && r.mode === "estimate") return questionPanel(r);
   if (c.kind === "design-approval") return designPanel(r);
   return h("section", { class: "card-box" },
     h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Waiting for you in the terminal"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
@@ -1304,12 +1289,12 @@ async function estimateScreen(id) {
 const LEVEL_TITLE = { tokens: "Tokens", structure: "Structure", a11y: "Accessibility", layout: "Layout", pixels: "Pixels" };
 const pageLabel = (p) => `${p.id} ${p.state} · ${p.viewport}${p.mode ? " · dark" : ""}${p.lang ? ` · ${p.lang}` : ""}`;
 
-/** The Fidelity panel: the built app against the approved design, level by level, a page's pictures side by side, and accepting them as the baseline. */
+/** The Fidelity panel: the built app against the approved design, level by level, a page's pictures side by side, and the terminal command that accepts them as the baseline. */
 function fidelityPanel(rid, v) {
   const head = h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Fidelity to the approved design"));
   const wrap = (...body) => h("section", { class: "panel rise", id: "fidelity-panel", vars: { "--i": 2 } }, head, ...body);
   if (v.none) return wrap(h("p", { class: "muted small" }, v.none));
-  if (v.skipped && !v.pages.length) return wrap(h("p", { class: "muted small" }, `Not run: ${v.skipped}.`), h("p", { class: "small muted" }, "Turn it on with design.fidelity in the project config (docs/estimates-design.md, \"Fidelity and tests\"). By hand, on an app you started: ", h("code", {}, `factory design fidelity ${rid} --url http://localhost:3000`), "."));
+  if (v.skipped && !v.pages.length) return wrap(h("p", { class: "muted small" }, `Not run: ${v.skipped}.`), h("p", { class: "small muted" }, "It runs after acceptance whenever the factory generated the screens (switch it off with design.fidelity: false; docs/estimates-design.md, \"Fidelity and tests\"). By hand, on an app you started: ", h("code", {}, `factory design fidelity ${rid} --url http://localhost:3000`), "."));
   const tone = (st) => (st === "PASS" ? "pass" : st === "FAIL" ? "fail" : "");
   const levels = h("div", { class: "fid-levels" }, v.levels.map((l) => h("div", { class: `fid-level ${tone(l.status)}` },
     h("div", { class: "row" }, icon(l.status === "PASS" ? "check" : l.status === "FAIL" ? "x" : "alert"), h("strong", {}, LEVEL_TITLE[l.level] ?? l.level), h("span", { class: "faint small" }, l.blocking ? "blocking" : "advice")),
@@ -1342,32 +1327,17 @@ function fidelityPanel(rid, v) {
   };
   pick.addEventListener("change", show);
   onlyFound.addEventListener("change", fill);
-  // accept as the baseline: a typed name and a reason
-  const name = h("input", { type: "text", placeholder: "Your name", "aria-label": "Your name", autocomplete: "name" });
-  const reason = h("input", { type: "text", placeholder: "Why the built pages are right", "aria-label": "Reason" });
+  // accepting built pictures as the baseline is a terminal decision (factory design baseline), recorded with a reason
   const msg = h("div", { class: "small", role: "status" });
-  const accept = async (all) => {
-    msg.replaceChildren(h("span", { class: "pulse" }), " Accepting…");
-    try {
-      const r = await api(`/api/runs/${encodeURIComponent(rid)}/fidelity/baseline`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(all ? { all: true, by: name.value, reason: reason.value } : { pages: [pick.value], by: name.value, reason: reason.value }) });
-      const nv = await api(`/api/runs/${encodeURIComponent(rid)}/fidelity`);
-      const next = fidelityPanel(rid, nv);
-      next.classList.remove("rise");
-      panel.replaceWith(next);
-      next.querySelector("[role=status]").replaceChildren(icon("check"), ` Accepted ${r.accepted.length} picture${r.accepted.length === 1 ? "" : "s"} as the baseline; the next check compares with them.`);
-    } catch (err) { msg.textContent = err.message; }
-  };
-  const one = h("button", { class: "btn", type: "button" }, icon("check"), "Accept this page");
-  const all = h("button", { class: "btn ghost", type: "button" }, `Accept all ${pages.length}`);
-  one.addEventListener("click", () => accept(false));
-  all.addEventListener("click", () => accept(true));
   const panel = wrap(
     h("p", { class: "small" }, h("span", { class: `chip ${v.overall === "pass" ? "pass" : v.overall === "fail" ? "fail" : ""}` }, `overall: ${v.overall}`), h("span", { class: "faint" }, ` ${v.pages.length} pages · ${v.ran.join(", ")}`)),
     levels, waived, findings,
     v.notes.length ? h("ul", { class: "small muted" }, v.notes.map((n) => h("li", {}, n))) : null,
     pages.length ? h("div", { class: "row" }, pick, h("label", { class: "small", for: "fid-only" }, onlyFound, " only pages with findings")) : null,
     view,
-    v.canAccept ? h("div", { class: "stack" }, h("h3", { class: "small" }, "Accept as the baseline"), h("div", { class: "row" }, name, reason), h("div", { class: "row" }, one, all), msg) : msg);
+    v.canAccept ? h("div", { class: "stack" }, h("h3", { class: "small" }, "Accept as the baseline"),
+      h("p", { class: "small muted" }, "In your terminal, with a reason:"),
+      h("div", { class: "cmds" }, h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, `factory design baseline ${rid} --all --reason "..."`), copyButton(`factory design baseline ${rid} --all --reason ""`))), msg) : msg);
   fill();
   return panel;
 }

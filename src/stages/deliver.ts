@@ -83,11 +83,14 @@ export const reviewStep: StepDef = {
     // B4: a run that follows an approved estimate may not add behaviour no requirement asked for; a lead can waive it for this commit
     let waivers: Omit<WaiverRow, "step">[] = [];
     const ref = ctx.state.info.estimateRef;
-    if (ref) {
+    // a build from an approved design is held to its requirements too (PR #11 review, item 10)
+    const dref = ref ? undefined : ctx.state.info.designRef;
+    if (ref || dref) {
       const b4 = await runGate(unrequestedBehaviour, ctx.ledger, ctx.writer, { review: reviewSha }, ctx.policy, { step: "review", treeSha: head });
       if (!b4.passed) {
         const w = buildWaiver(ctx, "review", [{ def: unrequestedBehaviour, failures: b4.failures ?? [failure(unrequestedBehaviour.id, b4.details)] }], head,
-          `To add it properly instead: a change request (factory estimate --revises ${ref.runId}); or remove it and stop this run with factory stop ${ctx.runId}.`);
+          ref ? `To add it properly instead: a change request (factory estimate --revises ${ref.runId}); or remove it and stop this run with factory stop ${ctx.runId}.`
+            : `To add it properly instead: change the design approved in ${dref!.runId} (a new design run) and build from that; or remove it and stop this run with factory stop ${ctx.runId}.`);
         if (w.kind === "ask") return w.outcome;
         waivers = w.waivers;
       }

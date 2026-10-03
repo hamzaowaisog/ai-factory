@@ -1,0 +1,19 @@
+ai-factory UI kit "shadcn"
+
+The components under components/ui follow shadcn/ui (https://ui.shadcn.com), which is
+MIT licensed; its licence is in components/ui/LICENSE and is copied into a repo together
+with those components.
+
+The other files (components/blocks, components/frame, lib) are ai-factory's own. A repo
+the kit is scaffolded into owns its copies, as with shadcn/ui.
+
+The packages the kit installs are listed in kit.json with exact versions; each comes
+under its own licence (as the npm registry gives it for those versions):
+- MIT: radix-ui, clsx, tailwind-merge, cmdk, sonner, react-day-picker, input-otp,
+  @tanstack/react-table, recharts, next, react, react-dom, react-router, vite,
+  @vitejs/plugin-react, tailwindcss, @tailwindcss/postcss, @tailwindcss/vite,
+  tw-animate-css and the @types packages
+- Apache-2.0: class-variance-authority, typescript
+- ISC: lucide-react
+- BSD-2-Clause: leaflet
+The design's end-to-end tests add @playwright/test (Apache-2.0).

@@ -5,7 +5,7 @@
 // mode are pictured only as each screen first shows, so the pictures stay few. Best effort: no browser, or a
 // browser that fails, is reported in `note` and never fails the run, and the approval is tied to the demo page,
 // not to these files.
-import { existsSync, mkdirSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -177,6 +177,26 @@ const FIXED_TIME = new Date("2026-01-15T10:00:00Z");
 // nothing moves and no caret blinks, so the same page gives the same pixels
 const STILL_CSS = "*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}";
 
+// the same pixels on a loaded machine too (PR #11 review, item 21): edges were drawn a shade apart now and then by the GPU
+// and the parallel raster threads, so reproducible pictures are drawn in software, on one thread, in plain sRGB
+const STILL_RASTER = ["--disable-gpu", "--disable-gpu-rasterization", "--disable-partial-raster", "--num-raster-threads=1", "--disable-skia-runtime-opts", "--disable-lcd-text", "--force-color-profile=srgb", "--font-render-hinting=none"];
+
+// settled, not timed (PR #11 review, item 21: a fixed wait gave different bytes on a loaded machine): the fonts loaded,
+// every picture decoded, and two frames drawn after that
+const SETTLE = `(async function(){await document.fonts.ready;await Promise.all([].slice.call(document.images).map(function(i){return i.decode().catch(function(){})}));await new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(r)})});return 1})()`;
+
+/** A full-page picture taken until two in a row are the same (at most five), so a page still drawing is not saved half done. */
+async function stablePicture(page: { screenshot(o: object): Promise<Buffer>; evaluate(s: string): Promise<unknown> }): Promise<Buffer> {
+  let last = await page.screenshot({ fullPage: true });
+  for (let i = 0; i < 4; i++) {
+    await page.evaluate(SETTLE);
+    const next = await page.screenshot({ fullPage: true });
+    if (next.equals(last)) return next;
+    last = next;
+  }
+  return last;
+}
+
 async function walkDemo(demoFile: string, screens: ScreenShotInput[], outDir?: string, o: WalkOptions = {}): Promise<ShotResult> {
   if (!screens.length) return { shots: [] };
   const exe = findChromium();
@@ -188,11 +208,12 @@ async function walkDemo(demoFile: string, screens: ScreenShotInput[], outDir?: s
   try {
     const { chromium } = await import("playwright-core");
     if (outDir) mkdirSync(outDir, { recursive: true });
-    browser = await chromium.launch({ executablePath: exe, args: ["--no-sandbox"], timeout: 30_000 });
+    browser = await chromium.launch({ executablePath: exe, args: ["--no-sandbox", ...(repro ? STILL_RASTER : [])], timeout: 30_000 });
     const url = pathToFileURL(demoFile).href;
     for (const vp of WALK) {
       const page = await browser.newPage({ viewport: VIEWPORTS[vp], ...(outDir && !repro ? {} : { reducedMotion: "reduce" }), ...(repro ? { deviceScaleFactor: 1, locale: "en-US", timezoneId: "UTC", bypassCSP: true } : {}) });
-      page.setDefaultTimeout(10_000);
+      // a loaded machine (a full test run, a busy CI box) is slow, and a timed-out picture would leave the package short
+      page.setDefaultTimeout(repro ? 30_000 : 10_000);
       if (repro) await page.clock.setFixedTime(FIXED_TIME);
       for (const sc of screens) {
         const screen = sc.title ?? `${sc.id} ${sc.route}`, sel = `#${sc.id.replace(/[^\w-]/g, "\\$&")}`;
@@ -206,14 +227,14 @@ async function walkDemo(demoFile: string, screens: ScreenShotInput[], outDir?: s
           if (repro) {
             // the same pixels every run: no motion, the fonts loaded, the page settled
             await page.addStyleTag({ content: STILL_CSS });
-            await page.evaluate("document.fonts.ready.then(function(){return 1})");
-            await page.waitForTimeout(250);
+            await page.evaluate(SETTLE);
           } else await page.waitForTimeout(outDir && shoot ? 1600 : 150); // the page animates in (at once with reduced motion)
           // what a person would see is wrong with the page (best effort: a failed check is no fault of the page)
           try { for (const f of (await page.evaluate(`${LAYOUT_CHECK}(${JSON.stringify(sc.id)})`)) as Omit<LayoutIssue, "screen" | "state" | "viewport">[]) issues.push({ ...f, screen, state: st, viewport: vp }); } catch { /* not checked */ }
           if (!outDir || !shoot) return;
           const file = `${slug(sc.id)}-${slug(st)}-${vp}.png`;
-          await page.screenshot({ path: join(outDir, file), fullPage: true });
+          if (repro) writeFileSync(join(outDir, file), await stablePicture(page));
+          else await page.screenshot({ path: join(outDir, file), fullPage: true });
           shots.push({ file, id: sc.id, screen, state: st, viewport: vp, ...extra });
         };
         await page.goto(`${url}#${encodeURIComponent(sc.id)}`);

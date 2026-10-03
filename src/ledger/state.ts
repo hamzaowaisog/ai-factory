@@ -135,6 +135,10 @@ export interface RunState {
   sinks: Map<string, { intentSeq: number; externalId?: string }>;
 }
 
+/** Gate B5: the highest a budget waiver can raise the limit, as a multiple of the approved maximum (PR #11 review, item 16).
+ * Past it, the estimate is wrong and needs a change request, not another waiver. Replay clamps to it as well. */
+export const MAX_BUDGET_CEILING = 3;
+
 export function replay(events: LedgerEvent[]): RunState {
   const first = events[0];
   if (!first || first.type !== "run.created") throw new Error("Ledger must start with run.created");
@@ -241,7 +245,7 @@ export function replay(events: LedgerEvent[]): RunState {
         }
         if (dec.decision === "waive-budget") {
           const c = Number((data as { ceiling?: number }).ceiling);
-          if (Number.isFinite(c) && c > s.budgetCeiling) s.budgetCeiling = c;
+          if (Number.isFinite(c) && c > s.budgetCeiling) s.budgetCeiling = Math.min(c, MAX_BUDGET_CEILING);
         }
         s.decisions.push(dec);
         if (dec.decision === "waive") s.waivers += 1;

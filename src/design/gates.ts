@@ -47,6 +47,8 @@ function fidelityGate(level: FidelityLevel) {
       const l = fidelity.levels.find((x) => x.level === level);
       if (!l) return verdict([failure(`design-${level}`, `${LEVEL_TITLE[level]}: not checked${fidelity.skipped ? ` (${fidelity.skipped})` : ""}`)], "not checked");
       if (l.status === "PASS") return verdict([], `${LEVEL_TITLE[level]} PASS: ${l.detail}`);
+      // a level the check does not hold the build to (the tokens of an app that keeps its own look) passes with its reason
+      if (!l.blocking && l.status === "UNCHECKED") return verdict([], `${LEVEL_TITLE[level]} not compared: ${l.detail}`);
       const found = fidelity.findings.filter((f) => f.level === level);
       const items = found.length ? found.slice(0, 20).map((f) => `${f.message}${f.pages.length ? ` (${f.pages.slice(0, 3).join(", ")}${f.pages.length > 3 ? `, +${f.pages.length - 3}` : ""})` : ""}`) : [l.detail];
       return verdict(items.map((m) => failure(`design-${level}`, `${l.status === "UNCHECKED" ? "could not check: " : ""}${m}`)), `${LEVEL_TITLE[level]} ${l.status}`);

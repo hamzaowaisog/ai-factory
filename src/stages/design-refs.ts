@@ -13,7 +13,7 @@ import { cleanBrief, type CleanBrief, type Dropped } from "../design/brief.js";
 import type { DesignInventory } from "../design/inventory.js";
 import { failure } from "../gates/engine.js";
 import type { RunState } from "../ledger/state.js";
-import { ESTIMATE_SOURCES, intentOf, inventoryOf, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
+import { ESTIMATE_SOURCES, intentOf, repoInventory, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
 import { header, type StepDef } from "./framework.js";
 import { S, think, UNTRUSTED_IMAGE_NOTE, UNTRUSTED_NOTE } from "./think.js";
 
@@ -159,7 +159,7 @@ export function makeDesignRefsStep(src: DesignSources = ESTIMATE_SOURCES): StepD
         return { kind: "done", outputs: { "design-refs": ctx.ledger.putJson({ header: header(ctx.runId, "design-refs", "design-read", ""), skipped: true, reason: !refs.length ? "no references" : "no UI in this request", refs: [], dropped: [] }) }, data: { skipped: true } };
       }
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
-      const inv = inventoryOf<DesignInventory>(ctx.state, ctx.ledger, src) ?? { primitives: [], composites: [] };
+      const inv = repoInventory(ctx, src) ?? { primitives: [], composites: [] };
       const sections = [
         S.template("tpl", `${RULES}\n${UNTRUSTED_IMAGE_NOTE}\n${UNTRUSTED_NOTE}\n${IMAGE_NOTE}`),
         S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),

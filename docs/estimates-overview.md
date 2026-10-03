@@ -3,7 +3,7 @@
 Full design and build status: [estimates-design.md](estimates-design.md). Reliability research: [estimate-consistency.md](estimate-consistency.md), [estimate-local-model.md](estimate-local-model.md). Benchmarks: [../bench/README.md](../bench/README.md).
 
 ## What it is
-An **estimate mode** for the factory. From refined requirements (new project) or a repo plus a request (existing project), it produces the estimate in the general estimation workbook: **hours**, **API credit cost** and **elapsed time**. It runs hands-off: nobody is asked questions and the factory approves the estimate once its checks pass (`--review` brings a lead's questions and approval back). A request with UI still waits for a person to approve its design.
+An **estimate mode** for the factory. From refined requirements (new project) or a repo plus a request (existing project), it produces the estimate in the general estimation workbook: **hours**, **API credit cost** and **elapsed time**. A person answers its questions and approves it by default. Hands-off (`--hands-off`: nobody is asked, the factory approves once its checks pass) is an explicit opt-in, and a build never follows a hands-off estimate. A request with UI also waits for a person to approve its design.
 
 ## Delivery model: solely agentic
 Every estimate is solely agentic. HITL was the other option and is no longer offered; HITL estimates made before still open. For the record:
@@ -20,10 +20,10 @@ Every estimate is solely agentic. HITL was the other option and is no longer off
 1. Requirements are refined first. No soft estimates.
 2. For UI work, the **mock and clickable demo** are approved first. They are the sizing baseline.
 3. Requirements become features and tasks. Each task cites its requirement.
-4. Every task has a kind from the task catalogue. The model picks a size step against the kind's written scale (with the closest approved past tasks as references); code reads the hours from the catalogue and does all arithmetic. The catalogue tunes itself from finished builds and real project hours, within limits, as new versions; a run keeps the version it was sized with.
+4. Every task has a kind from the task catalogue. The model picks a size step against the kind's written scale (with the closest approved past tasks as references); code reads the hours from the catalogue and does all arithmetic. The factory proposes a tuned catalogue from finished builds and real project hours, within limits; a person promotes it as a new version (`factory calibrate --apply`), and a run keeps the version it was sized with.
 5. Three independent estimators size every job. Each task takes the middle reading (the median), so one estimator that reads high or low does not move the estimate; a task they disagree on is flagged.
 6. Duration and API cost come from **our own measured runs** (per phase, and per task class for build time). Until enough runs exist, they are labelled cold-start with wide ranges. A pinned public benchmark is only a flagged prior and never changes a number.
-7. Gates check the result. The factory approves it (hands-off, the default), or a lead with `--review`. Two files are exported from one data model: team file and client file.
+7. Gates check the result. A lead approves it (the default), or the factory in an opt-in hands-off run. Two files are exported from one data model: team file and client file.
 
 ## Gates
 | Gate | Checks |
@@ -37,7 +37,7 @@ Every estimate is solely agentic. HITL was the other option and is no longer off
 | E4 Forgotten work | CI/CD, environments, monitoring, etc. each marked in, or out with a reason |
 | E5 Consistency | Similar tasks, similar hours; no unexplained outlier |
 | E6 Workbook lint | Code recomputes every total and link |
-| E7 Approval | The factory approves once the gates pass (or a lead, with `--review`), tied to the estimate's hash |
+| E7 Approval | A lead approves (the default), or the factory in a hands-off run, tied to the estimate's hash |
 | B1 Scope lock | Every plan task maps to an approved estimate task |
 | B2 Change request | New or changed requirement creates estimate v2 with a diff |
 | B3 Size cap | Finished change no bigger than approved |

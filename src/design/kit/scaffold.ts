@@ -14,7 +14,7 @@ import type { DesignBody as DesignBodySchema } from "../../contracts/artifacts.j
 import type { z } from "zod";
 
 type DesignBody = z.infer<typeof DesignBodySchema>;
-import { demoStates, overlayLabel, toastLabel, FULL_DATA } from "../../estimate/demo.js";
+import { demoStates, overlayLabel, toastLabel, FULL_DATA } from "../demo.js";
 import type { FileSource } from "../source.js";
 import { shadcnThemeCss } from "./theme.js";
 import { E2E_CONFIG, E2E_DIR, PLAYWRIGHT_VERSION, e2eFiles } from "./e2e.js";
@@ -39,8 +39,12 @@ export interface ScaffoldScreen {
   /** the state names in the address (fixture mode), slug to the demo's name */
   states: Record<string, string>;
 }
+/** A screen an existing app already has (tweak, reuse, design-system): changed in its own page file, not generated. */
+export interface InPlaceScreen { id: string; title: string; route: string; size: string; file?: string }
 export interface ScaffoldLayout {
   target: KitTarget; kit: { id: string; version: string }; root: string; fresh: boolean;
+  /** an existing app's screens that are built in its own page files (the kit is only for its new screens) */
+  inPlace: InPlaceScreen[];
   files: ScaffoldFile[];
   /** files the scaffold would have written but the repo already has its own (kept; the design-system task reconciles them) */
   kept: string[];
@@ -136,9 +140,18 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
   const allApps = o.design.apps?.length ? o.design.apps : [{ id: "", name: o.product, device: "web" as const, shell: o.design.theme?.shell ?? "auto", switcher: o.design.switcher }];
   const kitApps = allApps.filter((a) => a.device !== "phone" && (!o.apps || o.apps.includes(a.id)));
   const inApp = (s: DesignBody["screens"][number], a: { id: string }) => allApps.length < 2 || s.app === a.id || ((!s.app || !allApps.some((x) => x.id === s.app)) && a.id === allApps[0]!.id);
-  const screens = o.design.screens.filter((s) => s.mock && kitApps.some((a) => inApp(s, a)));
-  const skipped = o.design.screens.filter((s) => !screens.includes(s));
+  const drawn = o.design.screens.filter((s) => s.mock && kitApps.some((a) => inApp(s, a)));
+  // an existing app: a screen it already has (tweak, reuse, a design-system change) is changed in its own page file, as designed;
+  // only a new screen is generated with the kit
+  const inPlace: InPlaceScreen[] = fresh ? [] : drawn.filter((s) => s.size && s.size !== "new").map((s) => ({ id: s.id, title: s.mock!.title, route: s.route, size: s.size!, ...(s.file ? { file: s.file } : {}) }));
+  const screens = drawn.filter((s) => !inPlace.some((x) => x.id === s.id));
+  const skipped = o.design.screens.filter((s) => !drawn.includes(s));
   if (skipped.length) notes.push(`not scaffolded (no page drawn, or a phone app): ${skipped.map((s) => s.id).join(", ")}`);
+  if (inPlace.length) notes.push(`changed in the app's own pages, not generated: ${inPlace.map((x) => `${x.id} (${x.size}${x.file ? `, ${x.file}` : ""})`).join(", ")}`);
+  if (!fresh && !screens.length) {
+    notes.push("no new screens: nothing is generated, the kit and theme are not added");
+    return { target: o.target, kit: { id: o.kit.manifest.id, version: o.kit.manifest.version }, root, fresh, inPlace, files: [], kept: [], screens: [], removed: o.removed ?? [], designSystem: { files: [], todo: [] }, protected: [], notes };
+  }
 
   const names = new Set<string>();
   const routes = new Set<string>();
@@ -279,6 +292,9 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
   });
   const lang = o.design.locale?.languages[0] ?? "en";
   const framePath = at("components/screens/frame.ts");
+  const providersPath = at("components/screens/providers.tsx");
+  // an existing app keeps its own layout and navigation: no frame around it, its new pages are linked from its own
+  if (fresh) {
   add(framePath, [
     header(o.tag, "The product's frame: each app, its navigation and its switcher."),
     `import type { FrameApp } from "${imp("components/frame/app-frame", framePath)}";`,
@@ -289,7 +305,6 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     `export const APPS: FrameApp[] = ${lit(frameApps)};`,
     ``,
   ].join("\n"), "glue", true);
-  const providersPath = at("components/screens/providers.tsx");
   add(providersPath, [
     `${use}${header(o.tag, "Around every page: the translations and the frame.")}`,
     `import type { ReactNode } from "react";`,
@@ -302,6 +317,7 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     `}`,
     ``,
   ].join("\n"), "glue", true);
+  }
 
   // the product's words in its other language
   const other = o.design.locale?.languages.find((l) => !l.startsWith("en"));
@@ -422,14 +438,15 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     const sheet = o.src!.list().find((f) => /(^|\/)(globals|index|app|main)\.css$/.test(f) && f.startsWith(root)) ?? stylesheet;
     dsFiles.push("package.json", sheet);
     todo.push(`import the theme and the kit's animations in ${sheet}: @import "tw-animate-css";${look ? ` @import "${relativeCss(sheet, themePath)}";` : ""} (after @import "tailwindcss")`);
+    const newPages = out.map((x) => `${x.id} ${x.route}`).join(", ");
     if (next) {
       const layout = [at("app/layout.tsx"), "app/layout.tsx", "src/app/layout.tsx"].find((f) => o.src!.read(f) !== undefined) ?? at("app/layout.tsx");
       dsFiles.push(layout);
-      todo.push(`wrap the pages in the frame in ${layout}: <Suspense><DesignProviders>{children}</DesignProviders></Suspense> (components/screens/providers)`);
+      todo.push(`link the new pages (${newPages}) from the app's own navigation in ${layout}: they render inside its existing layout; do not add a new frame or restyle the app`);
     } else {
       const router = o.src!.list().find((f) => /createBrowserRouter|<Routes/.test(o.src!.read(f) ?? "") && /\.(t|j)sx?$/.test(f)) ?? at("main.tsx");
       dsFiles.push(router);
-      todo.push(`add designRoutes (design-routes.tsx) to the router in ${router}, inside <DesignProviders>`);
+      todo.push(`add designRoutes (design-routes.tsx) to the router in ${router}, inside the app's existing layout route, and link the new pages (${newPages}) from its own navigation; do not add a new frame`);
     }
   }
 
@@ -449,7 +466,7 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
   if (o.removed?.length) todo.push(`the design no longer has ${o.removed.join(", ")}: remove their routes and the frame's links to them`);
 
   return {
-    target: o.target, kit: { id: o.kit.manifest.id, version: o.kit.manifest.version }, root, fresh,
+    target: o.target, kit: { id: o.kit.manifest.id, version: o.kit.manifest.version }, root, fresh, inPlace,
     files: final, kept, screens: out, removed: o.removed ?? [],
     designSystem: { files: [...new Set(dsFiles)], todo },
     protected: [...new Set([...files.filter((f) => f.owner !== "app").map((f) => f.path), ...out.flatMap((x) => [x.screen, x.fixtures])])].filter((p) => !kept.includes(p)).sort(),
@@ -475,6 +492,7 @@ export function scaffoldSummary(l: ScaffoldLayout): string {
     `UI target ${l.target} (kit ${l.kit.id} ${l.kit.version}), source root "${l.root || "."}"${l.fresh ? ", a fresh app" : ""}`,
     `files: ${by("kit")} kit, ${by("theme")} theme, ${by("screen")} screen, ${by("glue")} frame and routes, ${by("app")} app${l.kept.length ? `; ${l.kept.length} kept (the repo's own)` : ""}`,
     ...l.screens.map((s) => `${s.id} ${s.title} ${s.route}: ${s.container}${s.page ? ` (route ${s.page})` : ""}; states ${Object.keys(s.states).join(", ")}`),
+    ...l.inPlace.map((s) => `${s.id} ${s.title} ${s.route}: ${s.size}, changed in the app's own page${s.file ? ` ${s.file}` : ""} as designed`),
     ...l.designSystem.todo.map((x) => `design system: ${x}`),
     ...l.notes.map((x) => `note: ${x}`),
   ].join("\n");

@@ -215,8 +215,9 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     expect(s.steps.get("clarify-2")!.data).toMatchObject({ skipped: true, handsOff: true });
     expect(s.steps.get("approve-estimate")!.data).toMatchObject({ by: "factory", auto: true });
     expect(s.gates.find((g) => g.gateId === "estimate.e7-approval")).toMatchObject({ passed: true });
-    // an estimate the factory approved is still one a build can follow
+    // an estimate the factory approved can be revised, but no build is held to a budget nobody approved
     expect(approvedEstimate(runId).runId).toBe(runId);
+    expect(() => approvedEstimate(runId, { build: true })).toThrow(/approved by the factory/);
     // the Estimate tab says who approved it and lists what the factory assumed
     const v = estimateView(ledger) as { handsOff?: boolean; approved?: { auto?: boolean; by: string }; factoryAssumptions?: { id: string; risk: string }[] };
     expect(v.handsOff).toBe(true);

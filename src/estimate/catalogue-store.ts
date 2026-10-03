@@ -1,9 +1,10 @@
 // Catalogue versions (docs/estimate-consistency.md, section 14). The repo file is the root version; the factory
 // writes each tuned version next to the ledgers, as <home>/catalogues/<root>+t<n>.json, and never edits one again.
-// New estimates are sized from the newest version of the current root; a run keeps the version its breakdown was
-// made with, so re-running or exporting it gives the same numbers. Bumping the repo file's version starts a new
+// A version is written only when a person promotes it (`factory calibrate --apply`); background tuning writes a
+// proposal beside them, <home>/catalogues/proposed/<root>.json, which nothing sizes from. New estimates are sized from
+// the newest promoted version of the current root; a run keeps the version its breakdown was made with, so re-running or exporting it gives the same numbers. Bumping the repo file's version starts a new
 // root, and the tuned versions of the old one are no longer used.
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { factoryHome } from "../util/paths.js";
 import { Catalogue, loadCatalogue } from "./catalogue.js";
@@ -53,3 +54,22 @@ export function saveTuned(c: Catalogue): string {
   writeFileSync(f, JSON.stringify(Catalogue.parse(c), null, 2) + "\n", { flag: "wx" });
   return f;
 }
+
+const proposalFile = (root: string): string => join(cataloguesDir(), "proposed", `${root}.json`);
+
+/** Write (or replace) the background tuner's proposal for a root. Nothing sizes from it until a person promotes it. */
+export function saveProposal(c: Catalogue): string {
+  const f = proposalFile(rootOf(c.version));
+  mkdirSync(join(cataloguesDir(), "proposed"), { recursive: true });
+  writeFileSync(f, JSON.stringify(Catalogue.parse(c), null, 2) + "\n");
+  return f;
+}
+
+/** The waiting proposal for a root, if any. */
+export function readProposal(root: string): Catalogue | undefined {
+  const f = proposalFile(root);
+  if (!existsSync(f)) return undefined;
+  try { return Catalogue.parse(JSON.parse(readFileSync(f, "utf8"))); } catch { return undefined; }
+}
+
+export function clearProposal(root: string): void { rmSync(proposalFile(root), { force: true }); }

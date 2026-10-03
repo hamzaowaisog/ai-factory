@@ -18,8 +18,9 @@ import { basename, dirname, extname, join, normalize, sep } from "node:path";
 import type { Browser, BrowserContext } from "playwright-core";
 import { MAX_REFERENCES, RefRole, type RefColour, type Reference } from "../contracts/reference.js";
 import type { Ledger } from "../ledger/ledger.js";
-import { findChromium } from "../estimate/screenshots.js";
+import { findChromium } from "../design/screenshots.js";
 import { MAX_IMAGE_BYTES, MAX_PACK_IMAGES } from "../util/image.js";
+import { isPrivateAddress, pinnedRequest } from "../util/safe-fetch.js";
 import { readDocx } from "./docx.js";
 import { FIGMA_DEFAULT_ROLE, figmaLook, readFigmaJson, readFigmaLink, type FigmaDeps } from "./figma.js";
 import { MAX_DOCX_BYTES } from "./request.js";
@@ -74,18 +75,7 @@ export function parseRefArg(arg: string): RefRequest {
 
 // ---------- links: only what the user gave, only https, no private addresses ----------
 
-/** Loopback, private, link-local, carrier-grade NAT and unspecified addresses (IPv4 and IPv6). */
-export function isPrivateAddress(ip: string): boolean {
-  const v = ip.toLowerCase().replace(/^\[|\]$/g, "");
-  const mapped = v.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-  if (mapped) return isPrivateAddress(mapped[1]!);
-  if (isIP(v) === 4) {
-    const [a, b] = v.split(".").map(Number) as [number, number];
-    return a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || a >= 224;
-  }
-  if (isIP(v) === 6) return v === "::" || v === "::1" || /^f[cd]/.test(v) || /^fe[89ab]/.test(v) || /^ff/.test(v);
-  return false;
-}
+export { isPrivateAddress };
 
 const isFigma = (u: URL) => /(^|\.)figma\.com$/i.test(u.hostname);
 const isFigmaLink = (raw: string) => { try { return isFigma(new URL(raw)); } catch { return false; } };
@@ -268,6 +258,12 @@ const PDF_READ = String.raw`(async function(origin, maxPages, maxEdge, maxText){
 
 interface Decoded { png: Buffer; width: number; height: number; colours: { hex: string; share: number }[] }
 
+/** Nothing listens here (the discard port): the browser's own connections fail. */
+const DEAD_PROXY = "http://127.0.0.1:9";
+/** One resource a reference page loads, and all of one page's resources together. */
+export const MAX_RESOURCE_BYTES = 15_000_000;
+const MAX_PAGE_BYTES = 80_000_000;
+
 class Browsing {
   private browser?: Browser;
   constructor(private readonly deps: RefDeps) {}
@@ -276,7 +272,9 @@ class Browsing {
     const exe = (this.deps.chromium ?? findChromium)();
     if (!exe) throw new RefIntakeError("Reading design references needs a browser (Chrome, Chromium, Edge or Brave); install one or set FACTORY_CHROMIUM to its path.");
     const { chromium } = await import("playwright-core");
-    this.browser = await chromium.launch({ executablePath: exe, args: ["--no-sandbox"], timeout: 30_000 });
+    // every request a page makes is answered by the route handlers (from Node, see site()); anything that slips past them
+    // (a WebSocket, a prefetch) goes to a proxy that is not there, so the browser itself never reaches the network
+    this.browser = await chromium.launch({ executablePath: exe, args: ["--no-sandbox", `--proxy-server=${DEAD_PROXY}`, "--proxy-bypass-list=<-loopback>"], timeout: 30_000 });
     return this.browser;
   }
   async close() { try { await this.browser?.close(); } catch { /* already gone */ } }
@@ -339,15 +337,26 @@ class Browsing {
     for (const vp of [{ width: 390, height: 844, label: "phone 390 px" }, { width: 1280, height: 800, label: "desktop 1280 px" }]) {
       const ctx: BrowserContext = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1, reducedMotion: "reduce", serviceWorkers: "block", acceptDownloads: false });
       try {
-        await ctx.route("**/*", (route) => {
-          const url = route.request().url();
+        let pageBytes = 0;
+        await ctx.route("**/*", async (route) => {
+          const req = route.request();
+          const url = req.url();
           let r: URL;
           try { r = new URL(url); } catch { return route.abort(); }
-          if (!/^(https?|data|blob):$/.test(r.protocol)) return route.abort();
+          if (r.protocol === "data:" || r.protocol === "blob:") return route.continue();
+          if (!/^https?:$/.test(r.protocol)) return route.abort();
           if (!allowPrivate && (isPrivateAddress(r.hostname) || /^localhost$/i.test(r.hostname))) return route.abort();
           const canned = this.deps.fulfil?.(url);
           if (this.deps.fulfil) return canned ? route.fulfill({ status: canned.status, body: canned.body, contentType: canned.contentType ?? "text/html" }) : route.abort();
-          return route.continue();
+          // fetched from Node, connected only to the address its own lookup checked (no second lookup to rebind)
+          try {
+            const res = await pinnedRequest(r, { method: req.method(), headers: await req.allHeaders(), ...(req.postDataBuffer() ? { body: req.postDataBuffer()! } : {}), allowPrivate, ...(this.deps.resolve ? { resolve: this.deps.resolve } : {}), maxBytes: MAX_RESOURCE_BYTES, timeoutMs: 20_000 });
+            pageBytes += res.body.length;
+            if (pageBytes > MAX_PAGE_BYTES) return route.abort();
+            return route.fulfill({ status: res.status, headers: res.headers, body: res.body });
+          } catch {
+            return route.abort();
+          }
         });
         const page = await ctx.newPage();
         page.setDefaultTimeout(20_000);

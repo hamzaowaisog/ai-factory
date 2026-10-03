@@ -20,11 +20,11 @@ import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
-import { answerEstimateQuestions, checkRefs, decideDesign, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
+import { answerEstimateQuestions, checkRefs, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
 import { figmaPluginZip } from "../design/figma.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
-import { acceptFromPage, fidelityPanel, fidelityShot } from "./fidelity.js";
+import { fidelityPanel, fidelityShot } from "./fidelity.js";
 import type { ExportFormat } from "../design/export.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
@@ -120,25 +120,12 @@ export const ROUTES: readonly Route[] = [
     },
   },
   {
-    method: "POST", path: "/api/runs/:id/estimate-answers", what: "the answers to a run's clarification questions (question cards only, on any run; needs a typed name and the card hash)",
+    method: "POST", path: "/api/runs/:id/estimate-answers", what: "the answers to an estimate run's clarification questions (question cards on estimate runs only; needs a typed name and the card hash)",
     handle: async ({ id }, body, deps) => {
       const l = findRun(id!);
       if (!l) return notFound(`No run ${id}`);
       try {
         return { status: 200, json: await answerEstimateQuestions(l, (body ?? {}) as Record<string, unknown>, deps) };
-      } catch (e) {
-        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
-        return { status: 400, json: { error: (e as Error).message } };
-      }
-    },
-  },
-  {
-    method: "POST", path: "/api/runs/:id/design-decision", what: "the lead's approve or reject of a design card (E1b only; needs a typed name and the card hash; a rejection needs a reason; the parts it points at are fixed, or the design is redrawn when it needs that)",
-    handle: async ({ id }, body, deps) => {
-      const l = findRun(id!);
-      if (!l) return notFound(`No run ${id}`);
-      try {
-        return { status: 200, json: await decideDesign(l, (body ?? {}) as Record<string, unknown>, deps) };
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };
@@ -187,14 +174,6 @@ export const ROUTES: readonly Route[] = [
   {
     method: "GET", path: "/api/runs/:id/fidelity", what: "the build's check of the app against the approved design: levels, findings, each page's built, approved and accepted pictures",
     handle: ({ id }) => { const l = findRun(id!); return l ? ok(fidelityPanel(l) as unknown as Json) : notFound(`No run ${id}`); },
-  },
-  {
-    method: "POST", path: "/api/runs/:id/fidelity/baseline", what: "accept built pictures (pages, or all) as the design's baseline; needs a typed name and a reason, recorded in the run's ledger",
-    handle: async ({ id }, body) => {
-      const l = findRun(id!);
-      if (!l) return notFound(`No run ${id}`);
-      try { return ok(await acceptFromPage(l, (body ?? {}) as Record<string, unknown>)); } catch (e) { return { status: (e as { status?: number }).status ?? 400, json: { error: (e as Error).message } }; }
-    },
   },
 ];
 

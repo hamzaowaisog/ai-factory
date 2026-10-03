@@ -6,7 +6,7 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
-import { findChromium, VIEWPORTS, type Viewport } from "../estimate/screenshots.js";
+import { findChromium, VIEWPORTS, type Viewport } from "./screenshots.js";
 import type { A11yViolation, LayoutBox, StateReport } from "./fidelity.js";
 
 export interface PageInput { name: string; url: string }

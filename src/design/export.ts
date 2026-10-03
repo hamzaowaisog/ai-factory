@@ -16,8 +16,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { join, relative } from "node:path";
 import { crc32 } from "node:zlib";
 import JSZip from "jszip";
-import { designTokens } from "../estimate/tokens.js";
-import { findChromium, VIEWPORTS, type Shot, type Viewport } from "../estimate/screenshots.js";
+import { designTokens } from "./tokens.js";
+import { findChromium, VIEWPORTS, type Shot, type Viewport } from "./screenshots.js";
 import type { DesignTheme } from "../contracts/artifacts.js";
 import { checkExport } from "./export-check.js";
 import { figmaDoc } from "./figma.js";

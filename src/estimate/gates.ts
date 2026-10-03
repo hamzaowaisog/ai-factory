@@ -3,6 +3,7 @@
 import type { z } from "zod";
 import type { Approval, Breakdown, Design, Estimate, PlanTask, Questions, ReviewFinding, Spec, SpecDraft } from "../contracts/index.js";
 import { screenScopeGaps, type ApprovedDesign } from "./design-link.js";
+import { matchesAny } from "../util/glob.js";
 import { defineGate, failure, verdict } from "../gates/engine.js";
 import type { DiffSummary } from "../gates/predicates.js";
 import { hashJson } from "../util/hash.js";
@@ -40,10 +41,12 @@ export const readiness = defineGate<{ spec: Spec; questions?: Questions }>({
   },
 });
 
-export const designBaseline = defineGate<{ ui: boolean; design?: z.infer<typeof Design>; approval?: Pick<z.infer<typeof Approval>, "decision" | "by"> }>({
+export const designBaseline = defineGate<{ ui: boolean; design?: z.infer<typeof Design>; approval?: Pick<z.infer<typeof Approval>, "decision" | "by">; note?: boolean }>({
   id: "estimate.e1b-design-baseline", after: "design", safety: false, waiver: "none",
-  predicate: ({ ui, design, approval }) => {
+  predicate: ({ ui, design, approval, note }) => {
     if (!ui) return { passed: true, details: "no UI in this request" };
+    // a small fix's text note is approved by the person who approves the estimate (E7), on the same card
+    const withEstimate = note && design?.note === true;
     const fs = [];
     if (!design) fs.push(failure("e1b-design", "the request has UI but there is no design"));
     else {
@@ -54,8 +57,8 @@ export const designBaseline = defineGate<{ ui: boolean; design?: z.infer<typeof 
       const ids = design.screens.map((x) => x.id);
       for (const x of new Set(ids.filter((v, i) => ids.indexOf(v) !== i))) fs.push(failure("e1b-duplicate", `two screens share the id ${x}`));
     }
-    if (approval?.decision !== "approved" || !approval.by) fs.push(failure("e1b-approval", "the mock and clickable demo are not approved by a person"));
-    return verdict(fs, `${design?.screens.length ?? 0} screens approved and linked to requirements`);
+    if (!withEstimate && (approval?.decision !== "approved" || !approval.by)) fs.push(failure("e1b-approval", "the mock and clickable demo are not approved by a person"));
+    return verdict(fs, withEstimate ? `design note: ${design!.screens.length} page(s) linked to requirements, approved with the estimate (E7)` : `${design?.screens.length ?? 0} screens approved and linked to requirements`);
   },
 });
 
@@ -241,6 +244,41 @@ export const screenScope = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "es
       screenScopeGaps(plan, breakdown, design).map((g) => failure("b7-screen-scope", `plan task ${g.task} builds approved screen ${g.screen}, but its file scope does not include ${g.file}`)),
       "every plan task that builds an approved screen can touch that screen's file",
     );
+  },
+});
+
+/**
+ * B1 for a build from an approved design (`--from-design`, no estimate): every plan task delivers requirements of the approved
+ * spec, and none delivers one the design run did not approve (PR #11 review, item 10).
+ */
+export const designScopeLock = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "reqs">[] }; approvedSpec: Pick<SpecDraft, "requirements"> }>({
+  id: "build.b1-design-scope", after: "plan", safety: false, waiver: "human",
+  predicate: ({ plan, approvedSpec }) => {
+    const approved = new Set(approvedSpec.requirements.map((r) => r.id));
+    return verdict(
+      plan.tasks.flatMap((t) => !t.reqs.length
+        ? [failure("b1-unmapped", `plan task ${t.id} delivers no approved requirement`)]
+        : t.reqs.filter((r) => !approved.has(r)).map((r) => failure("b1-unknown", `plan task ${t.id} delivers ${r}, which the approved design's spec does not have`))),
+      "every plan task delivers approved requirements",
+    );
+  },
+});
+
+/**
+ * B6 and B7 for a build from an approved design: each approved screen is delivered by a plan task that serves its
+ * requirements, and one of those tasks can touch the screen's file, so the screen that was approved is the one built.
+ */
+export const designScreensPlanned = defineGate<{ plan: { tasks: Pick<PlanTask, "id" | "reqs" | "fileScope">[] }; design?: ApprovedDesign }>({
+  id: "build.b6-design-screens", after: "plan", safety: false, waiver: "human",
+  predicate: ({ plan, design }) => {
+    if (!design || design.skipped) return { passed: true, details: "the approved design has no screens" };
+    const fs = [];
+    for (const s of design.screens) {
+      const serving = plan.tasks.filter((t) => t.reqs.some((r) => s.reqs.includes(r)));
+      if (!serving.length) fs.push(failure("b6-screen", `approved screen ${s.id} (${s.route}) serves ${s.reqs.join(", ")}, and no plan task delivers them`));
+      else if (s.file && !serving.some((t) => matchesAny(s.file, t.fileScope))) fs.push(failure("b7-screen-scope", `approved screen ${s.id} is delivered by ${serving.map((t) => t.id).join(", ")}, but none of their file scopes includes ${s.file}`));
+    }
+    return verdict(fs, `every approved screen (${design.screens.length}) is planned, by a task that can touch its file`);
   },
 });
 

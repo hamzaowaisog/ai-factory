@@ -3,7 +3,7 @@
 // with the things that drive it, in plain words. No hours: the estimator sizes from the drivers, and gate E5 keeps a complex
 // screen from being sized below a simple one. The points only order screens; they are not a rate.
 import type { DesignLocale, MockBlock, MockOverlay, ScreenMock } from "../contracts/index.js";
-import { isRtl } from "./locale.js";
+import { isRtl } from "../design/locale.js";
 
 export type UiLevel = "simple" | "moderate" | "complex";
 export interface ScreenUi {

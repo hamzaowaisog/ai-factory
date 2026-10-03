@@ -1,6 +1,7 @@
 // Self-tuning catalogue (docs/estimate-consistency.md, section 14, Phase 3). After every estimate and every build,
-// the factory measures the current catalogue version against what happened and, when a value is off, writes a new
-// version. No model call and no person: arithmetic over the ledgers.
+// the factory measures the current catalogue version against what happened and, when a value is off, writes a
+// proposal for the next version. No model call: arithmetic over the ledgers. Tuning is a suggestion: nothing is
+// sized from a proposal until a person promotes it (`factory calibrate --apply`).
 //   - Size, verify and context factors: from build pairs (catalogue-status.ts), a pick's measured ratio to its
 //     baseline against the catalogue's, pooled over kinds and tracks (geometric mean, weighted by tasks).
 //   - Hours: from finished projects' real hours (the actual-hours file), actual over the estimate's midpoint, as one
@@ -16,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { hoursRows, type HoursRow } from "./calibrate.js";
 import { loadCatalogue, type Catalogue } from "./catalogue.js";
 import { actualHoursFile, factorChecks } from "./catalogue-status.js";
-import { cataloguesDir, currentCatalogue, generationOf, rootOf, saveTuned, tunedVersion } from "./catalogue-store.js";
+import { cataloguesDir, clearProposal, currentCatalogue, generationOf, rootOf, saveProposal, saveTuned, tunedVersion } from "./catalogue-store.js";
 import { decisionPairs, type DecisionPair } from "./decisions.js";
 
 export interface TuneChange { path: string; from: number; to: number; measured: number; evidence: number; limited?: "cap" | "bound" }
@@ -128,14 +129,18 @@ export function withTuneLock<T>(f: () => T): T | undefined {
 }
 
 /**
- * Measure the current version against every ledger and the actual-hours file, and write the next version when
- * anything is off. `apply: false` only reports. Undefined when another tuner holds the lock.
+ * Measure the current version against every ledger and the actual-hours file. "report" only reports; "propose" (the
+ * background tuner) writes the next version as a proposal, or clears a stale one when nothing is off; "apply" (a
+ * person, `factory calibrate --apply`) writes the next version, which new estimates are then sized from.
+ * Undefined when another tuner holds the lock.
  */
-export function tuneNow(opts: { apply: boolean }): TunePlan | undefined {
+export function tuneNow(opts: { mode: "report" | "propose" | "apply" }): TunePlan | undefined {
   return withTuneLock(() => {
     const f = actualHoursFile();
     const plan = planTune(currentCatalogue(), loadCatalogue(), decisionPairs(), existsSync(f) ? hoursRows(f) : []);
-    if (opts.apply && plan.catalogue) saveTuned(plan.catalogue);
+    const root = rootOf(plan.from);
+    if (opts.mode === "propose") { if (plan.catalogue) saveProposal(plan.catalogue); else clearProposal(root); }
+    if (opts.mode === "apply" && plan.catalogue) { saveTuned(plan.catalogue); clearProposal(root); }
     return plan;
   });
 }
@@ -143,7 +148,7 @@ export function tuneNow(opts: { apply: boolean }): TunePlan | undefined {
 /** Where background tuning writes what it did. */
 export const tuneLog = (): string => join(cataloguesDir(), "tune.log");
 
-/** The default trigger: `factory calibrate --auto` as a detached process, so no run waits on it. */
+/** The default trigger: `factory calibrate --auto` (writes a proposal only) as a detached process, so no run waits on it. */
 function spawnTuner(): void {
   if (process.env.VITEST || process.env.FACTORY_NO_TUNE === "1") return;
   const js = fileURLToPath(new URL("../cli/index.js", import.meta.url));
@@ -157,7 +162,7 @@ let trigger: () => void = spawnTuner;
 /** Tests swap the trigger to count calls. */
 export function setTuneTrigger(f: () => void): void { trigger = f; }
 
-/** Start background tuning. Never throws: tuning must not break the run that triggered it. */
+/** Start background tuning (a proposal, never a new version). Never throws: tuning must not break the run that triggered it. */
 export function triggerTune(): void {
   try { trigger(); } catch (e) {
     try { appendFileSync(tuneLog(), `${new Date().toISOString()} trigger failed: ${(e as Error).message}\n`); } catch { /* nothing to log to */ }

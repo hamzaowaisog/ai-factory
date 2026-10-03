@@ -9,7 +9,7 @@ import JSZip from "jszip";
 import { beforeEach, describe, expect, it } from "vitest";
 import { _resetEnvCache } from "../config/env.js";
 import { DesignTheme } from "../contracts/artifacts.js";
-import { findChromium, type Shot } from "../estimate/screenshots.js";
+import { findChromium, type Shot } from "./screenshots.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { autoExportFormats, designExportStep, exportForRun } from "../stages/design-export.js";

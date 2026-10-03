@@ -62,7 +62,7 @@ The whole design (core-design.md §1–14, contracts.md, plan-audit.md) walked a
 | ES5 | Client changes the brief after the estimate | ✓ | Same change mechanism; estimate v2 with a diff against v1 |
 | ES6 | Client needs to click the MVP | **Gap G10** | Preview packaging |
 | ES7 | Estimate accepted → start building | **Gap G4** | Estimate's spec + breakdown seed the greenfield run sequence (no re-spec) |
-| ES8 | Calibration from actual effort | ✓ | Actuals per task logged by every build run; the task catalogue tunes itself from them and from real project hours (docs/estimate-consistency.md, section 14) |
+| ES8 | Calibration from actual effort | ✓ | Actuals per task logged by every build run; the factory proposes a tuned task catalogue from them and from real project hours; a person promotes it (docs/estimate-consistency.md, section 14) |
 
 ## 4. Cross-cutting
 

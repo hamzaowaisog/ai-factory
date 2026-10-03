@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { findChromium } from "../../estimate/screenshots.js";
+import { findChromium } from "../screenshots.js";
 import { ARCHETYPES, INDUSTRIES } from "./data.js";
 import { allIndustries, archetypeBrief, briefFor, cueBrief, fieldOf, requirementCues, loadMeasured, loadUserIndustries, matchIndustries, pickIndustries, referenceBrief, resolveBrand, saveMeasured } from "./index.js";
 import { measureBrands } from "./measure.js";

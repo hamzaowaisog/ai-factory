@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { HoursRow } from "./calibrate.js";
 import { loadCatalogue, type Catalogue } from "./catalogue.js";
-import { currentCatalogue, saveTuned } from "./catalogue-store.js";
+import { currentCatalogue, readProposal, saveProposal, saveTuned, storedVersions } from "./catalogue-store.js";
 import type { DecisionPair } from "./decisions.js";
 import { formatTunePlan, nextValue, planTune, tuneNow, withTuneLock } from "./tune.js";
 
@@ -91,7 +91,7 @@ describe("tuning against the ledger home", () => {
   afterEach(() => { rmSync(home, { recursive: true, force: true }); if (before === undefined) delete process.env.FACTORY_HOME; else process.env.FACTORY_HOME = before; });
 
   it("reports without writing on an empty home, and lets one tuner run at a time", () => {
-    const p = tuneNow({ apply: true })!;
+    const p = tuneNow({ mode: "apply" })!;
     expect(p).toMatchObject({ from: root.version, changes: [], builds: 0, projects: 0 });
     expect(currentCatalogue().version).toBe(root.version);
     expect(withTuneLock(() => withTuneLock(() => "inner"))).toBeUndefined();
@@ -101,6 +101,23 @@ describe("tuning against the ledger home", () => {
   it("measures the newest tuned version, not the repo file", () => {
     const p = planTune(root, root, evidence(root, 2.4), [])!;
     saveTuned(p.catalogue!);
-    expect(tuneNow({ apply: false })!.from).toBe(`${root.version}+t1`);
+    expect(tuneNow({ mode: "report" })!.from).toBe(`${root.version}+t1`);
+  });
+
+  it("the background tuner only proposes; a person promotes the proposal", () => {
+    // a home whose current version is off: the newest stored version, and evidence measured against it
+    const t1 = planTune(root, root, evidence(root, 2.4), []).catalogue!;
+    saveTuned(t1);
+    const next = planTune(t1, root, evidence(t1, 2.4 * 1.5), []);
+    expect(next.to).toBe(`${root.version}+t2`);
+    // proposing writes nothing new estimates are sized from
+    saveProposal(next.catalogue!);
+    expect(readProposal(root.version)?.version).toBe(`${root.version}+t2`);
+    expect(currentCatalogue().version).toBe(`${root.version}+t1`);
+    expect(storedVersions(root.version).map((c) => c.version)).toEqual([`${root.version}+t1`]);
+    // with nothing off, the tuner clears a stale proposal instead of keeping it
+    tuneNow({ mode: "propose" });
+    expect(readProposal(root.version)).toBeUndefined();
+    expect(currentCatalogue().version).toBe(`${root.version}+t1`);
   });
 });

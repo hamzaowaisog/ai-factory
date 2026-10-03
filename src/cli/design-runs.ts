@@ -16,7 +16,7 @@ import { describeReferences, gatherReferences, parseRefArg } from "../sources/re
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
 import { EXPORT_MODES, listExports, parseFormats, parseList, type ExportOptions } from "../design/export.js";
 import { figmaHowTo } from "../design/figma.js";
-import { VIEWPORTS, type Viewport } from "../estimate/screenshots.js";
+import { VIEWPORTS, type Viewport } from "../design/screenshots.js";
 import { exportForRun, exportSeededNow } from "../stages/design-export.js";
 import { replay } from "../ledger/state.js";
 import { loadKit, sampleDesign, scaffold, scaffoldSummary, UI_TARGETS, uiTargetOption, writeScaffold, type KitTarget, type ScaffoldLayout } from "../design/kit/index.js";

@@ -124,7 +124,7 @@ export const REF_RULES = `CLIENT REFERENCES. The client attached design referenc
 
 // ---------- the rendered layout check (step 7) ----------
 
-/** What the rendered demo shows for a screen (`readDemoLayout` in src/estimate/screenshots.ts). */
+/** What the rendered demo shows for a screen (`readDemoLayout` in src/design/screenshots.ts). */
 export interface Rendered { frame: string; nav: string[]; blocks: string[] }
 
 /** A reference's navigation, as what the rendered frame must show (any one of them). none and unclear are not checked. */

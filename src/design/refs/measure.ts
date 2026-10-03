@@ -1,6 +1,6 @@
 // Read a brand's real colours from its live page (run this where the sites are reachable). Writes an
 // overlay (~/.factory/design-refs/measured.json) that the reference brief prefers over the reported values.
-import { findChromium } from "../../estimate/screenshots.js";
+import { findChromium } from "../screenshots.js";
 import type { RefBrand } from "./data.js";
 import { allIndustries, loadMeasured, saveMeasured, type Measured } from "./index.js";
 import { colourGap } from "./fit.js";

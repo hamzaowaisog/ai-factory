@@ -25,6 +25,7 @@ import { breakdownStep, estimateStep, setRecordsSource, setTaskRecordsSource } f
 import { designQuality, designStep, mapDesign, MAX_DESIGN_REVISIONS } from "./design.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
+import { lightUi, LIGHT_UI_REQS } from "./lane.js";
 import { NO_TRACE } from "../util/trace.js";
 
 const sha = "a".repeat(64);
@@ -617,5 +618,64 @@ describe("design quality (a finished look, not a wireframe)", () => {
     expect(checks(mockOf([two[0]]))).toEqual(["design-thin-mock"]);
     expect(checks(mockOf([...two, { type: "table", columns: ["A"], rows: [["x"]] }]))).toEqual(["design-thin-mock"]);
     expect(checks(mockOf([{ type: "list", items: [{ title: "Item 1", meta: "m" }] }, two[0]]))).toEqual(["design-placeholder"]);
+  });
+});
+
+describe("a small UI fix gets a design note (PR #11 review, item 9)", () => {
+  const twoReqs = { ...spec, requirements: [...spec.requirements, { id: "REQ-2", ears: "The system shall show a Remember me checkbox on sign in.", op: "ADDED", sources: ["I-1"], acceptance: [] }] };
+  const existing = { pages: [{ path: "app/login/page.tsx", kind: "page", route: "/login", layout: ["Button", "Input"], heading: "Sign in" }], verdict: "consistent", tokens: { total: 12 }, primitives: [], composites: [], stack: {} };
+  const note = (size = "tweak") => ({
+    flow: "The user signs in on the existing page", noScreen: [],
+    screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1", "REQ-2"], size, change: "Add a Remember me checkbox under the password field, using the existing Checkbox." }],
+  });
+  async function smallFix(intent = uiIntent(true)) {
+    const ledger = await newRun();
+    await complete(ledger, "intake", intent);
+    const inv = ledger.putJson(existing);
+    await ledger.append({ type: "step.completed", key: "ground/1", inputsHash: sha, outputs: [inv], data: { named: { design: inv } } }, HUMAN_WRITER);
+    await complete(ledger, "specify", twoReqs);
+    return ledger;
+  }
+
+  it("writes a text note in one small call, passes E1b with no card of its own, and shows the note on the estimate card", async () => {
+    const ledger = await smallFix();
+    answer = () => note();
+    const o = await exec(ledger, designStep);
+    expect(o.kind).toBe("done");
+    expect(modelCalls).toBe(1);
+    const d = ledger.getJson<{ note: boolean; screens: { change: string; mock?: unknown }[]; themeSource: string }>((o as { outputs: Record<string, string> }).outputs.design!);
+    expect(d).toMatchObject({ note: true, themeSource: "repo" });
+    expect(d.screens[0]!.mock).toBeUndefined();
+    const base = await exec(ledger, designBaselineStep);
+    expect(base.kind).toBe("done");
+    expect(existsSync(join(ledger.dir, "design-demo.html"))).toBe(false);
+    await complete(ledger, "breakdown", breakdown);
+    await complete(ledger, "estimate", estimateOf());
+    const card = await exec(ledger, approveEstimateStep);
+    const md = (card as { card: { markdown: string } }).card.markdown;
+    expect(md).toContain("## Design note (a small change to existing pages: no demo is drawn, and approving the estimate approves this note)");
+    expect(md).toContain("- S-1 /login (app/login/page.tsx; tweak) -> REQ-1, REQ-2: Add a Remember me checkbox");
+  });
+
+  it("draws the full design when the note needs a new page", async () => {
+    const ledger = await smallFix();
+    let calls = 0;
+    answer = () => (++calls === 1 ? note("new") : { flow: "x", screens: [] });
+    await exec(ledger, designStep).catch(() => undefined);
+    expect(calls).toBeGreaterThan(1); // the note, then the full design (retried here on an empty answer)
+  });
+
+  it("is the path only for a light, low-risk change in an app of its own with no frames, references or earlier design", () => {
+    const small = { risk: "low" as const, rigor: "light" as const, changeClass: "feature" as const };
+    const o = { existingLook: true, frames: 0, references: 0, earlierDesign: false, reqs: 2 };
+    expect(lightUi(small, o)).toBe(true);
+    expect(lightUi({ ...small, rigor: "full" }, o)).toBe(false);
+    expect(lightUi({ ...small, risk: "medium" }, o)).toBe(false);
+    expect(lightUi(small, { ...o, existingLook: false })).toBe(false);
+    expect(lightUi(small, { ...o, frames: 1 })).toBe(false);
+    expect(lightUi(small, { ...o, references: 1 })).toBe(false);
+    expect(lightUi(small, { ...o, earlierDesign: true })).toBe(false);
+    expect(lightUi(small, { ...o, reqs: LIGHT_UI_REQS + 1 })).toBe(false);
+    expect(lightUi(small, { ...o, off: true })).toBe(false);
   });
 });

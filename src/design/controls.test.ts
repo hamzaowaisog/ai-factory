@@ -10,7 +10,7 @@ import { a11yFit, DesignOut } from "../stages/design.js";
 import { MockBlock, ScreenMock, btnLabels } from "../contracts/artifacts.js";
 import { pageLabels } from "./locale.js";
 import { contrast, contrastIssues, palette } from "./palette.js";
-import { screenUi } from "./ui-complexity.js";
+import { screenUi } from "../estimate/ui-complexity.js";
 import { findChromium } from "./screenshots.js";
 
 const page = (blocks: unknown[], more: Record<string, unknown> = {}) => ScreenMock.parse({ title: "Team", blocks, ...more });

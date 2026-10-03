@@ -20,7 +20,7 @@ import { S, think, UNTRUSTED_NOTE } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { uiSizeForCard } from "../design/card.js";
 import { LANE, lightSpec } from "./lane.js";
-import { changeRequest, scopeLock, screenScope, screensPlanned } from "../estimate/gates.js";
+import { changeRequest, designScopeLock, designScreensPlanned, scopeLock, screenScope, screensPlanned } from "../estimate/gates.js";
 import { buildWaiver, type BuildFailed } from "../estimate/build-waiver.js";
 import type { WaiverRow } from "../estimate/log.js";
 import { WAIVER_AFTER_ATTEMPT } from "./waiver.js";
@@ -34,7 +34,7 @@ type PlanT = z.infer<typeof PlanBody>;
 
 // ---------- risk rules (intake: risk = max(rules, model)) ----------
 /** Build gates a lead may waive at the plan: B1 (scope lock) and B6 (screens planned). B2 goes through a change request. */
-const WAIVABLE_AT_PLAN = new Set(["build.b1-scope-lock", "build.b6-screens-planned", "build.b7-screen-scope"]);
+const WAIVABLE_AT_PLAN = new Set(["build.b1-scope-lock", "build.b6-screens-planned", "build.b7-screen-scope", "build.b1-design-scope", "build.b6-design-screens"]);
 
 const RISK_RULES: { tag: string; re: RegExp; risk: Risk }[] = [
   { tag: "auth", re: /\b(auth|login|password|permission|role|token|oauth|sso|jwt)\w*/i, risk: "high" },
@@ -143,14 +143,19 @@ export const planStep: StepDef = {
     const critic = requireOutput<{ findings: unknown[] }>(ctx.state, ctx.ledger, "specify", "critic");
     const snap = snapshotFor(ctx);
     const ref = ctx.state.info.estimateRef;
+    // a build from an approved design (--from-design) is held to that design's spec and screens the same way (PR #11 review, item 10)
+    const dref = ref ? undefined : ctx.state.info.designRef;
     // B2: a requirement changed after approval (recorded by steer) is a change request, not a quiet replan
     if (ref && ctx.state.pendingChanges.length) {
       return { kind: "park", reason: `A requirement change was recorded after the estimate was approved (gate B2). Estimate it as a change request: factory estimate --revises ${ref.runId}, then build the new estimate.` };
     }
+    if (dref && ctx.state.pendingChanges.length) {
+      return { kind: "park", reason: `A requirement change was recorded after the design was approved in ${dref.runId} (gate B2). Draw and approve the changed design first (a new design run), then build from it.` };
+    }
     // the approved design: from the estimate this build was seeded from, or from this run's own design steps
     const design = approvedDesignFor<{ skipped?: boolean; flow: string; screens: { id: string; route: string }[]; theme?: unknown; themeSource?: "new" | "repo" }>(ctx.state, ctx.ledger)?.design;
     const approvedDesign = design && !design.skipped ? { flow: design.flow, screens: design.screens } : undefined;
-    // a new look comes with design tokens (estimate/tokens.ts); one task must be free to put them in the app's global stylesheet
+    // a new look comes with design tokens (design/tokens.ts); one task must be free to put them in the app's global stylesheet
     const newLook = !!approvedDesign && !!design?.theme && design.themeSource !== "repo";
     // a design built with a kit: the scaffold's files are known now, so the design-system task comes first and each screen task
     // fills in its container (docs/estimates-design.md, "Kit and scaffold"); a change request plans only the changed screens
@@ -175,9 +180,10 @@ export const planStep: StepDef = {
         ...(approvedDesign ? [S.artifact("approved-design", "approved-design", approvedDesign)] : []),
         ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task, and that plan task's fileScope must include the approved screen's file." : "") + (newLook ? " The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them." : ""))] : []),
         // a direct build whose approved design is a new look (a restyle to the client's reference) puts the tokens in once too
+        ...(dref ? [S.template("design-scope-lock", "This plan builds an APPROVED DESIGN. Every task delivers requirements of the approved spec (its reqs), and nothing else: anything more is a change to the design, not part of this plan." + (approvedDesign ? " Every approved screen must be delivered by a task that serves its requirements, and that task's fileScope must include the approved screen's file." : ""))] : []),
         ...(!ref && newLook ? [S.template("new-look", "The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them.")] : []),
-        ...(scaf?.layout ? [S.artifact("scaffold", "ui-scaffold", scaffoldForPlan(scaf)), S.template("scaffold-rules", `The approved design is built in ${scaf.target}: before any task starts, the factory writes the component kit, the theme, the frame and navigation, and every approved page (its blocks, states, layers and text, with the approved sample data) into the repo. Those generated files are not in any task's scope.
-- TASK-1 is the design-system task: its fileScope is exactly the ui-scaffold's designSystemTask.fileScope (plus nothing else UI), and its approach is the designSystemTask.todo list.
+        ...(scaf?.layout ? [S.artifact("scaffold", "ui-scaffold", scaffoldForPlan(scaf)), S.template("scaffold-rules", `${scaf.layout.fresh ? `The approved design is built in ${scaf.target}: before any task starts, the factory writes the component kit, the theme, the frame and navigation, and every approved page (its blocks, states, layers and text, with the approved sample data) into the repo.` : `The approved design is built in the existing ${scaf.target} app: before any task starts, the factory writes only its genuinely new pages (with the kit and theme they need, when there are any) into the repo; the app keeps its own layout and navigation, and its existing pages are changed in place.`} Those generated files are not in any task's scope.
+${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: its fileScope is exactly the ui-scaffold's designSystemTask.fileScope (plus nothing else UI), and its approach is the designSystemTask.todo list." : "- There is no design-system task: nothing is generated, so no wiring is needed."}${scaf.layout.inPlace.length ? "\n- Each screen in ui-scaffold.changeInPlace is an existing page: one task changes its file in place to match the approved design (its fileScope includes that file), using the app's own components; no new page and no new frame." : ""}
 - Then one task per screen in ui-scaffold.screens: its fileScope includes that screen's container (and the API or service files the behaviour needs). The task gives the page real data, API calls, validation and the behaviour the requirements ask for, in the container; it does not restyle or rebuild the page.${scaf.changed ? " This is a change to an approved design: only the screens listed changed, so plan only those (and the removed screens' clean-up in the design-system task)." : ""}`)] : []),
         ...(planRejections(ctx.state).length ? [{ spec: { id: "rejection", source: "feedback" as const, trust: "trusted" as const, placement: "user" as const }, content: `The human reviewer rejected the previous plan. Their reasons (latest last):\n${planRejections(ctx.state).map((x) => `- ${x}`).join("\n")}\nThe plan must address them.` }] : []),
         S.task("Write the plan."),
@@ -211,11 +217,27 @@ export const planStep: StepDef = {
         else fs.push(...list);
       }
     }
+    // B1, B2, B6 and B7 for a build from an approved design: its spec, and its screens through the requirements they serve
+    if (dref) {
+      const designSha = scaf?.layout ? ctx.ledger.putJson(designForScopeGate(ctx.ledger.getJson<{ screens: { id: string; file?: string }[] }>(dref.designSha), scaf)) : dref.designSha;
+      const checks: [GateDef, Record<string, string>][] = [
+        [designScopeLock, { plan: planSha, approvedSpec: dref.specSha }],
+        [changeRequest, { spec: specSha, approvedSpec: dref.specSha, approvedEstimateSha: dref.designSha }],
+        [designScreensPlanned, { plan: planSha, design: designSha }],
+      ];
+      for (const [def, inputs] of checks) {
+        const res = await runGate(def, ctx.ledger, ctx.writer, inputs, ctx.policy, { step: "plan" });
+        if (res.passed) continue;
+        const list = res.failures ?? [failure(def.id, res.details)];
+        if (WAIVABLE_AT_PLAN.has(def.id)) waivable.push({ def, failures: list });
+        else fs.push(...list);
+      }
+    }
     // B1 and B6 can be waived by a lead once the model has had its retry; anything else fails the plan as before
     let waivers: Omit<WaiverRow, "step">[] = [];
     if (waivable.length) {
-      const w = !g.failures?.length && !fs.length && ctx.attempt >= WAIVER_AFTER_ATTEMPT && ref
-        ? buildWaiver(ctx, "plan", waivable, hashJson({ spec: specSha, breakdown: ref.breakdownSha }), `To stop and change the request instead: factory stop ${ctx.runId}`)
+      const w = !g.failures?.length && !fs.length && ctx.attempt >= WAIVER_AFTER_ATTEMPT && (ref || dref)
+        ? buildWaiver(ctx, "plan", waivable, hashJson({ spec: specSha, ...(ref ? { breakdown: ref.breakdownSha } : { design: dref!.designSha }) }), `To stop and change the request instead: factory stop ${ctx.runId}`)
         : undefined;
       if (w?.kind === "ask") return w.outcome;
       if (w?.kind === "waived") waivers = w.waivers;

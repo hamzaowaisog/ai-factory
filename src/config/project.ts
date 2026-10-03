@@ -84,8 +84,8 @@ export const ProjectConfig = z.object({
   referenceDb: z.object({ connEnv: z.string() }).optional(),
   /** the Folio3 estimation template (.xlsx) the estimate workbooks are drawn on; FACTORY_ESTIMATE_TEMPLATE also works */
   estimateTemplate: z.string().optional(),
-  /** estimate runs: humanReview true makes a person answer the clarify questions and approve the estimate (E7); `factory estimate --review` does it for one run */
-  estimate: z.object({ humanReview: z.boolean().default(false) }).optional(),
+  /** estimate runs: a person answers the clarify questions and approves the estimate (E7) by default; humanReview false makes the project's estimates hands-off (opt-in; `factory estimate --hands-off` does it for one run) */
+  estimate: z.object({ humanReview: z.boolean().default(true) }).optional(),
   /** Front end of the repo, when it has one (docs/design-step.md): overrides what the design checks would detect. */
   design: z.object({
     /** source root, e.g. "src/" ("" is the repo root); default: detected */
@@ -94,6 +94,17 @@ export const ProjectConfig = z.object({
     uiDir: z.string().optional(),
     /** brand fonts the design brief may name besides Google Fonts */
     brandFonts: z.array(z.string()).default([]),
+    /**
+     * A small UI fix in an app of its own gets a text design note approved with the estimate, not a drawn demo and a card of its
+     * own (docs/estimates-design.md, "Design note for a small fix"). false: every UI request gets the full design.
+     */
+    lightNote: z.boolean().default(true),
+    /**
+     * Commit the approved design package (design.json, tokens, the demo, up to 240 pictures) into the client's branch under
+     * `.factory/design/<line>/vN/`. Off by default (PR #11 review, item 12): the package stays in the factory's store, and the
+     * build reads it from there.
+     */
+    commitPackage: z.boolean().default(false),
     /** a nav change counts as a new screen, not a tweak */
     navRaises: z.boolean().default(false),
     /** design reference URLs may point at private addresses (an intranet style guide); off by default */
@@ -127,11 +138,13 @@ export const ProjectConfig = z.object({
     }).optional(),
     /**
      * Check the built app against the approved design (docs/estimates-design.md, "Fidelity and tests"): tokens, structure and
-     * accessibility block (waivable), layout and pixels advise. Only for a kit scaffold (next-shadcn, vite-shadcn). Like capture, the
-     * app is built and started ON THIS MACHINE, so it is off unless `allowHost` is true. The commands default to the kit's own.
+     * accessibility block (waivable), layout and pixels advise. On by default whenever the factory generated the screens (a kit
+     * scaffold: next-shadcn, vite-shadcn), with the kit's own commands; this object only changes them. The app is built and started
+     * ON THIS MACHINE in the run's worktree (a scratch HOME, none of the factory's secrets); `false` switches the check off.
      */
-    fidelity: z.object({
-      allowHost: z.literal(true),
+    fidelity: z.union([z.literal(false), z.object({
+      /** accepted for older configs; the check no longer needs it */
+      allowHost: z.literal(true).optional(),
       /** run once in the checkout first; default "npm install --no-audit --no-fund" */
       install: z.string().optional(),
       /** builds and starts the app on $PORT; default per target (next build && next start, vite build && vite preview) */
@@ -142,7 +155,7 @@ export const ProjectConfig = z.object({
       env: z.record(z.string(), z.string()).default({}),
       /** most pages to open (the rest are noted, not checked) */
       maxPages: z.number().int().min(1).max(400).default(160),
-    }).optional(),
+    })]).optional(),
   }).optional(),
   noGo: z.array(z.string()).default([]),
   /** USD per million tokens for models the factory has no price for (e.g. a GPT model). */

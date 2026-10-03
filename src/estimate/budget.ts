@@ -10,7 +10,7 @@ import type { Ledger } from "../ledger/ledger.js";
 import type { LedgerEvent } from "../contracts/index.js";
 import { hashJson } from "../util/hash.js";
 import { DEFAULT_ASSUMPTIONS, type Assumptions, type Range } from "./assumptions.js";
-import type { RunState } from "../ledger/state.js";
+import { MAX_BUDGET_CEILING, type RunState } from "../ledger/state.js";
 import { BURN_WARN, budgetBurn, burnRatios, type Burn } from "./gates.js";
 
 const mid = (r: Range): number => (r.min + r.max) / 2;
@@ -71,16 +71,22 @@ export async function budgetStop(ledger: Ledger, writer: Writer, state: RunState
   if (!(Object.values(ratios).some((r) => r >= ceiling))) return undefined;
   const res = await runGate(budgetBurn, ledger, writer, { spent: ledger.putJson(spent), estimate: ledger.putJson(estimate), limit: ledger.putJson({ ceiling }) }, policy, { step: "budget" });
   const reason = `Approved budget reached (gate B5): ${res.details}`;
-  const proposed = Math.round((ceiling + BUDGET_STEP) * 100) / 100;
+  const proposed = Math.min(MAX_BUDGET_CEILING, Math.round((ceiling + BUDGET_STEP) * 100) / 100);
+  const atMax = ceiling >= MAX_BUDGET_CEILING;
   const artifactSha = hashJson({ kind: "budget", ceiling, seq: state.lastSeq });
   const cardId = `budget-${artifactSha.slice(0, 8)}`;
   const markdown = [
     `# Budget reached: ${reason.replace("Approved budget reached (gate B5): ", "")}`, ``,
     `Run ${state.info.runId} follows the approved estimate from run ${ref.runId}. Spent: $${spent.apiUsd.toFixed(2)} API credits, ${spent.elapsedDays.toFixed(1)} days elapsed, ${spent.effortHours.toFixed(1)} h of counted human gate effort (assumed times).`, ``,
-    `To let the run continue up to ${Math.round(proposed * 100)}% of the approved maximum (recorded with your name and reason):`,
-    `  factory waive-budget ${state.info.runId} ${artifactSha.slice(0, 8)} --reason "why more is acceptable"`,
-    `(--ceiling <n> sets a different limit, as a multiple of the approved maximum, for example 1.5)`,
-    `Or decide it is a different scope: a change request (factory estimate --revises ${ref.runId}), a new estimate, or factory stop.`, ``,
+    ...(atMax ? [
+      `The limit is already ${MAX_BUDGET_CEILING * 100}% of the approved maximum, the most a waiver allows: the estimate is wrong for this work.`,
+      `Revise it with a change request (factory estimate --revises ${ref.runId}), start a new estimate, or factory stop.`, ``,
+    ] : [
+      `To let the run continue up to ${Math.round(proposed * 100)}% of the approved maximum (recorded with your name and reason):`,
+      `  factory waive-budget ${state.info.runId} ${artifactSha.slice(0, 8)} --reason "why more is acceptable"`,
+      `(--ceiling <n> sets a different limit, as a multiple of the approved maximum, above the current one and at most ${MAX_BUDGET_CEILING})`,
+      `Or decide it is a different scope: a change request (factory estimate --revises ${ref.runId}), a new estimate, or factory stop.`, ``,
+    ]),
     `Card hash: ${artifactSha.slice(0, 8)}`,
   ].join("\n");
   return { cardId, artifactSha, markdown, reason, ceiling, proposed };

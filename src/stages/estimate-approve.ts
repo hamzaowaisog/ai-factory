@@ -12,11 +12,13 @@ import { humanReview } from "../estimate/settings.js";
 import { catalogueStatusText } from "../estimate/catalogue-status.js";
 import { exportWorkbooks, type ExportInput } from "../estimate/export.js";
 import { considerationsFrom } from "../estimate/considerations.js";
-import { diffDesigns, diffEstimates } from "../estimate/lineage.js";
-import { buildDemo, frameDataUri } from "../estimate/demo.js";
-import { designTokens } from "../estimate/tokens.js";
+import { diffEstimates } from "../estimate/lineage.js";
+import { diffDesigns } from "../design/diff.js";
+import { buildDemo, frameDataUri } from "../design/demo.js";
+import { designTokens } from "../design/tokens.js";
+import type { DesignInventory } from "../design/inventory.js";
 import { screenUi, uiFactors, type ScreenUi } from "../estimate/ui-complexity.js";
-import { captureDemo, LAYOUT_FAULT, type LayoutIssue, type ShotResult, type Viewport } from "../estimate/screenshots.js";
+import { captureDemo, LAYOUT_FAULT, type LayoutIssue, type ShotResult, type Viewport } from "../design/screenshots.js";
 import { gateLine, gateLog, waiversOf } from "../estimate/log.js";
 import { loadWorkbook, lintWorkbook } from "../estimate/workbook-lint.js";
 import { failure } from "../gates/engine.js";
@@ -29,7 +31,7 @@ import { hashJson } from "../util/hash.js";
 import type { ClarifyResult } from "./clarify.js";
 import { gate, settingsOf } from "./estimate.js";
 import { listedFrames, MAX_DESIGN_REVISIONS } from "./design.js";
-import { ESTIMATE_SOURCES, intentOf, specOf, type DesignSources } from "./design-inputs.js";
+import { ESTIMATE_SOURCES, intentOf, specOf, type DesignSources, repoInventory } from "./design-inputs.js";
 import { reworkCardLines } from "./design-rework.js";
 import { lookKey, recordLook } from "../design/looks.js";
 import { fieldOf } from "../design/refs/index.js";
@@ -88,7 +90,29 @@ const compareLines = (c: CompareCard): string[] => [
   c.pairs ? `Side by side: ${c.pairs} picture(s) of v${c.was} next to the new ones (Preview on the run page, before / after)${c.dir ? `; the earlier pictures are in ${c.dir}` : ""}.` : `Side by side: none${c.note ? ` (${c.note})` : ""}.`, ``,
 ];
 
-export function designCard(runId: string, design: DesignT, hash: string, extra: { demo?: string; diff?: string[]; compare?: CompareCard; shots?: { dir: string; count: number; note?: string; issues?: LayoutIssue[] }; purpose?: DesignPurpose; refs?: { id: string; role: string; source: string }[] } = {}): string {
+/** An existing app's page next to the screen that changes it, on the card (a tweak, a reuse or a design-system screen). */
+export interface CurrentPage { screen: string; title?: string; size: string; route: string; file: string; found: boolean; uses: string[]; proposed: string[] }
+
+/** The existing app's pages that the design changes, each beside the proposed screen, and the look the demo was drawn in. */
+export function currentPages(design: DesignT, inv: Pick<DesignInventory, "pages"> | undefined): CurrentPage[] {
+  const pages = inv?.pages ?? [];
+  return design.screens.flatMap((s) => {
+    const x = s as { size?: string; mock?: { title?: string; blocks?: { type?: string }[] } };
+    if (!x.size || x.size === "new") return [];
+    const page = pages.find((p) => p.path === s.file) ?? pages.find((p) => p.route === s.route);
+    const proposed = [...new Set((x.mock?.blocks ?? []).map((b) => b.type).filter((b): b is string => !!b))];
+    return [{ screen: s.id, ...(x.mock?.title ? { title: x.mock.title } : {}), size: x.size, route: page?.route ?? s.route, file: page?.path ?? s.file, found: !!page, uses: page?.layout ?? [], proposed }];
+  });
+}
+
+const currentLines = (cur: CurrentPage[], look?: string[]): string[] => (cur.length || look?.length ? [
+  `## Current vs proposed`,
+  ...(look?.length ? [`Drawn in the app's own look, read from its stylesheets: ${look.join("; ")}.`] : []),
+  ...cur.map((c) => `- ${c.title ? `${c.title}: ` : ""}${c.screen} (${c.size}). Current: ${c.found ? `${c.file} at ${c.route}${c.uses.length ? `, built from ${c.uses.slice(0, 8).join(", ")}` : ""}` : `${c.file} (not found in the repo: a new page after all?)`}. Proposed: the demo's ${c.screen}${c.proposed.length ? ` (${c.proposed.slice(0, 8).join(", ")})` : ""}.`),
+  ``,
+] : []);
+
+export function designCard(runId: string, design: DesignT, hash: string, extra: { demo?: string; diff?: string[]; compare?: CompareCard; shots?: { dir: string; count: number; note?: string; issues?: LayoutIssue[] }; purpose?: DesignPurpose; refs?: { id: string; role: string; source: string }[]; current?: CurrentPage[]; look?: string[] } = {}): string {
   return [
     ...CARD_HEAD[extra.purpose ?? "estimate"](runId),
     `Flow: ${design.flow}`, design.figmaUrl ? `Figma: ${design.figmaUrl}` : "",
@@ -97,6 +121,7 @@ export function designCard(runId: string, design: DesignT, hash: string, extra: 
     ...layoutLines(extra.shots?.issues ?? []),
     ...(extra.diff ? [`## Change from the approved design`, ...(extra.compare ? compareLines(extra.compare) : []), ...(extra.diff.length ? extra.diff.map((l) => `- ${l}`) : ["- no screen changed"]), ``] : []),
     ...reworkCardLines(design as never),
+    ...currentLines(extra.current ?? [], extra.look),
     `Screens (${design.screens.length}):`,
     ...design.screens.map((s) => { const x = s as typeof s & { states?: string[]; size?: string; mock?: { title: string } }; const title = x.mock?.title ? `${x.mock.title}: ` : ""; return `- ${title}${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}${x.size ? `; ${x.size}` : ""}${x.states?.length ? `; states: ${x.states.join(", ")}` : ""}${(s as { refs?: string[] }).refs?.length ? `; from ${(s as { refs?: string[] }).refs!.join(", ")}` : ""}${uiLine(screenUi(s as never))}`; }), ``,
     ...refCardLines(design, extra.refs),
@@ -136,6 +161,12 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
           : "This request has UI, and the design step has not produced a mock and clickable demo for this run. Produce the design, then resume." };
       }
       const designSha = outputOf(ctx.state, "design")!;
+      // a small fix's text note: no demo and no card of its own; the estimate card shows it and its approval covers it
+      if (design.note) {
+        const g = await gate(ctx, "design-baseline", designBaseline, { ui: true, design, note: true });
+        if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [failure("e1b", g.details)], signature: `e1b:${g.details.slice(0, 80)}` };
+        return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, note: true, by: "with the estimate (E7)" }) }, data: { ui: true, note: true, screens: design.screens.length } };
+      }
       const past = decisionsOn(ctx.state, "design-");
       // the demo is drawn from the design, the requirement text and the attached frames; the approval is tied to that exact page
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
@@ -150,6 +181,13 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
         frames[f.id] = { name: f.name, ...(dataUri ? { dataUri } : {}) };
       }
       const d = design;
+      // an existing app: each page the design changes beside the proposed screen, and the look its demo is drawn in
+      const existingPages = () => {
+        const inv = repoInventory(ctx, src);
+        const current = d.themeSource === "repo" ? currentPages(d, inv) : [];
+        const look = d.themeSource === "repo" && inv?.look ? inv.look.from : undefined;
+        return { ...(current.length ? { current } : {}), ...(look ? { look } : {}) };
+      };
       // a lead knows pages by their titles; two pages with the same title also show the route so they stay apart
       const named = (sc: (typeof d.screens)[number]) => sc.mock?.title?.trim();
       const label = (sc: (typeof d.screens)[number]) => { const t = named(sc); return !t ? `${sc.id} ${sc.route}` : d.screens.filter((o) => named(o) === t).length > 1 ? `${t} (${sc.route})` : t; };
@@ -208,7 +246,7 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
       if (taken.shots.length) writePreview(taken.shots, compare?.files);
       if (taken.note) ctx.log(`design-baseline: ${taken.note}`);
       if (taken.issues?.length) ctx.log(`design-baseline: ${taken.issues.length} layout problem(s) in the demo, listed on the card`);
-      return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle, { purpose, demo: demoFile, ...(ctx.state.info.references?.length ? { refs: ctx.state.info.references } : {}), ...(diff ? { diff } : {}), ...(compare ? { compare: compare.card } : {}), shots: { dir: shotsDir, count: taken.shots.length, ...(taken.note ? { note: taken.note } : {}), ...(taken.issues?.length ? { issues: taken.issues } : {}) } }) } };
+      return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: designCard(ctx.runId, design, bundle, { purpose, demo: demoFile, ...existingPages(), ...(ctx.state.info.references?.length ? { refs: ctx.state.info.references } : {}), ...(diff ? { diff } : {}), ...(compare ? { compare: compare.card } : {}), shots: { dir: shotsDir, count: taken.shots.length, ...(taken.note ? { note: taken.note } : {}), ...(taken.issues?.length ? { issues: taken.issues } : {}) } }) } };
     },
   };
 }
@@ -258,7 +296,19 @@ const h = (r: { min: number; max: number }): string => `${r.min}-${r.max} h`;
 const usd = (r: { min: number; max: number }): string => `$${r.min.toFixed(2)}-$${r.max.toFixed(2)}`;
 
 /** The one review the lead does: anchors first, then totals, cost, flags, the gate and waiver log. */
-export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<Breakdown, "tasks">, extra: { gates: string[]; waivers: string[]; note?: string; diff?: { title: string; lines: string[] } }): string {
+/** A small fix's design note on the estimate card: each page it touches and what changes there. */
+export function designNoteLines(d: { flow: string; screens: { id: string; route: string; file: string; reqs: string[]; size?: string; change?: string }[]; noScreen?: { req: string; reason: string }[] } | undefined): string[] {
+  if (!d) return [];
+  return [
+    `## Design note (a small change to existing pages: no demo is drawn, and approving the estimate approves this note)`,
+    `Flow: ${d.flow}`,
+    ...d.screens.map((s) => `- ${s.id} ${s.route} (${s.file}; ${s.size ?? "tweak"}) -> ${s.reqs.join(", ")}: ${s.change ?? ""}`),
+    ...(d.noScreen ?? []).map((n) => `- ${n.req} needs no page: ${n.reason}`),
+    `If the note is wrong, reject with the reason; the next estimate run draws it again.`, ``,
+  ];
+}
+
+export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<Breakdown, "tasks">, extra: { gates: string[]; waivers: string[]; note?: string; diff?: { title: string; lines: string[] }; designNote?: Parameters<typeof designNoteLines>[0] }): string {
   const title = new Map(b.tasks.map((t) => [t.id, t.title]));
   const flagged = e.tasks.filter((t) => t.flagged);
   const list = (xs: string[], none: string) => (xs.length ? xs : [none]);
@@ -268,6 +318,7 @@ export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<B
     ...(e.catalogue ? [`Hours from task catalogue ${e.catalogue.version} (stack ${e.catalogue.stack}): ${catalogueStatusText(e.catalogue)}.`] : []),
     extra.note ? `\n${extra.note}` : "", ``,
     ...(extra.diff ? [`## ${extra.diff.title}`, ...extra.diff.lines.map((l) => `- ${l}`), ``] : []),
+    ...designNoteLines(extra.designNote),
     `## Anchors (check these first: every other task is sized against one)`,
     ...e.anchors.map((a) => `- ${a.taskId} ${title.get(a.taskId) ?? ""}: ${h(a.hours)}. ${a.reason}`), ``,
     ...(e.tasks.some((t) => t.references?.length) ? [`## Sized with approved past tasks as references`, ...e.tasks.filter((t) => t.references?.length).map((t) => `- ${t.taskId} ${title.get(t.taskId) ?? ""}: ${t.size?.replace("-", " ") ?? "-"}; like ${t.references!.map((r) => `${r.taskId} of ${r.runId} (${r.size.replace("-", " ")}, ${h(r.hours)})`).join(", ")}${t.references!.every((r) => r.size !== t.size) ? " (sized differently: see its reason)" : ""}`), ``] : []),
@@ -347,7 +398,7 @@ export const approveEstimateStep: StepDef = {
     const md = estimateCard(ctx.runId, bundle, estimate, breakdown, {
       gates: gateLog(ctx.ledger.events()).map(gateLine),
       waivers: waiversOf(ctx.state).map((w) => `${w.gateIds.join(", ")} (${w.step}): waived by ${w.human}. ${w.reason}`),
-      note, diff: parentDiff(ctx, estimate, breakdown),
+      note, diff: parentDiff(ctx, estimate, breakdown), ...((d) => (d?.note ? { designNote: d } : {}))(readOutput<DesignT>(ctx.state, ctx.ledger, "design")),
     });
     return { kind: "wait", card: { cardId: `estimate-${bundle.slice(0, 8)}`, kind: "estimate-approval", artifactSha: bundle, markdown: md } };
   },

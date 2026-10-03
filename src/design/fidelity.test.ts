@@ -9,7 +9,7 @@ import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { acceptBaselines, BaselineError, baselinesDir, readBaselineIndex, readBaselines } from "./baselines.js";
 import { checkExport, pdfFacts, wantedPairs } from "./export-check.js";
-import { blockWords, expectedFor, fidelityPages, layoutFindings, structureFindings, tokenFindings, type FidelityReport } from "./fidelity-app.js";
+import { approvedTheme, blockWords, expectedFor, fidelityPages, layoutFindings, structureFindings, tokenFindings, type FidelityReport } from "./fidelity-app.js";
 import type { ReadBlock } from "./fidelity-read.js";
 import { designA11yGate, designStructureGate, designTokensGate } from "./gates.js";
 import { e2eConfig, e2eFiles, pressesFor, screenSpec } from "./kit/e2e.js";
@@ -17,7 +17,8 @@ import { loadKit, scaffold } from "./kit/index.js";
 import { sampleDesign } from "./kit/sample.js";
 import type { DesignPackage } from "./package.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
-import { designFidelityStep } from "../stages/design-fidelity.js";
+import { designFidelityStep, fidelityConfig } from "../stages/design-fidelity.js";
+import { ProjectConfig } from "../config/project.js";
 import type { StepContext } from "../stages/framework.js";
 import { NO_TRACE } from "../util/trace.js";
 
@@ -123,6 +124,18 @@ describe("the blocking gates", () => {
     r.levels[2]!.detail = "axe did not load";
     expect(JSON.stringify(designA11yGate.predicate({ fidelity: r }))).toContain("could not check: axe did not load");
     expect(JSON.stringify(designTokensGate.predicate({ fidelity: report({ levels: [], skipped: "no app" }) }))).toContain("Tokens: not checked (no app)");
+    // an app that keeps its own look: the tokens are not compared, and that does not fail the gate
+    const own = report();
+    own.levels[0] = { level: "tokens", blocking: false, check: "design.tokens", status: "UNCHECKED", detail: "the app keeps its own look" };
+    expect(designTokensGate.predicate({ fidelity: own })).toMatchObject({ passed: true });
+  });
+
+  it("compares the tokens with the approved theme only: a new look's, never a default for an app with its own", () => {
+    expect(approvedTheme({ theme: design.theme, themeSource: "new" })).toBe(design.theme);
+    expect(approvedTheme({ theme: design.theme, themeSource: "repo" })).toBeUndefined();
+    expect(approvedTheme({})).toBeUndefined();
+    // no theme: no dark pages are opened for a mode the design never drew
+    expect(fidelityPages({ ...design, theme: undefined }, ["S-1"]).some((p) => p.mode === "dark")).toBe(false);
   });
 });
 
@@ -225,7 +238,14 @@ describe("the generated Playwright tests", () => {
 });
 
 describe("the design-fidelity step", () => {
-  it("does nothing, and says why, without a kit scaffold or the project's design.fidelity", async () => {
+  it("is on by default with the kit's commands; design.fidelity changes them and false switches it off", () => {
+    const p = (design?: object) => ProjectConfig.parse({ project: "p", repo: "/r", stack: "dotnet", ...(design ? { design } : {}) });
+    expect(fidelityConfig(p())).toMatchObject({ port: 4320, readyPath: "/", maxPages: 160 });
+    expect(fidelityConfig(p({ fidelity: { allowHost: true, port: 4400 } }))).toMatchObject({ port: 4400 });
+    expect(p({ fidelity: false }).design?.fidelity).toBe(false);
+  });
+
+  it("does nothing, and says why, without a kit scaffold or when switched off", async () => {
     const ledger = Ledger.create(`20261003-fs-${Math.random().toString(16).slice(2, 6)}`);
     await ledger.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: "x" } }, HUMAN_WRITER);
     await ledger.append({ type: "step.completed", key: "integrate/1", inputsHash: "a".repeat(64), outputs: [ledger.putJson({})], data: { commit: "c1" } }, HUMAN_WRITER);
@@ -239,5 +259,7 @@ describe("the design-fidelity step", () => {
     expect(logs[0]).toMatch(/^fidelity check skipped/);
     // no gate ran, so nothing waits on a waiver
     expect(ledger.events().some((e) => e.type === "gate.result")).toBe(false);
+    // no project setting at all: still only the missing scaffold stops it
+    expect(await designFidelityStep.run(ctx({}))).toMatchObject({ kind: "done", data: { skipped: expect.stringMatching(/no scaffold/) } });
   });
 });

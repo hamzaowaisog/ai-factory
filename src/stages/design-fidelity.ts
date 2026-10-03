@@ -1,8 +1,8 @@
 // design-fidelity (no model): after accept, the built app against the approved design (docs/estimates-design.md, "Fidelity and
 // tests"). The app is built and started in fixture mode, every screen opened in the states, widths, modes and languages the design
 // package pictures, and checked for tokens, structure and accessibility (blocking gates design.tokens, design.structure and
-// design.a11y, waivable on the waiver card) and layout and pixels (advice). Only for a kit scaffold; it does nothing unless the
-// project opted in with design.fidelity, because it builds and starts the project's app on this machine.
+// design.a11y, waivable on the waiver card) and layout and pixels (advice). On by default whenever the factory generated the
+// screens (a kit scaffold), with the kit's own commands; design.fidelity changes them, and `design.fidelity: false` switches it off.
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Failure } from "../contracts/index.js";
@@ -17,7 +17,7 @@ import { failure, runGate } from "../gates/engine.js";
 import { approvedDesignFor } from "./design-inputs.js";
 import { readOutput, type StepDef, type StepOutcome } from "./framework.js";
 import { scaffoldPreview, type ScaffoldRecord } from "./scaffold-run.js";
-import type { ProjectConfig } from "../config/project.js";
+import { ProjectConfig } from "../config/project.js";
 import type { Ledger } from "../ledger/ledger.js";
 import type { RunState } from "../ledger/state.js";
 import type { DesignPackage } from "../design/package.js";
@@ -29,6 +29,13 @@ export const DEFAULT_INSTALL = "npm install --no-audit --no-fund";
 /** The kit's own build-and-start command for a target, on $PORT. */
 export const defaultStart = (target: string): string =>
   target === "vite-shadcn" ? "npx vite build && npx vite preview --port $PORT --strictPort" : "npx next build && npx next start -p $PORT";
+
+type FidelityConfig = Exclude<NonNullable<NonNullable<ProjectConfig["design"]>["fidelity"]>, false>;
+/** The project's fidelity settings, with the defaults when it sets none. */
+export function fidelityConfig(project: ProjectConfig): FidelityConfig {
+  const set = project.design?.fidelity;
+  return set || (ProjectConfig.shape.design.unwrap().shape.fidelity.unwrap().options[1].parse({}) as FidelityConfig);
+}
 
 export const designFidelityStep: StepDef = {
   key: "design-fidelity", stage: "accept", templateVersion: "1",
@@ -48,8 +55,8 @@ export const designFidelityStep: StepDef = {
     const scaf = readOutput<ScaffoldRecord>(ctx.state, ctx.ledger, "stub-commit", "scaffold");
     if (!scaf) return skip("the run has no scaffold (no approved design, or it was not generated)");
     if (scaf.target === "repo" || !scaf.screens.length) return skip("the screens are built with the repo's own components, not the kit");
-    const cfg = ctx.project.design?.fidelity;
-    if (!cfg) return skip("no design.fidelity in the project config");
+    if (ctx.project.design?.fidelity === false) return skip("switched off (design.fidelity: false in the project config)");
+    const cfg = fidelityConfig(ctx.project);
     const approved = approvedDesignFor<Parameters<typeof runFidelity>[0]["design"]>(ctx.state, ctx.ledger);
     if (!approved) return skip("the run has no approved design");
     const pkg = findPackage(ctx.state.info.project, approved.sha);
@@ -120,7 +127,7 @@ export async function checkRunningApp(state: RunState, ledger: Ledger, project: 
   const report = await runFidelity({
     baseUrl, design: approved.design, screens: screens.map((x) => x.id),
     ...(pkg ? { demoFile: join(pkg.dir, "demo", "index.html"), shots: pkg.manifest.shots, baselines: readBaselines(pkg) } : {}),
-    outDir, relDir: FIDELITY_DIR, log, max: project.design?.fidelity?.maxPages ?? 160,
+    outDir, relDir: FIDELITY_DIR, log, max: fidelityConfig(project).maxPages,
   });
   if (!pkg) report.notes.push("the design package is not in the store, so there are no approved pictures or baselines to compare with");
   writeFileSync(join(outDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);

@@ -67,7 +67,7 @@ if (cmd === "calibrate" || cmd === "all") {
   const { formatTunePlan, planTune } = await import("../src/estimate/tune.js");
   const { loadCatalogue } = await import("../src/estimate/catalogue.js");
   const plan = planTune(cat, loadCatalogue(), pairs, hrs);
-  console.log(`\n== Self-tuning (what the next run would write) ==\n${formatTunePlan(plan)}`);
+  console.log(`\n== Self-tuning (what the next proposal would be; a person promotes it with factory calibrate --apply) ==\n${formatTunePlan(plan)}`);
   history.tuning = { from: plan.from, ...(plan.to ? { to: plan.to } : {}), changes: plan.changes.length, fitted: plan.fitted.length, flagged: plan.flagged };
   history.catalogue = { version: cat.version, status: ev.status, builds: ev.builds, checks: ev.checks.length, held: ev.checks.filter((x) => x.held).length, projects: ev.projects, projectsWithin: ev.projectsWithin };
 }

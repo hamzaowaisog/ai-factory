@@ -1,6 +1,7 @@
 // The scaffold of a run (docs/estimates-design.md, "Kit and scaffold", step 4 wiring): the target per app, the changed screens of a
 // change request, the plan's checks (design-system task first, containers in scope, generated files out of scope), gate B7 on the
 // containers, and the preview the CLI and the UI show.
+import { uiBase } from "./workspace.js";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -20,7 +21,8 @@ beforeEach(() => {
 });
 
 const files = (m: Record<string, string>): FileSource => ({ list: () => Object.keys(m), read: (p) => m[p] });
-const nextRepo = files({ "package.json": JSON.stringify({ dependencies: { next: "15.5.0", react: "19.1.0" } }), "app/page.tsx": "export default function P() { return null; }" });
+const nextRepo = files({ "package.json": JSON.stringify({ dependencies: { next: "15.5.0", react: "19.1.0" } }), "components.json": "{}", "app/page.tsx": "export default function P() { return null; }" });
+const nextTailwind = files({ "package.json": JSON.stringify({ dependencies: { next: "15.5.0", react: "19.1.0", tailwindcss: "4" } }), "app/page.tsx": "export default function P() { return null; }" });
 const viteMui = files({ "package.json": JSON.stringify({ dependencies: { vite: "7", react: "19", "@mui/material": "7" } }), "src/main.tsx": "" });
 const project = (design: Partial<NonNullable<ProjectConfig["design"]>> = {}): ProjectConfig => ({ project: "demo", design: { brandFonts: [], navRaises: false, allowPrivateRefs: false, uiTargets: {}, ...design } }) as unknown as ProjectConfig;
 const state = (info: Partial<RunState["info"]> = {}): RunState => ({ info: { runId: "run-1", mode: "brownfield", project: "demo", createdAt: "", ...info }, steps: new Map(), decisions: [] }) as unknown as RunState;
@@ -53,6 +55,34 @@ describe("the UI target of a run", () => {
     expect(scaffoldView(s).files).toEqual([]);
   });
 
+  it("keeps a Next.js app with Tailwind but not shadcn/ui on its own pages: no parallel kit app", () => {
+    const s = scaffoldForRun({ state: state(), project: project(), design, designSha: "d".repeat(64), src: nextTailwind });
+    expect(s).toMatchObject({ target: "repo", source: "detected" });
+    expect(s.layout).toBeUndefined();
+  });
+
+  it("changes an existing app's tweaked and reused screens in its own page files; only new screens are generated", () => {
+    const sized = { ...design, screens: design.screens.map((x, i) => ({ ...x, size: i === 0 ? "tweak" : i === 1 ? "reuse" : "new", ...(i === 0 ? { file: "app/page.tsx" } : {}) })) } as never;
+    const s = scaffoldForRun({ state: state(), project: project(), design: sized, designSha: "d".repeat(64), src: nextRepo });
+    const l = s.layout!;
+    expect(l.inPlace.map((x) => [x.id, x.size])).toEqual([["S-1", "tweak"], ["S-2", "reuse"]]);
+    expect(l.screens.map((x) => x.id)).not.toContain("S-1");
+    expect(l.files.some((f) => f.path.includes("components/screens/s-1/"))).toBe(false);
+    expect(l.files.some((f) => f.path.endsWith("frame.ts") || f.path.endsWith("providers.tsx"))).toBe(false);
+    expect((scaffoldForPlan(s) as { changeInPlace: { id: string }[] }).changeInPlace.map((x) => x.id)).toEqual(["S-1", "S-2"]);
+    const ds = { id: "TASK-1", fileScope: l.designSystem.files };
+    const rest = l.screens.map((x, i) => ({ id: `TASK-${i + 2}`, fileScope: [x.container] }));
+    const s2 = l.inPlace[1]!.file!;
+    expect(checkPlanScaffold({ tasks: [ds, ...rest] }, s)).toEqual(["Screen S-1 (/, tweak): no task has its existing page app/page.tsx in scope", `Screen S-2 (/invoices/:id, reuse): no task has its existing page ${s2} in scope`]);
+    expect(checkPlanScaffold({ tasks: [ds, ...rest, { id: "TASK-9", fileScope: ["app/page.tsx", s2] }] }, s)).toEqual([]);
+    // only tweaks: nothing is generated, not even the kit or the theme
+    const allTweak = { ...design, screens: design.screens.map((x) => ({ ...x, size: "tweak" })) } as never;
+    const t = scaffoldForRun({ state: state(), project: project(), design: allTweak, designSha: "d".repeat(64), src: nextRepo }).layout!;
+    expect(t.files).toEqual([]);
+    expect(t.designSystem).toEqual({ files: [], todo: [] });
+    expect(checkPlanScaffold({ tasks: [{ id: "TASK-1", fileScope: ["app/**"] }] }, { ...s, layout: t })).toEqual([]);
+  });
+
   it("scaffolds a run with no repo as a fresh app, under the design's sha when there is no package yet", () => {
     const s = scaffoldForRun({ state: state(), project: project(), design, designSha: "d".repeat(64) });
     expect(s).toMatchObject({ target: "next-shadcn", source: "default" });
@@ -78,7 +108,8 @@ describe("the plan against the scaffold", () => {
   it("gives the plan the design-system task's files and to-dos and each screen's container", () => {
     const v = scaffoldForPlan(s) as { designSystemTask: { fileScope: string[]; todo: string[] }; screens: { container: string }[] };
     expect(v.designSystemTask.fileScope).toEqual(expect.arrayContaining(["package.json", "app/layout.tsx"]));
-    expect(v.designSystemTask.todo.join("\n")).toMatch(/DesignProviders/);
+    expect(v.designSystemTask.todo.join("\n")).toMatch(/link the new pages .* from the app's own navigation/);
+    expect(v.designSystemTask.todo.join("\n")).not.toMatch(/DesignProviders/);
     expect(v.screens.map((x) => x.container)).toContain("components/screens/s-1/container.tsx");
   });
 
@@ -108,7 +139,8 @@ describe("the plan against the scaffold", () => {
   });
 
   it("protects the generated files and leaves the containers and routes to the tasks", () => {
-    expect(l.protected).toEqual(expect.arrayContaining(["components/screens/s-1/screen.tsx", "components/screens/s-1/fixtures.ts", "components/screens/frame.ts"]));
+    expect(l.protected).toEqual(expect.arrayContaining(["components/screens/s-1/screen.tsx", "components/screens/s-1/fixtures.ts"]));
+    expect(l.protected).not.toContain("components/screens/frame.ts"); // an existing app keeps its own frame
     for (const x of l.screens) expect(l.protected).not.toContain(x.container);
     expect(l.protected).not.toContain("app/page.tsx");
   });
@@ -139,5 +171,15 @@ describe("the scaffold of a run's approved design", () => {
     expect(v.files.some((f) => f.path === "app/design-theme.css" && f.owner === "theme" && f.regenerate)).toBe(true);
     expect(v.summary).toMatch(/UI target next-shadcn/);
     expect(() => scaffoldPreview(state(), ledger, project())).toThrow(/no approved design/);
+  });
+});
+
+describe("the design size cap's starting point (PR #11 review, item 11)", () => {
+  const state = (data: Record<string, unknown> | undefined) => ({ info: { baseCommit: "base" }, steps: new Map(data ? [["stub-commit", { data }]] : []) }) as never;
+  it("measures the agents' UI change from the scaffold commit, so the generated pages are not counted", () => {
+    expect(uiBase(state({ designCommit: "design", scaffold: { commit: "scaffold" } }))).toBe("scaffold");
+    expect(uiBase(state({ designCommit: "design", scaffold: { target: "repo" } }))).toBe("design");
+    expect(uiBase(state({}))).toBe("base");
+    expect(uiBase(state(undefined))).toBe("base");
   });
 });

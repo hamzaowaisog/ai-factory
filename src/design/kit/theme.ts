@@ -3,7 +3,7 @@
 // card and raised shadows, the padding and row height, the heading type), and Tailwind v4 `@theme inline` so every name is a class.
 // The values are the demo's (designTokens), so the built pages draw with the colours the lead approved.
 import type { DesignTheme } from "../../contracts/artifacts.js";
-import { designTokens } from "../../estimate/tokens.js";
+import { designTokens } from "../tokens.js";
 
 /** shadcn's variable, and the design token it takes its colour from. */
 export const SHADCN_COLOURS: [string, string][] = [

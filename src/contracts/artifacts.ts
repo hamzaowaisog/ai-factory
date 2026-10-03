@@ -475,6 +475,8 @@ export const DesignBody = z.object({
     group: z.string().optional(),
     /** the design references (R-1, ...) that shaped this screen */
     refs: z.array(z.string()).optional(),
+    /** a design note's words for what changes on this page (no mock is drawn) */
+    change: z.string().optional(),
   })),
   /** the product's apps when it has more than one (each with its own device and frame) */
   apps: z.array(DesignApp).optional(),
@@ -498,6 +500,8 @@ export const DesignBody = z.object({
   refUse: z.array(z.object({ id: z.string(), use: z.enum(["used", "set-aside"]), how: z.string() })).optional(),
   /** screens that still differ from a layout reference they cite after the fix round (code-measured on the drawn demo) */
   refLayout: z.array(z.object({ screen: z.string(), ref: z.string(), nav: z.string().optional(), missing: z.array(z.string()) })).optional(),
+  /** a small UI fix: a text note (each screen's "change"), no demo; it is approved with the estimate, not on a card of its own */
+  note: z.boolean().optional(),
   /** the existing app is restyled to its match references (chosen on the questions card): the theme is theirs, not the repo's */
   restyle: z.boolean().optional(),
 });

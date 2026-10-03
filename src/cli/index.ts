@@ -14,7 +14,7 @@ import "../estimate/gates.js";
 import { registerDesignCommands } from "../design/cli.js";
 import { assertTty, decide, DecisionError } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
-import { replay, statusLabel } from "../ledger/state.js";
+import { MAX_BUDGET_CEILING, replay, statusLabel } from "../ledger/state.js";
 import { createRun, execute } from "../stages/executor.js";
 import { answerOpenQuestions, canPrompt, terminalIO } from "./interactive.js";
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
@@ -82,7 +82,7 @@ program.command("start")
     if (o.fromEstimate) {
       if (prompt || o.file || o.jira) throw new Error("--from-estimate takes its request from the estimate; drop the prompt, --file and --jira. A changed requirement is a change request: factory estimate --revises <run>.");
       if (o.ref?.length) throw new Error("--from-estimate builds the design approved with the estimate; drop --ref. To change the design, estimate a change request with the references: factory estimate --revises <run> --ref ...");
-      approved = approvedEstimate(openRun(o.fromEstimate).runId);
+      approved = approvedEstimate(openRun(o.fromEstimate).runId, { build: true });
     }
     let fromDesign: ApprovedDesign | undefined;
     if (o.fromDesign) {
@@ -119,14 +119,15 @@ program.command("estimate")
   .option("--client <name>", "client name for the workbook header")
   .option("--project-name <name>", "project name for the workbook header")
   .option("--pm <name>", "project manager for the workbook header")
-  .option("--review", "a person answers the clarify questions and approves the estimate (default: the project's estimate.humanReview, else hands-off)")
+  .option("--review", "a person answers the clarify questions and approves the estimate (the default, unless the project sets estimate.humanReview: false)")
+  .option("--hands-off", "opt in to a hands-off run: nobody is asked, open questions become assumptions and the factory approves the estimate once its gates pass. A build cannot follow it: estimate again with a review to build")
   .option("--revises <run>", "a change request: the new requirements revise an approved estimate, and the card shows what changed")
   .option("--from-design <run>", "size an approved design-only run (factory design start): its spec, answers and approved design are reused, only the sizing is new")
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .option("--fresh", "ask the model again even if the same requirements were estimated before (skips the stored answers)")
   .option("--design-export <formats>", DESIGN_EXPORT_HELP)
-  .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory, then write two workbooks; hands-off unless --review (a person answers the questions and approves it)")
-  .action(async (prompt: string | undefined, o: EstimateOptions & { project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; revises?: string; fromDesign?: string; fresh?: boolean; ref?: string[]; designExport?: string }) => {
+  .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory, then write two workbooks; a person answers the questions and approves it unless --hands-off")
+  .action(async (prompt: string | undefined, o: EstimateOptions & { handsOff?: boolean; project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; revises?: string; fromDesign?: string; fresh?: boolean; ref?: string[]; designExport?: string }) => {
     if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
     const designExport = designExportOption(o.designExport);
     let fromDesign: ApprovedDesign | undefined;
@@ -143,7 +144,8 @@ program.command("estimate")
     const project = loadProject(projectName);
     const problems = checkRoutes(project, ESTIMATE_ROUTES);
     if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
-    o.review = o.review ?? project.estimate?.humanReview;
+    if (o.handsOff && o.review) throw new Error("Use --review or --hands-off, not both.");
+    o.review = o.handsOff ? false : o.review ?? project.estimate?.humanReview ?? true;
     let settings = parseEstimateSettings(o.project && !fromDesign?.settings.noRepo ? o : { ...o, repo: false });
     // the design run's product details stand unless given again
     if (fromDesign) settings = { ...settings, ...Object.fromEntries(Object.entries({ client: fromDesign.settings.client, projectName: fromDesign.settings.projectName }).filter(([k, v]) => v && !(settings as Record<string, unknown>)[k])) };
@@ -286,7 +288,10 @@ program.command("waive-budget").argument("<run>").argument("<hash>", "first char
     const card = replay(l.events()).openCard as ({ kind: string; proposed?: number } | undefined);
     if (card?.kind !== "budget") throw new DecisionError("The open card isn't a budget card.");
     const ceiling = o.ceiling !== undefined ? Number(o.ceiling) : card.proposed;
-    if (!Number.isFinite(ceiling) || (ceiling as number) <= 1) throw new DecisionError("--ceiling must be a number above 1 (a multiple of the approved maximum).");
+    const current = replay(l.events()).budgetCeiling;
+    if (!Number.isFinite(ceiling) || (ceiling as number) <= current || (ceiling as number) > MAX_BUDGET_CEILING) {
+      throw new DecisionError(`--ceiling must be above the current limit (${current}) and at most ${MAX_BUDGET_CEILING} (a multiple of the approved maximum). Past ${MAX_BUDGET_CEILING * 100}%, revise the estimate with a change request.`);
+    }
     const r = await decide(l, { decision: "waive-budget", hashPrefix: hash, data: { reason: o.reason, ceiling } });
     if (r.kind === "repeat") return log("Already recorded.");
     log(`Limit raised to ${Math.round((ceiling as number) * 100)}% of the approved maximum, recorded with your name. Continuing…`);
@@ -429,19 +434,19 @@ program.command("calibrate")
   .option("--json", "print JSON")
   .option("--decisions", "print each logged size pick paired with what its build took, one JSON line each (for comparing a backend such as Jev)")
   .option("--tune", "measure the current task catalogue version and show what self-tuning would change (nothing is written)")
-  .option("--apply", "with --tune: write the new catalogue version now instead of waiting for the next run")
+  .option("--apply", "promote the tuning: write the new catalogue version, which new estimates are then sized from (a person's decision)")
   .option("--history", "list the task catalogue versions and why each one changed")
-  .option("--auto", "the background tuner after a run (writes the new version, one log line)")
+  .option("--auto", "the background tuner after a run (writes a proposal only, one log line)")
   .description("compare approved estimates with what the factory spent (and, with a file, with real hours)")
   .action(async (o: { actualHours?: string; json?: boolean; decisions?: boolean; tune?: boolean; apply?: boolean; history?: boolean; auto?: boolean }) => {
-    if (o.tune || o.auto) {
+    if (o.tune || o.auto || o.apply) {
       const { formatTunePlan, tuneNow } = await import("../estimate/tune.js");
-      const plan = tuneNow({ apply: !!o.auto || !!o.apply });
-      if (o.auto) { log(`${new Date().toISOString()} ${plan ? `${plan.from}: ${plan.to ? `-> ${plan.to} (${plan.changes.map((x) => `${x.path} ${x.from}->${x.to}`).join(", ")})` : "no change"}${plan.flagged.length ? `; check the wording: ${plan.flagged.join(", ")}` : ""}` : "another tuner is running"}`); return; }
+      const plan = tuneNow({ mode: o.auto ? "propose" : o.apply ? "apply" : "report" });
+      if (o.auto) { log(`${new Date().toISOString()} ${plan ? `${plan.from}: ${plan.to ? `proposed ${plan.to} (${plan.changes.map((x) => `${x.path} ${x.from}->${x.to}`).join(", ")}); promote it with factory calibrate --apply` : "no change"}${plan.flagged.length ? `; check the wording: ${plan.flagged.join(", ")}` : ""}` : "another tuner is running"}`); return; }
       if (!plan) { log("Another tuner is running; try again in a moment."); return; }
       if (o.json) { log(JSON.stringify(plan, null, 2)); return; }
       log(formatTunePlan(plan));
-      if (plan.to) log(o.apply ? `Written. New estimates are sized from ${plan.to}.` : "Nothing written (add --apply, or let the next run do it).");
+      if (plan.to) log(o.apply ? `Promoted. New estimates are sized from ${plan.to}.` : "Nothing written. This is a suggestion: promote it with factory calibrate --apply.");
       return;
     }
     if (o.history) {
@@ -456,6 +461,9 @@ program.command("calibrate")
         log(`${c.version}  ${t.at.slice(0, 10)}, from ${t.builds} build(s) and ${t.projects} project(s): ${t.changes.map((x) => `${x.path} ${x.from}->${x.to}${x.limited ? ` (${x.limited})` : ""}`).join(", ")}${t.flagged.length ? `; check the wording: ${t.flagged.join(", ")}` : ""}`);
       }
       log(`New estimates are sized from ${all.at(-1)!.version}.`);
+      const { readProposal } = await import("../estimate/catalogue-store.js");
+      const waiting = readProposal(root.version);
+      if (waiting?.tuned && waiting.tuned.parent === all.at(-1)!.version) log(`Proposed, not promoted: ${waiting.version} (${waiting.tuned.changes.map((x) => `${x.path} ${x.from}->${x.to}`).join(", ")}). Promote it with factory calibrate --apply.`);
       return;
     }
     if (o.decisions) {

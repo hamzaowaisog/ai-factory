@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const offBefore = process.env.FACTORY_NO_SCREENSHOTS;
 beforeAll(() => { delete process.env.FACTORY_NO_SCREENSHOTS; });
 afterAll(() => { if (offBefore !== undefined) process.env.FACTORY_NO_SCREENSHOTS = offBefore; });
-import { findChromium } from "../estimate/screenshots.js";
+import { findChromium } from "./screenshots.js";
 import { captureReports, loadAxe } from "./capture.js";
 import { compareReports } from "./fidelity.js";
 

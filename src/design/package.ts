@@ -17,9 +17,9 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { DesignTheme } from "../contracts/artifacts.js";
-import { COMPONENTS_ID, demoStates } from "../estimate/demo.js";
-import { captureDemo, type Shot, type ScreenShotInput } from "../estimate/screenshots.js";
-import { designTokens } from "../estimate/tokens.js";
+import { COMPONENTS_ID, demoStates } from "./demo.js";
+import { captureDemo, type Shot, type ScreenShotInput } from "./screenshots.js";
+import { designTokens } from "./tokens.js";
 import { factoryHome } from "../util/paths.js";
 
 /** The package format (manifest and folder layout). */
@@ -27,8 +27,8 @@ export const PACKAGE_SCHEMA_VERSION = 1;
 /** The format of `design.json`; an older one is migrated when read (`readDesignJson`). */
 export const DESIGN_SCHEMA_VERSION = 1;
 /** Where packages go in a repo. */
-export const REPO_DESIGN_DIR = "design";
-/** A file inside a package in a repo (`design/<line>/vN/...`): not app code, so the design inventory and the size checks skip it. */
+export const REPO_DESIGN_DIR = ".factory/design";
+/** A file inside a package in a repo (`.factory/design/<line>/vN/...`): not app code, so the design inventory and the size checks skip it. */
 export { DESIGN_PACKAGE_PATH as PACKAGE_PATH } from "./source.js";
 /** Pictures in one package at most (each screen and state at three widths, dark mode and a second language). */
 export const MAX_PACKAGE_SHOTS = 240;

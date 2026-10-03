@@ -248,7 +248,7 @@ Approved in chat on 2026-10-03. The goal is to collect the evidence needed to tr
 
 ## 12. Phase 2 (second part): approved past tasks as references, as built
 
-Approved in chat on 2026-10-03, with one rule from the user: estimates are approved by the factory, not a lead, so the flow is human-free. An estimate therefore counts as approved when its approve-estimate step passed. In a hands-off run (the default) that means the factory approved it after gate E7. A run with `--review` counts once a person approves it.
+Approved in chat on 2026-10-03, with one rule from the user: estimates are approved by the factory, not a lead, so the flow is human-free. An estimate therefore counts as approved when its approve-estimate step passed. In a hands-off run that means the factory approved it after gate E7. A reviewed run (the default since the PR #11 review) counts once a person approves it.
 
 - **Finding matches.** `src/estimate/references.ts` does the lookup.
   - `pastTasksOfRun` reads one run's approved estimate: its approval, then the estimate, then the breakdown. It returns each task's kind, track, complexity, executor, item count, size and hours. The screen's UI level comes from that estimate's decision log (section 11), because the breakdown does not keep it.
@@ -313,7 +313,9 @@ Agreed in chat on 2026-10-03. Estimates are approved by the factory, so no perso
 
 ## 14. Phase 3: the catalogue tunes itself, as built
 
-Agreed in chat on 2026-10-03. After every estimate and every build, the factory measures the current catalogue version against what happened. When a value is off, it writes a new version. No person and no model call are involved: it is arithmetic over the ledgers. The aim is a fit, neither under nor over. It is not an exact match to the last few projects, because that would chase noise and make estimates swing, which is what Phase 1 removed.
+Agreed in chat on 2026-10-03. After every estimate and every build, the factory measures the current catalogue version against what happened. When a value is off, it writes a proposal for the next version. No model call is involved: it is arithmetic over the ledgers.
+
+**Revised after the PR #11 review (owner decision, 2026-10-03): tuning is a suggestion, not auto-applied.** The background tuner (`factory calibrate --auto`, `tuneNow({ mode: "propose" })`) writes its plan to `~/.factory/catalogues/proposed/<root>.json` (replaced each time, cleared when nothing is off). Nothing is sized from a proposal: `currentCatalogue()` reads only promoted versions. A person promotes it with `factory calibrate --apply`, which writes `<root>+t<n>.json` as before; `--history` shows a waiting proposal. Where the text below says the tuner writes a version, read: it proposes one, and `--apply` writes it. The aim is a fit, neither under nor over. It is not an exact match to the last few projects, because that would chase noise and make estimates swing, which is what Phase 1 removed.
 
 - **When.**
   - When an executor stops after completing at least one step, it starts the tuner, in a run that has a finished estimate or that is a build following one (`src/stages/executor.ts`, `triggerTune`).

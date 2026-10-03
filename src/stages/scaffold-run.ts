@@ -109,12 +109,13 @@ export function scaffoldForPlan(s: RunScaffold): unknown {
     target: s.target, kit: `${l.kit.id} ${l.kit.version}`, sourceRoot: l.root || ".", freshApp: l.fresh,
     designSystemTask: { fileScope: l.designSystem.files, todo: l.designSystem.todo },
     screens: l.screens.filter((x) => !s.changed || s.changed.includes(x.id)).map((x) => ({ id: x.id, title: x.title, route: x.route, container: x.container, page: x.page })),
+    ...(l.inPlace.length ? { changeInPlace: l.inPlace.filter((x) => !s.changed || s.changed.includes(x.id)).map((x) => ({ ...x, todo: "change the app's existing page in place to match the approved design; no new page, no new frame" })) } : {}),
     ...(l.removed.length ? { removedScreens: l.removed } : {}),
     generatedByTheFactory: l.protected.length,
   };
 }
 
-/** Code checks on a plan against the scaffold: the design-system task comes first, and each planned screen's container is in a task's scope. */
+/** Code checks on a plan against the scaffold: the design-system task (when it has files) comes first, each planned screen's container is in a task's scope, and each screen changed in place has its page in one. */
 export function checkPlanScaffold(plan: { tasks: { id: string; fileScope: string[] }[] }, s: RunScaffold): string[] {
   const l = s.layout;
   if (!l) return [];
@@ -125,6 +126,9 @@ export function checkPlanScaffold(plan: { tasks: { id: string; fileScope: string
   if (missingDs.length) out.push(`The first task must be the design-system task: its file scope must include ${missingDs.join(", ")}`);
   for (const x of l.screens.filter((x) => !s.changed || s.changed.includes(x.id))) {
     if (!plan.tasks.some((t) => inScope(t, x.container))) out.push(`Screen ${x.id} (${x.route}): no task has its container ${x.container} in scope`);
+  }
+  for (const x of l.inPlace.filter((x) => x.file && (!s.changed || s.changed.includes(x.id)))) {
+    if (!plan.tasks.some((t) => inScope(t, x.file!))) out.push(`Screen ${x.id} (${x.route}, ${x.size}): no task has its existing page ${x.file} in scope`);
   }
   const owned = new Set(l.protected);
   for (const t of plan.tasks) for (const g of t.fileScope) if (owned.has(g)) out.push(`${t.id} lists ${g}, a file the factory generates from the approved design: change the container instead`);

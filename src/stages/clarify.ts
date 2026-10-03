@@ -7,6 +7,7 @@ import { failure } from "../gates/engine.js";
 import { hashJson } from "../util/hash.js";
 import { readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { hasExistingLook, type DesignInventory } from "../design/inventory.js";
+import { ESTIMATE_SOURCES, repoInventory } from "./design-inputs.js";
 import type { Reference } from "../contracts/reference.js";
 import { lightSpec } from "./lane.js";
 import { humanReview } from "../estimate/settings.js";
@@ -289,7 +290,7 @@ export const clarifyStep: StepDef = {
       const handsOff = !humanReview(ctx.state.info);
       const { asked, assumptions } = selectQuestions(scored, handsOff ? 0 : lightSpec(intent) ? LIGHT_QUESTIONS : ROUND1_CAP, 1, loadDefaults());
       // runs with match references only: the app's own look against the client's (on top of the model's questions)
-      const restyle = restyleQuestion(ctx.state.info.references ?? [], readOutput<DesignInventory>(ctx.state, ctx.ledger, "ground", "design"), intent.spans.map((s) => s.id), asked.length + 1);
+      const restyle = restyleQuestion(ctx.state.info.references ?? [], repoInventory(ctx, ESTIMATE_SOURCES), intent.spans.map((s) => s.id), asked.length + 1);
       pending = handsOff
         ? { round: 1, asked: [], assumptions: restyle ? [...assumptions, assumedFrom(restyle, assumptions.length + 1)] : assumptions, differences: sk.diffs, conflicts: cl.output.conflicts, assumedBy: "factory", sketches: sk.sketches }
         : { round: 1, asked: restyle ? [...asked, restyle] : asked, assumptions, differences: sk.diffs, conflicts: cl.output.conflicts, sketches: sk.sketches };

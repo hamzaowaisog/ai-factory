@@ -7,15 +7,15 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { _resetEnvCache } from "../config/env.js";
 import { DesignTheme } from "../contracts/artifacts.js";
-import { buildDemo } from "../estimate/demo.js";
-import { captureDemo, findChromium } from "../estimate/screenshots.js";
+import { buildDemo } from "./demo.js";
+import { captureDemo, findChromium } from "./screenshots.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { designCard } from "../stages/estimate-approve.js";
 import { designExportStep, ensurePackage, exportRunPackage } from "../stages/design-export.js";
 import { codeBase } from "../stages/workspace.js";
 import { isUiPath } from "./size.js";
-import { dirSource } from "./source.js";
+import { dirSource, withoutPackages } from "./source.js";
 import {
   checkPackage, DESIGN_SCHEMA_VERSION, demoShotList, findPackage, listPackages, nextVersion, PACKAGE_PATH, readDesignJson, repoFiles,
   w3cColour, w3cShadow, w3cTokens, writePackage, type PackageInput,
@@ -114,22 +114,31 @@ describe("the package store", () => {
     expect(nextVersion("demo", "other")).toBe(1);
   });
 
-  it("maps to design/<line>/vN/ in a repo with the manifest last, and that folder is not app code", async () => {
+  it("maps to .factory/design/<line>/vN/ in a repo with the manifest last, and that folder is not app code", async () => {
     const pkg = await writePackage(input());
     const files = repoFiles(pkg);
-    expect(files.map((f) => f.path)).toEqual(["design/run-1/v1/demo/index.html", "design/run-1/v1/design.json", "design/run-1/v1/tokens.css", "design/run-1/v1/tokens.json", "design/run-1/v1/manifest.json"]);
+    expect(files.map((f) => f.path)).toEqual([".factory/design/run-1/v1/demo/index.html", ".factory/design/run-1/v1/design.json", ".factory/design/run-1/v1/tokens.css", ".factory/design/run-1/v1/tokens.json", ".factory/design/run-1/v1/manifest.json"]);
     expect(files.every((f) => PACKAGE_PATH.test(f.path))).toBe(true);
     expect(PACKAGE_PATH.test("src/design/tokens.css")).toBe(false);
-    expect(isUiPath("design/run-1/v1/demo/index.html")).toBe(false);
-    expect(isUiPath("apps/web/design/run-1/v2/tokens.css")).toBe(false);
+    expect(isUiPath(".factory/design/run-1/v1/demo/index.html")).toBe(false);
+    // a client's own folder of that older shape is app code (PR #11 review, item 12); an older factory package is still skipped
+    expect(PACKAGE_PATH.test("src/design/buttons/v2/Button.tsx")).toBe(false);
+    expect(isUiPath("src/design/buttons/v2/Button.tsx")).toBe(true);
+    const listed = ["design/run-0/v1/manifest.json", "design/run-0/v1/demo/index.html", "src/design/buttons/v2/manifest.json", "src/design/buttons/v2/Button.tsx", "src/App.tsx"];
+    const texts: Record<string, string> = { "design/run-0/v1/manifest.json": JSON.stringify({ designSha: "x", templateVersion: "20" }), "src/design/buttons/v2/manifest.json": "{\"name\":\"buttons\"}" };
+    expect(withoutPackages(listed, (p) => texts[p])).toEqual(["src/design/buttons/v2/manifest.json", "src/design/buttons/v2/Button.tsx", "src/App.tsx"]);
+    expect(isUiPath("apps/web/.factory/design/run-1/v2/tokens.css")).toBe(false);
     expect(isUiPath("src/app/page.tsx")).toBe(true);
 
     const repo = mkdtempSync(join(tmpdir(), "pkg-repo-"));
-    mkdirSync(join(repo, "design", "run-1", "v1"), { recursive: true });
-    mkdirSync(join(repo, "src"), { recursive: true });
-    writeFileSync(join(repo, "design", "run-1", "v1", "tokens.css"), ":root{}");
+    for (const d of [[".factory", "design", "run-1", "v1"], ["design", "run-0", "v1"], ["design", "tokens", "v2"], ["src"]]) mkdirSync(join(repo, ...d), { recursive: true });
+    writeFileSync(join(repo, ".factory", "design", "run-1", "v1", "tokens.css"), ":root{}");
+    writeFileSync(join(repo, "design", "run-0", "v1", "tokens.css"), ":root{}");
+    writeFileSync(join(repo, "design", "run-0", "v1", "manifest.json"), JSON.stringify({ designSha: "x", templateVersion: "20" }));
+    writeFileSync(join(repo, "design", "tokens", "v2", "tokens.css"), ":root{}");
     writeFileSync(join(repo, "src", "page.tsx"), "export {}");
-    expect(dirSource(repo).list()).toEqual(["src/page.tsx"]);
+    // the current place and an older factory package are skipped; the client's own design/tokens/v2/ is app code
+    expect(dirSource(repo).list()).toEqual(["design/tokens/v2/tokens.css", "src/page.tsx"]);
   });
 
   it("pictures each screen in its demo states plus the Components page", () => {
@@ -237,6 +246,9 @@ describe("reproducible pictures", () => {
       const list = [{ id: "S-1", route: "/pay", states: ["default", "error"] }];
       const a = await captureDemo(f, list, join(d, "a"), { reproducible: true });
       const b = await captureDemo(f, list, join(d, "b"), { reproducible: true });
+      // a capture that stopped part way says why (PR #11 review, item 21)
+      expect(a.note).toBeUndefined();
+      expect(b.note).toBeUndefined();
       expect(a.shots.length).toBeGreaterThan(0);
       expect(b.shots.map((s) => s.file)).toEqual(a.shots.map((s) => s.file));
       for (const s of a.shots) expect(readFileSync(join(d, "b", s.file)).equals(readFileSync(join(d, "a", s.file))), s.file).toBe(true);
@@ -251,7 +263,7 @@ describe("reproducible pictures", () => {
 });
 
 describe("the first build commit", () => {
-  it("puts the approved package in the repo as its own commit before the stubs, and the build's diff starts after it", async () => {
+  it("puts the approved package in the repo (when the project asks) as its own commit before the stubs, and the build's diff starts after it", async () => {
     const { execFileSync } = await import("node:child_process");
     const { stubCommitStep } = await import("../stages/build.js");
     const repo = mkdtempSync(join(tmpdir(), "pkg-build-"));
@@ -275,17 +287,22 @@ describe("the first build commit", () => {
       await ledger.append({ type: "step.completed", key: `${step}/1`, inputsHash: sha, outputs: [o], data: { named: { [step]: o } } }, HUMAN_WRITER);
     }
     const state = replay(ledger.events());
-    const ctx = { runId: ledger.runId, ledger, writer: HUMAN_WRITER, state, log: () => undefined } as never;
+    // off by default (PR #11 review, item 12): the client's branch gets no package and the diff starts at the base
+    const off = await stubCommitStep.run({ runId: ledger.runId, ledger, writer: HUMAN_WRITER, state, project: { design: {} }, log: () => undefined } as never);
+    const offData = (off as { data: { designCommit?: string; design: { dir?: string } } }).data;
+    expect(offData.designCommit).toBeUndefined();
+    expect(offData.design.dir).toBeUndefined();
+    const ctx = { runId: ledger.runId, ledger, writer: HUMAN_WRITER, state, project: { design: { commitPackage: true } }, log: () => undefined } as never;
     const out = await stubCommitStep.run(ctx);
     expect(out.kind).toBe("done");
     const data = (out as { data: { commit: string; designCommit: string; design: { dir: string; version: number } } }).data;
-    expect(data.design).toMatchObject({ dir: `design/${ledger.runId}/v1`, version: 1 });
+    expect(data.design).toMatchObject({ dir: `.factory/design/${ledger.runId}/v1`, version: 1 });
     const wt = replay(ledger.events()).workspace!.path;
     const show = (c: string) => execFileSync("git", ["show", "--name-only", "--format=%s", c], { cwd: wt, env, encoding: "utf8" }).trim().split("\n");
     const pkgCommit = show(data.designCommit);
     expect(pkgCommit[0]).toBe(`factory: design ${ledger.runId} v1 (approved by lead) for ${ledger.runId}`);
-    expect(pkgCommit.slice(1).filter(Boolean).every((f) => f.startsWith(`design/${ledger.runId}/v1/`))).toBe(true);
-    expect(pkgCommit).toContain(`design/${ledger.runId}/v1/manifest.json`);
+    expect(pkgCommit.slice(1).filter(Boolean).every((f) => f.startsWith(`.factory/design/${ledger.runId}/v1/`))).toBe(true);
+    expect(pkgCommit).toContain(`.factory/design/${ledger.runId}/v1/manifest.json`);
     expect(show(data.commit).slice(1).filter(Boolean)).toEqual(["src/Stub.cs"]);
     expect(checkPackage(join(wt, data.design.dir)).problems).toEqual([]);
     const after = replay(ledger.events());

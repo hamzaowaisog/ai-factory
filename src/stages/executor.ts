@@ -123,6 +123,25 @@ export async function createRun(request: string, projectName: string, operator: 
 
 export type NextStep = { kind: "run"; step: StepDef; hash: string } | { kind: "done" } | { kind: "blocked"; step: string };
 
+/**
+ * The template versions a completed step may have been run with: the current one and, for a numbered version, every earlier
+ * number. A newer prompt template is for new runs; a step a paused run already completed keeps the version it ran with.
+ */
+export function earlierVersions(v: string): string[] {
+  const n = /^\d+$/.test(v) ? Number(v) : 0;
+  return [v, ...Array.from({ length: Math.max(0, n - 1) }, (_, i) => String(n - 1 - i))];
+}
+
+/**
+ * A step's hash for its inputs now, and whether it is already done: completed with the same inputs and model, under the current
+ * template or an earlier one (only a change of inputs or model runs a completed step again).
+ */
+export function stepDone(state: RunState, step: Pick<StepDef, "key" | "templateVersion" | "coding">, inp: unknown, model: string | undefined): { hash: string; done: boolean } {
+  const hashAt = (templateVersion: string) => inputsHash({ inputs: [JSON.stringify(inp)], stageDef: step.key, templateVersion, model, taskStartSha: step.coding ? String((inp as { taskStartSha?: string }).taskStartSha ?? "") : undefined });
+  const hash = hashAt(step.templateVersion);
+  return { hash, done: earlierVersions(step.templateVersion).some((v) => canSkip(state, step.key, v === step.templateVersion ? hash : hashAt(v))) };
+}
+
 /** Pure: the first step whose recorded inputsHash doesn't match its current inputs. */
 export function next(state: RunState, ledger: Ledger, project: ProjectConfig): NextStep {
   for (const step of stepsFor(state)) {
@@ -130,8 +149,8 @@ export function next(state: RunState, ledger: Ledger, project: ProjectConfig): N
     if (!inp) return { kind: "blocked", step: step.key };
     let model: string | undefined;
     try { model = routeFor(project, step.stage).model; } catch { model = undefined; }
-    const hash = inputsHash({ inputs: [JSON.stringify(inp)], stageDef: step.key, templateVersion: step.templateVersion, model, taskStartSha: step.coding ? String((inp as { taskStartSha?: string }).taskStartSha ?? "") : undefined });
-    if (canSkip(state, step.key, hash)) continue;
+    const { hash, done } = stepDone(state, step, inp, model);
+    if (done) continue;
     return { kind: "run", step, hash };
   }
   return { kind: "done" };

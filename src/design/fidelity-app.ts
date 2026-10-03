@@ -9,9 +9,9 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { z } from "zod";
 import type { DesignBody } from "../contracts/artifacts.js";
-import { DEFAULT_THEME, demoStates, FULL_DATA } from "../estimate/demo.js";
-import { findChromium, VIEWPORTS, type Viewport } from "../estimate/screenshots.js";
-import { designTokens } from "../estimate/tokens.js";
+import { DEFAULT_THEME, demoStates, FULL_DATA } from "./demo.js";
+import { findChromium, VIEWPORTS, type Viewport } from "./screenshots.js";
+import { designTokens } from "./tokens.js";
 import { loadAxe } from "./capture.js";
 import type { CheckResult, CheckStatus } from "./fidelity.js";
 import { inPage, readBlocks, readColours, readFocus, readStyles, type ReadBlock, type ReadStyle } from "./fidelity-read.js";
@@ -19,7 +19,10 @@ import { fontList } from "./package.js";
 import { NOTICEABLE_RATIO, pixelDiff } from "./pixeldiff.js";
 import { routerPath, screenStates } from "./kit/scaffold.js";
 
-type Design = Pick<z.infer<typeof DesignBody>, "screens" | "theme" | "locale">;
+type Design = Pick<z.infer<typeof DesignBody>, "screens" | "theme" | "locale" | "themeSource">;
+
+/** The approved theme to check the tokens against: a new look's. An existing app's own look (or none) is not compared. */
+export const approvedTheme = (d: Pick<Design, "theme" | "themeSource">): NonNullable<Design["theme"]> | undefined => (d.theme && d.themeSource !== "repo" ? d.theme : undefined);
 type DScreen = Design["screens"][number];
 type Block = NonNullable<DScreen["mock"]>["blocks"][number];
 
@@ -67,8 +70,7 @@ export const samplePath = (route: string): string => routerPath(route).replace(/
  * the first state in dark mode and in the other language when the design has them. Only the screens built with the kit.
  */
 export function fidelityPages(design: Design, screenIds: string[]): FidelityPage[] {
-  const t = designTokens({ ...DEFAULT_THEME, ...design.theme });
-  const dark = Object.keys(t.colour).length > 1;
+  const dark = !!design.theme && Object.keys(designTokens({ ...DEFAULT_THEME, ...design.theme }).colour).length > 1;
   const other = (design.locale?.languages ?? []).find((l) => l !== "en");
   const out: FidelityPage[] = [];
   for (const vp of ["phone", "desktop", "tablet"] as Viewport[]) {
@@ -149,7 +151,7 @@ export function expectedFor(s: DScreen, stateSlug: string, phone = false): Expec
   return { blocks, page, ...(toast ? { toast } : {}) };
 }
 
-// the demo's reading of a state's name (src/estimate/demo.ts stateKind; the kit's lib/fixture.ts is the same)
+// the demo's reading of a state's name (src/design/demo.ts stateKind; the kit's lib/fixture.ts is the same)
 const stateKindOf = (state: string): "normal" | "success" | "validation" | "loading" | "empty" | "error" =>
   state === FULL_DATA ? "normal"
   : /empty|no data|none|no results/i.test(state) ? "empty"
@@ -185,7 +187,7 @@ export function structureFindings(exp: Expected, got: ReadBlock[], pageWords: st
 export interface TokenSet { colours: [number, number, number][]; fonts: string[]; radii: number[]; shadows: string[] }
 
 /** The design's own values for one mode: its colours (as bytes, read in the page), its two fonts, its corner steps, its shadows. */
-export function tokenValues(theme: Design["theme"], mode: "light" | "dark"): { colours: string[]; fonts: string[]; radii: number[]; shadows: string[] } {
+export function tokenValues(theme: NonNullable<Design["theme"]>, mode: "light" | "dark"): { colours: string[]; fonts: string[]; radii: number[]; shadows: string[] } {
   const t = designTokens({ ...DEFAULT_THEME, ...theme });
   const m = t.colour[mode] ? mode : (Object.keys(t.colour)[0] as "light" | "dark");
   const r = t.radiusPx;
@@ -346,6 +348,10 @@ export async function runFidelity(o: FidelityRunInput): Promise<FidelityReport> 
   const axe = loadAxe();
   if (!axe) notes.push("axe-core is not installed, so accessibility was checked by the keyboard walk only");
   const byScreen = new Map(o.design.screens.map((s) => [s.id, s]));
+  // the tokens are checked against the approved theme only; an app that keeps its own look has its own tokens
+  const theme = approvedTheme(o.design);
+  const noTokens = theme ? undefined : "the app keeps its own look: its tokens are not compared with an approved theme";
+  if (noTokens) notes.push(noTokens);
   const raw: { level: FidelityLevel; message: string; page: string }[] = [];
   const results: FidelityPageResult[] = [];
   const ran = new Set<string>();
@@ -372,12 +378,12 @@ export async function runFidelity(o: FidelityRunInput): Promise<FidelityReport> 
           await settle(app);
           // tokens, in the mode the page is drawn in
           const mode = p.mode ?? "light";
-          if (!tokens.has(mode)) {
-            const v = tokenValues(o.design.theme, mode);
+          if (theme && !tokens.has(mode)) {
+            const v = tokenValues(theme, mode);
             const bytes = (await app.evaluate(inPage(readColours, v.colours))) as ([number, number, number, number] | null)[];
             tokens.set(mode, { colours: bytes.filter((b): b is [number, number, number, number] => !!b).map((b) => [b[0], b[1], b[2]]), fonts: v.fonts, radii: v.radii, shadows: v.shadows });
           }
-          add("tokens", tokenFindings((await app.evaluate(inPage(readStyles))) as ReadStyle[], tokens.get(mode)!));
+          if (theme) add("tokens", tokenFindings((await app.evaluate(inPage(readStyles))) as ReadStyle[], tokens.get(mode)!));
           // structure, in the design's own words (the other language is pictured, not read)
           const got = (await app.evaluate(inPage(readBlocks, ""))) as ReadBlock[];
           if (!p.lang) {
@@ -469,7 +475,7 @@ export async function runFidelity(o: FidelityRunInput): Promise<FidelityReport> 
   if (!pairs.length && results.some((r) => r.built)) notes.push("no accepted pictures yet: the built pages are shown beside the approved ones; accept them to make them the baseline");
   log(`fidelity: ${results.length} page(s) read`);
   const findings = group(raw);
-  const levels = levelsOf(findings, results, undefined, o.baselines ? pairs.length : 0);
+  const levels = levelsOf(findings, results, undefined, o.baselines ? pairs.length : 0, noTokens);
   const overall = levels.some((l) => l.blocking && l.status === "FAIL") ? "fail" : levels.some((l) => l.blocking && l.status === "UNCHECKED") ? "unchecked" : "pass";
   return { kind: "design-fidelity", levels, findings, pages: results, overall, ran: [...ran], notes };
 }
@@ -486,10 +492,12 @@ function group(raw: { level: FidelityLevel; message: string; page: string }[]): 
   return [...by.values()];
 }
 
-function levelsOf(findings: FidelityFinding[], pages: FidelityPageResult[], skipped?: string, compared = 0): FidelityReport["levels"] {
+function levelsOf(findings: FidelityFinding[], pages: FidelityPageResult[], skipped?: string, compared = 0, noTokens?: string): FidelityReport["levels"] {
   const read = pages.filter((p) => p.built).length;
   return (["tokens", "structure", "a11y", "layout", "pixels"] as FidelityLevel[]).map((level) => {
     const f = findings.filter((x) => x.level === level);
+    // no approved theme: the tokens level is not this check's to pass or fail, so it does not hold the run as unchecked
+    if (level === "tokens" && noTokens && !skipped) return { level, blocking: false, check: "design.tokens", status: "UNCHECKED" as CheckStatus, detail: noTokens };
     const blocking = BLOCKING.includes(level);
     const status: CheckStatus = skipped || !read ? "UNCHECKED" : f.length ? (blocking ? "FAIL" : "WARN") : level === "pixels" && !compared ? "UNCHECKED" : "PASS";
     const detail = skipped ?? (!read ? "no page could be read"

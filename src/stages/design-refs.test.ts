@@ -24,8 +24,8 @@ import type { StepContext, StepOutcome } from "./framework.js";
 import { designOnlySteps, estimateSteps } from "./modes.js";
 import { setProviderFactory } from "./think.js";
 import { matchFamilies, refFit } from "../design/ref-checks.js";
-import { themeValues } from "../estimate/demo.js";
-import { findChromium } from "../estimate/screenshots.js";
+import { themeValues } from "../design/demo.js";
+import { findChromium } from "../design/screenshots.js";
 
 const sha = "a".repeat(64);
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };

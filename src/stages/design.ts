@@ -14,19 +14,20 @@ import type { Ledger } from "../ledger/ledger.js";
 import { restyleChosen, type ClarifyResult } from "./clarify.js";
 import { btnLabels, DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
-import { header, outputOf, readOutput, type StepDef } from "./framework.js";
+import { header, outputOf, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { lightUi } from "./lane.js";
 import { lookFromRefs, lookRefs, matchFamilies, refBrief as clientRefBrief, refFit, refLayoutFixes, refLayoutGaps, refNotes, REF_RULES, type RefLayoutGap, type RefUse } from "../design/ref-checks.js";
 import type { DesignRefsArt } from "./design-refs.js";
-import { ESTIMATE_SOURCES, intentOf, inventoryNamed, inventoryOf, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
+import { ESTIMATE_SOURCES, intentOf, inventoryNamed, repoInventory, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
 import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
 import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
 import { ensureMeasured } from "../design/refs/measure.js";
 import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } from "../design/looks.js";
 import { S, think, UNTRUSTED_IMAGE_NOTE, UNTRUSTED_NOTE } from "./think.js";
-import { buildDemo, demoStates, themeValues } from "../estimate/demo.js";
-import { contrastIssues } from "../estimate/palette.js";
-import { localeFit } from "../estimate/locale.js";
-import { checkDemoLayout, LAYOUT_FAULT, readDemoLayout, type LayoutIssue, type RenderedLayout } from "../estimate/screenshots.js";
+import { buildDemo, demoStates, themeValues } from "../design/demo.js";
+import { contrastIssues } from "../design/palette.js";
+import { localeFit } from "../design/locale.js";
+import { checkDemoLayout, LAYOUT_FAULT, readDemoLayout, type LayoutIssue, type RenderedLayout } from "../design/screenshots.js";
 import { decideRework, designIndex, roundOf, screenName, Triage, TRIAGE_RULES, type ReworkPlan, type ReworkRound } from "./design-rework.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -432,12 +433,29 @@ const EXISTING_RULES = `EXISTING APP. The "existing" section is this product's r
 - Mark a screen "reuse" or "tweak" when an existing page or shared component covers it, "new" only for a page that does not exist, "design-system" only for a new shared component or token.
 - Choose a route and file in the app's own structure (see its pages), and take the sample content from the same domain the existing pages show.`;
 
+const NOTE_RULES = `You are a principal UI/UX engineer writing the design note for a SMALL change to an existing app (a label, a button, a field, a column, a fix on a page that exists). No demo is drawn: a person reads this note on the estimate card and approves both together.
+- List each existing page the change touches: id S-1, S-2, ..., its route and file as in the "existing" section, the requirement ids it serves in "reqs", its size ("tweak" a change to the page, "reuse" built only from existing components, "new" only when there is truly no page to change) and "change": one or two plain sentences saying exactly what changes on that page and what stays as it is.
+- "flow" is one sentence on how the user meets the change. Requirements that need no page go under "noScreen" with the reason.
+- Keep the app's look, components and wording: name the existing components the change uses. Never propose a restyle.
+${UNTRUSTED_NOTE}`;
+
+/** The design note's shape: the pages a small change touches and what changes on each, in words. */
+export const DesignNoteOut = z.object({
+  flow: z.string().min(1).max(300),
+  screens: z.array(z.object({
+    id: z.string(), route: z.string().min(1), file: z.string().min(1), reqs: z.array(z.string()),
+    size: z.enum(["new", "tweak", "design-system", "reuse"]).default("tweak"), change: z.string().min(1).max(400),
+  })).min(1).max(4),
+  noScreen: z.array(z.object({ req: z.string(), reason: z.string().min(1) })).default([]),
+});
+
 const STARTER_RULES = `NEW APP FROM A STARTER. There is no app yet; it is scaffolded from the starter in the "starter" section, whose components are listed there.
 - Every screen is "new". Draw each screen with blocks those components cover, and mark a screen "design-system" only when it needs a shared component the starter does not have.
 - Choose routes and sample content for this product; the starter has no pages of its own to follow.`;
 
 const inventoryBrief = (inv: DesignInventory) => ({
   verdict: inv.verdict, tokens: inv.tokens.total, framework: inv.stack.framework, styling: inv.stack.styling, componentSystem: inv.stack.componentSystem,
+  ...(inv.look ? { look: { read: inv.look.from, note: "the demo is drawn in this look; do not return a theme" } } : {}),
   pages: inv.pages.slice(0, 40), sharedComponents: [...inv.primitives, ...inv.composites].slice(0, 40).map((c) => (c as { name?: string }).name ?? c),
 });
 
@@ -617,7 +635,7 @@ function withFamilies(theme: Theme, reading: DesignRefsArt | undefined, use: Ref
  * template version and inputs are the same for every mode, so the estimate's runs replay unchanged.
  */
 /** The design step's template version (recorded in each design package). */
-export const DESIGN_TEMPLATE_VERSION = "20";
+export const DESIGN_TEMPLATE_VERSION = "21";
 
 export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
   return {
@@ -637,11 +655,17 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       // no UI: nothing to draw; E1b passes on the intent alone
       if (!intent.touchesUi) return { kind: "done", outputs: { design: ctx.ledger.putJson({ header: header(ctx.runId, "design", "design", ""), skipped: true, reason: "no UI in this request" }) }, data: { skipped: true } };
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
-      const inv = inventoryOf<DesignInventory>(ctx.state, ctx.ledger, src);
+      const inv = repoInventory(ctx, src);
       const frames = listedFrames(ctx.state.info.request ?? "");
       const p = ctx.state.info.parent;
       const earlier = p?.kind === "change" && p.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: unknown[]; theme?: Theme; locale?: DesignLocale }>(p.designSha) : undefined;
       const reqText = spec.requirements.map((q) => q.ears).join("\n");
+      // a small UI fix in an app of its own: a text note approved with the estimate (a note that needs a new page falls through to the full design)
+      if (lightUi(intent, { existingLook: hasExistingLook(inv), frames: frames.length, references: ctx.state.info.references?.length ?? 0, earlierDesign: !!earlier && !earlier.skipped, reqs: spec.requirements.length, off: ctx.project.design?.lightNote === false })) {
+        const n = await designNote(ctx, spec, inv!);
+        if (n && "outcome" in n) return n.outcome;
+        if (n) return { kind: "done", outputs: { design: ctx.ledger.putJson({ ...n.note, header: header(ctx.runId, "design", "design", "", n.model) }) }, data: { screens: n.note.screens.length, note: true } };
+      }
       const sentBack = designRejections(ctx.state).slice(0, MAX_DESIGN_REVISIONS);
       // a design that was sent back is fixed where the lead pointed, or redrawn when that is what the note needs
       const prevSha = ctx.state.steps.get("design")?.outputs[0];
@@ -719,7 +743,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const fixRound = ctx.priorFailures.some((f) => f.check === "design-layout" || f.check === "design-ref-layout");
       let refGaps: RefLayoutGap[] = [];
       if (!fixRound || layoutRefs.length) {
-        const drawn = await demoLayout(ctx.state.info.estimate?.projectName ?? ctx.runId, out, spec, layoutRefs.map((sc) => sc.id));
+        const drawn = await demoLayout(ctx.state.info.estimate?.projectName ?? ctx.runId, existing && inv?.look ? { ...out, theme: inv.look.theme } : out, spec, layoutRefs.map((sc) => sc.id));
         refGaps = reading && drawn.rendered ? refLayoutGaps(layoutRefs.map((sc) => ({ id: sc.id, refs: sc.refs, title: `${sc.mock?.title ?? ""} ${sc.route}` })), reading, drawn.rendered, out.refUse) : [];
         const issues = fixRound ? [] : drawn.issues ?? [];
         if (!fixRound && (issues.length || refGaps.length)) {
@@ -735,7 +759,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         ...(reading && out.refUse?.length ? { refUse: out.refUse } : {}), ...(refGaps.length ? { refLayout: refGaps } : {}), ...(restyle ? { restyle: true } : {}),
         ...(out.apps?.length ? { apps: out.apps } : {}), ...(out.switcher ? { switcher: out.switcher } : {}), ...(out.locale ? { locale: out.locale } : {}),
         ...(prev ? { revision: sentBack.length, rework: [...(prev.rework ?? []), ...(again ? [again.round] : [])] } : {}),
-        mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(existing ? { themeSource: "repo" as const } : { themeSource: "new" as const, ...(out.theme ? { theme: withFamilies(out.theme, reading, out.refUse) } : {}) }),
+        mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(existing ? { themeSource: "repo" as const, ...(inv?.look ? { theme: inv.look.theme } : {}) } : { themeSource: "new" as const, ...(out.theme ? { theme: withFamilies(out.theme, reading, out.refUse) } : {}) }),
       };
       return { kind: "done", outputs: { design: ctx.ledger.putJson(artifact) }, data: { screens: artifact.screens.length, states: artifact.screens.reduce((n, s) => n + Math.max(1, s.states.length), 0) } };
     },
@@ -743,3 +767,38 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
 }
 
 export const designStep: StepDef = makeDesignStep();
+
+/**
+ * The design note of a small UI fix: one small model call, no demo, no pictures. Undefined when the note says a page has to be
+ * made (that needs the full design); its links to the requirements are checked like a full design's.
+ */
+async function designNote(ctx: StepContext, spec: Spec, inv: DesignInventory): Promise<{ note: Record<string, unknown> & { screens: unknown[] }; model?: string } | { outcome: StepOutcome } | undefined> {
+  const r = await think(ctx, {
+    stage: "design", route: "design", cls: "read-small", budgetTokens: 12000, tools: [], schema: DesignNoteOut, maxTurns: 2,
+    sections: [
+      S.template("note-rules", NOTE_RULES),
+      S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
+      S.artifact("existing", "existing-ui", inventoryBrief(inv)),
+      S.task("Write the design note."),
+    ],
+  });
+  if (!r.ok) return { outcome: r.outcome };
+  const out = r.output;
+  if (out.screens.some((s) => s.size === "new")) { ctx.log("design: the note needs a new page, so the full design is drawn"); return undefined; }
+  const map = mapDesign(spec.requirements.map((q) => q.id), { ...out, screens: out.screens.map((s) => ({ ...s, states: [], frames: [] })) } as never);
+  const bad = [
+    ...map.unknown.map((x) => failure("design-unknown-req", `${x} is not a requirement in the spec`)),
+    ...map.unmappedReqs.map((x) => failure("design-unmapped", `${x} is on no screen and not listed under noScreen`)),
+    ...map.orphanScreens.map((x) => failure("design-orphan", `screen ${x} serves no requirement`)),
+    ...map.duplicateIds.map((x) => failure("design-duplicate-id", `two screens share the id ${x}`)),
+    ...map.duplicateRoutes.map((x) => failure("design-duplicate-route", `two screens share the route ${x}`)),
+  ];
+  if (bad.length) return { outcome: { kind: "fail", category: "other", failures: bad, signature: `design-note:${bad.map((f) => f.check).sort().join(",")}` } };
+  return {
+    note: {
+      note: true, flow: out.flow, screens: out.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, size: s.size, change: s.change })),
+      mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, themeSource: "repo" as const, ...(inv.look ? { theme: inv.look.theme } : {}),
+    },
+    ...(r.model ? { model: r.model } : {}),
+  };
+}

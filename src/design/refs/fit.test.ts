@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { colourGap, fitRefs, themeFit } from "./fit.js";
 import { designQuality } from "../../stages/design.js";
-import { buildDemo } from "../../estimate/demo.js";
+import { buildDemo } from "../demo.js";
 
 const AIR = "Passengers search flights, see fares, manage the itinerary and baggage, and check in for boarding at the airport";
 const theme = (o: object) => ({ mood: "m", brand: "#C21F3A", ...o }) as never;

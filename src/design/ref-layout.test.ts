@@ -5,8 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ScreenMock } from "../contracts/artifacts.js";
-import { buildDemo } from "../estimate/demo.js";
-import { findChromium, readDemoLayout } from "../estimate/screenshots.js";
+import { buildDemo } from "./demo.js";
+import { findChromium, readDemoLayout } from "./screenshots.js";
 import type { DesignRefsArt } from "../stages/design-refs.js";
 import { refLayoutFixes, refLayoutGaps, refScreenFor, regionBlocks, type Rendered } from "./ref-checks.js";
 

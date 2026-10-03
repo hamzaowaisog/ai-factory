@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { Estimate } from "../contracts/index.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
-import { replay } from "../ledger/state.js";
+import { MAX_BUDGET_CEILING, replay } from "../ledger/state.js";
 import { budgetStop, effortHoursOf, spentOf } from "./budget.js";
 import "./gates.js";
 
@@ -65,6 +65,20 @@ describe("budget burn (B5)", () => {
     const next = await budgetStop(ledger, HUMAN_WRITER, after, DEFAULT_POLICY, () => undefined, new Set());
     expect(next).toMatchObject({ ceiling: 1.25, proposed: 1.5 });
     expect(next!.artifactSha).not.toBe(card.artifactSha);
+  });
+  it("a waiver cannot raise the limit past MAX_BUDGET_CEILING; at the cap the card offers only a change request (PR #11 review, item 16)", async () => {
+    const { ledger, state } = await runWith(10);
+    const card = (await budgetStop(ledger, HUMAN_WRITER, state, DEFAULT_POLICY, () => undefined, new Set()))!;
+    await ledger.append({ type: "human.requested", data: { cardId: card.cardId, kind: "budget", artifactSha: card.artifactSha } }, HUMAN_WRITER);
+    await ledger.append({ type: "human.decided", data: { cardId: card.cardId, decision: "waive-budget", by: "lead", artifactSha: card.artifactSha, reason: "x", ceiling: 1e9 } }, HUMAN_WRITER);
+    let after = replay(ledger.events());
+    expect(after.budgetCeiling).toBe(MAX_BUDGET_CEILING);
+    await ledger.append({ type: "usage", key: "x/2", data: { "gen_ai.request.model": "m", "gen_ai.usage.cost_usd": 30 } }, HUMAN_WRITER);
+    after = replay(ledger.events());
+    const next = (await budgetStop(ledger, HUMAN_WRITER, after, DEFAULT_POLICY, () => undefined, new Set()))!;
+    expect(next).toMatchObject({ ceiling: MAX_BUDGET_CEILING, proposed: MAX_BUDGET_CEILING });
+    expect(next.markdown).not.toMatch(/factory waive-budget/);
+    expect(next.markdown).toMatch(/--revises r0/);
   });
   it("measures elapsed days from the run's start", async () => {
     const { state } = await runWith(0);

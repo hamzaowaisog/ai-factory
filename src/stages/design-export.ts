@@ -3,7 +3,7 @@
 // the next version of the design it changes; a run seeded from another run's approved design uses that run's package.
 import { Ledger } from "../ledger/ledger.js";
 import { replay, type RunState } from "../ledger/state.js";
-import { diffDesigns } from "../estimate/lineage.js";
+import { diffDesigns } from "../design/diff.js";
 import { findPackage, listPackages, nextVersion, packageDir, writePackage, type DesignManifest, type DesignPackage, type PackageInput } from "../design/package.js";
 import { exportDesign, nextExportDir, parseFormats, type ExportOptions, type ExportRecord } from "../design/export.js";
 import { existsSync } from "node:fs";
@@ -42,6 +42,7 @@ export async function exportRunPackage(state: RunState, ledger: Ledger, log: Log
   }
   const base = readOutput<Baseline>(state, ledger, "design-baseline");
   if (!base?.ui || !base.design) return { none: "the request has no UI, so there is no design" };
+  if ((base as { note?: boolean }).note) return { none: "a small fix: the design is a text note on the estimate card, with no demo or pictures" };
   const approval = approvalOf(state, ledger);
   if (!approval) return { none: "the design has no approval on record" };
   const project = state.info.project;

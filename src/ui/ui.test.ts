@@ -19,7 +19,7 @@ import { _resetStarting } from "./start.js";
 import { ensureStandaloneProject } from "../config/project.js";
 // the page's Markdown renderer (plain browser JS, no DOM needed)
 import { renderMarkdown } from "./static/md.js";
-import { findChromium } from "../estimate/screenshots.js";
+import { findChromium } from "../design/screenshots.js";
 
 const TOKEN = "test-token-0123456789abcdef";
 const PKEY = "preview-key-0123456789abcd";
@@ -206,10 +206,10 @@ describe("factory ui: who can talk to it", () => {
 describe("factory ui: no decisions from the web", () => {
   it("the route list has no decision routes; the only write starts a run", () => {
     const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note/i;
-    for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision") && !r.path.endsWith("/estimate-answers") && !r.path.endsWith("/design-decision"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
+    for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision") && !r.path.endsWith("/estimate-answers"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
     // the one exception: the estimate lead's approve or reject, on estimate cards only (and exporting an approved design or generating
     // its scaffold, which write only under the run's exports/ and scaffold/)
-    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/design-decision", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold", "POST /api/runs/:id/fidelity/baseline"]);
+    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold"]);
   });
 
   it("decision-looking URLs don't exist", async () => {
@@ -562,12 +562,12 @@ describe("factory ui: estimate runs", () => {
     expect(r.status).toBe(201);
     const s = replay(Ledger.open(r.json().runId).events());
     expect(s.info.mode).toBe("estimate");
-    // hands-off unless the form asks for a person's review
-    expect(s.info.estimate).toMatchObject({ client: "Acme", humanReview: false });
+    // a person reviews it unless the form opts in to hands-off
+    expect(s.info.estimate).toMatchObject({ client: "Acme", humanReview: true });
     expect((await call(`/api/runs/${r.json().runId}`)).json().mode).toBe("estimate");
-    const reviewed = await post({ project: "", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { humanReview: true } });
+    const reviewed = await post({ project: "", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { humanReview: false } });
     expect(reviewed.status, reviewed.body).toBe(201);
-    expect(replay(Ledger.open(reviewed.json().runId).events()).info.estimate).toMatchObject({ humanReview: true });
+    expect(replay(Ledger.open(reviewed.json().runId).events()).info.estimate).toMatchObject({ humanReview: false });
   });
 
   it("starts an estimate with no project: requirements alone, no repo, and the stand-in config stays out of the project list", async () => {
@@ -745,7 +745,7 @@ describe("factory ui: answering an estimate run's questions", () => {
 
   it("shows the questions on the run, refuses a plan card, and takes typed answers that continue the run", async () => {
     const before = started.length;
-    expect((await answersPost(ids.waiting, { hash: "b".repeat(8), by: "Sam Lead", answers: {} })).status).toBe(409);
+    expect((await answersPost(ids.waiting, { hash: "b".repeat(8), by: "Sam Lead", answers: {} })).status).toBe(403);
     expect((await answersPost("nope", {})).status).toBe(404);
     const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
     const l = Ledger.open(id);
@@ -775,7 +775,7 @@ describe("factory ui: answering an estimate run's questions", () => {
     expect(d.answers["Q-2"]).toBeUndefined();
   });
 
-  it("takes answers for a build run's questions too, not only an estimate run's", async () => {
+  it("refuses answers for a build run's questions: only estimate cards are decided on the page", async () => {
     const id = await createRun("Add a refund button to orders", "web", "tester");
     const l = Ledger.open(id);
     const body = l.putJson({ key: "clarify", asked, assumptions: [] });
@@ -785,45 +785,20 @@ describe("factory ui: answering an estimate run's questions", () => {
       { type: "step.interrupted", key: "clarify/1", data: { reason: "waiting" } },
       { type: "human.requested", data: { cardId: `questions-1-${body.slice(0, 8)}`, kind: "question", artifactSha: body, step: "clarify" } },
     ]);
-    expect((await call(`/api/runs/${id}`)).json().card.questions).toHaveLength(2);
-    const done = await answersPost(id, { hash: body.slice(0, 8), by: "Sam Lead", answers: { "Q-2": "No" } });
-    expect(done.status).toBe(200);
-    expect(started.at(-1)).toBe(id);
-    expect(replay(l.events()).decisions.at(-1)).toMatchObject({ decision: "answer", by: "Sam Lead (via web)" });
+    const before = started.length;
+    const r = await answersPost(id, { hash: body.slice(0, 8), by: "Sam Lead", answers: { "Q-2": "No" } });
+    expect(r.status).toBe(403);
+    expect(r.json().error).toMatch(/terminal/);
+    expect(started.length).toBe(before);
+    expect(replay(l.events()).decisions).toEqual([]);
   });
 });
 
 describe("factory ui: design card decisions", () => {
-  const designPost = (id: string, body: unknown) =>
-    call(`/api/runs/${id}/design-decision`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
-  it("approves or sends back a design card with a name and the hash, and refuses other cards", async () => {
-    expect((await designPost(ids.waiting, { hash: "b".repeat(8), by: "Sam Lead", decision: "approve" })).status).toBe(409);
-    expect((await designPost("nope", {})).status).toBe(404);
-    const make = async () => {
-      const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
-      const l = Ledger.open(id);
-      const bundle = "d".repeat(64);
-      l.writeCard(`design-${bundle.slice(0, 8)}`, "# Approve the design baseline");
-      await addEvents(id, [
-        { type: "step.started", key: "design-baseline/1", data: { rung: 0 } },
-        { type: "step.interrupted", key: "design-baseline/1", data: { reason: "waiting" } },
-        { type: "human.requested", data: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, step: "design-baseline" } },
-      ]);
-      return { id, l, hash: bundle.slice(0, 8) };
-    };
-    const a = await make();
-    const ok = { hash: a.hash, by: "Sam Lead", decision: "reject", reason: "needs error states" };
-    expect((await designPost(a.id, { ...ok, by: "" })).status).toBe(400);
-    expect((await designPost(a.id, { ...ok, reason: "" })).status).toBe(400);
-    expect((await designPost(a.id, { ...ok, decision: "maybe" })).status).toBe(400);
-    expect((await designPost(a.id, { ...ok, hash: "deadbeef" })).status).toBe(409);
-    const before = started.length;
-    expect((await designPost(a.id, ok)).json().recorded).toBe(true);
-    expect(started.length).toBe(before + 1);
-    expect(replay(a.l.events()).decisions.at(-1)).toMatchObject({ decision: "reject", by: "Sam Lead (via web)", reason: "needs error states" });
-    const b = await make();
-    expect((await designPost(b.id, { hash: b.hash, by: "Sam Lead", decision: "approve" })).status).toBe(200);
-    expect(replay(b.l.events()).decisions.at(-1)).toMatchObject({ decision: "approve" });
+  it("has no route to approve or reject a design: the design card is decided in the terminal", async () => {
+    expect(ROUTES.some((r) => r.path.endsWith("/design-decision"))).toBe(false);
+    const r = await call(`/api/runs/${ids.waiting}/design-decision`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify({ decision: "approve" }) });
+    expect(r.status).toBe(404);
   });
 });
 
@@ -1050,7 +1025,7 @@ describe("factory ui: design exports", () => {
     expect(v).toMatchObject({ available: true, targets: ["next-shadcn", "vite-shadcn", "repo"], generated: [], view: { target: "next-shadcn", source: "detected", kit: { id: "shadcn" }, root: "src/", fresh: false } });
     expect(v.view.screens).toEqual([expect.objectContaining({ id: "S-1", route: "/login", container: "src/components/screens/s-1/container.tsx" })]);
     expect(v.view.kept).toContain("src/components/ui/button.tsx");
-    expect(v.view.designSystem.todo.join("\n")).toMatch(/DesignProviders/);
+    expect(v.view.designSystem.todo.join("\n")).toMatch(/from the app.s own navigation/);
     const other = (await call(`/api/runs/${l.runId}/scaffold/vite-shadcn`)).json();
     expect(other.view).toMatchObject({ target: "vite-shadcn", source: "config" });
     expect((await call(`/api/runs/${l.runId}/scaffold/repo`)).json().view).toMatchObject({ target: "repo", files: [] });
@@ -1096,7 +1071,7 @@ describe("factory ui: design exports", () => {
     await new Promise((r) => setTimeout(r, 10));
     expect(ui.exportJobs.list()[0]).toMatchObject({ status: "done", exportId: "v1/7" });
   });
-  it("the Fidelity panel: the run's check, its pictures by name only, and accepting them as the baseline with a name and a reason", async () => {
+  it("the Fidelity panel: the run's check and its pictures by name only; accepting a baseline is a terminal decision", async () => {
     const l = await approvedDesignRun();
     expect((await call(`/api/runs/${l.runId}/fidelity`)).json().none).toMatch(/design\.fidelity/);
     await ensurePackage(l.runId);
@@ -1118,17 +1093,9 @@ describe("factory ui: design exports", () => {
     expect((await call(`/fidelity-shots/${l.runId}/built/..%2Freport.json`)).status).toBe(404);
     expect((await call(`/fidelity-shots/${l.runId}/other/s-1-error-phone.png`)).status).toBe(404);
 
-    const accept = (body: unknown, token?: string | null) => call(`/api/runs/${l.runId}/fidelity/baseline`, { method: "POST", token, headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
-    expect((await accept({ all: true, by: "lead", reason: "ok" }, null)).status).toBe(401);
-    expect((await accept({ all: true, reason: "ok" })).json().error).toMatch(/your name/);
-    expect((await accept({ all: true, by: "lead" })).json().error).toMatch(/reason/);
-    expect((await accept({ pages: ["nope"], by: "lead", reason: "ok" })).json().error).toMatch(/Not pictured/);
-    const r = await accept({ pages: ["s-1-error-phone"], by: "lead", reason: "matches the design" });
-    expect([r.status, r.json()]).toEqual([200, { accepted: ["s-1-error-phone"] }]);
-    const after = (await call(`/api/runs/${l.runId}/fidelity`)).json();
-    expect(after.pages[0]).toMatchObject({ baseline: `/fidelity-shots/${l.runId}/baseline/s-1-error-phone.png`, accepted: { by: "lead (via web)", reason: "matches the design" } });
-    expect((await call(after.pages[0].baseline)).body).toBe("png");
-    expect(Ledger.open(l.runId).events().at(-1)!.data).toMatchObject({ decision: "accept-baseline", by: "lead (via web)" });
+    const accept = await call(`/api/runs/${l.runId}/fidelity/baseline`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify({ all: true, by: "lead", reason: "ok" }) });
+    expect(accept.status).toBe(404);
+    expect(Ledger.open(l.runId).events().some((e) => (e.data as { decision?: string } | undefined)?.decision === "accept-baseline")).toBe(false);
   });
 });
 

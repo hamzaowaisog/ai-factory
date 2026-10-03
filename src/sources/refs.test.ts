@@ -7,7 +7,7 @@ import { deflateSync, crc32 } from "node:zlib";
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
 import { Reference } from "../contracts/reference.js";
-import { findChromium } from "../estimate/screenshots.js";
+import { findChromium } from "../design/screenshots.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { sniffImage } from "../util/image.js";

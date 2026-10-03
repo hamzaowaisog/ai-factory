@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "../gates/policy.js";
-import { approvedTokens, screenBrief, screenFor, screenScopeGaps, TOKENS_NOTE, type ApprovedDesign } from "./design-link.js";
-import { themeCss } from "./demo.js";
-import { designTokens } from "./tokens.js";
+import { approvedTokens, screenBrief, screenFacts, screenFor, screenForTask, screenScopeGaps, TOKENS_NOTE, type ApprovedDesign } from "./design-link.js";
+import { themeCss } from "../design/demo.js";
+import { designTokens } from "../design/tokens.js";
 import { screenScope } from "./gates.js";
 import { designQuality, hasExistingLook } from "../stages/design.js";
 
@@ -16,6 +16,17 @@ describe("approved design reaches the build", () => {
     expect(screenFor(bd, design, "EST-2")).toBeUndefined();
     expect(screenFor(bd, { skipped: true, screens: [] }, "EST-1")).toBeUndefined();
     expect(screenFor(bd, undefined, "EST-1")).toBeUndefined();
+  });
+  it("finds a plan task's screen without an estimate: by its page file in scope, else by the one screen sharing its requirements", () => {
+    const two: ApprovedDesign = { screens: [screen, { id: "S-2", route: "/home", file: "src/pages/home.tsx", reqs: ["R-2", "R-3"] }] };
+    expect(screenForTask(two, { fileScope: ["src/pages/home.tsx", "src/api/**"] })?.id).toBe("S-2");
+    expect(screenForTask(two, { fileScope: ["src/api/**"], reqs: ["R-1"] })?.id).toBe("S-1");
+    // a glob over both pages, or requirements no screen has: no one screen is this task's
+    expect(screenForTask(two, { fileScope: ["src/pages/**"], reqs: ["R-1"] })).toBeUndefined();
+    expect(screenForTask(two, { fileScope: ["src/api/**"], reqs: ["R-9"] })).toBeUndefined();
+    // the estimate's own link wins, and a skipped design gives none
+    expect(screenForTask(two, { fileScope: ["src/pages/home.tsx"] }, screen)?.id).toBe("S-1");
+    expect(screenForTask({ skipped: true, screens: [screen] }, { fileScope: ["src/pages/login.tsx"] })).toBeUndefined();
   });
   it("tells the implementer the new theme for a new product, and the existing app's tokens for an existing one", () => {
     expect(screenBrief(design, screen).look).toEqual({ brand: "#123456" });
@@ -77,5 +88,26 @@ describe("an existing app keeps its look", () => {
     expect(hasExistingLook(inv("none", 3))).toBe(false);
     expect(hasExistingLook(inv("consistent", 0))).toBe(false);
     expect(hasExistingLook(undefined)).toBe(false);
+  });
+});
+
+describe("the acceptance tests see the approved screens (PR #11 review, item 13)", () => {
+  const design: ApprovedDesign = { flow: "f", screens: [
+    { id: "S-1", route: "/payees", file: "a.tsx", reqs: ["REQ-1"], states: ["empty", "error"], mock: {
+      title: "Payees", copy: { emptyTitle: "No payees yet", error: "We couldn't load your payees" },
+      blocks: [{ type: "form", fields: [{ label: "IBAN" }, { label: "Nickname" }], submit: "Add payee" }, { type: "table", columns: ["Name", "IBAN"] }, { type: "actions", buttons: ["Export", { label: "Delete", variant: "danger" }] }],
+      toasts: [{ after: "Add payee", text: "Payee added" }],
+    } },
+    { id: "S-2", route: "/settings", file: "b.tsx", reqs: ["REQ-2"], change: "Add a Remember me checkbox." },
+  ] };
+  it("gives each criterion's screen its route, states and exact words, and a note's change", () => {
+    expect(screenFacts(design, ["REQ-1"])).toEqual([{
+      screen: "S-1", route: "/payees", reqs: ["REQ-1"], states: ["empty", "error"], title: "Payees",
+      buttons: ["Add payee", "Export", "Delete"], fields: ["IBAN", "Nickname"], columns: ["Name", "IBAN"],
+      messages: { emptyTitle: "No payees yet", error: "We couldn't load your payees" }, toasts: ["Payee added"],
+    }]);
+    expect(screenFacts(design, ["REQ-2"])[0]).toMatchObject({ screen: "S-2", change: "Add a Remember me checkbox.", buttons: [] });
+    expect(screenFacts(design, ["REQ-9"])).toEqual([]);
+    expect(screenFacts({ ...design, skipped: true }, ["REQ-1"])).toEqual([]);
   });
 });

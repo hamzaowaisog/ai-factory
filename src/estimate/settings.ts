@@ -13,7 +13,7 @@ export interface EstimateOptions {
   client?: string;
   projectName?: string;
   pm?: string;
-  /** a person answers the clarify questions and approves the estimate; off (hands-off) by default */
+  /** a person answers the clarify questions and approves the estimate; on by default, false only for an explicit hands-off run */
   review?: boolean;
 }
 
@@ -41,7 +41,7 @@ export function parseEstimateSettings(o: EstimateOptions): NonNullable<RunInfo["
     ...(Object.keys(rates).length ? { rates } : {}),
     ...(o.repo ? {} : { noRepo: true }),
     ...(o.client ? { client: o.client } : {}), ...(o.projectName ? { projectName: o.projectName } : {}), ...(o.pm ? { pm: o.pm } : {}),
-    humanReview: o.review === true,
+    humanReview: o.review !== false,
   };
 }
 

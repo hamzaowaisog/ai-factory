@@ -25,13 +25,20 @@ export interface Approved {
   artifacts: Record<string, unknown>;
 }
 
-/** The approved estimate of a finished estimate run. Throws, in plain words, when it is not approved and exported. */
-export function approvedEstimate(runId: string): Approved {
+/**
+ * The approved estimate of a finished estimate run. Throws, in plain words, when it is not approved and exported.
+ * `build`: a build is held to the estimate's budget, so a person must have approved it; a hands-off estimate (the
+ * factory approved it) is refused.
+ */
+export function approvedEstimate(runId: string, opts: { build?: boolean } = {}): Approved {
   const ledger = Ledger.open(runId);
   const s = replay(ledger.events());
   if (s.info.mode !== "estimate") throw new Error(`${runId} is not an estimate run.`);
   for (const step of ["estimate", "approve-estimate", "export"]) {
     if (s.steps.get(step)?.status !== "completed") throw new Error(`${runId} has no approved estimate yet (${step} is not done). Approve it first.`);
+  }
+  if (opts.build && (s.steps.get("approve-estimate")!.data as { auto?: boolean } | undefined)?.auto) {
+    throw new Error(`${runId} was approved by the factory (a hands-off estimate), and a build is held to a budget a person approved. Estimate it again with a person's review (factory estimate --review), then build from that run.`);
   }
   const sha = (step: string, name?: string): string | undefined => {
     const r = s.steps.get(step);
@@ -115,30 +122,5 @@ export function diffEstimates(from: { estimate: Estimate; breakdown: Pick<Breakd
   const was = new Set(from.breakdown.tasks.map((t) => t.title)), now = new Set(to.breakdown.tasks.map((t) => t.title));
   for (const t of to.breakdown.tasks) if (!was.has(t.title)) out.push(`Added task: ${t.title}`);
   for (const t of from.breakdown.tasks) if (!now.has(t.title)) out.push(`Removed task: ${t.title}`);
-  return out;
-}
-
-interface ScreenView { id: string; route: string; reqs: string[]; states?: string[]; size?: string }
-interface DesignView { skipped?: boolean; screens: ScreenView[] }
-
-/** What a change request does to the approved design: screens added, removed or changed, for the design card. */
-export function diffDesigns(from: DesignView | undefined, to: DesignView): string[] {
-  const was = from && !from.skipped ? from.screens : [];
-  const now = to.skipped ? [] : to.screens;
-  const out: string[] = [];
-  const byId = new Map(was.map((s) => [s.id, s]));
-  const same = (a: string[] = [], b: string[] = []) => a.length === b.length && a.every((x) => b.includes(x));
-  for (const s of now) {
-    const o = byId.get(s.id);
-    if (!o) { out.push(`Added screen ${s.id} ${s.route} (${s.reqs.join(", ")})`); continue; }
-    const ch: string[] = [];
-    if (o.route !== s.route) ch.push(`route ${o.route} -> ${s.route}`);
-    if (!same(o.reqs, s.reqs)) ch.push(`requirements ${o.reqs.join(", ") || "none"} -> ${s.reqs.join(", ") || "none"}`);
-    if (!same(o.states, s.states)) ch.push(`states ${(o.states ?? []).join(", ") || "none"} -> ${(s.states ?? []).join(", ") || "none"}`);
-    if (o.size !== s.size && o.size && s.size) ch.push(`size ${o.size} -> ${s.size}`);
-    if (ch.length) out.push(`Changed screen ${s.id}: ${ch.join("; ")}`);
-  }
-  const ids = new Set(now.map((s) => s.id));
-  for (const o of was) if (!ids.has(o.id)) out.push(`Removed screen ${o.id} ${o.route}`);
   return out;
 }

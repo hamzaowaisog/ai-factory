@@ -58,3 +58,12 @@ export function setRuntime(r: ContainerRuntime): void {
 export function codeBase(state: Pick<RunState, "info" | "steps">): string {
   return String(state.steps.get("stub-commit")?.data?.designCommit ?? state.info.baseCommit);
 }
+
+/**
+ * Where the agents' UI change starts: after the scaffold commit when the factory generated the approved pages, else the code
+ * base. The design size cap measures from here, so the kit, theme and pages the factory wrote are not counted (PR #11 review, item 11).
+ */
+export function uiBase(state: Pick<RunState, "info" | "steps">): string {
+  const scaffold = state.steps.get("stub-commit")?.data?.scaffold as { commit?: string } | undefined;
+  return scaffold?.commit ?? codeBase(state);
+}

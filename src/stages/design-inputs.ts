@@ -3,7 +3,10 @@
 // steps can read the approved design without importing the design step.
 import type { RunState } from "../ledger/state.js";
 import type { Ledger } from "../ledger/ledger.js";
-import { outputOf, readOutput, requireOutput } from "./framework.js";
+import { buildInventory, type DesignInventory } from "../design/inventory.js";
+import { dirSource } from "../design/source.js";
+import { outputOf, readOutput, requireOutput, type StepContext } from "./framework.js";
+import { snapshotFor } from "./workspace.js";
 
 /**
  * The steps the design pipeline reads. Every mode that draws a design names its own: the estimate
@@ -46,6 +49,16 @@ export const intentOf = <T>(s: RunState, l: Ledger, src: DesignSources): T => re
 export const specOf = <T>(s: RunState, l: Ledger, src: DesignSources): T => requireOutput<T>(s, l, src.spec);
 export const inventoryOf = <T>(s: RunState, l: Ledger, src: DesignSources): T | undefined =>
   src.inventory ? readOutput<T>(s, l, src.inventory.step, src.inventory.name) : undefined;
+/**
+ * The repo's design inventory for a step that runs on it: the ground step's, or, when that ground step completed before it
+ * kept one (a run paused across an upgrade keeps its ground output), read from the run's repo snapshot now. Deterministic: the
+ * same snapshot always gives the same inventory, so the step's inputs need not change.
+ */
+export function repoInventory(ctx: Pick<StepContext, "runId" | "state" | "project" | "ledger">, src: DesignSources): DesignInventory | undefined {
+  const kept = inventoryOf<DesignInventory>(ctx.state, ctx.ledger, src);
+  if (kept || !src.inventory || !ctx.state.info.repoPath || !ctx.state.info.baseCommit) return kept;
+  try { return buildInventory(dirSource(snapshotFor(ctx).root)); } catch { return undefined; }
+}
 /** the inventory's named outputs, as the design step's inputs record them (undefined with no inventory) */
 export const inventoryNamed = (s: RunState, src: DesignSources): unknown => (src.inventory ? s.steps.get(src.inventory.step)?.data?.named : undefined);
 

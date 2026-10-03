@@ -188,7 +188,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   if (fromEstimate && refReqs.length) throw new StartError("A build from an estimate follows the design approved there. Remove the design references, or start a new design or estimate run with them.");
   let approved: Approved | undefined;
   if (fromEstimate) {
-    try { approved = approvedEstimate(fromEstimate); } catch (err) { throw new StartError((err as Error).message); }
+    try { approved = approvedEstimate(fromEstimate, { build: true }); } catch (err) { throw new StartError((err as Error).message); }
     const from = replay(Ledger.open(fromEstimate).events()).info.project;
     if (from !== STANDALONE_PROJECT && from !== project) throw new StartError(`That estimate is for project ${from}, not ${project}.`);
   }
@@ -232,8 +232,8 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   // the same checks, in the same order, as `factory start`
   if (standalone) ensureStandaloneProject();
   const cfg = loadProject(project);
-  // the form left the review unset: the project's choice (hands-off unless it says otherwise)
-  if (estimating && !designing && settings && typeof ((input.estimate ?? {}) as Record<string, unknown>).humanReview !== "boolean") settings = { ...settings, humanReview: cfg.estimate?.humanReview === true };
+  // the form left the review unset: the project's choice (a person reviews unless it opts out)
+  if (estimating && !designing && settings && typeof ((input.estimate ?? {}) as Record<string, unknown>).humanReview !== "boolean") settings = { ...settings, humanReview: cfg.estimate?.humanReview !== false };
   const problems = checkRoutes(cfg, designing ? DESIGN_ROUTES : estimating ? ESTIMATE_ROUTES : undefined);
   if (problems.length) throw new StartError(`Setup problems:\n- ${problems.join("\n- ")}`);
 
@@ -348,12 +348,13 @@ export async function decideEstimate(ledger: Ledger, input: EstimateDecisionInpu
 export interface EstimateAnswersInput { hash?: unknown; by?: unknown; answers?: unknown }
 
 /**
- * The answers to a run's clarification questions (estimate or build), from the run page. Only question cards: the person types their name, names the card by its hash (checked under the ledger lock), and every answer must
+ * The answers to an estimate run's clarification questions, from the run page (every other run answers in the terminal). Only question cards: the person types their name, names the card by its hash (checked under the ledger lock), and every answer must
  * be for a question on the card. A question left out takes its recommended option, as in the terminal.
  */
 export async function answerEstimateQuestions(ledger: Ledger, input: EstimateAnswersInput, deps: StartDeps = {}): Promise<{ recorded: boolean }> {
   const state = replay(ledger.events());
   const open = state.openCard;
+  if (state.info.mode !== "estimate") throw new StartError("Only an estimate run's questions are answered on this page; answer this run's in your terminal (factory show-card).", 403);
   if (open?.kind !== "question") throw new StartError("This run has no questions waiting for answers.", 409);
   const hash = str(input.hash)?.trim() ?? "";
   if (hash.length < 8) throw new StartError("Send the question card's hash from this page.");
@@ -373,39 +374,6 @@ export async function answerEstimateQuestions(ledger: Ledger, input: EstimateAns
   }
   try {
     const r = await decide(ledger, { decision: "answer", hashPrefix: hash, by: `${name} (via web)`, data: { answers } });
-    if (r.kind === "recorded") (deps.execute ?? runDetached)(ledger.runId);
-    return { recorded: r.kind === "recorded" };
-  } catch (e) {
-    if (e instanceof DecisionError) throw new StartError(e.message, 409);
-    throw e;
-  }
-}
-
-export interface DesignDecisionInput { hash?: unknown; decision?: unknown; by?: unknown; note?: unknown; reason?: unknown }
-
-/**
- * The lead's decision on the design card (E1b), from the run page. Like the estimate card: a typed name, the card's hash
- * checked under the ledger lock, and a reason when sending it back. A rejection does not stop the run: the parts the reason
- * points at are fixed (or the whole design is redrawn when it needs that) and a new card follows.
- */
-export async function decideDesign(ledger: Ledger, input: DesignDecisionInput, deps: StartDeps = {}): Promise<{ recorded: boolean }> {
-  const open = replay(ledger.events()).openCard;
-  if (open?.kind !== "design-approval") throw new StartError("This run has no design waiting for approval.", 409);
-  const hash = str(input.hash)?.trim() ?? "";
-  if (hash.length < 8) throw new StartError("Send the design card's hash from this page.");
-  const name = str(input.by)?.trim() ?? "";
-  if (name.length < 2 || name.length > 60 || /[\r\n]/.test(name)) throw new StartError("Type your name to decide; it is recorded with the decision.");
-  const decision = input.decision === "reject" ? "reject" : input.decision === "approve" ? "approve" : undefined;
-  if (!decision) throw new StartError("The decision must be approve or reject.");
-  let data: Record<string, unknown>;
-  if (decision === "reject") {
-    const reason = str(input.reason)?.trim();
-    if (!reason) throw new StartError("Say what to change, in your own words: the parts you point at are fixed and you get a new card.");
-    if (reason.length > 2000) throw new StartError("The reason is too long (2000 characters at most).");
-    data = { reason };
-  } else data = { note: str(input.note) ?? "" };
-  try {
-    const r = await decide(ledger, { decision, hashPrefix: hash, by: `${name} (via web)`, data });
     if (r.kind === "recorded") (deps.execute ?? runDetached)(ledger.runId);
     return { recorded: r.kind === "recorded" };
   } catch (e) {

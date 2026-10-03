@@ -52,7 +52,7 @@ factory estimate --file requirements.docx [--project <p>] [--no-repo] [--from-de
    - Code, not the model, reads the hours from the catalogue and does all the arithmetic.
    - Similar approved past tasks are used as references.
 5. **Cost and time.** Both come from our own measured runs. Until we have enough runs, they are labelled cold-start and shown with wide ranges.
-6. **Gates.** The factory approves at E7, once all the gates below pass.
+6. **Gates.** A lead approves at E7, once all the gates below pass.
 
    | Gate | Checks |
    |---|---|
@@ -64,10 +64,10 @@ factory estimate --file requirements.docx [--project <p>] [--no-repo] [--from-de
    | E4 Forgotten work | CI/CD, environments, monitoring and so on, each marked in, or out with a reason |
    | E5 Consistency | Similar tasks get similar hours, with no unexplained outlier |
    | E6 Workbook lint | Code recomputes every total and link |
-   | E7 Approval | The factory approves, tied to the estimate's hash |
+   | E7 Approval | A lead approves (or the factory, in an opt-in hands-off run), tied to the estimate's hash |
 
 7. **Output.** Two Excel workbooks on the Folio3 estimation template, one for the team and one for the client. The client copy comes with the design book PDF.
-8. **Hands-off by default.** Open questions become labelled assumptions, and the factory approves. Add `--review` if you want a lead to answer the questions and approve.
+8. **A person reviews by default.** A lead answers the questions and approves the estimate. `--hands-off` opts out: open questions become labelled assumptions and the factory approves, but no build can follow a hands-off estimate.
 
 ## 3. From an approved estimate to a build (existing repos)
 
@@ -89,11 +89,11 @@ The build runs under gates B1–B7:
 
 ## 4. Self-calibration
 
-After every estimate and build, the factory measures its numbers against what actually happened. In the background, it writes a new version of the task catalogue.
+After every estimate and build, the factory measures its numbers against what actually happened. In the background, it proposes a new version of the task catalogue; nothing is sized from it until a person promotes it with `factory calibrate --apply`.
 
 - **Small, bounded changes.** A value that already fits is left alone. Any change is at most ±20% per version, and hard floors and ceilings apply.
 - **Version pinning.** A run keeps the catalogue version it was sized with.
-- **Commands.** `factory calibrate --tune` shows what the next tuning would change. `factory calibrate --history` lists the versions and why each one changed.
+- **Commands.** `factory calibrate --tune` shows what the tuning would change, `--apply` promotes it, and `--history` lists the versions and why each one changed.
 
 ## Status
 
@@ -104,4 +104,4 @@ After every estimate and build, the factory measures its numbers against what ac
 - **Not yet verified with the real model:** everything is tested with a simulated model only.
   - Next: the first live runs, which need `ANTHROPIC_API_KEY`.
   - Next: a test of the Figma plugin in real Figma.
-- **Still needs a person:** design approval.
+- **Needs a person:** design approval, estimate approval (unless hands-off), and promoting catalogue tuning.

@@ -14,8 +14,8 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import type { FileSource } from "../source.js";
 
-/** Where the kits are (repo root `kits/`; the same path from `src/` and from `dist/`). */
-export const KITS_DIR = fileURLToPath(new URL("../../../kits", import.meta.url));
+/** Where the kits are: `dist/kits` in a build (`npm run build` copies them, PR #11 review item 19), else the repo root `kits/`. */
+export const KITS_DIR = [new URL("../../kits", import.meta.url), new URL("../../../kits", import.meta.url)].map((u) => fileURLToPath(u)).find((d) => existsSync(join(d, "shadcn", "kit.json"))) ?? fileURLToPath(new URL("../../../kits", import.meta.url));
 
 export const UI_TARGETS = ["next-shadcn", "vite-shadcn", "repo"] as const;
 export type UiTarget = (typeof UI_TARGETS)[number];
@@ -83,7 +83,8 @@ export function loadKit(id = "shadcn", dir = KITS_DIR): Kit {
     for (const e of readdirSync(d).sort()) {
       const p = join(d, e);
       if (statSync(p).isDirectory()) walk(p);
-      else if (/\.(tsx?|css)$/.test(e)) files.push(relative(root, p).split("\\").join("/"));
+      // a licence beside the files it covers (components/ui/LICENSE) travels with them; the kit's own NOTICE stays here
+      else if (/\.(tsx?|css)$/.test(e) || (d !== root && /^(LICENSE|NOTICE)(\.[a-z]+)?$/.test(e))) files.push(relative(root, p).split("\\").join("/"));
     }
   };
   walk(root);
@@ -168,8 +169,10 @@ export function aliasRoot(src: FileSource): string | undefined {
 }
 
 /**
- * The stack a repo is built in, from its package.json: Next.js or Vite with React and Tailwind (or nothing else yet) takes the
- * shadcn kit; anything else (Angular, Vue, a Razor app, a component library the kit would fight) builds with the repo's own.
+ * The stack a repo is built in, from its package.json. An existing app takes the shadcn kit only when it already uses shadcn/ui
+ * (components.json or components/ui/button.tsx) on Next.js or Vite with React; anything else (plain Tailwind, Angular, Vue, a
+ * Razor app, another component library) builds with the repo's own components, in its own pages. A package.json with no app
+ * code yet (a starter) takes the kit too.
  */
 export function detectUiTarget(src: FileSource): TargetGuess {
   const files = src.list();
@@ -189,9 +192,13 @@ export function detectUiTarget(src: FileSource): TargetGuess {
   const mapped = aliasRoot(src);
   const shadcn = files.includes("components.json") || files.some((f) => /(^|\/)components\/ui\/button\.tsx$/.test(f));
   const tw = has("tailwindcss");
+  const name = fw === "next" ? "Next.js" : "Vite + React";
+  // an app with its own pages and no shadcn/ui: the kit would be a second app beside it, so its own components stay
+  const pages = files.some((f) => /\.(t|j)sx$/.test(f));
+  if (!shadcn && pages) return { target: "repo", why: `${name}${tw ? " with Tailwind" : ""} but not shadcn/ui: its own components and pages stay` };
   return {
     target, root: kitRoot, alias: mapped !== undefined && mapped === kitRoot,
-    why: `${fw === "next" ? "Next.js" : "Vite + React"}${shadcn ? " with shadcn/ui" : tw ? " with Tailwind" : ""}`,
+    why: `${name}${shadcn ? " with shadcn/ui" : tw ? " with Tailwind" : ""}`,
   };
 }
 
