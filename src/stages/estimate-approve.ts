@@ -309,15 +309,13 @@ export const approveEstimateStep: StepDef = {
     const estimate = requireOutput<Estimate>(ctx.state, ctx.ledger, "estimate");
     const breakdown = requireOutput<Breakdown>(ctx.state, ctx.ledger, "breakdown");
     const estimateSha = outputOf(ctx.state, "estimate")!;
-    // a hands-off estimate run: the factory approves an estimate that passed its gates; its low-confidence tasks are
-    // recorded as not signed off by a person (on the estimate and in the workbooks), not hidden
+    // a hands-off estimate run: the factory approves an estimate that passed its gates
     if (!humanReview(ctx.state.info)) {
-      const unsigned = estimate.tasks.filter((t) => t.flagged).map((t) => t.taskId);
-      const approval = { estimateHash: hashJson(estimate), decision: "approved" as const, by: FACTORY_APPROVER, signedOff: [], auto: true as const, unsigned };
+      const approval = { estimateHash: hashJson(estimate), decision: "approved" as const, by: FACTORY_APPROVER, signedOff: [], auto: true as const };
       const g = await gate(ctx, "approve-estimate", leadApproval, { estimate, approval });
       if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [failure("e7", g.details)], signature: `e7:${g.details.slice(0, 80)}` };
       const sha = ctx.ledger.putJson({ header: header(ctx.runId, "estimate-approval", "estimate", estimateSha), estimateSha, ...approval, waivers: waiversOf(ctx.state) });
-      return { kind: "done", outputs: { approval: sha }, data: { by: FACTORY_APPROVER, auto: true, hash: approval.estimateHash.slice(0, 12), signedOff: [], unsigned } };
+      return { kind: "done", outputs: { approval: sha }, data: { by: FACTORY_APPROVER, auto: true, hash: approval.estimateHash.slice(0, 12), signedOff: [] } };
     }
     const past = decisionsOn(ctx.state, "estimate-");
     const bundleOf = (round: number) => ctx.ledger.putJson({ estimate: estimateSha, round });

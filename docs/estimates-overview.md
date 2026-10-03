@@ -3,9 +3,10 @@
 Full design and build status: [estimates-design.md](estimates-design.md). Reliability research: [estimate-consistency.md](estimate-consistency.md), [estimate-local-model.md](estimate-local-model.md). Benchmarks: [../bench/README.md](../bench/README.md).
 
 ## What it is
-An **estimate mode** for the factory. From refined requirements (new project) or a repo plus a request (existing project), it produces the estimate in the general estimation workbook: **hours**, **API credit cost** and **elapsed time**. A lead approves it in the terminal.
+An **estimate mode** for the factory. From refined requirements (new project) or a repo plus a request (existing project), it produces the estimate in the general estimation workbook: **hours**, **API credit cost** and **elapsed time**. It runs hands-off: nobody is asked questions and the factory approves the estimate once its checks pass (`--review` brings a lead's questions and approval back). A request with UI still waits for a person to approve its design.
 
-## Two delivery models, chosen at the start
+## Delivery model: solely agentic
+Every estimate is solely agentic. HITL was the other option and is no longer offered; HITL estimates made before still open. For the record:
 | | HITL (supervisor + agents) | Solely agentic |
 |---|---|---|
 | Agents build | Yes | Yes |
@@ -13,7 +14,7 @@ An **estimate mode** for the factory. From refined requirements (new project) or
 | Client UAT, design approval, PM | Yes | Yes |
 | Size of estimate | Larger | Smaller |
 
-Each model has its own estimate. The second is produced on request as a child run over the approved breakdown, with its own approval.
+
 
 ## How it works
 1. Requirements are refined first. No soft estimates.

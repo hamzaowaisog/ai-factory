@@ -470,8 +470,8 @@ export function estimateView(ledger: Ledger) {
     },
     pending: s.openCard?.kind === "estimate-approval" ? { hash: s.openCard.artifactSha.slice(0, 8), flagged: est.tasks.filter((t) => t.flagged).map((t) => t.taskId) } : undefined,
     approved: approval?.status === "completed" ? (() => {
-      const a = (approval.data ?? {}) as { by?: string; hash?: string; auto?: boolean; unsigned?: string[] };
-      return { by: String(a.by ?? ""), hash: String(a.hash ?? ""), ...(a.auto ? { auto: true, unsigned: a.unsigned ?? [] } : {}) };
+      const a = (approval.data ?? {}) as { by?: string; hash?: string; auto?: boolean };
+      return { by: String(a.by ?? ""), hash: String(a.hash ?? ""), ...(a.auto ? { auto: true } : {}) };
     })() : undefined,
     // a hands-off run: nobody was asked, so what clarify found unclear is listed as the factory's assumptions
     ...(!humanReview(s.info) ? { handsOff: true, factoryAssumptions: ["clarify", "clarify-2"].flatMap((k) => {

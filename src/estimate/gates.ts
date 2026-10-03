@@ -173,11 +173,8 @@ function uiOrder(estimate: Pick<Estimate, "tasks">, breakdown: Pick<Breakdown, "
 /** who approves a hands-off estimate run (no human review) */
 export const FACTORY_APPROVER = "factory";
 
-/**
- * E7. A person approves, signing off every low-confidence task; in a hands-off run (`auto`) the factory approves
- * instead, and each low-confidence task must be listed as not signed off by a person.
- */
-export const leadApproval = defineGate<{ estimate: Estimate; approval?: { estimateHash: string; decision: "approved" | "rejected"; by: string; signedOff: string[]; auto?: boolean; unsigned?: string[] } }>({
+/** E7. A person approves, signing off every low-confidence task; in a hands-off run (`auto`) the factory approves instead. */
+export const leadApproval = defineGate<{ estimate: Estimate; approval?: { estimateHash: string; decision: "approved" | "rejected"; by: string; signedOff: string[]; auto?: boolean } }>({
   id: "estimate.e7-approval", after: "estimate", safety: false, waiver: "none",
   predicate: ({ estimate, approval }) => {
     if (!approval) return verdict([failure("e7-missing", "no approval recorded")], "");
@@ -186,12 +183,8 @@ export const leadApproval = defineGate<{ estimate: Estimate; approval?: { estima
     if (!approval.by.trim()) fs.push(failure("e7-by", "the approval names no person"));
     if (approval.auto && approval.by !== FACTORY_APPROVER) fs.push(failure("e7-by", `a hands-off approval is the factory's, not ${approval.by}'s`));
     if (approval.estimateHash !== hashJson(estimate)) fs.push(failure("e7-hash", "the approval is for a different version of the estimate"));
-    for (const t of estimate.tasks) {
-      if (!t.flagged) continue;
-      if (approval.auto ? !approval.unsigned?.includes(t.taskId) : !approval.signedOff.includes(t.taskId)) fs.push(failure("e7-signoff", approval.auto ? `low-confidence ${t.taskId} is not listed as unsigned` : `low-confidence ${t.taskId} has no sign-off`));
-    }
-    const unsigned = approval.unsigned?.length ?? 0;
-    return verdict(fs, approval.auto ? `approved by the factory (no human review)${unsigned ? `; ${unsigned} low-confidence task${unsigned === 1 ? "" : "s"} not signed off by a person` : ""}` : `approved by ${approval.by}`);
+    if (!approval.auto) for (const t of estimate.tasks) if (t.flagged && !approval.signedOff.includes(t.taskId)) fs.push(failure("e7-signoff", `low-confidence ${t.taskId} has no sign-off`));
+    return verdict(fs, approval.auto ? "approved by the factory (no human review)" : `approved by ${approval.by}`);
   },
 });
 

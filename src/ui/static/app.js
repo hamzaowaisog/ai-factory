@@ -352,12 +352,11 @@ async function requestScreen(kind = "brownfield", preset = []) {
   fromEst.addEventListener("change", syncEst);
 
   // an estimate can start from something already approved instead of new requirements: a design run (--from-design),
-  // a change to an approved estimate (--revises, with new requirements) or the other delivery model (--from-run)
+  // or a change to an approved estimate (--revises, with new requirements)
   const startFrom = h("select", { id: "startfrom" },
     h("option", { value: "" }, "New requirements"),
     h("option", { value: "design", disabled: !designs.length }, `An approved design run${designs.length ? "" : " (none yet)"}`),
-    h("option", { value: "revises", disabled: !estimates.length }, `A change request to an approved estimate${estimates.length ? "" : " (none yet)"}`),
-    h("option", { value: "fromrun", disabled: !estimates.length }, `The other delivery model of an approved estimate${estimates.length ? "" : " (none yet)"}`));
+    h("option", { value: "revises", disabled: !estimates.length }, `A change request to an approved estimate${estimates.length ? "" : " (none yet)"}`));
   const seedRun = h("select", { id: "seedrun", "aria-label": "Run to start from" });
   const seedHint = h("div", { class: "hint" });
   const seedBox = h("div", { class: "fld", id: "seedbox" }, h("label", { for: "seedrun" }, "Run"), seedRun, seedHint);
@@ -416,7 +415,6 @@ async function requestScreen(kind = "brownfield", preset = []) {
 
   // estimate settings, like the factory estimate flags
   const opt = (v, t) => h("option", { value: v }, t);
-  const delivery = h("select", { id: "delivery" }, opt("hitl", "HITL: a supervisor plus agents"), opt("agentic", "Solely agentic: no supervisor gates"));
   const stack = h("select", { id: "stack" }, opt("undecided", "Undecided (default pack)"), opt("client", "Client's stack (fixed)"), opt("folio3", "Folio3 decides"));
   const rounds = h("input", { type: "number", id: "rounds", min: "0", max: "10", step: "1", value: "2" });
   const designIn = h("input", { type: "checkbox", id: "designin", checked: true });
@@ -457,9 +455,8 @@ async function requestScreen(kind = "brownfield", preset = []) {
       h("div", { class: "opts" }, opt2("norepo", noRepo, "The requirements stand alone", "Draw a new look instead of following the project's own. Always on when no project is chosen."))),
     sect(4, "Design frames", "Exported from Figma (png, jpg, webp, svg or json). Optional.",
       h("label", { class: "drop slim", for: "frames" }, frameInput, icon("upload"), h("strong", {}, "Choose frame files"), frameList))) : estimating ? h("div", { class: "est" },
-    sect(3, "How it will be delivered", "The same choices as factory estimate.",
+    sect(3, "How it will be delivered", "Solely agentic: the factory builds it, with no supervisor gates. The same choices as factory estimate.",
       h("div", { class: "est-grid" },
-        fld("delivery", "Delivery model", delivery, "HITL keeps a supervisor at the gates; solely agentic has none."),
         fld("stack", "Stack", stack, "Who picks the technology. Undecided uses a default pack, stated as an assumption."),
         fld("rounds", "Client feedback rounds", rounds, "Rounds of change the client may ask for, allowed for in the hours.")),
       h("div", { class: "opts" },
@@ -481,7 +478,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const autoXPicked = () => autoX.map((l) => l.querySelector("input")).filter((i) => i.checked).map((i) => i.value);
   const autoXHint = h("div", { class: "hint" });
   const syncAutoX = () => {
-    autoXHint.textContent = (!estimating && fromEst.value) || (!designing && ["design", "fromrun"].includes(startFrom.value))
+    autoXHint.textContent = (!estimating && fromEst.value) || (!designing && startFrom.value === "design")
       ? `The ${(!estimating && buildFrom().kind === "d") || startFrom.value === "design" ? "design run's" : "estimate's"} design is approved already, so it is exported as soon as the run starts. Files appear on the run's Design tab.`
       : "Exported right after the design is approved, to the run's Design tab (like --design-export). A request with no UI has no design to export. You can always export later from the Design tab.";
   };
@@ -528,15 +525,15 @@ async function requestScreen(kind = "brownfield", preset = []) {
     start.replaceChildren(h("span", { class: "spin" }), "Reading the request…");
     try {
       const sent = estimating && frames.length ? await Promise.all(frames.map(async (f) => ({ name: f.name, data: await b64(f) }))) : undefined;
-      const seeded = !estimating ? !!fromEst.value : ["design", "fromrun"].includes(startFrom.value);
+      const seeded = !estimating ? !!fromEst.value : startFrom.value === "design";
       const sentRefs = refs.count() && !seeded ? await refs.collect() : undefined;
       if (sentRefs) start.replaceChildren(h("span", { class: "spin" }), `Reading the request and ${sentRefs.length} design reference${sentRefs.length === 1 ? "" : "s"}…`);
       const designExport = autoXPicked();
       const bf = buildFrom();
       const from = !estimating ? (bf.kind === "e" ? { fromEstimate: bf.id } : bf.kind === "d" ? { fromDesign: bf.id } : {})
-        : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises", fromrun: "fromRun" }[startFrom.value]]: seedRun.value } : {};
+        : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises" }[startFrom.value]]: seedRun.value } : {};
       const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
-        ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { deliveryModel: delivery.value, stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(review.checked ? { humanReview: true } : {}) } } : {}) };
+        ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(review.checked ? { humanReview: true } : {}) } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
     } catch (e) {
@@ -546,35 +543,29 @@ async function requestScreen(kind = "brownfield", preset = []) {
       err.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
     }
   });
-  const settingsSects = settings ? [...settings.children].filter((x) => x.id !== "framesblock") : [];
   const syncStart = () => {
     const how = startFrom.value;
     const rows = how === "design" ? designs : how ? estimates : [];
     const keep = seedRun.value;
-    seedRun.replaceChildren(...rows.map((x) => h("option", { value: x.runId }, `${x.runId}  ·  ${projectLabel(x.project)}${how === "fromrun" ? `  ·  ${x.deliveryModel === "agentic" ? "solely agentic" : "HITL"}` : ""}  ·  ${x.request}`)));
+    seedRun.replaceChildren(...rows.map((x) => h("option", { value: x.runId }, `${x.runId}  ·  ${projectLabel(x.project)}  ·  ${x.request}`)));
     if (rows.some((x) => x.runId === keep)) seedRun.value = keep;
     seedBox.hidden = !how;
     const run = rows.find((x) => x.runId === seedRun.value);
-    // the run decides the project; a design or the other model brings its own requirements, references and frames
+    // the run decides the project; a design brings its own requirements, references and frames
     project.disabled = !!run;
     if (run) { project.value = run.project === "standalone-estimates" ? "" : run.project; syncProject(); }
-    const own = how === "design" || how === "fromrun";
+    const own = how === "design";
     for (const id of ["reqblock", "refblock", "framesblock"]) { const b = form.querySelector(`#${id}`); if (b) b.hidden = own; }
-    // the other delivery model keeps the approved settings and swaps only the model
-    for (const x of settingsSects) x.hidden = how === "fromrun";
-    if (how === "fromrun" && run) delivery.value = run.deliveryModel === "agentic" ? "hitl" : "agentic";
-    if (how === "revises" && run) delivery.value = run.deliveryModel === "agentic" ? "agentic" : "hitl";
     seedHint.textContent = !run ? "" : how === "design"
       ? "Sized from that design run's requirements and its approved design; the design steps are not run again (like --from-design)."
-      : how === "revises" ? "Write only what changes in Requirements. The estimate is redone against the approved one and gets the next design version (like --revises)."
-      : `Sized again as ${delivery.value === "agentic" ? "solely agentic" : "HITL"}, with the same requirements, design and settings (like --from-run).`;
+      : "Write only what changes in Requirements. The estimate is redone against the approved one and gets the next design version (like --revises).";
     syncAutoX();
   };
   if (!designing && estimating) {
     startFrom.addEventListener("change", syncStart);
     seedRun.addEventListener("change", syncStart);
-    // a link from a run page: #/new/estimate/<design|revises|fromrun>/<run>
-    if (["design", "revises", "fromrun"].includes(preset[0]) && !startFrom.querySelector(`option[value=${preset[0]}]`).disabled) startFrom.value = preset[0];
+    // a link from a run page: #/new/estimate/<design|revises>/<run>
+    if (["design", "revises"].includes(preset[0]) && !startFrom.querySelector(`option[value=${preset[0]}]`).disabled) startFrom.value = preset[0];
     syncStart();
     if (preset[1] && [...seedRun.options].some((o) => o.value === preset[1])) { seedRun.value = preset[1]; syncStart(); }
   }
@@ -1238,7 +1229,6 @@ async function estimateScreen(id) {
     fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : "", e.handsOff ? "hands-off (no human review)" : ""].filter(Boolean).join(" · ")),
     fact("Approval", e.approved ? h("span", { class: "pill t-ok" }, h("span", { class: "d" }), `${e.approved.auto ? "approved by the factory (no human review)" : `approved by ${e.approved.by || "?"}`}${e.approved.hash ? ` (${e.approved.hash})` : ""}`)
       : h("span", { class: "pill t-wait" }, h("span", { class: "d" }), e.handsOff ? "approves itself once its checks pass" : "waiting for approval in your terminal")),
-    e.approved?.unsigned?.length ? fact("Not signed off", h("span", {}, h("span", { class: "mono small" }, e.approved.unsigned.join(", ")), h("span", { class: "small muted" }, " low-confidence, not signed off by a person"))) : null,
   );
   const dl = (audience, label, draft) => h("a", { class: "btn", href: `/export/${rid}/${draft ? "draft-" : ""}${audience}`, download: "" }, icon("file"), label);
   const files = e.files ? h("div", { class: "row" },
@@ -1292,10 +1282,9 @@ async function estimateScreen(id) {
   mount([...head,
     h("div", { class: "grid-2" },
       h("div", { class: "stack" }, decide,
-        e.approved && e.files ? nextPanel("This estimate is approved. Build it, size a change to it, or size it again under the other delivery model.", [
+        e.approved && e.files ? nextPanel("This estimate is approved. Build it or size a change to it.", [
           [`#/new/brownfield/estimate/${rid}`, "layers", "Build this estimate"],
           [`#/new/estimate/revises/${rid}`, "pen", "Change request"],
-          [`#/new/estimate/fromrun/${rid}`, "ruler", e.deliveryModel === "agentic" ? "Estimate as HITL" : "Estimate as solely agentic"],
         ]) : null,
         panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", costTable),
         e.stack ? panel(3, "Stack priced", "layers", h("dl", { class: "facts" }, [["Backend", e.stack.backend], ["Web", e.stack.web], ["Mobile", e.stack.mobile], ["Database", e.stack.database], ["Hosting", e.stack.hosting], ["Architecture", e.stack.architecture]].filter((r) => r[1]).flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])),
@@ -1703,7 +1692,7 @@ async function route() {
   document.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("on", a.dataset.nav === top));
   document.title = `AI Factory · ${{ new: "New run", runs: parts[1] ? parts[1] : "Runs", dashboard: "Dashboard" }[top] ?? ""}`;
   try {
-    // #/new/estimate/<design|revises|fromrun>/<run> and #/new/brownfield/<design|estimate>/<run> start from that run
+    // #/new/estimate/<design|revises>/<run> and #/new/brownfield/<design|estimate>/<run> start from that run
     if (top === "new" && parts[1] === "brownfield") await requestScreen("brownfield", parts.slice(2));
     else if (top === "new" && parts[1] === "estimate") await requestScreen("estimate", parts.slice(2));
     else if (top === "new" && parts[1] === "design") await requestScreen("design");

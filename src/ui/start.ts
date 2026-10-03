@@ -55,7 +55,7 @@ export interface StartInput {
   fromDesign?: unknown;
   /** estimate runs: a change request to an approved estimate, like --revises (new requirements; the card shows what changed) */
   revises?: unknown;
-  /** estimate runs: the other delivery model over an approved estimate, like --from-run (its spec and tasks, sized again) */
+  /** no longer taken: estimates are solely agentic, so there is no other delivery model to size again (refused, with why) */
   fromRun?: unknown;
   /** estimate and design runs: ask the model again instead of reusing stored answers, like --fresh */
   fresh?: unknown;
@@ -126,10 +126,11 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   const estimating = input.mode === "estimate" || designing;
 
   // what the run starts from besides requirements: the same choices, and the same refusals, as the command line
-  const fromDesignId = str(input.fromDesign)?.trim(), revisesId = str(input.revises)?.trim(), fromRunId = str(input.fromRun)?.trim();
-  if (designing && (fromDesignId || revisesId || fromRunId)) throw new StartError("A design run starts from requirements. To size or build an approved design, start an estimate or a build from it.");
-  if (!estimating && (revisesId || fromRunId)) throw new StartError("A change request and the other delivery model are estimates: start them under New run, Estimate.");
-  if ([fromDesignId, revisesId, fromRunId, str(input.fromEstimate)?.trim()].filter(Boolean).length > 1) throw new StartError("Start from one thing at a time: an approved design, an estimate to change, or an estimate to size again.");
+  const fromDesignId = str(input.fromDesign)?.trim(), revisesId = str(input.revises)?.trim();
+  if (str(input.fromRun)?.trim()) throw new StartError("Estimates are solely agentic now, so there is no other delivery model to size an approved estimate under. Start a change request or a new estimate instead.");
+  if (designing && (fromDesignId || revisesId)) throw new StartError("A design run starts from requirements. To size or build an approved design, start an estimate or a build from it.");
+  if (!estimating && revisesId) throw new StartError("A change request is an estimate: start it under New run, Estimate.");
+  if ([fromDesignId, revisesId, str(input.fromEstimate)?.trim()].filter(Boolean).length > 1) throw new StartError("Start from one thing at a time: an approved design or an estimate to change.");
   const asked = !!(str(input.prompt)?.trim() || input.file || str(input.jira)?.trim() || (Array.isArray(input.frames) && input.frames.length));
   const refsGiven = Array.isArray(input.refs) && input.refs.length > 0;
   let fromDesign: ApprovedDesign | undefined;
@@ -139,15 +140,10 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     try { fromDesign = approvedDesign(fromDesignId); } catch (err) { throw new StartError((err as Error).message); }
     if (!estimating && !fromDesign.repo) throw new StartError(`${fromDesign.runId} was designed with no repo (a new product). Building a new product (greenfield) is not available yet; estimate it instead (New run, Estimate, from this design).`);
   }
-  let sibling: Approved | undefined, change: Approved | undefined;
-  if (fromRunId) {
-    if (asked) throw new StartError("The other delivery model sizes the same approved requirements again. Clear the request, file, Jira key and frames.");
-    if (refsGiven) throw new StartError("The other delivery model reuses the approved design; remove the design references. New references are a change request.");
-    try { sibling = approvedEstimate(fromRunId); } catch (err) { throw new StartError((err as Error).message); }
-  }
+  let change: Approved | undefined;
   if (revisesId) try { change = approvedEstimate(revisesId); } catch (err) { throw new StartError((err as Error).message); }
   // a run made from another one belongs to that one's project, unless a different one was picked
-  const seededFrom = fromDesign?.project ?? (sibling ?? change ? replay(Ledger.open((sibling ?? change)!.runId).events()).info.project : undefined);
+  const seededFrom = fromDesign?.project ?? (change ? replay(Ledger.open(change.runId).events()).info.project : undefined);
   const picked = str(input.project);
   if (estimating && seededFrom && picked && picked !== STANDALONE_PROJECT && picked !== seededFrom) {
     throw new StartError(`That run is for project ${seededFrom === STANDALONE_PROJECT ? "none (requirements only)" : seededFrom}, not ${picked}.`);
@@ -222,7 +218,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     };
     else try {
       settings = parseEstimateSettings({
-        deliveryModel: String(e.deliveryModel ?? "hitl"), stackSource: String(e.stackSource ?? "undecided"),
+        stackSource: String(e.stackSource ?? "undecided"),
         designInTotal: e.designInTotal !== false, feedbackRounds: String(e.feedbackRounds ?? "2"),
         repo: standalone || fromDesign?.settings.noRepo ? false : e.noRepo !== true, ...(str(e.client) ? { client: str(e.client)!.trim() } : {}),
         ...(str(e.projectName) ? { projectName: str(e.projectName)!.trim() } : {}), ...(str(e.pm) ? { pm: str(e.pm)!.trim() } : {}),
@@ -231,11 +227,6 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     } catch (err) { throw new StartError((err as Error).message); }
     // the design run's product details stand unless given again
     if (fromDesign && settings) settings = { ...settings, ...Object.fromEntries(Object.entries({ client: fromDesign.settings.client, projectName: fromDesign.settings.projectName }).filter(([k, v]) => v && !(settings as Record<string, unknown>)[k])) };
-    // the other delivery model: the approved estimate's settings, only the delivery model changes
-    if (sibling && settings) {
-      if (settings.deliveryModel === sibling.deliveryModel) throw new StartError(`That estimate is already ${sibling.deliveryModel === "hitl" ? "HITL" : "solely agentic"}. Pick the other delivery model.`);
-      settings = { ...(sibling.settings as typeof settings), deliveryModel: settings.deliveryModel, humanReview: settings.humanReview };
-    }
   }
 
   // the same checks, in the same order, as `factory start`
@@ -264,7 +255,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
       path = join(dir, file.name);
       writeFileSync(path, file.text, { mode: 0o600 });
     }
-    const seed = approved ?? sibling ?? fromDesign;
+    const seed = approved ?? fromDesign;
     req = seed ? { text: seed.request, sources: [{ kind: "prompt" as const }], attachments: [] } : await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim(), ...(frameFiles ? { frameFiles } : {}) }, { fetchJira: jiraFetcherFor(cfg.jira?.allowedReporters) }, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);
     // a reference that cannot be read stops here, named with what to attach instead (R-2 (https://...): ...)
     references = await (deps.gatherRefs ?? gatherReferences)(refReqs, { allowPrivate: !!cfg.design?.allowPrivateRefs });
@@ -277,7 +268,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   const runId = await createRun(req.text, project, `${userInfo().username} (via web)`, {
     ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
     sources: req.sources, ...(references.length ? { references } : {}),
-    ...(approved ? { lineage: { kind: "build" as const, approved } } : sibling ? { lineage: { kind: "sibling" as const, approved: sibling } } : change ? { lineage: { kind: "change" as const, approved: change } } : {}),
+    ...(approved ? { lineage: { kind: "build" as const, approved } } : change ? { lineage: { kind: "change" as const, approved: change } } : {}),
     ...(fromDesign ? { fromDesign } : {}),
     ...(settings ? { mode: designing ? "design" as const : "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
     ...(designExport ? { designExport } : {}),
@@ -286,8 +277,8 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   if (!standalone) starting.set(project, { runId, at: Date.now() });
   (deps.execute ?? runDetached)(runId, fresh ? { fresh } : undefined);
   // a run seeded with an approved design never runs the design steps, so it exports now (as the command line does)
-  if ((approved || sibling || fromDesign) && designExport) (deps.exportNow ?? ((id, f) => void exportSeededNow(id, f, () => undefined)))(runId, designExport);
-  const origin = fromDesign ? `design run ${fromDesign.runId}` : sibling ? `estimate ${sibling.runId} (the other delivery model)` : undefined;
+  if ((approved || fromDesign) && designExport) (deps.exportNow ?? ((id, f) => void exportSeededNow(id, f, () => undefined)))(runId, designExport);
+  const origin = fromDesign ? `design run ${fromDesign.runId}` : undefined;
   return { runId, from: (origin ?? describeSources(req.sources)) + (change ? `; changes estimate ${change.runId}` : "") + (references.length ? `; design references ${describeReferences(references)}` : "") };
 }
 

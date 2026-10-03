@@ -556,7 +556,7 @@ describe("factory ui: estimate runs", () => {
   });
 
   it("starts an estimate run with the same settings factory estimate parses, and refuses bad ones", async () => {
-    const bad = await post({ project: "web", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { deliveryModel: "nonsense" } });
+    const bad = await post({ project: "web", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { feedbackRounds: "lots" } });
     expect(bad.status).toBe(400);
     const r = await post({ project: "web", mode: "estimate", prompt: "Build an order portal with login and a dashboard", estimate: { client: "Acme", feedbackRounds: "2" } });
     expect(r.status).toBe(201);
@@ -611,19 +611,18 @@ describe("factory ui: estimate runs", () => {
     expect(ui.exportJobs.list().find((j) => j.runId === x.json().runId)).toMatchObject({ formats: ["pdf"] });
   });
 
-  it("an estimate can change an approved one (--revises) or size it under the other delivery model (--from-run), and can ask the model again (--fresh)", async () => {
+  it("an estimate can change an approved one (--revises) and ask the model again (--fresh); there is no other delivery model to size it under", async () => {
     const id = await createRun("Build an order portal with login and a dashboard", "web", "tester", { mode: "estimate", estimate: { deliveryModel: "hitl", stackSource: "client", feedbackRounds: 3 } } as never);
     const l = Ledger.open(id);
     const est = l.putJson({ deliveryModel: "hitl" }), bd = l.putJson({ tasks: [] }), spec = l.putJson({ title: "s" });
     await addEvents(id, [...step("breakdown", 0, {}, [bd]), ...step("specify", 0, {}, [spec]), ...step("estimate", 0, {}, [est]), ...step("approve-estimate"), ...step("export")]);
     expect((await call("/api/projects")).json().estimates[0]).toMatchObject({ runId: id, deliveryModel: "hitl" });
     const refusals: [unknown, RegExp][] = [
-      [{ project: "web", mode: "estimate", fromRun: id, estimate: { deliveryModel: "hitl" } }, /already HITL/],
-      [{ project: "web", mode: "estimate", fromRun: id, prompt: "and more", estimate: { deliveryModel: "agentic" } }, /Clear the request/],
-      [{ project: "web", mode: "estimate", fromRun: id, revises: id }, /one thing at a time/],
-      [{ project: "web", revises: id, prompt: "Add a CSV export to the orders page" }, /are estimates/],
+      [{ project: "web", mode: "estimate", fromRun: id }, /solely agentic now/],
+      [{ project: "web", mode: "estimate", fromDesign: id, revises: id }, /one thing at a time/],
+      [{ project: "web", revises: id, prompt: "Add a CSV export to the orders page" }, /is an estimate/],
       [{ project: "api", mode: "estimate", revises: id, prompt: "Add a CSV export to the orders page" }, /for project web, not api/],
-      [{ project: "web", mode: "design", fromRun: id, prompt: "x" }, /starts from requirements/],
+      [{ project: "web", mode: "design", revises: id, prompt: "x" }, /starts from requirements/],
       [{ project: "web", mode: "estimate", revises: "nope", prompt: "Add a CSV export to the orders page" }, /./],
       [{ project: "web", prompt: "Show the order count please", fresh: true }, /estimate and design runs/],
     ];
@@ -636,17 +635,13 @@ describe("factory ui: estimate runs", () => {
     await new Promise((r) => ui.server.close(r));
     ui = createUiServer({ token: TOKEN, previewKey: PKEY, deps: { execute: (rid, o) => calls.push([rid, o]) } });
     port = await listen(ui, 0);
-    const sib = await post({ project: "web", mode: "estimate", fromRun: id, estimate: { deliveryModel: "agentic", stackSource: "folio3" } });
-    expect(sib.status).toBe(201);
-    const t = replay(Ledger.open(sib.json().runId).events());
-    expect(t.info.request).toBe("Build an order portal with login and a dashboard");
-    expect(t.info.parent).toMatchObject({ runId: id, kind: "sibling" });
-    expect(t.info.estimate).toMatchObject({ deliveryModel: "agentic", stackSource: "client", feedbackRounds: 3 }); // only the model changes
-    _resetStarting();
-    const ch = await post({ project: "web", mode: "estimate", revises: id, prompt: "Add a CSV export to the orders page", fresh: true });
+    const ch = await post({ project: "web", mode: "estimate", revises: id, prompt: "Add a CSV export to the orders page", fresh: true, estimate: { deliveryModel: "hitl" } });
     expect(ch.status).toBe(201);
-    expect(replay(Ledger.open(ch.json().runId).events()).info.parent).toMatchObject({ runId: id, kind: "change" });
-    expect(calls).toEqual([[sib.json().runId, undefined], [ch.json().runId, { fresh: true }]]);
+    const t = replay(Ledger.open(ch.json().runId).events());
+    expect(t.info.parent).toMatchObject({ runId: id, kind: "change" });
+    // a HITL estimate's change is sized solely agentic: the form's delivery model is not taken any more
+    expect(t.info.estimate).toMatchObject({ deliveryModel: "agentic" });
+    expect(calls).toEqual([[ch.json().runId, { fresh: true }]]);
   });
 
   it("the estimate view says so for a build run and before the estimate exists", async () => {
