@@ -1,7 +1,7 @@
 // Turns the estimators' proposals (anchors, ratios, reasons) into a full Estimate. The model proposed
 // every number it is allowed to propose; everything here is arithmetic, so the same proposals always
 // give the same estimate (docs/estimates-design.md, "How the hours are built").
-import { Estimate, type ArtifactHeader, type Breakdown, type DeliveryModel, type Executor, type SizeBand, type SpecDraft, type StackChoice, type Track } from "../contracts/index.js";
+import { Estimate, type ArtifactHeader, type Breakdown, type DeliveryModel, type Executor, type SizeBand, type SizeStep, type SpecDraft, type StackChoice, type Track } from "../contracts/index.js";
 import type { z } from "zod";
 import { DEFAULT_ASSUMPTIONS, type Assumptions, type Range } from "./assumptions.js";
 import { estimateApiCost, type BenchmarkRecord } from "./cost.js";
@@ -17,7 +17,7 @@ type Body = Pick<Breakdown, "features" | "tasks">;
 /** What one estimator returns: reference tasks estimated in detail, and a ratio to an anchor for every task. */
 export interface Proposal {
   anchors: { taskId: string; hours: Range; reason: string }[];
-  tasks: { taskId: string; anchorId: string; ratio: number; reason: string }[];
+  tasks: { taskId: string; anchorId: string; ratio: number; reason: string; size?: SizeStep }[];
   /** the stack the estimator priced (proposals made before it was asked for have none) */
   stack?: StackChoice;
 }
@@ -50,8 +50,8 @@ export function unitsFrom(spec: Pick<SpecDraft, "requirements">, b: Body): Units
 
 export const bandOf = (spec: Pick<SpecDraft, "requirements">, b: Body, a: Assumptions = DEFAULT_ASSUMPTIONS): SizeBand => bandFor(unitsFrom(spec, b), a);
 
-/** XS and S use one estimator, M and up three. */
-export const estimatorsFor = (band: SizeBand): 1 | 3 => (band === "XS" || band === "S" ? 1 : 3);
+/** Three independent estimators for every band, merged by median (docs/estimate-consistency.md, section 10, step D). */
+export const estimatorsFor = (_band: SizeBand): 3 => 3;
 
 export function gradeInputs(i: { assumptions: number; requirements: number; uiTasks: number; uiTasksWithScreen: number; hasRepo: boolean; stackSource: EstimateSettings["stackSource"] }): InputGrades {
   const share = i.requirements ? i.assumptions / i.requirements : 0;
@@ -81,6 +81,8 @@ export interface AssembleInput {
   taskRecords?: TaskRecord[];
   /** the approved estimate this one revises, or the sibling delivery model's */
   parentEstimate?: string;
+  /** the task catalogue the proposals were built from (catalogue sizing); absent for anchor sizing */
+  catalogue?: { version: string; status: "draft" | "signed-off"; stack: string; splitAboveHours?: number };
   a?: Assumptions;
 }
 
@@ -113,10 +115,14 @@ export function assembleEstimate(i: AssembleInput): z.infer<typeof Estimate> {
   i.proposals.forEach((p, n) => check(p, b, `estimator ${n + 1}`));
   const exec = new Map(b.tasks.map((t) => [t.id, t.executor]));
 
-  // the first estimator is the lead: its anchors, ratios and reasons stand; the others are readings that widen the range
+  // the first estimator is the lead: its anchors, ratios and reasons stand; the others are readings merged with it by median
   const [lead, ...others] = i.proposals as [Proposal, ...Proposal[]];
   const readings = others.map((p) => new Map(sizeTasks(anchorsIn(p), ratios(p, exec), a).map((s) => [s.taskId, s.hours])));
   const tasks = sizeTasks(anchorsIn(lead), ratios(lead, exec).map((r) => ({ ...r, estimators: readings.map((m) => m.get(r.taskId)!) })), a);
+
+  // split rule (docs/estimate-consistency.md, section 10): agent work this big fails and retries more, so it is split before the build
+  const split = i.catalogue?.splitAboveHours;
+  if (split) for (const t of tasks) if (t.executor !== "human" && (t.size === "very-large" || t.hours.max > split)) t.splitAdvised = true;
 
   const units = unitsFrom(i.spec, b);
   const factory = tasks.filter((t) => t.executor === "factory").length;
@@ -145,6 +151,8 @@ export function assembleEstimate(i: AssembleInput): z.infer<typeof Estimate> {
     ...(i.parentEstimate ? { parentEstimate: i.parentEstimate } : {}),
     anchors: lead.anchors,
     tasks,
+    merge: "median",
+    ...(i.catalogue ? { catalogue: i.catalogue } : {}),
     overheads: [],
     gateHours: gates,
     totals,
@@ -154,6 +162,6 @@ export function assembleEstimate(i: AssembleInput): z.infer<typeof Estimate> {
     settings: { stackSource: i.settings.stackSource, designInTotal: i.settings.designInTotal, feedbackRounds: i.settings.feedbackRounds },
     scenarios: [],
     suggested: [],
-    assumptions: i.assumptions,
+    assumptions: [...i.assumptions, ...(tasks.some((t) => t.splitAdvised) ? [`Split before the build: ${tasks.filter((t) => t.splitAdvised).map((t) => t.taskId).join(", ")} (agent work over ${split} h or very large is split into smaller tasks; the hours stay as estimated).`] : [])],
   });
 }

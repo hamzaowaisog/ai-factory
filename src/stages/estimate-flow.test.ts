@@ -77,8 +77,9 @@ async function decide(ledger: Ledger, out: StepOutcome, step: string, decision: 
 }
 
 // ---------- fixtures ----------
+const KIND: Record<string, string> = { backend: "be-crud", web: "ui-form", pm: "pm-management" };
 const task = (id: string, featureId: string, track: string, executor: string, extra: object = {}) =>
-  ({ id, title: `Task ${id}`, featureId, reqs: ["REQ-1"], items: ["field a"], track, executor, dependsOn: [], complexity: "standard", ...extra });
+  ({ id, title: `Task ${id}`, featureId, reqs: ["REQ-1"], items: ["field a"], track, kind: KIND[track], executor, dependsOn: [], complexity: "standard", ...extra });
 const breakdown = {
   header: { kind: "work-breakdown", schemaVersion: 1, runId: "r", producedBy: { stage: "breakdown" }, inputsHash: sha, createdAt: "2026-09-30T00:00:00Z" },
   features: [{ id: "F-1", title: "Login", reqs: ["REQ-1"] }],
@@ -553,9 +554,9 @@ describe("editing an estimate on its card", () => {
     stack: { backend: "ASP.NET Core Web API", database: "PostgreSQL", architecture: "modular monolith", basis: "assumed" as const, notes: "no stack named in the request" },
     anchors: [{ taskId: "EST-1", hours: { min: 4, max: 8 }, reason: "a typical endpoint for this stack" }],
     tasks: [
-      { taskId: "EST-1", anchorId: "EST-1", ratio: 1, reason: "the anchor" },
-      { taskId: "EST-2", anchorId: "EST-1", ratio: 2, reason: "twice the fields" },
-      { taskId: "EST-3", anchorId: "EST-1", ratio: 0.25, reason: "light" },
+      { taskId: "EST-1", anchorId: "EST-1", ratio: 1, reason: "the anchor", size: "typical", verify: "moderate", context: "complete" },
+      { taskId: "EST-2", anchorId: "EST-1", ratio: 2, reason: "twice the fields", size: "typical", verify: "moderate", context: "complete" },
+      { taskId: "EST-3", anchorId: "EST-1", ratio: 0.25, reason: "light", size: "typical", verify: "moderate", context: "complete" },
     ],
   };
   async function sized() {
@@ -563,7 +564,8 @@ describe("editing an estimate on its card", () => {
     await complete(ledger, "intake", uiIntent(false));
     await complete(ledger, "clarify", { round: 1, asked: [], assumptions: [], differences: [], conflicts: [] });
     await complete(ledger, "specify", spec);
-    await complete(ledger, "breakdown", breakdown);
+    // anchor sizing (a breakdown from before task kinds), where a lead edits anchors and ratios freely
+    await complete(ledger, "breakdown", { ...breakdown, tasks: breakdown.tasks.map(({ kind: _k, ...t }) => t) });
     answer = () => sizing;
     const first = await exec(ledger, estimateStep);
     expect(first.kind).toBe("done");

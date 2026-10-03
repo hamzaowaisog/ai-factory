@@ -4,6 +4,7 @@
 import type { Estimate } from "../../src/contracts/index.js";
 import { hashJson } from "../../src/util/hash.js";
 import { breakdown, fixture } from "../../src/estimate/fixture.js";
+import { loadCatalogue } from "../../src/estimate/catalogue.js";
 import type { GateCase } from "./cases.js";
 
 const e: Estimate = fixture().estimate;
@@ -26,6 +27,9 @@ const burn = (apiUsd: number) => ({ effortHours: 0, apiUsd, elapsedDays: 0 });
 const sized = (id: string, avg: number, flagged = false) => ({ taskId: id, anchorId: "EST-1", ratio: 1, reason: "r", executor: "human" as const, hours: { min: avg, max: avg }, flagged });
 const peers = ["EST-1", "EST-2", "EST-3", "EST-4"];
 const peerTasks = peers.map((id) => ({ id, title: id, featureId: "F-1", reqs: ["R-1"], items: [], track: "web", executor: "human", dependsOn: [], complexity: "standard" }));
+const cat = (({ version, kinds }) => ({ version, kinds }))(loadCatalogue());
+const KIND: Record<string, string> = { backend: "be-crud", web: "ui-form", mobile: "ui-form", qa: "qa-uat", pm: "pm-management", pdm: "pdm-docs", design: "design-screen", gd: "gd-assets" };
+const kinded = tasks.map((t) => ({ ...t, kind: KIND[t.track] }));
 const approved = (by = "lead", hash = hashJson(e), signedOff: string[] = []) => ({ estimateHash: hash, decision: "approved" as const, by, signedOff });
 const c = (id: string, gateId: string, description: string, expect: GateCase["expect"], input: unknown): GateCase => ({ id, gateId, description, expect, input });
 
@@ -50,6 +54,11 @@ export const ESTIMATE_CASES: GateCase[] = [
   c("E3/clean", "estimate.e3-task-to-req", "every task cites a requirement or a named overhead", "must-pass", { spec: spec2, breakdown: { tasks } }),
   c("E3/gold-plating", "estimate.e3-task-to-req", "a task with no requirement and no overhead", "must-fail", { spec: spec2, breakdown: { tasks: [...tasks, { ...tasks[0]!, id: "EST-9", reqs: [], overhead: undefined }] } }),
   c("E3/unknown-requirement", "estimate.e3-task-to-req", "a task cites a requirement that does not exist", "must-fail", { spec: spec2, breakdown: { tasks: [...tasks, { ...tasks[0]!, id: "EST-9", reqs: ["R-9"] }] } }),
+
+  c("E2c/clean", "estimate.e2c-task-kind", "every task has a catalogue kind on a track it fits", "must-pass", { breakdown: { tasks: kinded }, catalogue: cat }),
+  c("E2c/no-kind", "estimate.e2c-task-kind", "a task with no kind", "must-fail", { breakdown: { tasks: [...kinded, { ...kinded[0]!, id: "EST-9", kind: undefined }] }, catalogue: cat }),
+  c("E2c/unknown-kind", "estimate.e2c-task-kind", "a kind the catalogue does not list", "must-fail", { breakdown: { tasks: [...kinded, { ...kinded[0]!, id: "EST-9", kind: "be-magic" }] }, catalogue: cat }),
+  c("E2c/wrong-track", "estimate.e2c-task-kind", "a screen kind on the backend track", "must-fail", { breakdown: { tasks: [...kinded, { ...kinded[0]!, id: "EST-9", track: "backend", kind: "ui-list" }] }, catalogue: cat }),
 
   c("E4/clean", "estimate.e4-checklist", "every checklist item in, or out with a reason", "must-pass", { breakdown: { checklist: [{ item: "logging", included: true }, { item: "i18n", included: false, reason: "single locale" }] } }),
   c("E4/silent-out", "estimate.e4-checklist", "an item left out with no reason", "must-fail", { breakdown: { checklist: [{ item: "i18n", included: false }] } }),

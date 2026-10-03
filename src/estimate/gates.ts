@@ -7,6 +7,7 @@ import { defineGate, failure, verdict } from "../gates/engine.js";
 import type { DiffSummary } from "../gates/predicates.js";
 import { hashJson } from "../util/hash.js";
 import { effortHours } from "./hours.js";
+import { kindProblem, type Catalogue } from "./catalogue.js";
 
 /** An outlier task sits outside median / this .. median x this within its group (E5). */
 export const OUTLIER_FACTOR = 3;
@@ -101,6 +102,18 @@ export const taskToReq = defineGate<{ spec: Pick<SpecDraft, "requirements">; bre
     }
     return verdict(fs, "every task cites a requirement or a named overhead");
   },
+});
+
+/**
+ * Every task has a catalogue kind that fits its track (docs/estimate-consistency.md, section 10, step C). The catalogue
+ * is part of the gate's inputs, so the evidence re-checks against the catalogue the breakdown was made with.
+ */
+export const taskKind = defineGate<{ breakdown: Pick<Breakdown, "tasks">; catalogue: Pick<Catalogue, "version" | "kinds"> }>({
+  id: "estimate.e2c-task-kind", after: "breakdown", safety: false, waiver: "none",
+  predicate: ({ breakdown, catalogue }) => verdict(
+    breakdown.tasks.flatMap((t) => { const p = kindProblem(catalogue, t); return p ? [failure("e2c-kind", p)] : []; }),
+    `every task has a catalogue kind that fits its track (catalogue ${catalogue.version})`,
+  ),
 });
 
 export const forgottenWork = defineGate<{ breakdown: Pick<Breakdown, "checklist"> }>({

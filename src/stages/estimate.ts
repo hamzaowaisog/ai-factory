@@ -6,7 +6,9 @@ import { BreakdownBody, IntentBody, StackChoice, type Breakdown, type Spec as Sp
 import type { Failure, ScreenMock } from "../contracts/index.js";
 import { failure, runGate, type GateDef } from "../gates/engine.js";
 import { designUi, uiFactors } from "../estimate/ui-complexity.js";
-import { consistency, designCoverage, forgottenWork, readiness, reqToTask, taskToReq } from "../estimate/gates.js";
+import { consistency, designCoverage, forgottenWork, readiness, reqToTask, taskKind, taskToReq } from "../estimate/gates.js";
+import { catalogueText, loadCatalogue } from "../estimate/catalogue.js";
+import { proposalFromSizes, SizeOut, stacksFor } from "../estimate/catalogue-size.js";
 import { estimateWorkbookLint } from "../estimate/lint.js";
 import { applyEdits, describeEdit, editsOf } from "../estimate/edits.js";
 import { loadBenchmarkRecords } from "../estimate/records.js";
@@ -85,6 +87,7 @@ Rules (checked by code):
 - "items" lists the concrete things in the spec the task must deliver: fields and validations, screen states, rules, endpoints, messages. Do not invent items the spec does not have.
 - track: backend | mobile | web | qa | design | gd | pm | pdm. executor: factory (the AI factory builds it, humans only at gates), joint (factory plus human steps such as keys or store accounts) or human (full human hours: client UAT, design approval, PM).
 - complexity: standard | rules-or-algorithm | external-dependency | compliance-sensitive | real-time | new-to-stack.
+- kind: every task, overheads included, has exactly one kind from the "task-kinds" list, on a track that kind lists. Split the work so each task is one kind: one task per screen per platform (ui-list, ui-form, ui-detail, ui-complex), one task per entity's API (be-crud), one task per third-party service (be-integration), the app shell once per platform (ui-shell), the data model once (be-data). Do not merge two kinds into one task, and do not split one kind's work across tasks unless the parts are separate screens, entities or services.
 - Task ids are EST-1, EST-2, ... Use dependsOn for real ordering only. Set "screen" to the approved design screen id (S-1, ...) when the task builds that screen; every approved screen should be built by some task.
 - Each approved screen carries "ui": its level (simple, moderate, complex) and what drives it, counted from the approved demo. A complex screen's parts (a map, a chat, a board, a form with a card field, overlays) are items of the task that builds it; split a complex screen into more than one task when its parts are separate work. "uiFactors" (two languages, right to left, both colour modes, several apps) apply to every UI task: list them as items where they add work.
 - checklist: go through auth, roles, environments, CI/CD, monitoring, error handling, migrations, notifications, reports and exports, admin tools, accessibility, feedback rounds, documentation and release. Mark each in, or out with a reason. A zero always has a reason.
@@ -92,7 +95,7 @@ Rules (checked by code):
 ${UNTRUSTED_NOTE}`;
 
 export const breakdownStep: StepDef = {
-  key: "breakdown", stage: "breakdown", templateVersion: "2",
+  key: "breakdown", stage: "breakdown", templateVersion: "3",
   inputs: (s) => (s.steps.get("specify")?.status === "completed" && s.steps.get("design-baseline")?.status === "completed"
     ? { spec: s.steps.get("specify")!.outputs[0], c1: s.steps.get("clarify")?.outputs[0], c2: s.steps.get("clarify-2")?.outputs[0], baseline: s.steps.get("design-baseline")!.outputs[0], design: s.steps.get("design")?.outputs[0], survey: s.steps.get("ground")?.data?.named }
     : undefined),
@@ -108,7 +111,8 @@ export const breakdownStep: StepDef = {
     const survey = readOutput<RepoSurvey>(ctx.state, ctx.ledger, "ground", "survey");
     const design = readOutput<DesignForUi>(ctx.state, ctx.ledger, "design");
     const ui = design ? designUi(design) : undefined;
-    const cacheKey = hashJson({ step: "breakdown", spec: specSha, answers: c.answers, survey: !!survey, design: done(ctx, "design") });
+    const catalogue = loadCatalogue();
+    const cacheKey = hashJson({ step: "breakdown", catalogue: catalogue.version, spec: specSha, answers: c.answers, survey: !!survey, design: done(ctx, "design") });
     const cached = waivedCache<BreakdownBodyT>(ctx, "breakdown", cacheKey);
     let body: BreakdownBodyT;
     let model: string | undefined;
@@ -120,6 +124,7 @@ export const breakdownStep: StepDef = {
         stage: "breakdown", route: "breakdown", cls: "read-large", budgetTokens: 40000, tools: [], schema: BreakdownBody, maxTurns: 4,
         sections: [
           S.template("tpl", BREAKDOWN_RULES),
+          S.reference("task-kinds", `Task kinds (catalogue ${catalogue.version}), with the tracks each can sit on:\n${catalogueText(catalogue)}`),
           S.artifact("spec", "spec", { requirements: spec.requirements, nfrs: spec.nfrs, outOfScope: spec.outOfScope }),
           S.artifact("answers", "answers", c.answers),
           S.artifact("assumptions", "assumptions", c.assumptions),
@@ -133,8 +138,8 @@ export const breakdownStep: StepDef = {
       body = r.output;
       model = r.model;
       const bad: Failed[] = [];
-      for (const def of [reqToTask, taskToReq, forgottenWork, designCoverage]) {
-        const res = await gate(ctx, "breakdown", def, def === designCoverage ? { design: design ?? null, breakdown: body } : { spec, breakdown: body });
+      for (const def of [reqToTask, taskToReq, taskKind, forgottenWork, designCoverage]) {
+        const res = await gate(ctx, "breakdown", def, def === designCoverage ? { design: design ?? null, breakdown: body } : def === taskKind ? { breakdown: body, catalogue: { version: catalogue.version, kinds: catalogue.kinds } } : { spec, breakdown: body });
         if (!res.passed) bad.push({ def, failures: res.failures ?? [failure(def.id, res.details)] });
       }
       if (bad.length) {
@@ -161,8 +166,17 @@ const ESTIMATE_RULES = `You are sizing the tasks of a work breakdown, in hours, 
 Do not add anything up. Code computes every sum. Hours are for a competent engineer including unit tests, review fixes and handover of the task.
 ${UNTRUSTED_NOTE}`;
 
+const SIZE_RULES = `You are sizing the tasks of a work breakdown against the task catalogue. You do not write hours: code reads them from the catalogue.
+1. Every task has a "kind". For each task pick "size": small, typical, large or very-large, by its kind's written scale in the "task-kinds" section. Count what the task covers (fields, rules, states, filters, flows, entities) against that scale; when a count sits on a boundary, pick the smaller step.
+2. "reason" names what you counted ("9 fields and 2 relations: typical"), so another estimator counting the same task lands on the same step.
+3. A web or mobile task that builds an approved screen carries "ui" (simple, moderate, complex), counted from the approved demo; code applies it, so do not size the screen up for it again. "uiFactors" apply to every UI task; size the shell (ui-shell) for them.
+4. For a factory or joint task also give "verify" and "context". verify: easy (a test or the compiler proves it), moderate (tests plus review), hard (needs a person, a device, a third party or judgement to check). context: complete (the spec, design and stack say everything the agent needs), partial (it has to assume or discover something).
+5. Say in "stack" the stack and architecture you priced: backend, web, mobile, database, hosting and architecture (for example "ASP.NET Core Web API", "Next.js + shadcn/ui", "PostgreSQL", "Azure App Service", "modular monolith"), leaving out a part the work does not need. Keep everything the "known-stack" section gives; basis "repo" when the repo decides it, "request" when the requirements name it, otherwise "assumed", with what you assumed in "notes".
+6. Size every task in the breakdown exactly once.
+${UNTRUSTED_NOTE}`;
+
 export const estimateStep: StepDef = {
-  key: "estimate", stage: "estimate", templateVersion: "3",
+  key: "estimate", stage: "estimate", templateVersion: "4",
   inputs: (s) => (s.steps.get("breakdown")?.status === "completed" ? { breakdown: s.steps.get("breakdown")!.outputs[0], specify: s.steps.get("specify")!.outputs[0], design: s.steps.get("design")?.outputs[0], settings: settingsOf(s), edits: editsOf(s) } : undefined),
   async run(ctx) {
     const settings = settingsOf(ctx.state);
@@ -179,9 +193,11 @@ export const estimateStep: StepDef = {
     const design = readOutput<DesignForUi>(ctx.state, ctx.ledger, "design");
     const ui = design ? designUi(design) : undefined;
     const uiOf = (t: { track: string; screen?: string | undefined }) => (t.track === "web" || t.track === "mobile") && t.screen ? ui?.screens[t.screen] : undefined;
-    const view = breakdown.tasks.map((t) => ({ id: t.id, title: t.title, feature: t.featureId, track: t.track, executor: t.executor, complexity: t.complexity, screen: t.screen, ...(uiOf(t) ? { ui: { level: uiOf(t)!.level ?? "unknown", drivers: uiOf(t)!.drivers } } : {}), items: t.items, dependsOn: t.dependsOn, overhead: t.overhead }));
+    const view = breakdown.tasks.map((t) => ({ id: t.id, title: t.title, feature: t.featureId, track: t.track, ...(t.kind ? { kind: t.kind } : {}), executor: t.executor, complexity: t.complexity, screen: t.screen, ...(uiOf(t) ? { ui: { level: uiOf(t)!.level ?? "unknown", drivers: uiOf(t)!.drivers } } : {}), items: t.items, dependsOn: t.dependsOn, overhead: t.overhead }));
     const known = knownStack(ctx.state, ctx.ledger, ctx.project);
-    const cacheKey = hashJson({ step: "estimate", breakdown: breakdownSha, spec: specSha, settings, ui: ui ?? null, known });
+    // a breakdown whose every task has a kind is sized against the catalogue; an older one by anchors and ratios
+    const catalogue = breakdown.tasks.every((t) => t.kind) ? loadCatalogue() : undefined;
+    const cacheKey = hashJson({ step: "estimate", breakdown: breakdownSha, spec: specSha, settings, ui: ui ?? null, known, ...(catalogue ? { catalogue: catalogue.version } : {}) });
     const cached = waivedCache<Proposal[]>(ctx, "estimate", cacheKey);
     const edits = editsOf(ctx.state);
     // a lead's edits re-assemble the estimate from the proposals already made: no new model call
@@ -194,20 +210,32 @@ export const estimateStep: StepDef = {
       ({ payload: proposals, waivers } = cached);
     } else {
       const rs = await Promise.all(Array.from({ length: n }, (_, k) => think(ctx, {
-        stage: "estimate", route: "estimate", cls: "read-large", budgetTokens: 40000, tools: [], schema: ProposalOut, maxTurns: 4,
+        stage: "estimate", route: "estimate", cls: "read-large", budgetTokens: 40000, tools: [], schema: (catalogue ? SizeOut : ProposalOut) as z.ZodType<SizeOut | Proposal>, maxTurns: 4,
         sections: [
-          S.template("tpl", ESTIMATE_RULES),
+          S.template("tpl", catalogue ? SIZE_RULES : ESTIMATE_RULES),
+          ...(catalogue ? [S.reference("task-kinds", `Task kinds and what each size step means (catalogue ${catalogue.version}):\n${catalogueText(catalogue, true)}`)] : []),
           S.artifact("breakdown", "work-breakdown", { features: breakdown.features, tasks: view }),
           S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
           S.artifact("settings", "settings", settings),
           S.artifact("known-stack", "known-stack", known),
           ...(ui?.factors.length ? [S.artifact("ui-factors", "uiFactors", ui.factors)] : []),
-          S.task(n === 1 ? "Size the tasks." : `Size the tasks (independent estimator ${k + 1} of ${n}).`),
+          S.task(`Size the tasks (independent estimator ${k + 1} of ${n}).`),
         ],
       })));
       const bad = rs.find((r) => !r.ok);
       if (bad && !bad.ok) return bad.outcome;
-      proposals = (rs as { ok: true; output: Proposal }[]).map((r) => r.output);
+      if (catalogue) {
+        const sizeTasks = breakdown.tasks.map((t) => ({ ...t, ui: uiOf(t)?.level }));
+        try {
+          proposals = (rs as unknown as { ok: true; output: SizeOut }[]).map((r, k) => {
+            try { return proposalFromSizes(catalogue, r.output, sizeTasks); } catch (e) { throw new Error(`estimator ${k + 1}: ${(e as Error).message}`); }
+          });
+        } catch (e) {
+          return failed(`estimate:${(e as Error).message.slice(0, 80)}`, [failure("estimate-proposal", (e as Error).message)]);
+        }
+      } else {
+        proposals = (rs as unknown as { ok: true; output: Proposal }[]).map((r) => r.output);
+      }
     }
     const records = recordsSource(ctx.runId);
     const taskRecords = taskRecordsSource(ctx.runId);
@@ -217,10 +245,14 @@ export const estimateStep: StepDef = {
     try {
       estimate = assembleEstimate({
         header: header(ctx.runId, "estimate", "estimate", ctx.ledger.putJson({ breakdownSha, specSha, settings, proposals })) as never,
-        breakdown, breakdownSha, spec, specSha, proposals, settings, records, taskRecords, ...(ctx.state.info.parent ? { parentEstimate: ctx.state.info.parent.estimateSha } : {}),
+        breakdown, breakdownSha, spec, specSha, proposals, settings, records, taskRecords,
+        ...(catalogue ? { catalogue: { version: catalogue.version, status: catalogue.status, stack: stacksFor(catalogue, proposals[0]!.stack ?? { basis: "assumed" }).join(" + "), splitAboveHours: catalogue.splitAboveHours } } : {}), ...(ctx.state.info.parent ? { parentEstimate: ctx.state.info.parent.estimateSha } : {}),
         grades: gradeInputs({ assumptions: c.assumptions.length, requirements: spec.requirements.length, uiTasks: uiTasks.length, uiTasksWithScreen: uiTasks.filter((t) => t.screen).length, hasRepo: !!ctx.state.info.repoPath, stackSource: settings.stackSource }),
         counts: { questions: c.answers.length, criticFindings: spec.critic.length, planningMinutes: ctx.state.activeMs / 60000 },
-        assumptions: [...c.assumptions.map((a) => a.text), ...edits.map((e) => `Lead edit: ${describeEdit(e)}`), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs."],
+        assumptions: [...c.assumptions.map((a) => a.text), ...edits.map((e) => `Lead edit: ${describeEdit(e)}`), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs.",
+          ...(catalogue ? [catalogue.status === "draft"
+            ? `Task hours come from the task catalogue ${catalogue.version}, a DRAFT a delivery lead has not signed off yet.`
+            : `Task hours come from the task catalogue ${catalogue.version}, signed off by ${catalogue.signedOffBy}.`] : [])],
       });
     } catch (e) {
       return failed(`estimate:${(e as Error).message.slice(0, 80)}`, [failure("estimate-proposal", (e as Error).message)]);

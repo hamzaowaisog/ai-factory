@@ -4,6 +4,8 @@
 //   compare    read the ledger against the pinned external numbers (needs implement steps to say much)
 //   evidence <estimate.json>  evidence pack for an estimate: each figure against measured and external data
 //   external   print the pinned external reference tables (bench/external/snapshots)
+//   consistency [--group g ...] [--runs n] [--report g/case=run ...]  same requirement, different words: how far apart
+//              the estimates are (live model calls unless --report; docs/estimate-consistency.md section 10)
 // --home points at a copied ledger (sets FACTORY_HOME), e.g. the run from the other machine.
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -19,7 +21,8 @@ if (homeIdx >= 0) {
   if (!home) { console.error("--home needs a directory"); process.exit(2); }
   process.env.FACTORY_HOME = home;
 }
-if (!["calibrate", "gates", "external", "compare", "evidence", "all"].includes(cmd)) { console.error(`Unknown command "${cmd}". Use calibrate, gates, external, compare, evidence or all.`); process.exit(2); }
+if (!["calibrate", "gates", "external", "compare", "evidence", "consistency", "all"].includes(cmd)) { console.error(`Unknown command "${cmd}". Use calibrate, gates, external, compare, evidence, consistency or all.`); process.exit(2); }
+const values = (n: string): string[] => args.flatMap((a, i) => (a === `--${n}` && args[i + 1] && !args[i + 1]!.startsWith("--") ? [args[i + 1]!] : []));
 
 const resultsDir = join(dirname(fileURLToPath(import.meta.url)), "results");
 const commit = (() => { try { return execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim(); } catch { return "unknown"; } })();
@@ -66,6 +69,31 @@ if (cmd === "evidence") {
   const rows = buildEvidence(JSON.parse(readFileSync(file, "utf8")), loadRecords().records);
   console.log(formatEvidence(rows));
   history.evidence = { file, rows };
+}
+
+if (cmd === "consistency") {
+  // reworded requirements must miss the cache like a client's would, and a repeat of the same file must call the model again
+  process.env.FACTORY_NO_CACHE = "1";
+  const { groupStats, formatStats, sampleFromRun } = await import("./consistency/report.js");
+  const { listCases, parseReportArgs, runCase } = await import("./consistency/run.js");
+  const samples = [];
+  const reports = values("report");
+  if (reports.length) {
+    for (const r of parseReportArgs(reports)) samples.push(sampleFromRun(r.runId, r.group, r.name));
+  } else {
+    const { hasSecret } = await import("../src/config/env.js");
+    if (!hasSecret("ANTHROPIC_API_KEY")) { console.error("The consistency suite makes live model calls: add ANTHROPIC_API_KEY to ~/.factory/.env, or pass --report for runs that already exist."); process.exit(2); }
+    const runs = Number(values("runs")[0] ?? 1);
+    if (!Number.isInteger(runs) || runs < 1) { console.error("--runs must be a whole number from 1"); process.exit(2); }
+    const cases = listCases(undefined, values("group"));
+    if (!cases.length) { console.error("No cases match."); process.exit(2); }
+    console.log(`Estimating ${cases.length} case(s) x ${runs} run(s), cache off. This makes live model calls.`);
+    for (let k = 0; k < runs; k++) for (const c of cases) samples.push(await runCase({ ...c, name: runs > 1 ? `${c.name}#${k + 1}` : c.name }, (s) => console.log(`  ${s}`)));
+  }
+  const stats = groupStats(samples);
+  console.log("== Estimate consistency ==\n" + formatStats(stats, samples));
+  history.consistency = { stats, samples };
+  if (stats.some((g) => !g.pass)) failed = true;
 }
 
 if (cmd === "gates" || cmd === "all") {

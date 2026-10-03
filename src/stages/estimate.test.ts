@@ -14,6 +14,7 @@ import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { breakdownStep, estimateStep, setRecordsSource, setTaskRecordsSource } from "./estimate.js";
+import { approveEstimateStep } from "./estimate-approve.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
 import { NO_TRACE } from "../util/trace.js";
@@ -31,20 +32,20 @@ function breakdown(n: number, over: { drop?: number; noChecklist?: boolean } = {
   return {
     features: Array.from({ length: n }, (_, i) => ({ id: `F-${i + 1}`, title: `Feature ${i + 1}`, reqs: [`REQ-${i + 1}`] })),
     tasks: [
-      ...reqs.map((i) => ({ id: `EST-${i}`, title: `Build ${i}`, featureId: `F-${i}`, reqs: [`REQ-${i}`], items: [`item ${i}`], track: i % 2 ? "backend" : "web", executor: "factory", dependsOn: i > 1 && i - 1 !== over.drop ? [`EST-${i - 1}`] : [], complexity: "standard" })),
-      { id: `EST-${n + 1}`, title: "Project management", featureId: "F-1", reqs: [], items: [], track: "pm", executor: "human", dependsOn: [], complexity: "standard", overhead: "coordination across the build" },
+      ...reqs.map((i) => ({ id: `EST-${i}`, title: `Build ${i}`, featureId: `F-${i}`, reqs: [`REQ-${i}`], items: [`item ${i}`], track: i % 2 ? "backend" : "web", kind: i % 2 ? "be-crud" : "ui-form", executor: "factory", dependsOn: i > 1 && i - 1 !== over.drop ? [`EST-${i - 1}`] : [], complexity: "standard" })),
+      { id: `EST-${n + 1}`, title: "Project management", featureId: "F-1", reqs: [], items: [], track: "pm", kind: "pm-management", executor: "human", dependsOn: [], complexity: "standard", overhead: "coordination across the build" },
     ],
     checklist: over.noChecklist ? [] : [{ item: "auth", included: false, reason: "no login in this request" }, { item: "logging", included: true }],
   };
 }
 
 /** Sizing for a breakdown: every task against the first task as the only anchor. */
-function sizing(tasks: { id: string }[], scale = 1) {
+function sizing(tasks: { id: string }[], scale = 1, size = "typical") {
   const first = tasks[0]!.id;
   return {
     stack: { backend: "ASP.NET Core Web API", database: "PostgreSQL", architecture: "modular monolith", basis: "assumed" as const, notes: "no stack named in the request" },
     anchors: [{ taskId: first, hours: { min: 4 * scale, max: 8 * scale }, reason: "a typical screen plus endpoint for this stack" }],
-    tasks: tasks.map((t, i) => ({ taskId: t.id, anchorId: first, ratio: i === 0 ? 1 : 1.5, reason: i === 0 ? "the anchor" : "a bit more fields than the anchor" })),
+    tasks: tasks.map((t, i) => ({ taskId: t.id, anchorId: first, ratio: i === 0 ? 1 : 1.5, reason: i === 0 ? "the anchor" : "a bit more fields than the anchor", size, verify: "moderate", context: "complete" })),
   };
 }
 
@@ -91,6 +92,16 @@ async function exec(ledger: Ledger, step: StepDef, priorFailures: StepContext["p
   }
   return out;
 }
+
+/** Record the breakdown again without its kinds, as one made before step C would be. */
+async function stripKinds(ledger: Ledger): Promise<void> {
+  const b = ledger.getJson(replay(ledger.events()).steps.get("breakdown")!.outputs[0]!) as { tasks: { kind?: string }[] };
+  const sha = ledger.putJson({ ...b, tasks: b.tasks.map(({ kind: _k, ...t }) => t) });
+  await ledger.append({ type: "step.completed", key: "breakdown/2", inputsHash: "c".repeat(64), outputs: [sha], data: { named: { breakdown: sha } } }, HUMAN_WRITER);
+}
+
+/** the text of one reference section in a prompt */
+const artifactIn = (user: string, id: string): string => { const at = user.indexOf(id); return user.slice(at, at + 4000); };
 
 const breakdownAnswer = (b: unknown) => (system: string) => {
   if (system.includes("work breakdown")) return b;
@@ -156,21 +167,23 @@ describe("breakdown step", () => {
 });
 
 describe("estimate step", () => {
-  async function withBreakdown(n: number, estimate?: Record<string, unknown>) {
+  async function withBreakdown(n: number, estimate?: Record<string, unknown>, legacy = false) {
     const ledger = await makeRun(spec(n), { estimate });
     answer = breakdownAnswer(breakdown(n));
     expect((await exec(ledger, breakdownStep)).kind).toBe("done");
+    // a breakdown approved before task kinds (2026-10-03) is still sized by anchors and ratios
+    if (legacy) await stripKinds(ledger);
     calls = [];
     return ledger;
   }
   const tasksOf = (n: number) => breakdown(n).tasks;
 
-  it("uses one estimator for a small job and computes every figure in code", async () => {
+  it("uses three estimators even for a small job and computes every figure in code", async () => {
     const ledger = await withBreakdown(3);
     answer = (system) => { if (system.includes("sizing the tasks")) return sizing(tasksOf(3)); throw new Error("unscripted"); };
     const out = await exec(ledger, estimateStep);
     expect(out.kind).toBe("done");
-    expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(3);
     const e = Estimate.parse(ledger.getJson((out as { outputs: Record<string, string> }).outputs.estimate!));
     expect(e.band).toBe("S");
     expect(e.stack).toMatchObject({ backend: "ASP.NET Core Web API", database: "PostgreSQL", basis: "assumed" });
@@ -186,6 +199,53 @@ describe("estimate step", () => {
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
   });
 
+  it("sizes a kinded breakdown from the catalogue: the model picks steps, code reads the hours, and the draft status shows", async () => {
+    const ledger = await withBreakdown(3, { deliveryModel: "agentic" });
+    let k = 0;
+    // three estimators word their reasons differently, and one reads every task a step larger
+    answer = () => { const n = k++; return { ...sizing(tasksOf(3), 1, n === 1 ? "large" : "typical"), tasks: sizing(tasksOf(3), 1, n === 1 ? "large" : "typical").tasks.map((t) => ({ ...t, reason: `reading ${n}` })) }; };
+    const out = await exec(ledger, estimateStep);
+    expect(out.kind).toBe("done");
+    expect(artifactIn(asked.at(-1)!, "Task kinds and what each size step means")).toMatch(/be-crud \(backend\): .*\n\s+small: up to 5 fields/);
+    const e = Estimate.parse(ledger.getJson((out as { outputs: Record<string, string> }).outputs.estimate!));
+    const t = (id: string) => e.tasks.find((x) => x.taskId === id)!;
+    // EST-1 and EST-3 are be-crud on backend: one group, EST-1 its anchor; typical be-crud is 8-12 h
+    expect(t("EST-1")).toMatchObject({ anchorId: "EST-1", ratio: 1, size: "typical", hours: { min: 8, max: 12 } });
+    expect(t("EST-3")).toMatchObject({ anchorId: "EST-1", ratio: 1, hours: { min: 8, max: 12 } });
+    expect(t("EST-2")).toMatchObject({ anchorId: "EST-2", hours: { min: 6, max: 10 } }); // ui-form on web
+    expect(t("EST-4")).toMatchObject({ hours: { min: 16, max: 24 } }); // pm-management, a human task: no grades
+    expect(t("EST-1").reason).toMatch(/\[be-crud backend 8-12 h, typical\]/);
+    // the large reading is one of three: the median keeps typical
+    expect(t("EST-1").estimators[0]).toEqual({ min: 12.8, max: 19.2 });
+    expect(e.catalogue).toEqual({ version: "2026-10-03.1", status: "draft", stack: "dotnet", splitAboveHours: 16 });
+    expect(e.assumptions.some((x) => /catalogue 2026-10-03\.1, a DRAFT/.test(x))).toBe(true);
+    expect(replay(ledger.events()).gates.map((g) => `${g.gateId}:${g.passed}`)).toContain("estimate.e6-lint:true");
+    expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+  });
+
+  it("advises splitting agent work that is very large or over the catalogue's threshold, never a human task", async () => {
+    const ledger = await withBreakdown(3);
+    // EST-1 be-crud very large (20-30 h); EST-2 ui-form hard + partial (6-10 x 1.56 = 9.36-15.6 h, under 16); EST-4 PM is human
+    answer = () => ({ ...sizing(tasksOf(3)), tasks: sizing(tasksOf(3)).tasks.map((t) => (t.taskId === "EST-1" ? { ...t, size: "very-large" } : t.taskId === "EST-2" ? { ...t, verify: "hard", context: "partial" } : t.taskId === "EST-4" ? { ...t, size: "very-large" } : t)) });
+    const out = await exec(ledger, estimateStep);
+    expect(out.kind).toBe("done");
+    const e = Estimate.parse(ledger.getJson((out as { outputs: Record<string, string> }).outputs.estimate!));
+    expect(e.tasks.filter((t) => t.splitAdvised).map((t) => t.taskId)).toEqual(["EST-1"]);
+    expect(e.tasks.find((t) => t.taskId === "EST-1")!.hours).toEqual({ min: 20, max: 30 });
+    expect(e.catalogue?.splitAboveHours).toBe(16);
+    expect(e.assumptions).toContain("Split before the build: EST-1 (agent work over 16 h or very large is split into smaller tasks; the hours stay as estimated).");
+    const card = await exec(ledger, approveEstimateStep);
+    expect((card as { card: { markdown: string } }).card.markdown).toMatch(/## Split before the build[^\n]*\n- EST-1 Build 1: 20-30 h, very large/);
+  });
+
+  it("fails a factory task sized without its verify and context grades, feeding the reason back", async () => {
+    const ledger = await withBreakdown(3);
+    answer = () => ({ ...sizing(tasksOf(3)), tasks: sizing(tasksOf(3)).tasks.map((t) => (t.taskId === "EST-2" ? { ...t, verify: undefined } : t)) });
+    const out = await exec(ledger, estimateStep);
+    expect(out.kind).toBe("fail");
+    expect((out as { failures: { check: string; message: string }[] }).failures[0]).toMatchObject({ check: "estimate-proposal", message: expect.stringMatching(/EST-2 is a factory task: give it "verify" and "context"/) });
+  });
+
   it("the solely agentic model carries no gate hours", async () => {
     const ledger = await withBreakdown(3, { deliveryModel: "agentic" });
     answer = () => sizing(tasksOf(3));
@@ -195,8 +255,8 @@ describe("estimate step", () => {
     expect(e.gateHours).toEqual([]);
   });
 
-  it("uses three independent estimators for M and up; disagreement widens the range and flags the task", async () => {
-    const ledger = await withBreakdown(5);
+  it("by anchors (a breakdown without kinds): merges three independent estimators by median; one that disagrees flags the task without moving it", async () => {
+    const ledger = await withBreakdown(5, undefined, true);
     let k = 0;
     // estimators 2 and 3 read the anchor much higher
     answer = () => sizing(tasksOf(5), [1, 4, 1][k++ % 3]);
@@ -207,11 +267,13 @@ describe("estimate step", () => {
     expect(e.band).toBe("M");
     expect(e.tasks[0]!.estimators).toHaveLength(2);
     expect(e.tasks.every((t) => t.flagged)).toBe(true);
-    expect(e.tasks[0]!.hours.max).toBeGreaterThanOrEqual(32); // 4x the anchor's 8 h maximum
+    // estimator 2 read the anchor 4x higher; the median of 1x, 4x, 1x is the 1x reading
+    expect(e.tasks[0]!.estimators[0]!.max).toBeGreaterThanOrEqual(32);
+    expect(e.tasks[0]!.hours).toEqual(e.anchors[0]!.hours);
   });
 
-  it("fails a proposal that misses a task or sizes an anchor against another task", async () => {
-    const ledger = await withBreakdown(3);
+  it("by anchors: fails a proposal that misses a task or sizes an anchor against another task", async () => {
+    const ledger = await withBreakdown(3, undefined, true);
     const all = tasksOf(3);
     answer = () => sizing(all.slice(0, 3)); // EST-4 has no size
     const out = await exec(ledger, estimateStep);
@@ -223,8 +285,8 @@ describe("estimate step", () => {
     expect((out2 as { failures: { message: string }[] }).failures[0]!.message).toMatch(/ratio 1/);
   });
 
-  it("fails an unflagged outlier (E5)", async () => {
-    const ledger = await withBreakdown(9); // five backend factory tasks form one comparison group
+  it("by anchors: fails an unflagged outlier (E5)", async () => {
+    const ledger = await withBreakdown(9, undefined, true); // five backend factory tasks form one comparison group
     const p = sizing(tasksOf(9));
     p.tasks[8] = { ...p.tasks[8]!, ratio: 40 };
     answer = () => p;

@@ -21,7 +21,7 @@ Every estimate is solely agentic. HITL was the other option and is no longer off
 2. For UI work, the **mock and clickable demo** are approved first. They are the sizing baseline.
 3. Requirements become features and tasks. Each task cites its requirement.
 4. The model proposes a few reference tasks; every other task is sized against one, with the reason stated. Code does all arithmetic.
-5. Small work uses one estimator; medium and larger use three, and their disagreement sets the range.
+5. Three independent estimators size every job. Each task takes the middle reading (the median), so one estimator that reads high or low does not move the estimate; a task they disagree on is flagged.
 6. Duration and API cost come from **our own measured runs** (per phase, and per task class for build time). Until enough runs exist, they are labelled cold-start with wide ranges. A pinned public benchmark is only a flagged prior and never changes a number.
 7. Gates check the result. A lead approves it. Two files are exported from one data model: team file and client file.
 
@@ -33,6 +33,7 @@ Every estimate is solely agentic. HITL was the other option and is no longer off
 | E1c Design coverage | Every task's screen is in the approved design and every approved screen has a task |
 | E2 Requirement → task | Every requirement has a task |
 | E3 Task → requirement | Every task traces to a requirement; extras go to "Suggested, not included" |
+| E2c Task kind | Every task has a kind from the pinned task catalogue, on a track that kind fits |
 | E4 Forgotten work | CI/CD, environments, monitoring, etc. each marked in, or out with a reason |
 | E5 Consistency | Similar tasks, similar hours; no unexplained outlier |
 | E6 Workbook lint | Code recomputes every total and link |

@@ -856,8 +856,9 @@ The **forgotten-work check** runs after counting. A generic list (auth, roles, e
 No seed table and no pooled medians. Two reference workbooks showed some tasks stable across projects and others varying widely, and the team's own point stands: functionality, framework and design differ per project.
 
 1. **Tasks come from the refined requirements.** Each task lists the concrete things in the spec it must deliver (fields and validations, screen states, rules, endpoints, messages, entities), each citing its requirement.
-2. **Anchors:** the model proposes a few reference tasks, estimated in detail for this project's stack, design and constraints. Every other task is sized relative to an anchor, with the reason stated ("about twice the anchor: 12 fields instead of 6, plus a state machine"). Code computes anchor × ratio.
-3. **Estimators:** XS and S use **one** estimator. M and up use **three** independent estimators, merged by code in the same pattern as `drafts` in the spec stage. Disagreement between them sets the range and flags the item.
+2. **Catalogue sizing (2026-10-03 on):** every task has a kind from the pinned task catalogue (`src/estimate/assets/catalogue.json`). The model picks a size step per task against the kind's written scale, plus verify and context grades for factory work. Code reads the hours: typical hours × size × complexity × UI level × grades × stack factor. The result is written as anchors and ratios (the first task of each kind is the anchor), so steps 3 to 6 below are unchanged. See docs/estimate-consistency.md, section 10. Breakdowns made before kinds use the anchors in the next paragraph.
+   **Anchors (before catalogue sizing):** the model proposes a few reference tasks, estimated in detail for this project's stack, design and constraints. Every other task is sized relative to an anchor, with the reason stated ("about twice the anchor: 12 fields instead of 6, plus a state machine"). Code computes anchor × ratio.
+3. **Estimators:** every band uses **three** independent estimators (changed 2026-10-03; before, XS and S used one). Code merges them by **median**: each task's range is the median of the three mins and the median of the three maxes, so one estimator that reads high or low does not move it. Disagreement beyond the tolerance flags the item. Gate E6 recomputes the median. See `docs/estimate-consistency.md`, section 10.
 4. **Executors:** each task is labelled **factory**, **joint** or **human**.
    - Factory tasks carry only the human time their gates cost, computed from counts. **In the solely agentic model this is zero.**
    - Joint tasks mix factory work with human steps (obtaining keys, store accounts).
@@ -970,6 +971,7 @@ A gate is a pure check over ledger artifacts. It fails closed: a gate that could
 | E1c | Design coverage | Every task's screen is in the approved design, every approved screen is built by a task, no screen id or route twice | Lead |
 | E2 | Requirement → task | Every requirement has at least one task | None |
 | E3 | Task → requirement | Every task cites a requirement, or a named overhead with a reason. Anything else is an extra and goes to a separate **Suggested, not included** block, outside the totals until the lead adds it | Lead |
+| E2c | Task kind | Every task has a kind from the pinned task catalogue (`src/estimate/assets/catalogue.json`), on a track that kind lists. The gate reads the catalogue recorded in its inputs, so old runs still verify after the catalogue changes | None |
 | E4 | Forgotten-work checklist | Each generic item marked in, or out with a reason | Lead |
 | E5 | Consistency | Similar tasks within a stated tolerance; no unexplained outlier; a screen counted as complex in the approved demo not sized below a simple one | Lead |
 | E6 | Workbook lint | Code recomputes every total and cross-sheet link; known template faults cannot appear | None |
@@ -1110,7 +1112,7 @@ A walk-through of the spec (no hours) tested the design:
 ## Decisions on record
 
 - Estimate after requirements are refined; no seed table; model-proposed anchors with the lead's single review at approval.
-- One estimator for XS and S; three for M and up.
+- Three estimators for every band, merged by median (changed 2026-10-03; was one for XS and S, three for M and up, with disagreement widening the range).
 - **Solely agentic only (changed 2026-10-03).** Two delivery models were planned, HITL (supervisor + agents) and solely agentic, with the second sized on request as a child run. Estimates are now always solely agentic; HITL estimates made before stay readable. Client UAT, design approval and PM stay.
 - **API credit cost is a headline number**, calibrated from measured runs, not guessed.
 - **Durations come from an internal harness built on the ledger**; external benchmarks are optional, later, and only as a pinned offline prior. Until data exists, values are labelled cold-start.

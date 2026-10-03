@@ -264,10 +264,12 @@ export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<B
   return [
     `# Approve the estimate (E7)`, ``,
     `Run ${runId} · ${e.deliveryModel === "hitl" ? "HITL (supervisor + agents)" : "solely agentic"} · size ${e.band} · uncertainty ${e.uncertainty}`,
+    ...(e.catalogue ? [`Hours from task catalogue ${e.catalogue.version} (stack ${e.catalogue.stack})${e.catalogue.status === "draft" ? ": DRAFT, not yet signed off by a delivery lead" : ", signed off"}.`] : []),
     extra.note ? `\n${extra.note}` : "", ``,
     ...(extra.diff ? [`## ${extra.diff.title}`, ...extra.diff.lines.map((l) => `- ${l}`), ``] : []),
     `## Anchors (check these first: every other task is sized against one)`,
     ...e.anchors.map((a) => `- ${a.taskId} ${title.get(a.taskId) ?? ""}: ${h(a.hours)}. ${a.reason}`), ``,
+    ...(e.tasks.some((t) => t.splitAdvised) ? [`## Split before the build (agent work this size fails and retries more)`, ...e.tasks.filter((t) => t.splitAdvised).map((t) => `- ${t.taskId} ${title.get(t.taskId) ?? ""}: ${h(t.hours)}${t.size === "very-large" ? ", very large" : `, over ${e.catalogue?.splitAboveHours} h`}`), ``] : []),
     `## Totals`,
     ...Object.entries(e.totals.byTrack).map(([t, r]) => `- ${t}: ${h(r!)}`),
     `- Overall: ${h(e.totals.overall)} (design ${e.settings.designInTotal ? "included" : "not included"})`, ``,

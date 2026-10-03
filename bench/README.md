@@ -9,6 +9,9 @@ npm run bench -- gates
 npm run bench -- external                 # pinned public data (see external/README.md)
 npm run bench -- compare                  # an estimate read against that data
 npm run bench -- evidence <estimate.json> # e.g. bench/external/fixtures/estimate-sample.json
+npm run bench -- consistency             # same requirement, different words (LIVE model calls, needs ANTHROPIC_API_KEY)
+npm run bench -- consistency --group portal --runs 3
+npm run bench -- consistency --report portal/a=<run> portal/b=<run>   # runs that already exist, no model calls
 npm run bench -- all --no-save
 npm run test:bench                        # the benchmarks' own tests (bench/vitest.config.ts)
 ```
@@ -39,3 +42,12 @@ and B1-B7 has cases.
 
 The estimate-gate cases are in `gates/estimate-cases.ts`. They are built from the real estimate fixture
 (`src/estimate/fixture.ts`) and the real gate inputs, one seeded defect each. When a gate's input changes, change its case.
+
+## consistency: do similar requirements get similar estimates?
+`consistency/cases/<group>/*.md` are requirement files that mean the same thing in different words (a web portal, an
+API-only service, a mobile booking app; three wordings each). Each is estimated hands-off from requirements alone with the
+cross-run cache off; the design approval card, the only human card left, is approved by `bench`. Per group the report
+gives the mean total, the coefficient of variation of the totals (target 10% or less, `CV_TARGET` in `report.ts`), the
+task-count range and the task kinds whose count varies. Exit code 1 if a group fails or a run did not finish.
+Not part of `all`: it costs real model calls. `--runs n` repeats every case to separate rewording from sampling noise.
+See `docs/estimate-consistency.md`, section 10.

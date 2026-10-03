@@ -454,7 +454,7 @@ export function estimateView(ledger: Ledger) {
     totals: est.totals, apiCost: est.apiCost, elapsed: est.elapsed,
     tasks: est.tasks.map((t) => {
       const b = titles.get(t.taskId);
-      return { id: t.taskId, title: b?.title ?? t.taskId, track: b?.track, executor: t.executor, hours: t.hours, anchor: t.anchorId, ratio: t.ratio, reason: t.reason, flagged: t.flagged, screen: b?.screen, reqs: b?.reqs ?? [], overhead: b?.overhead };
+      return { id: t.taskId, title: b?.title ?? t.taskId, track: b?.track, kind: b?.kind, size: t.size, executor: t.executor, hours: t.hours, anchor: t.anchorId, ratio: t.ratio, reason: t.reason, flagged: t.flagged, splitAdvised: t.splitAdvised, screen: b?.screen, reqs: b?.reqs ?? [], overhead: b?.overhead };
     }),
     anchors: est.anchors,
     overheads: est.overheads,
@@ -463,6 +463,7 @@ export function estimateView(ledger: Ledger) {
     suggested: est.suggested,
     assumptions: est.assumptions,
     ...(est.stack ? { stack: est.stack } : {}),
+    ...(est.catalogue ? { catalogue: est.catalogue } : {}),
     design: baseline === undefined ? { pending: true } : !design ? { ui: false } : {
       ui: true, flow: design.flow,
       screens: design.screens.map((x) => ({ id: x.id, route: x.route, size: x.size ?? "new", states: x.states ?? [], reqs: x.reqs, frames: x.frames ?? [] })),

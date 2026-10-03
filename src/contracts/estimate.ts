@@ -36,6 +36,10 @@ export const ComplexityFlag = z.enum([
 ]);
 export type ComplexityFlag = z.infer<typeof ComplexityFlag>;
 
+/** A task's size against its catalogue kind's written scale (src/estimate/assets/catalogue.json). */
+export const SizeStep = z.enum(["small", "typical", "large", "very-large"]);
+export type SizeStep = z.infer<typeof SizeStep>;
+
 // ---------- breakdown ----------
 export const BreakdownTask = z.object({
   id: EstimateTaskId,
@@ -51,6 +55,8 @@ export const BreakdownTask = z.object({
   /** approved design screen this task builds, when there is one */
   screen: z.string().optional(),
   complexity: ComplexityFlag.default("standard"),
+  /** the catalogue kind (src/estimate/assets/catalogue.json) that sizes it; absent on breakdowns made before kinds (gate E2c) */
+  kind: z.string().optional(),
   /** set for an overhead task (deployment, PM, ...): the reason it has no requirement */
   overhead: z.string().optional(),
 });
@@ -160,6 +166,10 @@ export const TaskSizing = z.object({
   /** code computed: anchor hours x ratio, before the estimators' spread is applied */
   hours: Range,
   executor: Executor,
+  /** the lead estimator's size step, when the task was sized against the catalogue */
+  size: SizeStep.optional(),
+  /** a factory or joint task too big to build as one piece (very large, or over the catalogue's split threshold): split it before the build */
+  splitAdvised: z.boolean().optional(),
   /** independent estimators' readings for M and up (spread sets the range and flags the item) */
   estimators: z.array(Range).max(3).default([]),
   flagged: z.boolean().default(false),
@@ -194,6 +204,10 @@ export const Estimate = withHeader({
   parentEstimate: Sha.optional(),
   anchors: z.array(Anchor).min(1),
   tasks: z.array(TaskSizing).min(1),
+  /** the task catalogue the hours came from, and its sign-off status; absent on anchor-sized estimates */
+  catalogue: z.object({ version: z.string(), status: z.enum(["draft", "signed-off"]), stack: z.string(), splitAboveHours: z.number().positive().optional() }).optional(),
+  /** how estimators' readings were merged: by median (2026-10-03 on); absent on older estimates, whose readings widened the range */
+  merge: z.literal("median").optional(),
   overheads: z.array(z.object({ name: z.string(), track: Track.optional(), hours: Range, reason: z.string() })).default([]),
   /** human gate hours (HITL only); every figure is a labelled, editable assumption */
   gateHours: z.array(z.object({ source: z.string(), track: Track.optional(), hours: Range, assumed: z.literal(true) })).default([]),

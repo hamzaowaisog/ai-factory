@@ -1225,6 +1225,8 @@ async function estimateScreen(id) {
     fact("API cost", h("span", {}, h("strong", {}, usd(e.apiCost.total)), h("span", { class: "tag" }, e.apiCost.confidence), h("span", { class: "small faint" }, `${e.apiCost.records} benchmark record${e.apiCost.records === 1 ? "" : "s"}`))),
     fact("Elapsed", `${e.elapsed.criticalPathDays.min}–${e.elapsed.criticalPathDays.max} days on the critical path, plus ${e.elapsed.planningMinutes} min planning`),
     fact("Size and certainty", h("span", { class: "tags" }, h("span", { class: "tag" }, e.band), h("span", { class: "tag" }, `${e.uncertainty} uncertainty`), e.complexity ? h("span", { class: "tag" }, e.complexity) : null)),
+    e.catalogue ? fact("Task catalogue", h("span", { class: "tags" }, h("span", { class: "tag" }, e.catalogue.version), h("span", { class: "tag" }, `stack ${e.catalogue.stack}`),
+      e.catalogue.status === "draft" ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "draft: hours not yet signed off") : h("span", { class: "pill t-ok" }, h("span", { class: "d" }), "signed off"))) : [],
     fact("Delivery model", e.deliveryModel === "hitl" ? "HITL: a supervisor plus agents" : "Solely agentic"),
     fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : "", e.handsOff ? "hands-off (no human review)" : ""].filter(Boolean).join(" · ")),
     fact("Approval", e.approved ? h("span", { class: "pill t-ok" }, h("span", { class: "d" }), `${e.approved.auto ? "approved by the factory (no human review)" : `approved by ${e.approved.by || "?"}`}${e.approved.hash ? ` (${e.approved.hash})` : ""}`)
@@ -1239,8 +1241,8 @@ async function estimateScreen(id) {
     : h("div", {}, h("div", { class: "row" }, dl("team", "Draft team workbook (.xlsx)", true), dl("client", "Draft client workbook (.xlsx)", true)),
       h("p", { class: "muted small" }, e.handsOff ? "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written once the estimate passes its checks." : "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written after you approve in your terminal."));
   const tasks = table(["", "Task", "Track", "Who", "Hours", "Sized against", ""],
-    e.tasks.map((t) => [h("span", { class: "mono small" }, t.id), h("div", {}, h("div", {}, t.title), h("div", { class: "small muted" }, t.reason)), t.track ?? "-", t.executor, hrs(t.hours),
-      t.anchor === t.id ? h("span", { class: "tag" }, "anchor") : `${t.anchor} × ${t.ratio}`, t.flagged ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "estimators disagree") : ""]), [4]);
+    e.tasks.map((t) => [h("span", { class: "mono small" }, t.id), h("div", {}, h("div", {}, t.title, t.kind ? h("span", { class: "tag faint" }, t.size ? `${t.kind} · ${t.size}` : t.kind) : null), h("div", { class: "small muted" }, t.reason)), t.track ?? "-", t.executor, hrs(t.hours),
+      t.anchor === t.id ? h("span", { class: "tag" }, "anchor") : `${t.anchor} × ${t.ratio}`, [t.flagged ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "estimators disagree") : "", t.splitAdvised ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "split before build") : ""]]), [4]);
   const costTable = table(["Phase", "API cost"], e.apiCost.phases.map((p) => [p.phase, usd(p.usd)]), [1]);
   const extra = [];
   if (e.overheads.length) extra.push(h("h3", {}, "Overheads"), table(["Name", "Track", "Hours", "Why"], e.overheads.map((o) => [o.name, o.track ?? "-", hrs(o.hours), o.reason]), [2]));

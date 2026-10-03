@@ -35,9 +35,9 @@ const draft = {
 const breakdown = {
   features: [{ id: "F-1", title: "Sign in", reqs: ["REQ-1"] }, { id: "F-2", title: "Reports", reqs: ["REQ-2"] }],
   tasks: [
-    { id: "EST-1", title: "Sign-in endpoint", featureId: "F-1", reqs: ["REQ-1"], items: ["email and password", "lockout after 5 tries"], track: "backend", executor: "factory", dependsOn: [], complexity: "standard" },
-    { id: "EST-2", title: "PDF report", featureId: "F-2", reqs: ["REQ-2"], items: ["one-page summary"], track: "backend", executor: "factory", dependsOn: ["EST-1"], complexity: "external-dependency" },
-    { id: "EST-3", title: "Client UAT", featureId: "F-1", reqs: [], items: [], track: "qa", executor: "human", dependsOn: ["EST-2"], complexity: "standard", overhead: "client acceptance testing" },
+    { id: "EST-1", title: "Sign-in endpoint", featureId: "F-1", reqs: ["REQ-1"], items: ["email and password", "lockout after 5 tries"], track: "backend", kind: "be-auth", executor: "factory", dependsOn: [], complexity: "standard" },
+    { id: "EST-2", title: "PDF report", featureId: "F-2", reqs: ["REQ-2"], items: ["one-page summary"], track: "backend", kind: "be-files", executor: "factory", dependsOn: ["EST-1"], complexity: "external-dependency" },
+    { id: "EST-3", title: "Client UAT", featureId: "F-1", reqs: [], items: [], track: "qa", kind: "qa-uat", executor: "human", dependsOn: ["EST-2"], complexity: "standard", overhead: "client acceptance testing" },
   ],
   checklist: [{ item: "auth", included: true }, { item: "monitoring", included: false, reason: "client hosts and monitors" }],
 };
@@ -45,9 +45,9 @@ const sizing = {
   stack: { backend: "ASP.NET Core Web API", database: "PostgreSQL", architecture: "modular monolith", basis: "assumed" as const, notes: "no stack named in the request" },
   anchors: [{ taskId: "EST-1", hours: { min: 4, max: 8 }, reason: "a typical endpoint with validation for this stack" }],
   tasks: [
-    { taskId: "EST-1", anchorId: "EST-1", ratio: 1, reason: "the anchor" },
-    { taskId: "EST-2", anchorId: "EST-1", ratio: 1.5, reason: "a PDF library on top of the same shape" },
-    { taskId: "EST-3", anchorId: "EST-1", ratio: 1, reason: "a day of client testing" },
+    { taskId: "EST-1", anchorId: "EST-1", ratio: 1, reason: "the anchor", size: "typical", verify: "moderate", context: "complete" },
+    { taskId: "EST-2", anchorId: "EST-1", ratio: 1.5, reason: "a PDF library on top of the same shape", size: "typical", verify: "moderate", context: "complete" },
+    { taskId: "EST-3", anchorId: "EST-1", ratio: 1, reason: "a day of client testing", size: "typical", verify: "moderate", context: "complete" },
   ],
 };
 
@@ -69,19 +69,19 @@ const UI_DESIGN = {
   noScreen: [],
 };
 let uiDesign: unknown = UI_DESIGN;
-const withScreens = (b: typeof breakdown) => ({ ...b, tasks: b.tasks.map((t) => (t.id === "EST-1" ? { ...t, track: "web", screen: "S-1" } : t.id === "EST-2" ? { ...t, track: "web", screen: "S-2" } : t)) });
+const withScreens = (b: typeof breakdown) => ({ ...b, tasks: b.tasks.map((t) => (t.id === "EST-1" ? { ...t, track: "web", kind: "ui-form", screen: "S-1" } : t.id === "EST-2" ? { ...t, track: "web", kind: "ui-detail", screen: "S-2" } : t)) });
 const MODULE_SPANS = ["ALPHA sign in flow", "BETA report export flow"];
 const bigBreakdown = () => ({
   features: [{ id: "F-1", title: "Alpha", reqs: ["REQ-1", "REQ-2"] }, { id: "F-2", title: "Beta", reqs: ["REQ-3", "REQ-4"] }],
   tasks: [
-    ...[1, 2, 3, 4].map((n) => ({ id: `EST-${n}`, title: `Build ${n}`, featureId: n <= 2 ? "F-1" : "F-2", reqs: [`REQ-${n}`], items: [`item ${n}`], track: "backend", executor: "factory", dependsOn: n > 1 ? [`EST-${n - 1}`] : [], complexity: "standard" })),
-    { id: "EST-5", title: "Client UAT", featureId: "F-1", reqs: [], items: [], track: "qa", executor: "human", dependsOn: ["EST-4"], complexity: "standard", overhead: "client acceptance testing" },
+    ...[1, 2, 3, 4].map((n) => ({ id: `EST-${n}`, title: `Build ${n}`, featureId: n <= 2 ? "F-1" : "F-2", reqs: [`REQ-${n}`], items: [`item ${n}`], track: "backend", kind: "be-crud", executor: "factory", dependsOn: n > 1 ? [`EST-${n - 1}`] : [], complexity: "standard" })),
+    { id: "EST-5", title: "Client UAT", featureId: "F-1", reqs: [], items: [], track: "qa", kind: "qa-uat", executor: "human", dependsOn: ["EST-4"], complexity: "standard", overhead: "client acceptance testing" },
   ],
   checklist: breakdown.checklist,
 });
 const bigSizing = () => ({
   anchors: sizing.anchors, stack: sizing.stack,
-  tasks: [1, 2, 3, 4, 5].map((n) => ({ taskId: `EST-${n}`, anchorId: "EST-1", ratio: n === 1 ? 1 : 1.25, reason: n === 1 ? "the anchor" : "a little more than the anchor" })),
+  tasks: [1, 2, 3, 4, 5].map((n) => ({ taskId: `EST-${n}`, anchorId: "EST-1", ratio: n === 1 ? 1 : 1.25, reason: n === 1 ? "the anchor" : "a little more than the anchor", size: "typical", verify: "moderate", context: "complete" })),
 });
 function answerFor(system: string): unknown {
   prompts.push(system.slice(0, 60));
@@ -152,7 +152,8 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     const card = replay(ledger.events()).openCard!;
     expect(card.kind).toBe("estimate-approval");
     const md = ledger.readCard(card.cardId);
-    expect(md).toMatch(/## Anchors[\s\S]*EST-1 Sign-in endpoint: 4-8 h/);
+    // hours from the catalogue: be-auth at the typical size is 10-16 h
+    expect(md).toMatch(/## Anchors[\s\S]*EST-1 Sign-in endpoint: 10-16 h/);
     expect(md).toMatch(/estimate\.e1-readiness/);
     // before approval the web UI can still hand out a draft of each workbook
     for (const who of ["team", "client"]) {
