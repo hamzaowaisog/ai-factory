@@ -178,7 +178,7 @@ run(stage_prompt, workdir, context_files[], allowed_tools, output_schema, limits
 - Each task gets an **AI-leverage tag** (high: CRUD, forms, auth scaffolding; medium: integrations; low: domain logic such as scoring engines, compliance). The AI-adjusted hours sit next to the human baseline, never replacing it. Leverage factors are labelled assumptions until real data exists.
 - Non-engineering disciplines (PM, PDM, QA, design) come from ratios in past sheets, labelled as ratios.
 - The model proposes tasks and ranges. **Code** computes buffers, rollups and cost, so arithmetic is never hallucinated.
-- Calibration loop: every factory build logs actual effort per task, which replaces the assumed factors over time.
+- Calibration loop: every factory build logs actual effort per task, which replaces the assumed factors over time. Built for estimates: the factory proposes a tuned task catalogue from build actuals and real project hours, and a person promotes it (docs/estimate-consistency.md, section 14).
 
 ## 9. Governance and security
 
@@ -466,7 +466,7 @@ Full design: gate-engine.md.
 
 Full design: run-manager.md. Evidence: research-run-manager.md.
 - Ledger `~/.factory/ledger/<runId>/`: append-only `events.jsonl` (fsync per append; torn tail truncated) plus content-addressed artifacts. State = replay; no database, no XState snapshots.
-- A step is skipped on resume only if a completed event matches its inputsHash. Coding steps: stop container → hardened commit → treeSha → completed. Interrupted coding steps save their diff, reset to taskStartSha, and retry fresh with the diff as an overlay.
+- A step is skipped on resume only if a completed event matches its inputsHash. A newer prompt template (`templateVersion`, a number) is for new runs: a step a paused run already completed under an earlier number stays done when its inputs and model are unchanged (`stepDone`, revised after the PR #11 review, 2026-10-03). A brownfield run whose ground step completed before it kept a design inventory is not grounded again; the design steps read the inventory from the run's snapshot (`repoInventory`). Coding steps: stop container → hardened commit → treeSha → completed. Interrupted coding steps save their diff, reset to taskStartSha, and retry fresh with the diff as an overlay.
 - Sinks: intent → look up before create → done.
 - Human waits persist a card and exit. Decisions are TTY-only (never MCP), hash-checked under a per-run ledger lock. An execution lock per repo with a fencing epoch; one executing run per repo.
 - Host git disables hooks, fsmonitor and filter drivers; container A gets no git metadata. Rebase before integrate. Deliver adds one manifest-only commit on top of the gated SHA (amends gate-engine §2.3).

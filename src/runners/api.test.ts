@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { ContextPack } from "../contracts/index.js";
-import { ApiRunner, RateLimitedError, type Conversation, type Provider, type Turn } from "./api.js";
+import { anthropicUserContent, ApiRunner, chatUserContent, openaiResponsesUserContent, RateLimitedError, type Conversation, type Provider, type Turn } from "./api.js";
+import type { ModelImage } from "../util/image.js";
+import { sniffImage, toModelImage } from "../util/image.js";
 import { costUsd } from "./pricing.js";
 import { family } from "./types.js";
 
@@ -13,10 +15,11 @@ const U = { inputTokens: 1000, outputTokens: 100, cacheRead: 0, cacheWrite: 0 };
 
 /** A provider that plays back scripted turns and records what it was sent. */
 function scripted(turns: (Turn | Error)[]) {
-  const seen: { toolResults: { id: string; content: string; isError?: boolean }[][]; said: string[]; tools: string[] } = { toolResults: [], said: [], tools: [] };
+  const seen: { toolResults: { id: string; content: string; isError?: boolean }[][]; said: string[]; tools: string[]; images: ModelImage[] } = { toolResults: [], said: [], tools: [], images: [] };
   const provider: Provider = {
-    start(_m, _e, _s, _u, tools): Conversation {
+    start(_m, _e, _s, _u, tools, images = []): Conversation {
       seen.tools = tools.map((t) => t.name);
+      seen.images = images;
       let i = 0;
       return {
         async next() {
@@ -117,5 +120,60 @@ describe("audit fixes", () => {
     expect(seen.toolResults[0]![0]!.content).toBe("file text");
     expect(seen.toolResults[1]![0]!.content).toContain("Your next turn is your last one: call submit_result now");
   });
+
+  it("loads the briefing's images and hands them to the provider in order", async () => {
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+    const jpg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 9]);
+    const store: Record<string, Buffer> = { a: png, b: jpg };
+    const { provider, seen } = scripted([call("submit_result", { changeClass: "bugfix", spans: ["x"] })]);
+    const r = await new ApiRunner({ provider: () => provider, loadImage: (sha) => store[sha]! }).run(job({ pack: { ...pack(), images: ["a", "b"] } }));
+    expect(r.status).toBe("ok");
+    expect(seen.images.map((m) => m.mediaType)).toEqual(["image/png", "image/jpeg"]);
+    expect(Buffer.from(seen.images[0]!.base64, "base64")).toEqual(png);
+  });
+
+  it("stops before any model call when an image cannot be sent", async () => {
+    const { provider, seen } = scripted([]);
+    const noLoader = await new ApiRunner({ provider: () => provider }).run(job({ pack: { ...pack(), images: ["a"] } }));
+    expect(noLoader.status).toBe("config-error");
+    expect(noLoader.error).toMatch(/no way to load them/);
+    const notImage = await new ApiRunner({ provider: () => provider, loadImage: () => Buffer.from("<svg/>") }).run(job({ pack: { ...pack(), images: ["a"] } }));
+    expect(notImage.status).toBe("config-error");
+    expect(notImage.error).toMatch(/Image 1 is not a PNG, JPEG, GIF or WebP/);
+    const huge = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(5_000_001)]);
+    expect((await new ApiRunner({ provider: () => provider, loadImage: () => huge }).run(job({ pack: { ...pack(), images: ["a"] } }))).error).toMatch(/at most 5 MB/);
+    expect(seen.tools).toEqual([]);
+    expect(noLoader.usage.estUsd).toBe(0);
+  });
 });
 
+describe("images for each provider", () => {
+  const imgs: ModelImage[] = [{ mediaType: "image/png", base64: "AAA" }, { mediaType: "image/webp", base64: "BBB" }];
+
+  it("knows image types by their bytes, not their names", () => {
+    expect(sniffImage(Buffer.from([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]))).toBe("image/gif");
+    expect(sniffImage(Buffer.from("RIFF\0\0\0\0WEBPVP8 "))).toBe("image/webp");
+    expect(sniffImage(Buffer.from("RIFF\0\0\0\0WAVEfmt "))).toBeUndefined();
+    expect(() => toModelImage(Buffer.from("%PDF-1.7"), "R-3")).toThrow(/R-3 is not/);
+  });
+
+  it("keeps text-only messages as plain text", () => {
+    expect(anthropicUserContent("hi")).toBe("hi");
+    expect(openaiResponsesUserContent("hi", [])).toBe("hi");
+    expect(chatUserContent("hi")).toBe("hi");
+  });
+
+  it("puts each image after its label and the briefing last", () => {
+    expect(anthropicUserContent("brief", imgs)).toEqual([
+      { type: "text", text: "Image 1:" }, { type: "image", source: { type: "base64", media_type: "image/png", data: "AAA" } },
+      { type: "text", text: "Image 2:" }, { type: "image", source: { type: "base64", media_type: "image/webp", data: "BBB" } },
+      { type: "text", text: "brief" },
+    ]);
+    const o = openaiResponsesUserContent("brief", imgs) as { type: string; image_url?: string; text?: string }[];
+    expect(o.map((x) => x.type)).toEqual(["input_text", "input_image", "input_text", "input_image", "input_text"]);
+    expect(o[1]!.image_url).toBe("data:image/png;base64,AAA");
+    const c = chatUserContent("brief", imgs) as { type: string; image_url?: { url: string } }[];
+    expect(c[3]!.image_url!.url).toBe("data:image/webp;base64,BBB");
+    expect(c.at(-1)).toEqual({ type: "text", text: "brief" });
+  });
+});

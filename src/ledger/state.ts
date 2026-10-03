@@ -1,5 +1,5 @@
 // RunState is derived only by replaying the ledger (run-manager §2.2, §2.4). Never stored.
-import type { ChangeClass, Complexity, LedgerEvent, Mode, RunStatus } from "../contracts/index.js";
+import type { ChangeClass, Complexity, LedgerEvent, Mode, Reference, RunStatus } from "../contracts/index.js";
 import { hashJson } from "../util/hash.js";
 
 /** Step key without the attempt: "plan", "implement/TASK-2". */
@@ -65,13 +65,15 @@ export interface RunInfo {
   requestFile?: string;
   /** where the request came from: typed prompt, file, Jira ticket */
   sources?: { kind: "prompt" | "file" | "jira" | "docx" | "frames"; name?: string; key?: string; url?: string; summary?: string }[];
+  /** design references the user attached (R-1, R-2, ...), read at intake; their pictures are ledger artifacts */
+  references?: Reference[];
   versions?: Record<string, string>;
   /** spend when the plan completed; the post-plan cost limit adds the size's cap to it */
   spendAtPlan?: number;
   /** `factory start --max-cost`: a lower limit for this run */
   maxCostUsd?: number;
-  /** estimate mode: the run settings a person chose at the start (missing fields take the defaults) */
-  estimate?: { deliveryModel?: "hitl" | "agentic"; stackSource?: "client" | "folio3" | "undecided"; designInTotal?: boolean; feedbackRounds?: number; /** optional hourly rates in USD per track, plus "default" */ rates?: Record<string, number>; /** a request with no repo (requirements only) */ noRepo?: boolean; client?: string; projectName?: string; pm?: string };
+  /** estimate and design modes: the run settings a person chose at the start (missing fields take the defaults); a design run uses only noRepo, client and projectName */
+  estimate?: { deliveryModel?: "hitl" | "agentic"; stackSource?: "client" | "folio3" | "undecided"; designInTotal?: boolean; feedbackRounds?: number; /** optional hourly rates in USD per track, plus "default" */ rates?: Record<string, number>; /** a request with no repo (requirements only) */ noRepo?: boolean; client?: string; projectName?: string; pm?: string; /** estimate mode: a person answers the clarify questions and approves the estimate (E7); false runs hands-off. Missing on runs started before the switch, which keep their reviews */ humanReview?: boolean };
   /**
    * estimate mode: the approved estimate this run revises ("change": new requirements, full pipeline) or
    * re-estimates under the other delivery model ("sibling": seeded with the approved spec and breakdown).
@@ -80,7 +82,33 @@ export interface RunInfo {
   parent?: { runId: string; kind: "change" | "sibling"; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string; clarifySha?: string; clarify2Sha?: string; /** the approved design and its baseline approval (absent on estimates made before the design step) */ designSha?: string; baselineSha?: string };
   /** a build run seeded from an approved estimate: it inherits the spec and plans against the estimate's tasks (gates B1-B5) */
   estimateRef?: { runId: string; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string; /** the approved screen inventory the build is held to */ designSha?: string };
+  /**
+   * a run seeded from an approved design-only run (`--from-design`): an estimate inherits its intake,
+   * grounding, answers, spec and approved design and only sizes them; a build inherits the spec and is
+   * held to the approved screens. Every artifact is copied into this ledger under its own hash.
+   */
+  designRef?: DesignRef;
+  /** `--design-export png,pdf`: formats exported as soon as the design is approved (docs/estimates-design.md, "Exports") */
+  designExport?: string[];
+  /** `--ui-target`: the stack the approved design is built in when the project sets none (docs/estimates-design.md, "Kit and scaffold") */
+  uiTarget?: "next-shadcn" | "vite-shadcn" | "repo";
   createdAt: string;
+}
+
+/** What a run seeded from an approved design-only run carries (`src/estimate/lineage.ts`, `approvedDesign`). */
+export interface DesignRef {
+  runId: string;
+  designSha: string;
+  baselineSha: string;
+  intakeSha: string;
+  specSha: string;
+  criticSha?: string;
+  clarifySha?: string;
+  clarify2Sha?: string;
+  /** the ground step's outputs: current behaviour, and with a repo the survey and the design inventory */
+  groundSha?: string;
+  surveySha?: string;
+  inventorySha?: string;
 }
 
 export interface RunState {
@@ -102,8 +130,14 @@ export interface RunState {
   flags: { pauseRequested: boolean; stopRequested: boolean };
   /** Limits a human raised on a cap card (factory waive-cap). */
   capOverrides: { costUsd?: number; wallMinutes?: number; extraAttempts: number };
+  /** B5: how far past the approved estimate maximum a lead let the run go (1 = the maximum itself) */
+  budgetCeiling: number;
   sinks: Map<string, { intentSeq: number; externalId?: string }>;
 }
+
+/** Gate B5: the highest a budget waiver can raise the limit, as a multiple of the approved maximum (PR #11 review, item 16).
+ * Past it, the estimate is wrong and needs a change request, not another waiver. Replay clamps to it as well. */
+export const MAX_BUDGET_CEILING = 3;
 
 export function replay(events: LedgerEvent[]): RunState {
   const first = events[0];
@@ -124,6 +158,7 @@ export function replay(events: LedgerEvent[]): RunState {
     flags: { pauseRequested: false, stopRequested: false },
     sinks: new Map(),
     capOverrides: { extraAttempts: 0 },
+    budgetCeiling: 1,
   };
 
   const rec = (step: StepKey): StepRecord => {
@@ -207,6 +242,10 @@ export function replay(events: LedgerEvent[]): RunState {
           if (typeof d2.costUsd === "number") s.capOverrides.costUsd = d2.costUsd;
           if (typeof d2.wallMinutes === "number") s.capOverrides.wallMinutes = d2.wallMinutes;
           if (typeof d2.extraAttempts === "number") s.capOverrides.extraAttempts += d2.extraAttempts;
+        }
+        if (dec.decision === "waive-budget") {
+          const c = Number((data as { ceiling?: number }).ceiling);
+          if (Number.isFinite(c) && c > s.budgetCeiling) s.budgetCeiling = Math.min(c, MAX_BUDGET_CEILING);
         }
         s.decisions.push(dec);
         if (dec.decision === "waive") s.waivers += 1;

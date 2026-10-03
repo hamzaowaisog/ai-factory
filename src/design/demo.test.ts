@@ -21,7 +21,7 @@ describe("clickable demo", () => {
     expect(html).toContain("INV-20418");
     expect(html).toContain("No overdue invoices");
     expect(html).toContain("We couldn&#39;t load invoices.");
-    expect(html.match(/class="pane"/g)?.length).toBe(4);
+    expect(html.split('id="components"')[0]!.match(/class="pane"/g)?.length).toBe(4);
     expect(html).toContain('class="badge bad"');
   });
   it("lists the normal page first and keeps screenshots in the same order", () => {
@@ -64,5 +64,29 @@ describe("clickable demo", () => {
     expect(dark).not.toContain("--a1:#101030");
     const light = themeCss({ mood: "x", mode: "light", accent: "#ffff99", accent2: "#eeeeaa", radius: "soft", motion: "lively" });
     expect(light).not.toContain("--a1:#ffff99");
+  });
+});
+
+describe("laying a page out and colouring its statuses", () => {
+  const draw = (b: { type: string }) => b.type === "table" ? `<div class="card tbl">T</div>` : `[${b.type}]`;
+  it("puts the page's buttons in its header, search above its table, and a chart beside its list", async () => {
+    const { compose } = await import("./demo.js");
+    const r = compose([{ type: "actions" }, { type: "filters" }, { type: "table" }, { type: "chart" }, { type: "list" }] as never, draw as never);
+    expect(r.actions).toBe("[actions]");
+    expect(r.body).toBe(`<div class="card tbl"><div class="toolbar">[filters]</div>T</div><div class="split wl">[chart][list]</div>`);
+  });
+  it("leaves a form's button at the end of the form", async () => {
+    const { compose } = await import("./demo.js");
+    const r = compose([{ type: "form" }, { type: "actions" }] as never, draw as never);
+    expect(r.actions).toBe("");
+    expect(r.body).toContain("[actions]");
+  });
+  it("colours the field's own status words, not just generic ones", async () => {
+    const { tone } = await import("./demo.js");
+    expect(tone("Delayed")).toBe("warn");
+    expect(tone("Cancelled")).toBe("bad");
+    expect(tone("Boarding")).toBe("live");
+    expect(tone("Delivered")).toBe("ok");
+    expect(tone("Economy")).toBe("info");
   });
 });

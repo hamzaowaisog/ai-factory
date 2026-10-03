@@ -139,6 +139,8 @@ export class ClaudeAgentRunner implements Runner {
     mkdirSync(outDir, { recursive: true });
     mkdirSync(emptyDir, { recursive: true });
     writeFileSync(emptyFile, "");
+    // agent steps write code: images are untrusted and never reach them (the pack refuses them too)
+    if (job.pack.images.length) throw new Error(`${job.step} is an agent step and can't take images`);
     writeFileSync(join(jobDir, "in.json"), JSON.stringify({
       model: job.model,
       // Haiku 4.5 and older models reject an effort setting

@@ -1,0 +1,10 @@
+{
+  "name": "AI Factory Import",
+  "id": "ai-factory-import",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": { "allowedDomains": ["none"], "reasoning": "It reads only the figma.json the user picks; nothing is fetched or sent." }
+}

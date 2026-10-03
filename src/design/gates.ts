@@ -3,6 +3,7 @@
 // store their results; these only read them.
 import { defineGate, failure, verdict } from "../gates/engine.js";
 import type { CheckResult } from "./fidelity.js";
+import { LEVEL_TITLE, type FidelityLevel, type FidelityReport } from "./fidelity-app.js";
 import { LEVEL_NAMES, rank, type Level, type SizeResult } from "./size.js";
 
 /** Size-cap check: the finished diff may not be a bigger UI change than the one approved. */
@@ -33,3 +34,28 @@ export const designFidelityLint = defineGate<{ lint: CheckResult[] }>({
     lint.map((r) => `${r.check} ${r.status}`).join("; ") || "nothing to check",
   ),
 });
+
+/**
+ * Fidelity gates (docs/estimates-design.md, "Fidelity and tests"): the built app against the approved design, one gate per blocking
+ * level (tokens, structure, accessibility). A level that failed or could not be checked fails its gate with its findings; each is
+ * waivable by a person on the waiver card. Layout and pixels are advice and have no gate.
+ */
+function fidelityGate(level: FidelityLevel) {
+  return defineGate<{ fidelity: FidelityReport }>({
+    id: `design.${level}`, after: "accept", safety: false, waiver: "human",
+    predicate: ({ fidelity }) => {
+      const l = fidelity.levels.find((x) => x.level === level);
+      if (!l) return verdict([failure(`design-${level}`, `${LEVEL_TITLE[level]}: not checked${fidelity.skipped ? ` (${fidelity.skipped})` : ""}`)], "not checked");
+      if (l.status === "PASS") return verdict([], `${LEVEL_TITLE[level]} PASS: ${l.detail}`);
+      // a level the check does not hold the build to (the tokens of an app that keeps its own look) passes with its reason
+      if (!l.blocking && l.status === "UNCHECKED") return verdict([], `${LEVEL_TITLE[level]} not compared: ${l.detail}`);
+      const found = fidelity.findings.filter((f) => f.level === level);
+      const items = found.length ? found.slice(0, 20).map((f) => `${f.message}${f.pages.length ? ` (${f.pages.slice(0, 3).join(", ")}${f.pages.length > 3 ? `, +${f.pages.length - 3}` : ""})` : ""}`) : [l.detail];
+      return verdict(items.map((m) => failure(`design-${level}`, `${l.status === "UNCHECKED" ? "could not check: " : ""}${m}`)), `${LEVEL_TITLE[level]} ${l.status}`);
+    },
+  });
+}
+export const designTokensGate = fidelityGate("tokens");
+export const designStructureGate = fidelityGate("structure");
+export const designA11yGate = fidelityGate("a11y");
+export const FIDELITY_GATES = [designTokensGate, designStructureGate, designA11yGate];

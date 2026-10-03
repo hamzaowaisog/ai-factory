@@ -5,6 +5,7 @@ import { BUDGETS, LOCAL_PACK_CAP } from "../contracts/index.js";
 import { hashJson, stableStringify } from "../util/hash.js";
 import type { Redactor } from "./secrets.js";
 import { estimateTokens } from "./tokens.js";
+import { IMAGE_TOKENS, MAX_PACK_IMAGES } from "../util/image.js";
 
 /** Steps that can write (container A). Untrusted text is a build error here, not config. */
 export const WRITING_STAGES: ReadonlySet<StageName> = new Set([
@@ -29,6 +30,8 @@ export interface ResolvedSection {
   /** for artifacts */
   artifactKind?: string;
   artifactSha?: string;
+  /** for images: the ledger artifact holding the bytes (sent to the model in pack order) */
+  imageSha?: string;
 }
 
 export interface BuildPackInput {
@@ -49,7 +52,7 @@ const ORDER: SectionSpec["source"][] = ["template", "stackpack", "profile", "rul
 const defang = (text: string) => text.replace(/<(\s*\/?\s*untrusted_document\b)/gi, "&lt;$1");
 const attr = (v: string) => v.replace(/"/g, "&quot;");
 
-function wrap(s: ResolvedSection, text: string): string {
+function wrap(s: ResolvedSection, text: string, imageN?: number): string {
   switch (s.spec.source) {
     case "doc":
       return `<untrusted_document id="${attr(s.docId ?? s.spec.id)}" source="${attr(s.source ?? "unknown")}">\n${defang(text)}\n</untrusted_document>`;
@@ -61,6 +64,9 @@ function wrap(s: ResolvedSection, text: string): string {
       return `<failures>\n${text}\n</failures>`;
     case "recap":
       return `<recap>\n${text}\n</recap>`;
+    case "image":
+      // the marker names the image; the picture itself goes beside the text as "Image n"
+      return `<untrusted_image n="${imageN ?? "?"}" id="${s.spec.id}" source="${s.source ?? "unknown"}">${text ? `\n${text}\n` : ""}</untrusted_image>`;
     default:
       return text;
   }
@@ -78,7 +84,10 @@ export function buildPack(inp: BuildPackInput): ContextPack {
   }
   for (const s of inp.sections) {
     if (s.spec.trust === "untrusted" && s.spec.placement === "system") throw new PackBuildError(`Untrusted section ${s.spec.id} can't go in the system prompt`);
+    if (s.spec.source === "image" && (s.spec.trust !== "untrusted" || s.spec.placement !== "user" || !s.imageSha)) throw new PackBuildError(`Image section ${s.spec.id} must be untrusted, in the user message, with its stored image`);
   }
+  const imageCount = inp.sections.filter((s) => s.spec.source === "image").length;
+  if (imageCount > MAX_PACK_IMAGES) throw new PackBuildError(`${imageCount} images; a briefing takes at most ${MAX_PACK_IMAGES}`);
   let budget = inp.budgetTokens ?? BUDGETS[inp.cls];
   if (inp.local) budget = Math.min(budget, LOCAL_PACK_CAP);
 
@@ -88,17 +97,19 @@ export function buildPack(inp: BuildPackInput): ContextPack {
     const raw = s.spec.source === "pointers" ? pointersText(s.pointers ?? []) : s.content;
     const r = inp.redactor.redact(raw);
     redactions += r.hits.length;
-    return { s, text: r.text, trimmed: false, pointers: s.pointers ? [...s.pointers] : undefined };
+    return { s, text: r.text, trimmed: false, pointers: s.pointers ? [...s.pointers] : undefined, imageN: undefined as number | undefined };
   }).sort((a, b) => ORDER.indexOf(a.s.spec.source) - ORDER.indexOf(b.s.spec.source));
+  // images are numbered in the order they are sent, after the sort
+  const images = prepared.filter((p) => p.s.spec.source === "image").map((p, i) => { p.imageN = i + 1; return p.s.imageSha!; });
 
   const render = () => {
-    const sys = prepared.filter((p) => p.s.spec.placement === "system").map((p) => wrap(p.s, p.text));
-    const usr = prepared.filter((p) => p.s.spec.placement === "user").map((p) => wrap(p.s, p.text));
+    const sys = prepared.filter((p) => p.s.spec.placement === "system").map((p) => wrap(p.s, p.text, p.imageN));
+    const usr = prepared.filter((p) => p.s.spec.placement === "user").map((p) => wrap(p.s, p.text, p.imageN));
     return { system: sys.join("\n\n"), user: usr.join("\n\n") };
   };
   const count = () => {
     const r = render();
-    return estimateTokens(r.system + r.user, inp.model);
+    return estimateTokens(r.system + r.user, inp.model) + images.length * IMAGE_TOKENS;
   };
 
   // 6–8. count, trim (a) pointer tail (b) map depth, fit
@@ -133,8 +144,8 @@ export function buildPack(inp: BuildPackInput): ContextPack {
 
   const { system, user } = render();
   const pointers = prepared.flatMap((p) => p.pointers ?? []);
-  const sections = prepared.map((p) => ({ id: p.s.spec.id, tokens: estimateTokens(p.text, inp.model), trimmed: p.trimmed, trust: p.s.spec.trust }));
-  const body = { system, user, images: [] as string[], pointers, tools: inp.tools };
+  const sections = prepared.map((p) => ({ id: p.s.spec.id, tokens: estimateTokens(p.text, inp.model) + (p.imageN ? IMAGE_TOKENS : 0), trimmed: p.trimmed, trust: p.s.spec.trust }));
+  const body = { system, user, images, pointers, tools: inp.tools };
   const manifest = {
     stage: inp.stage, model: inp.model, recipeVersion: inp.recipeVersion, sections,
     packTokens: tokens, budgetTokens: budget, countMethod: "proxy" as const, redactions,

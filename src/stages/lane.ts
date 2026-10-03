@@ -16,6 +16,16 @@ export function lightBuild(intent: Intent, complexity: string | undefined): bool
   return lightSpec(intent) && complexity === "S";
 }
 
+/**
+ * A small UI fix in an app of its own (PR #11 review, item 9): the light spec lane, an app whose look is already there, no
+ * attached frames or design references, no earlier design to change, and at most a few requirements. It gets a text design
+ * note approved with the estimate, not a drawn demo, screenshots and a card of its own.
+ */
+export function lightUi(intent: Intent, o: { existingLook: boolean; frames: number; references: number; earlierDesign: boolean; reqs: number; off?: boolean }): boolean {
+  return !o.off && lightSpec(intent) && o.existingLook && !o.frames && !o.references && !o.earlierDesign && o.reqs <= LIGHT_UI_REQS;
+}
+export const LIGHT_UI_REQS = 3;
+
 /** Limits per lane. The full lane is what every run used before the light lane existed. */
 export const LANE = {
   light: { drafts: 1, maxRepairs: 1, criticEffort: "medium" as const, groundTurns: 8, testWriterTurns: 25, testWriterTurnsApi: 40, maxCharacterisation: 2 },

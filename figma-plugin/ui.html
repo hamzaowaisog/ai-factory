@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font: 12px/1.45 Inter, system-ui, sans-serif; margin: 0; padding: 14px 16px; color: var(--figma-color-text, #1e1e1e); background: var(--figma-color-bg, #fff); }
+  h1 { font-size: 13px; margin: 0 0 4px; }
+  p { margin: 0 0 10px; color: var(--figma-color-text-secondary, #6b6b6b); }
+  label.drop { display: block; border: 1px dashed var(--figma-color-border, #c7c7c7); border-radius: 6px; padding: 14px; text-align: center; cursor: pointer; margin-bottom: 10px; }
+  label.drop:hover { border-color: var(--figma-color-border-brand, #0d99ff); }
+  input[type=file] { display: none; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 6px; padding: 7px 14px; background: var(--figma-color-bg-brand, #0d99ff); color: var(--figma-color-text-onbrand, #fff); cursor: pointer; }
+  button[disabled] { opacity: .45; cursor: default; }
+  button.plain { background: transparent; color: inherit; font-weight: 400; }
+  .row { display: flex; gap: 8px; justify-content: flex-end; }
+  #status { min-height: 18px; margin: 10px 0 0; }
+  #status.bad { color: var(--figma-color-text-danger, #d1293d); }
+  ul { margin: 6px 0 0; padding-left: 16px; }
+  code { font: 11px ui-monospace, Menlo, monospace; }
+</style>
+</head>
+<body>
+  <h1>AI Factory Import</h1>
+  <p>Pick the <code>figma.json</code> of an approved design. It is read here, in Figma; nothing is sent anywhere.</p>
+  <label class="drop" for="file"><span id="picked">Choose figma.json</span></label>
+  <input type="file" id="file" accept=".json,application/json">
+  <div class="row"><button class="plain" id="close">Close</button><button id="go" disabled>Import</button></div>
+  <div id="status" role="status"></div>
+<script>
+  var doc = null;
+  var $ = function (id) { return document.getElementById(id); };
+  var say = function (text, bad) { $("status").className = bad ? "bad" : ""; $("status").textContent = text; };
+  $("file").onchange = function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    $("picked").textContent = f.name;
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        doc = JSON.parse(String(r.result));
+        if (doc.kind !== "ai-factory/figma") throw new Error("not an AI Factory figma.json");
+        say(doc.tag + ": " + doc.frames.length + " frame(s)");
+        $("go").disabled = false;
+      } catch (e) { doc = null; $("go").disabled = true; say("This file cannot be imported: " + e.message, true); }
+    };
+    r.readAsText(f);
+  };
+  $("go").onclick = function () {
+    if (!doc) return;
+    $("go").disabled = true;
+    say("Importing...");
+    parent.postMessage({ pluginMessage: { type: "import", doc: doc } }, "*");
+  };
+  $("close").onclick = function () { parent.postMessage({ pluginMessage: { type: "close" } }, "*"); };
+  onmessage = function (e) {
+    var m = e.data && e.data.pluginMessage;
+    if (!m) return;
+    if (m.type === "progress") say(m.text);
+    if (m.type === "error") { say(m.text, true); $("go").disabled = false; }
+    if (m.type === "done") {
+      var s = m.summary;
+      $("status").className = "";
+      $("status").innerHTML = "";
+      var b = document.createElement("div");
+      b.textContent = "Done: " + s.frames + " frame(s), " + s.layers + " layer(s), " + s.componentSets + " component set(s) with " + s.components + " variant(s), " + s.variables + " variable(s). Pages: " + s.pages.join(", ") + ".";
+      $("status").appendChild(b);
+      if (s.notes.length) {
+        var ul = document.createElement("ul");
+        s.notes.forEach(function (n) { var li = document.createElement("li"); li.textContent = n; ul.appendChild(li); });
+        $("status").appendChild(ul);
+      }
+    }
+  };
+</script>
+</body>
+</html>

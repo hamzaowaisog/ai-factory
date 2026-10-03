@@ -426,6 +426,7 @@ interface SectionSpec { id: string;
   source: "template" | "stackpack" | "profile" | "rules" | "artifact" | "doc" | "image" | "pointers" | "feedback" | "task" | "recap";
   ref?: string; trust: "trusted" | "derived" | "untrusted"; placement: "system" | "user";
   trimmable?: "pointers-tail" | "map-depth" }
+// an "image" section carries imageSha (its ledger artifact); images below lists them in the order sent (2026-10-02)
 interface ContextPack { system: string; user: string; images: Sha[];
   pointers: { path: string; reason: string }[]; tools: string[];
   manifest: { stage: StageName; model: string; recipeVersion: string;

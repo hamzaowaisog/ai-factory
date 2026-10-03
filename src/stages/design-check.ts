@@ -7,7 +7,7 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { touchesUiFiles } from "../design/build-checks.js";
 import { visualCheck, type VisualCheck } from "../design/visual-check.js";
-import { ensureWorktree } from "./workspace.js";
+import { ensureWorktree, codeBase } from "./workspace.js";
 import { requireOutput, type StepDef, type StepOutcome } from "./framework.js";
 
 export const designCheckStep: StepDef = {
@@ -26,7 +26,7 @@ export const designCheckStep: StepDef = {
     const repo = ctx.state.info.repoPath!;
     const base = ctx.state.info.baseCommit!;
     const wt = await ensureWorktree(ctx, head);
-    if (!touchesUiFiles(wt, base, head)) return skip("no UI files changed");
+    if (!touchesUiFiles(wt, codeBase(ctx.state), head)) return skip("no UI files changed");
     const tmp = mkdtempSync(join(tmpdir(), "factory-visual-"));
     try {
       const outDir = join(ctx.ledger.dir, "design-check");

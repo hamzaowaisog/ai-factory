@@ -1,7 +1,8 @@
-// Design inventory: a read-only scan of a React/Next repo (stack, tokens, building blocks,
+// Design inventory: a read-only scan of a web app's repo (React and Next.js in full; Vue and Angular for pages, tokens and look) (stack, tokens, building blocks,
 // shared components, pages, off-system styling). No network, no model, deterministic:
 // the same files always give the same result, so it is cheap to rerun on every run.
 import { componentKey, depsOf, detectLayout, importSpecifiers, pageOf, resolveImport, type AppLayout, type PageKind } from "./layout.js";
+import { repoLook, type RepoLook } from "./repo-look.js";
 import type { FileSource } from "./source.js";
 
 export interface ComponentInfo { path: string; key: string; exports: string[]; variants: Record<string, string[]>; uses: number }
@@ -29,10 +30,31 @@ export interface DesignInventory {
   offSystem: { hexColors: number; arbitraryValues: number; inlineStyle: number; classNameCount: number; ratio: number; examples: string[] };
   verdict: Verdict;
   rules: string[];
+  /** the app's own look read from its stylesheets, which an existing app's demo is drawn in */
+  look?: RepoLook;
 }
+
+/** The repo has a look of its own to keep: pages, and tokens, a component system or a look read from its stylesheets. */
+export const hasExistingLook = (inv: DesignInventory | undefined): inv is DesignInventory => !!inv && inv.pages.length > 0 && (inv.verdict !== "none" || !!inv.look);
 
 const SOURCE_EXT = /\.(tsx|jsx)$/;
 const NOT_SOURCE = /\.(test|spec|stories)\.|(^|\/)(__tests__|__mocks__|\.storybook)\//;
+
+/** An Angular app's pages: each component a routes file names ({ path: 'invoices/:id', component: InvoiceDetailComponent }). */
+function angularPages(src: FileSource, files: string[]): PageEntry[] {
+  const classes = new Map<string, string>();
+  for (const f of files.filter((f) => /\.component\.ts$/.test(f) && !NOT_SOURCE.test(f))) for (const m of (src.read(f) ?? "").matchAll(/export\s+class\s+(\w+)/g)) classes.set(m[1]!, f);
+  const out = new Map<string, PageEntry>();
+  for (const f of files.filter((f) => /(\.routes|routing\.module|app\.module)\.ts$/.test(f))) {
+    for (const m of (src.read(f) ?? "").matchAll(/path\s*:\s*['"]([^'"]*)['"][^{}]*?component\s*:\s*(\w+)/g)) {
+      const file = classes.get(m[2]!);
+      if (!file || out.has(file)) continue;
+      const html = src.read(file.replace(/\.ts$/, ".html")) ?? src.read(file) ?? "";
+      out.set(file, { path: file, kind: "angular-route", route: `/${m[1]}`, layout: [...new Set([...html.matchAll(/<((?:mat|p|app)-[\w-]+)/g)].map((x) => x[1]!))].slice(0, 12), heading: /<h[12][^>]*class=(["'])([^"']+)\1/.exec(html)?.[2] ?? null });
+    }
+  }
+  return [...out.values()];
+}
 
 // ---------- tokens ----------
 
@@ -163,6 +185,7 @@ export function buildInventory(src: FileSource, opts: InventoryOptions = {}): De
   else if (deps["@chakra-ui/react"]) { componentSystem = "chakra"; evidence = "@chakra-ui/react"; }
   else if (deps.antd) { componentSystem = "antd"; evidence = "antd"; }
   else if (deps["@mantine/core"]) { componentSystem = "mantine"; evidence = "@mantine/core"; }
+  else for (const d of ["@angular/material", "primeng", "vuetify", "element-plus", "quasar", "primevue", "naive-ui", "ant-design-vue"]) if (deps[d]) { componentSystem = d.replace(/^@angular\//, "angular-"); evidence = d; break; }
   const tw = deps.tailwindcss ?? deps["@tailwindcss/vite"] ?? deps["@tailwindcss/postcss"];
   const stack = {
     framework: layout.framework,
@@ -211,6 +234,7 @@ export function buildInventory(src: FileSource, opts: InventoryOptions = {}): De
       heading: /<h[12][^>]*className=(["'])([^"']+)\1/.exec(t)?.[2] ?? null,
     });
   }
+  if (layout.pageKinds.includes("angular-route")) pages.push(...angularPages(src, files));
 
   // 5. house idioms and off-system styling
   const idioms = new Set<string>();
@@ -237,6 +261,7 @@ export function buildInventory(src: FileSource, opts: InventoryOptions = {}): De
     primitives, composites, pages, idioms: sorted(idioms),
     offSystem: { ...off, classNameCount, ratio: Number(ratio.toFixed(3)) },
     verdict,
+    ...((): { look?: RepoLook } => { const look = repoLook(src); return look ? { look } : {}; })(),
     rules: [
       "Use only the building blocks and shared components listed here; a new building block is a design-system change.",
       "Colours, radius and spacing come from the theme tokens. No hex colours, no arbitrary [..] values beyond the ones the building blocks already use.",

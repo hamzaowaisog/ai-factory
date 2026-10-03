@@ -278,6 +278,7 @@ Others:
 **shadcn CLI + registry**: https://github.com/shadcn-ui/ui. `shadcn` 4.21.0 (2026-09-04). **mature**. MIT.
 - **ADOPT**: publish a private Folio3 registry (`registry.json` items for login, list/detail, dashboard, forms and the "mock-up" banner). The agent then composes screens with `shadcn add @folio3/...` instead of inventing UI.
 - Screens map to modules via item names.
+- **As built (2026-10-03):** no registry and no `shadcn add` at build time. The factory ships its own kit, `kits/shadcn/` (shadcn/ui components on Radix and Tailwind v4, one per design block, field and layer), and the stub commit copies it into the repo with the approved theme and a generated page per screen; the agent only writes each screen's container. See `docs/estimates-design.md`, "Kit and scaffold (as built)".
 
 **MSW** 2.15.0 and **react-router** 8.4.0 (both MIT): **ADOPT** for fake data and screen navigation, so the mock is clickable without a backend.
 

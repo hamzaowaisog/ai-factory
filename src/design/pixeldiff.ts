@@ -5,7 +5,7 @@
 // for a person to look at, not a pass or fail: a change request is meant to change pixels.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { findChromium } from "../estimate/screenshots.js";
+import { findChromium } from "./screenshots.js";
 
 export interface PixelPair { name: string; base: string; final: string; out: string }
 export interface PixelResult { name: string; differing: number; total: number; ratio: number; sizeChanged: boolean; base: { w: number; h: number }; final: { w: number; h: number }; diff?: string }
