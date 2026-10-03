@@ -7,13 +7,14 @@
 // The plan must cover every must-change and breaks path (a task's file scope or a mention in its notes), never
 // a test file (tests are written separately, outside any plan scope). The approval card shows the first few
 // under "Will also affect", requirement-anchored files first. Risk goes up for breaks and data changes.
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { z } from "zod";
 import type { CurrentBehaviourBody, Evidence, Risk, Spec } from "../contracts/index.js";
 import { failure } from "../gates/engine.js";
 import { matchesAny } from "../util/glob.js";
-import { candidateFiles, isTestPath, LENSES, rippleCandidates, type Lens, type RippleResult, type Seed } from "../context/ripple.js";
+import { listFiles } from "../context/snapshot.js";
+import { candidateFiles, isTestPath, LENSES, linkedCandidates, rippleCandidates, type Lens, type RippleResult, type Seed } from "../context/ripple.js";
 import { header, readOutput, requireOutput, type StepDef } from "./framework.js";
 import { snapshotFor } from "./workspace.js";
 import type { RunState } from "../ledger/state.js";
@@ -32,7 +33,10 @@ export interface ImpactResult {
   symbols: string[]; routes: string[]; entities: string[];
   /** per-lens cost and counts, when the lenses ran */
   lensStats?: LensStat[];
+  /** linked repos (read-only): needs a matching change there; never in a task scope, never edited by this run */
+  followUps?: FollowUp[];
 }
+export interface FollowUp { repo: string; path: string; lens: Lens; reason: string; evidence: Evidence; followUp: true }
 
 /** check items kept in the artifact (the card shows fewer) */
 const MAX_CHECK = 60;
@@ -87,8 +91,12 @@ export function mergeImpact(spec: Pick<Spec, "requirements">, ripple: RippleResu
   const raise = (to: Risk, reason: string) => { why.push(reason); if (RANK[to] > RANK[risk]) risk = to; };
   if (counts.breaks) raise("high", `${counts.breaks} file${counts.breaks === 1 ? "" : "s"} still use what a REMOVED requirement takes away`);
   if (ripple.lenses.data.length) raise("high", `the change reaches stored data (${[...new Set(ripple.lenses.data.map((c) => c.seed))].join(", ")})`);
-  if (ripple.lenses.screens.length) raise("medium", `${new Set(ripple.lenses.screens.map((c) => c.path)).size} screen file(s) call the changed code`);
-  if (counts.check >= 10) raise("medium", `${counts.check} other files use the changed code`);
+  // screens and many users raise risk only outside the module the change lives in: inside it they are expected
+  const outside = new Set(ripple.outside);
+  const farScreens = new Set(ripple.lenses.screens.filter((c) => outside.has(c.path)).map((c) => c.path));
+  if (farScreens.size) raise("medium", `${farScreens.size} screen file(s) in other modules call the changed code`);
+  const farChecks = list.filter((i) => i.level === "check" && outside.has(i.path)).length;
+  if (farChecks >= 10) raise("medium", `${farChecks} files in other modules use the changed code`);
   if (RANK[base] > RANK[risk]) risk = base;
   return { items: kept, counts, risk, riskWhy: why, symbols: ripple.symbols, routes: ripple.routes, entities: ripple.entities };
 }
@@ -123,12 +131,48 @@ export function planNote(impact: ImpactResult): string {
 /** The approval card's "Will also affect" lines: files outside the plan, breaks first, at most CARD_LINES. */
 export function affectsLines(impact: ImpactResult, planned: string[]): string[] {
   const outside = impact.items.filter((i) => !planned.includes(i.path) && !matchesAny(i.path, planned));
-  if (!outside.length) return [];
+  const follow = followUpLines(impact);
+  if (!outside.length) return follow;
   const order: Level[] = ["breaks", "must-change", "check"];
   const sorted = [...outside].sort((a, b) => order.indexOf(a.level) - order.indexOf(b.level));
   const shown = sorted.slice(0, CARD_LINES).map((i) => `- ${i.path} (${i.level === "check" ? i.lens : i.level}): ${i.reason}`);
   if (sorted.length > CARD_LINES) shown[CARD_LINES - 1] = `- …and ${sorted.length - CARD_LINES + 1} more (see the impact artifact)`;
-  return shown;
+  return [...shown, ...follow];
+}
+
+/** Search each linked repo's working tree (local, read-only) for calls to the changed routes and the changed type names. */
+export function linkedFollowUps(linked: { name: string; path: string }[], ripple: RippleResult, log: (m: string) => void = () => undefined): FollowUp[] {
+  const out: FollowUp[] = [];
+  for (const l of linked) {
+    if (!existsSync(l.path)) { log(`impact: linked repo ${l.name} not found at ${l.path}; skipped`); continue; }
+    const read = (p: string) => { try { return readFileSync(join(l.path, p), "utf8"); } catch { return undefined; } };
+    for (const c of linkedCandidates({ files: listFiles(l.path), read }, ripple, l.name)) {
+      out.push({ repo: l.name, path: c.path, lens: c.lens, followUp: true,
+        reason: c.kind === "route-call" ? `calls ${c.seed}` : `uses ${c.seed}`, evidence: { path: c.path, lineStart: c.line, lineEnd: c.line, quote: c.quote } });
+    }
+  }
+  return out;
+}
+
+const FOLLOW_UP_LINES = 5;
+/** "Needs a matching change in <repo>" lines, per repo, for the card and the PR body. */
+export function followUpLines(impact: Pick<ImpactResult, "followUps">): string[] {
+  const out: string[] = [];
+  const by = new Map<string, FollowUp[]>();
+  for (const f of impact.followUps ?? []) by.set(f.repo, [...(by.get(f.repo) ?? []), f]);
+  for (const [repo, fs] of by) {
+    out.push(`Needs a matching change in ${repo} (not changed by this run):`);
+    const files = [...new Map(fs.map((f) => [f.path, f])).values()];
+    out.push(...files.slice(0, FOLLOW_UP_LINES).map((f) => `- ${repo}: ${f.path}: ${f.reason}`));
+    if (files.length > FOLLOW_UP_LINES) out.push(`- …and ${files.length - FOLLOW_UP_LINES} more in ${repo}`);
+  }
+  return out;
+}
+
+/** The PR body's follow-up section ("" when there is none). */
+export function followUpSection(impact: Pick<ImpactResult, "followUps"> | undefined): string {
+  const lines = impact ? followUpLines(impact) : [];
+  return lines.length ? `\n\n## Follow-ups in linked repos\n${lines.join("\n")}` : "";
 }
 
 export function readImpact(state: RunState, ledger: Ledger): ImpactResult | undefined {
@@ -147,8 +191,9 @@ export const impactStep: StepDef = {
     const read = (p: string) => { try { return readFileSync(join(snap.root, p), "utf8"); } catch { return undefined; } };
     const seeds = seedsOf(spec, cb);
     const ripple = rippleCandidates({ files: snap.files, read }, seeds);
-    const lenses = ctx.project.impact?.lenses ? await runLenses(ctx, snap, spec, seeds, ripple) : undefined;
-    const impact: ImpactResult = { ...mergeImpact(spec, ripple, intent.risk, lenses?.findings), ...(lenses ? { lensStats: lenses.stats } : {}) };
+    const followUps = linkedFollowUps(ctx.project.linked ?? [], ripple, ctx.log);
+    const lenses = ctx.project.impact?.lenses ? await runLenses(ctx, snap, spec, seeds, ripple, followUps) : undefined;
+    const impact: ImpactResult = { ...mergeImpact(spec, ripple, intent.risk, lenses?.findings), ...(lenses ? { lensStats: lenses.stats } : {}), ...(followUps.length ? { followUps } : {}) };
     for (const l of lenses?.stats ?? []) ctx.log(`impact lens ${l.lens}: ${l.findings} findings, ${l.bad} bad quotes${l.retried ? " (asked again)" : ""}, $${l.usd.toFixed(3)}${l.error ? `; skipped: ${l.error}` : ""}`);
     ctx.log(`impact: ${impact.counts["must-change"]} must change, ${impact.counts.breaks} break, ${impact.counts.check} to check; risk ${impact.risk}`);
     const sha = ctx.ledger.putJson({ header: header(ctx.runId, "impact", "impact", ""), ...impact });

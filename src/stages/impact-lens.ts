@@ -41,8 +41,10 @@ const WHAT: Record<Lens, string> = {
 };
 
 /** The briefing for one lens (also used by the replay to count tokens without calling a model). */
-export function lensSections(lens: Lens, spec: Pick<Spec, "requirements">, seeds: Seed[], ripple: RippleResult): ResolvedSection[] {
+export function lensSections(lens: Lens, spec: Pick<Spec, "requirements">, seeds: Seed[], ripple: RippleResult, followUps: { repo: string; path: string; lens: Lens; reason: string }[] = []): ResolvedSection[] {
   const cands = ripple.lenses[lens].slice(0, 40).map((c) => `${c.path}:${c.line} [${c.kind}${c.breaks ? ", breaks" : ""}] ${c.quote.trim()}`);
+  // only the callers and screens lenses see the linked repos' hits; they can't be read or changed from here
+  const linked = lens === "callers" || lens === "screens" ? followUps.filter((f) => f.lens === lens).slice(0, 20) : [];
   return [
     S.template("tpl", `You are the ${lens} lens of an impact check. A change is about to be planned in this repository.
 Find the files OUTSIDE the changed code that this change will affect through your lens: ${WHAT[lens]}.
@@ -54,6 +56,7 @@ Do not list the changed files themselves. At most 20 findings; fewer, well-ancho
     S.artifact("requirements", "requirements", spec.requirements.map((r) => ({ id: r.id, op: r.op, ears: r.ears, anchors: (r.anchors ?? []).map((a) => `${a.path}:${a.lineStart}`) }))),
     S.reference("changed", `Changed code (seeds): ${[...new Set(seeds.map((s) => s.path))].join(", ") || "(none)"}\nChanged names: ${ripple.symbols.join(", ") || "(none)"}${ripple.routes.length ? `\nChanged routes: ${ripple.routes.join(", ")}` : ""}`),
     S.reference("candidates", cands.length ? `Code search candidates for the ${lens} lens:\n${cands.join("\n")}` : `Code search found no candidates for the ${lens} lens; search yourself.`),
+    ...(linked.length ? [S.reference("linked", `Already found in linked repos (read-only, follow-ups there; don't list them):\n${linked.map((f) => `- ${f.repo}: ${f.path}: ${f.reason}`).join("\n")}`)] : []),
     S.task(`List the files the change affects through the ${lens} lens.`),
   ];
 }
@@ -73,7 +76,7 @@ export function checkFindings(snap: Snapshot, reqIds: Set<string>, seeds: Set<st
 }
 
 /** Run the four lenses in parallel. Never fails the step: a lens that can't run is reported and skipped. */
-export async function runLenses(ctx: StepContext, snap: Snapshot, spec: Pick<Spec, "requirements">, seeds: Seed[], ripple: RippleResult): Promise<{ findings: LensFinding[]; stats: LensStat[] }> {
+export async function runLenses(ctx: StepContext, snap: Snapshot, spec: Pick<Spec, "requirements">, seeds: Seed[], ripple: RippleResult, followUps: Parameters<typeof lensSections>[4] = []): Promise<{ findings: LensFinding[]; stats: LensStat[] }> {
   const reqIds = new Set(spec.requirements.map((r) => r.id));
   const seedPaths = new Set(seeds.map((s) => s.path));
   // the four run at once: each gets a quarter of what the run has left, at most LENS_USD
@@ -88,7 +91,7 @@ export async function runLenses(ctx: StepContext, snap: Snapshot, spec: Pick<Spe
     const ask = (extra: ResolvedSection[]) => think(lensCtx, {
       stage: "impact", route: "impact-lens", cls: "read-large", budgetTokens: 15000, tools: ["read_file", "search"],
       repoTools: tools, schema: LensOut, maxTurns: 8, maxUsd,
-      sections: [...lensSections(lens, spec, seeds, ripple), ...extra],
+      sections: [...lensSections(lens, spec, seeds, ripple, followUps), ...extra],
     });
     try {
       let r = await ask([]);

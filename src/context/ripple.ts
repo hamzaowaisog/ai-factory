@@ -30,6 +30,8 @@ export interface Candidate {
   hop: 1 | 2;
   /** uses something a REMOVED requirement takes away */
   breaks?: boolean;
+  /** found in a linked repo (read-only): needs a matching change there, never part of this run */
+  repo?: string;
 }
 
 export interface RippleResult {
@@ -39,6 +41,8 @@ export interface RippleResult {
   settings: string[];
   roles: string[];
   lenses: Record<Lens, Candidate[]>;
+  /** candidate files outside the modules (csproj / package + feature folder) the seeds live in; tests never count */
+  outside: string[];
 }
 
 export interface Source { files: string[]; read(path: string): string | undefined }
@@ -167,13 +171,13 @@ export function rippleCandidates(src: Source, seeds: Seed[]): RippleResult {
   const routes = new Set<string>(), settings = new Set<string>(), roles = new Set<string>();
   const viaInterface = new Set<string>();
   // JS/TS exports and the module paths that lead to them ("lib/session" for lib/session.ts, "lib/x" for lib/x/index.ts)
-  const moduleOf = new Map<string, string[]>();
+  const exportsFrom = new Map<string, string[]>();
   for (const f of seedFiles) {
     const text = src.read(f) ?? "";
     const types = declared(f, text);
     if (/\.[mc]?[tj]sx?$/.test(f)) {
       const stem = f.replace(/\.[^./]+$/, "");
-      for (const t of types) moduleOf.set(t, [...(moduleOf.get(t) ?? []), stem, stem.replace(/\/index$/, "")]);
+      for (const t of types) exportsFrom.set(t, [...(exportsFrom.get(t) ?? []), stem, stem.replace(/\/index$/, "")]);
     }
     for (const t of [...types, ...extensionMethods(f, text)]) direct.add(t);
     if (removedFiles.has(f)) for (const t of [...types, ...extensionMethods(f, text)]) removedSymbols.add(t);
@@ -208,7 +212,7 @@ export function rippleCandidates(src: Source, seeds: Seed[]): RippleResult {
     if (!text) continue;
     const lines = text.split("\n");
     const test = isTest(f), migration = MIGRATION.test(f), front = FRONTEND.test(f) && !/\.cs$/i.test(f);
-    const foreign = front ? importedElsewhere(text, moduleOf) : new Set<string>();
+    const foreign = front ? importedElsewhere(text, exportsFrom) : new Set<string>();
     lines.forEach((raw, i) => {
       const line = raw.trim();
       if (!line || line.startsWith("//") || line.startsWith("using ") || line.startsWith("import ") && !front) return;
@@ -242,7 +246,9 @@ export function rippleCandidates(src: Source, seeds: Seed[]): RippleResult {
     });
   }
   for (const l of LENSES) lenses[l] = lenses[l].sort((a, b) => rank(a) - rank(b) || a.path.localeCompare(b.path) || a.line - b.line).slice(0, MAX_PER_LENS);
-  return { symbols, routes: [...routes], entities, settings: [...settings], roles: [...roles], lenses };
+  const seedModules = new Set(seedFiles.map((f) => moduleOf(f, src.files)));
+  const outside = [...new Set(LENSES.flatMap((l) => lenses[l]).map((c) => c.path))].filter((f) => !isTest(f) && !seedModules.has(moduleOf(f, src.files)));
+  return { symbols, routes: [...routes], entities, settings: [...settings], roles: [...roles], lenses, outside };
 }
 
 /** Names this JS/TS file imports from some other module than the seed that exports them (same name, other thing). */
@@ -262,6 +268,53 @@ function importedElsewhere(text: string, moduleOf: Map<string, string[]>): Set<s
 /** A route served by a file a REMOVED requirement anchors: calls to it break. */
 function seedsRouteRemoved(route: string, seeds: Seed[], src: Source): boolean {
   return seeds.some((s) => s.removed && routesOf(s.path, src.read(s.path) ?? "").includes(route));
+}
+
+const projectDirs = new WeakMap<string[], { cs: Set<string>; pkg: Set<string> }>();
+const dirOf = (p: string) => (p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "");
+
+/**
+ * The module a file belongs to: .NET, the folder of the csproj that owns it; JS/TS, the nearest package.json folder
+ * plus the feature folder under it (src/, app/ and pages/ skipped: "components", "(dashboard)"); else the top folder.
+ */
+export function moduleOf(path: string, files: string[]): string {
+  let dirs = projectDirs.get(files);
+  if (!dirs) {
+    dirs = { cs: new Set(files.filter((f) => /\.(cs|fs|vb)proj$/i.test(f)).map(dirOf)), pkg: new Set(files.filter((f) => /(^|\/)package\.json$/.test(f)).map(dirOf)) };
+    projectDirs.set(files, dirs);
+  }
+  const up = (set: Set<string>) => { for (let d = dirOf(path); ; d = dirOf(d)) { if (set.has(d)) return d; if (!d) return undefined; } };
+  const cs = up(dirs.cs);
+  // a csproj at the repo root owns its C# files, not a frontend that happens to sit under it
+  if (cs !== undefined && (cs !== "" || /\.(cs|razor|cshtml)$/i.test(path))) return `cs:${cs}`;
+  const pkg = up(dirs.pkg);
+  if (pkg !== undefined) {
+    const rest = (pkg ? path.slice(pkg.length + 1) : path).replace(/^(src\/)?((app|pages)\/)?/, "");
+    return `js:${pkg}|${rest.includes("/") ? rest.split("/")[0] : ""}`;
+  }
+  return `dir:${path.split("/")[0]}`;
+}
+
+/**
+ * A linked repo (read-only, e.g. the frontend of this backend): only calls to the changed routes (screens) and
+ * the changed type names (callers) are searched. Every hit is a follow-up there, never a change in this run.
+ */
+export function linkedCandidates(src: Source, r: Pick<RippleResult, "routes" | "symbols">, repo: string): Candidate[] {
+  const routeRes = r.routes.map((x) => [x, routePattern(x)!] as const);
+  const types = r.symbols.filter((x) => /^[A-Z]/.test(x)).map((x) => [x, word(x)] as const);
+  const out: Candidate[] = [];
+  const seen = new Set<string>();
+  for (const f of src.files) {
+    if (SKIP.test(f) || !CODE.test(f) || isTest(f)) continue;
+    const text = src.read(f);
+    if (!text) continue;
+    text.split("\n").forEach((raw, i) => {
+      const at = { path: f, line: i + 1, quote: raw.trimEnd().slice(0, 200), hop: 1 as const, repo };
+      for (const [x, re] of routeRes) if (re.test(raw) && !seen.has(`${f}|${x}`)) { seen.add(`${f}|${x}`); out.push({ ...at, lens: "screens", seed: x, kind: "route-call" }); }
+      for (const [x, re] of types) if (re.test(raw) && !seen.has(`${f}|${x}`)) { seen.add(`${f}|${x}`); out.push({ ...at, lens: "callers", seed: x, kind: "reference" }); }
+    });
+  }
+  return out.slice(0, MAX_PER_LENS);
 }
 
 /** Files the candidates name, best first (each file once). */
