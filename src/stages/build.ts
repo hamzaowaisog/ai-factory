@@ -38,7 +38,7 @@ import { sizeCap } from "../estimate/gates.js";
 import { buildWaiver } from "../estimate/build-waiver.js";
 import type { WaiverRow } from "../estimate/log.js";
 import { designFidelityLint, designSizeCap } from "../design/gates.js";
-import { screenBrief, screenFacts, screenFor, screenForTask, type ApprovedDesign } from "../estimate/design-link.js";
+import { screenBrief, screenFacts, screenFor, screensBrief, screensForTask, type ApprovedDesign } from "../design/design-link.js";
 import { scaffoldSummary, writeScaffold } from "../design/kit/index.js";
 import { scaffoldOfRun, type ScaffoldRecord } from "./scaffold-run.js";
 import { actualSize, approvedLevel, designOptions, fidelityLint, hasReactApp, touchesUiFiles } from "../design/build-checks.js";
@@ -670,8 +670,10 @@ export function implementStep(taskId: string): StepDef {
       const scaffoldScreen = scaf?.screens.find((x) => matchesAny(x.container, task.fileScope));
       const designSystemTask = !!scaf && scaf.designSystem.files.some((f) => matchesAny(f, task.fileScope));
       // every task that builds an approved screen gets its brief: an estimated build, --from-design, a kit or a repo of its own
-      const briefScreen = screen ?? (scaffoldScreen ? approvedDesign?.screens.find((x) => x.id === scaffoldScreen.id) : undefined) ?? screenForTask(approvedDesign, task);
-      const approvedScreen = approvedDesign && briefScreen ? screenBrief(approvedDesign, briefScreen) : undefined;
+      const fromScaffold = scaffoldScreen ? approvedDesign?.screens.find((x) => x.id === scaffoldScreen.id) : undefined;
+      const briefScreens = screen ? [screen] : fromScaffold ? [fromScaffold] : screensForTask(approvedDesign, task);
+      const approvedScreen = !approvedDesign || !briefScreens.length ? undefined
+        : briefScreens.length === 1 ? screenBrief(approvedDesign, briefScreens[0]!) : screensBrief(approvedDesign, briefScreens);
       const rt = runtime();
       await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
       await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);

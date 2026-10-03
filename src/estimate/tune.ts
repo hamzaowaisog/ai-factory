@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { hoursRows, type HoursRow } from "./calibrate.js";
 import { loadCatalogue, type Catalogue } from "./catalogue.js";
 import { actualHoursFile, factorChecks } from "./catalogue-status.js";
-import { cataloguesDir, clearProposal, currentCatalogue, generationOf, rootOf, saveProposal, saveTuned, tunedVersion } from "./catalogue-store.js";
+import { cataloguesDir, clearProposal, currentCatalogue, generationOf, readProposal, rootOf, saveProposal, saveTuned, tunedVersion } from "./catalogue-store.js";
 import { decisionPairs, type DecisionPair } from "./decisions.js";
 
 export interface TuneChange { path: string; from: number; to: number; measured: number; evidence: number; limited?: "cap" | "bound" }
@@ -36,6 +36,10 @@ export interface TunePlan {
   builds: number;
   projects: number;
   catalogue?: Catalogue;
+  /** apply only: the stored proposal was promoted as it was reviewed */
+  promoted?: true;
+  /** apply only: why nothing was promoted (no proposal, or one made from another version) */
+  refused?: string;
 }
 
 const r3 = (n: number): number => Math.round(n * 1000) / 1000;
@@ -130,19 +134,34 @@ export function withTuneLock<T>(f: () => T): T | undefined {
 
 /**
  * Measure the current version against every ledger and the actual-hours file. "report" only reports; "propose" (the
- * background tuner) writes the next version as a proposal, or clears a stale one when nothing is off; "apply" (a
- * person, `factory calibrate --apply`) writes the next version, which new estimates are then sized from.
+ * background tuner, and `factory calibrate --tune`) writes the next version as a proposal, or clears a stale one when
+ * nothing is off; "apply" (a person, `factory calibrate --apply`) promotes the stored proposal exactly as it was shown,
+ * never a plan measured again (the PR #11 re-review, item 3), and only when it was made from the current version.
  * Undefined when another tuner holds the lock.
  */
 export function tuneNow(opts: { mode: "report" | "propose" | "apply" }): TunePlan | undefined {
   return withTuneLock(() => {
+    if (opts.mode === "apply") return promoteProposal();
     const f = actualHoursFile();
     const plan = planTune(currentCatalogue(), loadCatalogue(), decisionPairs(), existsSync(f) ? hoursRows(f) : []);
     const root = rootOf(plan.from);
     if (opts.mode === "propose") { if (plan.catalogue) saveProposal(plan.catalogue); else clearProposal(root); }
-    if (opts.mode === "apply" && plan.catalogue) { saveTuned(plan.catalogue); clearProposal(root); }
     return plan;
   });
+}
+
+/** Promote the waiting proposal as it is: the reviewed version becomes the one new estimates are sized from. */
+function promoteProposal(): TunePlan {
+  const cur = currentCatalogue();
+  const root = rootOf(cur.version);
+  const waiting = readProposal(root);
+  const none = (refused: string): TunePlan => ({ from: cur.version, changes: [], fitted: [], waiting: [], flagged: [], builds: 0, projects: 0, refused });
+  if (!waiting?.tuned) return none(`no proposal is waiting for ${cur.version}: factory calibrate --tune measures it and proposes one`);
+  if (waiting.tuned.parent !== cur.version) return none(`the proposal ${waiting.version} was made from ${waiting.tuned.parent}, not the current ${cur.version}: run factory calibrate --tune to propose again`);
+  saveTuned(waiting);
+  clearProposal(root);
+  const t = waiting.tuned;
+  return { from: cur.version, to: waiting.version, changes: t.changes, fitted: [], waiting: [], flagged: t.flagged, builds: t.builds, projects: t.projects, catalogue: waiting, promoted: true };
 }
 
 /** Where background tuning writes what it did. */

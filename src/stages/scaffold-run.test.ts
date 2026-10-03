@@ -12,7 +12,7 @@ import { sampleDesign } from "../design/kit/index.js";
 import type { FileSource } from "../design/source.js";
 import type { Ledger } from "../ledger/ledger.js";
 import type { RunState } from "../ledger/state.js";
-import { screenScopeGaps } from "../estimate/design-link.js";
+import { screenScopeGaps } from "../design/design-link.js";
 import { changedScreens, checkPlanScaffold, designForScopeGate, scaffoldForPlan, scaffoldForRun, scaffoldOfRun, scaffoldPreview, scaffoldView, targetForRun } from "./scaffold-run.js";
 
 beforeEach(() => {

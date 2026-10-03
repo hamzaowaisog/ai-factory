@@ -196,7 +196,7 @@ describe("linked screens", () => {
 
 describe("layout problems on the design card", () => {
   it("lists what the screenshots found, at most eight", async () => {
-    const { designCard } = await import("../stages/estimate-approve.js");
+    const { designCard } = await import("../stages/design-approve.js");
     const design = { flow: "f", screens: [], mapping: { unmappedReqs: [], orphanScreens: [] } } as never;
     const issue = (i: number) => ({ screen: "Customers", state: "default", viewport: "phone" as const, kind: "clipped" as const, text: `Label ${i}` });
     const card = designCard("r1", design, "abcdef12", { shots: { dir: "d", count: 2, issues: Array.from({ length: 10 }, (_, i) => issue(i)) } });

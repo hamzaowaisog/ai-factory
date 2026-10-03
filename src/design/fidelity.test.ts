@@ -4,12 +4,16 @@
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { acceptBaselines, BaselineError, baselinesDir, readBaselineIndex, readBaselines } from "./baselines.js";
 import { checkExport, pdfFacts, wantedPairs } from "./export-check.js";
-import { approvedTheme, blockWords, expectedFor, fidelityPages, layoutFindings, structureFindings, tokenFindings, type FidelityReport } from "./fidelity-app.js";
+import { approvedTheme, blockWords, expectedFor, fidelityPages, layoutFindings, ownTokenSet, runFidelity, structureFindings, tokenFindings, type FidelityReport } from "./fidelity-app.js";
+import { ownTokens } from "./repo-look.js";
+import { findChromium } from "./screenshots.js";
 import type { ReadBlock } from "./fidelity-read.js";
 import { designA11yGate, designStructureGate, designTokensGate } from "./gates.js";
 import { e2eConfig, e2eFiles, pressesFor, screenSpec } from "./kit/e2e.js";
@@ -17,7 +21,7 @@ import { loadKit, scaffold } from "./kit/index.js";
 import { sampleDesign } from "./kit/sample.js";
 import type { DesignPackage } from "./package.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
-import { designFidelityStep, fidelityConfig } from "../stages/design-fidelity.js";
+import { designFidelityStep, fidelityConfig, inPlaceScreens, repoStart } from "../stages/design-fidelity.js";
 import { ProjectConfig } from "../config/project.js";
 import type { StepContext } from "../stages/framework.js";
 import { NO_TRACE } from "../util/trace.js";
@@ -43,6 +47,14 @@ describe("the pages and what they must show", () => {
     expect(pages.every((p) => p.id === "S-1")).toBe(true);
     // a route's parameters are filled the way the fixtures are
     expect(fidelityPages(design as never, ["S-2"])[0]!.path).toMatch(/^\/invoices\/sample\?fixture=S-2%3A/);
+  });
+
+  it("a screen changed in place: once per width at its route as the app runs it; a route with a parameter is not opened", () => {
+    const pages = fidelityPages(design as never, [], ["S-1", "S-2"]);
+    expect(pages.map((p) => p.key)).toEqual(["s-1-as-built-phone", "s-1-as-built-desktop", "s-1-as-built-tablet"]);
+    expect(pages.every((p) => p.path === "/" && p.inPlace && !p.mode && !p.lang)).toBe(true);
+    // a kit screen is not opened twice
+    expect(fidelityPages(design as never, ["S-1"], ["S-1"]).some((p) => p.inPlace)).toBe(false);
   });
 
   it("a block's words: its labels, columns and buttons; a search's filters fold away on a phone", () => {
@@ -128,6 +140,48 @@ describe("the blocking gates", () => {
     const own = report();
     own.levels[0] = { level: "tokens", blocking: false, check: "design.tokens", status: "UNCHECKED", detail: "the app keeps its own look" };
     expect(designTokensGate.predicate({ fidelity: own })).toMatchObject({ passed: true });
+    // advice only (an own look's tokens, an in-place screen's structure) warns and passes; a failing level lists only the rest
+    const advice = report({ findings: [{ level: "tokens", message: "colour rgb(1, 2, 3) is not a design colour (h1)", pages: ["a"], advice: true }] });
+    advice.levels[0]!.status = "WARN";
+    expect(designTokensGate.predicate({ fidelity: advice })).toMatchObject({ passed: true });
+    const mixed = report({ findings: [{ level: "structure", message: "the title is missing", pages: ["a"], advice: true }, { level: "structure", message: "table block is missing", pages: ["b"] }] });
+    mixed.levels[1]!.status = "FAIL";
+    const mv = JSON.stringify(designStructureGate.predicate({ fidelity: mixed }));
+    expect(mv).toContain("table block is missing");
+    expect(mv).not.toContain("the title is missing");
+  });
+
+  it("an app that keeps its own look is compared with the values its source names", () => {
+    const files: Record<string, string> = {
+      "src/index.css": ":root { --primary: 222 47% 11%; --radius: 0.5rem; --shadow-card: 0 1px 2px rgba(0,0,0,.1); }\nbody { font-family: \"Inter\", sans-serif; color: #333; }\n.card { border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,.2); }",
+      "tailwind.config.js": "module.exports = { theme: { extend: { colors: { brand: '#0ea5e9' }, fontFamily: { sans: ['Geist', 'sans-serif'] } } } }",
+      "node_modules/x/theme.css": "a { color: #abcdef }",
+      "src/App.tsx": "export default function App() { return null }",
+    };
+    const own = ownTokens({ list: () => Object.keys(files), read: (f) => files[f] })!;
+    expect(own.colours).toEqual(expect.arrayContaining(["#ffffff", "#000000", "#333333", "#0ea5e9", "#0f1729"]));
+    expect(own.colours).not.toContain("#abcdef");
+    expect(own.fonts).toEqual(expect.arrayContaining(["Inter", "Geist"]));
+    expect(own.radii).toEqual(expect.arrayContaining([0, 4, 8, 6]));
+    expect(own.shadows).toEqual(expect.arrayContaining(["0 1px 2px rgba(0,0,0,.1)", "0 2px 4px rgba(0,0,0,.2)"]));
+    expect(own).toMatchObject({ tailwind: true, from: ["src/index.css", "tailwind.config.js"] });
+    const set = ownTokenSet(own);
+    const style = (prop: "colour" | "font" | "radius" | "shadow", value: string, rgb?: [number, number, number, number]) => ({ prop, value, where: "h1", count: 1, ...(rgb ? { rgb } : {}) });
+    expect(tokenFindings([style("colour", "", [51, 51, 51, 1]), style("font", "Inter"), style("radius", "6px"), style("shadow", "rgba(0, 0, 0, 0.2) 0px 2px 4px 0px")], set)).toEqual([]);
+    expect(tokenFindings([style("colour", "", [200, 10, 10, 1]), style("font", "Comic Sans MS"), style("radius", "10px")], set)).toHaveLength(3);
+    // a source that names no font or shadow: those are not compared
+    expect(tokenFindings([style("font", "Times"), style("shadow", "rgba(0, 0, 0, 0.5) 0px 9px 9px 0px")], { ...set, fonts: [], shadows: [] })).toEqual([]);
+    expect(ownTokens({ list: () => ["README.md"], read: () => "#fff" })).toBeUndefined();
+  });
+
+  it("an existing app starts with its own scripts; the screens changed in place leave out the kit's and a phone app's", () => {
+    expect(repoStart(JSON.stringify({ scripts: { build: "next build", start: "next start" } }))).toBe("npm run build && npm start");
+    expect(repoStart(JSON.stringify({ scripts: { build: "vite build", preview: "vite preview" } }))).toBe("npm run build && npm run preview -- --port $PORT --strictPort --host 127.0.0.1");
+    expect(repoStart(JSON.stringify({ scripts: { test: "vitest" } }))).toBeUndefined();
+    expect(repoStart(undefined)).toBeUndefined();
+    expect(repoStart("{ not json")).toBeUndefined();
+    const d = { apps: [{ id: "web", device: "web" }, { id: "mob", device: "phone" }], screens: [{ id: "S-1", route: "/", app: "web" }, { id: "S-2", route: "/a", app: "mob" }, { id: "S-3", route: "/b" }, { id: "S-4", route: "/c", size: "design-system" }] };
+    expect(inPlaceScreens(d as never, ["S-3"])).toEqual(["S-1"]);
   });
 
   it("compares the tokens with the approved theme only: a new look's, never a default for an app with its own", () => {
@@ -245,7 +299,7 @@ describe("the design-fidelity step", () => {
     expect(p({ fidelity: false }).design?.fidelity).toBe(false);
   });
 
-  it("does nothing, and says why, without a kit scaffold or when switched off", async () => {
+  it("does nothing, and says why, without an approved design or when switched off", async () => {
     const ledger = Ledger.create(`20261003-fs-${Math.random().toString(16).slice(2, 6)}`);
     await ledger.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: "x" } }, HUMAN_WRITER);
     await ledger.append({ type: "step.completed", key: "integrate/1", inputsHash: "a".repeat(64), outputs: [ledger.putJson({})], data: { commit: "c1" } }, HUMAN_WRITER);
@@ -255,11 +309,42 @@ describe("the design-fidelity step", () => {
       return { runId: state.info.runId, ledger, writer: HUMAN_WRITER, state, project, policy: DEFAULT_POLICY, attempt: 1, rung: 0, priorFailures: [], log: (m: string) => logs.push(m), trace: NO_TRACE, usage: async () => undefined } as unknown as StepContext;
     };
     const out = await designFidelityStep.run(ctx({ design: { fidelity: { allowHost: true, port: 4320, readyPath: "/", timeoutSec: 600, env: {}, maxPages: 160 } } }));
-    expect(out).toMatchObject({ kind: "done", data: { skipped: expect.stringMatching(/no scaffold/) } });
+    expect(out).toMatchObject({ kind: "done", data: { skipped: "the run has no approved design" } });
     expect(logs[0]).toMatch(/^fidelity check skipped/);
     // no gate ran, so nothing waits on a waiver
     expect(ledger.events().some((e) => e.type === "gate.result")).toBe(false);
-    // no project setting at all: still only the missing scaffold stops it
-    expect(await designFidelityStep.run(ctx({}))).toMatchObject({ kind: "done", data: { skipped: expect.stringMatching(/no scaffold/) } });
+    // no project setting at all: still only the missing design stops it
+    expect(await designFidelityStep.run(ctx({}))).toMatchObject({ kind: "done", data: { skipped: "the run has no approved design" } });
+    expect(await designFidelityStep.run(ctx({ design: { fidelity: false } }))).toMatchObject({ kind: "done", data: { skipped: expect.stringMatching(/switched off/) } });
   });
+});
+
+describe("a screen changed in place, in a real browser", () => {
+  // the test config turns screenshots off everywhere else; this test is about the real browser
+  const offBefore = process.env.FACTORY_NO_SCREENSHOTS;
+  beforeAll(() => { delete process.env.FACTORY_NO_SCREENSHOTS; });
+  afterAll(() => { if (offBefore !== undefined) process.env.FACTORY_NO_SCREENSHOTS = offBefore; });
+
+  it.runIf(!!findChromium())("is opened at its route, its tokens compared with the app's own as advice", async () => {
+    const html = `<!doctype html><html lang="en"><head><title>Home</title><style>body{font-family:Inter,sans-serif;color:#333;background:#fff;margin:0}h1{color:#c80a0a}</style></head><body><main><h1>Home</h1><p>Hello</p></main></body></html>`;
+    const server = createServer((_q, res) => { res.setHeader("content-type", "text/html"); res.end(html); });
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+    try {
+      const out = mkdtempSync(join(tmpdir(), "fid-inplace-"));
+      const own = { colours: ["#ffffff", "#000000", "#333333"], fonts: ["Inter"], radii: [0], shadows: [], from: ["src/index.css"], tailwind: false };
+      const r = await runFidelity({ baseUrl: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, design: { ...design, theme: design.theme, themeSource: "repo" } as never, screens: [], inPlace: ["S-1", "S-2"], ownTokens: own, outDir: out, relDir: "design-fidelity", noWebkit: true });
+      expect(r.pages.map((p) => p.key)).toEqual(["s-1-as-built-phone", "s-1-as-built-tablet", "s-1-as-built-desktop"]);
+      expect(r.pages.every((p) => p.built)).toBe(true);
+      const red = r.findings.find((f) => f.level === "tokens" && /rgb\(200, 10, 10\)/.test(f.message));
+      expect(red).toMatchObject({ advice: true });
+      expect(r.levels.find((l) => l.level === "tokens")).toMatchObject({ status: "WARN", blocking: true });
+      expect(r.notes.join(" ")).toMatch(/S-2 \(\/invoices\/:id\) changed in place but not opened/);
+      expect(r.notes.join(" ")).toMatch(/compared with the values its source names \(src\/index.css\), as advice/);
+      // the structure of a screen changed in place is advice too, so it never fails the build on its own
+      expect(r.findings.filter((f) => f.level === "structure").every((f) => f.advice)).toBe(true);
+      expect(r.levels.find((l) => l.level === "structure")!.status).not.toBe("FAIL");
+    } finally {
+      server.close();
+    }
+  }, 120_000);
 });

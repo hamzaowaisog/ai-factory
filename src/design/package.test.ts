@@ -11,7 +11,7 @@ import { buildDemo } from "./demo.js";
 import { captureDemo, findChromium } from "./screenshots.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
-import { designCard } from "../stages/estimate-approve.js";
+import { designCard } from "../stages/design-approve.js";
 import { designExportStep, ensurePackage, exportRunPackage } from "../stages/design-export.js";
 import { codeBase } from "../stages/workspace.js";
 import { isUiPath } from "./size.js";

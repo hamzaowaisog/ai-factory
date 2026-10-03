@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { hashJson } from "../util/hash.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
-import {
-  budgetBurn, changeRequest, consistency, designBaseline, forgottenWork, leadApproval, readiness,
-  reqToTask, scopeLock, sizeCap, taskToReq, unrequestedBehaviour,
-} from "./gates.js";
+import { budgetBurn, changeRequest, consistency, forgottenWork, leadApproval, readiness, reqToTask, scopeLock, sizeCap, taskToReq, unrequestedBehaviour } from "./gates.js";
+import { designBaseline } from "../design/gates.js";
 
 // gates are pure predicates, so the fixtures are minimal objects cast to the input type
 const run = (g: { predicate: (i: any, p: any) => { passed: boolean; details: string } }, input: unknown) => g.predicate(input, DEFAULT_POLICY);

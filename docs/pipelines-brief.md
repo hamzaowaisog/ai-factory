@@ -93,7 +93,7 @@ After every estimate and build, the factory measures its numbers against what ac
 
 - **Small, bounded changes.** A value that already fits is left alone. Any change is at most ±20% per version, and hard floors and ceilings apply.
 - **Version pinning.** A run keeps the catalogue version it was sized with.
-- **Commands.** `factory calibrate --tune` shows what the tuning would change, `--apply` promotes it, and `--history` lists the versions and why each one changed.
+- **Commands.** `factory calibrate --tune` shows what the tuning would change and keeps it as the proposal, `--apply` promotes exactly that proposal, and `--history` lists the versions and why each one changed.
 
 ## Status
 

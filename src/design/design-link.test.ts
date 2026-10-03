@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "../gates/policy.js";
-import { approvedTokens, screenBrief, screenFacts, screenFor, screenForTask, screenScopeGaps, TOKENS_NOTE, type ApprovedDesign } from "./design-link.js";
-import { themeCss } from "../design/demo.js";
-import { designTokens } from "../design/tokens.js";
+import { approvedTokens, MAX_BRIEF_SCREENS, screenBrief, screenFacts, screenFor, screenForTask, screensBrief, screensForTask, screenScopeGaps, TOKENS_NOTE, type ApprovedDesign } from "./design-link.js";
+import { themeCss } from "./demo.js";
+import { designTokens } from "./tokens.js";
 import { screenScope } from "./gates.js";
 import { designQuality, hasExistingLook } from "../stages/design.js";
 
@@ -21,12 +21,32 @@ describe("approved design reaches the build", () => {
     const two: ApprovedDesign = { screens: [screen, { id: "S-2", route: "/home", file: "src/pages/home.tsx", reqs: ["R-2", "R-3"] }] };
     expect(screenForTask(two, { fileScope: ["src/pages/home.tsx", "src/api/**"] })?.id).toBe("S-2");
     expect(screenForTask(two, { fileScope: ["src/api/**"], reqs: ["R-1"] })?.id).toBe("S-1");
-    // a glob over both pages, or requirements no screen has: no one screen is this task's
-    expect(screenForTask(two, { fileScope: ["src/pages/**"], reqs: ["R-1"] })).toBeUndefined();
+    // a glob over both pages is narrowed by the requirements; requirements no screen has: no one screen is this task's
+    expect(screenForTask(two, { fileScope: ["src/pages/**"], reqs: ["R-1"] })?.id).toBe("S-1");
+    expect(screenForTask(two, { fileScope: ["src/pages/**"] })).toBeUndefined();
     expect(screenForTask(two, { fileScope: ["src/api/**"], reqs: ["R-9"] })).toBeUndefined();
     // the estimate's own link wins, and a skipped design gives none
     expect(screenForTask(two, { fileScope: ["src/pages/home.tsx"] }, screen)?.id).toBe("S-1");
     expect(screenForTask({ skipped: true, screens: [screen] }, { fileScope: ["src/pages/login.tsx"] })).toBeUndefined();
+  });
+  it("gives a task over several pages each of its screens (PR #11 re-review, item 5)", () => {
+    const three: ApprovedDesign = { ...design, screens: [screen, { id: "S-2", route: "/home", file: "src/pages/home.tsx", reqs: ["R-2"] }, { id: "S-3", route: "/help", file: "src/pages/help.tsx", reqs: ["R-3"] }] };
+    const ids = (xs: { id: string }[]) => xs.map((x) => x.id);
+    // a broad glob: every page in it, narrowed to the task's requirements when that leaves any
+    expect(ids(screensForTask(three, { fileScope: ["src/pages/**"] }))).toEqual(["S-1", "S-2", "S-3"]);
+    expect(ids(screensForTask(three, { fileScope: ["src/pages/**"], reqs: ["R-1", "R-2"] }))).toEqual(["S-1", "S-2"]);
+    expect(ids(screensForTask(three, { fileScope: ["src/pages/**"], reqs: ["R-9"] }))).toEqual(["S-1", "S-2", "S-3"]);
+    // several screens sharing the task's requirements, with no page file in scope
+    expect(ids(screensForTask({ ...three, screens: three.screens.map((x) => ({ ...x, reqs: ["R-1"] })) }, { fileScope: ["src/api/**"], reqs: ["R-1"] }))).toEqual(["S-1", "S-2", "S-3"]);
+    expect(screensForTask(three, { fileScope: ["src/api/**"], reqs: ["R-9"] })).toEqual([]);
+    // the brief carries each screen in full, up to the cap, and names the rest
+    const b = screensBrief(three, three.screens);
+    expect((b.screens as { screen: string }[]).map((x) => x.screen)).toEqual(["S-1", "S-2", "S-3"]);
+    expect(b.others).toBeUndefined();
+    const many = Array.from({ length: MAX_BRIEF_SCREENS + 2 }, (_, i) => ({ id: `S-${i}`, route: `/p${i}`, file: `src/pages/p${i}.tsx`, reqs: ["R-1"] }));
+    const big = screensBrief({ ...design, screens: many }, many);
+    expect((big.screens as unknown[]).length).toBe(MAX_BRIEF_SCREENS);
+    expect((big.others as { screen: string }[]).map((x) => x.screen)).toEqual([`S-${MAX_BRIEF_SCREENS}`, `S-${MAX_BRIEF_SCREENS + 1}`]);
   });
   it("tells the implementer the new theme for a new product, and the existing app's tokens for an existing one", () => {
     expect(screenBrief(design, screen).look).toEqual({ brand: "#123456" });

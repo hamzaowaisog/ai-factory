@@ -214,10 +214,11 @@ describe.skipIf(!browser)("intake in the browser", () => {
       if (u.includes("/v1/files/AbCdEfGhIjKlMn?depth=2")) return Response.json({ name: "App", document: { id: "0:0", type: "DOCUMENT", children: [{ id: "0:1", type: "CANVAS", children: [frame] }] } });
       if (u.includes("/v1/files/AbCdEfGhIjKlMn/nodes")) return Response.json({ nodes: { "1:2": { document: frame, styles: {} } } });
       if (u.includes("/v1/images/")) return Response.json({ err: null, images: { "1:2": "https://figma-alpha-api.s3.example/1.png" } });
-      if (u.startsWith("https://figma-alpha-api")) return new Response(png(144, 90, [255, 255, 255], [102, 51, 230]));
       return new Response("", { status: 404 });
     }) as typeof fetch;
-    const r = (await gatherReferences([{ kind: "url", url: "https://www.figma.com/design/AbCdEfGhIjKlMn/App" }], {}, { figma: { fetch: fetchFake, token: () => "t" } }))[0]!;
+    // the pictures are fetched pinned, not through the API's fetch
+    const picture = async (u: URL) => (u.hostname.startsWith("figma-alpha-api") ? { status: 200, body: png(144, 90, [255, 255, 255], [102, 51, 230]) } : { status: 404, body: Buffer.alloc(0) });
+    const r = (await gatherReferences([{ kind: "url", url: "https://www.figma.com/design/AbCdEfGhIjKlMn/App" }], {}, { figma: { fetch: fetchFake, picture, token: () => "t" } }))[0]!;
     expect(r).toMatchObject({ kind: "figma", role: "match", measured: "exact", radiusPx: 8 });
     expect(r.images.map((i) => i.label)).toEqual(["Home"]);
     expect(r.colours.find((c) => c.role === "brand")?.hex).toBe("#6633e6");

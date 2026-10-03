@@ -5,16 +5,20 @@
 // screens (a kit scaffold), with the kit's own commands; design.fidelity changes them, and `design.fidelity: false` switches it off.
 // The app is the agents' code, so it is installed and started in containers (the agent image; the install reaches only the
 // package feeds, the app no network at all), never on this machine unless the project says `allowHost: true` (the PR #11
-// re-review, blocker 2).
+// re-review, blocker 2). Since the re-review's item 8 also the screens changed in place in an existing app (no kit): each opened
+// at its route as the app runs it, started with design.fidelity.start or the repo's own start script, its tokens compared with
+// the values the app's source names (advice) when it keeps its own look.
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Failure } from "../contracts/index.js";
 import { withAppInContainer } from "../design/app-container.js";
 import { withApp } from "../design/app-runner.js";
 import { readBaselines } from "../design/baselines.js";
-import { runFidelity, type FidelityReport } from "../design/fidelity-app.js";
+import { approvedTheme, runFidelity, type FidelityReport } from "../design/fidelity-app.js";
 import { FIDELITY_GATES } from "../design/gates.js";
 import { findPackage } from "../design/package.js";
+import { ownTokens } from "../design/repo-look.js";
+import { gitSource } from "../design/source.js";
 import { buildWaiver, type BuildFailed } from "../estimate/build-waiver.js";
 import type { WaiverRow } from "../estimate/log.js";
 import { failure, runGate } from "../gates/engine.js";
@@ -34,6 +38,26 @@ export const DEFAULT_INSTALL = "npm install --no-audit --no-fund";
 /** The kit's own build-and-start command for a target, on $PORT. */
 export const defaultStart = (target: string): string =>
   target === "vite-shadcn" ? "npx vite build && npx vite preview --port $PORT --strictPort" : "npx next build && npx next start -p $PORT";
+
+/**
+ * An existing app's own build-and-start command, from its package.json scripts: its start script (which reads $PORT, as
+ * next start and most Node servers do), else a Vite preview on $PORT. Undefined when it has neither (then the project says it).
+ */
+export function repoStart(pkgJson: string | undefined): string | undefined {
+  let scripts: Record<string, string> = {};
+  try { scripts = (JSON.parse(pkgJson ?? "{}") as { scripts?: Record<string, string> }).scripts ?? {}; } catch { return undefined; }
+  const build = scripts.build ? "npm run build && " : "";
+  if (scripts.start) return `${build}npm start`;
+  if (scripts.preview) return `${build}npm run preview -- --port $PORT --strictPort --host 127.0.0.1`;
+  return undefined;
+}
+
+type Approved = Parameters<typeof runFidelity>[0]["design"] & { apps?: { id: string; device?: string }[] };
+/** The screens changed in place: the approved screens the kit does not build, outside a phone app. */
+export function inPlaceScreens(design: Approved, kit: string[]): string[] {
+  const phone = new Set((design.apps ?? []).filter((a) => a.device === "phone").map((a) => a.id));
+  return design.screens.filter((s) => !kit.includes(s.id) && !(s.app && phone.has(s.app)) && (s as { size?: string }).size !== "design-system").map((s) => s.id);
+}
 
 type FidelityConfig = Exclude<NonNullable<NonNullable<ProjectConfig["design"]>["fidelity"]>, false>;
 /** The project's fidelity settings, with the defaults when it sets none. */
@@ -57,23 +81,30 @@ export const designFidelityStep: StepDef = {
       ctx.log(`fidelity check skipped: ${why}`);
       return done({ kind: "design-fidelity", levels: [], findings: [], pages: [], overall: "unchecked", ran: [], notes: [], skipped: why });
     };
-    const scaf = readOutput<ScaffoldRecord>(ctx.state, ctx.ledger, "stub-commit", "scaffold");
-    if (!scaf) return skip("the run has no scaffold (no approved design, or it was not generated)");
-    if (scaf.target === "repo" || !scaf.screens.length) return skip("the screens are built with the repo's own components, not the kit");
     if (ctx.project.design?.fidelity === false) return skip("switched off (design.fidelity: false in the project config)");
-    const cfg = fidelityConfig(ctx.project);
-    const approved = approvedDesignFor<Parameters<typeof runFidelity>[0]["design"]>(ctx.state, ctx.ledger);
+    const approved = approvedDesignFor<Approved>(ctx.state, ctx.ledger);
     if (!approved) return skip("the run has no approved design");
+    const scaf = readOutput<ScaffoldRecord>(ctx.state, ctx.ledger, "stub-commit", "scaffold");
+    const kit = scaf && scaf.target !== "repo" ? scaf.screens.map((x) => x.id) : [];
+    const inPlace = inPlaceScreens(approved.design, kit);
+    if (!kit.length && !inPlace.length) return skip("the approved design has no screen to open in a browser");
+    const cfg = fidelityConfig(ctx.project);
     const pkg = findPackage(ctx.state.info.project, approved.sha);
     const wt = await ensureWorktree(ctx, head);
+    // the kit's commands for a kit scaffold; for an app changed in place, the project's or the repo's own start script
+    const start = cfg.start ?? (kit.length ? defaultStart(scaf!.target) : repoStart(gitSource(wt, head).read("package.json")));
+    if (!start) return skip("the screens are changed in place and the app has no start or preview script: set design.fidelity.start to its build-and-start command on $PORT");
+    // an app that keeps its own look: its own values, from its source at the base commit
+    const { repoPath, baseCommit } = ctx.state.info;
+    const own = !approvedTheme(approved.design) && repoPath && baseCommit ? ownTokens(gitSource(repoPath, baseCommit)) : undefined;
     const outDir = join(ctx.ledger.dir, FIDELITY_DIR);
     rmSync(outDir, { recursive: true, force: true });
     mkdirSync(outDir, { recursive: true });
     let report: FidelityReport;
     try {
-      const app = { install: cfg.install ?? DEFAULT_INSTALL, start: cfg.start ?? defaultStart(scaf.target), port: cfg.port, readyPath: cfg.readyPath, timeoutSec: cfg.timeoutSec, env: cfg.env, what: "fidelity check" };
+      const app = { install: cfg.install ?? DEFAULT_INSTALL, start, port: cfg.port, readyPath: cfg.readyPath, timeoutSec: cfg.timeoutSec, env: cfg.env, what: "fidelity check" };
       const check = (baseUrl: string) => runFidelity({
-        baseUrl, design: approved.design, screens: scaf.screens.map((x) => x.id),
+        baseUrl, design: approved.design, screens: kit, inPlace, ...(own ? { ownTokens: own } : {}),
         ...(pkg ? { demoFile: join(pkg.dir, "demo", "index.html"), shots: pkg.manifest.shots, baselines: readBaselines(pkg) } : {}),
         outDir, relDir: FIDELITY_DIR, log: ctx.log, max: cfg.maxPages,
       });
@@ -123,21 +154,25 @@ export function packageOfRun(state: RunState, ledger: Ledger): DesignPackage | u
 }
 
 /**
- * Check an app that is already running (`factory design fidelity <run> --url`): the run's approved design and the screens its
- * scaffold builds with the kit, written to the run's fidelity folder like the step's. Gates are not run: this is to look.
+ * Check an app that is already running (`factory design fidelity <run> --url`): the run's approved design, the screens its
+ * scaffold builds with the kit and the screens changed in place, written to the run's fidelity folder like the step's. Gates are
+ * not run: this is to look.
  */
 export async function checkRunningApp(state: RunState, ledger: Ledger, project: ProjectConfig, baseUrl: string, log: (m: string) => void): Promise<FidelityReport> {
-  const approved = approvedDesignFor<Parameters<typeof runFidelity>[0]["design"]>(state, ledger);
+  const approved = approvedDesignFor<Approved>(state, ledger);
   if (!approved) throw new Error(`Run ${ledger.runId} has no approved design`);
   const built = readOutput<ScaffoldRecord>(state, ledger, "stub-commit", "scaffold");
-  const screens = built?.screens ?? scaffoldPreview(state, ledger, project).layout?.screens;
-  if (!screens?.length) throw new Error("The screens are built with the repo's own components: the fidelity check is for a kit scaffold");
+  const kit = (built ? (built.target !== "repo" ? built.screens : []) : scaffoldPreview(state, ledger, project).layout?.screens ?? []).map((x) => x.id);
+  const inPlace = inPlaceScreens(approved.design, kit);
+  if (!kit.length && !inPlace.length) throw new Error("The approved design has no screen to open in a browser");
+  const { repoPath, baseCommit } = state.info;
+  const own = !approvedTheme(approved.design) && repoPath && baseCommit ? ownTokens(gitSource(repoPath, baseCommit)) : undefined;
   const pkg = findPackage(state.info.project, approved.sha);
   const outDir = join(ledger.dir, FIDELITY_DIR);
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });
   const report = await runFidelity({
-    baseUrl, design: approved.design, screens: screens.map((x) => x.id),
+    baseUrl, design: approved.design, screens: kit, inPlace, ...(own ? { ownTokens: own } : {}),
     ...(pkg ? { demoFile: join(pkg.dir, "demo", "index.html"), shots: pkg.manifest.shots, baselines: readBaselines(pkg) } : {}),
     outDir, relDir: FIDELITY_DIR, log, max: fidelityConfig(project).maxPages,
   });

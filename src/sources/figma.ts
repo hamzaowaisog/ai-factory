@@ -4,7 +4,7 @@
 // shadows; exact values), and up to 8 frames are exported as pictures. The model never reads the JSON.
 import { secret } from "../config/env.js";
 import type { RefColour, Reference } from "../contracts/reference.js";
-import { isPrivateAddress, readResponseCapped } from "../util/safe-fetch.js";
+import { pinnedRequest, readResponseCapped, type Resolve } from "../util/safe-fetch.js";
 
 export const FIGMA_API = "https://api.figma.com";
 /** frames exported from one file */
@@ -211,8 +211,12 @@ export function readFigmaJson(text: string): { roots: FigmaNode[]; styles: Figma
 // ---------- the REST API ----------
 
 export interface FigmaDeps {
-  /** HTTP (tests replace it) */
+  /** HTTP to the API (tests replace it) */
   fetch?: typeof fetch;
+  /** DNS for the pictures' hosts (tests replace it); each picture connects only to an address checked here */
+  resolve?: Resolve;
+  /** fetches one picture (tests replace it); default a request pinned to the address its own lookup checked */
+  picture?: (url: URL) => Promise<{ status: number; body: Buffer }>;
   /** waits out a rate limit (tests replace it) */
   sleep?: (ms: number) => Promise<void>;
   /** the token; default FIGMA_TOKEN from ~/.factory/.env or the environment */
@@ -291,17 +295,16 @@ export async function readFigmaLink(raw: string, deps: FigmaDeps = {}): Promise<
   const notes: string[] = [];
   const img = await call<{ err?: string | null; images?: Record<string, string | null> }>(`/v1/images/${key}?ids=${ids.map(encodeURIComponent).join(",")}&format=png&scale=1`, deps, token);
   if (img.err) notes.push(`Figma did not export the frames: ${String(img.err).slice(0, 120)}`);
-  const f = deps.fetch ?? fetch;
   const frames: FigmaRead["frames"] = [];
   for (const n of outline) {
     const url = img.images?.[n.id];
     let png: Buffer | undefined;
     if (url && /^https:\/\//.test(url)) {
+      // pinned (the PR #11 re-review, item 17): the connection goes only to the address its own lookup checked, so a name that
+      // resolves to a private address, or changes between the check and the connection, is never reached; no redirect is followed
       try {
-        if (isPrivateAddress(new URL(url).hostname)) throw new FigmaError("private address");
-        const res = await f(url, { signal: AbortSignal.timeout(60_000), redirect: "error" });
-        if (res.ok) png = await readResponseCapped(res, MAX_FRAME_PNG_BYTES);
-        else await res.body?.cancel().catch(() => undefined);
+        const res = await (deps.picture ?? ((u: URL) => pinnedRequest(u, { allowPrivate: false, maxBytes: MAX_FRAME_PNG_BYTES, timeoutMs: 60_000, ...(deps.resolve ? { resolve: deps.resolve } : {}) })))(new URL(url));
+        if (res.status === 200) png = res.body;
       } catch { /* noted below */ }
     }
     if (!png) notes.push(`frame "${n.name ?? n.id}" could not be exported as a picture`);
