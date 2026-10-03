@@ -51,8 +51,9 @@ agentEnv:                          # dummy values so the app compiles where the 
 #     start: "npm run start -- -p $PORT"
 #     pages: [{ name: home, path: "/" }, { name: orders, path: "/orders" }]
 #     readyPath: "/"
-#   fidelity:                        # opt-in check of a kit build against the approved design, after accept (docs/estimates-design.md, "Fidelity and tests")
-#     allowHost: true                # REQUIRED: you agree to build and start the app on this machine
+#   fidelity:                        # check of a kit build against the approved design, after accept; on by default for kit scaffolds,
+#                                    # `fidelity: false` switches it off (docs/estimates-design.md, "Fidelity and tests")
+#     allowHost: true                # optional: run the app on this machine instead of in containers (the default, 2026-10-04)
 #     install: "npm install --no-audit --no-fund"   # the default
 #     start: "npx next build && npx next start -p $PORT"   # default per target (vite: vite build && vite preview)
 #     port: 4320

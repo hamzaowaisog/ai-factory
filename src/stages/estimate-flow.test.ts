@@ -19,7 +19,7 @@ import { computeTotals } from "../estimate/totals.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
-import { approveEstimateStep, designBaselineStep, exportStep } from "./estimate-approve.js";
+import { approveEstimateStep, designBaselineStep, exportStep, makeDesignApprovalStep } from "./estimate-approve.js";
 import { estimateGroundStep, newBuildBehaviour } from "./estimate-ground.js";
 import { breakdownStep, estimateStep, setRecordsSource, setTaskRecordsSource } from "./estimate.js";
 import { designQuality, designStep, mapDesign, MAX_DESIGN_REVISIONS } from "./design.js";
@@ -655,6 +655,26 @@ describe("a small UI fix gets a design note (PR #11 review, item 9)", () => {
     const md = (card as { card: { markdown: string } }).card.markdown;
     expect(md).toContain("## Design note (a small change to existing pages: no demo is drawn, and approving the estimate approves this note)");
     expect(md).toContain("- S-1 /login (app/login/page.tsx; tweak) -> REQ-1, REQ-2: Add a Remember me checkbox");
+  });
+
+  it("outside an estimate the note gets its own card, and only a person's approval passes it (PR #11 re-review, blocker 1)", async () => {
+    for (const purpose of ["build", "design"] as const) {
+      const ledger = await smallFix();
+      answer = () => note();
+      expect((await exec(ledger, designStep)).kind).toBe("done");
+      const step = makeDesignApprovalStep({ purpose });
+      const card = await exec(ledger, step);
+      expect(card.kind).toBe("wait");
+      const md = (card as { card: { markdown: string } }).card.markdown;
+      expect(md).toContain("approve this note, or reject it with the reason");
+      expect(md).not.toContain("approving the estimate");
+      expect(md).toContain("- S-1 /login (app/login/page.tsx; tweak) -> REQ-1, REQ-2: Add a Remember me checkbox");
+      expect(existsSync(join(ledger.dir, "design-demo.html"))).toBe(false);
+      await decide(ledger, card, "design-baseline", "approve");
+      const done = await exec(ledger, step);
+      expect(done.kind).toBe("done");
+      expect(ledger.getJson((done as { outputs: Record<string, string> }).outputs.baseline!)).toMatchObject({ ui: true, note: true, by: "lead" });
+    }
   });
 
   it("draws the full design when the note needs a new page", async () => {

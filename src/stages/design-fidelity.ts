@@ -3,9 +3,13 @@
 // package pictures, and checked for tokens, structure and accessibility (blocking gates design.tokens, design.structure and
 // design.a11y, waivable on the waiver card) and layout and pixels (advice). On by default whenever the factory generated the
 // screens (a kit scaffold), with the kit's own commands; design.fidelity changes them, and `design.fidelity: false` switches it off.
+// The app is the agents' code, so it is installed and started in containers (the agent image; the install reaches only the
+// package feeds, the app no network at all), never on this machine unless the project says `allowHost: true` (the PR #11
+// re-review, blocker 2).
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Failure } from "../contracts/index.js";
+import { withAppInContainer } from "../design/app-container.js";
 import { withApp } from "../design/app-runner.js";
 import { readBaselines } from "../design/baselines.js";
 import { runFidelity, type FidelityReport } from "../design/fidelity-app.js";
@@ -21,7 +25,8 @@ import { ProjectConfig } from "../config/project.js";
 import type { Ledger } from "../ledger/ledger.js";
 import type { RunState } from "../ledger/state.js";
 import type { DesignPackage } from "../design/package.js";
-import { ensureWorktree } from "./workspace.js";
+import { AGENT_IMAGE, ensureAgentImage, ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
+import { ensureWorktree, runtime } from "./workspace.js";
 
 export const FIDELITY_DIR = "design-fidelity";
 export const DEFAULT_INSTALL = "npm install --no-audit --no-fund";
@@ -66,14 +71,21 @@ export const designFidelityStep: StepDef = {
     mkdirSync(outDir, { recursive: true });
     let report: FidelityReport;
     try {
-      report = await withApp({
-        cwd: wt, install: cfg.install ?? DEFAULT_INSTALL, start: cfg.start ?? defaultStart(scaf.target), port: cfg.port,
-        readyPath: cfg.readyPath, timeoutSec: cfg.timeoutSec, env: cfg.env, what: "fidelity check",
-      }, (baseUrl) => runFidelity({
+      const app = { install: cfg.install ?? DEFAULT_INSTALL, start: cfg.start ?? defaultStart(scaf.target), port: cfg.port, readyPath: cfg.readyPath, timeoutSec: cfg.timeoutSec, env: cfg.env, what: "fidelity check" };
+      const check = (baseUrl: string) => runFidelity({
         baseUrl, design: approved.design, screens: scaf.screens.map((x) => x.id),
         ...(pkg ? { demoFile: join(pkg.dir, "demo", "index.html"), shots: pkg.manifest.shots, baselines: readBaselines(pkg) } : {}),
         outDir, relDir: FIDELITY_DIR, log: ctx.log, max: cfg.maxPages,
-      }), ctx.log);
+      });
+      if (cfg.allowHost) {
+        ctx.log("fidelity check: running the app on this machine (design.fidelity.allowHost: true)");
+        report = await withApp({ cwd: wt, ...app }, check, ctx.log);
+      } else {
+        const rt = runtime();
+        await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
+        await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
+        report = await withAppInContainer({ rt, image: AGENT_IMAGE, runId: ctx.runId, repo: wt, commit: head, ...app }, check, ctx.log);
+      }
     } catch (e) {
       report = { kind: "design-fidelity", levels: [], findings: [], pages: [], overall: "unchecked", ran: [], notes: [], skipped: `the app did not start: ${(e as Error).message}` };
     }

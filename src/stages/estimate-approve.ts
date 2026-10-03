@@ -161,13 +161,29 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
           : "This request has UI, and the design step has not produced a mock and clickable demo for this run. Produce the design, then resume." };
       }
       const designSha = outputOf(ctx.state, "design")!;
-      // a small fix's text note: no demo and no card of its own; the estimate card shows it and its approval covers it
-      if (design.note) {
+      // a small fix's text note in an estimate: no demo and no card of its own; the estimate card shows it and its approval covers it
+      if (design.note && purpose === "estimate") {
         const g = await gate(ctx, "design-baseline", designBaseline, { ui: true, design, note: true });
         if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [failure("e1b", g.details)], signature: `e1b:${g.details.slice(0, 80)}` };
         return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, note: true, by: "with the estimate (E7)" }) }, data: { ui: true, note: true, screens: design.screens.length } };
       }
       const past = decisionsOn(ctx.state, "design-");
+      // a build or a design-only run has no estimate to approve the note with (PR #11 re-review, blocker 1): a short card of its own
+      if (design.note) {
+        const noteBundle = (round: number) => ctx.ledger.putJson({ design: designSha, note: true, round });
+        const last = past[past.length - 1];
+        if (last && last.artifactSha === noteBundle(past.length - 1)) {
+          const rejects = past.filter((x) => x.decision === "reject").length;
+          if (last.decision === "reject" && rejects > MAX_DESIGN_REVISIONS) return { kind: "park", reason: `The design note was sent back ${rejects} times${reasonOf(last) ? `, last time: ${reasonOf(last)}` : ""}. Change the request to show what you want, then start again.` };
+          if (last.decision === "approve") {
+            const g = await gate(ctx, "design-baseline", designBaseline, { ui: true, design, approval: { decision: "approved", by: last.by } });
+            if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [failure("e1b", g.details)], signature: `e1b:${g.details.slice(0, 80)}` };
+            return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, note: true, by: last.by }) }, data: { ui: true, note: true, screens: design.screens.length } };
+          }
+        }
+        const bundle = noteBundle(past.length);
+        return { kind: "wait", card: { cardId: `design-${bundle.slice(0, 8)}`, kind: "design-approval", artifactSha: bundle, markdown: [...CARD_HEAD[purpose](ctx.runId), ...designNoteLines(design, purpose)].join("\n") } };
+      }
       // the demo is drawn from the design, the requirement text and the attached frames; the approval is tied to that exact page
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
       const listed = listedFrames(ctx.state.info.request ?? "");
@@ -297,14 +313,16 @@ const usd = (r: { min: number; max: number }): string => `$${r.min.toFixed(2)}-$
 
 /** The one review the lead does: anchors first, then totals, cost, flags, the gate and waiver log. */
 /** A small fix's design note on the estimate card: each page it touches and what changes there. */
-export function designNoteLines(d: { flow: string; screens: { id: string; route: string; file: string; reqs: string[]; size?: string; change?: string }[]; noScreen?: { req: string; reason: string }[] } | undefined): string[] {
+export function designNoteLines(d: { flow: string; screens: { id: string; route: string; file: string; reqs: string[]; size?: string; change?: string }[]; noScreen?: { req: string; reason: string }[] } | undefined, purpose: DesignPurpose = "estimate"): string[] {
   if (!d) return [];
   return [
-    `## Design note (a small change to existing pages: no demo is drawn, and approving the estimate approves this note)`,
+    purpose === "estimate"
+      ? `## Design note (a small change to existing pages: no demo is drawn, and approving the estimate approves this note)`
+      : `## Design note (a small change to existing pages: no demo is drawn; approve this note, or reject it with the reason)`,
     `Flow: ${d.flow}`,
     ...d.screens.map((s) => `- ${s.id} ${s.route} (${s.file}; ${s.size ?? "tweak"}) -> ${s.reqs.join(", ")}: ${s.change ?? ""}`),
     ...(d.noScreen ?? []).map((n) => `- ${n.req} needs no page: ${n.reason}`),
-    `If the note is wrong, reject with the reason; the next estimate run draws it again.`, ``,
+    purpose === "estimate" ? `If the note is wrong, reject with the reason; the next estimate run draws it again.` : `If the note is wrong, reject with the reason; the design step writes it again.`, ``,
   ];
 }
 

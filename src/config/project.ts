@@ -139,11 +139,15 @@ export const ProjectConfig = z.object({
     /**
      * Check the built app against the approved design (docs/estimates-design.md, "Fidelity and tests"): tokens, structure and
      * accessibility block (waivable), layout and pixels advise. On by default whenever the factory generated the screens (a kit
-     * scaffold: next-shadcn, vite-shadcn), with the kit's own commands; this object only changes them. The app is built and started
-     * ON THIS MACHINE in the run's worktree (a scratch HOME, none of the factory's secrets); `false` switches the check off.
+     * scaffold: next-shadcn, vite-shadcn), with the kit's own commands; this object only changes them. The app is installed and
+     * started in containers (the agent image: the install reaches only the package feeds, the app has no network); `false`
+     * switches the check off.
      */
     fidelity: z.union([z.literal(false), z.object({
-      /** accepted for older configs; the check no longer needs it */
+      /**
+       * true runs the app ON THIS MACHINE instead, in the run's worktree with a scratch HOME (for a factory host with no
+       * container runtime): you are agreeing to run the agents' generated code and its install scripts here, with network access.
+       */
       allowHost: z.literal(true).optional(),
       /** run once in the checkout first; default "npm install --no-audit --no-fund" */
       install: z.string().optional(),

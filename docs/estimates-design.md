@@ -149,6 +149,7 @@ The mock and clickable demo are the baseline the estimate stands on. Screen coun
   - the note is checked against the requirements like a full design;
   - gate E1b passes on the note with no card;
   - the **estimate card (E7)** shows a "Design note" section, and approving the estimate approves the note. So there is one approval instead of two.
+  - **Only in an estimate (the PR #11 re-review, blocker 1, 2026-10-04, as built).** A build or a design-only run has no estimate card, so there the note gets a short card of its own (`design-approval`, the note's pages and changes, no demo). Gate E1b passes only once a person approves it; a rejection sends it back to the design step with the reason. Before this fix, the note passed E1b with nobody approving it outside estimates.
   - there is no design package (nothing to export);
   - the build brief carries each page's `change` text.
 
@@ -761,14 +762,19 @@ Like the other build gates, the blocking ones can be waived with a reason on the
   - the run has an approved design;
   - the project has not switched it off (`design.fidelity: false`).
 
-  It builds and starts the app on this machine, in the run's worktree, with a scratch HOME and none of the factory's secrets. Otherwise it logs `fidelity check skipped: <why>` and passes. When it runs, it:
+  It builds and starts the app in containers (the PR #11 re-review, blocker 2, 2026-10-04, as built; before, it ran on this machine in the run's worktree), `src/design/app-container.ts`:
+  - a copy of the commit is installed in the agent image with only the package feeds reachable (through the feed proxy);
+  - the app is built and started in the same image with **no network**;
+  - the check reaches it through a small bridge on this machine's loopback, which pipes each connection into the container (`docker exec -i … node`). No port is published, and nothing in the container can reach out.
+
+  `allowHost: true` keeps the old way: on this machine, in the worktree, with a scratch HOME and none of the factory's secrets. Otherwise it logs `fidelity check skipped: <why>` and passes. When it runs, it:
   - installs the app (`npm install --no-audit --no-fund`), builds it and starts it on `$PORT` (`next build && next start`, or `vite build && vite preview`);
   - opens every page the package pictures, at most `maxPages`. That is every state at phone and desktop width, the first state at tablet width, and the first state in dark mode and in the other language when the design has them.
 
   The report and pictures go to the run's `design-fidelity/` folder. Code: `src/stages/design-fidelity.ts`, `src/design/fidelity-app.ts`, `src/design/fidelity-read.ts`.
 - **Tokens against the approved theme.** The token level compares with the approved new look only (`approvedTheme`); there is no fallback to the default theme. An app that keeps its own look is not compared: the tokens level is `UNCHECKED`, not blocking, with the reason, and its gate passes.
 - **Config.** `design.fidelity` is optional (the defaults below) or `false`. It takes:
-  - `allowHost: true` (accepted for older configs, no longer needed);
+  - `allowHost: true` to run the app on this machine instead of in containers (your consent to run the agents' code and its install scripts here, with network access);
   - `install` and `start` (start reads `$PORT`);
   - `port` (default 4320), `readyPath` (default `/`), `timeoutSec` (default 600) and `env`;
   - `maxPages` (default 160).
