@@ -2,9 +2,9 @@
 // screens-planned gate (B6), the clickable demo, and the design diff a change request shows.
 import { describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "../gates/policy.js";
-import { buildDemo, frameDataUri } from "./demo.js";
+import { buildDemo, frameDataUri } from "../design/demo.js";
 import { designBaseline, designCoverage, screensPlanned } from "./gates.js";
-import { diffDesigns } from "./lineage.js";
+import { diffDesigns } from "../design/diff.js";
 
 const run = (g: { predicate: (i: any, p: any) => { passed: boolean; details: string; failures?: { check: string }[] } }, input: unknown) => g.predicate(input, DEFAULT_POLICY);
 const checks = (g: Parameters<typeof run>[0], input: unknown) => (run(g, input).failures ?? []).map((f) => f.check).sort();
@@ -54,7 +54,9 @@ describe("the clickable demo", () => {
     const html = buildDemo({ ...base, screens: [screen(), screen({ id: "S-2", route: "/home", states: [] })] });
     expect(html).toMatch(/id="S-1"/);
     expect(html).toMatch(/id="S-2"/);
-    expect(html).toMatch(/data-state="1">error</);
+    // the normal page always comes first, even when the listed states are all special ones
+    expect(html).toMatch(/data-state="0" class="on">default</);
+    expect(html).toMatch(/data-state="2">error</);
     expect(html).toMatch(/href="#S-2"/);
     expect(html).toMatch(/The user shall sign in\./);
     expect(html).toMatch(/default-src 'none'/);

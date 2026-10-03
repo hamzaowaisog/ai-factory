@@ -93,6 +93,18 @@ describe("workbook export", () => {
     expect(text).toContain("Client provides API keys before build");
   });
 
+  it("puts the task catalogue's status in the team file only", () => {
+    const f = fixture();
+    const input = { ...f, estimate: { ...f.estimate, catalogue: { version: "2026-10-03.1", status: "draft" as const, stack: "default" } } };
+    const textOf = (audience: "team" | "client") => {
+      const all: string[] = [];
+      for (const ws of buildWorkbook(input, audience).worksheets) ws.eachRow((row) => row.eachCell((c) => { if (typeof c.value === "string") all.push(c.value); }));
+      return all.join("\n");
+    };
+    expect(textOf("team")).toContain("reference hours, not yet measured");
+    expect(textOf("client")).not.toMatch(/reference hours|catalogue/i);
+  });
+
   it("carries no supervisor gate rows in the agentic file", () => {
     const input = fixture("agentic");
     const ws = buildWorkbook(input, "team").getWorksheet(SHEET.other)!;

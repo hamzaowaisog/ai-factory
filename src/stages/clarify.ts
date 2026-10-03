@@ -5,8 +5,13 @@ import { z } from "zod";
 import { CurrentBehaviourBody, IntentBody, type Risk } from "../contracts/index.js";
 import { failure } from "../gates/engine.js";
 import { hashJson } from "../util/hash.js";
-import { requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { hasExistingLook, type DesignInventory } from "../design/inventory.js";
+import { ESTIMATE_SOURCES, repoInventory } from "./design-inputs.js";
+import type { Reference } from "../contracts/reference.js";
 import { lightSpec } from "./lane.js";
+import { humanReview } from "../estimate/settings.js";
+import { loadDefaults, topicsText, type Defaults } from "../estimate/defaults.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -42,13 +47,21 @@ export const ClarifierOut = z.object({
     impact: z.number().int().min(1).max(3),
     impactReason: z.string(),
     difference: z.string().optional(),
+    /** a topic id from the standard-topics table, when the question is about one */
+    topic: z.string().optional(),
   })),
   conflicts: z.array(z.string()),
 });
 export type ClarifierQuestion = z.infer<typeof ClarifierOut>["questions"][number];
 
-export interface ScoredQuestion extends ClarifierQuestion { uncertainty: 1 | 2 | 3; score: number }
-export interface Assumption { id: string; text: string; risk: Risk; fromSpan: string[]; fromQuestion: string }
+export interface ScoredQuestion extends ClarifierQuestion {
+  uncertainty: 1 | 2 | 3; score: number;
+  /** set by code: the match references the app would be restyled to (the restyle question) */
+  restyle?: string[];
+}
+export interface Assumption { id: string; text: string; risk: Risk; fromSpan: string[]; fromQuestion: string;
+  /** the standard topic whose answer was taken (src/estimate/assets/defaults.json), instead of the model's recommendation */
+  fromDefault?: string }
 export interface ClarifyResult {
   round: number;
   asked: ScoredQuestion[];
@@ -57,6 +70,8 @@ export interface ClarifyResult {
   conflicts: string[];
   answers?: Record<string, string>;
   answeredBy?: string;
+  /** a hands-off estimate run (no human review): nothing was asked, every question became an assumption the factory made */
+  assumedBy?: "factory";
 }
 
 export const ASK_THRESHOLD = 4;
@@ -95,18 +110,20 @@ export function scoreQuestions(qs: ClarifierQuestion[], diffs: Difference[], cb:
 }
 
 /** Ask score ≥ 4 up to the cap, goal/scope first; everything else becomes an assumption. */
-export function selectQuestions(scored: ScoredQuestion[], cap: number, idStart = 1): { asked: ScoredQuestion[]; assumptions: Assumption[] } {
+/** A question nobody is asked, as the assumption the factory makes in its place (its recommended answer). */
+export function assumedFrom(q: ScoredQuestion, n: number, defaults?: Pick<Defaults, "topics">): Assumption {
+  const std = q.topic ? defaults?.topics.find((t) => t.id === q.topic) : undefined;
+  const base = { id: `ASM-${n}`, risk: (q.impact === 3 ? "high" : "low") as Risk, fromSpan: q.spans, fromQuestion: q.id };
+  // a standard topic takes the table's answer, so every wording of the requirements assumes the same thing
+  return std ? { ...base, text: `${q.text} → assumed: ${std.answer}`, fromDefault: std.id } : { ...base, text: `${q.text} → assumed: ${q.recommended}` };
+}
+
+export function selectQuestions(scored: ScoredQuestion[], cap: number, idStart = 1, defaults?: Pick<Defaults, "topics">): { asked: ScoredQuestion[]; assumptions: Assumption[] } {
   const eligible = scored.filter((q) => q.score >= ASK_THRESHOLD)
     .sort((a, b) => b.score - a.score || GOAL_FIRST.indexOf(a.category) - GOAL_FIRST.indexOf(b.category));
   const asked = eligible.slice(0, cap).map((q, i) => ({ ...q, id: `Q-${idStart + i}` }));
   const askedSet = new Set(eligible.slice(0, cap));
-  const assumptions = scored.filter((q) => !askedSet.has(q)).map((q, i) => ({
-    id: `ASM-${idStart + i}`,
-    text: `${q.text} → assumed: ${q.recommended}`,
-    risk: (q.impact === 3 ? "high" : "low") as Risk,
-    fromSpan: q.spans,
-    fromQuestion: q.id,
-  }));
+  const assumptions = scored.filter((q) => !askedSet.has(q)).map((q, i) => assumedFrom(q, idStart + i, defaults));
   return { asked, assumptions };
 }
 
@@ -138,6 +155,39 @@ export function resolveAnswer(q: ScoredQuestion, raw: string): string {
     if (o) return o;
   }
   return t;
+}
+
+// ---------- the restyle question (code's, not the model's) ----------
+
+/**
+ * The app has a look of its own and the client attached match references: whether to restyle is the
+ * client's call, so code asks it on the round-1 card (docs/estimates-design.md, "Design references").
+ * Keeping the app's look is recommended: the references then shape layout and content only. Asked
+ * whenever both meet: the repo's token values are not read, so code cannot tell they already agree.
+ */
+export function restyleQuestion(refs: Pick<Reference, "id" | "source" | "role">[], inv: DesignInventory | undefined, spans: string[], n: number): ScoredQuestion | undefined {
+  const match = refs.filter((r) => r.role === "match");
+  if (!match.length || !hasExistingLook(inv)) return undefined;
+  const ids = match.map((r) => r.id).join(" and ");
+  const named = match.map((r) => `${r.id} (${r.source.length > 60 ? `${r.source.slice(0, 57)}...` : r.source})`).join(" and ");
+  const shared = inv.primitives.length + inv.composites.length;
+  const keep = `Keep the app's own look; use ${ids} for layout and content only`;
+  return {
+    id: `Q-${n}`, category: "scope",
+    text: `${named} ${match.length > 1 ? "are" : "is"} marked match (use ${match.length > 1 ? "their" : "its"} look exactly), but this app already has its own look (${inv.tokens.total} design tokens, ${shared} shared components). Which look should this change use?`,
+    options: [keep, `Restyle the whole app to ${ids}'s look (a design-system change: new colours, type and corners on every page)`],
+    recommended: keep, reason: "the smallest change: the rest of the app keeps matching what this request adds",
+    spans, impact: 3, impactReason: "a restyle changes every page's look, not only this request's screens, and the size of the work",
+    uncertainty: 3, score: 9, restyle: match.map((r) => r.id),
+  };
+}
+
+/** The match references to restyle the app to, when the person chose that on the card; otherwise undefined (keep the app's look). */
+export function restyleChosen(r: ClarifyResult | undefined): string[] | undefined {
+  const q = r?.asked.find((x) => x.restyle?.length);
+  if (!q || !r?.answers) return undefined;
+  const a = (r.answers[q.id] ?? q.recommended).trim();
+  return a === q.options[1] || /^restyle\b/i.test(a) ? q.restyle : undefined;
 }
 
 // ---------- steps ----------
@@ -181,8 +231,10 @@ async function runClarifier(ctx: StepContext, intent: Intent, cb: CB, sketches: 
       S.template("tpl", `Requirements analyst. Your only job is finding what is unclear or missing. You don't write the spec.
 Check: scope, data model, user roles and permissions, existing data and state changes, error and failure handling, external systems, hardcoded identifiers (constant or configuration?), behaviour outside the named scope, terminology.
 For each issue: a question with 2-4 options, one "recommended" (copy the option text exactly) with a one-line reason, the intent spans it affects, impact 1-3 with a reason (3 = changes data or who sees what: writes, orders, permissions, money; 2 = a visible flow; 1 = wording). If it comes from a listed disagreement, give its id in "difference".
+If a question is about one of the "standard-topics", give that topic's id in "topic"; otherwise leave "topic" out.
 Never ask what the code or the readings already answer.${lightSpec(intent) ? `\nThis is a small, low-risk change: ask at most ${LIGHT_QUESTIONS} questions, and only ones whose answer changes the code. Everything else (wider scope, other places, existing data) becomes an assumption: keep the change as small as the request allows.` : ""}${prior ? "\nThe human already answered some questions. Only ask NEW questions that their answers opened up; don't repeat or rephrase answered ones." : ""}
 ${UNTRUSTED_NOTE}`),
+      S.reference("standard-topics", `Standard topics (tag a question with its topic id):\n${topicsText(loadDefaults())}`),
       S.artifact("intent", "intent", intent.spans),
       S.artifact("cb", "current-behaviour", cb),
       S.artifact("sketches", "sketches", sketches),
@@ -195,7 +247,7 @@ ${UNTRUSTED_NOTE}`),
 }
 
 function cardOrDone(ctx: StepContext, key: string, result: ClarifyResult, pending: { cacheKey: string; sha: string }): StepOutcome {
-  if (!result.asked.length) return { kind: "done", outputs: { clarify: ctx.ledger.putJson(result) }, data: { asked: 0, assumptions: result.assumptions.length } };
+  if (!result.asked.length) return { kind: "done", outputs: { clarify: ctx.ledger.putJson(result) }, data: { asked: 0, assumptions: result.assumptions.length, ...(result.assumedBy ? { handsOff: true } : {}) } };
   const cardSha = ctx.ledger.putJson({ key, asked: result.asked, assumptions: result.assumptions });
   const decision = [...ctx.state.decisions].reverse().find((d) => d.artifactSha === cardSha);
   if (decision) {
@@ -221,12 +273,12 @@ function cardOrDone(ctx: StepContext, key: string, result: ClarifyResult, pendin
  * resumed step (after the human answers) doesn't pay for the sketches again.
  */
 export const clarifyStep: StepDef = {
-  key: "clarify", stage: "clarify", templateVersion: "1",
+  key: "clarify", stage: "clarify", templateVersion: "2",
   inputs: (s) => (s.steps.get("ground")?.status === "completed" ? { intent: s.steps.get("intake")!.outputs[0], cb: s.steps.get("ground")!.outputs[0] } : undefined),
   async run(ctx) {
     const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
     const cb = requireOutput<CB>(ctx.state, ctx.ledger, "ground");
-    const cacheKey = hashJson({ step: "clarify", intent: ctx.state.steps.get("intake")!.outputs[0], cb: ctx.state.steps.get("ground")!.outputs[0] });
+    const cacheKey = hashJson({ step: "clarify", defaults: loadDefaults().version, intent: ctx.state.steps.get("intake")!.outputs[0], cb: ctx.state.steps.get("ground")!.outputs[0] });
     let pending = pendingFor(ctx, cacheKey);
     if (!pending) {
       const sk = await runSketches(ctx, intent, cb);
@@ -234,8 +286,14 @@ export const clarifyStep: StepDef = {
       const cl = await runClarifier(ctx, intent, cb, sk.sketches, sk.diffs);
       if (!cl.ok) return cl.outcome;
       const scored = scoreQuestions(cl.output.questions, sk.diffs, cb);
-      const { asked, assumptions } = selectQuestions(scored, lightSpec(intent) ? LIGHT_QUESTIONS : ROUND1_CAP);
-      pending = { round: 1, asked, assumptions, differences: sk.diffs, conflicts: cl.output.conflicts, sketches: sk.sketches };
+      // a hands-off estimate asks nobody: the requirements come refined, so each question takes its recommended answer as an assumption
+      const handsOff = !humanReview(ctx.state.info);
+      const { asked, assumptions } = selectQuestions(scored, handsOff ? 0 : lightSpec(intent) ? LIGHT_QUESTIONS : ROUND1_CAP, 1, loadDefaults());
+      // runs with match references only: the app's own look against the client's (on top of the model's questions)
+      const restyle = restyleQuestion(ctx.state.info.references ?? [], repoInventory(ctx, ESTIMATE_SOURCES), intent.spans.map((s) => s.id), asked.length + 1);
+      pending = handsOff
+        ? { round: 1, asked: [], assumptions: restyle ? [...assumptions, assumedFrom(restyle, assumptions.length + 1)] : assumptions, differences: sk.diffs, conflicts: cl.output.conflicts, assumedBy: "factory", sketches: sk.sketches }
+        : { round: 1, asked: restyle ? [...asked, restyle] : asked, assumptions, differences: sk.diffs, conflicts: cl.output.conflicts, sketches: sk.sketches };
     }
     const { sketches: _s, ...result } = pending;
     void _s;
@@ -245,14 +303,14 @@ export const clarifyStep: StepDef = {
 
 /** Round 2: only if round 1 asked; ≤3 new questions, 8 in total. */
 export const clarify2Step: StepDef = {
-  key: "clarify-2", stage: "clarify", templateVersion: "1",
+  key: "clarify-2", stage: "clarify", templateVersion: "2",
   inputs: (s) => (s.steps.get("clarify")?.status === "completed" ? { r1: s.steps.get("clarify")!.outputs[0] } : undefined),
   async run(ctx) {
     const r1 = requireOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify");
     // the light lane has one round: what round 1 didn't settle becomes an assumption on the card
     const light = lightSpec(requireOutput<Intent>(ctx.state, ctx.ledger, "intake"));
-    if (!r1.asked.length || light) return { kind: "done", outputs: { clarify: ctx.ledger.putJson({ round: 2, asked: [], assumptions: [], differences: [], conflicts: [] }) }, data: { skipped: true, ...(light && r1.asked.length ? { lightLane: true } : {}) } };
-    const cacheKey = hashJson({ step: "clarify-2", r1: ctx.state.steps.get("clarify")!.outputs[0] });
+    if (!r1.asked.length || light) return { kind: "done", outputs: { clarify: ctx.ledger.putJson({ round: 2, asked: [], assumptions: [], differences: [], conflicts: [] }) }, data: { skipped: true, ...(light && r1.asked.length ? { lightLane: true } : {}), ...(r1.assumedBy ? { handsOff: true } : {}) } };
+    const cacheKey = hashJson({ step: "clarify-2", defaults: loadDefaults().version, r1: ctx.state.steps.get("clarify")!.outputs[0] });
     let pending = pendingFor(ctx, cacheKey);
     if (!pending) {
       const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
@@ -264,7 +322,7 @@ export const clarify2Step: StepDef = {
         // answers that opened a new gap count as disagreement-backed
         .map((q) => ({ ...q, uncertainty: Math.max(q.uncertainty, 2) as 2 | 3, score: q.impact * Math.max(q.uncertainty, 2) }));
       const cap = Math.min(ROUND2_CAP, TOTAL_CAP - r1.asked.length);
-      const { asked, assumptions } = selectQuestions(fresh, cap, r1.asked.length + 1);
+      const { asked, assumptions } = selectQuestions(fresh, cap, r1.asked.length + 1, loadDefaults());
       pending = { round: 2, asked, assumptions: assumptions.map((a, i) => ({ ...a, id: `ASM-${r1.assumptions.length + i + 1}` })), differences: [], conflicts: cl.output.conflicts };
     }
     return cardOrDone(ctx, "clarify-2", pending, { cacheKey, sha: ctx.ledger.putJson(pending) });

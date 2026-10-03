@@ -1,6 +1,9 @@
 // Gate-efficacy runner: seeds defects, evaluates the registered gate's predicate directly (pure, no
 // ledger, no model), and reports catch rate and false positives. Fails closed on a throwing gate.
 import { DEFAULT_POLICY, getGate, type Policy } from "../../src/gates/index.js";
+// importing these registers the estimate and build gates
+import "../../src/estimate/gates.js";
+import "../../src/estimate/lint.js";
 import { CASES, type GateCase } from "./cases.js";
 
 export type CaseStatus = "caught" | "missed" | "ok" | "false-positive" | "pending" | "error";
@@ -55,8 +58,8 @@ const pct = (n: number | null) => (n === null ? "-" : `${Math.round(n * 100)}%`)
 export function formatGates(results: CaseResult[]): string {
   const sums = summarise(results);
   const lines = [
-    `${"gate".padEnd(26)} ${"caught".padStart(6)} ${"missed".padStart(6)} ${"false+".padStart(6)} ${"pending".padStart(7)} ${"error".padStart(5)} ${"catch".padStart(6)}`,
-    ...sums.map((s) => `${s.gateId.padEnd(26)} ${String(s.caught).padStart(6)} ${String(s.missed).padStart(6)} ${String(s.falsePositive).padStart(6)} ${String(s.pending).padStart(7)} ${String(s.error).padStart(5)} ${pct(s.catchRate).padStart(6)}`),
+    `${"gate".padEnd(30)} ${"caught".padStart(6)} ${"missed".padStart(6)} ${"false+".padStart(6)} ${"pending".padStart(7)} ${"error".padStart(5)} ${"catch".padStart(6)}`,
+    ...sums.map((s) => `${s.gateId.padEnd(30)} ${String(s.caught).padStart(6)} ${String(s.missed).padStart(6)} ${String(s.falsePositive).padStart(6)} ${String(s.pending).padStart(7)} ${String(s.error).padStart(5)} ${pct(s.catchRate).padStart(6)}`),
   ];
   const bad = results.filter((r) => r.status === "missed" || r.status === "false-positive" || r.status === "error");
   if (bad.length) {
@@ -64,6 +67,6 @@ export function formatGates(results: CaseResult[]): string {
     for (const r of bad) lines.push(`  ${r.status.toUpperCase().padEnd(14)} ${r.id}: ${r.description}${r.details ? ` (${r.details.slice(0, 120)})` : ""}`);
   }
   const pending = sums.filter((s) => s.pending).length;
-  if (pending) lines.push("", `${pending} gate(s) pending: their cases are written but the gates aren't built yet.`);
+  if (pending) lines.push("", `${pending} gate(s) pending: their cases are written but the gate is not registered.`);
   return lines.join("\n");
 }

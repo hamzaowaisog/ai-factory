@@ -104,7 +104,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     const e = (input.estimate ?? {}) as Record<string, unknown>;
     try {
       settings = parseEstimateSettings({
-        deliveryModel: String(e.deliveryModel ?? "hitl"), stackSource: String(e.stackSource ?? "undecided"),
+        stackSource: String(e.stackSource ?? "undecided"),
         designInTotal: e.designInTotal !== false, feedbackRounds: String(e.feedbackRounds ?? "2"),
         repo: standalone ? false : e.noRepo !== true, ...(str(e.client) ? { client: str(e.client)!.trim() } : {}),
         ...(str(e.projectName) ? { projectName: str(e.projectName)!.trim() } : {}), ...(str(e.pm) ? { pm: str(e.pm)!.trim() } : {}),

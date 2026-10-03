@@ -57,10 +57,15 @@ describe("anchors and ratios", () => {
     expect(() => sizeTasks(anchors, [{ taskId: "EST-1", anchorId: "EST-1", ratio: 2, reason: "x", executor: "human" }])).toThrow(/ratio 1/);
   });
 
-  it("merges estimators into a range and flags disagreement", () => {
+  it("merges estimators by median and flags disagreement", () => {
     const base = { min: 4, max: 6 };
     expect(mergeEstimators(base, [])).toEqual({ hours: base, flagged: false });
-    expect(mergeEstimators(base, [{ min: 4.5, max: 6 }, { min: 4, max: 6.2 }])).toEqual({ hours: { min: 4, max: 6.2 }, flagged: false });
+    // median of mins 4, 4.5, 4 and of maxes 6, 6, 6.2
+    expect(mergeEstimators(base, [{ min: 4.5, max: 6 }, { min: 4, max: 6.2 }])).toEqual({ hours: { min: 4, max: 6 }, flagged: false });
+    // one estimator reading far high does not move the range; it flags the task
+    expect(mergeEstimators(base, [{ min: 4, max: 6 }, { min: 16, max: 24 }])).toEqual({ hours: { min: 4, max: 6 }, flagged: true });
+    // two readings: the median is their mean
+    expect(mergeEstimators(base, [{ min: 6, max: 8 }]).hours).toEqual({ min: 5, max: 7 });
     expect(mergeEstimators(base, [{ min: 4, max: 7 }, { min: 3.5, max: 6 }]).flagged).toBe(true);
     expect(mergeEstimators(base, [{ min: 10, max: 14 }]).flagged).toBe(true);
     // identical readings of a wide range agree, so they are not flagged
@@ -185,7 +190,7 @@ function build(model: "hitl" | "agentic" = "hitl") {
   return Estimate.parse({
     header: { kind: "estimate", schemaVersion: 1, runId: "r", producedBy: { stage: "estimate" }, inputsHash: sha, createdAt: "2026-09-30T00:00:00Z" },
     deliveryModel: model, band: "S", uncertainty: "medium", breakdownSha: sha, specSha: sha,
-    anchors: [{ taskId: "EST-1", hours: { min: 4, max: 8 }, reason: "typical" }], tasks: sizing, gateHours: gates, totals,
+    anchors: [{ taskId: "EST-1", hours: { min: 4, max: 8 }, reason: "typical" }], tasks: sizing, merge: "median", gateHours: gates, totals,
     apiCost: estimateApiCost({ planning: 1, build: 1 }, [], model),
     elapsed: { planningMinutes: 20, criticalPathDays: { min: 1, max: 2 } },
     settings: { stackSource: "client", designInTotal: true, feedbackRounds: 1 },
@@ -214,6 +219,21 @@ describe("gate E6 (data level)", () => {
     expect(lintEstimate(off, { tasks: bTasks }).map((i) => i.check)).toContain("ratio");
     expect(lintEstimate(e, { tasks: [...bTasks, { ...bTasks[0]!, id: "EST-3" }] }).map((i) => i.check)).toContain("task-missing");
     expect(lintEstimate(e, { tasks: [bTasks[0]!] }).map((i) => i.check)).toContain("task-unknown");
+  });
+
+  it("checks the median of the estimators' readings, and older estimates by the widening rule they were made with", () => {
+    const e = build();
+    expect(e.merge).toBe("median");
+    const t2 = e.tasks.find((t) => t.taskId === "EST-2")!;
+    const readings = [{ min: t2.hours.min * 4, max: t2.hours.max * 4 }, { min: t2.hours.min, max: t2.hours.max }];
+    const median = { ...e, tasks: e.tasks.map((t) => (t === t2 ? { ...t, estimators: readings } : t)) };
+    expect(lintEstimate(median, { tasks: bTasks })).toEqual([]);
+    // the widened range is not the median
+    const widened = { ...median, tasks: median.tasks.map((t) => (t.taskId === "EST-2" ? { ...t, hours: { min: t2.hours.min, max: t2.hours.max * 4 } } : t)) };
+    expect(lintEstimate(widened, { tasks: bTasks }).map((i) => i.check)).toContain("ratio");
+    // ... but it is what an estimate made before the median merge stored, and that one still passes
+    const { merge: _, ...older } = widened;
+    expect(lintEstimate(older as typeof e, { tasks: bTasks }).map((i) => i.check)).not.toContain("ratio");
   });
 
   it("flags confidence that outruns the data", () => {

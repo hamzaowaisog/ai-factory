@@ -1,0 +1,18 @@
+{
+ "source": {
+  "name": "SWE-rebench OpenHands trajectories (Qwen3-Coder-480B)",
+  "url": "https://huggingface.co/datasets/nebius/SWE-rebench-openhands-trajectories",
+  "revision": "35455389ab51bf5e2306bfd436ef72d0f98bf882",
+  "license": "CC-BY-4.0",
+  "retrieved": "2026-09-30"
+ },
+ "derivedFrom": "bench/external/snapshots/openhands.json",
+ "unit": "tool round = one assistant message that calls a tool",
+ "resolvedRounds": {
+  "n": 32161,
+  "p10": 41,
+  "p50": 56,
+  "p90": 83
+ },
+ "caveat": "One model (Qwen3-Coder-480B) and one scaffold on Python issue fixes; a factory turn is not exactly a tool round. A prior to read against, never a number the estimate uses."
+}

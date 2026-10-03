@@ -48,6 +48,12 @@ describe("gate efficacy", () => {
     expect(ran.length).toBeGreaterThan(0);
     expect(allGood(ran)).toBe(true);
   });
+  it("has no pending case: every gate named in the cases is registered, E1-E7 and B1-B6 included", () => {
+    expect(runCases().filter((r) => r.status === "pending").map((r) => r.id)).toEqual([]);
+    const ids = new Set(CASES.map((x) => x.gateId));
+    for (const g of ["e1-readiness", "e1b-design-baseline", "e1c-design-coverage", "e2-req-to-task", "e3-task-to-req", "e4-checklist", "e5-consistency", "e6-lint", "e7-approval"]) expect(ids.has(`estimate.${g}`)).toBe(true);
+    for (const g of ["b1-scope-lock", "b2-change-request", "b3-size-cap", "b4-unrequested", "b5-budget-burn", "b6-screens-planned", "b7-screen-scope"]) expect(ids.has(`build.${g}`)).toBe(true);
+  });
   it("reports unregistered gates as pending, not as passes", () => {
     const r = runCase({ id: "x", gateId: "no-such-gate", description: "", expect: "must-fail", input: {} });
     expect(r.status).toBe("pending");

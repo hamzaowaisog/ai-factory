@@ -95,6 +95,19 @@ describe("special considerations", () => {
     expect(c.security).toBeUndefined();
     expect(c.platforms).toBeUndefined();
   });
+  it("a hands-off run: the factory's assumptions fill the topics nobody was asked about, answers first", () => {
+    const handsOff = [{ asked: [], assumedBy: "factory", assumptions: [{ id: "ASM-1", text: "Which browsers must be supported? → assumed: Latest Chrome" }, { id: "ASM-2", text: "Single sign-on? → assumed: no" }] }];
+    const c = considerationsFrom(handsOff);
+    expect(c.browsers).toEqual({ answer: "Assumed: Latest Chrome", from: "ASM-1" });
+    expect(Object.keys(c)).toEqual(["browsers"]);
+    // assumptions of a reviewed run stay out (a person chose not to answer them), and an answer wins over an assumption
+    expect(considerationsFrom([{ ...handsOff[0]!, assumedBy: undefined }])).toEqual({});
+    expect(considerationsFrom([...rounds, ...handsOff]).browsers).toEqual({ answer: "Latest Chrome and Safari", from: "Q-1" });
+    const S = buildWorkbook({ ...input(), considerations: c }, "client").getWorksheet("Summary")!;
+    let found = "";
+    S.eachRow((_r, n) => { if (String(S.getCell(`B${n}`).value).startsWith("Browsers supported")) found = `${S.getCell(`C${n}`).value} | ${S.getCell(`E${n}`).value}`; });
+    expect(found).toBe("Assumed: Latest Chrome | Factory assumption ASM-1, confirm with the client");
+  });
   it("reaches the Summary sheet", () => {
     const i = { ...input(), considerations: considerationsFrom(rounds) };
     const S = buildWorkbook(i, "client").getWorksheet("Summary")!;
