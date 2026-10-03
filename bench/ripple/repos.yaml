@@ -1,0 +1,14 @@
+# Pinned public .NET repos (same pins as bench/spec/repos.yaml on the spec-eval branch).
+# The replay walks history back from each pin.
+vsa:
+  url: https://github.com/nadirbad/VerticalSliceArchitecture
+  commit: feb3a15e7ba03dc12404127e0a1f8f33b214783d
+  about: Healthcare appointment booking API (vertical slices, MediatR, EF Core on Postgres)
+todo:
+  url: https://github.com/davidfowl/TodoApi
+  commit: 307a1eadbbd77a3004c318f2377e4818bc400af6
+  about: Todo API with users and auth (minimal APIs, EF Core on SQLite, Aspire)
+eshop:
+  url: https://github.com/dotnet/eShop
+  commit: dc7ea499cd356924fb6689b3702964a5869dbae9
+  about: Reference shop (catalog, basket, ordering services, Postgres, Aspire); the large repo

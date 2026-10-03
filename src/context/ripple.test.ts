@@ -83,6 +83,19 @@ describe("ripple code layer: .NET", () => {
   });
 });
 
+describe("ripple code layer: extension methods", () => {
+  it("callers of a static extension class are found by method name, internal or public", () => {
+    const ext = src({
+      "src/Api/Extensions/OpenApiExtensions.cs": "internal static class Extensions {\n  public static IServiceCollection AddOpenApiDocs(this IServiceCollection s) => s;\n  private static void Helper(int x) {}\n}",
+      "src/Api/Program.cs": "builder.Services.AddOpenApiDocs();",
+      "src/Api/Other.cs": "Helper(1);",
+    });
+    const r = rippleCandidates(ext, [{ path: "src/Api/Extensions/OpenApiExtensions.cs" }]);
+    expect(r.symbols).toEqual(["AddOpenApiDocs"]);
+    expect(candidateFiles(r)).toEqual(["src/Api/Program.cs"]);
+  });
+});
+
 describe("ripple code layer: Next.js", () => {
   const next = src({
     "app/api/users/[id]/route.ts": "export async function GET() {}",

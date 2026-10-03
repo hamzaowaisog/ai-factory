@@ -27,3 +27,8 @@ gate isn't registered yet (E1-E6 today). Pending never fails the run.
 
 E-gate cases use a provisional `EstimateFixture` (`gates/fixture.ts`). When a gate is built, adapt its cases' `input`
 to the real artifact; the mutators (one seeded defect each) carry over.
+
+## ripple: does the impact code layer find what real commits changed?
+`npx tsx bench/ripple/replay.ts` (free; clones the pinned repos in `ripple/repos.yaml` to `~/.factory/bench-repos`).
+Replays 15-20 real commits: seed = the most-changed non-test file (a stand-in for ground), truth = the other existing
+code files the commit changed. Reports recall for ground-only vs ground + code layer, and the layer's precision.

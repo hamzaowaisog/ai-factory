@@ -74,6 +74,12 @@ function declared(path: string, text: string): string[] {
   return extractSymbols(path, text).filter((s) => !s.startsWith(" ")).map((s) => s.split(/\s+/).pop()!).filter(usable);
 }
 
+/** C# extension methods (`static T Name(this X x)`): callers use the method, never the static class's name. */
+function extensionMethods(path: string, text: string): string[] {
+  if (!/\.cs$/i.test(path)) return [];
+  return [...text.matchAll(/\bstatic\s+[\w<>\[\],.? ]+?\s+(\w+)\s*(?:<[^>()]*>)?\s*\(\s*this\s/g)].map((m) => m[1]!).filter(usable);
+}
+
 /** Interfaces a C# type implements: "class OrderService : IOrderService, IDisposable" → IOrderService. */
 function interfacesOf(text: string, types: string[]): string[] {
   const out = new Set<string>();
@@ -162,8 +168,8 @@ export function rippleCandidates(src: Source, seeds: Seed[]): RippleResult {
   for (const f of seedFiles) {
     const text = src.read(f) ?? "";
     const types = declared(f, text);
-    for (const t of types) direct.add(t);
-    if (removedFiles.has(f)) for (const t of types) removedSymbols.add(t);
+    for (const t of [...types, ...extensionMethods(f, text)]) direct.add(t);
+    if (removedFiles.has(f)) for (const t of [...types, ...extensionMethods(f, text)]) removedSymbols.add(t);
     for (const i of interfacesOf(text, types)) viaInterface.add(i);
     for (const r of routesOf(f, text)) routes.add(r);
     const sr = settingsAndRoles(text);
