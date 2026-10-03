@@ -31,7 +31,8 @@ import { lastActivity, readTrace } from "../util/trace.js";
 import { maskSecrets } from "../config/env.js";
 import { Redactor } from "../context/secrets.js";
 import { readPreview } from "./preview.js";
-import { STANDALONE_PROJECT } from "../config/project.js";
+import { loadProject, STANDALONE_PROJECT } from "../config/project.js";
+import { repoIsEmpty } from "../config/greenfield.js";
 
 // ---------- helpers ----------
 
@@ -56,7 +57,8 @@ export function findRun(run: string): Ledger | undefined {
 
 // ---------- projects ----------
 
-export interface ProjectRow { name: string; busy?: { runId: string } }
+/** `empty`: a Node project whose repo is still empty, where an approved design for a new product is built (greenfield) */
+export interface ProjectRow { name: string; busy?: { runId: string }; empty?: true }
 
 export function projectNames(): string[] {
   const dir = join(factoryHome(), "projects");
@@ -107,7 +109,9 @@ export async function projectsView(): Promise<{ projects: ProjectRow[]; estimate
   const projects: ProjectRow[] = [];
   for (const name of projectNames()) {
     const busy = await busyRun(name);
-    projects.push({ name, ...(busy ? { busy } : {}) });
+    let empty = false;
+    try { const p = loadProject(name); empty = p.stack === "node" && repoIsEmpty(p.repo, p.baseBranch); } catch { /* a broken config is listed as it is */ }
+    projects.push({ name, ...(busy ? { busy } : {}), ...(empty ? { empty: true as const } : {}) });
   }
   const configured = jiraConfigured();
   return {

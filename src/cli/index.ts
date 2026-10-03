@@ -21,7 +21,8 @@ import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../s
 import { describeReferences, gatherReferences, parseRefArg } from "../sources/refs.js";
 import { jiraFetcherFor } from "../sources/jira.js";
 import { parseEstimateSettings, type EstimateOptions } from "../estimate/settings.js";
-import { approvedDesign, approvedEstimate, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
+import { approvedDesign, approvedEstimate, designFitsProject, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
+import { greenfieldRefusal } from "../config/greenfield.js";
 import { DESIGN_EXPORT_HELP, designExportOption, exportSeededNow, registerDesignRunCommands, UI_TARGET_HELP, uiTargetOption } from "./design-runs.js";
 import type { RequestSource } from "../sources/request.js";
 import { checkEdit, parseAnchorSpec, parseRatioSpec } from "../estimate/edits.js";
@@ -90,16 +91,18 @@ program.command("start")
       if (prompt || o.file || o.jira) throw new Error("--from-design takes its request from the design run; drop the prompt, --file and --jira.");
       if (o.ref?.length) throw new Error("--from-design builds the design approved in that run; drop --ref. To change the design, start a new design run with the references.");
       fromDesign = approvedDesign(openRun(o.fromDesign).runId);
-      if (!fromDesign.repo) throw new Error(`${fromDesign.runId} was designed with no repo (a new product). Building a new product (greenfield) is not available yet; estimate it with: factory estimate --from-design ${fromDesign.runId}`);
-      if (fromDesign.project !== o.project) throw new Error(`${fromDesign.runId} was designed for project ${fromDesign.project}, not ${o.project}.`);
+      // a design for a new product (no repo) is built into a project whose repo is still empty (greenfield)
+      const why = fromDesign.repo ? undefined : greenfieldRefusal(fromDesign.runId, project);
+      if (why) throw new Error(why);
+      if (!designFitsProject(fromDesign, o.project)) throw new Error(`${fromDesign.runId} was designed for project ${fromDesign.project}, not ${o.project}.`);
     }
     const req = approved ? { text: approved.request, sources: [{ kind: "prompt" as const }] } : fromDesign ? { text: fromDesign.request, sources: [{ kind: "prompt" as const }] } : await gatherRequest({ prompt, file: o.file, jira: o.jira }, { fetchJira: jiraFetcherFor(project.jira?.allowedReporters) });
     const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
     const runId = await createRun(req.text, o.project, userInfo().username, {
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
-      sources: req.sources, references, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}), ...(fromDesign ? { fromDesign } : {}), ...(designExport ? { designExport } : {}), ...(uiTarget ? { uiTarget } : {}),
+      sources: req.sources, references, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}), ...(fromDesign ? { fromDesign, ...(fromDesign.repo ? {} : { mode: "greenfield" as const }) } : {}), ...(designExport ? { designExport } : {}), ...(uiTarget ? { uiTarget } : {}),
     });
-    log(`run ${runId} (request from ${fromDesign ? `design run ${fromDesign.runId}; the build follows its approved design` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""})`);
+    log(`run ${runId} (request from ${fromDesign ? `design run ${fromDesign.runId}; the build follows its approved design${fromDesign.repo ? "" : ", a new product built into an empty repo"}` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""})`);
     if (approved || fromDesign) await exportSeededNow(runId, designExport, log);
     await runAndReport(runId);
   });
@@ -347,7 +350,7 @@ program.command("baseline").requiredOption("--project <name>")
   .action(async (o: { project: string }) => {
     const project = loadProject(o.project);
     const { resolveRef } = await import("../ledger/git.js");
-    const { produceDotnetTests } = await import("../verify/dotnet.js");
+    const { labFor } = await import("../verify/lab.js");
     const { DockerCli } = await import("../verify/runtime.js");
     const { ensureEgress, feedHostsFrom } = await import("../runners/netinfra.js");
     const { DEFAULT_POLICY } = await import("../gates/policy.js");
@@ -356,10 +359,10 @@ program.command("baseline").requiredOption("--project <name>")
     const rt = new DockerCli();
     log(`baseline for ${project.project} @ ${commit.slice(0, 8)}: starting proxies`);
     await ensureEgress(rt, feedHostsFrom(DEFAULT_POLICY.registryAllowlist));
-    const pk = join(factoryHome(), "tmp", `baseline-${project.project}`, "nuget");
+    const pk = join(factoryHome(), "tmp", `baseline-${project.project}`, project.stack === "node" ? "npm-cache" : "nuget");
     mkdirSync(pk, { recursive: true });
     const started = Date.now();
-    const out = await produceDotnetTests({
+    const out = await labFor(project).produce({
       runId: `baseline-${project.project}`, key: "baseline", repo: project.repo, commit, stage: "baseline",
       exp: { expectPass: [], expectFail: [], compareToBaseline: [] }, project, rt, packagesDir: pk,
       onContainer: async (id, role) => log(`  container ${role} ${id.slice(0, 12)}`),
@@ -513,10 +516,27 @@ program.command("init").argument("<repo>", "a local repo path (Windows paths lik
       }
     }
     if (!existsSync(join(repo, ".git"))) throw new Error(`${repo} isn't a git repository`);
-    const branch = o.branch ?? execFileSync("git", ["-c", "safe.directory=*", "rev-parse", "--abbrev-ref", "HEAD"], { cwd: repo, encoding: "utf8" }).trim();
+    const { commitAt, currentBranch, nodeProjectYaml, repoIsEmpty, seedEmptyRepo } = await import("../config/greenfield.js");
+    const branch = o.branch ?? currentBranch(repo);
+    const file = projectPath(name);
+    // an empty repo is where a new product goes: a Node project, built from an approved design (greenfield)
+    if (repoIsEmpty(repo, branch)) {
+      if (existsSync(file) && !o.force) throw new Error(`${file} already exists (use --force to overwrite)`);
+      if (o.branch && !commitAt(repo, branch)) {
+        // a branch that does not exist yet can only be named in a repo with no commits: it becomes the branch the base commit is on
+        if (commitAt(repo, "HEAD")) throw new Error(`${repo} has no branch ${branch}`);
+        execFileSync("git", ["-c", "safe.directory=*", "-C", repo, "symbolic-ref", "HEAD", `refs/heads/${branch}`], { stdio: "ignore" });
+      }
+      const base = seedEmptyRepo(repo);
+      mkdirSync(join(factoryHome(), "projects"), { recursive: true, mode: 0o700 });
+      writeFileSync(file, nodeProjectYaml(name, repo, branch));
+      log(`\nProject ${name}\n  repo        ${repo} (branch ${branch}, base ${base.slice(0, 8)})\n  stack       node: the repo is empty, so it is a new product`);
+      log(`\nWrote ${file}\nNext: factory start --project ${name} --from-design <design run>   (builds an approved design for a new product into this repo)`);
+      return;
+    }
     const d = detectDotnet(repo);
     d.name = name;
-    if (!d.targetFrameworks.length) throw new Error("No .NET projects found. The POC supports .NET repos (other stacks come later).");
+    if (!d.targetFrameworks.length) throw new Error("No .NET projects found. The POC supports .NET repos, and empty repos for a new product built from an approved design.");
     log(`\nProject ${name}`);
     log(`  repo        ${repo} (branch ${branch})`);
     log(`  solution    ${d.solution ?? "(none; dotnet will pick)"}`);
@@ -525,7 +545,6 @@ program.command("init").argument("<repo>", "a local repo path (Windows paths lik
     if (d.frontendDirs.length) log(`  hidden      ${d.frontendDirs.join(", ")} (frontend folders the AI won't see)`);
     if (d.refusals.length) log(`\n  ⚠ Not supported yet: ${d.refusals.join("; ")}`);
 
-    const file = projectPath(name);
     if (existsSync(file) && !o.force) throw new Error(`${file} already exists (use --force to overwrite)`);
     mkdirSync(join(factoryHome(), "projects"), { recursive: true, mode: 0o700 });
     writeFileSync(file, projectYaml(d, repo, branch));

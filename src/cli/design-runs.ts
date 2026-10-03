@@ -20,7 +20,7 @@ import { VIEWPORTS, type Viewport } from "../design/screenshots.js";
 import { exportForRun, exportSeededNow } from "../stages/design-export.js";
 import { replay } from "../ledger/state.js";
 import { loadKit, sampleDesign, scaffold, scaffoldSummary, UI_TARGETS, uiTargetOption, writeScaffold, type KitTarget, type ScaffoldLayout } from "../design/kit/index.js";
-import { scaffoldPreview, scaffoldView, type ScaffoldView } from "../stages/scaffold-run.js";
+import { recordScaffoldCopy, scaffoldPreview, scaffoldView, type ScaffoldView } from "../stages/scaffold-run.js";
 import { checkRunningApp, fidelityOfRun, FIDELITY_DIR, formatFidelity, packageOfRun } from "../stages/design-fidelity.js";
 import { acceptBaselines, baselinesDir, readBaselineIndex } from "../design/baselines.js";
 import { assertTty } from "../ledger/human.js";
@@ -184,9 +184,9 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
     .option("--files", "list every file with its owner")
     .option("--json", "print JSON")
     .description("the approved design as code in the UI target's kit: the kit, the theme, a page per screen with its states and sample data, the frame and the routes. The build writes it into the repo before any agent starts; this shows it, or writes it to --out to run it (?fixture=S-1:empty opens any state).")
-    .action((run: string | undefined, o: { sample?: boolean; target?: string; out?: string; files?: boolean; json?: boolean }) => {
+    .action(async (run: string | undefined, o: { sample?: boolean; target?: string; out?: string; files?: boolean; json?: boolean }) => {
       const target = uiTargetOption(o.target);
-      let v: ScaffoldView, layout: ScaffoldLayout | undefined;
+      let v: ScaffoldView, layout: ScaffoldLayout | undefined, ledger: Ledger | undefined;
       if (o.sample) {
         if (run) throw new Error("--sample scaffolds the kit's sample design; drop the run");
         const t = (target ?? "next-shadcn") as KitTarget;
@@ -196,13 +196,15 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
           files: layout.files.map((f) => ({ path: f.path, owner: f.owner, regenerate: f.regenerate })), kept: [], screens: layout.screens, removed: [], notes: layout.notes };
       } else {
         if (!run) throw new Error("Name the run: factory design scaffold <run> (or --sample)");
-        const l = deps.openRun(run);
+        const l = ledger = deps.openRun(run);
         const state = replay(l.events());
         const s = scaffoldPreview(state, l, loadProject(state.info.project), { ...(target ? { target } : {}) });
         layout = s.layout;
         v = scaffoldView(s, s.built);
       }
       const written = o.out && layout ? writeScaffold(layout, resolve(o.out)) : undefined;
+      // a run's scaffold copied out of the factory is recorded in its ledger (the kit's sample design is no one's)
+      if (written && ledger) await recordScaffoldCopy(ledger, { kind: "out", target: v.target, to: resolve(o.out!), files: written.length, by: userInfo().username });
       if (o.json) return log(JSON.stringify({ ...v, ...(written ? { out: resolve(o.out!), written: written.length } : {}) }, null, 2));
       printScaffold(v, log);
       if (o.files) for (const f of v.files) log(`  ${f.owner.padEnd(6)} ${f.regenerate ? "factory" : "repo's "} ${f.path}`);

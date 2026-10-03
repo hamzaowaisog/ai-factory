@@ -16,7 +16,7 @@ import { withApp } from "../design/app-runner.js";
 import { readBaselines } from "../design/baselines.js";
 import { approvedTheme, runFidelity, type FidelityReport } from "../design/fidelity-app.js";
 import { FIDELITY_GATES } from "../design/gates.js";
-import { findPackage } from "../design/package.js";
+import { packageForRun } from "../design/package.js";
 import { ownTokens } from "../design/repo-look.js";
 import { gitSource } from "../design/source.js";
 import { buildWaiver, type BuildFailed } from "../estimate/build-waiver.js";
@@ -89,7 +89,7 @@ export const designFidelityStep: StepDef = {
     const inPlace = inPlaceScreens(approved.design, kit);
     if (!kit.length && !inPlace.length) return skip("the approved design has no screen to open in a browser");
     const cfg = fidelityConfig(ctx.project);
-    const pkg = findPackage(ctx.state.info.project, approved.sha);
+    const pkg = packageForRun(ctx.state.info, approved.sha);
     const wt = await ensureWorktree(ctx, head);
     // the kit's commands for a kit scaffold; for an app changed in place, the project's or the repo's own start script
     const start = cfg.start ?? (kit.length ? defaultStart(scaf!.target) : repoStart(gitSource(wt, head).read("package.json")));
@@ -150,7 +150,7 @@ export function fidelityOfRun(state: RunState, ledger: Ledger): FidelityReport |
 /** The design package of the run's approved design, when it is in the store. */
 export function packageOfRun(state: RunState, ledger: Ledger): DesignPackage | undefined {
   const a = approvedDesignFor(state, ledger);
-  return a ? findPackage(state.info.project, a.sha) : undefined;
+  return a ? packageForRun(state.info, a.sha) : undefined;
 }
 
 /**
@@ -167,7 +167,7 @@ export async function checkRunningApp(state: RunState, ledger: Ledger, project: 
   if (!kit.length && !inPlace.length) throw new Error("The approved design has no screen to open in a browser");
   const { repoPath, baseCommit } = state.info;
   const own = !approvedTheme(approved.design) && repoPath && baseCommit ? ownTokens(gitSource(repoPath, baseCommit)) : undefined;
-  const pkg = findPackage(state.info.project, approved.sha);
+  const pkg = packageForRun(state.info, approved.sha);
   const outDir = join(ledger.dir, FIDELITY_DIR);
   rmSync(outDir, { recursive: true, force: true });
   mkdirSync(outDir, { recursive: true });

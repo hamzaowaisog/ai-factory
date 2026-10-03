@@ -21,6 +21,7 @@ import { COMPONENTS_ID, demoStates } from "./demo.js";
 import { captureDemo, type Shot, type ScreenShotInput } from "./screenshots.js";
 import { designTokens } from "./tokens.js";
 import { factoryHome } from "../util/paths.js";
+import { STANDALONE_PROJECT } from "../config/project.js";
 
 /** The package format (manifest and folder layout). */
 export const PACKAGE_SCHEMA_VERSION = 1;
@@ -230,6 +231,13 @@ export function listPackages(project: string): DesignPackage[] {
 /** The package of an approved design, by its ledger sha. */
 export const findPackage = (project: string, designSha: string): DesignPackage | undefined =>
   listPackages(project).find((p) => p.manifest.designSha === designSha);
+
+/**
+ * The package of a run's approved design: in the run's project, or, for a new product (a greenfield run), under the standalone
+ * project the design was drawn in (it had no repo).
+ */
+export const packageForRun = (info: { project: string; mode: string }, designSha: string): DesignPackage | undefined =>
+  findPackage(info.project, designSha) ?? (info.mode === "greenfield" ? findPackage(STANDALONE_PROJECT, designSha) : undefined);
 
 /** The next free version in a line. */
 export const nextVersion = (project: string, line: string): number =>

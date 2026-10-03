@@ -27,6 +27,7 @@ import type { WaiverRow } from "../estimate/log.js";
 import { WAIVER_AFTER_ATTEMPT } from "./waiver.js";
 import type { Breakdown } from "../contracts/index.js";
 import { affectsLines, planCoverageFailures, planNote, readImpact } from "./impact.js";
+import { dependencyKind, planIntro, stubRule } from "./stack-text.js";
 import { checkPlanScaffold, designForScopeGate, scaffoldForPlan, scaffoldOfRun } from "./scaffold-run.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -164,13 +165,13 @@ export const planStep: StepDef = {
       stage: "plan", route: "plan", cls: "read-large", budgetTokens: 30000, tools: ["read_file", "search", "repo_map"],
       repoTools: toolsFor(ctx), schema: PlanBody, maxTurns: 12,
       sections: [
-        S.template("tpl", `You plan the implementation of an approved spec in an existing .NET codebase.
+        S.template("tpl", `${planIntro(ctx.project.stack)}
 - Give at least 2 options (one marked simplest), choose one, and write a decision record of at most 5 lines (adr).
 - Split into tasks TASK-1.. in dependency order. Each task: the requirements it delivers, fileScope (exact repo paths or narrow globs it may change, no overlap between tasks), 1-2 exemplar files to imitate, plannedLoc, approach (short instructions for the implementer).
 - Test projects, test files and CI config are not in any file scope: tests are written separately.
-- stubs: for every NEW public type/method/endpoint the tests will call, give a compilable stub file (full file content) whose bodies throw NotImplementedException, so tests compile before implementation. Existing APIs need no stubs. Stub paths must be inside a task's fileScope.
+- stubs: for every NEW public type/method/endpoint the tests will call, give a compilable stub file (full file content) whose bodies ${stubRule(ctx.project.stack)}, so tests compile before implementation. Existing APIs need no stubs. Stub paths must be inside a task's fileScope.
 - protectedPathsDeclared: list any migration, CI, build-config or package-feed file you must change (a human will see it).
-- newDependencies: any NuGet package to add (name, version, registry). Prefer none.`),
+- newDependencies: any ${dependencyKind(ctx.project.stack)} package to add (name, version, registry). Prefer none.`),
         S.profile("repomap", `Repository map:\n${map}`),
         S.artifact("spec", "spec", spec),
         S.artifact("cb", "current-behaviour", cb),

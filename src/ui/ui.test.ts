@@ -944,7 +944,7 @@ describe("factory ui: design exports", () => {
       [{ project: "web", mode: "design", fromDesign: id }, /starts from requirements/],
       [{ project: "api", mode: "estimate", fromDesign: id }, /for project web, not api/],
       [{ project: "api", fromDesign: id }, /designed for project web, not api/],
-      [{ project: "web", fromDesign: alone }, /greenfield/],
+      [{ project: "web", fromDesign: alone }, /new product .*already has code/],
       [{ project: "web", fromDesign: id, fromEstimate: "x" }, /one thing at a time/],
       [{ project: "web", mode: "estimate", fromDesign: ids.delivered }, /not a design run/],
     ];
@@ -964,6 +964,20 @@ describe("factory ui: design exports", () => {
     expect(b.status).toBe(201);
     expect(replay(Ledger.open(b.json().runId).events()).info).toMatchObject({ mode: "brownfield", designRef: { runId: id } });
     expect(ui.exportJobs.list().find((j) => j.runId === b.json().runId)).toMatchObject({ formats: ["json"] });
+  });
+
+  it("builds a design for a new product into a project whose repo is empty (greenfield)", async () => {
+    const alone = await seedableDesignRun();
+    const empty = makeRepo({ "README.md": "# shop\n" });
+    writeFileSync(join(home, "projects", "shop.yaml"), stringify({ project: "shop", repo: empty, stack: "node" }));
+    writeFileSync(join(home, "projects", "shopnet.yaml"), stringify({ project: "shopnet", repo: makeRepo({ "README.md": "x" }), stack: "dotnet" }));
+    const projects = (await call("/api/projects")).json().projects as { name: string; empty?: boolean }[];
+    expect(projects.filter((p) => p.empty).map((p) => p.name)).toEqual(["shop"]);
+    expect((await post({ project: "shopnet", fromDesign: alone })).json().error).toMatch(/stack: dotnet/);
+    expect((await post({ project: "api", fromDesign: alone })).json().error).toMatch(/already has code/);
+    const r = await post({ project: "shop", fromDesign: alone });
+    expect(r.status, JSON.stringify(r.json())).toBe(201);
+    expect(replay(Ledger.open(r.json().runId).events()).info).toMatchObject({ mode: "greenfield", project: "shop", repoPath: empty, designRef: { runId: alone } });
   });
 
   it("says why a run with no approved design cannot be exported, and refuses to start one", async () => {
@@ -1042,6 +1056,12 @@ describe("factory ui: design exports", () => {
     expect((await call(`/scaffolds/${l.runId}/vite-shadcn.zip`, { token: null })).status).toBe(401);
     expect((await call(`/scaffolds/${l.runId}/next-shadcn.zip`)).status).toBe(404);
     expect((await call(`/scaffolds/${l.runId}/..%2Fevents.jsonl`)).status).toBe(404);
+    // each copy taken of the app is in the run's ledger (who, which target, where to)
+    const copies = readFileSync(join(l.dir, "events.jsonl"), "utf8").split("\n").filter(Boolean).map((x) => JSON.parse(x)).filter((e) => e.type === "scaffold.copied").map((e) => e.data);
+    expect(copies).toEqual([
+      expect.objectContaining({ copy: "generate", target: "vite-shadcn", to: join(l.dir, "scaffold", "vite-shadcn"), files: expect.any(Number), by: expect.stringMatching(/\(via web\)$/) }),
+      expect.objectContaining({ copy: "download", target: "vite-shadcn", to: `${l.runId}-vite-shadcn.zip` }),
+    ]);
     // a run with no approved design says why, and generates nothing
     expect((await call(`/api/runs/${ids.waiting}/scaffold`)).json()).toMatchObject({ available: false, why: expect.stringMatching(/no approved design/) });
     expect((await call(`/api/runs/${ids.waiting}/scaffold`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: "{}" })).status).toBe(400);

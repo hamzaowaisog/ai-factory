@@ -42,10 +42,17 @@ describe("the UI target of a run", () => {
   });
 
   it("does not put a new app into an existing repo whose stack nothing shows, unless a target is set", () => {
-    const bare = files({ "README.md": "# api" });
-    expect(targetForRun({ design, src: bare })).toMatchObject({ target: "repo", source: "default" });
+    const bare = files({ "README.md": "# api", "main.go": "package main" });
+    expect(targetForRun({ design, src: bare })).toMatchObject({ target: "repo" });
     expect(targetForRun({ design, src: bare, run: "vite-shadcn" })).toMatchObject({ target: "vite-shadcn", source: "run" });
     expect(targetForRun({ design })).toMatchObject({ target: "next-shadcn", source: "default" });
+  });
+
+  it("gives an empty repo (a new product, greenfield) a fresh next-shadcn app, like no repo at all", () => {
+    for (const src of [files({}), files({ "README.md": "# shop", ".gitignore": "node_modules", "LICENSE": "MIT" })]) {
+      expect(targetForRun({ design, src })).toMatchObject({ target: "next-shadcn", source: "default", detected: { why: "an empty repo: a fresh app" } });
+      expect(targetForRun({ design, src, run: "vite-shadcn" })).toMatchObject({ target: "vite-shadcn", source: "run" });
+    }
   });
 
   it("keeps a repo with another component library on its own components: no scaffold", () => {

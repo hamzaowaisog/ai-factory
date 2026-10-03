@@ -4,7 +4,7 @@
 import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { join, sep } from "node:path";
 import { EXPORT_FORMATS, EXPORT_MODES, exportsRoot, listExports, parseFormats, parseList, zipExport, type ExportOptions } from "../design/export.js";
-import { findPackage, listPackages } from "../design/package.js";
+import { listPackages, packageForRun } from "../design/package.js";
 import { demoStates } from "../design/demo.js";
 import { VIEWPORTS, type Viewport } from "../design/screenshots.js";
 import type { Ledger } from "../ledger/ledger.js";
@@ -29,7 +29,7 @@ export function designExportsView(ledger: Ledger, jobs: ExportJob[] = []) {
       : "There is no approved design yet.";
     return { runId: ledger.runId, available: false as const, why, exports, jobs: mine };
   }
-  const pkg = findPackage(s.info.project, approved.sha);
+  const pkg = packageForRun(s.info, approved.sha);
   const d = approved.design;
   const screens = d.screens.map((sc) => ({ id: sc.id, title: sc.mock?.title ?? sc.id, states: demoStates(sc as never) }));
   const modes = d.theme?.mode === "auto" ? [...EXPORT_MODES] : [d.theme?.mode === "dark" ? "dark" : "light"];
@@ -37,7 +37,7 @@ export function designExportsView(ledger: Ledger, jobs: ExportJob[] = []) {
     runId: ledger.runId, available: true as const,
     design: pkg ? { line: pkg.manifest.line, version: pkg.manifest.version, designSha: pkg.manifest.designSha, approvedBy: pkg.manifest.approved.by, approvedAt: pkg.manifest.approved.at, pictures: pkg.manifest.shots.length, picturesNote: pkg.manifest.shotsNote }
       : { designSha: approved.sha, pending: "The design package is written with the first export." },
-    versions: pkg ? listPackages(s.info.project).filter((p) => p.manifest.line === pkg.manifest.line).map((p) => p.manifest.version) : [],
+    versions: pkg ? listPackages(pkg.manifest.run.project).filter((p) => p.manifest.line === pkg.manifest.line).map((p) => p.manifest.version) : [],
     formats: [...EXPORT_FORMATS],
     figma: { plugin: "/figma-plugin.zip", note: "Figma: export figma.json, then in the Figma desktop app (any plan, the free one too) import the AI Factory Import plugin once (Plugins > Development > Import plugin from manifest..., its manifest.json), run it in the file and pick figma.json. No Figma token or paid seat is needed." },
     options: { screens: [...screens, ...(screens.length ? [{ id: "components", title: "Components", states: ["All states"] }] : [])], widths: Object.keys(VIEWPORTS), modes, langs: d.locale?.languages ?? ["en"] },
