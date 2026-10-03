@@ -11,10 +11,12 @@ import { icon, iconFor, verbIcon } from "./icons.js";
 import { hash, scene } from "./scenes.js";
 import { demoWords, englishName, isRtl, nativeDigits, nativeName, translationTable, weekStart, weekend } from "./locale.js";
 import type { Button, DesignApp, DesignLocale, DesignTheme, FormField, MockBlock, MockOverlay, MockToast, ScreenMock, Switcher } from "../contracts/artifacts.js";
-import type { DesignOut } from "../stages/design.js";
+import type { DesignBody } from "../contracts/artifacts.js";
 import type { z } from "zod";
 
-type Screen = z.infer<typeof DesignOut>["screens"][number];
+type ContractScreen = z.infer<typeof DesignBody>["screens"][number];
+/** a screen as the design step gives it (its states, size and frames always filled in) */
+type Screen = ContractScreen & { states: string[]; size: NonNullable<ContractScreen["size"]>; frames: string[] };
 export interface DemoInput {
   title: string;
   flow: string;
