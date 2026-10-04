@@ -1,5 +1,19 @@
 # bench/
 
+## All evals: `npm run eval -- list`
+One entry point wraps the commands below (they stay where they are). A paid suite runs only with `--spend --max-cost
+<usd>` (the cap per run); it prints the worst-case total and asks for `--yes` or a typed "yes" before spending.
+
+| Suite | Cost | Measures | Cost per run (estimate) |
+|---|---|---|---|
+| `gates` | free | each gate catches its seeded defects and passes clean input | - |
+| `calibrate` | free | the ledger predicts its own cost and time (needs finished runs) | - |
+| `spec` | free or paid | spec quality on 14 cases: expected behaviour found, scope creep, gaps raised | about $0.50-1.00 per case run; `--fake` is free |
+| `ripple` | free | the impact code layer against files real commits changed (recall, precision) | - |
+| `e2e` | free or paid | a ticket to a delivered change, scored by hidden tests (5 cases); also a plain Claude Code baseline | about $2-3 per factory run, about $0.20 per baseline run; `validate` and `--fake` are free |
+| `runs` | free | one run's record from its ledger; compare runs and baselines; run-record tables | - |
+
+
 Benchmarks for the estimates path (see `estimates-design.md`). Read-only: no model calls, no cost.
 
 ```
@@ -90,4 +104,23 @@ scorecard, so it agrees with `factory report`), lines and files changed, locked 
 `baseline <result.json> --name <id> [--repo --base --head]` makes a row from a plain Claude Code run; `compare <rows…>`
 prints them side by side; `md <row.json>` prints a run record's tables (docs/runs/), and the narrative is written by hand.
 Rows go to `runs/results/` (git-ignored). Free: no model calls.
+
+## e2e: a ticket to a delivered change, scored by hidden tests
+`e2e/cases/<id>/`: `case.yaml` (repo pin, kind, the ticket with its HTTP contract, facts that answer its one planted
+ambiguity), `hidden/` (HTTP-and-JSON tests in the repo's own test project, never the app's types: any implementation
+that keeps the contract passes), `reference.patch` (our known-good fix) and `broken.patch` (a plausible wrong fix).
+Each run starts from a **fresh base**: the pinned commit's files committed into a new repo with no history and no remote
+(plus a repo setup patch, e.g. VSA's one-database-per-test-factory fix), in the harness's own temporary factory home,
+where only the harness may answer cards ("eval": questions from the facts, the plan approved, anything else refused,
+which fails the run). The delivered branch gets the hidden tests and runs in the factory's lab twice; a test that
+disagrees is flaky. A leak check makes sure the run could not read the hidden tests.
+```
+npm run eval -- e2e validate                          # free: base fails, reference passes x3, broken caught
+npm run eval -- e2e run --fake [--patch broken]       # free: scripted model and agent write the patch
+npm run eval -- e2e run --spend --max-cost 6 --like <project> [--repeats 2]                 # paid
+npm run eval -- e2e run --baseline claude-code --spend --max-cost 0.5 [--repeats 2]         # paid
+npm run eval -- e2e score --case <id> --patch <file>  # free: score any diff
+```
+Each case and each repeat is reported on its own (no overall percentage), with repeats that disagree flagged: five
+cases tell "works" from "doesn't" per case, not small differences. Results go to `e2e/results/` (git-ignored).
 

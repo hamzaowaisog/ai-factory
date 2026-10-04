@@ -40,6 +40,14 @@ const likeName = opt("like");
 const like = likeName ? loadProject(likeName) : undefined;
 console.log(`${fake ? "Dry run (fake model)" : "PAID run"}: ${cases.length} cases × ${repeats} = ${cases.length * repeats} runs${spend ? `, at most $${(cases.length * repeats * maxCost).toFixed(0)} in total ($${maxCost} cap per run)` : ""}`);
 if (spend && !like) console.log("No --like project: prices and routes are the factory defaults (a model without a price is costed at the fallback rate).");
+if (spend && !args.includes("--yes")) {
+  // a paid run asks first: the worst case above is a real amount of money
+  const { createInterface } = await import("node:readline/promises");
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const ok = (await rl.question(`This can spend up to $${(cases.length * repeats * maxCost).toFixed(2)}. Type yes to go on: `)).trim() === "yes";
+  rl.close();
+  if (!ok) { console.log("Nothing spent."); process.exit(1); }
+}
 if (spend) {
   // the spec stage's models: a model with no price is costed at the fallback rate ($10/$50 per million), which
   // overstates spend and can hit the per-run cap early (the GPT drafter and critic, unless a --like project prices them)
