@@ -13,7 +13,6 @@ import { lightSpec } from "./lane.js";
 import { humanReview } from "../estimate/settings.js";
 import { loadDefaults, topicsText, type Defaults } from "../estimate/defaults.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
-import { estimateTokens } from "../context/tokens.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -194,14 +193,6 @@ export function restyleChosen(r: ClarifyResult | undefined): string[] | undefine
 // ---------- steps ----------
 const request = (ctx: Pick<StepContext, "state">) => ctx.state.info.request ?? "";
 
-/**
- * The fixed budget plus room for the sketches. They are the factory's own output and are read whole, and they grow
- * with the request, so a fixed budget parks a big request instead of guarding anything.
- */
-export function withSketches(base: number, sketches: unknown): number {
-  return Math.min(180_000, base + estimateTokens(JSON.stringify(sketches, null, 1), "claude"));
-}
-
 /** The readings that came back on the last failed attempt for the same inputs (sha per reading, null = lost). */
 export function keptSketches(events: { type: string; data?: unknown }[], sketchKey: string): (string | null)[] {
   const ev = [...events].reverse().find((e) => e.type === "step.failed" && (e.data as { sketchKey?: string } | undefined)?.sketchKey === sketchKey);
@@ -240,7 +231,7 @@ ${UNTRUSTED_NOTE}`),
   const sketches = rs.map((r) => (r as { output: Sketch }).output);
   const listed = sketches.map((s, i) => ({ sketch: i + 1, spans: s.spans.map((sp) => ({ id: sp.id, readingChosen: sp.readingChosen, behaviours: sp.behaviours.map((b, j) => `${j}: ${b.text}`) })) }));
   const al = await think(ctx, {
-    stage: "sketches", route: "sketch-align", cls: "read-small", budgetTokens: withSketches(15000, listed), tools: [], schema: AlignOut, maxTurns: 3,
+    stage: "sketches", route: "sketch-align", cls: "read-small", budgetTokens: 15000, tools: [], schema: AlignOut, maxTurns: 3,
     sections: [
       S.template("tpl", `Three engineers independently listed behaviours for the same request. Find where they DISAGREE about what the system should do (not wording differences).
 For each disagreement: id D-1.., the span, a short topic, and the readings: which sketch (1-3), which behaviour index (0-based) in that span, and a one-line summary. Cite at least two different sketches. Empty list if they agree.`),
@@ -254,7 +245,7 @@ For each disagreement: id D-1.., the span, a short topic, and the readings: whic
 
 async function runClarifier(ctx: StepContext, intent: Intent, cb: CB, sketches: Sketch[], diffs: Difference[], prior?: ClarifyResult) {
   return think(ctx, {
-    stage: "clarifier", route: "clarifier", cls: "read-large", budgetTokens: withSketches(20000, sketches), tools: [], schema: ClarifierOut, maxTurns: 4,
+    stage: "clarifier", route: "clarifier", cls: "read-large", budgetTokens: 20000, tools: [], schema: ClarifierOut, maxTurns: 4,
     sections: [
       S.template("tpl", `Requirements analyst. Your only job is finding what is unclear or missing. You don't write the spec.
 Check: scope, data model, user roles and permissions, existing data and state changes, error and failure handling, external systems, hardcoded identifiers (constant or configuration?), behaviour outside the named scope, terminology.

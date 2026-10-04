@@ -47,13 +47,17 @@ export type ThinkResult<T> =
   | { ok: false; outcome: StepOutcome };
 
 /**
- * An estimate (or a design-only run) reads requirements documents far longer than a change request. The text is what it is, so in
- * those modes the budget grows by the size of the untrusted document (capped), and the usual room stays.
+ * A step's budget is sized for a change request. Two inputs are what they are and must be read whole, so the budget grows by
+ * their size (capped) and the usual room stays:
+ * - the factory's own earlier outputs (sketches, drafts, a spec), which grow with the request, in every mode;
+ * - the untrusted requirements document, in an estimate or a design-only run, where it is far longer than a change request.
  */
 export function budgetFor(ctx: Pick<StepContext, "state">, base: number | undefined, sections: ResolvedSection[], model: string): number | undefined {
-  if (base === undefined || !readsRequirements(ctx.state.info.mode)) return base;
-  const doc = sections.filter((x) => x.spec.trust === "untrusted").reduce((n, x) => n + estimateTokens(x.content, model), 0);
-  return doc > base / 2 ? Math.min(180_000, base + doc) : base;
+  if (base === undefined) return base;
+  const size = (pick: (x: ResolvedSection) => boolean) => sections.filter(pick).reduce((n, x) => n + estimateTokens(x.content, model), 0);
+  const own = size((x) => x.spec.source === "artifact");
+  const doc = readsRequirements(ctx.state.info.mode) ? size((x) => x.spec.trust === "untrusted") : 0;
+  return Math.min(Math.max(base, 180_000), base + (own > base / 2 ? own : 0) + (doc > base / 2 ? doc : 0));
 }
 
 export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<ThinkResult<T>> {

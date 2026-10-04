@@ -11,7 +11,7 @@ import { defaultProvider, type Provider } from "../runners/api.js";
 import type { ModelImage } from "../util/image.js";
 import { NO_TRACE } from "../util/trace.js";
 import type { StepContext } from "./framework.js";
-import { S, setProviderFactory, think, UNTRUSTED_IMAGE_NOTE } from "./think.js";
+import { budgetFor, S, setProviderFactory, think, UNTRUSTED_IMAGE_NOTE } from "./think.js";
 
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
 const JPG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 16]);
@@ -72,5 +72,26 @@ describe("think with images", () => {
     expect(r.ok).toBe(false);
     expect(!r.ok && r.outcome).toMatchObject({ kind: "park", reason: expect.stringMatching(/Image 1 is not a PNG/) });
     expect(called).toBe(false);
+  });
+});
+
+describe("briefing budget", () => {
+  const state = (mode: string) => ({ state: { info: { mode } } }) as unknown as Parameters<typeof budgetFor>[0];
+  const big = S.artifact("drafts", "drafts", Array.from({ length: 400 }, (_, i) => `requirement ${i}: the buyer sees the order status and gets an email when it changes`));
+  const small = S.artifact("intent", "intent", ["one span"]);
+  const doc = S.untrusted("request", "cli", "word ".repeat(20_000));
+
+  it("grows by the factory's own earlier outputs in every mode, and keeps the usual room", () => {
+    expect(budgetFor(state("build"), 15000, [small, S.task("t")], "claude-opus-5-5")).toBe(15000);
+    const grown = budgetFor(state("build"), 15000, [big, S.task("t")], "claude-opus-5-5")!;
+    expect(grown).toBeGreaterThan(15000 + 7500);
+    expect(budgetFor(state("estimate"), 15000, [big, S.task("t")], "claude-opus-5-5")).toBe(grown);
+  });
+
+  it("grows by the requirements document only where requirements are read, and never past the cap", () => {
+    expect(budgetFor(state("build"), 15000, [doc], "claude-opus-5-5")).toBe(15000);
+    expect(budgetFor(state("estimate"), 15000, [doc], "claude-opus-5-5")).toBeGreaterThan(30000);
+    expect(budgetFor(state("estimate"), 15000, [S.untrusted("request", "cli", "word ".repeat(400_000)), big], "claude-opus-5-5")).toBe(180_000);
+    expect(budgetFor(state("estimate"), undefined, [doc], "claude-opus-5-5")).toBeUndefined();
   });
 });
