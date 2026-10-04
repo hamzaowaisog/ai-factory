@@ -1,0 +1,12 @@
+# Lab settings for the TodoApi cases (as factory init detects them); repo and project name are filled in per run.
+config:
+  stack: dotnet
+  baseBranch: main
+  dotnet:
+    sdkImage: mcr.microsoft.com/dotnet/sdk:9.0
+    solution: TodoApp.sln
+    testTimeoutSec: 2400
+  agentEnv:
+    ConnectionStrings__Todos: "Host=localhost;Database=dummy;Username=dummy;Password=dummy"
+  accept:
+    bootApp: false        # its tests run on an in-memory SQLite through the repo's own test host

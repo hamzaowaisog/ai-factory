@@ -1,0 +1,17 @@
+id: vsa-state-conflict-409
+repo: vsa
+kind: bugfix
+request: |
+  Cancelling a completed appointment (POST /api/appointments/{id}/cancel), or completing a cancelled one
+  (POST /api/appointments/{id}/complete), returns 400 Bad Request. The request itself is valid; the appointment's
+  current state forbids it, so the API should answer 409 Conflict with the same error message. A missing or too-long
+  reason or notes must still return 400.
+facts:
+  - id: F1
+    about: [[too long, too-long, over-long, exceed, length, missing, empty], [state, status, cancel, complet, first, precedence, order, both]]
+    answer: Input rules come first. A missing or too-long reason or notes is 400 whatever state the appointment is in.
+  - id: F2
+    about: [[error message, wording, response body, detail, title], [same, keep, exact, change, domain, which]]
+    answer: Keep the message exactly as the domain gives it today; only the status code changes.
+timeoutMin: 45
+maxCostUsd: 6

@@ -1,0 +1,12 @@
+id: todo-create-complete-ignored
+repo: todo
+kind: bugfix
+request: |
+  POST /todos with "isComplete": true creates the todo as not complete (it comes back and is stored that way). Our import
+  script creates already-finished items this way. Please fix it so the value sent on create is kept.
+facts:
+  - id: F1
+    about: [[reject, refuse, error, ignore, honou, allow, keep, accept, should]]
+    answer: Keep it. A todo created with "isComplete" true is stored complete; without the field it is not complete, as today.
+timeoutMin: 45
+maxCostUsd: 6

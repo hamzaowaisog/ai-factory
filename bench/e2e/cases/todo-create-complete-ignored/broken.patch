@@ -1,0 +1,12 @@
+diff --git a/Todo.Api/Todos/TodoApi.cs b/Todo.Api/Todos/TodoApi.cs
+index a9a7dca..8f5058e 100644
+--- a/Todo.Api/Todos/TodoApi.cs
++++ b/Todo.Api/Todos/TodoApi.cs
+@@ -40,6 +40,7 @@ internal static class TodoApi
+             var todo = new Todo
+             {
+                 Title = newTodo.Title,
++                IsComplete = true,
+                 OwnerId = owner.Id
+             };
+ 

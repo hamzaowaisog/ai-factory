@@ -1,0 +1,16 @@
+id: vsa-specialty-filter
+repo: vsa
+kind: feature
+request: |
+  Add an optional query parameter `specialty` to GET /api/appointments that returns only appointments whose doctor
+  has that specialty, for example GET /api/appointments?specialty=Cardiology. It must work together with the
+  filters that are already there (patient, doctor, status, dates) and with paging.
+facts:
+  - id: F1
+    about: [[case, upper, lower, capital, exact, partial, contains, match]]
+    answer: Match the whole specialty name, ignoring upper and lower case ("cardiology" finds Cardiology); no partial matches.
+  - id: F2
+    about: [[unknown, not exist, no doctor, invalid, empty, nothing, none]]
+    answer: An unknown specialty is not an error; it returns 200 with an empty list.
+timeoutMin: 45
+maxCostUsd: 6
