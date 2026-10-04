@@ -1,0 +1,133 @@
+{
+  "kind": "ai-factory/ui-kit",
+  "id": "shadcn",
+  "version": "1.2.0",
+  "description": "React components for the design's blocks, controls, layers and frame, on shadcn/ui patterns (Radix primitives, Tailwind v4). Copied into the repo, which then owns them.",
+  "license": "The components under components/ui follow shadcn/ui (MIT, https://ui.shadcn.com; components/ui/LICENSE is copied with them). See NOTICE for the packages' licences.",
+  "targets": {
+    "next-shadcn": {
+      "framework": "next",
+      "root": "",
+      "srcRoots": ["src/", ""],
+      "stylesheet": "app/globals.css",
+      "theme": "app/design-theme.css",
+      "clientDirective": true,
+      "routes": "app"
+    },
+    "vite-shadcn": {
+      "framework": "vite",
+      "root": "src/",
+      "srcRoots": ["src/"],
+      "stylesheet": "index.css",
+      "theme": "design-theme.css",
+      "clientDirective": false,
+      "routes": "routes.tsx"
+    }
+  },
+  "dependencies": {
+    "radix-ui": "1.6.7",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "tailwind-merge": "3.7.0",
+    "lucide-react": "0.577.0",
+    "cmdk": "1.1.1",
+    "sonner": "2.0.8",
+    "react-day-picker": "9.14.0",
+    "input-otp": "1.5.0",
+    "@tanstack/react-table": "8.21.3",
+    "recharts": "2.15.4",
+    "leaflet": "1.9.4"
+  },
+  "targetDependencies": {
+    "next-shadcn": { "next": "15.5.27", "react": "19.3.0", "react-dom": "19.3.0" },
+    "vite-shadcn": { "react": "19.3.0", "react-dom": "19.3.0", "react-router": "7.18.4" }
+  },
+  "devDependencies": {
+    "next-shadcn": { "typescript": "5.9.3", "@types/react": "19.3.0", "@types/react-dom": "19.3.0", "@types/node": "22.20.5", "@types/leaflet": "1.9.22", "tailwindcss": "4.3.3", "@tailwindcss/postcss": "4.3.3", "tw-animate-css": "1.4.0" },
+    "vite-shadcn": { "typescript": "5.9.3", "@types/react": "19.3.0", "@types/react-dom": "19.3.0", "@types/node": "22.20.5", "@types/leaflet": "1.9.22", "tailwindcss": "4.3.3", "@tailwindcss/vite": "4.3.3", "vite": "7.3.6", "@vitejs/plugin-react": "5.2.0", "tw-animate-css": "1.4.0" }
+  },
+  "blocks": {
+    "stats": { "file": "components/blocks/stats.tsx", "component": "StatsBlock" },
+    "filters": { "file": "components/blocks/filters.tsx", "component": "FiltersBlock" },
+    "table": { "file": "components/blocks/table.tsx", "component": "TableBlock" },
+    "form": { "file": "components/blocks/form.tsx", "component": "FormBlock" },
+    "chart": { "file": "components/blocks/chart.tsx", "component": "ChartBlock" },
+    "cards": { "file": "components/blocks/cards.tsx", "component": "CardsBlock" },
+    "carousel": { "file": "components/blocks/carousel.tsx", "component": "CarouselBlock" },
+    "steps": { "file": "components/blocks/steps.tsx", "component": "StepsBlock" },
+    "timeline": { "file": "components/blocks/timeline.tsx", "component": "TimelineBlock" },
+    "detail": { "file": "components/blocks/detail.tsx", "component": "DetailBlock" },
+    "accordion": { "file": "components/blocks/accordion.tsx", "component": "AccordionBlock" },
+    "list": { "file": "components/blocks/list.tsx", "component": "ListBlock" },
+    "calendar": { "file": "components/blocks/calendar.tsx", "component": "CalendarBlock" },
+    "map": { "file": "components/blocks/map.tsx", "component": "MapBlock" },
+    "gallery": { "file": "components/blocks/gallery.tsx", "component": "GalleryBlock" },
+    "upload": { "file": "components/blocks/upload.tsx", "component": "UploadBlock" },
+    "chat": { "file": "components/blocks/chat.tsx", "component": "ChatBlock" },
+    "kanban": { "file": "components/blocks/kanban.tsx", "component": "KanbanBlock" },
+    "plans": { "file": "components/blocks/plans.tsx", "component": "PlansBlock" },
+    "reviews": { "file": "components/blocks/reviews.tsx", "component": "ReviewsBlock" },
+    "notifications": { "file": "components/blocks/notifications.tsx", "component": "NotificationsBlock" },
+    "results": { "file": "components/blocks/results.tsx", "component": "ResultsBlock" },
+    "compare": { "file": "components/blocks/compare.tsx", "component": "CompareBlock" },
+    "receipt": { "file": "components/blocks/receipt.tsx", "component": "ReceiptBlock" },
+    "actions": { "file": "components/blocks/actions.tsx", "component": "ActionsBlock" },
+    "alert": { "file": "components/blocks/alert.tsx", "component": "AlertBlock" },
+    "toolbar": { "file": "components/blocks/toolbar.tsx", "component": "ToolbarBlock" },
+    "progress": { "file": "components/blocks/progress.tsx", "component": "ProgressBlock" },
+    "text": { "file": "components/blocks/text.tsx", "component": "TextBlock" }
+  },
+  "controls": {
+    "text": { "file": "components/ui/input.tsx", "component": "Input" },
+    "email": { "file": "components/ui/input.tsx", "component": "Input" },
+    "number": { "file": "components/ui/input.tsx", "component": "Input" },
+    "currency": { "file": "components/ui/input.tsx", "component": "Input" },
+    "phone": { "file": "components/ui/input.tsx", "component": "Input" },
+    "time": { "file": "components/ui/input.tsx", "component": "Input" },
+    "password": { "file": "components/ui/input.tsx", "component": "Input" },
+    "card": { "file": "components/ui/input.tsx", "component": "Input" },
+    "textarea": { "file": "components/ui/textarea.tsx", "component": "Textarea" },
+    "select": { "file": "components/ui/select.tsx", "component": "Select" },
+    "search": { "file": "components/ui/combobox.tsx", "component": "Combobox" },
+    "combobox": { "file": "components/ui/combobox.tsx", "component": "Combobox" },
+    "multiselect": { "file": "components/ui/combobox.tsx", "component": "Combobox" },
+    "date": { "file": "components/ui/date-picker.tsx", "component": "DatePicker" },
+    "daterange": { "file": "components/ui/date-picker.tsx", "component": "DatePicker" },
+    "toggle": { "file": "components/ui/switch.tsx", "component": "Switch" },
+    "radio": { "file": "components/ui/radio-group.tsx", "component": "RadioGroup" },
+    "checkbox": { "file": "components/ui/checkbox.tsx", "component": "Checkbox" },
+    "consent": { "file": "components/ui/checkbox.tsx", "component": "Checkbox" },
+    "slider": { "file": "components/ui/slider.tsx", "component": "Slider" },
+    "otp": { "file": "components/ui/otp-field.tsx", "component": "OtpField" }
+  },
+  "overlays": {
+    "modal": { "file": "components/ui/dialog.tsx", "component": "Dialog" },
+    "drawer": { "file": "components/ui/sheet.tsx", "component": "Sheet" },
+    "sheet": { "file": "components/ui/sheet.tsx", "component": "Sheet" },
+    "confirm": { "file": "components/ui/alert-dialog.tsx", "component": "AlertDialog" },
+    "menu": { "file": "components/ui/popover.tsx", "component": "Popover" },
+    "popover": { "file": "components/ui/popover.tsx", "component": "Popover" }
+  },
+  "parts": {
+    "button": { "file": "components/blocks/action-button.tsx", "component": "ActionButton" },
+    "toast": { "file": "components/ui/sonner.tsx", "component": "Toaster" },
+    "badge": { "file": "components/ui/status-badge.tsx", "component": "StatusBadge" },
+    "notice": { "file": "components/ui/notice.tsx", "component": "Notice" },
+    "avatar": { "file": "components/ui/people.tsx", "component": "AvatarStack" },
+    "tooltip": { "file": "components/blocks/tip.tsx", "component": "Tip" },
+    "tabs": { "file": "components/ui/tabs.tsx", "component": "Tabs" },
+    "breadcrumb": { "file": "components/ui/crumbs.tsx", "component": "Crumbs" },
+    "pagination": { "file": "components/ui/pager.tsx", "component": "Pager" },
+    "switcher": { "file": "components/frame/app-frame.tsx", "component": "AppFrame" },
+    "frame": { "file": "components/frame/app-frame.tsx", "component": "AppFrame" },
+    "screen": { "file": "components/frame/screen-shell.tsx", "component": "ScreenShell" }
+  },
+  "responsive": [
+    { "block": "table", "below": "md", "becomes": "a card per row, the first cell its title and the status as a badge" },
+    { "block": "toolbar", "below": "sm", "becomes": "the search, with the dropdowns and buttons folded into a More menu" },
+    { "block": "results", "below": "md", "becomes": "the results, with the filters in a side sheet" },
+    { "part": "frame", "shell": "sidebar", "below": "md", "becomes": "a top bar whose menu button opens the navigation in a drawer" },
+    { "part": "frame", "shell": "topbar", "below": "md", "becomes": "a menu button opening the navigation in a drawer" },
+    { "part": "crumbs", "below": "sm", "becomes": "hidden (the page title stays)" }
+  ]
+}

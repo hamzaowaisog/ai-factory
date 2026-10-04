@@ -1,10 +1,11 @@
-// How a React/Next app is laid out: source root, import aliases, component folders and
+// How a web app is laid out (React and Next.js in full; Vue and Angular for their pages): source root, import aliases, component folders and
 // which files are pages. Shared by the inventory, the size classifier and the fidelity lint.
 import { posix } from "node:path";
 import type { FileSource } from "./source.js";
 
-export type Framework = "next" | "vite-react" | "remix" | "react" | "unknown";
-export type PageKind = "app-router" | "pages-router" | "feature-folder" | "file-route";
+export type Framework = "next" | "vite-react" | "remix" | "react" | "vue" | "angular" | "unknown";
+/** pages-folder: a router app's src/pages or src/views (Vite + React, React, Vue); angular-route: a component a routes file names */
+export type PageKind = "app-router" | "pages-router" | "feature-folder" | "file-route" | "pages-folder" | "angular-route";
 
 export interface Alias { prefix: string; target: string }
 
@@ -62,6 +63,8 @@ export function frameworkOf(deps: Record<string, string>): Framework {
   if (Object.keys(deps).some((d) => d.startsWith("@remix-run/") || d === "@react-router/dev")) return "remix";
   if (deps.vite && (deps.react || deps["@vitejs/plugin-react"] || deps["@vitejs/plugin-react-swc"])) return "vite-react";
   if (deps.react) return "react";
+  if (deps["@angular/core"]) return "angular";
+  if (deps.vue || deps.nuxt) return "vue";
   return "unknown";
 }
 
@@ -123,7 +126,7 @@ export function detectLayout(src: FileSource, overrides: Partial<Pick<AppLayout,
   let sourceRoot = overrides.sourceRoot;
   if (sourceRoot === undefined) {
     const rootApp = framework === "next" && (has("app/") || has("pages/"));
-    sourceRoot = !rootApp && ["src/app/", "src/pages/", "src/components/", "src/features/", "src/routes/"].some(has) ? "src/" : "";
+    sourceRoot = !rootApp && ["src/app/", "src/pages/", "src/views/", "src/components/", "src/features/", "src/routes/"].some(has) ? "src/" : "";
     notes.push(`source root: ${sourceRoot || "(repo root)"} (detected)`);
   } else notes.push(`source root: ${sourceRoot || "(repo root)"} (configured)`);
   sourceRoot = dirOf(norm(sourceRoot));
@@ -161,6 +164,9 @@ export function detectLayout(src: FileSource, overrides: Partial<Pick<AppLayout,
   }
   if (files.some((f) => new RegExp(`^${esc(sourceRoot)}features/[\\w-]+/index\\.(tsx|jsx)$`).test(f))) pageKinds.push("feature-folder");
   if ((deps["@tanstack/react-router"] || framework === "remix") && (has(`${sourceRoot}routes/`) || has("app/routes/"))) pageKinds.push("file-route");
+  // a router app with its pages in a folder: src/pages or src/views (Vite + React, React, Vue, Nuxt's pages/)
+  if (["vite-react", "react", "vue"].includes(framework) && !pageKinds.includes("file-route") && ["pages/", "views/"].some((d) => has(`${sourceRoot}${d}`) || (framework === "vue" && has(d)))) pageKinds.push("pages-folder");
+  if (framework === "angular") pageKinds.push("angular-route");
 
   return { framework, sourceRoot, aliases, uiDir, componentsDir, pageKinds, notes };
 }
@@ -208,6 +214,16 @@ export function pageOf(path: string, layout?: Pick<AppLayout, "sourceRoot" | "pa
       const segs = m[1]!.split(/[/.]/);
       if (segs.some((s) => s.startsWith("-")) || /(^|\/)(__root|route)$/.test(m[1]!)) return undefined;
       return { kind: "file-route", route: "/" + m[1]!.replace(/(^|\/)index$/, "") };
+    }
+    // a pages or views folder: src/pages/Invoices.tsx, src/views/InvoiceDetail.vue, pages/invoices/[id].vue; components, layouts
+    // and "_x" files in it are not pages
+    m = /^(?:pages|views)\/(.*)\.(tsx|jsx|vue)$/.exec(rest);
+    if (m && kinds?.includes("pages-folder")) {
+      const segs = m[1]!.split("/");
+      if (segs.some((s) => s.startsWith("_") || /^(components?|layouts?|partials?)$/i.test(s)) || /(^|\/)(App|Layout)$/.test(m[1]!)) return undefined;
+      const route = "/" + segs.join("/").replace(/(^|\/)(index|Index|Home|HomePage)$/, "").replace(/(Page|View)$/, "")
+        .replace(/\[(\w+)\]/g, ":$1").replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+      return { kind: "pages-folder", route: route === "/" ? "/" : route.replace(/\/$/, "") };
     }
   }
   return undefined;

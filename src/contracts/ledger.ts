@@ -10,6 +10,8 @@ export const EventType = z.enum([
   "sink.intent", "sink.done", "usage",
   "workspace.created", "workspace.removed", "container.started", "container.removed",
   "ledger.repaired", "version.changed",
+  // a copy of the run's scaffold taken out of the factory (design scaffold --out, the UI's generate and zip download)
+  "scaffold.copied",
 ]);
 export type EventType = z.infer<typeof EventType>;
 
@@ -49,5 +51,5 @@ export const RunStatus = z.union([
 ]);
 export type RunStatus = z.infer<typeof RunStatus>;
 
-export const HumanDecision = z.enum(["approve", "reject", "answer", "waive", "unlock", "waive-cap", "edit"]);
+export const HumanDecision = z.enum(["approve", "reject", "answer", "waive", "unlock", "waive-cap", "waive-budget", "edit"]);
 export type HumanDecision = z.infer<typeof HumanDecision>;

@@ -16,6 +16,16 @@ export function lightBuild(intent: Intent, complexity: string | undefined): bool
   return lightSpec(intent) && complexity === "S";
 }
 
+/**
+ * A small UI fix in an app of its own (PR #11 review, item 9): the light spec lane, an app whose look is already there, no
+ * attached frames or design references, no earlier design to change, and at most a few requirements. It gets a text design
+ * note approved with the estimate, not a drawn demo, screenshots and a card of its own.
+ */
+export function lightUi(intent: Intent, o: { existingLook: boolean; frames: number; references: number; earlierDesign: boolean; reqs: number; off?: boolean }): boolean {
+  return !o.off && lightSpec(intent) && o.existingLook && !o.frames && !o.references && !o.earlierDesign && o.reqs <= LIGHT_UI_REQS;
+}
+export const LIGHT_UI_REQS = 3;
+
 /** Limits per lane. The full lane is what every run used before the light lane existed. */
 export const LANE = {
   light: { drafts: 1, maxRepairs: 1, criticEffort: "medium" as const, groundTurns: 8, testWriterTurns: 25, testWriterTurnsApi: 40, maxCharacterisation: 2 },
@@ -29,4 +39,19 @@ export const LANE = {
 export function testWriterTurns(light: boolean, levels: string[]): number {
   const lane = light ? LANE.light : LANE.full;
   return levels.some((l) => l === "api" || l === "job") ? lane.testWriterTurnsApi : lane.testWriterTurns;
+}
+
+/**
+ * Size by the change, not by how the planner split it: a 14-line fix split into 3 tasks was "M" and took the full
+ * build lane (60 test-writer turns, no characterisation limit; the 2026-10-04 run). Files are the union of the tasks'
+ * scopes; a glob counts as 3 files.
+ */
+// ponytail: a glob's real file count is unknown here; counting it as 3 keeps one narrow glob "S", widen if plans scope wider
+export function complexityOf(plan: { tasks: { fileScope: string[]; plannedLoc: number }[] }): "S" | "M" | "L" {
+  const loc = plan.tasks.reduce((n, t) => n + t.plannedLoc, 0);
+  const scopes = [...new Set(plan.tasks.flatMap((t) => t.fileScope))];
+  const files = scopes.reduce((n, g) => n + (/[*?[{]/.test(g) ? 3 : 1), 0);
+  if (loc <= 150 && files <= 6) return "S";
+  if (loc <= 600 && files <= 20) return "M";
+  return "L";
 }

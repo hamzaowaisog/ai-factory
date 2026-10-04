@@ -55,6 +55,10 @@ export function detectDotnet(root: string): Detected {
     if (/Include="(Microsoft\.EntityFrameworkCore\.SqlServer|System\.Data\.SqlClient|Microsoft\.Data\.SqlClient)"/i.test(x)) refusals.push(`uses SQL Server (${c})`);
     if (/<UseWPF>true|<UseWindowsForms>true|<TargetFrameworks?>[^<]*\bnet4\d/i.test(x)) refusals.push(`Windows-only target (${c})`);
   }
+  // many repos set the framework once for every project, in Directory.Build.props
+  for (const f of files.filter((x) => /(^|\/)Directory\.Build\.props$/.test(x))) {
+    for (const m of read(root, f).matchAll(/<TargetFrameworks?>([^<]+)</g)) for (const t of m[1]!.split(";")) tfms.add(t.trim());
+  }
   if (existsSync(join(root, ".gitmodules"))) refusals.push("uses git submodules");
   if (/filter=lfs/.test(read(root, ".gitattributes"))) refusals.push("uses Git LFS");
 

@@ -53,6 +53,8 @@ describe("validity", () => {
     expect(validate({ ...ok, results: [] }, exp).valid).toBe(false);
     expect(validate({ ...ok, exitCode: 1 }, exp).reason).toMatch(/exited 1/);
     expect(validate({ ...ok, results: [{ id: "P::A", outcome: "failed", durationMs: 1 }] }, exp).reason).toMatch(/exited 0/);
+    // the first run failed (exit 1) on a test that passed when re-run: flaky, the evidence is valid
+    expect(validate({ ...ok, exitCode: 1, results: ok.results.map((r, i) => (i === 0 ? { ...r, flaky: true } : r)) }, exp).valid).toBe(true);
   });
 
   it("calls it infra only when the probe fails", () => {

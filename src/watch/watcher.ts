@@ -92,16 +92,16 @@ export class Watcher {
       case "run.created":
         return {
           id: "started", transition: this.cfg.transitions.started,
-          notice: { title: `${key}: the factory started a run`, lines: [`Run \`${runId}\`, limited to $${this.cfg.maxCostPerRun}.`, "It stops for questions and for plan approval; those are answered in the terminal."], command: `factory logs ${runId} --follow`, links: [{ text: key, url: ticket }] },
-          jira: [`The AI factory started run \`${runId}\` for this ticket (cost limit $${this.cfg.maxCostPerRun}).`, `It will stop for questions and for plan approval; a person answers those in their terminal. Follow it with \`factory logs ${runId} --follow\`.`, `factory-run:${runId}:started`],
+          notice: { title: `${key}: the factory started a run`, lines: [`Run \`${runId}\`, limited to $${this.cfg.maxCostPerRun}.`, "It stops for questions and for plan approval. Questions can be answered in the terminal or on the run page in `factory ui`; plan approval stays in the terminal."], command: `factory logs ${runId} --follow`, links: [{ text: key, url: ticket }] },
+          jira: [`The AI factory started run \`${runId}\` for this ticket (cost limit $${this.cfg.maxCostPerRun}).`, `It will stop for questions and for plan approval. A person answers questions in their terminal or on the run page in \`factory ui\`, and approves the plan in the terminal. Follow it with \`factory logs ${runId} --follow\`.`, `factory-run:${runId}:started`],
         };
       case "human.requested": {
         const kind = String(d.kind ?? "card");
         const cmd = `factory show-card ${runId}`;
         return {
           id: `card:${ev.seq}`,
-          notice: { title: `${key}: a ${kind} card is waiting for you`, lines: [`Run \`${runId}\` is paused until someone decides in the terminal.`], command: cmd, links: [{ text: key, url: ticket }] },
-          jira: [`The factory run is waiting for a person: a ${kind} card. Answer it in the terminal: \`${cmd}\`.`, `factory-run:${runId}:card:${ev.seq}`],
+          notice: { title: `${key}: a ${kind} card is waiting for you`, lines: [kind === "question" ? `Run \`${runId}\` is paused for answers: type them in the terminal, or on the run page in \`factory ui\`.` : `Run \`${runId}\` is paused until someone decides in the terminal.`], command: cmd, links: [{ text: key, url: ticket }] },
+          jira: [`The factory run is waiting for a person: a ${kind} card. ${kind === "question" ? "Answer it in the terminal (or on the run page in `factory ui`)" : "Answer it in the terminal"}: \`${cmd}\`.`, `factory-run:${runId}:card:${ev.seq}`],
         };
       }
       case "run.parked": {

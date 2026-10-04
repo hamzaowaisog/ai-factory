@@ -92,7 +92,7 @@ USER (per call)
 3. redact    path excludes + gitleaks on every inlined section (§2.6)
 4. wrap      untrusted → tagged; artifacts → <artifact id kind sha>
 5. order     layout §2.3
-6. count     proxy (o200k × 1.35 for Claude [EVAL]); vendor count API when within 15% of budget or when images are present
+6. count     proxy (o200k × 1.35 for Claude [EVAL]); each image counts 1,600 tokens (its most after the vendor's resize). Vendor count API: not used yet
 7. trim      (a) pointer list tail, (b) repo-map depth. Nothing else is ever trimmed.
 8. fit?      no → agent steps: "pack-over-budget" → failure ladder → plan splits the task.
              read steps (can't split): park with a card naming the oversized section.
@@ -114,7 +114,7 @@ USER (per call)
 ### 2.7 Long documents and images
 - Under ~20K tokens [EVAL]: inline in full, wrapped.
 - Over: a locked-room step picks the relevant sections by heading, then extraction outputs each requirement with a verbatim quote + doc ID, checked by code like `evidence[]`. **Never summaries:** the best model in one study extracted 15 of 44 specs from a long document and fabricated details; a two-step annotate-then-convert flow gave +29% correct specs [preprint]. Multi-doc summaries hallucinated up to 45–75% of content [paper].
-- **Images** (screenshots, Figma frames, PDFs): an `image` section, core-fetched, counted with the vendor API, untrusted, locked room only. Coding agents get the design artifact derived from them.
+- **Images** (screenshots, Figma frames, PDF pages, design references): an `image` section, core-fetched, untrusted, locked room only. Coding agents get the design artifact derived from them. **As built (2026-10-02):** `S.image(id, source, sha, note?)` in `src/stages/think.ts`; the bytes are a ledger artifact and `ContextPack.images` lists their shas in the order sent. The user text holds a numbered marker `<untrusted_image n="k" id source>` per image and the runner sends `Image k:` then the picture, before the briefing. Rules in code (`buildPack`): an image section must be untrusted, in the user message and carry its bytes; a writing step refuses it; at most 20 per briefing; each counts 1,600 tokens. The runner reads the type from the bytes (PNG, JPEG, GIF, WebP; at most 5 MB, `src/util/image.ts`) and stops the step before any model call when an image cannot be sent. The pack sha and the estimate cache key cover the images. `UNTRUSTED_IMAGE_NOTE` is the rule line for steps that show pictures.
 
 ### 2.8 Interface stubs (author-tests)
 - A new API has no signature on base, so tests couldn't compile. **The plan emits stubs**: signatures only (method bodies throw `NotImplementedException` / `throw new Error("not implemented")`).

@@ -2,8 +2,13 @@ import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { describe, expect, it } from "vitest";
-import { findChromium } from "../estimate/screenshots.js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+// the test config turns screenshots off everywhere else; these tests are about the real browser
+const offBefore = process.env.FACTORY_NO_SCREENSHOTS;
+beforeAll(() => { delete process.env.FACTORY_NO_SCREENSHOTS; });
+afterAll(() => { if (offBefore !== undefined) process.env.FACTORY_NO_SCREENSHOTS = offBefore; });
+import { findChromium } from "./screenshots.js";
 import { captureReports, loadAxe } from "./capture.js";
 import { compareReports } from "./fidelity.js";
 
@@ -20,14 +25,14 @@ describe("capture reports of a running app", () => {
     try { expect((await captureReports([{ name: "a", url: "file:///x" }], join(dir, "o"))).note).toMatch(/no browser/); } finally { if (saved === undefined) delete process.env.FACTORY_CHROMIUM; else process.env.FACTORY_CHROMIUM = saved; }
   });
 
-  it.skipIf(!findChromium())("reports both widths; a new missing alt, a moved button and sideways scroll are found against the approved page", async () => {
+  it.skipIf(!findChromium())("reports each width; a new missing alt, a moved button and sideways scroll are found against the approved page", async () => {
     const good = file("good.html", page('<h1>Pay</h1><button data-testid="pay" style="margin-top:20px">Pay now</button><img alt="logo" src="data:,">'));
     const bad = file("bad.html", page('<h1>Pay</h1><button data-testid="pay" style="margin-top:120px">Pay now</button><img src="data:,"><div style="width:2000px">wide</div>'));
     const a = await captureReports([{ name: "pay", url: good }], join(dir, "a"));
     const b = await captureReports([{ name: "pay", url: bad }], join(dir, "b"));
     expect(a.note).toBeUndefined();
-    expect(a.reports.map((r) => r.state)).toEqual(["pay (phone)", "pay (desktop)"]);
-    expect(a.files).toEqual(["pay-phone.png", "pay-desktop.png"]);
+    expect(a.reports.map((r) => r.state)).toEqual(["pay (phone)", "pay (tablet)", "pay (desktop)"]);
+    expect(a.files).toEqual(["pay-phone.png", "pay-tablet.png", "pay-desktop.png"]);
     expect(existsSync(join(dir, "a", "pay-phone.png"))).toBe(true);
     expect(compareReports(a.reports, a.reports).every((r) => r.status !== "FAIL")).toBe(true);
     const r = compareReports(a.reports, b.reports);

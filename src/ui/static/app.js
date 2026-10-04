@@ -62,7 +62,10 @@ const ICONS = {
   browser: [["rect", { x: 3, y: 4, width: 18, height: 16, rx: 2 }], ["path", { d: "M3 9h18M6.5 6.5h.01M9 6.5h.01" }]],
   bars: [["path", { d: "M5 20v-8M12 20V5M19 20v-5M3 20h18" }]],
   plus: [["path", { d: "M12 5v14M5 12h14" }]],
+  search: [["circle", { cx: 11, cy: 11, r: 6.5 }], ["path", { d: "M16 16l4.5 4.5" }]],
+  download: [["path", { d: "M12 4v11.5M7 11l5 4.5 5-4.5M4 19.5h16" }]],
   user: [["circle", { cx: 12, cy: 8, r: 4 }], ["path", { d: "M4 21a8 8 0 0 1 16 0" }]],
+  code: [["path", { d: "M8.5 7l-5 5 5 5M15.5 7l5 5-5 5" }]],
   gauge: [["path", { d: "M3.5 16a8.5 8.5 0 1 1 17 0" }], ["path", { d: "M12 16l4-5" }]],
 };
 
@@ -207,32 +210,159 @@ function modeScreen() {
       h("div", { class: "go faint" }, "Not built yet"));
   mount([
     h("div", { class: "page-head" }, h("div", {}, h("div", { class: "eyebrow" }, "New run"), h("h1", {}, "What kind of work is it?"),
-      h("p", { class: "sub" }, "The factory turns a request into a tested branch. You approve the plan in your terminal (estimates can be approved on the web)."))),
-    h("div", { class: "grid-3" },
+      h("p", { class: "sub" }, "The factory turns a request into a tested branch. You approve the plan in your terminal, and answer questions there or on the run page (estimates can be approved on the web)."))),
+    h("div", { class: "grid-3 grid-4" },
       card(0, "layers", "Brownfield", "Change an existing .NET repo: request → spec → plan you approve → tests first → code → reviewed branch.", "#/new/brownfield"),
       card(1, "sprout", "Greenfield", "Start a new app from a request."),
       card(2, "ruler", "Estimate", "Size and price a request before any code is written: hours, API cost, elapsed time and the screens. The lead approves it on the Estimate tab (or in the terminal), then two workbooks are written.", "#/new/estimate"),
+      card(3, "image", "Design", "See the design first: requirements and any references → spec → mock, clickable demo and look, approved by a lead. Nothing is sized or built; an estimate or build can take the approved design later.", "#/new/design"),
     ),
   ], true);
 }
 
 // ---------- new run: request ----------
 
-async function requestScreen(kind = "brownfield") {
-  const estimating = kind === "estimate";
+// design references (any mode, like --ref): files and links, each with a role and a note. The same limits are checked again
+// on the server, and every reference is read before the run exists, so one that cannot be read costs nothing.
+const REF_MAX = 12, REF_FILE_MAX = 25e6, REF_DOCX_MAX = 50e6, REF_TOTAL_MAX = 50e6;
+const REF_ACCEPT = "image/*,.png,.jpg,.jpeg,.webp,.gif,.avif,.svg,.bmp,.pdf,.docx,.json";
+function refsPicker(meta, projectOf = () => "") {
+  const rows = [];
+  const err = h("div", { class: "small ref-err", role: "status" });
+  const list = h("div", { class: "ref-list" });
+  const count = h("span", { class: "faint small" });
+  const fileInput = h("input", { type: "file", multiple: true, accept: REF_ACCEPT, id: "refs" });
+  const link = h("input", { type: "url", id: "reflink", placeholder: "https://client.com or a figma.com/design/… link", "aria-label": "Reference link" });
+  const say = (m) => { err.textContent = m || ""; };
+  const total = () => rows.reduce((n, r) => n + (r.file ? r.file.size : 0), 0);
+  const paint = () => {
+    list.replaceChildren(...rows.map((r, i) => h("div", { class: "ref-row" },
+      h("span", { class: "ref-id mono" }, `R-${i + 1}`),
+      h("span", { class: "ref-src" }, icon(r.file ? (/\.(pdf|docx|json)$/i.test(r.file.name) ? "file" : "image") : "browser"), h("span", { class: "mono", title: r.file ? r.file.name : r.url }, r.file ? r.file.name : r.url),
+        r.file ? h("span", { class: "faint small" }, `${Math.max(1, Math.round(r.file.size / 1000))} KB`) : null),
+      r.roleEl, r.noteEl,
+      h("button", { class: "btn sm ghost", type: "button", "aria-label": `Remove R-${i + 1}`, onclick: () => { rows.splice(i, 1); say(""); paint(); } }, icon("x")))));
+    count.textContent = rows.length ? `${rows.length} of ${REF_MAX}${total() ? ` · ${(total() / 1e6).toFixed(1)} MB` : ""}` : "";
+  };
+  const row = (x) => {
+    const roleEl = h("select", { "aria-label": "Role" }, h("option", { value: "auto" }, "auto"), h("option", { value: "match" }, "match: use its look exactly"), h("option", { value: "inspire" }, "inspire: its family and feel"), h("option", { value: "layout" }, "layout: how screens are arranged"));
+    const noteEl = h("input", { type: "text", maxlength: "500", placeholder: "note (optional), e.g. the table like this", "aria-label": "Note" });
+    return { ...x, roleEl, noteEl };
+  };
+  const key = (r) => (r.file ? r.file.name : r.url);
+  const add = (r) => {
+    if (rows.length >= REF_MAX) return say(`A run takes at most ${REF_MAX} design references.`), false;
+    if (rows.some((x) => key(x) === key(r))) return say(`${key(r)} is already attached.`), false;
+    if (r.file) {
+      if (/\.fig$/i.test(r.file.name)) return say(`${r.file.name}: a .fig file can't be read. Share a Figma link, or export the frames as PNG.`), false;
+      const cap = /\.docx$/i.test(r.file.name) ? REF_DOCX_MAX : REF_FILE_MAX;
+      if (r.file.size > cap) return say(`${r.file.name} is over ${cap / 1e6} MB.`), false;
+      if (total() + r.file.size > REF_TOTAL_MAX) return say(`The reference files would come to over ${REF_TOTAL_MAX / 1e6} MB together. Attach fewer, or link the site or Figma file instead.`), false;
+    }
+    rows.push(row(r));
+    return true;
+  };
+  const takeFiles = (files) => { say(""); for (const f of files ?? []) if (!add({ file: f })) break; paint(); fileInput.value = ""; };
+  const addLink = () => {
+    const u = link.value.trim();
+    if (!u) return;
+    if (!/^https:\/\/\S{3,}$/i.test(u)) return say("Give an https link to a website or a Figma file.");
+    say("");
+    if (add({ url: u })) link.value = "";
+    paint();
+  };
+  fileInput.addEventListener("change", () => takeFiles(fileInput.files));
+  link.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addLink(); } });
+  const drop = h("label", { class: "drop slim", for: "refs" }, fileInput, icon("image"), h("strong", {}, "Drop or choose files"), h("span", { class: "small muted" }, "images, PDF, Word (.docx) or a Figma JSON export"));
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); takeFiles(e.dataTransfer?.files); });
+  const figma = meta.figma?.configured
+    ? h("div", { class: "hint" }, "Figma links are read with your FIGMA_TOKEN: frames as pictures, colours and fonts exactly.")
+    : h("div", { class: "jira-off" }, icon("alert"), h("span", {}, meta.figma?.why ?? "Figma links need FIGMA_TOKEN in ~/.factory/.env."));
+  const node = h("div", { class: "refs" },
+    drop,
+    h("div", { class: "ref-add" }, link, h("button", { class: "btn sm", type: "button", onclick: addLink }, icon("plus"), "Add link")),
+    figma, list, h("div", { class: "row" }, count, err),
+    h("div", { class: "hint" }, "Role: match uses its colours, type and corners exactly (a brand guide or Figma file starts as match); inspire keeps its colour family and feel; layout takes only how its screens are arranged. Auto picks for you. A site behind a login can't be read: attach screenshots instead."));
+  const b64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] ?? ""); r.onerror = () => no(new Error(`Could not read ${f.name}.`)); r.readAsDataURL(f); });
+  const collect = () => Promise.all(rows.map(async (r) => ({ ...(r.file ? { kind: "file", name: r.file.name, data: await b64(r.file) } : { kind: "url", url: r.url }), role: r.roleEl.value, ...(r.noteEl.value.trim() ? { note: r.noteEl.value.trim() } : {}) })));
+  // read them now, like factory design check-refs: no model and no cost, and nothing is kept
+  const checked = h("div", { class: "ref-check", role: "status" });
+  const checkBtn = h("button", { class: "btn sm", type: "button" }, icon("search"), "Check references");
+  checkBtn.addEventListener("click", async () => {
+    if (!rows.length) { checked.replaceChildren(h("p", { class: "small muted" }, "Add a reference to check.")); return; }
+    checkBtn.disabled = true;
+    checked.replaceChildren(h("p", { class: "small muted" }, h("span", { class: "spin" }), ` Reading ${rows.length} reference${rows.length === 1 ? "" : "s"}…`));
+    try {
+      const v = await api("/api/check-refs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: projectOf(), refs: await collect() }) });
+      checked.replaceChildren(...v.references.map(checkedRef));
+    } catch (e) { checked.replaceChildren(h("div", { class: "small ref-err" }, icon("alert"), e.message)); }
+    checkBtn.disabled = false;
+  });
+  node.append(h("div", { class: "row" }, checkBtn, h("span", { class: "hint" }, "Reads them now and shows what each gives, like factory design check-refs. No model, no cost.")), checked);
+  return {
+    node,
+    count: () => rows.length,
+    collect,
+  };
+}
+
+/** One checked reference: what was read from it (pictures, colours, fonts, corners) and its notes. */
+function checkedRef(r) {
+  const swatch = (c) => h("span", { class: "sw", title: `${c.hex}${c.role ? ` ${c.role}` : ""}`, vars: { "--c": /^#[0-9a-f]{3,8}$/i.test(c.hex) ? c.hex : "transparent" } });
+  return h("article", { class: "ref-card checked" }, h("div", { class: "ref-body" },
+    h("div", { class: "row" }, h("strong", { class: "mono" }, r.id), h("span", { class: `pill t-${r.role === "match" ? "ok" : r.role === "layout" ? "idle" : "live"}` }, r.roleGiven ? r.role : `${r.role} (auto)`), h("span", { class: "faint small" }, `${r.kind} · ${r.measured === "exact" ? "measured exactly" : "approximate"}`)),
+    h("div", { class: "mono small ref-source", title: r.source }, r.source),
+    h("div", { class: "small" }, h("span", { class: "faint" }, "pictures: "), r.pictures.length ? r.pictures.map((p) => `${p.label} (${p.width}×${p.height})`).join(", ") : "none"),
+    r.colours.length ? h("div", { class: "row small" }, h("span", { class: "faint" }, "colours: "), h("span", { class: "swatches" }, r.colours.slice(0, 10).map(swatch)), h("span", { class: "mono faint" }, r.colours.slice(0, 4).map((c) => c.hex).join(" "))) : h("div", { class: "small" }, h("span", { class: "faint" }, "colours: "), "none read"),
+    h("div", { class: "small" }, h("span", { class: "faint" }, "fonts: "), r.fonts.length ? r.fonts.map((f) => f.family).join(", ") : "none read"),
+    r.radiusPx !== undefined ? h("div", { class: "small" }, h("span", { class: "faint" }, "corners: "), `${r.radiusPx}px`) : null,
+    r.textChars ? h("div", { class: "small" }, h("span", { class: "faint" }, "text: "), `${r.textChars.toLocaleString()} characters`) : null,
+    r.notes.length ? h("ul", { class: "small muted" }, r.notes.map((n) => h("li", {}, n))) : null));
+}
+
+async function requestScreen(kind = "brownfield", preset = []) {
+  const designing = kind === "design";
+  // an estimate and a design-only run both start from requirements and may have no project
+  const estimating = kind === "estimate" || designing;
   skeleton();
   const meta = await api("/api/projects");
   const err = h("div", { class: "error", hidden: true });
   const project = h("select", { id: "project" },
     h("option", { value: "" }, estimating ? "No project: requirements only (no repo)" : meta.projects.length ? "Choose a project…" : "No projects yet"),
-    meta.projects.map((p) => h("option", { value: p.name, disabled: !!p.busy }, p.busy ? `${p.name}  (run ${p.busy.runId} is running)` : p.name)));
+    meta.projects.map((p) => h("option", { value: p.name, disabled: !!p.busy }, p.busy ? `${p.name}  (run ${p.busy.runId} is running)` : p.empty && !estimating ? `${p.name}  (empty repo: for a new product)` : p.name)));
   if (!estimating && meta.projects.length === 1 && !meta.projects[0].busy) project.value = meta.projects[0].name;
 
-  // a build can start from an approved estimate: its request, spec and tasks are inherited
-  const fromEst = h("select", { id: "fromest" }, h("option", { value: "" }, "No estimate: a plain change request"),
-    (meta.estimates ?? []).map((e) => h("option", { value: e.runId }, `${e.runId}  ·  ${e.project === "standalone-estimates" ? "no project" : e.project}  ·  ${e.request}`)));
-  const syncEst = () => { const b = document.getElementById("reqblock"); if (b) b.hidden = !!fromEst.value; };
+  const projectLabel = (p) => (p === "standalone-estimates" ? "no project" : p);
+  // a build can start from an approved estimate (its request, spec and tasks are inherited, like --from-estimate) or
+  // an approved design run (its request and design, like --from-design); values are e:<run> and d:<run>
+  const estimates = meta.estimates ?? [], designs = meta.designs ?? [];
+  const fromEst = h("select", { id: "fromest" }, h("option", { value: "" }, "Nothing: a plain change request"),
+    estimates.length ? h("optgroup", { label: "Approved estimates" }, estimates.map((e) => h("option", { value: `e:${e.runId}` }, `${e.runId}  ·  ${projectLabel(e.project)}  ·  ${e.request}`))) : null,
+    designs.length ? h("optgroup", { label: "Approved designs" }, designs.map((d) => h("option", { value: `d:${d.runId}` }, `${d.runId}  ·  ${projectLabel(d.project)}  ·  ${d.request}${d.repo ? "" : "  (a new product: pick a project with an empty repo)"}`))) : null);
+  const buildFrom = () => ({ kind: fromEst.value.slice(0, 1), id: fromEst.value.slice(2) });
+  // the run it starts from decides the project
+  const seedProject = (p) => { if (p && p !== "standalone-estimates" && [...project.options].some((o) => o.value === p && !o.disabled)) project.value = p; };
+  const syncEst = () => {
+    for (const id of ["reqblock", "refblock"]) { const b = form.querySelector(`#${id}`); if (b) b.hidden = !!fromEst.value; }
+    const { kind: k, id } = buildFrom();
+    const from = (k === "e" ? estimates : designs).find((x) => x.runId === id);
+    // a new product (a design with no repo) goes into an empty repo: the only one there is, when there is one
+    const empties = meta.projects.filter((p) => p.empty && !p.busy);
+    seedProject(k === "d" && from && !from.repo ? (empties.length === 1 ? empties[0].name : undefined) : from?.project);
+  };
   fromEst.addEventListener("change", syncEst);
+
+  // an estimate can start from something already approved instead of new requirements: a design run (--from-design),
+  // or a change to an approved estimate (--revises, with new requirements)
+  const startFrom = h("select", { id: "startfrom" },
+    h("option", { value: "" }, "New requirements"),
+    h("option", { value: "design", disabled: !designs.length }, `An approved design run${designs.length ? "" : " (none yet)"}`),
+    h("option", { value: "revises", disabled: !estimates.length }, `A change request to an approved estimate${estimates.length ? "" : " (none yet)"}`));
+  const seedRun = h("select", { id: "seedrun", "aria-label": "Run to start from" });
+  const seedHint = h("div", { class: "hint" });
+  const seedBox = h("div", { class: "fld", id: "seedbox" }, h("label", { for: "seedrun" }, "Run"), seedRun, seedHint);
 
   // the three inputs, which can be combined like factory start
   const prompt = h("textarea", { id: "prompt", placeholder: estimating ? "Paste the requirements: notes, a brief, a transcript, an email thread. e.g. A customer portal where buyers log in, see their orders and download invoices." : "e.g. Show the number of orders next to the Your orders heading, and keep the heading text." });
@@ -288,11 +418,11 @@ async function requestScreen(kind = "brownfield") {
 
   // estimate settings, like the factory estimate flags
   const opt = (v, t) => h("option", { value: v }, t);
-  const delivery = h("select", { id: "delivery" }, opt("hitl", "HITL: a supervisor plus agents"), opt("agentic", "Solely agentic: no supervisor gates"));
   const stack = h("select", { id: "stack" }, opt("undecided", "Undecided (default pack)"), opt("client", "Client's stack (fixed)"), opt("folio3", "Folio3 decides"));
   const rounds = h("input", { type: "number", id: "rounds", min: "0", max: "10", step: "1", value: "2" });
   const designIn = h("input", { type: "checkbox", id: "designin", checked: true });
   const noRepo = h("input", { type: "checkbox", id: "norepo" });
+  const handsOff = h("input", { type: "checkbox", id: "handsoff" });
   const hdr = h("input", { type: "text", id: "client", placeholder: "client name (workbook header)" });
   const projName = h("input", { type: "text", id: "projname", placeholder: "project name (workbook header)" });
   const pm = h("input", { type: "text", id: "pm", placeholder: "project manager (workbook header)" });
@@ -314,43 +444,82 @@ async function requestScreen(kind = "brownfield") {
   const syncProject = () => {
     const none = !project.value;
     noRepo.checked = none || noRepo.checked; noRepo.disabled = none;
-    standaloneNote.textContent = none
+    standaloneNote.textContent = designing
+      ? (none ? "No project: a new product, so the design gets a look of its own." : "With a project the design follows that app's own look and building blocks.")
+      : none
       ? "No project: the estimate is built from the requirements alone, with no code to read. Every task counts as new build work."
       : "With a project the factory reads its code, so changes are sized from the files they touch.";
   };
   if (estimating) { project.addEventListener("change", syncProject); syncProject(); }
-  const settings = estimating ? h("div", { class: "est" },
-    sect(3, "How it will be delivered", "The same choices as factory estimate.",
+  const fresh = h("input", { type: "checkbox", id: "fresh" });
+  const settings = designing ? h("div", { class: "est" },
+    sect(3, "Product", "Shown on the demo. All optional.",
+      h("div", { class: "est-grid" }, fld("client", "Client", hdr), fld("projname", "Product name", projName)),
+      h("div", { class: "opts" }, opt2("norepo", noRepo, "The requirements stand alone", "Draw a new look instead of following the project's own. Always on when no project is chosen."))),
+    sect(4, "Design frames", "Exported from Figma (png, jpg, webp, svg or json). Optional.",
+      h("label", { class: "drop slim", for: "frames" }, frameInput, icon("upload"), h("strong", {}, "Choose frame files"), frameList))) : estimating ? h("div", { class: "est" },
+    sect(3, "How it will be delivered", "Solely agentic: the factory builds it, with no supervisor gates. The same choices as factory estimate.",
       h("div", { class: "est-grid" },
-        fld("delivery", "Delivery model", delivery, "HITL keeps a supervisor at the gates; solely agentic has none."),
         fld("stack", "Stack", stack, "Who picks the technology. Undecided uses a default pack, stated as an assumption."),
         fld("rounds", "Client feedback rounds", rounds, "Rounds of change the client may ask for, allowed for in the hours.")),
       h("div", { class: "opts" },
         opt2("designin", designIn, "Design counts in the total", "Turn off to keep Design out of the Summary total (its row still shows)."),
-        opt2("norepo", noRepo, "The requirements stand alone", "There is no existing code to read. Always on when no project is chosen."))),
+        opt2("norepo", noRepo, "The requirements stand alone", "There is no existing code to read. Always on when no project is chosen."),
+        opt2("handsoff", handsOff, "Hands-off (no human review)", "Nobody is asked: the clarify questions become assumptions and the factory approves the estimate once its checks pass. Off (the default): a person answers the questions and approves it, on the run page or in the terminal. A build cannot follow a hands-off estimate: to build it, estimate it again with a review."))),
     sect(4, "Workbook header", "Shown at the top of the team and client workbooks. All optional.",
       h("div", { class: "est-grid" }, fld("client", "Client", hdr), fld("projname", "Project name", projName), fld("pm", "Project manager", pm))),
-    sect(5, "Design frames", "Exported from Figma (png, jpg, webp, svg or json). Optional.",
-      h("label", { class: "drop slim", for: "frames" }, frameInput, icon("upload"), h("strong", {}, "Choose frame files"), frameList))) : null;
+    Object.assign(sect(5, "Design frames", "Exported from Figma (png, jpg, webp, svg or json). Optional.",
+      h("label", { class: "drop slim", for: "frames" }, frameInput, icon("upload"), h("strong", {}, "Choose frame files"), frameList)), { id: "framesblock" })) : null;
 
+  const refs = refsPicker(meta, () => project.value);
+  const refText = designing || estimating ? "Screenshots, a client's site, a Figma file, a brand guide (PDF or Word). The design is drawn from them; without any it follows the field's products. Optional." : "The UI change follows them. Optional.";
+  const refBlock = estimating ? h("section", { class: "sect", id: "refblock" }, h("div", { class: "sect-head" }, h("span", { class: "num" }, designing ? "5" : "6"), h("div", {}, h("h3", {}, "Design references"), h("p", { class: "muted small" }, refText))), refs.node)
+    : h("div", { class: "field", id: "refblock" }, h("span", { class: "label" }, "Design references (optional)"), refs.node, h("div", { class: "hint" }, refText));
+  // formats to export as soon as the design is approved, like --design-export (none by default: exports are on demand)
+  const autoX = [["png", "PNG pictures"], ["pdf", "PDF design book"], ["html", "Clickable demo (zip)"], ["tokens", "Design tokens"], ["json", "Design JSON"], ["figma", "Figma (figma.json)"]]
+    .map(([v, t]) => h("label", { class: "xopt" }, h("input", { type: "checkbox", value: v }), t));
+  const autoXPicked = () => autoX.map((l) => l.querySelector("input")).filter((i) => i.checked).map((i) => i.value);
+  const autoXHint = h("div", { class: "hint" });
+  const syncAutoX = () => {
+    autoXHint.textContent = (!estimating && fromEst.value) || (!designing && startFrom.value === "design")
+      ? `The ${(!estimating && buildFrom().kind === "d") || startFrom.value === "design" ? "design run's" : "estimate's"} design is approved already, so it is exported as soon as the run starts. Files appear on the run's Design tab.`
+      : "Exported right after the design is approved, to the run's Design tab (like --design-export). A request with no UI has no design to export. You can always export later from the Design tab.";
+  };
+  syncAutoX();
+  fromEst.addEventListener("change", syncAutoX);
+  startFrom.addEventListener("change", syncAutoX);
+  const autoXBox = h("fieldset", { class: "xopts", id: "autox", "aria-label": "Export on approval" }, autoX);
+  const autoXBlock = estimating ? sect(designing ? 6 : 7, "Export on approval", "Optional.", autoXBox, autoXHint)
+    : h("div", { class: "field" }, h("span", { class: "label" }, "Export the design on approval (optional)"), autoXBox, autoXHint);
+  // a build: the stack the approved design is built in when the project sets none, like --ui-target
+  const uiTarget = h("select", { id: "uitarget" }, h("option", { value: "" }, "Detect from the repo"), Object.entries(TARGET_LABELS).map(([v, t]) => h("option", { value: v }, t)));
+  const uiTargetBlock = !estimating ? h("div", { class: "field" }, h("label", { for: "uitarget" }, "UI target (optional)"), uiTarget,
+    h("div", { class: "hint" }, "What the approved design is built in when the project's design.uiTarget sets nothing (like --ui-target). A kit target puts the kit, the theme and every approved page into the repo before the agents start; the agents write the behaviour. Detection picks the kit for a Next.js or Vite app and the repo's own components otherwise.")) : null;
   const maxCost = h("input", { type: "number", id: "maxcost", min: "0.5", step: "0.5", placeholder: "normal limit" });
-  const start = h("button", { class: "btn primary", type: "submit" }, estimating ? "Start estimate" : "Start run", icon("arrow"));
+  const startLabel = designing ? "Start design" : estimating ? "Start estimate" : "Start run";
+  const start = h("button", { class: "btn primary", type: "submit" }, startLabel, icon("arrow"));
   const form = h("form", { class: "form", novalidate: true },
     err,
-    estimating ? sect(1, "Project", "Pick one to read its code, or choose none to estimate from the requirements alone.", h("div", { class: "fld" }, project, standaloneNote))
+    estimating ? sect(1, designing ? "Project" : "Start from and project", designing ? "Pick one to follow its look, or choose none for a new product." : "New requirements, or something already approved. Pick a project to read its code, or none to estimate from the requirements alone.",
+      designing ? null : h("div", { class: "est-grid" }, h("div", { class: "fld" }, h("label", { for: "startfrom" }, "Start from"), startFrom), seedBox),
+      h("div", { class: "fld" }, designing ? null : h("label", { for: "project" }, "Project"), project, standaloneNote))
       : h("div", { class: "field" }, h("label", { for: "project" }, "Project"), project, h("div", { class: "hint" }, "From ~/.factory/projects. Add one with factory init <repo>.")),
-    !estimating ? h("div", { class: "field" }, h("label", { for: "fromest" }, "Estimate (optional)"), fromEst,
-      h("div", { class: "hint" }, (meta.estimates ?? []).length
-        ? "Build an approved estimate: its request, spec and tasks carry over, and the build is held to its size and budget. Choose none for a plain change request."
-        : "No approved estimates yet. Approve one first (New run, then Estimate) to build from it; until then this is a plain change request.")) : null,
+    !estimating ? h("div", { class: "field" }, h("label", { for: "fromest" }, "Build from (optional)"), fromEst,
+      h("div", { class: "hint" }, estimates.length || designs.length
+        ? "An approved estimate: its request, spec and tasks carry over, and the build is held to its size and budget (like --from-estimate). An approved design run: its request and design carry over (like --from-design). Choose nothing for a plain change request."
+        : "Nothing approved yet. Approve an estimate or a design run first (New run) to build from it; until then this is a plain change request.")) : null,
     h("div", { id: "reqblock", class: estimating ? "sect" : "field" }, estimating ? h("div", { class: "sect-head" }, h("span", { class: "num" }, "2"), h("div", {}, h("h3", {}, "Requirements"), h("p", { class: "muted small" }, "Paste them, upload a file or give a Jira key. They are combined into one request."))) : h("span", { class: "label" }, "Request"),
       h("div", { class: "tabs-in", role: "tablist" }, tabs.prompt, tabs.file, tabs.jira),
       panels.prompt, panels.file, panels.jira,
       h("div", { class: "hint" }, "Use one input or several: they are combined into one request, like factory start does.")),
     settings,
-    estimating ? sect(6, "Spend limit", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")))
+    refBlock,
+    autoXBlock,
+    uiTargetBlock,
+    estimating ? sect(designing ? 7 : 8, "Cost", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
+      h("div", { class: "opts" }, opt2("fresh", fresh, "Ask the model again", "Don't reuse answers stored from an identical earlier request (like --fresh). It costs more; use it when an answer should be redone.")))
       : h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
-    h("div", { class: "row" }, start, h("span", { class: "hint" }, "Runs in the background. Questions and the plan approval are answered in your terminal.")),
+    h("div", { class: "row" }, start, h("span", { class: "hint" }, designing ? "Runs in the background. Questions and the design approval can be answered here on the run page or in your terminal." : "Runs in the background. Questions can be answered here on the run page or in your terminal; the plan approval stays in your terminal.")),
   );
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
@@ -359,22 +528,60 @@ async function requestScreen(kind = "brownfield") {
     start.replaceChildren(h("span", { class: "spin" }), "Reading the request…");
     try {
       const sent = estimating && frames.length ? await Promise.all(frames.map(async (f) => ({ name: f.name, data: await b64(f) }))) : undefined;
-      const body = { project: project.value, ...(!estimating && fromEst.value ? { fromEstimate: fromEst.value } : {}), prompt: fromEst.value ? "" : prompt.value, ...(sent ? { frames: sent } : {}), jira: jira.disabled || fromEst.value ? "" : jira.value, maxCost: maxCost.value, ...(file && !fromEst.value ? { file: { name: file.name, text: file.text } } : {}),
-        ...(estimating ? { mode: "estimate", estimate: { deliveryModel: delivery.value, stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value } } : {}) };
+      const seeded = !estimating ? !!fromEst.value : startFrom.value === "design";
+      const sentRefs = refs.count() && !seeded ? await refs.collect() : undefined;
+      if (sentRefs) start.replaceChildren(h("span", { class: "spin" }), `Reading the request and ${sentRefs.length} design reference${sentRefs.length === 1 ? "" : "s"}…`);
+      const designExport = autoXPicked();
+      const bf = buildFrom();
+      const from = !estimating ? (bf.kind === "e" ? { fromEstimate: bf.id } : bf.kind === "d" ? { fromDesign: bf.id } : {})
+        : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises" }[startFrom.value]]: seedRun.value } : {};
+      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
+        ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(handsOff.checked ? { humanReview: false } : {}) } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
     } catch (e) {
       fail(e.message);
       start.disabled = false;
-      start.replaceChildren(estimating ? "Start estimate" : "Start run", icon("arrow"));
+      start.replaceChildren(startLabel, icon("arrow"));
       err.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
     }
   });
+  const syncStart = () => {
+    const how = startFrom.value;
+    const rows = how === "design" ? designs : how ? estimates : [];
+    const keep = seedRun.value;
+    seedRun.replaceChildren(...rows.map((x) => h("option", { value: x.runId }, `${x.runId}  ·  ${projectLabel(x.project)}  ·  ${x.request}`)));
+    if (rows.some((x) => x.runId === keep)) seedRun.value = keep;
+    seedBox.hidden = !how;
+    const run = rows.find((x) => x.runId === seedRun.value);
+    // the run decides the project; a design brings its own requirements, references and frames
+    project.disabled = !!run;
+    if (run) { project.value = run.project === "standalone-estimates" ? "" : run.project; syncProject(); }
+    const own = how === "design";
+    for (const id of ["reqblock", "refblock", "framesblock"]) { const b = form.querySelector(`#${id}`); if (b) b.hidden = own; }
+    seedHint.textContent = !run ? "" : how === "design"
+      ? "Sized from that design run's requirements and its approved design; the design steps are not run again (like --from-design)."
+      : "Write only what changes in Requirements. The estimate is redone against the approved one and gets the next design version (like --revises).";
+    syncAutoX();
+  };
+  if (!designing && estimating) {
+    startFrom.addEventListener("change", syncStart);
+    seedRun.addEventListener("change", syncStart);
+    // a link from a run page: #/new/estimate/<design|revises>/<run>
+    if (["design", "revises"].includes(preset[0]) && !startFrom.querySelector(`option[value=${preset[0]}]`).disabled) startFrom.value = preset[0];
+    syncStart();
+    if (preset[1] && [...seedRun.options].some((o) => o.value === preset[1])) { seedRun.value = preset[1]; syncStart(); }
+  }
+  // #/new/brownfield/<design|estimate>/<run>
+  if (!estimating && preset[1]) {
+    const v = `${preset[0] === "design" ? "d" : "e"}:${preset[1]}`;
+    if ([...fromEst.options].some((o) => o.value === v && !o.disabled)) { fromEst.value = v; syncEst(); syncAutoX(); }
+  }
   mount([
     h("div", { class: "page-head" }, h("div", {},
-      h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", estimating ? "Estimate" : "Brownfield"),
-      h("h1", {}, estimating ? "What should be estimated?" : "What should change?"),
-      h("p", { class: "sub" }, estimating ? "Paste or upload the requirements. The lead approves the estimate on its tab or in the terminal, then the team and client workbooks are written." : "The request is read and checked before a run exists: a bad file or ticket costs nothing."))),
+      h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", designing ? "Design" : estimating ? "Estimate" : "Brownfield"),
+      h("h1", {}, designing ? "What should be designed?" : estimating ? "What should be estimated?" : "What should change?"),
+      h("p", { class: "sub" }, designing ? "Paste or upload the requirements. You get a mock, a clickable demo and a look to approve (on the run page or in the terminal); nothing is sized or built." : estimating ? "Paste or upload the refined requirements. A person answers the clarify questions and approves the estimate, on its run page or in the terminal; then the team and client workbooks are written. Tick \"Hands-off\" to let the factory approve it once its checks pass. A UI request also waits for its design to be approved." : "The request is read and checked before a run exists: a bad file or ticket costs nothing."))),
     h("div", { class: "panel" }, form),
   ], true);
 }
@@ -459,7 +666,7 @@ function pipeline(r) {
   const note = (() => {
     const parked = r.timeline.find((t) => t.status === "parked");
     if (r.status === "parked") return h("div", { class: "pipe-note bad" }, icon("alert"), h("div", {}, h("strong", {}, parked ? `Parked at ${parked.step}` : "Parked"), h("p", {}, r.parkedReason ?? "")));
-    if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Answer them in the panel below (or in the terminal); the run carries on right after.")));
+    if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Pick an option for each in the panel below (or answer in the terminal); the run carries on right after.")));
     if (r.card) return h("div", { class: "pipe-note wait" }, icon("terminal"), h("div", {}, h("strong", {}, `Waiting for you in the terminal: ${r.card.kind} card`), h("p", {}, "The run continues after you decide there. The card and the command to paste are below.")));
     if (r.delivered) return h("div", { class: "pipe-note ok" }, icon("check"), h("div", {}, h("strong", {}, "Delivered"), h("p", {}, r.delivered.branch ? `Branch ${r.delivered.branch}` : "")));
     if (r.status === "running" && r.lastActivity) return h("div", { class: "pipe-note live" }, icon("activity"), h("div", {}, h("strong", {}, `Working on ${r.step}`), h("p", {}, r.lastActivity.msg, h("span", { class: "muted" }, ` · ${ago(r.lastActivity.ts)}`))));
@@ -500,47 +707,102 @@ function gatesPanel(r) {
     r.gates.length ? h("div", { class: "chips" }, chips) : h("p", { class: "muted small" }, "No gate results yet. Gates check each step's output (scope, locked tests, secrets, review) as the run goes."));
 }
 
+/** The name typed once is remembered in this browser (a convenience only; it is still sent and recorded with every decision). */
+function nameInput() {
+  let saved = "";
+  try { saved = localStorage.getItem("factory-lead-name") || ""; } catch { /* storage can be blocked */ }
+  const el = h("input", { type: "text", placeholder: "Your name (recorded with the decision)", maxlength: "60", "aria-label": "Your name", value: saved });
+  el.addEventListener("change", () => { try { localStorage.setItem("factory-lead-name", el.value.trim()); } catch { /* ignore */ } });
+  return el;
+}
+
+/** Clarification questions, one at a time: pick an option and it moves on; the chosen options are the answers. */
 function questionPanel(r) {
   const c = r.card;
-  const who = h("input", { type: "text", placeholder: "Your name", maxlength: "60", "aria-label": "Your name" });
+  const qs = c.questions;
+  const picks = Object.fromEntries(qs.map((q) => [q.id, q.recommended]));
+  const who = nameInput();
   const msg = h("p", { class: "small muted", role: "status" }, "");
-  const fields = c.questions.map((q) => {
-    const name = `q-${q.id}`;
-    const custom = h("input", { type: "text", placeholder: "or type your own answer", "aria-label": `Your own answer to ${q.id}` });
-    const radios = q.options.map((o) => {
-      const rb = h("input", { type: "radio", name, value: o });
-      if (o === q.recommended) rb.checked = true;
-      return h("label", { class: "small" }, rb, ` ${o}`, o === q.recommended ? h("span", { class: "muted" }, ` (recommended: ${q.reason})`) : null);
-    });
-    return { id: q.id, custom, radios, node: h("div", { class: "stack" }, h("strong", {}, `${q.id}  ${q.text}`), ...radios, custom, h("p", { class: "small muted" }, `Why it matters: ${q.why}`)) };
-  });
-  const send = h("button", { class: "btn", type: "button" }, icon("check"), "Send answers and continue");
-  send.addEventListener("click", async () => {
-    msg.textContent = "";
-    const answers = {};
-    for (const f of fields) {
-      const own = f.custom.value.trim();
-      const picked = f.radios.map((l) => l.querySelector("input")).find((i) => i.checked);
-      answers[f.id] = own || (picked ? picked.value : "");
+  const body = h("div", { class: "body stack" });
+  let at = 0, sent = false;
+  const letter = (i) => String.fromCharCode(65 + i);
+  const draw = () => {
+    body.replaceChildren();
+    if (at < qs.length) {
+      const q = qs[at];
+      body.append(
+        h("div", { class: "q-progress small muted" }, `Question ${at + 1} of ${qs.length}`, h("span", { class: "q-dots" }, qs.map((x, i) => h("i", { class: i === at ? "on" : i < at ? "done" : "" })))),
+        h("h3", { class: "q-text" }, q.text),
+        h("div", { class: "q-opts", role: "radiogroup", "aria-label": q.text }, q.options.map((o, i) => {
+          const b = h("button", { type: "button", class: `q-opt${picks[q.id] === o ? " picked" : ""}`, role: "radio", "aria-checked": String(picks[q.id] === o) },
+            h("span", { class: "q-key" }, letter(i)),
+            h("span", { class: "q-label" }, o, o === q.recommended ? h("span", { class: "q-rec" }, "Recommended") : null),
+            o === q.recommended && q.reason ? h("span", { class: "q-why small muted" }, q.reason) : null);
+          b.addEventListener("click", () => { picks[q.id] = o; draw(); setTimeout(() => { if (at === qs.indexOf(q)) { at++; draw(); } }, 220); });
+          return b;
+        })),
+        h("p", { class: "small muted" }, `Why it matters: ${q.why}`),
+        h("div", { class: "row" },
+          at > 0 ? (() => { const bk = h("button", { class: "btn ghost", type: "button" }, "Back"); bk.addEventListener("click", () => { at--; draw(); }); return bk; })() : null,
+          (() => { const nx = h("button", { class: "btn ghost", type: "button" }, at === qs.length - 1 ? "Review" : "Next"); nx.addEventListener("click", () => { at++; draw(); }); return nx; })()));
+      return;
     }
-    try {
-      await api(`/api/runs/${encodeURIComponent(r.runId)}/estimate-answers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, by: who.value, answers }) });
-      msg.textContent = "Answers recorded. The run is continuing…";
-      send.disabled = true;
-    } catch (err) { msg.textContent = err.message; }
-  });
-  return h("section", { class: "card-box" },
-    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Questions before the estimate can go on"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
-    h("div", { class: "body stack" },
-      h("p", { class: "small muted" }, "The recommended option is selected. Change any, then send; your name is recorded with the answers."),
-      ...fields.map((f) => f.node),
+    const send = h("button", { class: "btn", type: "button" }, icon("check"), "Send answers and continue");
+    send.disabled = sent;
+    send.addEventListener("click", async () => {
+      msg.textContent = "";
+      try {
+        await api(`/api/runs/${encodeURIComponent(r.runId)}/estimate-answers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, by: who.value, answers: picks }) });
+        sent = true; send.disabled = true;
+        msg.textContent = "Answers recorded. The run is continuing…";
+      } catch (err) { msg.textContent = err.message; }
+    });
+    body.append(
+      h("h3", { class: "q-text" }, "Your answers"),
+      h("ul", { class: "q-review" }, qs.map((q, i) => {
+        const ch = h("button", { type: "button", class: "linkish small" }, "Change");
+        ch.addEventListener("click", () => { at = i; draw(); });
+        return h("li", {}, h("span", { class: "small muted" }, q.text), h("strong", {}, picks[q.id]), ch);
+      })),
       c.assumptions?.length ? h("p", { class: "small muted" }, `Assumed unless you say otherwise on the approval card: ${c.assumptions.map((a) => a.id).join(", ")}`) : null,
-      who, h("div", { class: "row" }, send), msg));
+      who, h("div", { class: "row" }, send), msg);
+  };
+  draw();
+  return h("section", { class: "card-box" },
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Questions before the run can go on"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    body);
+}
+
+/** The design card (E1b): the card, the demo link and the references. The decision is made in the terminal (only estimate cards are decided on this page). */
+// the design card's words for each kind of run (the terminal card has the same three, by its purpose)
+const DESIGN_CARD_TEXT = {
+  estimate: "The estimate stands on this design. Walk the clickable demo, then approve it or send it back with what to change, in your terminal.",
+  design: "This is a design-only run: approving keeps this mock, clickable demo and look, and nothing is sized or built. Walk the clickable demo, then approve it or send it back with what to change, in your terminal.",
+  build: "The build follows this design: its screens, states, sample content and look are what gets built. Walk the clickable demo, then approve it or send it back with what to change, in your terminal.",
+};
+
+function designPanel(r) {
+  const c = r.card;
+  const intro = DESIGN_CARD_TEXT[r.mode === "estimate" ? "estimate" : r.mode === "design" ? "design" : "build"];
+  // the references the design was drawn from, each with the screens it shaped (filled in when they arrive)
+  const refsBox = h("div");
+  api(`/api/runs/${encodeURIComponent(r.runId)}/references`).then((v) => { if (v.references.length) refsBox.replaceChildren(h("h3", { class: "small" }, "Drawn from these references"), refsPanel(v, true)); }).catch(() => undefined);
+  return h("section", { class: "card-box" },
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Approve the design in your terminal"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    h("div", { class: "body stack" },
+      h("p", { class: "small muted" }, intro),
+      h("div", { class: "row" }, h("a", { class: "btn", href: `#/runs/${r.runId}/preview` }, icon("cursor"), "Open the clickable demo"),
+        h("span", { class: "btn ghost", "aria-disabled": "true", title: "A design is exported once it is approved: PNG, PDF, the demo, tokens or JSON, from the Design tab." }, icon("download"), "Export after approval")),
+      h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd)))),
+      refsBox,
+      md(c.markdown)));
 }
 
 function cardPanel(r) {
   const c = r.card;
-  if (c.questions) return questionPanel(r);
+  // only an estimate run's questions are answered on this page; every other card is decided in the terminal
+  if (c.questions && r.mode === "estimate") return questionPanel(r);
+  if (c.kind === "design-approval") return designPanel(r);
   return h("section", { class: "card-box" },
     h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Waiting for you in the terminal"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body" },
@@ -581,7 +843,8 @@ function tracePanel(r) {
 // the side drawer for one step
 const scrim = h("div", { class: "scrim", onclick: () => closeDrawer() });
 const drawer = h("aside", { class: "drawer", "aria-hidden": "true" });
-document.body.append(scrim, drawer);
+// the layer clips the closed drawer, so it never widens the page on a narrow screen
+document.body.append(scrim, h("div", { class: "drawer-layer" }, drawer));
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
 
 function markSelected() {
@@ -922,6 +1185,16 @@ const table = (head, rows, numCols = []) => h("div", { class: "table-wrap" }, h(
   h("thead", {}, h("tr", {}, head.map((t, i) => h("th", { class: numCols.includes(i) ? "num" : undefined }, t)))),
   h("tbody", {}, rows.map((cells) => h("tr", {}, cells.map((c, i) => h("td", { class: numCols.includes(i) ? "num" : undefined }, c)))))));
 
+/** What can start from an approved run: links to the New run forms, set to start from it (like the command line's flags). */
+function nextPanel(text, links) {
+  return h("section", { class: "panel rise next-panel", vars: { "--i": 0 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("arrow"), "Next")),
+    h("p", { class: "small muted" }, text),
+    h("div", { class: "row" }, links.map(([href, ico, label, why]) => href
+      ? h("a", { class: "btn", href }, icon(ico), label)
+      : h("span", { class: "btn disabled", "aria-disabled": "true", title: why }, icon(ico), label))),
+    links.filter(([href, , , why]) => !href && why).map(([, , , why]) => h("p", { class: "small faint" }, why)));
+}
+
 async function estimateScreen(id) {
   skeleton("grid");
   const [r, e] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/estimate`)]);
@@ -940,19 +1213,24 @@ async function estimateScreen(id) {
     fact("API cost", h("span", {}, h("strong", {}, usd(e.apiCost.total)), h("span", { class: "tag" }, e.apiCost.confidence), h("span", { class: "small faint" }, `${e.apiCost.records} benchmark record${e.apiCost.records === 1 ? "" : "s"}`))),
     fact("Elapsed", `${e.elapsed.criticalPathDays.min}–${e.elapsed.criticalPathDays.max} days on the critical path, plus ${e.elapsed.planningMinutes} min planning`),
     fact("Size and certainty", h("span", { class: "tags" }, h("span", { class: "tag" }, e.band), h("span", { class: "tag" }, `${e.uncertainty} uncertainty`), e.complexity ? h("span", { class: "tag" }, e.complexity) : null)),
+    e.catalogue ? fact("Task catalogue", h("span", { class: "tags" }, h("span", { class: "tag" }, e.catalogue.version), h("span", { class: "tag" }, `stack ${e.catalogue.stack}`),
+      h("span", { class: `pill ${e.catalogue.status === "draft" ? "t-wait" : "t-ok"}` }, h("span", { class: "d" }), e.catalogue.statusText))) : [],
     fact("Delivery model", e.deliveryModel === "hitl" ? "HITL: a supervisor plus agents" : "Solely agentic"),
-    fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : ""].filter(Boolean).join(" · ")),
-    fact("Approval", e.approved ? h("span", { class: "pill t-ok" }, h("span", { class: "d" }), `approved by ${e.approved.by || "?"}${e.approved.hash ? ` (${e.approved.hash})` : ""}`) : h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "waiting for approval in your terminal")),
+    fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : "", e.handsOff ? "hands-off (no human review)" : ""].filter(Boolean).join(" · ")),
+    fact("Approval", e.approved ? h("span", { class: "pill t-ok" }, h("span", { class: "d" }), `${e.approved.auto ? "approved by the factory (no human review)" : `approved by ${e.approved.by || "?"}`}${e.approved.hash ? ` (${e.approved.hash})` : ""}`)
+      : h("span", { class: "pill t-wait" }, h("span", { class: "d" }), e.handsOff ? "approves itself once its checks pass" : "waiting for approval in your terminal")),
   );
   const dl = (audience, label, draft) => h("a", { class: "btn", href: `/export/${rid}/${draft ? "draft-" : ""}${audience}`, download: "" }, icon("file"), label);
   const files = e.files ? h("div", { class: "row" },
     e.files.team ? dl("team", "Team workbook (.xlsx)") : null,
-    e.files.client ? dl("client", "Client workbook (.xlsx)") : null)
+    e.files.client ? dl("client", "Client workbook (.xlsx)") : null,
+    e.files.design ? dl("design", "Design book (.pdf)") : null,
+    e.files.designNote ? h("span", { class: "small muted" }, `No design book: ${e.files.designNote}`) : null)
     : h("div", {}, h("div", { class: "row" }, dl("team", "Draft team workbook (.xlsx)", true), dl("client", "Draft client workbook (.xlsx)", true)),
-      h("p", { class: "muted small" }, "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written after you approve in your terminal."));
+      h("p", { class: "muted small" }, e.handsOff ? "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written once the estimate passes its checks." : "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written after you approve in your terminal."));
   const tasks = table(["", "Task", "Track", "Who", "Hours", "Sized against", ""],
-    e.tasks.map((t) => [h("span", { class: "mono small" }, t.id), h("div", {}, h("div", {}, t.title), h("div", { class: "small muted" }, t.reason)), t.track ?? "-", t.executor, hrs(t.hours),
-      t.anchor === t.id ? h("span", { class: "tag" }, "anchor") : `${t.anchor} × ${t.ratio}`, t.flagged ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "estimators disagree") : ""]), [4]);
+    e.tasks.map((t) => [h("span", { class: "mono small" }, t.id), h("div", {}, h("div", {}, t.title, t.kind ? h("span", { class: "tag faint" }, t.size ? `${t.kind} · ${t.size}` : t.kind) : null), h("div", { class: "small muted" }, t.reason), t.references?.length ? h("div", { class: "small muted" }, `Like ${t.references.map((r) => `${r.taskId} of ${r.runId} (${r.size}, ${hrs(r.hours)})`).join(", ")}`) : null), t.track ?? "-", t.executor, hrs(t.hours),
+      t.anchor === t.id ? h("span", { class: "tag" }, "anchor") : `${t.anchor} × ${t.ratio}`, [t.flagged ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "estimators disagree") : "", t.splitAdvised ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "split before build") : ""]]), [4]);
   const costTable = table(["Phase", "API cost"], e.apiCost.phases.map((p) => [p.phase, usd(p.usd)]), [1]);
   const extra = [];
   if (e.overheads.length) extra.push(h("h3", {}, "Overheads"), table(["Name", "Track", "Hours", "Why"], e.overheads.map((o) => [o.name, o.track ?? "-", hrs(o.hours), o.reason]), [2]));
@@ -993,7 +1271,16 @@ async function estimateScreen(id) {
   }
   mount([...head,
     h("div", { class: "grid-2" },
-      h("div", { class: "stack" }, decide, panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", costTable),
+      h("div", { class: "stack" }, decide,
+        e.approved && e.files ? nextPanel("This estimate is approved. Build it or size a change to it.", [
+          [`#/new/brownfield/estimate/${rid}`, "layers", "Build this estimate"],
+          [`#/new/estimate/revises/${rid}`, "pen", "Change request"],
+        ]) : null,
+        panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", costTable),
+        e.stack ? panel(3, "Stack priced", "layers", h("dl", { class: "facts" }, [["Backend", e.stack.backend], ["Web", e.stack.web], ["Mobile", e.stack.mobile], ["Database", e.stack.database], ["Hosting", e.stack.hosting], ["Architecture", e.stack.architecture]].filter((r) => r[1]).flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])),
+          h("p", { class: "small muted" }, e.stack.basis === "repo" ? "From the repo." : e.stack.basis === "request" ? "Named in the requirements." : `Assumed by the estimate${e.stack.notes ? `: ${e.stack.notes}` : "."}`)) : null,
+        e.factoryAssumptions?.length ? panel(3, "Assumed by the factory", "alert", h("p", { class: "small muted" }, "Nobody was asked: the requirements came refined, so each open question took its recommended answer. Confirm these with the client."),
+          h("ul", { class: "reasons small" }, e.factoryAssumptions.map((a) => h("li", {}, h("span", { class: "mono" }, a.id), " ", a.text, a.fromDefault ? h("span", { class: "tag faint" }, `standard answer: ${a.fromDefault}`) : null, a.risk === "high" ? h("span", { class: "tag" }, "high risk") : null)))) : null,
         e.assumptions.length ? panel(3, "Assumptions", "alert", h("ul", { class: "reasons small" }, e.assumptions.map((x) => h("li", {}, x)))) : null),
       h("div", { class: "stack" }, panel(1, "Screens", "browser", design), panel(2, "Tasks", "layers", tasks, ...extra))),
   ], true);
@@ -1002,6 +1289,62 @@ async function estimateScreen(id) {
 // ---------- design ----------
 
 /** The build's before and after pictures of each page, with what moved. Evidence, not a verdict. */
+const LEVEL_TITLE = { tokens: "Tokens", structure: "Structure", a11y: "Accessibility", layout: "Layout", pixels: "Pixels" };
+const pageLabel = (p) => `${p.id} ${p.state} · ${p.viewport}${p.mode ? " · dark" : ""}${p.lang ? ` · ${p.lang}` : ""}`;
+
+/** The Fidelity panel: the built app against the approved design, level by level, a page's pictures side by side, and the terminal command that accepts them as the baseline. */
+function fidelityPanel(rid, v) {
+  const head = h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Fidelity to the approved design"));
+  const wrap = (...body) => h("section", { class: "panel rise", id: "fidelity-panel", vars: { "--i": 2 } }, head, ...body);
+  if (v.none) return wrap(h("p", { class: "muted small" }, v.none));
+  if (v.skipped && !v.pages.length) return wrap(h("p", { class: "muted small" }, `Not run: ${v.skipped}.`), h("p", { class: "small muted" }, "It runs after acceptance whenever the factory generated the screens (switch it off with design.fidelity: false; docs/estimates-design.md, \"Fidelity and tests\"). By hand, on an app you started: ", h("code", {}, `factory design fidelity ${rid} --url http://localhost:3000`), "."));
+  const tone = (st) => (st === "PASS" ? "pass" : st === "FAIL" ? "fail" : "");
+  const levels = h("div", { class: "fid-levels" }, v.levels.map((l) => h("div", { class: `fid-level ${tone(l.status)}` },
+    h("div", { class: "row" }, icon(l.status === "PASS" ? "check" : l.status === "FAIL" ? "x" : "alert"), h("strong", {}, LEVEL_TITLE[l.level] ?? l.level), h("span", { class: "faint small" }, l.blocking ? "blocking" : "advice")),
+    h("div", { class: "small" }, `${l.status} · ${l.detail}`))));
+  const waived = v.waivers.length ? h("p", { class: "small" }, icon("alert"), ` Waived: ${v.waivers.map((w) => `${w.gateIds.join(", ")} by ${w.human} (${w.reason})`).join("; ")}`) : null;
+  const findings = v.findings.length ? h("details", { class: "export-opts", open: v.findings.some((f) => f.level !== "layout" && f.level !== "pixels") ? "" : undefined },
+    h("summary", { class: "small" }, `${v.findings.length} finding${v.findings.length === 1 ? "" : "s"}`),
+    h("ul", { class: "reasons small" }, v.findings.slice(0, 40).map((f) => h("li", {}, h("strong", {}, `${LEVEL_TITLE[f.level] ?? f.level}: `), f.message, h("span", { class: "faint" }, ` (${f.pages.length} page${f.pages.length === 1 ? "" : "s"})`))))) : h("p", { class: "small" }, icon("check"), " No findings.");
+  // one page at a time: the approved picture, the built one, the accepted one and the difference
+  const pages = v.pages.filter((p) => p.built);
+  const onlyFound = h("input", { type: "checkbox", id: "fid-only" });
+  const pick = h("select", { "aria-label": "Page" });
+  const fill = () => {
+    const list = onlyFound.checked ? pages.filter((p) => p.findings.length || p.noticeable) : pages;
+    const keep = pick.value;
+    pick.replaceChildren(...list.map((p) => h("option", { value: p.key }, `${pageLabel(p)}${p.findings.length ? ` · ${p.findings.length} finding${p.findings.length === 1 ? "" : "s"}` : ""}`)));
+    if (list.some((p) => p.key === keep)) pick.value = keep;
+    show();
+  };
+  const fig = (url, label) => h("figure", { class: "vshot" }, url ? h("button", { type: "button", class: "ref-pic", "aria-label": `Open ${label}`, onclick: () => lightbox({ url, screen: label, viewport: "" }) }, h("img", { src: url, alt: label, loading: "lazy" })) : h("div", { class: "slot small muted" }, "none"), h("figcaption", { class: "small muted" }, label));
+  const view = h("div", { class: "stack" });
+  const show = () => {
+    const p = pages.find((x) => x.key === pick.value);
+    if (!p) return view.replaceChildren(h("p", { class: "small muted" }, "No page to show."));
+    view.replaceChildren(...[
+      h("div", { class: "fid-shots" }, fig(p.approved, "Approved design"), fig(p.built, "Built app"), p.baseline ? fig(p.baseline, "Accepted baseline") : null, p.diff ? fig(p.diff, "Differences in red") : null),
+      p.ratio !== undefined ? h("p", { class: "small" }, h("span", { class: `tag${p.noticeable ? "" : " faint"}` }, `${(p.ratio * 100).toFixed(p.ratio < 0.1 ? 1 : 0)}% differs from the baseline`)) : null,
+      p.accepted ? h("p", { class: "small muted" }, `Baseline accepted by ${p.accepted.by} on ${p.accepted.at.slice(0, 10)}: ${p.accepted.reason}`) : null,
+      p.findings.length ? h("ul", { class: "reasons small" }, p.findings.map((f) => h("li", {}, h("strong", {}, `${LEVEL_TITLE[f.level] ?? f.level}: `), f.message))) : null].filter(Boolean));
+  };
+  pick.addEventListener("change", show);
+  onlyFound.addEventListener("change", fill);
+  // accepting built pictures as the baseline is a terminal decision (factory design baseline), recorded with a reason
+  const msg = h("div", { class: "small", role: "status" });
+  const panel = wrap(
+    h("p", { class: "small" }, h("span", { class: `chip ${v.overall === "pass" ? "pass" : v.overall === "fail" ? "fail" : ""}` }, `overall: ${v.overall}`), h("span", { class: "faint" }, ` ${v.pages.length} pages · ${v.ran.join(", ")}`)),
+    levels, waived, findings,
+    v.notes.length ? h("ul", { class: "small muted" }, v.notes.map((n) => h("li", {}, n))) : null,
+    pages.length ? h("div", { class: "row" }, pick, h("label", { class: "small", for: "fid-only" }, onlyFound, " only pages with findings")) : null,
+    view,
+    v.canAccept ? h("div", { class: "stack" }, h("h3", { class: "small" }, "Accept as the baseline"),
+      h("p", { class: "small muted" }, "In your terminal, with a reason:"),
+      h("div", { class: "cmds" }, h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, `factory design baseline ${rid} --all --reason "..."`), copyButton(`factory design baseline ${rid} --all --reason ""`))), msg) : msg);
+  fill();
+  return panel;
+}
+
 function visualPanel(id, v) {
   const head = h("div", { class: "panel-head" }, h("h2", {}, icon("image"), "Before and after"));
   const wrap = (...body) => h("section", { class: "panel rise", vars: { "--i": 2 } }, head, ...body);
@@ -1020,9 +1363,194 @@ function visualPanel(id, v) {
 }
 
 
+/** A run's design references: pictures, what was measured, how they were read and used, the screens they shaped. */
+function refsPanel(v, compact = false) {
+  if (!v.references.length) return compact ? null : h("p", { class: "muted small" }, v.none);
+  const swatch = (c) => h("span", { class: "sw", title: `${c.hex}${c.role ? ` ${c.role}` : ""}`, vars: { "--c": /^#[0-9a-f]{3,8}$/i.test(c.hex) ? c.hex : "transparent" } });
+  return h("div", { class: "ref-cards" }, v.references.map((r) => h("article", { class: "ref-card" },
+    r.images.length ? h("div", { class: "ref-pics" }, r.images.slice(0, compact ? 1 : 4).map((im) => h("button", { type: "button", class: "ref-pic", "aria-label": `${r.id} ${im.label}`, onclick: () => lightbox({ url: im.url, screen: `${r.id} · ${im.label}`, viewport: r.role }) }, h("img", { src: im.url, alt: `${r.id} ${im.label}`, loading: "lazy" }))))
+      : h("div", { class: "ref-pics none small muted" }, icon(r.kind === "url" ? "browser" : "file"), "no picture"),
+    h("div", { class: "ref-body" },
+      h("div", { class: "row" }, h("strong", { class: "mono" }, r.id), h("span", { class: `pill t-${r.role === "match" ? "ok" : r.role === "layout" ? "idle" : "live"}` }, r.role), h("span", { class: "faint small" }, r.kind)),
+      h("div", { class: "mono small ref-source", title: r.source }, r.source),
+      r.note ? h("div", { class: "small" }, h("span", { class: "faint" }, "note: "), r.note) : null,
+      compact ? null : [
+        r.colours.length ? h("div", { class: "row small" }, h("span", { class: "swatches" }, r.colours.slice(0, 8).map(swatch)), h("span", { class: "faint" }, r.measured === "exact" ? "exact" : "approximate")) : null,
+        r.fonts.length ? h("div", { class: "small" }, h("span", { class: "faint" }, "fonts: "), r.fonts.map((f) => f.family).join(", ")) : null,
+        r.read ? h("div", { class: "small" }, h("span", { class: "faint" }, "read as: "), [r.read.kind, r.read.navigation !== "unclear" ? r.read.navigation : null, r.read.reqs.length ? `for ${r.read.reqs.join(", ")}` : null].filter(Boolean).join(" · ")) : null,
+      ],
+      r.use ? h("div", { class: "small" }, h("span", { class: "faint" }, r.use.use === "used" ? "used: " : "set aside: "), r.use.how) : null,
+      r.screens.length ? h("div", { class: "tags" }, r.screens.map((x) => h("span", { class: "tag" }, h("span", { class: "n" }, x.id), x.title))) : null,
+      r.gaps.map((g) => h("div", { class: "small ref-gap" }, icon("alert"), `${g.screen} still differs:${g.nav ? ` not reached by ${g.nav}` : ""}${g.nav && g.missing.length ? ";" : ""}${g.missing.length ? ` no ${g.missing.join(", ")}` : ""}`)),
+    ))));
+}
+
+/** What the export menu offers: each choice is a set of formats (and PDF per screen or not). */
+const EXPORT_CHOICES = [
+  { id: "png", label: "Pictures (PNG, zip)", formats: ["png"] },
+  { id: "pdf", label: "PDF design book", formats: ["pdf"] },
+  { id: "pdf-screens", label: "PDF, one per screen", formats: ["pdf"], pdfPerScreen: true },
+  { id: "html", label: "Clickable demo (zip)", formats: ["html"] },
+  { id: "tokens", label: "Design tokens (JSON, CSS, Tailwind)", formats: ["tokens"] },
+  { id: "json", label: "Design and manifest (JSON)", formats: ["json"] },
+  { id: "figma", label: "Figma (figma.json for the AI Factory Import plugin)", formats: ["figma"] },
+  { id: "all", label: "Everything", formats: ["png", "pdf", "html", "tokens", "json", "figma"] },
+];
+
+/** Earlier exports of the run, newest first: the whole export as a zip, and its book or demo on their own. */
+function exportList(rid, exports) {
+  if (!exports.length) return h("p", { class: "small muted" }, "No exports yet.");
+  const base = `/design-exports/${encodeURIComponent(rid)}/`;
+  const file = (e, path, label) => h("a", { href: `${base}${e.id}/${path.split("/").map(encodeURIComponent).join("/")}`, download: "" }, label);
+  return h("ul", { class: "export-list" }, exports.map((e) => {
+    const has = (p) => e.files.some((f) => f.path === p);
+    return h("li", {},
+      h("div", { class: "row" },
+        h("a", { class: "btn small", href: `${base}${e.id}.zip`, download: "" }, icon("download"), `v${e.version} · export ${e.id.split("/")[1]}`),
+        h("span", { class: "tags" }, e.formats.map((f) => h("span", { class: "tag" }, f))),
+        h("span", { class: "small faint" }, `${e.files.length} file${e.files.length === 1 ? "" : "s"} · ${ago(e.at)}`)),
+      h("div", { class: "row small" },
+        has("design-book.pdf") ? file(e, "design-book.pdf", "design book (.pdf)") : null,
+        e.files.filter((f) => f.path.startsWith("pdf/")).map((f) => file(e, f.path, f.path.slice(4))),
+        has("demo.zip") ? file(e, "demo.zip", "clickable demo (.zip)") : null,
+        has("tokens/tokens.json") ? file(e, "tokens/tokens.json", "tokens.json") : null,
+        has("tokens/tailwind.css") ? file(e, "tokens/tailwind.css", "tailwind.css") : null,
+        has("figma.json") ? file(e, "figma.json", "figma.json") : null),
+      e.checks?.length ? h("div", { class: "chips" }, e.checks.map((c) => h("span", { class: `chip ${c.status === "PASS" ? "pass" : c.status === "FAIL" ? "fail" : ""}`, title: [c.detail, ...(c.items ?? [])].join("\n") }, icon(c.status === "PASS" ? "check" : c.status === "FAIL" ? "x" : "alert"), c.check))) : null,
+      e.notes.length ? h("ul", { class: "small muted" }, e.notes.map((n) => h("li", {}, n))) : null);
+  }));
+}
+
+/** The Export panel on the Design tab: pick what to export and for which screens, widths, modes and languages; it runs as a job on this machine. */
+function exportPanel(rid, v) {
+  const head = h("div", { class: "panel-head" }, h("h2", {}, icon("download"), "Export the design"));
+  const listBox = h("div", {}, exportList(rid, v.exports));
+  if (!v.available) return h("section", { class: "panel rise", vars: { "--i": 0 } }, head, h("p", { class: "small muted" }, v.why), v.exports.length ? listBox : null);
+  const d = v.design;
+  const checks = (name, items, all = true) => {
+    const boxes = items.map((it) => h("label", { class: "xopt" }, h("input", { type: "checkbox", name, value: it.value, checked: all ? "" : undefined }), it.label));
+    return { el: h("fieldset", { class: "xopts" }, h("legend", { class: "small faint" }, name), boxes), picked: () => boxes.map((b) => b.querySelector("input")).filter((i) => i.checked).map((i) => i.value), total: boxes.length };
+  };
+  const choice = h("select", { "aria-label": "What to export" }, EXPORT_CHOICES.map((c) => h("option", { value: c.id }, c.label)));
+  choice.value = "all";
+  const screens = checks("screens", v.options.screens.map((x) => ({ value: x.id, label: x.id === "components" ? "Components" : `${x.id} ${x.title}` })));
+  // every state on the demo's tabs, once (like --states); a picture of a dark or other-language page counts as its first state
+  const stateNames = [...new Map(v.options.screens.filter((x) => x.id !== "components").flatMap((x) => x.states).map((st) => [st.toLowerCase(), st])).values()];
+  const states = checks("states", stateNames.map((x) => ({ value: x, label: x })));
+  const widths = checks("widths", v.options.widths.map((x) => ({ value: x, label: x })));
+  const modes = checks("modes", v.options.modes.map((x) => ({ value: x, label: x })));
+  const langs = checks("languages", v.options.langs.map((x) => ({ value: x, label: x })));
+  const version = v.versions.length > 1 ? h("select", { "aria-label": "Design version" }, v.versions.map((n) => h("option", { value: String(n) }, `v${n}`))) : null;
+  if (version && d.version) version.value = String(d.version);
+  const msg = h("div", { class: "small", role: "status" });
+  const go = h("button", { class: "btn", type: "button" }, icon("download"), "Export");
+  const only = (c) => (c.picked().length === c.total ? undefined : c.picked());
+  const watch = (job) => {
+    const tick = async () => {
+      if (!go.isConnected) return; // the page moved on
+      const nv = await api(`/api/runs/${encodeURIComponent(rid)}/exports`).catch(() => undefined);
+      const j = nv?.jobs.find((x) => x.id === job.id);
+      if (!nv || !j) return;
+      if (j.status === "running") { msg.replaceChildren(h("span", { class: "pulse" }), ` Exporting… ${j.lines.at(-1) ?? ""}`); setTimeout(tick, 1200); return; }
+      // drawn again from the fresh view (the package and its version exist after the first export), keeping the outcome
+      const next = exportPanel(rid, nv);
+      next.classList.remove("rise");
+      next.querySelector("[role=status]").replaceChildren(...(j.status === "failed" ? [icon("alert"), ` The export failed: ${j.error}`]
+        : [icon("check"), ` Exported as ${j.exportId}. `, h("a", { href: `/design-exports/${encodeURIComponent(rid)}/${j.exportId}.zip`, download: "" }, "Download it all (.zip)")]));
+      panel.replaceWith(next);
+    };
+    setTimeout(tick, 400); // after the panel is on the page
+  };
+  go.addEventListener("click", async () => {
+    const c = EXPORT_CHOICES.find((x) => x.id === choice.value);
+    if (!screens.picked().length || !states.picked().length || !widths.picked().length || !modes.picked().length || !langs.picked().length) { msg.textContent = "Pick at least one of each: screen, state, width, mode and language."; return; }
+    const body = { formats: c.formats, pdfPerScreen: !!c.pdfPerScreen, screens: only(screens), states: only(states), widths: only(widths), modes: only(modes), langs: only(langs), version: version ? Number(version.value) : undefined };
+    go.disabled = true;
+    msg.textContent = "Starting…";
+    try {
+      const { job } = await api(`/api/runs/${encodeURIComponent(rid)}/exports`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      watch(job);
+    } catch (err) { go.disabled = false; msg.textContent = err.message; }
+  });
+  const panel = h("section", { class: "panel rise", vars: { "--i": 0 } }, head,
+    h("p", { class: "small muted" }, d.version ? `Design ${d.line} v${d.version}, approved by ${d.approvedBy} ${ago(d.approvedAt)}. Files are tagged with the version and land in this run's exports folder.` : d.pending),
+    d.picturesNote ? h("p", { class: "small muted" }, d.picturesNote) : null,
+    h("div", { class: "row" }, choice, version, go),
+    h("details", { class: "export-opts" }, h("summary", { class: "small" }, "Screens, states, widths, modes and languages"), h("div", { class: "stack" }, screens.el, states.el, widths.el, modes.el, langs.el)),
+    h("p", { class: "small faint" }, v.figma.note, " ", h("a", { href: v.figma.plugin, download: "" }, "Download the plugin (.zip)")),
+    msg,
+    h("h3", { class: "small" }, "Earlier exports"),
+    listBox);
+  const running = v.jobs.find((j) => j.status === "running");
+  if (running) { go.disabled = true; watch(running); }
+  return panel;
+}
+
+const TARGET_LABELS = { "next-shadcn": "Next.js + shadcn/ui", "vite-shadcn": "Vite + React + shadcn/ui", repo: "The repo's own components (no kit)" };
+const TARGET_SOURCE = { config: "the project's setting", run: "chosen when the run started", detected: "detected from the repo", default: "the default", phone: "a phone app", none: "nothing to go on" };
+
+/** The Code panel on the Design tab: the UI target, the files the scaffold writes before any agent starts, and a copy to download and run. */
+function codePanel(rid, v, tried) {
+  const head = h("div", { class: "panel-head" }, h("h2", {}, icon("code"), "Code: kit and scaffold"));
+  if (!v.available) return h("section", { class: "panel rise", id: "code-panel", vars: { "--i": 0 } }, head, h("p", { class: "small muted" }, v.why));
+  const x = v.view;
+  const pick = h("select", { "aria-label": "UI target" }, v.targets.map((t) => h("option", { value: t }, TARGET_LABELS[t] ?? t)));
+  pick.value = x.target;
+  const msg = h("div", { class: "small", role: "status" });
+  const redraw = async (target) => {
+    msg.replaceChildren(h("span", { class: "pulse" }), " Working out the files…");
+    try {
+      const nv = await api(`/api/runs/${encodeURIComponent(rid)}/scaffold${target ? `/${encodeURIComponent(target)}` : ""}`);
+      const next = codePanel(rid, nv, target);
+      next.classList.remove("rise");
+      panel.replaceWith(next);
+    } catch (err) { msg.textContent = err.message; }
+  };
+  pick.addEventListener("change", () => redraw(pick.value));
+  const zip = (t) => h("a", { href: `/scaffolds/${encodeURIComponent(rid)}/${t}.zip`, download: "" }, `${t}.zip`);
+  const gen = h("button", { class: "btn", type: "button", disabled: x.kit ? undefined : "" }, icon("download"), "Generate");
+  gen.addEventListener("click", async () => {
+    gen.disabled = true;
+    msg.replaceChildren(h("span", { class: "pulse" }), " Generating…");
+    try {
+      const r = await api(`/api/runs/${encodeURIComponent(rid)}/scaffold`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ target: x.target }) });
+      msg.replaceChildren(icon("check"), ` ${r.files} files in ${r.dir}. `, zip(r.target), h("span", { class: "faint" }, " · npm install && npm run dev, then add ?fixture=S-1:empty to a page to see any state."));
+    } catch (err) { msg.textContent = err.message; }
+    gen.disabled = false;
+  });
+  const by = (o) => x.files.filter((f) => f.owner === o).length;
+  const body = !x.kit
+    ? [h("p", { class: "small muted" }, "No scaffold: the screens are built with the repo's own components, each from its approved brief (the build's implement tasks write them).")]
+    : [
+      h("div", { class: "tags" },
+        h("span", { class: "tag" }, h("span", { class: "n" }, "kit"), `${x.kit.id} ${x.kit.version}`),
+        h("span", { class: "tag" }, h("span", { class: "n" }, "root"), x.root || "."),
+        x.fresh ? h("span", { class: "tag" }, "a fresh app") : null,
+        ...[["kit", "kit"], ["theme", "theme"], ["screen", "page"], ["glue", "frame and routes"], ["app", "app"]].map(([o, l]) => by(o) ? h("span", { class: "tag" }, h("span", { class: "n" }, l), String(by(o))) : null),
+        x.kept.length ? h("span", { class: "tag", title: x.kept.join("\n") }, h("span", { class: "n" }, "kept"), String(x.kept.length)) : null),
+      x.built ? h("p", { class: "small" }, icon("check"), ` The build wrote it${x.built.commit ? ` in ${x.built.commit.slice(0, 10)}` : ""} (${x.built.written} files) before any agent started.`) : h("p", { class: "small muted" }, "The build writes these files into the repo in its first commit after the design, before any agent starts. The agents fill in each screen's container with real data and behaviour; the pages as approved stay as they are."),
+      x.changed ? h("p", { class: "small" }, h("strong", {}, "Change request: "), x.changed.length ? `pages written again for ${x.changed.join(", ")}; the rest stay as built.` : "no page changed.") : null,
+      h("div", { class: "table-wrap" }, h("table", {}, h("thead", {}, h("tr", {}, h("th", {}, "Screen"), h("th", {}, "Route"), h("th", {}, "Container (the task's file)"), h("th", {}, "States"))),
+        h("tbody", {}, x.screens.map((sc) => h("tr", {}, h("td", {}, `${sc.id} ${sc.title}`), h("td", { class: "mono" }, sc.route), h("td", { class: "mono small" }, sc.container), h("td", { class: "small", title: Object.keys(sc.states).map((k) => `?fixture=${sc.id}:${k}`).join("\n") }, String(Object.keys(sc.states).length))))))),
+      x.designSystem.todo.length ? h("div", {}, h("h3", { class: "small" }, "The design-system task (first in the plan)"), h("ul", { class: "reasons small" }, x.designSystem.todo.map((t) => h("li", {}, t)))) : null,
+      x.notes.length ? h("ul", { class: "reasons small muted" }, x.notes.map((n) => h("li", {}, n))) : null,
+      h("details", { class: "export-opts" }, h("summary", { class: "small" }, `All ${x.files.length} files`),
+        h("ul", { class: "small mono file-list" }, x.files.map((f) => h("li", {}, h("span", { class: "faint" }, `${f.owner} · ${f.regenerate ? "factory" : "repo's"} · `), f.path)))),
+    ];
+  const panel = h("section", { class: "panel rise", id: "code-panel", vars: { "--i": 0 } }, head,
+    h("p", { class: "small" }, h("strong", {}, TARGET_LABELS[x.target] ?? x.target), ` · ${tried ? "a preview of another target (the run keeps its own)" : TARGET_SOURCE[x.source] ?? x.source} · the repo: ${x.why}`),
+    x.repoApps.length ? h("p", { class: "small muted" }, `Built with the repo's own components: ${x.repoApps.join(", ")} (a phone app, or set so).`) : null,
+    h("div", { class: "row" }, pick, gen),
+    ...body,
+    msg,
+    v.generated.length ? h("p", { class: "small faint" }, "Generated copies: ", ...v.generated.flatMap((t, i) => [i ? ", " : "", zip(t)])) : null);
+  return panel;
+}
+
 async function designScreen(id) {
   skeleton("grid");
-  const [r, d] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/design`)]);
+  const [r, d, refv, xv, sv] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/design`), api(`/api/runs/${encodeURIComponent(id)}/references`), api(`/api/runs/${encodeURIComponent(id)}/exports`), api(`/api/runs/${encodeURIComponent(id)}/scaffold`)]);
+  const fv = await api(`/api/runs/${encodeURIComponent(id)}/fidelity`).catch(() => ({ none: "The fidelity check could not be read." }));
   let size;
   if ("none" in d.uiSize) size = h("p", { class: "muted" }, d.uiSize.none);
   else {
@@ -1059,10 +1587,21 @@ async function designScreen(id) {
   mount([...runHeader(r, "design"),
     h("div", { class: "grid-2" },
       h("div", { class: "stack" },
+        // a design-only run, once approved, is sized or built from here (like --from-design)
+        // a design with no repo (a new product) is built into a project whose repo is still empty (greenfield)
+        r.mode === "design" && xv.available ? nextPanel(r.repo ? "This design is approved. Size it, or build it in its project." : "This design is approved. Size it, or build it as a new product into an empty repo (git init a folder, then factory init it).", [
+          [`#/new/estimate/design/${encodeURIComponent(id)}`, "ruler", "Estimate this design"],
+          [`#/new/brownfield/design/${encodeURIComponent(id)}`, "layers", "Build this design"],
+        ]) : null,
+        exportPanel(id, xv),
+        codePanel(id, sv),
         h("section", { class: "panel rise", vars: { "--i": 0 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("ruler"), "UI change size")), size),
         h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Style check")), style),
+        fidelityPanel(id, fv),
         visualPanel(id, d.visual),
-        r.mode === "estimate" ? h("a", { class: "slot rise", href: `#/runs/${encodeURIComponent(id)}/preview`, vars: { "--i": 3 } }, icon("cursor"), h("strong", {}, "Clickable prototype"), h("span", {}, "The demo and its screenshots are under Preview.")) : null,
+        // a brownfield build draws a design too when it touches UI (its timeline then has the design step)
+        r.mode === "estimate" || r.mode === "design" || (r.timeline ?? []).some((t) => t.step === "design") ? h("a", { class: "slot rise", href: `#/runs/${encodeURIComponent(id)}/preview`, vars: { "--i": 3 } }, icon("cursor"), h("strong", {}, "Clickable prototype"), h("span", {}, "The demo and its screenshots are under Preview.")) : null,
+        h("section", { class: "panel rise", vars: { "--i": 4 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("image"), `References${refv.references.length ? ` (${refv.references.length})` : ""}`)), refsPanel(refv)),
       ),
       h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("grid"), "The app's pages and building blocks")), inv),
     )], true);
@@ -1128,8 +1667,10 @@ async function route() {
   document.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("on", a.dataset.nav === top));
   document.title = `AI Factory · ${{ new: "New run", runs: parts[1] ? parts[1] : "Runs", dashboard: "Dashboard" }[top] ?? ""}`;
   try {
-    if (top === "new" && parts[1] === "brownfield") await requestScreen();
-    else if (top === "new" && parts[1] === "estimate") await requestScreen("estimate");
+    // #/new/estimate/<design|revises>/<run> and #/new/brownfield/<design|estimate>/<run> start from that run
+    if (top === "new" && parts[1] === "brownfield") await requestScreen("brownfield", parts.slice(2));
+    else if (top === "new" && parts[1] === "estimate") await requestScreen("estimate", parts.slice(2));
+    else if (top === "new" && parts[1] === "design") await requestScreen("design");
     else if (top === "runs" && parts[1] && parts[2] === "estimate") await estimateScreen(parts[1]);
     else if (top === "new") modeScreen();
     else if (top === "runs" && parts[1] && parts[2] === "design") await designScreen(parts[1]);

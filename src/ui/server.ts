@@ -1,8 +1,10 @@
 // `factory ui`: a small local web app to start runs and watch them. node:http only, plain files.
 // It can NEVER approve a plan, waive, unlock, steer, pause or stop: those decisions are TTY-only
-// (ledger/human.ts), so no AI or script can approve its own plan. Two exceptions, both for an estimate
-// run and both needing a typed name and the card's hash: the lead's approve or reject of the estimate card,
-// and the answers to its clarification questions (so a run never stops waiting for a second command).
+// (ledger/human.ts), so no AI or script can approve its own plan. Three exceptions, each needing a typed name
+// and the card's hash: the lead's approve or reject of an estimate card, the same on a design card (E1b), and
+// the answers to a clarification question card (so a run never stops waiting for a second command). Exporting an
+// approved design (POST /api/runs/:id/exports) only writes files under the run's own exports/ folder, and generating its
+// scaffold (POST /api/runs/:id/scaffold) only under the run's own scaffold/ folder.
 // Other cards are shown read-only with the terminal command to paste.
 // Safety: bound to 127.0.0.1; a random token per start (in the printed link, then an HttpOnly
 // cookie) on every API call; Host and Origin checked so another website can't drive it; JSON-only
@@ -16,13 +18,18 @@ import { fileURLToPath } from "node:url";
 import "../gates/predicates.js";
 import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
-import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, runView, runsView, statsView } from "./data.js";
+import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
-import { answerEstimateQuestions, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
+import { answerEstimateQuestions, checkRefs, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
+import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
+import { figmaPluginZip } from "../design/figma.js";
+import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
+import { fidelityPanel, fidelityShot } from "./fidelity.js";
+import type { ExportFormat } from "../design/export.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
-/** Starting a run may carry design frames (base64 in the JSON), so that one route takes a bigger body. */
-export const MAX_UPLOAD_BODY_BYTES = 30_000_000;
+/** Starting a run (and checking references) may carry design frames and reference files (base64 in the JSON, up to 50 MB of references), so those routes take a bigger body. */
+export const MAX_UPLOAD_BODY_BYTES = 80_000_000;
 const COOKIE = "factory_ui";
 
 type Json = Record<string, unknown> | unknown[];
@@ -35,15 +42,15 @@ interface Route {
   handle(params: Record<string, string>, body: unknown, deps: StartDeps, ctx: RouteContext): Promise<Reply> | Reply;
 }
 
-/** Per-server values a route may need: the key in preview file URLs. */
-interface RouteContext { previewKey: string }
+/** Per-server values a route may need: the key in preview file URLs, and the design export jobs. */
+interface RouteContext { previewKey: string; jobs: ExportJobs }
 
 const ok = (json: Json): Reply => ({ status: 200, json });
 const notFound = (what: string): Reply => ({ status: 404, json: { error: what } });
 
 /** Every API route. Read-only except starting a run; there is deliberately no decision route. */
 export const ROUTES: readonly Route[] = [
-  { method: "GET", path: "/api/projects", what: "projects and whether Jira is set up", handle: async () => ok(await projectsView()) },
+  { method: "GET", path: "/api/projects", what: "projects and whether Jira and Figma are set up", handle: async () => ok(await projectsView()) },
   { method: "GET", path: "/api/runs", what: "recent runs", handle: () => ok(runsView()) },
   {
     method: "GET", path: "/api/runs/:id", what: "one run: timeline, cost, trace, open card (read-only), delivery",
@@ -52,6 +59,10 @@ export const ROUTES: readonly Route[] = [
   {
     method: "GET", path: "/api/runs/:id/design", what: "the design step's data for a run",
     handle: ({ id }) => { const l = findRun(id!); return l ? ok(designView(l)) : notFound(`No run ${id}`); },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/references", what: "the run's design references: pictures, measured look, how they were read and used, the screens they shaped",
+    handle: ({ id }) => { const l = findRun(id!); return l ? ok(referencesView(l)) : notFound(`No run ${id}`); },
   },
   {
     method: "GET", path: "/api/runs/:id/estimate", what: "an estimate run's totals, tasks, API cost, approved design and exported files, or why there are none",
@@ -75,13 +86,23 @@ export const ROUTES: readonly Route[] = [
   { method: "GET", path: "/api/dashboard", what: "outcomes, the per-stage table and recent runs", handle: () => ok(dashboardView()) },
   {
     method: "POST", path: "/api/runs", what: "start a run (same checks as factory start), executed in the background",
-    handle: async (_p, body, deps) => {
+    handle: async (_p, body, deps, ctx) => {
       try {
-        const r = await startRun((body ?? {}) as Record<string, unknown>, deps);
+        // a build from an estimate exports its approved design at once, as an export job the Design tab shows
+        const exportNow = deps.exportNow ?? ((runId: string, formats: ExportFormat[]) => { try { ctx.jobs.start(runId, { formats }); } catch { /* one is already running */ } });
+        const r = await startRun((body ?? {}) as Record<string, unknown>, { ...deps, exportNow });
         return { status: 201, json: r };
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/check-refs", what: "read design references without starting a run (like factory design check-refs): what each gives, or why it cannot be read",
+    handle: async (_p, body, deps) => {
+      try { return ok(await checkRefs((body ?? {}) as Record<string, unknown>, deps)); } catch (e) {
+        return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
       }
     },
   },
@@ -99,7 +120,7 @@ export const ROUTES: readonly Route[] = [
     },
   },
   {
-    method: "POST", path: "/api/runs/:id/estimate-answers", what: "the lead's answers to an estimate run's clarification questions (question cards of estimate runs only; needs a typed name and the card hash)",
+    method: "POST", path: "/api/runs/:id/estimate-answers", what: "the answers to an estimate run's clarification questions (question cards on estimate runs only; needs a typed name and the card hash)",
     handle: async ({ id }, body, deps) => {
       const l = findRun(id!);
       if (!l) return notFound(`No run ${id}`);
@@ -110,6 +131,49 @@ export const ROUTES: readonly Route[] = [
         return { status: 400, json: { error: (e as Error).message } };
       }
     },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/exports", what: "what the run's approved design can be exported as, the export jobs and earlier exports",
+    handle: ({ id }, _b, _d, ctx) => { const l = findRun(id!); return l ? ok(designExportsView(l, ctx.jobs.list())) : notFound(`No run ${id}`); },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/exports", what: "export the run's approved design (formats png, pdf, html, tokens, json; screens, states, widths, modes, langs, version, pdfPerScreen), as a job; files land in the run's exports folder",
+    handle: ({ id }, body, _d, ctx) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      const v = designExportsView(l);
+      if (!v.available) return { status: 409, json: { error: v.why } };
+      try {
+        const { job } = ctx.jobs.start(l.runId, exportRequest((body ?? {}) as Record<string, unknown>));
+        return { status: 202, json: { job } };
+      } catch (e) {
+        return { status: (e as { status?: number }).status ?? 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/scaffold", what: "the UI target the run's approved design is built in and the files its scaffold writes",
+    handle: ({ id }) => { const l = findRun(id!); return l ? ok(scaffoldPanel(l) as unknown as Json) : notFound(`No run ${id}`); },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/scaffold/:target", what: "the same for another target (next-shadcn, vite-shadcn, repo)",
+    handle: ({ id, target }) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try { return ok(scaffoldPanel(l, target) as unknown as Json); } catch (e) { return { status: (e as { status?: number }).status ?? 400, json: { error: (e as Error).message } }; }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/scaffold", what: "generate the scaffold (target) into the run's scaffold folder, to download as a zip and run",
+    handle: async ({ id }, body) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try { return ok(await generateScaffold(l, (body ?? {}) as Record<string, unknown>)); } catch (e) { return { status: (e as { status?: number }).status ?? 400, json: { error: (e as Error).message } }; }
+    },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/fidelity", what: "the build's check of the app against the approved design: levels, findings, each page's built, approved and accepted pictures",
+    handle: ({ id }) => { const l = findRun(id!); return l ? ok(fidelityPanel(l) as unknown as Json) : notFound(`No run ${id}`); },
   },
 ];
 
@@ -174,9 +238,11 @@ export interface UiServerOptions {
   /** fixed preview key (tests); default: random per start */
   previewKey?: string;
   deps?: StartDeps;
+  /** the design export jobs (tests pass their own) */
+  exportJobs?: ExportJobs;
 }
 
-export interface UiServer { server: Server; token: string; previewKey: string }
+export interface UiServer { server: Server; token: string; previewKey: string; exportJobs: ExportJobs }
 
 function sameToken(a: string | undefined, b: string): boolean {
   if (!a) return false;
@@ -220,6 +286,7 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
   // a second key, only for preview file URLs (a sandboxed frame sends no cookie and no same-site Origin)
   const previewKey = opts.previewKey ?? randomBytes(18).toString("base64url");
   const deps = opts.deps ?? {};
+  const jobs = opts.exportJobs ?? new ExportJobs();
 
   const server = createServer((req, res) => {
     handle(req, res).catch((e: Error) => {
@@ -268,7 +335,33 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       const want = decodeURIComponent(audience);
       const f = !l ? undefined : want.startsWith("draft-") ? await draftFile(l, want.slice(6)) : exportFile(l, want);
       if (!f) return send(res, 404, "No such workbook.", "text/plain; charset=utf-8");
-      return send(res, 200, f.body, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", { "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"` });
+      const type = /\.pdf$/i.test(f.name) ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      return send(res, 200, f.body, type, { "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"` });
+    }
+    if (method === "GET" && path.startsWith("/design-exports/")) {
+      // a design export: same key as the API, only files an export recorded (or its whole folder as a zip)
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      const [, , runId = "", ...rest] = path.split("/");
+      let l;
+      try { l = findRun(decodeURIComponent(runId)); } catch { l = undefined; }
+      const f = l && rest.length ? await exportDownload(l, rest.join("/")) : undefined;
+      if (!f) return send(res, 404, "No such export.", "text/plain; charset=utf-8");
+      return send(res, 200, f.body, f.type, { "Content-Disposition": `attachment; filename="${f.name}"` });
+    }
+    if (method === "GET" && path === "/figma-plugin.zip") {
+      // the AI Factory Import plugin for Figma, to import from its manifest: same key as the API
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      return send(res, 200, await figmaPluginZip(), "application/zip", { "Content-Disposition": 'attachment; filename="ai-factory-figma-plugin.zip"' });
+    }
+    if (method === "GET" && path.startsWith("/scaffolds/")) {
+      // a generated scaffold as a zip: same key as the API, only <run>/scaffold/<target>
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      const [, , runId = "", name = ""] = path.split("/");
+      let l;
+      try { l = findRun(decodeURIComponent(runId)); } catch { l = undefined; }
+      const f = l ? await scaffoldDownload(l, decodeURIComponent(name)) : undefined;
+      if (!f) return send(res, 404, "No such scaffold.", "text/plain; charset=utf-8");
+      return send(res, 200, f.body, "application/zip", { "Content-Disposition": `attachment; filename="${f.name.replace(/[^\w.-]/g, "_")}"` });
     }
     if (method === "GET" && path.startsWith("/shots/")) {
       // a picture from a run's visual check: same key as the API, png files in one folder only
@@ -277,6 +370,26 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       let l, rel = "";
       try { l = findRun(decodeURIComponent(runId)); rel = rest.map(decodeURIComponent).join("/"); } catch { l = undefined; }
       const body = l ? visualShot(l, rel) : undefined;
+      if (!body) return send(res, 404, "No such picture.", "text/plain; charset=utf-8");
+      return send(res, 200, body, "image/png", { "Cache-Control": "no-store" });
+    }
+    if (method === "GET" && path.startsWith("/fidelity-shots/")) {
+      // a picture of the fidelity check: same key as the API, png files in four folders only
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      const [, , runId = "", kind = "", name = ""] = path.split("/");
+      let l, file = "";
+      try { l = findRun(decodeURIComponent(runId)); file = decodeURIComponent(name); } catch { l = undefined; }
+      const body = l ? fidelityShot(l, kind, file) : undefined;
+      if (!body) return send(res, 404, "No such picture.", "text/plain; charset=utf-8");
+      return send(res, 200, body, "image/png", { "Cache-Control": "no-store" });
+    }
+    if (method === "GET" && path.startsWith("/refs/")) {
+      // a design reference's picture: same key as the API, only refs/R-n-k.png of that run
+      if (!authed) return send(res, 401, "Missing or wrong key.", "text/plain; charset=utf-8");
+      const [, , runId = "", name = "", ...more] = path.split("/");
+      let l, file = "";
+      try { l = more.length ? undefined : findRun(decodeURIComponent(runId)); file = decodeURIComponent(name); } catch { l = undefined; }
+      const body = l ? refImage(l, file) : undefined;
       if (!body) return send(res, 404, "No such picture.", "text/plain; charset=utf-8");
       return send(res, 200, body, "image/png", { "Cache-Control": "no-store" });
     }
@@ -295,12 +408,12 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       if (!String(req.headers["content-type"] ?? "").startsWith("application/json")) return sendJson(res, 415, { error: "Send JSON." });
       // a cookie alone isn't enough without a same-site Origin (curl sends the key in a header)
       if (origin === undefined && !sameToken(headerToken, token)) return sendJson(res, 403, { error: "A POST needs the page's origin or the key header." });
-      const limit = route.path === "/api/runs" ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES;
+      const limit = route.path === "/api/runs" || route.path === "/api/check-refs" ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES;
       const raw = await readBody(req, limit);
       if (raw === "too-big") return sendJson(res, 413, { error: `The request is over ${limit / 1_000_000} MB.` });
       try { body = raw ? JSON.parse(raw) : {}; } catch { return sendJson(res, 400, { error: "Bad JSON." }); }
     }
-    const r = await route.handle(params!, body, deps, { previewKey });
+    const r = await route.handle(params!, body, deps, { previewKey, jobs });
     return sendJson(res, r.status, r.json);
   }
 
@@ -320,7 +433,7 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
     res.end(req.method === "HEAD" ? undefined : f.body);
   }
 
-  return { server, token, previewKey };
+  return { server, token, previewKey, exportJobs: jobs };
 }
 
 /** Listen on 127.0.0.1 only. Tries the next ports when the default one is taken. */

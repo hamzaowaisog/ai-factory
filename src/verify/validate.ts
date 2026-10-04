@@ -27,7 +27,8 @@ export function validate(raw: RawRun, exp: Expectations): { valid: boolean; reas
   if (executed < inScope) return { valid: false, reason: `only ${executed} of ${inScope} discovered tests executed` };
   const missing = [...exp.expectPass, ...exp.expectFail.map((e) => e.id)].filter((id) => !ids.has(id));
   if (missing.length) return { valid: false, reason: `expected tests missing from the report: ${missing.slice(0, 5).join(", ")}` };
-  const anyFailed = raw.results.some((r) => r.outcome === "failed");
+  // a flaky test failed in the first run (that run's exit code is the one kept) and passed when re-run
+  const anyFailed = raw.results.some((r) => r.outcome === "failed" || r.flaky);
   if (anyFailed && raw.exitCode === 0) return { valid: false, reason: "tests failed but the runner exited 0" };
   if (!anyFailed && raw.exitCode !== 0) return { valid: false, reason: `runner exited ${raw.exitCode} with no failed test` };
   return { valid: true };

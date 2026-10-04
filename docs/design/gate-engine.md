@@ -70,6 +70,8 @@ Locked by hash after author-tests:
 
 Plus the **config-integrity set** (protected unless the plan declares them): lint, analyzer and TS configs, `Directory.Build.*`, `global.json`/`.nvmrc`, CI files, migrations, `.factory/`, `.gitattributes`, `.gitmodules`, and agent instruction files at any depth incl. new ones (`CLAUDE*.md`, `AGENTS*.md`, `GEMINI.md`, `.claude/`, `.codex/`, `.cursor/`, `.cursorrules`, `.windsurfrules`, `.mcp.json`, `.github/copilot-instructions.md`, `.github/instructions/`), and package-feed config (`nuget.config`, `.npmrc`, `.yarnrc*`, `Directory.Packages.props`).
 
+Plus, when the build has an approved design in a kit UI target, the **files the factory generates from it** (the theme, each screen's `screen.tsx` and `fixtures.ts`, the frame and routing glue, the kit): they are the approved look, so an agent changes the screen's `container.tsx` instead (as built 2026-10-03, `docs/estimates-design.md`, "Kit and scaffold (as built)").
+
 The integrate gate also checks **every expected locked test ID actually executed and passed**. Removing a test from compilation, or filtering it out, fails even if "0 failures" is reported.
 
 ### 2.5 Where the gates sit
@@ -83,7 +85,7 @@ The integrate gate also checks **every expected locked test ID actually executed
 | specify | – | 12 spec lint checks; stability; critic findings (blocking derived by code from severity); round trip clean |
 | design (UI) | – | no unmapped REQs, no orphan screens |
 | impact | – | risk ≤ policy or human; blast-radius flag |
-| plan | – | REQs covered; ≥2 options + ADR; file scopes don't overlap; ≤15 rules/task; **any declared protected path forces risk ≥ medium** (a human sees it) |
+| plan | – | REQs covered; ≥2 options + ADR; file scopes don't overlap; ≤15 rules/task; **any declared protected path forces risk ≥ medium** (a human sees it); with a UI scaffold, TASK-1 is the design-system task, every screen's container is in a task's scope and no task lists a generated file (`plan-scaffold`) |
 | author-tests | **run new tests on base, twice** | each AC test fails on base (plus the plan's stub commit, context-builder §2.8) with an assertion or not-implemented failure, reproducibly; characterization passes on base; lock recorded |
 | implement (per task) | build + unit + scoped tests; secret scan of the commit | diff within file scope; lock set and config set unchanged; no escape hatches, no new `skip/only`, no deleted tests; new lint findings = 0 vs baseline; no secrets |
 | integrate | full build + suite; architecture, dependency (OSV + registry), a11y where UI | **no new failures vs baseline**; all expected locked + characterization IDs executed and passed; size/coverage limits |

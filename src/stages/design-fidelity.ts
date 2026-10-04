@@ -1,0 +1,236 @@
+// design-fidelity (no model): after accept, the built app against the approved design (docs/estimates-design.md, "Fidelity and
+// tests"). The app is built and started in fixture mode, every screen opened in the states, widths, modes and languages the design
+// package pictures, and checked for tokens, structure and accessibility (blocking gates design.tokens, design.structure and
+// design.a11y, waivable on the waiver card) and layout and pixels (advice). On by default whenever the factory generated the
+// screens (a kit scaffold), with the kit's own commands; design.fidelity changes them, and `design.fidelity: false` switches it off.
+// The app is the agents' code, so it is installed and started in containers (the agent image; the install reaches only the
+// package feeds, the app no network at all), never on this machine unless the project says `allowHost: true` (the PR #11
+// re-review, blocker 2). Since the re-review's item 8 also the screens changed in place in an existing app (no kit): each opened
+// at its route as the app runs it, started with design.fidelity.start or the repo's own start script, its tokens compared with
+// the values the app's source names (advice) when it keeps its own look.
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import type { Failure } from "../contracts/index.js";
+import { withAppInContainer } from "../design/app-container.js";
+import { withApp } from "../design/app-runner.js";
+import { readBaselines } from "../design/baselines.js";
+import { approvedTheme, runFidelity, type FidelityReport } from "../design/fidelity-app.js";
+import { FIDELITY_GATES } from "../design/gates.js";
+import { packageForRun } from "../design/package.js";
+import { ownTokens } from "../design/repo-look.js";
+import { gitSource } from "../design/source.js";
+import { buildWaiver, type BuildFailed } from "../estimate/build-waiver.js";
+import type { WaiverRow } from "../estimate/log.js";
+import { failure, runGate } from "../gates/engine.js";
+import { approvedDesignFor } from "./design-inputs.js";
+import { readOutput, type StepDef, type StepOutcome } from "./framework.js";
+import { scaffoldPreview, type ScaffoldRecord } from "./scaffold-run.js";
+import { ProjectConfig } from "../config/project.js";
+import type { Ledger } from "../ledger/ledger.js";
+import type { RunState } from "../ledger/state.js";
+import type { DesignPackage } from "../design/package.js";
+import { AGENT_IMAGE, ensureAgentImage, ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
+import { ensureWorktree, runtime } from "./workspace.js";
+
+export const FIDELITY_DIR = "design-fidelity";
+export const DEFAULT_INSTALL = "npm install --no-audit --no-fund";
+
+/** The kit's own build-and-start command for a target, on $PORT. */
+export const defaultStart = (target: string): string =>
+  target === "vite-shadcn" ? "npx vite build && npx vite preview --port $PORT --strictPort" : "npx next build && npx next start -p $PORT";
+
+/**
+ * An existing app's own build-and-start command, from its package.json scripts: its start script (which reads $PORT, as
+ * next start and most Node servers do), else a Vite preview on $PORT. Undefined when it has neither (then the project says it).
+ */
+export function repoStart(pkgJson: string | undefined): string | undefined {
+  let scripts: Record<string, string> = {};
+  try { scripts = (JSON.parse(pkgJson ?? "{}") as { scripts?: Record<string, string> }).scripts ?? {}; } catch { return undefined; }
+  const build = scripts.build ? "npm run build && " : "";
+  if (scripts.start) return `${build}npm start`;
+  if (scripts.preview) return `${build}npm run preview -- --port $PORT --strictPort --host 127.0.0.1`;
+  return undefined;
+}
+
+type Approved = Parameters<typeof runFidelity>[0]["design"] & { apps?: { id: string; device?: string }[] };
+/** The screens changed in place: the approved screens the kit does not build, outside a phone app. */
+export function inPlaceScreens(design: Approved, kit: string[]): string[] {
+  const phone = new Set((design.apps ?? []).filter((a) => a.device === "phone").map((a) => a.id));
+  return design.screens.filter((s) => !kit.includes(s.id) && !(s.app && phone.has(s.app)) && (s as { size?: string }).size !== "design-system").map((s) => s.id);
+}
+
+/**
+ * Accessibility findings the base commit already had are not this change's: they become advice, and the level blocks only
+ * on what is new (the PR #17 review). Kept per page set: a finding counts as old when the base had the same message.
+ */
+export function withoutBaseA11y(report: FidelityReport, base: FidelityReport | undefined): FidelityReport {
+  if (!base || base.skipped) return report;
+  const norm = (m: string) => m.replace(/\s+/g, " ").trim().toLowerCase();
+  const old = new Set(base.findings.filter((f) => f.level === "a11y").map((f) => norm(f.message)));
+  if (!old.size) return report;
+  const findings = report.findings.map((f) => (f.level === "a11y" && !f.advice && old.has(norm(f.message)) ? { ...f, message: `${f.message} (already at the base commit)`, advice: true as const } : f));
+  const newA11y = findings.filter((f) => f.level === "a11y" && !f.advice).length;
+  const levels = report.levels.map((l) => (l.level === "a11y" && l.status === "FAIL" && !newA11y
+    ? { ...l, status: "WARN" as const, detail: `only findings the base commit already had: ${l.detail}` } : l));
+  const overall = report.overall === "fail" && !levels.some((l) => l.blocking && l.status === "FAIL") ? "pass" : report.overall;
+  return { ...report, findings, levels, overall };
+}
+
+/**
+ * An app changed in place (no kit screens) that could not start where the check runs (it needs its API or database) is
+ * advice, not a failed check: the run goes on with a note instead of three "not checked" gates and a waiver card.
+ */
+export const adviceOnly = (report: FidelityReport, kitScreens: number): boolean => kitScreens === 0 && !!report.skipped && !report.pages.length;
+
+type FidelityConfig = Exclude<NonNullable<NonNullable<ProjectConfig["design"]>["fidelity"]>, false>;
+/** The project's fidelity settings, with the defaults when it sets none. */
+export function fidelityConfig(project: ProjectConfig): FidelityConfig {
+  const set = project.design?.fidelity;
+  return set || (ProjectConfig.shape.design.unwrap().shape.fidelity.unwrap().options[1].parse({}) as FidelityConfig);
+}
+
+export const designFidelityStep: StepDef = {
+  key: "design-fidelity", stage: "accept", templateVersion: "1",
+  inputs: (s) => (s.steps.get("accept")?.status === "completed" ? { integrate: s.steps.get("integrate")!.outputs[0], head: s.steps.get("integrate")!.data?.commit } : undefined),
+  async run(ctx): Promise<StepOutcome> {
+    const head = String(ctx.state.steps.get("integrate")!.data!.commit);
+    const done = (r: FidelityReport, waivers: Omit<WaiverRow, "step">[] = []): StepOutcome => ({
+      kind: "done", outputs: { fidelity: ctx.ledger.putJson(r) },
+      data: r.skipped && !r.pages.length && !r.levels.some((l) => l.status !== "UNCHECKED")
+        ? { skipped: r.skipped, ...(waivers.length ? { waivers } : {}) }
+        : { overall: r.overall, pages: r.pages.length, levels: Object.fromEntries(r.levels.map((l) => [l.level, l.status])), ...(waivers.length ? { waivers } : {}) },
+    });
+    const skip = (why: string): StepOutcome => {
+      ctx.log(`fidelity check skipped: ${why}`);
+      return done({ kind: "design-fidelity", levels: [], findings: [], pages: [], overall: "unchecked", ran: [], notes: [], skipped: why });
+    };
+    if (ctx.project.design?.fidelity === false) return skip("switched off (design.fidelity: false in the project config)");
+    const approved = approvedDesignFor<Approved>(ctx.state, ctx.ledger);
+    if (!approved) return skip("the run has no approved design");
+    const scaf = readOutput<ScaffoldRecord>(ctx.state, ctx.ledger, "stub-commit", "scaffold");
+    const kit = scaf && scaf.target !== "repo" ? scaf.screens.map((x) => x.id) : [];
+    const inPlace = inPlaceScreens(approved.design, kit);
+    if (!kit.length && !inPlace.length) return skip("the approved design has no screen to open in a browser");
+    const cfg = fidelityConfig(ctx.project);
+    const pkg = packageForRun(ctx.state.info, approved.sha);
+    const wt = await ensureWorktree(ctx, head);
+    // the kit's commands for a kit scaffold; for an app changed in place, the project's or the repo's own start script
+    const start = cfg.start ?? (kit.length ? defaultStart(scaf!.target) : repoStart(gitSource(wt, head).read("package.json")));
+    if (!start) return skip("the screens are changed in place and the app has no start or preview script: set design.fidelity.start to its build-and-start command on $PORT");
+    // an app that keeps its own look: its own values, from its source at the base commit
+    const { repoPath, baseCommit } = ctx.state.info;
+    const own = !approvedTheme(approved.design) && repoPath && baseCommit ? ownTokens(gitSource(repoPath, baseCommit)) : undefined;
+    const outDir = join(ctx.ledger.dir, FIDELITY_DIR);
+    rmSync(outDir, { recursive: true, force: true });
+    mkdirSync(outDir, { recursive: true });
+    let report: FidelityReport;
+    try {
+      const app = { install: cfg.install ?? DEFAULT_INSTALL, start, port: cfg.port, readyPath: cfg.readyPath, timeoutSec: cfg.timeoutSec, env: cfg.env, what: "fidelity check" };
+      const check = (baseUrl: string) => runFidelity({
+        baseUrl, design: approved.design, screens: kit, inPlace, ...(own ? { ownTokens: own } : {}),
+        ...(pkg ? { demoFile: join(pkg.dir, "demo", "index.html"), shots: pkg.manifest.shots, baselines: readBaselines(pkg) } : {}),
+        outDir, relDir: FIDELITY_DIR, log: ctx.log, max: cfg.maxPages,
+      });
+      // the same app at another commit: the run's head, or the base (to tell old accessibility findings from new ones)
+      const at = async <T>(commit: string, fn: (baseUrl: string) => Promise<T>): Promise<T> => {
+        if (cfg.allowHost) {
+          if (commit === head) return withApp({ cwd: wt, ...app }, fn, ctx.log);
+          const dir = join(ctx.ledger.dir, FIDELITY_DIR, "base-checkout");
+          execFileSync("git", ["-C", wt, "worktree", "add", "--detach", "--force", dir, commit], { stdio: "ignore" });
+          try { return await withApp({ cwd: dir, ...app }, fn, ctx.log); } finally { execFileSync("git", ["-C", wt, "worktree", "remove", "--force", dir], { stdio: "ignore" }); }
+        }
+        const rt = runtime();
+        await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
+        await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
+        return withAppInContainer({ rt, image: AGENT_IMAGE, runId: ctx.runId, repo: wt, commit, ...app }, fn, ctx.log);
+      };
+      if (cfg.allowHost) ctx.log("fidelity check: running the app on this machine (design.fidelity.allowHost: true)");
+      report = await at(head, check);
+      if (inPlace.length && baseCommit && !report.skipped) {
+        // ponytail: a second app start for the base; worth it only for in-place screens (kit screens are new, the base has none)
+        const baseDir = join(outDir, "base");
+        mkdirSync(baseDir, { recursive: true });
+        const base = await at(baseCommit, (baseUrl) => runFidelity({ baseUrl, design: approved.design, screens: [], inPlace, ...(own ? { ownTokens: own } : {}), outDir: baseDir, relDir: `${FIDELITY_DIR}/base`, log: ctx.log, max: cfg.maxPages }))
+          .catch((e: Error) => { report.notes.push(`the base commit could not be checked, so every accessibility finding counts: ${e.message.split("\n")[0]}`); return undefined; });
+        report = withoutBaseA11y(report, base);
+      }
+    } catch (e) {
+      report = { kind: "design-fidelity", levels: [], findings: [], pages: [], overall: "unchecked", ran: [], notes: [], skipped: `the app did not start: ${(e as Error).message}` };
+    }
+    if (adviceOnly(report, kit.length)) {
+      report.notes.push("the screens are changed in place and the app could not start where the check runs (it may need its API or database): advice only, not held against the build");
+      writeFileSync(join(outDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
+      ctx.log(`fidelity check: not run (${report.skipped}); advice only for an app changed in place`);
+      return done(report);
+    }
+    if (!pkg) report.notes.push("the design package is not in the store, so there are no approved pictures or baselines to compare with");
+    writeFileSync(join(outDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
+    ctx.log(report.skipped ? `fidelity check: not run (${report.skipped})` : `fidelity check: ${report.overall}; ${report.levels.map((l) => `${l.level} ${l.status}`).join(", ")}`);
+    // the blocking gates; a failure is the lead's to waive for this commit
+    const sha = ctx.ledger.putJson(report);
+    const failed: BuildFailed[] = [];
+    for (const def of FIDELITY_GATES) {
+      const g = await runGate(def, ctx.ledger, ctx.writer, { fidelity: sha }, ctx.policy, { step: "design-fidelity", treeSha: head });
+      if (!g.passed) failed.push({ def, failures: (g.failures as Failure[] | undefined) ?? [failure(def.id, g.details)] });
+    }
+    if (!failed.length) return done(report);
+    const w = buildWaiver(ctx, "design-fidelity", failed, head,
+      `To fix it instead: change the screens' containers or the design (factory design change ${ctx.runId}), then build again. The pictures and findings are on the run's Design tab (factory design fidelity ${ctx.runId}).`);
+    if (w.kind === "ask") return w.outcome;
+    return done(report, w.waivers);
+  },
+};
+
+// ---------- the CLI's and the UI's view, and a check by hand ----------
+
+/** The run's latest fidelity report: the one in its folder (the step's, or a later check by hand), else the step's output. */
+export function fidelityOfRun(state: RunState, ledger: Ledger): FidelityReport | undefined {
+  const f = join(ledger.dir, FIDELITY_DIR, "report.json");
+  if (existsSync(f)) { try { return JSON.parse(readFileSync(f, "utf8")) as FidelityReport; } catch { /* fall back to the step's */ } }
+  return readOutput<FidelityReport>(state, ledger, "design-fidelity", "fidelity");
+}
+
+/** The design package of the run's approved design, when it is in the store. */
+export function packageOfRun(state: RunState, ledger: Ledger): DesignPackage | undefined {
+  const a = approvedDesignFor(state, ledger);
+  return a ? packageForRun(state.info, a.sha) : undefined;
+}
+
+/**
+ * Check an app that is already running (`factory design fidelity <run> --url`): the run's approved design, the screens its
+ * scaffold builds with the kit and the screens changed in place, written to the run's fidelity folder like the step's. Gates are
+ * not run: this is to look.
+ */
+export async function checkRunningApp(state: RunState, ledger: Ledger, project: ProjectConfig, baseUrl: string, log: (m: string) => void): Promise<FidelityReport> {
+  const approved = approvedDesignFor<Approved>(state, ledger);
+  if (!approved) throw new Error(`Run ${ledger.runId} has no approved design`);
+  const built = readOutput<ScaffoldRecord>(state, ledger, "stub-commit", "scaffold");
+  const kit = (built ? (built.target !== "repo" ? built.screens : []) : scaffoldPreview(state, ledger, project).layout?.screens ?? []).map((x) => x.id);
+  const inPlace = inPlaceScreens(approved.design, kit);
+  if (!kit.length && !inPlace.length) throw new Error("The approved design has no screen to open in a browser");
+  const { repoPath, baseCommit } = state.info;
+  const own = !approvedTheme(approved.design) && repoPath && baseCommit ? ownTokens(gitSource(repoPath, baseCommit)) : undefined;
+  const pkg = packageForRun(state.info, approved.sha);
+  const outDir = join(ledger.dir, FIDELITY_DIR);
+  rmSync(outDir, { recursive: true, force: true });
+  mkdirSync(outDir, { recursive: true });
+  const report = await runFidelity({
+    baseUrl, design: approved.design, screens: kit, inPlace, ...(own ? { ownTokens: own } : {}),
+    ...(pkg ? { demoFile: join(pkg.dir, "demo", "index.html"), shots: pkg.manifest.shots, baselines: readBaselines(pkg) } : {}),
+    outDir, relDir: FIDELITY_DIR, log, max: fidelityConfig(project).maxPages,
+  });
+  if (!pkg) report.notes.push("the design package is not in the store, so there are no approved pictures or baselines to compare with");
+  writeFileSync(join(outDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
+  return report;
+}
+
+/** The report as lines for the terminal. */
+export function formatFidelity(r: FidelityReport): string[] {
+  if (r.skipped && !r.pages.length) return [`fidelity check: not run (${r.skipped})`, ...r.notes.map((n) => `note: ${n}`)];
+  const L = [`fidelity check: ${r.overall.toUpperCase()}, ${r.pages.length} page(s); ran ${r.ran.join(", ") || "nothing"}`];
+  for (const l of r.levels) L.push(`  ${l.status.padEnd(9)} ${`design.${l.level}`.padEnd(18)} ${l.blocking ? "blocking" : "advice  "}  ${l.detail}`);
+  for (const f of r.findings) L.push(`    [${f.level}] ${f.message}  (${f.pages.slice(0, 4).join(", ")}${f.pages.length > 4 ? `, +${f.pages.length - 4}` : ""})`);
+  for (const n of r.notes) L.push(`  note: ${n}`);
+  return L;
+}

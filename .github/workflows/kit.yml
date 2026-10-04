@@ -1,0 +1,22 @@
+# The UI kit's components typecheck and build in both targets with the exact package versions kit.json pins
+# (PR #11 review, item 19). Slow (two npm installs and builds), so only when the kit or the scaffold changes.
+name: kit
+on:
+  pull_request:
+    paths: ["kits/**", "src/design/kit/**"]
+  push:
+    branches: [main]
+    paths: ["kits/**", "src/design/kit/**"]
+jobs:
+  kit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:kit

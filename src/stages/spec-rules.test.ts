@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolveAnswer, scoreQuestions, selectQuestions, verifyDifferences, type ClarifierQuestion, type Sketch } from "./clarify.js";
+import { Defaults, loadDefaults, topicsText } from "../estimate/defaults.js";
 import { checkMerge, criticBlocks, criticTemplate, lostCoverage, problems, roundTripCheck, sameProblems } from "./specpipe.js";
 import { lintSpec, mentions, requestExcluded, sizeNote } from "./speclint.js";
 
@@ -31,6 +32,32 @@ describe("clarify rules", () => {
     expect(asked.map((a) => a.id)).toEqual(["Q-1", "Q-2"]);
     expect(asked[0]!.category).toBe("scope");            // goal/scope first at equal score
     expect(assumptions.map((a) => [a.fromQuestion, a.risk])).toEqual([["c", "high"], ["d", "low"]]);
+  });
+
+  it("assumes a standard topic's table answer in place of the model's pick, the same for every wording", () => {
+    const d = loadDefaults();
+    expect(d).not.toHaveProperty("signedOffBy");
+    const scored = scoreQuestions([
+      q({ id: "a", text: "Do users log in with Google?", topic: "sign-in", options: ["Google", "email"], recommended: "Google" }),
+      q({ id: "b", text: "Which sign-in methods are allowed?", topic: "sign-in", options: ["SSO", "email"], recommended: "SSO" }),
+      q({ id: "c", text: "Is the logo blue?", topic: "not-a-topic" }),
+      q({ id: "e", text: "Which colour scheme?" }),
+    ], [], cb);
+    const { assumptions } = selectQuestions(scored, 0, 1, d);
+    const std = "Email and password, with a reset link by email; no social or single sign-on.";
+    expect(assumptions.slice(0, 2).map((x) => [x.text, x.fromDefault])).toEqual([
+      // the text the client reads is a plain assumption; which standard answer it came from stays internal (fromDefault)
+      [`Do users log in with Google? → assumed: ${std}`, "sign-in"],
+      [`Which sign-in methods are allowed? → assumed: ${std}`, "sign-in"],
+    ]);
+    // an unknown topic or none keeps the model's recommendation
+    expect(assumptions.slice(2).map((x) => [x.text, x.fromDefault])).toEqual([["Is the logo blue? → assumed: a", undefined], ["Which colour scheme? → assumed: a", undefined]]);
+    expect(topicsText(d)).toMatch(/^- sign-in: How do users sign in\?$/m);
+  });
+
+  it("rejects a defaults table with a duplicate topic", () => {
+    const d = loadDefaults();
+    expect(() => Defaults.parse({ ...d, topics: [d.topics[0], d.topics[0]] })).toThrow(/listed twice/);
   });
 
   it("reads letter answers", () => {

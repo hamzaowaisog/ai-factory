@@ -127,7 +127,7 @@ const BASE_ENV = {
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1", NUGET_PACKAGES: "/nuget", MSBUILDDISABLENODEREUSE: "1",
 };
 
-function hostUser(): string {
+export function hostUser(): string {
   return `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`;
 }
 

@@ -20,6 +20,12 @@ const API = `<Project Sdk="Microsoft.NET.Sdk.Web"><PropertyGroup><TargetFramewor
 <Compile Remove="Data\\Migrations_Backup_SqlServer\\**" /></ItemGroup></Project>`;
 
 describe("factory init detection", () => {
+  it("reads the framework from Directory.Build.props when the projects don't set it", () => {
+    const d = detectDotnet(repo({ "App.sln": "", "Directory.Build.props": "<Project><PropertyGroup><TargetFramework>net9.0</TargetFramework></PropertyGroup></Project>", "src/App/App.csproj": '<Project Sdk="Microsoft.NET.Sdk.Web"></Project>' }));
+    expect(d.targetFrameworks).toEqual(["net9.0"]);
+    expect(d.sdkImage).toBe("mcr.microsoft.com/dotnet/sdk:9.0");
+  });
+
   it("finds solution, .NET version, Postgres, the tests' login, frontend folders", () => {
     const r = repo({
       "Shop.Api.sln": "", "src/Shop.Api/Shop.Api.csproj": API,

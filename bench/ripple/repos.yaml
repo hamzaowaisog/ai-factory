@@ -1,0 +1,29 @@
+# Pinned public .NET repos (same pins as bench/spec/repos.yaml on the spec-eval branch).
+# The replay walks history back from each pin.
+vsa:
+  stack: dotnet
+  url: https://github.com/nadirbad/VerticalSliceArchitecture
+  commit: feb3a15e7ba03dc12404127e0a1f8f33b214783d
+  about: Healthcare appointment booking API (vertical slices, MediatR, EF Core on Postgres)
+todo:
+  stack: dotnet
+  url: https://github.com/davidfowl/TodoApi
+  commit: 307a1eadbbd77a3004c318f2377e4818bc400af6
+  about: Todo API with users and auth (minimal APIs, EF Core on SQLite, Aspire)
+eshop:
+  stack: dotnet
+  url: https://github.com/dotnet/eShop
+  commit: dc7ea499cd356924fb6689b3702964a5869dbae9
+  about: Reference shop (catalog, basket, ordering services, Postgres, Aspire); the large repo
+taxonomy:
+  url: https://github.com/shadcn-ui/taxonomy
+  commit: 298a8857c7128a0d121e7f699dfd729f23b3966d
+  stack: nextjs
+  about: Next.js app (TypeScript) with API routes the dashboard calls with fetch
+  # hand-picked: each changes an API route or shared module and its callers; seed = that route or module
+  commits:
+    - { sha: 9b9590a, seed: pages/api/og.tsx }
+    - { sha: cef699a, seed: pages/api/users/stripe.ts }
+    - { sha: a2b35e9, seed: lib/session.ts }
+    - { sha: 1b87454, seed: lib/mdx/sources.ts }
+    - { sha: 420ad3b, seed: lib/session.ts }

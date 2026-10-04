@@ -13,6 +13,8 @@ import { plannedChanges, sizeChange, sizeFromGit, type SizeInput, type SizeResul
 import { dirSource, gitSource, type FileSource } from "./source.js";
 import { allIndustries, archetypeBrief, briefFor, loadMeasured, loadUserIndustries, measuredPath, resolveBrand, userIndustriesDir } from "./refs/index.js";
 import { measureAndSave } from "./refs/measure.js";
+import { detectUiTarget, isKitTarget, kitTarget, listKits, loadKit, resolveUiTarget, UI_TARGETS, type KitTarget } from "./kit/index.js";
+import { loadProject } from "../config/project.js";
 
 const out = (m: string): void => { process.stdout.write(`${m}\n`); };
 
@@ -27,8 +29,58 @@ function printSize(r: SizeResult, json?: boolean): void {
   for (const w of r.reasons) out(`  - ${w}`);
 }
 
-export function registerDesignCommands(program: Command): void {
-  const design = program.command("design").description("design toolkit: inventory, UI change size, fidelity lint, brief cleaner (no model, no network)");
+/** `first` adds commands ahead of the toolkit's (the design runs), so they head the help. */
+export function registerDesignCommands(program: Command, first?: (design: Command) => void): Command {
+  const design = program.command("design").description("design runs (start, show, list, open, check-refs) and the design toolkit: inventory, UI change size, fidelity lint, brief cleaner, industry references");
+  first?.(design);
+
+  const kit = design.command("kit").description("the UI kits an approved design is built with (docs/estimates-design.md, \"Kit and scaffold\")");
+  kit.command("list").option("--json", "print JSON")
+    .description("the kits, their versions and the UI targets they draw")
+    .action((o: { json?: boolean }) => {
+      const rows = listKits().map((id) => {
+        const k = loadKit(id);
+        return { id, version: k.manifest.version, targets: Object.keys(k.manifest.targets), blocks: Object.keys(k.manifest.blocks).length, controls: Object.keys(k.manifest.controls).length, overlays: Object.keys(k.manifest.overlays).length, files: k.files.length, dir: k.dir };
+      });
+      if (o.json) return out(JSON.stringify(rows, null, 2));
+      if (!rows.length) return out("No UI kits installed (kits/ is missing).");
+      for (const r of rows) out(`${r.id} ${r.version}  targets ${r.targets.join(", ")}  ${r.blocks} blocks, ${r.controls} field kinds, ${r.overlays} layers, ${r.files} files  ${r.dir}`);
+      out(`(the target "repo" uses no kit: the repo's own components)`);
+    });
+  kit.command("show").argument("[target]", `${UI_TARGETS.filter((t) => t !== "repo").join(" or ")}`, "next-shadcn").option("--json", "print JSON")
+    .description("what a target gets: where the kit and theme go, the packages, each block's component and how blocks change with width")
+    .action((target: string, o: { json?: boolean }) => {
+      if (!isKitTarget(target)) throw new Error(`No kit target ${target}: use ${UI_TARGETS.filter((t) => t !== "repo").join(" or ")} ("repo" builds with the repo's own components)`);
+      const k = loadKit();
+      const t = kitTarget(k, target as KitTarget);
+      const m = k.manifest;
+      const deps = { ...m.dependencies, ...m.targetDependencies[target] };
+      const view = { kit: `${m.id} ${m.version}`, target, ...t, dependencies: deps, devDependencies: m.devDependencies[target] ?? {}, blocks: m.blocks, controls: m.controls, overlays: m.overlays, responsive: m.responsive };
+      if (o.json) return out(JSON.stringify(view, null, 2));
+      out(`${target}: kit ${m.id} ${m.version} (${t.framework}); kit under "${t.root || "."}" in a fresh app; theme ${t.theme}; stylesheet ${t.stylesheet}`);
+      out(`packages: ${Object.entries(deps).map(([n, v]) => `${n}@${v}`).join(", ")}`);
+      out(`blocks:`);
+      for (const [b, p] of Object.entries(m.blocks)) out(`  ${b.padEnd(14)} ${p.component} (${p.file})`);
+      out(`field kinds: ${Object.keys(m.controls).join(", ")}`);
+      out(`layers: ${Object.entries(m.overlays).map(([n, p]) => `${n} → ${p.component}`).join(", ")}`);
+      out(`with width:`);
+      for (const r of m.responsive) out(`  ${r.block ?? r.part ?? r.shell} below ${r.below}: ${r.becomes}`);
+    });
+  design.command("target").argument("<repo>", "path to the repo")
+    .option("--ref <commit>", "read the files at this commit instead of the working folder")
+    .option("--project <name>", "apply this project's design.uiTarget / uiTargets")
+    .option("--json", "print JSON")
+    .description("the UI target a build would use in this repo: what package.json shows, and the project's setting over it")
+    .action((repo: string, o: { ref?: string; project?: string; json?: boolean }) => {
+      const detected = detectUiTarget(source(resolve(repo), o.ref));
+      const config = o.project ? loadProject(o.project).design : undefined;
+      const resolved = resolveUiTarget({ detected, ...(config ? { config } : {}) });
+      if (o.json) return out(JSON.stringify({ detected, ...resolved, ...(config?.uiTargets && Object.keys(config.uiTargets).length ? { perApp: config.uiTargets } : {}) }, null, 2));
+      out(`detected: ${detected.target ?? "nothing to go on"} (${detected.why})${detected.root !== undefined ? `; kit under "${detected.root || "."}"${detected.alias ? ", @/ mapped" : ", relative imports"}` : ""}`);
+      out(`target: ${resolved.target} (${resolved.source === "default" ? "the default; set design.uiTarget or pass --ui-target to choose" : `from ${resolved.source === "config" ? "the project" : resolved.source}`})`);
+      for (const [app, t] of Object.entries(config?.uiTargets ?? {})) out(`  app ${app}: ${t} (the project's uiTargets)`);
+      out(`a phone app is always built with the repo's own components`);
+    });
 
   design.command("inventory").argument("<repo>", "path to a React or Next.js repo")
     .option("--ref <commit>", "read the files at this commit instead of the working folder")
@@ -90,7 +142,7 @@ export function registerDesignCommands(program: Command): void {
   design.command("capture")
     .requiredOption("--page <name=url...>", "a page to take, as name=url (the app must already be running)")
     .requiredOption("--out <dir>", "folder for the screenshots and reports.json")
-    .description("screenshot and report pages of a running app at phone and desktop width")
+    .description("screenshot and report pages of a running app at phone, tablet and desktop width")
     .action(async (o: { page: string[]; out: string }) => {
       const pages = o.page.map((p) => { const i = p.indexOf("="); if (i < 1) throw new Error(`--page wants name=url, got "${p}"`); return { name: p.slice(0, i), url: p.slice(i + 1) }; });
       const r = await captureReports(pages, resolve(o.out));
@@ -161,4 +213,5 @@ export function registerDesignCommands(program: Command): void {
       for (const x of r.results) out(`${x.reading?.brand ? "ok   " : "none "} ${x.name.padEnd(20)} ${x.reading?.brand ?? x.error ?? "no colour found"}`);
       out(`${r.saved} brand(s) stored in ${measuredPath()}${r.note ? `\nnote: ${r.note}` : ""}`);
     });
+  return design;
 }

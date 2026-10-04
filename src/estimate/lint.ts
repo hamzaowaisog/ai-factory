@@ -2,7 +2,7 @@
 // it with what the estimate stores. (The cell-by-cell workbook lint arrives with the export slice.)
 import { defineGate, failure, verdict } from "../gates/engine.js";
 import type { Breakdown, Estimate } from "../contracts/index.js";
-import { scale } from "./hours.js";
+import { mergeEstimators, scale } from "./hours.js";
 import { computeTotals } from "./totals.js";
 
 const EPS = 0.011;
@@ -23,14 +23,20 @@ export function lintEstimate(e: Estimate, b: Pick<Breakdown, "tasks">): LintIssu
     if (!b.tasks.some((t) => t.id === id)) bad("task-unknown", `${id} is sized but not in the breakdown`);
   }
 
-  // hours = anchor x ratio, unless estimators widened the range (which can only widen it)
+  // hours = anchor x ratio, merged with the other estimators' readings by median (step D); an estimate made before
+  // the median merge only ever widened the range, so it is checked by that older rule
   const anchors = new Map(e.anchors.map((a) => [a.taskId, a]));
   for (const t of e.tasks) {
     const a = anchors.get(t.anchorId);
     if (!a) continue;
-    const expect = scale(a.hours, t.ratio);
-    if (t.hours.min > expect.min + EPS || t.hours.max < expect.max - EPS) bad("ratio", `${t.taskId} hours ${t.hours.min}-${t.hours.max} do not cover anchor x ratio ${expect.min}-${expect.max}`);
-    if (t.estimators.length === 0 && (!near(t.hours.min, expect.min) || !near(t.hours.max, expect.max))) bad("ratio", `${t.taskId} hours ${t.hours.min}-${t.hours.max} differ from anchor x ratio ${expect.min}-${expect.max}`);
+    const base = scale(a.hours, t.ratio);
+    if (e.merge === "median") {
+      const expect = mergeEstimators(base, t.estimators).hours;
+      if (!near(t.hours.min, expect.min) || !near(t.hours.max, expect.max)) bad("ratio", `${t.taskId} hours ${t.hours.min}-${t.hours.max} differ from anchor x ratio${t.estimators.length ? " merged with the other estimators" : ""} ${expect.min}-${expect.max}`);
+      continue;
+    }
+    if (t.hours.min > base.min + EPS || t.hours.max < base.max - EPS) bad("ratio", `${t.taskId} hours ${t.hours.min}-${t.hours.max} do not cover anchor x ratio ${base.min}-${base.max}`);
+    if (t.estimators.length === 0 && (!near(t.hours.min, base.min) || !near(t.hours.max, base.max))) bad("ratio", `${t.taskId} hours ${t.hours.min}-${t.hours.max} differ from anchor x ratio ${base.min}-${base.max}`);
   }
 
   // totals recomputed from scratch

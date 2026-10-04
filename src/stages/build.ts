@@ -1,6 +1,6 @@
 // Build side of the brownfield slice (stages-aligned §1): discover/baseline → stub commit →
 // author-tests (fails on base twice → lock) → implement ⟲ task verify → integrate → accept.
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
 import type { Failure, IntentBody, LedgerEvent, PlanBody, SpecDraft, TestResult, TestRun } from "../contracts/index.js";
@@ -21,18 +21,30 @@ import { Redactor } from "../context/secrets.js";
 import { sha256 } from "../util/hash.js";
 import { factoryHome } from "../util/paths.js";
 import { produceDotnetTests, skippableKnownFailures, type Probe, type ProduceOutput } from "../verify/dotnet.js";
+import type { ProjectConfig } from "../config/project.js";
+import { installIsCurrent, installNodeModules, labFor, markInstalled } from "../verify/lab.js";
+import { authorIntro, implementIntro, notFoundHint } from "./stack-text.js";
 import type { Expectations } from "../verify/validate.js";
-import { header, outputOf, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { approvedDesignFor } from "./design-inputs.js";
+import { header, outputOf, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { modelFor } from "./routing.js";
 import { family } from "../runners/types.js";
 import { S } from "./think.js";
-import { ensureWorktree, runtime, snapshotFor } from "./workspace.js";
+import { changeBase, ensureWorktree, runtime, snapshotFor, uiBase } from "./workspace.js";
 import { replay, splitKey } from "../ledger/state.js";
+import { REPO_DESIGN_DIR, repoFiles, type DesignPackage } from "../design/package.js";
+import { exportRunPackage } from "./design-export.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import { LANE, lightBuild, testWriterTurns } from "./lane.js";
 import { lessonPointers, readLessons, usableLessons } from "../context/lessons.js";
 import { sizeCap } from "../estimate/gates.js";
+import { buildWaiver } from "../estimate/build-waiver.js";
+import type { WaiverRow } from "../estimate/log.js";
 import { designFidelityLint, designSizeCap } from "../design/gates.js";
+import { screenBrief, screenFacts, screenFor, screensBrief, screensForTask, type ApprovedDesign } from "../design/design-link.js";
+import { scaffoldSummary, writeScaffold } from "../design/kit/index.js";
+import { scaffoldOfRun, type ScaffoldRecord } from "./scaffold-run.js";
+import { repoIsEmpty } from "../config/greenfield.js";
 import { actualSize, approvedLevel, designOptions, fidelityLint, hasReactApp, touchesUiFiles } from "../design/build-checks.js";
 import { buildInventory, inventorySummary } from "../design/inventory.js";
 import { dirSource } from "../design/source.js";
@@ -69,8 +81,9 @@ interface Lock {
   probes?: Probe[];
 }
 
-const packagesDir = (runId: string) => {
-  const d = join(factoryHome(), "tmp", runId, "nuget");
+// .NET: the restored NuGet packages (mounted into the coding container); Node: the npm cache the installs share
+const packagesDir = (runId: string, stack: ProjectConfig["stack"] = "dotnet") => {
+  const d = join(factoryHome(), "tmp", runId, stack === "node" ? "npm-cache" : "nuget");
   mkdirSync(d, { recursive: true });
   return d;
 };
@@ -81,9 +94,9 @@ async function produce(ctx: StepContext, key: string, commit: string, stage: Tes
   // full-suite runs (task, integrate) leave out tests that already fail on the base branch
   const fullSuite = (stage === "task" || stage === "integrate") && !onlyTests?.length && !filterExpr;
   const skipTests = fullSuite ? skippableKnownFailures(baselineResults(ctx), [...exp.expectPass, ...exp.expectFail.map((e) => e.id)]) : undefined;
-  return produceDotnetTests({
+  return labFor(ctx.project).produce({
     runId: ctx.runId, key, repo: ctx.state.info.repoPath!, commit, stage, exp, project: ctx.project, rt, onlyTests, filterExpr, accept, resolveExp, knownFailures: knownFailures(ctx),
-    packagesDir: packagesDir(ctx.runId),
+    packagesDir: packagesDir(ctx.runId, ctx.project.stack),
     // later lab runs on a commit reuse its build; the baseline's commit is never built again
     buildCache: stage === "baseline" ? undefined : join(factoryHome(), "tmp", ctx.runId, "builds"),
     skipTests,
@@ -126,7 +139,21 @@ function agentTracer(ctx: StepContext, who: string) {
  * The coding container reads restored packages from the run's package folder (read-only, no network).
  * If discover reused a cached baseline, nothing restored them yet for this run: do it now.
  */
-async function ensurePackages(ctx: StepContext, commit: string): Promise<void> {
+async function ensurePackages(ctx: StepContext, commit: string, wt: string): Promise<void> {
+  if (ctx.project.stack === "node") {
+    // a Node checkout gets its node_modules installed in place, before each agent (a reset or clean removes them), and again
+    // whenever package.json or the lockfile changed since (PR #17 review, item 7)
+    if (!existsSync(join(wt, "package.json")) || installIsCurrent(wt)) return;
+    ctx.log("installing the app's packages for the coding container");
+    const r = await installNodeModules(runtime(), {
+      runId: ctx.runId, key: "restore", dir: wt, cache: packagesDir(ctx.runId, "node"), image: ctx.project.node.image, timeoutSec: ctx.project.node.buildTimeoutSec,
+      onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "restore", data: { id, role: "restore" } }, ctx.writer); },
+      onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "restore", data: { id } }, ctx.writer); },
+    });
+    if (!r.ok) throw new Error(`npm install failed: ${r.log.split("\n").filter(Boolean).slice(-5).join(" ")}`);
+    markInstalled(wt);
+    return;
+  }
   const dir = packagesDir(ctx.runId);
   if (readdirSync(dir).length) return;
   ctx.log("restoring packages for the coding container");
@@ -154,6 +181,11 @@ const REFUSE: { code: string; re: RegExp; reason: string }[] = [
   { code: "windows-only", re: /<UseWPF>true|<UseWindowsForms>true|<TargetFramework>net4\d/i, reason: "Windows-only target (WPF, WinForms or .NET Framework)." },
 ];
 
+/** Only a greenfield run on an empty repo skips the baseline; any other repo is built and tested as it is (never asked otherwise). */
+export function usesEmptyBaseline(mode: string | undefined, repoEmpty: () => boolean): boolean {
+  return mode === "greenfield" && repoEmpty();
+}
+
 export const discoverStep: StepDef = {
   key: "discover", stage: "discover", templateVersion: "1",
   inputs: (s) => ({ base: s.info.baseCommit }),
@@ -170,7 +202,12 @@ export const discoverStep: StepDef = {
     // baseline: cached per repo + commit
     const cacheFile = join(factoryHome(), "repos", ctx.project.project, `baseline-${ctx.state.info.baseCommit}.json`);
     let baseline: TestRun;
-    if (existsSync(cacheFile)) {
+    if (usesEmptyBaseline(ctx.state.info.mode, () => repoIsEmpty(repo, ctx.state.info.baseCommit!))) {
+      // an empty repo (a new product): nothing to build or test yet; the scaffold commit writes the app. Greenfield runs only:
+      // anything else is built and tested as it is (PR #17 review, item 4)
+      baseline = { kind: "test", treeSha: ctx.state.info.baseCommit!, stage: "baseline", runner: ctx.project.stack === "node" ? "vitest" : "vstest", toolVersions: {}, expectPass: [], expectFail: [], compareToBaseline: [], discovered: [], results: [], exitCode: 0, reportShas: [], valid: true, classification: "ok" };
+      ctx.log("baseline: the repo is empty (a new product), nothing to build or test yet");
+    } else if (existsSync(cacheFile)) {
       baseline = JSON.parse(readFileSync(cacheFile, "utf8")) as TestRun;
       ctx.log("baseline: reusing the recorded run for this commit");
     } else {
@@ -203,20 +240,65 @@ export const discoverStep: StepDef = {
 };
 
 // ---------- stub commit (D) ----------
+/**
+ * The approved design's package for the repo (docs/estimates-design.md, "The design package"): this run's own,
+ * or the one of the estimate or design run it follows. Undefined without an approved design; a package that
+ * cannot be written is logged and the build goes on without it.
+ */
+async function packageForBuild(ctx: StepContext): Promise<DesignPackage | undefined> {
+  if (!approvedDesignFor(ctx.state, ctx.ledger)) return undefined;
+  try {
+    const r = await exportRunPackage(ctx.state, ctx.ledger, ctx.log);
+    if ("none" in r) { ctx.log(`stub-commit: no design package (${r.none})`); return undefined; }
+    return r;
+  } catch (e) {
+    ctx.log(`stub-commit: the design package was not added to the repo: ${(e as Error).message}`);
+    return undefined;
+  }
+}
+
 export const stubCommitStep: StepDef = {
   key: "stub-commit", stage: "stub-commit", templateVersion: "1",
-  inputs: (s) => (s.steps.get("approve")?.status === "completed" ? { plan: s.steps.get("plan")!.outputs[0], approval: s.steps.get("approve")!.outputs[0] } : undefined),
+  // (the design package is an input only when this run wrote one, so runs from before packages keep their hash)
+  inputs: (s) => (s.steps.get("approve")?.status === "completed" ? { plan: s.steps.get("plan")!.outputs[0], approval: s.steps.get("approve")!.outputs[0], ...(outputOf(s, "design-export") ? { design: outputOf(s, "design-export") } : {}) } : undefined),
   coding: true,
   async run(ctx) {
     const plan = requireOutput<Plan>(ctx.state, ctx.ledger, "plan");
     const wt = await ensureWorktree(ctx, ctx.state.info.baseCommit!);
     await resetHard(wt, ctx.state.info.baseCommit!);
+    // the approved design package: read from the factory's store; committed first, as its own commit, only when the project asks
+    const pkg = await packageForBuild(ctx);
+    const commitPackage = !!ctx.project.design?.commitPackage;
+    let designCommit: string | undefined;
+    if (pkg && commitPackage) {
+      for (const f of repoFiles(pkg)) {
+        mkdirSync(dirname(join(wt, f.path)), { recursive: true });
+        copyFileSync(f.from, join(wt, f.path));
+      }
+      const m = pkg.manifest;
+      designCommit = await commitAll(wt, `factory: design ${m.line} v${m.version} (approved by ${m.approved.by}) for ${ctx.runId}`);
+    }
+    // then the approved design as code in the UI target's kit, as its own commit (docs/estimates-design.md, "Kit and scaffold")
+    const scaf = pkg ? scaffoldOfRun(ctx, pkg) : undefined;
+    let scaffoldRec: ScaffoldRecord | undefined;
+    if (scaf?.layout) {
+      const l = scaf.layout;
+      const written = writeScaffold(l, wt);
+      const scaffoldCommit = written.length ? await commitAll(wt, `factory: scaffold ${l.target} (kit ${l.kit.id} ${l.kit.version}) for ${ctx.runId}`) : undefined;
+      scaffoldRec = { target: scaf.target, source: scaf.source, why: scaf.detected.why, kit: l.kit, root: l.root, fresh: l.fresh, written, kept: l.kept, protected: l.protected, screens: l.screens, removed: l.removed, designSystem: l.designSystem, notes: l.notes, summary: scaffoldSummary(l), ...(scaf.changed ? { changed: scaf.changed } : {}), ...(scaffoldCommit ? { commit: scaffoldCommit } : {}) };
+      ctx.log(`stub-commit: scaffold ${l.target}: ${written.length} files written${l.kept.length ? `, ${l.kept.length} kept (the repo's own)` : ""}`);
+    } else if (scaf) ctx.log(`stub-commit: UI target ${scaf.target} (${scaf.source}; ${scaf.detected.why}): no scaffold, the screens are built with the repo's own components`);
     for (const s of plan.stubs) {
       mkdirSync(dirname(join(wt, s.path)), { recursive: true });
       writeFileSync(join(wt, s.path), s.content);
     }
     const commit = plan.stubs.length ? await commitAll(wt, `factory: interface stubs for ${ctx.runId}`) : await headSha(wt);
-    return { kind: "done", outputs: { stubs: ctx.ledger.putJson({ commit, files: plan.stubs.map((s) => s.path) }) }, treeSha: commit, data: { commit } };
+    const design = pkg ? { line: pkg.manifest.line, version: pkg.manifest.version, designSha: pkg.manifest.designSha, ...(commitPackage ? { dir: `${REPO_DESIGN_DIR}/${pkg.manifest.line}/v${pkg.manifest.version}` } : {}) } : undefined;
+    const scaffoldSha = scaffoldRec ? ctx.ledger.putJson(scaffoldRec) : undefined;
+    return {
+      kind: "done", outputs: { stubs: ctx.ledger.putJson({ commit, files: plan.stubs.map((s) => s.path), ...(design ? { design, designCommit } : {}) }), ...(scaffoldSha ? { scaffold: scaffoldSha } : {}) }, treeSha: commit,
+      data: { commit, ...(design ? { designCommit, design } : {}), ...(scaffoldRec ? { scaffold: { target: scaffoldRec.target, kit: `${scaffoldRec.kit.id} ${scaffoldRec.kit.version}`, files: scaffoldRec.written.length, screens: scaffoldRec.screens.length, ...(scaffoldRec.commit ? { commit: scaffoldRec.commit } : {}) } } : scaf ? { uiTarget: scaf.target } : {}) },
+    };
   },
 };
 
@@ -233,15 +315,16 @@ const AuthorOut = z.object({
 });
 
 /**
- * The test author gives method names; the factory finds the real test IDs from a run
- * (project::Namespace.Class.Method(args)), so nobody has to guess the ID format.
+ * The test author gives method names (test titles in a Node app); the factory finds the real test IDs from a run
+ * (project::Namespace.Class.Method(args), or file::describe > title), so nobody has to guess the ID format.
  * A theory can have several rows: all of them count.
  */
 export function resolveTestIds(names: string[], resultIds: string[]): { ids: Record<string, string[]>; missing: string[] } {
   const ids: Record<string, string[]> = {};
   const missing: string[] = [];
   for (const n of names) {
-    const hits = resultIds.filter((id) => id.replace(/\(.*$/, "").endsWith(`.${n}`));
+    // .NET: project::Ns.Class.Method(args); Node: file::describe > title
+    const hits = resultIds.filter((id) => { const bare = id.replace(/\(.*$/, ""); return bare.endsWith(`.${n}`) || bare.endsWith(` > ${n}`) || bare.endsWith(`::${n}`); });
     if (hits.length) ids[n] = hits;
     else missing.push(n);
   }
@@ -295,7 +378,7 @@ export function testWriterTampering(files: { status: string; path: string; added
 }
 
 export const authorTestsStep: StepDef = {
-  key: "author-tests", stage: "author-tests", templateVersion: "2", coding: true,
+  key: "author-tests", stage: "author-tests", templateVersion: "3", coding: true,
   inputs: (s) => (s.steps.get("stub-commit")?.status === "completed" ? { stubs: s.steps.get("stub-commit")!.outputs[0], spec: s.steps.get("specify")!.outputs[0] } : undefined),
   async run(ctx) {
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
@@ -312,7 +395,7 @@ export const authorTestsStep: StepDef = {
     const rt = runtime();
     await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
     await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
-    await ensurePackages(ctx, start);
+    await ensurePackages(ctx, start, wt);
     // what earlier runs on this repo learned about where tests go (only if those files still exist here)
     const lessons = usableLessons(readLessons(ctx.project.project), wt);
     if (lessons.length) ctx.log(`author-tests: pointing the test writer at ${lessons.map((l) => l.dir).join(", ")} (from earlier runs)`);
@@ -320,19 +403,12 @@ export const authorTestsStep: StepDef = {
     const priorFailures = ctx.priorFailures.filter((f) => f.check !== "passes-on-base");
         // The test author sees ACs, stub signatures and harness rules. Never the plan's approach.
     const acs = spec.requirements.flatMap((r) => r.acceptance.map((a) => ({ req: r.id, ...a })));
+    // the approved screens behind these criteria: what the person approved is what the tests expect (PR #11 review, item 13)
+    const screens = screenFacts(approvedDesignFor<ApprovedDesign>(ctx.state, ctx.ledger)?.design, [...new Set(acs.map((a) => a.req))]);
     const pack = buildPack({
       stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
       sections: [
-        S.template("tpl", `You write black-box acceptance tests for a .NET service, one test per acceptance criterion, before the feature exists.
-Rules:
-- Put tests in the existing test project that best fits (look for *Tests.csproj). Follow the style of existing tests there (xUnit, WebApplicationFactory if used).
-- Test through public surfaces only: HTTP endpoints, public service methods, database rows. Don't test private code.
-- Name each acceptance test method exactly AC_<req>_<n>_<Words> for acceptance criterion AC-<req>.<n>, e.g. AC_1_2_Returns404WhenOrderMissing. Name characterisation test methods CHAR_<Words>. The factory finds tests by these names.
-- New APIs exist as stubs that throw NotImplementedException; tests must compile against them and fail for now.
-- Also write characterisation tests for existing behaviour next to the change that must NOT change; those must pass today.
-- Don't change production code. Don't change test project files unless a package reference is missing and already restored.
-- You may run "dotnet build" to check the tests compile. There's no database in this container; don't try to make tests pass. Don't run "dotnet test": the factory runs the tests itself in its test lab.
-- Test each criterion at its level: "unit" criteria call the class's public method directly (no web host, no database, no job run); "api" criteria call the endpoint. Skip "manual" criteria: a person checks those.`),
+        S.template("tpl", authorIntro(ctx.project.stack)),
         ...(light ? [S.template("light", `This is a small, low-risk change. Keep the tests small:
 - Write the fewest tests that prove each criterion: usually one test method per criterion, in one new test file next to the existing tests for the class.
 - At most ${LANE.light.maxCharacterisation} characterisation tests, as small unit tests of the same class. They must pass on today's code without any external service or seeded data. Skip them if the criteria already cover the unchanged behaviour.
@@ -342,6 +418,7 @@ Rules:
 Return the list of tests you wrote (acId, file, method name) and the probes.`),
         ...(anchorFiles(spec).length || lessons.length ? [S.pointers([...anchorFiles(spec).map((p) => ({ path: p, reason: "the code these criteria are about" })), ...lessonPointers(lessons)])] : []),
         S.artifact("acs", "acceptance-criteria", acs),
+        ...(screens.length ? [S.artifact("approved-screens", "approved-screens", screens), S.template("approved-screens-rules", `The approved-screens section lists the screens a person approved for these requirements: route, states, and the exact words on them (title, buttons, field labels, column headers, empty, error, success and validation messages, toasts; "change" for a design note). Where a criterion is about what the user sees or is told, take the expected values from there, word for word, and do not invent other wording. A criterion with no screen there is tested as before.`)] : []),
         S.artifact("stubs", "stubs", plan.stubs.map((s) => ({ path: s.path, content: s.content }))),
         ...(priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "Your previous attempt was rejected:\n" + priorFailures.slice(0, 20).map((f) => `- [${f.check}] ${f.message}`).join("\n") }] : []),
         S.task(`Write the acceptance and characterisation tests now.${priorFailures.length ? " The previous attempt failed for the reasons above; fix them." : ""}`),
@@ -350,7 +427,7 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
     });
     const r = await new ClaudeAgentRunner(rt, {
       runId: ctx.runId, key: `author-tests/${ctx.attempt}`, fileScope: TEST_SCOPE, lockedFiles: [], extraProtected: [], onProgress: agentTracer(ctx, "test writer"),
-      protectedGlobs: CONFIG_INTEGRITY_GLOBS, packagesDir: packagesDir(ctx.runId), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
+      protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
       onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "author-tests", data: { id, role: "agent" } }, ctx.writer); },
       onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "author-tests", data: { id } }, ctx.writer); },
     }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits: { maxTurns: testWriterTurns(light, acs.filter((a) => a.level !== "manual").map((a) => a.level)), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
@@ -398,12 +475,12 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
     };
     ctx.log("author-tests: finding the new tests and running them on the old code (1 of 2)");
     const found = await produce(ctx, "author-tests/base-1", commit, "author-tests-on-base", none, undefined,
-      names.map((n) => `FullyQualifiedName~.${n}`).join("|"), undefined, fromResults);
+      labFor(ctx.project).nameFilter(names), undefined, fromResults);
     if (!found.build.ok || missing.length) {
       await resetHard(wt, start);
       const why = !found.build.ok
         ? found.build.errors.slice(0, 10).map((e) => failure("tests-compile", `${e.file}:${e.line} ${e.code} ${e.msg}`))
-        : missing.map((n) => failure("test-not-found", `No test method named ${n} ran. Is it public, in a test project, and marked [Fact]/[Theory]?`));
+        : missing.map((n) => failure("test-not-found", `No test method named ${n} ran. ${notFoundHint(ctx.project.stack)}`));
       return { kind: "fail", category: "other", failures: why, signature: `author-tests:${!found.build.ok ? "compile" : "not-found"}` };
     }
     const run1 = storeRun(ctx, found);
@@ -557,7 +634,7 @@ const PREV_CHANGE_CAP = 40_000;
 export function implementStep(taskId: string): StepDef {
   const key = `implement/${taskId}`;
   return {
-    key, stage: "implement", templateVersion: "1", coding: true,
+    key, stage: "implement", templateVersion: "2", coding: true,
     inputs: (s) => {
       if (s.steps.get("author-tests")?.status !== "completed") return undefined;
       const plan = s.steps.get("plan")!.outputs[0];
@@ -605,19 +682,37 @@ export function implementStep(taskId: string): StepDef {
       const owners = acOwners(plan, spec);
       const myTests = lock.tests.filter((t) => owners.get(t.acId) === task.id);
       const earlier = earlierTests(plan, owners, lock.tests, task.id);
+      const ref = ctx.state.info.estimateRef;
+      const approvedDesign = approvedDesignFor<ApprovedDesign>(ctx.state, ctx.ledger)?.design;
+      const screen = ref && approvedDesign ? screenFor(ctx.ledger.getJson(ref.breakdownSha), approvedDesign, task.estimateTaskId) : undefined;
+      // the scaffold the stub commit wrote: a task that fills in a screen's container is told to write behaviour only, the
+      // design-system task gets the scaffold's to-do list, and no task may change the files the factory generated
+      const scaf = readOutput<ScaffoldRecord>(ctx.state, ctx.ledger, "stub-commit", "scaffold");
+      const scaffoldScreen = scaf?.screens.find((x) => matchesAny(x.container, task.fileScope));
+      const designSystemTask = !!scaf && scaf.designSystem.files.some((f) => matchesAny(f, task.fileScope));
+      // every task that builds an approved screen gets its brief: an estimated build, --from-design, a kit or a repo of its own
+      const fromScaffold = scaffoldScreen ? approvedDesign?.screens.find((x) => x.id === scaffoldScreen.id) : undefined;
+      const briefScreens = screen ? [screen] : fromScaffold ? [fromScaffold] : screensForTask(approvedDesign, task);
+      const approvedScreen = !approvedDesign || !briefScreens.length ? undefined
+        : briefScreens.length === 1 ? screenBrief(approvedDesign, briefScreens[0]!) : screensBrief(approvedDesign, briefScreens);
       const rt = runtime();
       await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
       await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
+      // a Node app's packages, in the checkout (a .NET one reads the restored packages from the run's folder)
+      if (ctx.project.stack === "node") await ensurePackages(ctx, start, wt);
       const pack = buildPack({
         stage: "implement", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
         sections: [
-          S.template("tpl", `You implement one task of an approved plan in an existing .NET codebase.
-- Change only files in the task's file scope. Edits elsewhere are blocked.
-- Tests are locked: don't edit or delete them, don't skip them, don't add #pragma or suppressions.
-- No new packages unless the plan lists them. No git (the factory commits).
-- Follow the exemplar files' style. Keep the change small.
-- You may run "dotnet build" and unit tests that need no database. The factory runs the full checks after you finish.`),
+          S.template("tpl", implementIntro(ctx.project.stack)),
           S.artifact("task", "plan-task", { ...task, approach: task.approach }),
+          // the approved screen this task builds (route, states, sample content, and the look to follow)
+          ...(approvedScreen ? [S.artifact("approved-screen", "approved-screen", approvedScreen)] : []),
+          ...(scaf ? [S.profile("scaffold", `The approved design is already code in this repo (${scaf.target}, kit ${scaf.kit.id} ${scaf.kit.version}):\n${scaf.summary}`)] : []),
+          ...(scaffoldScreen ? [S.template("behaviour-only", `This task fills in ${scaffoldScreen.id}'s container, ${scaffoldScreen.container}. The page itself is ${scaffoldScreen.screen}: the approved blocks, states, layers and text, generated from the approved design and not editable. Its sample data is ${scaffoldScreen.fixtures}, which is the shape the real data must take.
+- Write behaviour only: load the real data in the fixtures' shape and pass it as \`data\`, handle the page's actions in \`onAction(label, at)\`, and pass \`state\` for loading, empty, error, success and validation (the states the design drew: ${Object.keys(scaffoldScreen.states).join(", ")}).
+- Do not restyle or rebuild the page: no new markup, classes, colours or components for what the page already draws. Keep the fixture branch (\`?fixture=${scaffoldScreen.id}:<state>\` shows the approved sample data with no backend).
+- Server code, API clients and validation go in the other files of your scope.`)] : []),
+          ...(designSystemTask ? [S.template("design-system", `This is the design-system task. The generated files are already in the repo (the scaffold commit). Finish the wiring:\n${scaf!.designSystem.todo.map((t) => `- ${t}`).join("\n") || "- nothing left to wire: check the app builds"}\nDo not change the generated files.`)] : []),
           S.artifact("acs", "acceptance-criteria", spec.requirements.filter((r) => task.reqs.includes(r.id))),
           S.artifact("tests", "locked-tests", myTests),
           S.pointers([...task.fileScope.map((p) => ({ path: p, reason: "you may change this" })), ...task.exemplars.map((p) => ({ path: p, reason: "follow this style" })), ...myTests.map((t) => ({ path: t.file, reason: `locked test for ${t.acId}; read, don't edit` }))]),
@@ -632,7 +727,7 @@ export function implementStep(taskId: string): StepDef {
       });
       const r = await new ClaudeAgentRunner(rt, {
         runId: ctx.runId, key: `${key}/${ctx.attempt}`, fileScope: task.fileScope, lockedFiles: lock.lock.map((l) => l.file), onProgress: agentTracer(ctx, "implementer"),
-        extraProtected: [], packagesDir: packagesDir(ctx.runId), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
+        extraProtected: scaf?.protected ?? [], ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
         onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key, data: { id, role: "agent" } }, ctx.writer); },
         onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key, data: { id } }, ctx.writer); },
       }).run({ step: "implement", model, effort, pack, schema: ImplementOut, limits: { maxTurns: 80, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
@@ -720,7 +815,8 @@ export const integrateStep: StepDef = {
     const baseline = ctx.ledger.getJson<TestRun>(baselineSha);
     const head = String(integrateStep.inputs(ctx.state, ctx.ledger)!.head);
     const wt = await ensureWorktree(ctx, head);
-    const diff = await diffSummary(wt, ctx.state.info.baseCommit!, head, lock);
+    // greenfield: measured from the scaffold commit, the app the factory generated is not the agents' change; else from the code base
+    const diff = await diffSummary(wt, changeBase(ctx.state), head, lock);
     const diffSha = ctx.ledger.putJson(diff);
     const expectPass = [...lock.tests.map((t) => t.testId), ...lock.characterisation.map((c) => c.testId)];
     const compareToBaseline = baseline.results.map((b) => b.id);
@@ -733,21 +829,36 @@ export const integrateStep: StepDef = {
     } else {
       testRun = storeRun(ctx, await produce(ctx, "integrate", head, "integrate", { expectPass, expectFail: [], compareToBaseline })).testRun;
     }
+    // the UI change as built, next to the size class the approved design allowed (both recorded, so estimates can be read against builds)
+    const dRef = approvedDesignFor(ctx.state, ctx.ledger)?.sha;
+    const uiFrom = uiBase(ctx.state);
+    const uiActual = dRef && touchesUiFiles(wt, uiFrom, head) ? actualSize(wt, uiFrom, head, designOptions(ctx.project.design)) : undefined;
+    const uiApproved = dRef ? approvedLevel(ctx.ledger.getJson(dRef)) : undefined;
     const gated = await gateAll(ctx, "integrate", head, [
       [testExpectations, { run: testRun, baseline: baselineSha }],
       [lockSetUnchanged, { diff: diffSha, tests: ctx.state.steps.get("author-tests")!.outputs[0]! }],
       [diffSize, { diff: diffSha }],
-      // B3: a run that follows an approved estimate may not grow past the size that was approved
-      ...(ctx.state.info.estimateRef ? [[sizeCap, { diff: diffSha, estimate: ctx.state.info.estimateRef.estimateSha }] as [GateDef, Record<string, string>]] : []),
       // design.size-cap: the UI change may not be bigger than the approved design allows (a skipped design allows none)
-      ...(ctx.state.info.estimateRef?.designSha && touchesUiFiles(wt, ctx.state.info.baseCommit!, head)
+      ...(uiActual
         ? [[designSizeCap, {
-          actual: ctx.ledger.putJson(actualSize(wt, ctx.state.info.baseCommit!, head, designOptions(ctx.project.design))),
-          approved: ctx.ledger.putJson({ level: approvedLevel(ctx.ledger.getJson(ctx.state.info.estimateRef.designSha)) }),
+          actual: ctx.ledger.putJson(uiActual),
+          approved: ctx.ledger.putJson({ level: uiApproved }),
         }] as [GateDef, Record<string, string>]] : []),
     ]);
     if (gated) return { kind: "park", reason: `Integration failed: ${gated.failures.slice(0, 3).map((f) => f.message).join("; ")}` };
-    return { kind: "done", outputs: { testRun, diff: diffSha }, treeSha: head, data: { commit: head, ...(reused ? { reusedRunFrom: reused.step } : {}) } };
+    // B3: a run that follows an approved estimate may not grow past the size that was approved; a lead can waive it for this commit
+    let waivers: Omit<WaiverRow, "step">[] = [];
+    const ref = ctx.state.info.estimateRef;
+    if (ref) {
+      const b3 = await runGate(sizeCap, ctx.ledger, ctx.writer, { diff: diffSha, estimate: ref.estimateSha }, ctx.policy, { step: "integrate", treeSha: head });
+      if (!b3.passed) {
+        const w = buildWaiver(ctx, "integrate", [{ def: sizeCap, failures: b3.failures ?? [failure(sizeCap.id, b3.details)] }], head,
+          `To stop and change the request instead: factory estimate --revises ${ref.runId}, then build that estimate.`);
+        if (w.kind === "ask") return w.outcome;
+        waivers = w.waivers;
+      }
+    }
+    return { kind: "done", outputs: { testRun, diff: diffSha }, treeSha: head, data: { commit: head, ...(reused ? { reusedRunFrom: reused.step } : {}), ...(uiApproved ? { uiSize: { approved: uiApproved, actual: uiActual?.level ?? "none" } } : {}), ...(waivers.length ? { waivers } : {}) } };
   },
 };
 

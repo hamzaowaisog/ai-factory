@@ -32,4 +32,8 @@ describe("combineClarify", () => {
   it("an empty round stays empty", () => {
     expect(combineClarify([round([], {}, "x")]).asked).toEqual([]);
   });
+  it("keeps the hands-off mark when any module's questions became the factory's assumptions", () => {
+    expect(combineClarify([{ ...round([], {}, "x"), assumedBy: "factory" }, round([], {}, "x")]).assumedBy).toBe("factory");
+    expect(combineClarify([round([], {}, "x")]).assumedBy).toBeUndefined();
+  });
 });

@@ -44,7 +44,7 @@ Label: actual hours for the task. This is the missing piece. Per-task actuals ar
 ### What exists and what does not
 
 - Exists: every approved estimate stores its breakdown and sizing in the ledger, so features can be rebuilt for old runs. Benchmark records hold cost per phase (`records.ts`).
-- Does not exist: actual hours of any kind. `factory calibrate` accepts `estimate-run,actual-hours` lines but nothing writes them.
+- Does not exist: real engineer hours per task. Project hours are typed into `~/.factory/actual-hours.csv` (`estimate-run,actual-hours`) by hand; `factory calibrate` and the catalogue's self-tuning read them (docs/estimate-consistency.md, sections 13 and 14). Agent minutes per task are recorded by every build (section 11).
 - Therefore the first deliverable is not a model but a way to record actuals per task and per track, and a snapshot of features at approval so training never depends on re-parsing history.
 
 ### Label quality
