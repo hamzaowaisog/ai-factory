@@ -26,6 +26,8 @@ export interface StepRecord {
   outputs: string[];
   treeSha?: string;
   data?: Record<string, unknown>;
+  /** what the last failed attempt left for the next one (step.failed data) */
+  failData?: Record<string, unknown>;
   failureSignatures: string[];
 }
 
@@ -210,6 +212,7 @@ export function replay(events: LedgerEvent[]): RunState {
         const { step } = splitKey(ev.key!);
         const r = rec(step);
         r.status = "failed";
+        r.failData = data;
         if (typeof data.signature === "string") r.failureSignatures.push(data.signature);
         s.inFlight = undefined;
         closeActive(ev.ts);
