@@ -74,3 +74,18 @@ describe("reporting", () => {
   });
 
 });
+
+describe("the double-booking case's facts answer what the first paid run asked", () => {
+  it("the database question gets 'no database changes'; time changes and cancelled bookings get their own facts", async () => {
+    const { answerCard } = await import("../spec/oracle.js");
+    const c = loadE2ECases().find((x) => x.id === "vsa-patient-double-booking")!;
+    // the questions the clarifier asked on the first paid run (2026-10-04)
+    const asked = [
+      { id: "Q-1", text: "Should the patient overlap rule also apply to other ways of changing an appointment's time (such as rescheduling)?", options: ["Only new bookings", "All time changes"], recommended: "Only new bookings" },
+      { id: "Q-2", text: "Should the database itself enforce the patient rule, or is a check in the application code enough?", options: ["Check in the application code only", "Also add a unique index on (PatientId, StartUtc, EndUtc)"], recommended: "Also add a unique index on (PatientId, StartUtc, EndUtc)" },
+      { id: "Q-5", text: "Should a cancelled appointment block a new booking for the same patient?", options: ["No", "Yes"], recommended: "No" },
+    ];
+    const { log } = answerCard(asked as never, c.facts);
+    expect(log.map((a) => [a.question, a.fact])).toEqual([["Q-1", "F4"], ["Q-2", "F3"], ["Q-5", "F2"]]);
+  });
+});

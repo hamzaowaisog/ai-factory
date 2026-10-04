@@ -10,7 +10,15 @@ facts:
     about: [[back-to-back, back to back, adjacent, ends exactly, end time, touching, same minute, consecutive]]
     answer: Back-to-back appointments are fine; only a real overlap is refused (one ending at 10:30 and one starting at 10:30 do not overlap).
   - id: F2
-    about: [[cancel, completed, status, no-show, inactive]]
+    about: [[cancel, completed, no-show, inactive], [block, count, overlap, conflict, refuse, prevent]]
     answer: Only scheduled appointments count. A cancelled appointment never blocks a new booking.
+  - id: F3
+    about: [[database, index, migration, schema, unique, constraint, race, concurren, atomic, transaction, at the same moment]]
+    answer: >-
+      A check in the application code is enough, the same way the doctor check works today. No database, index or
+      migration changes.
+  - id: F4
+    about: [[reschedul, other ways, change the time, changing an appointment, move, edit, update]]
+    answer: Only booking a new appointment (POST /api/appointments) is in scope; nothing else changes appointment times today.
 timeoutMin: 45
 maxCostUsd: 6

@@ -76,12 +76,15 @@ function multiAnswer(system: string): unknown {
   }
   return undefined;
 }
+/** the clarifier's last instructions, as the model received them */
+let clarifierPrompt = "";
 function answerFor(system: string, allowMulti = true): unknown {
   if (multi && allowMulti) { const m = multiAnswer(system); if (m !== undefined) return m; }
   if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "greet with Hello" }], changeClass: "feature", risk: intakeRisk, riskTags: [], rigor: "light", touchesUi: false };
   if (system.includes("grounding step")) return { claims: [{ id: "C-1", text: "Greeter says Hi", spans: ["I-1"], anchors: [{ path: "src/Api/Greeter.cs", lineStart: 4, lineEnd: 4, quote: 'public string Greet(string name) => "Hi " + name;', symbol: "Greeter.Greet" }] }], notFound: [] };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: system.length % 2 ? "Hello Ann" : "Hello, Ann!", kind: "happy" }, { text: "empty name returns Hello", kind: "error" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [{ id: "D-1", span: "I-1", topic: "punctuation", readings: [{ sketch: 1, behaviour: 0, summary: "Hello Ann" }, { sketch: 2, behaviour: 0, summary: "Hello, Ann!" }] }] };
+  if (system.includes("Requirements analyst")) clarifierPrompt = system;
   if (system.includes("Requirements analyst")) return system.includes("already answered") ? { questions: [], conflicts: [] } : {
     questions: [{ id: "q1", category: "scope", text: "Keep the comma?", options: ["Hello Ann", "Hello, Ann!"], recommended: "Hello Ann", reason: "shortest", spans: ["I-1"], impact: 2, impactReason: "visible text", difference: "D-1" }], conflicts: [] };
   if (system.includes("Merge three independent")) return { spec: answerFor("Senior engineer writing a behaviour spec"), alignment: [{ mergedReq: "REQ-1", from: ["d1:REQ-1", "d2:REQ-1", "d3:REQ-1"] }], conflicts: [] };
@@ -253,6 +256,7 @@ beforeEach(() => {
 
 describe("brownfield slice end to end (fakes)", () => {
   it("runs to the approval card, then to a locally delivered branch", async () => {
+    clarifierPrompt = "";
     lab.knownBroken = true;
     const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
     const ledger = await toApproval(runId);
@@ -262,6 +266,8 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(card).toContain("> Greet people with Hello instead of Hi");
     expect(card).toContain("src/Api/Greeter.cs");
     expect(card).toContain("Q-1 Keep the comma? → **Hello Ann**");
+    // the clarifier recommends the smallest change; bigger machinery is an option a person picks, never the default
+    expect(clarifierPrompt).toMatch(/recommended option is always the smallest change that fully does what the request asks\. Never recommend new database schema, migrations, indexes/);
     expect(card).toContain("Round trip: the spec restated back matches");
 
     await expect(decide(ledger, { decision: "approve", hashPrefix: "ffff" })).rejects.toThrow();

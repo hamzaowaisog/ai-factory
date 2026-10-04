@@ -6,15 +6,18 @@ import { complexityOf, LANE, lightBuild, lightSpec, testWriterTurns } from "./la
 import { downgradeUi } from "./specpipe.js";
 
 describe("light lane", () => {
-  it("only small, low-risk work takes it", () => {
+  it("small low-risk work, and bug fixes that aren't high risk, take it", () => {
     expect(lightSpec({ risk: "low", rigor: "light", changeClass: "feature" })).toBe(true);
     expect(lightSpec({ risk: "low", rigor: "full", changeClass: "bugfix" })).toBe(true);
     expect(lightSpec({ risk: "low", rigor: "full", changeClass: "feature" })).toBe(false);
-    expect(lightSpec({ risk: "medium", rigor: "light", changeClass: "bugfix" })).toBe(false);
+    // a bug fix that isn't high risk is light (a medium "double booking" fix spent $3.40 of $6 on the full spec lane)
+    expect(lightSpec({ risk: "medium", rigor: "full", changeClass: "bugfix" })).toBe(true);
+    expect(lightSpec({ risk: "medium", rigor: "light", changeClass: "feature" })).toBe(false);
     expect(lightSpec({ risk: "high", rigor: "light", changeClass: "bugfix" })).toBe(false);
     expect(lightBuild({ risk: "low", rigor: "light", changeClass: "bugfix" }, "S")).toBe(true);
     expect(lightBuild({ risk: "low", rigor: "light", changeClass: "bugfix" }, "M")).toBe(false);
-    expect(lightBuild({ risk: "medium", rigor: "light", changeClass: "bugfix" }, "S")).toBe(false);
+    expect(lightBuild({ risk: "medium", rigor: "light", changeClass: "bugfix" }, "S")).toBe(true);
+    expect(lightBuild({ risk: "medium", rigor: "light", changeClass: "feature" }, "S")).toBe(false);
   });
 
   it("the test writer gets more turns when a criterion needs a test host", () => {

@@ -6,9 +6,12 @@ import type { IntentBody } from "../contracts/index.js";
 
 type Intent = Pick<z.infer<typeof IntentBody>, "risk" | "rigor" | "changeClass">;
 
-/** Spec side: low risk, and either intake chose light rigor or it's a bug fix. */
+/**
+ * Spec side: a bug fix that isn't high risk, or low risk with light rigor. A medium-risk bug fix ("double booking")
+ * took the full lane on a real run: three drafts and three critic repairs, $3.40 of a $6 cap before any code.
+ */
 export function lightSpec(intent: Intent): boolean {
-  return intent.risk === "low" && (intent.rigor === "light" || intent.changeClass === "bugfix");
+  return (intent.changeClass === "bugfix" && intent.risk !== "high") || (intent.risk === "low" && intent.rigor === "light");
 }
 
 /** Build side: the spec side is light and the plan is small. */
