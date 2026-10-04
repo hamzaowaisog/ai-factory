@@ -722,6 +722,7 @@ function questionPanel(r) {
   const qs = c.questions;
   const picks = Object.fromEntries(qs.map((q) => [q.id, q.recommended]));
   const who = nameInput();
+  who.id = "q-who";
   const msg = h("p", { class: "small muted", role: "status" }, "");
   const body = h("div", { class: "body stack" });
   let at = 0, sent = false;
@@ -764,8 +765,11 @@ function questionPanel(r) {
         ch.addEventListener("click", () => { at = i; draw(); });
         return h("li", {}, h("span", { class: "small muted" }, q.text), h("strong", {}, picks[q.id]), ch);
       })),
-      c.assumptions?.length ? h("p", { class: "small muted" }, `Assumed unless you say otherwise on the approval card: ${c.assumptions.map((a) => a.id).join(", ")}`) : null,
-      who, h("div", { class: "row" }, send), msg);
+      c.assumptions?.length ? h("details", { class: "q-assumed" },
+        h("summary", { class: "small muted" }, `${c.assumptions.length} smaller point${c.assumptions.length === 1 ? " was" : "s were"} decided for you. Nothing to do here: you can change any of them on the approval card.`),
+        h("ul", { class: "small" }, c.assumptions.map((a) => h("li", {}, h("span", { class: "mono muted" }, a.id), " ", a.text)))) : null,
+      h("div", { class: "fld" }, h("label", { for: "q-who" }, "Your name"), who, h("div", { class: "hint" }, "Recorded with these answers.")),
+      h("div", { class: "row" }, send), msg);
   };
   draw();
   return h("section", { class: "card-box" },

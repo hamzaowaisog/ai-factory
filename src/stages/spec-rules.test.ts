@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { keptSketches, resolveAnswer, scoreQuestions, selectQuestions, verifyDifferences, type ClarifierQuestion, type Sketch } from "./clarify.js";
+import { keptSketches, resolveAnswer, withSketches, scoreQuestions, selectQuestions, verifyDifferences, type ClarifierQuestion, type Sketch } from "./clarify.js";
 import { Defaults, loadDefaults, topicsText } from "../estimate/defaults.js";
 import { checkMerge, criticBlocks, criticTemplate, lostCoverage, problems, roundTripCheck, sameProblems } from "./specpipe.js";
 import { lintSpec, mentions, requestExcluded, sizeNote } from "./speclint.js";
@@ -20,6 +20,13 @@ describe("clarify rules", () => {
     ];
     expect(keptSketches(events, "k")).toEqual(["a", "b", null]);
     expect(keptSketches(events, "new")).toEqual([]);
+  });
+
+  it("the align and clarifier budgets grow with the sketches they must read whole", () => {
+    expect(withSketches(15000, [])).toBeLessThan(15010);
+    const big = [1, 2, 3].map(() => sketch(Array.from({ length: 120 }, (_, i) => `behaviour ${i}: the customer sees the order status change and gets an email`)));
+    expect(withSketches(15000, big)).toBeGreaterThan(15000 + 15000);
+    expect(withSketches(15000, "x".repeat(2_000_000))).toBe(180_000);
   });
 
   it("keeps only differences that cite real behaviours in two sketches", () => {

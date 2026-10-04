@@ -13,6 +13,9 @@ import { toModelImage, type ModelImage } from "../util/image.js";
 import { addUsage, configErrorText, emptyUsage, type Effort, type Job, type Result, type Runner } from "./types.js";
 
 export const MAX_REASKS = 2;
+/** Output cap per Claude turn (thinking included). 64K is the most every routed Claude model accepts (Haiku 4.5's limit). */
+export const MAX_OUTPUT_TOKENS = 64_000;
+const CUT_OFF = "The answer was cut off at the model's output limit before it was complete";
 const SUBMIT = "submit_result";
 
 // ---------- provider abstraction (so tests can script a model) ----------
@@ -130,7 +133,7 @@ export class AnthropicProvider implements Provider {
         try {
           msg = await client.messages.stream({
             model,
-            max_tokens: 32000,
+            max_tokens: MAX_OUTPUT_TOKENS,
             system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
             tools: toolParams,
             tool_choice: { type: "auto" },
@@ -363,6 +366,8 @@ export class ApiRunner implements Runner {
       });
       if (!t.calls.length) {
         report();
+        // asking again only buys the same cut-off answer
+        if (t.stop === "max_tokens") return done("bad-output", { error: CUT_OFF });
         if (++reasks > MAX_REASKS) return done("bad-output", { error: "The model never submitted a result" });
         convo.say(`Call the ${SUBMIT} tool with your final answer.`);
         continue;
@@ -394,6 +399,8 @@ export class ApiRunner implements Runner {
       }
       report(schemaError);
       if (output !== undefined) return done("ok", { output });
+      // a submit cut off mid-way fails the schema; asking again only buys the same cut-off answer
+      if (t.stop === "max_tokens") return done("bad-output", { error: CUT_OFF });
       if (reasks > MAX_REASKS) return done("bad-output", { error: "Output failed the schema after 2 re-asks" });
       // one turn left: say so, so the model answers with what it has instead of running out mid-search
       if (turn === job.limits.maxTurns - 2 && results.length) {

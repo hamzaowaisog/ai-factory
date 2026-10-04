@@ -52,6 +52,17 @@ describe("ApiRunner", () => {
     expect(r.usage.estUsd).toBeCloseTo(costUsd("claude-sonnet-5", U));
   });
 
+  it("an answer cut off at the output limit fails at once instead of being asked for again", async () => {
+    const cut: Turn = { ...call("submit_result", { changeClass: "feature" }), stop: "max_tokens" };
+    const { provider, seen } = scripted([cut, call("submit_result", { changeClass: "feature", spans: ["a"] })]);
+    const r = await new ApiRunner({ provider: () => provider }).run(job());
+    expect(r.status).toBe("bad-output");
+    expect(r.error).toMatch(/cut off at the model's output limit/);
+    expect(seen.toolResults).toHaveLength(0);
+    const silent: Turn = { calls: [], text: "", stop: "max_tokens", usage: U };
+    expect((await new ApiRunner({ provider: () => scripted([silent]).provider }).run(job())).status).toBe("bad-output");
+  });
+
   it("re-asks on schema errors, at most twice", async () => {
     const bad = call("submit_result", { changeClass: "nope", spans: [] });
     const { provider, seen } = scripted([bad, call("submit_result", { changeClass: "feature", spans: ["a"] })]);
