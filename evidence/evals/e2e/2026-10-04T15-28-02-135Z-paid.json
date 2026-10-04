@@ -1,0 +1,27 @@
+[
+  {
+    "caseId": "vsa-patient-double-booking",
+    "repeat": 1,
+    "mode": "claude-code",
+    "outcome": "delivered",
+    "hidden": {
+      "tests": {
+        "OverlappingPatientBookingReturns409": "pass",
+        "BackToBackBookingIsAllowed": "pass",
+        "CancelledAppointmentDoesNotBlock": "pass"
+      },
+      "passed": 3,
+      "total": 3,
+      "pass": true,
+      "flaky": false,
+      "brokeExisting": []
+    },
+    "costUsd": 0.2010467,
+    "minutes": 2.35895,
+    "cardsAnswered": 0,
+    "leaks": [],
+    "prodLines": 18,
+    "linesVsReference": 1.2,
+    "creepFiles": []
+  }
+]

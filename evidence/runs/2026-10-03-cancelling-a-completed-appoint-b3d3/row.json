@@ -1,0 +1,368 @@
+{
+  "kind": "factory",
+  "runId": "20261003-cancelling-a-completed-appoint-b3d3",
+  "factoryCommit": "1c48558",
+  "ticket": "Cancelling a completed appointment, or completing a cancelled one, returns 400 B",
+  "project": "vsa",
+  "repo": {
+    "name": "vsa",
+    "baseRef": "main",
+    "baseCommit": "03e3ecb70b893d8617610438d14d4c42d06e5ce8"
+  },
+  "outcome": "delivered",
+  "size": "M",
+  "lane": "full",
+  "risk": {
+    "intake": "low"
+  },
+  "steps": [
+    {
+      "step": "discover",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.00075,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "intake",
+      "costUsd": 0.003589,
+      "tokens": {
+        "input": 1109,
+        "cached": 0,
+        "output": 496
+      },
+      "minutes": 0.06655,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-haiku-4-5"
+      ]
+    },
+    {
+      "step": "ground",
+      "costUsd": 0.43499899999999997,
+      "tokens": {
+        "input": 24,
+        "cached": 120265,
+        "output": 9013
+      },
+      "minutes": 2.3958500000000003,
+      "attempts": 4,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Same failure again; escalating",
+        "Every retry option is used up"
+      ],
+      "gateFailures": 0,
+      "models": [
+        "claude-opus-5-5"
+      ]
+    },
+    {
+      "step": "clarify",
+      "costUsd": 0.17967349999999999,
+      "tokens": {
+        "input": 13,
+        "cached": 0,
+        "output": 7627
+      },
+      "minutes": 0.5924833333333334,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-sonnet-5",
+        "claude-haiku-4-5",
+        "claude-opus-5-5"
+      ]
+    },
+    {
+      "step": "clarify-2",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.00028333333333333335,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "drafts",
+      "costUsd": 0.1300665,
+      "tokens": {
+        "input": 2,
+        "cached": 0,
+        "output": 10566
+      },
+      "minutes": 1.4632333333333334,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-sonnet-5"
+      ]
+    },
+    {
+      "step": "merge",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.00025,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "specify",
+      "costUsd": 0.1602455,
+      "tokens": {
+        "input": 7740,
+        "cached": 0,
+        "output": 4728
+      },
+      "minutes": 0.7539833333333333,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-sonnet-5",
+        "gpt-5.5",
+        "claude-haiku-4-5"
+      ]
+    },
+    {
+      "step": "plan",
+      "costUsd": 0.20474299999999998,
+      "tokens": {
+        "input": 10,
+        "cached": 62265,
+        "output": 3407
+      },
+      "minutes": 0.55065,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-opus-5-5"
+      ]
+    },
+    {
+      "step": "approve",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.0009166666666666665,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "stub-commit",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.0010666666666666667,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "author-tests",
+      "costUsd": 0.7931468,
+      "tokens": {
+        "input": 30,
+        "cached": 531734,
+        "output": 20622
+      },
+      "minutes": 5.172366666666666,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-opus-5-5"
+      ]
+    },
+    {
+      "step": "implement/TASK-1",
+      "costUsd": 0.1060826,
+      "tokens": {
+        "input": 12,
+        "cached": 116418,
+        "output": 2015
+      },
+      "minutes": 1.14625,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-sonnet-5"
+      ]
+    },
+    {
+      "step": "implement/TASK-2",
+      "costUsd": 0.0405533,
+      "tokens": {
+        "input": 8,
+        "cached": 76924,
+        "output": 1164
+      },
+      "minutes": 0.8703000000000001,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-sonnet-5"
+      ]
+    },
+    {
+      "step": "implement/TASK-3",
+      "costUsd": 0.055422700000000005,
+      "tokens": {
+        "input": 12,
+        "cached": 127431,
+        "output": 1129
+      },
+      "minutes": 0.7757666666666666,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-sonnet-5"
+      ]
+    },
+    {
+      "step": "integrate",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.00155,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "accept",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.1579,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "design-check",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.00028333333333333335,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "review",
+      "costUsd": 0.13065,
+      "tokens": {
+        "input": 8730,
+        "cached": 0,
+        "output": 2900
+      },
+      "minutes": 0.5082333333333333,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "gpt-5.5"
+      ]
+    },
+    {
+      "step": "deliver",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.10844999999999999,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    }
+  ],
+  "costUsd": 2.2391719,
+  "activeMin": 14.5665,
+  "wallMin": 22.426966666666665,
+  "changes": {
+    "prodLines": 15,
+    "prodFiles": 4,
+    "testLinesAdded": 555,
+    "testFiles": 5,
+    "files": [
+      "src/Application/Common/MinimalApiProblemHelper.cs",
+      "src/Application/Scheduling/AppointmentEndpoints.cs",
+      "src/Application/Scheduling/CancelAppointment.cs",
+      "src/Application/Scheduling/CompleteAppointment.cs",
+      "tests/Application.IntegrationTests/AppointmentStatusTransitionApiTests.cs",
+      "tests/Application.UnitTests/Scheduling/CancelAppointmentHandlerTests.cs",
+      "tests/Application.UnitTests/Scheduling/CancelAppointmentValidatorTests.cs",
+      "tests/Application.UnitTests/Scheduling/CompleteAppointmentHandlerTests.cs",
+      "tests/Application.UnitTests/Scheduling/CompleteAppointmentValidatorTests.cs"
+    ]
+  },
+  "lockedTests": {
+    "total": 9,
+    "passed": 9,
+    "failed": []
+  },
+  "cards": [
+    {
+      "kind": "approval",
+      "waitedSec": 115,
+      "decision": "approve"
+    }
+  ],
+  "models": [
+    "claude-haiku-4-5",
+    "claude-opus-5-5",
+    "claude-sonnet-5",
+    "gpt-5.5"
+  ]
+}

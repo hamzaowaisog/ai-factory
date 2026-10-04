@@ -1,0 +1,23 @@
+[
+  {
+    "caseId": "vsa-patient-double-booking",
+    "ok": true,
+    "unstable": false,
+    "problems": [],
+    "hiddenTests": [
+      "OverlappingPatientBookingReturns409",
+      "BackToBackBookingIsAllowed",
+      "CancelledAppointmentDoesNotBlock"
+    ],
+    "guards": [
+      "BackToBackBookingIsAllowed",
+      "CancelledAppointmentDoesNotBlock"
+    ],
+    "referenceSize": {
+      "lines": 15,
+      "files": [
+        "src/Application/Scheduling/BookAppointment.cs"
+      ]
+    }
+  }
+]

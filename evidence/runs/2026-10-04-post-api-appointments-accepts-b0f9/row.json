@@ -1,0 +1,773 @@
+{
+  "kind": "factory",
+  "runId": "20261004-post-api-appointments-accepts-b0f9",
+  "factoryCommit": "c66539e",
+  "ticket": "POST /api/appointments accepts a second appointment for the same patient that ov",
+  "project": "eval-vsa",
+  "repo": {
+    "name": "vsa-patient-double-booking-VfY6VV",
+    "baseRef": "main",
+    "baseCommit": "7eda034b2c70c40d1680cbf7a2ff2f93ff7fd944"
+  },
+  "outcome": "delivered",
+  "size": "S",
+  "lane": "light",
+  "risk": {
+    "intake": "medium",
+    "impact": "medium"
+  },
+  "impact": {
+    "must-change": 0,
+    "breaks": 0,
+    "check": 10,
+    "callers": 18,
+    "data": 0,
+    "screens": 0,
+    "tests": 5
+  },
+  "steps": [
+    {
+      "step": "discover",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.0007666666666666667,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "intake",
+      "costUsd": 0.003575,
+      "tokens": {
+        "input": 1105,
+        "cached": 0,
+        "output": 494
+      },
+      "minutes": 0.07828333333333333,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-haiku-4-5"
+      ]
+    },
+    {
+      "step": "ground",
+      "costUsd": 0.3761848,
+      "tokens": {
+        "input": 22,
+        "cached": 83734,
+        "output": 8989
+      },
+      "minutes": 1.3486166666666668,
+      "attempts": 2,
+      "retryReasons": [
+        "Retrying with the failures"
+      ],
+      "gateFailures": 1,
+      "models": [
+        "claude-opus-5-5"
+      ]
+    },
+    {
+      "step": "clarify",
+      "costUsd": 0.17433389999999999,
+      "tokens": {
+        "input": 3759,
+        "cached": 2112,
+        "output": 8480
+      },
+      "minutes": 0.7716999999999999,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-sonnet-5",
+        "claude-haiku-4-5",
+        "claude-opus-5-5"
+      ]
+    },
+    {
+      "step": "clarify-2",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.00018333333333333334,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "drafts",
+      "costUsd": 0.066839,
+      "tokens": {
+        "input": 2,
+        "cached": 0,
+        "output": 4699
+      },
+      "minutes": 0.6839666666666666,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-sonnet-5"
+      ]
+    },
+    {
+      "step": "merge",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.00015,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "specify",
+      "costUsd": 0.2398815,
+      "tokens": {
+        "input": 10597,
+        "cached": 1536,
+        "output": 7467
+      },
+      "minutes": 0.9802333333333333,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-sonnet-5",
+        "gpt-5.5",
+        "claude-haiku-4-5",
+        "claude-opus-5-5"
+      ]
+    },
+    {
+      "step": "impact",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.00046666666666666666,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "plan",
+      "costUsd": 0.11768859999999999,
+      "tokens": {
+        "input": 6,
+        "cached": 13898,
+        "output": 1838
+      },
+      "minutes": 0.3450166666666667,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-opus-5-5"
+      ]
+    },
+    {
+      "step": "approve",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.0005833333333333334,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "stub-commit",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.0011500000000000002,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "author-tests",
+      "costUsd": 1.2710154,
+      "tokens": {
+        "input": 126,
+        "cached": 2902892,
+        "output": 40294
+      },
+      "minutes": 8.583983333333332,
+      "attempts": 2,
+      "retryReasons": [
+        "Retrying with the failures"
+      ],
+      "gateFailures": 1,
+      "models": [
+        "claude-sonnet-5"
+      ]
+    },
+    {
+      "step": "implement/TASK-1",
+      "costUsd": 0.0872482,
+      "tokens": {
+        "input": 8,
+        "cached": 69411,
+        "output": 1074
+      },
+      "minutes": 0.7336833333333334,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "claude-sonnet-5"
+      ]
+    },
+    {
+      "step": "integrate",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.0009666666666666667,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "accept",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.14196666666666669,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "design-fidelity",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.00018333333333333334,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "design-check",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.00018333333333333334,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    },
+    {
+      "step": "review",
+      "costUsd": 0.16209,
+      "tokens": {
+        "input": 4044,
+        "cached": 0,
+        "output": 4729
+      },
+      "minutes": 0.8784833333333334,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": [
+        "gpt-5.5"
+      ]
+    },
+    {
+      "step": "deliver",
+      "costUsd": 0,
+      "tokens": {
+        "input": 0,
+        "cached": 0,
+        "output": 0
+      },
+      "minutes": 0.002,
+      "attempts": 1,
+      "retryReasons": [],
+      "gateFailures": 0,
+      "models": []
+    }
+  ],
+  "costUsd": 2.4988563999999998,
+  "activeMin": 13.780683333333334,
+  "wallMin": 14.559833333333334,
+  "changes": {
+    "prodLines": 16,
+    "prodFiles": 1,
+    "testLinesAdded": 190,
+    "testFiles": 2,
+    "files": [
+      "src/Application/Scheduling/BookAppointment.cs",
+      "tests/Application.IntegrationTests/AppointmentApiTests.cs",
+      "tests/Application.UnitTests/Scheduling/BookAppointmentHandlerTests.cs"
+    ]
+  },
+  "lockedTests": {
+    "total": 5,
+    "passed": 5,
+    "failed": []
+  },
+  "cards": [
+    {
+      "kind": "question",
+      "waitedSec": 0,
+      "decision": "answer"
+    },
+    {
+      "kind": "approval",
+      "waitedSec": 0,
+      "decision": "approve"
+    }
+  ],
+  "models": [
+    "claude-haiku-4-5",
+    "claude-opus-5-5",
+    "claude-sonnet-5",
+    "gpt-5.5"
+  ],
+  "e2e": {
+    "caseId": "vsa-patient-double-booking",
+    "repeat": 1,
+    "mode": "factory",
+    "outcome": "delivered",
+    "costUsd": 2.4988563999999998,
+    "minutes": 14.944266666666667,
+    "creepFiles": [],
+    "cardsAnswered": 2,
+    "leaks": [],
+    "run": {
+      "kind": "factory",
+      "runId": "20261004-post-api-appointments-accepts-b0f9",
+      "factoryCommit": "c66539e",
+      "ticket": "POST /api/appointments accepts a second appointment for the same patient that ov",
+      "project": "eval-vsa",
+      "repo": {
+        "name": "vsa-patient-double-booking-VfY6VV",
+        "baseRef": "main",
+        "baseCommit": "7eda034b2c70c40d1680cbf7a2ff2f93ff7fd944"
+      },
+      "outcome": "delivered",
+      "size": "S",
+      "lane": "light",
+      "risk": {
+        "intake": "medium",
+        "impact": "medium"
+      },
+      "impact": {
+        "must-change": 0,
+        "breaks": 0,
+        "check": 10,
+        "callers": 18,
+        "data": 0,
+        "screens": 0,
+        "tests": 5
+      },
+      "steps": [
+        {
+          "step": "discover",
+          "costUsd": 0,
+          "tokens": {
+            "input": 0,
+            "cached": 0,
+            "output": 0
+          },
+          "minutes": 0.0007666666666666667,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": []
+        },
+        {
+          "step": "intake",
+          "costUsd": 0.003575,
+          "tokens": {
+            "input": 1105,
+            "cached": 0,
+            "output": 494
+          },
+          "minutes": 0.07828333333333333,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": [
+            "claude-haiku-4-5"
+          ]
+        },
+        {
+          "step": "ground",
+          "costUsd": 0.3761848,
+          "tokens": {
+            "input": 22,
+            "cached": 83734,
+            "output": 8989
+          },
+          "minutes": 1.3486166666666668,
+          "attempts": 2,
+          "retryReasons": [
+            "Retrying with the failures"
+          ],
+          "gateFailures": 1,
+          "models": [
+            "claude-opus-5-5"
+          ]
+        },
+        {
+          "step": "clarify",
+          "costUsd": 0.17433389999999999,
+          "tokens": {
+            "input": 3759,
+            "cached": 2112,
+            "output": 8480
+          },
+          "minutes": 0.7716999999999999,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": [
+            "claude-sonnet-5",
+            "claude-haiku-4-5",
+            "claude-opus-5-5"
+          ]
+        },
+        {
+          "step": "clarify-2",
+          "costUsd": 0,
+          "tokens": {
+            "input": 0,
+            "cached": 0,
+            "output": 0
+          },
+          "minutes": 0.00018333333333333334,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": []
+        },
+        {
+          "step": "drafts",
+          "costUsd": 0.066839,
+          "tokens": {
+            "input": 2,
+            "cached": 0,
+            "output": 4699
+          },
+          "minutes": 0.6839666666666666,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": [
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "step": "merge",
+          "costUsd": 0,
+          "tokens": {
+            "input": 0,
+            "cached": 0,
+            "output": 0
+          },
+          "minutes": 0.00015,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": []
+        },
+        {
+          "step": "specify",
+          "costUsd": 0.2398815,
+          "tokens": {
+            "input": 10597,
+            "cached": 1536,
+            "output": 7467
+          },
+          "minutes": 0.9802333333333333,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": [
+            "claude-sonnet-5",
+            "gpt-5.5",
+            "claude-haiku-4-5",
+            "claude-opus-5-5"
+          ]
+        },
+        {
+          "step": "impact",
+          "costUsd": 0,
+          "tokens": {
+            "input": 0,
+            "cached": 0,
+            "output": 0
+          },
+          "minutes": 0.00046666666666666666,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": []
+        },
+        {
+          "step": "plan",
+          "costUsd": 0.11768859999999999,
+          "tokens": {
+            "input": 6,
+            "cached": 13898,
+            "output": 1838
+          },
+          "minutes": 0.3450166666666667,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": [
+            "claude-opus-5-5"
+          ]
+        },
+        {
+          "step": "approve",
+          "costUsd": 0,
+          "tokens": {
+            "input": 0,
+            "cached": 0,
+            "output": 0
+          },
+          "minutes": 0.0005833333333333334,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": []
+        },
+        {
+          "step": "stub-commit",
+          "costUsd": 0,
+          "tokens": {
+            "input": 0,
+            "cached": 0,
+            "output": 0
+          },
+          "minutes": 0.0011500000000000002,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": []
+        },
+        {
+          "step": "author-tests",
+          "costUsd": 1.2710154,
+          "tokens": {
+            "input": 126,
+            "cached": 2902892,
+            "output": 40294
+          },
+          "minutes": 8.583983333333332,
+          "attempts": 2,
+          "retryReasons": [
+            "Retrying with the failures"
+          ],
+          "gateFailures": 1,
+          "models": [
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "step": "implement/TASK-1",
+          "costUsd": 0.0872482,
+          "tokens": {
+            "input": 8,
+            "cached": 69411,
+            "output": 1074
+          },
+          "minutes": 0.7336833333333334,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": [
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "step": "integrate",
+          "costUsd": 0,
+          "tokens": {
+            "input": 0,
+            "cached": 0,
+            "output": 0
+          },
+          "minutes": 0.0009666666666666667,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": []
+        },
+        {
+          "step": "accept",
+          "costUsd": 0,
+          "tokens": {
+            "input": 0,
+            "cached": 0,
+            "output": 0
+          },
+          "minutes": 0.14196666666666669,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": []
+        },
+        {
+          "step": "design-fidelity",
+          "costUsd": 0,
+          "tokens": {
+            "input": 0,
+            "cached": 0,
+            "output": 0
+          },
+          "minutes": 0.00018333333333333334,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": []
+        },
+        {
+          "step": "design-check",
+          "costUsd": 0,
+          "tokens": {
+            "input": 0,
+            "cached": 0,
+            "output": 0
+          },
+          "minutes": 0.00018333333333333334,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": []
+        },
+        {
+          "step": "review",
+          "costUsd": 0.16209,
+          "tokens": {
+            "input": 4044,
+            "cached": 0,
+            "output": 4729
+          },
+          "minutes": 0.8784833333333334,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": [
+            "gpt-5.5"
+          ]
+        },
+        {
+          "step": "deliver",
+          "costUsd": 0,
+          "tokens": {
+            "input": 0,
+            "cached": 0,
+            "output": 0
+          },
+          "minutes": 0.002,
+          "attempts": 1,
+          "retryReasons": [],
+          "gateFailures": 0,
+          "models": []
+        }
+      ],
+      "costUsd": 2.4988563999999998,
+      "activeMin": 13.780683333333334,
+      "wallMin": 14.559833333333334,
+      "changes": {
+        "prodLines": 16,
+        "prodFiles": 1,
+        "testLinesAdded": 190,
+        "testFiles": 2,
+        "files": [
+          "src/Application/Scheduling/BookAppointment.cs",
+          "tests/Application.IntegrationTests/AppointmentApiTests.cs",
+          "tests/Application.UnitTests/Scheduling/BookAppointmentHandlerTests.cs"
+        ]
+      },
+      "lockedTests": {
+        "total": 5,
+        "passed": 5,
+        "failed": []
+      },
+      "cards": [
+        {
+          "kind": "question",
+          "waitedSec": 0,
+          "decision": "answer"
+        },
+        {
+          "kind": "approval",
+          "waitedSec": 0,
+          "decision": "approve"
+        }
+      ],
+      "models": [
+        "claude-haiku-4-5",
+        "claude-opus-5-5",
+        "claude-sonnet-5",
+        "gpt-5.5"
+      ]
+    },
+    "hidden": {
+      "tests": {
+        "OverlappingPatientBookingReturns409": "pass",
+        "BackToBackBookingIsAllowed": "pass",
+        "CancelledAppointmentDoesNotBlock": "pass"
+      },
+      "passed": 3,
+      "total": 3,
+      "pass": true,
+      "flaky": false,
+      "brokeExisting": []
+    },
+    "prodLines": 16,
+    "linesVsReference": 1.0666666666666667
+  }
+}
