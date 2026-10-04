@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ExecutionLock, LockBusyError } from "./exec-lock.js";
-import { decide, DecisionError, applyExpiredDeadline } from "./human.js";
+import { decide, DecisionError, applyExpiredDeadline, markEvalHome } from "./human.js";
 import { FencedOutError, HUMAN_WRITER, Ledger, LedgerCorruptError } from "./ledger.js";
 import { runSink } from "./sinks.js";
 import { canSkip, eventKey, inputsHash, replay } from "./state.js";
@@ -115,6 +115,16 @@ describe("human decisions", () => {
     const r2 = await decide(l, { decision: "approve", hashPrefix: "abcd", by: "ahsan" });
     expect(r2.kind).toBe("repeat");
     expect(l.events().filter((e) => e.type === "human.decided")).toHaveLength(1);
+  });
+
+  it("refuses \"eval\" as the person deciding, except in the eval harness's own home", async () => {
+    // a normal factory home: a real run's card is never answered as "eval"
+    const l = await withCard();
+    await expect(decide(l, { decision: "approve", hashPrefix: "abcd", by: "eval" })).rejects.toThrow(/only the eval harness answers cards/);
+    expect(replay(l.events()).openCard).toBeDefined();
+    // the harness's temporary home, marked as its own: the same decision is recorded
+    markEvalHome(process.env.FACTORY_HOME!);
+    expect((await decide(l, { decision: "approve", hashPrefix: "abcd", by: "eval" })).kind).toBe("recorded");
   });
 
   it("refuses a stale hash, a short prefix, and a reject without reason", async () => {

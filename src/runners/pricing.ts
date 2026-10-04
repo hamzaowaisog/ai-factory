@@ -21,6 +21,11 @@ export function priceOf(model: string): Price {
   return overrides.get(model) ?? TABLE[model] ?? (model.startsWith("ollama/") ? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } : FALLBACK);
 }
 
+/** False when a model would be costed at the fallback rate (no list price, no price in the project). */
+export function hasPrice(model: string): boolean {
+  return overrides.has(model) || model in TABLE || model.startsWith("ollama/");
+}
+
 export function costUsd(model: string, u: { inputTokens: number; outputTokens: number; cacheRead: number; cacheWrite: number }): number {
   const p = priceOf(model);
   return (u.inputTokens * p.input + u.outputTokens * p.output + u.cacheRead * p.cacheRead + u.cacheWrite * p.cacheWrite) / 1_000_000;

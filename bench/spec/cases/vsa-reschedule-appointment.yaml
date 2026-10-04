@@ -1,0 +1,86 @@
+id: vsa-reschedule-appointment
+repo: vsa
+kind: feature
+request: |
+  Patients keep cancelling and rebooking just to move an appointment to another time, which loses the original
+  booking and clutters the list with cancellations. Add a way to reschedule an existing appointment to a new start and
+  end time. The usual booking rules should still apply.
+facts:
+  - id: F1
+    about: [[which status, what status, current status, appointment status, only scheduled, complet, cancel, state, which appointment]]
+    answer: >-
+      Only Scheduled appointments can be rescheduled. Completed or cancelled appointments are rejected with a
+      validation error.
+  - id: F2
+    about: [[doctor, patient, change who, different, switch, reassign]]
+    answer: >-
+      Only the time changes. The doctor and the patient stay the same; to see a different doctor, cancel and book a
+      new appointment.
+  - id: F3
+    about: [[rule, valid, duration, advance, minimum, maximum, length, notice, same as book]]
+    answer: >-
+      The new time follows the same rules as booking: start before end, at least 10 minutes long, at most 8 hours
+      long, and starting at least 15 minutes from now.
+  - id: F4
+    about: [[overlap, conflict, double, busy, clash, own slot, itself, available]]
+    answer: >-
+      If the doctor has another Scheduled appointment overlapping the new time, reject with 409 Conflict. The
+      appointment's own current slot does not count as a conflict, so shifting it by a few minutes works.
+  - id: F5
+    about: [[cutoff, late, window, close to, last minute, how soon, deadline, 24 hours, 24-hour, 24h, hours before]]
+    answer: >-
+      An appointment cannot be rescheduled once its current start time is less than 24 hours away (24 hours); that
+      is rejected as a validation error.
+  - id: F6
+    about: [[how many, limit, number of times, count, repeat, reschedule again, rescheduled again, more than once, multiple times]]
+    answer: There is no limit on how many times an appointment can be rescheduled.
+  - id: F7
+    about: [[note, history, audit, original, previous, track, record old]]
+    answer: >-
+      Notes are kept unchanged and are not editable through reschedule. We don't need to keep the old times or any
+      history.
+  - id: F8
+    about: [[not found, missing, unknown, doesn't exist, does not exist, nonexist, non-existent]]
+    answer: An unknown appointment id returns 404, like complete and cancel.
+  - id: F9
+    about: [[who can, who may, who is allowed, role, auth, permission, front desk, doctor]]
+    answer: The API has no roles; whoever can cancel an appointment can reschedule it.
+  - id: F10
+    about: [[response, return, result, body, payload], [success, succeed, "200", ok, contain, includ, field, updated appointment, new start, new end, utc]]
+    answer: Return the appointment id and its new start and end in UTC, with 200 OK.
+gaps:
+  - id: G1
+    match: [[cutoff, late, window, close to, last minute, how soon, deadline, before the start, hours before]]
+    fact: F5
+  - id: G2
+    match: [[doctor, patient], [change, different, switch, reassign, same]]
+    fact: F2
+  - id: G3
+    match: [[complet, cancel, which status, what status, current status, appointment status, only scheduled, state]]
+    fact: F1
+expect:
+  - id: E1
+    match: [[reschedul, move], [start, time, slot]]
+    why: the core ask
+  - id: E2
+    match: [[reschedul, move], [complet, cancel], [reject, cannot, not allow, error, fail, refuse, prevent, must not, shall not, "400", "422"]]
+    why: F1 says only scheduled appointments can be rescheduled
+  - id: E3
+    match: [[overlap, conflict, double-book, double book, clash, already booked], [doctor]]
+    why: F4 says doctor conflicts are rejected
+  - id: E4
+    match: [[reschedul, move, new time, new start], [advance, "15", duration, "10 minutes", "8 hours", minimum, maximum, at least, at most]]
+    why: F3 says booking rules apply to the new time
+  - id: E5
+    match: [["24", one day, a day], [reschedul, move]]
+    why: F5 sets a 24-hour cutoff
+forbid:
+  - id: X1
+    match: [[email, sms, notif, remind]]
+    why: nobody asked to notify anyone
+  - id: X2
+    match: [[audit, history, reschedule count, number of times rescheduled, previous start, originalstart]]
+    why: F7 says no history is kept
+  - id: X3
+    match: [[/\/api\/(doctors|patients)/, availability endpoint, available slots, free slots]]
+    why: nobody asked for availability or other endpoints

@@ -1,0 +1,17 @@
+# Lab settings for the VSA cases (as factory init detects them); repo and project name are filled in per run.
+setup: vsa-setup.patch   # applied to the base first: one in-memory database per test factory (parallel classes collided)
+config:
+  stack: dotnet
+  baseBranch: main
+  dotnet:
+    sdkImage: mcr.microsoft.com/dotnet/sdk:10.0
+    solution: VerticalSliceArchitecture.slnx
+    testTimeoutSec: 2400
+  database:
+    image: postgres:16-alpine
+    producerEnv:
+      ConnectionStrings__DefaultConnection: "Host={{DB_HOST}};Port={{DB_PORT}};Database={{DB_NAME}};Username={{DB_USER}};Password={{DB_PASSWORD}}"
+  agentEnv:
+    ConnectionStrings__DefaultConnection: "Host=localhost;Database=dummy;Username=dummy;Password=dummy"
+  accept:
+    bootApp: false        # the app doesn't create its database on boot; the locked API tests are the acceptance

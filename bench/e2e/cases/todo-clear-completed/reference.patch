@@ -1,0 +1,17 @@
+diff --git a/Todo.Api/Todos/TodoApi.cs b/Todo.Api/Todos/TodoApi.cs
+index a9a7dca..bc1a70e 100644
+--- a/Todo.Api/Todos/TodoApi.cs
++++ b/Todo.Api/Todos/TodoApi.cs
+@@ -64,6 +64,12 @@ internal static class TodoApi
+             return rowsAffected == 0 ? TypedResults.NotFound() : TypedResults.Ok();
+         });
+ 
++        group.MapDelete("/completed", async (TodoDbContext db, CurrentUser owner) =>
++        {
++            var deleted = await db.Todos.Where(t => t.IsComplete && t.OwnerId == owner.Id).ExecuteDeleteAsync();
++            return TypedResults.Ok(new { deleted });
++        });
++
+         group.MapDelete("/{id}", async Task<Results<NotFound, Ok>> (TodoDbContext db, int id, CurrentUser owner) =>
+         {
+             var rowsAffected = await db.Todos.Where(t => t.Id == id && (t.OwnerId == owner.Id || owner.IsAdmin))

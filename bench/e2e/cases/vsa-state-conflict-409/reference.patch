@@ -1,0 +1,26 @@
+diff --git a/src/Application/Scheduling/CancelAppointment.cs b/src/Application/Scheduling/CancelAppointment.cs
+index 9c5fef9..b940a0a 100644
+--- a/src/Application/Scheduling/CancelAppointment.cs
++++ b/src/Application/Scheduling/CancelAppointment.cs
+@@ -93,7 +93,7 @@ public static class CancelAppointment
+             }
+             catch (InvalidOperationException ex)
+             {
+-                return Error.Validation("Appointment.CannotCancel", ex.Message);
++                return Error.Conflict("Appointment.CannotCancel", ex.Message);
+             }
+             catch (ArgumentException ex)
+             {
+diff --git a/src/Application/Scheduling/CompleteAppointment.cs b/src/Application/Scheduling/CompleteAppointment.cs
+index 7fd74c7..3f4723c 100644
+--- a/src/Application/Scheduling/CompleteAppointment.cs
++++ b/src/Application/Scheduling/CompleteAppointment.cs
+@@ -89,7 +89,7 @@ public static class CompleteAppointment
+             }
+             catch (InvalidOperationException ex)
+             {
+-                return Error.Validation("Appointment.CannotComplete", ex.Message);
++                return Error.Conflict("Appointment.CannotComplete", ex.Message);
+             }
+             catch (ArgumentException ex)
+             {

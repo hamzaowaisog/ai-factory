@@ -1,0 +1,65 @@
+id: eshop-deleted-product-baskets
+repo: eshop
+kind: feature
+request: |
+  When we delete a product with DELETE /api/catalog/items/{id}, it keeps sitting in customers' baskets and they only
+  find out when checkout fails. Deleting a catalog item should take it out of everything that's still pending, so
+  nobody can buy something we no longer sell.
+facts:
+  - id: F1
+    about: [[order, in-flight, in flight, in progress, submitted, already placed, checkout, history], [pending, basket, affect, touch, includ, also, existing, already, everything, scope, cancel, remov, still]]
+    answer: Pending here means baskets only. Orders that were already placed, whatever their status, are not touched; they keep their own copy of the product name and price and go through as normal.
+  - id: F2
+    about: [[other item, other product, other line, rest of the basket, remaining, quantit, whole basket, entire basket, only that]]
+    answer: Only the deleted product's line is removed from each basket. Every other line and its quantity stays exactly as it was.
+  - id: F3
+    about: [[empty basket, basket empty, left empty, becomes empty, become empty, basket is empty, empty the basket, only item, only line, last line, last item, nothing left, no items left, delete the basket, remove the basket]]
+    answer: If the deleted product was the only line, the basket is simply left empty. Do not delete the basket itself.
+  - id: F4
+    about: [[basket service, basket api, basket.api, unavailable, down, fail, failure, outage, synchron, asynchron, event, immediately, wait, consisten, delay, timing, real time, realtime]]
+    answer: The catalog delete must not wait on or fail because of baskets. It is fine for baskets to catch up a moment later through the event bus, the way catalog already publishes price changes. If Basket.API is down the delete still succeeds and the baskets are cleaned up once it is back.
+  - id: F5
+    about: [[notif, tell the customer, inform, message the customer, show a message, display a message, a message to, email, warn, let them know, banner]]
+    answer: No notification. The line just disappears from the basket.
+  - id: F6
+    about: [[not exist, doesn't exist, does not exist, missing, unknown, not found, invalid id, nonexist, non-existent, no such]]
+    answer: Deleting an id that does not exist stays a 404 as today, and no basket is touched.
+  - id: F7
+    about: [[soft, discontinu, archive, hide, deactivat, flag, undo, restore]]
+    answer: The catalog delete stays a hard delete as today. We are not adding a discontinued flag or undo.
+  - id: F8
+    about: [[anonymous, guest, signed out, logged out, not signed in, unauthenticated]]
+    answer: Only signed-in customers have baskets in this app, so there is nothing extra to handle for guests.
+gaps:
+  - id: G1
+    match: [[order, in-flight, in flight, in progress, submitted, already placed, checkout], [pending, basket, affect, touch, includ, also, existing, already, everything, scope, cancel, remov, still]]
+    fact: F1
+  - id: G2
+    match: [[basket service, basket api, basket.api, unavailable, down, fail, synchron, asynchron, immediately, consisten, delay]]
+    fact: F4
+  - id: G3
+    match: [[empty basket, basket empty, left empty, becomes empty, become empty, basket is empty, only item, only line, last item, last line, nothing left, no items left]]
+    fact: F3
+expect:
+  - id: E1
+    match: [[delet], [basket], [remov, take out, taken out, drop, purg, strip, no longer contain, eliminat]]
+    why: the core ask, a deleted product leaves every basket that holds it
+  - id: E2
+    match: [[order], [unchanged, untouched, unaffected, not modif, not alter, not change, not be changed, not be modified, remain, retain, keep, not affect, not be affected]]
+    why: orders already placed keep the product; only baskets change
+  - id: E3
+    match: [[other item, other product, other line, remaining item, remaining line, other basket item, rest of the basket, every other], [unchanged, untouched, unaffected, remain, retain, keep, not modif, not alter, not change, as it was, quantit]]
+    why: only the deleted product's line is removed, the rest of the basket is kept
+  - id: E4
+    match: [[basket], [unavailable, unreachable, not reachable, down, offline, outage, fail, not running], [delet], [succeed, success, 204, no content, still, not fail, not block, not wait, complet, later, once]]
+    why: the catalog delete does not depend on Basket.API being up
+forbid:
+  - id: X1
+    match: [[notif, email, alert the customer, inform the customer, message the customer, tell the customer]]
+    why: the person said no notification
+  - id: X2
+    match: [[soft delete, soft-delete, discontinued flag, isdeleted, is_deleted, isdiscontinued, deactivat, archive]]
+    why: the delete stays a hard delete; no discontinue flag was asked for
+  - id: X3
+    match: [[web app, webapp, user interface, front end, frontend, banner, toast]]
+    why: the ticket is about the services, not the storefront

@@ -1,0 +1,50 @@
+id: todo-create-complete-ignored
+repo: todo
+kind: bugfix
+request: |
+  If you POST a new todo to /todos with "isComplete": true, it comes back (and shows up in GET /todos)
+  as not complete. Our import script creates already-finished items this way and they all land as open.
+  Please fix.
+facts:
+  - id: F1
+    about: [[complete, iscomplete, done, finished, flag, status], [honor, honour, respect, keep, use, accept, reject, ignore, error, "400", validation, intended, should]]
+    answer: Creating a todo should honor the isComplete value sent in the body. Do not reject it; a todo created with isComplete true is stored and returned as complete.
+  - id: F2
+    about: [[omit, missing, absent, not sent, not provided, default, "null", leave out]]
+    answer: If isComplete is not sent it defaults to false, exactly as today.
+  - id: F3
+    about: [[existing, already imported, already created, already stored, already in the database, imported, backfill, migrat, existing data, bad data, wrong data, data fix, in the past, past import, fix up, repair]]
+    answer: No need to fix todos that were already imported wrong; we will re-run the import ourselves. Only new creates need to be correct.
+  - id: F4
+    about: [[response, return, body, echo, location, reflect, payload], ["201", created, iscomplete, complete, stored, location, value]]
+    answer: The 201 Created response should reflect the stored value, including isComplete.
+  - id: F5
+    about: [[title, validation, required, other field, other behavio, anything else, put /todos, updating, update endpoint, id in the body, body id, edit]]
+    answer: Nothing else about create or update changes; title is still required and the id in the body is ignored on create.
+gaps:
+  - id: G1
+    match: [[complete, done, flag, status], [honor, honour, respect, keep, accept, reject, ignore, error, should]]
+    fact: F1
+  - id: G2
+    match: [[existing, already imported, already created, already stored, already in the database, imported, backfill, migrat, existing data, bad data, wrong data]]
+    fact: F3
+expect:
+  - id: E1
+    match: [[creat, post, new todo, add], [iscomplete, complete, done, finished]]
+    why: the core fix, create stores the completion flag sent by the client
+  - id: E2
+    match: [[omit, not provided, not sent, absent, missing, not specified, default, without], ["false", incomplete, not complete, open]]
+    why: default behaviour when the flag is left out must stay false
+  - id: E3
+    match: [[return, response, "201", created, retriev, get, list, subsequent], [iscomplete, complete, done]]
+    why: the created item and later reads reflect the stored flag
+forbid:
+  - id: X1
+    match: [[backfill, data migration, migrate existing, repair existing, fix existing, correct existing]]
+    why: the person said existing imported todos do not need fixing
+  - id: X2
+    match: [[bulk, batch, import endpoint, multiple todos, array of todos]]
+    why: nobody asked for a bulk import endpoint
+  - id: X3
+    match: [[completed at, completedat, completion date, timestamp, audit]]
+    why: no new completion timestamp or audit trail was requested

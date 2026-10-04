@@ -1,0 +1,16 @@
+id: vsa-patient-double-booking
+repo: vsa
+kind: bugfix
+request: |
+  POST /api/appointments accepts a second appointment for the same patient that overlaps one they already have with
+  another doctor. A patient can't be in two places at once: refuse the overlapping booking with 409 Conflict, the
+  same way a doctor's overlapping booking is refused today.
+facts:
+  - id: F1
+    about: [[back-to-back, back to back, adjacent, ends exactly, end time, touching, same minute, consecutive]]
+    answer: Back-to-back appointments are fine; only a real overlap is refused (one ending at 10:30 and one starting at 10:30 do not overlap).
+  - id: F2
+    about: [[cancel, completed, status, no-show, inactive]]
+    answer: Only scheduled appointments count. A cancelled appointment never blocks a new booking.
+timeoutMin: 45
+maxCostUsd: 6

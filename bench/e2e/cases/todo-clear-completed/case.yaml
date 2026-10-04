@@ -1,0 +1,17 @@
+id: todo-clear-completed
+repo: todo
+kind: feature
+request: |
+  Users want to clear out all their completed todos in one go instead of deleting them one by one. Add
+  DELETE /todos/completed: it removes the caller's completed todos, leaves their open ones, and returns 200 with
+  the number removed as JSON, for example {"deleted": 3}.
+facts:
+  - id: F1
+    about: [[admin, other user, everyone, all users, any user, others]]
+    answer: Only the caller's own completed todos, admins included. An admin clearing their list never touches other users' todos.
+  - id: F2
+    about: [[none, nothing, zero, no completed, empty]]
+    answer: >-
+      With nothing to clear it still returns 200 with {"deleted": 0}.
+timeoutMin: 45
+maxCostUsd: 6

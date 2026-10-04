@@ -1,5 +1,6 @@
 // The executor (run-manager §2.3, §2.5, §2.9): replay → next step → run → record → repeat,
 // until a human card, a park, delivery, or a stop/pause request. One executor per repo.
+import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
@@ -37,9 +38,19 @@ export function policyFor(project: ProjectConfig): Policy {
   return mergePolicy(DEFAULT_POLICY, project.policy as Partial<Policy>);
 }
 
+/** The factory's own commit, so every run says exactly what code ran it (eval rows, run records); "-dirty" with local edits. */
+export function factoryCommit(): { commit?: string } {
+  try { return { commit: execFileSync("git", ["-C", REPO_ROOT, "describe", "--always", "--dirty", "--abbrev=7"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() }; } catch { return {}; }
+}
+
+/** A warning before a paid run from a factory checkout with local edits: its record can't name the exact code. */
+export function dirtyWarning(commit = factoryCommit().commit): string | undefined {
+  return commit?.endsWith("-dirty") ? `Warning: the factory has uncommitted changes (${commit}). This run will be recorded as ${commit}, which names no exact code; commit them first for a clean record.` : undefined;
+}
+
 function versions(): Record<string, string> {
   const pkg = JSON.parse(readFileSync(join(REPO_ROOT, "package.json"), "utf8")) as { version: string; dependencies: Record<string, string> };
-  return { factory: pkg.version, node: process.version, "mode:brownfield": "1", "mode:estimate": "1", "mode:design": "1", ...Object.fromEntries(Object.entries(pkg.dependencies).filter(([k]) => /anthropic|openai|zod/.test(k))) };
+  return { factory: pkg.version, ...factoryCommit(), node: process.version, "mode:brownfield": "1", "mode:estimate": "1", "mode:design": "1", ...Object.fromEntries(Object.entries(pkg.dependencies).filter(([k]) => /anthropic|openai|zod/.test(k))) };
 }
 
 function slug(text: string): string {
@@ -184,7 +195,8 @@ function dropBuildCache(runId: string): void {
 
 export interface ExecuteResult { status: string; message: string }
 
-export async function execute(runId: string, echo: Log = () => undefined): Promise<ExecuteResult> {
+/** until: stop, without running it, at the first step after this one (the spec eval stops after specify). */
+export async function execute(runId: string, echo: Log = () => undefined, opts: { until?: string } = {}): Promise<ExecuteResult> {
   const ledger = Ledger.open(runId);
   // the run trace: every console line, model turn, tool call, container phase and gate, with timestamps
   const trace = new Tracer(ledger.dir, { echo, putBlob: (c) => ledger.putArtifact(c) });
@@ -256,6 +268,11 @@ export async function execute(runId: string, echo: Log = () => undefined): Promi
       const n = next(state, ledger, project);
       if (n.kind === "done") return { status: String(state.status), message: "All steps done." };
       if (n.kind === "blocked") throw new Error(`Step ${n.step} isn't ready but nothing before it is pending (bug)`);
+      if (opts.until) {
+        const keys = stepsFor(state).map((s) => s.key);
+        if (!keys.includes(opts.until)) throw new Error(`No step "${opts.until}" in this run`);
+        if (keys.indexOf(n.step.key) > keys.indexOf(opts.until)) return { status: "until", message: `Stopped before ${n.step.key}: ${opts.until} is done.` };
+      }
 
       const rec = state.steps.get(n.step.key);
       const attempt = (rec?.lastAttempt ?? 0) + 1;

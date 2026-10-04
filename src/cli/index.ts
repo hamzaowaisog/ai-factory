@@ -15,7 +15,7 @@ import { registerDesignCommands } from "../design/cli.js";
 import { assertTty, decide, DecisionError } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { MAX_BUDGET_CEILING, replay, statusLabel } from "../ledger/state.js";
-import { createRun, execute } from "../stages/executor.js";
+import { createRun, dirtyWarning, execute } from "../stages/executor.js";
 import { answerOpenQuestions, canPrompt, terminalIO } from "./interactive.js";
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
 import { describeReferences, gatherReferences, parseRefArg } from "../sources/refs.js";
@@ -76,6 +76,8 @@ program.command("start")
     const designExport = designExportOption(o.designExport);
     const uiTarget = uiTargetOption(o.uiTarget);
     const project = loadProject(o.project);
+    const dirty = dirtyWarning();
+    if (dirty) log(dirty);
     const problems = checkRoutes(project);
     if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
     // everything is read before a run exists: a bad file or ticket costs nothing

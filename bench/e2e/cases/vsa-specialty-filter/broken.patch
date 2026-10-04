@@ -1,0 +1,46 @@
+diff --git a/src/Application/Scheduling/GetAppointments.cs b/src/Application/Scheduling/GetAppointments.cs
+index 559e0ea..305a8c6 100644
+--- a/src/Application/Scheduling/GetAppointments.cs
++++ b/src/Application/Scheduling/GetAppointments.cs
+@@ -27,7 +27,8 @@ public static class GetAppointments
+         DateTime? StartDate,
+         DateTime? EndDate,
+         int PageNumber,
+-        int PageSize) : IRequest<ErrorOr<PaginatedList<AppointmentDto>>>;
++        int PageSize,
++        string? Specialty = null) : IRequest<ErrorOr<PaginatedList<AppointmentDto>>>;
+ 
+     internal static class Endpoint
+     {
+@@ -39,7 +40,8 @@ public static class GetAppointments
+             DateTime? startDate = null,
+             DateTime? endDate = null,
+             int pageNumber = 1,
+-            int pageSize = 10)
++            int pageSize = 10,
++            string? specialty = null)
+         {
+             var query = new Query(
+                 patientId,
+@@ -48,7 +50,8 @@ public static class GetAppointments
+                 startDate,
+                 endDate,
+                 pageNumber,
+-                pageSize);
++                pageSize,
++                specialty);
+ 
+             var result = await mediator.Send(query);
+ 
+@@ -109,6 +112,11 @@ public static class GetAppointments
+                 query = query.Where(a => a.Status == request.Status.Value);
+             }
+ 
++            if (!string.IsNullOrWhiteSpace(request.Specialty))
++            {
++                query = query.Where(a => a.Doctor.Specialty == request.Specialty);
++            }
++
+             if (request.StartDate.HasValue)
+             {
+                 query = query.Where(a => a.StartUtc >= request.StartDate.Value);

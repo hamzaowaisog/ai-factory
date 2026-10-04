@@ -1,0 +1,26 @@
+diff --git a/src/Application/Scheduling/BookAppointment.cs b/src/Application/Scheduling/BookAppointment.cs
+index 97797e0..5be768a 100644
+--- a/src/Application/Scheduling/BookAppointment.cs
++++ b/src/Application/Scheduling/BookAppointment.cs
+@@ -129,6 +129,21 @@ public static class BookAppointment
+                 return Error.Conflict("Appointment.Conflict", "Doctor has a conflicting appointment during the requested time");
+             }
+ 
++            // A patient can't be in two places at once: refuse an overlapping scheduled appointment with any doctor
++            var patientBusy = await _context.Appointments
++                .AsNoTracking()
++                .AnyAsync(
++                    a => a.PatientId == request.PatientId
++                         && a.Status == AppointmentStatus.Scheduled
++                         && a.StartUtc < endUtc
++                         && a.EndUtc > startUtc,
++                    cancellationToken);
++
++            if (patientBusy)
++            {
++                return Error.Conflict("Appointment.PatientConflict", "Patient has a conflicting appointment during the requested time");
++            }
++
+             // Create the appointment using factory method
+             // Note: Domain event (AppointmentBookedEvent) is raised inside Appointment.Schedule()
+             // Note: Domain validates invariants (start < end). Validator also checks this for fast-fail UX,
