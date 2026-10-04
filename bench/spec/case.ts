@@ -24,7 +24,8 @@ export const EvalCase = z.object({
   facts: z.array(z.object({ id: z.string().min(1), about: Matcher, answer: z.string().min(1) })).default([]),
   gaps: z.array(z.object({ id: z.string().min(1), match: Matcher, fact: z.string().optional() })).default([]),
   expect: z.array(Item).min(1),
-  forbid: z.array(Item).default([]),
+  /** soft: an addition worth reporting that doesn't fail the run (e.g. an OpenAPI entry nobody asked for) */
+  forbid: z.array(Item.extend({ soft: z.boolean().optional() })).default([]),
 }).superRefine((c, ctx) => {
   const ids = [...c.facts, ...c.gaps, ...c.expect, ...c.forbid].map((x) => x.id);
   for (const id of ids.filter((x, i) => ids.indexOf(x) !== i)) ctx.addIssue({ code: "custom", message: `duplicate id ${id}` });

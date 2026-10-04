@@ -1,0 +1,83 @@
+{
+ "requirements": [
+  {
+   "id": "REQ-1",
+   "ears": "When a client requests POST /api/appointments/{appointmentId}/cancel for an appointment whose current Status is Completed, the CancelAppointment API shall respond with 409 Conflict carrying the message \"Cannot cancel a completed appointment\".",
+   "acceptance": [
+    {
+     "id": "AC-1.1",
+     "given": "an Appointment aggregate whose Status is Completed",
+     "when": "CancelAppointment.Handler.Handle is invoked directly with a Command carrying a valid, non-empty Reason within the length limit",
+     "then": "the returned ErrorOr result contains a single Error of Type Conflict with code \"Appointment.CannotCancel\" and description \"Cannot cancel a completed appointment\""
+    },
+    {
+     "id": "AC-1.2",
+     "given": "an appointment that has already been completed via POST /api/appointments/{appointmentId}/complete",
+     "when": "POST /api/appointments/{appointmentId}/cancel is called with a valid reason",
+     "then": "the HTTP response status is 409 Conflict and the problem response body's detail/message equals \"Cannot cancel a completed appointment\""
+    }
+   ]
+  },
+  {
+   "id": "REQ-2",
+   "ears": "When a client requests POST /api/appointments/{appointmentId}/complete for an appointment whose current Status is Cancelled, the CompleteAppointment API shall respond with 409 Conflict carrying the message \"Cannot complete a cancelled appointment\".",
+   "acceptance": [
+    {
+     "id": "AC-2.1",
+     "given": "an Appointment aggregate whose Status is Cancelled",
+     "when": "CompleteAppointment.Handler.Handle is invoked directly with a Command carrying Notes within the length limit (or null)",
+     "then": "the returned ErrorOr result contains a single Error of Type Conflict with code \"Appointment.CannotComplete\" and description \"Cannot complete a cancelled appointment\""
+    },
+    {
+     "id": "AC-2.2",
+     "given": "an appointment that has already been cancelled via POST /api/appointments/{appointmentId}/cancel",
+     "when": "POST /api/appointments/{appointmentId}/complete is called with valid notes",
+     "then": "the HTTP response status is 409 Conflict and the problem response body's detail/message equals \"Cannot complete a cancelled appointment\""
+    }
+   ]
+  },
+  {
+   "id": "REQ-3",
+   "ears": "The OpenAPI metadata for the CompleteAppointment and CancelAppointment endpoints shall declare a 409 Conflict response in addition to the existing 200, ValidationProblem, and 404 responses.",
+   "acceptance": [
+    {
+     "id": "AC-3.1",
+     "given": "the application's generated OpenAPI document",
+     "when": "the document is retrieved (e.g. GET /swagger/v1/swagger.json)",
+     "then": "the responses listed for POST /api/appointments/{appointmentId}/cancel and POST /api/appointments/{appointmentId}/complete each include a 409 entry alongside 200, 400 and 404"
+    }
+   ]
+  },
+  {
+   "id": "REQ-4",
+   "ears": "If a cancel or complete request's reason or notes is missing (for cancel) or exceeds the configured maximum length, then the API shall respond with 400 Bad Request regardless of the appointment's current state.",
+   "acceptance": [
+    {
+     "id": "AC-4.1",
+     "given": "a CancelAppointment.Command with an empty Reason",
+     "when": "CancelAppointment.Validator validates the command directly",
+     "then": "validation fails with the message \"Cancellation reason is required\""
+    },
+    {
+     "id": "AC-4.2",
+     "given": "a CancelAppointment.Command with a Reason longer than 512 characters",
+     "when": "CancelAppointment.Validator validates the command directly",
+     "then": "validation fails with the message \"Cancellation reason cannot exceed 512 characters\""
+    },
+    {
+     "id": "AC-4.3",
+     "given": "a CompleteAppointment.Command with Notes longer than 1024 characters",
+     "when": "CompleteAppointment.Validator validates the command directly",
+     "then": "validation fails with the message \"Notes cannot exceed 1024 characters\""
+    },
+    {
+     "id": "AC-4.4",
+     "given": "an appointment in any status (including Completed or Cancelled)",
+     "when": "POST /api/appointments/{appointmentId}/cancel is called with an empty reason",
+     "then": "the HTTP response status is 400 Bad Request, not 409"
+    }
+   ]
+  }
+ ],
+ "nfrs": []
+}

@@ -177,3 +177,19 @@ describe("a dry run (fake model, no cost)", () => {
     await expect(execute(runId, () => undefined, { until: "no-such-step" })).rejects.toThrow(/No step "no-such-step"/);
   });
 });
+
+describe("the VSA 409 case against the first paid run's real spec", () => {
+  it("finds every expected behaviour, reports the two extras as soft, and still passes", async () => {
+    const { readFileSync } = await import("node:fs");
+    const c = loadCases().find((x) => x.id === "vsa-state-conflict-409")!;
+    const spec = JSON.parse(readFileSync(new URL("./fixtures/vsa-409-first-run.json", import.meta.url), "utf8"));
+    const s = scoreRun(c, outcome({ spec }));
+    expect(s.expectHit).toEqual(["E1", "E2", "E3"]);
+    expect(s.softHit).toEqual(["X1", "X2"]);
+    expect(s.forbidHit).toEqual([]);
+    expect(s.pass).toBe(true);
+    // a hard forbid still fails the run
+    const notified = scoreRun(c, outcome({ spec: { ...spec, requirements: [...spec.requirements, { id: "REQ-9", ears: "When an appointment is cancelled, the system shall email the patient.", acceptance: [] }] } }));
+    expect(notified).toMatchObject({ pass: false, forbidHit: ["X3"] });
+  });
+});

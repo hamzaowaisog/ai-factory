@@ -1,0 +1,62 @@
+id: vsa-state-conflict-409
+repo: vsa
+kind: bugfix
+# The ticket of the first paid end-to-end run (docs/runs/2026-10-04-vsa-409-conflict.md). Its extras (an OpenAPI 409
+# entry, the message copied into the problem's detail field) are soft forbids: reported, not a fail.
+request: |
+  Cancelling a completed appointment, or completing a cancelled one, returns 400 Bad Request. The request itself is
+  valid; the appointment's current state forbids it, so the API should answer 409 Conflict with the same error message.
+  A missing or too-long reason or notes must still return 400.
+facts:
+  - id: F1
+    about: [[error message, wording, response body, detail, title, description], [same, keep, exact, change, domain, which, what]]
+    answer: >-
+      Keep the message exactly as the domain gives it today ("Cannot cancel a completed appointment", "Cannot complete
+      a cancelled appointment"). Only the status code changes.
+  - id: F2
+    about: [[too long, too-long, over-long, exceed, length, maximum, max], [cancel, complet, state, status, order, first, precedence, priority, both]]
+    answer: >-
+      Input rules come first: a missing or too-long reason or notes is 400 whatever state the appointment is in. Don't
+      change the order of checks inside the domain; the validator already rejects bad input before the handler runs.
+  - id: F3
+    about: [[concurren, conflict, already, other, existing, book, overlap, double]]
+    answer: >-
+      The other 409s (a double booking, an appointment changed by someone else at the same time) stay as they are.
+  - id: F4
+    about: [[openapi, swagger, document, metadata, produces, contract, client]]
+    answer: Nothing else is asked for; leave the API description and clients alone unless they must change.
+  - id: F5
+    about: [[idempot, cancel again, complete again, cancelled again, completed again, twice, already cancel, already complet]]
+    answer: Cancelling a cancelled appointment, or completing a completed one, keeps succeeding as today.
+gaps:
+  - id: G1
+    match: [[too long, too-long, over-long, exceed, length, maximum], [state, status, cancel, complet, first, precedence, order, both]]
+    fact: F2
+  - id: G2
+    match: [[error message, wording, response body, detail, title], [same, keep, exact, change, domain, which]]
+    fact: F1
+expect:
+  - id: E1
+    match: [[cancel], [complet], ["409", conflict]]
+    why: cancelling a completed appointment answers 409
+  - id: E2
+    match: [[complet], [cancel], ["409", conflict]]
+    why: completing a cancelled appointment answers 409
+  - id: E3
+    match: [[reason, notes], [missing, empty, too long, too-long, exceed, maximum, required, blank], ["400", bad request, validation]]
+    why: bad input still answers 400
+forbid:
+  - id: X1
+    match: [[openapi, swagger, produces, api description, metadata]]
+    soft: true
+    why: the first run added a 409 entry to the API description; useful, but nobody asked
+  - id: X2
+    match: [[detail]]
+    soft: true
+    why: the first run also copied the message into the problem's detail field
+  - id: X3
+    match: [[email, sms, notif]]
+    why: nobody asked to notify anyone
+  - id: X4
+    match: [[order of, reorder, re-order, move the check, check order], [domain, appointment.complete, appointment.cancel]]
+    why: F2 says leave the domain's check order alone

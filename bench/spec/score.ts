@@ -36,6 +36,8 @@ export interface RunScore {
   expectHit: string[];
   expectMiss: string[];
   forbidHit: string[];
+  /** soft forbids the spec said: reported as extras, never a fail */
+  softHit: string[];
   gapsCaught: string[];
   gapsMissed: string[];
   questions: number;
@@ -62,14 +64,16 @@ export function scoreRun(c: EvalCase, o: RunOutcome): RunScore {
   const forbidTexts = [...texts, ...(o.spec?.nfrs ?? []).map((n) => `${n.text} ${n.metric}`)];
   const expectHit = c.expect.filter((e) => texts.some((t) => hits(e.match, t))).map((e) => e.id);
   // "no notification is sent" rules a thing out: only a clause that says it counts as scope creep
-  const forbidHit = c.forbid.filter((f) => forbidTexts.some((t) => affirms(f.match, t))).map((f) => f.id);
+  const said = c.forbid.filter((f) => forbidTexts.some((t) => affirms(f.match, t)));
+  const forbidHit = said.filter((f) => !f.soft).map((f) => f.id);
+  const softHit = said.filter((f) => f.soft).map((f) => f.id);
   const raised = [...o.questions.map((q) => `${q.text} ${q.options.join(" ")}`), ...o.assumptions];
   const gapsCaught = c.gaps.filter((g) => raised.some((t) => hits(g.match, t))).map((g) => g.id);
   const completed = o.status === "until" && !!o.spec;
   return {
     caseId: c.id, repeat: o.repeat, runId: o.runId, completed, status: o.status,
     pass: completed && expectHit.length === c.expect.length && forbidHit.length === 0,
-    expectHit, expectMiss: c.expect.map((e) => e.id).filter((id) => !expectHit.includes(id)), forbidHit,
+    expectHit, expectMiss: c.expect.map((e) => e.id).filter((id) => !expectHit.includes(id)), forbidHit, softHit,
     gapsCaught, gapsMissed: c.gaps.map((g) => g.id).filter((id) => !gapsCaught.includes(id)),
     questions: o.questions.length, answeredFromFacts: o.oracle.filter((a) => a.fact).length, assumptions: o.assumptions.length,
     requirements: reqs.length, acs: reqs.reduce((n, r) => n + r.acceptance.length, 0),
@@ -91,6 +95,8 @@ export interface CaseSummary {
   /** each expected behaviour: in how many runs it was found (1 = every run) */
   perExpect: Record<string, number>;
   forbidRate: number;
+  /** runs whose spec added a soft-forbidden extra (not a fail) */
+  softRate: number;
   gapRate: number;
   /** repeats that agree with each other: share of expected behaviours found in all runs or in none */
   agreement: number;
@@ -110,6 +116,7 @@ export function summariseCase(c: EvalCase, scores: RunScore[]): CaseSummary {
     expectRate: mean(scores.map((s) => s.expectHit.length / c.expect.length)),
     perExpect,
     forbidRate: n ? scores.filter((s) => s.forbidHit.length).length / n : 0,
+    softRate: n ? scores.filter((s) => s.softHit?.length).length / n : 0,
     gapRate: c.gaps.length ? mean(scores.map((s) => s.gapsCaught.length / c.gaps.length)) : 1,
     agreement: mean(Object.values(perExpect).map((v) => (v === 0 || v === 1 ? 1 : 0))),
     reqs: { min: done.length ? Math.min(...done.map((s) => s.requirements)) : 0, max: Math.max(0, ...done.map((s) => s.requirements)) },
@@ -118,7 +125,7 @@ export function summariseCase(c: EvalCase, scores: RunScore[]): CaseSummary {
   };
 }
 
-export interface Overall { cases: number; runs: number; passRate: number; completedRate: number; expectRate: number; forbidRate: number; gapRate: number; agreement: number; costUsd: number; costPerRun: number }
+export interface Overall { cases: number; runs: number; passRate: number; completedRate: number; expectRate: number; forbidRate: number; softRate: number; gapRate: number; agreement: number; costUsd: number; costPerRun: number }
 
 export function overall(sums: CaseSummary[]): Overall {
   const runs = sums.reduce((n, s) => n + s.runs, 0);
@@ -126,7 +133,7 @@ export function overall(sums: CaseSummary[]): Overall {
   const cost = sums.reduce((n, s) => n + s.costUsd.mean * s.runs, 0);
   return {
     cases: sums.length, runs, passRate: w((s) => s.passRate), completedRate: w((s) => s.completedRate), expectRate: w((s) => s.expectRate),
-    forbidRate: w((s) => s.forbidRate), gapRate: w((s) => s.gapRate), agreement: mean(sums.map((s) => s.agreement)), costUsd: cost, costPerRun: runs ? cost / runs : 0,
+    forbidRate: w((s) => s.forbidRate), softRate: w((s) => s.softRate), gapRate: w((s) => s.gapRate), agreement: mean(sums.map((s) => s.agreement)), costUsd: cost, costPerRun: runs ? cost / runs : 0,
   };
 }
 
@@ -135,18 +142,18 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 export function formatReport(sums: CaseSummary[], all: Overall, scores: RunScore[]): string {
   const lines = [
     `Spec eval: ${all.cases} cases, ${all.runs} runs, $${all.costUsd.toFixed(2)} ($${all.costPerRun.toFixed(2)} a run)`,
-    `  passed ${pct(all.passRate)} · reached a spec ${pct(all.completedRate)} · expected behaviour found ${pct(all.expectRate)} · scope creep ${pct(all.forbidRate)} · gaps raised ${pct(all.gapRate)} · repeats agree ${pct(all.agreement)}`,
+    `  passed ${pct(all.passRate)} · reached a spec ${pct(all.completedRate)} · expected behaviour found ${pct(all.expectRate)} · scope creep ${pct(all.forbidRate)} · extras ${pct(all.softRate)} · gaps raised ${pct(all.gapRate)} · repeats agree ${pct(all.agreement)}`,
     ``,
-    `case                              pass  spec  found  creep  gaps  agree  reqs   $/run  min/run`,
+    `case                              pass  spec  found  creep  extra  gaps  agree  reqs   $/run  min/run`,
   ];
   for (const s of sums) {
-    lines.push(`${s.caseId.padEnd(33)} ${pct(s.passRate).padStart(4)}  ${pct(s.completedRate).padStart(4)}  ${pct(s.expectRate).padStart(5)}  ${pct(s.forbidRate).padStart(5)}  ${pct(s.gapRate).padStart(4)}  ${pct(s.agreement).padStart(5)}  ${`${s.reqs.min}-${s.reqs.max}`.padStart(5)}  ${s.costUsd.mean.toFixed(2).padStart(6)}  ${s.wallMin.toFixed(1).padStart(7)}`);
+    lines.push(`${s.caseId.padEnd(33)} ${pct(s.passRate).padStart(4)}  ${pct(s.completedRate).padStart(4)}  ${pct(s.expectRate).padStart(5)}  ${pct(s.forbidRate).padStart(5)}  ${pct(s.softRate).padStart(5)}  ${pct(s.gapRate).padStart(4)}  ${pct(s.agreement).padStart(5)}  ${`${s.reqs.min}-${s.reqs.max}`.padStart(5)}  ${s.costUsd.mean.toFixed(2).padStart(6)}  ${s.wallMin.toFixed(1).padStart(7)}`);
   }
   const misses = scores.filter((s) => !s.pass);
   if (misses.length) {
     lines.push(``, `Runs that didn't pass:`);
     for (const s of misses) {
-      const why = !s.completed ? `stopped: ${s.status}` : [s.expectMiss.length ? `missing ${s.expectMiss.join(", ")}` : "", s.forbidHit.length ? `not asked for: ${s.forbidHit.join(", ")}` : ""].filter(Boolean).join("; ");
+      const why = !s.completed ? `stopped: ${s.status}` : [s.expectMiss.length ? `missing ${s.expectMiss.join(", ")}` : "", s.forbidHit.length ? `not asked for: ${s.forbidHit.join(", ")}` : "", s.softHit?.length ? `extras (allowed): ${s.softHit.join(", ")}` : ""].filter(Boolean).join("; ");
       lines.push(`  ${s.caseId} #${s.repeat}${s.runId ? ` (${s.runId})` : ""}: ${why}`);
       // the spec's own words, so a person can see whether the behaviour is there in other terms
       if (s.expectMiss.length && s.reqs?.length) for (const r of s.reqs.slice(0, 12)) lines.push(`      ${r.length > 160 ? `${r.slice(0, 159)}…` : r}`);

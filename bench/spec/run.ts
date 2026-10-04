@@ -74,7 +74,7 @@ for (const c of cases) {
     const s = scoreRun(c, o);
     outcomes.push(o);
     scores.push(s);
-    console.log(`  ${c.id} #${r}: ${s.pass ? "PASS" : "fail"} (${s.status}; found ${s.expectHit.length}/${c.expect.length}${s.forbidHit.length ? `, creep ${s.forbidHit.join(",")}` : ""}; $${s.costUsd.toFixed(2)}, ${s.wallMin.toFixed(1)} min)`);
+    console.log(`  ${c.id} #${r}: ${s.pass ? "PASS" : "fail"} (${s.status}; found ${s.expectHit.length}/${c.expect.length}${s.forbidHit.length ? `, creep ${s.forbidHit.join(",")}` : ""}${s.softHit.length ? `, extras ${s.softHit.join(",")}` : ""}; $${s.costUsd.toFixed(2)}, ${s.wallMin.toFixed(1)} min)`);
   }
 }
 
@@ -89,4 +89,9 @@ if (!flag("no-save")) {
   const file = join(dir, `${new Date().toISOString().replace(/[:.]/g, "-")}${fake ? "-fake" : ""}.json`);
   writeFileSync(file, JSON.stringify({ date: new Date().toISOString(), commit, fake, repeats, maxCost, like: likeName, overall: all, cases: sums, runs: scores, outcomes }, null, 2));
   console.log(`\nSaved ${file}`);
+}
+// a dry run proves the plumbing: every case must reach a spec (its scores mean nothing), or the run fails
+if (fake && scores.some((s) => !s.completed)) {
+  console.error(`\nDry run FAILED: ${scores.filter((s) => !s.completed).map((s) => `${s.caseId} #${s.repeat} (${s.status})`).join(", ")} didn't reach a spec`);
+  process.exit(1);
 }
