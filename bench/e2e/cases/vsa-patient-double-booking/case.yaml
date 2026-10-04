@@ -1,6 +1,9 @@
 id: vsa-patient-double-booking
 repo: vsa
 kind: bugfix
+# v2 (c66539e): after the first paid run stopped at its cap, F2 was narrowed and F3/F4 added (the database and
+# time-change questions it asked). Results of v1 and v2 don't compare as a clean before/after.
+caseVersion: 2
 request: |
   POST /api/appointments accepts a second appointment for the same patient that overlaps one they already have with
   another doctor. A patient can't be in two places at once: refuse the overlapping booking with 409 Conflict, the

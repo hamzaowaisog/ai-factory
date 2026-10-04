@@ -1,0 +1,6 @@
+{
+  "_note": "Results written before rows recorded caseVersion (2026-10-04). All three are vsa-patient-double-booking: v1 for the run that stopped at its cap, v2 (facts changed in c66539e) for the re-run and the Claude Code baseline after it.",
+  "2026-10-04T14-39-49-341Z-paid.json": 1,
+  "2026-10-04T15-15-43-245Z-paid.json": 2,
+  "2026-10-04T15-28-02-135Z-paid.json": 2
+}

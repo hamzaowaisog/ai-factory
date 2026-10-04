@@ -1,0 +1,22 @@
+{
+  "todo-clear-completed": {
+    "version": 1,
+    "hash": "2312812b7e76a2c5"
+  },
+  "todo-create-complete-ignored": {
+    "version": 1,
+    "hash": "d669322046c315fa"
+  },
+  "vsa-patient-double-booking": {
+    "version": 2,
+    "hash": "87f9fcf10d05115e"
+  },
+  "vsa-specialty-filter": {
+    "version": 1,
+    "hash": "ac9f76b6fe1c0fd7"
+  },
+  "vsa-state-conflict-409": {
+    "version": 1,
+    "hash": "b4ec5392375071f7"
+  }
+}

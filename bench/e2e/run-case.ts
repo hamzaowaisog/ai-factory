@@ -30,6 +30,10 @@ export interface HiddenScore {
 
 export interface E2ERow {
   caseId: string;
+  /** the case's version when it ran (case.yaml caseVersion); results of different versions don't compare */
+  caseVersion?: number;
+  /** the factory commit that ran it */
+  factoryCommit?: string;
   repeat: number;
   mode: "factory" | "claude-code" | "patch";
   outcome: string;

@@ -1,5 +1,6 @@
 // End-to-end eval cases (bench/e2e): a ticket on a pinned public repo, facts to answer its questions, hidden HTTP-level
 // tests the factory never sees, our known-good reference patch and one deliberately broken patch.
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,6 +18,8 @@ export const E2ECase = z.object({
   kind: z.enum(["bugfix", "feature"]),
   request: z.string().min(20),
   facts: z.array(z.object({ id: z.string().min(1), about: Matcher, answer: z.string().min(1) })).default([]),
+  /** bump on any change to case.yaml or the hidden tests once the case has had a paid run (frozen.json holds each version's hash) */
+  caseVersion: z.number().int().min(1).default(1),
   timeoutMin: z.number().positive().default(45),
   maxCostUsd: z.number().positive().default(6),
 });
@@ -74,3 +77,13 @@ export function patchSize(patch: string): { lines: number; files: string[] } {
 /** The hidden tests' test ids look like `<assembly>::<Namespace>.Hidden_<Case>Tests.<Method>`: their class names. */
 export const hiddenClasses = (c: Pick<E2ECase, "hidden">): string[] =>
   Object.keys(c.hidden).map((p) => p.split("/").pop()!.replace(/\.cs$/, ""));
+
+/** What a scored run depends on: the ticket and facts (case.yaml) and the hidden tests. The reference and broken patches don't change a run. */
+export function caseHash(c: Pick<E2ECase, "dir" | "hidden">): string {
+  const h = createHash("sha256").update(readFileSync(join(c.dir, "case.yaml")).toString("utf8").replace(/\r\n/g, "\n"));
+  for (const [path, text] of Object.entries(c.hidden).sort(([a], [b]) => a.localeCompare(b))) h.update(`\0${path}\0${text.replace(/\r\n/g, "\n")}`);
+  return h.digest("hex").slice(0, 16);
+}
+
+/** Each case's version and the hash it had: a case changed without a version bump is caught by a test. */
+export const frozenCases = (): Record<string, { version: number; hash: string }> => JSON.parse(readFileSync(join(HERE, "frozen.json"), "utf8"));

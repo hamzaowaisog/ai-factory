@@ -89,3 +89,16 @@ describe("the double-booking case's facts answer what the first paid run asked",
     expect(log.map((a) => [a.question, a.fact])).toEqual([["Q-1", "F4"], ["Q-2", "F3"], ["Q-5", "F2"]]);
   });
 });
+
+describe("cases are frozen once they have had a paid run", () => {
+  it("a change to a case's ticket, facts or hidden tests needs a caseVersion bump (frozen.json holds each version's hash)", async () => {
+    const { caseHash, frozenCases } = await import("./case.js");
+    const frozen = frozenCases();
+    for (const c of loadE2ECases()) {
+      const f = frozen[c.id];
+      expect(f, `${c.id} is not in bench/e2e/frozen.json: add it with its version and hash`).toBeDefined();
+      expect(c.caseVersion, `${c.id}: case.yaml says caseVersion ${c.caseVersion}, frozen.json says ${f!.version}`).toBe(f!.version);
+      expect(caseHash(c), `${c.id} changed without a version bump: raise caseVersion in its case.yaml and update frozen.json`).toBe(f!.hash);
+    }
+  });
+});

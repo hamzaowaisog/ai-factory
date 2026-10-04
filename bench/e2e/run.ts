@@ -13,7 +13,7 @@ import { parse } from "yaml";
 import { useEvalHome } from "../eval-home.js";
 import { setAgentScript } from "../../src/runners/claude-agent.js";
 import { setProviderFactory } from "../../src/stages/think.js";
-import { dirtyWarning } from "../../src/stages/executor.js";
+import { dirtyWarning, factoryCommit } from "../../src/stages/executor.js";
 import { HERE, loadE2ECases, patchSize, type E2ECase } from "./case.js";
 import { e2eAgent, e2eProvider } from "./fake.js";
 import { commitWith, freshBase } from "./lab.js";
@@ -32,6 +32,9 @@ function patchedFiles(c: E2ECase, patch: string): Record<string, string> {
   commitWith(dir, commit, "fake-impl", { patch });
   return Object.fromEntries(patchSize(patch).files.map((f) => [f, readFileSync(join(dir, f), "utf8")]));
 }
+
+/** Every result says which case version and which factory code produced it. */
+const stamp = (c: E2ECase, r: E2ERow): E2ERow => ({ ...r, caseVersion: c.caseVersion, ...factoryCommit().commit ? { factoryCommit: factoryCommit().commit } : {} });
 
 export function formatRows(rows: E2ERow[]): string {
   const lines = ["case                          mode         rep  outcome     hidden   cost    min  lines/ref  creep  cards  leaks"];
@@ -99,7 +102,7 @@ if (process.argv[1]?.endsWith("run.ts") || process.argv[1]?.endsWith("run.js")) 
       setAgentScript(e2eAgent(() => current, () => files));
       for (const c of cases) for (let i = 1; i <= repeats; i++) {
         current = c; files = patchedFiles(c, c[which]);
-        rows.push(await runFactory(c, i, { maxCostUsd: c.maxCostUsd, log: console.log }));
+        rows.push(stamp(c, await runFactory(c, i, { maxCostUsd: c.maxCostUsd, log: console.log })));
       }
     } else {
       const maxCost = Number(opt("max-cost"));
@@ -117,7 +120,7 @@ if (process.argv[1]?.endsWith("run.ts") || process.argv[1]?.endsWith("run.js")) 
         const r = opt("baseline") === "claude-code"
           ? await runClaudeCode(c, i, { model: "claude-sonnet-5", maxCostUsd: maxCost, apiKey: key, log: console.log })
           : await runFactory(c, i, { maxCostUsd: maxCost, like: like ? { prices: like.prices, steps: like.steps, policy: like.policy } : undefined, log: console.log });
-        rows.push(r); spent += r.costUsd;
+        rows.push(stamp(c, r)); spent += r.costUsd;
       }
       console.log(`spent $${spent.toFixed(2)} of at most $${total.toFixed(2)}`);
     }

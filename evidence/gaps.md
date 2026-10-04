@@ -2,9 +2,11 @@
 - **Few paid runs.** Three factory runs and one plain Claude Code baseline on public code, each run once: they show what
   works and what fails, not averages.
   The e2e suite reports each case on its own for this reason, and supports `--repeats`.
-- **One e2e case so far with real models.** `vsa-patient-double-booking` stopped at its $6 cap before two fixes (light
-  lane for bug fixes; clarify recommends the smallest change), then delivered with 3/3 hidden tests for $2.50. The other
-  four cases are validated and proven with scripted models only.
+- **The passing double-booking run is not a clean result.** After the first failure we changed the factory and this
+  case's answers (its facts), then re-ran it; the 3/3 is a retest of a changed case on a known exam (case v2). The cases
+  below were not changed: `vsa-specialty-filter`, `todo-clear-completed`, `vsa-state-conflict-409` and
+  `todo-create-complete-ignored` are still at version 1, validated and proven with scripted models only, and are the
+  clean tests still to run.
 - **The first VSA run predates the hidden-test harness.** It delivered a GitHub PR with 9/9 of its own locked tests,
   but no hidden tests scored it.
 - **On a small, clear bug, plain Claude Code did as well for far less.** Same ticket, same hidden tests: Claude Code

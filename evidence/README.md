@@ -8,15 +8,19 @@ published.
 |---|---|---|---|---|---|---|
 | 2026-10-03 | 1c48558 | Cancelling a completed appointment, or completing a cancelled one, ret | delivered | $2.24 | 14.6 | [2026-10-03-cancelling-a-completed-appoint-b3d3](runs/2026-10-03-cancelling-a-completed-appoint-b3d3/) |
 | 2026-10-04 | 9252175 | POST /api/appointments accepts a second appointment for the same patie | stopped (cap card (refused by the eval)) | $6.11 | 29.2 | [2026-10-04-post-api-appointments-accepts-557c](runs/2026-10-04-post-api-appointments-accepts-557c/) |
-| 2026-10-04 | c66539e | POST /api/appointments accepts a second appointment for the same patie | delivered · hidden tests 3/3 | $2.50 | 13.8 | [2026-10-04-post-api-appointments-accepts-b0f9](runs/2026-10-04-post-api-appointments-accepts-b0f9/) |
+| 2026-10-04 | c66539e | POST /api/appointments accepts a second appointment for the same patie | delivered · hidden tests 3/3 · **re-run after changing the case** | $2.50 | 13.8 | [2026-10-04-post-api-appointments-accepts-b0f9](runs/2026-10-04-post-api-appointments-accepts-b0f9/) |
 
 ## End-to-end eval: a ticket, scored by hidden tests the factory never saw
 
-| Date | Case | Mode | Outcome | Hidden tests | Cost | Minutes | Prod lines | Test lines | Creep files | Result |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 2026-10-04 | vsa-patient-double-booking | factory | stopped (cap card (refused by the eval)) | - | $6.11 | 31.0 | - | 546 | 0 | [json](evals/e2e/2026-10-04T14-39-49-341Z-paid.json) |
-| 2026-10-04 | vsa-patient-double-booking | factory | delivered | 3/3 | $2.50 | 14.9 | 16 | 190 | 0 | [json](evals/e2e/2026-10-04T15-15-43-245Z-paid.json) |
-| 2026-10-04 | vsa-patient-double-booking | claude-code | delivered | 3/3 | $0.20 | 2.4 | 18 | 0 | 0 | [json](evals/e2e/2026-10-04T15-28-02-135Z-paid.json) |
+**Not a clean before/after.** After the first failure we changed the factory and this case's answers (its facts), then
+re-ran it: a pass on a re-run of a changed case is a retest on a known exam. Rows marked "re-run after changing the case" are
+that; cases without the mark were not changed. Every case is now frozen: a change bumps its version (`caseVersion`).
+
+| Date | Case | Case version | Mode | Outcome | Hidden tests | Cost | Minutes | Prod lines | Test lines | Creep files | Result |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-10-04 | vsa-patient-double-booking | 1 | factory | stopped (cap card (refused by the eval)) | - | $6.11 | 31.0 | - | 546 | 0 | [json](evals/e2e/2026-10-04T14-39-49-341Z-paid.json) |
+| 2026-10-04 | vsa-patient-double-booking | 2 | factory · **re-run after changing the case** | delivered | 3/3 | $2.50 | 14.9 | 16 | 190 | 0 | [json](evals/e2e/2026-10-04T15-15-43-245Z-paid.json) |
+| 2026-10-04 | vsa-patient-double-booking | 2 | claude-code · **re-run after changing the case** | delivered | 3/3 | $0.20 | 2.4 | 18 | 0 | 0 | [json](evals/e2e/2026-10-04T15-28-02-135Z-paid.json) |
 
 ## Eval results
 - `e2e`: [2026-10-04T11-13-44-835Z-validate.json](evals/e2e/2026-10-04T11-13-44-835Z-validate.json)
@@ -28,9 +32,11 @@ published.
 - **Few paid runs.** Three factory runs and one plain Claude Code baseline on public code, each run once: they show what
   works and what fails, not averages.
   The e2e suite reports each case on its own for this reason, and supports `--repeats`.
-- **One e2e case so far with real models.** `vsa-patient-double-booking` stopped at its $6 cap before two fixes (light
-  lane for bug fixes; clarify recommends the smallest change), then delivered with 3/3 hidden tests for $2.50. The other
-  four cases are validated and proven with scripted models only.
+- **The passing double-booking run is not a clean result.** After the first failure we changed the factory and this
+  case's answers (its facts), then re-ran it; the 3/3 is a retest of a changed case on a known exam (case v2). The cases
+  below were not changed: `vsa-specialty-filter`, `todo-clear-completed`, `vsa-state-conflict-409` and
+  `todo-create-complete-ignored` are still at version 1, validated and proven with scripted models only, and are the
+  clean tests still to run.
 - **The first VSA run predates the hidden-test harness.** It delivered a GitHub PR with 9/9 of its own locked tests,
   but no hidden tests scored it.
 - **On a small, clear bug, plain Claude Code did as well for far less.** Same ticket, same hidden tests: Claude Code

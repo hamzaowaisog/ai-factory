@@ -182,20 +182,32 @@ export function publishEvals(opts: { forbidden?: string[]; evidence?: string; fr
 
 /** The judges' first page: one table of every published run, then the hand-written gaps (evidence/gaps.md). */
 export function writeReadme(root = EVIDENCE): void {
+  // the e2e results, factory and baseline side by side (each a row the harness wrote)
+  const e2eDir = join(root, "evals", "e2e");
+  // results older than version stamping take their version from a committed, documented map
+  const legacy = existsSync(join(ROOT, "bench", "e2e", "legacy-case-versions.json")) ? JSON.parse(readFileSync(join(ROOT, "bench", "e2e", "legacy-case-versions.json"), "utf8")) as Record<string, number> : {};
+  const firstVersion = new Map<string, number>();
+  let changedCase = false;
+  const rerunIds = new Set<string>();
+  const e2e = (existsSync(e2eDir) ? readdirSync(e2eDir).filter((f) => f.endsWith("-paid.json")).sort() : []).flatMap((f) =>
+    (JSON.parse(readFileSync(join(e2eDir, f), "utf8")) as { caseId: string; caseVersion?: number; mode: string; outcome: string; stoppedAt?: string; hidden?: { passed: number; total: number }; costUsd: number; minutes: number; prodLines?: number; creepFiles: string[]; run?: { runId?: string; changes?: { testLinesAdded: number } } }[])
+      .map((r) => {
+        const v = r.caseVersion ?? legacy[f];
+        const first = firstVersion.get(r.caseId);
+        if (first === undefined && v !== undefined) firstVersion.set(r.caseId, v);
+        const rerun = first !== undefined && v !== undefined && v > first;
+        if (rerun) { changedCase = true; if (r.run?.runId) rerunIds.add(r.run.runId); }
+        return `| ${f.slice(0, 10)} | ${r.caseId} | ${v ?? "?"} | ${r.mode}${rerun ? " · **re-run after changing the case**" : ""} | ${r.outcome}${r.stoppedAt ? ` (${r.stoppedAt})` : ""} | ${r.hidden ? `${r.hidden.passed}/${r.hidden.total}` : "-"} | $${r.costUsd.toFixed(2)} | ${r.minutes.toFixed(1)} | ${r.prodLines ?? "-"} | ${r.run?.changes?.testLinesAdded ?? 0} | ${r.creepFiles.length} | [json](evals/e2e/${f}) |`;
+      }));
   const runsDir = join(root, "runs");
   const rows = (existsSync(runsDir) ? readdirSync(runsDir).sort() : []).flatMap((n) => {
     const f = join(runsDir, n, "row.json");
     if (!existsSync(f)) return [];
     const r = JSON.parse(readFileSync(f, "utf8")) as RunRow & { e2e?: { hidden?: { passed: number; total: number }; outcome?: string; stoppedAt?: string } };
     const hidden = r.e2e?.hidden ? ` · hidden tests ${r.e2e.hidden.passed}/${r.e2e.hidden.total}` : "";
-    const result = `${r.e2e?.outcome ?? r.outcome}${hidden}${r.e2e?.stoppedAt ? ` (${r.e2e.stoppedAt})` : ""}`;
+    const result = `${r.e2e?.outcome ?? r.outcome}${hidden}${r.e2e?.stoppedAt ? ` (${r.e2e.stoppedAt})` : ""}${rerunIds.has(r.runId) ? " · **re-run after changing the case**" : ""}`;
     return [`| ${n.slice(0, 10)} | ${r.factoryCommit ?? "not recorded"} | ${r.ticket.replace(/\|/g, "/").slice(0, 70)} | ${result} | $${r.costUsd.toFixed(2)} | ${r.activeMin.toFixed(1)} | [${n}](runs/${n}/) |`];
   });
-  // the e2e results, factory and baseline side by side (each a row the harness wrote)
-  const e2eDir = join(root, "evals", "e2e");
-  const e2e = (existsSync(e2eDir) ? readdirSync(e2eDir).filter((f) => f.endsWith("-paid.json")).sort() : []).flatMap((f) =>
-    (JSON.parse(readFileSync(join(e2eDir, f), "utf8")) as { caseId: string; mode: string; outcome: string; stoppedAt?: string; hidden?: { passed: number; total: number }; costUsd: number; minutes: number; prodLines?: number; creepFiles: string[]; run?: { changes?: { testLinesAdded: number } } }[])
-      .map((r) => `| ${f.slice(0, 10)} | ${r.caseId} | ${r.mode} | ${r.outcome}${r.stoppedAt ? ` (${r.stoppedAt})` : ""} | ${r.hidden ? `${r.hidden.passed}/${r.hidden.total}` : "-"} | $${r.costUsd.toFixed(2)} | ${r.minutes.toFixed(1)} | ${r.prodLines ?? "-"} | ${r.run?.changes?.testLinesAdded ?? 0} | ${r.creepFiles.length} | [json](evals/e2e/${f}) |`));
   const evals = existsSync(join(root, "evals")) ? readdirSync(join(root, "evals")).sort().flatMap((s) => readdirSync(join(root, "evals", s)).sort().map((f) => `- \`${s}\`: [${f}](evals/${s}/${f})`)) : [];
   const gaps = existsSync(join(root, "gaps.md")) ? readFileSync(join(root, "gaps.md"), "utf8").trim() : "";
   writeFileSync(join(root, "README.md"), [
@@ -210,8 +222,11 @@ export function writeReadme(root = EVIDENCE): void {
     ...rows,
     "",
     ...(e2e.length ? ["## End-to-end eval: a ticket, scored by hidden tests the factory never saw", "",
-      "| Date | Case | Mode | Outcome | Hidden tests | Cost | Minutes | Prod lines | Test lines | Creep files | Result |",
-      "|---|---|---|---|---|---|---|---|---|---|---|", ...e2e, ""] : []),
+      ...(changedCase ? ["**Not a clean before/after.** After the first failure we changed the factory and this case's answers (its facts), then",
+        "re-ran it: a pass on a re-run of a changed case is a retest on a known exam. Rows marked \"re-run after changing the case\" are",
+        "that; cases without the mark were not changed. Every case is now frozen: a change bumps its version (`caseVersion`).", ""] : []),
+      "| Date | Case | Case version | Mode | Outcome | Hidden tests | Cost | Minutes | Prod lines | Test lines | Creep files | Result |",
+      "|---|---|---|---|---|---|---|---|---|---|---|---|", ...e2e, ""] : []),
     "## Eval results",
     ...(evals.length ? evals : ["(none yet)"]),
     ...(gaps ? ["", gaps] : []),
