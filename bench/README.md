@@ -82,3 +82,12 @@ A paid run uses the factory home: it adds `eval-<repo>` projects and clones the 
 Limits to keep in mind: the scorers match words, so a spec that says the right thing in unusual words counts as a
 miss (fix the matcher, not the spec); the oracle answers from keyword-matched facts, so a question no fact covers
 gets the card's recommended option.
+
+## runs: run records from the ledger
+`npx tsx bench/runs/run.ts row <run-id | folder | run.tar.gz>` turns one run into one JSON row: factory commit, ticket,
+repo base, size, lane, risk, impact counts, per-step cost, tokens, minutes, retries and gate failures (from the run
+scorecard, so it agrees with `factory report`), lines and files changed, locked tests, card waits and the outcome.
+`baseline <result.json> --name <id> [--repo --base --head]` makes a row from a plain Claude Code run; `compare <rows…>`
+prints them side by side; `md <row.json>` prints a run record's tables (docs/runs/), and the narrative is written by hand.
+Rows go to `runs/results/` (git-ignored). Free: no model calls.
+

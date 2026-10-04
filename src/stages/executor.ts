@@ -1,5 +1,6 @@
 // The executor (run-manager §2.3, §2.5, §2.9): replay → next step → run → record → repeat,
 // until a human card, a park, delivery, or a stop/pause request. One executor per repo.
+import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
@@ -37,9 +38,14 @@ export function policyFor(project: ProjectConfig): Policy {
   return mergePolicy(DEFAULT_POLICY, project.policy as Partial<Policy>);
 }
 
+/** The factory's own commit, so every run says exactly what code ran it (eval rows, run records); "-dirty" with local edits. */
+function factoryCommit(): { commit?: string } {
+  try { return { commit: execFileSync("git", ["-C", REPO_ROOT, "describe", "--always", "--dirty", "--abbrev=7"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() }; } catch { return {}; }
+}
+
 function versions(): Record<string, string> {
   const pkg = JSON.parse(readFileSync(join(REPO_ROOT, "package.json"), "utf8")) as { version: string; dependencies: Record<string, string> };
-  return { factory: pkg.version, node: process.version, "mode:brownfield": "1", "mode:estimate": "1", "mode:design": "1", ...Object.fromEntries(Object.entries(pkg.dependencies).filter(([k]) => /anthropic|openai|zod/.test(k))) };
+  return { factory: pkg.version, ...factoryCommit(), node: process.version, "mode:brownfield": "1", "mode:estimate": "1", "mode:design": "1", ...Object.fromEntries(Object.entries(pkg.dependencies).filter(([k]) => /anthropic|openai|zod/.test(k))) };
 }
 
 function slug(text: string): string {
