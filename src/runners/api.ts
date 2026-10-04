@@ -81,9 +81,21 @@ export class RateLimitedError extends Error {}
  * error arrives after HTTP 200, so the SDK raises it with no status, only its type ("overloaded_error").
  */
 export function transientAnthropic(e: unknown): boolean {
+  if (droppedConnection(e)) return true;
   if (e instanceof Anthropic.RateLimitError || e instanceof Anthropic.InternalServerError) return true;
   if (!(e instanceof Anthropic.APIError)) return false;
   return e.status === 529 || ["overloaded_error", "rate_limit_error", "api_error"].includes(String(e.type ?? ""));
+}
+/**
+ * The connection failed or was cut mid-answer (network, proxy, VPN): nothing the model did, so it waits like an
+ * outage. A stream cut after HTTP 200 surfaces as fetch's own TypeError "terminated", not as an SDK error.
+ */
+export function droppedConnection(e: unknown): boolean {
+  if (e instanceof Anthropic.APIConnectionError || e instanceof OpenAI.APIConnectionError) return true;
+  if (!(e instanceof Error) || e instanceof Anthropic.APIError || e instanceof OpenAI.APIError) return false;
+  const code = String((e as { code?: unknown }).code ?? (e.cause as { code?: unknown } | undefined)?.code ?? "");
+  return /^(ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|ENOTFOUND|EAI_AGAIN|UND_ERR_\w+)$/.test(code)
+    || /^terminated$|fetch failed|socket hang up|premature close/i.test(e.message);
 }
 /** 400/401/403/404: retrying won't help. */
 export class ConfigError extends Error {
@@ -175,7 +187,7 @@ export class OpenAIProvider implements Provider {
   }
 
   private rethrow(e: unknown): never {
-    if (e instanceof OpenAI.RateLimitError || e instanceof OpenAI.InternalServerError) throw new RateLimitedError((e as Error).message);
+    if (droppedConnection(e) || e instanceof OpenAI.RateLimitError || e instanceof OpenAI.InternalServerError) throw new RateLimitedError((e as Error).message);
     if (e instanceof OpenAI.APIError && CONFIG_STATUSES.has(e.status as number)) throw new ConfigError(e.status as number, (e as Error).message);
     throw e;
   }

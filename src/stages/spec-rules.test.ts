@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveAnswer, scoreQuestions, selectQuestions, verifyDifferences, type ClarifierQuestion, type Sketch } from "./clarify.js";
+import { keptSketches, resolveAnswer, scoreQuestions, selectQuestions, verifyDifferences, type ClarifierQuestion, type Sketch } from "./clarify.js";
 import { Defaults, loadDefaults, topicsText } from "../estimate/defaults.js";
 import { checkMerge, criticBlocks, criticTemplate, lostCoverage, problems, roundTripCheck, sameProblems } from "./specpipe.js";
 import { lintSpec, mentions, requestExcluded, sizeNote } from "./speclint.js";
@@ -11,6 +11,17 @@ const q = (over: Partial<ClarifierQuestion>): ClarifierQuestion => ({
 const cb = { claims: [{ id: "C-1", text: "", spans: ["I-1"], anchors: [{ path: "a", lineStart: 1, lineEnd: 1, quote: "x" }] }], notFound: [{ span: "I-2", searched: ["x"] }] };
 
 describe("clarify rules", () => {
+  it("a retry keeps the readings the last failed attempt got back, for the same inputs only", () => {
+    const events = [
+      { type: "step.failed", data: { sketchKey: "k", sketchShas: [null, "b", null] } },
+      { type: "step.failed", data: { sketchKey: "other", sketchShas: ["x", "y", "z"] } },
+      { type: "step.failed", data: { sketchKey: "k", sketchShas: ["a", "b", null] } },
+      { type: "step.failed", data: { signature: "park" } },
+    ];
+    expect(keptSketches(events, "k")).toEqual(["a", "b", null]);
+    expect(keptSketches(events, "new")).toEqual([]);
+  });
+
   it("keeps only differences that cite real behaviours in two sketches", () => {
     const sk = [sketch(["x"]), sketch(["y"]), sketch(["x"])];
     const good = { id: "D-1", span: "I-1", topic: "", readings: [{ sketch: 1, behaviour: 0, summary: "" }, { sketch: 2, behaviour: 0, summary: "" }] };

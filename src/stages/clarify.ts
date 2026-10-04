@@ -193,6 +193,12 @@ export function restyleChosen(r: ClarifyResult | undefined): string[] | undefine
 // ---------- steps ----------
 const request = (ctx: Pick<StepContext, "state">) => ctx.state.info.request ?? "";
 
+/** The readings that came back on the last failed attempt for the same inputs (sha per reading, null = lost). */
+export function keptSketches(events: { type: string; data?: unknown }[], sketchKey: string): (string | null)[] {
+  const ev = [...events].reverse().find((e) => e.type === "step.failed" && (e.data as { sketchKey?: string } | undefined)?.sketchKey === sketchKey);
+  return (ev?.data as { sketchShas?: (string | null)[] } | undefined)?.sketchShas ?? [];
+}
+
 async function runSketches(ctx: StepContext, intent: Intent, cb: CB): Promise<{ ok: true; sketches: Sketch[]; diffs: Difference[] } | { ok: false; outcome: StepOutcome }> {
   const one = (n: number) => think(ctx, {
     stage: "sketches", route: "sketches", cls: "read-small", budgetTokens: 12000, tools: [], schema: SketchOut, maxTurns: 3,
@@ -207,9 +213,21 @@ ${UNTRUSTED_NOTE}`),
       S.task(`Reading #${n}: list the behaviours per span.`),
     ],
   });
-  const rs = await Promise.all([one(1), one(2), one(3)]);
+  // a retry only pays for the readings the last attempt lost
+  const sketchKey = hashJson({ intent: intent.spans, cb: cb.claims, request: request(ctx) });
+  const kept = keptSketches([...ctx.ledger.events()], sketchKey);
+  const rs = await Promise.all([1, 2, 3].map(async (n) => {
+    const sha = kept[n - 1];
+    if (!sha) return one(n);
+    ctx.log(`sketches: reading #${n} kept from the last attempt (no model call)`);
+    return { ok: true as const, output: ctx.ledger.getJson<Sketch>(sha) };
+  }));
   const bad = rs.find((r) => !r.ok);
-  if (bad && !bad.ok) return { ok: false, outcome: bad.outcome };
+  if (bad && !bad.ok) {
+    if (bad.outcome.kind !== "fail") return { ok: false, outcome: bad.outcome };
+    const sketchShas = rs.map((r) => (r.ok ? ctx.ledger.putJson(r.output) : null));
+    return { ok: false, outcome: { ...bad.outcome, data: { ...(bad.outcome.data ?? {}), sketchKey, sketchShas } } };
+  }
   const sketches = rs.map((r) => (r as { output: Sketch }).output);
   const al = await think(ctx, {
     stage: "sketches", route: "sketch-align", cls: "read-small", budgetTokens: 15000, tools: [], schema: AlignOut, maxTurns: 3,

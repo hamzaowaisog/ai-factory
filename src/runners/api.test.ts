@@ -157,6 +157,14 @@ describe("Anthropic errors worth waiting for", () => {
     expect(transientAnthropic(new Anthropic.APIError(400, { type: "error", error: { type: "invalid_request_error" } }, undefined, new Headers(), "invalid_request_error"))).toBe(false);
     expect(transientAnthropic(new Error("x"))).toBe(false);
   });
+
+  it("a connection cut mid-answer waits too: fetch's \"terminated\", a reset socket, the SDK's connection error", () => {
+    expect(transientAnthropic(new TypeError("terminated"))).toBe(true);
+    expect(transientAnthropic(Object.assign(new TypeError("fetch failed"), { cause: { code: "ECONNRESET" } }))).toBe(true);
+    expect(transientAnthropic(Object.assign(new Error("read"), { code: "ECONNRESET" }))).toBe(true);
+    expect(transientAnthropic(new Anthropic.APIConnectionError({ message: "Connection error." }))).toBe(true);
+    expect(transientAnthropic(new Anthropic.APIUserAbortError())).toBe(false);
+  });
 });
 describe("images for each provider", () => {
   const imgs: ModelImage[] = [{ mediaType: "image/png", base64: "AAA" }, { mediaType: "image/webp", base64: "BBB" }];
