@@ -5,18 +5,18 @@
 //   npx tsx bench/e2e/run.ts run --baseline claude-code --spend --max-cost <usd> [--case <id>] [--repeats n] [--yes] PAID
 //   npx tsx bench/e2e/run.ts score --case <id> --patch <file>            free: score any diff (e.g. a baseline's)
 // Each case and each repeat is reported on its own; there is no overall percentage. Results go to e2e/results/.
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { parse } from "yaml";
-import { markEvalHome } from "../../src/ledger/human.js";
+import { useEvalHome } from "../eval-home.js";
 import { setAgentScript } from "../../src/runners/claude-agent.js";
 import { setProviderFactory } from "../../src/stages/think.js";
 import { dirtyWarning } from "../../src/stages/executor.js";
 import { HERE, loadE2ECases, patchSize, type E2ECase } from "./case.js";
 import { e2eAgent, e2eProvider } from "./fake.js";
-import { commitWith, freshBase, WORK } from "./lab.js";
+import { commitWith, freshBase } from "./lab.js";
 import { runClaudeCode, runFactory, runPatch, type E2ERow } from "./run-case.js";
 import { validateCase } from "./validate.js";
 
@@ -62,17 +62,6 @@ function save(kind: string, data: unknown): string {
   return file;
 }
 
-/** The eval harness's own temporary factory home (cards there are answered by it); a paid run takes the keys file. */
-function evalHome(paid: boolean): string {
-  // under the factory's home folder: the same disk as the shared package cache (hard links), and shared with Docker's VM
-  mkdirSync(WORK, { recursive: true });
-  const home = mkdtempSync(join(WORK, "home-"));
-  process.env.FACTORY_HOME = home;
-  markEvalHome(home);
-  if (paid) copyFileSync(join(homedir(), ".factory", ".env"), join(home, ".env"));
-  else writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-fake-e2e-000000000000\nOPENAI_API_KEY=sk-fake-e2e-000000000000\n", { mode: 0o600 });
-  return home;
-}
 
 async function confirm(total: number): Promise<boolean> {
   if (flag("yes")) return true;
@@ -103,7 +92,7 @@ if (process.argv[1]?.endsWith("run.ts") || process.argv[1]?.endsWith("run.js")) 
     if (flag("fake") === flag("spend")) { console.error("Say --fake (free, scripted) or --spend --max-cost <usd> (real models, real cost)."); process.exit(2); }
     const rows: E2ERow[] = [];
     if (flag("fake")) {
-      evalHome(false);
+      useEvalHome("e2e", { paid: false });
       const which = (opt("patch") ?? "reference") as "reference" | "broken";
       let current = cases[0]!; let files: Record<string, string> = {};
       setProviderFactory(() => e2eProvider(() => current, () => current[which]));
@@ -119,7 +108,7 @@ if (process.argv[1]?.endsWith("run.ts") || process.argv[1]?.endsWith("run.js")) 
       console.log(`PAID: ${cases.length} case(s) x ${repeats} repeat(s) x $${maxCost} cap = at most $${total.toFixed(2)}, a hard stop.`);
       const dirty = dirtyWarning(); if (dirty) console.log(dirty);
       if (!(await confirm(total))) { console.log("Nothing spent."); process.exit(1); }
-      evalHome(true);
+      useEvalHome("e2e", { paid: true });
       let spent = 0;
       const like = opt("like") ? parse(readFileSync(join(homedir(), ".factory", "projects", `${opt("like")}.yaml`), "utf8")) as Record<string, unknown> : undefined;
       const key = /^ANTHROPIC_API_KEY=(.+)$/m.exec(readFileSync(join(homedir(), ".factory", ".env"), "utf8"))?.[1]?.trim() ?? "";

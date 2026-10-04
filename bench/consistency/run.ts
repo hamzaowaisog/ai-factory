@@ -1,7 +1,7 @@
 // Consistency suite runner (docs/estimate-consistency.md, section 10, step F). Every requirement file under
 // cases/<group>/ is estimated hands-off from requirements alone, with the cross-run cache off, so reworded
 // requirements are compared the way a client's would be. The design approval (E1b) is the one human card
-// left in a hands-off estimate; here `bench` approves it. Costs real model calls: needs ANTHROPIC_API_KEY.
+// left in a hands-off estimate; here the eval harness approves it, in its own temporary home (bench/eval-home.ts). Costs real model calls: needs ANTHROPIC_API_KEY.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,7 +11,7 @@ import "../../src/design/gates.js";
 import "../../src/estimate/lint.js";
 import "../../src/estimate/gates.js";
 import { ensureStandaloneProject, STANDALONE_PROJECT } from "../../src/config/project.js";
-import { decide } from "../../src/ledger/human.js";
+import { decide, EVAL_DECIDER } from "../../src/ledger/human.js";
 import { Ledger } from "../../src/ledger/ledger.js";
 import { replay } from "../../src/ledger/state.js";
 import { createRun, execute } from "../../src/stages/executor.js";
@@ -42,7 +42,7 @@ export async function runCase(c: Case, log: (s: string) => void = () => undefine
     const ledger = Ledger.open(runId);
     const card = replay(ledger.events()).openCard;
     if (card?.kind !== "design-approval") return { ...sampleFromRun(runId, c.group, c.name), error: `waiting on a ${card?.kind ?? "unknown"} card` };
-    await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 6), by: "bench" });
+    await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 6), by: EVAL_DECIDER });
   }
   return sampleFromRun(runId, c.group, c.name);
 }

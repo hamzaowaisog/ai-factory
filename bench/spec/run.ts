@@ -6,8 +6,7 @@
 //   --max-cost USD    hard cap for each run (default 4); a run that hits it stops and counts as not passed
 //   --like PROJECT    copy prices, model routes and policy from this real project (recommended with --spend)
 //   --no-save         don't write bench/spec/results/<date>.json
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 
@@ -19,16 +18,17 @@ if (fake === spend) { console.error("Say --fake (free dry run) or --spend (real 
 const repeats = Number(opt("repeats") ?? 3), maxCost = Number(opt("max-cost") ?? 4);
 if (!(repeats >= 1) || !(maxCost > 0)) { console.error("--repeats must be ≥ 1 and --max-cost > 0"); process.exit(2); }
 
-// a dry run never touches the real factory home: its own ledgers, a fake key
-if (fake) {
-  process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "factory-spec-eval-"));
-  writeFileSync(join(process.env.FACTORY_HOME, ".env"), "ANTHROPIC_API_KEY=sk-ant-fake-eval-000000000000\nOPENAI_API_KEY=sk-fake-eval-000000000000\n", { mode: 0o600 });
-}
+// no run touches the real factory home: its own ledgers, projects and clones (a paid run copies the keys); a --like
+// project is read from the real home before switching
+const { loadProject } = await import("../../src/config/project.js");
+const likeName = opt("like");
+const like = likeName ? loadProject(likeName) : undefined;
+const { useEvalHome } = await import("../eval-home.js");
+useEvalHome("spec", { paid: spend });
 
 const { HERE, loadCases, loadRepos } = await import("./case.js");
 const { prepareRepo, runCase, writeProject } = await import("./eval.js");
 const { formatReport, overall, scoreRun, summariseCase } = await import("./score.js");
-const { loadProject } = await import("../../src/config/project.js");
 
 const repos = loadRepos();
 const only = opt("case")?.split(",").map((s) => s.trim()).filter(Boolean);
@@ -36,8 +36,6 @@ const cases = loadCases().filter((c) => !only || only.includes(c.id));
 if (only) for (const id of only) if (!cases.some((c) => c.id === id)) { console.error(`No case "${id}"`); process.exit(2); }
 if (!cases.length) { console.error("No cases."); process.exit(2); }
 
-const likeName = opt("like");
-const like = likeName ? loadProject(likeName) : undefined;
 console.log(`${fake ? "Dry run (fake model)" : "PAID run"}: ${cases.length} cases × ${repeats} = ${cases.length * repeats} runs${spend ? `, at most $${(cases.length * repeats * maxCost).toFixed(0)} in total ($${maxCost} cap per run)` : ""}`);
 if (spend && !like) console.log("No --like project: prices and routes are the factory defaults (a model without a price is costed at the fallback rate).");
 if (spend && !args.includes("--yes")) {

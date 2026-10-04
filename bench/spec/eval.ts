@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { stringify } from "yaml";
-import { decide } from "../../src/ledger/human.js";
+import { decide, EVAL_DECIDER } from "../../src/ledger/human.js";
 import { Ledger } from "../../src/ledger/ledger.js";
 import { replay } from "../../src/ledger/state.js";
 import { readOutput } from "../../src/stages/framework.js";
@@ -84,7 +84,7 @@ export async function runCase(c: EvalCase, repeat: number, opts: { maxCostUsd: n
       const a = answerCard(pending.asked, c.facts);
       oracle.push(...a.log);
       log(`${c.id} #${repeat}: answered ${Object.keys(a.answers).length} of ${pending.asked.length} questions from the case's facts`);
-      await decide(ledger, { decision: "answer", hashPrefix: card.artifactSha.slice(0, 8), by: "spec-eval", data: { answers: a.answers } });
+      await decide(ledger, { decision: "answer", hashPrefix: card.artifactSha.slice(0, 8), by: EVAL_DECIDER, data: { answers: a.answers } });
     }
   } catch (e) {
     status = "error"; message = (e as Error).message.slice(0, 500);

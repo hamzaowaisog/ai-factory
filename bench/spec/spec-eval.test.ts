@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import "../../src/gates/predicates.js";
 import { _resetEnvCache } from "../../src/config/env.js";
+import { markEvalHome } from "../../src/ledger/human.js";
 import { Ledger } from "../../src/ledger/ledger.js";
 import { replay } from "../../src/ledger/state.js";
 import { setProviderFactory } from "../../src/stages/think.js";
@@ -147,6 +148,7 @@ describe("a dry run (fake model, no cost)", () => {
   beforeEach(() => {
     process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "spec-eval-home-"));
     writeFileSync(join(process.env.FACTORY_HOME, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\n", { mode: 0o600 });
+    markEvalHome(process.env.FACTORY_HOME); // as the eval harness does: only a marked home lets it answer as "eval"
     _resetEnvCache();
     setProviderFactory(() => fakeProvider(() => CASE));
   });
@@ -164,7 +166,7 @@ describe("a dry run (fake model, no cost)", () => {
     const state = replay(ledger.events());
     expect(state.steps.get("specify")?.status).toBe("completed");
     expect(state.steps.has("plan")).toBe(false);
-    const recorded = state.decisions.find((d) => d.by === "spec-eval") as unknown as { answers?: Record<string, string> };
+    const recorded = state.decisions.find((d) => d.by === "eval") as unknown as { answers?: Record<string, string> };
     expect(Object.values(recorded.answers ?? {})).toContain("The reason is required, at most 500 characters.");
     const s = scoreRun(CASE, o);
     expect(s).toMatchObject({ completed: true, gapsCaught: ["G1"], questions: 2, answeredFromFacts: 2 });

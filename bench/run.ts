@@ -108,7 +108,10 @@ if (cmd === "consistency") {
     if (!Number.isInteger(runs) || runs < 1) { console.error("--runs must be a whole number from 1"); process.exit(2); }
     const cases = listCases(undefined, values("group"));
     if (!cases.length) { console.error("No cases match."); process.exit(2); }
-    console.log(`Estimating ${cases.length} case(s) x ${runs} run(s), cache off. This makes live model calls.`);
+    // its runs live in an eval home of their own, so they never reach the real home's ledgers or calibration data
+    const { useEvalHome } = await import("./eval-home.js");
+    const { home } = useEvalHome("consistency", { paid: true });
+    console.log(`Estimating ${cases.length} case(s) x ${runs} run(s), cache off, in ${home}. This makes live model calls.`);
     for (let k = 0; k < runs; k++) for (const c of cases) samples.push(await runCase({ ...c, name: runs > 1 ? `${c.name}#${k + 1}` : c.name }, (s) => console.log(`  ${s}`)));
   }
   const stats = groupStats(samples);

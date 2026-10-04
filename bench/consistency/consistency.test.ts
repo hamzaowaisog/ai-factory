@@ -1,3 +1,4 @@
+import { markEvalHome } from "../../src/ledger/human.js";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -93,6 +94,7 @@ const provider: Provider = {
 beforeEach(() => {
   const home = mkdtempSync(join(tmpdir(), "factory-consistency-"));
   process.env.FACTORY_HOME = home;
+  markEvalHome(home); // the bench runs as the eval harness does, in a home marked as its own
   writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\n", { mode: 0o600 });
   _resetEnvCache();
   mkdirSync(join(home, "projects"), { recursive: true });
@@ -102,7 +104,7 @@ beforeEach(() => {
 });
 
 describe("consistency runner", () => {
-  it("estimates a case hands-off from requirements alone, approves the design as bench, and samples the estimate", async () => {
+  it("estimates a case hands-off from requirements alone, approves the design as the eval harness, and samples the estimate", async () => {
     const [c] = listCases(undefined, ["inventory-api"]);
     const s = await runCase(c!);
     expect(s.error).toBeUndefined();
@@ -111,8 +113,8 @@ describe("consistency runner", () => {
     const { Ledger } = await import("../../src/ledger/ledger.js");
     const { replay } = await import("../../src/ledger/state.js");
     const st = replay(Ledger.open(s.runId).events());
-    // the design card is the only decision, made by bench; clarify and E7 asked nobody
-    expect(st.decisions.map((d) => [d.cardId.split("-")[0], d.by])).toEqual([["design", "bench"]]);
+    // the design card is the only decision, made by the eval harness; clarify and E7 asked nobody
+    expect(st.decisions.map((d) => [d.cardId.split("-")[0], d.by])).toEqual([["design", "eval"]]);
     expect(st.info.estimate).toMatchObject({ humanReview: false, noRepo: true });
   });
 });
