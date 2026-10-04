@@ -331,7 +331,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const err = h("div", { class: "error", hidden: true });
   const project = h("select", { id: "project" },
     h("option", { value: "" }, estimating ? "No project: requirements only (no repo)" : meta.projects.length ? "Choose a project…" : "No projects yet"),
-    meta.projects.map((p) => h("option", { value: p.name, disabled: !!p.busy }, p.busy ? `${p.name}  (run ${p.busy.runId} is running)` : p.name)));
+    meta.projects.map((p) => h("option", { value: p.name, disabled: !!p.busy }, p.busy ? `${p.name}  (run ${p.busy.runId} is running)` : p.empty && !estimating ? `${p.name}  (empty repo: for a new product)` : p.name)));
   if (!estimating && meta.projects.length === 1 && !meta.projects[0].busy) project.value = meta.projects[0].name;
 
   const projectLabel = (p) => (p === "standalone-estimates" ? "no project" : p);
@@ -340,14 +340,17 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const estimates = meta.estimates ?? [], designs = meta.designs ?? [];
   const fromEst = h("select", { id: "fromest" }, h("option", { value: "" }, "Nothing: a plain change request"),
     estimates.length ? h("optgroup", { label: "Approved estimates" }, estimates.map((e) => h("option", { value: `e:${e.runId}` }, `${e.runId}  ·  ${projectLabel(e.project)}  ·  ${e.request}`))) : null,
-    designs.length ? h("optgroup", { label: "Approved designs" }, designs.map((d) => h("option", { value: `d:${d.runId}`, disabled: !d.repo }, `${d.runId}  ·  ${projectLabel(d.project)}  ·  ${d.request}${d.repo ? "" : "  (no repo: estimate it instead)"}`))) : null);
+    designs.length ? h("optgroup", { label: "Approved designs" }, designs.map((d) => h("option", { value: `d:${d.runId}` }, `${d.runId}  ·  ${projectLabel(d.project)}  ·  ${d.request}${d.repo ? "" : "  (a new product: pick a project with an empty repo)"}`))) : null);
   const buildFrom = () => ({ kind: fromEst.value.slice(0, 1), id: fromEst.value.slice(2) });
   // the run it starts from decides the project
   const seedProject = (p) => { if (p && p !== "standalone-estimates" && [...project.options].some((o) => o.value === p && !o.disabled)) project.value = p; };
   const syncEst = () => {
     for (const id of ["reqblock", "refblock"]) { const b = form.querySelector(`#${id}`); if (b) b.hidden = !!fromEst.value; }
     const { kind: k, id } = buildFrom();
-    seedProject((k === "e" ? estimates : designs).find((x) => x.runId === id)?.project);
+    const from = (k === "e" ? estimates : designs).find((x) => x.runId === id);
+    // a new product (a design with no repo) goes into an empty repo: the only one there is, when there is one
+    const empties = meta.projects.filter((p) => p.empty && !p.busy);
+    seedProject(k === "d" && from && !from.repo ? (empties.length === 1 ? empties[0].name : undefined) : from?.project);
   };
   fromEst.addEventListener("change", syncEst);
 
@@ -1585,10 +1588,10 @@ async function designScreen(id) {
     h("div", { class: "grid-2" },
       h("div", { class: "stack" },
         // a design-only run, once approved, is sized or built from here (like --from-design)
-        r.mode === "design" && xv.available ? nextPanel("This design is approved. Size it, or build it in its project.", [
+        // a design with no repo (a new product) is built into a project whose repo is still empty (greenfield)
+        r.mode === "design" && xv.available ? nextPanel(r.repo ? "This design is approved. Size it, or build it in its project." : "This design is approved. Size it, or build it as a new product into an empty repo (git init a folder, then factory init it).", [
           [`#/new/estimate/design/${encodeURIComponent(id)}`, "ruler", "Estimate this design"],
-          r.repo ? [`#/new/brownfield/design/${encodeURIComponent(id)}`, "layers", "Build this design"]
-            : [null, "layers", "Build this design", "Designed with no repo (a new product). Building a new product is not available yet; estimate it instead."],
+          [`#/new/brownfield/design/${encodeURIComponent(id)}`, "layers", "Build this design"],
         ]) : null,
         exportPanel(id, xv),
         codePanel(id, sv),

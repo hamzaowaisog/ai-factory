@@ -7,12 +7,13 @@ import type { z } from "zod";
 import type { DesignBody } from "../contracts/artifacts.js";
 import type { ProjectConfig } from "../config/project.js";
 import { designTag } from "../design/export.js";
-import { findPackage, type DesignPackage } from "../design/package.js";
+import { findPackage, packageForRun, type DesignPackage } from "../design/package.js";
 import { gitSource, type FileSource } from "../design/source.js";
 import { detectUiTarget, isKitTarget, loadKit, resolveUiTarget, scaffold, scaffoldSummary, type KitTarget, type ScaffoldLayout, type TargetGuess, type UiTarget } from "../design/kit/index.js";
 import type { RunState } from "../ledger/state.js";
-import type { Ledger } from "../ledger/ledger.js";
+import { HUMAN_WRITER, type Ledger } from "../ledger/ledger.js";
 import { approvedDesignFor } from "./design-inputs.js";
+import { isEmptyTree } from "../config/greenfield.js";
 import { readOutput } from "./framework.js";
 
 type Design = z.infer<typeof DesignBody>;
@@ -41,12 +42,15 @@ export function runSource(state: RunState): FileSource | undefined {
  * An existing repo that detection cannot place keeps its own components until design.uiTarget or --ui-target says otherwise.
  */
 export function targetForRun(o: { design: Pick<Design, "apps">; config?: ProjectConfig["design"]; run?: UiTarget; src?: FileSource }): RunTarget {
-  const detected: TargetGuess = o.src ? detectUiTarget(o.src) : { why: "no repo: a fresh app" };
+  // an empty repo (a new product, greenfield) is a fresh app too: next-shadcn by default, like a design with no repo
+  const empty = !!o.src && isEmptyTree(o.src.list());
+  const src = empty ? undefined : o.src;
+  const detected: TargetGuess = src ? detectUiTarget(src) : { why: empty ? "an empty repo: a fresh app" : "no repo: a fresh app" };
   const apps = o.design.apps?.length ? o.design.apps : [undefined];
   const per = apps.map((app) => {
     const r = resolveUiTarget({ ...(app ? { app } : {}), ...(o.config ? { config: o.config } : {}), ...(o.run ? { run: o.run } : {}), detected });
     // an existing repo whose stack nothing shows is not given a new app unasked: its own components, until a target is set
-    return { id: app?.id ?? "", ...(o.src && r.source === "default" ? { target: "repo" as const, source: r.source } : r) };
+    return { id: app?.id ?? "", ...(src && r.source === "default" ? { target: "repo" as const, source: r.source } : r) };
   });
   // one kit target per run: the first web app's; an app set to the other kit is built with the repo's own components
   const first = per.find((p) => isKitTarget(p.target));
@@ -144,7 +148,7 @@ export function scaffoldOfRun(ctx: { state: RunState; ledger: Ledger; project: P
   const approved = approvedDesignFor<Design & { skipped?: boolean }>(ctx.state, ctx.ledger);
   if (!approved || approved.design.skipped || !approved.design.screens?.length) return undefined;
   try {
-    const p = pkg === "store" ? findPackage(ctx.project.project, approved.sha) : pkg;
+    const p = pkg === "store" ? packageForRun({ ...ctx.state.info, project: ctx.project.project }, approved.sha) : pkg;
     return scaffoldForRun({ state: ctx.state, project: ctx.project, design: approved.design, designSha: approved.sha, ...(p ? { pkg: p } : {}) });
   } catch (e) {
     ctx.log(`scaffold: not generated (${(e as Error).message}); the screens are built from their briefs`);
@@ -207,10 +211,20 @@ export function scaffoldPreview(state: RunState, ledger: Ledger, project: Projec
   const approved = approvedDesignFor<Design & { skipped?: boolean }>(state, ledger);
   if (!approved) throw new Error(`${state.info.runId} has no approved design yet: the scaffold is made from the approved design`);
   if (approved.design.skipped || !approved.design.screens?.length) throw new Error(`${state.info.runId}'s request has no UI, so there is nothing to scaffold`);
-  const pkg = findPackage(project.project, approved.sha);
+  const pkg = packageForRun({ ...state.info, project: project.project }, approved.sha);
   // a run without a repo (a design for a new product) is scaffolded as a fresh app
   const src = runSource(state);
   const s = scaffoldForRun({ state, project: proj, design: approved.design, designSha: approved.sha, ...(pkg ? { pkg } : {}), ...(src ? { src } : {}) });
   const built = readOutput<ScaffoldRecord>(state, ledger, "stub-commit", "scaffold");
   return { ...s, ...(built ? { built } : {}) };
+}
+
+/**
+ * A copy of a run's scaffold taken out of the factory (factory design scaffold --out, the UI's generate and zip download) is
+ * recorded in the run's ledger, like any other side effect: what was written, where, and by whom (greenfield follow-up to the
+ * PR #11 review: the zip was the only way to a new product, and it went round every gate unrecorded). Only a run with an
+ * approved design has a scaffold (scaffoldPreview), so only such a run can be copied out.
+ */
+export async function recordScaffoldCopy(ledger: Ledger, o: { kind: "out" | "generate" | "download"; target: string; to: string; files?: number; by: string }): Promise<void> {
+  await ledger.append({ type: "scaffold.copied", data: { copy: o.kind, target: o.target, to: o.to, ...(o.files !== undefined ? { files: o.files } : {}), by: o.by } }, HUMAN_WRITER);
 }

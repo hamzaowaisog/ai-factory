@@ -86,4 +86,20 @@ describe("the Figma API", () => {
     expect(r.notes).toContain('frame "Home" could not be exported as a picture');
     await expect(readFigmaLink(link, { token: () => "t", fetch: (async () => answer(429, {}, { "retry-after": "3600" })) as typeof fetch, sleep: async () => undefined })).rejects.toThrow(/limiting requests .* 60 min/);
   });
+
+  it("fetches each picture pinned to an address its own lookup checked: a name that resolves to a private address is not reached", async () => {
+    const asked: string[] = [];
+    const resolved: string[] = [];
+    const fetchFake = (async (url: string) => {
+      asked.push(String(url));
+      if (String(url).includes("/v1/images/")) return answer(200, { images: { "1:1": "https://figma-alpha-api.s3.us-west-2.amazonaws.com/images/x.png" } });
+      return answer(200, { name: "App", nodes: { "1:1": { document: screen("1:1", "Home") } } });
+    }) as typeof fetch;
+    const r = await readFigmaLink(link, { token: () => "t", fetch: fetchFake, resolve: async (h) => { resolved.push(h); return ["10.0.0.5"]; } });
+    // the API's fetch never opens a picture; the lookup did, and refused the private address
+    expect(asked.some((u) => u.includes("amazonaws"))).toBe(false);
+    expect(resolved).toContain("figma-alpha-api.s3.us-west-2.amazonaws.com");
+    expect(r.frames.every((f) => !f.png)).toBe(true);
+    expect(r.notes).toContain('frame "Home" could not be exported as a picture');
+  });
 });

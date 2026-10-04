@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { buildDemo, frameDataUri } from "../design/demo.js";
-import { designBaseline, designCoverage, screensPlanned } from "./gates.js";
+import { designBaseline, designCoverage, screensPlanned } from "../design/gates.js";
 import { diffDesigns } from "../design/diff.js";
 
 const run = (g: { predicate: (i: any, p: any) => { passed: boolean; details: string; failures?: { check: string }[] } }, input: unknown) => g.predicate(input, DEFAULT_POLICY);

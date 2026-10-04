@@ -18,7 +18,8 @@ export const ProjectConfig = z.object({
   project: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
   repo: z.string(),
   baseBranch: z.string().default("main"),
-  stack: z.literal("dotnet"),
+  /** dotnet: built and tested in the .NET lab; node: a TypeScript app (a new product's kit app), built and tested with npm and vitest */
+  stack: z.enum(["dotnet", "node"]).default("dotnet"),
   forge: z.object({
     kind: z.enum(["github", "bitbucket"]), repo: z.string(), tokenEnv: z.string().default("GITHUB_TOKEN"),
     /** GitHub API and git push URLs; set only for GitHub Enterprise or tests (a local fake) */
@@ -55,6 +56,12 @@ export const ProjectConfig = z.object({
     /** Runner settings passed after `--` on the command line (never by editing repo config). */
     runnerArgs: z.array(z.string()).default([]),
   }).default({ sdkImage: "mcr.microsoft.com/dotnet/sdk:8.0", buildTimeoutSec: 900, testTimeoutSec: 1800, runnerArgs: [] }),
+  /** the Node lab (stack: node): install from the npm registry through the feed proxy, then build and test with no network */
+  node: z.object({
+    image: z.string().default("node:22-bookworm"),
+    buildTimeoutSec: z.number().default(900),
+    testTimeoutSec: z.number().default(900),
+  }).default({ image: "node:22-bookworm", buildTimeoutSec: 900, testTimeoutSec: 900 }),
   database: z.object({
     image: z.string().default("postgres:16-alpine"),
     name: z.string().default("app_test"),
@@ -138,8 +145,9 @@ export const ProjectConfig = z.object({
     }).optional(),
     /**
      * Check the built app against the approved design (docs/estimates-design.md, "Fidelity and tests"): tokens, structure and
-     * accessibility block (waivable), layout and pixels advise. On by default whenever the factory generated the screens (a kit
-     * scaffold: next-shadcn, vite-shadcn), with the kit's own commands; this object only changes them. The app is installed and
+     * accessibility block (waivable), layout and pixels advise. On by default: for a kit scaffold (next-shadcn, vite-shadcn) with
+     * the kit's own commands, and for screens changed in place in an existing app with its own start or preview script (each opened
+     * at its route; its structure, and its tokens against the app's own values, are advice). This object only changes them. The app is installed and
      * started in containers (the agent image: the install reaches only the package feeds, the app has no network); `false`
      * switches the check off.
      */
@@ -151,7 +159,7 @@ export const ProjectConfig = z.object({
       allowHost: z.literal(true).optional(),
       /** run once in the checkout first; default "npm install --no-audit --no-fund" */
       install: z.string().optional(),
-      /** builds and starts the app on $PORT; default per target (next build && next start, vite build && vite preview) */
+      /** builds and starts the app on $PORT; default per target (next build && next start, vite build && vite preview), or for an existing app its own scripts (npm run build && npm start, or its preview) */
       start: z.string().optional(),
       port: z.number().int().min(1024).max(65000).default(4320),
       readyPath: z.string().startsWith("/").default("/"),

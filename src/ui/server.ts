@@ -165,10 +165,10 @@ export const ROUTES: readonly Route[] = [
   },
   {
     method: "POST", path: "/api/runs/:id/scaffold", what: "generate the scaffold (target) into the run's scaffold folder, to download as a zip and run",
-    handle: ({ id }, body) => {
+    handle: async ({ id }, body) => {
       const l = findRun(id!);
       if (!l) return notFound(`No run ${id}`);
-      try { return ok(generateScaffold(l, (body ?? {}) as Record<string, unknown>)); } catch (e) { return { status: (e as { status?: number }).status ?? 400, json: { error: (e as Error).message } }; }
+      try { return ok(await generateScaffold(l, (body ?? {}) as Record<string, unknown>)); } catch (e) { return { status: (e as { status?: number }).status ?? 400, json: { error: (e as Error).message } }; }
     },
   },
   {

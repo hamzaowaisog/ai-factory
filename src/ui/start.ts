@@ -22,7 +22,8 @@ import { createRun } from "../stages/executor.js";
 import { exportSeededNow } from "../stages/design-export.js";
 import { uiTargetOption, type UiTarget } from "../design/kit/index.js";
 import { parseFormats, type ExportFormat } from "../design/export.js";
-import { approvedDesign, approvedEstimate, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
+import { approvedDesign, approvedEstimate, designFitsProject, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
+import { greenfieldRefusal } from "../config/greenfield.js";
 import { checkRoutes, DESIGN_ROUTES, ESTIMATE_ROUTES } from "../stages/routing.js";
 import { factoryHome } from "../util/paths.js";
 import { busyRun, projectNames } from "./data.js";
@@ -138,7 +139,6 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     if (asked) throw new StartError("An approved design brings its own requirements. Clear the request, file, Jira key and frames.");
     if (refsGiven) throw new StartError("This follows the design approved in that run; remove the design references. To change the design, start a new design run with them.");
     try { fromDesign = approvedDesign(fromDesignId); } catch (err) { throw new StartError((err as Error).message); }
-    if (!estimating && !fromDesign.repo) throw new StartError(`${fromDesign.runId} was designed with no repo (a new product). Building a new product (greenfield) is not available yet; estimate it instead (New run, Estimate, from this design).`);
   }
   let change: Approved | undefined;
   if (revisesId) try { change = approvedEstimate(revisesId); } catch (err) { throw new StartError((err as Error).message); }
@@ -148,7 +148,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   if (estimating && seededFrom && picked && picked !== STANDALONE_PROJECT && picked !== seededFrom) {
     throw new StartError(`That run is for project ${seededFrom === STANDALONE_PROJECT ? "none (requirements only)" : seededFrom}, not ${picked}.`);
   }
-  if (!estimating && fromDesign && fromDesign.project !== picked) throw new StartError(`${fromDesign.runId} was designed for project ${fromDesign.project}, not ${picked ?? "none"}.`);
+  if (!estimating && fromDesign && !designFitsProject(fromDesign, picked)) throw new StartError(`${fromDesign.runId} was designed for project ${fromDesign.project}, not ${picked ?? "none"}.`);
   const wanted = estimating && seededFrom ? seededFrom : picked;
   // an estimate may have no project: the requirements stand alone and there is no repo to read
   const standalone = estimating && (!wanted || wanted === STANDALONE_PROJECT);
@@ -232,6 +232,9 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   // the same checks, in the same order, as `factory start`
   if (standalone) ensureStandaloneProject();
   const cfg = loadProject(project);
+  // a design for a new product (no repo) is built into a project whose repo is still empty (greenfield)
+  const greenfield = !estimating && !!fromDesign && !fromDesign.repo;
+  if (greenfield) { const why = greenfieldRefusal(fromDesign!.runId, cfg); if (why) throw new StartError(why); }
   // the form left the review unset: the project's choice (a person reviews unless it opts out)
   if (estimating && !designing && settings && typeof ((input.estimate ?? {}) as Record<string, unknown>).humanReview !== "boolean") settings = { ...settings, humanReview: cfg.estimate?.humanReview !== false };
   const problems = checkRoutes(cfg, designing ? DESIGN_ROUTES : estimating ? ESTIMATE_ROUTES : undefined);
@@ -269,7 +272,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
     sources: req.sources, ...(references.length ? { references } : {}),
     ...(approved ? { lineage: { kind: "build" as const, approved } } : change ? { lineage: { kind: "change" as const, approved: change } } : {}),
-    ...(fromDesign ? { fromDesign } : {}),
+    ...(fromDesign ? { fromDesign, ...(greenfield ? { mode: "greenfield" as const } : {}) } : {}),
     ...(settings ? { mode: designing ? "design" as const : "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
     ...(designExport ? { designExport } : {}),
     ...(uiTarget ? { uiTarget } : {}),

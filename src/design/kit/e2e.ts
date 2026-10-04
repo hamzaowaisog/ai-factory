@@ -18,6 +18,11 @@ export const E2E_DIR = "e2e/design";
 export const E2E_CONFIG = "playwright.design.config.ts";
 /** exact, like the kit's packages (PR #11 review, item 19): a scaffold installs the same versions every time */
 export const PLAYWRIGHT_VERSION = "1.63.0";
+/** the unit-test runner a fresh app gets for the factory's acceptance tests (greenfield: they live in tests/), pinned the same way */
+export const VITEST_VERSION = "5.0.3";
+/** where a fresh app's acceptance tests go, and the vitest config that runs only them (not the Playwright design tests) */
+export const UNIT_TEST_DIR = "tests";
+export const VITEST_CONFIG = "vitest.config.ts";
 
 const q = (s: string): string => JSON.stringify(s);
 const esc = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

@@ -62,3 +62,16 @@ export const estimateGroundStep: StepDef = {
     return { ...out, outputs: named, data: { ...(out.data ?? {}), repo: true, surveyHash: hashJson(survey).slice(0, 12) } };
   },
 };
+
+/**
+ * A new product built into an empty repo (greenfield) whose approved design run has no ground output of its own: what exists is
+ * nothing, as for a run with no repo, stated without a model call (the empty repo has nothing to read).
+ */
+export const newProductGroundStep: StepDef = {
+  ...groundStep,
+  async run(ctx: StepContext): Promise<StepOutcome> {
+    const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
+    const cb = ctx.ledger.putJson({ header: header(ctx.runId, "current-behaviour", "ground", ""), ...newBuildBehaviour(intent) });
+    return { kind: "done", outputs: { cb }, data: { repo: false, newProduct: true } };
+  },
+};

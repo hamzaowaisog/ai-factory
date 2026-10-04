@@ -2,6 +2,7 @@
 // request (estimate v2 with a diff), the other delivery model as a sibling over the same breakdown, and a
 // build run seeded from the estimate. Each reads the approved run's artifacts and copies them into the new
 // ledger under their own hashes, so the new run stands alone and every hash still matches.
+import { STANDALONE_PROJECT } from "../config/project.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay, type DesignRef, type RunInfo } from "../ledger/state.js";
 import type { Breakdown, Estimate } from "../contracts/index.js";
@@ -95,6 +96,14 @@ export function approvedDesign(runId: string): ApprovedDesign {
     runId, request: s.info.request ?? "", project: s.info.project, repo: !!s.info.repoPath && !!s.info.baseCommit, ref,
     settings: s.info.estimate ?? {}, artifacts,
   };
+}
+
+/**
+ * Whether an approved design may be built in this project: its own project, or, for a design with no repo (a new product,
+ * designed under the standalone project), any project, whose empty repo it is built into (greenfield).
+ */
+export function designFitsProject(d: Pick<ApprovedDesign, "project" | "repo">, project: string | undefined): boolean {
+  return d.project === project || (!d.repo && d.project === STANDALONE_PROJECT);
 }
 
 /** Put the approved run's artifacts into the new ledger; each must land under the hash it had. */

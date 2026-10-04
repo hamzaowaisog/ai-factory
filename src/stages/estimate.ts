@@ -6,7 +6,8 @@ import { BreakdownBody, IntentBody, StackChoice, type Breakdown, type Spec as Sp
 import type { Failure, ScreenMock } from "../contracts/index.js";
 import { failure, runGate, type GateDef } from "../gates/engine.js";
 import { designUi, uiFactors } from "../estimate/ui-complexity.js";
-import { consistency, designCoverage, forgottenWork, readiness, reqToTask, taskKind, taskToReq } from "../estimate/gates.js";
+import { consistency, forgottenWork, readiness, reqToTask, taskKind, taskToReq } from "../estimate/gates.js";
+import { designCoverage } from "../design/gates.js";
 import { catalogueText, type Catalogue } from "../estimate/catalogue.js";
 import { catalogueAt, currentCatalogue, generationOf, rootOf } from "../estimate/catalogue-store.js";
 import { loadCatalogueEvidence, type CatalogueEvidence } from "../estimate/catalogue-status.js";

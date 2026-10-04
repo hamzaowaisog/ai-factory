@@ -1,7 +1,7 @@
 // The scaffold of a run (docs/estimates-design.md, "Kit and scaffold", step 4 wiring): the target per app, the changed screens of a
 // change request, the plan's checks (design-system task first, containers in scope, generated files out of scope), gate B7 on the
 // containers, and the preview the CLI and the UI show.
-import { uiBase } from "./workspace.js";
+import { changeBase, uiBase } from "./workspace.js";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -12,7 +12,7 @@ import { sampleDesign } from "../design/kit/index.js";
 import type { FileSource } from "../design/source.js";
 import type { Ledger } from "../ledger/ledger.js";
 import type { RunState } from "../ledger/state.js";
-import { screenScopeGaps } from "../estimate/design-link.js";
+import { screenScopeGaps } from "../design/design-link.js";
 import { changedScreens, checkPlanScaffold, designForScopeGate, scaffoldForPlan, scaffoldForRun, scaffoldOfRun, scaffoldPreview, scaffoldView, targetForRun } from "./scaffold-run.js";
 
 beforeEach(() => {
@@ -42,10 +42,17 @@ describe("the UI target of a run", () => {
   });
 
   it("does not put a new app into an existing repo whose stack nothing shows, unless a target is set", () => {
-    const bare = files({ "README.md": "# api" });
+    const bare = files({ "README.md": "# api", "docs/notes.txt": "plans" });
     expect(targetForRun({ design, src: bare })).toMatchObject({ target: "repo", source: "default" });
     expect(targetForRun({ design, src: bare, run: "vite-shadcn" })).toMatchObject({ target: "vite-shadcn", source: "run" });
     expect(targetForRun({ design })).toMatchObject({ target: "next-shadcn", source: "default" });
+  });
+
+  it("gives an empty repo (a new product, greenfield) a fresh next-shadcn app, like no repo at all", () => {
+    for (const src of [files({}), files({ "README.md": "# shop", ".gitignore": "node_modules", "LICENSE": "MIT" })]) {
+      expect(targetForRun({ design, src })).toMatchObject({ target: "next-shadcn", source: "default", detected: { why: "an empty repo: a fresh app" } });
+      expect(targetForRun({ design, src, run: "vite-shadcn" })).toMatchObject({ target: "vite-shadcn", source: "run" });
+    }
   });
 
   it("keeps a repo with another component library on its own components: no scaffold", () => {
@@ -181,5 +188,12 @@ describe("the design size cap's starting point (PR #11 review, item 11)", () => 
     expect(uiBase(state({ designCommit: "design", scaffold: { target: "repo" } }))).toBe("design");
     expect(uiBase(state({}))).toBe("base");
     expect(uiBase(state(undefined))).toBe("base");
+  });
+
+  it("starts the diff size, lock, review and PR lines after the scaffold only on a greenfield run (PR #17 review, item 1)", () => {
+    const run = (mode: string) => ({ info: { baseCommit: "base", mode }, steps: new Map([["stub-commit", { data: { designCommit: "design", scaffold: { commit: "scaffold" } } }]]) }) as never;
+    expect(changeBase(run("greenfield"))).toBe("scaffold");
+    expect(changeBase(run("brownfield"))).toBe("design");
+    expect(changeBase(run("feature"))).toBe("design");
   });
 });

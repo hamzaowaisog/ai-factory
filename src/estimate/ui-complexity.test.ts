@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ScreenMock } from "../contracts/artifacts.js";
-import { designCard } from "../stages/estimate-approve.js";
+import { designCard } from "../stages/design-approve.js";
 import { designUi, screenUi, uiFactors } from "./ui-complexity.js";
 
 const mock = (m: object) => ScreenMock.parse({ title: "Page", copy: {}, ...m });

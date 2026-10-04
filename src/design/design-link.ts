@@ -4,8 +4,8 @@
 // the look: the new product's theme, or "use the existing app's tokens and components", and its languages).
 import type { Breakdown } from "../contracts/index.js";
 import type { DesignLocale, DesignTheme } from "../contracts/artifacts.js";
-import { localeBrief } from "../design/locale.js";
-import { designTokens } from "../design/tokens.js";
+import { localeBrief } from "./locale.js";
+import { designTokens } from "./tokens.js";
 import { matchesAny } from "../util/glob.js";
 
 export interface ApprovedScreen { id: string; route: string; file: string; reqs: string[]; states?: string[]; size?: string; mock?: unknown; frames?: string[]; change?: string }
@@ -19,18 +19,39 @@ export function screenFor(breakdown: Pick<Breakdown, "tasks">, design: ApprovedD
 }
 
 /**
- * The approved screen a plan task builds, whatever led to the build (an estimate, --from-design, a scaffold or none): the
- * estimate task's screen first, then the screen whose page file is in the task's scope, then the one screen sharing the
- * task's requirements. A task that is not a screen's gets none.
+ * The approved screens a plan task builds, whatever led to the build (an estimate, --from-design, a scaffold or none): the
+ * estimate task's screen first, then the screens whose page files are in the task's scope (narrowed to the ones sharing the
+ * task's requirements when that leaves any), then the screens sharing its requirements. A task that is no screen's gets none.
+ * A task over several pages (a shared layout, a broad glob, a flow) gets each of them (the PR #11 re-review, item 5).
  */
-export function screenForTask(design: ApprovedDesign | undefined, task: { fileScope: string[]; reqs?: string[] }, estimated?: ApprovedScreen): ApprovedScreen | undefined {
-  if (estimated) return estimated;
-  if (!design || design.skipped) return undefined;
+export function screensForTask(design: ApprovedDesign | undefined, task: { fileScope: string[]; reqs?: string[] }, estimated?: ApprovedScreen): ApprovedScreen[] {
+  if (estimated) return [estimated];
+  if (!design || design.skipped) return [];
+  const sharesReq = (s: ApprovedScreen) => s.reqs.some((r) => task.reqs?.includes(r));
   const byFile = design.screens.filter((s) => s.file && matchesAny(s.file, task.fileScope));
-  if (byFile.length === 1) return byFile[0];
-  if (byFile.length > 1) return undefined; // a shared layout or a broad glob: no one screen is this task's
-  const byReq = design.screens.filter((s) => s.reqs.some((r) => task.reqs?.includes(r)));
-  return byReq.length === 1 ? byReq[0] : undefined;
+  if (byFile.length > 1) { const narrowed = byFile.filter(sharesReq); return narrowed.length ? narrowed : byFile; }
+  if (byFile.length === 1) return byFile;
+  return design.screens.filter(sharesReq);
+}
+
+/** The one approved screen a plan task builds, or undefined when it builds none or several (see screensForTask). */
+export function screenForTask(design: ApprovedDesign | undefined, task: { fileScope: string[]; reqs?: string[] }, estimated?: ApprovedScreen): ApprovedScreen | undefined {
+  const all = screensForTask(design, task, estimated);
+  return all.length === 1 ? all[0] : undefined;
+}
+
+/** Most screens one task's brief carries in full; the rest are named, so the brief stays small. */
+export const MAX_BRIEF_SCREENS = 4;
+
+/** The brief for a task over several approved screens: each one's brief, up to MAX_BRIEF_SCREENS, and the others by name. */
+export function screensBrief(design: ApprovedDesign, screens: ApprovedScreen[]): Record<string, unknown> {
+  const shown = screens.slice(0, MAX_BRIEF_SCREENS);
+  const rest = screens.slice(MAX_BRIEF_SCREENS);
+  return {
+    note: `This task builds ${screens.length} approved screens; each one's route, states, sample content and look follow.${rest.length ? " The others are named only: read the approved design for them if you change them." : ""}`,
+    screens: shown.map((s) => screenBrief(design, s)),
+    ...(rest.length ? { others: rest.map((s) => ({ screen: s.id, route: s.route, file: s.file })) } : {}),
+  };
 }
 
 /** How the implementer uses the tokens. */

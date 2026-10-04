@@ -9,7 +9,7 @@ import type { StepDef } from "./framework.js";
 import { makeDesignStep } from "./design.js";
 import { makeDesignRefsStep } from "./design-refs.js";
 import { ESTIMATE_SOURCES, type DesignSources } from "./design-inputs.js";
-import { makeDesignApprovalStep, type DesignPurpose } from "./estimate-approve.js";
+import { makeDesignApprovalStep, type DesignPurpose } from "./design-approve.js";
 import { designExportStep } from "./design-export.js";
 
 export interface DesignPipelineOptions {

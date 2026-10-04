@@ -2,13 +2,16 @@
 // the scaffold writes, and a copy of them to download and run (fixture mode opens every state without a backend). Generating only
 // writes under the run's own `scaffold/` folder; the build writes the repo's copy itself, in its stub commit.
 import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { userInfo } from "node:os";
 import { join } from "node:path";
 import { loadProject } from "../config/project.js";
 import { zipExport } from "../design/export.js";
 import { UI_TARGETS, writeScaffold, type UiTarget } from "../design/kit/index.js";
 import type { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
-import { scaffoldPreview, scaffoldView, type ScaffoldView } from "../stages/scaffold-run.js";
+import { recordScaffoldCopy, scaffoldPreview, scaffoldView, type ScaffoldView } from "../stages/scaffold-run.js";
+
+const VIA_WEB = `${userInfo().username} (via web)`;
 
 export const scaffoldDir = (ledger: Ledger, target: string): string => join(ledger.dir, "scaffold", target);
 
@@ -35,8 +38,8 @@ export function scaffoldPanel(ledger: Ledger, want?: unknown): ScaffoldPanel {
   }
 }
 
-/** Write the scaffold to the run's `scaffold/<target>/` folder (replacing an earlier copy). */
-export function generateScaffold(ledger: Ledger, body: Record<string, unknown>): { target: string; dir: string; files: number } {
+/** Write the scaffold to the run's `scaffold/<target>/` folder (replacing an earlier copy), recorded in the run's ledger. */
+export async function generateScaffold(ledger: Ledger, body: Record<string, unknown>): Promise<{ target: string; dir: string; files: number }> {
   const t = target(body.target);
   const state = replay(ledger.events());
   const s = scaffoldPreview(state, ledger, loadProject(state.info.project), { ...(t ? { target: t } : {}) });
@@ -44,14 +47,18 @@ export function generateScaffold(ledger: Ledger, body: Record<string, unknown>):
   const dir = scaffoldDir(ledger, s.target);
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
-  return { target: s.target, dir, files: writeScaffold(s.layout, dir).length };
+  const files = writeScaffold(s.layout, dir).length;
+  await recordScaffoldCopy(ledger, { kind: "generate", target: s.target, to: dir, files, by: VIA_WEB });
+  return { target: s.target, dir, files };
 }
 
-/** `<target>.zip`: a generated copy as a zip. */
+/** `<target>.zip`: a generated copy as a zip; each download is recorded in the run's ledger. */
 export async function scaffoldDownload(ledger: Ledger, name: string): Promise<{ body: Buffer; name: string } | undefined> {
   const m = /^([a-z-]+)\.zip$/.exec(name);
   if (!m || !(UI_TARGETS as readonly string[]).includes(m[1]!)) return undefined;
   const dir = scaffoldDir(ledger, m[1]!);
   if (!existsSync(dir)) return undefined;
-  return { body: await zipExport(dir), name: `${ledger.runId}-${m[1]}.zip` };
+  const out = { body: await zipExport(dir), name: `${ledger.runId}-${m[1]}.zip` };
+  await recordScaffoldCopy(ledger, { kind: "download", target: m[1]!, to: out.name, by: VIA_WEB });
+  return out;
 }

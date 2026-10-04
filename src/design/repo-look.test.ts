@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { buildInventory, hasExistingLook } from "./inventory.js";
 import { repoLook, toHex } from "./repo-look.js";
 import type { FileSource } from "./source.js";
-import { currentPages, designCard } from "../stages/estimate-approve.js";
+import { currentPages, designCard } from "../stages/design-approve.js";
 
 const mem = (m: Record<string, string>): FileSource => ({ list: () => Object.keys(m), read: (p) => m[p] });
 const pkg = (deps: Record<string, string>) => JSON.stringify({ dependencies: deps });
@@ -34,6 +34,40 @@ describe("the existing app's look", () => {
   it("reads SCSS variables, and gives no look when no brand colour is named", () => {
     expect(repoLook(mem({ "src/styles.scss": "$primary: #0f766e !default;\n$border-radius: 2px;" }))!.theme).toMatchObject({ brand: "#0f766e", mode: "light" });
     expect(repoLook(mem({ "src/styles.css": "body { margin: 0 }" }))).toBeUndefined();
+  });
+});
+
+describe("a look set in JS: Tailwind config, MUI, antd, Chakra (PR #11 re-review, item 6)", () => {
+  it("reads a Tailwind config's colours, corners and font", () => {
+    const look = repoLook(mem({
+      "tailwind.config.ts": `export default { theme: { extend: { colors: { brand: { 50: "#eef2ff", 500: "#4f46e5", 900: "#312e81" }, background: "#ffffff" },
+        borderRadius: { lg: "1rem" }, fontFamily: { sans: ["Nunito", "sans-serif"] } } } }`,
+    }))!;
+    expect(look.theme).toMatchObject({ brand: "#4f46e5", mode: "light", radius: "round", font: "rounded" });
+    expect(look.from[0]).toBe("brand #4f46e5 (brand in a JS theme, tailwind.config.ts)");
+  });
+  it("reads an MUI theme, dark mode included", () => {
+    const look = repoLook(mem({
+      "src/theme.ts": `import { createTheme } from "@mui/material/styles";
+        export const theme = createTheme({ palette: { mode: "dark", primary: { light: "#63a4ff", main: "#1976d2" } }, shape: { borderRadius: 2 }, typography: { fontFamily: "Roboto, Arial, sans-serif" } });`,
+    }))!;
+    expect(look.theme).toMatchObject({ brand: "#1976d2", mode: "dark", radius: "sharp" });
+    expect(look.from).toContain("dark (the JS theme's dark mode)");
+  });
+  it("reads an antd ConfigProvider token and a Chakra scale", () => {
+    expect(repoLook(mem({ "src/App.tsx": `<ConfigProvider theme={{ token: { colorPrimary: "#00b96b", borderRadius: 6, colorBgLayout: "#f5f5f5" } }}>` }))!.theme)
+      .toMatchObject({ brand: "#00b96b", mode: "light", radius: "soft" });
+    expect(repoLook(mem({ "src/theme/index.ts": `extendTheme({ colors: { brand: { 100: "#f7fafc", 500: "#e53e3e" } } })` }))!.theme.brand).toBe("#e53e3e");
+  });
+  it("lets the stylesheets win, skips colours it cannot read, and never reads node_modules", () => {
+    const look = repoLook(mem({
+      "src/index.css": ":root { --primary: #0f766e; }",
+      "tailwind.config.js": `module.exports = { theme: { extend: { colors: { primary: "hsl(var(--primary))", accent: "#f59e0b" } } } }`,
+      "node_modules/x/theme.js": `createTheme({ palette: { primary: { main: "#ff0000" } } })`,
+    }))!;
+    expect(look.theme.brand).toBe("#0f766e");
+    expect(look.theme.accent).toBe("#f59e0b");
+    expect(repoLook(mem({ "node_modules/x/theme.js": `createTheme({ palette: { primary: { main: "#ff0000" } } })` }))).toBeUndefined();
   });
 });
 
@@ -86,7 +120,7 @@ describe("current vs proposed on the approval card", () => {
     expect(cur).toEqual([{ screen: "S-1", title: "Invoices", size: "tweak", route: "/invoices", file: "src/pages/Invoices.tsx", found: true, uses: ["Table", "Button"], proposed: ["filters", "table"] }]);
     const md = designCard("run-1", design, "a".repeat(64), { current: cur, look: ["brand #1a56db (--primary, src/index.css)"] });
     expect(md).toContain("## Current vs proposed");
-    expect(md).toContain("Drawn in the app's own look, read from its stylesheets: brand #1a56db");
+    expect(md).toContain("Drawn in the app's own look, read from its styles and theme: brand #1a56db");
     expect(md).toContain("- Invoices: S-1 (tweak). Current: src/pages/Invoices.tsx at /invoices, built from Table, Button. Proposed: the demo's S-1 (filters, table).");
     expect(currentPages(design, { pages: [] })[0]).toMatchObject({ found: false });
   });

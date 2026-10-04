@@ -16,7 +16,7 @@ import { NO_TRACE } from "../util/trace.js";
 import { designStep } from "./design.js";
 import { approvedDesignFor, type DesignSources } from "./design-inputs.js";
 import { designSteps } from "./design-pipeline.js";
-import { designBaselineStep } from "./estimate-approve.js";
+import { designBaselineStep } from "./design-approve.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
 import { approvedDesign, copyArtifacts } from "../estimate/lineage.js";

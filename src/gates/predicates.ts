@@ -3,6 +3,7 @@ import type {
   AcceptanceTests, CurrentBehaviour, Failure, Plan, ReviewFinding, SecretScan, SpecDraft, TestRun,
 } from "../contracts/index.js";
 import { matchesAny } from "../util/glob.js";
+import { isLoadError } from "../verify/vitest.js";
 import { defineGate, failure, verdict } from "./engine.js";
 import type { Policy } from "./policy.js";
 import { isConfigIntegrityPath, isLockSetPath } from "./protected.js";
@@ -126,6 +127,9 @@ export const testExpectations = defineGate<{ run: TestRun; baseline?: TestRun }>
       else if (r.outcome === "passed") fs.push(failure("expected-fail-passed", `${e.id} passed, but it should fail before the change`, { testId: e.id }));
       else if (!r.failureKind || !e.kinds.includes(r.failureKind)) fs.push(failure("wrong-failure-kind", `${e.id} failed with ${r.failureKind ?? "unknown"}, expected ${e.kinds.join(" or ")}`, { testId: e.id }));
     }
+    // a Node test file that did not load ran none of its tests, locked or not: a failure, not a pass, unless it did not load before the change either (PR #17 review, item 6)
+    const loadedBefore = (id: string) => !baseline?.results.some((b) => b.id === id && b.outcome === "failed");
+    for (const r of run.results) if (r.outcome === "failed" && isLoadError(r.id) && loadedBefore(r.id)) fs.push(failure("load-error", r.message ?? `${r.id}`, { testId: r.id }));
     if (run.compareToBaseline.length) {
       const baseFailed = new Set(baseline?.results.filter((r) => r.outcome === "failed").map((r) => r.id) ?? []);
       for (const id of run.compareToBaseline) {
