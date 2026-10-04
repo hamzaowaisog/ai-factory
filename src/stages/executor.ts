@@ -39,8 +39,13 @@ export function policyFor(project: ProjectConfig): Policy {
 }
 
 /** The factory's own commit, so every run says exactly what code ran it (eval rows, run records); "-dirty" with local edits. */
-function factoryCommit(): { commit?: string } {
+export function factoryCommit(): { commit?: string } {
   try { return { commit: execFileSync("git", ["-C", REPO_ROOT, "describe", "--always", "--dirty", "--abbrev=7"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() }; } catch { return {}; }
+}
+
+/** A warning before a paid run from a factory checkout with local edits: its record can't name the exact code. */
+export function dirtyWarning(commit = factoryCommit().commit): string | undefined {
+  return commit?.endsWith("-dirty") ? `Warning: the factory has uncommitted changes (${commit}). This run will be recorded as ${commit}, which names no exact code; commit them first for a clean record.` : undefined;
 }
 
 function versions(): Record<string, string> {

@@ -191,5 +191,9 @@ describe("the VSA 409 case against the first paid run's real spec", () => {
     // a hard forbid still fails the run
     const notified = scoreRun(c, outcome({ spec: { ...spec, requirements: [...spec.requirements, { id: "REQ-9", ears: "When an appointment is cancelled, the system shall email the patient.", acceptance: [] }] } }));
     expect(notified).toMatchObject({ pass: false, forbidHit: ["X3"] });
+    // soft extras don't fail the run but count as creep in the case's numbers
+    const sum = summariseCase(c, [s, scoreRun(c, outcome({ spec: { requirements: [], nfrs: [] } }))]);
+    expect(sum).toMatchObject({ forbidRate: 0.5, softRate: 0.5 });
+    expect(formatReport([sum], overall([sum]), [s])).toMatch(/scope creep 50% · extras 50%/);
   });
 });

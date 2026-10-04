@@ -2,7 +2,7 @@
 // ran with, so upgrading the factory does not plan or code a run in flight again. A change of inputs or model still does.
 import { describe, expect, it } from "vitest";
 import { inputsHash, type RunState } from "../ledger/state.js";
-import { earlierVersions, stepDone } from "./executor.js";
+import { dirtyWarning, earlierVersions, factoryCommit, stepDone } from "./executor.js";
 
 const inp = { spec: "s".repeat(64) };
 const ranWith = (templateVersion: string, model = "m") => ({ steps: new Map([["plan", { step: "plan", status: "completed", inputsHash: inputsHash({ inputs: [JSON.stringify(inp)], stageDef: "plan", templateVersion, model }), outputs: ["x"], attempts: 1, interruptions: 0, lastAttempt: 1, failureSignatures: [] }]]) }) as unknown as RunState;
@@ -23,5 +23,16 @@ describe("template versions of a run in flight", () => {
     // a run that has not done the step yet runs it under the new template
     const fresh = stepDone({ steps: new Map() } as unknown as RunState, plan, inp, "m");
     expect(fresh).toEqual({ done: false, hash: inputsHash({ inputs: [JSON.stringify(inp)], stageDef: "plan", templateVersion: "2", model: "m" }) });
+  });
+});
+
+describe("the factory commit a run records", () => {
+  it("is the checkout's commit; a dirty tree is marked and warned about before a paid run", () => {
+    // a git checkout gives its commit; an installed copy (or a git that refuses the folder) gives none, never a guess
+    const { commit } = factoryCommit();
+    if (commit !== undefined) expect(commit).toMatch(/^[0-9a-f]{7,}(-dirty)?$/);
+    expect(dirtyWarning("abc1234")).toBeUndefined();
+    expect(dirtyWarning("abc1234-dirty")).toMatch(/uncommitted changes \(abc1234-dirty\).*commit them first/);
+    expect(dirtyWarning("")).toBeUndefined(); // no git (an installed copy): nothing to warn about
   });
 });

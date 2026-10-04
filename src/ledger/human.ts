@@ -1,7 +1,10 @@
 // Human decisions (run-manager §2.7, gate-engine §2.3, §2.7).
 // `factory approve|reject|answer|waive|unlock <run> <hash-prefix>`: TTY only, hash checked
 // under the ledger lock, identical repeats are no-ops.
+import { existsSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
+import { join } from "node:path";
+import { factoryHome } from "../util/paths.js";
 import type { HumanDecision, LedgerEvent } from "../contracts/index.js";
 import { HUMAN_WRITER, type Ledger } from "./ledger.js";
 import { replay } from "./state.js";
@@ -25,6 +28,14 @@ export interface DecideInput {
 
 export type DecideOutcome = { kind: "recorded"; event: LedgerEvent } | { kind: "repeat" };
 
+/** The end-to-end eval harness answers its runs' cards as "eval", and only inside its own temporary factory home. */
+export const EVAL_DECIDER = "eval";
+const EVAL_HOME_MARKER = ".eval-home";
+/** Marks a temporary factory home as the eval harness's own (bench/e2e); nothing else may write this. */
+export function markEvalHome(home: string): void {
+  writeFileSync(join(home, EVAL_HOME_MARKER), "This factory home belongs to the eval harness; cards here are answered by it.\n");
+}
+
 export async function decide(ledger: Ledger, input: DecideInput): Promise<DecideOutcome> {
   const prefix = input.hashPrefix.toLowerCase();
   if (prefix.length < MIN_PREFIX) throw new DecisionError(`Use at least ${MIN_PREFIX} characters of the hash.`);
@@ -32,6 +43,10 @@ export async function decide(ledger: Ledger, input: DecideInput): Promise<Decide
     throw new DecisionError("A rejection needs a reason.");
   }
   const by = input.by ?? userInfo().username;
+  // a real run's cards are a person's: "eval" decides only in the eval harness's own temporary home
+  if (by === EVAL_DECIDER && !existsSync(join(factoryHome(), EVAL_HOME_MARKER))) {
+    throw new DecisionError(`"${EVAL_DECIDER}" can't decide here: only the eval harness answers cards, in its own temporary factory home.`);
+  }
   let repeat = false;
   const ev = await ledger.appendIf((events) => {
     const state = replay(events);

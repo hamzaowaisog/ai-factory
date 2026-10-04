@@ -95,7 +95,7 @@ export interface CaseSummary {
   /** each expected behaviour: in how many runs it was found (1 = every run) */
   perExpect: Record<string, number>;
   forbidRate: number;
-  /** runs whose spec added a soft-forbidden extra (not a fail) */
+  /** runs whose spec added a soft-forbidden extra (not a fail; already counted in forbidRate) */
   softRate: number;
   gapRate: number;
   /** repeats that agree with each other: share of expected behaviours found in all runs or in none */
@@ -115,7 +115,8 @@ export function summariseCase(c: EvalCase, scores: RunScore[]): CaseSummary {
     completedRate: n ? done.length / n : 0,
     expectRate: mean(scores.map((s) => s.expectHit.length / c.expect.length)),
     perExpect,
-    forbidRate: n ? scores.filter((s) => s.forbidHit.length).length / n : 0,
+    // creep counts soft extras too: they don't fail a run, but scope creep must not drop out of the numbers
+    forbidRate: n ? scores.filter((s) => s.forbidHit.length || s.softHit?.length).length / n : 0,
     softRate: n ? scores.filter((s) => s.softHit?.length).length / n : 0,
     gapRate: c.gaps.length ? mean(scores.map((s) => s.gapsCaught.length / c.gaps.length)) : 1,
     agreement: mean(Object.values(perExpect).map((v) => (v === 0 || v === 1 ? 1 : 0))),
