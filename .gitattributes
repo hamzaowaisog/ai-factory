@@ -2,3 +2,5 @@
 *.sh text eol=lf
 # Everything else: normalise text files to LF in the repo.
 * text=auto
+# e2e patches are applied to repos with Windows line endings: keep them byte for byte, or they won't apply.
+bench/e2e/**/*.patch -text
