@@ -348,3 +348,43 @@ describe("a screen changed in place, in a real browser", () => {
     }
   }, 120_000);
 });
+
+describe("in-place screens (PR #17 follow-up)", () => {
+  const a11yFail = (messages: string[]) => {
+    const r = report({ overall: "fail", findings: messages.map((message) => ({ level: "a11y" as const, message, pages: ["orders (phone)"] })) });
+    r.levels[2]!.status = "FAIL"; r.levels[2]!.detail = `${messages.length} finding(s)`;
+    return r;
+  };
+
+  it("accessibility findings the base commit already had are advice; only new ones block", async () => {
+    const { withoutBaseA11y } = await import("../stages/design-fidelity.js");
+    const base = a11yFail(["Image without alt text: logo.png", "Low contrast: footer link"]);
+    // the change adds nothing new: the level becomes a warning and the gate passes
+    const same = withoutBaseA11y(a11yFail(["Image without alt text: logo.png", "low contrast:  footer link"]), base);
+    expect(same.findings.every((f) => f.advice)).toBe(true);
+    expect(same.findings[0]!.message).toMatch(/already at the base commit/);
+    expect(same.overall).toBe("pass");
+    expect(designA11yGate.predicate({ fidelity: same })).toMatchObject({ passed: true });
+    // the change adds one: only that one is held against the build
+    const added = withoutBaseA11y(a11yFail(["Image without alt text: logo.png", "Button without a name: Pay"]), base);
+    const v = designA11yGate.predicate({ fidelity: added });
+    expect(v.passed).toBe(false);
+    expect(JSON.stringify(v)).toContain("Button without a name: Pay");
+    expect(JSON.stringify(v)).not.toContain("logo.png");
+    // no base report (or the base could not run): unchanged, every finding counts
+    expect(withoutBaseA11y(added, undefined)).toBe(added);
+    expect(withoutBaseA11y(added, report({ levels: [], skipped: "no app" }))).toBe(added);
+  });
+
+  it("an app changed in place that could not start is advice only; kit screens or a started app still block", async () => {
+    const { adviceOnly } = await import("../stages/design-fidelity.js");
+    const couldNotStart = report({ levels: [], overall: "unchecked", skipped: "the app did not start: ECONNREFUSED db:5432" });
+    expect(adviceOnly(couldNotStart, 0)).toBe(true);
+    // with kit screens the factory wrote the pages, so not running them is a failed check
+    expect(adviceOnly(couldNotStart, 2)).toBe(false);
+    // a check that ran is judged by the gates as usual
+    expect(adviceOnly(a11yFail(["x"]), 0)).toBe(false);
+    // what the gates would have said without the rule: all three "not checked"
+    expect(JSON.stringify(designTokensGate.predicate({ fidelity: couldNotStart }))).toContain("not checked");
+  });
+});

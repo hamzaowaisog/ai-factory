@@ -19,6 +19,7 @@ import { loadCatalogue, type Catalogue } from "./catalogue.js";
 import { actualHoursFile, factorChecks } from "./catalogue-status.js";
 import { cataloguesDir, clearProposal, currentCatalogue, generationOf, readProposal, rootOf, saveProposal, saveTuned, tunedVersion } from "./catalogue-store.js";
 import { decisionPairs, type DecisionPair } from "./decisions.js";
+import { hashJson } from "../util/hash.js";
 
 export interface TuneChange { path: string; from: number; to: number; measured: number; evidence: number; limited?: "cap" | "bound" }
 export interface TunePlan {
@@ -38,9 +39,14 @@ export interface TunePlan {
   catalogue?: Catalogue;
   /** apply only: the stored proposal was promoted as it was reviewed */
   promoted?: true;
-  /** apply only: why nothing was promoted (no proposal, or one made from another version) */
+  /** apply only: why nothing was promoted (no proposal, one made from another version, or not the one reviewed) */
   refused?: string;
+  /** propose: the short hash of the proposal written; `--apply <hash>` promotes only that exact proposal */
+  proposalHash?: string;
 }
+
+/** Names one exact proposal: the background tuner rewrites the proposal under the same version name after every run. */
+export const proposalHash = (c: Catalogue): string => hashJson(c).slice(0, 8);
 
 const r3 = (n: number): number => Math.round(n * 1000) / 1000;
 /** weighted geometric mean: ratios multiply, so 2x and 0.5x average to 1x */
@@ -139,25 +145,31 @@ export function withTuneLock<T>(f: () => T): T | undefined {
  * never a plan measured again (the PR #11 re-review, item 3), and only when it was made from the current version.
  * Undefined when another tuner holds the lock.
  */
-export function tuneNow(opts: { mode: "report" | "propose" | "apply" }): TunePlan | undefined {
+export function tuneNow(opts: { mode: "report" | "propose" | "apply"; hash?: string }): TunePlan | undefined {
   return withTuneLock(() => {
-    if (opts.mode === "apply") return promoteProposal();
+    if (opts.mode === "apply") return promoteProposal(opts.hash);
     const f = actualHoursFile();
     const plan = planTune(currentCatalogue(), loadCatalogue(), decisionPairs(), existsSync(f) ? hoursRows(f) : []);
     const root = rootOf(plan.from);
     if (opts.mode === "propose") { if (plan.catalogue) saveProposal(plan.catalogue); else clearProposal(root); }
-    return plan;
+    return plan.catalogue && opts.mode === "propose" ? { ...plan, proposalHash: proposalHash(plan.catalogue) } : plan;
   });
 }
 
-/** Promote the waiting proposal as it is: the reviewed version becomes the one new estimates are sized from. */
-function promoteProposal(): TunePlan {
+/**
+ * Promote the waiting proposal as it is, and only the one the person reviewed: `hash` is what `--tune` printed. A
+ * proposal the background tuner rewrote since (same version name, other changes) is refused, not promoted unseen.
+ */
+function promoteProposal(hash: string | undefined): TunePlan {
   const cur = currentCatalogue();
   const root = rootOf(cur.version);
   const waiting = readProposal(root);
   const none = (refused: string): TunePlan => ({ from: cur.version, changes: [], fitted: [], waiting: [], flagged: [], builds: 0, projects: 0, refused });
   if (!waiting?.tuned) return none(`no proposal is waiting for ${cur.version}: factory calibrate --tune measures it and proposes one`);
   if (waiting.tuned.parent !== cur.version) return none(`the proposal ${waiting.version} was made from ${waiting.tuned.parent}, not the current ${cur.version}: run factory calibrate --tune to propose again`);
+  const now = proposalHash(waiting);
+  if (!hash) return none(`say which proposal: factory calibrate --apply <hash>, with the hash factory calibrate --tune printed (the waiting one is ${now})`);
+  if (!now.startsWith(hash.toLowerCase()) || hash.length < 6) return none(`the waiting proposal is ${now}, not the ${hash} you reviewed: it changed since (the background tuner rewrites it after each run). Run factory calibrate --tune to review it again`);
   saveTuned(waiting);
   clearProposal(root);
   const t = waiting.tuned;

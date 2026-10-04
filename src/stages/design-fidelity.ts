@@ -8,6 +8,7 @@
 // re-review, blocker 2). Since the re-review's item 8 also the screens changed in place in an existing app (no kit): each opened
 // at its route as the app runs it, started with design.fidelity.start or the repo's own start script, its tokens compared with
 // the values the app's source names (advice) when it keeps its own look.
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Failure } from "../contracts/index.js";
@@ -59,6 +60,29 @@ export function inPlaceScreens(design: Approved, kit: string[]): string[] {
   return design.screens.filter((s) => !kit.includes(s.id) && !(s.app && phone.has(s.app)) && (s as { size?: string }).size !== "design-system").map((s) => s.id);
 }
 
+/**
+ * Accessibility findings the base commit already had are not this change's: they become advice, and the level blocks only
+ * on what is new (the PR #17 review). Kept per page set: a finding counts as old when the base had the same message.
+ */
+export function withoutBaseA11y(report: FidelityReport, base: FidelityReport | undefined): FidelityReport {
+  if (!base || base.skipped) return report;
+  const norm = (m: string) => m.replace(/\s+/g, " ").trim().toLowerCase();
+  const old = new Set(base.findings.filter((f) => f.level === "a11y").map((f) => norm(f.message)));
+  if (!old.size) return report;
+  const findings = report.findings.map((f) => (f.level === "a11y" && !f.advice && old.has(norm(f.message)) ? { ...f, message: `${f.message} (already at the base commit)`, advice: true as const } : f));
+  const newA11y = findings.filter((f) => f.level === "a11y" && !f.advice).length;
+  const levels = report.levels.map((l) => (l.level === "a11y" && l.status === "FAIL" && !newA11y
+    ? { ...l, status: "WARN" as const, detail: `only findings the base commit already had: ${l.detail}` } : l));
+  const overall = report.overall === "fail" && !levels.some((l) => l.blocking && l.status === "FAIL") ? "pass" : report.overall;
+  return { ...report, findings, levels, overall };
+}
+
+/**
+ * An app changed in place (no kit screens) that could not start where the check runs (it needs its API or database) is
+ * advice, not a failed check: the run goes on with a note instead of three "not checked" gates and a waiver card.
+ */
+export const adviceOnly = (report: FidelityReport, kitScreens: number): boolean => kitScreens === 0 && !!report.skipped && !report.pages.length;
+
 type FidelityConfig = Exclude<NonNullable<NonNullable<ProjectConfig["design"]>["fidelity"]>, false>;
 /** The project's fidelity settings, with the defaults when it sets none. */
 export function fidelityConfig(project: ProjectConfig): FidelityConfig {
@@ -108,17 +132,37 @@ export const designFidelityStep: StepDef = {
         ...(pkg ? { demoFile: join(pkg.dir, "demo", "index.html"), shots: pkg.manifest.shots, baselines: readBaselines(pkg) } : {}),
         outDir, relDir: FIDELITY_DIR, log: ctx.log, max: cfg.maxPages,
       });
-      if (cfg.allowHost) {
-        ctx.log("fidelity check: running the app on this machine (design.fidelity.allowHost: true)");
-        report = await withApp({ cwd: wt, ...app }, check, ctx.log);
-      } else {
+      // the same app at another commit: the run's head, or the base (to tell old accessibility findings from new ones)
+      const at = async <T>(commit: string, fn: (baseUrl: string) => Promise<T>): Promise<T> => {
+        if (cfg.allowHost) {
+          if (commit === head) return withApp({ cwd: wt, ...app }, fn, ctx.log);
+          const dir = join(ctx.ledger.dir, FIDELITY_DIR, "base-checkout");
+          execFileSync("git", ["-C", wt, "worktree", "add", "--detach", "--force", dir, commit], { stdio: "ignore" });
+          try { return await withApp({ cwd: dir, ...app }, fn, ctx.log); } finally { execFileSync("git", ["-C", wt, "worktree", "remove", "--force", dir], { stdio: "ignore" }); }
+        }
         const rt = runtime();
         await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
         await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
-        report = await withAppInContainer({ rt, image: AGENT_IMAGE, runId: ctx.runId, repo: wt, commit: head, ...app }, check, ctx.log);
+        return withAppInContainer({ rt, image: AGENT_IMAGE, runId: ctx.runId, repo: wt, commit, ...app }, fn, ctx.log);
+      };
+      if (cfg.allowHost) ctx.log("fidelity check: running the app on this machine (design.fidelity.allowHost: true)");
+      report = await at(head, check);
+      if (inPlace.length && baseCommit && !report.skipped) {
+        // ponytail: a second app start for the base; worth it only for in-place screens (kit screens are new, the base has none)
+        const baseDir = join(outDir, "base");
+        mkdirSync(baseDir, { recursive: true });
+        const base = await at(baseCommit, (baseUrl) => runFidelity({ baseUrl, design: approved.design, screens: [], inPlace, ...(own ? { ownTokens: own } : {}), outDir: baseDir, relDir: `${FIDELITY_DIR}/base`, log: ctx.log, max: cfg.maxPages }))
+          .catch((e: Error) => { report.notes.push(`the base commit could not be checked, so every accessibility finding counts: ${e.message.split("\n")[0]}`); return undefined; });
+        report = withoutBaseA11y(report, base);
       }
     } catch (e) {
       report = { kind: "design-fidelity", levels: [], findings: [], pages: [], overall: "unchecked", ran: [], notes: [], skipped: `the app did not start: ${(e as Error).message}` };
+    }
+    if (adviceOnly(report, kit.length)) {
+      report.notes.push("the screens are changed in place and the app could not start where the check runs (it may need its API or database): advice only, not held against the build");
+      writeFileSync(join(outDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
+      ctx.log(`fidelity check: not run (${report.skipped}); advice only for an app changed in place`);
+      return done(report);
     }
     if (!pkg) report.notes.push("the design package is not in the store, so there are no approved pictures or baselines to compare with");
     writeFileSync(join(outDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);

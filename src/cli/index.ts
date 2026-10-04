@@ -437,20 +437,20 @@ program.command("calibrate")
   .option("--json", "print JSON")
   .option("--decisions", "print each logged size pick paired with what its build took, one JSON line each (for comparing a backend such as Jev)")
   .option("--tune", "measure the current task catalogue version and show what self-tuning would change, kept as the proposal (nothing is sized from it)")
-  .option("--apply", "promote the waiting proposal as it was shown: it becomes the catalogue version new estimates are sized from (a person's decision)")
+  .option("--apply <hash>", "promote the waiting proposal with this hash (printed by --tune): it becomes the catalogue version new estimates are sized from (a person's decision)")
   .option("--history", "list the task catalogue versions and why each one changed")
   .option("--auto", "the background tuner after a run (writes a proposal only, one log line)")
   .description("compare approved estimates with what the factory spent (and, with a file, with real hours)")
-  .action(async (o: { actualHours?: string; json?: boolean; decisions?: boolean; tune?: boolean; apply?: boolean; history?: boolean; auto?: boolean }) => {
+  .action(async (o: { actualHours?: string; json?: boolean; decisions?: boolean; tune?: boolean; apply?: string; history?: boolean; auto?: boolean }) => {
     if (o.tune || o.auto || o.apply) {
       const { formatTunePlan, tuneNow } = await import("../estimate/tune.js");
-      const plan = tuneNow({ mode: o.apply ? "apply" : "propose" });
-      if (o.auto) { log(`${new Date().toISOString()} ${plan ? `${plan.from}: ${plan.to ? `proposed ${plan.to} (${plan.changes.map((x) => `${x.path} ${x.from}->${x.to}`).join(", ")}); promote it with factory calibrate --apply` : "no change"}${plan.flagged.length ? `; check the wording: ${plan.flagged.join(", ")}` : ""}` : "another tuner is running"}`); return; }
+      const plan = tuneNow(o.apply ? { mode: "apply", hash: o.apply } : { mode: "propose" });
+      if (o.auto) { log(`${new Date().toISOString()} ${plan ? `${plan.from}: ${plan.to ? `proposed ${plan.to} [${plan.proposalHash}] (${plan.changes.map((x) => `${x.path} ${x.from}->${x.to}`).join(", ")}); review it with factory calibrate --tune` : "no change"}${plan.flagged.length ? `; check the wording: ${plan.flagged.join(", ")}` : ""}` : "another tuner is running"}`); return; }
       if (!plan) { log("Another tuner is running; try again in a moment."); return; }
       if (o.json) { log(JSON.stringify(plan, null, 2)); return; }
       if (plan.refused) { log(`Nothing promoted: ${plan.refused}.`); return; }
       log(formatTunePlan(plan));
-      if (plan.to) log(o.apply ? `Promoted the proposal as shown. New estimates are sized from ${plan.to}.` : "Kept as the proposal; nothing is sized from it. Promote exactly this with factory calibrate --apply.");
+      if (plan.to) log(o.apply ? `Promoted the proposal as shown. New estimates are sized from ${plan.to}.` : `Wrote this as a proposal (${plan.proposalHash}); nothing is sized from it yet. Promote exactly this one with: factory calibrate --apply ${plan.proposalHash}`);
       return;
     }
     if (o.history) {
@@ -467,7 +467,7 @@ program.command("calibrate")
       log(`New estimates are sized from ${all.at(-1)!.version}.`);
       const { readProposal } = await import("../estimate/catalogue-store.js");
       const waiting = readProposal(root.version);
-      if (waiting?.tuned && waiting.tuned.parent === all.at(-1)!.version) log(`Proposed, not promoted: ${waiting.version} (${waiting.tuned.changes.map((x) => `${x.path} ${x.from}->${x.to}`).join(", ")}). Promote it with factory calibrate --apply.`);
+      if (waiting?.tuned && waiting.tuned.parent === all.at(-1)!.version) log(`Proposed, not promoted: ${waiting.version} (${waiting.tuned.changes.map((x) => `${x.path} ${x.from}->${x.to}`).join(", ")}). Review it with factory calibrate --tune, which prints the hash --apply needs.`);
       return;
     }
     if (o.decisions) {
