@@ -40,3 +40,18 @@ export function testWriterTurns(light: boolean, levels: string[]): number {
   const lane = light ? LANE.light : LANE.full;
   return levels.some((l) => l === "api" || l === "job") ? lane.testWriterTurnsApi : lane.testWriterTurns;
 }
+
+/**
+ * Size by the change, not by how the planner split it: a 14-line fix split into 3 tasks was "M" and took the full
+ * build lane (60 test-writer turns, no characterisation limit; the 2026-10-04 run). Files are the union of the tasks'
+ * scopes; a glob counts as 3 files.
+ */
+// ponytail: a glob's real file count is unknown here; counting it as 3 keeps one narrow glob "S", widen if plans scope wider
+export function complexityOf(plan: { tasks: { fileScope: string[]; plannedLoc: number }[] }): "S" | "M" | "L" {
+  const loc = plan.tasks.reduce((n, t) => n + t.plannedLoc, 0);
+  const scopes = [...new Set(plan.tasks.flatMap((t) => t.fileScope))];
+  const files = scopes.reduce((n, g) => n + (/[*?[{]/.test(g) ? 3 : 1), 0);
+  if (loc <= 150 && files <= 6) return "S";
+  if (loc <= 600 && files <= 20) return "M";
+  return "L";
+}

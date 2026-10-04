@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import type { RunState } from "../ledger/state.js";
 import { timeSplit } from "../report.js";
-import { LANE, lightBuild, lightSpec, testWriterTurns } from "./lane.js";
+import { complexityOf, LANE, lightBuild, lightSpec, testWriterTurns } from "./lane.js";
 import { downgradeUi } from "./specpipe.js";
 
 describe("light lane", () => {
@@ -67,5 +67,22 @@ describe("time split", () => {
     ]);
     expect(t.get("plan")).toEqual({ modelSec: 10, agentSec: 0, labSec: 0 });
     expect(t.get("author-tests")).toEqual({ modelSec: 0, agentSec: 600, labSec: 78 });
+  });
+});
+
+describe("plan size comes from the change, not the task count", () => {
+  const task = (fileScope: string[], plannedLoc: number) => ({ id: "TASK-1", title: "", reqs: [], fileScope, exemplars: [], conventions: [], dependsOn: [], plannedLoc, approach: "" });
+  it("the 2026-10-04 run: 3 tasks, 14 lines, 4 files is S (it was M, and took the full build lane)", () => {
+    const plan = { tasks: [task(["src/A/Cancel.cs", "src/A/Complete.cs"], 6), task(["src/A/Endpoints.cs"], 2), task(["src/Common/Problem.cs"], 6)] };
+    expect(complexityOf(plan)).toBe("S");
+    expect(lightBuild({ risk: "low", rigor: "light", changeClass: "bugfix" } as never, complexityOf(plan))).toBe(true);
+  });
+  it("lines and files set the size; a glob counts as 3 files", () => {
+    expect(complexityOf({ tasks: [task(["a.cs"], 151)] })).toBe("M");
+    expect(complexityOf({ tasks: [task(["a.cs", "b.cs", "c.cs", "d.cs", "e.cs", "f.cs", "g.cs"], 20)] })).toBe("M");
+    expect(complexityOf({ tasks: [task(["src/Orders/**", "src/Billing/**"], 40)] })).toBe("S");
+    expect(complexityOf({ tasks: [task(["src/Orders/**", "src/Billing/**", "x.cs"], 40)] })).toBe("M");
+    expect(complexityOf({ tasks: [task(["a.cs"], 601)] })).toBe("L");
+    expect(complexityOf({ tasks: Array.from({ length: 8 }, (_, i) => task([`f${i}.cs`, `g${i}.cs`, `h${i}.cs`], 10)) })).toBe("L"); // 24 files
   });
 });
