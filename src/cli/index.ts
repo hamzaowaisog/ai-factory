@@ -516,12 +516,13 @@ program.command("init").argument("<repo>", "a local repo path (Windows paths lik
       }
     }
     if (!existsSync(join(repo, ".git"))) throw new Error(`${repo} isn't a git repository`);
-    const { commitAt, currentBranch, nodeProjectYaml, repoIsEmpty, seedEmptyRepo } = await import("../config/greenfield.js");
+    const { assertNothingWaiting, commitAt, currentBranch, nodeProjectYaml, repoIsEmpty, seedEmptyRepo } = await import("../config/greenfield.js");
     const branch = o.branch ?? currentBranch(repo);
     const file = projectPath(name);
     // an empty repo is where a new product goes: a Node project, built from an approved design (greenfield)
     if (repoIsEmpty(repo, branch)) {
       if (existsSync(file) && !o.force) throw new Error(`${file} already exists (use --force to overwrite)`);
+      if (!commitAt(repo, "HEAD")) assertNothingWaiting(repo);
       if (o.branch && !commitAt(repo, branch)) {
         // a branch that does not exist yet can only be named in a repo with no commits: it becomes the branch the base commit is on
         if (commitAt(repo, "HEAD")) throw new Error(`${repo} has no branch ${branch}`);

@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { commitAt, currentBranch, greenfieldRefusal, isEmptyTree, nodeProjectYaml, repoIsEmpty, seedEmptyRepo } from "./greenfield.js";
+import { assertNothingWaiting, commitAt, currentBranch, greenfieldRefusal, isEmptyTree, nodeProjectYaml, repoIsEmpty, seedEmptyRepo, uncommittedCode } from "./greenfield.js";
 import { ProjectConfig } from "./project.js";
 import { parse } from "yaml";
 
@@ -39,6 +39,37 @@ describe("an empty repo (greenfield)", () => {
     expect(repoIsEmpty(fresh, "main")).toBe(true);
     expect(repoIsEmpty(repo({ "README.md": "# shop" }), "main")).toBe(true);
     expect(repoIsEmpty(repo({ "README.md": "# shop", "index.ts": "" }), "main")).toBe(false);
+  });
+
+  it("never takes staged or waiting code into the empty base commit (PR #17 review, item 2)", () => {
+    const staged = repo();
+    writeFileSync(join(staged, "app.ts"), "export {};\n");
+    writeFileSync(join(staged, "README.md"), "# shop");
+    execFileSync("git", ["add", "app.ts"], { cwd: staged, env });
+    expect(uncommittedCode(staged)).toEqual(["app.ts"]);
+    expect(() => assertNothingWaiting(staged)).toThrow(/no commits but has files waiting \(app\.ts\)/);
+    expect(() => seedEmptyRepo(staged)).toThrow(/files waiting/);
+    expect(commitAt(staged, "HEAD")).toBeUndefined();
+    const untracked = repo();
+    mkdirSync(join(untracked, "src"));
+    writeFileSync(join(untracked, "src", "main.ts"), "");
+    expect(() => seedEmptyRepo(untracked)).toThrow(/src\/main\.ts/);
+    // starter files may wait: the base commit is still empty of code
+    const starters = repo();
+    writeFileSync(join(starters, "README.md"), "# shop");
+    expect(uncommittedCode(starters)).toEqual([]);
+    expect(repoIsEmpty(starters, seedEmptyRepo(starters))).toBe(true);
+  });
+
+  it("reads a detached HEAD as before, and fails closed on a git error, not as an empty repo (PR #17 review, items 3 and 4)", () => {
+    const r = repo({ "a.cs": "" });
+    execFileSync("git", ["checkout", "-q", "--detach"], { cwd: r, env });
+    expect(currentBranch(r)).toBe("HEAD");
+    expect(repoIsEmpty(r, currentBranch(r))).toBe(false);
+    expect(commitAt(r, "no-such-branch")).toBeUndefined();
+    const notRepo = mkdtempSync(join(tmpdir(), "factory-gf-none-"));
+    expect(() => commitAt(notRepo, "HEAD")).toThrow();
+    expect(() => repoIsEmpty(notRepo, "main")).toThrow();
   });
 
   it("writes a Node project config for it", () => {

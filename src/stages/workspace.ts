@@ -61,10 +61,18 @@ export function codeBase(state: Pick<RunState, "info" | "steps">): string {
 
 /**
  * Where the agents' change starts: after the scaffold commit when the factory generated the approved pages, else the code
- * base. The design size cap measures from here, so the kit, theme and pages the factory wrote are not counted (PR #11 review, item 11);
- * so do the diff size, the test-infrastructure lock, the review and the PR lines (greenfield: a new product's whole app is scaffold).
+ * base. The design size cap measures from here, so the kit, theme and pages the factory wrote are not counted (PR #11 review, item 11).
  */
 export function uiBase(state: Pick<RunState, "info" | "steps">): string {
   const scaffold = state.steps.get("stub-commit")?.data?.scaffold as { commit?: string } | undefined;
   return scaffold?.commit ?? codeBase(state);
+}
+
+/**
+ * Where the diff size, the test-infrastructure lock, the review and the PR lines start: after the scaffold only on a greenfield
+ * run (a new product's whole app is scaffold); everywhere else the code base, so scaffold rewrites of existing screens are still
+ * reviewed and counted (PR #17 review, item 1).
+ */
+export function changeBase(state: Pick<RunState, "info" | "steps">): string {
+  return state.info.mode === "greenfield" ? uiBase(state) : codeBase(state);
 }

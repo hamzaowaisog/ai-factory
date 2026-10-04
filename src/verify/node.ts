@@ -11,7 +11,7 @@ import { FEED_PROXY_URL, FEEDS_NET } from "../runners/netinfra.js";
 import { copyTree, hostUser, splitCurl, type AcceptResult, type ProduceInput, type ProduceOutput } from "./dotnet.js";
 import { type ContainerSpec, stopAndRemove } from "./runtime.js";
 import { buildTestRun, markFlaky, rerunCandidates, type Expectations } from "./validate.js";
-import { parseVitestJson, titleOf, titlePattern } from "./vitest.js";
+import { isLoadError, loadFailures, parseVitestJson, titleOf, titlePattern } from "./vitest.js";
 
 /** Settings every Node container gets: a scratch HOME, the run's npm cache, no telemetry, no update checks. */
 export const NODE_ENV = {
@@ -146,14 +146,14 @@ export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput
     const pattern = inp.filterExpr ?? (titles ? titlePattern(titles) : undefined);
     const tTests = Date.now();
     const first = await runTests(pattern, resTest);
-    let results = first.reports.flatMap((r) => r.results);
     const fileErrors = first.reports.flatMap((r) => r.fileErrors);
+    let results = [...first.reports.flatMap((r) => r.results), ...loadFailures(fileErrors)];
     logs.test = first.log + (fileErrors.length ? `\n${fileErrors.map((e) => `${e.file} did not load: ${e.message}`).join("\n")}` : "");
     phase("tests", `lab: tests ran: ${results.length} (${results.filter((x) => x.outcome === "passed").length} passed, ${results.filter((x) => x.outcome === "failed").length} failed), exit ${first.code} (${secs(tTests)})${fileErrors.length ? `; ${fileErrors.length} test file(s) did not load` : ""}`,
       first.reports.length && !fileErrors.length ? undefined : { logTail: logs.test.split("\n").slice(-40).join("\n") });
 
     const exp: Expectations = inp.resolveExp ? inp.resolveExp(results) : inp.exp;
-    const again = rerunCandidates(results, exp, inp.knownFailures);
+    const again = rerunCandidates(results, exp, inp.knownFailures).filter((id) => !isLoadError(id));
     if (again.length && again.length <= 20) {
       const dir = join(work, "results-rerun");
       mkdirSync(dir, { recursive: true });
@@ -162,8 +162,8 @@ export async function produceNodeTests(inp: ProduceInput): Promise<ProduceOutput
       results = markFlaky(results, second.reports.flatMap((x) => x.results));
     }
     const expected = [...exp.expectPass, ...exp.expectFail.map((e) => e.id)];
-    // a test file that failed to load ran none of its tests: with tests failing to load, the runner's non-zero exit is not "no test failed"
-    const exitCode = fileErrors.length && !results.some((x) => x.outcome === "failed") ? 0 : first.code;
+    // a test file that failed to load is a failed result above, so the runner's non-zero exit stands
+    const exitCode = first.code;
     const testRun = {
       ...buildTestRun({
         treeSha: inp.commit, stage: inp.stage, toolVersions, exp,

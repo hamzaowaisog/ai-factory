@@ -22,7 +22,7 @@ import { sha256 } from "../util/hash.js";
 import { factoryHome } from "../util/paths.js";
 import { produceDotnetTests, skippableKnownFailures, type Probe, type ProduceOutput } from "../verify/dotnet.js";
 import type { ProjectConfig } from "../config/project.js";
-import { installNodeModules, labFor } from "../verify/lab.js";
+import { installIsCurrent, installNodeModules, labFor, markInstalled } from "../verify/lab.js";
 import { authorIntro, implementIntro, notFoundHint } from "./stack-text.js";
 import type { Expectations } from "../verify/validate.js";
 import { approvedDesignFor } from "./design-inputs.js";
@@ -30,7 +30,7 @@ import { header, outputOf, readOutput, requireOutput, type StepContext, type Ste
 import { modelFor } from "./routing.js";
 import { family } from "../runners/types.js";
 import { S } from "./think.js";
-import { ensureWorktree, runtime, snapshotFor, uiBase } from "./workspace.js";
+import { changeBase, ensureWorktree, runtime, snapshotFor, uiBase } from "./workspace.js";
 import { replay, splitKey } from "../ledger/state.js";
 import { REPO_DESIGN_DIR, repoFiles, type DesignPackage } from "../design/package.js";
 import { exportRunPackage } from "./design-export.js";
@@ -141,8 +141,9 @@ function agentTracer(ctx: StepContext, who: string) {
  */
 async function ensurePackages(ctx: StepContext, commit: string, wt: string): Promise<void> {
   if (ctx.project.stack === "node") {
-    // a Node checkout gets its node_modules installed in place, before each agent (a reset or clean removes them)
-    if (existsSync(join(wt, "node_modules")) || !existsSync(join(wt, "package.json"))) return;
+    // a Node checkout gets its node_modules installed in place, before each agent (a reset or clean removes them), and again
+    // whenever package.json or the lockfile changed since (PR #17 review, item 7)
+    if (!existsSync(join(wt, "package.json")) || installIsCurrent(wt)) return;
     ctx.log("installing the app's packages for the coding container");
     const r = await installNodeModules(runtime(), {
       runId: ctx.runId, key: "restore", dir: wt, cache: packagesDir(ctx.runId, "node"), image: ctx.project.node.image, timeoutSec: ctx.project.node.buildTimeoutSec,
@@ -150,6 +151,7 @@ async function ensurePackages(ctx: StepContext, commit: string, wt: string): Pro
       onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "restore", data: { id } }, ctx.writer); },
     });
     if (!r.ok) throw new Error(`npm install failed: ${r.log.split("\n").filter(Boolean).slice(-5).join(" ")}`);
+    markInstalled(wt);
     return;
   }
   const dir = packagesDir(ctx.runId);
@@ -195,8 +197,9 @@ export const discoverStep: StepDef = {
     // baseline: cached per repo + commit
     const cacheFile = join(factoryHome(), "repos", ctx.project.project, `baseline-${ctx.state.info.baseCommit}.json`);
     let baseline: TestRun;
-    if (repoIsEmpty(repo, ctx.state.info.baseCommit!)) {
-      // an empty repo (a new product): nothing to build or test yet; the scaffold commit writes the app
+    if (ctx.state.info.mode === "greenfield" && repoIsEmpty(repo, ctx.state.info.baseCommit!)) {
+      // an empty repo (a new product): nothing to build or test yet; the scaffold commit writes the app. Greenfield runs only:
+      // anything else is built and tested as it is (PR #17 review, item 4)
       baseline = { kind: "test", treeSha: ctx.state.info.baseCommit!, stage: "baseline", runner: ctx.project.stack === "node" ? "vitest" : "vstest", toolVersions: {}, expectPass: [], expectFail: [], compareToBaseline: [], discovered: [], results: [], exitCode: 0, reportShas: [], valid: true, classification: "ok" };
       ctx.log("baseline: the repo is empty (a new product), nothing to build or test yet");
     } else if (existsSync(cacheFile)) {
@@ -807,8 +810,8 @@ export const integrateStep: StepDef = {
     const baseline = ctx.ledger.getJson<TestRun>(baselineSha);
     const head = String(integrateStep.inputs(ctx.state, ctx.ledger)!.head);
     const wt = await ensureWorktree(ctx, head);
-    // measured from the scaffold commit: the app the factory generated from the approved design is not the agents' change
-    const diff = await diffSummary(wt, uiBase(ctx.state), head, lock);
+    // greenfield: measured from the scaffold commit, the app the factory generated is not the agents' change; else from the code base
+    const diff = await diffSummary(wt, changeBase(ctx.state), head, lock);
     const diffSha = ctx.ledger.putJson(diff);
     const expectPass = [...lock.tests.map((t) => t.testId), ...lock.characterisation.map((c) => c.testId)];
     const compareToBaseline = baseline.results.map((b) => b.id);

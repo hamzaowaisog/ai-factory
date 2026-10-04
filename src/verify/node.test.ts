@@ -5,11 +5,13 @@ import { dirname, join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ProjectConfig } from "../config/project.js";
 import { resolveTestIds } from "../stages/build.js";
-import { labFor } from "./lab.js";
+import { installIsCurrent, installKey, labFor, markInstalled } from "./lab.js";
+import { testExpectations } from "../gates/predicates.js";
+import { DEFAULT_POLICY } from "../gates/policy.js";
 import { nodeNameFilter, parseNodeBuildErrors, produceNodeTests, startCommand } from "./node.js";
 import { produceDotnetTests } from "./dotnet.js";
 import type { ContainerRuntime, ContainerSpec } from "./runtime.js";
-import { parseVitestJson, titleOf, titlePattern, vitestId } from "./vitest.js";
+import { isLoadError, loadFailures, parseVitestJson, titleOf, titlePattern, vitestId } from "./vitest.js";
 
 beforeEach(() => {
   process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "factory-node-"));
@@ -46,6 +48,9 @@ describe("vitest JSON", () => {
     const { results, fileErrors } = parseVitestJson(report([{ name: "/src/tests/a.test.ts", status: "failed", message: "Failed to load url @/lib/missing", tests: [] }]));
     expect(results).toEqual([]);
     expect(fileErrors).toEqual([{ file: "tests/a.test.ts", message: "Failed to load url @/lib/missing" }]);
+    // a file that did not load is one failed result, never a pass (PR #17 review, item 6)
+    expect(loadFailures(fileErrors)).toEqual([{ id: "tests/a.test.ts::(the file did not load)", outcome: "failed", failureKind: "compile", durationMs: 0, message: "tests/a.test.ts did not load: Failed to load url @/lib/missing" }]);
+    expect(isLoadError(loadFailures(fileErrors)[0]!.id)).toBe(true);
     expect(() => parseVitestJson("{}")).toThrow(/vitest/);
   });
 
@@ -196,6 +201,26 @@ describe("Node producer (fake runtime)", () => {
     expect(out.testRun.results.find((r) => r.id.endsWith("CHAR_B"))?.flaky).toBe(true);
   });
 
+  it("counts a test file that did not load as a failure, locked or not (PR #17 review, item 6)", async () => {
+    const { repo, commit } = repoWithCommit(app);
+    const broken = report([{ name: "/src/tests/a.test.ts", tests: [{ title: "AC_1_1_A", status: "passed" }] }, { name: "/src/tests/extra.test.ts", status: "failed", message: "Failed to load url @/lib/missing", tests: [] }]);
+    const rt = new FakeRuntime({ reports: [broken], exit: 1 });
+    const out = await produceNodeTests({
+      runId: "r1", key: "k", repo, commit, stage: "task", project, rt,
+      exp: { expectPass: ["tests/a.test.ts::AC_1_1_A"], expectFail: [], compareToBaseline: [] },
+    });
+    expect(out.testRun.valid).toBe(true);
+    expect(out.testRun.exitCode).toBe(1);
+    expect(out.testRun.results.filter((r) => r.outcome === "failed").map((r) => r.id)).toEqual(["tests/extra.test.ts::(the file did not load)"]);
+    // not re-run as if it were a flaky test
+    expect([...rt.specs.values()].filter((s) => s.cmd.includes("vitest"))).toHaveLength(1);
+    const v = testExpectations.predicate({ run: out.testRun }, DEFAULT_POLICY);
+    expect(v.passed).toBe(false);
+    expect(v.failures?.map((f) => f.check)).toEqual(["load-error"]);
+    // the same file failing to load before the change is not this change's failure
+    expect(testExpectations.predicate({ run: out.testRun, baseline: out.testRun }, DEFAULT_POLICY).passed).toBe(true);
+  });
+
   it("reports build errors from the log", async () => {
     const { repo, commit } = repoWithCommit(app);
     const rt = new FakeRuntime({ build: 1, buildLog: "src/lib/a.ts(3,7): error TS2304: Cannot find name 'x'." });
@@ -224,5 +249,25 @@ describe("Node producer (fake runtime)", () => {
     const withDb = ProjectConfig.parse({ project: "shop", repo: "/x", stack: "node", database: {} });
     const { repo, commit } = repoWithCommit(app);
     await expect(produceNodeTests({ runId: "r1", key: "k", repo, commit, stage: "task", project: withDb, rt: new FakeRuntime({}), exp: { expectPass: [], expectFail: [], compareToBaseline: [] } })).rejects.toThrow(/database/);
+  });
+});
+
+describe("the coding container's node_modules (PR #17 review, item 7)", () => {
+  it("is current only while package.json and the lockfile are what it was installed from", () => {
+    const dir = mkdtempSync(join(tmpdir(), "nm-"));
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ dependencies: { a: "1" } }));
+    expect(installIsCurrent(dir)).toBe(false);
+    mkdirSync(join(dir, "node_modules"));
+    expect(installIsCurrent(dir)).toBe(false); // there, but nothing says what it was installed from
+    writeFileSync(join(dir, "package-lock.json"), "{}"); // npm install wrote the lockfile
+    markInstalled(dir);
+    expect(installIsCurrent(dir)).toBe(true);
+    const was = installKey(dir);
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ dependencies: { a: "1", b: "2" } }));
+    expect(installIsCurrent(dir)).toBe(false);
+    expect(installKey(dir)).not.toBe(was);
+    markInstalled(dir);
+    writeFileSync(join(dir, "package-lock.json"), `{"lockfileVersion":3}`);
+    expect(installIsCurrent(dir)).toBe(false);
   });
 });

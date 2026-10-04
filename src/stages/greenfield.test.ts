@@ -19,7 +19,8 @@ import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { setSkipInfra } from "../runners/netinfra.js";
 import type { ContainerRuntime, ContainerSpec } from "../verify/runtime.js";
-import { packageOfRun } from "./design-fidelity.js";
+import { findChromium } from "../design/screenshots.js";
+import { FIDELITY_DIR, packageOfRun } from "./design-fidelity.js";
 import { createRun, execute } from "./executor.js";
 import { setProviderFactory } from "./think.js";
 import { setRuntime } from "./workspace.js";
@@ -48,7 +49,9 @@ async function designRun(): Promise<string> {
   await done("intake", [l.putJson(intent)]);
   await done("specify", [l.putJson(spec)], { named: { critic: l.putJson({ findings: [] }) } });
   await done("design", [designSha]);
-  const bundle = l.putJson({ design: designSha, demo: l.putArtifact(Buffer.from("<!doctype html><title>demo</title>")) });
+  // the demo holds the screen and its first state, so a fidelity check can open it beside the built page
+  const demo = `<!doctype html><title>demo</title><section id="S-1"><button data-state="0">Default</button><h1>Sign in</h1><form><label>Email<input type="email"></label><button>Sign in</button></form></section>`;
+  const bundle = l.putJson({ design: designSha, demo: l.putArtifact(Buffer.from(demo)) });
   await l.append({ type: "human.requested", data: { cardId: "design-1", kind: "approve", artifactSha: bundle, step: "design-baseline" } }, HUMAN_WRITER);
   await l.append({ type: "human.decided", data: { cardId: "design-1", decision: "approve", by: "lead", artifactSha: bundle } }, HUMAN_WRITER);
   await done("design-baseline", [l.putJson({ ui: true, design: designSha, by: "lead" })], { ui: true });
@@ -144,8 +147,10 @@ class NodeLab implements ContainerRuntime {
 
 let lab: NodeLab;
 let repo: string;
+let home: string;
+const writeProject = (design: Record<string, unknown>) => writeFileSync(join(home, "projects", "shop.yaml"), stringify({ project: "shop", repo, stack: "node", design }));
 beforeEach(() => {
-  const home = mkdtempSync(join(tmpdir(), "factory-gf-e2e-"));
+  home = mkdtempSync(join(tmpdir(), "factory-gf-e2e-"));
   process.env.FACTORY_HOME = home;
   writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\n", { mode: 0o600 });
   _resetEnvCache();
@@ -153,7 +158,7 @@ beforeEach(() => {
   execFileSync("git", ["init", "-q", "-b", "main"], { cwd: repo, env });
   seedEmptyRepo(repo);
   mkdirSync(join(home, "projects"), { recursive: true });
-  writeFileSync(join(home, "projects", "shop.yaml"), stringify({ project: "shop", repo, stack: "node", design: { fidelity: false } }));
+  writeProject({ fidelity: false });
   lab = new NodeLab();
   setRuntime(lab);
   setSkipInfra(true);
@@ -211,7 +216,36 @@ describe("a new product end to end (greenfield, fakes)", () => {
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
   });
 
-  it("refuses to start a new product in a repo that has code, and a design with a repo as a greenfield run", async () => {
+  // the PR #17 review, item 8: the fidelity check on a new product's app, in a real browser. The app is a stand-in server (the fake
+  // lab installs nothing real), started on this machine; the check opens the scaffold's screen
+  it.runIf(!!findChromium())("checks the new product's app against the approved design (fidelity on)", async () => {
+    const off = process.env.FACTORY_NO_SCREENSHOTS;
+    delete process.env.FACTORY_NO_SCREENSHOTS;
+    try {
+      const server = join(home, "app.js");
+      writeFileSync(server, `require("http").createServer((q,s)=>{s.setHeader("content-type","text/html");s.end('<!doctype html><html lang=en><head><title>Sign in</title></head><body><main><h1>Sign in</h1><form><label for=e>Email</label><input id=e type=email><button>Sign in</button></form></main></body></html>')}).listen(process.env.PORT,"127.0.0.1")`);
+      writeProject({ fidelity: { allowHost: true, install: "true", start: `node ${server}`, port: 4398, readyPath: "/", timeoutSec: 30, maxPages: 1 } });
+      const design = await designRun();
+      const runId = await createRun("A portal where clinic staff sign in", "shop", "tester", { mode: "greenfield", fromDesign: approvedDesign(design) });
+      const ledger = Ledger.open(runId);
+      await execute(runId);
+      await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "lead" });
+      const r = await execute(runId);
+      // the stand-in page is not the approved design (default font and colours, no kit form): the check reads it and stops the run
+      expect(r.status, r.message).toBe("waiting");
+      const s = replay(ledger.events());
+      expect(s.openCard?.kind).toBe("waiver");
+      const report = JSON.parse(readFileSync(join(ledger.dir, FIDELITY_DIR, "report.json"), "utf8")) as { skipped?: string; overall: string; pages: { key: string }[] };
+      expect(report.skipped).toBeUndefined();
+      expect(report.pages.map((p) => p.key)).toEqual(["s-1-default-phone"]);
+      expect(report.overall).toBe("fail");
+      expect(s.gates.map((g) => `${g.gateId}:${g.passed}`)).toEqual(expect.arrayContaining(["design.tokens:false", "design.a11y:true"]));
+    } finally {
+      if (off !== undefined) process.env.FACTORY_NO_SCREENSHOTS = off;
+    }
+  }, 120_000);
+
+  it("refuses to start a new product in a repo that has code, a design with a repo as a greenfield run, and a brownfield run on a Node project", async () => {
     const design = await designRun();
     writeFileSync(join(repo, "index.ts"), "export {};\n");
     execFileSync("git", ["add", "-A"], { cwd: repo, env });
@@ -219,5 +253,7 @@ describe("a new product end to end (greenfield, fakes)", () => {
     await expect(createRun("x", "shop", "tester", { mode: "greenfield", fromDesign: approvedDesign(design) })).rejects.toThrow(/already has code/);
     await expect(createRun("x", "shop", "tester", { fromDesign: approvedDesign(design) })).rejects.toThrow(/build it as a greenfield run/);
     await expect(createRun("x", "shop", "tester", { mode: "greenfield", fromDesign: { ...approvedDesign(design), repo: true } })).rejects.toThrow(/designed with no repo/);
+    // the Node lab builds only a new product: a change to an existing Node app is refused (PR #17 review, item 5)
+    await expect(createRun("change the sign-in page", "shop", "tester")).rejects.toThrow(/stack: node.*only for a new product/);
   });
 });

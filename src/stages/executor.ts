@@ -88,6 +88,8 @@ export async function createRun(request: string, projectName: string, operator: 
     const why = greenfieldRefusal(opts.fromDesign.runId, project);
     if (why) throw new Error(why);
   } else if (opts.fromDesign && !opts.fromDesign.repo && !readsRequirements(opts.mode)) throw new Error(`${opts.fromDesign.runId} is a new product (designed with no repo): build it as a greenfield run.`);
+  // the Node lab builds only a new product for now; changing an existing Node app is not decided yet (PR #17 review, item 5)
+  if (project.stack === "node" && (opts.mode ?? "brownfield") === "brownfield") throw new Error(`Project ${project.project} is stack: node. The factory builds Node only for a new product (factory start --from-design <a design made with no repo>); changes to an existing Node app are not supported yet.`);
   const baseCommit = noRepo ? undefined : await resolveRef(project.repo, project.baseBranch);
   const runId = newRunId(request);
   const ledger = Ledger.create(runId);

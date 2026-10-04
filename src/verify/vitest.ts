@@ -51,6 +51,15 @@ export function parseVitestJson(json: string, root = "/src"): { results: TestRes
   return { results, fileErrors };
 }
 
+/** The test ID that stands for a test file that failed to load: none of its tests ran, so the file counts as one failed test. */
+export const loadErrorId = (file: string) => `${file}::(the file did not load)`;
+export const isLoadError = (id: string) => id.endsWith("::(the file did not load)");
+
+/** One failed result per test file that did not load (PR #17 review, item 6): a load error is a failure, never a pass. */
+export function loadFailures(fileErrors: { file: string; message: string }[]): TestResult[] {
+  return fileErrors.map((e) => ({ id: loadErrorId(e.file), outcome: "failed" as const, failureKind: "compile" as const, durationMs: 0, message: `${e.file} did not load: ${e.message}`.slice(0, 2000) }));
+}
+
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** A `vitest -t` pattern that runs only the tests with these titles. */

@@ -14,9 +14,17 @@ export function isEmptyTree(files: string[]): boolean {
 const git = (repo: string, args: string[]) =>
   execFileSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "safe.directory=*", "-C", repo, ...args], { encoding: "utf8", env: hardenedEnv(), stdio: ["ignore", "pipe", "pipe"] });
 
-/** The commit `ref` names, or undefined when the repo has none yet (a fresh `git init`). */
+/**
+ * The commit `ref` names, or undefined when there is none (a fresh `git init`, a branch not made yet). Only "no such ref" is
+ * undefined: any other git error (not a repo, an unreadable object) throws, so a repo is never taken as empty by mistake (PR #17 review, item 4).
+ */
 export function commitAt(repo: string, ref: string): string | undefined {
-  try { return git(repo, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]).trim() || undefined; } catch { return undefined; }
+  try { return git(repo, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]).trim() || undefined; } catch (e) {
+    // --verify --quiet: a ref that does not resolve exits 1 and prints nothing; everything else is a real error
+    const err = e as { status?: number; stderr?: string | Buffer };
+    if (err.status === 1 && !String(err.stderr ?? "").trim()) return undefined;
+    throw e;
+  }
 }
 
 /** True when the repo has no commit at `ref`, or the commit holds only starter files. */
@@ -25,9 +33,21 @@ export function repoIsEmpty(repo: string, ref: string): boolean {
   return !c || isEmptyTree(git(repo, ["ls-tree", "-r", "--name-only", "-z", c]).split("\0").filter(Boolean));
 }
 
-/** The branch a repo is on, including one with no commits yet. */
+/** Files staged or in the working tree that are not starter files (ignored files aside): what an "empty" base commit must not take in. */
+export function uncommittedCode(repo: string): string[] {
+  const out = git(repo, ["status", "--porcelain=v1", "-z", "--untracked-files=all"]).split("\0").filter(Boolean);
+  return out.map((l) => l.slice(3)).filter((f) => f && !isEmptyTree([f]));
+}
+
+/** A repo with no commits must have nothing but starter files staged or waiting: its base commit would take them in (PR #17 review, item 2). */
+export function assertNothingWaiting(repo: string): void {
+  const code = uncommittedCode(repo);
+  if (code.length) throw new Error(`${repo} has no commits but has files waiting (${code.slice(0, 5).join(", ")}${code.length > 5 ? ", …" : ""}). A new product starts from an empty repo: commit them (then it is an existing project) or remove them, and run factory init again.`);
+}
+
+/** The branch a repo is on, including one with no commits yet; "HEAD" on a detached HEAD, as `factory init` always took it (PR #17 review, item 3). */
 export function currentBranch(repo: string): string {
-  return git(repo, ["symbolic-ref", "--short", "HEAD"]).trim();
+  try { return git(repo, ["symbolic-ref", "--short", "-q", "HEAD"]).trim(); } catch { return git(repo, ["rev-parse", "--abbrev-ref", "HEAD"]).trim(); }
 }
 
 /**
@@ -37,6 +57,7 @@ export function currentBranch(repo: string): string {
 export function seedEmptyRepo(repo: string): string {
   const have = commitAt(repo, "HEAD");
   if (have) return have;
+  assertNothingWaiting(repo);
   const who = { GIT_AUTHOR_NAME: "AI Factory", GIT_AUTHOR_EMAIL: "factory@localhost", GIT_COMMITTER_NAME: "AI Factory", GIT_COMMITTER_EMAIL: "factory@localhost" };
   execFileSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "safe.directory=*", "-c", "commit.gpgsign=false", "-C", repo, "commit", "-q", "--allow-empty", "-m", "Start (factory init: a new product)"], { env: { ...hardenedEnv(), ...who }, stdio: ["ignore", "pipe", "pipe"] });
   return commitAt(repo, "HEAD")!;
