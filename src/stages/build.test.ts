@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { coversIntegrate, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, TEST_SCOPE, testWriterTampering } from "./build.js";
+import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, TEST_SCOPE, testWriterTampering } from "./build.js";
 import { matchesAny } from "../util/glob.js";
 
 describe("earlier tasks' locked tests", () => {
@@ -133,5 +133,17 @@ describe("test writer: scope and tampering", () => {
     // a closing brace removed mid-file and re-added elsewhere is still a removal; only the no-newline last line is forgiven
     const brace = ["diff --git a/T.cs b/T.cs", "--- a/T.cs", "+++ b/T.cs", "@@ -4 +3,0 @@", "-}", "@@ -9,0 +9,1 @@", "+}"].join("\n");
     expect(patchLines(brace).removed).toEqual(["}"]);
+  });
+});
+
+describe("the empty baseline is greenfield only (PR #17 follow-up)", () => {
+  it("an empty repo skips the baseline only in a greenfield run; brownfield, estimate and design never even ask", () => {
+    let asked = 0;
+    const empty = () => { asked++; return true; };
+    expect(usesEmptyBaseline("greenfield", empty)).toBe(true);
+    expect(usesEmptyBaseline("greenfield", () => false)).toBe(false);
+    asked = 0;
+    for (const mode of ["brownfield", "estimate", "design", undefined]) expect(usesEmptyBaseline(mode, empty)).toBe(false);
+    expect(asked).toBe(0);
   });
 });

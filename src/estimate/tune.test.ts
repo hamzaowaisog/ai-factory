@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -6,7 +6,7 @@ import type { HoursRow } from "./calibrate.js";
 import { loadCatalogue, type Catalogue } from "./catalogue.js";
 import { currentCatalogue, readProposal, saveProposal, saveTuned, storedVersions } from "./catalogue-store.js";
 import type { DecisionPair } from "./decisions.js";
-import { formatTunePlan, nextValue, planTune, tuneNow, withTuneLock } from "./tune.js";
+import { formatTunePlan, nextValue, planTune, proposalHash, tuneNow, withTuneLock } from "./tune.js";
 
 const root = loadCatalogue();
 const t = root.tuning;
@@ -116,17 +116,50 @@ describe("tuning against the ledger home", () => {
     expect(currentCatalogue().version).toBe(`${root.version}+t1`);
     expect(storedVersions(root.version).map((c) => c.version)).toEqual([`${root.version}+t1`]);
     // a person promotes exactly the stored proposal, not a plan measured again (here the home has no evidence at all)
-    const applied = tuneNow({ mode: "apply" })!;
+    const applied = tuneNow({ mode: "apply", hash: proposalHash(next.catalogue!) })!;
     expect(applied).toMatchObject({ promoted: true, from: `${root.version}+t1`, to: `${root.version}+t2`, changes: next.changes });
     expect(currentCatalogue()).toEqual(next.catalogue);
     expect(readProposal(root.version)).toBeUndefined();
     // a proposal made from an older version is refused, not promoted over the newer one
     saveProposal(next.catalogue!);
-    expect(tuneNow({ mode: "apply" })).toMatchObject({ refused: expect.stringMatching(/was made from .*\+t1, not the current .*\+t2/) });
+    expect(tuneNow({ mode: "apply", hash: proposalHash(next.catalogue!) })).toMatchObject({ refused: expect.stringMatching(/was made from .*\+t1, not the current .*\+t2/) });
     expect(currentCatalogue().version).toBe(`${root.version}+t2`);
     // with nothing off, the tuner clears a stale proposal instead of keeping it
     tuneNow({ mode: "propose" });
     expect(readProposal(root.version)).toBeUndefined();
     expect(currentCatalogue().version).toBe(`${root.version}+t2`);
+  });
+
+  it("--apply promotes only the proposal the person reviewed: a rewrite by the background tuner is refused (PR #17 follow-up)", () => {
+    const t1 = planTune(root, root, evidence(root, 2.4), []).catalogue!;
+    saveTuned(t1);
+    // the person runs --tune and reviews change A; it prints A's hash
+    const a = planTune(t1, root, evidence(t1, 2.4 * 1.5), []).catalogue!;
+    saveProposal(a);
+    const reviewed = proposalHash(a);
+    // a run finishes and the background tuner rewrites the proposal: same version name, different changes (A+B)
+    const ab = { ...a, sizes: { ...a.sizes, large: a.sizes.large + 0.1 } };
+    expect(ab.version).toBe(a.version);
+    saveProposal(ab);
+    expect(proposalHash(ab)).not.toBe(reviewed);
+    // --apply with the reviewed hash refuses, and nothing is promoted
+    expect(tuneNow({ mode: "apply", hash: reviewed })).toMatchObject({ refused: expect.stringMatching(new RegExp(`waiting proposal is ${proposalHash(ab)}, not the ${reviewed} you reviewed`)) });
+    expect(currentCatalogue().version).toBe(t1.version);
+    // no hash at all: refused, and told which one is waiting
+    expect(tuneNow({ mode: "apply" })).toMatchObject({ refused: expect.stringMatching(new RegExp(`--apply <hash>.*waiting one is ${proposalHash(ab)}`)) });
+    // a too-short prefix is refused; the full short hash promotes exactly what is waiting
+    expect(tuneNow({ mode: "apply", hash: proposalHash(ab).slice(0, 3) })!.refused).toBeTruthy();
+    expect(tuneNow({ mode: "apply", hash: proposalHash(ab) })).toMatchObject({ promoted: true, to: ab.version });
+    expect(currentCatalogue()).toEqual(ab);
+  });
+
+  it("--tune says it wrote a proposal and gives the hash --apply needs", () => {
+    const t1 = planTune(root, root, evidence(root, 2.4), []).catalogue!;
+    saveTuned(t1);
+    const p = planTune(t1, root, evidence(t1, 2.4 * 1.5), []);
+    saveProposal(p.catalogue!);
+    expect(proposalHash(p.catalogue!)).toMatch(/^[0-9a-f]{8}$/);
+    const cli = readFileSync(new URL("../cli/index.ts", import.meta.url), "utf8");
+    expect(cli).toContain("Wrote this as a proposal (${plan.proposalHash}); nothing is sized from it yet. Promote exactly this one with: factory calibrate --apply ${plan.proposalHash}");
   });
 });

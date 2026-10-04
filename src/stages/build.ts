@@ -181,6 +181,11 @@ const REFUSE: { code: string; re: RegExp; reason: string }[] = [
   { code: "windows-only", re: /<UseWPF>true|<UseWindowsForms>true|<TargetFramework>net4\d/i, reason: "Windows-only target (WPF, WinForms or .NET Framework)." },
 ];
 
+/** Only a greenfield run on an empty repo skips the baseline; any other repo is built and tested as it is (never asked otherwise). */
+export function usesEmptyBaseline(mode: string | undefined, repoEmpty: () => boolean): boolean {
+  return mode === "greenfield" && repoEmpty();
+}
+
 export const discoverStep: StepDef = {
   key: "discover", stage: "discover", templateVersion: "1",
   inputs: (s) => ({ base: s.info.baseCommit }),
@@ -197,7 +202,7 @@ export const discoverStep: StepDef = {
     // baseline: cached per repo + commit
     const cacheFile = join(factoryHome(), "repos", ctx.project.project, `baseline-${ctx.state.info.baseCommit}.json`);
     let baseline: TestRun;
-    if (ctx.state.info.mode === "greenfield" && repoIsEmpty(repo, ctx.state.info.baseCommit!)) {
+    if (usesEmptyBaseline(ctx.state.info.mode, () => repoIsEmpty(repo, ctx.state.info.baseCommit!))) {
       // an empty repo (a new product): nothing to build or test yet; the scaffold commit writes the app. Greenfield runs only:
       // anything else is built and tested as it is (PR #17 review, item 4)
       baseline = { kind: "test", treeSha: ctx.state.info.baseCommit!, stage: "baseline", runner: ctx.project.stack === "node" ? "vitest" : "vstest", toolVersions: {}, expectPass: [], expectFail: [], compareToBaseline: [], discovered: [], results: [], exitCode: 0, reportShas: [], valid: true, classification: "ok" };
