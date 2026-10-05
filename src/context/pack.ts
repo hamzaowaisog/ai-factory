@@ -43,6 +43,8 @@ export interface BuildPackInput {
   recipeVersion: string;
   sections: ResolvedSection[];
   tools: string[];
+  /** Which tree the repo tools read. Omitted or "base" keeps the historic behaviour exactly. */
+  toolsAt?: "base" | "under-review";
   redactor: Redactor;
 }
 
@@ -51,6 +53,18 @@ const ORDER: SectionSpec["source"][] = ["template", "stackpack", "profile", "rul
 // the wrapper's own tags inside untrusted text are defanged (< → &lt;) so the text can't close it early
 const defang = (text: string) => text.replace(/<(\s*\/?\s*untrusted_document\b)/gi, "&lt;$1");
 const attr = (v: string) => v.replace(/"/g, "&quot;");
+
+/**
+ * A file's contents are data, exactly like an untrusted document handed over in a section. Until a
+ * reviewer had repo tools this did not matter, because only steps that already trusted the repo
+ * could call them — so tool results went to the model raw while packed sections were wrapped and
+ * defanged. Wrapping both the same way means one convention for "this is not addressed to you",
+ * and the defanging stops a file closing the wrapper and writing outside it.
+ */
+export function wrapToolResult(tool: string, input: unknown, text: string): string {
+  const src = attr(JSON.stringify(input ?? {}).slice(0, 120));
+  return `<untrusted_document id="${attr(tool)}" source="${src}">\n${defang(text)}\n</untrusted_document>`;
+}
 
 function wrap(s: ResolvedSection, text: string, imageN?: number): string {
   switch (s.spec.source) {
@@ -145,7 +159,8 @@ export function buildPack(inp: BuildPackInput): ContextPack {
   const { system, user } = render();
   const pointers = prepared.flatMap((p) => p.pointers ?? []);
   const sections = prepared.map((p) => ({ id: p.s.spec.id, tokens: estimateTokens(p.text, inp.model) + (p.imageN ? IMAGE_TOKENS : 0), trimmed: p.trimmed, trust: p.s.spec.trust }));
-  const body = { system, user, images, pointers, tools: inp.tools };
+  // the field is left out when it is "base", so every pack built before it existed hashes the same
+  const body = { system, user, images, pointers, tools: inp.tools, ...(inp.toolsAt && inp.toolsAt !== "base" ? { toolsAt: inp.toolsAt } : {}) };
   const manifest = {
     stage: inp.stage, model: inp.model, recipeVersion: inp.recipeVersion, sections,
     packTokens: tokens, budgetTokens: budget, countMethod: "proxy" as const, redactions,

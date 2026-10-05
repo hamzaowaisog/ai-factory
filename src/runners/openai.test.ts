@@ -46,7 +46,11 @@ describe("OpenAI via the Responses API", () => {
     expect((first.tools as { name: string }[]).map((t) => t.name)).toEqual(["read_file", "submit_result"]);
     const second = seen[1]!.body.input as { type?: string; call_id?: string; output?: string }[];
     expect(second.some((i) => i.type === "reasoning")).toBe(true); // reasoning goes back as input
-    expect(second.find((i) => i.type === "function_call_output")).toMatchObject({ call_id: "call_1", output: "read_file:a.cs" });
+    // the file's contents go back wrapped as untrusted, the same on every provider
+    expect(second.find((i) => i.type === "function_call_output")).toMatchObject({
+      call_id: "call_1",
+      output: '<untrusted_document id="read_file" source="{&quot;path&quot;:&quot;a.cs&quot;}">\nread_file:a.cs\n</untrusted_document>',
+    });
     expect(r.usage).toMatchObject({ inputTokens: 200, outputTokens: 40, cacheRead: 40 });
   });
 

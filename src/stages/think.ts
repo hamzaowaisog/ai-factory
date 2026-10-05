@@ -34,6 +34,8 @@ export interface ThinkSpec<T> {
   sections: ResolvedSection[];
   tools: ("read_file" | "search" | "repo_map")[];
   repoTools?: RepoTools;
+  /** Which tree `repoTools` serves, so the model is told truthfully. Defaults to the run's base. */
+  toolsAt?: "base" | "under-review";
   schema: z.ZodType<T>;
   maxTurns?: number;
   maxUsd?: number;
@@ -76,7 +78,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
   try {
     pack = buildPack({
       stage: spec.stage, cls: spec.cls, budgetTokens: budgetFor(ctx, spec.budgetTokens, sections, model), model, recipeVersion: "1",
-      sections, tools: spec.tools, redactor: new Redactor(), local: model.startsWith("ollama/"),
+      sections, tools: spec.tools, toolsAt: spec.toolsAt, redactor: new Redactor(), local: model.startsWith("ollama/"),
     });
   } catch (e) {
     if (e instanceof PackOverBudgetError) return { ok: false, outcome: { kind: "park", reason: `The ${spec.stage} briefing is too big (${e.packTokens} tokens > ${e.budget}); biggest part: ${e.biggest}` } };
