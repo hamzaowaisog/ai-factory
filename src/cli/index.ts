@@ -128,7 +128,7 @@ program.command("estimate")
   .option("--hands-off", "opt in to a hands-off run: nobody is asked, open questions become assumptions and the factory approves the estimate once its gates pass. A build cannot follow it: estimate again with a review to build")
   .option("--revises <run>", "a change request: the new requirements revise an approved estimate, and the card shows what changed")
   .option("--from-design <run>", "size an approved design-only run (factory design start): its spec, answers and approved design are reused, only the sizing is new")
-  .option("--resize <run>", "size an earlier estimate run again: its requirements, answers, spec, approved design and settings are reused (no clarify, no design), and only breakdown, sizing, approval and the workbooks run anew")
+  .option("--resize <run>", "size an earlier estimate run again: its requirements, answers, spec, approved design and settings (hands-off or reviewed too) are reused (no clarify, no design), and only breakdown, sizing, approval and the workbooks run anew")
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .option("--fresh", "ask the model again even if the same requirements were estimated before (skips the stored answers)")
   .option("--design-export <formats>", DESIGN_EXPORT_HELP)
@@ -157,10 +157,12 @@ program.command("estimate")
     const problems = checkRoutes(project, ESTIMATE_ROUTES);
     if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
     if (o.handsOff && o.review) throw new Error("Use --review or --hands-off, not both.");
+    const reviewGiven = !!o.handsOff || o.review !== undefined;
     o.review = o.handsOff ? false : o.review ?? project.estimate?.humanReview ?? true;
     let settings = parseEstimateSettings(o.project && !fromDesign?.settings.noRepo ? o : { ...o, repo: false });
-    // a resize is the same estimate sized again, so the earlier run's settings stand; only who reviews is asked anew
-    if (o.resize) settings = { ...fromDesign!.settings, humanReview: settings.humanReview };
+    // a resize is the same estimate sized again, so the earlier run's settings stand, its review too (a hands-off run stays
+    // hands-off) unless --review or --hands-off says otherwise
+    if (o.resize) settings = { ...fromDesign!.settings, humanReview: reviewGiven ? settings.humanReview : fromDesign!.settings.humanReview !== false };
     // the design run's product details stand unless given again
     else if (fromDesign) settings = { ...settings, ...Object.fromEntries(Object.entries({ client: fromDesign.settings.client, projectName: fromDesign.settings.projectName }).filter(([k, v]) => v && !(settings as Record<string, unknown>)[k])) };
     let lineage: { kind: "change"; approved: Approved } | undefined;
