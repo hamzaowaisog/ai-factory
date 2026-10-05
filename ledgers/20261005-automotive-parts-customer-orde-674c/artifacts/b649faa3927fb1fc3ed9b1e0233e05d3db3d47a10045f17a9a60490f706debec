@@ -1,0 +1,361 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Orders",
+     "subtitle": "Every order for Harrow Lane Motors, whether you, a colleague or our counter staff placed it",
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Order number or your PO ref",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All statuses",
+          "Submitted",
+          "Confirmed",
+          "Picking",
+          "Dispatched",
+          "Delivered",
+          "Cancelled"
+         ],
+         "value": "All statuses"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Order date",
+         "icon": "calendar",
+         "variant": "secondary",
+         "hint": "Filter by the date the order was placed"
+        },
+        {
+         "label": "Clear filters",
+         "variant": "ghost"
+        },
+        {
+         "label": "New order",
+         "icon": "plus",
+         "variant": "primary"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Order date",
+        "Delivery date",
+        "Delivery address",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "SO-24817",
+         "14 Mar 2026",
+         "16 Mar 2026",
+         "Unit 4, Brook Ind. Est., Leeds LS12",
+         "£482.60",
+         "Submitted"
+        ],
+        [
+         "SO-24790",
+         "13 Mar 2026",
+         "14 Mar 2026",
+         "Unit 4, Brook Ind. Est., Leeds LS12",
+         "£1,236.15",
+         "Picking"
+        ],
+        [
+         "SO-24752",
+         "12 Mar 2026",
+         "13 Mar 2026",
+         "18 Kirkstall Rd, Leeds LS3",
+         "£96.40",
+         "Dispatched"
+        ],
+        [
+         "SO-24701",
+         "10 Mar 2026",
+         "11 Mar 2026",
+         "Unit 4, Brook Ind. Est., Leeds LS12",
+         "£2,084.90",
+         "Delivered"
+        ],
+        [
+         "SO-24655",
+         "6 Mar 2026",
+         "9 Mar 2026",
+         "18 Kirkstall Rd, Leeds LS3",
+         "£318.00",
+         "Cancelled"
+        ],
+        [
+         "SO-24618",
+         "4 Mar 2026",
+         "5 Mar 2026",
+         "Unit 4, Brook Ind. Est., Leeds LS12",
+         "£744.25",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 4,
+       "page": 1
+      }
+     ],
+     "links": [
+      {
+       "from": "SO-24817",
+       "to": "S-11"
+      },
+      {
+       "from": "SO-24790",
+       "to": "S-11"
+      },
+      {
+       "from": "SO-24752",
+       "to": "S-11"
+      },
+      {
+       "from": "SO-24701",
+       "to": "S-11"
+      },
+      {
+       "from": "SO-24655",
+       "to": "S-11"
+      },
+      {
+       "from": "SO-24618",
+       "to": "S-11"
+      },
+      {
+       "from": "New order",
+       "to": "S-5"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "popover",
+       "trigger": "Order date",
+       "title": "Order date",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Placed between",
+           "kind": "daterange",
+           "value": "1 Mar 2026 - 14 Mar 2026",
+           "help": "Use the date the order was placed, not delivered"
+          }
+         ],
+         "submit": "Apply"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Clear dates",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders placed by you, your colleagues or our counter staff show here. Find parts in the catalogue to start one."
+     }
+    },
+    "mockFull": {
+     "title": "Orders",
+     "subtitle": "Every order for Harrow Lane Motors, whether you, a colleague or our counter staff placed it",
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Order number or your PO ref",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All statuses",
+          "Submitted",
+          "Confirmed",
+          "Picking",
+          "Dispatched",
+          "Delivered",
+          "Cancelled"
+         ],
+         "value": "All statuses"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Order date",
+         "icon": "calendar",
+         "variant": "secondary",
+         "hint": "Filter by the date the order was placed"
+        },
+        {
+         "label": "Clear filters",
+         "variant": "ghost"
+        },
+        {
+         "label": "New order",
+         "icon": "plus",
+         "variant": "primary"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Order date",
+        "Delivery date",
+        "Delivery address",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "SO-24823",
+         "14 Mar 2026",
+         "16 Mar 2026",
+         "18 Kirkstall Rd, Leeds LS3",
+         "£64.80",
+         "Submitted"
+        ],
+        [
+         "SO-24817",
+         "14 Mar 2026",
+         "16 Mar 2026",
+         "Unit 4, Brook Ind. Est., Leeds LS12",
+         "£482.60",
+         "Submitted"
+        ],
+        [
+         "SO-24804",
+         "13 Mar 2026",
+         "16 Mar 2026",
+         "Unit 4, Brook Ind. Est., Leeds LS12",
+         "£3,412.00",
+         "Confirmed"
+        ],
+        [
+         "SO-24790",
+         "13 Mar 2026",
+         "14 Mar 2026",
+         "Unit 4, Brook Ind. Est., Leeds LS12",
+         "£1,236.15",
+         "Picking"
+        ],
+        [
+         "SO-24771",
+         "12 Mar 2026",
+         "13 Mar 2026",
+         "Bay 2, Whitehall Trade Park, Leeds LS12",
+         "£219.35",
+         "Dispatched"
+        ],
+        [
+         "SO-24752",
+         "12 Mar 2026",
+         "13 Mar 2026",
+         "18 Kirkstall Rd, Leeds LS3",
+         "£96.40",
+         "Dispatched"
+        ],
+        [
+         "SO-24733",
+         "11 Mar 2026",
+         "12 Mar 2026",
+         "Unit 4, Brook Ind. Est., Leeds LS12",
+         "£1,058.70",
+         "Delivered"
+        ],
+        [
+         "SO-24701",
+         "10 Mar 2026",
+         "11 Mar 2026",
+         "Unit 4, Brook Ind. Est., Leeds LS12",
+         "£2,084.90",
+         "Delivered"
+        ],
+        [
+         "SO-24688",
+         "9 Mar 2026",
+         "10 Mar 2026",
+         "Bay 2, Whitehall Trade Park, Leeds LS12",
+         "£37.20",
+         "Delivered"
+        ],
+        [
+         "SO-24655",
+         "6 Mar 2026",
+         "9 Mar 2026",
+         "18 Kirkstall Rd, Leeds LS3",
+         "£318.00",
+         "Cancelled"
+        ],
+        [
+         "SO-24640",
+         "5 Mar 2026",
+         "6 Mar 2026",
+         "Unit 4, Brook Ind. Est., Leeds LS12",
+         "£576.45",
+         "Delivered"
+        ],
+        [
+         "SO-24618",
+         "4 Mar 2026",
+         "5 Mar 2026",
+         "Unit 4, Brook Ind. Est., Leeds LS12",
+         "£744.25",
+         "Delivered"
+        ],
+        [
+         "SO-24597",
+         "3 Mar 2026",
+         "4 Mar 2026",
+         "Bay 2, Whitehall Trade Park, Leeds LS12",
+         "£1,890.00",
+         "Cancelled"
+        ],
+        [
+         "SO-24571",
+         "2 Mar 2026",
+         "3 Mar 2026",
+         "18 Kirkstall Rd, Leeds LS3",
+         "£152.90",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 11,
+       "page": 1
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders placed by you, your colleagues or our counter staff show here. Find parts in the catalogue to start one."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

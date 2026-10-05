@@ -1,0 +1,456 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Order details",
+     "subtitle": "ORD-24817 · placed 11 Mar 2026 16:22 by Tom Reid",
+     "crumbs": [
+      "Orders",
+      "ORD-24817"
+     ],
+     "badge": "Received",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Delivery",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Received",
+         "badge": true
+        },
+        {
+         "label": "Requested delivery",
+         "value": "Fri 13 Mar 2026 (ordered after 14:00 cutoff)"
+        },
+        {
+         "label": "Customer",
+         "value": "Reid & Sons Garage · Acct RSG-0142"
+        },
+        {
+         "label": "Delivery address",
+         "value": "Unit 4, Canal Street, Stockport SK1 3BT"
+        },
+        {
+         "label": "Note",
+         "value": "Rear workshop door, before 10:00 please"
+        }
+       ]
+      },
+      {
+       "type": "receipt",
+       "title": "Order ORD-24817",
+       "status": "Received",
+       "from": "Northline Motor Factors",
+       "to": "Reid & Sons Garage",
+       "facts": [
+        {
+         "label": "Order date",
+         "value": "11 Mar 2026"
+        },
+        {
+         "label": "Price list",
+         "value": "Trade B"
+        },
+        {
+         "label": "Placed by",
+         "value": "Tom Reid"
+        }
+       ],
+       "lines": [
+        {
+         "item": "BP-4471 Front brake pad set · £38.20 ea",
+         "qty": "2",
+         "amount": "£76.40"
+        },
+        {
+         "item": "BD-2205 Front brake disc pair · £64.90 ea",
+         "qty": "1",
+         "amount": "£64.90"
+        },
+        {
+         "item": "OF-2210 Oil filter · £5.85 ea",
+         "qty": "4",
+         "amount": "£23.40"
+        },
+        {
+         "item": "5W30-5L Engine oil 5W-30, 5 L · £27.50 ea",
+         "qty": "3",
+         "amount": "£82.50"
+        },
+        {
+         "item": "WB-600 Wiper blade 600 mm · £8.95 ea",
+         "qty": "2",
+         "amount": "£17.90"
+        },
+        {
+         "item": "SP-K16 Iridium spark plug · £9.40 ea",
+         "qty": "4",
+         "amount": "£37.60"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Subtotal",
+         "value": "£302.70"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£60.54"
+        },
+        {
+         "label": "Order total",
+         "value": "£363.24"
+        }
+       ],
+       "note": "Prices from your Trade B price list, excluding VAT."
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "OF-2210 Oil filter: quantity 6 → 4",
+         "meta": "Priya Shah, office · 12 Mar 09:41 · only 4 in stock",
+         "badge": "Quantity"
+        },
+        {
+         "title": "WB-600 Wiper blade: unit price £9.60 → £8.95",
+         "meta": "Priya Shah, office · 12 Mar 09:43 · Trade B price applied",
+         "badge": "Price"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "11 Mar 2026 16:22",
+         "title": "Received",
+         "meta": "Tom Reid (buyer)",
+         "status": "now"
+        },
+        {
+         "time": "—",
+         "title": "Confirmed",
+         "meta": "Office checks stock and price",
+         "status": "next"
+        },
+        {
+         "time": "—",
+         "title": "Dispatched",
+         "meta": "Leaves the Stockport depot",
+         "status": "next"
+        },
+        {
+         "time": "Fri 13 Mar",
+         "title": "Delivered",
+         "meta": "Requested delivery date",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Repeat order",
+         "variant": "primary",
+         "icon": "plus",
+         "hint": "Adds still-orderable lines to your basket at today's prices"
+        },
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "hint": "Only possible while the order is Received"
+        },
+        {
+         "label": "Back to orders",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Repeat order",
+       "to": "S-7"
+      },
+      {
+       "from": "Back to orders",
+       "to": "S-10"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel order ORD-24817?",
+       "text": "The order will be set to Cancelled and nothing will be delivered. This can't be undone online.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "Order ORD-24817 cancelled",
+       "tone": "ok"
+      },
+      {
+       "after": "Repeat order",
+       "text": "6 lines added to basket at today's prices. OF-2210 reduced to stock.",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "error": "This order can no longer be cancelled online. Please contact the distributor office on 0161 496 0732.",
+      "success": "Order cancelled. Your cancellation is now on the timeline."
+     }
+    },
+    "mockFull": {
+     "title": "Order details",
+     "subtitle": "ORD-24817 · placed 11 Mar 2026 16:22 by Tom Reid",
+     "crumbs": [
+      "Orders",
+      "ORD-24817"
+     ],
+     "badge": "Received",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Delivery",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Received",
+         "badge": true
+        },
+        {
+         "label": "Requested delivery",
+         "value": "Fri 13 Mar 2026 (ordered after 14:00 cutoff)"
+        },
+        {
+         "label": "Customer",
+         "value": "Reid & Sons Garage · Acct RSG-0142"
+        },
+        {
+         "label": "Delivery address",
+         "value": "Unit 4, Canal Street, Stockport SK1 3BT"
+        },
+        {
+         "label": "Contact on site",
+         "value": "Dan Reid · 07700 900418"
+        },
+        {
+         "label": "Your reference",
+         "value": "Job 3381 – Focus timing belt"
+        },
+        {
+         "label": "Note",
+         "value": "Rear workshop door, before 10:00 please"
+        }
+       ]
+      },
+      {
+       "type": "receipt",
+       "title": "Order ORD-24817",
+       "status": "Received",
+       "from": "Northline Motor Factors",
+       "to": "Reid & Sons Garage",
+       "facts": [
+        {
+         "label": "Order date",
+         "value": "11 Mar 2026"
+        },
+        {
+         "label": "Price list",
+         "value": "Trade B"
+        },
+        {
+         "label": "Placed by",
+         "value": "Tom Reid"
+        },
+        {
+         "label": "Lines",
+         "value": "12"
+        }
+       ],
+       "lines": [
+        {
+         "item": "BP-4471 Front brake pad set · £38.20 ea",
+         "qty": "2",
+         "amount": "£76.40"
+        },
+        {
+         "item": "BD-2205 Front brake disc pair · £64.90 ea",
+         "qty": "1",
+         "amount": "£64.90"
+        },
+        {
+         "item": "OF-2210 Oil filter · £5.85 ea",
+         "qty": "4",
+         "amount": "£23.40"
+        },
+        {
+         "item": "5W30-5L Engine oil 5W-30, 5 L · £27.50 ea",
+         "qty": "3",
+         "amount": "£82.50"
+        },
+        {
+         "item": "WB-600 Wiper blade 600 mm · £8.95 ea",
+         "qty": "2",
+         "amount": "£17.90"
+        },
+        {
+         "item": "SP-K16 Iridium spark plug · £9.40 ea",
+         "qty": "4",
+         "amount": "£37.60"
+        },
+        {
+         "item": "AF-3318 Air filter · £11.20 ea",
+         "qty": "2",
+         "amount": "£22.40"
+        },
+        {
+         "item": "CF-0907 Cabin pollen filter · £9.75 ea",
+         "qty": "2",
+         "amount": "£19.50"
+        },
+        {
+         "item": "BF-DOT4 Brake fluid DOT 4, 1 L · £6.80 ea",
+         "qty": "3",
+         "amount": "£20.40"
+        },
+        {
+         "item": "TB-1142 Timing belt kit with water pump · £148.00 ea",
+         "qty": "1",
+         "amount": "£148.00"
+        },
+        {
+         "item": "BL-H7 Headlamp bulb H7 12V 55W · £3.15 ea",
+         "qty": "6",
+         "amount": "£18.90"
+        },
+        {
+         "item": "AB-2480 Auxiliary drive belt 6PK · £16.45 ea",
+         "qty": "1",
+         "amount": "£16.45"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Subtotal",
+         "value": "£548.35"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£109.67"
+        },
+        {
+         "label": "Order total",
+         "value": "£658.02"
+        }
+       ],
+       "note": "Prices from your Trade B price list, excluding VAT."
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "OF-2210 Oil filter: quantity 6 → 4",
+         "meta": "Priya Shah, office · 12 Mar 09:41 · only 4 in stock",
+         "badge": "Quantity"
+        },
+        {
+         "title": "WB-600 Wiper blade: unit price £9.60 → £8.95",
+         "meta": "Priya Shah, office · 12 Mar 09:43 · Trade B price applied",
+         "badge": "Price"
+        },
+        {
+         "title": "BL-H7 Headlamp bulb: quantity 10 → 6",
+         "meta": "Priya Shah, office · 12 Mar 09:44 · pack of 6 left",
+         "badge": "Quantity"
+        },
+        {
+         "title": "AB-2480 Drive belt added in place of AB-2470",
+         "meta": "Mark Allen, office · 12 Mar 10:05 · AB-2470 retired, same fit",
+         "badge": "Substitute"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "11 Mar 2026 16:22",
+         "title": "Received",
+         "meta": "Tom Reid (buyer)",
+         "status": "now"
+        },
+        {
+         "time": "—",
+         "title": "Confirmed",
+         "meta": "Office checks stock and price",
+         "status": "next"
+        },
+        {
+         "time": "—",
+         "title": "Dispatched",
+         "meta": "Leaves the Stockport depot on van route 3",
+         "status": "next"
+        },
+        {
+         "time": "Fri 13 Mar",
+         "title": "Delivered",
+         "meta": "Requested delivery date",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Repeat order",
+         "variant": "primary",
+         "icon": "plus",
+         "hint": "Adds still-orderable lines to your basket at today's prices"
+        },
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "hint": "Only possible while the order is Received"
+        },
+        {
+         "label": "Back to orders",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "This order can no longer be cancelled online. Please contact the distributor office on 0161 496 0732.",
+      "success": "Order cancelled. Your cancellation is now on the timeline."
+     }
+    }
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

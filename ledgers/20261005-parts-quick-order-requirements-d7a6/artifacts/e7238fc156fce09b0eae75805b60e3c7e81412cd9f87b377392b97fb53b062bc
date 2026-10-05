@@ -1,0 +1,367 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Your orders, newest first. Open one to see its lines, delivery and status.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All statuses",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "SO-24817",
+         "12 Mar 2026",
+         "7",
+         "£183.90",
+         "Placed"
+        ],
+        [
+         "SO-24790",
+         "10 Mar 2026",
+         "3",
+         "£96.15",
+         "Packed"
+        ],
+        [
+         "SO-24752",
+         "6 Mar 2026",
+         "12",
+         "£412.80",
+         "Dispatched"
+        ],
+        [
+         "SO-24701",
+         "2 Mar 2026",
+         "2",
+         "£38.90",
+         "Delivered"
+        ],
+        [
+         "SO-24688",
+         "27 Feb 2026",
+         "5",
+         "£127.35",
+         "Cancelled"
+        ],
+        [
+         "SO-24634",
+         "21 Feb 2026",
+         "20",
+         "£261.00",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 3,
+       "page": 1
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "drawer",
+       "trigger": "SO-24817",
+       "title": "Order SO-24817",
+       "blocks": [
+        {
+         "type": "receipt",
+         "title": "Order SO-24817",
+         "status": "Placed",
+         "to": "Harlow Plant Services, Unit 4 Riverside Ind. Est., Harlow CM20 2DP",
+         "facts": [
+          {
+           "label": "Placed",
+           "value": "12 Mar 2026, 09:14"
+          },
+          {
+           "label": "Delivery",
+           "value": "Next day by 1pm"
+          },
+          {
+           "label": "Items",
+           "value": "7"
+          }
+         ],
+         "lines": [
+          {
+           "item": "6204-2RS · Deep groove ball bearing 20×47×14",
+           "qty": "4 × £6.85",
+           "amount": "£27.40"
+          },
+          {
+           "item": "V-A42 · Classic V-belt A42",
+           "qty": "2 × £14.20",
+           "amount": "£28.40"
+          },
+          {
+           "item": "HF-6177 · Hydraulic return filter element",
+           "qty": "1 × £89.50",
+           "amount": "£89.50"
+          }
+         ],
+         "totals": [
+          {
+           "label": "Subtotal",
+           "value": "£145.30"
+          },
+          {
+           "label": "Delivery",
+           "value": "£7.95"
+          },
+          {
+           "label": "VAT 20%",
+           "value": "£30.65"
+          },
+          {
+           "label": "Total",
+           "value": "£183.90"
+          }
+         ]
+        },
+        {
+         "type": "timeline",
+         "items": [
+          {
+           "time": "12 Mar, 09:14",
+           "title": "Placed",
+           "meta": "Current status: order received",
+           "status": "now"
+          },
+          {
+           "time": "Pending",
+           "title": "Packed",
+           "meta": "Usually the same working day",
+           "status": "next"
+          },
+          {
+           "time": "Pending",
+           "title": "Dispatched",
+           "meta": "Tracking number shows here",
+           "status": "next"
+          },
+          {
+           "time": "Due 13 Mar",
+           "title": "Delivered",
+           "meta": "Next day by 1pm",
+           "status": "next"
+          }
+         ]
+        }
+       ],
+       "actions": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "Close",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel order SO-24817?",
+       "text": "We'll stop it before it's packed and set its status to Cancelled. This can't be undone.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "Order SO-24817 cancelled",
+       "tone": "ok"
+      },
+      {
+       "after": "Yes, cancel order",
+       "text": "Can't cancel: SO-24817 has already been packed",
+       "tone": "bad"
+      }
+     ],
+     "links": [
+      {
+       "from": "Find parts",
+       "to": "S-1"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place show here, newest first. Go to Find parts to order your first part.",
+      "error": "Your orders didn't load. Check your connection and try again.",
+      "success": "Order SO-24817 cancelled. Its status is now Cancelled."
+     }
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Your orders, newest first. Open one to see its lines, delivery and status.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All statuses",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "SO-24817",
+         "12 Mar 2026",
+         "7",
+         "£183.90",
+         "Placed"
+        ],
+        [
+         "SO-24812",
+         "11 Mar 2026",
+         "1",
+         "£22.68",
+         "Placed"
+        ],
+        [
+         "SO-24790",
+         "10 Mar 2026",
+         "3",
+         "£96.15",
+         "Packed"
+        ],
+        [
+         "SO-24781",
+         "9 Mar 2026",
+         "16",
+         "£348.72",
+         "Packed"
+        ],
+        [
+         "SO-24752",
+         "6 Mar 2026",
+         "12",
+         "£412.80",
+         "Dispatched"
+        ],
+        [
+         "SO-24739",
+         "5 Mar 2026",
+         "4",
+         "£61.20",
+         "Dispatched"
+        ],
+        [
+         "SO-24701",
+         "2 Mar 2026",
+         "2",
+         "£38.90",
+         "Delivered"
+        ],
+        [
+         "SO-24688",
+         "27 Feb 2026",
+         "5",
+         "£127.35",
+         "Cancelled"
+        ],
+        [
+         "SO-24671",
+         "25 Feb 2026",
+         "48",
+         "£1,206.48",
+         "Delivered"
+        ],
+        [
+         "SO-24634",
+         "21 Feb 2026",
+         "20",
+         "£261.00",
+         "Delivered"
+        ],
+        [
+         "SO-24602",
+         "17 Feb 2026",
+         "9",
+         "£154.44",
+         "Delivered"
+        ],
+        [
+         "SO-24577",
+         "12 Feb 2026",
+         "1",
+         "£8.34",
+         "Cancelled"
+        ],
+        [
+         "SO-24540",
+         "6 Feb 2026",
+         "6",
+         "£219.90",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 2,
+       "page": 1
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place show here, newest first. Go to Find parts to order your first part.",
+      "error": "Your orders didn't load. Check your connection and try again.",
+      "success": "Order SO-24817 cancelled. Its status is now Cancelled."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

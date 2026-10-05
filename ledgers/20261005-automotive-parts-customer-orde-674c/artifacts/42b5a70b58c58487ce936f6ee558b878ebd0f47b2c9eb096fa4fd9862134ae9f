@@ -1,0 +1,355 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The portal must allow users to sign in with email and password, starting an authenticated session and returning the user's role when credentials match an active account."
+     },
+     {
+      "n": 2,
+      "text": "The portal must reject sign-in attempts with unknown emails or wrong passwords using one identical invalid-credentials error message, returning no session token."
+     },
+     {
+      "n": 3,
+      "text": "The portal must lock an account for 15 minutes after 5 consecutive failed sign-in attempts, rejecting all sign-ins during the lock with a temporary-lock error."
+     },
+     {
+      "n": 4,
+      "text": "The portal must reject sign-in and all requests, including order submission, from users who are deactivated or belong to an inactive customer company, even if they hold valid existing sessions."
+     },
+     {
+      "n": 5,
+      "text": "The portal must invalidate a user's session token when the user signs out."
+     },
+     {
+      "n": 6,
+      "text": "The portal must reject with status 401, without returning any record data, any request to endpoints other than sign-in, password reset and invitation acceptance that lacks a valid session token."
+     },
+     {
+      "n": 7,
+      "text": "The portal must reject with status 403 any request to an endpoint outside a user's role capabilities, with Administrator including all Office Staff capabilities."
+     },
+     {
+      "n": 8,
+      "text": "The portal must restrict a signed-in Buyer to orders, invoices, prices, delivery addresses and account data belonging to their own customer company, returning 404 for other companies' records."
+     },
+     {
+      "n": 9,
+      "text": "The portal must respond identically to password reset requests whether or not the email exists, sending a single-use reset email valid for a configurable period (default 1 hour) only when the account is active (including temporarily locked) and its company, if any, is active."
+     },
+     {
+      "n": 10,
+      "text": "The portal must allow a user to set a new password via an unexpired, unused reset link, replacing the password, invalidating the link and clearing any sign-in lock."
+     },
+     {
+      "n": 11,
+      "text": "The portal must reject password changes via reset links that are expired, already used, or belong to pending, deactivated, or inactive-company users, keeping the password and any lock unchanged."
+     },
+     {
+      "n": 12,
+      "text": "The portal must allow administrators to invite Buyers (linked to a company) or Office Staff, creating a pending account and sending an invitation email valid for a configurable period (default 7 days)."
+     },
+     {
+      "n": 13,
+      "text": "The portal must allow administrators to invite users with the Administrator role, creating a pending account and sending an invitation email."
+     },
+     {
+      "n": 14,
+      "text": "The portal must activate an invited user's account when they set a password through an unexpired invitation link."
+     },
+     {
+      "n": 15,
+      "text": "The portal must allow administrators to resend invitations for pending accounts, invalidating all previous invitation links and sending a new invitation email."
+     },
+     {
+      "n": 16,
+      "text": "The portal must let administrators list users with role, company and status, assign Buyers to companies, and deactivate/reactivate users without deleting their orders or invoices."
+     },
+     {
+      "n": 17,
+      "text": "The portal must let administrators change a user's role between Buyer and Office Staff."
+     },
+     {
+      "n": 18,
+      "text": "The portal must let administrators change a user's role to Administrator."
+     },
+     {
+      "n": 19,
+      "text": "The portal must reject reactivation of a deactivated user whose customer company is inactive."
+     },
+     {
+      "n": 20,
+      "text": "The portal must let Buyers search the catalogue by text term across product name, code, part number and brand, case-insensitively, returning only active products."
+     },
+     {
+      "n": 21,
+      "text": "The portal must let Buyers filter the catalogue by category, combined with search terms, returning only active matching products, and show all active products again once the filter is cleared."
+     },
+     {
+      "n": 22,
+      "text": "The portal must let Buyers search by vehicle attributes (make, model, year, engine, fuel type, variant) in any combination, returning only active products whose compatibility entries match all supplied values."
+     },
+     {
+      "n": 23,
+      "text": "The portal must return, for catalogue listing, only active products with image, name, code, manufacturer, unit of sale, pack size, Buyer's price and stock status."
+     },
+     {
+      "n": 24,
+      "text": "The portal must return, for a single opened active product, its image, name, code, manufacturer, description, unit, pack size, Buyer's price, stock status and compatible vehicles."
+     },
+     {
+      "n": 25,
+      "text": "The portal must price products and order/basket lines from the price list currently assigned to the Buyer's company at request time, applying changed assignments going forward."
+     },
+     {
+      "n": 26,
+      "text": "The portal must let Office Staff view the unit price a given customer company pays for a product, from that company's assigned price list."
+     },
+     {
+      "n": 27,
+      "text": "The portal must show a product with no price on a company's assigned price list as 'Price on request' and reject adding it to a basket or order."
+     },
+     {
+      "n": 28,
+      "text": "The portal must let administrators create, rename and deactivate price lists; set, edit and remove at most one price per product per list; and assign an active price list to a customer company."
+     },
+     {
+      "n": 29,
+      "text": "The portal must leave unit prices on existing orders and invoices unchanged when a price list price or company assignment changes later."
+     },
+     {
+      "n": 30,
+      "text": "The portal must derive stock status as Out of stock at or below zero or never imported, Low stock up to the configured threshold, and In stock above it."
+     },
+     {
+      "n": 31,
+      "text": "The portal must, on a scheduled ERP stock import of a valid CSV, update quantities and stock status for known products and record a successful import log with row counts."
+     },
+     {
+      "n": 32,
+      "text": "The portal must skip unknown product identifiers in an otherwise valid import, applying other rows and listing skipped identifiers in the log."
+     },
+     {
+      "n": 33,
+      "text": "The portal must keep stock quantities unchanged and log a failed import with a reason when the CSV is missing, unreadable, empty, lacks a required column, or has invalid quantities."
+     },
+     {
+      "n": 34,
+      "text": "The portal must let staff and administrators list stock imports with time, status, rows-applied count, skipped identifiers and failure reason."
+     },
+     {
+      "n": 35,
+      "text": "The portal must never send create, update or delete requests to the ERP system."
+     },
+     {
+      "n": 36,
+      "text": "The portal must show staff, on a product, its imported stock quantity, stock status, last successful import time and price per price list."
+     },
+     {
+      "n": 37,
+      "text": "The portal must reject basket, order creation or amendment quantities exceeding available stock, or additions of out-of-stock products, with an error stating available quantity."
+     },
+     {
+      "n": 38,
+      "text": "The portal must maintain a per-session Buyer basket allowing adding, quantity changes (minimum 1), and removal of lines, returning line prices, totals and subtotal."
+     },
+     {
+      "n": 39,
+      "text": "The portal must calculate the earliest delivery date as the next working day before a configurable cutoff (default 14:00) or the working day after that otherwise, skipping non-working dates, in the configured timezone."
+     },
+     {
+      "n": 40,
+      "text": "The portal must accept only a working day within the earliest-to-maximum delivery window as a valid delivery date, checked at submission, offering exactly those dates and rejecting others with an error naming the delivery date."
+     },
+     {
+      "n": 41,
+      "text": "The portal must reject a delivery address not belonging to the order's company, with an error naming the delivery address field."
+     },
+     {
+      "n": 42,
+      "text": "The portal must re-check availability, stock limits and current pricing for every basket line at order submission, rejecting the submission and listing affected lines if any fail."
+     },
+     {
+      "n": 43,
+      "text": "The portal must show Buyers a final checkout review page with lines, prices, totals, subtotal, address, date and note before submission."
+     },
+     {
+      "n": 44,
+      "text": "The portal must, on valid order submission, create an order with a sequential prefixed number, order-time prices, copied address, delivery date, optional note, Received status, and a first timeline entry, then clear the basket."
+     },
+     {
+      "n": 45,
+      "text": "The portal must reject order submissions by inactive-company users, deactivated users, or for inactive companies by staff, creating no order."
+     },
+     {
+      "n": 46,
+      "text": "The portal must append a timeline entry with status, timestamp and actor (user or System) on every order status change."
+     },
+     {
+      "n": 47,
+      "text": "The portal must send order emails to the placing Buyer if still active and linked to the company, and otherwise to the company's contact email, including for staff-created orders."
+     },
+     {
+      "n": 48,
+      "text": "The portal must let Buyers list all orders of their company, including colleagues' and staff-created orders, with key fields, filterable by status and date range."
+     },
+     {
+      "n": 49,
+      "text": "The portal must let a Buyer of the order's company or staff open an order to view its number, dates, address, status, timeline, lines, totals, note and amendments."
+     },
+     {
+      "n": 50,
+      "text": "The portal must let a Buyer cancel their company's Received-status order, setting it Cancelled with a timeline entry."
+     },
+     {
+      "n": 51,
+      "text": "The portal must reject Buyer cancellation of non-Received orders, with an error directing them to contact the distributor office."
+     },
+     {
+      "n": 52,
+      "text": "The portal must let a Buyer repeat a past order, adding still-orderable lines to the basket at current price and original quantity (capped at stock, flagged if reduced), flagging unavailable lines, without creating an order."
+     },
+     {
+      "n53": 0,
+      "n": 53,
+      "text": "The portal must let staff list all customers' orders with key fields, filterable by customer, date range and status."
+     },
+     {
+      "n": 54,
+      "text": "The portal must let staff search customers by partial name or account number, and open a customer to view its details, addresses, price list, users, status, orders and invoices."
+     },
+     {
+      "n": 55,
+      "text": "The portal must let staff edit a Received order only, limited to quantities, line removal, note, address (same company) and delivery date (valid at edit time)."
+     },
+     {
+      "n": 56,
+      "text": "The portal must record staff quantity changes or line removals as amendments with old/new values, staff and time, and email the order recipient listing the changes."
+     },
+     {
+      "n": 57,
+      "text": "The portal must let staff confirm a Received order with valid lines and address, setting it Confirmed with a timeline entry, or reject listing failing lines otherwise."
+     },
+     {
+      "n": 58,
+      "text": "The portal must send a confirmation email on order confirmation containing order number, lines, total, address, date and any pre-confirmation quantity changes."
+     },
+     {
+      "n": 59,
+      "text": "The portal must let staff advance order status only through the sequence Confirmed, Picking, Out for delivery, Delivered (or cancellation), recording a timeline entry, rejecting other transitions."
+     },
+     {
+      "n": 60,
+      "text": "The portal must email the order recipient when status changes to Out for delivery, naming the order and stating it is out for delivery."
+     },
+     {
+      "n": 61,
+      "text": "The portal must require a reason when staff cancel or reject a non-Delivered, non-Cancelled order, recording the reason, staff and time, and emailing the recipient with the reason."
+     },
+     {
+      "n": 62,
+      "text": "The portal must let staff submit orders on behalf of active companies under the same price, stock, address and date rules as Buyer orders, marked as staff-created."
+     },
+     {
+      "n": 63,
+      "text": "The portal must keep an inactive company's existing orders and invoices visible and let staff progress, cancel and invoice its open orders."
+     },
+     {
+      "n": 64,
+      "text": "The portal must let staff export a CSV delivery list for a given date (default today) with one row per non-Cancelled order due that date, including specified fields."
+     },
+     {
+      "n": 65,
+      "text": "The portal must show staff a dashboard with counts of orders by Received, Picking, Out for delivery status, orders due today, and Unpaid/Overdue invoices."
+     },
+     {
+      "n": 66,
+      "text": "The portal must show staff a dashboard count of Confirmed-status orders."
+     },
+     {
+      "n": 67,
+      "text": "The portal must show staff a dashboard count of failed stock imports since the last success."
+     },
+     {
+      "n": 68,
+      "text": "The portal must show staff the latest stock import result, including failure time and reason, when it failed."
+     },
+     {
+      "n": 69,
+      "text": "The portal must create one invoice when an order becomes Delivered, with a sequential prefixed number, customer and billing details, order reference, order-time lines, net/tax/gross totals and Unpaid status."
+     },
+     {
+      "n": 70,
+      "text": "The portal must report invoice payment status as Unpaid, then Overdue after a configurable number of days, and Paid once payment is recorded."
+     },
+     {
+      "n": 71,
+      "text": "The portal must let users list invoices with key fields, restricted to their own company for Buyers and all companies for staff."
+     },
+     {
+      "n": 72,
+      "text": "The portal must let Office Staff list and view all invoices, filterable by customer and payment status."
+     },
+     {
+      "n": 73,
+      "text": "The portal must let a Buyer of the invoice's company or staff download an invoice PDF containing invoice and order details, totals, payment status and distributor branding."
+     },
+     {
+      "n": 74,
+      "text": "The portal must let staff mark an Unpaid or Overdue invoice as paid with a payment date no later than today, recording the date and staff, storing no card data and never contacting payment providers."
+     },
+     {
+      "n": 75,
+      "text": "The portal must let administrators add, edit and retire products with specified fields, keeping retired products out of the catalogue but on existing orders/invoices."
+     },
+     {
+      "n": 76,
+      "text": "The portal must let administrators create, rename and retire single-level categories and assign products to them, hiding retired categories from Buyers."
+     },
+     {
+      "n": 77,
+      "text": "The portal must let administrators upload a product image, replacing any previous image, only accepting JPEG, PNG or WebP files up to 10 MB."
+     },
+     {
+      "n": 78,
+      "text": "The portal must let administrators add and remove vehicle compatibility entries on a product, with any number of entries allowed."
+     },
+     {
+      "n": 79,
+      "text": "The portal must let administrators create and edit customer companies with specified fields including price list assignment and active status."
+     },
+     {
+      "n": 80,
+      "text": "The portal must restrict adding, editing and removing a company's delivery addresses to staff/administrators, while letting Buyers view their own company's addresses."
+     },
+     {
+      "n": 81,
+      "text": "The portal must let administrators view and change system settings including cutoff time, timezone, non-working dates, maximum delivery days, low-stock threshold, overdue days, tax rate, number prefixes, link validity periods, and invoice branding."
+     },
+     {
+      "n": 82,
+      "text": "The portal must store creator and last-changer identities and timestamps on orders, invoices, companies, users, products, categories and price lists, returning them to administrators."
+     },
+     {
+      "n": 83,
+      "text": "The portal must let Office Staff and Administrators request a sales report for a date range, optionally filtered by customer, showing order counts, net totals and product sales, both on-screen and as CSV."
+     },
+     {
+      "n": 84,
+      "text": "The portal must reject an administrator's attempt to deactivate their own account or change their own role, leaving the account unchanged."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

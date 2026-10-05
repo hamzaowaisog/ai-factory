@@ -22,6 +22,25 @@ describe("E1 readiness", () => {
     expect(run(readiness, { spec, questions: { questions: [{ id: "Q-1" }] } }).passed).toBe(false);
     expect(run(readiness, { spec }).passed).toBe(false);
   });
+  it("passes a lint failure, high critic finding or invented capability settled by a question, never a dropped span", () => {
+    const open = {
+      ...spec, lint: [{ check: "ears", passed: false, details: "bad" }], critic: [{ finding: "Retry has no idempotency.", severity: "high" }],
+      roundTrip: { droppedSpans: [], inventedCapabilities: ["The API shall reject requests with 401"] },
+    };
+    const settled = [
+      { kind: "lint", problem: "ears: bad", how: "assumed", decision: "q → a" },
+      { kind: "critic", problem: "retry has no  idempotency", how: "answered", ref: "Q-4", decision: "q → a" },
+      { kind: "invented", problem: "The API shall reject requests with 401.", how: "open-risk", decision: "carried" },
+    ];
+    const questions = { questions: [{ id: "Q-1", answer: "yes" }] };
+    expect(run(readiness, { spec: open, questions }).passed).toBe(false);
+    const ok = run(readiness, { spec: { ...open, settled }, questions });
+    expect(ok.passed).toBe(true);
+    expect(ok.details).toContain("3 problems settled by questions");
+    // only what is settled passes; a dropped span is never settled
+    expect(run(readiness, { spec: { ...open, settled: settled.slice(1) }, questions }).passed).toBe(false);
+    expect(run(readiness, { spec: { ...open, settled, roundTrip: { ...open.roundTrip, droppedSpans: ["I-2"] } }, questions }).passed).toBe(false);
+  });
 });
 
 describe("E1b design baseline", () => {

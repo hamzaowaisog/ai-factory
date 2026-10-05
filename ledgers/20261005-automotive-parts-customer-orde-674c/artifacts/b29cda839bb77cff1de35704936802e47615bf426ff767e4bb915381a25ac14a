@@ -1,0 +1,195 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "User",
+     "subtitle": "Daniel Okafor · d.okafor@hartleymotors.co.uk",
+     "crumbs": [
+      "Users",
+      "Daniel Okafor"
+     ],
+     "badge": "Pending",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Invitation not yet accepted",
+       "text": "Invitation sent 9 Mar 2026 at 10:42. The link expires 16 Mar 2026. Resending it cancels every earlier link and emails a new one."
+      },
+      {
+       "type": "detail",
+       "title": "Account",
+       "rows": [
+        {
+         "label": "Name",
+         "value": "Daniel Okafor"
+        },
+        {
+         "label": "Email",
+         "value": "d.okafor@hartleymotors.co.uk"
+        },
+        {
+         "label": "Role",
+         "value": "Buyer"
+        },
+        {
+         "label": "Customer company",
+         "value": "Hartley Motors Ltd · CUST-0418"
+        },
+        {
+         "label": "Company status",
+         "value": "Active",
+         "badge": true
+        },
+        {
+         "label": "Account status",
+         "value": "Pending invitation",
+         "badge": true
+        },
+        {
+         "label": "Last sign-in",
+         "value": "Never"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Role",
+         "kind": "radio",
+         "options": [
+          "Buyer",
+          "Office Staff",
+          "Administrator"
+         ],
+         "value": "Buyer",
+         "required": true,
+         "hint": "Administrators can manage users, the audit log and settings"
+        },
+        {
+         "label": "Customer company",
+         "kind": "combobox",
+         "value": "Hartley Motors Ltd · CUST-0418",
+         "placeholder": "Search by company name or account number",
+         "help": "Buyers only. Orders and prices follow this company."
+        }
+       ],
+       "submit": "Save changes"
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Resend invitation",
+         "variant": "secondary",
+         "icon": "send"
+        },
+        {
+         "label": "View company",
+         "variant": "ghost"
+        },
+        {
+         "label": "Deactivate",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Record history",
+       "rows": [
+        {
+         "label": "Created by",
+         "value": "Priya Raman (Administrator)"
+        },
+        {
+         "label": "Created",
+         "value": "9 Mar 2026, 10:41"
+        },
+        {
+         "label": "Last changed by",
+         "value": "Mark Ellison (Administrator)"
+        },
+        {
+         "label": "Last changed",
+         "value": "11 Mar 2026, 15:07"
+        },
+        {
+         "label": "Last change",
+         "value": "Customer company set to Hartley Motors Ltd"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "View company",
+       "to": "S-21"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Resend invitation",
+       "title": "Resend invitation?",
+       "text": "Every earlier invitation link for Daniel Okafor stops working, and a new invitation is emailed to d.okafor@hartleymotors.co.uk.",
+       "actions": [
+        {
+         "label": "Send new invitation",
+         "variant": "primary"
+        },
+        "Cancel"
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Deactivate",
+       "title": "Deactivate Daniel Okafor?",
+       "text": "His invitation link stops working and he can't sign in. Orders and invoices on Hartley Motors Ltd are kept. You can reactivate him later.",
+       "actions": [
+        {
+         "label": "Deactivate user",
+         "variant": "danger"
+        },
+        "Cancel"
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Send new invitation",
+       "text": "New invitation sent. Earlier links no longer work.",
+       "tone": "ok"
+      },
+      {
+       "after": "Deactivate user",
+       "text": "Daniel Okafor deactivated",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "Save changes",
+       "text": "Role and company saved",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "error": "Can't reactivate this user: Hartley Motors Ltd is inactive. Reactivate the company first.",
+      "success": "Changes saved. The record history now shows your update."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

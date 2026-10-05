@@ -1,0 +1,447 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Reports",
+     "subtitle": "Non-cancelled orders by submission date (Europe/London), start and end dates included",
+     "tabs": [
+      "Sales",
+      "Orders per day",
+      "Top products",
+      "Revenue per customer"
+     ],
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Date range",
+         "kind": "daterange",
+         "value": "01 Mar 2026 - 31 Mar 2026",
+         "required": true,
+         "help": "Uses the order's submission date in Europe/London time. Both dates are included.",
+         "error": "Choose a start and end date, with the end on or after the start"
+        },
+        {
+         "label": "Customer",
+         "kind": "combobox",
+         "placeholder": "All customers",
+         "options": [
+          "Hartley Motors",
+          "Kingsway Autocentre",
+          "M62 Commercials",
+          "Patel & Sons Vehicle Repairs",
+          "Brook Lane Garage",
+          "Riverside Tyre & Exhaust"
+         ],
+         "help": "Optional. Leave it blank to include every customer."
+        }
+       ],
+       "submit": "Run report"
+      },
+      {
+       "type": "toolbar",
+       "buttons": [
+        {
+         "label": "Export CSV",
+         "variant": "primary",
+         "icon": "download",
+         "menu": [
+          "By customer",
+          "By product"
+         ],
+         "hint": "UTF-8 CSV with the columns shown on screen, ISO 8601 dates"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Customer",
+        "Orders",
+        "Net total"
+       ],
+       "rows": [
+        [
+         "Hartley Motors",
+         "48",
+         "£14,286.40"
+        ],
+        [
+         "Kingsway Autocentre",
+         "37",
+         "£11,902.15"
+        ],
+        [
+         "M62 Commercials",
+         "22",
+         "£9,640.80"
+        ],
+        [
+         "Patel & Sons Vehicle Repairs",
+         "31",
+         "£7,415.60"
+        ],
+        [
+         "Brook Lane Garage",
+         "19",
+         "£4,108.25"
+        ],
+        [
+         "Riverside Tyre & Exhaust",
+         "12",
+         "£2,377.90"
+        ]
+       ],
+       "sortBy": 2,
+       "sortDir": "desc",
+       "pages": 3,
+       "page": 1
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Product",
+        "Part no.",
+        "Qty sold",
+        "Net total"
+       ],
+       "rows": [
+        [
+         "Bosch S5 Battery 074",
+         "0 092 S50 080",
+         "64",
+         "£6,912.00"
+        ],
+        [
+         "Brembo front disc pair",
+         "09.A820.11",
+         "52",
+         "£4,368.00"
+        ],
+        [
+         "Castrol Edge 5W-30 5L",
+         "15F7E4",
+         "118",
+         "£4,248.00"
+        ],
+        [
+         "NGK spark plug",
+         "LKR7DIX-12S",
+         "336",
+         "£3,024.00"
+        ],
+        [
+         "Mann oil filter",
+         "HU 7008 z",
+         "410",
+         "£2,665.00"
+        ],
+        [
+         "Gates timing belt kit",
+         "K015603XS",
+         "27",
+         "£2,295.00"
+        ]
+       ],
+       "sortBy": 3,
+       "sortDir": "desc",
+       "pages": 9,
+       "page": 1
+      }
+     ],
+     "links": [
+      {
+       "from": "Hartley Motors",
+       "to": "S-21"
+      },
+      {
+       "from": "Kingsway Autocentre",
+       "to": "S-21"
+      },
+      {
+       "from": "M62 Commercials",
+       "to": "S-21"
+      },
+      {
+       "from": "Patel & Sons Vehicle Repairs",
+       "to": "S-21"
+      },
+      {
+       "from": "Bosch S5 Battery 074",
+       "to": "S-27"
+      },
+      {
+       "from": "Brembo front disc pair",
+       "to": "S-27"
+      },
+      {
+       "from": "Castrol Edge 5W-30 5L",
+       "to": "S-27"
+      },
+      {
+       "from": "NGK spark plug",
+       "to": "S-27"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "By customer",
+       "text": "sales-by-customer_2026-03-01_2026-03-31.csv downloaded",
+       "tone": "ok"
+      },
+      {
+       "after": "By product",
+       "text": "sales-by-product_2026-03-01_2026-03-31.csv downloaded",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders in this range",
+      "emptyHint": "No non-cancelled orders were submitted between these dates. Widen the range or clear the customer filter.",
+      "validation": "Choose a start and end date, with the end on or after the start.",
+      "success": "Report ready: 169 orders, £49,731.10 net, 01 Mar 2026 to 31 Mar 2026."
+     }
+    },
+    "mockFull": {
+     "title": "Reports",
+     "subtitle": "Non-cancelled orders by submission date (Europe/London), start and end dates included",
+     "tabs": [
+      "Sales",
+      "Orders per day",
+      "Top products",
+      "Revenue per customer"
+     ],
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Date range",
+         "kind": "daterange",
+         "value": "01 Mar 2026 - 31 Mar 2026",
+         "required": true,
+         "help": "Uses the order's submission date in Europe/London time. Both dates are included.",
+         "error": "Choose a start and end date, with the end on or after the start"
+        },
+        {
+         "label": "Customer",
+         "kind": "combobox",
+         "placeholder": "All customers",
+         "options": [
+          "Hartley Motors",
+          "Kingsway Autocentre",
+          "M62 Commercials",
+          "Patel & Sons Vehicle Repairs",
+          "Northgate Fleet Services",
+          "Brook Lane Garage",
+          "Ashworth MOT Centre",
+          "Riverside Tyre & Exhaust"
+         ],
+         "help": "Optional. Leave it blank to include every customer."
+        }
+       ],
+       "submit": "Run report"
+      },
+      {
+       "type": "toolbar",
+       "buttons": [
+        {
+         "label": "Export CSV",
+         "variant": "primary",
+         "icon": "download",
+         "menu": [
+          "By customer",
+          "By product"
+         ],
+         "hint": "UTF-8 CSV with the columns shown on screen, ISO 8601 dates"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Customer",
+        "Orders",
+        "Net total"
+       ],
+       "rows": [
+        [
+         "Hartley Motors",
+         "48",
+         "£14,286.40"
+        ],
+        [
+         "Kingsway Autocentre",
+         "37",
+         "£11,902.15"
+        ],
+        [
+         "M62 Commercials",
+         "22",
+         "£9,640.80"
+        ],
+        [
+         "Patel & Sons Vehicle Repairs",
+         "31",
+         "£7,415.60"
+        ],
+        [
+         "Northgate Fleet Services",
+         "16",
+         "£6,882.35"
+        ],
+        [
+         "Brook Lane Garage",
+         "19",
+         "£4,108.25"
+        ],
+        [
+         "Ashworth MOT Centre",
+         "21",
+         "£3,964.70"
+        ],
+        [
+         "Riverside Tyre & Exhaust",
+         "12",
+         "£2,377.90"
+        ],
+        [
+         "Calder Valley Autos",
+         "9",
+         "£1,846.10"
+        ],
+        [
+         "Oakfield 4x4 Specialists",
+         "6",
+         "£1,512.45"
+        ],
+        [
+         "Stanley Road Garage",
+         "8",
+         "£1,094.80"
+        ],
+        [
+         "Fenwick Body Repairs",
+         "4",
+         "£638.20"
+        ],
+        [
+         "Moorside Motor Co.",
+         "2",
+         "£214.60"
+        ]
+       ],
+       "sortBy": 2,
+       "sortDir": "desc",
+       "pages": 1,
+       "page": 1
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Product",
+        "Part no.",
+        "Qty sold",
+        "Net total"
+       ],
+       "rows": [
+        [
+         "Bosch S5 Battery 074",
+         "0 092 S50 080",
+         "64",
+         "£6,912.00"
+        ],
+        [
+         "Brembo front disc pair",
+         "09.A820.11",
+         "52",
+         "£4,368.00"
+        ],
+        [
+         "Castrol Edge 5W-30 5L",
+         "15F7E4",
+         "118",
+         "£4,248.00"
+        ],
+        [
+         "NGK spark plug",
+         "LKR7DIX-12S",
+         "336",
+         "£3,024.00"
+        ],
+        [
+         "Mann oil filter",
+         "HU 7008 z",
+         "410",
+         "£2,665.00"
+        ],
+        [
+         "Gates timing belt kit",
+         "K015603XS",
+         "27",
+         "£2,295.00"
+        ],
+        [
+         "TRW front brake pads",
+         "GDB1550",
+         "74",
+         "£2,035.00"
+        ],
+        [
+         "Valeo clutch kit",
+         "826317",
+         "9",
+         "£1,782.00"
+        ],
+        [
+         "Monroe shock absorber",
+         "G16405",
+         "31",
+         "£1,705.00"
+        ],
+        [
+         "Bosch wiper blade set",
+         "3 397 007 297",
+         "96",
+         "£1,248.00"
+        ],
+        [
+         "Febi drop link",
+         "28000",
+         "88",
+         "£1,056.00"
+        ],
+        [
+         "Comma DOT 4 brake fluid 1L",
+         "BF41L",
+         "142",
+         "£852.00"
+        ]
+       ],
+       "sortBy": 3,
+       "sortDir": "desc",
+       "pages": 5,
+       "page": 1
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders in this range",
+      "emptyHint": "No non-cancelled orders were submitted between these dates. Widen the range or clear the customer filter.",
+      "validation": "Choose a start and end date, with the end on or after the start.",
+      "success": "Report ready: 235 orders, £65,884.30 net, 01 Mar 2026 to 31 Mar 2026."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

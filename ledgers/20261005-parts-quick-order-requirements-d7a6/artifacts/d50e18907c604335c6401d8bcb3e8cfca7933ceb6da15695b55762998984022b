@@ -1,0 +1,176 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "The buyer lands on Find parts and uses search, category and brand filters to find parts. \"Add to cart\" updates the cart count in the header, which links to Cart and checkout. There they adjust quantities, enter an address and delivery option, and place the order. After a successful order they see the new order number, with a link to My orders. On My orders they filter by status, open an order in the detail panel on the same page to see its timeline, and can cancel it while it is still Placed. The header links all three screens at every point.",
+    "screens": [
+     {
+      "id": "S-1",
+      "route": "/parts",
+      "file": "src/pages/FindPartsPage.tsx",
+      "reqs": [
+       "REQ-1",
+       "REQ-2",
+       "REQ-3",
+       "REQ-4",
+       "REQ-5",
+       "REQ-6",
+       "REQ-7",
+       "REQ-8",
+       "REQ-9",
+       "REQ-10",
+       "REQ-36",
+       "REQ-37",
+       "REQ-38"
+      ],
+      "title": "Find parts",
+      "purpose": "Search by name or part number and filter by category and brand. Results show 20 parts per page, each with price, stock state and an Add to cart button.",
+      "states": [
+       "loading",
+       "empty",
+       "error",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-2",
+      "route": "/cart",
+      "file": "src/pages/CartCheckoutPage.tsx",
+      "reqs": [
+       "REQ-1",
+       "REQ-9",
+       "REQ-11",
+       "REQ-12",
+       "REQ-13",
+       "REQ-14",
+       "REQ-15",
+       "REQ-16",
+       "REQ-17",
+       "REQ-18",
+       "REQ-19",
+       "REQ-20",
+       "REQ-22",
+       "REQ-23",
+       "REQ-24",
+       "REQ-36",
+       "REQ-37",
+       "REQ-39"
+      ],
+      "title": "Cart and checkout",
+      "purpose": "Change line quantities or remove lines, enter the delivery address, choose Standard or Next day, check subtotal, delivery and total, then place the order.",
+      "states": [
+       "empty",
+       "validation",
+       "loading",
+       "success",
+       "error"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-3",
+      "route": "/orders",
+      "file": "src/pages/MyOrdersPage.tsx",
+      "reqs": [
+       "REQ-1",
+       "REQ-27",
+       "REQ-28",
+       "REQ-29",
+       "REQ-30",
+       "REQ-31",
+       "REQ-32",
+       "REQ-33",
+       "REQ-34",
+       "REQ-35",
+       "REQ-36",
+       "REQ-37"
+      ],
+      "title": "My orders",
+      "purpose": "See your orders newest first and filter them by status. Open one in the detail panel to see its lines, address, status timeline and the Cancel order button while it is Placed.",
+      "states": [
+       "empty",
+       "loading",
+       "error",
+       "success",
+       "validation"
+      ],
+      "size": "new"
+     }
+    ],
+    "noScreen": [
+     {
+      "req": "REQ-21",
+      "reason": "Server-side validation of the place-order request. The checkout already stops invalid input before sending (see REQ-13 and REQ-18), so the buyer never sees this rule. A rejected request falls back to the generic error state on S-2."
+     },
+     {
+      "req": "REQ-25",
+      "reason": "Data rule: placing or cancelling an order leaves stock quantities in the parts database unchanged. Nothing changes on screen."
+     },
+     {
+      "req": "REQ-26",
+      "reason": "API authentication rule. Sign-in is handled by the existing company login, so this portal has no screen for it."
+     }
+    ],
+    "theme": {
+     "reading": {
+      "users": "Company buyers and maintenance staff ordering spare parts for their organisation through the existing company login",
+      "context": "At a work desk, sometimes on a phone in the workshop. Short, repeated sessions to find a part number and reorder",
+      "device": "web",
+      "tone": "efficient, exact, trustworthy",
+      "hero": "A part row where price and an honest stock state (In stock / Low stock, n left) sit beside one Add to cart button",
+      "traits": [
+       "part-number first",
+       "honest stock",
+       "three screens only",
+       "trade, not shopping"
+      ]
+     },
+     "basis": [
+      {
+       "ref": "Amazon",
+       "took": "Dense result rows, near-black text, warm orange used only on the add/buy action"
+      },
+      {
+       "ref": "IKEA",
+       "took": "Plain product grid on white with tight corners and no decoration"
+      },
+      {
+       "ref": "Walmart",
+       "took": "Price as the heaviest text on each part"
+      },
+      {
+       "ref": "Target",
+       "took": "Clean white header that holds a persistent cart count"
+      }
+     ],
+     "mood": "precise trade counter",
+     "brand": "#D4500F",
+     "chrome": "plain",
+     "mode": "light",
+     "neutral": "cool",
+     "font": "sans",
+     "heading": "slab",
+     "mark": "emblem",
+     "radius": "soft",
+     "density": "compact",
+     "surface": "flat",
+     "motion": "lively",
+     "fx": "modern",
+     "shell": "topbar",
+     "hero": "none",
+     "charts": "mono",
+     "imagery": "icons"
+    }
+   },
+   "ms": 5,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

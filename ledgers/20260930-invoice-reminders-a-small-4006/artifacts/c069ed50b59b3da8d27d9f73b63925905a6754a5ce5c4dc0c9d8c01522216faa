@@ -1,0 +1,90 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The system shall classify an invoice as overdue when its status is neither paid nor cancelled and the calendar days from its due date to today, in the configured business time zone, is at least the configured overdue threshold (default 7)."
+     },
+     {
+      "n": 2,
+      "text": "Overdue status and days overdue shall be computed on each request and not stored."
+     },
+     {
+      "n": 3,
+      "text": "An endpoint shall let an authenticated staff user retrieve the list of overdue invoices, each showing invoice ID, invoice number, customer name, amount, due date, days overdue and latest reminder outcome."
+     },
+     {
+      "n": 4,
+      "text": "The overdue list endpoint shall support filtering by customer, returning only that customer's overdue invoices."
+     },
+     {
+      "n": 5,
+      "text": "The overdue list endpoint shall support filtering by a days-overdue bucket (lowest bucket up to 30, 31-60, or 61+), inclusive of both limits."
+     },
+     {
+      "n": 6,
+      "text": "An unknown bucket value shall be rejected with a validation error naming the bucket parameter."
+     },
+     {
+      "n": 7,
+      "text": "The lowest bucket shall start at the configured overdue threshold rather than always at 7."
+     },
+     {
+      "n": 8,
+      "text": "An endpoint shall let an authenticated staff user send a reminder for an overdue invoice whose customer has a billing email, sending one email via the configured email sender, from the configured sender address, to that billing email, using a fixed template containing the invoice number, amount in local currency and due date."
+     },
+     {
+      "n": 9,
+      "text": "If the invoice's customer has no billing email, the reminder request shall be rejected with a 'missing billing email' error, no email sent, and a failed attempt recorded in reminder history."
+     },
+     {
+      "n": 10,
+      "text": "If the invoice is not overdue, the reminder request shall be rejected with a 409 error, with no email sent and no history entry added."
+     },
+     {
+      "n": 11,
+      "text": "Each reminder send attempt shall create one reminder history row storing invoice ID, sending staff user ID, server UTC timestamp, outcome (sent or failed) and failure reason when applicable."
+     },
+     {
+      "n": 12,
+      "text": "No operation shall exist to edit or delete a reminder history entry, and such requests shall be rejected leaving the entry unchanged."
+     },
+     {
+      "n": 13,
+      "text": "An endpoint shall let an authenticated staff user retrieve invoice details including invoice number, customer name, amount, due date, overdue flag, days overdue, latest reminder outcome, and full reminder history newest first with sender, timestamp, outcome and failure reason."
+     },
+     {
+      "n": 14,
+      "text": "If the email sender returns an error, the reminder response shall report outcome 'failed' with the error reason, the attempt shall be recorded as failed with that reason, and the invoice shall remain in the overdue list."
+     },
+     {
+      "n": 15,
+      "text": "Requests to any endpoint lacking valid staff authentication shall be rejected with HTTP 401, without returning data, sending email, or changing data."
+     },
+     {
+      "n": 16,
+      "text": "The overdue list screen shall show a table of overdue invoices with invoice number, customer, amount, due date, days overdue and latest reminder outcome, plus customer and bucket filters, a 'Send reminder' button per row, and a link from invoice number to the invoice detail screen."
+     },
+     {
+      "n": 17,
+      "text": "While a reminder send is in progress, the front end shall disable that invoice's 'Send reminder' button, then re-enable it and show the result once the send completes."
+     },
+     {
+      "n": 18,
+      "text": "The invoice detail screen shall show invoice number, amount, due date, reminder history newest first with sender, time, outcome and failure reason, latest reminder status with failures marked, and a 'Send reminder' button only while the invoice is overdue."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

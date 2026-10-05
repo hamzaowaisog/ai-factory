@@ -7,7 +7,7 @@ import { basename, dirname, join } from "node:path";
 import type { Failure, LedgerEvent } from "../contracts/index.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY, mergePolicy, withPolicy, type Policy } from "../gates/policy.js";
-import { DEFAULT_LADDER, nextOnFailure, type AttemptRecord, type LadderAction } from "../gates/ladder.js";
+import { DEFAULT_LADDER, failureSignature, nextOnFailure, type AttemptRecord, type LadderAction } from "../gates/ladder.js";
 import { checkCaps } from "../ledger/caps.js";
 import { ExecutionLock, LockBusyError } from "../ledger/exec-lock.js";
 import { resolveRef } from "../ledger/git.js";
@@ -22,6 +22,7 @@ import { REPO_ROOT } from "../runners/netinfra.js";
 import { setPrice } from "../runners/pricing.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { stepsFor } from "./modes.js";
+import { answersOf, asksGates, asksPerson, gateCard, gateRounds, GATE_ROUNDS, nextQuestionId, ROUND_ATTEMPTS, writeGateQuestions, type FiledRound, type GateRound } from "./gate-questions.js";
 import { greenfieldRefusal } from "../config/greenfield.js";
 import { availableRungs, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
@@ -162,18 +163,44 @@ export function stepDone(state: RunState, step: Pick<StepDef, "key" | "templateV
   return { hash, done: earlierVersions(step.templateVersion).some((v) => canSkip(state, step.key, v === step.templateVersion ? hash : hashAt(v))) };
 }
 
+/** A step's state now: undefined inputs when it isn't ready. */
+function pending(state: RunState, ledger: Ledger, project: ProjectConfig, step: StepDef): { inp?: Record<string, unknown>; hash: string; done: boolean } {
+  const inp = step.inputs(state, ledger);
+  if (!inp) return { hash: "", done: false };
+  let model: string | undefined;
+  try { model = routeFor(project, step.stage).model; } catch { model = undefined; }
+  return { inp, ...stepDone(state, step, inp, model) };
+}
+
 /** Pure: the first step whose recorded inputsHash doesn't match its current inputs. */
 export function next(state: RunState, ledger: Ledger, project: ProjectConfig): NextStep {
   for (const step of stepsFor(state)) {
-    const inp = step.inputs(state, ledger);
-    if (!inp) return { kind: "blocked", step: step.key };
-    let model: string | undefined;
-    try { model = routeFor(project, step.stage).model; } catch { model = undefined; }
-    const { hash, done } = stepDone(state, step, inp, model);
-    if (done) continue;
-    return { kind: "run", step, hash };
+    const p = pending(state, ledger, project, step);
+    if (!p.inp) return { kind: "blocked", step: step.key };
+    if (p.done) continue;
+    return { kind: "run", step, hash: p.hash };
   }
   return { kind: "done" };
+}
+
+/** At most this many steps run side by side (a request splits into at most a few modules). */
+export const MAX_SIDE_BY_SIDE = 4;
+
+/**
+ * Pure: the next step and the parallel steps after it that are ready now, up to the first step that isn't parallel. A run's
+ * modules write their specs side by side: one module's chain took 22 min on the 2026-10-05 run, and three ran one after another.
+ */
+export function nextBatch(state: RunState, ledger: Ledger, project: ProjectConfig, max = MAX_SIDE_BY_SIDE): { step: StepDef; hash: string }[] {
+  const out: { step: StepDef; hash: string }[] = [];
+  for (const step of stepsFor(state)) {
+    if (out.length && !step.parallel) break;
+    const p = pending(state, ledger, project, step);
+    if (!p.inp) { if (out.length) continue; break; }
+    if (p.done) continue;
+    out.push({ step, hash: p.hash });
+    if (!step.parallel || out.length >= max) break;
+  }
+  return out;
 }
 
 /** Failed attempts of a step since it last completed (a changed input starts a fresh ladder). */
@@ -183,7 +210,9 @@ function attemptHistory(ledger: Ledger, step: string): AttemptRecord[] {
   const lastDone = Math.max(-1, ...evs.filter((e) => e.type === "step.completed").map((e) => e.seq));
   // a human raising the attempt limit starts the ladder fresh
   const lastRaise = Math.max(-1, ...all.filter((e) => e.type === "human.decided" && (e.data as { decision?: string; extraAttempts?: number })?.decision === "waive-cap" && typeof (e.data as { extraAttempts?: number }).extraAttempts === "number").map((e) => e.seq));
-  const since = Math.max(lastDone, lastRaise);
+  // a round of questions about the step's failing checks starts it fresh too (src/stages/gate-questions.ts)
+  const lastRound = Math.max(-1, ...evs.filter((e) => e.type === "step.failed" && (e.data as { action?: string } | undefined)?.action === "questions").map((e) => e.seq));
+  const since = Math.max(lastDone, lastRaise, lastRound);
   return evs.filter((e) => e.type === "step.failed" && e.seq > since && !(e.data as { parked?: boolean })?.parked)
     .map((e) => e.data as unknown as AttemptRecord);
 }
@@ -218,19 +247,175 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
   const writer = lock;
   const warned = new Set<string>();
   let completed = 0;
+  /** steps that went back to an earlier one since a step last completed */
+  const wentBack = new Set<string>();
+  /**
+   * A round of questions about a step's failing checks (src/stages/gate-questions.ts), recorded as the attempt's failure: a hands-off run
+   * takes the recommended answers and goes on, a reviewed one waits on the card. Once the rounds are used up the step was already run
+   * with carryOn and could not carry what fails, so the run parks with the reason.
+   */
+  async function askRound(ctx: StepContext, step: StepDef, key: string, rounds: FiledRound[], failures: Failure[], rec2: AttemptRecord, nextRung: number, reason: string, data?: Record<string, unknown>): Promise<ExecuteResult | undefined> {
+    const failuresSha = ledger.putJson(failures.slice(0, 20));
+    const park = async (why: string): Promise<ExecuteResult> => {
+      await ledger.append({ type: "step.failed", key, outputs: [failuresSha], data: { ...(data ?? {}), ...rec2, action: "park", reason: why } }, writer);
+      await ledger.append({ type: "run.parked", data: { reason: `${step.key}: ${why}`, step: step.key } }, writer);
+      return { status: "parked", message: `${step.key}: ${why}. Last failure: ${failures[0]?.message ?? ""}` };
+    };
+    if (rounds.length >= GATE_ROUNDS) return park(`${reason}; still failing after ${GATE_ROUNDS} rounds of questions, and this check cannot be carried as an open risk`);
+    const round = rounds.length + 1;
+    const earlier = answersOf(rounds);
+    const q = await writeGateQuestions(ctx, { step: step.key, failures: failures.slice(0, 20), earlier, firstId: nextQuestionId(ledger, state) });
+    if (!q.ok) return park(`${reason}; the questions could not be written (${q.outcome.kind === "park" ? q.outcome.reason : q.outcome.kind === "fail" ? q.outcome.failures[0]?.message ?? "" : q.outcome.kind})`);
+    const handsOff = !asksPerson(state);
+    const filed: GateRound = { step: step.key, round, asked: q.asked, failures: failures.slice(0, 20), failureOf: q.failureOf, ...(handsOff || !q.asked.length ? { answers: Object.fromEntries(q.asked.map((x) => [x.id, x.recommended])) } : {}) };
+    const roundSha = ledger.putJson(filed);
+    const cardSha = handsOff || !q.asked.length ? undefined : ledger.putJson({ key: "gate", step: step.key, round, asked: q.asked, assumptions: [] });
+    await ledger.append({ type: "step.failed", key, outputs: [failuresSha], data: { ...(data ?? {}), ...rec2, action: "questions", nextRung, reason, round, roundSha, ...(cardSha ? { cardSha } : {}) } }, writer);
+    ctx.log(`? ${step.key}: ${reason}; round ${round} of ${GATE_ROUNDS}: ${q.asked.length} question${q.asked.length === 1 ? "" : "s"} about the failing checks${cardSha ? "" : q.asked.length ? " (hands-off: the recommended answers are assumed)" : ""}`);
+    if (!cardSha) return undefined;
+    const cardId = `check-questions-${round}-${cardSha.slice(0, 8)}`;
+    ledger.writeCard(cardId, gateCard(runId, step.key, round, q.asked, filed.failures, q.failureOf, cardSha));
+    await ledger.append({ type: "human.requested", data: { cardId, kind: "question", artifactSha: cardSha, step: step.key, gateStep: step.key, roundSha } }, writer);
+    return { status: "waiting", message: `The ${step.key} step's checks raised questions: factory show-card ${runId}` };
+  }
+
+  /** Run one step and record its outcome; an ExecuteResult when the run stops here, undefined to go on. */
+  async function runStep(state: RunState, step: StepDef, hash: string, share: number): Promise<ExecuteResult | undefined> {
+    const rec = state.steps.get(step.key);
+    const attempt = (rec?.lastAttempt ?? 0) + 1;
+    const history = attemptHistory(ledger, step.key);
+    const lastFail = [...ledger.events()].reverse().find((e) => e.type === "step.failed" && e.key && splitKey(e.key).step === step.key);
+    const asked = (lastFail?.data as { action?: string } | undefined)?.action === "questions" && lastFail!.seq > Math.max(-1, ...ledger.events().filter((e) => e.type === "step.completed" && e.key && splitKey(e.key).step === step.key).map((e) => e.seq));
+    const rung = history.length || asked ? Number((lastFail?.data as { nextRung?: number } | undefined)?.nextRung ?? 0) : 0;
+    // the questions this step's failing checks raised, and whether their rounds are used up (an estimate or a design run)
+    const rounds = asksGates(state) ? gateRounds(ledger, state, step.key) : [];
+    const gateAnswers = answersOf(rounds);
+    const priorFailures: Failure[] = history.length && lastFail?.outputs?.[0] ? ledger.getJson<Failure[]>(lastFail.outputs[0]) : [];
+    const key = eventKey(step.key, attempt);
+    const t = share > 1 ? trace.forStep(step.key, attempt) : trace;
+    if (share === 1) trace.setStep(step.key, attempt);
+    const slog = (msg: string) => t.event("log", msg);
+    let spent = 0;
+    await ledger.append({ type: "step.started", key, inputsHash: hash, data: { rung } }, writer);
+    slog(`▶ ${step.key} (attempt ${attempt}${rung ? `, rung ${rung}` : ""})`);
+
+    const ctx: StepContext = {
+      runId, ledger, writer, state, project, policy, attempt, rung, priorFailures, log: slog, trace: t, share,
+      ...(gateAnswers.length ? { gateAnswers } : {}), ...(rounds.length >= GATE_ROUNDS && rounds[rounds.length - 1]!.answered ? { carryOn: true } : {}),
+      usage: async (u) => {
+        spent += u.estUsd;
+        await ledger.append({ type: "usage", key, data: {
+          "gen_ai.request.model": u.model, "gen_ai.usage.input_tokens": u.inputTokens, "gen_ai.usage.output_tokens": u.outputTokens,
+          "gen_ai.usage.cache_read_tokens": u.cacheRead, "gen_ai.usage.cache_write_tokens": u.cacheWrite, "gen_ai.usage.cost_usd": u.estUsd,
+        } }, writer);
+      },
+    };
+    let outcome: StepOutcome;
+    try {
+      outcome = await withPolicy(policy, () => step.run(ctx));
+    } catch (e) {
+      const msg = (e as Error).message;
+      slog(`  error: ${msg}`);
+      outcome = { kind: "fail", category: /rate limit|overloaded|529|429/i.test(msg) ? "rate-limit" : "other", failures: [{ check: "exception", message: msg.slice(0, 1000), frames: [] }], signature: `exception:${msg.slice(0, 120)}` };
+    }
+
+    switch (outcome.kind) {
+      case "done": {
+        const named = outcome.outputs;
+        const treeSha = outcome.treeSha && /^[0-9a-f]{40}$/.test(outcome.treeSha) ? outcome.treeSha : undefined;
+        await ledger.append({ type: "step.completed", key, inputsHash: hash, treeSha, outputs: Object.values(named), data: { ...(outcome.data ?? {}), named } }, writer);
+        completed++;
+        wentBack.clear();
+        const after = replay(ledger.events()).costUsd;
+        // beside other steps, the run's total grew by theirs too
+        slog(`✓ ${step.key} ($${(share > 1 ? spent : after - state.costUsd).toFixed(2)}, total $${after.toFixed(2)})`);
+        if (step.key === "deliver") {
+          await ledger.append({ type: "run.delivered", data: outcome.data ?? {} }, writer);
+          dropBuildCache(runId);
+          const d = outcome.data as { local?: boolean; branch?: string; prUrl?: string };
+          return { status: "delivered", message: d.local ? `Ready locally on branch ${d.branch}. PR text: factory show-card ${runId} --pr` : `PR opened: ${d.prUrl}` };
+        }
+        break;
+      }
+      case "wait": {
+        const c = outcome.card;
+        ledger.writeCard(c.cardId, c.markdown);
+        await ledger.append({ type: "step.interrupted", key, data: { reason: "waiting" } }, writer);
+        await ledger.append({ type: "human.requested", data: { ...(c.extra ?? {}), cardId: c.cardId, kind: c.kind, artifactSha: c.artifactSha, step: step.key, deadline: c.deadline, defaultDecision: c.defaultDecision } }, writer);
+        return { status: "waiting", message: `A card needs you: factory show-card ${runId}` };
+      }
+      case "back": {
+        // once: a step that goes back again before anything else completed would loop, so it parks instead
+        if (wentBack.has(step.key)) {
+          const reason = `${outcome.reason}, but the step it goes back to did not run again`;
+          await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
+          await ledger.append({ type: "run.parked", data: { reason, step: step.key } }, writer);
+          return { status: "parked", message: reason };
+        }
+        wentBack.add(step.key);
+        await ledger.append({ type: "step.interrupted", key, data: { reason: "back" } }, writer);
+        slog(`↩ ${step.key}: ${outcome.reason}`);
+        break;
+      }
+      case "park":
+        await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
+        await ledger.append({ type: "run.parked", data: { reason: outcome.reason, step: step.key } }, writer);
+        return { status: "parked", message: outcome.reason };
+      case "ask":
+        if (!asksGates(state)) {
+          await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
+          await ledger.append({ type: "run.parked", data: { reason: outcome.reason, step: step.key } }, writer);
+          return { status: "parked", message: outcome.reason };
+        }
+        return askRound(ctx, step, key, rounds, outcome.failures, { category: "other", signature: failureSignature(outcome.failures.map((f) => `${f.check}:${f.message}`)), rung }, rung, outcome.reason);
+      case "close":
+        await ledger.append({ type: "step.failed", key, data: { category: "other", signature: outcome.reason, rung } }, writer);
+        await ledger.append({ type: "run.closed", data: { reason: outcome.reason } }, writer);
+        dropBuildCache(runId);
+        return { status: `closed: ${outcome.reason}`, message: outcome.reason };
+      case "fail": {
+        const rec2: AttemptRecord = { category: outcome.category, signature: outcome.signature ?? sha256(JSON.stringify(outcome.failures)).slice(0, 16), diffSha: outcome.diffSha, rung, lockedFailedIds: outcome.lockedFailedIds };
+        const backoffSpent = history.reduce((n2, h) => n2 + Number((h as { waitMs?: number }).waitMs ?? 0), 0);
+        const action: LadderAction = nextOnFailure([...history, rec2], {
+          // policy.retryBudget (default 6; a trial project can say 2)
+          ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, step.stage, policy.localOnly), backoffSpentMs: backoffSpent, a5Done: new Set(),
+        });
+        // an estimate or a design run: a failing check, after the retry with the failures fed back, becomes questions instead of more attempts or a park
+        const counted = history.filter((h) => h.category !== "rate-limit").length + 1;
+        if (outcome.gate && outcome.category === "other" && asksGates(state) && (action.action === "park" || counted >= ROUND_ATTEMPTS)) {
+          return askRound(ctx, step, key, rounds, outcome.failures, rec2, action.action === "retry" ? action.rung : rung, action.action === "park" ? action.reason : `${outcome.failures.length} check${outcome.failures.length === 1 ? "" : "s"} still fail after the retry`, outcome.data);
+        }
+        const failuresSha = ledger.putJson(outcome.failures.slice(0, 20));
+        await ledger.append({
+          type: "step.failed", key, outputs: [failuresSha],
+          data: { ...(outcome.data ?? {}), ...rec2, action: action.action, nextRung: action.action === "retry" ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason },
+        }, writer);
+        slog(`✗ ${step.key}: ${outcome.failures.slice(0, 2).map((f) => f.message).join("; ").slice(0, 300)} → ${action.action}`);
+        if (action.action === "park") { await ledger.append({ type: "run.parked", data: { reason: `${step.key}: ${action.reason}`, step: step.key } }, writer); return { status: "parked", message: `${step.key}: ${action.reason}. Last failure: ${outcome.failures[0]?.message ?? ""}` }; }
+        if (action.action === "a5-check") {
+          const reason = `Locked tests ${action.testIds.join(", ")} failed twice. Either the code or the test is wrong; the test-defect check and unlock card aren't built yet, so a human needs to look.`;
+          await ledger.append({ type: "run.parked", data: { reason, step: step.key } }, writer);
+          return { status: "parked", message: reason };
+        }
+        if (action.action === "backoff") { slog(`  waiting ${Math.round(action.waitMs / 1000)}s (rate limit)`); await new Promise((r) => setTimeout(r, action.waitMs)); }
+        break;
+      }
+    }
+    return undefined;
+  }
+
   trace.startHeartbeat();
   trace.event("run", `executor started (pid ${process.pid})`);
   try {
     state = replay(ledger.events());
     // crash recovery: an unfinished step becomes interrupted; its containers are removed
-    if (state.inFlight) {
-      const { step, attempt } = state.inFlight;
-      log(`resuming: ${step} attempt ${attempt} was interrupted`);
+    if (state.running.length) {
+      log(`resuming: ${state.running.map((r) => `${r.step} attempt ${r.attempt}`).join(", ")} ${state.running.length > 1 ? "were" : "was"} interrupted`);
       try {
         const rt = runtime();
         for (const c of await rt.listByLabel("factory.run", runId)) { await rt.stop(c.id, 2); await rt.remove(c.id); }
       } catch { /* no runtime available: nothing to clean */ }
-      await ledger.append({ type: "step.interrupted", key: eventKey(step, attempt) }, writer);
+      for (const { step, attempt } of state.running) await ledger.append({ type: "step.interrupted", key: eventKey(step, attempt) }, writer);
     }
     if (state.status === "parked" || state.status === "paused") await ledger.append({ type: "run.resumed" }, writer);
 
@@ -268,96 +453,18 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
       const n = next(state, ledger, project);
       if (n.kind === "done") return { status: String(state.status), message: "All steps done." };
       if (n.kind === "blocked") throw new Error(`Step ${n.step} isn't ready but nothing before it is pending (bug)`);
+      let batch = n.step.parallel ? nextBatch(state, ledger, project) : [{ step: n.step, hash: n.hash }];
       if (opts.until) {
         const keys = stepsFor(state).map((s) => s.key);
         if (!keys.includes(opts.until)) throw new Error(`No step "${opts.until}" in this run`);
         if (keys.indexOf(n.step.key) > keys.indexOf(opts.until)) return { status: "until", message: `Stopped before ${n.step.key}: ${opts.until} is done.` };
+        batch = batch.filter((b) => keys.indexOf(b.step.key) <= keys.indexOf(opts.until!));
       }
-
-      const rec = state.steps.get(n.step.key);
-      const attempt = (rec?.lastAttempt ?? 0) + 1;
-      const history = attemptHistory(ledger, n.step.key);
-      const lastFail = [...ledger.events()].reverse().find((e) => e.type === "step.failed" && e.key && splitKey(e.key).step === n.step.key);
-      const rung = history.length ? Number((lastFail?.data as { nextRung?: number } | undefined)?.nextRung ?? 0) : 0;
-      const priorFailures: Failure[] = history.length && lastFail?.outputs?.[0] ? ledger.getJson<Failure[]>(lastFail.outputs[0]) : [];
-      const key = eventKey(n.step.key, attempt);
-      trace.setStep(n.step.key, attempt);
-      await ledger.append({ type: "step.started", key, inputsHash: n.hash, data: { rung } }, writer);
-      log(`▶ ${n.step.key} (attempt ${attempt}${rung ? `, rung ${rung}` : ""})`);
-
-      const ctx: StepContext = {
-        runId, ledger, writer, state, project, policy, attempt, rung, priorFailures, log, trace,
-        usage: async (u) => {
-          await ledger.append({ type: "usage", key, data: {
-            "gen_ai.request.model": u.model, "gen_ai.usage.input_tokens": u.inputTokens, "gen_ai.usage.output_tokens": u.outputTokens,
-            "gen_ai.usage.cache_read_tokens": u.cacheRead, "gen_ai.usage.cache_write_tokens": u.cacheWrite, "gen_ai.usage.cost_usd": u.estUsd,
-          } }, writer);
-        },
-      };
-      let outcome: StepOutcome;
-      try {
-        outcome = await withPolicy(policy, () => n.step.run(ctx));
-      } catch (e) {
-        const msg = (e as Error).message;
-        log(`  error: ${msg}`);
-        outcome = { kind: "fail", category: /rate limit|overloaded|529|429/i.test(msg) ? "rate-limit" : "other", failures: [{ check: "exception", message: msg.slice(0, 1000), frames: [] }], signature: `exception:${msg.slice(0, 120)}` };
-      }
-
-      switch (outcome.kind) {
-        case "done": {
-          const named = outcome.outputs;
-          const treeSha = outcome.treeSha && /^[0-9a-f]{40}$/.test(outcome.treeSha) ? outcome.treeSha : undefined;
-          await ledger.append({ type: "step.completed", key, inputsHash: n.hash, treeSha, outputs: Object.values(named), data: { ...(outcome.data ?? {}), named } }, writer);
-          completed++;
-          const after = replay(ledger.events()).costUsd;
-          log(`✓ ${n.step.key} ($${(after - state.costUsd).toFixed(2)}, total $${after.toFixed(2)})`);
-          if (n.step.key === "deliver") {
-            await ledger.append({ type: "run.delivered", data: outcome.data ?? {} }, writer);
-            dropBuildCache(runId);
-            const d = outcome.data as { local?: boolean; branch?: string; prUrl?: string };
-            return { status: "delivered", message: d.local ? `Ready locally on branch ${d.branch}. PR text: factory show-card ${runId} --pr` : `PR opened: ${d.prUrl}` };
-          }
-          break;
-        }
-        case "wait": {
-          const c = outcome.card;
-          ledger.writeCard(c.cardId, c.markdown);
-          await ledger.append({ type: "step.interrupted", key, data: { reason: "waiting" } }, writer);
-          await ledger.append({ type: "human.requested", data: { ...(c.extra ?? {}), cardId: c.cardId, kind: c.kind, artifactSha: c.artifactSha, step: n.step.key, deadline: c.deadline, defaultDecision: c.defaultDecision } }, writer);
-          return { status: "waiting", message: `A card needs you: factory show-card ${runId}` };
-        }
-        case "park":
-          await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
-          await ledger.append({ type: "run.parked", data: { reason: outcome.reason, step: n.step.key } }, writer);
-          return { status: "parked", message: outcome.reason };
-        case "close":
-          await ledger.append({ type: "step.failed", key, data: { category: "other", signature: outcome.reason, rung } }, writer);
-          await ledger.append({ type: "run.closed", data: { reason: outcome.reason } }, writer);
-          dropBuildCache(runId);
-          return { status: `closed: ${outcome.reason}`, message: outcome.reason };
-        case "fail": {
-          const rec2: AttemptRecord = { category: outcome.category, signature: outcome.signature ?? sha256(JSON.stringify(outcome.failures)).slice(0, 16), diffSha: outcome.diffSha, rung, lockedFailedIds: outcome.lockedFailedIds };
-          const backoffSpent = history.reduce((n2, h) => n2 + Number((h as { waitMs?: number }).waitMs ?? 0), 0);
-          const action: LadderAction = nextOnFailure([...history, rec2], {
-            // policy.retryBudget (default 6; a trial project can say 2)
-            ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, n.step.stage, policy.localOnly), backoffSpentMs: backoffSpent, a5Done: new Set(),
-          });
-          const failuresSha = ledger.putJson(outcome.failures.slice(0, 20));
-          await ledger.append({
-            type: "step.failed", key, outputs: [failuresSha],
-            data: { ...(outcome.data ?? {}), ...rec2, action: action.action, nextRung: action.action === "retry" ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason },
-          }, writer);
-          log(`✗ ${n.step.key}: ${outcome.failures.slice(0, 2).map((f) => f.message).join("; ").slice(0, 300)} → ${action.action}`);
-          if (action.action === "park") { await ledger.append({ type: "run.parked", data: { reason: `${n.step.key}: ${action.reason}`, step: n.step.key } }, writer); return { status: "parked", message: `${n.step.key}: ${action.reason}. Last failure: ${outcome.failures[0]?.message ?? ""}` }; }
-          if (action.action === "a5-check") {
-            const reason = `Locked tests ${action.testIds.join(", ")} failed twice. Either the code or the test is wrong; the test-defect check and unlock card aren't built yet, so a human needs to look.`;
-            await ledger.append({ type: "run.parked", data: { reason, step: n.step.key } }, writer);
-            return { status: "parked", message: reason };
-          }
-          if (action.action === "backoff") { log(`  waiting ${Math.round(action.waitMs / 1000)}s (rate limit)`); await new Promise((r) => setTimeout(r, action.waitMs)); }
-          break;
-        }
-      }
+      trace.setStep(batch.length > 1 ? undefined : batch[0]!.step.key);
+      if (batch.length > 1) log(`side by side: ${batch.map((b) => b.step.key).join(", ")}`);
+      // every step of the batch is recorded, whatever the others do; the first that ends the run's turn says how
+      const ended = (await Promise.all(batch.map((b) => runStep(state, b.step, b.hash, batch.length)))).find((r) => r);
+      if (ended) return ended;
     }
   } finally {
     trace.setStep(undefined);

@@ -1,0 +1,52 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "A signed-in staff user opens the Overdue Invoices screen and sees every overdue invoice with its invoice number, customer name, amount, due date and days overdue. On the same screen they can narrow the list with a customer filter and a fixed days-overdue bucket filter (7–30, 31–60, 61+), and the list reloads in place. The requirements describe only an API, so this single list screen is the smallest UI that covers the overdue-list requirements.",
+    "screens": [
+     {
+      "id": "S-1",
+      "route": "/invoices/overdue",
+      "file": "src/pages/invoices/OverdueInvoicesPage.tsx",
+      "reqs": [
+       "REQ-2",
+       "REQ-3",
+       "REQ-4"
+      ],
+      "states": [
+       "loading",
+       "empty",
+       "error",
+       "success",
+       "validation"
+      ],
+      "size": "new",
+      "frames": []
+     }
+    ],
+    "noScreen": [
+     {
+      "req": "REQ-1",
+      "reason": "A server-side rule for classifying an invoice as overdue, worked out on every request from configured statuses, time zone and threshold. Users see only its results, through the list on S-1."
+     },
+     {
+      "req": "REQ-14",
+      "reason": "An API authentication rule: requests with no valid token get HTTP 401. It adds no screen or UI element. On S-1 it shows up only as the generic error state."
+     },
+     {
+      "req": "REQ-19",
+      "reason": "An API authorization rule: tokens without the configured staff claim get HTTP 403. It adds no screen or UI element. On S-1 it shows up only as the generic error state."
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

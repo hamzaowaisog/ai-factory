@@ -3,11 +3,15 @@
 // requirements it serves, and a reason for each requirement that needs no screen. Code checks the links
 // both ways. It is an inventory of screens with sample content, not a finished design: a person approves it at E1b, and it
 // becomes the count of screens, flows and reused components for the UI work.
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
 import type { IntentBody, Spec } from "../contracts/index.js";
+import type { Failure } from "../contracts/common.js";
+import type { ResolvedSection } from "../context/pack.js";
+import { backToSettle } from "./settle.js";
+import { inPool } from "../util/pool.js";
 import type { RunState } from "../ledger/state.js";
 import { hasExistingLook, type DesignInventory } from "../design/inventory.js";
 import type { Ledger } from "../ledger/ledger.js";
@@ -24,6 +28,7 @@ import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
 import { ensureMeasured } from "../design/refs/measure.js";
 import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } from "../design/looks.js";
 import { S, think, UNTRUSTED_IMAGE_NOTE, UNTRUSTED_NOTE } from "./think.js";
+import { carriedLines, carries } from "./gate-questions.js";
 import { buildDemo, demoStates, themeValues } from "../design/demo.js";
 import { contrastIssues } from "../design/palette.js";
 import { localeFit } from "../design/locale.js";
@@ -133,17 +138,8 @@ const textOf = (v: unknown): string => typeof v === "string" ? v : Array.isArray
  * without "mock" is drawn as a grey wireframe. Both are optional in the schema, so code insists on them for a request with UI
  * (a screen shown by an attached frame needs no mock) and the model is asked again with these reasons.
  */
-export function designQuality(out: z.infer<typeof DesignOut>, existing = false, refs?: FitRefs, recent: Look[] = [], keptLook = false, fromRefs = false): { check: string; message: string }[] {
-  const bad: { check: string; message: string }[] = [];
-  // proof the look comes from real products in the field: colours near the references, and the references cited
-  // (a look taken from the client's references is checked against them instead: refFit)
-  if (refs && !existing && !fromRefs) bad.push(...themeFit(out.theme, refs));
-  // the look follows from this product's reading, and is not a recent project's again
-  // (a change run that kept its approved look is not judged again: it may predate the reading)
-  if ((refs || fromRefs) && !existing && out.theme && !keptLook) bad.push(...readingFit(out.theme), ...lookRepeats(out.theme, recent));
-  // an existing app keeps its own look: no theme is drawn, the build follows the repo's tokens and components
-  bad.push(...appsFit(out));
-  if (!out.theme && !existing) bad.push({ check: "design-no-theme", message: 'No "theme". Choose the product look (brand colour, mode, radius, font, surface, motion) from the ART DIRECTION rules; without it the demo shows a default look.' });
+export function designQuality(out: z.infer<typeof DesignOut>, existing = false, refs?: FitRefs, recent: Look[] = [], keptLook = false, fromRefs = false, screenIds?: string[]): { check: string; message: string }[] {
+  const bad = lookQuality(out, existing, refs, recent, keptLook, fromRefs);
   for (const sc of out.screens) {
     if (!sc.mock) {
       if (!sc.frames.length) bad.push({ check: "design-no-mock", message: `Screen ${sc.id} has no "mock". Give it believable sample content (2 to 5 blocks) so the demo is not a wireframe.` });
@@ -153,7 +149,8 @@ export function designQuality(out: z.infer<typeof DesignOut>, existing = false, 
     if (sc.mock.blocks.length < 2) bad.push({ check: "design-thin-mock", message: `Screen ${sc.id} has only ${sc.mock.blocks.length} block. A real page has 2 to 5 (header figures, a table or cards, filters, actions).` });
     const hit = textOf(sc.mock).match(PLACEHOLDER);
     if (hit) bad.push({ check: "design-placeholder", message: `Screen ${sc.id} sample content contains placeholder text ("${hit[0]}"). Use real names, amounts, statuses and dates from the product's domain.` });
-    const ids = new Set(out.screens.map((x) => x.id));
+    // a page drawn on its own links to the screen list's ids
+    const ids = new Set(screenIds ?? out.screens.map((x) => x.id));
     const named = sc.mock.blocks.flatMap((b) => (b.type === "actions" ? b.buttons.flatMap(btnLabels) : b.type === "form" ? [b.submit] : b.type === "table" ? b.rows.map((r) => r[0] ?? "") : b.type === "cards" || b.type === "list" || b.type === "results" || b.type === "notifications" ? b.items.map((i) => i.title) : b.type === "carousel" ? b.items.flatMap((i) => [i.title, ...(i.cta ? [i.cta] : [])]) : b.type === "kanban" ? b.columns.flatMap((c) => c.cards.map((k) => k.title)) : b.type === "map" ? b.pins.map((p) => p.label) : [...pressed(b)]));
     for (const l of sc.mock.links ?? []) {
       if (!ids.has(l.to) || l.to === sc.id) bad.push({ check: "design-link", message: `Screen ${sc.id} links "${l.from}" to ${l.to}, which is ${l.to === sc.id ? "the same screen" : "not a screen of this design"}. Link to another screen's id.` });
@@ -208,6 +205,21 @@ export function designQuality(out: z.infer<typeof DesignOut>, existing = false, 
     }
   }
   bad.push(...a11yFit(out));
+  return bad;
+}
+
+/** The checks a screen list fails before any page is drawn: the look, the apps, and a missing theme. */
+export function lookQuality(out: Pick<z.infer<typeof DesignOut>, "theme" | "apps"> & { screens: { id: string; app?: string | undefined }[] }, existing = false, refs?: FitRefs, recent: Look[] = [], keptLook = false, fromRefs = false): { check: string; message: string }[] {
+  const bad: { check: string; message: string }[] = [];
+  // proof the look comes from real products in the field: colours near the references, and the references cited
+  // (a look taken from the client's references is checked against them instead: refFit)
+  if (refs && !existing && !fromRefs) bad.push(...themeFit(out.theme, refs));
+  // the look follows from this product's reading, and is not a recent project's again
+  // (a change run that kept its approved look is not judged again: it may predate the reading)
+  if ((refs || fromRefs) && !existing && out.theme && !keptLook) bad.push(...readingFit(out.theme), ...lookRepeats(out.theme, recent));
+  // an existing app keeps its own look: no theme is drawn, the build follows the repo's tokens and components
+  bad.push(...appsFit(out));
+  if (!out.theme && !existing) bad.push({ check: "design-no-theme", message: 'No "theme". Choose the product look (brand colour, mode, radius, font, surface, motion) from the ART DIRECTION rules; without it the demo shows a default look.' });
   return bad;
 }
 
@@ -337,7 +349,7 @@ export function domainFit(id: string, b: FullBlock): { check: string; message: s
 
 const PHONE_SHELLS = ["tabs", "drawer", "minimal", "auto"];
 /** More than one app: each has a unique id, a frame that suits its device, and every screen names one of them. */
-export function appsFit(out: Pick<z.infer<typeof DesignOut>, "apps" | "screens">): { check: string; message: string }[] {
+export function appsFit(out: Pick<z.infer<typeof DesignOut>, "apps"> & { screens: { id: string; app?: string | undefined }[] }): { check: string; message: string }[] {
   const bad: { check: string; message: string }[] = [];
   const apps = out.apps ?? [];
   const ids = apps.map((a) => a.id);
@@ -478,6 +490,192 @@ interface DesignArt { skipped?: boolean; flow: string; screens: ScreenT[]; apps?
 const cut = (from: string, to: string): string => RULES.slice(RULES.indexOf(from), RULES.indexOf(to));
 const ART_RULES = (): string => cut("- ART DIRECTION.", "- MOCK CONTENT.");
 const MOCK_RULES = (): string => cut("- MOCK CONTENT.", "- If design frames");
+
+// ---------- a large request: the screen list first, then each page on its own ----------
+
+/**
+ * Above this many requirements the design is drawn in parts. One answer holding every page's sample content, full data and
+ * translations does not fit the model's output: the 2026-10-05 estimate run (136 requirements) was cut off at 64K tokens
+ * after 8.6 minutes, $1.52 thrown away, and the retry asked for the same answer again.
+ */
+// ponytail: counted in requirements, not screens (unknown before the list); a 7-requirement design was one screen, 2.5 KB
+export const DRAW_IN_PARTS_AT = 24;
+/** pages drawn at once */
+const PAGES_SIDE_BY_SIDE = 4;
+
+const PlanScreen = DesignOut.shape.screens.element.omit({ mock: true, mockFull: true }).extend({
+  /** the page's name as its heading reads; the page call uses it as the mock's title */
+  title: z.string().min(1).max(60),
+  /** one sentence on what the user sees and does there: the page call's brief */
+  purpose: z.string().min(1).max(240),
+});
+/** The screen list of a large request: every field of the design but the pages' content. */
+export const DesignPlan = DesignOut.extend({ screens: z.array(PlanScreen).min(1) });
+/** One page's content, drawn against the fixed screen list and look. */
+export const DesignPage = z.object({ mock: ScreenMock, mockFull: ScreenMockFull.optional() });
+
+const PLAN_PAGES = `- PAGES ARE DRAWN NEXT. This request is large, so here you only list the screens and choose the look; each page's content is drawn afterwards, one page per call, from your list. For every screen give "title" (the page's name as its heading reads: "Order history", never "Page 3") and "purpose" (one sentence: what the user sees and does there). Leave out "mock" and "mockFull".
+`;
+const PLAN_RULES = (): string => RULES.replace(MOCK_RULES(), PLAN_PAGES);
+
+const PAGE_RULES = `You are a principal UI/UX engineer drawing ONE page of a design. The screen list, the flow and the look were decided first and are fixed: "design" holds them, "this-page" is the page to draw.
+- Return "mock" for this page (and "mockFull" where FULL DATA asks for it), and nothing else. Its id, route, requirements, states and app stay as listed.
+- Use the title in "this-page" as the mock's title, and draw what its "purpose" says for the requirements given.
+- Links go only to the screen ids in the design's "pages": link a label to the page a user reaches from it.
+- The look is fixed: draw for that theme (its shell, density, charts and imagery), not a new one.
+- If an "earlier-page" is given, it was approved before: keep its content unless its requirements changed.
+`;
+
+/** The screen list's own checks: they name no page, or are about the list itself (links to requirements, ids, routes, frames, apps). */
+const PLAN_CHECKS = new Set(["design-unknown-req", "design-unmapped", "design-orphan", "design-duplicate-id", "design-duplicate-route", "design-unknown-frame", "design-frame-unused", "design-app"]);
+const names = (id: string, f: Failure) => new RegExp(`\\b${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(f.message);
+/**
+ * Which earlier failures a part of the drawing gets: a page those that name it, the screen list the rest. A runner failure (cut off,
+ * timed out) was the one big answer's, so neither gets it. Parts with no failures send what they sent before, so a retry reads the
+ * stored answer for every page that passed (src/estimate/cache.ts) and pays only for the rest.
+ */
+export function failuresFor(failures: Failure[], page?: string): Failure[] {
+  const own = failures.filter((f) => !f.check.startsWith("runner-"));
+  if (page) return own.filter((f) => !PLAN_CHECKS.has(f.check) && names(page, f));
+  return own.filter((f) => PLAN_CHECKS.has(f.check) || !/\bS-\d+\b/.test(f.message));
+}
+
+interface PartsBrief {
+  spec: Spec; reqText: string; frames: string[];
+  /** the mode's own rules (existing app, restyle, starter, references), as in the one-answer call */
+  rules: ResolvedSection[];
+  /** the one-answer call's briefing sections (requirements, earlier design, existing app, references, recent looks, feedback) */
+  context: ResolvedSection[];
+  existing: boolean; refs: FitRefs; recent: Look[]; fromRefs: boolean; earlierTheme?: Theme | undefined;
+  inv?: DesignInventory | undefined; reading?: DesignRefsArt | undefined; earlierScreens: ScreenT[]; feedback: string;
+  /** pages the lead called fine: kept as they were when the list keeps their id and route */
+  fine: ScreenT[];
+}
+
+/**
+ * The design as far as it is drawn, as the run's preview (Run: Preview in `factory ui`): drawn pages as they will look, the rest
+ * as wireframes, marked a draft so the page says how far it is. design-baseline writes the real preview over it. Best effort: a
+ * draft that cannot be written never stops the drawing. Files are swapped in whole, so the page never reads half a file.
+ */
+export function draftPreview(ctx: Pick<StepContext, "ledger" | "state" | "runId" | "log">, spec: Spec, plan: z.infer<typeof DesignPlan>, drawn: Map<string, ScreenT>, n: { drawn: number; total: number; failed: number }): void {
+  try {
+    const screens = plan.screens.map(({ title: _t, purpose: _p, ...x }) => drawn.get(x.id) ?? x);
+    const html = buildDemo({
+      title: ctx.state.info.estimate?.projectName ?? ctx.runId, flow: plan.flow, screens: screens.map((x) => ({ ...x, states: x.states ?? [], size: x.size ?? "new", frames: x.frames ?? [] })),
+      requirements: Object.fromEntries(spec.requirements.map((q) => [q.id, q.ears])), noScreen: plan.noScreen ?? [],
+      ...(plan.theme ? { theme: plan.theme } : {}), ...(plan.apps?.length ? { apps: plan.apps } : {}), ...(plan.switcher ? { switcher: plan.switcher } : {}), ...(plan.locale ? { locale: plan.locale } : {}),
+    });
+    const dir = join(ctx.ledger.dir, "preview");
+    mkdirSync(dir, { recursive: true });
+    const put = (name: string, body: string) => { writeFileSync(join(dir, `.${name}.tmp`), body); renameSync(join(dir, `.${name}.tmp`), join(dir, name)); };
+    put("index.html", html);
+    put("preview.json", JSON.stringify({
+      site: { entry: "index.html", screens: plan.screens.map((x) => ({ path: `index.html#${x.id}`, title: drawn.get(x.id)?.mock?.title ?? x.title, ...(x.reqs[0] ? { req: x.reqs[0] } : {}), ...(drawn.has(x.id) ? {} : { pending: true }) })) },
+      images: [], draft: n,
+    }, null, 2));
+  } catch (e) { ctx.log(`design: draft preview not written: ${(e as Error).message}`); }
+}
+
+/**
+ * A large request's design: one call lists the screens and chooses the look (checked before any page is paid for), then each page
+ * is drawn on its own against that list, a few at a time, with one more try for a page that fails its checks. The result has the
+ * one-answer call's shape, so the step's checks and the demo measure it the same way.
+ */
+async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true; output: z.infer<typeof DesignOut>; model: string; risks: string[] } | { ok: false; outcome: StepOutcome }> {
+  const p = await think({ ...ctx, priorFailures: failuresFor(ctx.priorFailures) }, {
+    stage: "design", label: "design screen list", route: "design", cls: "read-large", budgetTokens: 80000, tools: [], schema: DesignPlan, maxTurns: 3,
+    sections: [S.template("tpl", PLAN_RULES()), ...b.rules, ...b.context, S.task("List the screens and choose the look; the pages are drawn next.")],
+  });
+  if (!p.ok) return p;
+  const plan = p.output;
+  const keptLook = !!b.earlierTheme && JSON.stringify(b.earlierTheme) === JSON.stringify(plan.theme);
+  const listed = [
+    ...mapFailures(mapDesign(b.spec.requirements.map((q) => q.id), plan as never, b.frames)),
+    ...[...lookQuality(plan, b.existing, b.refs, b.recent, keptLook, b.fromRefs), ...a11yFit({ screens: [], theme: plan.theme } as never), ...modeFit(plan, b.reqText)].map((q) => failure(q.check, q.message)),
+  ];
+  // after the rounds of questions about failing checks, what still fails is carried as an open risk (src/stages/gate-questions.ts)
+  const risks: string[] = [];
+  if (listed.length && carries(ctx, listed)) risks.push(...carriedLines("the design checks", listed));
+  else if (listed.length) {
+    p.forget?.();
+    return { ok: false, outcome: { kind: "fail", category: "other", failures: listed, signature: `design-plan:${[...new Set(listed.map((f) => f.check))].sort().join(",")}`, gate: true } };
+  }
+
+  const ids = plan.screens.map((x) => x.id);
+  const ears = new Map(b.spec.requirements.map((q) => [q.id, q.ears]));
+  const design = {
+    flow: plan.flow, ...(plan.theme ? { theme: plan.theme } : {}), ...(plan.locale ? { locale: plan.locale } : {}), ...(plan.apps?.length ? { apps: plan.apps } : {}),
+    pages: plan.screens.map((x) => ({ id: x.id, title: x.title, route: x.route, ...(x.app ? { app: x.app } : {}) })),
+  };
+  ctx.log(`design: ${plan.screens.length} screens listed; drawing each page, ${PAGES_SIDE_BY_SIDE} at a time (Preview shows them as they come)`);
+  // the preview fills in as pages come back; the trace counts them
+  const total = plan.screens.length;
+  const shown = new Map<string, ScreenT>();
+  let finished = 0;
+  let failedPages = 0;
+  const progress = (id: string, title: string, screen?: ScreenT, how = "drawn") => {
+    finished++;
+    if (screen) shown.set(id, screen); else failedPages++;
+    ctx.log(`design: page ${finished} of ${total} ${screen ? how : "failed its checks twice"}: ${id} "${title}"`);
+    draftPreview(ctx, b.spec, plan, shown, { drawn: shown.size, total, failed: failedPages });
+  };
+  draftPreview(ctx, b.spec, plan, shown, { drawn: 0, total, failed: 0 });
+  const drawn = await inPool(plan.screens, PAGES_SIDE_BY_SIDE, async ({ title, purpose, ...entry }): Promise<{ screen: ScreenT; risks?: string[] } | { failures: Failure[] } | { outcome: StepOutcome }> => {
+    const kept = b.fine.find((x) => x.id === entry.id && x.route === entry.route);
+    if (kept) { progress(entry.id, title, kept, "kept as approved"); return { screen: kept }; }
+    const earlierPage = b.earlierScreens.find((x) => x.id === entry.id);
+    const cited = b.reading && entry.refs?.length ? { ...b.reading, refs: b.reading.refs.filter((r) => entry.refs!.includes(r.id)) } : undefined;
+    let failures = failuresFor(ctx.priorFailures, entry.id);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const r = await think({ ...ctx, priorFailures: failures }, {
+        stage: "design", label: `design ${entry.id} "${title}"`, route: "design", cls: "read-large", budgetTokens: 30000, tools: [], schema: DesignPage, maxTurns: 3,
+        sections: [
+          S.template("tpl", PAGE_RULES + MOCK_RULES() + UNTRUSTED_NOTE),
+          ...(cited?.refs.length ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
+          S.artifact("design", "design-plan", design),
+          S.artifact("this-page", "design-plan", { ...entry, title, purpose }),
+          S.artifact("requirements", "spec", entry.reqs.map((id) => ({ id, ears: ears.get(id) ?? "" }))),
+          ...(earlierPage ? [S.artifact("earlier-page", "approved-design", earlierPage)] : []),
+          ...(b.inv ? [S.artifact("existing", "existing-ui", inventoryBrief(b.inv))] : []),
+          ...(cited?.refs.length ? referenceSections(ctx.state, cited) : []),
+          ...(b.feedback ? [S.reference("design-feedback", b.feedback)] : []),
+          S.task(`Draw page ${entry.id}, "${title}".`),
+        ],
+      });
+      if (!r.ok) return { outcome: r.outcome };
+      const screen: ScreenT = { ...entry, ...r.output };
+      // the page alone: its app is checked with the list, its links against the list's ids
+      const bad = designQuality({ flow: plan.flow, noScreen: [], screens: [{ ...screen, app: undefined }], ...(plan.theme ? { theme: plan.theme } : {}) } as never, b.existing, undefined, [], true, false, ids);
+      if (!bad.length) { progress(entry.id, title, screen); return { screen }; }
+      const fs = bad.map((q) => failure(q.check, q.message));
+      if (attempt === 1 && carries(ctx, fs)) { progress(entry.id, title, screen, "drawn (its failing checks carried as open risks)"); return { screen, risks: carriedLines(`the checks of page ${entry.id}`, fs) }; }
+      r.forget?.();
+      failures = fs;
+    }
+    progress(entry.id, title);
+    return { failures };
+  });
+  const stopped = drawn.find((d): d is { outcome: StepOutcome } => "outcome" in d);
+  if (stopped) return { ok: false, outcome: stopped.outcome };
+  const failed = drawn.flatMap((d) => ("failures" in d ? d.failures : []));
+  if (failed.length) return { ok: false, outcome: { kind: "fail", category: "other", failures: failed, signature: `design-pages:${[...new Set(failed.map((f) => f.check))].sort().join(",")}`, gate: true } };
+  ctx.log(`design: ${plan.screens.length} pages drawn`);
+  const { screens: _listed, ...rest } = plan;
+  return { ok: true, output: { ...rest, screens: drawn.map((d) => (d as { screen: ScreenT }).screen) }, model: p.model, risks: [...risks, ...drawn.flatMap((d) => ("risks" in d && d.risks ? d.risks : []))] };
+}
+
+/** The links between requirements, screens and frames, as failures. */
+function mapFailures(map: ReturnType<typeof mapDesign>): Failure[] {
+  return [
+    ...map.unknown.map((x) => failure("design-unknown-req", `${x} is not a requirement in the spec`)),
+    ...map.unmappedReqs.map((x) => failure("design-unmapped", `${x} is on no screen and not listed under noScreen`)),
+    ...map.orphanScreens.map((x) => failure("design-orphan", `screen ${x} serves no requirement`)),
+    ...map.duplicateIds.map((x) => failure("design-duplicate-id", `two screens share the id ${x}`)),
+    ...map.duplicateRoutes.map((x) => failure("design-duplicate-route", `two screens share the route ${x}; one screen has one route (give states, not a second screen)`)),
+    ...map.unknownFrames.map((x) => failure("design-unknown-frame", `${x} is not one of the attached frames`)),
+    ...map.unusedFrames.map((x) => failure("design-frame-unused", `attached frame ${x} is on no screen`)),
+  ];
+}
 
 const PATCH_SCREEN = `You are a principal UI/UX engineer fixing ONE page of an approved design after the lead sent it back. Return that page as "screen" with the same id, route, file and requirement ids.
 - Change only what the feedback asks. Keep everything else on the page as it is: its title, blocks, states and sample content.
@@ -654,6 +852,9 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const intent = intentOf<Intent>(ctx.state, ctx.ledger, src);
       // no UI: nothing to draw; E1b passes on the intent alone
       if (!intent.touchesUi) return { kind: "done", outputs: { design: ctx.ledger.putJson({ header: header(ctx.runId, "design", "design", ""), skipped: true, reason: "no UI in this request" }) }, data: { skipped: true } };
+      // a spec from before problems were settled by questions, which the breakdown would refuse: settle it before drawing from it
+      const back = await backToSettle(ctx, "design", src.spec);
+      if (back) return back;
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
       const inv = repoInventory(ctx, src);
       const frames = listedFrames(ctx.state.info.request ?? "");
@@ -664,7 +865,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       if (lightUi(intent, { existingLook: hasExistingLook(inv), frames: frames.length, references: ctx.state.info.references?.length ?? 0, earlierDesign: !!earlier && !earlier.skipped, reqs: spec.requirements.length, off: ctx.project.design?.lightNote === false })) {
         const n = await designNote(ctx, spec, inv!);
         if (n && "outcome" in n) return n.outcome;
-        if (n) return { kind: "done", outputs: { design: ctx.ledger.putJson({ ...n.note, header: header(ctx.runId, "design", "design", "", n.model) }) }, data: { screens: n.note.screens.length, note: true } };
+        if (n) return { kind: "done", outputs: { design: ctx.ledger.putJson({ ...n.note, header: header(ctx.runId, "design", "design", "", n.model) }) }, data: { screens: n.note.screens.length, note: true, ...(n.risks.length ? { openRisks: n.risks } : {}) } };
       }
       const sentBack = designRejections(ctx.state).slice(0, MAX_DESIGN_REVISIONS);
       // a design that was sent back is fixed where the lead pointed, or redrawn when that is what the note needs
@@ -702,40 +903,48 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const feedback = sentBack.length
         ? `The lead rejected the previous design ${sentBack.length === 1 ? "once" : `${sentBack.length} times`}. Their reasons, oldest first:\n${sentBack.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nRedraw it so each reason is met: keep what they did not criticise, change what they did, and do not repeat the earlier screens, theme or sample data where they objected.${again?.fine.length && prev ? ` The lead said these pages are fine, so keep them as they are: ${prev.screens.filter((x) => again!.fine.includes(x.id)).map(screenName).join(", ")}.` : ""}`
         : "";
-      const r = await think(ctx, {
-        stage: "design", route: "design", cls: "read-large", budgetTokens: 80000, tools: [], schema: DesignOut, maxTurns: 4,
-        sections: [
-          S.template("tpl", RULES),
-          ...(existing ? [S.template("existing-rules", EXISTING_RULES)] : restyle ? [S.template("restyle-rules", RESTYLE_RULES)] : starter ? [S.template("starter-rules", STARTER_RULES)] : []),
-          ...(reading ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
-          S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
-          ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens, ...(earlier.theme ? { theme: earlier.theme } : {}), ...(earlier.locale ? { locale: earlier.locale } : {}) })] : []),
-          ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
-          ...(starter ? [S.artifact("starter", "starter-components", starter)] : []),
-          ...(fromRefs ? [] : [S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`)]),
-          ...(reading ? referenceSections(ctx.state, reading) : []),
-          ...(recent.length ? [S.reference("recent-looks", lookBrief(recent, field))] : []),
-          ...(feedback ? [S.reference("design-feedback", feedback)] : []),
-          S.task("Draw the screen inventory."),
-        ],
-      });
+      const rules = [
+        ...(existing ? [S.template("existing-rules", EXISTING_RULES)] : restyle ? [S.template("restyle-rules", RESTYLE_RULES)] : starter ? [S.template("starter-rules", STARTER_RULES)] : []),
+        ...(reading ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
+      ];
+      const context = [
+        S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
+        ...(earlier && !earlier.skipped ? [S.artifact("approved-design", "approved-design", { flow: earlier.flow, screens: earlier.screens, ...(earlier.theme ? { theme: earlier.theme } : {}), ...(earlier.locale ? { locale: earlier.locale } : {}) })] : []),
+        ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
+        ...(starter ? [S.artifact("starter", "starter-components", starter)] : []),
+        ...(fromRefs ? [] : [S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`)]),
+        ...(reading ? referenceSections(ctx.state, reading) : []),
+        ...(recent.length ? [S.reference("recent-looks", lookBrief(recent, field))] : []),
+        ...(feedback ? [S.reference("design-feedback", feedback)] : []),
+      ];
+      const earlierTheme = earlier && !earlier.skipped ? earlier.theme : undefined;
+      const r = spec.requirements.length > DRAW_IN_PARTS_AT
+        ? await drawInParts(ctx, {
+          spec, reqText, frames: frames.map((f) => f.id), rules, context, existing, refs, recent, fromRefs, earlierTheme, inv, reading,
+          earlierScreens: earlier && !earlier.skipped ? earlier.screens as ScreenT[] : [], feedback,
+          fine: prev && again?.fine.length ? prev.screens.filter((x) => again!.fine.includes(x.id)) : [],
+        })
+        : await think(ctx, {
+          stage: "design", route: "design", cls: "read-large", budgetTokens: 80000, tools: [], schema: DesignOut, maxTurns: 4,
+          sections: [S.template("tpl", RULES), ...rules, ...context, S.task("Draw the screen inventory.")],
+        });
       if (!r.ok) return r.outcome;
-      const out = keepFine(r.output, again?.fine ?? [], prev, earlier && !earlier.skipped ? earlier.theme : undefined);
+      const out = keepFine(r.output, again?.fine ?? [], prev, earlierTheme);
       const map = mapDesign(spec.requirements.map((q) => q.id), out, frames.map((f) => f.id));
       const bad = [
-        ...map.unknown.map((x) => failure("design-unknown-req", `${x} is not a requirement in the spec`)),
-        ...map.unmappedReqs.map((x) => failure("design-unmapped", `${x} is on no screen and not listed under noScreen`)),
-        ...map.orphanScreens.map((x) => failure("design-orphan", `screen ${x} serves no requirement`)),
-        ...map.duplicateIds.map((x) => failure("design-duplicate-id", `two screens share the id ${x}`)),
-        ...map.duplicateRoutes.map((x) => failure("design-duplicate-route", `two screens share the route ${x}; one screen has one route (give states, not a second screen)`)),
-        ...map.unknownFrames.map((x) => failure("design-unknown-frame", `${x} is not one of the attached frames`)),
-        ...map.unusedFrames.map((x) => failure("design-frame-unused", `attached frame ${x} is on no screen`)),
+        ...mapFailures(map),
         ...designQuality(out, existing, refs, recent, !!earlier?.theme && JSON.stringify(earlier.theme) === JSON.stringify(out.theme), fromRefs).map((q) => failure(q.check, q.message)),
         ...(reading ? refFit(out.theme, out.screens, out.refUse, reading, existing).map((q) => failure(q.check, q.message)) : []),
         ...localeFit(out, reqText).map((q) => failure(q.check, q.message)),
         ...modeFit(out, reqText).map((q) => failure(q.check, q.message)),
       ];
-      if (bad.length) return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}` };
+      const openRisks = "risks" in r ? [...r.risks] : [];
+      if (bad.length && carries(ctx, bad)) openRisks.push(...carriedLines("the design checks", bad));
+      else if (bad.length) {
+        // the one answer was rejected: a retry with these failures must not read it back
+        (r as { forget?: () => void }).forget?.();
+        return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}`, gate: true };
+      }
       // the drawn demo is measured in a browser: text past the frame, cut off or on top of other text, and (with layout references)
       // a screen that does not show its reference's navigation or regions, go back for one fix round together (after that round
       // the text problems are listed on the card and the reference gaps kept on the design); no browser, no check
@@ -761,7 +970,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         ...(prev ? { revision: sentBack.length, rework: [...(prev.rework ?? []), ...(again ? [again.round] : [])] } : {}),
         mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(existing ? { themeSource: "repo" as const, ...(inv?.look ? { theme: inv.look.theme } : {}) } : { themeSource: "new" as const, ...(out.theme ? { theme: withFamilies(out.theme, reading, out.refUse) } : {}) }),
       };
-      return { kind: "done", outputs: { design: ctx.ledger.putJson(artifact) }, data: { screens: artifact.screens.length, states: artifact.screens.reduce((n, s) => n + Math.max(1, s.states.length), 0) } };
+      return { kind: "done", outputs: { design: ctx.ledger.putJson(artifact) }, data: { screens: artifact.screens.length, states: artifact.screens.reduce((n, s) => n + Math.max(1, s.states.length), 0), ...(openRisks.length ? { openRisks } : {}) } };
     },
   };
 }
@@ -772,7 +981,7 @@ export const designStep: StepDef = makeDesignStep();
  * The design note of a small UI fix: one small model call, no demo, no pictures. Undefined when the note says a page has to be
  * made (that needs the full design); its links to the requirements are checked like a full design's.
  */
-async function designNote(ctx: StepContext, spec: Spec, inv: DesignInventory): Promise<{ note: Record<string, unknown> & { screens: unknown[] }; model?: string } | { outcome: StepOutcome } | undefined> {
+async function designNote(ctx: StepContext, spec: Spec, inv: DesignInventory): Promise<{ note: Record<string, unknown> & { screens: unknown[] }; model?: string; risks: string[] } | { outcome: StepOutcome } | undefined> {
   const r = await think(ctx, {
     stage: "design", route: "design", cls: "read-small", budgetTokens: 12000, tools: [], schema: DesignNoteOut, maxTurns: 2,
     sections: [
@@ -793,12 +1002,13 @@ async function designNote(ctx: StepContext, spec: Spec, inv: DesignInventory): P
     ...map.duplicateIds.map((x) => failure("design-duplicate-id", `two screens share the id ${x}`)),
     ...map.duplicateRoutes.map((x) => failure("design-duplicate-route", `two screens share the route ${x}`)),
   ];
-  if (bad.length) return { outcome: { kind: "fail", category: "other", failures: bad, signature: `design-note:${bad.map((f) => f.check).sort().join(",")}` } };
+  const noteRisks = bad.length && carries(ctx, bad) ? carriedLines("the design note's checks", bad) : [];
+  if (bad.length && !noteRisks.length) return { outcome: { kind: "fail", category: "other", failures: bad, signature: `design-note:${bad.map((f) => f.check).sort().join(",")}`, gate: true } };
   return {
     note: {
       note: true, flow: out.flow, screens: out.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, size: s.size, change: s.change })),
       mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, themeSource: "repo" as const, ...(inv.look ? { theme: inv.look.theme } : {}),
     },
-    ...(r.model ? { model: r.model } : {}),
+    ...(r.model ? { model: r.model } : {}), risks: noteRisks,
   };
 }

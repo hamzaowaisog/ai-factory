@@ -193,6 +193,12 @@ export function restyleChosen(r: ClarifyResult | undefined): string[] | undefine
 // ---------- steps ----------
 const request = (ctx: Pick<StepContext, "state">) => ctx.state.info.request ?? "";
 
+/** The readings that came back on the last failed attempt for the same inputs (sha per reading, null = lost). */
+export function keptSketches(events: { type: string; data?: unknown }[], sketchKey: string): (string | null)[] {
+  const ev = [...events].reverse().find((e) => e.type === "step.failed" && (e.data as { sketchKey?: string } | undefined)?.sketchKey === sketchKey);
+  return (ev?.data as { sketchShas?: (string | null)[] } | undefined)?.sketchShas ?? [];
+}
+
 async function runSketches(ctx: StepContext, intent: Intent, cb: CB): Promise<{ ok: true; sketches: Sketch[]; diffs: Difference[] } | { ok: false; outcome: StepOutcome }> {
   const one = (n: number) => think(ctx, {
     stage: "sketches", route: "sketches", cls: "read-small", budgetTokens: 12000, tools: [], schema: SketchOut, maxTurns: 3,
@@ -207,16 +213,29 @@ ${UNTRUSTED_NOTE}`),
       S.task(`Reading #${n}: list the behaviours per span.`),
     ],
   });
-  const rs = await Promise.all([one(1), one(2), one(3)]);
+  // a retry only pays for the readings the last attempt lost
+  const sketchKey = hashJson({ intent: intent.spans, cb: cb.claims, request: request(ctx) });
+  const kept = keptSketches([...ctx.ledger.events()], sketchKey);
+  const rs = await Promise.all([1, 2, 3].map(async (n) => {
+    const sha = kept[n - 1];
+    if (!sha) return one(n);
+    ctx.log(`sketches: reading #${n} kept from the last attempt (no model call)`);
+    return { ok: true as const, output: ctx.ledger.getJson<Sketch>(sha) };
+  }));
   const bad = rs.find((r) => !r.ok);
-  if (bad && !bad.ok) return { ok: false, outcome: bad.outcome };
+  if (bad && !bad.ok) {
+    if (bad.outcome.kind !== "fail") return { ok: false, outcome: bad.outcome };
+    const sketchShas = rs.map((r) => (r.ok ? ctx.ledger.putJson(r.output) : null));
+    return { ok: false, outcome: { ...bad.outcome, data: { ...(bad.outcome.data ?? {}), sketchKey, sketchShas } } };
+  }
   const sketches = rs.map((r) => (r as { output: Sketch }).output);
+  const listed = sketches.map((s, i) => ({ sketch: i + 1, spans: s.spans.map((sp) => ({ id: sp.id, readingChosen: sp.readingChosen, behaviours: sp.behaviours.map((b, j) => `${j}: ${b.text}`) })) }));
   const al = await think(ctx, {
     stage: "sketches", route: "sketch-align", cls: "read-small", budgetTokens: 15000, tools: [], schema: AlignOut, maxTurns: 3,
     sections: [
       S.template("tpl", `Three engineers independently listed behaviours for the same request. Find where they DISAGREE about what the system should do (not wording differences).
 For each disagreement: id D-1.., the span, a short topic, and the readings: which sketch (1-3), which behaviour index (0-based) in that span, and a one-line summary. Cite at least two different sketches. Empty list if they agree.`),
-      S.artifact("sketches", "sketches", sketches.map((s, i) => ({ sketch: i + 1, spans: s.spans.map((sp) => ({ id: sp.id, readingChosen: sp.readingChosen, behaviours: sp.behaviours.map((b, j) => `${j}: ${b.text}`) })) }))),
+      S.artifact("sketches", "sketches", listed),
       S.task("List the disagreements."),
     ],
   });

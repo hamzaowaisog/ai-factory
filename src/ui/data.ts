@@ -31,6 +31,7 @@ import { lastActivity, readTrace } from "../util/trace.js";
 import { maskSecrets } from "../config/env.js";
 import { Redactor } from "../context/secrets.js";
 import { readPreview } from "./preview.js";
+import { factoryAssumed } from "../stages/gate-questions.js";
 import { loadProject, STANDALONE_PROJECT } from "../config/project.js";
 import { repoIsEmpty } from "../config/greenfield.js";
 
@@ -459,7 +460,7 @@ export function estimateView(ledger: Ledger) {
     totals: est.totals, apiCost: est.apiCost, elapsed: est.elapsed,
     tasks: est.tasks.map((t) => {
       const b = titles.get(t.taskId);
-      return { id: t.taskId, title: b?.title ?? t.taskId, track: b?.track, kind: b?.kind, size: t.size, executor: t.executor, hours: t.hours, anchor: t.anchorId, ratio: t.ratio, reason: t.reason, flagged: t.flagged, splitAdvised: t.splitAdvised, references: t.references, screen: b?.screen, reqs: b?.reqs ?? [], overhead: b?.overhead };
+      return { id: t.taskId, title: b?.title ?? t.taskId, track: b?.track, kind: b?.kind, size: t.size, executor: t.executor, hours: t.hours, ...(t.apiUsd ? { apiUsd: t.apiUsd } : {}), anchor: t.anchorId, ratio: t.ratio, reason: t.reason, flagged: t.flagged, splitAdvised: t.splitAdvised, references: t.references, screen: b?.screen, reqs: b?.reqs ?? [], overhead: b?.overhead };
     }),
     anchors: est.anchors,
     overheads: est.overheads,
@@ -484,7 +485,7 @@ export function estimateView(ledger: Ledger) {
       const sha = done(k);
       const r = sha ? ledger.getJson<{ assumedBy?: string; assumptions?: { id: string; text: string; risk: string; fromDefault?: string }[] }>(sha) : undefined;
       return r?.assumedBy ? (r.assumptions ?? []).map((a) => ({ id: a.id, text: a.text, risk: a.risk, ...(a.fromDefault ? { fromDefault: a.fromDefault } : {}) })) : [];
-    }) } : {}),
+    }).concat(factoryAssumed(ledger)) } : {}),
     files,
   };
 }

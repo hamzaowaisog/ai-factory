@@ -1,0 +1,173 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "identifiers",
+      "text": "Should the 7-day overdue threshold be a fixed constant or a setting that can be changed?",
+      "options": [
+       "Fixed constant of 7 days in code",
+       "Configurable setting, defaulting to 7 days"
+      ],
+      "recommended": "Configurable setting, defaulting to 7 days",
+      "reason": "Business rules like grace periods often change, and making it a setting costs little.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 2,
+      "impactReason": "Controls which invoices appear on the list and can be sent reminders."
+     },
+     {
+      "id": "Q-7",
+      "category": "data-model",
+      "text": "Is 'overdue' a status saved on the invoice (for example by a daily job), or is it worked out from the due date each time the list loads?",
+      "options": [
+       "Computed at query time from due date and today's date",
+       "Stored flag set by a scheduled daily job"
+      ],
+      "recommended": "Computed at query time from due date and today's date",
+      "reason": "Nothing goes stale, and there are no writes to the client's existing invoice records.",
+      "spans": [
+       "I-1",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Decides whether the system writes to existing invoice data and needs a scheduler."
+     },
+     {
+      "id": "Q-8",
+      "category": "terminology",
+      "text": "Which date and timezone decide when an invoice is '7 days past due', and is 'days overdue' (used in the filter) counted from the due date or from when the invoice became overdue?",
+      "options": [
+       "Calendar days in the business's local timezone, counted from the due date",
+       "Calendar days in UTC, counted from the due date",
+       "Counted from when the invoice became overdue (due date + 7)"
+      ],
+      "recommended": "Calendar days in the business's local timezone, counted from the due date",
+      "reason": "This matches how staff think about due dates and keeps the filter consistent with the invoice.",
+      "spans": [
+       "I-1",
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "Changes which invoices appear and what the filter values mean."
+     },
+     {
+      "id": "Q-9",
+      "category": "external",
+      "text": "Which email service sends the reminders, and what sender address should they come from?",
+      "options": [
+       "Client's existing SMTP server, with a configured from-address",
+       "A transactional email provider (e.g. SendGrid) with API key in config",
+       "To be decided; abstract behind an interface with SMTP default"
+      ],
+      "recommended": "To be decided; abstract behind an interface with SMTP default",
+      "reason": "No provider is named, so keeping the sender behind an interface avoids getting locked in.",
+      "spans": [
+       "I-2",
+       "I-4"
+      ],
+      "impact": 2,
+      "impactReason": "Decides the integration work and which kinds of failure can be detected."
+     },
+     {
+      "id": "Q-10",
+      "category": "errors",
+      "text": "What counts as 'cannot be delivered': only errors when the email is handed to the mail service, or also later bounces and rejections?",
+      "options": [
+       "Only immediate send errors from the mail service",
+       "Immediate errors plus asynchronous bounces via provider webhook"
+      ],
+      "recommended": "Only immediate send errors from the mail service",
+      "reason": "Handling bounces needs webhooks and a specific provider, which makes the build much bigger.",
+      "spans": [
+       "I-4",
+       "I-7"
+      ],
+      "impact": 2,
+      "impactReason": "Controls when failures show on the invoice and how much integration is needed."
+     },
+     {
+      "id": "Q-11",
+      "category": "existing-data",
+      "text": "Is a failed send recorded in the append-only reminder history, and does a later successful send clear the failure shown on the invoice?",
+      "options": [
+       "Every attempt (success or failure) is a history entry; the latest status is shown",
+       "Failures are stored separately and stay visible permanently"
+      ],
+      "recommended": "Every attempt (success or failure) is a history entry; the latest status is shown",
+      "reason": "This fits the immutable, append-only history already agreed and keeps a single audit trail.",
+      "spans": [
+       "I-3",
+       "I-4",
+       "I-7"
+      ],
+      "impact": 3,
+      "impactReason": "Shapes the data written and what staff see on the invoice."
+     },
+     {
+      "id": "Q-12",
+      "category": "data-model",
+      "text": "Where are reminder history records stored, given that invoices live in the client's existing system?",
+      "options": [
+       "New table in the same Postgres database, referencing invoice ID",
+       "Separate Postgres schema/database owned by this app"
+      ],
+      "recommended": "New table in the same Postgres database, referencing invoice ID",
+      "reason": "This is the simplest way to join history with invoice data for the list and detail screens.",
+      "spans": [
+       "I-3"
+      ],
+      "impact": 3,
+      "impactReason": "New writes to the client's database and a schema migration."
+     },
+     {
+      "id": "Q-13",
+      "category": "scope",
+      "text": "Should the invoice detail screen also have a 'Send reminder' button when the invoice is overdue?",
+      "options": [
+       "Yes, same action and in-progress disabling as the list",
+       "No, sending only from the overdue list"
+      ],
+      "recommended": "Yes, same action and in-progress disabling as the list",
+      "reason": "Staff reviewing failures on the detail screen will naturally want to resend from there.",
+      "spans": [
+       "I-7",
+       "I-2"
+      ],
+      "impact": 2,
+      "impactReason": "Adds a visible action to a screen.",
+      "difference": "D-4"
+     },
+     {
+      "id": "Q-14",
+      "category": "scope",
+      "text": "What wording and format should the reminder email use, and should the amount show a currency symbol?",
+      "options": [
+       "Fixed plain template with invoice number, amount in local currency, due date",
+       "Editable template configured by staff"
+      ],
+      "recommended": "Fixed plain template with invoice number, amount in local currency, due date",
+      "reason": "The request lists only the required fields and says nothing about editing templates.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 1,
+      "impactReason": "Wording and formatting only."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

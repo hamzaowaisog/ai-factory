@@ -1,0 +1,481 @@
+{
+  "runId": "20261004-automotive-parts-customer-orde-ca25",
+  "status": "closed: stopped",
+  "request": "# Automotive Parts Customer Ordering Portal\n\n## 1. Product Overview\n\nA web-based B2B ordering portal for a mid-size automotive parts distributor.\n\nThe portal allows automotive workshops, dealerships, ",
+  "costUsd": 5.35307465,
+  "activeMin": 7.5108,
+  "firstTimePassRate": 1,
+  "topCost": [
+    {
+      "step": "drafts:m1",
+      "costUsd": 3.1275702000000005
+    },
+    {
+      "step": "clarify:m2",
+      "costUsd": 0.85139355
+    },
+    {
+      "step": "clarify:m3",
+      "costUsd": 0.540267
+    }
+  ],
+  "steps": [
+    {
+      "step": "intake:m1",
+      "stage": "intake:m1",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.025,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "intake:m2",
+      "stage": "intake:m2",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.023,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "intake:m3",
+      "stage": "intake:m3",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.022,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "intake",
+      "stage": "intake",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.015,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "ground",
+      "stage": "ground",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.013,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "clarify:m1",
+      "stage": "clarify:m1",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-haiku-4-5",
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 7,
+        "output": 10099,
+        "cached": 0
+      },
+      "costUsd": 0.3561765,
+      "activeSec": 94.156,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ]
+      },
+      "time": {
+        "modelSec": 94,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "clarify:m2",
+      "stage": "clarify:m2",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-sonnet-5",
+        "claude-haiku-4-5",
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 13,
+        "output": 45281,
+        "cached": 1119
+      },
+      "costUsd": 0.85139355,
+      "activeSec": 245.583,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ]
+      },
+      "time": {
+        "modelSec": 409,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "clarify:m3",
+      "stage": "clarify:m3",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-sonnet-5",
+        "claude-haiku-4-5",
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 17,
+        "output": 32720,
+        "cached": 5515
+      },
+      "costUsd": 0.540267,
+      "activeSec": 156.804,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ]
+      },
+      "time": {
+        "modelSec": 273,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "clarify",
+      "stage": "clarify",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.014,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": [],
+        "questionsAsked": 15,
+        "answersChanged": 1
+      }
+    },
+    {
+      "step": "clarify-2:m1",
+      "stage": "clarify-2:m1",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 4,
+        "output": 6683,
+        "cached": 0
+      },
+      "costUsd": 0.193251,
+      "activeSec": 67.067,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ]
+      },
+      "time": {
+        "modelSec": 67,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "clarify-2:m2",
+      "stage": "clarify-2:m2",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 4,
+        "output": 8545,
+        "cached": 1161
+      },
+      "costUsd": 0.2259632,
+      "activeSec": 98.32100000000001,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ]
+      },
+      "time": {
+        "modelSec": 98,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "clarify-2:m3",
+      "stage": "clarify-2:m3",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 4,
+        "output": 1883,
+        "cached": 1161
+      },
+      "costUsd": 0.0584532,
+      "activeSec": 18.325,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ]
+      },
+      "time": {
+        "modelSec": 18,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "clarify-2",
+      "stage": "clarify-2",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.014,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": [],
+        "questionsAsked": 9,
+        "answersChanged": 0
+      }
+    },
+    {
+      "step": "drafts:m1",
+      "stage": "drafts:m1",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 16,
+        "output": 134593,
+        "cached": 39406
+      },
+      "costUsd": 3.1275702000000005,
+      "activeSec": 450.412,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 1130,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    }
+  ],
+  "createdAt": "2026-10-04T18:03:25.319Z",
+  "humanCards": [
+    "question",
+    "question",
+    "question",
+    "question",
+    "question",
+    "question"
+  ]
+}

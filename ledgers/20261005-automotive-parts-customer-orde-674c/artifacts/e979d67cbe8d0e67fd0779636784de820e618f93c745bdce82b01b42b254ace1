@@ -1,0 +1,406 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Price lists",
+     "subtitle": "6 price lists · 5 active · 216 companies assigned",
+     "crumbs": [
+      "Catalogue",
+      "Price lists"
+     ],
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search price lists by name",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All",
+          "Active",
+          "Inactive"
+         ],
+         "value": "All"
+        },
+        {
+         "label": "Sort by",
+         "options": [
+          "Last changed",
+          "Name",
+          "Companies",
+          "Products priced"
+         ],
+         "value": "Last changed"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "New price list",
+         "variant": "primary",
+         "icon": "plus"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Price list",
+        "Status",
+        "Companies",
+        "Products priced",
+        "Created",
+        "Last changed"
+       ],
+       "rows": [
+        [
+         "Trade Standard 2026",
+         "Active",
+         "142",
+         "3,418",
+         "A. Hughes · 06 Jan 2026",
+         "R. Doyle · 11 Mar 2026"
+        ],
+        [
+         "Independent Garages Tier A",
+         "Active",
+         "38",
+         "2,975",
+         "A. Hughes · 14 Feb 2025",
+         "A. Hughes · 09 Mar 2026"
+        ],
+        [
+         "Fleet & Bodyshop",
+         "Active",
+         "27",
+         "1,862",
+         "M. Okafor · 03 Sep 2024",
+         "R. Doyle · 27 Feb 2026"
+        ],
+        [
+         "Agricultural Workshops",
+         "Active",
+         "9",
+         "640",
+         "M. Okafor · 21 Nov 2024",
+         "M. Okafor · 18 Feb 2026"
+        ],
+        [
+         "Motorsport Clubs",
+         "Active",
+         "0",
+         "212",
+         "R. Doyle · 05 Mar 2026",
+         "R. Doyle · 05 Mar 2026"
+        ],
+        [
+         "Trade Standard 2025",
+         "Inactive",
+         "0",
+         "3,290",
+         "A. Hughes · 08 Jan 2025",
+         "A. Hughes · 06 Jan 2026"
+        ]
+       ],
+       "statusColumn": 1,
+       "sortBy": 5,
+       "sortDir": "desc"
+      }
+     ],
+     "links": [
+      {
+       "from": "Trade Standard 2026",
+       "to": "S-31"
+      },
+      {
+       "from": "Independent Garages Tier A",
+       "to": "S-31"
+      },
+      {
+       "from": "Fleet & Bodyshop",
+       "to": "S-31"
+      },
+      {
+       "from": "Agricultural Workshops",
+       "to": "S-31"
+      },
+      {
+       "from": "Motorsport Clubs",
+       "to": "S-31"
+      },
+      {
+       "from": "Trade Standard 2025",
+       "to": "S-31"
+      },
+      {
+       "from": "Open price list",
+       "to": "S-31"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "modal",
+       "trigger": "New price list",
+       "title": "New price list",
+       "text": "Create the list, then set prices per product and assign it to companies.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Name",
+           "kind": "text",
+           "placeholder": "e.g. Taxi & Private Hire",
+           "required": true,
+           "help": "Up to 60 characters. Buyers never see this name.",
+           "error": "A price list called Trade Standard 2026 already exists"
+          },
+          {
+           "label": "Copy prices from",
+           "kind": "select",
+           "options": [
+            "Start empty",
+            "Trade Standard 2026",
+            "Independent Garages Tier A",
+            "Fleet & Bodyshop",
+            "Agricultural Workshops"
+           ],
+           "value": "Start empty",
+           "help": "Copies every product price; you can edit them afterwards."
+          }
+         ],
+         "submit": "Create price list"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Create price list",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "menu",
+       "trigger": "More",
+       "title": "Price list actions",
+       "items": [
+        "Open price list",
+        "Rename",
+        "Deactivate"
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Deactivate",
+       "title": "Deactivate Agricultural Workshops?",
+       "text": "9 companies use this price list. They must be moved to another active price list first; it can no longer be assigned once deactivated. Prices are kept.",
+       "actions": [
+        {
+         "label": "Deactivate price list",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep active",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Create price list",
+       "text": "Price list created. Add prices to start using it.",
+       "tone": "ok"
+      },
+      {
+       "after": "Deactivate price list",
+       "text": "Agricultural Workshops deactivated",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No price lists yet",
+      "emptyHint": "Create a price list to set company prices, then assign it to customer companies.",
+      "validation": "Give the price list a name that no other price list uses.",
+      "success": "Price list saved.",
+      "error": "Price lists could not be loaded. Showing the last saved list; try again shortly."
+     }
+    },
+    "mockFull": {
+     "title": "Price lists",
+     "subtitle": "12 price lists · 9 active · 265 companies assigned",
+     "crumbs": [
+      "Catalogue",
+      "Price lists"
+     ],
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search price lists by name",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All",
+          "Active",
+          "Inactive"
+         ],
+         "value": "All"
+        },
+        {
+         "label": "Sort by",
+         "options": [
+          "Last changed",
+          "Name",
+          "Companies",
+          "Products priced"
+         ],
+         "value": "Last changed"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "New price list",
+         "variant": "primary",
+         "icon": "plus"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Price list",
+        "Status",
+        "Companies",
+        "Products priced",
+        "Created",
+        "Last changed"
+       ],
+       "rows": [
+        [
+         "Trade Standard 2026",
+         "Active",
+         "98",
+         "3,418",
+         "A. Hughes · 06 Jan 2026",
+         "R. Doyle · 11 Mar 2026"
+        ],
+        [
+         "Independent Garages Tier A",
+         "Active",
+         "38",
+         "2,975",
+         "A. Hughes · 14 Feb 2025",
+         "A. Hughes · 09 Mar 2026"
+        ],
+        [
+         "Taxi & Private Hire",
+         "Active",
+         "21",
+         "1,204",
+         "S. Patel · 19 Jan 2026",
+         "S. Patel · 06 Mar 2026"
+        ],
+        [
+         "Motorsport Clubs",
+         "Active",
+         "0",
+         "212",
+         "R. Doyle · 05 Mar 2026",
+         "R. Doyle · 05 Mar 2026"
+        ],
+        [
+         "Independent Garages Tier B",
+         "Active",
+         "44",
+         "2,731",
+         "A. Hughes · 14 Feb 2025",
+         "M. Okafor · 02 Mar 2026"
+        ],
+        [
+         "Fleet & Bodyshop",
+         "Active",
+         "27",
+         "1,862",
+         "M. Okafor · 03 Sep 2024",
+         "R. Doyle · 27 Feb 2026"
+        ],
+        [
+         "Agricultural Workshops",
+         "Active",
+         "9",
+         "640",
+         "M. Okafor · 21 Nov 2024",
+         "M. Okafor · 18 Feb 2026"
+        ],
+        [
+         "Commercial Vehicle Depots",
+         "Active",
+         "16",
+         "1,577",
+         "S. Patel · 30 Apr 2025",
+         "S. Patel · 12 Feb 2026"
+        ],
+        [
+         "Motorcycle Dealers",
+         "Active",
+         "12",
+         "488",
+         "R. Doyle · 17 Jun 2025",
+         "A. Hughes · 29 Jan 2026"
+        ],
+        [
+         "Trade Standard 2025",
+         "Inactive",
+         "0",
+         "3,290",
+         "A. Hughes · 08 Jan 2025",
+         "A. Hughes · 06 Jan 2026"
+        ],
+        [
+         "Winter Promo 2025",
+         "Inactive",
+         "0",
+         "96",
+         "S. Patel · 28 Oct 2025",
+         "S. Patel · 05 Jan 2026"
+        ],
+        [
+         "Tyre Centres Pilot",
+         "Inactive",
+         "0",
+         "154",
+         "M. Okafor · 11 Mar 2025",
+         "M. Okafor · 30 Sep 2025"
+        ]
+       ],
+       "statusColumn": 1,
+       "sortBy": 5,
+       "sortDir": "desc"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No price lists yet",
+      "emptyHint": "Create a price list to set company prices, then assign it to customer companies.",
+      "validation": "Give the price list a name that no other price list uses.",
+      "success": "Price list saved.",
+      "error": "Price lists could not be loaded. Showing the last saved list; try again shortly."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

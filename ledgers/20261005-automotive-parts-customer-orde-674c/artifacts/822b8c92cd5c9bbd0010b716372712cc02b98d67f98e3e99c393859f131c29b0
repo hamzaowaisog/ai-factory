@@ -1,0 +1,362 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The portal must authenticate users by email and password, starting a session and returning the user's role on success."
+     },
+     {
+      "n": 2,
+      "text": "Invalid email or password attempts must be rejected with one identical generic error and no session token."
+     },
+     {
+      "n": 3,
+      "text": "After 5 consecutive failed sign-in attempts, the account must be locked for 15 minutes, rejecting all attempts during that time, and the failure count must reset after a successful sign-in."
+     },
+     {
+      "n": 4,
+      "text": "Deactivated users or users of inactive companies must be blocked from signing in and from using any existing session, including order submission."
+     },
+     {
+      "n": 5,
+      "text": "Signing out must invalidate the user's session token."
+     },
+     {
+      "n": 6,
+      "text": "Requests without a valid session token to protected endpoints must be rejected with 401 and no data."
+     },
+     {
+      "n": 7,
+      "text": "Requests to endpoints outside a user's role capabilities must be rejected with 403, with Administrator including all Office Staff capabilities."
+     },
+     {
+      "n": 8,
+      "text": "Buyers must only see orders, invoices, prices, addresses and account data belonging to their own company, with 404 for other companies' records."
+     },
+     {
+      "n": 9,
+      "text": "Requesting a password reset must send a reset email with a single-use, time-limited link if the account exists, returning the same response regardless of whether the account exists."
+     },
+     {
+      "n": 10,
+      "text": "Submitting a new password via a valid unused reset link must change the password, invalidate the link and clear any lock."
+     },
+     {
+      "n": 11,
+      "text": "Expired or already-used reset links must be rejected without changing the password."
+     },
+     {
+      "n": 12,
+      "text": "Administrators must be able to invite Buyers (linked to a company) or Office Staff, creating a pending account and sending a time-limited invitation."
+     },
+     {
+      "n": 13,
+      "text": "Administrators must be able to invite Administrators the same way."
+     },
+     {
+      "n": 14,
+      "text": "Accepting an invitation via a valid link within its validity period must activate the account; expired links must be rejected."
+     },
+     {
+      "n": 15,
+      "text": "Resending an invitation must invalidate previous links and send a new invitation email."
+     },
+     {
+      "n": 16,
+      "text": "Administrators must be able to list users with role, company and status, assign a Buyer to a company, deactivate and reactivate users without deleting their orders or invoices."
+     },
+     {
+      "n": 17,
+      "text": "Administrators must be able to change a user's role between Buyer and Office Staff."
+     },
+     {
+      "n": 18,
+      "text": "Administrators must be able to change a user's role to Administrator."
+     },
+     {
+      "n": 19,
+      "text": "Reactivating a user belonging to an inactive company must be rejected."
+     },
+     {
+      "n": 20,
+      "text": "Catalogue text search must match product name, code, part number or brand case-insensitively, returning only active products."
+     },
+     {
+      "n": 21,
+      "text": "Catalogue category filtering must return only active products of that category, combinable with search, and clearing it must show all active products."
+     },
+     {
+      "n": 22,
+      "text": "Vehicle search by any combination of make, model, year, engine, fuel type and variant must return only active products matching all supplied values."
+     },
+     {
+      "n": 23,
+      "text": "The catalogue listing must show only active products with image, name, code, manufacturer, unit, pack size, Buyer's price and stock status."
+     },
+     {
+      "n": 24,
+      "text": "Opening an active product must show its image, name, code, manufacturer, description, unit, pack size, price, stock status and compatible vehicles, and retired products must return 404."
+     },
+     {
+      "n": 25,
+      "text": "Product prices shown to a Buyer must come from the price list assigned to their company, updating immediately for catalogue, basket and orders when the assignment changes."
+     },
+     {
+      "n": 26,
+      "text": "Office Staff must be able to view the price a given company pays for a product from its assigned price list."
+     },
+     {
+      "n": 27,
+      "text": "Products with no price on a company's price list must display as 'Price on request' and be blocked from being added to a basket or order."
+     },
+     {
+      "n": 28,
+      "text": "Administrators must be able to create, rename and deactivate price lists, manage product prices on them, and assign an active price list to a company."
+     },
+     {
+      "n": 29,
+      "text": "Changing a price list's prices or a company's price list assignment must not alter prices already recorded on existing orders or invoices."
+     },
+     {
+      "n": 30,
+      "text": "Stock status must be derived as Out of stock, Low stock or In stock based on imported quantity against a configured threshold."
+     },
+     {
+      "n": 31,
+      "text": "A valid scheduled stock import must update stored quantities and statuses for known products and log a successful import with row counts."
+     },
+     {
+      "n": 32,
+      "text": "Unknown product identifiers in an otherwise valid import must be skipped, other rows applied, and skipped identifiers logged."
+     },
+     {
+      "n": 33,
+      "text": "Invalid, missing or malformed import files must leave stock unchanged and be logged as a failed import with a reason."
+     },
+     {
+      "n": 34,
+      "text": "Staff must be able to list stock imports with time, status, rows applied, skipped identifiers and failure reason."
+     },
+     {
+      "n": 35,
+      "text": "The portal must never send create, update or delete requests to the ERP system."
+     },
+     {
+      "n": 36,
+      "text": "Staff opening a product must see imported stock quantity, stock status, last successful import time and price on each price list."
+     },
+     {
+      "n": 37,
+      "text": "Basket lines, staff orders or amendments exceeding available stock, or for out-of-stock products, must be rejected with an error stating available quantity."
+     },
+     {
+      "n": 38,
+      "text": "The Buyer's basket must persist across navigation during a session, support adding, quantity changes (minimum 1) and removal, show line and subtotal totals, and be cleared when the session ends."
+     },
+     {
+      "n": 39,
+      "text": "The earliest delivery date must be computed as the next working day before cutoff or the following working day at/after cutoff, skipping non-working dates, in the configured timezone."
+     },
+     {
+      "n": 40,
+      "text": "Selectable delivery dates must be limited to working days within the configured maximum days ahead, and dates outside that set must be rejected at submission."
+     },
+     {
+      "n": 41,
+      "text": "A delivery address not belonging to the order's company must be rejected when set on a basket, order or edit."
+     },
+     {
+      "n": 42,
+      "text": "Order submission must re-check line availability, stock and price, rejecting and listing affected lines if any have changed."
+     },
+     {
+      "n": 43,
+      "text": "Checkout must show a final review page with lines, quantities, prices, totals, address, date and note before submission."
+     },
+     {
+      "n": 44,
+      "text": "A valid order submission must create an order with sequential number, order-time prices, address copy, date, note, Received status and a first timeline entry, then clear the basket."
+     },
+     {
+      "n": 45,
+      "text": "Orders must not be created for inactive companies or by deactivated users, even via staff creation or race conditions."
+     },
+     {
+      "n": 46,
+      "text": "Every order status change must add a timeline entry with status, timestamp and the user or 'System'."
+     },
+     {
+      "n": 47,
+      "text": "Order-related emails must go to the ordering Buyer or to the company's contact email for staff-created orders."
+     },
+     {
+      "n": 48,
+      "text": "Buyers must be able to list all their company's orders, including colleagues' and staff-created ones, with key fields, filterable by status and date range."
+     },
+     {
+      "n": 49,
+      "text": "Opening an order must show its full details including timeline, lines, totals, note and staff amendments to authorized users."
+     },
+     {
+      "n": 50,
+      "text": "Buyers must be able to cancel their own company's Received orders, recording the cancellation in the timeline."
+     },
+     {
+      "n": 51,
+      "text": "Cancelling non-Received orders by Buyers must be rejected, telling them to contact the distributor office."
+     },
+     {
+      "n": 52,
+      "text": "Repeating an order must add still-orderable lines to the basket at current prices and quantities capped to stock, flagging reduced or unavailable lines, without creating an order."
+     },
+     {
+      "n": 53,
+      "text": "Staff must be able to list orders across all customers with key fields, filterable by customer, date range and status."
+     },
+     {
+      "n": 54,
+      "text": "Staff must be able to search customer companies by name or account number and view full company details including addresses, price list, users, status, orders and invoices."
+     },
+     {
+      "n": 55,
+      "text": "Staff must be able to edit Received orders' lines, note, address and delivery date under validation rules, and be blocked from editing non-Received orders."
+     },
+     {
+      "n": 56,
+      "text": "Changing a line quantity or removing a line on a Received order must record the amendment and email the order recipient the changes."
+     },
+     {
+      "n": 57,
+      "text": "Staff confirming a valid Received order must set it to Confirmed with a timeline entry, otherwise reject listing failing lines."
+     },
+     {
+      "n": 58,
+      "text": "Confirming an order must trigger a confirmation email with order details and any pre-confirmation quantity changes."
+     },
+     {
+      "n": 59,
+      "text": "Staff must only be able to advance order status in the defined sequence or cancel, with a timeline entry recorded, rejecting invalid transitions."
+     },
+     {
+      "n": 60,
+      "text": "Moving an order to Out for delivery must send the recipient a corresponding email."
+     },
+     {
+      "n": 61,
+      "text": "Cancelling or rejecting a non-final order must require a reason, set status to Cancelled, record details and email the recipient the reason."
+     },
+     {
+      "n": 62,
+      "text": "Staff must be able to submit orders on behalf of a company under the same pricing, stock, address and date rules as Buyer orders, marked as staff-created."
+     },
+     {
+      "n": 63,
+      "text": "Orders and invoices of inactive companies must remain visible and manageable by staff, including progressing, cancelling and invoicing."
+     },
+     {
+      "n": 64,
+      "text": "Staff must be able to export a CSV delivery list for a given date (default today) with specified order details for non-Cancelled orders."
+     },
+     {
+      "n": 65,
+      "text": "The staff dashboard must show counts of orders by status, orders due today, and invoice payment statuses."
+     },
+     {
+      "n": 66,
+      "text": "The dashboard must include a count of Confirmed orders."
+     },
+     {
+      "n": 67,
+      "text": "The dashboard must include a count of failed stock imports since the last success."
+     },
+     {
+      "n": 68,
+      "text": "The dashboard must include a count of failed stock imports in the last 7 days."
+     },
+     {
+      "n": 69,
+      "text": "The dashboard must show the latest stock import result including failure time and reason when the most recent import failed."
+     },
+     {
+      "n": 70,
+      "text": "Delivering an order must automatically create a sequential invoice with customer, address, order reference, lines, totals, tax and Unpaid status."
+     },
+     {
+      "n": 71,
+      "text": "Invoice payment status must be computed as Unpaid, Overdue after the configured period, or Paid once payment is recorded."
+     },
+     {
+      "n": 72,
+      "text": "Listing invoices must show key fields, scoped to the user's own company for Buyers and all companies for staff."
+     },
+     {
+      "n": 73,
+      "text": "Staff must be able to list and view all invoices, filterable by customer and payment status."
+     },
+     {
+      "n": 74,
+      "text": "Authorized users must be able to download a PDF invoice containing full invoice details and distributor branding."
+     },
+     {
+      "n": 75,
+      "text": "Staff must be able to mark an Unpaid or Overdue invoice as Paid with a valid payment date, recording the date and staff user."
+     },
+     {
+      "n": 76,
+      "text": "Administrators must be able to add, edit and retire products with specified attributes, keeping retired products off the catalogue but visible on existing orders and invoices."
+     },
+     {
+      "n": 77,
+      "text": "Administrators must be able to create, rename and retire single-level categories and assign products to them, hiding retired categories from Buyers."
+     },
+     {
+      "n": 78,
+      "text": "Administrators must be able to upload a product image of allowed type and size, replacing the previous image."
+     },
+     {
+      "n": 79,
+      "text": "Administrators must be able to add and remove vehicle compatibility entries on products."
+     },
+     {
+      "n": 80,
+      "text": "Administrators must be able to create and edit customer companies with specified fields and active/inactive status."
+     },
+     {
+      "n": 81,
+      "text": "Office Staff must also be able to create and edit customer companies."
+     },
+     {
+      "n": 82,
+      "text": "Only staff and administrators may manage a company's delivery addresses, which must be fully visible to that company's Buyers."
+     },
+     {
+      "n": 83,
+      "text": "Administrators must be able to view and change system settings such as cutoff time, timezone, non-working dates, max delivery days, stock threshold, overdue days, tax rate, number prefixes, link validity periods, and invoice branding."
+     },
+     {
+      "n": 84,
+      "text": "The portal must record creator and last-changer identities and timestamps on key records and expose them to administrators."
+     },
+     {
+      "n": 85,
+      "text": "Staff must be able to request a sales report for a date range showing quantity and net sales per product and per customer, available on-screen and as CSV."
+     },
+     {
+      "n": 86,
+      "text": "Staff must be able to request a sales report filtered optionally by customer showing order counts and net totals per customer and product, available on-screen and as CSV."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

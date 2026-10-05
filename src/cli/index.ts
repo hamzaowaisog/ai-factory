@@ -23,7 +23,7 @@ import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../s
 import { describeReferences, gatherReferences, parseRefArg } from "../sources/refs.js";
 import { jiraFetcherFor } from "../sources/jira.js";
 import { parseEstimateSettings, type EstimateOptions } from "../estimate/settings.js";
-import { approvedDesign, approvedEstimate, designFitsProject, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
+import { approvedDesign, approvedEstimate, designFitsProject, estimateDesign, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
 import { greenfieldRefusal } from "../config/greenfield.js";
 import { DESIGN_EXPORT_HELP, designExportOption, exportSeededNow, registerDesignRunCommands, UI_TARGET_HELP, uiTargetOption } from "./design-runs.js";
 import type { RequestSource } from "../sources/request.js";
@@ -130,15 +130,22 @@ program.command("estimate")
   .option("--hands-off", "opt in to a hands-off run: nobody is asked, open questions become assumptions and the factory approves the estimate once its gates pass. A build cannot follow it: estimate again with a review to build")
   .option("--revises <run>", "a change request: the new requirements revise an approved estimate, and the card shows what changed")
   .option("--from-design <run>", "size an approved design-only run (factory design start): its spec, answers and approved design are reused, only the sizing is new")
+  .option("--resize <run>", "size an earlier estimate run again: its requirements, answers, spec, approved design and settings are reused (no clarify, no design), and only breakdown, sizing, approval and the workbooks run anew")
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .option("--fresh", "ask the model again even if the same requirements were estimated before (skips the stored answers)")
   .option("--design-export <formats>", DESIGN_EXPORT_HELP)
   .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory, then write two workbooks; a person answers the questions and approves it unless --hands-off")
-  .action(async (prompt: string | undefined, o: EstimateOptions & { handsOff?: boolean; project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; revises?: string; fromDesign?: string; fresh?: boolean; ref?: string[]; designExport?: string }) => {
+  .action(async (prompt: string | undefined, o: EstimateOptions & { handsOff?: boolean; project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; revises?: string; fromDesign?: string; resize?: string; fresh?: boolean; ref?: string[]; designExport?: string }) => {
     if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
     const designExport = designExportOption(o.designExport);
     let fromDesign: ApprovedDesign | undefined;
-    if (o.fromDesign) {
+    if (o.resize) {
+      if (o.fromDesign || o.revises) throw new Error("--resize starts a new estimate from an earlier one; it does not go with --from-design or --revises.");
+      if (prompt || o.file || o.jira || o.frames || o.ref?.length) throw new Error("--resize takes its requirements and design from the earlier run; drop the prompt, --file, --jira, --frames and --ref.");
+      fromDesign = estimateDesign(openRun(o.resize).runId);
+      if (o.project && o.project !== fromDesign.project) throw new Error(`${fromDesign.runId} was estimated for project ${fromDesign.project}, not ${o.project}.`);
+      o.project = fromDesign.project;
+    } else if (o.fromDesign) {
       if (o.revises) throw new Error("--from-design starts a new estimate; it does not go with --revises.");
       if (prompt || o.file || o.jira || o.frames) throw new Error("--from-design takes its requirements from the design run; drop the prompt, --file, --jira and --frames.");
       if (o.ref?.length) throw new Error("--from-design sizes the design approved in that run; drop --ref. To change the design, start a new design run with the references.");
@@ -154,8 +161,10 @@ program.command("estimate")
     if (o.handsOff && o.review) throw new Error("Use --review or --hands-off, not both.");
     o.review = o.handsOff ? false : o.review ?? project.estimate?.humanReview ?? true;
     let settings = parseEstimateSettings(o.project && !fromDesign?.settings.noRepo ? o : { ...o, repo: false });
+    // a resize is the same estimate sized again, so the earlier run's settings stand; only who reviews is asked anew
+    if (o.resize) settings = { ...fromDesign!.settings, humanReview: settings.humanReview };
     // the design run's product details stand unless given again
-    if (fromDesign) settings = { ...settings, ...Object.fromEntries(Object.entries({ client: fromDesign.settings.client, projectName: fromDesign.settings.projectName }).filter(([k, v]) => v && !(settings as Record<string, unknown>)[k])) };
+    else if (fromDesign) settings = { ...settings, ...Object.fromEntries(Object.entries({ client: fromDesign.settings.client, projectName: fromDesign.settings.projectName }).filter(([k, v]) => v && !(settings as Record<string, unknown>)[k])) };
     let lineage: { kind: "change"; approved: Approved } | undefined;
     let req: { text: string; sources: RequestSource[]; attachments: { name: string; bytes: Buffer }[] };
     if (fromDesign) {
@@ -171,7 +180,7 @@ program.command("estimate")
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}), ...(designExport ? { designExport } : {}),
     });
     if (fromDesign) await exportSeededNow(runId, designExport, log);
-    log(`estimate run ${runId} (requirements from ${fromDesign ? `design run ${fromDesign.runId}, with its approved design` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""}; solely agentic${settings.humanReview ? ", with human review" : ", hands-off"})`);
+    log(`estimate run ${runId} (requirements from ${o.resize ? `estimate run ${o.resize}, with its spec and approved design; only the sizing is new` : fromDesign ? `design run ${fromDesign.runId}, with its approved design` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""}; solely agentic${settings.humanReview ? ", with human review" : ", hands-off"})`);
     await runAndReport(runId);
   });
 

@@ -1,0 +1,284 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Newest first. Open an order to track it.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "ORD-10482",
+         "meta": "13 Mar 2026 · 6 items · £212.40",
+         "badge": "Placed"
+        },
+        {
+         "title": "ORD-10471",
+         "meta": "11 Mar 2026 · 2 items · £48.90",
+         "badge": "Packed"
+        },
+        {
+         "title": "ORD-10455",
+         "meta": "6 Mar 2026 · 12 items · £356.75",
+         "badge": "Dispatched"
+        },
+        {
+         "title": "ORD-10431",
+         "meta": "27 Feb 2026 · 3 items · £94.20",
+         "badge": "Delivered"
+        },
+        {
+         "title": "ORD-10418",
+         "meta": "24 Feb 2026 · 1 item · £18.60",
+         "badge": "Cancelled"
+        },
+        {
+         "title": "ORD-10402",
+         "meta": "19 Feb 2026 · 8 items · £141.36",
+         "badge": "Delivered"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Find parts",
+         "variant": "secondary",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Find parts",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "drawer",
+       "trigger": "ORD-10482",
+       "title": "Order ORD-10482",
+       "text": "Placed 13 Mar 2026, 09:42",
+       "blocks": [
+        {
+         "type": "timeline",
+         "items": [
+          {
+           "time": "13 Mar 09:42",
+           "title": "Placed",
+           "meta": "Current status",
+           "status": "now"
+          },
+          {
+           "time": "Due 14 Mar",
+           "title": "Packed",
+           "status": "next"
+          },
+          {
+           "time": "Due 14 Mar",
+           "title": "Dispatched",
+           "status": "next"
+          },
+          {
+           "time": "Due 15 Mar",
+           "title": "Delivered",
+           "status": "next"
+          }
+         ]
+        },
+        {
+         "type": "detail",
+         "title": "Lines and delivery",
+         "rows": [
+          {
+           "label": "Status",
+           "value": "Placed",
+           "badge": true
+          },
+          {
+           "label": "6204-2RS × 4",
+           "value": "Bearing · £6.85 ea"
+          },
+          {
+           "label": "SPA-1250 × 1",
+           "value": "V-belt · £24.50 ea"
+          },
+          {
+           "label": "LC1D18 × 1",
+           "value": "Contactor · £148.00 ea"
+          },
+          {
+           "label": "Delivery",
+           "value": "Next day · £12.50"
+          },
+          {
+           "label": "Address",
+           "value": "Unit 4, Mill Lane, Leeds LS11 5PQ"
+          },
+          {
+           "label": "Total",
+           "value": "£212.40"
+          }
+         ]
+        }
+       ],
+       "actions": [
+        {
+         "label": "Cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Close",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel ORD-10482?",
+       "text": "The order will be cancelled and not packed. If it has already been packed, it can't be cancelled.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "Order ORD-10482 cancelled",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Your orders show here.",
+      "error": "Couldn't load your orders. Try again.",
+      "success": "Order cancelled.",
+      "validation": "This order is already packed, so it can't be cancelled."
+     }
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Newest first. Open an order to track it.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "ORD-10482",
+         "meta": "13 Mar 2026 · 6 items · £212.40",
+         "badge": "Placed"
+        },
+        {
+         "title": "ORD-10479",
+         "meta": "12 Mar 2026 · 4 items · £63.80",
+         "badge": "Placed"
+        },
+        {
+         "title": "ORD-10471",
+         "meta": "11 Mar 2026 · 2 items · £48.90",
+         "badge": "Packed"
+        },
+        {
+         "title": "ORD-10463",
+         "meta": "9 Mar 2026 · 20 items · £97.00",
+         "badge": "Packed"
+        },
+        {
+         "title": "ORD-10455",
+         "meta": "6 Mar 2026 · 12 items · £356.75",
+         "badge": "Dispatched"
+        },
+        {
+         "title": "ORD-10447",
+         "meta": "3 Mar 2026 · 5 items · £1,284.10",
+         "badge": "Dispatched"
+        },
+        {
+         "title": "ORD-10431",
+         "meta": "27 Feb 2026 · 3 items · £94.20",
+         "badge": "Delivered"
+        },
+        {
+         "title": "ORD-10418",
+         "meta": "24 Feb 2026 · 1 item · £18.60",
+         "badge": "Cancelled"
+        },
+        {
+         "title": "ORD-10402",
+         "meta": "19 Feb 2026 · 8 items · £141.36",
+         "badge": "Delivered"
+        },
+        {
+         "title": "ORD-10389",
+         "meta": "12 Feb 2026 · 2 items · £412.00",
+         "badge": "Delivered"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Find parts",
+         "variant": "secondary",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Your orders show here.",
+      "error": "Couldn't load your orders. Try again.",
+      "success": "Order cancelled.",
+      "validation": "This order is already packed, so it can't be cancelled."
+     }
+    }
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

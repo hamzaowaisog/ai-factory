@@ -1,0 +1,521 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Your orders, newest first. Open one to see its lines, delivery and progress.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24817",
+         "14 Mar 2026",
+         "9",
+         "£397.92",
+         "Placed"
+        ],
+        [
+         "ORD-24790",
+         "11 Mar 2026",
+         "3",
+         "£86.25",
+         "Packed"
+        ],
+        [
+         "ORD-24752",
+         "6 Mar 2026",
+         "24",
+         "£1,138.40",
+         "Dispatched"
+        ],
+        [
+         "ORD-24698",
+         "27 Feb 2026",
+         "2",
+         "£54.90",
+         "Delivered"
+        ],
+        [
+         "ORD-24655",
+         "19 Feb 2026",
+         "12",
+         "£297.00",
+         "Cancelled"
+        ],
+        [
+         "ORD-24601",
+         "10 Feb 2026",
+         "6",
+         "£163.80",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 2,
+       "page": 1
+      },
+      {
+       "type": "detail",
+       "title": "ORD-24817",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Placed",
+         "badge": true
+        },
+        {
+         "label": "Placed",
+         "value": "14 Mar 2026, 09:42"
+        },
+        {
+         "label": "Items",
+         "value": "9"
+        },
+        {
+         "label": "Delivery option",
+         "value": "Next working day · £12.00"
+        },
+        {
+         "label": "Delivery address",
+         "value": "Unit 4, Brookside Trading Estate, Leeds LS11 5QT"
+        },
+        {
+         "label": "Total",
+         "value": "£397.92 incl. VAT"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Name",
+        "Qty",
+        "Unit price",
+        "Line total"
+       ],
+       "rows": [
+        [
+         "SKF-6205-2RS",
+         "Deep groove ball bearing 25 mm",
+         "4",
+         "£8.95",
+         "£35.80"
+        ],
+        [
+         "GATES-SPZ1250",
+         "V-belt SPZ 1250 mm",
+         "2",
+         "£14.40",
+         "£28.80"
+        ],
+        [
+         "FES-MS6-LFR",
+         "Filter regulator G1/4",
+         "1",
+         "£186.00",
+         "£186.00"
+        ],
+        [
+         "WIKA-213.53",
+         "Pressure gauge 0–10 bar",
+         "2",
+         "£34.50",
+         "£69.00"
+        ]
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "14 Mar, 09:42",
+         "title": "Placed — current status",
+         "meta": "Waiting for the warehouse to pick",
+         "status": "now"
+        },
+        {
+         "time": "Pending",
+         "title": "Packed",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Dispatched",
+         "status": "next"
+        },
+        {
+         "time": "Due 17 Mar",
+         "title": "Delivered",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "hint": "Only possible while the order is Placed"
+        },
+        {
+         "label": "Find parts",
+         "variant": "ghost",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Find parts",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel order ORD-24817?",
+       "text": "The order will be set to Cancelled and won't be picked or delivered. This can't be undone.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "Order ORD-24817 cancelled",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place will show here. Start by finding the parts you need on Find parts.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-24817 cancelled. Its status is now Cancelled.",
+      "validation": "This order has already moved past Placed, so it can no longer be cancelled."
+     }
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Your orders, newest first. Open one to see its lines, delivery and progress.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24931",
+         "16 Mar 2026",
+         "24",
+         "£625.62",
+         "Placed"
+        ],
+        [
+         "ORD-24917",
+         "16 Mar 2026",
+         "1",
+         "£18.30",
+         "Placed"
+        ],
+        [
+         "ORD-24884",
+         "15 Mar 2026",
+         "7",
+         "£244.10",
+         "Packed"
+        ],
+        [
+         "ORD-24817",
+         "14 Mar 2026",
+         "9",
+         "£397.92",
+         "Packed"
+        ],
+        [
+         "ORD-24790",
+         "11 Mar 2026",
+         "3",
+         "£86.25",
+         "Dispatched"
+        ],
+        [
+         "ORD-24752",
+         "6 Mar 2026",
+         "24",
+         "£1,138.40",
+         "Dispatched"
+        ],
+        [
+         "ORD-24733",
+         "4 Mar 2026",
+         "40",
+         "£512.00",
+         "Delivered"
+        ],
+        [
+         "ORD-24698",
+         "27 Feb 2026",
+         "2",
+         "£54.90",
+         "Delivered"
+        ],
+        [
+         "ORD-24655",
+         "19 Feb 2026",
+         "12",
+         "£297.00",
+         "Cancelled"
+        ],
+        [
+         "ORD-24601",
+         "10 Feb 2026",
+         "6",
+         "£163.80",
+         "Delivered"
+        ],
+        [
+         "ORD-24577",
+         "3 Feb 2026",
+         "15",
+         "£2,046.75",
+         "Delivered"
+        ],
+        [
+         "ORD-24512",
+         "22 Jan 2026",
+         "4",
+         "£71.40",
+         "Cancelled"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 3,
+       "page": 1
+      },
+      {
+       "type": "detail",
+       "title": "ORD-24931",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Placed",
+         "badge": true
+        },
+        {
+         "label": "Placed",
+         "value": "16 Mar 2026, 08:17"
+        },
+        {
+         "label": "Items",
+         "value": "24"
+        },
+        {
+         "label": "Delivery option",
+         "value": "Next working day · £12.00"
+        },
+        {
+         "label": "Delivery address",
+         "value": "Maintenance Stores, Gate 2, Riverside Works, Sheffield S9 2RX"
+        },
+        {
+         "label": "Subtotal",
+         "value": "£509.35"
+        },
+        {
+         "label": "VAT (20%)",
+         "value": "£104.27"
+        },
+        {
+         "label": "Total",
+         "value": "£625.62 incl. VAT"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Name",
+        "Qty",
+        "Unit price",
+        "Line total"
+       ],
+       "rows": [
+        [
+         "SKF-6205-2RS",
+         "Deep groove ball bearing 25 mm",
+         "8",
+         "£8.95",
+         "£71.60"
+        ],
+        [
+         "SKF-6305-2Z",
+         "Deep groove ball bearing 25×62 mm",
+         "4",
+         "£12.30",
+         "£49.20"
+        ],
+        [
+         "GATES-SPZ1250",
+         "V-belt SPZ 1250 mm",
+         "4",
+         "£14.40",
+         "£57.60"
+        ],
+        [
+         "FES-MS6-LFR",
+         "Filter regulator G1/4",
+         "1",
+         "£186.00",
+         "£186.00"
+        ],
+        [
+         "WIKA-213.53",
+         "Pressure gauge 0–10 bar",
+         "2",
+         "£34.50",
+         "£69.00"
+        ],
+        [
+         "LOC-243-50",
+         "Loctite 243 threadlocker 50 ml",
+         "3",
+         "£17.85",
+         "£53.55"
+        ],
+        [
+         "RS-M8X30-A2",
+         "Hex bolt M8×30 A2, box of 100",
+         "2",
+         "£11.20",
+         "£22.40"
+        ]
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "16 Mar, 08:16",
+         "title": "Order submitted",
+         "meta": "By you on the company account",
+         "status": "done"
+        },
+        {
+         "time": "16 Mar, 08:17",
+         "title": "Approved on company account",
+         "meta": "Within your £2,500 order limit",
+         "status": "done"
+        },
+        {
+         "time": "16 Mar, 08:17",
+         "title": "Placed — current status",
+         "meta": "Waiting for the warehouse to pick",
+         "status": "now"
+        },
+        {
+         "time": "Pending",
+         "title": "Packed",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Dispatched",
+         "status": "next"
+        },
+        {
+         "time": "Due 17 Mar",
+         "title": "Delivered",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "hint": "Only possible while the order is Placed"
+        },
+        {
+         "label": "Find parts",
+         "variant": "ghost",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place will show here. Start by finding the parts you need on Find parts.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-24931 cancelled. Its status is now Cancelled.",
+      "validation": "This order has already moved past Placed, so it can no longer be cancelled."
+     }
+    }
+   },
+   "ms": 3,
+   "resultChars": 155,
+   "isError": true,
+   "result": "The result doesn't match the schema: mockFull.blocks.2.rows.4.value: Too big: expected string to have <=60 characters. Fix it and call submit_result again."
+  }
+ ]
+}

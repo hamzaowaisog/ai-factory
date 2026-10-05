@@ -1,5 +1,5 @@
 // A small evaluator for the formulas the estimate workbook uses: cell and cross-sheet references,
-// SUM over ranges, ROUND, IF, + - * /, and = <> comparisons. Code needs it twice: to fill each formula's
+// SUM and SUBTOTAL(9) over ranges, ROUND, IF, + - * /, and = <> comparisons. Code needs it twice: to fill each formula's
 // cached result at export, and to re-check a finished workbook cell by cell (gate E6). Anything outside
 // this subset is an error, so a hand-edited formula the lint cannot read fails closed.
 export type CellValue = number | string | undefined;
@@ -94,6 +94,8 @@ export function evalFormula(formula: string, home: string, get: GetCell): number
       eat(")");
       if (t.v === "SUM") return Math.round(args.flat().reduce<number>((s, v) => s + num(v, "SUM item"), 0) * 100) / 100;
       if (t.v === "ROUND") { const d = num(args[1] ?? 0, "digits"); const f = 10 ** d; return Math.round(num(args[0]!, "ROUND value") * f) / f; }
+      // SUBTOTAL(9, range): the sum of the rows a filter shows; read here with every row shown
+      if (t.v === "SUBTOTAL") { if (num(args[0]!, "SUBTOTAL function") !== 9) throw new Error(`only SUBTOTAL(9, ...) is supported in ${formula}`); return Math.round(args.slice(1).flat().reduce<number>((s, v) => s + num(v, "SUBTOTAL item"), 0) * 100) / 100; }
       if (t.v === "IF") return (args[0] ? args[1] : args[2]) as Val;
       throw new Error(`unsupported function ${t.v} in ${formula}`);
     }

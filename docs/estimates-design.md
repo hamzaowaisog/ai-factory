@@ -9,12 +9,12 @@ The factory gets an **estimate mode**. From a client's refined requirements (a n
 | | Option 1: HITL (supervisor + agents) | Option 2: Solely agentic |
 |---|---|---|
 | Who works | Agents build; a human supervisor gates and reviews | Agents run the whole workflow with no supervisor gates |
-| Human hours | Clarify answers, approval card, lead review of every PR, parked runs, waivers, plus client-side work | Client-side work only: **client UAT, design approval, PM** (these stay in both models) |
+| Human hours | Clarify answers, approval card, lead review of every PR, parked runs, waivers, plus client-side work | Client-side work only: **client UAT, design approval, PM** (these stay in both models; PM is client liaison only, see "Agent hours and the human tasks") |
 | Factory running cost | Yes | Yes, higher share of the total |
 | Elapsed time | Includes the gate and review queue | Agent time plus client waits |
 
 Every estimate states three things:
-- **Effort (hours):** human time the model needs. It is never modelled per task confirmation.
+- **Effort (hours):** human time the model needs. It is never modelled per task confirmation. Beside it, every task shows the factory's own **agent hours** (see "Agent hours and the human tasks").
 - **Cost in API credits (dollars):** what the factory spends on planning, specify, design, build and verification, calibrated from measured runs (see "Cost in API credits").
 - **Elapsed time:** the critical path, with planning time shown separately.
 
@@ -59,7 +59,16 @@ A person answers the questions and approves the estimate by default; hands-off i
 | **approve-estimate** | New (same card mechanism) | By default the lead approves (terminal or the run page), tied to the estimate's hash. Hands-off (opt-in): the factory approves once the gates pass |
 | **export** | New | Deterministic code writes the two workbooks |
 
-The estimate does not start until the spec passes lint, critic, round trip and has no open questions (gate E1), and, for any request with UI, the mock and clickable demo are approved (gate E1b). If it doesn't, the run goes back to clarify. It does not produce a soft estimate.
+The estimate does not start until the spec passes lint, critic, round trip and has no open questions (gate E1), and, for any request with UI, the mock and clickable demo are approved (gate E1b). It does not produce a soft estimate.
+
+**Spec problems are settled by questions (built 2026-10-05).** What the specify step's repairs leave open in an estimate or design run (a critical or high critic finding, a capability the request did not ask for, a lint check that does not block) no longer stops the run at E1, after the design is paid for. The specify step turns those problems into clarify-style questions (`src/stages/settle.ts`, at most 8 a round, each with a recommended answer):
+
+- **Who answers:** with review on, a person answers a question card (`factory answer` or the run page) and the step goes on from it; hands-off, each recommended answer is taken as an assumption.
+- **Then:** the spec is fixed with the answers and checked again, for at most 2 rounds. What is still open after that is carried as an open risk.
+- **Found in the request:** a capability flagged as not asked for that the request does ask for is settled by the request's own words; code checks the quote is in the request.
+- **A fix that drops requested behaviour** is not kept: the spec stays and its problems are carried as open risks.
+- **Recorded:** the spec carries `settled` (each problem, how it was settled, the question and answer). E1 lets a settled problem through; the estimate's assumptions list each one ("Spec question Q-n: … (answered)", "(assumed by the factory, hands-off)", "Open risk: …"). A dropped span is never settled by the spec step: E1 asks about it instead (see "Gate questions" under Gates).
+- **Runs started earlier:** a run whose spec was written before this, at design or breakdown, records E1's verdict and goes back (`backToSettle`, the step outcome "back", not counted as a failure); the specify step then runs again from its stored spec, settles it, and the run goes on. A step that goes back twice with nothing completed in between parks instead of looping.
 
 ### Hands-off estimates (agreed and built 2026-10-03; opt-in since the PR #11 review)
 
@@ -111,17 +120,17 @@ The common case for a new project: functional requirements have been gathered (n
 1. **Intake** takes the raw requirements as untrusted text. Whether the request touches UI is the model's judgement or a rule, never the model alone: a request that names screens, a UI, a dashboard, a wireframe or Figma, or comes with attached frames, is UI whatever the model said (`ruleUi`, like `ruleRisk`).
 2. **Discover and ground are skipped**, because there is no repo.
 3. **Clarify** asks the lead what the material cannot answer.
-4. **Spec drafts, merge and specify** turn the answers into a spec, per module when it is large.
-5. **E1** checks the spec. Only then do breakdown and estimate start.
+4. **Spec drafts, merge and specify** turn the answers into a spec, per module when it is large. An estimate or design run writes one draft (so the merge makes no model call), repairs it at most once, and runs the critic at medium effort: no tests are written from its criteria (`specLane` in `src/stages/lane.ts`). The modules' spec chains run side by side, at most four at a time, each with its share of what is left of the cost limit (`nextBatch` in `src/stages/executor.ts`). A briefing answered in one turn is not written to the prompt cache: nothing reads it back, and the write costs 1.25x input (`cachesConversation` in `src/runners/api.ts`).
+5. **E1** checks the spec. Only then do breakdown and estimate start. What the repairs left open is settled by questions first (see "The pipeline").
 
 | Missing | How it is handled |
 |---|---|
 | Code | Every task is new build work. Size comes from counted units in the spec, not from touched files. |
 | Stack | The stack-source run setting applies: client-specified, Folio3 decides (proposed stack on the approval card), or undecided (default pack as a stated assumption, optional second scenario). |
-| Design | The design step produces the mock and clickable demo first; the estimate waits for their approval (E1b). Design-in-total stays a Summary switch. |
+| Design | The design step produces the mock and clickable demo first; the estimate waits for their approval (E1b). Design-in-total stays a Summary switch. Above 24 requirements the design is drawn in parts (`drawInParts` in `src/stages/design.ts`): one call lists the screens and chooses the look, checked before any page is paid for, then each page is drawn on its own, four at a time, with one more try for a page that fails its checks. A retry reads back the stored answer for the list and every page that passed, and pays only for the rest; an answer the checks reject is dropped from the store. One answer for the 2026-10-05 run's 136 requirements was cut off at the 64K output limit. A long answer logs its progress about every 45 s instead of the heartbeat's "no new activity". |
 | Tests | The factory builds them; there is no baseline to read. |
 
-If the gathered requirements are too thin, E1 fails and the run goes back to clarify. There is no soft or guessed estimate. Each question the lead cannot answer becomes a labelled assumption in the workbook, or a scenario when one big unknown decides the size.
+If the gathered requirements are too thin (a source span the spec drops, an open question), E1 fails and the run parks; problems a question can settle are settled in the specify step first. There is no soft or guessed estimate. Each question the lead cannot answer becomes a labelled assumption in the workbook, or a scenario when one big unknown decides the size.
 
 ## Design baseline
 
@@ -1021,6 +1030,20 @@ Every estimate says how many dollars of API credits the run will spend, broken d
   - spend is under-recorded for interrupted attempts (finding F7), so measured cost is a floor until that is fixed;
   - these are bug fixes only: nothing yet covers planning for a large feature, design, or a full build, so those phases stay **cold-start**.
 - **Until enough data exists:** the model starts from the first test run and other available runs, marks values as assumed, and tightens as the ledger grows.
+- **Eval runs feed it too (built 2026-10-06).** Estimate and design runs never build, so the ledger alone leaves build and verification cold-start. The paid eval runs published under `evidence/` (`evidence/runs/*/row.json` and each case's run in `evidence/evals/e2e/*.json`, read once per run id) add build and verification records (`loadEvalRecords` in `src/estimate/records.ts`). Their planning is a ticket's, not a requirements document's, so it is not used. A run the ledger home already has is not read twice.
+- **Each phase says what it is based on (built 2026-10-06).** Every phase stores `basis: { ledger, eval }`, the measured runs behind it; none of either means the cold-start figure. The Summary's API block has a "Based on" column ("measured: p10-p90 of N runs", or "assumed: no measured runs yet"); the team file's Confidence sheet also names the sources (ledger runs, eval runs). Estimates made before have no basis and show none.
+- **Per task (built 2026-10-06).** Every task also shows its own API cost, min and max: its share of the build and verification phases, by its sized hours (the midpoint, so a task's min never passes its max), in whole cents that add up to those phases exactly (`apiCostByTask` in `src/estimate/cost.ts`, stored as `apiUsd` on each sized task). Factory and joint tasks have a share, since the factory builds and verifies a joint task's code too (both count as build units from now on; before, only factory tasks did). A human task costs nothing. Planning, design, breakdown and estimate are spent once per run, so they stay per phase only. Where it shows: columns L and M ("API min ($)", "API max ($)") on every task sheet of both workbooks, with module rows adding them up (J and K hold the agent hours); a note under the Summary's API block; an "API cost" column on the run page's task table; the five costliest tasks on the approval card. Gate E6 checks that the tasks' shares add up to build and verification (`cost-tasks`). Estimates made before this have no `apiUsd` and show none.
+
+## Agent hours and the human tasks (built 2026-10-06)
+
+Hamza, on the d7a6 workbooks: the solely agentic estimate showed 17 of 23 tasks at 0 hours and looked empty, and asked why PM is there at all. What changed:
+
+- **Agent hours on every task.** Columns J and K ("Agent min (h)", "Agent max (h)") on every task sheet, in both files, beside the human hours in D and E (now headed "Human min (h)", "Human max (h)"). A factory task has agent hours and no human hours; a **joint task has both**; a human task (client UAT, design approval, PM) has human hours only. Every module, total and Grand Total row adds them up ("Agent total (h)" beside each sheet's Grand Total), and the Summary carries them in F and G ("Agent (in hours)") with their own Total. Human hours stay what the totals, weeks and cost overlay count.
+- **Where agent hours come from** (`agentHours` in `src/estimate/durations.ts`, the same rule as the critical path): a factory task takes its class's measured duration (p10-p90 of this factory's builds of that track and complexity) once the ledger has 3 or more; until then, its sized hours, a reference size and not a measurement (cold-start). A joint task takes its sized hours. The Summary and the Confidence sheet say which ("Agent hours basis"). Old estimates show agent hours on re-export, since they are read from the stored sizes.
+- **All Tasks sheet, both files.** Every task on one sheet (task id, task, track, module, executor, requirements, human, agent and API hours) with a filter on every column, the header frozen, and a "Total (rows shown)" row of `SUBTOTAL(9, …)`, so the totals follow the filter. The track sheets keep the template's layout; this sheet is for sorting and filtering. The client file still differs from the team file by the five team sheets and the estimators' reasons.
+- **PM is client liaison only.** In the solely agentic model the factory plans and coordinates its own work, so PM stays only for what a person must do with the client: calls, scope decisions, sign-offs. Catalogue `pm-management` is 4-8 h at typical (was 16-24 h), catalogue version 2026-10-06.1.
+- **Design approval is a task.** When the request has an approved design, the breakdown adds one human task on the design track for the client's review and approval (kind `design-approval`, 2-4 h at typical: a walkthrough and two feedback rounds), so the Design sheet is no longer empty. The breakdown rules name the three human tasks every delivery has: client UAT, PM, design approval.
+- **Gate E6** checks each task's agent hours against the estimate (`workbook-agent-hours`) and that both files carry the All Tasks sheet; the task-row count skips that sheet.
 
 ## Task duration: the internal harness
 
@@ -1060,18 +1083,37 @@ The harness reads these records and returns, per task class, a p10/p50/p90 range
 
 A gate is a pure check over ledger artifacts. It fails closed: a gate that could not check anything counts as failed. A person can waive only those marked waivable, in a terminal, and every waiver is recorded and shown on the next approval card.
 
+**Hands-off fallbacks (built 2026-10-06).** A hands-off estimate run has no person to waive a gate, so after the retry with the failures fed back (attempt 2 on), the factory decides by rule instead of opening a waiver card (`src/estimate/fallbacks.ts`):
+- E3: a citation of a requirement the spec does not have is dropped; a task that then cites none and names no overhead moves to **Suggested, not included**, and other tasks stop depending on it.
+- E4: an item left out with no reason is marked "not assessed by the factory (hands-off): confirm with the client"; an empty checklist lists every item so.
+- E1c: a task naming a screen the approved design does not have is sized with no screen.
+- E2, E2c and an approved screen no task builds (E1c): one small model call writes only the missing tasks and fixes only the listed kinds (new ids follow the last one); the rest of the breakdown stays as it was.
+- E5: each task an outlier or UI-order failure names is flagged, with the gate's reason as an open risk. Its range stays the estimators' median, because E6 recomputes it.
+- Every gate then runs again and is recorded. What still fails goes to the questions below instead of parking the run.
+- Each decision is a "Factory decision (hands-off, gate …)" or "Open risk: …" line in the estimate's assumptions, on the approval card and in the workbooks.
+- A run with review keeps the waiver card for a failure only E3, E4 or E5 raise, until a round of questions was asked.
+
+**Gate questions (built 2026-10-06).** In an estimate or a design run, a gate that still fails after the retry with the failures fed back no longer parks the run: it becomes clarify questions, so the pipeline does not stop (`src/stages/gate-questions.ts`, the executor's `askRound`).
+- **Which failures:** a breakdown gate (E2, E2c, E3, E4, E1c), E5, a design check (the plan, a page, the design note), E1 on the spec and E1b on the design. A step marks such a failure `gate: true`; E1 and E1b return the outcome `ask`, since retrying the same step cannot fix its input. A model output error, an exception, a rate limit, a safety stop and E6 keep the normal retry ladder and park as before. A build run never asks.
+- **The questions:** one small model call per round reads the failing checks, the spec's requirements, earlier answers and the request, and writes at most 6 questions. Each has 2-4 options, a recommended answer (the smallest change that does what the request asks) and the failures it settles.
+- **Like the clarify questions:** they are numbered Q-n after the run's clarify and spec questions. With review on, the card is a `question` card, answered in the same three places: the terminal prompt (Enter keeps the recommended option), the run page's questions panel, or `factory answer <run> <hash> Q-n=A`. Hands-off, each recommended answer is taken as an assumption and listed in the Estimate tab's "Assumed by the factory" panel.
+- **Then:** the step runs again, and every model call of the step reads the answers. An E1 or E1b failure that an answer settles passes. The step gets two more attempts per round, for at most 2 rounds.
+- **After 2 rounds:** what still fails is carried as an open risk and the run goes on. A breakdown task whose kind still does not fit loses its kind and is sized by anchors and ratios; a flagged E5 task reads as low confidence; a design screen that still fails its check is kept. Each carried failure is an "Open risk: … (gate … still fails after 2 rounds of questions …)" line on the estimate.
+- **Never carried:** a design with two screens sharing one id or route, a frame that does not exist, no design at all, or no approval. These park after the rounds. E6 and E7 stay hard stops.
+- **Recorded:** each round is a `step.failed` event with `action: "questions"` and the round's JSON (`roundSha`); the person's answers are the card's decision. The estimate's assumptions list each question ("Check question Q-n (step): … → … (answered by X)" or "(assumed by the factory, hands-off)") and each open risk. A questions round resets the step's attempt count, so the attempts cap does not trip between rounds.
+
 ### Estimate time
 
 | # | Gate | Checks | Waiver |
 |---|---|---|---|
-| E1 | Readiness | Spec passes lint, critic, round trip; no open questions | None |
+| E1 | Readiness | Spec passes lint, critic, round trip; no open questions. A lint failure, critic finding or invented capability settled by a question passes, and so does a failure a check question settles | None (questions, then carried as an open risk) |
 | E1b | Design baseline | For any request with UI, the mock and clickable demo are approved, and every screen links to a requirement | None |
 | E1c | Design coverage | Every task's screen is in the approved design, every approved screen is built by a task, no screen id or route twice | Lead |
-| E2 | Requirement → task | Every requirement has at least one task | None |
-| E3 | Task → requirement | Every task cites a requirement, or a named overhead with a reason. Anything else is an extra and goes to a separate **Suggested, not included** block, outside the totals until the lead adds it | Lead |
+| E2 | Requirement → task | Every requirement has at least one task | None (questions, then carried as an open risk) |
+| E3 | Task → requirement | Every task cites a requirement, or a named overhead with a reason. Anything else is an extra and goes to a separate **Suggested, not included** block, outside the totals until the lead adds it | Lead (hands-off: moved to Suggested by the factory) |
 | E2c | Task kind | Every task has a kind from the pinned task catalogue (`src/estimate/assets/catalogue.json`), on a track that kind lists. The gate reads the catalogue recorded in its inputs, so old runs still verify after the catalogue changes | None |
-| E4 | Forgotten-work checklist | Each generic item marked in, or out with a reason | Lead |
-| E5 | Consistency | Similar tasks within a stated tolerance; no unexplained outlier; a screen counted as complex in the approved demo not sized below a simple one | Lead |
+| E4 | Forgotten-work checklist | Each generic item marked in, or out with a reason | Lead (hands-off: "not assessed, confirm with the client") |
+| E5 | Consistency | Similar tasks within a stated tolerance; no unexplained outlier; a screen counted as complex in the approved demo not sized below a simple one | Lead (hands-off: flagged as an open risk) |
 | E6 | Workbook lint | Code recomputes every total and cross-sheet link; known template faults cannot appear | None |
 | — | Breakdown shape | Checked when the breakdown is read (the schema, so the model is asked again): unique task ids, known features, and `dependsOn` naming only real tasks, never itself and never in a loop (EST-2 → EST-3 → EST-2; `dependencyLoops` in `src/contracts/estimate.ts`). A build orders tasks by `dependsOn`, so a loop cannot be built | None |
 | E7 | Approval | A lead approves (the default), in a terminal or on the run page, and low-confidence lines need sign-off. Hands-off (opt-in, `--hands-off`): the factory approves once the gates pass, tied to the estimate's hash, with no sign-off; no build follows it | None |
@@ -1119,6 +1161,7 @@ Two files come from one data model, so they cannot disagree.
 | Requirements and traceability | Yes (extra sheet) | No |
 | Assumed parameters, gate and waiver log | Yes (extra sheets) | Parameters block on Summary only |
 | Cost overlay | Yes, if rates were given | No: hours only |
+| All Tasks (every task, filterable) | Yes | Yes |
 
 **All six sheets are mandatory:** Summary, Backend, Mobile, Web, QA, Design. A track that is out of scope keeps its sheet with "Not in scope: reason" and zero totals.
 
@@ -1128,10 +1171,13 @@ Two files come from one data model, so they cannot disagree.
 |---|---|
 | B | S.No |
 | C | Task |
-| D, E | Min, Max (hours) |
+| D, E | Human min, max (hours) |
 | F | Comments: what the task includes |
 | G | Executor: Factory / Joint / Human |
 | H | Requirement id(s) |
+| I | Task id |
+| J, K | Agent min, max (hours): the factory's own hours on the task (both files; see "Agent hours and the human tasks") |
+| L, M | API min, max ($): what the factory spends in API credits building and verifying the task (both files, estimates from 2026-10-06; see "Cost in API credits") |
 
 - Modules → tasks; module totals are `SUM` over the module's own rows.
 - **Other Development Activities:** bug fixing (parameter %), deployment (staging, production, app store), lead PR review, code fixing after review, documentation; memory leaks for mobile only.
@@ -1140,7 +1186,7 @@ Two files come from one data model, so they cannot disagree.
 
 ### Summary
 - **Header:** client, project, PM, date, version, mode.
-- **Task summary:** one row per track (Backend, Mobile, Web/Admin, QA, GD, PM, PDM, Design) with Min, Max, Avg, resources, and weeks as a formula (hours ÷ 40 ÷ resources).
+- **Task summary:** one row per track (Backend, Mobile, Web/Admin, QA, GD, PM, PDM, Design) with human Min, Max, agent Min, Max (F, G), Avg, resources, and weeks as a formula (human hours ÷ 40 ÷ resources).
 - **Total:** `SUM(track rows) + IF(include Design = "Yes", Design)`. The switch is a visible cell and the Design row always shows.
 - **Delivery model** shown in the header, and one estimate per model.
 - **Lines** for API credit cost (with a per-phase breakdown) and elapsed time (planning time shown apart).
@@ -1220,7 +1266,7 @@ A walk-through of the spec (no hours) tested the design:
 
 - Estimate after requirements are refined; no seed table; model-proposed anchors with the lead's single review at approval.
 - Three estimators for every band, merged by median (changed 2026-10-03; was one for XS and S, three for M and up, with disagreement widening the range).
-- **Solely agentic only (changed 2026-10-03).** Two delivery models were planned, HITL (supervisor + agents) and solely agentic, with the second sized on request as a child run. Estimates are now always solely agentic; HITL estimates made before stay readable. Client UAT, design approval and PM stay.
+- **Solely agentic only (changed 2026-10-03).** Two delivery models were planned, HITL (supervisor + agents) and solely agentic, with the second sized on request as a child run. Estimates are now always solely agentic; HITL estimates made before stay readable. Client UAT, design approval and PM stay (PM as client liaison only, 4-8 h, since 2026-10-06).
 - **API credit cost is a headline number**, calibrated from measured runs, not guessed.
 - **Durations come from an internal harness built on the ledger**; external benchmarks are optional, later, and only as a pinned offline prior. Until data exists, values are labelled cold-start.
 - **The mock and clickable demo are the estimation baseline; the estimate is blocked until they are approved (E1b).**
@@ -1260,7 +1306,7 @@ Built and tested, with a scripted model, through the real executor (`src/stages/
 |---|---|
 | Schemas, mode manifest, deterministic core, workbook export and lint | `src/contracts/estimate.ts`, `src/estimate/*` |
 | Gates E1-E7 (with E1b, E1c) and B1-B7 as `defineGate` predicates | `src/estimate/gates.ts`; E-gates run inside the estimate steps, B-gates in the build run's plan, implement, integrate and review steps (see "Build from an estimate") |
-| Model steps | `breakdown` and `estimate` in `src/stages/estimate.ts` |
+| Model steps | `breakdown` and `estimate` in `src/stages/estimate.ts`. Above 48 requirements the breakdown is written in parts (`breakdownInParts`), as the design is drawn: one call plans the features, the shared tasks (app shell, data model, services several features use, overheads) and the checklist, checked before any part is paid for; then each group of features (at most 24 requirements) gets its tasks written on its own, four at a time, with only its requirements and the screens it builds (each screen in the part holding most of its requirements). A part that fails its checks gets one more try with its own failures; a step retry pays only for the parts that failed. Code numbers the tasks EST-1 onwards and the gates run on the joined breakdown as before. The breakdown reads each screen's page, never its full-data variant or translations. |
 | Document intake, per-module specify | `.docx` and pre-exported Figma frames in `src/sources/`; `splitModules` and the per-module intake, clarify and spec steps in `src/stages/modular.ts`. Each module asks its own clarify questions, so a large document means one question card per module |
 | Stack-agnostic ground | `estimateGroundStep`: no repo means every span is new build work (no model call); a repo gets the normal grounding step plus `src/context/survey.ts` and, for UI work, the design inventory |
 | Design step and E1b | `design` step (UI requests only): the model proposes the screen inventory (flow, screens with route, states and size, the requirements each serves, a reason for each requirement with no screen); code checks the links both ways. `design-baseline` (E1b) then needs a person's approval of that inventory. It is an inventory of screens with themed sample content; a code-drawn clickable demo of it is what the lead approves (see "Design baseline"). E1c and B6 check the breakdown and the build plan against it |
@@ -1270,7 +1316,7 @@ Built and tested, with a scripted model, through the real executor (`src/stages/
 | QA sheet and notes blocks | The QA sheet uses the template's own shape: an Estimation Summary of eight items (Test Plan/Strategy, Test Environments, Validation and Smoke test cases, Validation testing, Smoke testing, Multi Browser Compatibility, UAT, Misc. Optional), then the validation detail by testing cycle with each feature a numbered module. Code places each QA task by plain words in its title (`qaPlace`); a feature test with requirements is validation cycle 1, a regression pass is cycle 2, anything else with no requirement is Misc. No hours are invented: cycle 2 and later exist only when the breakdown has tasks for them (the template's "half of cycle 1" formula is not applied). Every track sheet with work ends with the template's Assumptions & Constraints and Risks blocks. The Summary's special considerations (platforms, browsers, deployment, performance, security, documentation) come from the client's clarify answers: a question whose text names the topic gives the row its answer and its id; a topic nobody asked about reads "Not specified" |
 | Export | `export` step writes both workbooks to `<ledger>/export/` and lints each file cell by cell |
 | CLI | `factory estimate` with `--file` (Markdown, text or .docx), `--frames`, `--jira`, `--review` / `--hands-off`, `--stack-source`, `--no-design-in-total`, `--feedback-rounds`, `--rate track=usd`, `--no-repo`, `--client`, `--project-name`, `--pm`, `--max-cost` |
-| Benchmark records | `src/estimate/records.ts` reads every other run in the ledger home; a phase with records replaces its cold-start figure |
+| Benchmark records | `src/estimate/records.ts` reads every other run in the ledger home, and the paid eval runs under `evidence/` for build and verification; a phase with records replaces its cold-start figure and says what it is based on |
 | Task-class durations and external prior | `src/estimate/durations.ts` records each approved estimate task a build delivered (class = track/complexity, active minutes, turns, cost). A class with 3 or more completed records gives its factory tasks a measured p10-p90 duration for the critical path; others keep the sized hours as an assumed duration. `elapsed.basis` says which, and the approval card lists it. `src/estimate/priors.ts` reads a pinned copy of the OpenHands rounds band (`assets/priors.json`, source and revision recorded) and flags a class whose median turns fall outside p10-p90; it never changes a number. `npm run bench` (calibrate, gates, compare, external, evidence) and `npm run test:bench` run the benchmarks; the gate cases use the real E1-E7 and B1-B6 predicates |
 | Cost overlay | Team file's Cost sheet when `--rate` is given; the client file never has it |
 | Edit on the card | `factory edit-estimate <run> <hash> --anchor EST-1=6-12 --ratio EST-4=2 --reason "..."`: the stored proposals are edited, the estimate is assembled again by the same code (no new model call), and a new card follows. The edit is listed in the estimate's assumptions |
@@ -1296,6 +1342,6 @@ Not done:
 
 ## In the web UI
 
-`factory ui` can start an estimate run (New run, then Estimate) with the same settings as `factory estimate`, and an estimate run gets an Estimate tab: totals and band, API cost, elapsed time, per-task hours with anchors, the approved screens, and team/client workbook downloads once exported. The lead can approve or reject the estimate there too (typed name, card hash, sign-off for low-confidence tasks; recorded as "via web"). An estimate run's clarification questions are answered there too. Every other decision stays terminal-only (since the PR #11 review): the design card (E1b), a build or design run's questions, plan approvals, waivers and fidelity baselines; the page shows the command. The form can attach design frames (png/jpg/webp, size-capped and stored beside the run); a "Design references" section for every mode (files, URLs and Figma links with a role each, a References panel on the Design tab, references on the design card) is built. The Design tab also has the Export panel and a Code panel (the scaffold a build writes for the approved design, with Generate and a zip), and the New run form a UI target select for builds. Every page fits a phone (375 px) with no sideways scroll: below 760 px the top bar puts its links on a second row and drops the host label, the run and request tabs scroll in place, and the closed step drawer is clipped (checked by a Chromium test in `ui.test.ts`). The clickable demo page draws each screen as a themed page with its states and a Full data tab; a screen with no sample content gets a wireframe drawn by rule from the requirement wording (no model). Per-track rates and docx upload are terminal-only.
+`factory ui` can start an estimate run (New run, then Estimate) with the same settings as `factory estimate`, and an estimate run gets an Estimate tab: totals and band, API cost, elapsed time, per-task hours with anchors, the approved screens, and team/client workbook downloads once exported. The lead can approve or reject the estimate there too (typed name, card hash, sign-off for low-confidence tasks; recorded as "via web"). An estimate run's clarification questions are answered there too. A parked run of any mode has a Resume run button, which is `factory resume` and decides nothing (a paused run is resumed in the terminal, like pausing it). Every other decision stays terminal-only (since the PR #11 review): the design card (E1b), a build or design run's questions, plan approvals, waivers and fidelity baselines; the page shows the command. The form can attach design frames (png/jpg/webp, size-capped and stored beside the run); a "Design references" section for every mode (files, URLs and Figma links with a role each, a References panel on the Design tab, references on the design card) is built. The Design tab also has the Export panel and a Code panel (the scaffold a build writes for the approved design, with Generate and a zip), and the New run form a UI target select for builds. Every page fits a phone (375 px) with no sideways scroll: below 760 px the top bar puts its links on a second row and drops the host label, the run and request tabs scroll in place, and the closed step drawer is clipped (checked by a Chromium test in `ui.test.ts`). The clickable demo page draws each screen as a themed page with its states and a Full data tab; a screen with no sample content gets a wireframe drawn by rule from the requirement wording (no model). Per-track rates and docx upload are terminal-only.
 
 An estimate can also start with no project (requirements alone, no repo). The Brownfield form has an optional Estimate picker listing approved, exported estimates: choosing one builds it (the same as `factory start --from-estimate`), taking its request, spec and tasks, and the request box is hidden. With none chosen it is a plain change request with no estimate gates.

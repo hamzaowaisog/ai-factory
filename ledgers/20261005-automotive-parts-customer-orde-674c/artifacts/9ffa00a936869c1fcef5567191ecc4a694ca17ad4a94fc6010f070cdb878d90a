@@ -1,0 +1,177 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "scope",
+      "text": "Invoices only exist once an order is Delivered. Should the customer's invoice list show every invoice their company has, with no extra filtering by order status, or should invoices also appear (for example as 'pending') on orders that are not yet Delivered?",
+      "options": [
+       "Invoice list shows every existing invoice for the company; orders that are not yet Delivered simply have no invoice",
+       "Orders that are not yet Delivered show a 'pending invoice' placeholder",
+       "Invoices are reached only from Delivered order details, with no separate invoice list"
+      ],
+      "recommended": "Invoice list shows every existing invoice for the company; orders that are not yet Delivered simply have no invoice",
+      "reason": "Matches the rule that invoices are created at Delivered and needs no extra states.",
+      "spans": [
+       "I-5",
+       "I-16"
+      ],
+      "impact": 2,
+      "impactReason": "Decides which invoice screens customers see and when.",
+      "difference": "D-1.1"
+     },
+     {
+      "id": "Q-7",
+      "category": "roles",
+      "text": "Buyers see all of their company's orders (answer Q-2). Can a Buyer also cancel or repeat a Received order that a colleague placed, or that staff created for the company?",
+      "options": [
+       "Any Buyer of the company may cancel or repeat any company order that is eligible",
+       "Only the Buyer who placed the order may cancel it; any Buyer may repeat it",
+       "Buyers may only view colleagues' orders, not cancel or repeat them"
+      ],
+      "recommended": "Any Buyer of the company may cancel or repeat any company order that is eligible",
+      "reason": "Follows the company-wide visibility already agreed, with no per-user ownership checks.",
+      "spans": [
+       "I-15"
+      ],
+      "impact": 3,
+      "impactReason": "Controls who can change order state."
+     },
+     {
+      "id": "Q-8",
+      "category": "external",
+      "text": "Who receives the order emails (confirmation, quantity change, out for delivery, rejection or cancellation), including for orders staff create on a customer's behalf?",
+      "options": [
+       "The Buyer who placed the order; for orders staff create, the company's contact email",
+       "All active Buyers of the company",
+       "The Buyer who placed the order; for orders staff create, a Buyer that staff choose when creating the order"
+      ],
+      "recommended": "The Buyer who placed the order; for orders staff create, the company's contact email",
+      "reason": "Uses fields that already exist and needs no extra selection step.",
+      "spans": [
+       "I-13",
+       "I-14"
+      ],
+      "impact": 2,
+      "impactReason": "Decides who gets notified about each order."
+     },
+     {
+      "id": "Q-9",
+      "category": "errors",
+      "text": "When staff cancel an order that is already Confirmed, Picking or Out for delivery (answer Q-3), does it work like a rejection, with a reason recorded and the customer emailed?",
+      "options": [
+       "Same as rejection: reason required, who and when recorded, customer emailed",
+       "Reason and who/when recorded, but no customer email",
+       "Only the status change and who/when are recorded"
+      ],
+      "recommended": "Same as rejection: reason required, who and when recorded, customer emailed",
+      "reason": "Reuses the rejection behaviour that is already specified.",
+      "spans": [
+       "I-14"
+      ],
+      "impact": 2,
+      "impactReason": "Changes what the customer is told and what is recorded."
+     },
+     {
+      "id": "Q-10",
+      "category": "scope",
+      "text": "When staff change the delivery date before confirmation (answer Q-4), is the 14:00 cutoff worked out from the original order time or from the time of the edit? And is the customer told about date or address changes?",
+      "options": [
+       "Cutoff is worked out from the time of the edit; customer is emailed about date or address changes",
+       "Cutoff is worked out from the original order time; customer is emailed",
+       "Cutoff is worked out from the time of the edit; only quantity changes trigger an email"
+      ],
+      "recommended": "Cutoff is worked out from the time of the edit; only quantity changes trigger an email",
+      "reason": "Never offers a date that is already impossible, and keeps the email rule as written.",
+      "spans": [
+       "I-13",
+       "I-14"
+      ],
+      "impact": 2,
+      "impactReason": "Affects which delivery dates are valid and what notifications go out."
+     },
+     {
+      "id": "Q-11",
+      "category": "existing-data",
+      "text": "For an inactive customer company (answer Q-5), can staff still move its open orders forward, create new orders for it, and have invoices created when its orders are delivered?",
+      "options": [
+       "Open orders continue as normal and invoices are still created; staff cannot create new orders for the company",
+       "Open orders continue and staff may still create new orders",
+       "Open orders are frozen until the company is reactivated"
+      ],
+      "recommended": "Open orders continue as normal and invoices are still created; staff cannot create new orders for the company",
+      "reason": "Stays consistent with 'cannot order' while not leaving existing work stranded.",
+      "spans": [
+       "I-14",
+       "I-16",
+       "I-17"
+      ],
+      "impact": 3,
+      "impactReason": "Controls order writes and whether invoices are created."
+     },
+     {
+      "id": "Q-12",
+      "category": "roles",
+      "text": "With no Customer Account Manager in the first release (answer Q-1), can Buyers add or edit their company's delivery addresses, or do only staff/admins manage them?",
+      "options": [
+       "Only staff/admins manage addresses; Buyers choose from existing ones",
+       "Buyers can add and edit their company's addresses"
+      ],
+      "recommended": "Only staff/admins manage addresses; Buyers choose from existing ones",
+      "reason": "Smallest scope. The 'manage addresses if permitted' ability belonged to the role that was dropped.",
+      "spans": [
+       "I-9",
+       "I-17"
+      ],
+      "impact": 3,
+      "impactReason": "Decides who can write customer address data."
+     },
+     {
+      "id": "Q-13",
+      "category": "identifiers",
+      "text": "Should the 14:00 order cutoff, the non-working days and the system timezone be settings an admin can change, or fixed in code?",
+      "options": [
+       "Admin-configurable system settings",
+       "Fixed constants in code"
+      ],
+      "recommended": "Admin-configurable system settings",
+      "reason": "The request already says non-working days are configured and that admins configure system settings.",
+      "spans": [
+       "I-13",
+       "I-17"
+      ],
+      "impact": 2,
+      "impactReason": "Changes which delivery dates are offered."
+     },
+     {
+      "id": "Q-14",
+      "category": "identifiers",
+      "text": "Should the lockout rule (5 failed attempts, 15-minute lock) be configurable or fixed?",
+      "options": [
+       "Fixed constants in code",
+       "Admin-configurable system settings"
+      ],
+      "recommended": "Fixed constants in code",
+      "reason": "The request gives exact values and does not ask for them to be changeable.",
+      "spans": [
+       "I-9"
+      ],
+      "impact": 1,
+      "impactReason": "Only affects whether the values can be changed later."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

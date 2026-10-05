@@ -32,7 +32,8 @@ function originOf(state: RunState): string | undefined {
 
 /**
  * Write the package of a run's approved design, or say why there is none. A run seeded from another run's
- * design gets that run's package. A change request continues the line of the design it changes.
+ * design gets that run's package. A change request continues the line of the design it changes; a design approved
+ * again in its own run is the next version of that run's line (a package never changes).
  */
 export async function exportRunPackage(state: RunState, ledger: Ledger, log: Log = () => {}): Promise<DesignPackage | { none: string }> {
   const origin = originOf(state);
@@ -58,6 +59,14 @@ export async function exportRunPackage(state: RunState, ledger: Ledger, log: Log
     line = before?.manifest.line ?? p.runId;
     previous = { version: before?.manifest.version ?? 1, designSha: p.designSha, runId: before?.manifest.run.id ?? p.runId };
     changes = diffDesigns(ledger.hasArtifact(p.designSha) ? ledger.getJson(p.designSha) : undefined, design as never);
+  }
+  if (!previous) {
+    // a design approved again in its own run (redrawn after the run went back to its spec): the next version of the run's line
+    const last = listPackages(project).filter((x) => x.manifest.line === line).sort((a, b) => b.manifest.version - a.manifest.version)[0];
+    if (last) {
+      previous = { version: last.manifest.version, designSha: last.manifest.designSha, runId: last.manifest.run.id };
+      changes = diffDesigns(ledger.hasArtifact(last.manifest.designSha) ? ledger.getJson(last.manifest.designSha) : undefined, design as never);
+    }
   }
   const version = previous ? Math.max(nextVersion(project, line), previous.version + 1) : 1;
   const e = state.info.estimate;

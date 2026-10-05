@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { resolveAnswer, scoreQuestions, selectQuestions, verifyDifferences, type ClarifierQuestion, type Sketch } from "./clarify.js";
+import { keptSketches, resolveAnswer, scoreQuestions, selectQuestions, verifyDifferences, type ClarifierQuestion, type Sketch } from "./clarify.js";
 import { Defaults, loadDefaults, topicsText } from "../estimate/defaults.js";
-import { checkMerge, criticBlocks, criticTemplate, lostCoverage, problems, roundTripCheck, sameProblems } from "./specpipe.js";
+import { applyRepair, checkMerge, criticBlocks, criticTemplate, lostCoverage, problems, roundTripCheck, sameProblems } from "./specpipe.js";
 import { lintSpec, mentions, requestExcluded, sizeNote } from "./speclint.js";
 
 const sketch = (texts: string[]): Sketch => ({ spans: [{ id: "I-1", behaviours: texts.map((t) => ({ text: t, kind: "happy" as const })) }] });
@@ -11,6 +11,17 @@ const q = (over: Partial<ClarifierQuestion>): ClarifierQuestion => ({
 const cb = { claims: [{ id: "C-1", text: "", spans: ["I-1"], anchors: [{ path: "a", lineStart: 1, lineEnd: 1, quote: "x" }] }], notFound: [{ span: "I-2", searched: ["x"] }] };
 
 describe("clarify rules", () => {
+  it("a retry keeps the readings the last failed attempt got back, for the same inputs only", () => {
+    const events = [
+      { type: "step.failed", data: { sketchKey: "k", sketchShas: [null, "b", null] } },
+      { type: "step.failed", data: { sketchKey: "other", sketchShas: ["x", "y", "z"] } },
+      { type: "step.failed", data: { sketchKey: "k", sketchShas: ["a", "b", null] } },
+      { type: "step.failed", data: { signature: "park" } },
+    ];
+    expect(keptSketches(events, "k")).toEqual(["a", "b", null]);
+    expect(keptSketches(events, "new")).toEqual([]);
+  });
+
   it("keeps only differences that cite real behaviours in two sketches", () => {
     const sk = [sketch(["x"]), sketch(["y"]), sketch(["x"])];
     const good = { id: "D-1", span: "I-1", topic: "", readings: [{ sketch: 1, behaviour: 0, summary: "" }, { sketch: 2, behaviour: 0, summary: "" }] };
@@ -154,6 +165,30 @@ describe("only people put scope out of scope", () => {
       critic: { findings: [] }, cb: { claims: [], notFound: [] }, risk: "low", clar: { answers: [], assumptions: [], conflicts: [] }, open: [], size: note,
     });
     expect(card).toContain(`**${note}**`);
+  });
+
+  it("a repair is told every lint failure and how to pass, while a card shows the first few", () => {
+    const vague = (n: number) => ({ ...req(`REQ-${n}`), acceptance: [{ id: `AC-${n}.1`, given: "g", when: "w", then: "Sign-in succeeds", level: "api" as const }] });
+    const lint = lintSpec(spec(["x"], Array.from({ length: 12 }, (_, n) => vague(n + 1))), { spans: ["I-1"], changeClass: "feature", anchorOk: () => true });
+    const l11 = lint.find((l) => l.check === "L11 observable")!;
+    expect(l11.fails).toHaveLength(12);
+    expect(l11.details).toContain("AC-8.1");
+    expect(l11.details).not.toContain("AC-9.1");
+    expect(l11.details).toContain("(+4 more)");
+    const [told] = problems({ lint: [l11], critic: [], roundTrip: { droppedSpans: [], inventedCapabilities: [] } });
+    expect(told).toContain("AC-12.1's Then");
+    expect(told).toContain("using at least one of these words");
+  });
+
+  it("a repair's changes are applied to the spec it repaired; the rest stays as it was", () => {
+    const before = { ...spec(["later"], [req("REQ-1"), req("REQ-2"), req("REQ-3")]), nfrs: [{ id: "NFR-1", text: "t", metric: "1 s" }] };
+    const after = applyRepair(before, { requirements: [{ ...req("REQ-2"), ears: "The system shall changed." }, req("REQ-4")], removed: ["REQ-3", "NFR-1"] });
+    expect(after.requirements.map((r) => r.id)).toEqual(["REQ-1", "REQ-2", "REQ-4"]);
+    expect(after.requirements[0]).toBe(before.requirements[0]);
+    expect(after.requirements[1]!.ears).toBe("The system shall changed.");
+    expect(after.nfrs).toEqual([]);
+    expect(after.outOfScope).toEqual(["later"]);
+    expect(applyRepair(before, { requirements: [], outOfScope: [] }).outOfScope).toEqual([]);
   });
 
   it("a repair that drops a covered span is caught; identical problems stop repairs", () => {

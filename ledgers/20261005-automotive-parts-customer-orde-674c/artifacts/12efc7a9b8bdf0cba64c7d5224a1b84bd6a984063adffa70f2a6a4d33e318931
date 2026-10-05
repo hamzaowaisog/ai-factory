@@ -1,0 +1,325 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Invoices",
+     "subtitle": "All customer invoices · overdue after 30 days unpaid",
+     "crumbs": [
+      "Customers & billing",
+      "Invoices"
+     ],
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Invoice or order number",
+       "selects": [
+        {
+         "label": "Customer",
+         "options": [
+          "All customers",
+          "Hartley Motors",
+          "Brook Lane Garage",
+          "Kestrel Auto Repairs",
+          "Northgate Tyre & Service",
+          "Millbrook Commercials",
+          "Ashworth & Sons Garage"
+         ],
+         "value": "All customers"
+        },
+        {
+         "label": "Payment status",
+         "options": [
+          "All statuses",
+          "Unpaid",
+          "Overdue",
+          "Paid"
+         ],
+         "value": "All statuses"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Invoice",
+        "Order",
+        "Customer",
+        "Invoice date",
+        "Gross total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "INV-26-04182",
+         "ORD-31907",
+         "Hartley Motors",
+         "19 Mar 2026",
+         "£1,284.60",
+         "Unpaid"
+        ],
+        [
+         "INV-26-04177",
+         "ORD-31894",
+         "Brook Lane Garage",
+         "18 Mar 2026",
+         "£312.48",
+         "Paid"
+        ],
+        [
+         "INV-26-04151",
+         "ORD-31852",
+         "Kestrel Auto Repairs",
+         "12 Mar 2026",
+         "£2,946.00",
+         "Unpaid"
+        ],
+        [
+         "INV-26-04098",
+         "ORD-31760",
+         "Northgate Tyre & Service",
+         "3 Mar 2026",
+         "£86.94",
+         "Paid"
+        ],
+        [
+         "INV-26-03912",
+         "ORD-31488",
+         "Millbrook Commercials",
+         "11 Feb 2026",
+         "£4,517.22",
+         "Overdue"
+        ],
+        [
+         "INV-26-03874",
+         "ORD-31431",
+         "Ashworth & Sons Garage",
+         "6 Feb 2026",
+         "£658.30",
+         "Overdue"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 3,
+       "sortDir": "desc",
+       "pages": 14,
+       "page": 1
+      }
+     ],
+     "links": [
+      {
+       "from": "INV-26-04182",
+       "to": "S-24"
+      },
+      {
+       "from": "INV-26-04177",
+       "to": "S-24"
+      },
+      {
+       "from": "INV-26-04151",
+       "to": "S-24"
+      },
+      {
+       "from": "INV-26-04098",
+       "to": "S-24"
+      },
+      {
+       "from": "INV-26-03912",
+       "to": "S-24"
+      },
+      {
+       "from": "INV-26-03874",
+       "to": "S-24"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No invoices match these filters",
+      "emptyHint": "Change the customer or payment status, or clear the search to see all invoices."
+     }
+    },
+    "mockFull": {
+     "title": "Invoices",
+     "subtitle": "All customer invoices · overdue after 30 days unpaid",
+     "crumbs": [
+      "Customers & billing",
+      "Invoices"
+     ],
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Invoice or order number",
+       "selects": [
+        {
+         "label": "Customer",
+         "options": [
+          "All customers",
+          "Hartley Motors",
+          "Brook Lane Garage",
+          "Kestrel Auto Repairs",
+          "Northgate Tyre & Service",
+          "Millbrook Commercials",
+          "Riverside MOT Centre",
+          "Penfold Fleet Services"
+         ],
+         "value": "All customers"
+        },
+        {
+         "label": "Payment status",
+         "options": [
+          "All statuses",
+          "Unpaid",
+          "Overdue",
+          "Paid"
+         ],
+         "value": "All statuses"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Invoice",
+        "Order",
+        "Customer",
+        "Invoice date",
+        "Gross total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "INV-26-04182",
+         "ORD-31907",
+         "Hartley Motors",
+         "19 Mar 2026",
+         "£1,284.60",
+         "Unpaid"
+        ],
+        [
+         "INV-26-04179",
+         "ORD-31899",
+         "Riverside MOT Centre",
+         "18 Mar 2026",
+         "£47.88",
+         "Unpaid"
+        ],
+        [
+         "INV-26-04177",
+         "ORD-31894",
+         "Brook Lane Garage",
+         "18 Mar 2026",
+         "£312.48",
+         "Paid"
+        ],
+        [
+         "INV-26-04163",
+         "ORD-31871",
+         "Penfold Fleet Services",
+         "16 Mar 2026",
+         "£7,812.40",
+         "Unpaid"
+        ],
+        [
+         "INV-26-04151",
+         "ORD-31852",
+         "Kestrel Auto Repairs",
+         "12 Mar 2026",
+         "£2,946.00",
+         "Unpaid"
+        ],
+        [
+         "INV-26-04098",
+         "ORD-31760",
+         "Northgate Tyre & Service",
+         "3 Mar 2026",
+         "£86.94",
+         "Paid"
+        ],
+        [
+         "INV-26-04071",
+         "ORD-31722",
+         "Hartley Motors",
+         "27 Feb 2026",
+         "£539.16",
+         "Paid"
+        ],
+        [
+         "INV-26-04015",
+         "ORD-31640",
+         "Brook Lane Garage",
+         "20 Feb 2026",
+         "£1,108.74",
+         "Unpaid"
+        ],
+        [
+         "INV-26-03912",
+         "ORD-31488",
+         "Millbrook Commercials",
+         "11 Feb 2026",
+         "£4,517.22",
+         "Overdue"
+        ],
+        [
+         "INV-26-03874",
+         "ORD-31431",
+         "Ashworth & Sons Garage",
+         "6 Feb 2026",
+         "£658.30",
+         "Overdue"
+        ],
+        [
+         "INV-26-03841",
+         "ORD-31390",
+         "Kestrel Auto Repairs",
+         "2 Feb 2026",
+         "£219.90",
+         "Paid"
+        ],
+        [
+         "INV-26-03796",
+         "ORD-31322",
+         "Riverside MOT Centre",
+         "27 Jan 2026",
+         "£1,962.05",
+         "Overdue"
+        ],
+        [
+         "INV-26-03752",
+         "ORD-31267",
+         "Penfold Fleet Services",
+         "21 Jan 2026",
+         "£3,340.00",
+         "Paid"
+        ],
+        [
+         "INV-26-03718",
+         "ORD-31215",
+         "Northgate Tyre & Service",
+         "16 Jan 2026",
+         "£128.52",
+         "Overdue"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 3,
+       "sortDir": "desc",
+       "pages": 14,
+       "page": 1
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No invoices match these filters",
+      "emptyHint": "Change the customer or payment status, or clear the search to see all invoices."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

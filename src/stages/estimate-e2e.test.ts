@@ -1,6 +1,6 @@
 // End to end: an estimate from requirements alone, through the real executor, with a scripted model.
 // One question card, then the lead's approval card, then two workbooks on disk.
-import { draftFile, estimateView } from "../ui/data.js";
+import { draftFile, estimateView, runView } from "../ui/data.js";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -14,7 +14,7 @@ import { _resetEnvCache } from "../config/env.js";
 import { verifyEvidence } from "../gates/engine.js";
 import { loadWorkbook } from "../estimate/workbook-lint.js";
 import { decide } from "../ledger/human.js";
-import { Ledger } from "../ledger/ledger.js";
+import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { createRun, execute } from "./executor.js";
@@ -56,6 +56,14 @@ let prompts: string[] = [];
 /** tool names each spec drafter got, and the critic's instructions */
 let drafterTools: string[][] = [];
 let criticSystems: string[] = [];
+/** effort each critic call ran at; merge calls made */
+let criticEfforts: (string | undefined)[] = [];
+let mergeCalls = 0;
+/** intake says medium risk and full rigor (no light lane); the critic raises a new high finding on every call */
+let fullRigor = false;
+let criticCalls = 0;
+/** the spec questions each settle round asked about: the problems, as the question writer saw them */
+let settleProblems: string[][] = [];
 /** a large document: two modules, each with its own intake span, no questions, four requirements in all */
 let modular = false;
 let intakeCalls = 0;
@@ -70,6 +78,10 @@ const UI_DESIGN = {
   noScreen: [],
 };
 let uiDesign: unknown = UI_DESIGN;
+/** the breakdown never delivers REQ-2 and the patch adds nothing: gate E2 fails until the questions run out and it is carried */
+let dropReq2 = false;
+/** the failures each round of check questions was about */
+let gateAsks: string[] = [];
 const withScreens = (b: typeof breakdown) => ({ ...b, tasks: b.tasks.map((t) => (t.id === "EST-1" ? { ...t, track: "web", kind: "ui-form", screen: "S-1" } : t.id === "EST-2" ? { ...t, track: "web", kind: "ui-detail", screen: "S-2" } : t)) });
 const MODULE_SPANS = ["ALPHA sign in flow", "BETA report export flow"];
 const bigBreakdown = () => ({
@@ -84,8 +96,19 @@ const bigSizing = () => ({
   anchors: sizing.anchors, stack: sizing.stack,
   tasks: [1, 2, 3, 4, 5].map((n) => ({ taskId: `EST-${n}`, anchorId: "EST-1", ratio: n === 1 ? 1 : 1.25, reason: n === 1 ? "the anchor" : "a little more than the anchor", size: "typical", verify: "moderate", context: "complete" })),
 });
-function answerFor(system: string): unknown {
+function answerFor(system: string, user = ""): unknown {
   prompts.push(system.slice(0, 60));
+  if (system.includes("The spec below was checked and these problems are still open")) {
+    settleProblems.push([...user.matchAll(/"problem":\s*"([^"]+)"/g)].map((m) => m[1]!));
+    const lockout = "Lock the account for 15 minutes after 5 failed sign-ins";
+    return { questions: [{ problems: [1], text: "What happens after repeated failed sign-ins?", options: ["No lockout", lockout], recommended: lockout, reason: "the smallest change that closes the gap", impact: 2, impactReason: "a visible flow" }], inRequest: [] };
+  }
+  if (system.includes("checks still fail after a retry")) {
+    gateAsks.push(user);
+    return { questions: [{ failures: [1], text: "Is the PDF report in scope?", options: ["Yes", "No: leave it out of the estimate"], recommended: "Yes", reason: "the request asks for it", impact: 3, impactReason: "changes scope" }] };
+  }
+  if (dropReq2 && system.includes("A work breakdown for an estimate was written and checked")) return { tasks: [], kinds: [] };
+  if (dropReq2 && system.includes("turning a finished spec")) return { ...breakdown, tasks: breakdown.tasks.map((t) => (t.id === "EST-2" ? { ...t, reqs: ["REQ-1"] } : t)) };
   if (modular && system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: MODULE_SPANS[intakeCalls++ % 2]! }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: false };
   if (modular && system.includes("sizing the tasks")) return bigSizing();
   if (modular && system.includes("turning a finished spec")) return bigBreakdown();
@@ -95,7 +118,7 @@ function answerFor(system: string): unknown {
     const mock = { title: "Open orders", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["Continue"] }], copy: {} };
     return { theme: { mood: "calm", brand: "#1f6feb", reading: { users: "clinic staff", context: "at a desk all day", device: "web", tone: "calm", hero: "the day's queue at a glance", traits: ["dense", "quiet"] }, basis: [{ ref: "Linear", took: "hairlines" }, { ref: "Stripe", took: "one blue action" }] }, ...d, screens: d.screens.map((x) => ({ mock, mockFull: mock, ...x })) };
   }
-  if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "sign in and export reports" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: ui };
+  if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "sign in and export reports" }], changeClass: "feature", risk: fullRigor ? "medium" : "low", riskTags: [], rigor: fullRigor ? "full" : "light", touchesUi: ui };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: "user signs in", kind: "happy" }, { text: "user exports a PDF", kind: "happy" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [] };
   if (system.includes("Requirements analyst")) return system.includes("already answered") ? { questions: [], conflicts: [] } : {
@@ -104,7 +127,7 @@ function answerFor(system: string): unknown {
   if (system.includes("State, as numbered")) return { sentences: [{ n: 1, text: "Users sign in." }, { n: 2, text: "Users export a PDF report." }] };
   if (system.includes("Map each restated")) return { mapping: [{ n: 1, spans: ["I-1"], answers: [] }, { n: 2, spans: ["I-1"], answers: [] }] };
   if (system.includes("Senior engineer writing a behaviour spec")) return draft;
-  if (system.includes("Adversarial reviewer")) return { findings: [] };
+  if (system.includes("Adversarial reviewer")) return { findings: fullRigor ? [{ rubric: 2, reqId: "REQ-1", severity: "high", finding: `missing lockout path (review ${++criticCalls})` }] : [] };
   if (system.includes("sizing the tasks")) return sizing;
   if (system.includes("turning a finished spec")) return ui ? withScreens(breakdown) : breakdown;
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
@@ -112,8 +135,9 @@ function answerFor(system: string): unknown {
 const provider: Provider = {
   start(_m, _e, system, _u, tools): Conversation {
     if (system.includes("Senior engineer writing a behaviour spec")) drafterTools.push(tools.map((t) => t.name));
-    if (system.includes("Adversarial reviewer")) criticSystems.push(system);
-    return { async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answerFor(system) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
+    if (system.includes("Adversarial reviewer")) { criticSystems.push(system); criticEfforts.push(_e); }
+    if (system.includes("Merge three independent")) mergeCalls++;
+    return { async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answerFor(system, _u) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
 
@@ -134,10 +158,17 @@ beforeEach(() => {
   prompts = [];
   drafterTools = [];
   criticSystems = [];
+  criticEfforts = [];
+  mergeCalls = 0;
+  fullRigor = false;
+  criticCalls = 0;
+  settleProblems = [];
   modular = false;
   intakeCalls = 0;
   ui = false;
   uiDesign = UI_DESIGN;
+  dropReq2 = false;
+  gateAsks = [];
 });
 
 describe("estimate mode end to end (requirements only, scripted model)", () => {
@@ -225,6 +256,165 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     expect(v.factoryAssumptions).toEqual([expect.objectContaining({ id: "ASM-1", risk: "high" })]);
   });
 
+  it("hands-off: a breakdown gate that keeps failing asks check questions twice, then carries the failure as an open risk and finishes", async () => {
+    dropReq2 = true;
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true, humanReview: false } });
+    const r = await execute(runId);
+    expect(r.status, r.message).not.toMatch(/parked|waiting/);
+    const ledger = Ledger.open(runId);
+    const s = replay(ledger.events());
+    for (const step of ["breakdown", "estimate", "approve-estimate", "export"]) expect(s.steps.get(step)?.status, step).toBe("completed");
+    const rounds = ledger.events().filter((e) => e.type === "step.failed" && (e.data as { action?: string }).action === "questions");
+    expect(rounds).toHaveLength(2);
+    expect(gateAsks).toHaveLength(2);
+    expect(gateAsks[0]).toContain("REQ-2");
+    // no card for a hands-off run; the answers read like the clarify questions (Q-n; a hands-off clarify files its questions as assumptions, so these start at Q-1)
+    expect(s.decisions).toEqual([]);
+    expect(ledger.events().some((e) => e.type === "human.requested")).toBe(false);
+    const breakdownData = s.steps.get("breakdown")!.data as { openRisks?: string[] };
+    expect(breakdownData.openRisks).toEqual([expect.stringMatching(/^Open risk: .*REQ-2.*gate E2 still fails after 2 rounds of questions/)]);
+    const est = ledger.getJson<{ assumptions: string[] }>(s.steps.get("estimate")!.outputs[0]!)!;
+    expect(est.assumptions).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^Check question Q-1 \(breakdown\): Is the PDF report in scope\? → Yes \(assumed by the factory, hands-off\)$/),
+      expect.stringMatching(/^Check question Q-2 \(breakdown\)/),
+      breakdownData.openRisks![0],
+    ]));
+    const v = estimateView(ledger) as { factoryAssumptions?: { id: string; text: string; risk: string }[] };
+    expect(v.factoryAssumptions).toEqual(expect.arrayContaining([
+      { id: "Q-1", text: "Is the PDF report in scope? → Yes (a breakdown check)", risk: "high" },
+      expect.objectContaining({ id: "Q-2" }),
+    ]));
+  });
+
+  it("review: a breakdown gate that keeps failing asks a person on a question card like clarify's, twice, then carries it", async () => {
+    dropReq2 = true;
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true } });
+    const ledger = Ledger.open(runId);
+    expect((await execute(runId)).status).toBe("waiting");
+    const clarify = replay(ledger.events()).openCard!;
+    await decide(ledger, { decision: "answer", hashPrefix: clarify.artifactSha.slice(0, 6), by: "lead", data: { answers: { "Q-1": "A" } } });
+    for (const [round, id] of [[1, "Q-2"], [2, "Q-3"]] as const) {
+      expect((await execute(runId)).status).toBe("waiting");
+      const c = replay(ledger.events()).openCard!;
+      expect(c).toMatchObject({ kind: "question", cardId: expect.stringMatching(new RegExp(`^check-questions-${round}-`)) });
+      const md = ledger.readCard(c.cardId);
+      expect(md).toContain(`round ${round} of at most 2`);
+      expect(md).toContain(`**${id}** Is the PDF report in scope?`);
+      expect(md).toContain(`factory answer ${runId} ${c.artifactSha.slice(0, 8)} ${id}=A`);
+      // the run page shows it in the same questions panel as clarify's
+      const card = (runView(ledger) as { card?: { questions?: { id: string; recommended: string }[] } }).card;
+      expect(card?.questions).toEqual([expect.objectContaining({ id, recommended: "Yes" })]);
+      await decide(ledger, { decision: "answer", hashPrefix: c.artifactSha.slice(0, 6), by: "lead", data: { answers: { [id]: "A" } } });
+    }
+    // after two rounds the breakdown carries the failure and the run reaches the approval card
+    expect((await execute(runId)).status).toBe("waiting");
+    const s = replay(ledger.events());
+    expect(s.openCard?.kind).not.toBe("question");
+    expect(s.steps.get("estimate")?.status).toBe("completed");
+    const est = ledger.getJson<{ assumptions: string[] }>(s.steps.get("estimate")!.outputs[0]!)!;
+    expect(est.assumptions).toEqual(expect.arrayContaining([
+      "Check question Q-2 (breakdown): Is the PDF report in scope? → Yes (answered by lead)",
+      expect.stringMatching(/^Open risk: .*REQ-2.*gate E2 still fails after 2 rounds of questions/),
+    ]));
+  });
+
+  it("writes one spec draft, repairs it once and runs a medium critic, on a full-rigor request", async () => {
+    fullRigor = true;
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true, humanReview: false } });
+    const r = await execute(runId);
+    expect(r.status, r.message).not.toBe("waiting");
+    const s = replay(Ledger.open(runId).events());
+    expect(s.steps.get("specify")?.status).toBe("completed");
+    // one draft, so the merge makes no model call; one repair, though every review found something new (and a fix per round of questions)
+    expect(drafterTools).toHaveLength(4);
+    expect(mergeCalls).toBe(0);
+    expect(s.steps.get("merge")!.data).toMatchObject({ singleDraft: true });
+    expect(s.steps.get("specify")!.data).toMatchObject({ lane: "requirements", repairs: 1, openFindings: [expect.stringContaining("review 4")], settled: 3 });
+    // what the repair left open went to the question writer instead of stopping the run at E1: hands-off, each recommended
+    // answer is assumed and the spec fixed with it, for two rounds; what is still open after that is carried as an open risk
+    expect(settleProblems).toEqual([["missing lockout path (review 2)"], ["missing lockout path (review 3)"]]);
+    expect(criticEfforts).toEqual(["medium", "medium", "medium", "medium"]);
+    const ledger = Ledger.open(runId);
+    const spec = ledger.getJson<{ settled: { problem: string; how: string; ref?: string; decision: string }[] }>(s.steps.get("specify")!.outputs[0]!)!;
+    expect(spec.settled).toEqual([
+      expect.objectContaining({ kind: "critic", problem: "missing lockout path (review 2)", how: "assumed", ref: "Q-1", decision: expect.stringContaining("→ Lock the account") }),
+      expect.objectContaining({ kind: "critic", problem: "missing lockout path (review 3)", how: "assumed", ref: "Q-2" }),
+      expect.objectContaining({ kind: "critic", problem: "missing lockout path (review 4)", how: "open-risk" }),
+    ]);
+    // hands-off, clarify's question became an assumption (ASM-1), so the spec questions are numbered from Q-1
+    // E1 lets the settled spec through, and the estimate states each settled problem
+    expect(s.gates.find((g) => g.gateId === "estimate.e1-readiness")).toMatchObject({ passed: true });
+    const est = ledger.getJson<{ assumptions: string[] }>(s.steps.get("estimate")!.outputs[0]!)!;
+    expect(est.assumptions).toEqual(expect.arrayContaining([expect.stringMatching(/^Spec question Q-1: .*\(assumed by the factory, hands-off\)$/), "Open risk: missing lockout path (review 4)"]));
+  });
+
+  it("asks a person the spec questions on a card, round by round, and fixes the spec with their answers", async () => {
+    fullRigor = true;
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true } });
+    const ledger = Ledger.open(runId);
+    expect((await execute(runId)).status).toBe("waiting");
+    const q = replay(ledger.events()).openCard!;
+    await decide(ledger, { decision: "answer", hashPrefix: q.artifactSha.slice(0, 6), by: "lead", data: { answers: { "Q-1": "A" } } });
+    // what the repair left open comes back as a question card, numbered after clarify's questions
+    expect((await execute(runId)).status).toBe("waiting");
+    const c1 = replay(ledger.events()).openCard!;
+    expect(c1).toMatchObject({ kind: "question", cardId: expect.stringMatching(/^spec-questions-1-/) });
+    const md1 = ledger.readCard(c1.cardId);
+    expect(md1).toContain("round 1 of at most 2");
+    expect(md1).toMatch(/\*\*Q-2\*\* What happens after repeated failed sign-ins\?/);
+    expect(md1).toContain("(settles: missing lockout path (review 2))");
+    expect(md1).toContain(`factory answer ${runId} ${c1.artifactSha.slice(0, 8)} Q-2=A`);
+    await decide(ledger, { decision: "answer", hashPrefix: c1.artifactSha.slice(0, 6), by: "lead", data: { answers: { "Q-2": "Lock after 3 failed tries" } } });
+    // the fix and the fresh check find one more problem: a second round
+    expect((await execute(runId)).status).toBe("waiting");
+    const c2 = replay(ledger.events()).openCard!;
+    expect(c2.cardId).toMatch(/^spec-questions-2-/);
+    expect(ledger.readCard(c2.cardId)).toContain("**Q-3**");
+    await decide(ledger, { decision: "answer", hashPrefix: c2.artifactSha.slice(0, 6), by: "lead", data: { answers: { "Q-3": "B" } } });
+    expect((await execute(runId)).status).toBe("waiting");
+    const s = replay(ledger.events());
+    expect(s.openCard!.kind).toBe("estimate-approval");
+    // the repair loop ran once, before the first card; each answered round paid for one fix and one check
+    expect(drafterTools).toHaveLength(4);
+    expect(criticEfforts).toHaveLength(4);
+    expect(settleProblems).toHaveLength(2);
+    const spec = ledger.getJson<{ settled: unknown[] }>(s.steps.get("specify")!.outputs[0]!)!;
+    expect(spec.settled).toEqual([
+      expect.objectContaining({ problem: "missing lockout path (review 2)", how: "answered", ref: "Q-2", decision: "What happens after repeated failed sign-ins? → Lock after 3 failed tries" }),
+      expect.objectContaining({ problem: "missing lockout path (review 3)", how: "answered", ref: "Q-3", decision: expect.stringContaining("→ Lock the account for 15 minutes") }),
+      expect.objectContaining({ problem: "missing lockout path (review 4)", how: "open-risk" }),
+    ]);
+    expect(s.gates.find((g) => g.gateId === "estimate.e1-readiness")).toMatchObject({ passed: true });
+  });
+
+  it("sends a run whose spec was written before settling back to the spec step, which settles it, and estimates", async () => {
+    fullRigor = true;
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true, humanReview: false } });
+    const ledger = Ledger.open(runId);
+    expect((await execute(runId, () => undefined, { until: "specify" })).status).toBe("until");
+    // the spec as an older factory wrote it: the same step, its open problem not settled
+    const done = [...ledger.events()].reverse().find((e) => e.type === "step.completed" && e.key?.startsWith("specify/"))!;
+    const d = done.data as { named: Record<string, string> };
+    const { settled: _s, ...old } = ledger.getJson<Record<string, unknown>>(d.named.spec!)!;
+    const oldSha = ledger.putJson({ ...old, critic: [{ rubric: 2, reqId: "REQ-1", severity: "high", finding: "missing lockout path (old)" }] });
+    await ledger.append({ type: "step.completed", key: "specify/9", inputsHash: done.inputsHash, outputs: [oldSha, d.named.critic!], data: { ...d, named: { ...d.named, spec: oldSha } } }, HUMAN_WRITER);
+    drafterTools = []; criticEfforts = []; settleProblems = [];
+    const r = await execute(runId);
+    expect(r.status, r.message).not.toBe("waiting");
+    expect(r.status, r.message).not.toBe("parked");
+    const s = replay(ledger.events());
+    // E1 refused the old spec at breakdown; the spec step ran again from it (no new draft or repair loop) and settled it
+    const log = readFileSync(join(ledger.dir, "run.log"), "utf8");
+    expect(log).toContain("↩ breakdown: gate E1 refused the spec (1 open problem); the spec step runs again and settles it with questions");
+    expect(settleProblems[0]).toEqual(["missing lockout path (old)"]);
+    expect(drafterTools).toHaveLength(2);
+    expect(s.gates.filter((g) => g.gateId === "estimate.e1-readiness").map((g) => g.passed)).toEqual([false, true]);
+    expect(s.steps.get("breakdown")).toMatchObject({ status: "completed", interruptions: 0 });
+    for (const step of ["estimate", "approve-estimate", "export"]) expect(s.steps.get(step)?.status, step).toBe("completed");
+    const spec = ledger.getJson<{ settled: { problem: string; how: string }[] }>(s.steps.get("specify")!.outputs[0]!)!;
+    expect(spec.settled[0]).toMatchObject({ problem: "missing lockout path (old)", how: "assumed" });
+  });
+
   it("specifies a large document module by module, joins the modules, and estimates the whole", async () => {
     modular = true;
     const filler = "The system shall behave as described in this paragraph of the document. ".repeat(160);
@@ -243,6 +433,9 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     for (const step of ["intake:m1", "intake:m2", "intake", "clarify:m1", "clarify:m2", "clarify", "clarify-2", "drafts:m1", "specify:m1", "drafts:m2", "specify:m2", "specify", "breakdown", "estimate", "export"]) {
       expect(s.steps.get(step)?.status, step).toBe("completed");
     }
+    // the modules' spec chains ran side by side
+    const log = readFileSync(join(ledger.dir, "run.log"), "utf8");
+    for (const k of ["drafts", "merge", "specify"]) expect(log).toContain(`side by side: ${k}:m1, ${k}:m2`);
     // the joined spec carries both modules' requirements, numbered again
     const spec = ledger.getJson<{ requirements: { id: string }[] }>(s.steps.get("specify")!.outputs[0]!)!;
     expect(spec.requirements.map((q) => q.id)).toEqual(["REQ-1", "REQ-2", "REQ-3", "REQ-4"]);

@@ -1,0 +1,254 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "Exactly three screens: Find parts (/parts), Cart and checkout (/cart), My orders (/orders) with an order detail panel on the same page; buyer is already signed in via existing company login, no sign-in work included",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Navigating to /parts, /cart, /orders renders the Find parts, Cart/checkout and My orders screens respectively"
+       },
+       {
+        "kind": "happy",
+        "text": "A single signed-in buyer role can access all three screens; no role selection or account management UI exists"
+       },
+       {
+        "kind": "happy",
+        "text": "Opening an order from the My orders list shows an order detail panel on the same /orders page rather than navigating to a separate screen/URL"
+       },
+       {
+        "kind": "error",
+        "text": "Attempting to reach sign-in, admin, staff, or any screen beyond these three has no implemented route/behaviour (out of scope)"
+       },
+       {
+        "kind": "permission",
+        "text": "Each buyer sees only their own orders; no buyer can view another buyer's orders or cart"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "readingChosen": "Search is substring match on name or part number (case-insensitive, min 2 chars); filters by category and brand combine with search using AND logic",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Find parts page lists parts 20 per page, each row/card showing image, name, part number, brand, price and stock state"
+       },
+       {
+        "kind": "happy",
+        "text": "Stock state displayed as 'In stock' (stock>=5), 'Low stock (n left)' (1-4), or 'Out of stock' (0), with text labels not relying on colour alone"
+       },
+       {
+        "kind": "happy",
+        "text": "Typing 2+ characters into search filters the list to parts whose name or part number contains the text, case-insensitively"
+       },
+       {
+        "kind": "data",
+        "text": "Typing fewer than 2 characters does not trigger filtering by search text"
+       },
+       {
+        "kind": "happy",
+        "text": "Selecting a category filter narrows results to matching category; selecting a brand filter narrows to matching brand; both combine with each other and with search text"
+       },
+       {
+        "kind": "error",
+        "text": "When no part matches the combined search/filter criteria, the page shows 'No parts match' plus a button that clears both search text and filters, restoring the full list"
+       },
+       {
+        "kind": "happy",
+        "text": "Pagination controls allow navigating through pages of 20 when more than 20 parts match"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "readingChosen": "Cart operations (add, remove, quantity change) happen from Find parts (add) and Cart screen (remove/quantity); quantity constrained 1-99 and capped at stock",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Pressing 'Add to cart' on an in-stock part adds a new cart line with quantity 1, or increments quantity by 1 if already in cart"
+       },
+       {
+        "kind": "happy",
+        "text": "Adding to cart updates the cart item count shown in the header immediately"
+       },
+       {
+        "kind": "permission",
+        "text": "'Add to cart' button is disabled (not clickable) for parts with zero stock"
+       },
+       {
+        "kind": "happy",
+        "text": "Cart screen shows each line with name, part number, unit price, an editable quantity field, and a computed line total"
+       },
+       {
+        "kind": "happy",
+        "text": "Changing the quantity field recalculates the line total and the overall order total immediately without page reload"
+       },
+       {
+        "kind": "error",
+        "text": "Entering a quantity above the part's current stock resets the field to the stock quantity and displays 'Only n available'"
+       },
+       {
+        "kind": "data",
+        "text": "Quantity values are constrained to the range 1-99"
+       },
+       {
+        "kind": "happy",
+        "text": "Pressing 'Remove' on a cart line deletes that line entirely from the cart and recalculates totals"
+       },
+       {
+        "kind": "happy",
+        "text": "When the cart has zero lines, the cart screen shows 'Your cart is empty' with a link back to Find parts, and the checkout section (address/delivery/place order) is hidden"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "readingChosen": "Checkout fields (address, delivery option) are required inputs gating the 'Place order' button; totals shown live",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Delivery address text field accepts 5-200 characters; values outside this range are rejected/flagged as invalid"
+       },
+       {
+        "kind": "happy",
+        "text": "Delivery option selector offers Standard (£0) and Next day (£9.99) as mutually exclusive choices"
+       },
+       {
+        "kind": "happy",
+        "text": "Checkout displays subtotal, delivery charge, and total where total = subtotal + delivery charge, updating live as cart/delivery option changes"
+       },
+       {
+        "kind": "permission",
+        "text": "'Place order' button remains disabled until a valid address (5-200 chars) and a delivery option are both selected"
+       },
+       {
+        "kind": "error",
+        "text": "Attempting to submit with missing/invalid address or no delivery option does not place the order and keeps button disabled (no partial submission)"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "readingChosen": "Order placement creates an order record with generated order number and Placed status; order history lists all of buyer's past orders newest first",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Pressing 'Place order' (when enabled) creates an order with a unique order number formatted 'ORD-' plus 6 digits, status set to Placed, current date recorded"
+       },
+       {
+        "kind": "happy",
+        "text": "Order is saved with its lines (part, quantity, unit price), delivery address, delivery option, and total"
+       },
+       {
+        "kind": "happy",
+        "text": "Placing the order empties the cart (all lines removed) and the header cart count resets"
+       },
+       {
+        "kind": "happy",
+        "text": "After placing an order, the new order number is displayed to the buyer as confirmation"
+       },
+       {
+        "kind": "happy",
+        "text": "My orders screen lists the buyer's orders newest first, each row showing order number, date, number of items, total and status"
+       },
+       {
+        "kind": "error",
+        "text": "When the buyer has placed no orders, My orders shows 'No orders yet' with a link to Find parts"
+       }
+      ]
+     },
+     {
+      "id": "I-6",
+      "readingChosen": "Cancellation only allowed while status is Placed; status timeline is a visual progression Placed→Packed→Dispatched→Delivered (Cancelled shown separately, not on the forward timeline)",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "My orders list supports filtering by status; selecting a status shows only orders matching that status"
+       },
+       {
+        "kind": "happy",
+        "text": "Opening an order shows its detail panel with lines, delivery address, delivery option, total, and a visual status timeline covering Placed, Packed, Dispatched, Delivered steps"
+       },
+       {
+        "kind": "happy",
+        "text": "A 'Cancel order' button is shown only when the order's status is Placed"
+       },
+       {
+        "kind": "happy",
+        "text": "Pressing 'Cancel order' prompts a confirmation step before cancelling"
+       },
+       {
+        "kind": "happy",
+        "text": "Confirming cancellation sets the order's status to Cancelled and updates the order list/detail view accordingly"
+       },
+       {
+        "kind": "permission",
+        "text": "Orders with status other than Placed (Packed, Dispatched, Delivered, Cancelled) do not show a 'Cancel order' button, preventing cancellation"
+       },
+       {
+        "kind": "error",
+        "text": "Declining the cancellation confirmation leaves the order status unchanged"
+       }
+      ]
+     },
+     {
+      "id": "I-7",
+      "readingChosen": "Accessibility and responsiveness apply across all three screens, with non-colour indicators for stock/status and full keyboard operability",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "All interactive controls (search, filters, quantity fields, buttons, address field, delivery option, cancel) are operable via keyboard alone"
+       },
+       {
+        "kind": "happy",
+        "text": "Every form field has an associated visible label for screen reader users"
+       },
+       {
+        "kind": "happy",
+        "text": "Stock state and order status are conveyed with text labels/icons, not colour alone"
+       },
+       {
+        "kind": "happy",
+        "text": "Layout renders usably on screen widths from 360px up through desktop sizes, with no horizontal scrolling or broken layout at 360px"
+       },
+       {
+        "kind": "data",
+        "text": "Meets WCAG 2.1 AA success criteria across the three screens (contrast, focus order, ARIA roles where applicable)"
+       }
+      ]
+     },
+     {
+      "id": "I-8",
+      "readingChosen": "The 2-second page load target applies to the Find parts listing page under a 5,000-part catalogue, using pagination (20 per page) rather than loading all parts at once",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "With 5,000 parts in the database, loading /parts (and /cart, /orders) completes in under 2 seconds"
+       },
+       {
+        "kind": "happy",
+        "text": "Search, filter and pagination requests against the 5,000-part catalogue return results within the 2-second budget"
+       },
+       {
+        "kind": "data",
+        "text": "Performance target is measured/validated against a seeded dataset of 5,000 parts prior to release"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

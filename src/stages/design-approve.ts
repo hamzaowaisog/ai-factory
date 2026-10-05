@@ -4,7 +4,7 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import type { z } from "zod";
-import type { Design, IntentBody, Spec } from "../contracts/index.js";
+import type { Design, Failure, IntentBody, Spec } from "../contracts/index.js";
 import { designBaseline } from "../design/gates.js";
 import { diffDesigns } from "../design/diff.js";
 import { buildDemo, frameDataUri } from "../design/demo.js";
@@ -25,7 +25,8 @@ import { ESTIMATE_SOURCES, intentOf, specOf, type DesignSources, repoInventory }
 import { reworkCardLines } from "./design-rework.js";
 import { lookKey, recordLook } from "../design/looks.js";
 import { fieldOf } from "../design/refs/index.js";
-import { outputOf, readOutput, type StepDef, type StepOutcome } from "./framework.js";
+import { outputOf, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { carriedLines, carries, settledBy } from "./gate-questions.js";
 
 
 type Intent = z.infer<typeof IntentBody>;
@@ -137,6 +138,18 @@ export function designCard(runId: string, design: DesignT, hash: string, extra: 
 export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?: DesignPurpose } = {}): StepDef {
   const src = opts.sources ?? ESTIMATE_SOURCES;
   const purpose = opts.purpose ?? "estimate";
+  /**
+   * Gate E1b failing on a design the design step already checked: another attempt of this step changes nothing, so the failures are
+   * asked about (src/stages/gate-questions.ts); an answer settles one, and after the rounds of questions what is open is carried as an
+   * open risk. No design, no approval or two screens with one id are never carried.
+   */
+  const baselineOpen = (ctx: StepContext, g: { passed: boolean; details: string; failures?: Failure[] }): { outcome: StepOutcome } | { risks: { openRisks?: string[] } } => {
+    if (g.passed) return { risks: {} };
+    const open = (g.failures ?? [failure("e1b", g.details)]).filter((f) => !settledBy(ctx.gateAnswers, f.message));
+    if (!open.length) return { risks: {} };
+    if (carries(ctx, open)) return { risks: { openRisks: carriedLines("gate E1b", open) } };
+    return { outcome: { kind: "ask", reason: `The design is not ready (gate E1b): ${open.map((f) => f.message).join("; ")}`, failures: open } };
+  };
   return {
     key: "design-baseline", stage: "design", templateVersion: "1",
     inputs: (s, l) => {
@@ -161,8 +174,9 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
       // a small fix's text note in an estimate: no demo and no card of its own; the estimate card shows it and its approval covers it
       if (design.note && purpose === "estimate") {
         const g = await gate(ctx, "design-baseline", designBaseline, { ui: true, design, note: true });
-        if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [failure("e1b", g.details)], signature: `e1b:${g.details.slice(0, 80)}` };
-        return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, note: true, by: "with the estimate (E7)" }) }, data: { ui: true, note: true, screens: design.screens.length } };
+        const e1b = baselineOpen(ctx, g);
+        if ("outcome" in e1b) return e1b.outcome;
+        return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, note: true, by: "with the estimate (E7)" }) }, data: { ui: true, note: true, screens: design.screens.length, ...e1b.risks } };
       }
       const past = decisionsOn(ctx.state, "design-");
       // a build or a design-only run has no estimate to approve the note with (PR #11 re-review, blocker 1): a short card of its own
@@ -174,8 +188,9 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
           if (last.decision === "reject" && rejects > MAX_DESIGN_REVISIONS) return { kind: "park", reason: `The design note was sent back ${rejects} times${reasonOf(last) ? `, last time: ${reasonOf(last)}` : ""}. Change the request to show what you want, then start again.` };
           if (last.decision === "approve") {
             const g = await gate(ctx, "design-baseline", designBaseline, { ui: true, design, approval: { decision: "approved", by: last.by } });
-            if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [failure("e1b", g.details)], signature: `e1b:${g.details.slice(0, 80)}` };
-            return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, note: true, by: last.by }) }, data: { ui: true, note: true, screens: design.screens.length } };
+            const e1b = baselineOpen(ctx, g);
+        if ("outcome" in e1b) return e1b.outcome;
+            return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, note: true, by: last.by }) }, data: { ui: true, note: true, screens: design.screens.length, ...e1b.risks } };
           }
         }
         const bundle = noteBundle(past.length);
@@ -244,10 +259,11 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
         if (last.decision === "reject" && past.filter((d) => d.decision === "reject").length > MAX_DESIGN_REVISIONS) return { kind: "park", reason: `The design was sent back ${past.filter((d) => d.decision === "reject").length} times${reasonOf(last) ? `, last time: ${reasonOf(last)}` : ""}. Change the request or attach a design frame to show what you want, then start again.` };
         if (last.decision === "approve") {
           const g = await gate(ctx, "design-baseline", designBaseline, { ui: true, design, approval: { decision: "approved", by: last.by } });
-          if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [failure("e1b", g.details)], signature: `e1b:${g.details.slice(0, 80)}` };
+          const e1b = baselineOpen(ctx, g);
+        if ("outcome" in e1b) return e1b.outcome;
           // remembered so the next projects are told to look different (best effort: never a reason to stop)
           if (d.theme && d.themeSource !== "repo") try { recordLook(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), d.theme, undefined, undefined, fieldOf(spec.requirements.map((q) => q.ears).join("\n"))); } catch (e) { ctx.log(`design-baseline: look not recorded: ${(e as Error).message}`); }
-          return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, by: last.by }) }, data: { ui: true, screens: design.screens.length } };
+          return { kind: "done", outputs: { baseline: ctx.ledger.putJson({ ui: true, design: designSha, by: last.by }) }, data: { ui: true, screens: design.screens.length, ...e1b.risks } };
         }
       }
       const bundle = bundleOf(past.length);

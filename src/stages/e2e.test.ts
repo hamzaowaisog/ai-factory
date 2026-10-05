@@ -650,6 +650,28 @@ describe("spec repairs", () => {
     expect(ledger.readCard(s.openCard!.cardId)).toContain("## Still open after 1 repair");
   });
 
+  it("a retry goes on from the failed attempt's repaired spec, and a repair answers with changes only", async () => {
+    intakeRisk = "medium";
+    criticFindings = [finding];
+    const base = answerFor("Senior engineer writing a behaviour spec") as { requirements: { acceptance: { then: string }[] }[] };
+    // the repair returns one changed requirement (no nfrs, no lists) whose Then fails the observable check
+    repairSpec = { requirements: base.requirements.map((r) => ({ ...r, acceptance: r.acceptance.map((a) => ({ ...a, then: "it works" })) })) };
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    await execute(runId);
+    const ledger = Ledger.open(runId);
+    const q = replay(ledger.events()).openCard!;
+    await decide(ledger, { decision: "answer", hashPrefix: q.artifactSha.slice(0, 6), by: "ahsan", data: { answers: { "Q-1": "A" } } });
+    await execute(runId);
+    const fails = ledger.events().filter((e) => e.type === "step.failed" && e.key?.startsWith("specify/"));
+    expect(fails.length).toBeGreaterThan(1);
+    const d = fails[0]!.data as { signature: string; repairedSpec: string; repairedFrom: string };
+    expect(d.signature).toBe("lint:L11 observable");
+    const kept = ledger.getJson<{ requirements: { acceptance: { then: string }[] }[]; outOfScope: string[] }>(d.repairedSpec);
+    expect(kept.requirements[0]!.acceptance[0]!.then).toBe("it works");
+    expect(kept.outOfScope).toEqual(["other greetings"]);
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toContain("going on from the last attempt's repaired spec");
+  });
+
   it("rejects a repair that drops a requested span and keeps the previous spec", async () => {
     intakeRisk = "medium";
     criticFindings = [finding];

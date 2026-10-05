@@ -1,0 +1,536 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "When an authenticated staff user requests the overdue list, the invoice reminders API shall return every invoice that is not paid or closed and whose due date plus the configured overdue threshold (default 7 days) is on or before today's date in the configured business timezone.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-2",
+       "Q-6",
+       "ASM-1",
+       "ASM-2",
+       "ASM-3",
+       "ASM-9"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-1.1",
+        "given": "threshold is 7, business timezone is UTC, today is 2026-09-08, and an open invoice INV-1 has due date 2026-09-01",
+        "when": "GET /api/overdue-invoices is called with a valid staff token",
+        "then": "the response is 200 and contains INV-1",
+        "level": "api"
+       },
+       {
+        "id": "AC-1.2",
+        "given": "threshold is 7, business timezone is UTC, today is 2026-09-07, and an open invoice INV-2 has due date 2026-09-01",
+        "when": "GET /api/overdue-invoices is called with a valid staff token",
+        "then": "the response does not contain INV-2",
+        "level": "api"
+       },
+       {
+        "id": "AC-1.3",
+        "given": "business timezone is UTC+2, the current UTC time is 2026-09-07T23:30Z (local date 2026-09-08), threshold is 7, and an open invoice INV-3 has due date 2026-09-01",
+        "when": "GET /api/overdue-invoices is called with a valid staff token",
+        "then": "the response contains INV-3",
+        "level": "api"
+       },
+       {
+        "id": "AC-1.4",
+        "given": "the threshold setting is changed to 10 and today is 2026-09-10, with an open invoice INV-4 due 2026-09-01",
+        "when": "GET /api/overdue-invoices is called",
+        "then": "INV-4 is not returned; on 2026-09-11 it is returned",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ear": "",
+      "ears": "If an invoice has a paid or closed status in the existing invoice data, then the invoice reminders API shall leave it out of the overdue list whatever its due date.",
+      "op": "ADDED",
+      "sources": [
+       "Q-4",
+       "I-1",
+       "ASM-1"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "invoice INV-5 is 30 days past its due date and its status is paid",
+        "when": "GET /api/overdue-invoices is called with a valid staff token",
+        "then": "INV-5 is not in the response",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.2",
+        "given": "invoice INV-6 is in the overdue list and its status is then changed to closed in the invoice table",
+        "when": "GET /api/overdue-invoices is called again",
+        "then": "INV-6 is no longer in the response",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "The invoice reminders API shall work out overdue status when it is queried and shall not write any overdue flag or status to invoice records.",
+      "op": "ADDED",
+      "sources": [
+       "Q-6",
+       "ASM-2"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-3.1",
+        "given": "a snapshot of all invoice table rows is taken, and some of those invoices are overdue",
+        "when": "GET /api/overdue-invoices and GET /api/invoices/{id} are called for an overdue invoice",
+        "then": "every invoice table row is unchanged compared with the snapshot",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "The invoice reminders API shall return, for each invoice in the overdue list, its invoice number, customer name, amount, due date and days overdue, where days overdue is the number of calendar days from the due date to today in the business timezone.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-6",
+       "ASM-4",
+       "ASM-9"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-4.1",
+        "given": "today is 2026-09-08 (business timezone) and open invoice INV-1 for customer 'Rye & Co' with amount 120.50 is due 2026-09-01",
+        "when": "GET /api/overdue-invoices is called",
+        "then": "the INV-1 entry has invoiceNumber INV-1, customer 'Rye & Co', amount 120.50, dueDate 2026-09-01 and daysOverdue 7",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When the overdue list is requested with a customer filter, the invoice reminders API shall return only overdue invoices belonging to that customer.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-5.1",
+        "given": "customer A has overdue invoices INV-10 and INV-11 and customer B has overdue invoice INV-12",
+        "when": "GET /api/overdue-invoices?customerId={A} is called",
+        "then": "the response contains exactly INV-10 and INV-11",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.2",
+        "given": "customer C has no overdue invoices",
+        "when": "GET /api/overdue-invoices?customerId={C} is called",
+        "then": "the response is 200 with an empty list",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When the overdue list is requested with a days-overdue bucket filter of 7–30, 31–60, 61–90 or 91+, the invoice reminders API shall return only overdue invoices whose days overdue falls inside that bucket, bounds included.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "ASM-4",
+       "ASM-5"
+      ],
+      "stability": 0.6,
+      "acceptance": [
+       {
+        "id": "AC-6.1",
+        "given": "overdue invoices with days overdue 7, 30, 31, 60, 61, 90 and 91",
+        "when": "GET /api/overdue-invoices?daysOverdue=31-60 is called",
+        "then": "only the invoices with 31 and 60 days overdue are returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-6.2",
+        "given": "the same invoices",
+        "when": "GET /api/overdue-invoices?daysOverdue=91+ is called",
+        "then": "only the invoice with 91 days overdue is returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-6.3",
+        "given": "customer A has overdue invoices at 10 and 45 days and customer B has one at 12 days",
+        "when": "GET /api/overdue-invoices?customerId={A}&daysOverdue=7-30 is called",
+        "then": "only customer A's 10-day invoice is returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-6.4",
+        "given": "any data",
+        "when": "GET /api/overdue-invoices?daysOverdue=5-9 is called",
+        "then": "the response is 400 and names the allowed bucket values",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "If a request to the overdue list, invoice detail or send-reminder endpoint has no valid staff authentication under the existing API's authentication scheme, then the invoice reminders API shall reject it with HTTP 401 and return no invoice or customer data.",
+      "op": "ADDED",
+      "sources": [
+       "Q-1"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-7.1",
+        "given": "no Authorization credentials",
+        "when": "GET /api/overdue-invoices, GET /api/invoices/{id} and POST /api/invoices/{id}/reminders are each called",
+        "then": "each response is 401 with no invoice or customer fields in the body, and no email is sent to the email provider",
+        "level": "api"
+       },
+       {
+        "id": "AC-7.2",
+        "given": "an expired staff token",
+        "when": "GET /api/overdue-invoices is called",
+        "then": "the response is 401",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "When an authenticated staff user submits a send-reminder request for an overdue invoice whose customer has an email address, the invoice reminders API shall send one reminder email through the email provider to that customer's email address, and the email shall contain the invoice number, amount and due date.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "Q-5",
+       "Q-7",
+       "ASM-6",
+       "ASM-7",
+       "ASM-8",
+       "ASM-16"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "overdue invoice INV-1 (amount 120.50, due 2026-09-01) belongs to a customer with email billing@rye.example",
+        "when": "POST /api/invoices/INV-1/reminders is called with a valid staff token",
+        "then": "the response is 2xx and the email provider (stubbed) receives exactly one send request to billing@rye.example whose body contains 'INV-1', '120.50' and '2026-09-01'",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "If a send-reminder request is for an invoice whose customer record has no email address, or for an invoice that is not currently overdue, then the invoice reminders API shall reject the request with an error that states the reason and shall not call the email provider.",
+      "op": "ADDED",
+      "sources": [
+       "Q-7",
+       "ASM-7",
+       "I-2"
+      ],
+      "stability": 0.75,
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "overdue invoice INV-20 belongs to a customer whose email field is empty",
+        "when": "POST /api/invoices/INV-20/reminders is called with a valid staff token",
+        "then": "the response is 422 with a message saying the customer has no email address, and the email provider stub receives no request",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.2",
+        "given": "invoice INV-21 has status paid",
+        "when": "POST /api/invoices/INV-21/reminders is called with a valid staff token",
+        "then": "the response is 409 saying the invoice is not overdue, and the email provider stub receives no request",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-10",
+      "ears": "When the invoice reminders API sends a reminder to the email provider, the invoice reminders API shall record a reminder attempt for that invoice with the sending staff user, a UTC timestamp, and a delivery status of sent or failed.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-3"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-10.1",
+        "given": "staff user 'maria' is authenticated and INV-1 is overdue with a valid customer email, and the provider stub accepts the send",
+        "when": "POST /api/invoices/INV-1/reminders is called",
+        "then": "a reminder attempt row exists for INV-1 with sender 'maria', a timestamp within 5 seconds of the request time, and status 'sent'",
+        "level": "api"
+       },
+       {
+        "id": "AC-10.2",
+        "given": "two reminders were sent for INV-1 more than 60 seconds apart by 'maria' and then 'tom'",
+        "when": "GET /api/invoices/INV-1 is called",
+        "then": "the reminder history has two entries with senders 'maria' and 'tom' and their own timestamps",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-11",
+      "ears": "If the email provider returns an error when a reminder is sent, then the invoice reminders API shall record the attempt as failed with the provider's reason, return an error response to the staff user, and keep the invoice on the overdue list.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-3",
+       "Q-8"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-11.1",
+        "given": "overdue invoice INV-1 and the provider stub responds with an error 'invalid recipient'",
+        "when": "POST /api/invoices/INV-1/reminders is called with a valid staff token",
+        "then": "the response is 502 including 'invalid recipient', a reminder attempt row for INV-1 has status 'failed' and reason 'invalid recipient', and GET /api/overdue-invoices still contains INV-1",
+        "level": "api"
+       },
+       {
+        "id": "AC-11.2",
+        "given": "the provider stub does not respond within the configured send timeout",
+        "when": "POST /api/invoices/INV-1/reminders is called",
+        "then": "the attempt is recorded as 'failed' with a reason that says it timed out",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-12",
+      "ears": "When the email provider reports a bounce for a reminder that was recorded as sent, the invoice reminders API shall change that reminder attempt's status to failed and store the bounce reason, provided the report passes the provider's signature check.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-8",
+       "ASM-6"
+      ],
+      "stability": 0.65,
+      "acceptance": [
+       {
+        "id": "AC-12.1",
+        "given": "reminder attempt R-1 for INV-1 has status 'sent' and provider message id 'msg-1'",
+        "when": "POST /api/email-events is called with a correctly signed bounce event for 'msg-1' with reason 'mailbox full'",
+        "then": "the response is 2xx, R-1 has status 'failed' and reason 'mailbox full', and INV-1 is still in GET /api/overdue-invoices",
+        "level": "api"
+       },
+       {
+        "id": "AC-12.2",
+        "given": "reminder attempt R-1 has status 'sent'",
+        "when": "POST /api/email-events is called with a bounce event for 'msg-1' whose signature is missing or invalid",
+        "then": "the response is 401 and R-1 still has status 'sent'",
+        "level": "api"
+       },
+       {
+        "id": "AC-12.3",
+        "given": "no reminder attempt has provider message id 'msg-unknown'",
+        "when": "a correctly signed bounce event for 'msg-unknown' is posted",
+        "then": "the response is 2xx and no reminder attempt row changes",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-13",
+      "ears": "If a second send-reminder request for the same invoice arrives within 60 seconds of an earlier accepted one, then the invoice reminders API shall reject it with HTTP 409, shall not call the email provider, and shall not record another reminder attempt.",
+      "op": "ADDED",
+      "sources": [
+       "Q-5",
+       "ASM-13"
+      ],
+      "stability": 0.7,
+      "acceptance": [
+       {
+        "id": "AC-13.1",
+        "given": "INV-1 is overdue with a valid customer email",
+        "when": "two POST /api/invoices/INV-1/reminders requests are sent 1 second apart",
+        "then": "the first returns 2xx, the second returns 409, the provider stub receives exactly one send request, and exactly one reminder attempt row exists for INV-1",
+        "level": "api"
+       },
+       {
+        "id": "AC-13.2",
+        "given": "a reminder for INV-1 was accepted 61 seconds ago",
+        "when": "POST /api/invoices/INV-1/reminders is called again",
+        "then": "the response is 2xx, a second email is sent and a second attempt row is recorded",
+        "level": "api"
+       },
+       {
+        "id": "AC-13.3",
+        "given": "a reminder for INV-1 was accepted 5 seconds ago",
+        "when": "POST /api/invoices/INV-2/reminders is called for a different overdue invoice",
+        "then": "the request is accepted and an email is sent",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-14",
+      "ears": "When an authenticated staff user requests an invoice's detail, the invoice reminders API shall return the invoice number, customer, amount, due date, whether it is overdue, and its reminder history newest first, where each entry shows the sender, timestamp, delivery status and failure reason if there is one.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-4",
+       "I-7",
+       "Q-3"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-14.1",
+        "given": "INV-1 has attempts: sent by 'maria' at 09:00, and failed by 'tom' at 10:00 with reason 'mailbox full'",
+        "when": "GET /api/invoices/INV-1 is called with a valid staff token",
+        "then": "the response has amount, dueDate, overdue=true and a history of 2 entries, the first being tom/10:00/failed/'mailbox full' and the second maria/09:00/sent with no reason",
+        "level": "api"
+       },
+       {
+        "id": "AC-14.2",
+        "given": "invoice id 'does-not-exist'",
+        "when": "GET /api/invoices/does-not-exist is called",
+        "then": "the response is 404",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-15",
+      "ears": "The overdue list screen shall show the overdue invoices in a table with invoice number, customer, amount, due date and days overdue, along with a customer filter, a days-overdue bucket filter, and a 'Send reminder' button on every row that stays disabled while its request is in progress and shows the success or failure result when it ends.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "I-5",
+       "I-2",
+       "I-4",
+       "ASM-13"
+      ],
+      "stability": 0.7,
+      "acceptance": [
+       {
+        "id": "AC-15.1",
+        "given": "a staff user is signed in and 3 overdue invoices exist for 2 customers",
+        "when": "the user opens the overdue list screen, picks one customer in the customer filter and then the 7–30 bucket",
+        "then": "the table shows only that customer's invoices in that bucket, with all five columns and a 'Send reminder' button on each row",
+        "level": "manual"
+       },
+       {
+        "id": "AC-15.2",
+        "given": "the email provider stub is set to delay 3 seconds and then fail with 'invalid recipient'",
+        "when": "the user clicks 'Send reminder' on a row and clicks it again straight away",
+        "then": "the button is disabled until the request ends, only one request reaches the API, and the row then shows a failure message containing 'invalid recipient' while the invoice stays in the table",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-16",
+      "ear": "",
+      "ears": "The invoice detail screen shall show the invoice's amount, due date, reminder history (sender, timestamp, status) with each delivery failure and its reason marked out, and a 'Send reminder' button while the invoice is overdue.",
+      "op": "ADDED",
+      "sources": [
+       "I-7",
+       "I-3",
+       "I-4",
+       "ASM-16"
+      ],
+      "stability": 0.7,
+      "acceptance": [
+       {
+        "id": "AC-16.1",
+        "given": "INV-1 is overdue and has one sent and one failed ('mailbox full') reminder attempt",
+        "when": "a signed-in staff user opens the INV-1 detail screen",
+        "then": "amount and due date are shown, both history entries are listed newest first with sender and timestamp, the failed entry is marked as failed with 'mailbox full', and a 'Send reminder' button is shown",
+        "level": "manual"
+       },
+       {
+        "id": "AC-16.2",
+        "given": "INV-5 is paid",
+        "when": "the user opens the INV-5 detail screen",
+        "then": "no 'Send reminder' button is shown",
+        "level": "manual"
+       }
+      ]
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "The overdue list endpoint responds quickly enough at the expected data size.",
+      "metric": "p95 response time ≤ 1000 ms for GET /api/overdue-invoices with 10,000 invoices and 1,000 customers in the database, with or without filters"
+     },
+     {
+      "id": "NFR-2",
+      "text": "The send-reminder endpoint gives the staff user a result within a fixed time, including when the provider is slow.",
+      "metric": "POST /api/invoices/{id}/reminders returns within 10 s in 100% of calls; the provider call timeout is ≤ 8 s"
+     },
+     {
+      "id": "NFR-3",
+      "text": "Bounce reports from the provider show up in reminder history soon after they arrive.",
+      "metric": "≥ 99% of valid bounce webhook events are reflected in the reminder attempt status within 60 s of receipt"
+     },
+     {
+      "id": "NFR-4",
+      "text": "Customer PII (email addresses) is not written to application logs.",
+      "metric": "0 occurrences of customer email addresses in application log output during a full run of the acceptance test suite"
+     },
+     {
+      "id": "NFR-5",
+      "text": "Every reminder attempt is kept for audit.",
+      "metric": "0 reminder attempt rows deleted or overwritten by the application, other than the status/reason update from a bounce (REQ-12); kept for at least 7 years"
+     }
+    ],
+    "outOfScope": [
+     "Payments and recording payments (invoices leave the list only through the paid/closed status already in the invoice data)",
+     "Customer logins or any customer-facing screens",
+     "SMS reminders",
+     "Automatic or scheduled reminders that no staff user triggers",
+     "Saving an overdue flag/status on invoice records",
+     "Several email addresses per customer, or choosing a recipient",
+     "Role-based permissions beyond 'any authenticated staff user'",
+     "Editing the email template from the UI",
+     "Creating or editing invoices and customers (they already exist in the client's API/Postgres)"
+    ],
+    "assumptions": [
+     "ASM-1 (high risk): invoices, customers, the paid/closed status and the customer email field already exist in the client's .NET 8 API and Postgres database. No repository was available, so every endpoint path (/api/overdue-invoices, /api/invoices/{id}, /api/invoices/{id}/reminders, /api/email-events) and field name in this spec is only an example and must be mapped to the real API.",
+     "The days-overdue buckets conflict: ASM-5 says 7–30/31–60/61–90/90+ and ASM-14 says 7–14/15–30/30+. This draft uses ASM-5 and reads '90+' as 91 and over so buckets don't overlap. The client must confirm.",
+     "The email channel conflicts: ASM-6 says a transactional provider with bounce webhooks and ASM-12 says the client's existing SMTP relay. This draft uses ASM-6, because Q-8 needs the provider to report bounces later and a plain SMTP relay usually can't do that.",
+     "The template source conflicts: ASM-8 says the client provides wording kept in config and ASM-15 says we draft a template for the client to approve. Either way the template sits in configuration, and this spec only requires invoice number, amount and due date in the body.",
+     "The threshold is an app setting with default 7 (ASM-3/ASM-10). Today's date comes from a configured business timezone (ASM-9/ASM-11). Days overdue counts calendar days from the due date (ASM-4), so on the first overdue day it shows 7.",
+     "Double-submit window is 60 seconds and is checked per invoice on the server (ASM-13). Requests rejected as duplicates are not recorded as reminder attempts.",
+     "The provider gives each send a message id that is stored on the attempt and used to match bounce events, and it signs webhook calls so the signature can be checked.",
+     "Error status codes (401, 404, 409, 422, 502) are proposals; the real API's error conventions take priority if they differ.",
+     "Reminder history is shown newest first."
+    ],
+    "suggestions": [
+     "Settle the bucket conflict (ASM-5 vs ASM-14) and the email channel conflict (ASM-6 vs ASM-12) with the client before building.",
+     "Consider letting a filter on the overdue list show the status of the last reminder (e.g. 'last reminder failed') so staff can find failed deliveries quickly.",
+     "Consider a per-day cap on reminders per invoice to protect customers from being spammed, since repeat reminders are otherwise unlimited (Q-5).",
+     "Consider recording an audit entry when a bounce webhook is rejected for a bad signature, so forged calls can be spotted.",
+     "Consider handling provider 'delivered' and 'complaint' events as well as bounces.",
+     "Check whether other screens in the client's existing app that show invoices should also show overdue status or the last reminder."
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

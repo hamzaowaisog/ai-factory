@@ -1,0 +1,102 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The invoice reminders API must return, for staff users, every invoice that is not paid or closed and whose due date plus a configurable overdue threshold (default 7 days) is on or before today's date in the configured business timezone."
+     },
+     {
+      "n": 2,
+      "text": "Invoices with a paid or closed status must never appear in the overdue list, regardless of due date."
+     },
+     {
+      "n": 3,
+      "text": "Overdue status must be computed at query time and must not be written to invoice records."
+     },
+     {
+      "n": 4,
+      "text": "Each overdue invoice returned in the overdue list must include invoice number, customer name, amount, due date, and days overdue, calculated as whole calendar days from due date to today in the business timezone."
+     },
+     {
+      "n": 5,
+      "text": "The overdue list must support filtering by customer, returning only that customer's overdue invoices."
+     },
+     {
+      "n": 6,
+      "text": "The overdue list must support filtering by a days-overdue bucket (7-30, 31-60, 61-90, or 91+), returning only invoices whose days overdue falls within the bounds of the chosen bucket."
+     },
+     {
+      "n": 7,
+      "text": "Requesting the overdue list with a bucket value outside the four allowed buckets must return HTTP 400 naming the allowed values."
+     },
+     {
+      "n": 8,
+      "text": "Requests to the overdue list, invoice detail, or send-reminder endpoints without valid staff authentication must be rejected with HTTP 401, returning no invoice or customer data and sending no email."
+     },
+     {
+      "n": 9,
+      "text": "Sending a reminder for an overdue invoice whose customer has an email address must send exactly one email via the configured email provider to that customer's email address, using the configured template and including invoice number, amount, and due date."
+     },
+     {
+      "n": 10,
+      "text": "If the customer has no email address, the send-reminder request must be rejected with HTTP 422 stating the customer has no email address, without calling the email provider or recording a reminder history entry."
+     },
+     {
+      "n": 11,
+      "text": "If the invoice is not currently overdue, the send-reminder request must be rejected with HTTP 409 stating the invoice is not overdue, without calling the email provider."
+     },
+     {
+      "n": 12,
+      "text": "Every attempted reminder send must create a reminder history entry recording the invoice, the sending staff user, the UTC timestamp of the attempt, and a delivery status of sent or failed, including a failure reason when failed."
+     },
+     {
+      "n": 13,
+      "text": "If the email provider errors or does not respond within the send timeout, the attempt must be recorded as failed with the provider's reason, the send-reminder request must return an error containing that reason, and the invoice must remain on the overdue list."
+     },
+     {
+      "n": 14,
+      "text": "When the email provider later reports a bounce for a reminder previously recorded as sent, the corresponding reminder history entry's status must be changed to failed with the bounce reason stored, and the invoice must remain on the overdue list."
+     },
+     {
+      "n": 15,
+      "text": "If a bounce webhook fails signature verification, it must be rejected with HTTP 401 and must not change any reminder history entry."
+     },
+     {
+      "n": 16,
+      "text": "A send-reminder request for an invoice made within 60 seconds of an earlier accepted send-reminder request for the same invoice must be rejected with HTTP 409 as a duplicate, without calling the email provider or recording another history entry."
+     },
+     {
+      "n": 17,
+      "text": "The invoice detail endpoint must return invoice number, customer, amount, due date, overdue status, and full reminder history ordered newest first, with each entry showing sender, timestamp, delivery status, and failure reason if applicable."
+     },
+     {
+      "n": 18,
+      "text": "The overdue list screen must display a table of overdue invoices with invoice number, customer, amount, due date, and days overdue, plus a customer filter, a days-overdue bucket filter, and a 'Send reminder' button per row that stays disabled while its request is in progress and shows the success or failure result, including reason, when the request ends."
+     },
+     {
+      "n": 19,
+      "text": "The invoice detail screen must display the invoice's amount, due date, and reminder history with each attempt's sender, time, and delivery status, highlighting failures with their reasons."
+     },
+     {
+      "n": 20,
+      "text": "The invoice detail screen must not show a 'Send reminder' button while the invoice is not overdue."
+     },
+     {
+      "n": 21,
+      "text": "The invoice detail screen must show a 'Send reminder' button for any displayed invoice, whether or not it is currently overdue."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

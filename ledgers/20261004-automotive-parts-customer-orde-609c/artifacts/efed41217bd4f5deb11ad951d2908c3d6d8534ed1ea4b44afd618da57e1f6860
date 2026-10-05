@@ -1,0 +1,349 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "scope",
+      "difference": "D-1.1",
+      "text": "When can a customer see an invoice, and which invoices appear in their list?",
+      "options": [
+       "Invoices appear only once the order is Delivered (when they are created); customers then see all their company's invoices with payment status",
+       "Customers see a pending invoice from order confirmation onwards",
+       "Only the buyer who placed the order sees its invoice"
+      ],
+      "recommended": "Invoices appear only once the order is Delivered (when they are created); customers then see all their company's invoices with payment status",
+      "reason": "Invoices are created at Delivered, and the answer to Q-1 already gives company-wide visibility.",
+      "spans": [
+       "I-5",
+       "I-16"
+      ],
+      "impact": 2,
+      "impactReason": "Decides when customers can see invoices and what the invoice list shows."
+     },
+     {
+      "id": "Q-7",
+      "category": "roles",
+      "text": "Every buyer now sees all of their company's orders. Can a buyer cancel or repeat an order that a colleague placed?",
+      "options": [
+       "Any active buyer of the company can cancel (while Received) or repeat any company order",
+       "Buyers can view colleagues' orders but only cancel their own, though they can repeat any",
+       "Buyers can only cancel and repeat their own orders"
+      ],
+      "recommended": "Any active buyer of the company can cancel (while Received) or repeat any company order",
+      "reason": "This follows the company-wide visibility in the answer to Q-1 and needs no extra ownership rules.",
+      "spans": [
+       "I-15",
+       "I-14"
+      ],
+      "impact": 3,
+      "impactReason": "Decides who is allowed to change order state."
+     },
+     {
+      "id": "Q-8",
+      "category": "roles",
+      "text": "Are saved basket templates private to the buyer who made them or shared across the company?",
+      "options": [
+       "Templates are private to the buyer who created them",
+       "Templates are shared with all buyers of the same company"
+      ],
+      "recommended": "Templates are private to the buyer who created them",
+      "reason": "This is the simplest rule, and the request only asks for templates the buyer saves.",
+      "spans": [
+       "I-15",
+       "I-13"
+      ],
+      "impact": 2,
+      "impactReason": "Changes what users see in the templates list."
+     },
+     {
+      "id": "Q-9",
+      "category": "external",
+      "topic": "notifications",
+      "text": "Who receives the order emails (confirmation, quantity change, rejection, out for delivery), including for orders staff create?",
+      "options": [
+       "The buyer who placed the order; for staff-created orders, the company's contact email",
+       "All active buyers of the company",
+       "The company's contact email only"
+      ],
+      "recommended": "The buyer who placed the order; for staff-created orders, the company's contact email",
+      "reason": "The request says 'the buyer', and staff-created orders have no buyer.",
+      "spans": [
+       "I-14",
+       "I-13"
+      ],
+      "impact": 2,
+      "impactReason": "Decides who gets customer notifications."
+     },
+     {
+      "id": "Q-10",
+      "category": "data-model",
+      "text": "What happens when a product is not on the customer's assigned price list?",
+      "options": [
+       "The product is shown but marked as having no price and cannot be added to the basket",
+       "The product is hidden from that customer",
+       "The price falls back to the Standard price list"
+      ],
+      "recommended": "The product is shown but marked as having no price and cannot be added to the basket",
+      "reason": "It never shows a wrong price and needs no fallback rules.",
+      "spans": [
+       "I-3",
+       "I-11"
+      ],
+      "impact": 3,
+      "impactReason": "Affects prices and what can be ordered."
+     },
+     {
+      "id": "Q-11",
+      "category": "data-model",
+      "text": "What happens at checkout if the price changed after an item was added to the basket?",
+      "options": [
+       "Checkout shows the updated price and the customer must review it again before submitting",
+       "The order keeps the price from when the item was added"
+      ],
+      "recommended": "Checkout shows the updated price and the customer must review it again before submitting",
+      "reason": "The request includes a price-validation step and requires current price-list pricing.",
+      "spans": [
+       "I-13",
+       "I-11"
+      ],
+      "impact": 3,
+      "impactReason": "Sets the money stored on orders."
+     },
+     {
+      "id": "Q-12",
+      "category": "data-model",
+      "text": "Does placing an order hold or reduce the portal's stock figures?",
+      "options": [
+       "No reservation; checkout checks quantities against the latest imported stock and staff check again at confirmation",
+       "Ordered quantities are subtracted from the portal's stock figures until the next import"
+      ],
+      "recommended": "No reservation; checkout checks quantities against the latest imported stock and staff check again at confirmation",
+      "reason": "The portal only reads ERP stock, and the request asks for no reservation logic.",
+      "spans": [
+       "I-12",
+       "I-13"
+      ],
+      "impact": 3,
+      "impactReason": "Affects whether orders are accepted and what stock customers see."
+     },
+     {
+      "id": "Q-13",
+      "category": "identifiers",
+      "text": "How are the delivery-date timezone, the 14:00 cut-off and public holidays set?",
+      "options": [
+       "One configured timezone, a configurable cut-off time (default 14:00), and public holidays entered by admins as non-working dates",
+       "A fixed 14:00 cut-off and the server's timezone, with public holidays entered by admins",
+       "Public holidays loaded automatically from an external calendar"
+      ],
+      "recommended": "One configured timezone, a configurable cut-off time (default 14:00), and public holidays entered by admins as non-working dates",
+      "reason": "It reuses the 'configured non-working days' setting and needs no external service.",
+      "spans": [
+       "I-13"
+      ],
+      "impact": 3,
+      "impactReason": "Sets the delivery dates stored on orders."
+     },
+     {
+      "id": "Q-14",
+      "category": "identifiers",
+      "text": "How is 'Low stock' worked out?",
+      "options": [
+       "One global configurable threshold quantity",
+       "A threshold set per product",
+       "A fixed constant in code"
+      ],
+      "recommended": "One global configurable threshold quantity",
+      "reason": "This is the smallest rule that admins can still tune.",
+      "spans": [
+       "I-12",
+       "I-3"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the stock status customers see."
+     },
+     {
+      "id": "Q-15",
+      "category": "external",
+      "text": "How does the ERP stock CSV reach the portal?",
+      "options": [
+       "A nightly scheduled pickup from a configured folder or SFTP location",
+       "Admins upload it manually",
+       "Both a scheduled pickup and a manual admin upload"
+      ],
+      "recommended": "A nightly scheduled pickup from a configured folder or SFTP location",
+      "reason": "The request describes a scheduled nightly import.",
+      "spans": [
+       "I-12"
+      ],
+      "impact": 2,
+      "impactReason": "Defines the external integration."
+     },
+     {
+      "id": "Q-16",
+      "category": "errors",
+      "text": "If the stock file is otherwise valid but has rows with unknown product identifiers, what happens?",
+      "options": [
+       "Skip the unknown rows, import the rest, and log the skipped rows",
+       "Reject the whole file and keep the previous data"
+      ],
+      "recommended": "Skip the unknown rows, import the rest, and log the skipped rows",
+      "reason": "Stock data stays current, and full rejection is kept for corrupt or incomplete files.",
+      "spans": [
+       "I-12"
+      ],
+      "impact": 3,
+      "impactReason": "Decides whether stock data gets overwritten."
+     },
+     {
+      "id": "Q-17",
+      "category": "data-model",
+      "text": "Which order status changes are allowed, and up to which status can staff cancel an order?",
+      "options": [
+       "Forward one step at a time; staff can cancel from Received or Confirmed",
+       "Forward one step at a time; staff can cancel at any status before Delivered",
+       "Staff can set any status"
+      ],
+      "recommended": "Forward one step at a time; staff can cancel from Received or Confirmed",
+      "reason": "A strict sequence keeps the timeline and the invoice trigger consistent.",
+      "spans": [
+       "I-14"
+      ],
+      "impact": 3,
+      "impactReason": "Controls order state and when invoices are created."
+     },
+     {
+      "id": "Q-18",
+      "category": "data-model",
+      "text": "Do rejected orders need their own status?",
+      "options": [
+       "Use Cancelled with a recorded reason; no separate Rejected status",
+       "Add a separate Rejected status"
+      ],
+      "recommended": "Use Cancelled with a recorded reason; no separate Rejected status",
+      "reason": "The request already says rejected orders become Cancelled.",
+      "spans": [
+       "I-14"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the status values shown."
+     },
+     {
+      "id": "Q-19",
+      "category": "scope",
+      "text": "How long does a basket last?",
+      "options": [
+       "Saved per buyer on the server and kept across sessions",
+       "Kept for the browser session only"
+      ],
+      "recommended": "Kept for the browser session only",
+      "reason": "This meets 'persist if the customer navigates away' with the least work.",
+      "spans": [
+       "I-13"
+      ],
+      "impact": 2,
+      "impactReason": "Visible basket behaviour."
+     },
+     {
+      "id": "Q-20",
+      "category": "data-model",
+      "text": "Do the basket, checkout and order screens show tax?",
+      "options": [
+       "They show net totals with a note that tax is added on the invoice",
+       "They show net, tax and gross using the configured tax rate"
+      ],
+      "recommended": "They show net totals with a note that tax is added on the invoice",
+      "reason": "The answer to Q-4 only adds tax on the invoice.",
+      "spans": [
+       "I-13",
+       "I-16"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the totals customers see."
+     },
+     {
+      "id": "Q-21",
+      "category": "scope",
+      "topic": "reporting",
+      "text": "Which management reports are needed?",
+      "options": [
+       "Sales by period, sales by customer and top products, shown on screen with CSV export",
+       "Only the staff dashboard counts",
+       "Full ad-hoc reporting"
+      ],
+      "recommended": "Sales by period, sales by customer and top products, shown on screen with CSV export",
+      "reason": "This covers the 'basic sales and product reporting' the request asks for.",
+      "spans": [
+       "I-7"
+      ],
+      "impact": 2,
+      "impactReason": "A visible feature for management."
+     },
+     {
+      "id": "Q-22",
+      "category": "errors",
+      "topic": "sign-in",
+      "text": "How long do password-reset links and invitations last, and what happens if someone requests a reset while their account is locked?",
+      "options": [
+       "Reset links last 1 hour and invitations 7 days; admins can resend invitations; a reset is allowed during a lock and lifts the lock",
+       "The same expiry times, but resets are blocked until the lock ends",
+       "Links never expire"
+      ],
+      "recommended": "Reset links last 1 hour and invitations 7 days; admins can resend invitations; a reset is allowed during a lock and lifts the lock",
+      "reason": "These are common safe defaults that need no extra flows.",
+      "spans": [
+       "I-9"
+      ],
+      "impact": 2,
+      "impactReason": "Affects the sign-in flow and account access."
+     },
+     {
+      "id": "Q-23",
+      "category": "data-model",
+      "text": "Are categories flat or nested?",
+      "options": [
+       "Single-level categories",
+       "Nested categories (parent and child)"
+      ],
+      "recommended": "Single-level categories",
+      "reason": "The example categories are flat.",
+      "spans": [
+       "I-10",
+       "I-17"
+      ],
+      "impact": 2,
+      "impactReason": "Changes catalogue navigation."
+     },
+     {
+      "id": "Q-24",
+      "category": "external",
+      "text": "Where does vehicle compatibility data come from?",
+      "options": [
+       "Admins enter it manually in the admin tools",
+       "Admins import it by CSV upload",
+       "A third-party vehicle data provider"
+      ],
+      "recommended": "Admins enter it manually in the admin tools",
+      "reason": "The request only names admin management; anything else is an extra integration.",
+      "spans": [
+       "I-10",
+       "I-17"
+      ],
+      "impact": 2,
+      "impactReason": "Decides whether there is an external dependency and an admin flow."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

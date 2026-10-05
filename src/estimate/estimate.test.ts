@@ -4,7 +4,7 @@ import type { BreakdownTask } from "../contracts/index.js";
 import { evaluate } from "../gates/engine.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { DEFAULT_ASSUMPTIONS } from "./assumptions.js";
-import { confidenceFor, estimateApiCost, quantile, type BenchmarkRecord } from "./cost.js";
+import { apiCostByTask, confidenceFor, estimateApiCost, quantile, type BenchmarkRecord } from "./cost.js";
 import { gateHours, prCount } from "./gate-hours.js";
 import { effortHours, mergeEstimators, scale, sizeTasks } from "./hours.js";
 import { estimateWorkbookLint, lintEstimate } from "./lint.js";
@@ -132,6 +132,26 @@ describe("API credit cost", () => {
     expect(estimateApiCost({ planning: 1, build: 1 }, many, "hitl").confidence).toBe("cold-start");
   });
 
+  it("gives each task the factory builds its share of build and verification by hours, in cents that add up; a human task costs nothing", () => {
+    const c = estimateApiCost({ planning: 1, build: 3, verification: 3 }, [], "hitl");
+    const tasks = [
+      { taskId: "EST-1", executor: "factory", hours: { min: 2, max: 4 } },
+      { taskId: "EST-2", executor: "joint", hours: { min: 4, max: 8 } },
+      { taskId: "EST-3", executor: "factory", hours: { min: 1, max: 1 } },
+      { taskId: "EST-4", executor: "human", hours: { min: 10, max: 20 } },
+    ];
+    const per = apiCostByTask(c, tasks);
+    expect(per.get("EST-4")).toEqual({ min: 0, max: 0 });
+    const phase = (k: "min" | "max") => c.phases.filter((p) => p.phase === "build" || p.phase === "verification").reduce((s, p) => s + p.usd[k], 0);
+    for (const k of ["min", "max"] as const) expect([...per.values()].reduce((s, r) => s + r[k], 0)).toBeCloseTo(phase(k), 6);
+    // twice the hours, about twice the cost; never min over max
+    expect(per.get("EST-2")!.max).toBeCloseTo(per.get("EST-1")!.max * 2, 1);
+    for (const r of per.values()) expect(r.min).toBeLessThanOrEqual(r.max);
+    // no hours at all: an equal share
+    const flat = apiCostByTask(c, tasks.map((t) => ({ ...t, hours: { min: 0, max: 0 } })));
+    expect(flat.get("EST-1")!.max).toBeCloseTo(flat.get("EST-3")!.max, 1);
+  });
+
   it("interpolates quantiles", () => {
     expect(quantile([1, 2, 3, 4], 0.5)).toBe(2.5);
     expect(quantile([5], 0.9)).toBe(5);
@@ -234,6 +254,15 @@ describe("gate E6 (data level)", () => {
     // ... but it is what an estimate made before the median merge stored, and that one still passes
     const { merge: _, ...older } = widened;
     expect(lintEstimate(older as typeof e, { tasks: bTasks }).map((i) => i.check)).not.toContain("ratio");
+  });
+
+  it("checks that the tasks' API cost adds up to build and verification", () => {
+    const e = build();
+    const per = apiCostByTask(e.apiCost, e.tasks);
+    const priced = { ...e, tasks: e.tasks.map((t) => ({ ...t, apiUsd: per.get(t.taskId)! })) };
+    expect(lintEstimate(priced, { tasks: bTasks })).toEqual([]);
+    const cooked = { ...priced, tasks: priced.tasks.map((t) => (t.taskId === "EST-2" ? { ...t, apiUsd: { min: 50, max: 60 } } : t)) };
+    expect(lintEstimate(cooked, { tasks: bTasks }).map((i) => i.check)).toContain("cost-tasks");
   });
 
   it("flags confidence that outruns the data", () => {

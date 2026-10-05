@@ -20,6 +20,24 @@ async function newRun(runId = "20260927-test-abcd") {
 }
 
 describe("ledger", () => {
+  it("steps side by side: each is running until it ends, and active time counts the overlap once", () => {
+    const at = (sec: number) => new Date(Date.UTC(2026, 9, 5, 12, 0, sec)).toISOString();
+    const ev = (seq: number, sec: number, type: string, key?: string) => ({ seq, ts: at(sec), runId: "r", epoch: 0, type, ...(key ? { key } : {}) }) as never;
+    const evs = [
+      ev(0, 0, "run.created"),
+      ev(1, 0, "step.started", "drafts:m1/1"), ev(2, 10, "step.started", "drafts:m2/1"),
+      ev(3, 30, "step.completed", "drafts:m1/1"),
+    ];
+    const mid = replay(evs);
+    expect(mid.running.map((r) => r.step)).toEqual(["drafts:m2"]);
+    expect(mid.inFlight?.step).toBe("drafts:m2");
+    const end = replay([...evs, ev(4, 50, "step.completed", "drafts:m2/1")]);
+    expect(end.running).toEqual([]);
+    expect(end.inFlight).toBeUndefined();
+    // 0s to 50s with a step running: 50s, not 30 + 40
+    expect(end.activeMs).toBe(50_000);
+  });
+
   it("appends events with increasing seq and replays state", async () => {
     const l = await newRun();
     await l.append({ type: "step.started", key: eventKey("intake", 1) }, HUMAN_WRITER);

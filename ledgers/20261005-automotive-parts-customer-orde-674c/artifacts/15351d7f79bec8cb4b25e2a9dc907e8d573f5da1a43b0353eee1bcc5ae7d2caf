@@ -1,0 +1,100 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Activate your account",
+     "subtitle": "Set a password to start ordering parts for Halden Road Garage.",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Invitation from Northgate Motor Factors",
+       "text": "Priya Sandhu invited you as a buyer for Halden Road Garage (account HRG-0417). This link expires on 21 Mar 2026 at 09:42."
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Email",
+         "kind": "email",
+         "value": "m.okafor@haldenroadgarage.co.uk",
+         "readOnly": true,
+         "help": "This is the address your invitation was sent to."
+        },
+        {
+         "label": "Customer account",
+         "kind": "text",
+         "value": "Halden Road Garage · HRG-0417",
+         "readOnly": true
+        },
+        {
+         "label": "New password",
+         "kind": "password",
+         "placeholder": "At least 10 characters",
+         "required": true,
+         "help": "At least 10 characters, including a number.",
+         "error": "Use at least 10 characters, including a number."
+        },
+        {
+         "label": "Confirm password",
+         "kind": "password",
+         "placeholder": "Type it again",
+         "required": true,
+         "error": "The passwords don't match."
+        },
+        {
+         "label": "I agree to the Northgate trade terms and the portal's acceptable use policy.",
+         "kind": "consent",
+         "required": true,
+         "error": "Accept the trade terms to activate your account."
+        }
+       ],
+       "submit": "Activate account"
+      },
+      {
+       "actions": null,
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Already activated? Sign in",
+         "variant": "link"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Activate account",
+       "to": "S-5"
+      },
+      {
+       "from": "Already activated? Sign in",
+       "to": "S-1"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Activate account",
+       "text": "Account activated. Welcome to Northgate parts ordering.",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "validation": "Check the highlighted fields: set a password of at least 10 characters and accept the trade terms.",
+      "error": "This invitation link has expired. Invitations last 7 days. Ask your Northgate contact to send a new one.",
+      "success": "Your account is active. Taking you to the catalogue now."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,183 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "The buyer starts on Find parts. They search and filter the catalogue and add in-stock parts, and the cart count in the header goes up. The header cart link opens Cart and checkout, where they check current prices, fix quantities, enter an address and delivery option and place the order. After placing it they see the new order number with a link to My orders. On My orders they filter by status, open an order in the detail panel on the same page to follow its timeline, and can cancel it while it is still Placed. The empty states on the cart and orders pages link back to Find parts.",
+    "screens": [
+     {
+      "id": "S-1",
+      "route": "/parts",
+      "file": "src/pages/FindPartsPage.tsx",
+      "reqs": [
+       "REQ-1",
+       "REQ-2",
+       "REQ-3",
+       "REQ-4",
+       "REQ-5",
+       "REQ-6",
+       "REQ-7",
+       "REQ-8",
+       "REQ-9",
+       "REQ-10",
+       "REQ-36",
+       "REQ-37",
+       "REQ-38"
+      ],
+      "title": "Find parts",
+      "purpose": "Buyer searches by name or part number, filters by one category and one brand, pages through results 20 at a time (sorted A–Z) showing price and stock, and adds in-stock parts to the cart.",
+      "states": [
+       "loading",
+       "empty",
+       "error",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-2",
+      "route": "/cart",
+      "file": "src/pages/CartPage.tsx",
+      "reqs": [
+       "REQ-1",
+       "REQ-3",
+       "REQ-9",
+       "REQ-11",
+       "REQ-12",
+       "REQ-13",
+       "REQ-14",
+       "REQ-15",
+       "REQ-16",
+       "REQ-17",
+       "REQ-18",
+       "REQ-19",
+       "REQ-20",
+       "REQ-22",
+       "REQ-23",
+       "REQ-24",
+       "REQ-36",
+       "REQ-37",
+       "REQ-39",
+       "REQ-40",
+       "REQ-41",
+       "REQ-42",
+       "REQ-43"
+      ],
+      "title": "Cart and checkout",
+      "purpose": "Buyer reviews cart lines at current prices, adjusts or removes quantities with stock limits, enters delivery address and option, sees subtotal, delivery and total, and places the order.",
+      "states": [
+       "loading",
+       "empty",
+       "error",
+       "validation",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-3",
+      "route": "/orders",
+      "file": "src/pages/MyOrdersPage.tsx",
+      "reqs": [
+       "REQ-1",
+       "REQ-9",
+       "REQ-28",
+       "REQ-29",
+       "REQ-30",
+       "REQ-31",
+       "REQ-32",
+       "REQ-33",
+       "REQ-34",
+       "REQ-35",
+       "REQ-36",
+       "REQ-37"
+      ],
+      "title": "My orders",
+      "purpose": "Buyer lists their orders newest first, filters by status, and opens an order in the detail panel on the same page to see lines, address, delivery option, a status timeline and (while Placed) a Cancel order button.",
+      "states": [
+       "loading",
+       "empty",
+       "error",
+       "success"
+      ],
+      "size": "new"
+     }
+    ],
+    "noScreen": [
+     {
+      "req": "REQ-21",
+      "reason": "Server-side validation of the place-order request (400). The checkout form stops invalid input before it is sent, so the buyer never sees this rule. If it did happen, the buyer would see the general order-failed message already drawn on S-2."
+     },
+     {
+      "req": "REQ-25",
+      "reason": "Rule that the orders API leaves stock unchanged when an order is placed or cancelled. Nothing changes on screen."
+     },
+     {
+      "req": "REQ-27",
+      "reason": "Server-side check that a buyer only gets back their own orders. Nothing extra appears on screen; My orders just lists the buyer's own orders."
+     }
+    ],
+    "theme": {
+     "reading": {
+      "users": "Trade buyers in workshops and maintenance teams who reorder spare parts by part number",
+      "context": "Mostly at a workshop desk between jobs, sometimes on a phone at the bench; quick, repeat orders",
+      "device": "both",
+      "tone": "Plain, exact, trustworthy",
+      "hero": "Seeing at a glance whether a part is in stock and its price, then adding it in one press",
+      "traits": [
+       "Part numbers first",
+       "Stock always shown",
+       "Clear, honest totals",
+       "Works at 360 px"
+      ]
+     },
+     "basis": [
+      {
+       "ref": "Walmart",
+       "took": "Deep blue filled header with the cart count in it; the price is the heaviest text on a row"
+      },
+      {
+       "ref": "Amazon",
+       "took": "Dense results with filters above the list, one clear action button on each row"
+      },
+      {
+       "ref": "IKEA",
+       "took": "Sharp corners and a plain product grid on white, with no decoration"
+      }
+     ],
+     "mood": "precise trade counter",
+     "mode": "light",
+     "brand": "#1546B5",
+     "neutral": "cool",
+     "chrome": "brand",
+     "font": "sans",
+     "heading": "slab",
+     "mark": "emblem",
+     "radius": "sharp",
+     "density": "compact",
+     "surface": "soft",
+     "motion": "calm",
+     "fx": "modern",
+     "shell": "topbar",
+     "hero": "none",
+     "charts": "mono",
+     "imagery": "icons"
+    },
+    "refUse": [
+     {
+      "id": "requirements",
+      "use": "used",
+      "how": "Every requirement is mapped to one of the three screens the spec allows, or listed in noScreen with a reason"
+     }
+    ]
+   },
+   "ms": 6,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

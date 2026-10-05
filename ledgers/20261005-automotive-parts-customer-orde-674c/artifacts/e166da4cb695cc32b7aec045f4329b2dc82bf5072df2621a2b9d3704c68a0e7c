@@ -1,0 +1,435 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Product",
+     "subtitle": "Front brake pad set · Ford Focus Mk3 (2011–2018) · SKU BP-FF3-0412",
+     "crumbs": [
+      "Products",
+      "BP-FF3-0412"
+     ],
+     "badge": "Low stock",
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Imported quantity",
+         "value": "6 sets",
+         "delta": "−14 since last import"
+        },
+        {
+         "label": "Stock status",
+         "value": "Low stock",
+         "delta": "Threshold: 10 or fewer"
+        },
+        {
+         "label": "Last successful import",
+         "value": "Today 06:15",
+         "delta": "stock-0612.csv"
+        },
+        {
+         "label": "Price lists",
+         "value": "5",
+         "delta": "£32.90 – £46.08"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Price list",
+        "Customers",
+        "Unit price (ex VAT)",
+        "vs Trade",
+        "Status"
+       ],
+       "rows": [
+        [
+         "Trade standard",
+         "142",
+         "£38.40",
+         "—",
+         "Active"
+        ],
+        [
+         "Gold garages",
+         "37",
+         "£34.56",
+         "−10%",
+         "Active"
+        ],
+        [
+         "Fleet contract",
+         "6",
+         "£32.90",
+         "−14.3%",
+         "Active"
+        ],
+        [
+         "Independent workshops",
+         "58",
+         "£36.50",
+         "−4.9%",
+         "Active"
+        ],
+        [
+         "Retail counter",
+         "11",
+         "£46.08",
+         "+20%",
+         "Scheduled"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 2,
+       "sortDir": "asc"
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Customer company",
+         "kind": "combobox",
+         "value": "Harlow Motor Works",
+         "placeholder": "Type a company name or account no.",
+         "options": [
+          "Harlow Motor Works",
+          "Brennan & Sons Garage",
+          "Kestrel Fleet Services",
+          "Quayside Autos",
+          "Northgate Tyre & Exhaust"
+         ],
+         "help": "Price is taken from the company's assigned price list"
+        }
+       ],
+       "submit": "Show price"
+      },
+      {
+       "type": "detail",
+       "title": "Price for Harlow Motor Works",
+       "lead": {
+        "label": "Unit price (ex VAT)",
+        "value": "£34.56"
+       },
+       "rows": [
+        {
+         "label": "Account no.",
+         "value": "HMW-0087"
+        },
+        {
+         "label": "Assigned price list",
+         "value": "Gold garages"
+        },
+        {
+         "label": "Price list status",
+         "value": "Active",
+         "badge": true
+        },
+        {
+         "label": "Stock status",
+         "value": "Low stock · 6 sets",
+         "badge": true
+        },
+        {
+         "label": "Unit price inc VAT",
+         "value": "£41.47"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Edit product",
+         "variant": "primary",
+         "icon": "edit"
+        },
+        {
+         "label": "Stock imports",
+         "variant": "secondary"
+        },
+        {
+         "label": "Price lists",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Edit product",
+       "to": "S-28"
+      },
+      {
+       "from": "Stock imports",
+       "to": "S-32"
+      },
+      {
+       "from": "Price lists",
+       "to": "S-30"
+      },
+      {
+       "from": "Trade standard",
+       "to": "S-31"
+      },
+      {
+       "from": "Gold garages",
+       "to": "S-31"
+      },
+      {
+       "from": "Fleet contract",
+       "to": "S-31"
+      },
+      {
+       "from": "Independent workshops",
+       "to": "S-31"
+      },
+      {
+       "from": "Retail counter",
+       "to": "S-31"
+      }
+     ],
+     "copy": {
+      "error": "We couldn't load this product. The figures shown are from the last time it loaded.",
+      "emptyTitle": "No price lists include this product",
+      "emptyHint": "Add it to a price list so customers can see a price for it."
+     }
+    },
+    "mockFull": {
+     "title": "Product",
+     "subtitle": "Front brake pad set · Ford Focus Mk3 (2011–2018) · SKU BP-FF3-0412",
+     "crumbs": [
+      "Products",
+      "BP-FF3-0412"
+     ],
+     "badge": "Low stock",
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Imported quantity",
+         "value": "6 sets",
+         "delta": "−14 since last import"
+        },
+        {
+         "label": "Stock status",
+         "value": "Low stock",
+         "delta": "Threshold: 10 or fewer"
+        },
+        {
+         "label": "Last successful import",
+         "value": "Today 06:15",
+         "delta": "stock-0612.csv"
+        },
+        {
+         "label": "Price lists",
+         "value": "11",
+         "delta": "£31.20 – £46.08"
+        },
+        {
+         "label": "Previous import",
+         "value": "Yesterday 06:12",
+         "delta": "20 sets"
+        },
+        {
+         "label": "Customers priced",
+         "value": "318",
+         "delta": "across 11 lists"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Price list",
+        "Customers",
+        "Unit price (ex VAT)",
+        "vs Trade",
+        "Status"
+       ],
+       "rows": [
+        [
+         "Northern dealer group",
+         "3",
+         "£31.20",
+         "−18.8%",
+         "Active"
+        ],
+        [
+         "Fleet contract",
+         "6",
+         "£32.90",
+         "−14.3%",
+         "Active"
+        ],
+        [
+         "Fleet contract 2027",
+         "4",
+         "£33.10",
+         "−13.8%",
+         "Scheduled"
+        ],
+        [
+         "Gold garages",
+         "37",
+         "£34.56",
+         "−10%",
+         "Active"
+        ],
+        [
+         "Silver garages",
+         "29",
+         "£35.71",
+         "−7%",
+         "Active"
+        ],
+        [
+         "Body shop partners",
+         "14",
+         "£36.10",
+         "−6%",
+         "Active"
+        ],
+        [
+         "Independent workshops",
+         "58",
+         "£36.50",
+         "−4.9%",
+         "Active"
+        ],
+        [
+         "Trade standard",
+         "142",
+         "£38.40",
+         "—",
+         "Active"
+        ],
+        [
+         "Trade standard 2026",
+         "0",
+         "£37.20",
+         "−3.1%",
+         "Expired"
+        ],
+        [
+         "Motor factors resale",
+         "14",
+         "£39.90",
+         "+3.9%",
+         "Active"
+        ],
+        [
+         "Retail counter",
+         "11",
+         "£46.08",
+         "+20%",
+         "Scheduled"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 2,
+       "sortDir": "asc"
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Customer company",
+         "kind": "combobox",
+         "value": "Harlow Motor Works",
+         "placeholder": "Type a company name or account no.",
+         "options": [
+          "Harlow Motor Works",
+          "Brennan & Sons Garage",
+          "Kestrel Fleet Services",
+          "Quayside Autos",
+          "Northgate Tyre & Exhaust",
+          "Abbey Road Body Repairs",
+          "Pennine Commercials",
+          "M&J Autocentre"
+         ],
+         "help": "Price is taken from the company's assigned price list"
+        }
+       ],
+       "submit": "Show price"
+      },
+      {
+       "type": "detail",
+       "title": "Price for Harlow Motor Works",
+       "lead": {
+        "label": "Unit price (ex VAT)",
+        "value": "£34.56"
+       },
+       "rows": [
+        {
+         "label": "Account no.",
+         "value": "HMW-0087"
+        },
+        {
+         "label": "Assigned price list",
+         "value": "Gold garages"
+        },
+        {
+         "label": "Price list status",
+         "value": "Active",
+         "badge": true
+        },
+        {
+         "label": "Stock status",
+         "value": "Low stock · 6 sets",
+         "badge": true
+        },
+        {
+         "label": "Unit price inc VAT",
+         "value": "£41.47"
+        },
+        {
+         "label": "Saving vs Trade standard",
+         "value": "£3.84 per set (10%)"
+        },
+        {
+         "label": "Last ordered",
+         "value": "4 Jun 2026 · 2 sets"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Edit product",
+         "variant": "primary",
+         "icon": "edit"
+        },
+        {
+         "label": "Stock imports",
+         "variant": "secondary"
+        },
+        {
+         "label": "Price lists",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "We couldn't load this product. The figures shown are from the last time it loaded.",
+      "emptyTitle": "No price lists include this product",
+      "emptyHint": "Add it to a price list so customers can see a price for it."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

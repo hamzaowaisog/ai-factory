@@ -1,0 +1,536 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Price list",
+     "subtitle": "Trade A – Independent garages · GBP, prices exclude VAT",
+     "crumbs": [
+      "Catalogue",
+      "Price lists"
+     ],
+     "badge": "Active",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Trade A – Independent garages",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Active",
+         "badge": true
+        },
+        {
+         "label": "Currency",
+         "value": "GBP, excluding VAT"
+        },
+        {
+         "label": "Prices set",
+         "value": "412 products"
+        },
+        {
+         "label": "Assigned to",
+         "value": "38 customer companies"
+        },
+        {
+         "label": "Created",
+         "value": "Mark Oduya · 14 Jan 2025, 09:12"
+        },
+        {
+         "label": "Last changed",
+         "value": "Priya Shah · 3 Mar 2026, 16:40"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Rename",
+         "variant": "secondary",
+         "icon": "edit"
+        },
+        {
+         "label": "View companies",
+         "variant": "ghost"
+        },
+        {
+         "label": "Deactivate",
+         "variant": "danger"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Existing orders and invoices keep their prices",
+       "text": "Changing or removing a price here affects new orders only. Orders already placed and invoices already issued keep the unit prices they were saved with."
+      },
+      {
+       "type": "toolbar",
+       "search": "Search part no. or product",
+       "selects": [
+        {
+         "label": "Category",
+         "options": [
+          "All categories",
+          "Brakes",
+          "Filters",
+          "Clutch",
+          "Suspension",
+          "Ignition",
+          "Batteries"
+         ],
+         "value": "All categories"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Add price",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Export",
+         "variant": "secondary",
+         "icon": "download",
+         "menu": [
+          "CSV",
+          "Excel"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Product",
+        "Category",
+        "Price ex VAT",
+        "Last changed",
+        "Changed by"
+       ],
+       "rows": [
+        [
+         "BRK-1042",
+         "Front brake pads, Ford Focus Mk3",
+         "Brakes",
+         "£18.40",
+         "3 Mar 2026",
+         "Priya Shah"
+        ],
+        [
+         "FLT-2210",
+         "Oil filter, VW 1.6 TDI",
+         "Filters",
+         "£4.85",
+         "27 Feb 2026",
+         "Priya Shah"
+        ],
+        [
+         "CLT-0318",
+         "Clutch kit, Vauxhall Astra J",
+         "Clutch",
+         "£142.60",
+         "12 Feb 2026",
+         "Mark Oduya"
+        ],
+        [
+         "SUS-7731",
+         "Rear shock absorber, Toyota Yaris",
+         "Suspension",
+         "£39.95",
+         "30 Jan 2026",
+         "Mark Oduya"
+        ],
+        [
+         "IGN-0954",
+         "Spark plug set ×4, Renault Clio IV",
+         "Ignition",
+         "£21.30",
+         "18 Jan 2026",
+         "Helen Ward"
+        ],
+        [
+         "BAT-0075",
+         "Battery 075, 60Ah 540CCA",
+         "Batteries",
+         "£68.00",
+         "6 Jan 2026",
+         "Helen Ward"
+        ]
+       ],
+       "sortBy": 0,
+       "sortDir": "asc",
+       "pages": 17,
+       "page": 1
+      }
+     ],
+     "links": [
+      {
+       "from": "BRK-1042",
+       "to": "S-27"
+      },
+      {
+       "from": "FLT-2210",
+       "to": "S-27"
+      },
+      {
+       "from": "CLT-0318",
+       "to": "S-27"
+      },
+      {
+       "from": "SUS-7731",
+       "to": "S-27"
+      },
+      {
+       "from": "IGN-0954",
+       "to": "S-27"
+      },
+      {
+       "from": "BAT-0075",
+       "to": "S-27"
+      },
+      {
+       "from": "View companies",
+       "to": "S-20"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "modal",
+       "trigger": "Add price",
+       "title": "Add price to Trade A",
+       "text": "Each product can have one price on this list.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Product",
+           "kind": "combobox",
+           "placeholder": "Type a part no. or name",
+           "value": "BRK-2087 · Rear brake discs, VW Golf Mk7",
+           "required": true,
+           "error": "This product already has a price on this list. Edit it instead."
+          },
+          {
+           "label": "Price",
+           "kind": "currency",
+           "value": "GBP 34.75",
+           "required": true,
+           "help": "Excluding VAT. Applies to new orders only.",
+           "error": "Enter a price above £0.00"
+          }
+         ],
+         "submit": "Save price"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Save price",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "menu",
+       "trigger": "More",
+       "title": "BRK-1042",
+       "items": [
+        "Edit price",
+        "Remove price",
+        "View product"
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Remove price",
+       "title": "Remove price for BRK-1042?",
+       "text": "Front brake pads, Ford Focus Mk3 will no longer have a price on Trade A. Existing orders and invoices keep the prices they were saved with.",
+       "actions": [
+        {
+         "label": "Remove",
+         "variant": "danger"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Save price",
+       "text": "Price saved. New orders use £34.75 for BRK-2087",
+       "tone": "ok"
+      },
+      {
+       "after": "Remove",
+       "text": "Price removed for BRK-1042",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "Deactivate",
+       "text": "Trade A deactivated. It can no longer be assigned to companies",
+       "tone": "info",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No prices on this list yet",
+      "emptyHint": "Add a price for each product that companies on this list can order.",
+      "error": "Prices couldn't be loaded. Your saved changes are safe, so try again.",
+      "success": "Price saved. New orders use it; existing orders and invoices keep their prices.",
+      "validation": "Pick a product that isn't already on this list and enter a price above £0.00."
+     }
+    },
+    "mockFull": {
+     "title": "Price list",
+     "subtitle": "Trade A – Independent garages · GBP, prices exclude VAT",
+     "crumbs": [
+      "Catalogue",
+      "Price lists"
+     ],
+     "badge": "Active",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Trade A – Independent garages",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Active",
+         "badge": true
+        },
+        {
+         "label": "Currency",
+         "value": "GBP, excluding VAT"
+        },
+        {
+         "label": "Prices set",
+         "value": "412 products"
+        },
+        {
+         "label": "Assigned to",
+         "value": "38 customer companies"
+        },
+        {
+         "label": "Created",
+         "value": "Mark Oduya · 14 Jan 2025, 09:12"
+        },
+        {
+         "label": "Last changed",
+         "value": "Priya Shah · 3 Mar 2026, 16:40"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Rename",
+         "variant": "secondary",
+         "icon": "edit"
+        },
+        {
+         "label": "View companies",
+         "variant": "ghost"
+        },
+        {
+         "label": "Deactivate",
+         "variant": "danger"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Existing orders and invoices keep their prices",
+       "text": "Changing or removing a price here affects new orders only. Orders already placed and invoices already issued keep the unit prices they were saved with."
+      },
+      {
+       "type": "toolbar",
+       "search": "Search part no. or product",
+       "selects": [
+        {
+         "label": "Category",
+         "options": [
+          "All categories",
+          "Brakes",
+          "Filters",
+          "Clutch",
+          "Suspension",
+          "Ignition",
+          "Batteries",
+          "Cooling"
+         ],
+         "value": "All categories"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Add price",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Export",
+         "variant": "secondary",
+         "icon": "download",
+         "menu": [
+          "CSV",
+          "Excel"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Product",
+        "Category",
+        "Price ex VAT",
+        "Last changed",
+        "Changed by"
+       ],
+       "rows": [
+        [
+         "BAT-0075",
+         "Battery 075, 60Ah 540CCA",
+         "Batteries",
+         "£68.00",
+         "6 Jan 2026",
+         "Helen Ward"
+        ],
+        [
+         "BAT-0096",
+         "Battery 096, 70Ah 640CCA AGM",
+         "Batteries",
+         "£112.50",
+         "6 Jan 2026",
+         "Helen Ward"
+        ],
+        [
+         "BRK-1042",
+         "Front brake pads, Ford Focus Mk3",
+         "Brakes",
+         "£18.40",
+         "3 Mar 2026",
+         "Priya Shah"
+        ],
+        [
+         "BRK-2087",
+         "Rear brake discs (pair), VW Golf Mk7",
+         "Brakes",
+         "£34.75",
+         "3 Mar 2026",
+         "Priya Shah"
+        ],
+        [
+         "CLT-0318",
+         "Clutch kit, Vauxhall Astra J",
+         "Clutch",
+         "£142.60",
+         "12 Feb 2026",
+         "Mark Oduya"
+        ],
+        [
+         "CLT-0402",
+         "Dual-mass flywheel, Ford Transit Custom",
+         "Clutch",
+         "£389.00",
+         "12 Feb 2026",
+         "Mark Oduya"
+        ],
+        [
+         "COL-1150",
+         "Water pump, Peugeot 208 1.2 PureTech",
+         "Cooling",
+         "£47.20",
+         "22 Feb 2026",
+         "Priya Shah"
+        ],
+        [
+         "FLT-2210",
+         "Oil filter, VW 1.6 TDI",
+         "Filters",
+         "£4.85",
+         "27 Feb 2026",
+         "Priya Shah"
+        ],
+        [
+         "FLT-3304",
+         "Cabin air filter, Nissan Qashqai J11",
+         "Filters",
+         "£7.60",
+         "27 Feb 2026",
+         "Priya Shah"
+        ],
+        [
+         "IGN-0954",
+         "Spark plug set ×4, Renault Clio IV",
+         "Ignition",
+         "£21.30",
+         "18 Jan 2026",
+         "Helen Ward"
+        ],
+        [
+         "IGN-1120",
+         "Ignition coil pack, Ford 1.0 EcoBoost",
+         "Ignition",
+         "£58.90",
+         "18 Jan 2026",
+         "Helen Ward"
+        ],
+        [
+         "SUS-7731",
+         "Rear shock absorber, Toyota Yaris",
+         "Suspension",
+         "£39.95",
+         "30 Jan 2026",
+         "Mark Oduya"
+        ],
+        [
+         "SUS-7804",
+         "Front coil spring, BMW 3 Series F30",
+         "Suspension",
+         "£52.10",
+         "30 Jan 2026",
+         "Mark Oduya"
+        ]
+       ],
+       "sortBy": 0,
+       "sortDir": "asc",
+       "pages": 32,
+       "page": 1
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No prices on this list yet",
+      "emptyHint": "Add a price for each product that companies on this list can order.",
+      "error": "Prices couldn't be loaded. Your saved changes are safe, so try again.",
+      "success": "Price saved. New orders use it; existing orders and invoices keep their prices.",
+      "validation": "Pick a product that isn't already on this list and enter a price above £0.00."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

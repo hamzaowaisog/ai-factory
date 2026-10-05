@@ -1,0 +1,158 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-31",
+      "ears": "When the scheduled stock import finds a new ERP CSV file in the configured location that passes file validation, the portal shall replace the stored quantity and recalculate the stock status of each listed known product and record a successful import log entry with row counts.",
+      "op": "ADDED",
+      "sources": [
+       "I-12",
+       "I-3",
+       "ASM-7"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-31.1",
+        "given": "Threshold 10, products BP-1001 (quantity 4) and FL-200 (quantity 0) and a valid CSV listing BP-1001=25 and FL-200=3",
+        "when": "The stock import job runs",
+        "then": "The BP-1001 row has quantity 25 and status \"In stock\", the FL-200 row has quantity 3 and status \"Low stock\", and an import log record has status \"Success\" with rows-applied count 2",
+        "level": "job"
+       }
+      ]
+     },
+     {
+      "id": "REQ-33",
+      "ears": "If the scheduled stock import finds no new ERP CSV file since the last run, or the file is unreadable, empty, lacks a required column or contains a non-numeric or negative quantity, then the portal shall keep every previous stock quantity unchanged and record a failed import log entry with the failure reason.",
+      "op": "ADDED",
+      "sources": [
+       "I-12"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-33.1",
+        "given": "Stored quantity BP-100=12 and a CSV missing the quantity column",
+        "when": "The stock import job runs",
+        "then": "BP-100's stored quantity value is still 12 and an import log row has status \"Failed\" and a reason naming the missing column",
+        "level": "job"
+       },
+       {
+        "id": "AC-33.2",
+        "given": "Stored quantity BP-100=12 and a CSV where one row has quantity \"abc\" and another has BP-100=20",
+        "when": "The stock import job runs",
+        "then": "BP-100's stored quantity value is still 12 and the import log row has status \"Failed\" with a reason naming the bad row",
+        "level": "job"
+       },
+       {
+        "id": "AC-33.3",
+        "given": "An empty CSV file",
+        "when": "The stock import job runs",
+        "then": "No stored quantity value changes and the import log row has status \"Failed\"",
+        "level": "job"
+       },
+       {
+        "id": "AC-33.4",
+        "given": "No new CSV file has arrived at the configured location since the last run",
+        "when": "The stock import job runs",
+        "then": "An import log record has status \"Failed\" with reason \"file missing\" and no stored stock quantity value changes",
+        "level": "job"
+       }
+      ]
+     },
+     {
+      "id": "REQ-84",
+      "ears": "The portal shall store on every order, invoice, customer company, user, product, category and price list record who created it and when and who last changed it and when, and return these fields to administrators.",
+      "op": "ADDED",
+      "sources": [
+       "I-8",
+       "ASM-21"
+      ],
+      "stability": 1,
+      "acceptance": [
+       {
+        "id": "AC-84.1",
+        "given": "Product X created by admin1",
+        "when": "admin2 edits the product description and an administrator opens product X",
+        "then": "The returned createdBy value is admin1, lastChangedBy is admin2 and lastChangedAt equals the edit time, later than createdAt",
+        "level": "api"
+       },
+       {
+        "id": "AC-84.2",
+        "given": "Price list Fleet created by admin1",
+        "when": "admin1 changes a price on Fleet and an administrator opens Fleet",
+        "then": "The returned lastChangedBy value is admin1 with the change time",
+        "level": "api"
+       },
+       {
+        "id": "AC-84.3",
+        "given": "Company A created by admin1 and then edited by Administrator admin2",
+        "when": "An Administrator opens company A",
+        "then": "The returned createdBy field is admin1 and the lastChangedBy field is admin2",
+        "level": "api"
+       }
+      ]
+     }
+    ],
+    "removed": [
+     "REQ-81",
+     "NFR-1",
+     "NFR-3",
+     "NFR-4",
+     "NFR-5",
+     "NFR-6",
+     "NFR-7",
+     "NFR-8",
+     "NFR-9",
+     "NFR-10",
+     "NFR-11",
+     "NFR-12",
+     "NFR-13",
+     "NFR-14",
+     "NFR-15",
+     "NFR-17",
+     "NFR-18",
+     "NFR-19",
+     "NFR-20",
+     "NFR-21"
+    ],
+    "assumptions": [
+     "There is no existing code, so every requirement is ADDED. Endpoint paths in acceptance criteria only show the contract.",
+     "ASM-24 (Stripe card payments) conflicts with request section 32 (no online card payments in this phase). The spec follows the request: staff record payment manually with a payment date and the recording user.",
+     "Rejection HTTP status codes differ between drafts (e.g. 400 vs 410 for expired links, 400 vs 422 vs 409 for validation errors, 202 vs 200 for reset requests). d3 states codes are examples; the merged ACs use one code where drafts agree on the outcome, and the fixed rule is success or rejection with no record change on rejection.",
+     "The pending invitation status is called \"Pending\" (d1/d2) or \"Invited\" (d3); these are the same state.",
+     "An ERP file fails validation as a whole if it is missing, unreadable, empty, missing a required column, or has any non-numeric or negative quantity. Unknown product identifiers alone do not fail the file (ASM-6).",
+     "A scheduled import run that finds no new ERP file since the last run counts as a missing file: it logs a Failed import with reason \"file missing\" and changes no stock.",
+     "Stock import rows are matched by distributor product code until the client supplies the column layout (ASM-7). Products missing from a valid file keep their previous quantity; a product never imported counts as Out of stock.",
+     "Placing or confirming an order does not reduce imported stock; nothing is reserved.",
+     "Price or stock changes at checkout reject the submission and return current values; the order is never silently repriced.",
+     "Repeat order works for an order of any status and adds lines at their original quantity, capped at available stock and flagged when reduced.",
+     "Order and basket totals are net (tax-exclusive); tax and gross appear only on invoices (ASM-9). One currency with 2 decimal places.",
+     "A deactivated price list cannot be newly assigned. If a company has no assigned or an inactive price list, every product shows 'Price on request' (d3).",
+     "Only administrators create and edit customer companies, including their price list and active status (request sections 3.4 and 10); Office Staff search and view companies and manage delivery addresses (Q-7).",
+     "Search is a case-insensitive substring match; ranking is not specified.",
+     "Vehicle compatibility entries store a model-year range (from–to) (d1); d3 says model year.",
+     "Confirmation validation means every line is active and within available stock and the delivery address still exists.",
+     "A password reset request returns the same response whether or not the email exists.",
+     "The stock quantity limit (ASM-4) applies to Buyer baskets, staff-created order lines and staff amendments.",
+     "Staff removing an order line counts as a quantity change to 0 and triggers the amendment email (ASM-35). Staff cannot add new lines to Received orders.",
+     "Product images may be JPEG, PNG or WebP; ASM-29 sets the 10 MB limit.",
+     "Delivery list CSV columns are those in REQ-64 until the client confirms them.",
+     "The invoice date is the date the order became Delivered.",
+     "Management has no separate role; managers use Office Staff or Administrator accounts for the sales report.",
+     "Reactivating a user is allowed only while the user's company is active (d3 reading of 'where permitted')."
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}
