@@ -66,9 +66,18 @@ export class Tracer implements Trace {
     this.attempt = attempt;
   }
 
+  /** The trace as one step sees it, while other steps run beside it: its lines name it, whatever setStep says. */
+  forStep(step: string, attempt: number): Trace {
+    return { event: (kind, msg, data) => this.write(kind, msg, data, step, attempt), blob: (c) => this.blob(c), setStep() {} };
+  }
+
   event(kind: string, msg: string, data?: Record<string, unknown>): void {
+    this.write(kind, msg, data, this.step, this.attempt);
+  }
+
+  private write(kind: string, msg: string, data: Record<string, unknown> | undefined, step: string | undefined, attempt: number | undefined): void {
     const e: TraceEvent = {
-      ts: new Date().toISOString(), elapsedMs: Date.now() - this.started, step: this.step, attempt: this.attempt,
+      ts: new Date().toISOString(), elapsedMs: Date.now() - this.started, step, attempt,
       kind, msg: this.mask(msg), ...(data ? { data: JSON.parse(this.mask(JSON.stringify(data))) as Record<string, unknown> } : {}),
     };
     try {

@@ -56,6 +56,12 @@ let prompts: string[] = [];
 /** tool names each spec drafter got, and the critic's instructions */
 let drafterTools: string[][] = [];
 let criticSystems: string[] = [];
+/** effort each critic call ran at; merge calls made */
+let criticEfforts: (string | undefined)[] = [];
+let mergeCalls = 0;
+/** intake says medium risk and full rigor (no light lane); the critic raises a new high finding on every call */
+let fullRigor = false;
+let criticCalls = 0;
 /** a large document: two modules, each with its own intake span, no questions, four requirements in all */
 let modular = false;
 let intakeCalls = 0;
@@ -95,7 +101,7 @@ function answerFor(system: string): unknown {
     const mock = { title: "Open orders", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["Continue"] }], copy: {} };
     return { theme: { mood: "calm", brand: "#1f6feb", reading: { users: "clinic staff", context: "at a desk all day", device: "web", tone: "calm", hero: "the day's queue at a glance", traits: ["dense", "quiet"] }, basis: [{ ref: "Linear", took: "hairlines" }, { ref: "Stripe", took: "one blue action" }] }, ...d, screens: d.screens.map((x) => ({ mock, mockFull: mock, ...x })) };
   }
-  if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "sign in and export reports" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: ui };
+  if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "sign in and export reports" }], changeClass: "feature", risk: fullRigor ? "medium" : "low", riskTags: [], rigor: fullRigor ? "full" : "light", touchesUi: ui };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: "user signs in", kind: "happy" }, { text: "user exports a PDF", kind: "happy" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [] };
   if (system.includes("Requirements analyst")) return system.includes("already answered") ? { questions: [], conflicts: [] } : {
@@ -104,7 +110,7 @@ function answerFor(system: string): unknown {
   if (system.includes("State, as numbered")) return { sentences: [{ n: 1, text: "Users sign in." }, { n: 2, text: "Users export a PDF report." }] };
   if (system.includes("Map each restated")) return { mapping: [{ n: 1, spans: ["I-1"], answers: [] }, { n: 2, spans: ["I-1"], answers: [] }] };
   if (system.includes("Senior engineer writing a behaviour spec")) return draft;
-  if (system.includes("Adversarial reviewer")) return { findings: [] };
+  if (system.includes("Adversarial reviewer")) return { findings: fullRigor ? [{ rubric: 2, reqId: "REQ-1", severity: "high", finding: `missing lockout path (review ${++criticCalls})` }] : [] };
   if (system.includes("sizing the tasks")) return sizing;
   if (system.includes("turning a finished spec")) return ui ? withScreens(breakdown) : breakdown;
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
@@ -112,7 +118,8 @@ function answerFor(system: string): unknown {
 const provider: Provider = {
   start(_m, _e, system, _u, tools): Conversation {
     if (system.includes("Senior engineer writing a behaviour spec")) drafterTools.push(tools.map((t) => t.name));
-    if (system.includes("Adversarial reviewer")) criticSystems.push(system);
+    if (system.includes("Adversarial reviewer")) { criticSystems.push(system); criticEfforts.push(_e); }
+    if (system.includes("Merge three independent")) mergeCalls++;
     return { async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answerFor(system) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
@@ -134,6 +141,10 @@ beforeEach(() => {
   prompts = [];
   drafterTools = [];
   criticSystems = [];
+  criticEfforts = [];
+  mergeCalls = 0;
+  fullRigor = false;
+  criticCalls = 0;
   modular = false;
   intakeCalls = 0;
   ui = false;
@@ -225,6 +236,21 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     expect(v.factoryAssumptions).toEqual([expect.objectContaining({ id: "ASM-1", risk: "high" })]);
   });
 
+  it("writes one spec draft, repairs it once and runs a medium critic, on a full-rigor request", async () => {
+    fullRigor = true;
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true, humanReview: false } });
+    const r = await execute(runId);
+    expect(r.status, r.message).not.toBe("waiting");
+    const s = replay(Ledger.open(runId).events());
+    expect(s.steps.get("specify")?.status).toBe("completed");
+    // one draft, so the merge makes no model call; one repair, though every review found something new
+    expect(drafterTools).toHaveLength(2);
+    expect(mergeCalls).toBe(0);
+    expect(s.steps.get("merge")!.data).toMatchObject({ singleDraft: true });
+    expect(s.steps.get("specify")!.data).toMatchObject({ lane: "requirements", repairs: 1, openFindings: [expect.stringContaining("review 2")] });
+    expect(criticEfforts).toEqual(["medium", "medium"]);
+  });
+
   it("specifies a large document module by module, joins the modules, and estimates the whole", async () => {
     modular = true;
     const filler = "The system shall behave as described in this paragraph of the document. ".repeat(160);
@@ -243,6 +269,9 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     for (const step of ["intake:m1", "intake:m2", "intake", "clarify:m1", "clarify:m2", "clarify", "clarify-2", "drafts:m1", "specify:m1", "drafts:m2", "specify:m2", "specify", "breakdown", "estimate", "export"]) {
       expect(s.steps.get(step)?.status, step).toBe("completed");
     }
+    // the modules' spec chains ran side by side
+    const log = readFileSync(join(ledger.dir, "run.log"), "utf8");
+    for (const k of ["drafts", "merge", "specify"]) expect(log).toContain(`side by side: ${k}:m1, ${k}:m2`);
     // the joined spec carries both modules' requirements, numbered again
     const spec = ledger.getJson<{ requirements: { id: string }[] }>(s.steps.get("specify")!.outputs[0]!)!;
     expect(spec.requirements.map((q) => q.id)).toEqual(["REQ-1", "REQ-2", "REQ-3", "REQ-4"]);

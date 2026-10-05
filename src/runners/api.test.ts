@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { ContextPack } from "../contracts/index.js";
 import Anthropic from "@anthropic-ai/sdk";
-import { anthropicUserContent, ApiRunner, chatUserContent, openaiResponsesUserContent, RateLimitedError, transientAnthropic, type Conversation, type Provider, type Turn } from "./api.js";
+import { anthropicUserContent, ApiRunner, cachesConversation, chatUserContent, openaiResponsesUserContent, RateLimitedError, transientAnthropic, type Conversation, type Provider, type Turn } from "./api.js";
 import type { ModelImage } from "../util/image.js";
 import { sniffImage, toModelImage } from "../util/image.js";
 import { costUsd } from "./pricing.js";
@@ -111,6 +111,16 @@ describe("helpers", () => {
     expect(costUsd("ollama/qwen3.6", { inputTokens: 1_000_000, outputTokens: 1_000_000, cacheRead: 0, cacheWrite: 0 })).toBe(0);
     expect(family("claude-sonnet-5")).toBe("anthropic");
     expect(family("gpt-5.5")).toBe("openai");
+  });
+
+  it("caches the conversation only when a later turn reads it", () => {
+    const submit = { name: "submit_result", description: "", schema: {} };
+    const read = { name: "read_file", description: "", schema: {} };
+    // a one-turn briefing (only submit_result): no cache write at 1.25x
+    expect(cachesConversation([submit], 1)).toBe(false);
+    // a re-ask after a rejected answer, or a step that reads the repo, goes on: cache it
+    expect(cachesConversation([submit], 3)).toBe(true);
+    expect(cachesConversation([read, submit], 1)).toBe(true);
   });
 });
 

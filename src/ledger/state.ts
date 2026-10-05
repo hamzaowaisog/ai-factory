@@ -117,7 +117,10 @@ export interface RunState {
   info: RunInfo;
   status: RunStatus;
   steps: Map<StepKey, StepRecord>;
+  /** the step started last of those still running */
   inFlight?: { step: StepKey; attempt: number; seq: number };
+  /** every step still running: more than one while a run's modules write their specs side by side */
+  running: { step: StepKey; attempt: number; seq: number }[];
   openCard?: OpenCard;
   decisions: Decision[];
   gates: { gateId: string; passed: boolean; step?: StepKey; inputsHash?: string; safety?: boolean; seq: number }[];
@@ -149,6 +152,7 @@ export function replay(events: LedgerEvent[]): RunState {
     info: { ...(d as RunInfo), runId: first.runId, createdAt: first.ts },
     status: "created",
     steps: new Map(),
+    running: [],
     decisions: [],
     gates: [],
     costUsd: 0,
@@ -172,10 +176,15 @@ export function replay(events: LedgerEvent[]): RunState {
     return r;
   };
 
+  // active time is wall time with at least one step running, so steps side by side count once
   let startedAt: number | undefined;
   const closeActive = (ts: string) => {
     if (startedAt !== undefined) s.activeMs += Date.parse(ts) - startedAt;
-    startedAt = undefined;
+    startedAt = s.running.length ? Date.parse(ts) : undefined;
+  };
+  const stopped = (step: StepKey) => {
+    s.running = s.running.filter((x) => x.step !== step);
+    s.inFlight = s.running[s.running.length - 1];
   };
 
   for (const ev of events.slice(1)) {
@@ -188,7 +197,8 @@ export function replay(events: LedgerEvent[]): RunState {
         r.status = "running";
         r.attempts += 1;
         r.lastAttempt = attempt;
-        s.inFlight = { step, attempt, seq: ev.seq };
+        s.running = [...s.running.filter((x) => x.step !== step), { step, attempt, seq: ev.seq }];
+        s.inFlight = s.running[s.running.length - 1];
         if (s.status !== "delivered") s.status = "running";
         if (startedAt === undefined) startedAt = Date.parse(ev.ts);
         break;
@@ -204,7 +214,7 @@ export function replay(events: LedgerEvent[]): RunState {
         // the cost cap depends on these: class from intake, size from plan
         if (typeof data.changeClass === "string") s.info.changeClass = data.changeClass as ChangeClass;
         if (typeof data.complexity === "string") { s.info.complexity = data.complexity as Complexity; s.info.spendAtPlan = s.costUsd; }
-        s.inFlight = undefined;
+        stopped(step);
         closeActive(ev.ts);
         break;
       }
@@ -214,7 +224,7 @@ export function replay(events: LedgerEvent[]): RunState {
         r.status = "failed";
         r.failData = data;
         if (typeof data.signature === "string") r.failureSignatures.push(data.signature);
-        s.inFlight = undefined;
+        stopped(step);
         closeActive(ev.ts);
         break;
       }
@@ -224,7 +234,7 @@ export function replay(events: LedgerEvent[]): RunState {
         r.status = "interrupted";
         r.attempts -= 1; // interrupted attempts don't count toward the cap
         if (data.reason !== "waiting") r.interruptions += 1; // a human wait isn't a crash
-        s.inFlight = undefined;
+        stopped(step);
         startedAt = undefined; // crash time is unknown; don't count it
         break;
       }

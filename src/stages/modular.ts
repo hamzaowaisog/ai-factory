@@ -53,8 +53,9 @@ export function scoped(def: StepDef, modules: Module[], m: Module): StepDef {
 export const moduleIntakeSteps = (modules: Module[]): StepDef[] => modules.map((m) => scoped(intakeStep, modules, m));
 export const moduleClarifySteps = (modules: Module[], round: 1 | 2): StepDef[] => modules.map((m) => scoped(round === 1 ? clarifyStep : clarify2Step, modules, m));
 
+/** One spec chain per module; the chains run side by side (no step in them waits for a person). */
 export const moduleSteps = (modules: Module[]): StepDef[] =>
-  modules.flatMap((m) => [scoped(draftsStep, modules, m), scoped(mergeStep, modules, m), scoped(specifyStep, modules, m)]);
+  modules.flatMap((m) => [scoped(draftsStep, modules, m), scoped(mergeStep, modules, m), scoped(specifyStep, modules, m)].map((d) => ({ ...d, parallel: true })));
 
 // ---------- combine intake and clarify ----------
 
@@ -189,7 +190,7 @@ export function combineSpecsStep(modules: Module[]): StepDef {
         data: {
           modules: modules.map((m) => m.id), repairs: (d("repairs") as number[]).reduce((a, b) => a + (b ?? 0), 0),
           openFindings: (d("openFindings") as string[][]).flat().filter(Boolean), conflicts: (d("conflicts") as string[][]).flat().filter(Boolean),
-          manualUi: (d("manualUi") as string[][]).flat().filter(Boolean), lane: "full",
+          manualUi: (d("manualUi") as string[][]).flat().filter(Boolean), lane: [...new Set(d("lane").filter(Boolean))].join(", ") || "full",
         },
       };
     },

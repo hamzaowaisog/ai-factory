@@ -10,7 +10,7 @@ import { clarifications, type ClarifyResult } from "./clarify.js";
 import { lintSpec, OBSERVABLE_RULE, outOfScopeSpans, requestExcluded, sizeNote, type LintResult } from "./speclint.js";
 import { S, think, UNTRUSTED_NOTE, type ThinkSpec } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
-import { LANE, lightSpec } from "./lane.js";
+import { LANE, lightSpec, specLane } from "./lane.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -183,16 +183,16 @@ function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
 
 // ---------- steps ----------
 
-/** Three independent drafts: 2 × Opus + 1 × other family (Sonnet for a low-risk bugfix). The light lane writes one. */
+/** Three independent drafts: 2 × Opus + 1 × other family (Sonnet for a low-risk bugfix). The light and requirements lanes write one. */
 export const draftsStep: StepDef = {
-  key: "drafts", stage: "specify", templateVersion: "4",
+  key: "drafts", stage: "specify", templateVersion: "5",
   inputs: (s) => (s.steps.get("clarify-2")?.status === "completed"
     ? { intent: s.steps.get("intake")!.outputs[0], cb: s.steps.get("ground")!.outputs[0], c1: s.steps.get("clarify")!.outputs[0], c2: s.steps.get("clarify-2")!.outputs[0] } : undefined),
   async run(ctx) {
     const i = inputsOf(ctx);
     const lowBugfix = i.intent.changeClass === "bugfix" && i.intent.risk === "low";
     const light = lightSpec(i.intent);
-    const routes = (lowBugfix || light ? ["specify", "specify", "specify"] : ["specify", "specify", "specify-other"]).slice(0, light ? LANE.light.drafts : LANE.full.drafts);
+    const routes = (lowBugfix || light ? ["specify", "specify", "specify"] : ["specify", "specify", "specify-other"]).slice(0, specLane(i.intent, ctx.state.info.mode).drafts);
     const models = lowBugfix || light ? routes.map(() => "claude-sonnet-5") : [undefined, undefined, undefined];
     const rs = await Promise.all(routes.map((route, n) => think(ctx, {
       stage: "specify", route, model: models[n], cls: "read-large", budgetTokens: 30000, ...readTools(ctx), schema: DraftOut, maxTurns: 8,
@@ -295,13 +295,13 @@ export function problems(c: Checks): string[] {
   ];
 }
 
-/** Final spec: check, repair (one drafter, merged spec + findings) up to 3 times (once on the light lane). */
+/** Final spec: check, repair (one drafter, merged spec + findings) up to 3 times (once on the light and requirements lanes). */
 export const specifyStep: StepDef = {
-  key: "specify", stage: "specify", templateVersion: "5",
+  key: "specify", stage: "specify", templateVersion: "6",
   inputs: (s) => (s.steps.get("merge")?.status === "completed" ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s) } : undefined),
   async run(ctx) {
     const i = inputsOf(ctx);
-    const lane = lightSpec(i.intent) ? LANE.light : LANE.full;
+    const lane = specLane(i.intent, ctx.state.info.mode);
     const merged = requireOutput<{ spec: Spec; conflicts: string[]; singleDraft?: boolean }>(ctx.state, ctx.ledger, "merge");
     // stability is only measured across drafts: with one draft there's nothing to report
     const stable = (stab: Record<string, number | undefined>, id: string) => (merged.singleDraft ? undefined : stab[id] ?? 1 / 3);
@@ -386,7 +386,7 @@ Answer with the changes only, not the whole spec: "requirements" holds each requ
     return {
       kind: "done", outputs: { spec: specSha, critic: criticSha },
       data: { repairs, openFindings: problems(checks!), conflicts: merged.conflicts, ...(rejectedRepair ? { rejectedRepair } : {}),
-        ...(ctx.state.info.mode !== "estimate" && sizeNote(spec, i.intent.changeClass) ? { sizeNote: sizeNote(spec, i.intent.changeClass) } : {}), manualUi: [...manualUi], lane: lane === LANE.light ? "light" : "full" },
+        ...(ctx.state.info.mode !== "estimate" && sizeNote(spec, i.intent.changeClass) ? { sizeNote: sizeNote(spec, i.intent.changeClass) } : {}), manualUi: [...manualUi], lane: lane.name },
     };
   },
 };

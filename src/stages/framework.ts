@@ -38,6 +38,8 @@ export interface StepContext {
   trace: Trace;
   /** record model usage as it happens */
   usage: (u: Usage & { model: string }) => Promise<void>;
+  /** steps running side by side, this one included; each gets its share of what's left of the run's cost limit */
+  share?: number;
 }
 
 export interface StepDef {
@@ -50,6 +52,8 @@ export interface StepDef {
   model?(ctx: Pick<StepContext, "project" | "rung">): string | undefined;
   templateVersion: string;
   coding?: boolean;
+  /** may run side by side with the other parallel steps next to it in the run (one module's spec chain beside another's) */
+  parallel?: boolean;
   run(ctx: StepContext): Promise<StepOutcome>;
 }
 

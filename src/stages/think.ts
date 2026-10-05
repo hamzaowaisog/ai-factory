@@ -123,7 +123,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
   const r = await runner.run({
     step: spec.stage, model, effort, pack, schema: spec.schema,
     // never more than what's left of the run's cost limit
-    limits: { maxTurns: spec.maxTurns ?? 8, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), spec.maxUsd ?? 2), timeoutSec: spec.timeoutSec ?? 900 },
+    limits: { maxTurns: spec.maxTurns ?? 8, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), spec.maxUsd ?? 2, ctx.share), timeoutSec: spec.timeoutSec ?? 900 },
   });
   if (r.status === "ok") {
     if (key) cachePut({ key, step: spec.stage, route: spec.route, model, runId: ctx.runId, createdAt: new Date().toISOString(), output: r.output });

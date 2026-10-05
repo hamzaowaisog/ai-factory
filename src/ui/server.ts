@@ -2,7 +2,8 @@
 // It can NEVER approve a plan, waive, unlock, steer, pause or stop: those decisions are TTY-only
 // (ledger/human.ts), so no AI or script can approve its own plan. Three exceptions, each needing a typed name
 // and the card's hash: the lead's approve or reject of an estimate card, the same on a design card (E1b), and
-// the answers to a clarification question card (so a run never stops waiting for a second command). Exporting an
+// the answers to a clarification question card (so a run never stops waiting for a second command). Resuming a parked run
+// (POST /api/runs/:id/resume) decides nothing: it is `factory resume`, and the run stops again at its next card. Exporting an
 // approved design (POST /api/runs/:id/exports) only writes files under the run's own exports/ folder, and generating its
 // scaffold (POST /api/runs/:id/scaffold) only under the run's own scaffold/ folder.
 // Other cards are shown read-only with the terminal command to paste.
@@ -20,7 +21,7 @@ import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
-import { answerEstimateQuestions, checkRefs, decideEstimate, startRun, StartError, type StartDeps } from "./start.js";
+import { answerEstimateQuestions, checkRefs, decideEstimate, resumeRun, startRun, StartError, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
 import { figmaPluginZip } from "../design/figma.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
@@ -126,6 +127,19 @@ export const ROUTES: readonly Route[] = [
       if (!l) return notFound(`No run ${id}`);
       try {
         return { status: 200, json: await answerEstimateQuestions(l, (body ?? {}) as Record<string, unknown>, deps) };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/resume", what: "resume a parked run in the background, like factory resume (parked runs only; a paused run is resumed in the terminal)",
+    handle: async ({ id }, _b, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await resumeRun(l, deps) };
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };

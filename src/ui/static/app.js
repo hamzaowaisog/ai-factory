@@ -40,6 +40,7 @@ const ICONS = {
   loop: [["path", { d: "M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5" }]],
   alert: [["path", { d: "M12 3.5l9.5 16.5h-19z" }], ["path", { d: "M12 10v4M12 17.3v.2" }]],
   pause: [["path", { d: "M9 6v12M15 6v12" }]],
+  play: [["path", { d: "M8 5.5v13l10-6.5z" }]],
   terminal: [["rect", { x: 3, y: 4, width: 18, height: 16, rx: 2.5 }], ["path", { d: "M7 9.5l3 2.5-3 2.5M12.5 15H17" }]],
   clock: [["circle", { cx: 12, cy: 12, r: 9 }], ["path", { d: "M12 7.5V12l3 2" }]],
   dollar: [["path", { d: "M12 3v18M16.5 7.5c0-1.9-2-3-4.5-3s-4.5 1.2-4.5 3.2c0 4.3 9 2.3 9 6.8 0 2-2 3.5-4.5 3.5S7.5 18 7.5 16" }]],
@@ -832,10 +833,21 @@ function deliveredPanel(r) {
 }
 
 function parkedPanel(r) {
+  const msg = h("p", { class: "small", role: "status" });
+  const resume = h("button", { class: "btn", type: "button" }, icon("play"), "Resume run");
+  resume.addEventListener("click", async () => {
+    resume.disabled = true;
+    msg.textContent = "";
+    try {
+      await api(`/api/runs/${encodeURIComponent(r.runId)}/resume`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      msg.textContent = "Resuming: the run goes on from where it parked.";
+    } catch (err) { msg.textContent = err.message; resume.disabled = false; }
+  });
   return h("section", { class: "callout bad" }, icon("alert"), h("div", {},
     h("strong", {}, "Parked: a person needs to look"),
-    h("p", {}, "The reason is shown on the pipeline above. Nothing runs until someone resumes it."),
-    h("p", { class: "small" }, "In your terminal: ", h("code", {}, `factory report ${r.runId}`), " · ", h("code", {}, `factory logs ${r.runId}`))));
+    h("p", {}, "The reason is shown on the pipeline above. Fix what it parked on first (for example, top up the API credit), then resume: the run goes on from where it stopped."),
+    h("div", { class: "row" }, resume), msg,
+    h("p", { class: "small" }, "In your terminal: ", h("code", {}, `factory resume ${r.runId}`), " · ", h("code", {}, `factory report ${r.runId}`), " · ", h("code", {}, `factory logs ${r.runId}`))));
 }
 
 function tracePanel(r) {

@@ -41,6 +41,15 @@ export interface Provider {
 
 const imageLabel = (i: number) => `Image ${i + 1}:`;
 
+/**
+ * Cache the conversation only when a later turn will read it back: a step with repo tools, or any turn after the first.
+ * A briefing with only submit_result is answered in one turn, and writing it costs 1.25x input for nothing: on the
+ * 2026-10-05 estimate run every call wrote its whole briefing (580K Opus tokens) and read back only the system prompt.
+ */
+export function cachesConversation(tools: ToolSpec[], messages: number): boolean {
+  return messages > 1 || tools.some((t) => t.name !== SUBMIT);
+}
+
 /** Anthropic: each image after its label, then the briefing (images before the text that refers to them). */
 export function anthropicUserContent(user: string, images: ModelImage[] = []): string | Anthropic.ContentBlockParam[] {
   if (!images.length) return user;
@@ -140,7 +149,7 @@ export class AnthropicProvider implements Provider {
             // effort is rejected by Haiku 4.5 and older models
             ...(supportsEffort(model) ? { output_config: { effort: effort ?? "high" } } : {}),
             // cache the conversation as it grows, so each tool turn re-reads it at the cached price
-            cache_control: { type: "ephemeral" },
+            ...(cachesConversation(tools, messages.length) ? { cache_control: { type: "ephemeral" } } : {}),
             messages,
           } as Anthropic.MessageStreamParams).finalMessage();
         } catch (e) {

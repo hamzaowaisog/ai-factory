@@ -162,18 +162,44 @@ export function stepDone(state: RunState, step: Pick<StepDef, "key" | "templateV
   return { hash, done: earlierVersions(step.templateVersion).some((v) => canSkip(state, step.key, v === step.templateVersion ? hash : hashAt(v))) };
 }
 
+/** A step's state now: undefined inputs when it isn't ready. */
+function pending(state: RunState, ledger: Ledger, project: ProjectConfig, step: StepDef): { inp?: Record<string, unknown>; hash: string; done: boolean } {
+  const inp = step.inputs(state, ledger);
+  if (!inp) return { hash: "", done: false };
+  let model: string | undefined;
+  try { model = routeFor(project, step.stage).model; } catch { model = undefined; }
+  return { inp, ...stepDone(state, step, inp, model) };
+}
+
 /** Pure: the first step whose recorded inputsHash doesn't match its current inputs. */
 export function next(state: RunState, ledger: Ledger, project: ProjectConfig): NextStep {
   for (const step of stepsFor(state)) {
-    const inp = step.inputs(state, ledger);
-    if (!inp) return { kind: "blocked", step: step.key };
-    let model: string | undefined;
-    try { model = routeFor(project, step.stage).model; } catch { model = undefined; }
-    const { hash, done } = stepDone(state, step, inp, model);
-    if (done) continue;
-    return { kind: "run", step, hash };
+    const p = pending(state, ledger, project, step);
+    if (!p.inp) return { kind: "blocked", step: step.key };
+    if (p.done) continue;
+    return { kind: "run", step, hash: p.hash };
   }
   return { kind: "done" };
+}
+
+/** At most this many steps run side by side (a request splits into at most a few modules). */
+export const MAX_SIDE_BY_SIDE = 4;
+
+/**
+ * Pure: the next step and the parallel steps after it that are ready now, up to the first step that isn't parallel. A run's
+ * modules write their specs side by side: one module's chain took 22 min on the 2026-10-05 run, and three ran one after another.
+ */
+export function nextBatch(state: RunState, ledger: Ledger, project: ProjectConfig, max = MAX_SIDE_BY_SIDE): { step: StepDef; hash: string }[] {
+  const out: { step: StepDef; hash: string }[] = [];
+  for (const step of stepsFor(state)) {
+    if (out.length && !step.parallel) break;
+    const p = pending(state, ledger, project, step);
+    if (!p.inp) { if (out.length) continue; break; }
+    if (p.done) continue;
+    out.push({ step, hash: p.hash });
+    if (!step.parallel || out.length >= max) break;
+  }
+  return out;
 }
 
 /** Failed attempts of a step since it last completed (a changed input starts a fresh ladder). */
@@ -218,19 +244,112 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
   const writer = lock;
   const warned = new Set<string>();
   let completed = 0;
+  /** Run one step and record its outcome; an ExecuteResult when the run stops here, undefined to go on. */
+  async function runStep(state: RunState, step: StepDef, hash: string, share: number): Promise<ExecuteResult | undefined> {
+    const rec = state.steps.get(step.key);
+    const attempt = (rec?.lastAttempt ?? 0) + 1;
+    const history = attemptHistory(ledger, step.key);
+    const lastFail = [...ledger.events()].reverse().find((e) => e.type === "step.failed" && e.key && splitKey(e.key).step === step.key);
+    const rung = history.length ? Number((lastFail?.data as { nextRung?: number } | undefined)?.nextRung ?? 0) : 0;
+    const priorFailures: Failure[] = history.length && lastFail?.outputs?.[0] ? ledger.getJson<Failure[]>(lastFail.outputs[0]) : [];
+    const key = eventKey(step.key, attempt);
+    const t = share > 1 ? trace.forStep(step.key, attempt) : trace;
+    if (share === 1) trace.setStep(step.key, attempt);
+    const slog = (msg: string) => t.event("log", msg);
+    let spent = 0;
+    await ledger.append({ type: "step.started", key, inputsHash: hash, data: { rung } }, writer);
+    slog(`▶ ${step.key} (attempt ${attempt}${rung ? `, rung ${rung}` : ""})`);
+
+    const ctx: StepContext = {
+      runId, ledger, writer, state, project, policy, attempt, rung, priorFailures, log: slog, trace: t, share,
+      usage: async (u) => {
+        spent += u.estUsd;
+        await ledger.append({ type: "usage", key, data: {
+          "gen_ai.request.model": u.model, "gen_ai.usage.input_tokens": u.inputTokens, "gen_ai.usage.output_tokens": u.outputTokens,
+          "gen_ai.usage.cache_read_tokens": u.cacheRead, "gen_ai.usage.cache_write_tokens": u.cacheWrite, "gen_ai.usage.cost_usd": u.estUsd,
+        } }, writer);
+      },
+    };
+    let outcome: StepOutcome;
+    try {
+      outcome = await withPolicy(policy, () => step.run(ctx));
+    } catch (e) {
+      const msg = (e as Error).message;
+      slog(`  error: ${msg}`);
+      outcome = { kind: "fail", category: /rate limit|overloaded|529|429/i.test(msg) ? "rate-limit" : "other", failures: [{ check: "exception", message: msg.slice(0, 1000), frames: [] }], signature: `exception:${msg.slice(0, 120)}` };
+    }
+
+    switch (outcome.kind) {
+      case "done": {
+        const named = outcome.outputs;
+        const treeSha = outcome.treeSha && /^[0-9a-f]{40}$/.test(outcome.treeSha) ? outcome.treeSha : undefined;
+        await ledger.append({ type: "step.completed", key, inputsHash: hash, treeSha, outputs: Object.values(named), data: { ...(outcome.data ?? {}), named } }, writer);
+        completed++;
+        const after = replay(ledger.events()).costUsd;
+        // beside other steps, the run's total grew by theirs too
+        slog(`✓ ${step.key} ($${(share > 1 ? spent : after - state.costUsd).toFixed(2)}, total $${after.toFixed(2)})`);
+        if (step.key === "deliver") {
+          await ledger.append({ type: "run.delivered", data: outcome.data ?? {} }, writer);
+          dropBuildCache(runId);
+          const d = outcome.data as { local?: boolean; branch?: string; prUrl?: string };
+          return { status: "delivered", message: d.local ? `Ready locally on branch ${d.branch}. PR text: factory show-card ${runId} --pr` : `PR opened: ${d.prUrl}` };
+        }
+        break;
+      }
+      case "wait": {
+        const c = outcome.card;
+        ledger.writeCard(c.cardId, c.markdown);
+        await ledger.append({ type: "step.interrupted", key, data: { reason: "waiting" } }, writer);
+        await ledger.append({ type: "human.requested", data: { ...(c.extra ?? {}), cardId: c.cardId, kind: c.kind, artifactSha: c.artifactSha, step: step.key, deadline: c.deadline, defaultDecision: c.defaultDecision } }, writer);
+        return { status: "waiting", message: `A card needs you: factory show-card ${runId}` };
+      }
+      case "park":
+        await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
+        await ledger.append({ type: "run.parked", data: { reason: outcome.reason, step: step.key } }, writer);
+        return { status: "parked", message: outcome.reason };
+      case "close":
+        await ledger.append({ type: "step.failed", key, data: { category: "other", signature: outcome.reason, rung } }, writer);
+        await ledger.append({ type: "run.closed", data: { reason: outcome.reason } }, writer);
+        dropBuildCache(runId);
+        return { status: `closed: ${outcome.reason}`, message: outcome.reason };
+      case "fail": {
+        const rec2: AttemptRecord = { category: outcome.category, signature: outcome.signature ?? sha256(JSON.stringify(outcome.failures)).slice(0, 16), diffSha: outcome.diffSha, rung, lockedFailedIds: outcome.lockedFailedIds };
+        const backoffSpent = history.reduce((n2, h) => n2 + Number((h as { waitMs?: number }).waitMs ?? 0), 0);
+        const action: LadderAction = nextOnFailure([...history, rec2], {
+          // policy.retryBudget (default 6; a trial project can say 2)
+          ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, step.stage, policy.localOnly), backoffSpentMs: backoffSpent, a5Done: new Set(),
+        });
+        const failuresSha = ledger.putJson(outcome.failures.slice(0, 20));
+        await ledger.append({
+          type: "step.failed", key, outputs: [failuresSha],
+          data: { ...(outcome.data ?? {}), ...rec2, action: action.action, nextRung: action.action === "retry" ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason },
+        }, writer);
+        slog(`✗ ${step.key}: ${outcome.failures.slice(0, 2).map((f) => f.message).join("; ").slice(0, 300)} → ${action.action}`);
+        if (action.action === "park") { await ledger.append({ type: "run.parked", data: { reason: `${step.key}: ${action.reason}`, step: step.key } }, writer); return { status: "parked", message: `${step.key}: ${action.reason}. Last failure: ${outcome.failures[0]?.message ?? ""}` }; }
+        if (action.action === "a5-check") {
+          const reason = `Locked tests ${action.testIds.join(", ")} failed twice. Either the code or the test is wrong; the test-defect check and unlock card aren't built yet, so a human needs to look.`;
+          await ledger.append({ type: "run.parked", data: { reason, step: step.key } }, writer);
+          return { status: "parked", message: reason };
+        }
+        if (action.action === "backoff") { slog(`  waiting ${Math.round(action.waitMs / 1000)}s (rate limit)`); await new Promise((r) => setTimeout(r, action.waitMs)); }
+        break;
+      }
+    }
+    return undefined;
+  }
+
   trace.startHeartbeat();
   trace.event("run", `executor started (pid ${process.pid})`);
   try {
     state = replay(ledger.events());
     // crash recovery: an unfinished step becomes interrupted; its containers are removed
-    if (state.inFlight) {
-      const { step, attempt } = state.inFlight;
-      log(`resuming: ${step} attempt ${attempt} was interrupted`);
+    if (state.running.length) {
+      log(`resuming: ${state.running.map((r) => `${r.step} attempt ${r.attempt}`).join(", ")} ${state.running.length > 1 ? "were" : "was"} interrupted`);
       try {
         const rt = runtime();
         for (const c of await rt.listByLabel("factory.run", runId)) { await rt.stop(c.id, 2); await rt.remove(c.id); }
       } catch { /* no runtime available: nothing to clean */ }
-      await ledger.append({ type: "step.interrupted", key: eventKey(step, attempt) }, writer);
+      for (const { step, attempt } of state.running) await ledger.append({ type: "step.interrupted", key: eventKey(step, attempt) }, writer);
     }
     if (state.status === "parked" || state.status === "paused") await ledger.append({ type: "run.resumed" }, writer);
 
@@ -268,96 +387,18 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
       const n = next(state, ledger, project);
       if (n.kind === "done") return { status: String(state.status), message: "All steps done." };
       if (n.kind === "blocked") throw new Error(`Step ${n.step} isn't ready but nothing before it is pending (bug)`);
+      let batch = n.step.parallel ? nextBatch(state, ledger, project) : [{ step: n.step, hash: n.hash }];
       if (opts.until) {
         const keys = stepsFor(state).map((s) => s.key);
         if (!keys.includes(opts.until)) throw new Error(`No step "${opts.until}" in this run`);
         if (keys.indexOf(n.step.key) > keys.indexOf(opts.until)) return { status: "until", message: `Stopped before ${n.step.key}: ${opts.until} is done.` };
+        batch = batch.filter((b) => keys.indexOf(b.step.key) <= keys.indexOf(opts.until!));
       }
-
-      const rec = state.steps.get(n.step.key);
-      const attempt = (rec?.lastAttempt ?? 0) + 1;
-      const history = attemptHistory(ledger, n.step.key);
-      const lastFail = [...ledger.events()].reverse().find((e) => e.type === "step.failed" && e.key && splitKey(e.key).step === n.step.key);
-      const rung = history.length ? Number((lastFail?.data as { nextRung?: number } | undefined)?.nextRung ?? 0) : 0;
-      const priorFailures: Failure[] = history.length && lastFail?.outputs?.[0] ? ledger.getJson<Failure[]>(lastFail.outputs[0]) : [];
-      const key = eventKey(n.step.key, attempt);
-      trace.setStep(n.step.key, attempt);
-      await ledger.append({ type: "step.started", key, inputsHash: n.hash, data: { rung } }, writer);
-      log(`▶ ${n.step.key} (attempt ${attempt}${rung ? `, rung ${rung}` : ""})`);
-
-      const ctx: StepContext = {
-        runId, ledger, writer, state, project, policy, attempt, rung, priorFailures, log, trace,
-        usage: async (u) => {
-          await ledger.append({ type: "usage", key, data: {
-            "gen_ai.request.model": u.model, "gen_ai.usage.input_tokens": u.inputTokens, "gen_ai.usage.output_tokens": u.outputTokens,
-            "gen_ai.usage.cache_read_tokens": u.cacheRead, "gen_ai.usage.cache_write_tokens": u.cacheWrite, "gen_ai.usage.cost_usd": u.estUsd,
-          } }, writer);
-        },
-      };
-      let outcome: StepOutcome;
-      try {
-        outcome = await withPolicy(policy, () => n.step.run(ctx));
-      } catch (e) {
-        const msg = (e as Error).message;
-        log(`  error: ${msg}`);
-        outcome = { kind: "fail", category: /rate limit|overloaded|529|429/i.test(msg) ? "rate-limit" : "other", failures: [{ check: "exception", message: msg.slice(0, 1000), frames: [] }], signature: `exception:${msg.slice(0, 120)}` };
-      }
-
-      switch (outcome.kind) {
-        case "done": {
-          const named = outcome.outputs;
-          const treeSha = outcome.treeSha && /^[0-9a-f]{40}$/.test(outcome.treeSha) ? outcome.treeSha : undefined;
-          await ledger.append({ type: "step.completed", key, inputsHash: n.hash, treeSha, outputs: Object.values(named), data: { ...(outcome.data ?? {}), named } }, writer);
-          completed++;
-          const after = replay(ledger.events()).costUsd;
-          log(`✓ ${n.step.key} ($${(after - state.costUsd).toFixed(2)}, total $${after.toFixed(2)})`);
-          if (n.step.key === "deliver") {
-            await ledger.append({ type: "run.delivered", data: outcome.data ?? {} }, writer);
-            dropBuildCache(runId);
-            const d = outcome.data as { local?: boolean; branch?: string; prUrl?: string };
-            return { status: "delivered", message: d.local ? `Ready locally on branch ${d.branch}. PR text: factory show-card ${runId} --pr` : `PR opened: ${d.prUrl}` };
-          }
-          break;
-        }
-        case "wait": {
-          const c = outcome.card;
-          ledger.writeCard(c.cardId, c.markdown);
-          await ledger.append({ type: "step.interrupted", key, data: { reason: "waiting" } }, writer);
-          await ledger.append({ type: "human.requested", data: { ...(c.extra ?? {}), cardId: c.cardId, kind: c.kind, artifactSha: c.artifactSha, step: n.step.key, deadline: c.deadline, defaultDecision: c.defaultDecision } }, writer);
-          return { status: "waiting", message: `A card needs you: factory show-card ${runId}` };
-        }
-        case "park":
-          await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
-          await ledger.append({ type: "run.parked", data: { reason: outcome.reason, step: n.step.key } }, writer);
-          return { status: "parked", message: outcome.reason };
-        case "close":
-          await ledger.append({ type: "step.failed", key, data: { category: "other", signature: outcome.reason, rung } }, writer);
-          await ledger.append({ type: "run.closed", data: { reason: outcome.reason } }, writer);
-          dropBuildCache(runId);
-          return { status: `closed: ${outcome.reason}`, message: outcome.reason };
-        case "fail": {
-          const rec2: AttemptRecord = { category: outcome.category, signature: outcome.signature ?? sha256(JSON.stringify(outcome.failures)).slice(0, 16), diffSha: outcome.diffSha, rung, lockedFailedIds: outcome.lockedFailedIds };
-          const backoffSpent = history.reduce((n2, h) => n2 + Number((h as { waitMs?: number }).waitMs ?? 0), 0);
-          const action: LadderAction = nextOnFailure([...history, rec2], {
-            // policy.retryBudget (default 6; a trial project can say 2)
-            ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, n.step.stage, policy.localOnly), backoffSpentMs: backoffSpent, a5Done: new Set(),
-          });
-          const failuresSha = ledger.putJson(outcome.failures.slice(0, 20));
-          await ledger.append({
-            type: "step.failed", key, outputs: [failuresSha],
-            data: { ...(outcome.data ?? {}), ...rec2, action: action.action, nextRung: action.action === "retry" ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason },
-          }, writer);
-          log(`✗ ${n.step.key}: ${outcome.failures.slice(0, 2).map((f) => f.message).join("; ").slice(0, 300)} → ${action.action}`);
-          if (action.action === "park") { await ledger.append({ type: "run.parked", data: { reason: `${n.step.key}: ${action.reason}`, step: n.step.key } }, writer); return { status: "parked", message: `${n.step.key}: ${action.reason}. Last failure: ${outcome.failures[0]?.message ?? ""}` }; }
-          if (action.action === "a5-check") {
-            const reason = `Locked tests ${action.testIds.join(", ")} failed twice. Either the code or the test is wrong; the test-defect check and unlock card aren't built yet, so a human needs to look.`;
-            await ledger.append({ type: "run.parked", data: { reason, step: n.step.key } }, writer);
-            return { status: "parked", message: reason };
-          }
-          if (action.action === "backoff") { log(`  waiting ${Math.round(action.waitMs / 1000)}s (rate limit)`); await new Promise((r) => setTimeout(r, action.waitMs)); }
-          break;
-        }
-      }
+      trace.setStep(batch.length > 1 ? undefined : batch[0]!.step.key);
+      if (batch.length > 1) log(`side by side: ${batch.map((b) => b.step.key).join(", ")}`);
+      // every step of the batch is recorded, whatever the others do; the first that ends the run's turn says how
+      const ended = (await Promise.all(batch.map((b) => runStep(state, b.step, b.hash, batch.length)))).find((r) => r);
+      if (ended) return ended;
     }
   } finally {
     trace.setStep(undefined);
