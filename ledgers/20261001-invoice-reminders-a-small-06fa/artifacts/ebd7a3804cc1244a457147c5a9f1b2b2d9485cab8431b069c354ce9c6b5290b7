@@ -1,0 +1,74 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Add an invoice reminders API endpoint that returns a list of overdue invoices to authenticated staff users."
+     },
+     {
+      "n": 2,
+      "text": "An invoice is included in the overdue list only if it has open status, has a due date, and today's date in the configured business timezone is on or after its due date plus a configurable overdue threshold, which defaults to 7 days."
+     },
+     {
+      "n": 3,
+      "text": "Invoices with any status other than open, such as paid, closed, void, cancelled, draft or written off, are excluded from the overdue list."
+     },
+     {
+      "n": 4,
+      "text": "Invoices with no due date are excluded from the overdue list."
+     },
+     {
+      "n": 5,
+      "text": "When an invoice's status changes away from open, it stops appearing in the overdue list on the next request without any other action."
+     },
+     {
+      "n": 6,
+      "text": "Overdue status is calculated at query time and no overdue flag or status is written to invoice records."
+     },
+     {
+      "n": 7,
+      "text": "Each entry in the overdue list includes the invoice number, customer name, amount, due date, and days overdue."
+     },
+     {
+      "n": 8,
+      "text": "Days overdue is calculated as the number of whole calendar days from the due date to today in the business timezone."
+     },
+     {
+      "n": 9,
+      "text": "The overdue list can be filtered by customer, returning only that customer's overdue invoices."
+     },
+     {
+      "n": 10,
+      "text": "The overdue list can be filtered by a days-overdue bucket of 7–30, 31–60, 61–90, or 91 and over, with bucket boundaries included."
+     },
+     {
+      "n": 11,
+      "text": "Customer filter and days-overdue bucket filter can be combined in a single request."
+     },
+     {
+      "n": 12,
+      "text": "Requesting the overdue list with a bucket value outside the four allowed buckets returns a 400 response that names the allowed bucket values."
+     },
+     {
+      "n": 13,
+      "text": "Requests to the overdue list endpoint without valid staff authentication are rejected with HTTP 401 and return no invoice or customer data."
+     },
+     {
+      "n": 14,
+      "text": "The overdue list endpoint must respond quickly at expected data sizes, with or without filters."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

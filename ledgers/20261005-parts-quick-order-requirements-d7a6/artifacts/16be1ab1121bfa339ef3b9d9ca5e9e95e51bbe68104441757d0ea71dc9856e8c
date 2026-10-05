@@ -1,0 +1,449 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Newest first. Pick an order to see its parts, delivery and progress.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order no.",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-10482",
+         "14 Mar 2026",
+         "9",
+         "£187.40",
+         "Placed"
+        ],
+        [
+         "ORD-10471",
+         "11 Mar 2026",
+         "3",
+         "£54.20",
+         "Packed"
+        ],
+        [
+         "ORD-10455",
+         "6 Mar 2026",
+         "24",
+         "£412.96",
+         "Dispatched"
+        ],
+        [
+         "ORD-10430",
+         "27 Feb 2026",
+         "2",
+         "£38.50",
+         "Delivered"
+        ],
+        [
+         "ORD-10418",
+         "22 Feb 2026",
+         "12",
+         "£96.00",
+         "Cancelled"
+        ],
+        [
+         "ORD-10397",
+         "15 Feb 2026",
+         "6",
+         "£263.15",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc"
+      },
+      {
+       "type": "detail",
+       "title": "Order ORD-10482",
+       "lead": {
+        "label": "Total",
+        "value": "£187.40"
+       },
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Placed",
+         "badge": true
+        },
+        {
+         "label": "Placed",
+         "value": "14 Mar 2026, 09:42"
+        },
+        {
+         "label": "Items",
+         "value": "9"
+        },
+        {
+         "label": "Delivery option",
+         "value": "Next working day · £9.50"
+        },
+        {
+         "label": "Delivery address",
+         "value": "Unit 4, Brindley Rd, Coventry CV7 9EP"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "6204-2RS · SKF deep groove ball bearing",
+         "meta": "Qty 4 × £6.85 = £27.40"
+        },
+        {
+         "title": "SPA1250 · V-belt, SPA section 1250 mm",
+         "meta": "Qty 2 × £14.50 = £29.00"
+        },
+        {
+         "title": "HF-08BSP · Hose fitting 1/2\" BSP male",
+         "meta": "Qty 2 × £8.75 = £17.50"
+        },
+        {
+         "title": "LC1D18B7 · Contactor 18 A, 24 V AC coil",
+         "meta": "Qty 1 × £104.00 = £104.00"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "14 Mar, 09:42",
+         "title": "Placed (current status)",
+         "meta": "Order received, waiting to be packed",
+         "status": "now"
+        },
+        {
+         "time": "Pending",
+         "title": "Packed",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Dispatched",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Delivered",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Only possible while the order is Placed"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "ORD-10482",
+       "to": "S-3"
+      },
+      {
+       "from": "ORD-10471",
+       "to": "S-3"
+      },
+      {
+       "from": "ORD-10455",
+       "to": "S-3"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel order ORD-10482?",
+       "text": "We won't pack or send this order. You can only cancel it while it is still Placed.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "Order ORD-10482 cancelled",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Your orders will show here once you place one. Go to Find parts to get started.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-10482 is now Cancelled.",
+      "validation": "This order has already been packed, so it can't be cancelled now. Its status hasn't changed."
+     }
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Newest first. Pick an order to see its parts, delivery and progress.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order no.",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-10491",
+         "16 Mar 2026",
+         "27",
+         "£466.00",
+         "Placed"
+        ],
+        [
+         "ORD-10488",
+         "15 Mar 2026",
+         "5",
+         "£72.35",
+         "Placed"
+        ],
+        [
+         "ORD-10482",
+         "14 Mar 2026",
+         "9",
+         "£187.40",
+         "Packed"
+        ],
+        [
+         "ORD-10476",
+         "12 Mar 2026",
+         "1",
+         "£113.50",
+         "Dispatched"
+        ],
+        [
+         "ORD-10471",
+         "11 Mar 2026",
+         "3",
+         "£54.20",
+         "Packed"
+        ],
+        [
+         "ORD-10463",
+         "9 Mar 2026",
+         "16",
+         "£128.80",
+         "Dispatched"
+        ],
+        [
+         "ORD-10455",
+         "6 Mar 2026",
+         "24",
+         "£412.96",
+         "Delivered"
+        ],
+        [
+         "ORD-10441",
+         "2 Mar 2026",
+         "4",
+         "£29.90",
+         "Cancelled"
+        ],
+        [
+         "ORD-10430",
+         "27 Feb 2026",
+         "2",
+         "£38.50",
+         "Delivered"
+        ],
+        [
+         "ORD-10418",
+         "22 Feb 2026",
+         "12",
+         "£96.00",
+         "Cancelled"
+        ],
+        [
+         "ORD-10397",
+         "15 Feb 2026",
+         "6",
+         "£263.15",
+         "Delivered"
+        ],
+        [
+         "ORD-10372",
+         "6 Feb 2026",
+         "40",
+         "£318.60",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc"
+      },
+      {
+       "type": "detail",
+       "title": "Order ORD-10491",
+       "lead": {
+        "label": "Total",
+        "value": "£466.00"
+       },
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Placed",
+         "badge": true
+        },
+        {
+         "label": "Placed",
+         "value": "16 Mar 2026, 08:15"
+        },
+        {
+         "label": "Items",
+         "value": "27"
+        },
+        {
+         "label": "Parts subtotal",
+         "value": "£456.50"
+        },
+        {
+         "label": "Delivery option",
+         "value": "Next working day · £9.50"
+        },
+        {
+         "label": "Delivery address",
+         "value": "Maintenance Stores, Gate 3, Hams Hall, Coleshill B46 1AL"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "6204-2RS · SKF deep groove ball bearing",
+         "meta": "Qty 10 × £6.85 = £68.50"
+        },
+        {
+         "title": "SPA1250 · V-belt, SPA section 1250 mm",
+         "meta": "Qty 4 × £14.50 = £58.00"
+        },
+        {
+         "title": "LC1D18B7 · Contactor 18 A, 24 V AC coil",
+         "meta": "Qty 2 × £104.00 = £208.00"
+        },
+        {
+         "title": "HF-08BSP · Hose fitting 1/2\" BSP male",
+         "meta": "Qty 6 × £8.75 = £52.50"
+        },
+        {
+         "title": "M8X30-A2 · Hex bolt M8 × 30 stainless, box of 100",
+         "meta": "Qty 3 × £11.20 = £33.60"
+        },
+        {
+         "title": "LT243-50 · Loctite 243 threadlocker 50 ml",
+         "meta": "Qty 2 × £17.95 = £35.90"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "16 Mar, 08:15",
+         "title": "Placed (current status)",
+         "meta": "Order received, waiting to be packed",
+         "status": "now"
+        },
+        {
+         "time": "Pending",
+         "title": "Packed",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Dispatched",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Delivered",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Only possible while the order is Placed"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Your orders will show here once you place one. Go to Find parts to get started.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-10491 is now Cancelled.",
+      "validation": "This order has already been packed, so it can't be cancelled now. Its status hasn't changed."
+     }
+    }
+   },
+   "ms": 7,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

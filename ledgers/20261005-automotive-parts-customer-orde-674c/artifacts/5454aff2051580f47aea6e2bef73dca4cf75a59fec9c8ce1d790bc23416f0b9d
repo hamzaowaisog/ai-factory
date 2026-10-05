@@ -1,0 +1,174 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The portal shall provide an Orders per Day report that, for a requested date range, returns one row per date showing the number of orders and the order value."
+     },
+     {
+      "n": 2,
+      "text": "The portal shall provide a Top Products report that, for a requested date range, returns one row per product showing quantity sold and revenue, ordered by revenue descending."
+     },
+     {
+      "n": 3,
+      "text": "The portal shall provide a Revenue per Customer report that, for a requested date range, returns one row per customer showing the number of orders and revenue."
+     },
+     {
+      "n": 4,
+      "text": "Reports requested with a start and end date shall include only orders whose submission date, in the business timezone, falls within the inclusive range."
+     },
+     {
+      "n": 5,
+      "text": "Only staff or admin users may request reports; a customer user requesting any report or report export shall be rejected with status 403 and receive no report data."
+     },
+     {
+      "n": 6,
+      "text": "The portal shall allow staff or admin users to export reports as UTF-8 comma-separated CSV files with a header row, the on-screen columns in on-screen order, ISO 8601 dates and '.' as the decimal separator."
+     },
+     {
+      "n": 7,
+      "text": "The portal shall write an audit record with event type, actor, target record and timestamp whenever specified business actions occur, including user invitation or deactivation, product creation, change or retirement, price or customer price list change, order creation, amendment, confirmation, cancellation or status change, invoice creation or marking paid, and ERP import success or failure."
+     },
+     {
+      "n": 8,
+      "text": "Only admin users may request audit history; a non-admin user requesting it shall be rejected with status 403."
+     },
+     {
+      "n": 9,
+      "text": "The portal shall retain order, invoice and audit records for at least 7 years and shall deactivate rather than delete users so that their links to orders and invoices remain, while preventing deactivated users from signing in."
+     },
+     {
+      "n": 10,
+      "text": "The portal shall send a matching template email through the configured email provider when a user is invited, a password reset is requested, or an order is confirmed, amended, set to out for delivery, cancelled or rejected."
+     },
+     {
+      "n": 11,
+      "text": "If sending a notification email fails, the portal shall still complete the triggering action and record the failed email along with its error."
+     },
+     {
+      "n": 12,
+      "text": "The portal shall run a scheduled stock import (default 02:00, configurable) that reads the ERP CSV from the configured location, sets stock quantity for each valid row's product, and leaves products not in the file unchanged."
+     },
+     {
+      "n": 13,
+      "text": "The stock import shall reject the whole file if it is empty or missing required headers, otherwise apply valid rows and reject rows with unknown or duplicate product codes or non-numeric or negative quantities, recording received, processed and rejected counts with error details."
+     },
+     {
+      "n": 14,
+      "text": "The portal shall not send any stock or inventory write request to the ERP."
+     },
+     {
+      "n": 15,
+      "text": "When a stock import finishes, the portal shall show its status and counts on the System/Import status screen and write an 'ERP import succeeded' or 'ERP import failed' audit record."
+     },
+     {
+      "n": 16,
+      "text": "If a customer user requests an order, invoice, address, price, user or account record belonging to another customer, the portal shall return status 404 without the record's data."
+     },
+     {
+      "n": 17,
+      "text": "When a customer user lists orders or invoices, the portal shall return all records of that user's customer company and no others."
+     },
+     {
+      "n": 18,
+      "text": "The portal shall reject, server-side, any call to an endpoint outside the caller's role, returning 401 for unauthenticated callers and 403 for authenticated callers with insufficient role."
+     },
+     {
+      "n": 19,
+      "text": "If sign-in fails for any reason, the portal shall return the same generic invalid-credentials error message without revealing whether the email exists."
+     },
+     {
+      "n": 20,
+      "text": "The portal shall reject password-reset links older than their configured lifetime (default 1 hour) and invitations older than their configured lifetime (default 7 days) with an expired-link error."
+     },
+     {
+      "n": 21,
+      "text": "If an unexpected server error occurs, the portal shall return a generic error message with a reference id and no stack trace or internal details."
+     },
+     {
+      "n": 22,
+      "text": "The portal shall reject any order status change other than Received→Confirmed→Picking→Out for Delivery→Delivered or a permitted cancellation, with status 409."
+     },
+     {
+      "n": 23,
+      "text": "When a customer cancels an order, the portal shall set it to Cancelled only if its status is Received, otherwise reject the cancellation with status 409."
+     },
+     {
+      "n": 24,
+      "text": "When staff reject or cancel an order, the portal shall set it to Cancelled only if its status is Received or Confirmed, otherwise reject with status 409."
+     },
+     {
+      "n": 25,
+      "text": "When staff mark an order Delivered, the portal shall create a linked Unpaid invoice in the same transaction so that either both the order update and invoice are saved or neither is."
+     },
+     {
+      "n": 26,
+      "text": "The portal shall run a daily job that marks Overdue every Unpaid invoice whose invoice date plus the system-wide payment term (default 30 days) has passed."
+     },
+     {
+      "n": 27,
+      "text": "When staff mark an Unpaid or Overdue invoice paid, the portal shall record status Paid, the payment date and the staff user, and shall reject any status change of a Paid invoice with status 409."
+     },
+     {
+      "n": 28,
+      "text": "When an authorised user downloads an invoice PDF, the portal shall return a PDF rendered from the stored invoice record showing tax-exclusive line prices and no tax lines."
+     },
+     {
+      "n": 29,
+      "text": "When a customer submits an order, the portal shall set the earliest delivery date to the next working day if submitted on a working day before the configured cut-off (default 14:00 business time), and otherwise to the second working day, with working days being Monday–Friday excluding configured public holidays."
+     },
+     {
+      "n": 30,
+      "text": "When a customer views a product or places an order, the portal shall use the price from the customer's assigned price list, and shall keep the placed order's line prices unchanged after later price-list changes."
+     },
+     {
+      "n": 31,
+      "text": "When a customer submits an order with a quantity above the imported stock, the portal shall accept the order in status Received."
+     },
+     {
+      "n": 32,
+      "text": "If a basket that has already been turned into an order is submitted again, the portal shall reject the submission with status 409 without creating another order."
+     },
+     {
+      "n": 33,
+      "text": "When a customer repeats an order or loads a saved basket template, the portal shall add the items at current price-list prices, skip retired products, and return a notice listing the skipped products."
+     },
+     {
+      "n": 34,
+      "text": "If staff edit an order whose status is not Received, the portal shall reject the edit with status 409."
+     },
+     {
+      "n": 35,
+      "text": "If an uploaded file is not an image or PDF or exceeds 10 MB, the portal shall reject the upload with status 400."
+     },
+     {
+      "n": 36,
+      "text": "The portal shall provide the listed customer, staff and admin screens, each usable at 360 px viewport width as well as tablet and desktop widths in the latest two versions of Chrome, Edge, Safari and Firefox."
+     },
+     {
+      "n": 37,
+      "text": "While a list or search has no results, the portal shall display an empty-state message specific to that list, covering search results, basket, orders, invoices, templates, products and report results."
+     },
+     {
+      "n": 38,
+      "text": "While a catalogue, search, basket, checkout, order submission, invoice download, report or staff queue request is in progress, the portal shall display a loading indicator and keep the order submit button disabled until the submission completes."
+     },
+     {
+      "n": 39,
+      "text": "The portal shall be deployable through the build pipeline to separate staging and production environments in one cloud region of the client's account, serving production only over HTTPS."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,754 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Customer",
+     "subtitle": "Hartley Motors Ltd · Account HM-10482 · 3 users",
+     "crumbs": [
+      "Customers"
+     ],
+     "badge": "Inactive",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "Account inactive since 3 Mar 2026",
+       "text": "Buyers can't sign in or place orders. Its 2 open orders can still be progressed, cancelled and invoiced from the order screen.",
+       "action": "Reactivate"
+      },
+      {
+       "type": "detail",
+       "title": "Hartley Motors Ltd",
+       "rows": [
+        {
+         "label": "Account number",
+         "value": "HM-10482"
+        },
+        {
+         "label": "Status",
+         "value": "Inactive",
+         "badge": true
+        },
+        {
+         "label": "Price list",
+         "value": "Trade Band B"
+        },
+        {
+         "label": "Payment terms",
+         "value": "30 days end of month"
+        },
+        {
+         "label": "Credit limit",
+         "value": "£12,000.00"
+        },
+        {
+         "label": "VAT number",
+         "value": "GB 284 1937 06"
+        },
+        {
+         "label": "Main contact",
+         "value": "Dan Hartley · 0161 496 0731"
+        },
+        {
+         "label": "Users",
+         "value": "Dan Hartley (Admin), Priya Shah, Tom Okafor"
+        }
+       ],
+       "people": [
+        "Dan Hartley",
+        "Priya Shah",
+        "Tom Okafor"
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Add delivery address",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Edit customer",
+         "variant": "secondary",
+         "icon": "edit"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Delivery address",
+        "Address",
+        "City, region",
+        "Postcode",
+        "Contact",
+        "Phone"
+       ],
+       "rows": [
+        [
+         "Main workshop",
+         "Unit 4, Pennine Trade Park, Ashton Road",
+         "Oldham, Greater Manchester",
+         "OL8 3QP",
+         "Dan Hartley",
+         "0161 496 0731"
+        ],
+        [
+         "Body shop",
+         "22 Mill Lane",
+         "Rochdale, Greater Manchester",
+         "OL16 2HB",
+         "Priya Shah",
+         "01706 960 214"
+        ],
+        [
+         "MOT bay (Saturdays)",
+         "Arch 7, Station Approach",
+         "Stockport, Greater Manchester",
+         "SK1 3TA",
+         "Tom Okafor",
+         "07700 900 418"
+        ]
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Placed",
+        "Delivery",
+        "Lines",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24131",
+         "2 Mar 2026",
+         "10 Mar 2026",
+         "3",
+         "£286.40",
+         "Confirmed"
+        ],
+        [
+         "ORD-24109",
+         "27 Feb 2026",
+         "11 Mar 2026",
+         "2",
+         "£96.15",
+         "Placed"
+        ],
+        [
+         "ORD-24052",
+         "26 Feb 2026",
+         "27 Feb 2026",
+         "7",
+         "£864.30",
+         "Delivered"
+        ],
+        [
+         "ORD-23988",
+         "24 Feb 2026",
+         "25 Feb 2026",
+         "8",
+         "£1,184.60",
+         "Invoiced"
+        ],
+        [
+         "ORD-23871",
+         "19 Feb 2026",
+         "20 Feb 2026",
+         "5",
+         "£538.20",
+         "Invoiced"
+        ],
+        [
+         "ORD-23802",
+         "17 Feb 2026",
+         "18 Feb 2026",
+         "1",
+         "£42.90",
+         "Cancelled"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 1,
+       "sortDir": "desc"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Invoice",
+        "Date",
+        "Due",
+        "Amount",
+        "Status"
+       ],
+       "rows": [
+        [
+         "INV-11840",
+         "25 Feb 2026",
+         "31 Mar 2026",
+         "£1,184.60",
+         "Unpaid"
+        ],
+        [
+         "INV-11762",
+         "20 Feb 2026",
+         "31 Mar 2026",
+         "£538.20",
+         "Unpaid"
+        ],
+        [
+         "INV-11502",
+         "28 Jan 2026",
+         "28 Feb 2026",
+         "£742.35",
+         "Overdue"
+        ],
+        [
+         "INV-11397",
+         "21 Jan 2026",
+         "28 Feb 2026",
+         "£1,026.00",
+         "Paid"
+        ],
+        [
+         "INV-11288",
+         "14 Jan 2026",
+         "28 Feb 2026",
+         "£318.75",
+         "Paid"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc"
+      }
+     ],
+     "links": [
+      {
+       "from": "Edit customer",
+       "to": "S-22"
+      },
+      {
+       "from": "ORD-24131",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24109",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24052",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-23988",
+       "to": "S-17"
+      },
+      {
+       "from": "INV-11840",
+       "to": "S-24"
+      },
+      {
+       "from": "INV-11502",
+       "to": "S-24"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "modal",
+       "trigger": "Add delivery address",
+       "title": "Add delivery address",
+       "text": "Buyers at Hartley Motors Ltd will see this address at checkout.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Label",
+           "kind": "text",
+           "placeholder": "e.g. Main workshop",
+           "required": true,
+           "error": "Give the address a label buyers will recognise"
+          },
+          {
+           "label": "Address line 1",
+           "kind": "text",
+           "placeholder": "Unit 9, Hollinwood Business Centre",
+           "required": true,
+           "error": "Enter the first line of the address"
+          },
+          {
+           "label": "Address line 2",
+           "kind": "text",
+           "placeholder": "Albert Street (optional)"
+          },
+          {
+           "label": "City",
+           "kind": "text",
+           "placeholder": "Oldham",
+           "required": true,
+           "error": "Enter a city or town"
+          },
+          {
+           "label": "Region",
+           "kind": "text",
+           "placeholder": "Greater Manchester"
+          },
+          {
+           "label": "Postal code",
+           "kind": "text",
+           "placeholder": "OL8 4QL",
+           "required": true,
+           "error": "Enter a valid UK postcode"
+          }
+         ],
+         "submit": "Next: contact"
+        },
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Country",
+           "kind": "select",
+           "value": "United Kingdom",
+           "options": [
+            "United Kingdom",
+            "Ireland"
+           ],
+           "required": true
+          },
+          {
+           "label": "Contact person",
+           "kind": "text",
+           "placeholder": "Who signs for deliveries",
+           "required": true,
+           "error": "Enter who receives deliveries here"
+          },
+          {
+           "label": "Contact phone",
+           "kind": "phone",
+           "placeholder": "+44 161 496 0882",
+           "required": true,
+           "error": "Enter a phone number with its area code"
+          }
+         ],
+         "submit": "Save address"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "menu",
+       "trigger": "More",
+       "title": "Address actions",
+       "items": [
+        "Edit address",
+        "Remove address"
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Remove address",
+       "title": "Remove “Body shop”?",
+       "text": "Buyers won't be able to pick 22 Mill Lane, Rochdale at checkout. Orders already sent there keep the address.",
+       "actions": [
+        {
+         "label": "Remove",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep address",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Save address",
+       "text": "Delivery address added",
+       "tone": "ok"
+      },
+      {
+       "after": "Remove",
+       "text": "“Body shop” address removed",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "Reactivate",
+       "text": "Hartley Motors Ltd reactivated — buyers can order again",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders, invoices or addresses yet",
+      "emptyHint": "Add a delivery address so this company's buyers can check out. Their orders and invoices will list here.",
+      "validation": "Check the highlighted address fields before saving.",
+      "success": "Customer changes saved.",
+      "error": "We couldn't load this customer. Showing the last saved details."
+     }
+    },
+    "mockFull": {
+     "title": "Customer",
+     "subtitle": "Hartley Motors Ltd · Account HM-10482 · 6 users",
+     "crumbs": [
+      "Customers"
+     ],
+     "badge": "Inactive",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "Account inactive since 3 Mar 2026",
+       "text": "Buyers can't sign in or place orders. Its 3 open orders can still be progressed, cancelled and invoiced from the order screen.",
+       "action": "Reactivate"
+      },
+      {
+       "type": "detail",
+       "title": "Hartley Motors Ltd",
+       "rows": [
+        {
+         "label": "Account number",
+         "value": "HM-10482"
+        },
+        {
+         "label": "Status",
+         "value": "Inactive",
+         "badge": true
+        },
+        {
+         "label": "Price list",
+         "value": "Trade Band B"
+        },
+        {
+         "label": "Payment terms",
+         "value": "30 days end of month"
+        },
+        {
+         "label": "Credit limit",
+         "value": "£12,000.00 (£3,473.65 used)"
+        },
+        {
+         "label": "VAT number",
+         "value": "GB 284 1937 06"
+        },
+        {
+         "label": "Main contact",
+         "value": "Dan Hartley · 0161 496 0731"
+        },
+        {
+         "label": "Customer since",
+         "value": "14 Sep 2021"
+        }
+       ],
+       "people": [
+        "Dan Hartley",
+        "Priya Shah",
+        "Tom Okafor",
+        "Kerry Walsh",
+        "Marek Nowak",
+        "Aisha Rahman"
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Add delivery address",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Edit customer",
+         "variant": "secondary",
+         "icon": "edit"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Delivery address",
+        "Address",
+        "City, region",
+        "Postcode",
+        "Contact",
+        "Phone"
+       ],
+       "rows": [
+        [
+         "Main workshop",
+         "Unit 4, Pennine Trade Park, Ashton Road",
+         "Oldham, Greater Manchester",
+         "OL8 3QP",
+         "Dan Hartley",
+         "0161 496 0731"
+        ],
+        [
+         "Body shop",
+         "22 Mill Lane",
+         "Rochdale, Greater Manchester",
+         "OL16 2HB",
+         "Priya Shah",
+         "01706 960 214"
+        ],
+        [
+         "MOT bay (Saturdays)",
+         "Arch 7, Station Approach",
+         "Stockport, Greater Manchester",
+         "SK1 3TA",
+         "Tom Okafor",
+         "07700 900 418"
+        ],
+        [
+         "Tyre store",
+         "Unit 9, Hollinwood Business Centre",
+         "Oldham, Greater Manchester",
+         "OL8 4QL",
+         "Kerry Walsh",
+         "0161 496 0882"
+        ],
+        [
+         "Van fleet depot",
+         "3 Canal Street",
+         "Ashton-under-Lyne, Greater Manchester",
+         "OL6 7LE",
+         "Marek Nowak",
+         "07700 900 563"
+        ]
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Placed",
+        "Delivery",
+        "Lines",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24131",
+         "2 Mar 2026",
+         "10 Mar 2026",
+         "3",
+         "£286.40",
+         "Confirmed"
+        ],
+        [
+         "ORD-24124",
+         "2 Mar 2026",
+         "9 Mar 2026",
+         "4",
+         "£173.55",
+         "Picking"
+        ],
+        [
+         "ORD-24109",
+         "27 Feb 2026",
+         "11 Mar 2026",
+         "2",
+         "£96.15",
+         "Placed"
+        ],
+        [
+         "ORD-24052",
+         "26 Feb 2026",
+         "27 Feb 2026",
+         "7",
+         "£864.30",
+         "Delivered"
+        ],
+        [
+         "ORD-23940",
+         "23 Feb 2026",
+         "24 Feb 2026",
+         "1",
+         "£18.40",
+         "Delivered"
+        ],
+        [
+         "ORD-23988",
+         "24 Feb 2026",
+         "25 Feb 2026",
+         "8",
+         "£1,184.60",
+         "Invoiced"
+        ],
+        [
+         "ORD-23871",
+         "19 Feb 2026",
+         "20 Feb 2026",
+         "5",
+         "£538.20",
+         "Invoiced"
+        ],
+        [
+         "ORD-23802",
+         "17 Feb 2026",
+         "18 Feb 2026",
+         "1",
+         "£42.90",
+         "Cancelled"
+        ],
+        [
+         "ORD-23744",
+         "13 Feb 2026",
+         "16 Feb 2026",
+         "11",
+         "£1,592.75",
+         "Invoiced"
+        ],
+        [
+         "ORD-23690",
+         "11 Feb 2026",
+         "12 Feb 2026",
+         "3",
+         "£221.00",
+         "Invoiced"
+        ],
+        [
+         "ORD-23615",
+         "6 Feb 2026",
+         "9 Feb 2026",
+         "2",
+         "£64.80",
+         "Cancelled"
+        ],
+        [
+         "ORD-23561",
+         "4 Feb 2026",
+         "5 Feb 2026",
+         "6",
+         "£447.10",
+         "Invoiced"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 4,
+       "page": 1
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Invoice",
+        "Date",
+        "Due",
+        "Amount",
+        "Status"
+       ],
+       "rows": [
+        [
+         "INV-11840",
+         "25 Feb 2026",
+         "31 Mar 2026",
+         "£1,184.60",
+         "Unpaid"
+        ],
+        [
+         "INV-11762",
+         "20 Feb 2026",
+         "31 Mar 2026",
+         "£538.20",
+         "Unpaid"
+        ],
+        [
+         "INV-11655",
+         "16 Feb 2026",
+         "31 Mar 2026",
+         "£1,592.75",
+         "Unpaid"
+        ],
+        [
+         "INV-11611",
+         "12 Feb 2026",
+         "31 Mar 2026",
+         "£221.00",
+         "Paid"
+        ],
+        [
+         "INV-11548",
+         "5 Feb 2026",
+         "31 Mar 2026",
+         "£447.10",
+         "Paid"
+        ],
+        [
+         "INV-11502",
+         "28 Jan 2026",
+         "28 Feb 2026",
+         "£742.35",
+         "Overdue"
+        ],
+        [
+         "INV-11397",
+         "21 Jan 2026",
+         "28 Feb 2026",
+         "£1,026.00",
+         "Paid"
+        ],
+        [
+         "INV-11288",
+         "14 Jan 2026",
+         "28 Feb 2026",
+         "£318.75",
+         "Paid"
+        ],
+        [
+         "INV-11203",
+         "7 Jan 2026",
+         "28 Feb 2026",
+         "£95.40",
+         "Credited"
+        ],
+        [
+         "INV-11036",
+         "19 Dec 2025",
+         "31 Jan 2026",
+         "£2,108.90",
+         "Paid"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 3,
+       "page": 1
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders, invoices or addresses yet",
+      "emptyHint": "Add a delivery address so this company's buyers can check out. Their orders and invoices will list here.",
+      "validation": "Check the highlighted address fields before saving.",
+      "success": "Customer changes saved.",
+      "error": "We couldn't load this customer. Showing the last saved details."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

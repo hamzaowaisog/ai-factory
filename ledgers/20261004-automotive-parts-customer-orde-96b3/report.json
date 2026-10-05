@@ -1,0 +1,220 @@
+{
+  "runId": "20261004-automotive-parts-customer-orde-96b3",
+  "status": "parked",
+  "parkedReason": "clarify:m1: Every retry option is used up",
+  "request": "# Automotive Parts Customer Ordering Portal\n\n## 1. Product Overview\n\nA web-based B2B ordering portal for a mid-size automotive parts distributor.\n\nThe portal allows automotive workshops, dealerships, ",
+  "costUsd": 0.35747775,
+  "activeMin": 2.65805,
+  "firstTimePassRate": 1,
+  "topCost": [
+    {
+      "step": "clarify:m1",
+      "costUsd": 0.323426
+    },
+    {
+      "step": "intake:m2",
+      "costUsd": 0.015363
+    },
+    {
+      "step": "intake:m1",
+      "costUsd": 0.01380675
+    }
+  ],
+  "steps": [
+    {
+      "step": "intake:m1",
+      "stage": "intake:m1",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-haiku-4-5"
+      ],
+      "tokens": {
+        "input": 3,
+        "output": 1245,
+        "cached": 0
+      },
+      "costUsd": 0.01380675,
+      "activeSec": 12.162,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 12,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "intake:m2",
+      "stage": "intake:m2",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-haiku-4-5"
+      ],
+      "tokens": {
+        "input": 3,
+        "output": 1606,
+        "cached": 0
+      },
+      "costUsd": 0.015363,
+      "activeSec": 15.99,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 16,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "intake:m3",
+      "stage": "intake:m3",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-haiku-4-5"
+      ],
+      "tokens": {
+        "input": 1902,
+        "output": 596,
+        "cached": 0
+      },
+      "costUsd": 0.004882,
+      "activeSec": 7.059,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 7,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "intake",
+      "stage": "intake",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.013,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "ground",
+      "stage": "ground",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.012,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "clarify:m1",
+      "stage": "clarify:m1",
+      "outcome": "failed",
+      "firstTimePass": false,
+      "attempts": 2,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Every retry option is used up"
+      ],
+      "highestRung": 0,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "tokens": {
+        "input": 8,
+        "output": 23760,
+        "cached": 0
+      },
+      "costUsd": 0.323426,
+      "activeSec": 124.247,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 202,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    }
+  ],
+  "createdAt": "2026-10-04T17:47:21.783Z",
+  "humanCards": []
+}

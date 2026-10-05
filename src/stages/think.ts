@@ -8,6 +8,7 @@ import { estimateTokens } from "../context/tokens.js";
 import type { RepoTools } from "../context/tools.js";
 import { ApiRunner, defaultProvider, type Provider } from "../runners/api.js";
 import type { StepContext, StepOutcome } from "./framework.js";
+import { answersText } from "./gate-questions.js";
 import { argsSummary } from "../util/trace.js";
 import { cacheDisabled, cacheForget, cacheGet, cacheKey, cachePut } from "../estimate/cache.js";
 
@@ -82,6 +83,8 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
       content: "Your previous attempt was rejected for these reasons. Fix them:\n" + ctx.priorFailures.map((f) => `- [${f.check}] ${f.message}`).join("\n"),
     });
   }
+  // the answers to questions this step's failing checks raised (src/stages/gate-questions.ts)
+  if (ctx.gateAnswers?.length) sections.push({ spec: { id: "check-answers", source: "feedback", trust: "derived", placement: "user" }, content: answersText(ctx.gateAnswers) });
   let pack;
   try {
     pack = buildPack({

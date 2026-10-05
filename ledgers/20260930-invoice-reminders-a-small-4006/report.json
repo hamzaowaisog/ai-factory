@@ -1,0 +1,366 @@
+{
+  "runId": "20260930-invoice-reminders-a-small-4006",
+  "status": "parked",
+  "parkedReason": "The spec is not ready to estimate (gate E1): critic high: The open-status list has no built-in value and an empty list silently means 'no invoice is ever overdue', but nothing covers a missing or empty setting at deployment (no startup failure, no error), so a misconfiguration gives an empty overdue list that looks correct.; critic high: The staff claim type and value have no built-in value, but nothing says what happens when they are not configured (startup failure, every request 403, or every request allowed), and no AC covers it.; invented capability: The overdue list endpoint shall meet stated latency requirements at stated data volumes, with or without filters applied.; invented capability: Customer PII, specifically billing email addresses, and invoice amounts shall be kept out of application logs.. Go back to clarify.",
+  "request": "# Invoice reminders\n\nA small web app for a bakery wholesaler. Staff see which customer invoices are overdue and send a reminder by email.\n\n## Requirements\n\n- When an invoice is 7 days past its due dat",
+  "costUsd": 3.0690514499999995,
+  "activeMin": 12.873716666666667,
+  "firstTimePassRate": 1,
+  "topCost": [
+    {
+      "step": "specify",
+      "costUsd": 1.5403795000000002
+    },
+    {
+      "step": "drafts",
+      "costUsd": 0.8158962
+    },
+    {
+      "step": "merge",
+      "costUsd": 0.398106
+    }
+  ],
+  "steps": [
+    {
+      "step": "intake",
+      "stage": "intake",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-haiku-4-5"
+      ],
+      "tokens": {
+        "input": 1293,
+        "output": 863,
+        "cached": 0
+      },
+      "costUsd": 0.005608,
+      "activeSec": 6.17,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 6,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "ground",
+      "stage": "ground",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.015,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "clarify",
+      "stage": "clarify",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-sonnet-5",
+        "claude-haiku-4-5",
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 13,
+        "output": 11488,
+        "cached": 0
+      },
+      "costUsd": 0.21472975,
+      "activeSec": 65.121,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ],
+        "questionsAsked": 5,
+        "answersChanged": 1
+      },
+      "time": {
+        "modelSec": 105,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "clarify-2",
+      "stage": "clarify-2",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 4,
+        "output": 2196,
+        "cached": 0
+      },
+      "costUsd": 0.061646,
+      "activeSec": 26.625,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "answer"
+        ],
+        "questionsAsked": 3,
+        "answersChanged": 0
+      },
+      "time": {
+        "modelSec": 27,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "drafts",
+      "stage": "drafts",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 14,
+        "output": 33427,
+        "cached": 6401
+      },
+      "costUsd": 0.8158962,
+      "activeSec": 151.973,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 299,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "merge",
+      "stage": "merge",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 4,
+        "output": 13852,
+        "cached": 0
+      },
+      "costUsd": 0.398106,
+      "activeSec": 118.581,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 119,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "specify",
+      "stage": "specify",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-sonnet-5",
+        "claude-opus-5-5",
+        "claude-haiku-4-5"
+      ],
+      "tokens": {
+        "input": 10146,
+        "output": 56439,
+        "cached": 20640
+      },
+      "costUsd": 1.5403795000000002,
+      "activeSec": 484.155,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 518,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "design",
+      "stage": "design",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 4,
+        "output": 1129,
+        "cached": 0
+      },
+      "costUsd": 0.032686,
+      "activeSec": 11.413,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 11,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "design-baseline",
+      "stage": "design-baseline",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.11499999999999999,
+      "gates": {
+        "passed": 1,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 1,
+        "decisions": [
+          "approve"
+        ]
+      }
+    },
+    {
+      "step": "breakdown",
+      "stage": "breakdown",
+      "outcome": "failed",
+      "firstTimePass": false,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.027,
+      "gates": {
+        "passed": 0,
+        "failed": 1,
+        "failedIds": [
+          "estimate.e1-readiness"
+        ]
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    }
+  ],
+  "createdAt": "2026-09-30T20:46:25.172Z",
+  "humanCards": [
+    "question",
+    "question",
+    "design-approval"
+  ]
+}

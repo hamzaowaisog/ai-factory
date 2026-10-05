@@ -1,0 +1,94 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Add an overdue list endpoint for authenticated staff that returns open-status invoices with a due date where today's date, in the configured business timezone, is on or after the due date plus a configurable overdue threshold (default 7 days)."
+     },
+     {
+      "n": 2,
+      "text": "Exclude from the overdue list any invoice that is not open status (paid, closed, void, cancelled, draft, written off, etc.) or that has no due date."
+     },
+     {
+      "n": 3,
+      "text": "Compute overdue status at query time, without writing any overdue flag, status, or timestamp to invoice records."
+     },
+     {
+      "n": 4,
+      "text": "For each overdue invoice in the list, return its invoice number, customer name, amount, due date, and days overdue, calculated as whole calendar days from due date to today in the business timezone."
+     },
+     {
+      "n": 5,
+      "text": "Allow the overdue list to be filtered by a specific customer, returning only that customer's overdue invoices."
+     },
+     {
+      "n": 6,
+      "text": "Allow the overdue list to be filtered by a days-overdue bucket (7–30, 31–60, 61–90, or 91+), inclusive of bounds, and reject invalid bucket values with a 400 error listing the allowed values."
+     },
+     {
+      "n": 7,
+      "text": "Require valid staff authentication for the overdue list, invoice detail, and send-reminder endpoints, rejecting unauthenticated or invalid requests with 401 and returning no invoice/customer data or emails."
+     },
+     {
+      "n": 8,
+      "text": "Add a send-reminder action that, for an overdue invoice whose customer has an email address, sends one email via the configured transactional email provider to that address, using a configured template and including the invoice number, amount, and due date."
+     },
+     {
+      "n": 9,
+      "text": "Reject send-reminder requests with 422 if the customer has no email address, without calling the email provider or creating a reminder history record."
+     },
+     {
+      "n": 10,
+      "text": "Reject send-reminder requests with 409 if the invoice is not currently overdue, without calling the email provider."
+     },
+     {
+      "n": 11,
+      "text": "Record a reminder history entry for every send attempt, capturing the invoice, the staff user who sent it, the UTC timestamp, and a delivery status of sent or failed (with failure reason if failed)."
+     },
+     {
+      "n": 12,
+      "text": "If the email provider errors or fails to respond within an 8-second timeout, record the attempt as failed with the provider's reason or a timeout reason, return an error response with that reason, and keep the invoice on the overdue list."
+     },
+     {
+      "n": 13,
+      "text": "Reject a send-reminder request as a duplicate with 409 if it arrives within 60 seconds of an earlier accepted send-reminder request for the same invoice, without calling the email provider or recording another history entry."
+     },
+     {
+      "n": 14,
+      "text": "Add an invoice detail endpoint for authenticated staff that returns invoice number, customer, amount, due date, overdue status, and full reminder history ordered newest first, each entry showing sender, timestamp, delivery status, and failure reason if applicable."
+     },
+     {
+      "n": 15,
+      "text": "Ensure the overdue list endpoint responds quickly at expected data sizes, with or without filters applied."
+     },
+     {
+      "n": 16,
+      "text": "Ensure the send-reminder endpoint returns a result to the staff user within a fixed time budget, even when the email provider is slow, using the same timeout as the 8-second send timeout."
+     },
+     {
+      "n": 17,
+      "text": "Ensure customer email addresses are not written to application logs."
+     },
+     {
+      "n": 18,
+      "text": "Retain every reminder attempt for audit purposes."
+     },
+     {
+      "n": 19,
+      "text": "Prevent duplicate emails from being sent due to double submission of the send-reminder request."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

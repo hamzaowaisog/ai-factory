@@ -99,13 +99,25 @@ export function applyPatch(body: Body, patch: { tasks: BreakdownTask[]; kinds: {
 }
 
 /**
+ * A breakdown that still fails its gates after the rounds of questions goes on (src/stages/gate-questions.ts): a task whose kind does
+ * not fit the catalogue loses it, so the estimate sizes the breakdown by anchors and ratios instead of failing on it (gate E2c);
+ * everything else that fails is carried as an open risk by the step.
+ */
+export function carryBreakdown(body: Body, catalogue: Pick<Catalogue, "kinds">): { body: Body; notes: string[] } {
+  const bad = new Map(body.tasks.flatMap((t) => { const p = kindProblem(catalogue, t); return p && t.kind ? [[t.id, p] as const] : []; }));
+  if (!bad.size) return { body, notes: [] };
+  const tasks = body.tasks.map((t) => { if (!bad.has(t.id)) return t; const { kind: _k, ...rest } = t; return rest as BreakdownTask; });
+  return { body: { ...body, tasks }, notes: [`Open risk: ${[...bad.values()].join("; ")}; ${bad.size === 1 ? "that task loses its kind" : "those tasks lose their kinds"}, so the estimate sizes the tasks by anchors and ratios instead of the task catalogue (gate E2c, carried after the rounds of questions).`] };
+}
+
+/**
  * Gate E5, hands-off: each task named by an outlier or UI-order failure (its location) is flagged, so it reads as low confidence
  * with the gate's reason, and the range stays the estimators' median (gate E6 recomputes it, so it is not widened by hand).
  */
-export function flagOutliers(estimate: Estimate, failures: Failure[]): { estimate: Estimate; notes: string[] } {
+export function flagOutliers(estimate: Estimate, failures: Failure[], how = "hands-off"): { estimate: Estimate; notes: string[] } {
   const why = new Map<string, string>();
   for (const f of failures) for (const id of (f.location ?? "").split(",").map((x) => x.trim()).filter(Boolean)) if (!why.has(id)) why.set(id, f.message);
   const tasks = estimate.tasks.map((t) => (why.has(t.taskId) ? { ...t, flagged: true } : t));
-  const notes = [...why].map(([id, m]) => `Open risk: ${id} flagged by the factory (hands-off, gate E5): ${m}. Confirm its range before it is quoted.`);
+  const notes = [...why].map(([id, m]) => `Open risk: ${id} flagged by the factory (${how}, gate E5): ${m}. Confirm its range before it is quoted.`);
   return { estimate: { ...estimate, tasks, assumptions: [...estimate.assumptions, ...notes] }, notes };
 }

@@ -1,0 +1,111 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Invite user",
+     "subtitle": "Create a pending account and email an activation link",
+     "crumbs": [
+      "Users",
+      "Invite user"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Invitation link valid for 7 days",
+       "text": "The user gets an email with a link to set a password. Buyer and Office Staff links expire after the period set in Settings (7 days). Until then the account shows as Pending."
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Full name",
+         "kind": "text",
+         "value": "Daniel Hughes",
+         "required": true,
+         "error": "Enter the user's full name"
+        },
+        {
+         "label": "Email",
+         "kind": "email",
+         "value": "d.hughes@hughesmotors.co.uk",
+         "required": true,
+         "help": "The invitation is sent here. It becomes their sign-in email.",
+         "error": "Enter a valid email address"
+        },
+        {
+         "label": "Role",
+         "kind": "radio",
+         "options": [
+          "Buyer",
+          "Office Staff",
+          "Administrator"
+         ],
+         "value": "Buyer",
+         "required": true,
+         "hint": "Buyers order for one company; staff work orders; admins also manage users."
+        },
+        {
+         "label": "Customer company",
+         "kind": "combobox",
+         "value": "Hughes Motor Engineering Ltd · C-10482",
+         "placeholder": "Type a company name or account no.",
+         "required": true,
+         "help": "Buyers only. They see this company's price list and delivery address.",
+         "error": "Choose the customer company this buyer orders for"
+        },
+        {
+         "label": "Link valid for",
+         "kind": "text",
+         "value": "7 days (from Settings)",
+         "readOnly": true
+        }
+       ],
+       "submit": "Send invitation"
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Cancel",
+       "to": "S-33"
+      },
+      {
+       "from": "Send invitation",
+       "to": "S-33"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Send invitation",
+       "text": "Invitation sent to d.hughes@hughesmotors.co.uk",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "success": "Invitation sent. Daniel Hughes is listed as Pending until they activate the account.",
+      "validation": "Fill in the highlighted fields before sending the invitation.",
+      "error": "The invitation couldn't be sent. Check the email address and try again."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

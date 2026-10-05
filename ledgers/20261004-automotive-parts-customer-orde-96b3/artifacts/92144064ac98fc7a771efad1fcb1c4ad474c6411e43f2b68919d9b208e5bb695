@@ -1,0 +1,532 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "Portal fully replaces phone/email ordering as the primary channel for placing orders; customers self-serve end-to-end from browsing to order placement without staff phone/email intervention.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer can sign in, browse catalogue, build a basket, and submit an order entirely through the web portal without phoning or emailing the office."
+       },
+       {
+        "kind": "data",
+        "text": "Each self-service order creates an order record with an order number, replacing a manual order-entry log."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff can still create orders on behalf of customers for phone-in cases, but system flags these as staff-created."
+       },
+       {
+        "kind": "error",
+        "text": "If the portal is unavailable, there is no automatic fallback - customers would need to contact the office directly (out of scope for the system itself)."
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "readingChosen": "Search/filter is multi-faceted: by part number/code, by product name, by category, and by vehicle details (make/model/year/engine/fuel/variant).",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer enters a full or partial product name and sees matching products."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer enters a full or partial part number/product code and sees matching products."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer enters a manufacturer part number and sees matching products."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer selects a category and sees only products in that category; can change or clear the category filter."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer selects vehicle attributes (make, model, year, engine, fuel type, variant) and sees products marked compatible with that vehicle."
+       },
+       {
+        "kind": "data",
+        "text": "Search and vehicle-filter results reflect only active (non-retired) products."
+       },
+       {
+        "kind": "error",
+        "text": "Search with no matches returns an empty result state rather than an error."
+       },
+       {
+        "kind": "error",
+        "text": "Vehicle search with no compatible products shown informs the customer none are found."
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "readingChosen": "Each customer, wherever pricing/stock appears (catalogue list, product detail, basket, checkout, order), sees the price from their assigned price list and current stock status, never another customer's pricing.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Catalogue list, product detail, basket, and checkout all display the price from the price list assigned to the signed-in customer's company."
+       },
+       {
+        "kind": "happy",
+        "text": "Product shows stock status of In stock, Low stock, or Out of stock, derived from the latest successful ERP import."
+       },
+       {
+        "kind": "permission",
+        "text": "A buyer cannot view pricing associated with any other customer company."
+       },
+       {
+        "kind": "error",
+        "text": "If a product has no price in the customer's assigned price list, the product's price is not shown as if it were free/zero (treated as unavailable/needs admin fix) rather than silently defaulting."
+       },
+       {
+        "kind": "data",
+        "text": "Order-time price is captured and stored on the order line independent of later price-list changes."
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "readingChosen": "Reduce office staff manual order-entry by having customers enter orders themselves; staff only need to review/confirm/edit rather than re-key orders from phone/email.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Orders placed by customers arrive directly in the staff order queue without staff needing to type them in from a phone call or email."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff can confirm an order with validation of stock/customer info in a single action rather than manual re-entry."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff can amend quantities/lines/delivery details on an existing order rather than recreating it from scratch."
+       },
+       {
+        "kind": "data",
+        "text": "Staff-created orders (phone-in) are flagged as staff-created and auditable, distinguishing manual entries from self-service ones."
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "readingChosen": "Customers can view the status/timeline of their own orders and view/download their own invoices with payment status.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer views list of their company's orders with order number, date, delivery date, address, total, status."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer opens an order detail page showing status timeline (status, date/time, who/what performed transition)."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer views list of invoices and opens invoice detail with payment status (Paid/Unpaid/Overdue)."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer downloads invoice as PDF."
+       },
+       {
+        "kind": "permission",
+        "text": "A buyer cannot view orders or invoices belonging to another customer company."
+       }
+      ]
+     },
+     {
+      "id": "I-6",
+      "readingChosen": "Staff see an operational queue of orders (filterable) and can export delivery information for drivers.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Staff view an order queue listing order number, customer, order date, requested delivery date, total, and current status."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff filter the queue by customer, date, and status."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff open an order from the queue to view/edit/confirm/reject it."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff export today's delivery list as a CSV containing order number, customer, delivery address, contact info, delivery date, lines/summary, notes, and delivery status."
+       },
+       {
+        "kind": "permission",
+        "text": "Only office staff and administrators can access the order queue and delivery export, not customers."
+       }
+      ]
+     },
+     {
+      "id": "I-7",
+      "readingChosen": "Management-facing reporting is delivered via a staff dashboard with operational/sales/product counts; detailed report types are open/minimal for first release.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Staff dashboard shows counts/lists of new orders, orders awaiting confirmation, orders in picking, orders out for delivery, today's deliveries, outstanding invoices, and failed ERP imports."
+       },
+       {
+        "kind": "data",
+        "text": "Reporting data is derived from stored order, invoice, and stock-import records rather than manually compiled."
+       },
+       {
+        "kind": "permission",
+        "text": "Only office staff/admin roles can view the dashboard and reports, not customers."
+       }
+      ]
+     },
+     {
+      "id": "I-8",
+      "readingChosen": "The system records an immutable audit trail: who/when for order status transitions, invoice payment recording, customer account changes, and catalogue (product/price/category) changes.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Each order status transition is recorded with status, date/time, and user/system that performed it, retained as a timeline."
+       },
+       {
+        "kind": "data",
+        "text": "Each invoice payment recording stores payment date and the user who recorded it."
+       },
+       {
+        "kind": "data",
+        "text": "Staff amendments to an order (quantity/line/date/address/note changes) are stored as an audit history on the order."
+       },
+       {
+        "kind": "data",
+        "text": "Catalogue changes (admin add/edit/retire of products, categories, prices) are recorded for administrative history viewing."
+       },
+       {
+        "kind": "data",
+        "text": "Deactivating a user does not delete their historical order/invoice records; they remain visible to admins/staff."
+       },
+       {
+        "kind": "happy",
+        "text": "Administrators can view administrative/audit history information for these changes."
+       }
+      ]
+     },
+     {
+      "id": "I-9",
+      "readingChosen": "Full authentication lifecycle: sign-in with email/password, forgot-password flow with emailed reset link, and account management including lockout and deactivation handling.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "User signs in with email and password and is granted a session; incorrect credentials show an invalid-credentials message without revealing which field was wrong."
+       },
+       {
+        "kind": "error",
+        "text": "Sign-in attempt for an inactive/deactivated account is blocked with an account-status message."
+       },
+       {
+        "kind": "happy",
+        "text": "User signs out, ending their session."
+       },
+       {
+        "kind": "permission",
+        "text": "Unauthenticated users cannot access any protected pages (catalogue, basket, orders, invoices, admin) and are redirected to sign-in."
+       },
+       {
+        "kind": "happy",
+        "text": "User requests password reset via email; receives reset email with link; sets new password; can then sign in with new password."
+       },
+       {
+        "kind": "error",
+        "text": "Invalid or expired reset link is rejected with an error message."
+       },
+       {
+        "kind": "error",
+        "text": "After 5 consecutive failed sign-in attempts, the account is locked for 15 minutes, with further attempts blocked and the user informed of the temporary lock; successful sign-in after lock period restores normal access."
+       },
+       {
+        "kind": "permission",
+        "text": "A deactivated user cannot sign in and cannot place new orders, but their historical orders/invoices remain visible to staff/admin."
+       }
+      ]
+     },
+     {
+      "id": "I-10",
+      "readingChosen": "Build the product catalogue data model and browsing UI: product fields, categories (flat, admin-managed), search, filters, and vehicle-compatibility matching.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Each product record stores name, internal ID, manufacturer part number, distributor product code, description, category, manufacturer/brand, unit of sale, pack size, image, active/retired status, and compatibility links."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer browses a paginated/listed catalogue showing image, name, code, manufacturer, unit/pack size, price, stock status, and add-to-basket control per product."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin creates, edits, and retires categories; assigns products to categories."
+       },
+       {
+        "kind": "data",
+        "text": "Retired products no longer appear in catalogue browsing/search but remain intact in historical orders."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer searches/filters as described in I-2 behaviours (name, code, manufacturer part number, brand, category, vehicle)."
+       },
+       {
+        "kind": "happy",
+        "text": "Product detail page shows image, name, code, manufacturer, description, unit, pack size, price, stock status, vehicle compatibility list, quantity selector, add-to-basket."
+       }
+      ]
+     },
+     {
+      "id": "I-11",
+      "readingChosen": "One price per product per price list; admin manages price lists and assigns them to customers; customer sees only their assigned list's prices.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Admin creates a price list and names it."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin adds products to a price list and sets a price for each."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin edits an existing product's price within a price list."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin removes a product from a price list."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin assigns a price list to a customer company and can change the assignment later."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin deactivates a price list, preventing its further assignment/use for display."
+       },
+       {
+        "kind": "data",
+        "text": "Changing a customer's price-list assignment or editing prices does not alter prices already stored on existing orders."
+       },
+       {
+        "kind": "error",
+        "text": "If a product has no price entry in the customer's assigned price list, the product is treated as unpriced/unavailable for that customer rather than shown with a default price."
+       }
+      ]
+     },
+     {
+      "id": "I-12",
+      "readingChosen": "Stock availability is driven solely by a nightly ERP CSV import process; portal is read-only with respect to ERP stock, and import failures are handled gracefully.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "A scheduled job ingests the nightly ERP CSV, validates the file format and product identifiers, and updates stock quantities/status (In stock/Low stock/Out of stock) for matching products."
+       },
+       {
+        "kind": "data",
+        "text": "Each import run records a success or failure outcome with timestamp, visible to staff/admin."
+       },
+       {
+        "kind": "error",
+        "text": "If the CSV is invalid or incomplete, the import is rejected, the previous valid stock data remains in effect, and the failure is logged and visible to staff/admin (e.g. on dashboard)."
+       },
+       {
+        "kind": "permission",
+        "text": "The portal never writes stock data back to the ERP; it only reads/imports the file."
+       },
+       {
+        "kind": "happy",
+        "text": "After a successful import, the catalogue and product pages reflect the newly imported stock status immediately."
+       }
+      ]
+     },
+     {
+      "id": "I-13",
+      "readingChosen": "Basket add/edit/remove plus a checkout flow enforcing the 14:00 cutoff delivery-date rule, address/date selection, stock/price validation, and final review before submit.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer adds a product to basket, changes line quantity, or removes a line; basket shows line price, line total, and subtotal."
+       },
+       {
+        "kind": "happy",
+        "text": "Basket persists while the customer navigates the site within their session."
+       },
+       {
+        "kind": "happy",
+        "text": "At checkout, customer selects one of their company's eligible delivery addresses and an available delivery date computed per the cutoff rule (before 14:00 -> next working day; at/after 14:00 -> the working day after next), excluding configured non-working days."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer adds an optional order note before submitting."
+       },
+       {
+        "kind": "happy",
+        "text": "System re-validates stock and prices at checkout before allowing submission, showing the final reviewed order before confirming."
+       },
+       {
+        "kind": "error",
+        "text": "If a basket item becomes out of stock or its price has changed before checkout completes, the customer is shown the updated status/price before they can submit."
+       },
+       {
+        "kind": "happy",
+        "text": "On successful submission, an order number is generated, order-time prices are stored, status is set to Received, and the customer sees a confirmation."
+       }
+      ]
+     },
+     {
+      "id": "I-14",
+      "readingChosen": "Orders move through a fixed status lifecycle (Received→Confirmed→Picking→Out for delivery→Delivered, or Cancelled) with a recorded timeline; staff can edit/confirm/reject only up to the point confirmation locks the order.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Order status is one of Received, Confirmed, Picking, Out for delivery, Delivered, Cancelled, visible to both customer and staff."
+       },
+       {
+        "kind": "data",
+        "text": "Each status change records status, date/time, and the user or system that made the change, forming a visible timeline."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff can edit quantities, remove lines, and (where permitted) change delivery date/address/note on an order that is still Received (before confirmation)."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff confirming an order validates product availability and customer info, locks it from customer cancellation, sets status Confirmed, records who/when, and sends the customer a confirmation email (noting any staff-made quantity changes)."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff rejecting an order sets it to Cancelled, records reason/who/when, and notifies the customer."
+       },
+       {
+        "kind": "happy",
+        "text": "Status changing to Out for delivery triggers an email to the customer identifying the order."
+       },
+       {
+        "kind": "error",
+        "text": "Staff cannot edit an order that has already moved past Confirmed (e.g. already Picking/Delivered) through the normal edit action."
+       },
+       {
+        "kind": "permission",
+        "text": "Only office staff/admin can change order status or edit orders; customers cannot."
+       }
+      ]
+     },
+     {
+      "id": "I-15",
+      "readingChosen": "Customers can view their order history, cancel an order only while it is in Received status, and repeat a past order by loading its lines into a new basket for review/checkout (not auto-submit).",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer views a list of their company's past orders with number, date, delivery date, address, total, status."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer opens an order detail page showing full line items, prices, totals, note, and status timeline."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer cancels an order while its status is Received; status becomes Cancelled and is recorded in the timeline."
+       },
+       {
+        "kind": "error",
+        "text": "Customer attempting to cancel an order no longer in Received status is blocked and told to contact the distributor office."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer clicks 'repeat order' on a past order: previously ordered products that are still active/available are added to a new basket, unavailable products are flagged, and prices are recalculated using the customer's current price list."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer can adjust quantities in the repeated-order basket before going through normal checkout; no new order is created until the customer completes checkout and submits."
+       }
+      ]
+     },
+     {
+      "id": "I-16",
+      "readingChosen": "Invoices are auto-generated when an order reaches Delivered; customers/staff can view and download them as PDF; staff can mark invoices paid and record payment date, driving payment-status display.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "When an order's status changes to Delivered, the system automatically creates an invoice with invoice number, customer, billing address, order number, date, lines, quantities, prices, total, and payment status Unpaid."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer views their invoices list and opens invoice detail; buyer cannot view another customer's invoices."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer downloads an invoice as a PDF containing billing and order information."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff view any customer's invoices."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff mark an invoice as paid, recording payment date and the user who recorded it; invoice status updates to Paid."
+       },
+       {
+        "kind": "data",
+        "text": "Invoice status can be Paid, Unpaid, or Overdue, with Overdue derived automatically based on configured ageing rules."
+       },
+       {
+        "kind": "permission",
+        "text": "Only staff/admin can mark invoices as paid; customers cannot change invoice payment status."
+       }
+      ]
+     },
+     {
+      "id": "I-17",
+      "readingChosen": "Admin screens cover CRUD/management for products (incl. images, categories, compatibility), users (invite/deactivate/reactivate/role-change), categories, and price lists (create/edit/assign/deactivate).",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Admin adds, edits, and retires a product, including category assignment, manufacturer info, product codes, and compatibility data; retired products remain in historical orders."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin uploads a product image; invalid file type or oversized file is rejected with an error message; admin can replace an existing image."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin creates, edits, and retires categories, and reassigns products between categories."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin invites a new user (buyer, account manager, or staff) by entering their details; user receives an invitation email, sets a password, and account becomes active."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin deactivates a user, reactivates a user where permitted, and changes a user's role or company association."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin creates/edits/renames a price list, sets/edits/removes product prices within it, assigns it to a customer, and deactivates a price list."
+       },
+       {
+        "kind": "permission",
+        "text": "Only administrators can access product, category, user, and price-list management screens; staff and customers cannot."
+       },
+       {
+        "kind": "error",
+        "text": "Attempting to invite a user with an already-registered email or deactivate a non-existent user returns a validation error rather than succeeding silently."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

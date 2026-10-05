@@ -67,7 +67,7 @@ The estimate does not start until the spec passes lint, critic, round trip and h
 - **Then:** the spec is fixed with the answers and checked again, for at most 2 rounds. What is still open after that is carried as an open risk.
 - **Found in the request:** a capability flagged as not asked for that the request does ask for is settled by the request's own words; code checks the quote is in the request.
 - **A fix that drops requested behaviour** is not kept: the spec stays and its problems are carried as open risks.
-- **Recorded:** the spec carries `settled` (each problem, how it was settled, the question and answer). E1 lets a settled problem through; the estimate's assumptions list each one ("Spec question Q-n: … (answered)", "(assumed by the factory, hands-off)", "Open risk: …"). A dropped span is never settled: E1 still refuses it, and the run parks.
+- **Recorded:** the spec carries `settled` (each problem, how it was settled, the question and answer). E1 lets a settled problem through; the estimate's assumptions list each one ("Spec question Q-n: … (answered)", "(assumed by the factory, hands-off)", "Open risk: …"). A dropped span is never settled by the spec step: E1 asks about it instead (see "Gate questions" under Gates).
 - **Runs started earlier:** a run whose spec was written before this, at design or breakdown, records E1's verdict and goes back (`backToSettle`, the step outcome "back", not counted as a failure); the specify step then runs again from its stored spec, settles it, and the run goes on. A step that goes back twice with nothing completed in between parks instead of looping.
 
 ### Hands-off estimates (agreed and built 2026-10-03; opt-in since the PR #11 review)
@@ -1076,18 +1076,27 @@ A gate is a pure check over ledger artifacts. It fails closed: a gate that could
 - E1c: a task naming a screen the approved design does not have is sized with no screen.
 - E2, E2c and an approved screen no task builds (E1c): one small model call writes only the missing tasks and fixes only the listed kinds (new ids follow the last one); the rest of the breakdown stays as it was.
 - E5: each task an outlier or UI-order failure names is flagged, with the gate's reason as an open risk. Its range stays the estimators' median, because E6 recomputes it.
-- Every gate then runs again and is recorded. What still fails parks the run (so do a duplicate screen id or route). E1, E6 and E7 stay hard stops.
+- Every gate then runs again and is recorded. What still fails goes to the questions below instead of parking the run.
 - Each decision is a "Factory decision (hands-off, gate …)" or "Open risk: …" line in the estimate's assumptions, on the approval card and in the workbooks.
-- A run with review keeps the waiver card.
+- A run with review keeps the waiver card for a failure only E3, E4 or E5 raise, until a round of questions was asked.
+
+**Gate questions (built 2026-10-06).** In an estimate or a design run, a gate that still fails after the retry with the failures fed back no longer parks the run: it becomes clarify questions, so the pipeline does not stop (`src/stages/gate-questions.ts`, the executor's `askRound`).
+- **Which failures:** a breakdown gate (E2, E2c, E3, E4, E1c), E5, a design check (the plan, a page, the design note), E1 on the spec and E1b on the design. A step marks such a failure `gate: true`; E1 and E1b return the outcome `ask`, since retrying the same step cannot fix its input. A model output error, an exception, a rate limit, a safety stop and E6 keep the normal retry ladder and park as before. A build run never asks.
+- **The questions:** one small model call per round reads the failing checks, the spec's requirements, earlier answers and the request, and writes at most 6 questions. Each has 2-4 options, a recommended answer (the smallest change that does what the request asks) and the failures it settles.
+- **Like the clarify questions:** they are numbered Q-n after the run's clarify and spec questions. With review on, the card is a `question` card, answered in the same three places: the terminal prompt (Enter keeps the recommended option), the run page's questions panel, or `factory answer <run> <hash> Q-n=A`. Hands-off, each recommended answer is taken as an assumption and listed in the Estimate tab's "Assumed by the factory" panel.
+- **Then:** the step runs again, and every model call of the step reads the answers. An E1 or E1b failure that an answer settles passes. The step gets two more attempts per round, for at most 2 rounds.
+- **After 2 rounds:** what still fails is carried as an open risk and the run goes on. A breakdown task whose kind still does not fit loses its kind and is sized by anchors and ratios; a flagged E5 task reads as low confidence; a design screen that still fails its check is kept. Each carried failure is an "Open risk: … (gate … still fails after 2 rounds of questions …)" line on the estimate.
+- **Never carried:** a design with two screens sharing one id or route, a frame that does not exist, no design at all, or no approval. These park after the rounds. E6 and E7 stay hard stops.
+- **Recorded:** each round is a `step.failed` event with `action: "questions"` and the round's JSON (`roundSha`); the person's answers are the card's decision. The estimate's assumptions list each question ("Check question Q-n (step): … → … (answered by X)" or "(assumed by the factory, hands-off)") and each open risk. A questions round resets the step's attempt count, so the attempts cap does not trip between rounds.
 
 ### Estimate time
 
 | # | Gate | Checks | Waiver |
 |---|---|---|---|
-| E1 | Readiness | Spec passes lint, critic, round trip; no open questions. A lint failure, critic finding or invented capability settled by a question passes | None |
+| E1 | Readiness | Spec passes lint, critic, round trip; no open questions. A lint failure, critic finding or invented capability settled by a question passes, and so does a failure a check question settles | None (questions, then carried as an open risk) |
 | E1b | Design baseline | For any request with UI, the mock and clickable demo are approved, and every screen links to a requirement | None |
 | E1c | Design coverage | Every task's screen is in the approved design, every approved screen is built by a task, no screen id or route twice | Lead |
-| E2 | Requirement → task | Every requirement has at least one task | None |
+| E2 | Requirement → task | Every requirement has at least one task | None (questions, then carried as an open risk) |
 | E3 | Task → requirement | Every task cites a requirement, or a named overhead with a reason. Anything else is an extra and goes to a separate **Suggested, not included** block, outside the totals until the lead adds it | Lead (hands-off: moved to Suggested by the factory) |
 | E2c | Task kind | Every task has a kind from the pinned task catalogue (`src/estimate/assets/catalogue.json`), on a track that kind lists. The gate reads the catalogue recorded in its inputs, so old runs still verify after the catalogue changes | None |
 | E4 | Forgotten-work checklist | Each generic item marked in, or out with a reason | Lead (hands-off: "not assessed, confirm with the client") |

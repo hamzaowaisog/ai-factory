@@ -1,0 +1,519 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q1",
+      "category": "roles",
+      "topic": "roles",
+      "text": "Which user roles does the first release have?",
+      "options": [
+       "Customer, staff and admin only",
+       "Customer, staff, admin plus a customer company-admin who manages their own company's users",
+       "Customer, staff, admin plus finer staff sub-roles (e.g. warehouse, accounts)"
+      ],
+      "recommended": "Customer, staff and admin only",
+      "reason": "These are the three roles the scope implies, and it is the smallest role model.",
+      "spans": [
+       "76-scope-auth",
+       "76-scope-admin-product-pricelist-user-mgmt"
+      ],
+      "impact": 3,
+      "impactReason": "Roles decide who can see and change orders, prices and users."
+     },
+     {
+      "id": "Q2",
+      "category": "roles",
+      "text": "What can staff do compared with admin? In particular, can staff manage customer/company records, see the audit history and run reports?",
+      "options": [
+       "Staff: orders, staff-created orders, customer/company management, delivery CSV and reports. Admin: everything staff can do plus products, price lists, users and audit history",
+       "Staff: orders and delivery CSV only. Admin does everything else",
+       "Staff and admin have the same rights except user administration"
+      ],
+      "recommended": "Staff: orders, staff-created orders, customer/company management, delivery CSV and reports. Admin: everything staff can do plus products, price lists, users and audit history",
+      "reason": "This matches the sketches and leaves the sensitive admin screens with admin only.",
+      "spans": [
+       "76-scope-customer-company-management",
+       "76-scope-staff-order-mgmt-staff-created-orders-csv",
+       "76-scope-reporting-csv-notifications-audit"
+      ],
+      "impact": 3,
+      "impactReason": "It decides who can see and edit data across all customers."
+     },
+     {
+      "id": "Q3",
+      "category": "scope",
+      "topic": "sign-in",
+      "text": "How do customer users get accounts and sign in?",
+      "options": [
+       "Staff/admin create accounts and invite users by email; users sign in with email and password",
+       "Customers self-register and staff approve them before they get access",
+       "Single sign-on with an external identity provider"
+      ],
+      "recommended": "Staff/admin create accounts and invite users by email; users sign in with email and password",
+      "reason": "In a B2B portal, accounts are tied to known companies, and invite-only is the simplest way to do that.",
+      "spans": [
+       "76-scope-auth",
+       "76-scope-customer-company-management"
+      ],
+      "impact": 3,
+      "impactReason": "It controls who can get access to customer-specific prices and orders."
+     },
+     {
+      "id": "Q4",
+      "category": "scope",
+      "topic": "payments",
+      "text": "Does 'Payment status' mean taking online payments at checkout, or only recording invoice payment status?",
+      "options": [
+       "Only record invoice payment status (unpaid/paid/overdue), updated by staff; no online payment",
+       "Record status and import payments from the ERP/accounting system",
+       "Take card payments online at checkout through a payment provider"
+      ],
+      "recommended": "Only record invoice payment status (unpaid/paid/overdue), updated by staff; no online payment",
+      "reason": "B2B parts ordering usually runs on account terms, and the scope only says 'payment status'.",
+      "spans": [
+       "76-scope-invoicing-payment"
+      ],
+      "impact": 3,
+      "impactReason": "This involves money and possibly an external payment provider."
+     },
+     {
+      "id": "Q5",
+      "category": "data-model",
+      "text": "At which order state is the invoice created automatically?",
+      "options": [
+       "When the order is dispatched",
+       "When the order is placed/confirmed",
+       "When the order is delivered"
+      ],
+      "recommended": "When the order is dispatched",
+      "reason": "Cancellation and amendment are allowed before dispatch, so invoicing at dispatch means invoices never need to be reversed.",
+      "spans": [
+       "76-scope-invoicing-payment",
+       "76-scope-order-placement-history-tracking-cancel-repeat"
+      ],
+      "impact": 3,
+      "impactReason": "It creates financial records that must be kept for 7 years."
+     },
+     {
+      "id": "Q6",
+      "category": "data-model",
+      "text": "What are the order states, and up to which state can a customer cancel?",
+      "options": [
+       "Placed → Processing → Dispatched → Delivered, plus Cancelled; customers can cancel only while the order is Placed",
+       "The same states; customers can cancel up to Dispatched",
+       "Customers can only ask for a cancellation, and staff approve it"
+      ],
+      "recommended": "Placed → Processing → Dispatched → Delivered, plus Cancelled; customers can cancel only while the order is Placed",
+      "reason": "It is a minimal state model and avoids cancelling orders that are already being picked.",
+      "spans": [
+       "76-scope-order-placement-history-tracking-cancel-repeat",
+       "76-scope-staff-order-mgmt-staff-created-orders-csv"
+      ],
+      "impact": 3,
+      "impactReason": "It changes order data and what customers are allowed to do."
+     },
+     {
+      "id": "Q7",
+      "category": "scope",
+      "text": "'Order amendments' is in the backend checklist but not in the scope summary. Can orders be amended after they are placed, and by whom?",
+      "options": [
+       "Staff only, before dispatch",
+       "Customers and staff, before dispatch",
+       "No amendments in release 1; cancel and re-order instead"
+      ],
+      "recommended": "Staff only, before dispatch",
+      "reason": "It keeps the checklist item while limiting who can change placed orders.",
+      "spans": [
+       "74-estimation-checklist",
+       "76-scope-staff-order-mgmt-staff-created-orders-csv"
+      ],
+      "impact": 3,
+      "impactReason": "Amendments change order contents and prices."
+     },
+     {
+      "id": "Q8",
+      "category": "external",
+      "text": "How does the ERP stock CSV reach the system, and how often?",
+      "options": [
+       "Staff/admin upload the CSV manually through the admin screens",
+       "A scheduled job picks up the file from an agreed location (e.g. SFTP or a storage bucket) at a set interval",
+       "The ERP pushes the file to an upload endpoint"
+      ],
+      "recommended": "A scheduled job picks up the file from an agreed location (e.g. SFTP or a storage bucket) at a set interval",
+      "reason": "'Scheduled jobs' is in the DevOps checklist, which suggests an automatic import.",
+      "spans": [
+       "76-scope-pricing-stock"
+      ],
+      "impact": 3,
+      "impactReason": "The import overwrites stock data that customers order against."
+     },
+     {
+      "id": "Q9",
+      "category": "errors",
+      "text": "When an ERP import file has some bad rows or unknown SKUs, what should happen?",
+      "options": [
+       "Reject the whole file, keep the previous stock, and log or report the errors",
+       "Import the valid rows, skip the bad ones and report them",
+       "Import the valid rows and set unknown or bad SKUs to zero stock"
+      ],
+      "recommended": "Reject the whole file, keep the previous stock, and log or report the errors",
+      "reason": "It avoids leaving stock partly updated and is the simplest safe behaviour.",
+      "spans": [
+       "76-scope-pricing-stock"
+      ],
+      "impact": 3,
+      "impactReason": "It decides whether stored stock data changes."
+     },
+     {
+      "id": "Q10",
+      "category": "errors",
+      "text": "What happens when a customer orders more than the available stock?",
+      "options": [
+       "Block it: quantity cannot exceed available stock",
+       "Allow it with a warning and treat the excess as a back-order",
+       "Show stock for information only; do not restrict ordering"
+      ],
+      "recommended": "Block it: quantity cannot exceed available stock",
+      "reason": "This is what the sketches agree on, and it is the simplest rule.",
+      "spans": [
+       "76-scope-pricing-stock",
+       "76-scope-basket-checkout-delivery"
+      ],
+      "impact": 3,
+      "impactReason": "It decides which orders can be placed."
+     },
+     {
+      "id": "Q11",
+      "category": "identifiers",
+      "text": "Should delivery scheduling rules (cut-off times, delivery days, blackout dates, lead times) be fixed values or editable by admin?",
+      "options": [
+       "Stored as configuration that admin can edit",
+       "Fixed in code or environment configuration, changed by a developer",
+       "Different rules per customer/delivery region, editable by admin"
+      ],
+      "recommended": "Stored as configuration that admin can edit",
+      "reason": "These rules change over time (for example holidays), and admin editing avoids redeploying.",
+      "spans": [
+       "76-scope-basket-checkout-delivery"
+      ],
+      "impact": 2,
+      "impactReason": "It changes which delivery dates customers can choose."
+     },
+     {
+      "id": "Q12",
+      "category": "data-model",
+      "text": "How is customer-specific pricing modelled, and what happens if a product has no price for the customer's list?",
+      "options": [
+       "One price list per company, falling back to a default/base price list",
+       "One price list per company; products with no price are shown as 'price on request' and cannot be ordered",
+       "Per-customer discounts applied to a base price"
+      ],
+      "recommended": "One price list per company, falling back to a default/base price list",
+      "reason": "It covers every product with the fewest price-list entries to maintain.",
+      "spans": [
+       "76-scope-pricing-stock",
+       "76-scope-admin-product-pricelist-user-mgmt"
+      ],
+      "impact": 3,
+      "impactReason": "It decides what each customer is charged."
+     },
+     {
+      "id": "Q13",
+      "category": "data-model",
+      "text": "Are saved basket templates personal to one user or shared across all users in a company?",
+      "options": [
+       "Shared by all users in the same company",
+       "Private to the user who created them"
+      ],
+      "recommended": "Shared by all users in the same company",
+      "reason": "B2B buyers in one company often reorder the same sets of parts.",
+      "spans": [
+       "76-scope-basket-templates"
+      ],
+      "impact": 2,
+      "impactReason": "It changes who sees which templates."
+     },
+     {
+      "id": "Q14",
+      "category": "scope",
+      "text": "'Account/address management' is in the frontend checklist but not in the scope summary. Can customers manage delivery addresses themselves?",
+      "options": [
+       "Customers can view addresses and pick one at checkout; staff manage the addresses",
+       "Customers can add, edit and delete their company's delivery addresses",
+       "Not in release 1"
+      ],
+      "recommended": "Customers can view addresses and pick one at checkout; staff manage the addresses",
+      "reason": "Checkout needs an address, and having staff control addresses keeps delivery data reliable.",
+      "spans": [
+       "74-estimation-checklist",
+       "76-scope-customer-company-management"
+      ],
+      "impact": 2,
+      "impactReason": "It is a visible customer flow."
+     },
+     {
+      "id": "Q15",
+      "category": "existing-data",
+      "text": "When admin removes a product that appears on past orders, what happens?",
+      "options": [
+       "Products can only be deactivated (hidden), never hard-deleted",
+       "Hard-delete is allowed only if no order references the product"
+      ],
+      "recommended": "Products can only be deactivated (hidden), never hard-deleted",
+      "reason": "Orders and invoices must stay readable for 7 years.",
+      "spans": [
+       "76-scope-admin-product-pricelist-user-mgmt",
+       "76-scope-responsive-retention"
+      ],
+      "impact": 3,
+      "impactReason": "It affects whether historical records stay intact."
+     },
+     {
+      "id": "Q16",
+      "category": "existing-data",
+      "text": "What happens to order and invoice data after 7 years?",
+      "options": [
+       "Keep it indefinitely; no automatic deletion in release 1",
+       "Archive it to cheaper storage after 7 years",
+       "Delete it automatically after 7 years"
+      ],
+      "recommended": "Keep it indefinitely; no automatic deletion in release 1",
+      "reason": "It meets the minimum retention period without building archive or purge jobs.",
+      "spans": [
+       "76-scope-responsive-retention",
+       "75-technology-stack"
+      ],
+      "impact": 3,
+      "impactReason": "It decides whether data is deleted."
+     },
+     {
+      "id": "Q17",
+      "category": "scope",
+      "topic": "audit",
+      "text": "What does the audit history record, and who can see it?",
+      "options": [
+       "Order status changes and staff-created orders, plus admin changes to products, prices and users, with actor and timestamp; visible to admin only",
+       "The same events, visible to staff and admin",
+       "Every create, update and delete on all records, including logins, visible to admin"
+      ],
+      "recommended": "Order status changes and staff-created orders, plus admin changes to products, prices and users, with actor and timestamp; visible to admin only",
+      "reason": "It covers the actions that matter without logging everything.",
+      "spans": [
+       "76-scope-reporting-csv-notifications-audit"
+      ],
+      "impact": 3,
+      "impactReason": "It decides what history is kept and who can see it."
+     },
+     {
+      "id": "Q18",
+      "category": "scope",
+      "topic": "notifications",
+      "text": "Which events send email notifications, and to whom?",
+      "options": [
+       "To the ordering customer when an order is placed, dispatched or cancelled, and when an invoice is issued",
+       "The same, plus staff alerts for new orders and failed imports",
+       "Order confirmation only"
+      ],
+      "recommended": "To the ordering customer when an order is placed, dispatched or cancelled, and when an invoice is issued",
+      "reason": "It covers the main customer events without adding staff alerting.",
+      "spans": [
+       "76-scope-reporting-csv-notifications-audit"
+      ],
+      "impact": 2,
+      "impactReason": "Customers see these messages."
+     },
+     {
+      "id": "Q19",
+      "category": "scope",
+      "topic": "reporting",
+      "text": "Which reports are needed?",
+      "options": [
+       "Sales and order volume by date range and by customer, with CSV export",
+       "Those plus product/stock performance and invoice ageing",
+       "A fixed set to be defined later by the client"
+      ],
+      "recommended": "Sales and order volume by date range and by customer, with CSV export",
+      "reason": "It is a minimal, well-defined set that can be estimated.",
+      "spans": [
+       "76-scope-reporting-csv-notifications-audit"
+      ],
+      "impact": 2,
+      "impactReason": "It is a visible staff/admin feature."
+     },
+     {
+      "id": "Q20",
+      "category": "external",
+      "text": "Who uses the delivery CSV export, and is its format fixed?",
+      "options": [
+       "Our own defined column set (order ref, customer, address, delivery date, items, quantities)",
+       "Must match a format supplied by the client's logistics or ERP system"
+      ],
+      "recommended": "Our own defined column set (order ref, customer, address, delivery date, items, quantities)",
+      "reason": "No external format is given in the request.",
+      "spans": [
+       "76-scope-staff-order-mgmt-staff-created-orders-csv"
+      ],
+      "impact": 2,
+      "impactReason": "It changes what an external process receives."
+     },
+     {
+      "id": "Q21",
+      "category": "scope",
+      "topic": "data-migration",
+      "text": "Is there existing data to bring in at launch (customers, users, products, vehicle compatibility, price lists, historical orders)?",
+      "options": [
+       "Only products, customers and price lists, as a one-off CSV import",
+       "No migration; data is entered through the admin screens",
+       "Full migration, including historical orders and invoices"
+      ],
+      "recommended": "Only products, customers and price lists, as a one-off CSV import",
+      "reason": "The portal cannot launch without catalogue and pricing data, while old orders can stay in the ERP.",
+      "spans": [
+       "76-scope-catalogue-search-filter-vehicle",
+       "76-scope-pricing-stock"
+      ],
+      "impact": 3,
+      "impactReason": "It writes the initial data."
+     },
+     {
+      "id": "Q22",
+      "category": "external",
+      "text": "Where does vehicle compatibility data (make/model/year to part) come from?",
+      "options": [
+       "Maintained by admin in the portal (manual entry or CSV upload)",
+       "Included in the ERP import",
+       "From a third-party vehicle/parts data provider"
+      ],
+      "recommended": "Maintained by admin in the portal (manual entry or CSV upload)",
+      "reason": "No external provider is listed under Integrations.",
+      "spans": [
+       "76-scope-catalogue-search-filter-vehicle"
+      ],
+      "impact": 2,
+      "impactReason": "It affects search results and could add an external integration."
+     },
+     {
+      "id": "Q23",
+      "category": "scope",
+      "topic": "volumes",
+      "text": "What scale should the stack be sized for?",
+      "options": [
+       "Small B2B: hundreds of customer companies, tens of thousands of products, thousands of orders per month",
+       "Medium: thousands of companies, hundreds of thousands of products",
+       "Client to provide figures"
+      ],
+      "recommended": "Client to provide figures",
+      "reason": "The tech stack must support the 'expected scale', but no figures are given.",
+      "spans": [
+       "75-technology-stack"
+      ],
+      "impact": 2,
+      "impactReason": "It drives the hosting and database choices."
+     },
+     {
+      "id": "Q24",
+      "category": "scope",
+      "topic": "browsers",
+      "text": "Which browsers must be supported (browser testing is in the QA checklist)?",
+      "options": [
+       "Latest two versions of Chrome, Edge, Safari and Firefox, including mobile Safari and Chrome",
+       "Chrome and Edge only"
+      ],
+      "recommended": "Latest two versions of Chrome, Edge, Safari and Firefox, including mobile Safari and Chrome",
+      "reason": "A mobile-first buyer experience needs mobile browsers.",
+      "spans": [
+       "74-estimation-checklist",
+       "76-scope-responsive-retention"
+      ],
+      "impact": 1,
+      "impactReason": "It affects the testing scope."
+     },
+     {
+      "id": "Q25",
+      "category": "scope",
+      "topic": "languages",
+      "text": "Which languages and currencies are supported?",
+      "options": [
+       "One language and one currency",
+       "Several languages and/or currencies"
+      ],
+      "recommended": "One language and one currency",
+      "reason": "Nothing in the request mentions localisation.",
+      "spans": [
+       "76-scope-catalogue-search-filter-vehicle",
+       "76-scope-invoicing-payment"
+      ],
+      "impact": 2,
+      "impactReason": "It affects all screens and invoices."
+     },
+     {
+      "id": "Q26",
+      "category": "scope",
+      "topic": "accessibility",
+      "text": "What accessibility level is required?",
+      "options": [
+       "WCAG 2.1 AA for the customer-facing screens",
+       "No formal target"
+      ],
+      "recommended": "WCAG 2.1 AA for the customer-facing screens",
+      "reason": "This is the common baseline for web portals.",
+      "spans": [
+       "76-scope-responsive-retention"
+      ],
+      "impact": 1,
+      "impactReason": "It affects UI and testing effort."
+     },
+     {
+      "id": "Q27",
+      "category": "scope",
+      "topic": "hosting",
+      "text": "Are there any limits on hosting (cloud provider, data residency)?",
+      "options": [
+       "No limits; the team proposes a provider in the same region as the client",
+       "The client has a required cloud provider or region"
+      ],
+      "recommended": "No limits; the team proposes a provider in the same region as the client",
+      "reason": "The request says the stack is not decided and the team should propose it.",
+      "spans": [
+       "75-technology-stack"
+      ],
+      "impact": 2,
+      "impactReason": "It affects infrastructure and how retention is stored."
+     },
+     {
+      "id": "Q28",
+      "category": "scope",
+      "text": "The request refers to an Open Questions section that was not included. How should the estimate deal with it?",
+      "options": [
+       "Client provides the Open Questions section; until then, the questions here are recorded as assumptions",
+       "Estimate using only the assumptions listed here"
+      ],
+      "recommended": "Client provides the Open Questions section; until then, the questions here are recorded as assumptions",
+      "reason": "The request says open items must be clarified or turned into assumptions before the final estimate.",
+      "spans": [
+       "76-open-questions-dependency",
+       "74-estimation-checklist"
+      ],
+      "impact": 2,
+      "impactReason": "It decides whether the estimate is final."
+     }
+    ],
+    "conflicts": [
+     "The estimation checklist includes 'Order amendments' (Backend) and 'Account/address management' (Frontend), but neither appears in the Final Scope Summary.",
+     "The request refers to an Open Questions section that is not included in the document, so the unresolved items cannot be seen.",
+     "'Payment status' is in scope and 'Payments' is in the backend checklist, but there is no payment provider under Integrations, so it is unclear whether online payment is in scope."
+    ]
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

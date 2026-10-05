@@ -1,0 +1,318 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "roles",
+      "text": "Customer Buyers can see all of their company's orders. Should saved basket templates also be shared with every Buyer in the company, or stay private to the Buyer who made them?",
+      "options": [
+       "Templates are private to the Buyer who created them",
+       "Templates are shared with all Buyers in the same company, and any of them can edit or delete them",
+       "Templates are shared read-only; only the creator can edit or delete them"
+      ],
+      "recommended": "Templates are private to the Buyer who created them",
+      "reason": "This is the simplest model. The request only says sharing is an open point and doesn't require it.",
+      "spans": [
+       "I-15"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which users can see and change company data."
+     },
+     {
+      "id": "Q-7",
+      "category": "external",
+      "text": "Who receives order emails (confirmation, quantity change, rejection, out for delivery)? This matters especially for orders that staff create on behalf of a customer, where no Buyer placed the order.",
+      "options": [
+       "The Buyer who placed the order; for staff-created orders, the company's contact email",
+       "The company's contact email for every order",
+       "The placing Buyer and the company's contact email"
+      ],
+      "recommended": "The Buyer who placed the order; for staff-created orders, the company's contact email",
+      "reason": "This follows the request's wording ('the buyer receives an email') and covers the gap for staff-created orders.",
+      "spans": [
+       "I-14",
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "Changes who is notified about orders.",
+      "topic": "notifications"
+     },
+     {
+      "id": "Q-8",
+      "category": "errors",
+      "text": "When staff cancel an order that is already Confirmed, Picking or Out for delivery, should they have to give a reason, and is the customer emailed the same way as for a rejection?",
+      "options": [
+       "Yes, a reason is required and the customer is emailed, the same as for a rejection",
+       "A reason is required, but no email is sent",
+       "No reason and no email"
+      ],
+      "recommended": "Yes, a reason is required and the customer is emailed, the same as for a rejection",
+      "reason": "This reuses the rejection behaviour that is already specified.",
+      "spans": [
+       "I-14"
+      ],
+      "impact": 2,
+      "impactReason": "Affects the customer notification flow and the audit trail.",
+      "topic": "notifications"
+     },
+     {
+      "id": "Q-9",
+      "category": "data-model",
+      "text": "How is stock checked when an order is placed or confirmed? Stock only changes with the nightly ERP import, and the portal never decrements it.",
+      "options": [
+       "Compare the ordered quantity with the last imported quantity, without subtracting orders placed since the import",
+       "Block ordering only when the product's status is Out of stock; don't check quantities",
+       "Subtract quantities already ordered in the portal since the last import before comparing"
+      ],
+      "recommended": "Compare the ordered quantity with the last imported quantity, without subtracting orders placed since the import",
+      "reason": "This meets the rule against ordering unavailable quantities without adding stock tracking inside the portal.",
+      "spans": [
+       "I-12",
+       "I-13",
+       "I-3"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which orders can be placed."
+     },
+     {
+      "id": "Q-10",
+      "category": "identifiers",
+      "text": "Where are the low-stock threshold, the 14:00 order cutoff and the system timezone defined?",
+      "options": [
+       "Admin-editable system settings, each with a single global value",
+       "Fixed constants in code",
+       "Per-product low-stock thresholds, with the cutoff and timezone as global settings"
+      ],
+      "recommended": "Admin-editable system settings, each with a single global value",
+      "reason": "Admins already 'configure system settings', and all three values are listed as open points.",
+      "spans": [
+       "I-12",
+       "I-13"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the stock status and delivery dates customers see."
+     },
+     {
+      "id": "Q-11",
+      "category": "data-model",
+      "text": "How are non-working days and public holidays maintained for the delivery-date rule?",
+      "options": [
+       "Weekends are always excluded, and admins maintain a list of extra non-working dates (including public holidays)",
+       "Admins configure both the working weekdays and a list of holiday dates",
+       "Only weekends are excluded; no holiday handling"
+      ],
+      "recommended": "Weekends are always excluded, and admins maintain a list of extra non-working dates (including public holidays)",
+      "reason": "This is the smallest way to support the 'configured non-working days' the request mentions.",
+      "spans": [
+       "I-13"
+      ],
+      "impact": 2,
+      "impactReason": "Changes which delivery dates customers can choose."
+     },
+     {
+      "id": "Q-12",
+      "category": "scope",
+      "text": "Which delivery dates can a customer choose at checkout?",
+      "options": [
+       "Any working day from the earliest available date up to a configurable number of days ahead",
+       "Only the earliest available date",
+       "Any future working day with no limit"
+      ],
+      "recommended": "Any working day from the earliest available date up to a configurable number of days ahead",
+      "reason": "Customers 'select an available delivery date', and a limit stops unrealistic far-future orders.",
+      "spans": [
+       "I-13"
+      ],
+      "impact": 2,
+      "impactReason": "A visible part of checkout."
+     },
+     {
+      "id": "Q-13",
+      "category": "errors",
+      "text": "What happens when a product has no price on the customer's assigned price list, or the assigned price list has been deactivated?",
+      "options": [
+       "The product stays visible but shows 'price on request' and can't be added to the basket",
+       "The product is hidden from that customer",
+       "The Standard price list is used as a fallback"
+      ],
+      "recommended": "The product stays visible but shows 'price on request' and can't be added to the basket",
+      "reason": "This avoids charging a price that hasn't been agreed and doesn't need fallback logic.",
+      "spans": [
+       "I-11",
+       "I-3"
+      ],
+      "impact": 3,
+      "impactReason": "Affects prices charged and what customers can order."
+     },
+     {
+      "id": "Q-14",
+      "category": "data-model",
+      "text": "How is tax handled on prices, orders and invoices?",
+      "options": [
+       "Prices are entered and shown excluding tax; invoices add tax at one configurable rate",
+       "Prices include tax and no separate tax line is shown",
+       "Tax is not handled; totals are net only"
+      ],
+      "recommended": "Prices are entered and shown excluding tax; invoices add tax at one configurable rate",
+      "reason": "This is standard for B2B invoices and adds only one setting.",
+      "spans": [
+       "I-11",
+       "I-16"
+      ],
+      "impact": 3,
+      "impactReason": "Changes the money totals on invoices."
+     },
+     {
+      "id": "Q-15",
+      "category": "data-model",
+      "text": "When does an unpaid invoice become Overdue?",
+      "options": [
+       "After one configurable number of days from the invoice date, the same for all customers",
+       "After payment terms set separately for each customer company",
+       "Staff mark invoices as Overdue by hand"
+      ],
+      "recommended": "After one configurable number of days from the invoice date, the same for all customers",
+      "reason": "This is the smallest automatic rule; terms for each customer would need a new field.",
+      "spans": [
+       "I-16"
+      ],
+      "impact": 3,
+      "impactReason": "Changes the payment status customers and staff see."
+     },
+     {
+      "id": "Q-16",
+      "category": "roles",
+      "text": "There is no management role. Who can see the sales and product reports, and which reports are in the first release?",
+      "options": [
+       "Office staff and admins; sales by period, sales by customer, and top products",
+       "Admins only; the same three reports",
+       "A new Management read-only role"
+      ],
+      "recommended": "Office staff and admins; sales by period, sales by customer, and top products",
+      "reason": "Staff already 'view operational reports', so no new role is needed.",
+      "spans": [
+       "I-7"
+      ],
+      "impact": 3,
+      "impactReason": "Decides who sees sales data.",
+      "topic": "reporting"
+     },
+     {
+      "id": "Q-17",
+      "category": "external",
+      "text": "How does the nightly ERP stock CSV reach the portal?",
+      "options": [
+       "A scheduled job reads the file from a configured file location (for example SFTP or a shared folder)",
+       "Admins upload the file by hand through the portal",
+       "The ERP pushes the file to a portal upload endpoint"
+      ],
+      "recommended": "A scheduled job reads the file from a configured file location (for example SFTP or a shared folder)",
+      "reason": "This matches the 'scheduled process' described in section 9.1.",
+      "spans": [
+       "I-12"
+      ],
+      "impact": 2,
+      "impactReason": "Affects the integration and whether stock is up to date."
+     },
+     {
+      "id": "Q-18",
+      "category": "existing-data",
+      "text": "What happens to the users of a customer company that is set to inactive, and to the company's open orders?",
+      "options": [
+       "Its users can't sign in or order; open orders and history stay unchanged",
+       "Its users can still sign in to see history but can't order",
+       "Its open orders are cancelled automatically"
+      ],
+      "recommended": "Its users can't sign in or order; open orders and history stay unchanged",
+      "reason": "This mirrors the user-deactivation rules that are already specified.",
+      "spans": [
+       "I-17",
+       "I-9"
+      ],
+      "impact": 3,
+      "impactReason": "Changes access and order state."
+     },
+     {
+      "id": "Q-19",
+      "category": "data-model",
+      "text": "Does the basket persist across sessions and devices?",
+      "options": [
+       "Yes, one saved basket per Buyer, kept until the Buyer checks out or empties it",
+       "Only for the current browser session",
+       "One shared basket per company"
+      ],
+      "recommended": "Yes, one saved basket per Buyer, kept until the Buyer checks out or empties it",
+      "reason": "Buyers build orders over time, and a basket per user avoids conflicts between Buyers in the same company.",
+      "spans": [
+       "I-13"
+      ],
+      "impact": 2,
+      "impactReason": "Visible basket behaviour."
+     },
+     {
+      "id": "Q-20",
+      "category": "identifiers",
+      "text": "How long are password-reset links and invitation links valid, and can admins resend invitations?",
+      "options": [
+       "Reset links last 1 hour and invitations 7 days, both configurable; admins can resend, which cancels the old link",
+       "Fixed values in code; no resend",
+       "Links never expire"
+      ],
+      "recommended": "Reset links last 1 hour and invitations 7 days, both configurable; admins can resend, which cancels the old link",
+      "reason": "These are common secure defaults, and resending covers expired invitations.",
+      "spans": [
+       "I-9"
+      ],
+      "impact": 2,
+      "impactReason": "Affects the sign-in and onboarding flow.",
+      "topic": "sign-in"
+     },
+     {
+      "id": "Q-21",
+      "category": "scope",
+      "text": "Do categories need to be nested?",
+      "options": [
+       "One flat level of categories",
+       "Two levels (category and subcategory)",
+       "Unlimited nesting"
+      ],
+      "recommended": "One flat level of categories",
+      "reason": "All the example categories are flat, and nesting is only an open point.",
+      "spans": [
+       "I-10"
+      ],
+      "impact": 2,
+      "impactReason": "Affects browsing and filtering."
+     },
+     {
+      "id": "Q-22",
+      "category": "terminology",
+      "text": "Should a rejected order use its own Rejected status, or the existing Cancelled status with a reason?",
+      "options": [
+       "Cancelled, with the rejection reason recorded",
+       "A separate Rejected status"
+      ],
+      "recommended": "Cancelled, with the rejection reason recorded",
+      "reason": "This is what section 26 specifies, and it keeps the six listed statuses.",
+      "spans": [
+       "I-14"
+      ],
+      "impact": 1,
+      "impactReason": "Mainly affects status labels and filters."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

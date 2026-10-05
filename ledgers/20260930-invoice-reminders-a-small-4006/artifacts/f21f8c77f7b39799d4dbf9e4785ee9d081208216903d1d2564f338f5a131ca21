@@ -1,0 +1,62 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The system shall determine, on every request rather than by storing a flag, whether an invoice is overdue."
+     },
+     {
+      "n": 2,
+      "text": "An invoice shall be considered overdue only if its status is in a configured list of open statuses, which defaults to just 'open'."
+     },
+     {
+      "n": 3,
+      "text": "An invoice shall be considered overdue only if it has a due date."
+     },
+     {
+      "n": 4,
+      "text": "An invoice shall be considered overdue only if the number of calendar days from its due date to today, calculated in a configured business time zone, is at least a configured overdue threshold, which defaults to 7."
+     },
+     {
+      "n": 5,
+      "text": "The system shall provide an authenticated staff endpoint that returns the list of all invoices currently classified as overdue."
+     },
+     {
+      "n": 6,
+      "text": "Each invoice in the overdue list shall include its invoice ID, invoice number, customer name, amount, due date, and days overdue, where days overdue is the calendar days since the due date."
+     },
+     {
+      "n": 7,
+      "text": "The overdue list endpoint shall support filtering results by a customer identifier, returning only that customer's overdue invoices."
+     },
+     {
+      "n": 8,
+      "text": "The overdue list endpoint shall support filtering results by a days-overdue bucket, using fixed inclusive ranges of 7-30, 31-60, and 61+ days, regardless of the configured overdue threshold."
+     },
+     {
+      "n": 9,
+      "text": "If the requested bucket value is not one of the three defined buckets, the endpoint shall respond with HTTP 400 and a validation error identifying the bucket parameter."
+     },
+     {
+      "n": 10,
+      "text": "Any request to an Invoice Reminders endpoint without valid staff authentication shall be rejected with HTTP 401, without returning invoice data, sending email, or changing data."
+     },
+     {
+      "n": 11,
+      "text": "Any request to an Invoice Reminders endpoint with a valid, unexpired token whose principal is not a staff user shall be rejected with HTTP 403, without returning invoice or customer data or changing data."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

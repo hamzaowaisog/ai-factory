@@ -1,0 +1,30 @@
+:root {
+  --font-body:"IBM Plex Sans","Inter var",Inter,"SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI Variable","Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --font-heading:"Roboto Slab",Rockwell,"Roboto Slab","Zilla Slab","Rockwell Nova",Georgia,serif;
+  --font-heading-weight:650;
+  --font-heading-tracking:-.01em;
+  --radius:10px;
+  --surface-blur:none;
+  --space-pad:12px;
+  --space-row:40px;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --ease-spring:cubic-bezier(.34,1.4,.64,1);
+  --color-background:#f7f9fd;
+  --color-surface:#ffffff;
+  --color-surface-muted:#f0f4fb;
+  --color-border:#e3e6ed;
+  --color-border-strong:#d1d4db;
+  --color-text-muted:#686c72;
+  --color-text-secondary:#45484d;
+  --color-text:#14161b;
+  --color-brand:#1E4BB8;
+  --color-on-brand:#ffffff;
+  --color-brand-text:#1E4BB8;
+  --color-accent-text:#1E4BB8;
+  --color-success:#067e3f;
+  --color-danger:#c92f33;
+  --color-warning:#976115;
+  --color-info:#1e71ac;
+  --shadow-card:none;
+  --shadow-raised:0 2px 4px rgba(16,24,40,.04),0 12px 28px -10px rgba(16,24,40,.14);
+}

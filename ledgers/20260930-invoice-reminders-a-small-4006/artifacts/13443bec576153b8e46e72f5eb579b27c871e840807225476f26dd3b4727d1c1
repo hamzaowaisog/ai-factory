@@ -1,0 +1,70 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Add logic that classifies an invoice as overdue by computing it on every request without storing it, based on whether its status is in a configured open-status list (default 'open'), it has a due date, and the calendar days from due date to today in a configured business time zone meet or exceed a configured overdue threshold (default 7)."
+     },
+     {
+      "n": 2,
+      "text": "Add an API endpoint that returns, for authenticated staff users, the list of currently overdue invoices, each with invoice ID, invoice number, customer name, amount, due date, days overdue and latest reminder outcome."
+     },
+     {
+      "n": 3,
+      "text": "Allow the overdue list request to be filtered by customer, returning only that customer's overdue invoices."
+     },
+     {
+      "n": 4,
+      "text": "Allow the overdue list request to be filtered by a fixed days-overdue bucket (7-30, 31-60, 61+), returning invoices in that bucket, and return a 400 validation error if an unrecognized bucket value is given."
+     },
+     {
+      "n": 5,
+      "text": "Add a send-reminder action that, for an overdue invoice whose customer has a billing email, sends one templated email via the configured email sender to that billing email from the configured sender address, including invoice number, amount in local currency and due date."
+     },
+     {
+      "n": 6,
+      "text": "When the customer has no billing email, make the send-reminder action send no email, return a 'missing billing email' error, and record the attempt as a failed entry in reminder history."
+     },
+     {
+      "n": 7,
+      "text": "When the invoice is not overdue (including paid or cancelled invoices), make the send-reminder action return a 409 error, send no email, and add no reminder history entry."
+     },
+     {
+      "n": 8,
+      "text": "After each reminder send attempt, add one row to a reminder history table recording invoice ID, sending staff user ID, server UTC timestamp, outcome (sent/failed), and failure reason when applicable."
+     },
+     {
+      "n": 9,
+      "text": "Make all requests to edit or delete a reminder history entry respond with 404 or 405 and leave the entry unchanged."
+     },
+     {
+      "n": 10,
+      "text": "Add an invoice detail endpoint returning invoice number, customer name, amount, due date, overdue flag, days overdue, latest reminder outcome, and full reminder history newest first with sender, timestamp, outcome and failure reason."
+     },
+     {
+      "n": 11,
+      "text": "When the email sender errors, make the response report outcome 'failed' with the error reason, record a failed history entry with that reason, and keep the invoice in the overdue list."
+     },
+     {
+      "n": 12,
+      "text": "Require valid staff authentication on every Invoice Reminders endpoint, rejecting unauthenticated requests with 401 and no data change or email sent."
+     },
+     {
+      "n": 13,
+      "text": "Return 404 with no email sent and no history row added when an invoice detail or send-reminder request names a non-existent invoice ID."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

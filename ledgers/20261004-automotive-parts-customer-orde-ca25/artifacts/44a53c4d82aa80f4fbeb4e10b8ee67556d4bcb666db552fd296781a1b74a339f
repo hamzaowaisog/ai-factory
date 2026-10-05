@@ -1,0 +1,627 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-1",
+      "category": "roles",
+      "topic": "roles",
+      "text": "Is the Customer Account Manager role part of the first release?",
+      "options": [
+       "No: first release has Buyer, Office Staff and Administrator only",
+       "Yes: build Account Manager alongside Buyer",
+       "Build the role model so Account Manager can be added later, but don't expose it now"
+      ],
+      "recommended": "No: first release has Buyer, Office Staff and Administrator only",
+      "reason": "The request calls it optional and an open point. Leaving it out is the smallest complete scope.",
+      "spans": [
+       "I-5",
+       "I-9",
+       "I-17"
+      ],
+      "impact": 3,
+      "impactReason": "Decides who can see which company's orders and invoices."
+     },
+     {
+      "id": "Q-2",
+      "category": "roles",
+      "text": "Should a Buyer see every order and invoice for their company, or only the orders they placed (plus their invoices)?",
+      "options": [
+       "Buyer sees all orders and invoices of their company",
+       "Buyer sees only orders they placed and the invoices for those orders"
+      ],
+      "recommended": "Buyer sees all orders and invoices of their company",
+      "reason": "Section 3.1 says the buyer can 'View their company's orders', and staff-created orders must show in the customer's history.",
+      "spans": [
+       "I-5",
+       "I-15"
+      ],
+      "impact": 3,
+      "impactReason": "Controls who sees which orders and invoices."
+     },
+     {
+      "id": "Q-3",
+      "category": "scope",
+      "text": "Are saved basket templates (section 16) in scope? They are listed for Buyers but missing from the intent list.",
+      "options": [
+       "Out of scope for this release",
+       "In scope, private to each user",
+       "In scope, shared across users in the same company"
+      ],
+      "recommended": "Out of scope for this release",
+      "reason": "None of the intent items cover templates, and repeat order already handles re-ordering.",
+      "spans": [
+       "I-13",
+       "I-15"
+      ],
+      "impact": 2,
+      "impactReason": "Adds or removes a whole customer flow."
+     },
+     {
+      "id": "Q-4",
+      "category": "roles",
+      "text": "Can customers create or edit their own delivery addresses?",
+      "options": [
+       "No: customers select from addresses managed by staff/admin",
+       "Yes: buyers can add and edit their company's addresses",
+       "Customers can request changes, and staff approve them"
+      ],
+      "recommended": "No: customers select from addresses managed by staff/admin",
+      "reason": "The buyer capability is only 'View their company's addresses'.",
+      "spans": [
+       "I-13",
+       "I-17"
+      ],
+      "impact": 3,
+      "impactReason": "Customer write permission on address records."
+     },
+     {
+      "id": "Q-5",
+      "category": "roles",
+      "text": "Who maintains customer company records (name, account number, billing address, addresses, active status): Office Staff, Administrators, or both?",
+      "options": [
+       "Administrators only; staff can view",
+       "Both Office Staff and Administrators can edit"
+      ],
+      "recommended": "Administrators only; staff can view",
+      "reason": "Section 3.4 gives 'Manage customer accounts' to admins, while staff are given view and search.",
+      "spans": [
+       "I-17",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Write permissions on customer data."
+     },
+     {
+      "id": "Q-6",
+      "category": "identifiers",
+      "text": "How is 'low stock' decided, and is the threshold fixed or configurable?",
+      "options": [
+       "One global quantity threshold, configurable by admin in system settings",
+       "One global threshold hardcoded as a constant",
+       "A threshold set per product"
+      ],
+      "recommended": "One global quantity threshold, configurable by admin in system settings",
+      "reason": "Admins already 'Configure system settings'. A per-product threshold would need extra data.",
+      "spans": [
+       "I-3",
+       "I-12"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the stock status customers see."
+     },
+     {
+      "id": "Q-7",
+      "category": "errors",
+      "text": "If an out-of-stock product (or a quantity above stock) is in the basket, what happens?",
+      "options": [
+       "The product can't be added and checkout is blocked until the line is reduced or removed",
+       "Out-of-stock products can't be added, but quantities above the stock figure are allowed",
+       "The customer is warned only, and the order can still be submitted"
+      ],
+      "recommended": "The product can't be added and checkout is blocked until the line is reduced or removed",
+      "reason": "Section 8 says customers cannot place an unavailable quantity, and backorders are out of scope.",
+      "spans": [
+       "I-3",
+       "I-13"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which orders can be placed."
+     },
+     {
+      "id": "Q-8",
+      "category": "errors",
+      "text": "If a product has no price on the customer's assigned price list, how is it shown?",
+      "options": [
+       "Shown with 'price on request' and cannot be added to the basket",
+       "Hidden from that customer's catalogue",
+       "Fall back to the Standard price list"
+      ],
+      "recommended": "Shown with 'price on request' and cannot be added to the basket",
+      "reason": "All sketches agree a wrong or zero price must not be shown. This avoids adding a fallback rule.",
+      "spans": [
+       "I-3",
+       "I-11"
+      ],
+      "impact": 3,
+      "impactReason": "Affects prices and what can be ordered."
+     },
+     {
+      "id": "Q-9",
+      "category": "data-model",
+      "text": "Are prices tax-exclusive or tax-inclusive, and do invoices show tax?",
+      "options": [
+       "Prices are net (tax-exclusive) with one configurable tax rate added on invoices",
+       "Prices are net, and invoices show no tax",
+       "Prices are tax-inclusive"
+      ],
+      "recommended": "Prices are net (tax-exclusive) with one configurable tax rate added on invoices",
+      "reason": "B2B pricing is normally net, and invoices usually need to show tax. This is the smallest version that does that.",
+      "spans": [
+       "I-11",
+       "I-16"
+      ],
+      "impact": 3,
+      "impactReason": "Changes money amounts on orders and invoices."
+     },
+     {
+      "id": "Q-10",
+      "category": "data-model",
+      "text": "How does an invoice become Overdue?",
+      "options": [
+       "Unpaid past a single configurable payment term (e.g. 30 days from invoice date)",
+       "Payment terms set per customer company",
+       "No Overdue status in the first release"
+      ],
+      "recommended": "Unpaid past a single configurable payment term (e.g. 30 days from invoice date)",
+      "reason": "Overdue is required, and one global setting needs no extra customer fields.",
+      "spans": [
+       "I-16",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "Payment status shown to customers and staff."
+     },
+     {
+      "id": "Q-11",
+      "category": "external",
+      "text": "How does the nightly ERP CSV reach the portal, and what are its columns?",
+      "options": [
+       "The scheduled job reads the file from a configured folder or SFTP location in an agreed column format (product code, quantity)",
+       "An admin uploads the file manually through the portal",
+       "Both scheduled pickup and manual upload"
+      ],
+      "recommended": "The scheduled job reads the file from a configured folder or SFTP location in an agreed column format (product code, quantity)",
+      "reason": "The request specifies a scheduled process and leaves the delivery mechanism open.",
+      "spans": [
+       "I-12"
+      ],
+      "impact": 2,
+      "impactReason": "Integration with an outside system."
+     },
+     {
+      "id": "Q-12",
+      "category": "errors",
+      "text": "If the ERP CSV contains product identifiers the portal doesn't know, or a product is missing from the file, what happens?",
+      "options": [
+       "Unknown rows are skipped and reported; products missing from the file keep their previous stock",
+       "Any unknown identifier rejects the whole file",
+       "Products missing from the file become Out of stock"
+      ],
+      "recommended": "Unknown rows are skipped and reported; products missing from the file keep their previous stock",
+      "reason": "This keeps valid stock data while still showing staff the problems.",
+      "spans": [
+       "I-12"
+      ],
+      "impact": 3,
+      "impactReason": "Changes stock data that customers see."
+     },
+     {
+      "id": "Q-13",
+      "category": "identifiers",
+      "text": "Are the 14:00 cutoff, the non-working days and the timezone fixed or configurable, and how are public holidays handled?",
+      "options": [
+       "Cutoff, timezone, weekly non-working days and a list of holiday dates all set by admin in system settings",
+       "Hardcoded 14:00, a fixed timezone, Saturday and Sunday off, no holidays",
+       "Configurable cutoff and days, with holidays from an external calendar feed"
+      ],
+      "recommended": "Cutoff, timezone, weekly non-working days and a list of holiday dates all set by admin in system settings",
+      "reason": "The request says 'configured non-working days', and holidays and timezone are open points. An admin-managed list adds no external system.",
+      "spans": [
+       "I-13"
+      ],
+      "impact": 2,
+      "impactReason": "Changes which delivery dates customers can choose."
+     },
+     {
+      "id": "Q-14",
+      "category": "scope",
+      "text": "Does the cutoff rule apply to staff-created orders too, or can staff choose any date?",
+      "options": [
+       "The same cutoff rule applies to staff-created orders",
+       "Staff can pick any future working day"
+      ],
+      "recommended": "The same cutoff rule applies to staff-created orders",
+      "reason": "Using one rule is simpler and keeps operations consistent.",
+      "spans": [
+       "I-14",
+       "I-4"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the staff order flow."
+     },
+     {
+      "id": "Q-15",
+      "category": "data-model",
+      "text": "Which status transitions can staff make after confirmation? Can they skip steps or go back, and can they cancel a Confirmed or Picking order?",
+      "options": [
+       "Forward one step at a time only; staff can cancel any order up to Out for delivery",
+       "Staff can set any status",
+       "Forward only; no cancellation after Confirmed"
+      ],
+      "recommended": "Forward one step at a time only; staff can cancel any order up to Out for delivery",
+      "reason": "Customers are told to contact the office after confirmation, which implies staff can still cancel.",
+      "spans": [
+       "I-14"
+      ],
+      "impact": 3,
+      "impactReason": "Order state changes, and invoice creation on Delivered."
+     },
+     {
+      "id": "Q-16",
+      "category": "terminology",
+      "text": "Should a rejected order use a separate Rejected status, or become Cancelled with a reason?",
+      "options": [
+       "Cancelled, with the rejection reason recorded",
+       "A separate Rejected status"
+      ],
+      "recommended": "Cancelled, with the rejection reason recorded",
+      "reason": "Section 26 says a rejected order becomes Cancelled.",
+      "spans": [
+       "I-14"
+      ],
+      "impact": 2,
+      "impactReason": "Status shown to customers and staff."
+     },
+     {
+      "id": "Q-17",
+      "category": "external",
+      "topic": "notifications",
+      "text": "Who receives order emails (confirmation, amendment, rejection, out-for-delivery), including for staff-created orders?",
+      "options": [
+       "The user who placed the order; for staff-created orders, the company's contact email",
+       "The user who placed the order plus the company's contact email",
+       "The company's contact email only"
+      ],
+      "recommended": "The user who placed the order; for staff-created orders, the company's contact email",
+      "reason": "The request says 'the buyer', and a staff-created order has no buyer user.",
+      "spans": [
+       "I-14"
+      ],
+      "impact": 2,
+      "impactReason": "Visible notifications."
+     },
+     {
+      "id": "Q-18",
+      "category": "existing-data",
+      "text": "When a user moves from viewing to checkout, is the basket kept across sessions?",
+      "options": [
+       "Kept only for the current session",
+       "Saved per user and kept across sessions"
+      ],
+      "recommended": "Kept only for the current session",
+      "reason": "The request only requires persistence while navigating, and leaves cross-session persistence open.",
+      "spans": [
+       "I-13"
+      ],
+      "impact": 2,
+      "impactReason": "Visible basket behaviour."
+     },
+     {
+      "id": "Q-19",
+      "category": "existing-data",
+      "topic": "data-migration",
+      "text": "Do existing customers, products, price lists and compatibility data need to be loaded at launch?",
+      "options": [
+       "Yes: one-off CSV import of customers, products and price lists; compatibility entered by admins",
+       "No: admins enter everything manually",
+       "Yes, including historical orders and invoices"
+      ],
+      "recommended": "Yes: one-off CSV import of customers, products and price lists; compatibility entered by admins",
+      "reason": "A working distributor already has this data, and manual entry of a whole catalogue isn't realistic.",
+      "spans": [
+       "I-10",
+       "I-11",
+       "I-17"
+      ],
+      "impact": 3,
+      "impactReason": "Writes the initial data set."
+     },
+     {
+      "id": "Q-20",
+      "category": "external",
+      "text": "Where does vehicle compatibility data come from?",
+      "options": [
+       "Entered manually by admins on each product",
+       "Bulk CSV import maintained by admins",
+       "A third-party vehicle data provider"
+      ],
+      "recommended": "Entered manually by admins on each product",
+      "reason": "Section 35 describes admin association. Bulk import or a provider would add scope.",
+      "spans": [
+       "I-10",
+       "I-2"
+      ],
+      "impact": 2,
+      "impactReason": "Admin workflow and how complete search results are."
+     },
+     {
+      "id": "Q-21",
+      "category": "data-model",
+      "text": "Are categories flat or nested?",
+      "options": [
+       "Flat, single level",
+       "Nested parent/child categories"
+      ],
+      "recommended": "Flat, single level",
+      "reason": "Nesting is an open point, and the examples given are all one level.",
+      "spans": [
+       "I-10",
+       "I-2"
+      ],
+      "impact": 2,
+      "impactReason": "Browsing and filter UI."
+     },
+     {
+      "id": "Q-22",
+      "category": "scope",
+      "topic": "reporting",
+      "text": "What does 'basic sales and product reporting' cover beyond the operational dashboard?",
+      "options": [
+       "Sales totals by period and by customer, and top products by quantity/value, for a chosen date range",
+       "Operational dashboard counts only",
+       "Dashboard plus CSV export of order lines"
+      ],
+      "recommended": "Sales totals by period and by customer, and top products by quantity/value, for a chosen date range",
+      "reason": "I-7 asks for sales and product reporting, which the dashboard counts don't provide.",
+      "spans": [
+       "I-7"
+      ],
+      "impact": 2,
+      "impactReason": "Visible reporting screens."
+     },
+     {
+      "id": "Q-23",
+      "category": "scope",
+      "topic": "audit",
+      "text": "Which customer-account and catalogue changes go in the audit history, and who can view it?",
+      "options": [
+       "Create, edit and retire on products, categories, price lists/prices, customer companies and users, with who/when and changed fields; admins only",
+       "Who/when only, no field-level detail; admins only",
+       "Same as the first option, but staff can also view it"
+      ],
+      "recommended": "Create, edit and retire on products, categories, price lists/prices, customer companies and users, with who/when and changed fields; admins only",
+      "reason": "Matches I-8, and section 3.4 gives audit viewing to admins.",
+      "spans": [
+       "I-8"
+      ],
+      "impact": 3,
+      "impactReason": "Write records, and who can see them."
+     },
+     {
+      "id": "Q-24",
+      "category": "existing-data",
+      "text": "When a customer company is set inactive, what happens to its users and price list?",
+      "options": [
+       "None of its users can sign in or order; history is kept",
+       "Users can sign in to view history but cannot order",
+       "Inactive status is shown for information only"
+      ],
+      "recommended": "Users can sign in to view history but cannot order",
+      "reason": "This matches how user deactivation keeps history, and still lets the company see its invoices.",
+      "spans": [
+       "I-9",
+       "I-17"
+      ],
+      "impact": 3,
+      "impactReason": "Access and ordering rights."
+     },
+     {
+      "id": "Q-25",
+      "category": "identifiers",
+      "text": "Are the lockout rules (5 attempts, 15 minutes), reset-link expiry and invitation expiry fixed or configurable?",
+      "options": [
+       "5/15 as constants; reset link valid 1 hour, invitations valid 7 days and resendable by admin",
+       "All configurable in system settings",
+       "5/15 constants; reset and invitation links never expire"
+      ],
+      "recommended": "5/15 as constants; reset link valid 1 hour, invitations valid 7 days and resendable by admin",
+      "reason": "The request fixes 5/15. The expiries need common safe defaults.",
+      "spans": [
+       "I-9",
+       "I-17"
+      ],
+      "impact": 2,
+      "impactReason": "Visible sign-in flow."
+     },
+     {
+      "id": "Q-26",
+      "category": "errors",
+      "text": "Can a locked-out user request a password reset during the lock period?",
+      "options": [
+       "Yes: a reset is allowed, and completing it clears the lock",
+       "Yes, but the lock still runs until the 15 minutes are up",
+       "No reset during the lock"
+      ],
+      "recommended": "Yes: a reset is allowed, and completing it clears the lock",
+      "reason": "This is the usual expectation and needs no extra state.",
+      "spans": [
+       "I-9"
+      ],
+      "impact": 2,
+      "impactReason": "Visible auth flow."
+     },
+     {
+      "id": "Q-27",
+      "category": "scope",
+      "text": "Customers can only see invoices once the order is Delivered, because that is when the invoice is created. Should they see any 'pending invoice' before then?",
+      "options": [
+       "No: invoices appear only once created at Delivered",
+       "Show a pending invoice placeholder on undelivered orders"
+      ],
+      "recommended": "No: invoices appear only once created at Delivered",
+      "reason": "The invoice doesn't exist before delivery. The other readings simply didn't mention a restriction.",
+      "spans": [
+       "I-5",
+       "I-16"
+      ],
+      "impact": 1,
+      "impactReason": "Only changes what the invoice list shows."
+     },
+     {
+      "id": "Q-28",
+      "category": "data-model",
+      "topic": "payments",
+      "text": "When staff mark an invoice paid, do they record anything besides date and user (payment method, partial payments)?",
+      "options": [
+       "Date and user only; full payment only",
+       "Also record a payment method from a fixed list",
+       "Support partial payments"
+      ],
+      "recommended": "Date and user only; full payment only",
+      "reason": "These are the only fields the request requires. Payment method is an open point.",
+      "spans": [
+       "I-16"
+      ],
+      "impact": 3,
+      "impactReason": "Money records."
+     },
+     {
+      "id": "Q-29",
+      "category": "identifiers",
+      "text": "What format do order and invoice numbers use?",
+      "options": [
+       "Sequential numbers with a prefix (e.g. ORD-000123, INV-000123)",
+       "Prefix and sequence configurable by admin",
+       "Matching an existing ERP numbering scheme"
+      ],
+      "recommended": "Sequential numbers with a prefix (e.g. ORD-000123, INV-000123)",
+      "reason": "Simple and readable, with no ERP dependency.",
+      "spans": [
+       "I-13",
+       "I-16"
+      ],
+      "impact": 1,
+      "impactReason": "Identifier wording only."
+     },
+     {
+      "id": "Q-30",
+      "category": "external",
+      "topic": "file-uploads",
+      "text": "Which image formats and size limits apply to product images?",
+      "options": [
+       "JPEG, PNG and WebP up to 5 MB, stored by the app",
+       "Configurable formats and size",
+       "Any image type up to 10 MB"
+      ],
+      "recommended": "JPEG, PNG and WebP up to 5 MB, stored by the app",
+      "reason": "Common web formats with a reasonable limit, as section 34 asks.",
+      "spans": [
+       "I-17"
+      ],
+      "impact": 1,
+      "impactReason": "Upload validation only."
+     },
+     {
+      "id": "Q-31",
+      "category": "scope",
+      "topic": "languages",
+      "text": "Which languages and currencies are supported?",
+      "options": [
+       "One language (English) and one currency",
+       "Multiple languages, one currency",
+       "Multiple currencies per price list"
+      ],
+      "recommended": "One language (English) and one currency",
+      "reason": "The request mentions nothing about localisation.",
+      "spans": [
+       "I-1",
+       "I-11"
+      ],
+      "impact": 2,
+      "impactReason": "Affects all UI text and price display."
+     },
+     {
+      "id": "Q-32",
+      "category": "scope",
+      "topic": "browsers",
+      "text": "Which browsers and devices must be supported?",
+      "options": [
+       "Current versions of Chrome, Edge, Firefox and Safari, with a responsive layout",
+       "Desktop only",
+       "Desktop plus native mobile apps"
+      ],
+      "recommended": "Current versions of Chrome, Edge, Firefox and Safari, with a responsive layout",
+      "reason": "It is a web portal, and workshop users may be on tablets.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 2,
+      "impactReason": "Visible across the whole UI."
+     },
+     {
+      "id": "Q-33",
+      "category": "scope",
+      "topic": "accessibility",
+      "text": "What accessibility level is required?",
+      "options": [
+       "WCAG 2.1 AA",
+       "Best effort, no formal target"
+      ],
+      "recommended": "WCAG 2.1 AA",
+      "reason": "This is the common baseline for business web apps.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 1,
+      "impactReason": "Quality bar only."
+     },
+     {
+      "id": "Q-34",
+      "category": "external",
+      "topic": "hosting",
+      "text": "Where will the portal be hosted, and which environments are needed?",
+      "options": [
+       "A managed cloud host with production and staging environments",
+       "On the distributor's own servers",
+       "Production only"
+      ],
+      "recommended": "A managed cloud host with production and staging environments",
+      "reason": "No hosting is specified. Staging lets the ERP import and emails be tested safely.",
+      "spans": [
+       "I-1",
+       "I-12"
+      ],
+      "impact": 2,
+      "impactReason": "Deployment setup and the ERP file path."
+     }
+    ],
+    "conflicts": [
+     "Section 3.1 lets a Buyer 'View their company's orders' and 'View invoices', but section 3.2 lists 'View orders placed by other users within the same customer company' and 'View company invoices' as extras for the Account Manager. These can't both hold, so it is unclear whether Buyers see only their own orders or the whole company's.",
+     "D-1.1: one reading lets customers see an invoice only after the order is Delivered (when it is created); the other two place no restriction on order status.",
+     "I-3 promises 'current stock availability', but section 9 says stock comes only from a nightly CSV, so it can be up to a day old.",
+     "Saved basket templates (section 16) are listed as a Buyer capability but are missing from the intent list (I-13, I-15)."
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -31,6 +31,7 @@ import { lastActivity, readTrace } from "../util/trace.js";
 import { maskSecrets } from "../config/env.js";
 import { Redactor } from "../context/secrets.js";
 import { readPreview } from "./preview.js";
+import { factoryAssumed } from "../stages/gate-questions.js";
 import { loadProject, STANDALONE_PROJECT } from "../config/project.js";
 import { repoIsEmpty } from "../config/greenfield.js";
 
@@ -484,7 +485,7 @@ export function estimateView(ledger: Ledger) {
       const sha = done(k);
       const r = sha ? ledger.getJson<{ assumedBy?: string; assumptions?: { id: string; text: string; risk: string; fromDefault?: string }[] }>(sha) : undefined;
       return r?.assumedBy ? (r.assumptions ?? []).map((a) => ({ id: a.id, text: a.text, risk: a.risk, ...(a.fromDefault ? { fromDefault: a.fromDefault } : {}) })) : [];
-    }) } : {}),
+    }).concat(factoryAssumed(ledger)) } : {}),
     files,
   };
 }
