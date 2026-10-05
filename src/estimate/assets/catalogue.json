@@ -1,5 +1,5 @@
 {
-  "version": "2026-10-03.1",
+  "version": "2026-10-06.1",
   "note": "Reference hours, written by the factory from common delivery practice and not yet measured. Hours are for a competent engineer at the TYPICAL size, including unit tests, review fixes and handover. The status an estimate shows is computed from evidence (docs/estimate-consistency.md, section 13): no person signs this file off.",
   "calibration": {
     "note": "ASSUMED thresholds, placeholders until real data exists; change them with a version bump.",
@@ -72,6 +72,9 @@
     { "id": "design-screen", "title": "Designing a screen",
       "hours": { "design": { "min": 3, "max": 6 } },
       "scale": { "small": "a variant of an existing screen", "typical": "a new screen with its states", "large": "a complex screen", "very-large": "a complex screen on several platforms" } },
+    { "id": "design-approval", "title": "Client design review and approval: walkthrough of the approved design, the feedback rounds, sign-off",
+      "hours": { "design": { "min": 2, "max": 4 } },
+      "scale": { "small": "one review and sign-off", "typical": "a walkthrough and two feedback rounds", "large": "several flows, three rounds", "very-large": "several platforms or apps" } },
     { "id": "design-system", "title": "Design system: tokens, components, guidelines",
       "hours": { "design": { "min": 10, "max": 16 } },
       "scale": { "small": "tokens only", "typical": "tokens and core components", "large": "full component set", "very-large": "full set on several platforms" } },
@@ -84,8 +87,8 @@
     { "id": "ops-release", "title": "Release: production launch or store submission",
       "hours": { "backend": { "min": 3, "max": 6 }, "web": { "min": 3, "max": 6 }, "mobile": { "min": 6, "max": 10 } },
       "scale": { "small": "one target", "typical": "one target with a checklist", "large": "two stores or targets", "very-large": "several apps or regions" } },
-    { "id": "pm-management", "title": "Project management",
-      "hours": { "pm": { "min": 16, "max": 24 } },
+    { "id": "pm-management", "title": "Project management, solely agentic: client liaison only (client calls, scope decisions, sign-offs); the factory plans and coordinates its own work",
+      "hours": { "pm": { "min": 4, "max": 8 } },
       "scale": { "small": "up to 2 weeks of delivery", "typical": "about a month", "large": "2-3 months", "very-large": "over 3 months" } },
     { "id": "pdm-docs", "title": "Product documentation: user guide, handover notes",
       "hours": { "pdm": { "min": 4, "max": 8 } },

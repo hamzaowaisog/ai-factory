@@ -45,6 +45,7 @@ factory estimate --file requirements.docx [--project <p>] [--no-repo] [--from-de
    - For an existing product, the factory also reads the repo.
    - For a new product, use `--no-repo`.
 2. **Design first.** UI work needs an approved design, which becomes the sizing baseline. `--from-design` reuses an approved design run.
+   - `--resize <run>` sizes an earlier estimate run again: its requirements, answers, spec, approved design and settings are reused, and only breakdown, sizing, approval and the workbooks run. Use it to see what a change to sizing or the workbooks does to an estimate, with no new clarify or design. Add `--fresh` to ask the model for a new breakdown even when the same one is stored.
 3. **Breakdown.** Requirements become features and tasks. Each task cites its requirement.
 4. **Sizing.**
    - Every task gets a kind from the task catalogue.

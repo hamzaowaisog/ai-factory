@@ -328,19 +328,19 @@ describe("estimate step", () => {
     expect(t("EST-1")).toMatchObject({ anchorId: "EST-1", ratio: 1, size: "typical", hours: { min: 8, max: 12 } });
     expect(t("EST-3")).toMatchObject({ anchorId: "EST-1", ratio: 1, hours: { min: 8, max: 12 } });
     expect(t("EST-2")).toMatchObject({ anchorId: "EST-2", hours: { min: 6, max: 10 } }); // ui-form on web
-    expect(t("EST-4")).toMatchObject({ hours: { min: 16, max: 24 } }); // pm-management, a human task: no grades
+    expect(t("EST-4")).toMatchObject({ hours: { min: 4, max: 8 } }); // pm-management (client liaison), a human task: no grades
     expect(t("EST-1").reason).toMatch(/\[be-crud backend 8-12 h, typical\]/);
     // the large reading is one of three: the median keeps typical
     expect(t("EST-1").estimators[0]).toEqual({ min: 12.8, max: 19.2 });
-    expect(e.catalogue).toEqual({ version: "2026-10-03.1", status: "draft", stack: "dotnet", splitAboveHours: 16, evidence: { builds: 0, checks: 0, held: 0, projects: 0, projectsWithin: 0 } });
+    expect(e.catalogue).toEqual({ version: "2026-10-06.1", status: "draft", stack: "dotnet", splitAboveHours: 16, evidence: { builds: 0, checks: 0, held: 0, projects: 0, projectsWithin: 0 } });
     // the status is data on the estimate and shown on internal views; the assumptions (the client's copy) never mention it
     expect(e.assumptions.some((x) => /catalogue|signed off|DRAFT/i.test(x))).toBe(false);
     const card = (await exec(ledger, approveEstimateStep)) as { card: { markdown: string } };
-    expect(card.card.markdown).toContain("Hours from task catalogue 2026-10-03.1 (stack dotnet): reference hours, not yet measured.");
+    expect(card.card.markdown).toContain("Hours from task catalogue 2026-10-06.1 (stack dotnet): reference hours, not yet measured.");
     expect(card.card.markdown).not.toMatch(/delivery lead|signed off/);
     // Phase 2: every pick is logged as a decision record, lead's choice with the estimators' agreement, derived features only
     const log = ledger.getJson((out as { outputs: Record<string, string> }).outputs.decisions!) as DecisionLog;
-    expect(log).toMatchObject({ catalogue: "2026-10-03.1", stack: "dotnet", estimators: 3, edits: 0 });
+    expect(log).toMatchObject({ catalogue: "2026-10-06.1", stack: "dotnet", estimators: 3, edits: 0 });
     const d = (id: string, q: string) => log.decisions.find((x) => x.taskId === id && x.question === q);
     expect(d("EST-1", "size")).toMatchObject({ choice: "typical", backend: "llm", votes: ["typical", "large", "typical"], confidence: 0.67, features: { kind: "be-crud", track: "backend", executor: "factory" } });
     expect(d("EST-1", "verify")).toMatchObject({ choice: "moderate", confidence: 1 });

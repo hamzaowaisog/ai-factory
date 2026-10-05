@@ -117,3 +117,18 @@ export function taskDurations(
   const weakest = byClass.reduce((w, c) => Math.min(w, order.indexOf(c.confidence)), 2);
   return { duration, basis: { confidence: order[weakest]!, records: byClass.reduce((n, c) => n + c.records, 0), byClass } };
 }
+
+/**
+ * The factory's own hours on a task, shown beside the human hours (docs/estimates-design.md, "Agent hours"). The work of a
+ * solely agentic delivery is the factory's, so every factory and joint task has agent hours: a factory task takes its class's
+ * measured duration when this factory's runs have enough of them (the estimate's duration basis), else its sized hours, which
+ * are a reference size and not a measurement (cold-start); a joint task takes its sized hours, as on the critical path. A
+ * human task has none.
+ */
+export function agentHours(
+  s: Pick<Estimate["tasks"][number], "executor" | "hours">, task: { track: string; complexity?: string }, basis?: Pick<DurationBasis, "byClass">,
+): Range {
+  if (s.executor === "human") return { min: 0, max: 0 };
+  const m = s.executor === "factory" ? basis?.byClass.find((c) => c.taskClass === classOf(task))?.minutes : undefined;
+  return m ? { min: round(m.min / 60), max: round(m.max / 60) } : s.hours;
+}
