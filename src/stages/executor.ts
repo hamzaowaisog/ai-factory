@@ -22,7 +22,7 @@ import { REPO_ROOT } from "../runners/netinfra.js";
 import { setPrice } from "../runners/pricing.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { stepsFor } from "./modes.js";
-import { greenfieldRefusal } from "../config/greenfield.js";
+import { greenfieldRefusal, repoIsEmpty } from "../config/greenfield.js";
 import { availableRungs, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
 import type { RequestSource } from "../sources/request.js";
@@ -94,13 +94,15 @@ export async function createRun(request: string, projectName: string, operator: 
     assertDeliverable(project);
   }
   // greenfield: an approved design with no repo, built into this project's empty repo (the callers check first; this is the guard)
+  // a plain start on a Node project whose repo is still empty is a new product too: the run draws its own design
+  if (!opts.mode && !opts.fromDesign && !opts.lineage && project.stack === "node" && repoIsEmpty(project.repo, project.baseBranch)) opts = { ...opts, mode: "greenfield" };
   if (opts.mode === "greenfield") {
-    if (!opts.fromDesign || opts.fromDesign.repo) throw new Error("A greenfield run builds an approved design for a new product (one designed with no repo).");
-    const why = greenfieldRefusal(opts.fromDesign.runId, project);
+    if (opts.fromDesign?.repo) throw new Error("A greenfield run builds an approved design for a new product (one designed with no repo).");
+    const why = greenfieldRefusal(opts.fromDesign?.runId ?? "This request", project);
     if (why) throw new Error(why);
   } else if (opts.fromDesign && !opts.fromDesign.repo && !readsRequirements(opts.mode)) throw new Error(`${opts.fromDesign.runId} is a new product (designed with no repo): build it as a greenfield run.`);
   // the Node lab builds only a new product for now; changing an existing Node app is not decided yet (PR #17 review, item 5)
-  if (project.stack === "node" && (opts.mode ?? "brownfield") === "brownfield") throw new Error(`Project ${project.project} is stack: node. The factory builds Node only for a new product (factory start --from-design <a design made with no repo>); changes to an existing Node app are not supported yet.`);
+  if (project.stack === "node" && (opts.mode ?? "brownfield") === "brownfield") throw new Error(`Project ${project.project} is stack: node. The factory builds Node only for a new product, into an empty repo; changes to an existing Node app are not supported yet.`);
   const baseCommit = noRepo ? undefined : await resolveRef(project.repo, project.baseBranch);
   const runId = newRunId(request);
   const ledger = Ledger.create(runId);

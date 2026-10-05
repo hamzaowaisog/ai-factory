@@ -16,6 +16,7 @@ import { seedStep } from "./seed.js";
 import { impactStep } from "./impact.js";
 import { brownfieldGroundStep, estimateGroundStep, newProductGroundStep } from "./estimate-ground.js";
 import { BROWNFIELD_SOURCES } from "./design-inputs.js";
+import { kitComponents } from "../design/kit/kit.js";
 import { combineClarifyStep, combineIntakeStep, combineSpecsStep, moduleClarifySteps, moduleIntakeSteps, moduleSteps } from "./modular.js";
 
 export function brownfieldSteps(state: RunState): StepDef[] {
@@ -46,18 +47,24 @@ export function brownfieldSteps(state: RunState): StepDef[] {
 }
 
 /**
- * Greenfield (the PR #11 review's follow-up, after the split): an approved design for a new product, built into an empty repo.
- *   discover (an empty baseline) -> intake, ground, clarify and specify, seeded from the design run (the design itself via designRef)
+ * Greenfield (the PR #11 review's follow-up, after the split): a new product, built into an empty repo.
+ *   discover (an empty baseline) -> intake, ground, clarify and specify, then the design
  *   -> plan -> approve -> stub-commit (the scaffold: a fresh next-shadcn app, its kit, theme and every approved page)
  *   -> author-tests -> implement per task -> integrate -> accept -> fidelity -> design-check -> review -> deliver.
+ * From an approved design run (--from-design) the head is seeded from it. With none, the run reads the request, asks its
+ * questions, writes the spec and draws the design on the factory's kit itself, and a person approves it before the plan.
  * Every gate of a build runs: it is brownfield's build half on a repo whose only code is the scaffold.
  */
 export function greenfieldSteps(state: RunState): StepDef[] {
-  if (!state.info.designRef) throw new Error("A greenfield run is built from an approved design (--from-design); this one has none.");
   const tasks = (state.steps.get("plan")?.status === "completed" ? (state.steps.get("plan")!.data?.tasks as string[] | undefined) : undefined) ?? [];
-  return [
+  const ref = state.info.designRef;
+  const head: StepDef[] = ref
     // the approved design itself is read through designRef, as in a brownfield build --from-design (no design steps of its own)
-    discoverStep, ...seededFromDesign(state).filter((s) => !s.key.startsWith("design")), ...(state.info.designRef.groundSha ? [] : [newProductGroundStep]),
+    ? [...seededFromDesign(state).filter((s) => !s.key.startsWith("design")), ...(ref.groundSha ? [] : [newProductGroundStep])]
+    : [intakeStep, newProductGroundStep, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep,
+      ...designSteps({ sources: { intent: "intake", spec: "specify", components: kitComponents() }, purpose: "build", refs: !!state.info.references?.length })];
+  return [
+    discoverStep, ...head,
     planStep, approveStep, stubCommitStep, authorTestsStep,
     ...tasks.map((t) => implementStep(t)),
     integrateStep, acceptStep, designFidelityStep, designCheckStep, reviewStep, deliverStep,

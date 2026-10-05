@@ -39,6 +39,9 @@ const spec = {
   nfrs: [], outOfScope: [], assumptions: [], suggestions: [], lint: [], critic: [], roundTrip: { droppedSpans: [], inventedCapabilities: [] },
 };
 
+// (a drafted spec is linted: its Then names something observable)
+const draft = { requirements: spec.requirements.map((r) => ({ ...r, acceptance: r.acceptance.map((a) => ({ ...a, then: "the screen shows Signed in" })) })), nfrs: [], outOfScope: [], assumptions: [], suggestions: [] };
+
 async function designRun(): Promise<string> {
   ensureStandaloneProject();
   const runId = await createRun("A portal where clinic staff sign in", "standalone-estimates", "tester", { mode: "design", estimate: { noRepo: true } });
@@ -73,6 +76,20 @@ function answerFor(system: string, user: string): unknown {
     };
   }
   if (system.includes("review a finished change")) return { findings: [] };
+  // a run that starts from the request alone (no design run): the head of the pipeline, then the design on the kit
+  if (system.includes("intake step")) return intent;
+  if (system.includes("Requirements analyst")) return { questions: [], conflicts: [] };
+  if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: "staff sign in with their email", kind: "happy" }] }] };
+  if (system.includes("Three engineers independently")) return { differences: [] };
+  if (system.includes("Merge three independent")) return { spec: draft, alignment: [{ mergedReq: "REQ-1", from: ["d1:REQ-1"] }], conflicts: [] };
+  if (system.includes("State, as numbered")) return { sentences: [{ n: 1, text: "Staff sign in with their email." }] };
+  if (system.includes("Map each restated")) return { mapping: [{ n: 1, spans: ["I-1"], answers: [] }] };
+  if (system.includes("Senior engineer writing a behaviour spec")) return draft;
+  if (system.includes("Adversarial reviewer")) return { findings: [] };
+  if (system.includes("drawing the screen inventory")) {
+    const drawn = { title: "Sign in", blocks: [{ type: "form", fields: [{ label: "Email", kind: "email" }], submit: "Sign in" }, { type: "actions", buttons: ["Need help"] }], copy: {} };
+    return { flow: "A user signs in", theme: { ...theme, basis: [{ ref: "Linear", took: "hairlines" }, { ref: "Stripe", took: "one blue action" }] }, noScreen: [], screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["error"], size: "new", frames: [], mock: drawn, mockFull: drawn }] };
+  }
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
 }
 const provider: Provider = {
@@ -91,6 +108,8 @@ class NodeLab implements ContainerRuntime {
   specs = new Map<string, ContainerSpec>();
   n = 0;
   jobs: { fileScope: string[]; system: string }[] = [];
+  /** an agent that adds a package on its own (edits package.json), to show the checks still catch it */
+  addsPackage?: "test-writer";
   /** the screen's container, as the planner scoped it */
   container = "";
   async version() { return "fake"; }
@@ -103,6 +122,8 @@ class NodeLab implements ContainerRuntime {
       const work = mount("/work")!, out = mount("/job/out")!;
       const job = JSON.parse(readFileSync(mount("/job/in.json")!, "utf8")) as { fileScope: string[]; system: string };
       this.jobs.push(job);
+      const addPackage = () => { const f = join(work, "package.json"); const j = JSON.parse(readFileSync(f, "utf8")) as { dependencies?: Record<string, string> }; writeFileSync(f, JSON.stringify({ ...j, dependencies: { ...j.dependencies, "left-pad": "1.3.0" } }, null, 2)); };
+      if (this.addsPackage && job.fileScope.includes("tests/**")) addPackage();
       const result = (output: unknown) => writeFileSync(join(out, "result.json"), JSON.stringify({ status: "ok", output, instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 5000, output_tokens: 800 }, costUsd: 0.05, turns: 6 }));
       if (job.fileScope.includes("tests/**")) {
         mkdirSync(join(work, "tests"), { recursive: true });
@@ -224,6 +245,58 @@ describe("a new product end to end (greenfield, fakes)", () => {
     expect(tree).not.toMatch(/node_modules/);
     expect(execFileSync("git", ["show", `factory/${runId}:${lab.container}`], { cwd: repo, encoding: "utf8" })).toContain(DONE);
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+  });
+
+  it("one run from the request alone: reads it, writes the spec, draws the design on the kit, then builds it", async () => {
+    // no mode and no design run: a plain start on a Node project whose repo is empty
+    const runId = await createRun("A portal where clinic staff sign in", "shop", "tester");
+    const ledger = Ledger.open(runId);
+    expect(replay(ledger.events()).info.mode).toBe("greenfield");
+
+    const r1 = await execute(runId);
+    expect(r1.status, r1.message).toBe("waiting");
+    const s1 = replay(ledger.events());
+    expect(s1.openCard?.kind).toBe("design-approval");
+    expect(s1.steps.get("ground")!.data).toMatchObject({ newProduct: true });
+    // the design was drawn onto the factory's kit, as a new app
+    const drew = prompts.find((p) => p.system.includes("drawing the screen inventory"))!;
+    expect(`${drew.system}\n${drew.user}`).toMatch(/NEW APP FROM A STARTER[\s\S]*ai-factory kit shadcn/);
+    await decide(ledger, { decision: "approve", hashPrefix: s1.openCard!.artifactSha.slice(0, 6), by: "lead" });
+
+    const r2 = await execute(runId);
+    expect(r2.status, r2.message).toBe("waiting");
+    const s2 = replay(ledger.events());
+    expect(s2.openCard?.kind).toBe("approval");
+    expect(prompts.find((p) => p.system.includes("plan the implementation"))!.user).toMatch(/"freshApp":\s*true/);
+    await decide(ledger, { decision: "approve", hashPrefix: s2.openCard!.artifactSha.slice(0, 6), by: "lead" });
+
+    const done = await execute(runId);
+    expect(done.status, done.message).toBe("delivered");
+    const s3 = replay(ledger.events());
+    for (const step of ["discover", "intake", "ground", "specify", "design", "design-baseline", "design-export", "plan", "approve", "stub-commit", "author-tests", "implement/TASK-1", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]) {
+      expect(s3.steps.get(step)?.status, step).toBe("completed");
+    }
+    // the package is this run's own, in its project; the scaffold is built from it
+    expect(packageOfRun(s3, ledger)?.manifest.run.id).toBe(runId);
+    expect(s3.steps.get("stub-commit")!.data).toMatchObject({ scaffold: { target: "next-shadcn", files: expect.any(Number) } });
+    const tree = execFileSync("git", ["ls-tree", "-r", "--name-only", `factory/${runId}`], { cwd: repo, encoding: "utf8" });
+    expect(tree).toMatch(/^package-lock\.json$/m);
+    expect(execFileSync("git", ["show", `factory/${runId}:${lab.container}`], { cwd: repo, encoding: "utf8" })).toContain(DONE);
+    expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+  });
+
+  // the scaffold's lockfile is committed by the factory; a package an agent adds on its own is still stopped
+  // (the first task of a fresh app has package.json in its file scope, by the scaffold's design: that one may change it)
+  it("stops a test writer that adds a package", async () => {
+    lab.addsPackage = "test-writer";
+    const runId = await createRun("A portal where clinic staff sign in", "shop", "tester", { mode: "greenfield", fromDesign: approvedDesign(await designRun()) });
+    const ledger = Ledger.open(runId);
+    await execute(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "lead" });
+    const r = await execute(runId);
+    expect(r.status).not.toBe("delivered");
+    expect(`${r.message}\n${readFileSync(join(ledger.dir, "run.log"), "utf8")}`).toMatch(/package\.json/);
+    expect(replay(ledger.events()).steps.get("deliver")?.status).not.toBe("completed");
   });
 
   // the PR #17 review, item 8: the fidelity check on a new product's app, in a real browser. The app is a stand-in server (the fake
