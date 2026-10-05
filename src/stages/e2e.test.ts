@@ -472,8 +472,10 @@ describe("a .NET API held to a locked API contract (fakes)", () => {
     execFileSync("git", ["add", "-A"], { cwd: repo, env });
     execFileSync("git", ["commit", "-q", "-m", "the approved API contract"], { cwd: repo, env });
     writeFileSync(join(process.env.FACTORY_HOME!, "projects", "demo.yaml"), stringify({ project: "demo", repo, stack: "dotnet", contract: { built: "src/Api/openapi/built.json" } }));
-    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    // the product's request talks about its screens; this side still draws no design
+    const runId = await createRun("Greet people with Hello instead of Hi, on the web app's sign-in screen", "demo", "tester");
     const ledger = await toApproval(runId);
+    expect(replay(ledger.events()).steps.has("design")).toBe(false);
     await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "lead" });
     return { runId, ledger, repo };
   };

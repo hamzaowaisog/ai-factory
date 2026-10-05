@@ -92,7 +92,9 @@ ${UNTRUSTED_NOTE}
     const intent = {
       ...r.output, source: jira ? ("ticket" as const) : ("cli" as const), ...(jira ? { sourceRef: jira.url } : {}),
       risk: maxRisk(r.output.risk, rules.risk), riskTags: [...new Set([...r.output.riskTags, ...rules.tags])],
-      touchesUi: r.output.touchesUi || ruleUi(request(ctx)),
+      // the API side of a full-stack product (a .NET project held to a contract) has no screens of its own, whatever the
+      // product's request says about them: its web app is designed and built in its own repo
+      touchesUi: ctx.project.stack === "dotnet" && !!ctx.project.contract?.built ? false : r.output.touchesUi || ruleUi(request(ctx)),
     };
     const sha = ctx.ledger.putJson({ header: header(ctx.runId, "intent", "intake", "", r.model), ...intent });
     return { kind: "done", outputs: { intent: sha }, data: { changeClass: intent.changeClass, risk: intent.risk, touchesUi: intent.touchesUi } };
