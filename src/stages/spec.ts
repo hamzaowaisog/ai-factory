@@ -324,7 +324,7 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
       });
     })(),
     ...(() => {
-      const cfile = ctx.project.contract?.file;
+      const cfile = ctx.project?.contract?.file;
       const stubs = a.plan.stubs.filter((s) => s.path !== cfile);
       const doc = cfile ? readContract(a.plan.stubs.find((s) => s.path === cfile)?.content ?? "") : undefined;
       return [
