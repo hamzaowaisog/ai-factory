@@ -6,7 +6,8 @@ import OpenAI from "openai";
 import { z } from "zod";
 import { toJsonSchema } from "../contracts/index.js";
 import type { RepoTools } from "../context/tools.js";
-import { TOOL_DEFS } from "../context/tools.js";
+import { toolDefs } from "../context/tools.js";
+import { wrapToolResult } from "../context/pack.js";
 import { secret } from "../config/env.js";
 import { costUsd } from "./pricing.js";
 import { toModelImage, type ModelImage } from "../util/image.js";
@@ -340,7 +341,8 @@ export class ApiRunner implements Runner {
     const started = Date.now();
     let usage = emptyUsage();
     const deadline = started + job.limits.timeoutSec * 1000;
-    const readTools = TOOL_DEFS.filter((t) => job.pack.tools.includes(t.name));
+    // the pack says which tree the tools serve, so a reviewer is not told it is reading the base commit
+    const readTools = toolDefs(job.pack.toolsAt ?? "base").filter((t) => job.pack.tools.includes(t.name));
     if (readTools.length && !this.deps.tools) throw new Error("This step needs repo tools but none were provided");
     const tools: ToolSpec[] = [
       ...readTools.map((t) => ({ name: t.name, description: t.description, schema: t.input_schema })),
@@ -416,7 +418,10 @@ export class ApiRunner implements Runner {
             results.push({ id: c.id, content: "Already accepted." });
           }
         } else if (readTools.some((r) => r.name === c.name)) {
-          results.push({ id: c.id, content: this.deps.tools!.call(c.name, (c.input ?? {}) as Record<string, unknown>) });
+          // what a repo tool returns is data, not instruction: wrapped and defanged exactly like an
+          // untrusted section, so a comment in a file cannot pose as a direction to the model
+          const raw = this.deps.tools!.call(c.name, (c.input ?? {}) as Record<string, unknown>);
+          results.push({ id: c.id, content: wrapToolResult(c.name, c.input, raw) });
         } else {
           results.push({ id: c.id, content: `Tool ${c.name} isn't available.`, isError: true });
         }

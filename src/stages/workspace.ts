@@ -27,6 +27,18 @@ export function toolsFor(ctx: Pick<StepContext, "runId" | "state" | "project">):
   return new RepoTools(snapshotFor(ctx), new Redactor(), ctx.project.noGo);
 }
 
+/**
+ * Tools over an arbitrary commit rather than the run's base. A reviewer must read the code as it
+ * will land, so it reads the commit under review; `snapshotFor` would hand it the code as it was
+ * before the change, which is the opposite of what a review needs.
+ */
+export function toolsAt(ctx: Pick<StepContext, "runId" | "state" | "project">, commit: string): RepoTools {
+  const { repoPath } = ctx.state.info;
+  if (!repoPath) throw new Error("Run has no repo");
+  const snap = createSnapshot(repoPath, commit, snapshotDir(ctx.runId, commit), ctx.project.noGo);
+  return new RepoTools(snap, new Redactor(), ctx.project.noGo);
+}
+
 /** Short worktree path (long-path limits), created once per run by the core. */
 export async function ensureWorktree(ctx: StepContext, base: string): Promise<string> {
   if (ctx.state.workspace && existsSync(ctx.state.workspace.path)) return ctx.state.workspace.path;

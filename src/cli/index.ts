@@ -6,6 +6,8 @@ import { join } from "node:path";
 import { Command } from "commander";
 import { hasSecret } from "../config/env.js";
 import { loadProject, projectPath } from "../config/project.js";
+import { registerConventions } from "./conventions.js";
+import { registerMergeGate } from "./merge-gate.js";
 import { verifyEvidence } from "../gates/engine.js";
 import "../gates/predicates.js";
 import "../design/gates.js";
@@ -636,6 +638,9 @@ program.command("selftest").option("--keep", "keep the sample repo and project a
     const r = await runSelftest({ keep: o.keep, log });
     if (!r.ok) process.exitCode = 1;
   });
+
+registerConventions(program, log);
+registerMergeGate(program, log);
 
 program.command("doctor").description("check this machine and the setup").action(async () => {
   const ok = (b: boolean, m: string, fix?: string) => log(`${b ? "ok  " : "MISSING"} ${m}${!b && fix ? `\n      → ${fix}` : ""}`);

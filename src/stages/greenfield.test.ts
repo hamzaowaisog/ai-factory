@@ -75,6 +75,12 @@ async function designRun(): Promise<string> {
 // ---------- scripted model: the planner reads the scaffold it is given; the reviewer finds nothing ----------
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
 const prompts: { system: string; user: string }[] = [];
+/** A scripted review must now account for every acceptance criterion, as a real one must. */
+function scriptedReview(user: string, findings: unknown[] = []) {
+  const acIds = [...new Set([...user.matchAll(/"id":\s*"(AC-[\w.-]+)"/g)].map((m) => m[1]!))];
+  return { findings, coverage: acIds.map((acId) => ({ acId, testId: "", verdict: "proves-it" as const, why: "scripted" })) };
+}
+
 function answerFor(system: string, user: string): unknown {
   if (system.includes("plan the implementation")) {
     const containers = [...user.matchAll(/"container":\s*"([^"]+)"/g)].map((m) => m[1]!);
@@ -88,7 +94,7 @@ function answerFor(system: string, user: string): unknown {
       stubs: system.includes("API CONTRACT.") && planContract ? [{ path: "contracts/openapi.yaml", content: planContract, reason: "the API contract" }] : [],
     };
   }
-  if (system.includes("review a finished change")) return { findings: [] };
+  if (system.includes("review a finished change")) return scriptedReview(user);
   // a run that starts from the request alone (no design run): the head of the pipeline, then the design on the kit
   if (system.includes("intake step")) return intent;
   if (system.includes("Requirements analyst")) return { questions: [], conflicts: [] };
