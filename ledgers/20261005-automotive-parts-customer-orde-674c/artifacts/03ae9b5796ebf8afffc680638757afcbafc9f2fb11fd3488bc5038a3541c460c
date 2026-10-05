@@ -1,0 +1,279 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Basket templates",
+     "subtitle": "Load a saved basket at today's price-list prices. Retired products are skipped and listed.",
+     "crumbs": [
+      "Basket"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "2 retired products skipped",
+       "text": "Weekly service stock: 16 of 18 lines added at today's prices. Skipped: Bosch S4 004 battery (0092S40040), Mann W 712/75 oil filter."
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Template",
+        "Lines",
+        "Last loaded",
+        "Total at today's prices",
+        "Status"
+       ],
+       "statusColumn": 4,
+       "sortBy": 2,
+       "sortDir": "desc",
+       "rows": [
+        [
+         "Weekly service stock",
+         "18",
+         "9 Mar 2026",
+         "£642.30",
+         "2 retired"
+        ],
+        [
+         "Brake job – VW Golf Mk7",
+         "7",
+         "4 Mar 2026",
+         "£218.75",
+         "All available"
+        ],
+        [
+         "Oil & filters – fleet vans",
+         "24",
+         "2 Mar 2026",
+         "£1,084.60",
+         "All available"
+        ],
+        [
+         "Ford Transit clutch kit",
+         "5",
+         "21 Feb 2026",
+         "£389.10",
+         "All available"
+        ],
+        [
+         "Winter consumables",
+         "12",
+         "14 Jan 2026",
+         "£176.40",
+         "1 retired"
+        ]
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Load into basket",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Go to basket",
+         "variant": "secondary"
+        },
+        {
+         "label": "Browse catalogue",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Go to basket",
+       "to": "S-7"
+      },
+      {
+       "from": "Browse catalogue",
+       "to": "S-5"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Load into basket",
+       "title": "Load Weekly service stock?",
+       "text": "18 lines will be added to your basket at your current price-list prices. Any retired products are skipped and listed on this page.",
+       "actions": [
+        {
+         "label": "Load template",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Load template",
+       "text": "16 lines added to your basket. 2 retired products skipped.",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No saved templates yet",
+      "emptyHint": "Save a basket as a template from the Basket page to reorder regular stock in one go.",
+      "success": "Template loaded into your basket at today's prices.",
+      "error": "We couldn't load your templates. Check your connection and try again."
+     }
+    },
+    "mockFull": {
+     "title": "Basket templates",
+     "subtitle": "Load a saved basket at today's price-list prices. Retired products are skipped and listed.",
+     "crumbs": [
+      "Basket"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "2 retired products skipped",
+       "text": "Weekly service stock: 16 of 18 lines added at today's prices. Skipped: Bosch S4 004 battery (0092S40040), Mann W 712/75 oil filter."
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Template",
+        "Lines",
+        "Last loaded",
+        "Total at today's prices",
+        "Status"
+       ],
+       "statusColumn": 4,
+       "sortBy": 2,
+       "sortDir": "desc",
+       "rows": [
+        [
+         "Weekly service stock",
+         "18",
+         "9 Mar 2026",
+         "£642.30",
+         "2 retired"
+        ],
+        [
+         "Brake job – VW Golf Mk7",
+         "7",
+         "4 Mar 2026",
+         "£218.75",
+         "All available"
+        ],
+        [
+         "Oil & filters – fleet vans",
+         "24",
+         "2 Mar 2026",
+         "£1,084.60",
+         "All available"
+        ],
+        [
+         "MOT prep – bulbs & wipers",
+         "15",
+         "27 Feb 2026",
+         "£94.85",
+         "All available"
+        ],
+        [
+         "Ford Transit clutch kit",
+         "5",
+         "21 Feb 2026",
+         "£389.10",
+         "All available"
+        ],
+        [
+         "Timing belt – Vauxhall Astra 1.4",
+         "6",
+         "18 Feb 2026",
+         "£157.20",
+         "1 retired"
+        ],
+        [
+         "Aircon recharge consumables",
+         "9",
+         "10 Feb 2026",
+         "£231.95",
+         "All available"
+        ],
+        [
+         "Front suspension – BMW 3 Series F30",
+         "11",
+         "3 Feb 2026",
+         "£512.40",
+         "All available"
+        ],
+        [
+         "Workshop shelf top-up",
+         "32",
+         "28 Jan 2026",
+         "£468.15",
+         "3 retired"
+        ],
+        [
+         "Winter consumables",
+         "12",
+         "14 Jan 2026",
+         "£176.40",
+         "1 retired"
+        ],
+        [
+         "Toyota Yaris hybrid service",
+         "8",
+         "6 Jan 2026",
+         "£121.60",
+         "All available"
+        ],
+        [
+         "DPF clean kit – vans",
+         "4",
+         "11 Dec 2025",
+         "£286.00",
+         "All available"
+        ]
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Load into basket",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Go to basket",
+         "variant": "secondary"
+        },
+        {
+         "label": "Browse catalogue",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No saved templates yet",
+      "emptyHint": "Save a basket as a template from the Basket page to reorder regular stock in one go.",
+      "success": "Template loaded into your basket at today's prices.",
+      "error": "We couldn't load your templates. Check your connection and try again."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,394 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Find parts",
+     "subtitle": "1,284 parts · sorted by name A–Z · 20 per page",
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search name or part number",
+       "selects": [
+        {
+         "label": "Category",
+         "options": [
+          "All",
+          "Bearings",
+          "Belts & pulleys",
+          "Filters",
+          "Fasteners",
+          "Electrical",
+          "Hydraulics",
+          "Seals"
+         ],
+         "value": "All"
+        },
+        {
+         "label": "Brand",
+         "options": [
+          "All",
+          "SKF",
+          "Gates",
+          "Parker",
+          "Festo",
+          "Timken",
+          "Würth",
+          "Bosch Rexroth"
+         ],
+         "value": "All"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Clear search and filters",
+         "variant": "ghost",
+         "icon": "x"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part",
+        "Part no.",
+        "Brand",
+        "Price",
+        "Stock",
+        "Action"
+       ],
+       "rows": [
+        [
+         "Air filter element",
+         "AF-2210",
+         "Parker",
+         "£18.40",
+         "In stock",
+         "Add to cart"
+        ],
+        [
+         "Ball bearing 6204-2RSH",
+         "6204-2RSH",
+         "SKF",
+         "£6.85",
+         "In stock",
+         "Add to cart"
+        ],
+        [
+         "Cable gland M20 IP68",
+         "CG-M20-68",
+         "Würth",
+         "£2.15",
+         "Low stock (3 left)",
+         "Add to cart"
+        ],
+        [
+         "Drive belt XPA 1250",
+         "XPA-1250",
+         "Gates",
+         "£24.90",
+         "Out of stock",
+         "Unavailable"
+        ],
+        [
+         "Hydraulic hose 1/2in 1 m",
+         "HH-12-1000",
+         "Parker",
+         "£31.60",
+         "Low stock (1 left)",
+         "Add to cart"
+        ],
+        [
+         "Inductive sensor M12 PNP",
+         "IS-M12-PNP",
+         "Festo",
+         "£48.00",
+         "In stock",
+         "Add to cart"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 0,
+       "sortDir": "asc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Add to cart",
+         "variant": "primary",
+         "icon": "plus",
+         "hint": "Adds 1 of each ticked in-stock part"
+        }
+       ],
+       "pages": 65,
+       "page": 1
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Previous page",
+         "variant": "secondary",
+         "state": "disabled",
+         "icon": "chevron-left"
+        },
+        {
+         "label": "Next page",
+         "variant": "secondary",
+         "icon": "chevron-right"
+        },
+        {
+         "label": "View cart (3)",
+         "variant": "link",
+         "icon": "cart"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "View cart (3)",
+       "to": "S-2"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Add to cart",
+       "text": "Ball bearing 6204-2RSH added · cart now 4",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match",
+      "emptyHint": "Try a shorter search or set Category and Brand back to All.",
+      "error": "Parts couldn't load. Check your connection and try again.",
+      "success": "Added to cart. The cart count in the header is updated.",
+      "validation": "Type at least 2 characters to search by name or part number."
+     }
+    },
+    "mockFull": {
+     "title": "Find parts",
+     "subtitle": "1,284 parts · sorted by name A–Z · 20 per page",
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search name or part number",
+       "selects": [
+        {
+         "label": "Category",
+         "options": [
+          "All",
+          "Bearings",
+          "Belts & pulleys",
+          "Filters",
+          "Fasteners",
+          "Electrical",
+          "Hydraulics",
+          "Seals"
+         ],
+         "value": "All"
+        },
+        {
+         "label": "Brand",
+         "options": [
+          "All",
+          "SKF",
+          "Gates",
+          "Parker",
+          "Festo",
+          "Timken",
+          "Würth",
+          "Bosch Rexroth"
+         ],
+         "value": "All"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Clear search and filters",
+         "variant": "ghost",
+         "icon": "x"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part",
+        "Part no.",
+        "Brand",
+        "Price",
+        "Stock",
+        "Action"
+       ],
+       "rows": [
+        [
+         "Air filter element",
+         "AF-2210",
+         "Parker",
+         "£18.40",
+         "In stock",
+         "Add to cart"
+        ],
+        [
+         "Angular contact bearing 7205",
+         "7205-BECBP",
+         "SKF",
+         "£42.75",
+         "Low stock (2 left)",
+         "Add to cart"
+        ],
+        [
+         "Ball bearing 6204-2RSH",
+         "6204-2RSH",
+         "SKF",
+         "£6.85",
+         "In stock",
+         "Add to cart"
+        ],
+        [
+         "Ball valve 3/4in brass",
+         "BV-075-BR",
+         "Würth",
+         "£12.30",
+         "In stock",
+         "Add to cart"
+        ],
+        [
+         "Cable gland M20 IP68",
+         "CG-M20-68",
+         "Würth",
+         "£2.15",
+         "Low stock (3 left)",
+         "Add to cart"
+        ],
+        [
+         "Contactor 3-pole 24 V DC",
+         "CT-3P-24DC",
+         "Bosch Rexroth",
+         "£67.20",
+         "Out of stock",
+         "Unavailable"
+        ],
+        [
+         "Directional valve 4/3 NG6",
+         "4WE6-J62",
+         "Bosch Rexroth",
+         "£214.00",
+         "Low stock (1 left)",
+         "Add to cart"
+        ],
+        [
+         "Drive belt XPA 1250",
+         "XPA-1250",
+         "Gates",
+         "£24.90",
+         "Out of stock",
+         "Unavailable"
+        ],
+        [
+         "Hex bolt M10 x 40 A2 (50)",
+         "HB-M10-40-A2",
+         "Würth",
+         "£9.95",
+         "In stock",
+         "Add to cart"
+        ],
+        [
+         "Hydraulic hose 1/2in 1 m",
+         "HH-12-1000",
+         "Parker",
+         "£31.60",
+         "Low stock (1 left)",
+         "Add to cart"
+        ],
+        [
+         "Hydraulic return filter 10 µm",
+         "HF-RT-10",
+         "Parker",
+         "£56.40",
+         "In stock",
+         "Add to cart"
+        ],
+        [
+         "Inductive sensor M12 PNP",
+         "IS-M12-PNP",
+         "Festo",
+         "£48.00",
+         "In stock",
+         "Add to cart"
+        ],
+        [
+         "O-ring kit NBR 382 pcs",
+         "OR-KIT-382",
+         "Parker",
+         "£38.50",
+         "In stock",
+         "Add to cart"
+        ],
+        [
+         "Pneumatic cylinder 32 x 100",
+         "DSNU-32-100",
+         "Festo",
+         "£89.90",
+         "Low stock (4 left)",
+         "Add to cart"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 0,
+       "sortDir": "asc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Add to cart",
+         "variant": "primary",
+         "icon": "plus",
+         "hint": "Adds 1 of each ticked in-stock part"
+        }
+       ],
+       "pages": 65,
+       "page": 1
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Previous page",
+         "variant": "secondary",
+         "state": "disabled",
+         "icon": "chevron-left"
+        },
+        {
+         "label": "Next page",
+         "variant": "secondary",
+         "icon": "chevron-right"
+        },
+        {
+         "label": "View cart (3)",
+         "variant": "link",
+         "icon": "cart"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match",
+      "emptyHint": "Try a shorter search or set Category and Brand back to All.",
+      "error": "Parts couldn't load. Check your connection and try again.",
+      "success": "Added to cart. The cart count in the header is updated.",
+      "validation": "Type at least 2 characters to search by name or part number."
+     }
+    }
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

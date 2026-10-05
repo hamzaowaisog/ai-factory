@@ -1,0 +1,178 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Add an Orders per Day report that returns, for a given date range, one row per date showing the number of orders and total order value."
+     },
+     {
+      "n": 2,
+      "text": "Add a Top Products report that returns, for a given date range, one row per product with quantity sold and revenue, ordered by revenue descending."
+     },
+     {
+      "n": 3,
+      "text": "Add a Revenue per Customer report that returns, for a given date range, one row per customer with number of orders and revenue, excluding cancelled orders."
+     },
+     {
+      "n": 4,
+      "text": "Ensure all date-range reports include only orders whose submission date, in business timezone, falls within the inclusive start and end dates."
+     },
+     {
+      "n": 5,
+      "text": "Reject any report or report export request from a customer user with a 403 status and no report data."
+     },
+     {
+      "n": 6,
+      "text": "Add CSV export for reports that returns a UTF-8 comma-separated file with a header row, the same columns and order as on screen, ISO 8601 dates, and '.' as decimal separator."
+     },
+     {
+      "n": 7,
+      "text": "Write an audit record with event type, actor, target record and timestamp whenever a listed business action occurs (user invited/deactivated, product created/changed/retired, price or customer price list changed, order created/amended/confirmed/cancelled/status changed, invoice created/marked paid, ERP import succeeded/failed)."
+     },
+     {
+      "n": 8,
+      "text": "Reject requests for audit history from non-admin users with a 403 status."
+     },
+     {
+      "n": 9,
+      "text": "Retain order, invoice and audit records for at least 7 years, and deactivate rather than delete users so their links to orders and invoices remain, with a deactivated user unable to sign in."
+     },
+     {
+      "n": 10,
+      "text": "Send the matching template email whenever a user is invited, a password reset is requested, or an order is confirmed, amended, out for delivery, cancelled or rejected."
+     },
+     {
+      "n": 11,
+      "text": "If sending a notification email fails, still complete the triggering action and record the failed email along with its error."
+     },
+     {
+      "n": 12,
+      "text": "Run a scheduled stock import job (default 02:00, configurable) that reads the ERP CSV and updates stock quantity for products listed in the file, leaving other products unchanged."
+     },
+     {
+      "n": 13,
+      "text": "Validate stock import files by rejecting the whole file if empty or missing required headers, and otherwise applying valid rows while rejecting rows with unknown or duplicate product codes or invalid quantities, recording received, processed and rejected counts with error details."
+     },
+     {
+      "n": 14,
+      "text": "Ensure the portal never sends stock or inventory write requests to the ERP."
+     },
+     {
+      "n": 15,
+      "text": "Show the status and counts of the latest stock import on a System/Import status screen and write a succeeded or failed audit record for each import."
+     },
+     {
+      "n": 16,
+      "text": "Return a 404 status without data when a customer user requests an order, invoice, address, price, user or account record belonging to another customer."
+     },
+     {
+      "n": 17,
+      "text": "Return all orders and invoices belonging to a customer user's own company, and none from other companies, when listing orders or invoices."
+     },
+     {
+      "n": 18,
+      "text": "Reject out-of-role or unauthenticated requests server-side, returning 401 for unauthenticated calls and 403 for calls outside the caller's role."
+     },
+     {
+      "n": 19,
+      "text": "Return the same generic invalid-credentials error for any sign-in failure, without revealing whether the email exists."
+     },
+     {
+      "n": 20,
+      "text": "Reject expired password-reset links (default 1 hour) or expired invitations (default 7 days) with an expired-link error."
+     },
+     {
+      "n": 21,
+      "text": "Return a generic error message with a reference id, and no internal details, when an unexpected server error occurs."
+     },
+     {
+      "n": 22,
+      "text": "Reject order status changes that do not follow the allowed sequence or permitted cancellations, with a 409 status."
+     },
+     {
+      "n": 23,
+      "text": "Allow a customer to cancel an order only when it is in Received status, otherwise reject with a 409 status."
+     },
+     {
+      "n": 24,
+      "text": "Allow staff to reject or cancel an order only when it is in Received or Confirmed status, otherwise reject with a 409 status."
+     },
+     {
+      "n": 25,
+      "text": "When staff mark an order Delivered, create a linked Unpaid invoice in the same transaction so both succeed or neither does."
+     },
+     {
+      "n": 26,
+      "text": "Run a daily job that marks Unpaid invoices Overdue once their invoice date plus the system-wide payment term (default 30 days) has passed."
+     },
+     {
+      "n": 27,
+      "text": "When staff mark an Unpaid or Overdue invoice paid, record status Paid, payment date and the staff user, and reject any further status change to that invoice with a 409 status."
+     },
+     {
+      "n": 28,
+      "text": "Allow authorised users to download an invoice PDF rendered from the stored invoice record showing tax-exclusive line prices and no tax lines."
+     },
+     {
+      "n": 29,
+      "text": "Calculate the earliest delivery date for a submitted order based on working days, cut-off time (default 14:00) and configured public holidays."
+     },
+     {
+      "n": 30,
+      "text": "Use the customer's assigned price list price when viewing products or placing orders, keeping placed order line prices fixed against later price-list changes."
+     },
+     {
+      "n": 31,
+      "text": "Accept an order with a quantity above available imported stock, setting its status to Received."
+     },
+     {
+      "n": 32,
+      "text": "Reject repeated submission of a basket that has already become an order, with a 409 status and without creating a duplicate order."
+     },
+     {
+      "n": 33,
+      "text": "When repeating an order or loading a saved basket template, add items at current price-list prices, skip retired products, and return a notice listing skipped products."
+     },
+     {
+      "n": 34,
+      "text": "Reject staff edits to an order whose status is not Received, with a 409 status."
+     },
+     {
+      "n": 35,
+      "text": "Reject uploaded files that are not images or PDFs or that exceed 10 MB, with a 400 status."
+     },
+     {
+      "n": 36,
+      "text": "Provide the specified customer, staff and admin screens usable at 360 px, tablet and desktop widths across the latest two versions of Chrome, Edge, Safari and Firefox."
+     },
+     {
+      "n": 37,
+      "text": "Display a list-specific empty-state message when a list or search (search results, basket, orders, invoices, templates, products, report results) has no results."
+     },
+     {
+      "n": 38,
+      "text": "Display a loading indicator during catalogue, search, basket, checkout, order submission, invoice download, report or staff queue requests, and keep the order submit button disabled until submission completes."
+     },
+     {
+      "n": 39,
+      "text": "Deploy the portal through the build pipeline to separate staging and production environments in one cloud region, serving production only over HTTPS and redirecting HTTP to HTTPS."
+     },
+     {
+      "n": 40,
+      "text": "Roll back the triggering business action and return a generic error with a reference id if writing its audit record fails."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

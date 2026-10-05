@@ -1,0 +1,23 @@
+{
+  "site": {
+    "entry": "index.html",
+    "screens": [
+      {
+        "path": "index.html#S-1",
+        "title": "Find parts",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-2",
+        "title": "Cart and checkout",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-3",
+        "title": "My orders",
+        "req": "REQ-1"
+      }
+    ]
+  },
+  "images": []
+}

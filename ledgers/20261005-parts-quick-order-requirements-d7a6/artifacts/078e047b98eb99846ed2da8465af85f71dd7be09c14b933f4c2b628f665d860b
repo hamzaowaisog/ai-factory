@@ -1,0 +1,174 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The portal shall provide exactly three screens for the signed-in buyer: Find parts at /parts, Cart and checkout at /cart, and My orders at /orders, with order details shown on the same /orders page."
+     },
+     {
+      "n": 2,
+      "text": "The parts API shall return parts sorted by name A-Z, 20 per page, each with image (or none), name, part number, brand, price in GBP with 2 decimals, stock state and whole-number stock quantity."
+     },
+     {
+      "n": 3,
+      "text": "The parts API shall set stock state to 'In stock' for 5 or more, 'Low stock (n left)' for 1 to 4, and 'Out of stock' for 0."
+     },
+     {
+      "n": 4,
+      "text": "The parts API shall filter by search text of at least 2 characters, matching name or part number case-insensitively."
+     },
+     {
+      "n": 5,
+      "text": "The parts API shall filter by a single chosen category and brand, combined with search text, where 'All' means no filter."
+     },
+     {
+      "n": 6,
+      "text": "The portal shall reset Find parts to page 1 whenever the search text or a filter changes."
+     },
+     {
+      "n": 7,
+      "text": "The portal shall show 'No parts match' with a clear button when no part matches the search and filters."
+     },
+     {
+      "n": 8,
+      "text": "The cart shall add a new line with quantity 1, or increase an existing line's quantity by 1, when 'Add to cart' is pressed on an in-stock part."
+     },
+     {
+      "n": 9,
+      "text": "The portal shall show in the header a cart count equal to the total quantity in the cart, updated whenever the cart changes."
+     },
+     {
+      "n": 10,
+      "text": "The portal shall disable the 'Add to cart' button for out-of-stock parts."
+     },
+     {
+      "n": 11,
+      "text": "The cart shall show each line's name, part number, unit price, quantity and line total (unit price times quantity)."
+     },
+     {
+      "n": 12,
+      "text": "The cart shall recalculate the line total and order totals immediately when a line quantity changes."
+     },
+     {
+      "n": 13,
+      "text": "The cart shall set a quantity that is blank, 0, above 99 or non-integer to the nearest whole number from 1 to 99."
+     },
+     {
+      "n": 14,
+      "text": "The cart shall cap a quantity above a part's stock to the stock quantity and show 'Only n available'."
+     },
+     {
+      "n": 15,
+      "text": "The cart shall remove a line when 'Remove' is pressed on it."
+     },
+     {
+      "n": 16,
+      "text": "The cart shall persist its lines in local storage under the signed-in buyer's ID so it survives page reloads on the same device."
+     },
+     {
+      "n": 17,
+      "text": "The portal shall show 'Your cart is empty' with a link to Find parts and hide checkout while the cart is empty."
+     },
+     {
+      "n": 18,
+      "text": "The checkout shall enable 'Place order' only when the address has 5 to 200 characters and a delivery option is selected."
+     },
+     {
+      "n": 19,
+      "text": "The checkout shall show subtotal, delivery charge (Standard £0.00, Next day £9.99) and total as subtotal plus delivery charge."
+     },
+     {
+      "n": 20,
+      "text": "The orders API shall save a placed order with status Placed, a sequential order number ORD-000001 style, each line's current part price as unit price, and total as subtotal plus delivery charge."
+     },
+     {
+      "n": 21,
+      "text": "The orders API shall reject with status 400 and save no order when lines are missing, quantity is outside 1-99, part number is unknown, address length is invalid, or delivery option is missing or unknown."
+     },
+     {
+      "n": 22,
+      "text": "The orders API shall reject with status 409 and save no order when any line's quantity exceeds available stock, returning the affected part numbers and available stock."
+     },
+     {
+      "n": 23,
+      "text": "The portal shall empty the cart and show the new order number when an order is placed successfully."
+     },
+     {
+      "n": 24,
+      "text": "The portal shall show an error message and retain cart lines, address and delivery option if placing an order fails due to a network or server error."
+     },
+     {
+      "n": 25,
+      "text": "The orders API shall leave parts stock quantity unchanged when an order is placed or cancelled."
+     },
+     {
+      "n": 26,
+      "text": "The API shall reject requests with status 401 when there is no valid session token or cookie."
+     },
+     {
+      "n": 27,
+      "text": "The orders API shall return to a buyer only that buyer's own orders."
+     },
+     {
+      "n": 28,
+      "text": "The orders API shall return a buyer's orders newest first, each with order number, date placed, item count, total and status."
+     },
+     {
+      "n": 29,
+      "text": "The orders API shall filter a buyer's orders by status when a status filter is chosen."
+     },
+     {
+      "n": 30,
+      "text": "The orders API shall return an order's lines, delivery address, delivery option, total and status when opened."
+     },
+     {
+      "n": 31,
+      "text": "The portal shall show a status timeline Placed to Packed to Dispatched to Delivered with the current status marked by text as well as colour."
+     },
+     {
+      "n": 32,
+      "text": "The portal shall show a 'Cancel order' button with confirmation while an order's status is Placed."
+     },
+     {
+      "n": 33,
+      "text": "The orders API shall set an order's status to Cancelled when cancelled while still Placed."
+     },
+     {
+      "n": 34,
+      "text": "The orders API shall reject cancellation with status 409 and leave status unchanged if the order is no longer Placed."
+     },
+     {
+      "n": 35,
+      "text": "The portal shall show 'No orders yet' with a link to Find parts while the buyer has no orders."
+     },
+     {
+      "n": 36,
+      "text": "The portal shall display all three screens without horizontal scrolling at viewport widths from 360px upward."
+     },
+     {
+      "n": 37,
+      "text": "The portal shall give every form field a visible label and support full keyboard operability."
+     },
+     {
+      "n": 38,
+      "text": "The Find parts screen shall load its first page of results in under 2 seconds with 5,000 parts in the database."
+     },
+     {
+      "n": 39,
+      "text": "The cart shall adjust to a 409 stock conflict response by lowering affected lines to available stock with a message, removing lines with zero available stock with a message, and keeping other lines unchanged."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

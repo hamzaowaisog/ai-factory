@@ -1,0 +1,272 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Customers",
+     "subtitle": "Search customer companies by name or account number",
+     "crumbs": [
+      "Customers & billing",
+      "Customers"
+     ],
+     "blocks": [
+      {
+       "type": "filters",
+       "search": "Company name or account number",
+       "chips": [
+        "Active",
+        "Inactive",
+        "Trade Standard",
+        "Trade Plus",
+        "Fleet Contract"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Account no.",
+        "Company",
+        "Town",
+        "Price list",
+        "Users",
+        "Status"
+       ],
+       "rows": [
+        [
+         "C-10482",
+         "Ashford Motor Works Ltd",
+         "Ashford",
+         "Trade Plus",
+         "4",
+         "Active"
+        ],
+        [
+         "C-10517",
+         "Bridgeway Garage",
+         "Maidstone",
+         "Trade Standard",
+         "2",
+         "Active"
+        ],
+        [
+         "C-10233",
+         "Canterbury Fleet Services",
+         "Canterbury",
+         "Fleet Contract",
+         "7",
+         "Active"
+        ],
+        [
+         "C-10691",
+         "Dover Road Autos",
+         "Folkestone",
+         "Trade Standard",
+         "1",
+         "Inactive"
+        ],
+        [
+         "C-10355",
+         "Elm Street Tyre & Exhaust",
+         "Tonbridge",
+         "Trade Standard",
+         "3",
+         "Active"
+        ],
+        [
+         "C-10778",
+         "Faversham Commercial Repairs",
+         "Faversham",
+         "Trade Plus",
+         "5",
+         "Active"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 1,
+       "sortDir": "asc",
+       "page": 1,
+       "pages": 9
+      }
+     ],
+     "links": [
+      {
+       "from": "C-10482",
+       "to": "S-21"
+      },
+      {
+       "from": "C-10517",
+       "to": "S-21"
+      },
+      {
+       "from": "C-10233",
+       "to": "S-21"
+      },
+      {
+       "from": "C-10691",
+       "to": "S-21"
+      },
+      {
+       "from": "C-10355",
+       "to": "S-21"
+      },
+      {
+       "from": "C-10778",
+       "to": "S-21"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No customers match your search",
+      "emptyHint": "Check the spelling or try part of the company name or the account number, e.g. C-104."
+     }
+    },
+    "mockFull": {
+     "title": "Customers",
+     "subtitle": "Search customer companies by name or account number",
+     "crumbs": [
+      "Customers & billing",
+      "Customers"
+     ],
+     "blocks": [
+      {
+       "type": "filters",
+       "search": "Company name or account number",
+       "chips": [
+        "Active",
+        "Inactive",
+        "Trade Standard",
+        "Trade Plus",
+        "Fleet Contract"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Account no.",
+        "Company",
+        "Town",
+        "Price list",
+        "Users",
+        "Status"
+       ],
+       "rows": [
+        [
+         "C-10482",
+         "Ashford Motor Works Ltd",
+         "Ashford",
+         "Trade Plus",
+         "4",
+         "Active"
+        ],
+        [
+         "C-10517",
+         "Bridgeway Garage",
+         "Maidstone",
+         "Trade Standard",
+         "2",
+         "Active"
+        ],
+        [
+         "C-10233",
+         "Canterbury Fleet Services",
+         "Canterbury",
+         "Fleet Contract",
+         "7",
+         "Active"
+        ],
+        [
+         "C-10691",
+         "Dover Road Autos",
+         "Folkestone",
+         "Trade Standard",
+         "1",
+         "Inactive"
+        ],
+        [
+         "C-10355",
+         "Elm Street Tyre & Exhaust",
+         "Tonbridge",
+         "Trade Standard",
+         "3",
+         "Active"
+        ],
+        [
+         "C-10778",
+         "Faversham Commercial Repairs",
+         "Faversham",
+         "Trade Plus",
+         "5",
+         "Active"
+        ],
+        [
+         "C-10129",
+         "Gillingham Auto Electrics",
+         "Gillingham",
+         "Trade Standard",
+         "2",
+         "Active"
+        ],
+        [
+         "C-10804",
+         "Hythe Classic Car Restoration",
+         "Hythe",
+         "Trade Standard",
+         "1",
+         "Active"
+        ],
+        [
+         "C-10412",
+         "J & S Kerr Mechanical",
+         "Sittingbourne",
+         "Trade Plus",
+         "3",
+         "Inactive"
+        ],
+        [
+         "C-10566",
+         "Kent County Council Transport Depot",
+         "Aylesford",
+         "Fleet Contract",
+         "9",
+         "Active"
+        ],
+        [
+         "C-10287",
+         "Medway MOT Centre",
+         "Rochester",
+         "Trade Standard",
+         "2",
+         "Active"
+        ],
+        [
+         "C-10633",
+         "Northfleet Van & Truck",
+         "Gravesend",
+         "Fleet Contract",
+         "6",
+         "Inactive"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 1,
+       "sortDir": "asc",
+       "page": 1,
+       "pages": 18
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No customers match your search",
+      "emptyHint": "Check the spelling or try part of the company name or the account number, e.g. C-104."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

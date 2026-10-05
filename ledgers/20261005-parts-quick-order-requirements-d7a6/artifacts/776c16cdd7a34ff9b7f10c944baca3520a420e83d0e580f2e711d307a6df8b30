@@ -1,0 +1,376 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Find parts",
+     "subtitle": "5,000 parts · 20 per page · sorted by name A–Z",
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search name or part number",
+       "selects": [
+        {
+         "label": "Category",
+         "options": [
+          "All",
+          "Bearings",
+          "Belts & chains",
+          "Filters",
+          "Hydraulics",
+          "Pneumatics",
+          "Power tool accessories",
+          "Electrical"
+         ],
+         "value": "All"
+        },
+        {
+         "label": "Brand",
+         "options": [
+          "All",
+          "Bosch",
+          "Festo",
+          "Gates",
+          "Mann-Filter",
+          "Parker",
+          "Schneider",
+          "SKF"
+         ],
+         "value": "All"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Clear filters",
+         "variant": "ghost",
+         "icon": "filter",
+         "hint": "Clears the search, category and brand"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Name",
+        "Brand",
+        "Price",
+        "Stock",
+        "Qty on hand"
+       ],
+       "rows": [
+        [
+         "MAN-C-25-710",
+         "Air filter element C 25 710",
+         "Mann-Filter",
+         "£22.15",
+         "In stock",
+         "28"
+        ],
+        [
+         "SKF-6204-2RS",
+         "Ball bearing 20×47×14 mm sealed",
+         "SKF",
+         "£4.86",
+         "In stock",
+         "142"
+        ],
+        [
+         "GAT-6PK1220",
+         "Belt, V-ribbed 6PK1220",
+         "Gates",
+         "£18.40",
+         "Low stock (3 left)",
+         "3"
+        ],
+        [
+         "BOS-2608-630-040",
+         "Blade, jigsaw T144D (5 pack)",
+         "Bosch",
+         "£7.25",
+         "In stock",
+         "64"
+        ],
+        [
+         "PAR-937399Q",
+         "Cartridge, hydraulic filter 10 µm",
+         "Parker",
+         "£36.90",
+         "Out of stock",
+         "0"
+        ],
+        [
+         "FES-DSNU-25-100",
+         "Cylinder, pneumatic ISO 6432 25 mm",
+         "Festo",
+         "£112.00",
+         "Low stock (1 left)",
+         "1"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "asc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Add to cart",
+         "variant": "primary",
+         "icon": "plus",
+         "hint": "Adds 1 of each ticked part; out-of-stock parts can't be added"
+        }
+       ],
+       "page": 1,
+       "pages": 250
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cart · 3 items",
+         "variant": "secondary",
+         "icon": "cart",
+         "hint": "Open Cart and checkout"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Cart · 3 items",
+       "to": "S-2"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Add to cart",
+       "text": "SKF-6204-2RS added · cart now 4 items",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match",
+      "emptyHint": "Check the part number or try another category or brand. Clear filters to see every part.",
+      "error": "We couldn't load parts just now. Check your connection and try again.",
+      "success": "Added to cart. The cart count in the header is up to date.",
+      "validation": "Type at least 2 characters to search by name or part number."
+     }
+    },
+    "mockFull": {
+     "title": "Find parts",
+     "subtitle": "5,000 parts · 20 per page · sorted by name A–Z",
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search name or part number",
+       "selects": [
+        {
+         "label": "Category",
+         "options": [
+          "All",
+          "Bearings",
+          "Belts & chains",
+          "Filters",
+          "Hydraulics",
+          "Pneumatics",
+          "Power tool accessories",
+          "Electrical"
+         ],
+         "value": "All"
+        },
+        {
+         "label": "Brand",
+         "options": [
+          "All",
+          "Bosch",
+          "Festo",
+          "Gates",
+          "Mann-Filter",
+          "Parker",
+          "Schneider",
+          "SKF"
+         ],
+         "value": "All"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Clear filters",
+         "variant": "ghost",
+         "icon": "filter",
+         "hint": "Clears the search, category and brand"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Name",
+        "Brand",
+        "Price",
+        "Stock",
+        "Qty on hand"
+       ],
+       "rows": [
+        [
+         "MAN-C-25-710",
+         "Air filter element C 25 710",
+         "Mann-Filter",
+         "£22.15",
+         "In stock",
+         "28"
+        ],
+        [
+         "BOS-2608-603-325",
+         "Angle grinder disc 115 mm (10 pack)",
+         "Bosch",
+         "£9.60",
+         "In stock",
+         "210"
+        ],
+        [
+         "SKF-6204-2RS",
+         "Ball bearing 20×47×14 mm sealed",
+         "SKF",
+         "£4.86",
+         "In stock",
+         "142"
+        ],
+        [
+         "SKF-6205-2RS",
+         "Ball bearing 25×52×15 mm sealed",
+         "SKF",
+         "£5.42",
+         "Low stock (4 left)",
+         "4"
+        ],
+        [
+         "GAT-6PK1220",
+         "Belt, V-ribbed 6PK1220",
+         "Gates",
+         "£18.40",
+         "Low stock (3 left)",
+         "3"
+        ],
+        [
+         "BOS-2608-630-040",
+         "Blade, jigsaw T144D (5 pack)",
+         "Bosch",
+         "£7.25",
+         "In stock",
+         "64"
+        ],
+        [
+         "IGU-GFM-1214-10",
+         "Bush, flanged bronze 12 mm",
+         "igus",
+         "£1.38",
+         "In stock",
+         "1050"
+        ],
+        [
+         "PAR-937399Q",
+         "Cartridge, hydraulic filter 10 µm",
+         "Parker",
+         "£36.90",
+         "Out of stock",
+         "0"
+        ],
+        [
+         "FES-H-1/4-QS-8",
+         "Check valve, 1/4\" BSP push-in 8 mm",
+         "Festo",
+         "£14.75",
+         "In stock",
+         "19"
+        ],
+        [
+         "SEE-DIN471-25",
+         "Circlip, external 25 mm (50 pack)",
+         "Seeger",
+         "£6.30",
+         "In stock",
+         "37"
+        ],
+        [
+         "SCH-LC1D09BD",
+         "Contactor, 3-pole 9 A 24 V DC",
+         "Schneider",
+         "£27.80",
+         "Out of stock",
+         "0"
+        ],
+        [
+         "LOV-L100-NBR",
+         "Coupling spider, jaw L-100 NBR",
+         "Lovejoy",
+         "£8.95",
+         "Low stock (2 left)",
+         "2"
+        ],
+        [
+         "FES-DSNU-25-100",
+         "Cylinder, pneumatic ISO 6432 25 mm",
+         "Festo",
+         "£112.00",
+         "Low stock (1 left)",
+         "1"
+        ],
+        [
+         "REN-08B1-5M",
+         "Drive chain 08B-1 simplex, 5 m",
+         "Renold",
+         "£48.50",
+         "In stock",
+         "11"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "asc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Add to cart",
+         "variant": "primary",
+         "icon": "plus",
+         "hint": "Adds 1 of each ticked part; out-of-stock parts can't be added"
+        }
+       ],
+       "page": 1,
+       "pages": 250
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cart · 3 items",
+         "variant": "secondary",
+         "icon": "cart",
+         "hint": "Open Cart and checkout"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match",
+      "emptyHint": "Check the part number or try another category or brand. Clear filters to see every part.",
+      "error": "We couldn't load parts just now. Check your connection and try again.",
+      "success": "Added to cart. The cart count in the header is up to date.",
+      "validation": "Type at least 2 characters to search by name or part number."
+     }
+    }
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,372 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Audit log",
+     "subtitle": "Who did what, to which record, and when: orders, invoices, catalogue, prices, users and ERP imports",
+     "crumbs": [
+      "Admin",
+      "Audit log"
+     ],
+     "blocks": [
+      {
+       "type": "filters",
+       "search": "Search actor, order, invoice or SKU",
+       "chips": [
+        "All events",
+        "Orders",
+        "Invoices",
+        "Products & prices",
+        "Users",
+        "ERP imports"
+       ]
+      },
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Event type",
+         "options": [
+          "All event types",
+          "Order confirmed",
+          "Order amended",
+          "Order cancelled",
+          "Price list changed",
+          "Product retired",
+          "Invoice marked paid",
+          "ERP import failed"
+         ],
+         "value": "All event types"
+        },
+        {
+         "label": "Date range",
+         "options": [
+          "Today",
+          "Last 7 days",
+          "Last 30 days",
+          "Custom range"
+         ],
+         "value": "Last 7 days"
+        },
+        {
+         "label": "Actor",
+         "options": [
+          "All actors",
+          "Admins",
+          "Office staff",
+          "Buyers",
+          "System"
+         ],
+         "value": "All actors"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Export",
+         "icon": "download",
+         "variant": "secondary",
+         "menu": [
+          "CSV",
+          "Excel"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Timestamp",
+        "Event",
+        "Actor",
+        "Target record",
+        "Change"
+       ],
+       "rows": [
+        [
+         "12 Mar 2026 13:58",
+         "Order confirmed",
+         "Priya Shah · Office",
+         "SO-24817 · Hendry Motors",
+         "Pending → Confirmed"
+        ],
+        [
+         "12 Mar 2026 13:41",
+         "Price list changed",
+         "Tom Kowalski · Admin",
+         "Price list Trade B",
+         "Brake pads −4.0%"
+        ],
+        [
+         "12 Mar 2026 13:20",
+         "ERP import failed",
+         "System · ERP sync",
+         "stock_0312_1315.csv",
+         "Row 214: unknown SKU"
+        ],
+        [
+         "12 Mar 2026 12:55",
+         "Order amended",
+         "Dan Reilly · Buyer",
+         "SO-24809 · Northgate Garage",
+         "BP-2241 qty 2 → 4"
+        ],
+        [
+         "12 Mar 2026 11:07",
+         "Invoice marked paid",
+         "Priya Shah · Office",
+         "INV-10392 · Hendry Motors",
+         "£1,284.60"
+        ],
+        [
+         "12 Mar 2026 09:30",
+         "User invited",
+         "Tom Kowalski · Admin",
+         "k.osei@eastsidetyres.co.uk",
+         "Role: Buyer"
+        ]
+       ],
+       "statusColumn": 1,
+       "sortBy": 0,
+       "sortDir": "desc",
+       "page": 1,
+       "pages": 38
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "menu",
+       "trigger": "More",
+       "title": "Audit record",
+       "items": [
+        "View target record",
+        "Show record history",
+        "Filter by this actor",
+        "Filter by this event",
+        "Copy record ID"
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "CSV",
+       "text": "Export started: 1,214 audit records for the last 7 days",
+       "tone": "info"
+      },
+      {
+       "after": "Copy record ID",
+       "text": "Record ID copied",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No audit records match",
+      "emptyHint": "Widen the date range or pick a different event type or actor.",
+      "error": "The audit log could not be loaded. Showing the last records fetched."
+     }
+    },
+    "mockFull": {
+     "title": "Audit log",
+     "subtitle": "Who did what, to which record, and when: orders, invoices, catalogue, prices, users and ERP imports",
+     "crumbs": [
+      "Admin",
+      "Audit log"
+     ],
+     "blocks": [
+      {
+       "type": "filters",
+       "search": "Search actor, order, invoice or SKU",
+       "chips": [
+        "All events",
+        "Orders",
+        "Invoices",
+        "Products & prices",
+        "Users",
+        "ERP imports"
+       ]
+      },
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Event type",
+         "options": [
+          "All event types",
+          "Order confirmed",
+          "Order amended",
+          "Order cancelled",
+          "Price list changed",
+          "Product retired",
+          "Invoice marked paid",
+          "ERP import failed"
+         ],
+         "value": "All event types"
+        },
+        {
+         "label": "Date range",
+         "options": [
+          "Today",
+          "Last 7 days",
+          "Last 30 days",
+          "Custom range"
+         ],
+         "value": "Last 7 days"
+        },
+        {
+         "label": "Actor",
+         "options": [
+          "All actors",
+          "Admins",
+          "Office staff",
+          "Buyers",
+          "System"
+         ],
+         "value": "All actors"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Export",
+         "icon": "download",
+         "variant": "secondary",
+         "menu": [
+          "CSV",
+          "Excel"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Timestamp",
+        "Event",
+        "Actor",
+        "Target record",
+        "Change"
+       ],
+       "rows": [
+        [
+         "12 Mar 2026 13:58",
+         "Order confirmed",
+         "Priya Shah · Office",
+         "SO-24817 · Hendry Motors",
+         "Pending → Confirmed"
+        ],
+        [
+         "12 Mar 2026 13:52",
+         "Order created",
+         "Lena Moritz · Buyer",
+         "SO-24818 · Moritz Autotechnik",
+         "7 lines · £642.18"
+        ],
+        [
+         "12 Mar 2026 13:41",
+         "Price list changed",
+         "Tom Kowalski · Admin",
+         "Price list Trade B",
+         "Brake pads −4.0%"
+        ],
+        [
+         "12 Mar 2026 13:20",
+         "ERP import failed",
+         "System · ERP sync",
+         "stock_0312_1315.csv",
+         "Row 214: unknown SKU"
+        ],
+        [
+         "12 Mar 2026 13:05",
+         "Order status changed",
+         "Jamal Haddad · Office",
+         "SO-24796 · Riverside Tyres",
+         "Picked → Out for delivery"
+        ],
+        [
+         "12 Mar 2026 12:55",
+         "Order amended",
+         "Dan Reilly · Buyer",
+         "SO-24809 · Northgate Garage",
+         "BP-2241 qty 2 → 4"
+        ],
+        [
+         "12 Mar 2026 12:31",
+         "Order cancelled",
+         "Priya Shah · Office",
+         "SO-24801 · Castle Street Autos",
+         "Customer request"
+        ],
+        [
+         "12 Mar 2026 11:47",
+         "Product changed",
+         "Sofia Lindqvist · Office",
+         "OF-1180 Oil filter, Bosch",
+         "Weight 0.32 → 0.34 kg"
+        ],
+        [
+         "12 Mar 2026 11:15",
+         "ERP import succeeded",
+         "System · ERP sync",
+         "stock_0312_1115.csv",
+         "4,862 rows updated"
+        ],
+        [
+         "12 Mar 2026 11:07",
+         "Invoice marked paid",
+         "Priya Shah · Office",
+         "INV-10392 · Hendry Motors",
+         "£1,284.60"
+        ],
+        [
+         "12 Mar 2026 10:22",
+         "Customer price list changed",
+         "Tom Kowalski · Admin",
+         "Northgate Garage",
+         "Trade A → Trade B"
+        ],
+        [
+         "12 Mar 2026 09:58",
+         "Invoice created",
+         "System · Billing",
+         "INV-10401 · Riverside Tyres",
+         "£318.45"
+        ],
+        [
+         "12 Mar 2026 09:30",
+         "User invited",
+         "Tom Kowalski · Admin",
+         "k.osei@eastsidetyres.co.uk",
+         "Role: Buyer"
+        ],
+        [
+         "11 Mar 2026 17:44",
+         "Product retired",
+         "Sofia Lindqvist · Office",
+         "WB-0457 Wiper blade 450 mm",
+         "Replaced by WB-0460"
+        ]
+       ],
+       "statusColumn": 1,
+       "sortBy": 0,
+       "sortDir": "desc",
+       "page": 1,
+       "pages": 87
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No audit records match",
+      "emptyHint": "Widen the date range or pick a different event type or actor.",
+      "error": "The audit log could not be loaded. Showing the last records fetched."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

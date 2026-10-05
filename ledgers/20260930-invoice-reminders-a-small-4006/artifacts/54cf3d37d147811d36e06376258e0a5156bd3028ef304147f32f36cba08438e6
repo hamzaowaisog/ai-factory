@@ -1,0 +1,82 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The system shall compute, on every request without ever persisting the result, whether an invoice is overdue."
+     },
+     {
+      "n": 2,
+      "text": "An invoice is overdue only if its status is in a configured list of open statuses that has no default value and must be set at deployment."
+     },
+     {
+      "n": 3,
+      "text": "An invoice with a null due date is never classified as overdue."
+     },
+     {
+      "n": 4,
+      "text": "An invoice is overdue when the number of calendar days from its due date to today, computed in a configured business time zone, is at least a configured overdue threshold that defaults to 7."
+     },
+     {
+      "n": 5,
+      "text": "When an authenticated staff user requests the overdue list, the API shall return every invoice currently classified as overdue."
+     },
+     {
+      "n": 6,
+      "text": "Each returned overdue invoice shall include its invoice ID, invoice number, customer name, amount, due date, and days overdue calculated as calendar days since the due date."
+     },
+     {
+      "n": 7,
+      "text": "When the overdue list is requested with a customer filter, the API shall return only overdue invoices belonging to that customer."
+     },
+     {
+      "n": 8,
+      "text": "When the overdue list is requested with a days-overdue bucket filter, the API shall return only overdue invoices whose days overdue fall within the named fixed bucket: 7-30, 31-60, or 61+, with limits inclusive."
+     },
+     {
+      "n": 9,
+      "text": "These bucket boundaries are fixed and are not shifted by the configured overdue threshold."
+     },
+     {
+      "n": 10,
+      "text": "If the requested bucket value is not one of the three defined buckets, the API shall respond 400 with a validation error identifying the bucket parameter."
+     },
+     {
+      "n": 11,
+      "text": "If a request to any Invoice Reminders endpoint lacks a valid authentication token, the API shall reject it with HTTP 401 without returning invoice data, sending email, or changing data."
+     },
+     {
+      "n": 12,
+      "text": "If a request carries a valid, unexpired token that lacks the configured staff claim, the API shall reject it with HTTP 403 without returning invoice or customer data or changing data."
+     },
+     {
+      "n": 13,
+      "text": "The staff claim type and value used for this check are configurable, with no built-in default value."
+     },
+     {
+      "n": 14,
+      "text": "The overdue list endpoint shall meet stated latency requirements at stated data volumes, with or without filters applied."
+     },
+     {
+      "n": 15,
+      "text": "Customer PII, specifically billing email addresses, and invoice amounts shall be kept out of application logs."
+     },
+     {
+      "n": 16,
+      "text": "All Invoice Reminders endpoints shall require staff authentication."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

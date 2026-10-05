@@ -1,0 +1,472 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Review and submit order",
+     "subtitle": "Hendry Motors Ltd · Account HM-0412 · Order before 14:00 for next working day delivery",
+     "crumbs": [
+      "Basket",
+      "Review and submit order"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "2 lines changed since you added them",
+       "text": "TB-KIT-220 is now £86.20 (was £82.90). DSC-R-3310 has 1 available, you asked for 2. Update the basket, then submit again.",
+       "action": "Update basket"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Description",
+        "Qty",
+        "Unit price",
+        "Line total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "BRK-PD-4471",
+         "Brake pads front, Ford Focus Mk3",
+         "4",
+         "£18.40",
+         "£73.60",
+         "OK"
+        ],
+        [
+         "OF-1029",
+         "Oil filter, VW 1.6 TDI",
+         "10",
+         "£4.95",
+         "£49.50",
+         "OK"
+        ],
+        [
+         "TB-KIT-220",
+         "Timing belt kit, Vauxhall Astra J",
+         "1",
+         "£86.20",
+         "£86.20",
+         "Re-priced"
+        ],
+        [
+         "WB-6203",
+         "Wiper blade 600 mm",
+         "6",
+         "£5.10",
+         "£30.60",
+         "OK"
+        ],
+        [
+         "SP-NGK-BKR6",
+         "Spark plug NGK BKR6E",
+         "8",
+         "£3.25",
+         "£26.00",
+         "OK"
+        ],
+        [
+         "DSC-R-3310",
+         "Brake disc rear, Ford Focus Mk3",
+         "2",
+         "£31.75",
+         "£63.50",
+         "Short: 1 left"
+        ]
+       ],
+       "statusColumn": 5
+      },
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Lines",
+         "value": "6"
+        },
+        {
+         "label": "Units",
+         "value": "31"
+        },
+        {
+         "label": "Subtotal",
+         "value": "£329.40",
+         "delta": "ex VAT"
+        },
+        {
+         "label": "Earliest delivery",
+         "value": "Thu 12 Mar",
+         "delta": "Order by 14:00 today"
+        }
+       ]
+      },
+      {
+       "type": "calendar",
+       "month": "March 2026",
+       "startsOn": 6,
+       "days": 31,
+       "off": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        14,
+        15,
+        21,
+        22,
+        28,
+        29
+       ],
+       "marks": [
+        {
+         "day": 11,
+         "label": "Today",
+         "tone": "info"
+        },
+        {
+         "day": 12,
+         "label": "Earliest",
+         "tone": "ok"
+        }
+       ],
+       "picked": 12
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Delivery address",
+         "kind": "select",
+         "required": true,
+         "value": "Unit 4, Brookfield Ind. Est., Leeds LS10 1QR",
+         "options": [
+          "Unit 4, Brookfield Ind. Est., Leeds LS10 1QR",
+          "212 Wakefield Rd, Bradford BD4 7DL",
+          "Hendry Motors, Station Yard, Otley LS21 3HX"
+         ],
+         "help": "Only your company's saved addresses",
+         "error": "Choose one of your company's delivery addresses"
+        },
+        {
+         "label": "Delivery date",
+         "kind": "date",
+         "required": true,
+         "value": "Thu 12 Mar 2026",
+         "readOnly": true,
+         "help": "Picked above. Working days only, up to 30 days ahead",
+         "error": "Delivery date must be a working day from Thu 12 Mar 2026"
+        },
+        {
+         "label": "Note for the depot",
+         "kind": "textarea",
+         "placeholder": "e.g. Rear bay, ask for Dave. Job ref 7731",
+         "help": "Optional, up to 500 characters"
+        }
+       ],
+       "submit": "Submit order"
+      }
+     ],
+     "links": [
+      {
+       "from": "Update basket",
+       "to": "S-7"
+      },
+      {
+       "from": "TB-KIT-220",
+       "to": "S-6"
+      },
+      {
+       "from": "DSC-R-3310",
+       "to": "S-6"
+      },
+      {
+       "from": "Place order",
+       "to": "S-11"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Submit order",
+       "title": "Submit order for Thu 12 Mar?",
+       "text": "6 lines, £329.40 ex VAT, to Unit 4, Brookfield Ind. Est., Leeds. Prices and stock are checked again when you submit.",
+       "actions": [
+        {
+         "label": "Place order",
+         "variant": "primary"
+        },
+        {
+         "label": "Go back",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Place order",
+       "text": "Order ORD-10482 received. Your basket is now empty.",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "error": "We couldn't submit your order. Your basket is saved, so try again in a moment.",
+      "success": "Order ORD-10482 received. We'll deliver to Leeds on Thu 12 Mar 2026.",
+      "validation": "Choose a company delivery address and a working day from Thu 12 Mar 2026, then fix the changed lines."
+     }
+    },
+    "mockFull": {
+     "title": "Review and submit order",
+     "subtitle": "Hendry Motors Ltd · Account HM-0412 · Order before 14:00 for next working day delivery",
+     "crumbs": [
+      "Basket",
+      "Review and submit order"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "4 lines changed since you added them",
+       "text": "2 re-priced, 1 short and 1 unavailable. Each shows its current price and available quantity below. Update the basket, then submit again.",
+       "action": "Update basket"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Description",
+        "Qty",
+        "Unit price",
+        "Line total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "BRK-PD-4471",
+         "Brake pads front, Ford Focus Mk3",
+         "4",
+         "£18.40",
+         "£73.60",
+         "OK"
+        ],
+        [
+         "OF-1029",
+         "Oil filter, VW 1.6 TDI",
+         "10",
+         "£4.95",
+         "£49.50",
+         "OK"
+        ],
+        [
+         "TB-KIT-220",
+         "Timing belt kit, Vauxhall Astra J",
+         "1",
+         "£86.20",
+         "£86.20",
+         "Re-priced"
+        ],
+        [
+         "WB-6203",
+         "Wiper blade 600 mm",
+         "6",
+         "£5.10",
+         "£30.60",
+         "OK"
+        ],
+        [
+         "SP-NGK-BKR6",
+         "Spark plug NGK BKR6E",
+         "8",
+         "£3.25",
+         "£26.00",
+         "OK"
+        ],
+        [
+         "DSC-R-3310",
+         "Brake disc rear, Ford Focus Mk3",
+         "2",
+         "£31.75",
+         "£63.50",
+         "Short: 1 left"
+        ],
+        [
+         "AF-5512",
+         "Air filter, Toyota Yaris 1.33",
+         "3",
+         "£7.80",
+         "£23.40",
+         "OK"
+        ],
+        [
+         "BAT-096",
+         "Battery 096, 70Ah",
+         "1",
+         "£72.00",
+         "£72.00",
+         "Re-priced"
+        ],
+        [
+         "CL-KIT-8841",
+         "Clutch kit, Ford Transit Custom",
+         "1",
+         "£164.90",
+         "£164.90",
+         "Unavailable"
+        ],
+        [
+         "GO-7590-5L",
+         "Gear oil 75W-90, 5 L",
+         "2",
+         "£24.60",
+         "£49.20",
+         "OK"
+        ],
+        [
+         "BLB-H7",
+         "Headlamp bulb H7, 12V 55W",
+         "12",
+         "£1.85",
+         "£22.20",
+         "OK"
+        ],
+        [
+         "CBL-HB-17",
+         "Handbrake cable, Fiesta Mk7",
+         "2",
+         "£12.40",
+         "£24.80",
+         "OK"
+        ]
+       ],
+       "statusColumn": 5
+      },
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Lines",
+         "value": "12"
+        },
+        {
+         "label": "Units",
+         "value": "52"
+        },
+        {
+         "label": "Subtotal",
+         "value": "£685.90",
+         "delta": "ex VAT"
+        },
+        {
+         "label": "Earliest delivery",
+         "value": "Thu 12 Mar",
+         "delta": "Order by 14:00 today"
+        }
+       ]
+      },
+      {
+       "type": "calendar",
+       "month": "March 2026",
+       "startsOn": 6,
+       "days": 31,
+       "off": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        14,
+        15,
+        21,
+        22,
+        28,
+        29
+       ],
+       "marks": [
+        {
+         "day": 11,
+         "label": "Today",
+         "tone": "info"
+        },
+        {
+         "day": 12,
+         "label": "Earliest",
+         "tone": "ok"
+        },
+        {
+         "day": 31,
+         "label": "Last day this month",
+         "tone": "info"
+        }
+       ],
+       "picked": 12
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Delivery address",
+         "kind": "select",
+         "required": true,
+         "value": "Unit 4, Brookfield Ind. Est., Leeds LS10 1QR",
+         "options": [
+          "Unit 4, Brookfield Ind. Est., Leeds LS10 1QR",
+          "212 Wakefield Rd, Bradford BD4 7DL",
+          "Hendry Motors, Station Yard, Otley LS21 3HX",
+          "Bay 2, Canal Works, Shipley BD18 3LP"
+         ],
+         "help": "Only your company's saved addresses",
+         "error": "Choose one of your company's delivery addresses"
+        },
+        {
+         "label": "Delivery date",
+         "kind": "date",
+         "required": true,
+         "value": "Thu 12 Mar 2026",
+         "readOnly": true,
+         "help": "Picked above. Working days only, up to 30 days ahead",
+         "error": "Delivery date must be a working day from Thu 12 Mar 2026"
+        },
+        {
+         "label": "Note for the depot",
+         "kind": "textarea",
+         "value": "Rear bay, ask for Dave. Clutch kit for job 7731 is urgent.",
+         "help": "Optional, up to 500 characters"
+        }
+       ],
+       "submit": "Submit order"
+      }
+     ],
+     "copy": {
+      "error": "We couldn't submit your order. Your basket is saved, so try again in a moment.",
+      "success": "Order ORD-10482 received. We'll deliver to Leeds on Thu 12 Mar 2026.",
+      "validation": "Choose a company delivery address and a working day from Thu 12 Mar 2026, then fix the changed lines."
+     }
+    }
+   },
+   "ms": 5,
+   "resultChars": 417,
+   "isError": true,
+   "result": "The result doesn't match the schema: mock.blocks.4.fields.0.options.0: Too big: expected string to have <=40 characters; mock.blocks.4.fields.0.options.2: Too big: expected string to have <=40 characters; mockFull.blocks.4.fields.0.options.0: Too big: expected string to have <=40 characters; mockFull.blocks.4.fields.0.options.2: Too big: expected string to have <=40 characters. Fix it and call submit_result again."
+  }
+ ]
+}

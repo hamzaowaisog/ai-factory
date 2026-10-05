@@ -1,0 +1,466 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Newest first. Pick an order to see its lines, delivery and progress.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order number",
+        "Date placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-10482",
+         "14 Mar 2026",
+         "7",
+         "£194.04",
+         "Placed"
+        ],
+        [
+         "ORD-10471",
+         "11 Mar 2026",
+         "3",
+         "£94.15",
+         "Packed"
+        ],
+        [
+         "ORD-10455",
+         "6 Mar 2026",
+         "12",
+         "£512.90",
+         "Dispatched"
+        ],
+        [
+         "ORD-10430",
+         "27 Feb 2026",
+         "2",
+         "£38.60",
+         "Delivered"
+        ],
+        [
+         "ORD-10418",
+         "24 Feb 2026",
+         "5",
+         "£161.25",
+         "Cancelled"
+        ],
+        [
+         "ORD-10397",
+         "18 Feb 2026",
+         "20",
+         "£734.00",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 3,
+       "page": 1
+      },
+      {
+       "type": "receipt",
+       "title": "Order ORD-10482",
+       "status": "Placed",
+       "to": "Hartwell Maintenance Ltd, Unit 4 Brindley Rd, Coventry CV7 9EP",
+       "facts": [
+        {
+         "label": "Placed",
+         "value": "14 Mar 2026, 09:42"
+        },
+        {
+         "label": "Delivery option",
+         "value": "Next working day"
+        },
+        {
+         "label": "Items",
+         "value": "7"
+        }
+       ],
+       "lines": [
+        {
+         "item": "6205-2RS · Deep groove ball bearing",
+         "qty": "4 × £8.75",
+         "amount": "£35.00"
+        },
+        {
+         "item": "SPZ1250 · V-belt SPZ 1250 mm",
+         "qty": "2 × £24.50",
+         "amount": "£49.00"
+        },
+        {
+         "item": "HC-40 · Hydraulic coupling 1/2\" BSP",
+         "qty": "1 × £68.20",
+         "amount": "£68.20"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Subtotal",
+         "value": "£152.20"
+        },
+        {
+         "label": "Delivery (next working day)",
+         "value": "£9.50"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£32.34"
+        },
+        {
+         "label": "Total",
+         "value": "£194.04"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "14 Mar, 09:42",
+         "title": "Placed — current status",
+         "meta": "Order received, waiting to be packed",
+         "status": "now"
+        },
+        {
+         "time": "Pending",
+         "title": "Packed",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Dispatched",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Delivered",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Only possible while the order is Placed"
+        },
+        {
+         "label": "Find parts",
+         "variant": "ghost",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Find parts",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel order ORD-10482?",
+       "text": "The order will be set to Cancelled and won't be packed. If it has already been packed, it can't be cancelled.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "Order ORD-10482 cancelled",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place will show here. Go to Find parts to start one.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-10482 is now Cancelled.",
+      "validation": "This order has already moved past Placed, so it can't be cancelled."
+     }
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Newest first. Pick an order to see its lines, delivery and progress.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order number",
+        "Date placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-10482",
+         "14 Mar 2026",
+         "13",
+         "£283.38",
+         "Placed"
+        ],
+        [
+         "ORD-10479",
+         "13 Mar 2026",
+         "2",
+         "£57.84",
+         "Placed"
+        ],
+        [
+         "ORD-10471",
+         "11 Mar 2026",
+         "3",
+         "£94.15",
+         "Packed"
+        ],
+        [
+         "ORD-10466",
+         "10 Mar 2026",
+         "8",
+         "£219.60",
+         "Packed"
+        ],
+        [
+         "ORD-10455",
+         "6 Mar 2026",
+         "12",
+         "£512.90",
+         "Dispatched"
+        ],
+        [
+         "ORD-10449",
+         "4 Mar 2026",
+         "1",
+         "£1,148.00",
+         "Dispatched"
+        ],
+        [
+         "ORD-10430",
+         "27 Feb 2026",
+         "2",
+         "£38.60",
+         "Delivered"
+        ],
+        [
+         "ORD-10424",
+         "25 Feb 2026",
+         "6",
+         "£142.08",
+         "Delivered"
+        ],
+        [
+         "ORD-10418",
+         "24 Feb 2026",
+         "5",
+         "£161.25",
+         "Cancelled"
+        ],
+        [
+         "ORD-10397",
+         "18 Feb 2026",
+         "20",
+         "£734.00",
+         "Delivered"
+        ],
+        [
+         "ORD-10381",
+         "12 Feb 2026",
+         "4",
+         "£88.32",
+         "Cancelled"
+        ],
+        [
+         "ORD-10366",
+         "6 Feb 2026",
+         "9",
+         "£305.70",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "pages": 2,
+       "page": 1
+      },
+      {
+       "type": "receipt",
+       "title": "Order ORD-10482",
+       "status": "Placed",
+       "to": "Hartwell Maintenance Ltd, Unit 4 Brindley Rd, Coventry CV7 9EP",
+       "facts": [
+        {
+         "label": "Placed",
+         "value": "14 Mar 2026, 09:42"
+        },
+        {
+         "label": "Delivery option",
+         "value": "Next working day"
+        },
+        {
+         "label": "Items",
+         "value": "13"
+        }
+       ],
+       "lines": [
+        {
+         "item": "6205-2RS · Deep groove ball bearing",
+         "qty": "4 × £8.75",
+         "amount": "£35.00"
+        },
+        {
+         "item": "SPZ1250 · V-belt SPZ 1250 mm",
+         "qty": "2 × £24.50",
+         "amount": "£49.00"
+        },
+        {
+         "item": "HC-40 · Hydraulic coupling 1/2\" BSP",
+         "qty": "1 × £68.20",
+         "amount": "£68.20"
+        },
+        {
+         "item": "HB-M10x40-A2 · Hex bolt M10×40 stainless, box 50",
+         "qty": "2 × £14.60",
+         "amount": "£29.20"
+        },
+        {
+         "item": "ORK-38 · O-ring kit 3/8\" BSP, 30 pcs",
+         "qty": "1 × £22.90",
+         "amount": "£22.90"
+        },
+        {
+         "item": "CT-10-10 · MIG contact tip 1.0 mm, pack 10",
+         "qty": "3 × £7.45",
+         "amount": "£22.35"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Subtotal",
+         "value": "£226.65"
+        },
+        {
+         "label": "Delivery (next working day)",
+         "value": "£9.50"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£47.23"
+        },
+        {
+         "label": "Total",
+         "value": "£283.38"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "14 Mar, 09:42",
+         "title": "Placed — current status",
+         "meta": "Order received, waiting to be packed",
+         "status": "now"
+        },
+        {
+         "time": "Pending",
+         "title": "Packed",
+         "meta": "Usually within 2 working hours",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Dispatched",
+         "status": "next"
+        },
+        {
+         "time": "Pending",
+         "title": "Delivered",
+         "meta": "Expected 16 Mar 2026",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Only possible while the order is Placed"
+        },
+        {
+         "label": "Find parts",
+         "variant": "ghost",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place will show here. Go to Find parts to start one.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-10482 is now Cancelled.",
+      "validation": "This order has already moved past Placed, so it can't be cancelled."
+     }
+    }
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

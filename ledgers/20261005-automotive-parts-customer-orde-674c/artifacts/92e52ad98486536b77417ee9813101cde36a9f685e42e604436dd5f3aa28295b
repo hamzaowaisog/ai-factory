@@ -1,0 +1,506 @@
+{
+ "model": "claude-haiku-4-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "I'll analyze each restated sentence and map it to the original intent spans (I-n) and answers (Q-n).",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mapping": [
+     {
+      "n": 1,
+      "spans": [
+       "I-9"
+      ],
+      "answers": []
+     },
+     {
+      "n": 2,
+      "spans": [
+       "I-9"
+      ],
+      "answers": []
+     },
+     {
+      "n": 3,
+      "spans": [
+       "I-9"
+      ],
+      "answers": [
+       "Q-5"
+      ]
+     },
+     {
+      "n": 4,
+      "spans": [
+       "I-9"
+      ],
+      "answers": []
+     },
+     {
+      "n": 5,
+      "spans": [
+       "I-9"
+      ],
+      "answers": []
+     },
+     {
+      "n": 6,
+      "spans": [
+       "I-9"
+      ],
+      "answers": [
+       "Q-1"
+      ]
+     },
+     {
+      "n": 7,
+      "spans": [],
+      "answers": [
+       "Q-2"
+      ]
+     },
+     {
+      "n": 8,
+      "spans": [
+       "I-9"
+      ],
+      "answers": []
+     },
+     {
+      "n": 9,
+      "spans": [
+       "I-9"
+      ],
+      "answers": []
+     },
+     {
+      "n": 10,
+      "spans": [
+       "I-9"
+      ],
+      "answers": [
+       "Q-5"
+      ]
+     },
+     {
+      "n": 11,
+      "spans": [
+       "I-2",
+       "I-10"
+      ],
+      "answers": []
+     },
+     {
+      "n": 12,
+      "spans": [
+       "I-2",
+       "I-3",
+       "I-10"
+      ],
+      "answers": []
+     },
+     {
+      "n": 13,
+      "spans": [
+       "I-3",
+       "I-11"
+      ],
+      "answers": []
+     },
+     {
+      "n": 14,
+      "spans": [
+       "I-3",
+       "I-11"
+      ],
+      "answers": []
+     },
+     {
+      "n": 15,
+      "spans": [
+       "I-3",
+       "I-11"
+      ],
+      "answers": []
+     },
+     {
+      "n": 16,
+      "spans": [
+       "I-11",
+       "I-17"
+      ],
+      "answers": []
+     },
+     {
+      "n": 17,
+      "spans": [
+       "I-3",
+       "I-12"
+      ],
+      "answers": []
+     },
+     {
+      "n": 18,
+      "spans": [
+       "I-12"
+      ],
+      "answers": []
+     },
+     {
+      "n": 19,
+      "spans": [
+       "I-12"
+      ],
+      "answers": []
+     },
+     {
+      "n": 20,
+      "spans": [
+       "I-6",
+       "I-12"
+      ],
+      "answers": []
+     },
+     {
+      "n": 21,
+      "spans": [
+       "I-3",
+       "I-6",
+       "I-12"
+      ],
+      "answers": []
+     },
+     {
+      "n": 22,
+      "spans": [
+       "I-3",
+       "I-12",
+       "I-13"
+      ],
+      "answers": []
+     },
+     {
+      "n": 23,
+      "spans": [
+       "I-13"
+      ],
+      "answers": []
+     },
+     {
+      "n": 24,
+      "spans": [
+       "I-13"
+      ],
+      "answers": [
+       "Q-4",
+       "Q-8"
+      ]
+     },
+     {
+      "n": 25,
+      "spans": [
+       "I-13"
+      ],
+      "answers": [
+       "Q-7"
+      ]
+     },
+     {
+      "n": 26,
+      "spans": [
+       "I-3",
+       "I-13"
+      ],
+      "answers": []
+     },
+     {
+      "n": 27,
+      "spans": [
+       "I-13"
+      ],
+      "answers": []
+     },
+     {
+      "n": 28,
+      "spans": [
+       "I-13"
+      ],
+      "answers": []
+     },
+     {
+      "n": 29,
+      "spans": [
+       "I-1"
+      ],
+      "answers": [
+       "Q-5"
+      ]
+     },
+     {
+      "n": 30,
+      "spans": [
+       "I-5",
+       "I-8"
+      ],
+      "answers": []
+     },
+     {
+      "n": 31,
+      "spans": [
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 32,
+      "spans": [
+       "I-5",
+       "I-6"
+      ],
+      "answers": [
+       "Q-2",
+       "Q-6"
+      ]
+     },
+     {
+      "n": 33,
+      "spans": [
+       "I-15"
+      ],
+      "answers": [
+       "Q-6"
+      ]
+     },
+     {
+      "n": 34,
+      "spans": [
+       "I-15"
+      ],
+      "answers": [
+       "Q-6"
+      ]
+     },
+     {
+      "n": 35,
+      "spans": [
+       "I-14"
+      ],
+      "answers": [
+       "Q-4"
+      ]
+     },
+     {
+      "n": 36,
+      "spans": [
+       "I-14"
+      ],
+      "answers": [
+       "Q-3"
+      ]
+     },
+     {
+      "n": 37,
+      "spans": [
+       "I-14"
+      ],
+      "answers": [
+       "Q-3"
+      ]
+     },
+     {
+      "n": 38,
+      "spans": [
+       "I-14"
+      ],
+      "answers": [
+       "Q-3"
+      ]
+     },
+     {
+      "n": 39,
+      "spans": [
+       "I-1",
+       "I-4",
+       "I-14"
+      ],
+      "answers": []
+     },
+     {
+      "n": 40,
+      "spans": [
+       "I-6",
+       "I-14"
+      ],
+      "answers": [
+       "Q-5",
+       "Q-8"
+      ]
+     },
+     {
+      "n": 41,
+      "spans": [
+       "I-6"
+      ],
+      "answers": []
+     },
+     {
+      "n": 42,
+      "spans": [
+       "I-6",
+       "I-7"
+      ],
+      "answers": []
+     },
+     {
+      "n": 43,
+      "spans": [
+       "I-16"
+      ],
+      "answers": [
+       "Q-8"
+      ]
+     },
+     {
+      "n": 44,
+      "spans": [
+       "I-16"
+      ],
+      "answers": []
+     },
+     {
+      "n": 45,
+      "spans": [
+       "I-5",
+       "I-16"
+      ],
+      "answers": []
+     },
+     {
+      "n": 46,
+      "spans": [
+       "I-16"
+      ],
+      "answers": []
+     },
+     {
+      "n": 47,
+      "spans": [
+       "I-8",
+       "I-17"
+      ],
+      "answers": []
+     },
+     {
+      "n": 48,
+      "spans": [
+       "I-10",
+       "I-17"
+      ],
+      "answers": []
+     },
+     {
+      "n": 49,
+      "spans": [
+       "I-10",
+       "I-17"
+      ],
+      "answers": []
+     },
+     {
+      "n": 50,
+      "spans": [
+       "I-17"
+      ],
+      "answers": []
+     },
+     {
+      "n": 51,
+      "spans": [
+       "I-17"
+      ],
+      "answers": [
+       "Q-7"
+      ]
+     },
+     {
+      "n": 52,
+      "spans": [
+       "I-17"
+      ],
+      "answers": []
+     },
+     {
+      "n": 53,
+      "spans": [
+       "I-8"
+      ],
+      "answers": []
+     },
+     {
+      "n": 54,
+      "spans": [
+       "I-7",
+       "I-17"
+      ],
+      "answers": []
+     },
+     {
+      "n": 55,
+      "spans": [],
+      "answers": []
+     },
+     {
+      "n": 56,
+      "spans": [],
+      "answers": []
+     },
+     {
+      "n": 57,
+      "spans": [],
+      "answers": []
+     },
+     {
+      "n": 58,
+      "spans": [],
+      "answers": []
+     },
+     {
+      "n": 59,
+      "spans": [],
+      "answers": []
+     },
+     {
+      "n": 60,
+      "spans": [],
+      "answers": []
+     },
+     {
+      "n": 61,
+      "spans": [],
+      "answers": []
+     },
+     {
+      "n": 62,
+      "spans": [],
+      "answers": []
+     },
+     {
+      "n": 63,
+      "spans": [],
+      "answers": []
+     },
+     {
+      "n": 64,
+      "spans": [],
+      "answers": []
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

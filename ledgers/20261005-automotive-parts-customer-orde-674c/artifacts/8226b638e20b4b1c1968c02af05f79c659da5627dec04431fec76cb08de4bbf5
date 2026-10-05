@@ -1,0 +1,129 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Something went wrong",
+     "subtitle": "We couldn't finish that request. Nothing on your account was changed.",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "bad",
+       "title": "Your action was not saved",
+       "text": "An unexpected error stopped this request, so it was rolled back. Try again, or quote the reference below to the trade counter on 0161 496 0732.",
+       "action": "Try again"
+      },
+      {
+       "type": "detail",
+       "title": "Error reference",
+       "lead": {
+        "label": "Reference",
+        "value": "ERR-7Q4K-2291"
+       },
+       "rows": [
+        {
+         "label": "Time",
+         "value": "14 Mar 2026, 13:42"
+        },
+        {
+         "label": "Request",
+         "value": "Submit order for Hartley Motors"
+        },
+        {
+         "label": "Status",
+         "value": "Rolled back",
+         "badge": true
+        },
+        {
+         "label": "Signed in as",
+         "value": "Dan Hartley · Buyer"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Back to catalogue",
+         "variant": "primary"
+        },
+        {
+         "label": "My orders",
+         "variant": "secondary"
+        },
+        {
+         "label": "Copy reference",
+         "variant": "ghost",
+         "icon": "copy"
+        }
+       ]
+      },
+      {
+       "type": "accordion",
+       "title": "Why you might see this page",
+       "items": [
+        {
+         "title": "Page not found",
+         "body": "The order, invoice or address you opened doesn't exist or isn't on your company's account. Check the number, or find it again from Orders or Invoices."
+        },
+        {
+         "title": "No access to this area",
+         "body": "Reports, the office console and the audit log are for distributor staff only. If you need one of their figures, ask your account manager."
+        },
+        {
+         "title": "Your session has ended",
+         "body": "You were signed out after a period without activity. Sign in again and pick up where you left off; your basket is kept."
+        },
+        {
+         "title": "Something failed on our side",
+         "body": "Any order or change you were making was not saved. Your basket is unchanged. Try again before the 14:00 cutoff, or call us with the reference."
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Back to catalogue",
+       "to": "S-5"
+      },
+      {
+       "from": "My orders",
+       "to": "S-10"
+      },
+      {
+       "from": "Page not found",
+       "to": "S-10"
+      },
+      {
+       "from": "Your session has ended",
+       "to": "S-1"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Copy reference",
+       "text": "Reference ERR-7Q4K-2291 copied",
+       "tone": "info"
+      },
+      {
+       "after": "Try again",
+       "text": "Retrying your request…",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "error": "Something went wrong and nothing was saved. Quote reference ERR-7Q4K-2291 if you call the trade counter."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,439 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Catalogue",
+     "subtitle": "Search by part, category or vehicle. Prices come from your company's price list.",
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Make",
+         "kind": "combobox",
+         "value": "Ford",
+         "options": [
+          "Ford",
+          "Vauxhall",
+          "Volkswagen",
+          "Toyota",
+          "BMW",
+          "Peugeot"
+         ]
+        },
+        {
+         "label": "Model",
+         "kind": "combobox",
+         "value": "Focus",
+         "options": [
+          "Fiesta",
+          "Focus",
+          "Kuga",
+          "Transit Custom",
+          "Puma"
+         ]
+        },
+        {
+         "label": "Year",
+         "kind": "select",
+         "value": "2018",
+         "options": [
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021"
+         ]
+        },
+        {
+         "label": "Engine",
+         "kind": "select",
+         "value": "1.0 EcoBoost 125",
+         "options": [
+          "1.0 EcoBoost 100",
+          "1.0 EcoBoost 125",
+          "1.5 EcoBlue 120",
+          "2.0 EcoBlue 150"
+         ]
+        },
+        {
+         "label": "Fuel",
+         "kind": "radio",
+         "value": "Petrol",
+         "options": [
+          "Petrol",
+          "Diesel",
+          "Hybrid"
+         ]
+        },
+        {
+         "label": "Variant",
+         "kind": "select",
+         "value": "Titanium",
+         "options": [
+          "Zetec",
+          "Titanium",
+          "ST-Line",
+          "Active"
+         ],
+         "help": "Leave any field blank to widen the search"
+        }
+       ],
+       "submit": "Find parts"
+      },
+      {
+       "type": "results",
+       "query": "brake",
+       "count": "38 parts fit this vehicle",
+       "sort": [
+        "Relevance",
+        "Price: low to high",
+        "Price: high to low",
+        "Code A–Z"
+       ],
+       "facets": [
+        {
+         "title": "Category",
+         "kind": "check",
+         "options": [
+          "Brakes",
+          "Filters",
+          "Suspension",
+          "Engine",
+          "Electrical",
+          "Lighting"
+         ],
+         "picked": [
+          "Brakes"
+         ]
+        },
+        {
+         "title": "Stock",
+         "kind": "check",
+         "options": [
+          "In stock",
+          "Low stock",
+          "Out of stock"
+         ],
+         "picked": [
+          "In stock",
+          "Low stock"
+         ]
+        },
+        {
+         "title": "Brand",
+         "kind": "check",
+         "options": [
+          "Bosch",
+          "Brembo",
+          "TRW",
+          "Textar",
+          "Mintex"
+         ]
+        }
+       ],
+       "items": [
+        {
+         "title": "Front Brake Pad Set",
+         "meta": "FBP-20418 · Bosch 0 986 494 860 · Set of 4",
+         "badge": "In stock",
+         "price": "£31.85"
+        },
+        {
+         "title": "Front Brake Disc 278 mm Vented",
+         "meta": "BD-30122 · Brembo 09.C890.11 · Pair",
+         "badge": "In stock",
+         "price": "£64.20"
+        },
+        {
+         "title": "Rear Brake Shoe Set",
+         "meta": "BS-11807 · TRW GS8819 · Set of 4",
+         "badge": "Low stock",
+         "price": "£22.60"
+        },
+        {
+         "title": "Brake Pad Wear Sensor",
+         "meta": "WS-04551 · Textar 98044300 · Each",
+         "badge": "Out of stock",
+         "price": "£6.95"
+        },
+        {
+         "title": "Rear Brake Drum 228 mm",
+         "meta": "BDR-07730 · Mintex MBD412 · Each",
+         "badge": "In stock",
+         "price": "Price on request"
+        },
+        {
+         "title": "Brake Fluid DOT 4, 1 L",
+         "meta": "FL-00912 · Castrol 15036B · Case of 12",
+         "badge": "Low stock",
+         "price": "£71.40"
+        }
+       ],
+       "visual": true
+      }
+     ],
+     "links": [
+      {
+       "from": "Front Brake Pad Set",
+       "to": "S-6"
+      },
+      {
+       "from": "Front Brake Disc 278 mm Vented",
+       "to": "S-6"
+      },
+      {
+       "from": "Rear Brake Shoe Set",
+       "to": "S-6"
+      },
+      {
+       "from": "Brake Pad Wear Sensor",
+       "to": "S-6"
+      },
+      {
+       "from": "Rear Brake Drum 228 mm",
+       "to": "S-6"
+      },
+      {
+       "from": "Brake Fluid DOT 4, 1 L",
+       "to": "S-6"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match this search",
+      "emptyHint": "Check the part number, or clear the vehicle or category to see more parts.",
+      "error": "We couldn't load the catalogue. Try again in a moment."
+     }
+    },
+    "mockFull": {
+     "title": "Catalogue",
+     "subtitle": "Search by part, category or vehicle. Prices come from your company's price list.",
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Make",
+         "kind": "combobox",
+         "value": "Ford",
+         "options": [
+          "Ford",
+          "Vauxhall",
+          "Volkswagen",
+          "Toyota",
+          "BMW",
+          "Peugeot"
+         ]
+        },
+        {
+         "label": "Model",
+         "kind": "combobox",
+         "value": "Focus",
+         "options": [
+          "Fiesta",
+          "Focus",
+          "Kuga",
+          "Transit Custom",
+          "Puma"
+         ]
+        },
+        {
+         "label": "Year",
+         "kind": "select",
+         "value": "2018",
+         "options": [
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021"
+         ]
+        },
+        {
+         "label": "Engine",
+         "kind": "select",
+         "value": "1.0 EcoBoost 125",
+         "options": [
+          "1.0 EcoBoost 100",
+          "1.0 EcoBoost 125",
+          "1.5 EcoBlue 120",
+          "2.0 EcoBlue 150"
+         ]
+        },
+        {
+         "label": "Fuel",
+         "kind": "radio",
+         "value": "Petrol",
+         "options": [
+          "Petrol",
+          "Diesel",
+          "Hybrid"
+         ]
+        },
+        {
+         "label": "Variant",
+         "kind": "select",
+         "value": "Titanium",
+         "options": [
+          "Zetec",
+          "Titanium",
+          "ST-Line",
+          "Active"
+         ],
+         "help": "Leave any field blank to widen the search"
+        }
+       ],
+       "submit": "Find parts"
+      },
+      {
+       "type": "results",
+       "query": "brake",
+       "count": "38 parts fit this vehicle",
+       "sort": [
+        "Relevance",
+        "Price: low to high",
+        "Price: high to low",
+        "Code A–Z"
+       ],
+       "facets": [
+        {
+         "title": "Category",
+         "kind": "check",
+         "options": [
+          "Brakes",
+          "Filters",
+          "Suspension",
+          "Engine",
+          "Electrical",
+          "Lighting"
+         ],
+         "picked": [
+          "Brakes"
+         ]
+        },
+        {
+         "title": "Stock",
+         "kind": "check",
+         "options": [
+          "In stock",
+          "Low stock",
+          "Out of stock"
+         ],
+         "picked": [
+          "In stock",
+          "Low stock"
+         ]
+        },
+        {
+         "title": "Brand",
+         "kind": "check",
+         "options": [
+          "Bosch",
+          "Brembo",
+          "TRW",
+          "Textar",
+          "Mintex",
+          "Ferodo"
+         ]
+        }
+       ],
+       "items": [
+        {
+         "title": "Front Brake Pad Set",
+         "meta": "FBP-20418 · Bosch 0 986 494 860 · Set of 4",
+         "badge": "In stock",
+         "price": "£31.85"
+        },
+        {
+         "title": "Front Brake Disc 278 mm Vented",
+         "meta": "BD-30122 · Brembo 09.C890.11 · Pair",
+         "badge": "In stock",
+         "price": "£64.20"
+        },
+        {
+         "title": "Rear Brake Shoe Set",
+         "meta": "BS-11807 · TRW GS8819 · Set of 4",
+         "badge": "Low stock",
+         "price": "£22.60"
+        },
+        {
+         "title": "Brake Pad Wear Sensor",
+         "meta": "WS-04551 · Textar 98044300 · Each",
+         "badge": "Out of stock",
+         "price": "£6.95"
+        },
+        {
+         "title": "Rear Brake Drum 228 mm",
+         "meta": "BDR-07730 · Mintex MBD412 · Each",
+         "badge": "In stock",
+         "price": "Price on request"
+        },
+        {
+         "title": "Brake Fluid DOT 4, 1 L",
+         "meta": "FL-00912 · Castrol 15036B · Case of 12",
+         "badge": "Low stock",
+         "price": "£71.40"
+        },
+        {
+         "title": "Front Brake Pad Set, Low Dust",
+         "meta": "FBP-20455 · Ferodo FDB4861 · Set of 4",
+         "badge": "In stock",
+         "price": "£36.10"
+        },
+        {
+         "title": "Front Brake Caliper, Left",
+         "meta": "BC-15520 · TRW BHN1128E · Each, exchange",
+         "badge": "Low stock",
+         "price": "£58.75"
+        },
+        {
+         "title": "Rear Wheel Cylinder",
+         "meta": "WC-08814 · Bosch F 026 002 579 · Each",
+         "badge": "In stock",
+         "price": "£14.30"
+        },
+        {
+         "title": "Brake Hose, Front",
+         "meta": "BH-06231 · Textar 40088300 · Each",
+         "badge": "In stock",
+         "price": "£9.85"
+        },
+        {
+         "title": "Brake Disc & Pad Kit, Front",
+         "meta": "BK-40017 · Mintex MDK0298 · Kit",
+         "badge": "Out of stock",
+         "price": "Price on request"
+        },
+        {
+         "title": "Brake Cleaner Spray 500 ml",
+         "meta": "CH-00340 · Bosch 2 608 412 004 · Case of 12",
+         "badge": "In stock",
+         "price": "£27.60"
+        }
+       ],
+       "visual": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No parts match this search",
+      "emptyHint": "Check the part number, or clear the vehicle or category to see more parts.",
+      "error": "We couldn't load the catalogue. Try again in a moment."
+     }
+    }
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,980 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The portal shall provide exactly three screens for the signed-in buyer: Find parts at /parts, Cart and checkout at /cart, and My orders at /orders with the order detail panel on the same page.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-1.1",
+        "given": "A signed-in buyer",
+        "when": "they open /parts, /cart and /orders in turn",
+        "then": "Each URL shows its screen (Find parts, Cart and checkout, My orders), and the header on each screen has links to the other two",
+        "level": "ui"
+       },
+       {
+        "id": "AC-1.2",
+        "given": "A signed-in buyer on /orders",
+        "when": "they open an order",
+        "then": "The order detail panel is shown on the same /orders page and no other page opens",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "When a buyer requests the parts list, the parts API shall return parts sorted by name A–Z, 20 per page, each with image (or none), name, part number, brand, price in GBP with 2 decimals, and stock state.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM-9",
+       "ASM-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "45 parts in the parts database",
+        "when": "the buyer calls GET /api/parts?page=1",
+        "then": "The response status is 200 and the returned list has 20 parts in name A–Z order, each with fields image, name, partNumber, brand, price and stockState, and the response total count is 45",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.2",
+        "given": "45 parts in the parts database",
+        "when": "the buyer calls GET /api/parts?page=3",
+        "then": "The returned list has 5 parts, the last 5 by name A–Z",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.3",
+        "given": "A part with price 12.5 and no image",
+        "when": "the buyer calls GET /api/parts",
+        "then": "That part's price value is returned as 12.50 and its image field is null",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "The parts API shall set a part's stock state to \"In stock\" when stock is 5 or more, \"Low stock (n left)\" when stock is 1 to 4, and \"Out of stock\" when stock is 0.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-7",
+       "ASM-9"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-3.1",
+        "given": "Parts with stock 5, 4, 1 and 0",
+        "when": "the buyer calls GET /api/parts",
+        "then": "The returned stockState values are \"In stock\", \"Low stock (4 left)\", \"Low stock (1 left)\" and \"Out of stock\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-3.2",
+        "given": "A part with stock 120",
+        "when": "the buyer calls GET /api/parts",
+        "then": "The returned stockState value is \"In stock\"",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When the search text has at least 2 characters, the parts API shall return only parts whose name or part number contains that text, ignoring letter case.",
+      "op": "ADDED",
+      "sources": [
+       "I-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-4.1",
+        "given": "Parts named \"Oil Filter\" (part number OF-100) and \"Brake Pad\" (part number BP-200)",
+        "when": "the buyer calls GET /api/parts?q=oil",
+        "then": "The returned list contains only \"Oil Filter\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-4.2",
+        "given": "The same parts",
+        "when": "the buyer calls GET /api/parts?q=bp-2",
+        "then": "The returned list contains only \"Brake Pad\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-4.3",
+        "given": "The same parts",
+        "when": "the buyer calls GET /api/parts?q=o (1 character)",
+        "then": "The returned list contains both parts, so no search filter is applied",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "When the buyer picks a category or brand filter, the parts API shall return only parts matching that one category and that one brand, combined with any search text, where \"All\" means no filter.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-5.1",
+        "given": "Parts: Bosch Brakes \"Brake Pad\", Bosch Filters \"Oil Filter\", Mann Filters \"Air Filter\"",
+        "when": "the buyer calls GET /api/parts?category=Filters&brand=Bosch",
+        "then": "The returned list contains only \"Oil Filter\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.2",
+        "given": "The same parts",
+        "when": "the buyer calls GET /api/parts?category=Filters&q=air",
+        "then": "The returned list contains only \"Air Filter\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.3",
+        "given": "The same parts",
+        "when": "the buyer calls GET /api/parts?category=All&brand=All",
+        "then": "The returned list contains all 3 parts",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.4",
+        "given": "The same parts",
+        "when": "the buyer calls GET /api/parts/brands",
+        "then": "The returned list is [\"Bosch\", \"Mann\"], taken from the parts data",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When the search text or a filter changes on Find parts, the portal shall show page 1 of the results.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-6.1",
+        "given": "The buyer is on page 3 of Find parts",
+        "when": "they change the category filter",
+        "then": "Page 1 of the filtered results is shown",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "When no part matches the search and filters, the portal shall show \"No parts match\" and a button that clears the search and filters.",
+      "op": "ADDED",
+      "sources": [
+       "I-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-7.1",
+        "given": "No part contains the text \"zzzz\"",
+        "when": "the buyer calls GET /api/parts?q=zzzz",
+        "then": "The response status is 200 and the returned list is empty with total count 0",
+        "level": "api"
+       },
+       {
+        "id": "AC-7.2",
+        "given": "The buyer has searched \"zzzz\" with category Brakes on Find parts",
+        "when": "the results load",
+        "then": "\"No parts match\" is shown with a clear button, and pressing it empties the search box, sets both filters to All and shows page 1 of all parts",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "When the buyer presses \"Add to cart\" on a part that is in stock, the cart shall add a line with quantity 1, or raise the existing line's quantity by 1.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "An empty CartStore and a part with stock 10",
+        "when": "CartStore.addPart(part) is called",
+        "then": "The returned lines list has one line for that part with quantity value 1",
+        "level": "unit"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "A CartStore holding that part with quantity 2",
+        "when": "CartStore.addPart(part) is called",
+        "then": "The returned lines list still has one line for that part, with quantity value 3",
+        "level": "unit"
+       },
+       {
+        "id": "AC-8.3",
+        "given": "A CartStore holding that part with quantity equal to its stock (10)",
+        "when": "CartStore.addPart(part) is called",
+        "then": "The line quantity value stays 10 and the returned message is \"Only 10 available\"",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "The portal shall show in the header a cart count equal to the total of all quantities in the cart, updated whenever the cart changes.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "ASM-13"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "A CartStore with 2 of a filter and 1 of a brake pad",
+        "when": "CartStore.count() is called",
+        "then": "The returned value is 3",
+        "level": "unit"
+       },
+       {
+        "id": "AC-9.2",
+        "given": "The header shows cart count 3 on Find parts",
+        "when": "the buyer presses \"Add to cart\" on an in-stock part",
+        "then": "The header cart count shown changes to 4 without a page reload",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-10",
+      "ears": "If a part is out of stock, then the portal shall disable its \"Add to cart\" button.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-10.1",
+        "given": "An empty CartStore and a part with stock 0",
+        "when": "CartStore.addPart(part) is called",
+        "then": "The returned lines list is empty",
+        "level": "unit"
+       },
+       {
+        "id": "AC-10.2",
+        "given": "Find parts lists a part with stock 0",
+        "when": "the buyer views or tabs to that part's \"Add to cart\" button",
+        "then": "The button is shown disabled and pressing it leaves the header cart count value unchanged",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-11",
+      "ears": "The cart shall give each line its name, part number, unit price, quantity and line total, where line total = unit price × quantity.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-11.1",
+        "given": "A CartStore holding 3 of part BP-200 \"Brake Pad\" at £12.50",
+        "when": "CartStore.lines() is called",
+        "then": "The returned line has name \"Brake Pad\", partNumber \"BP-200\", unitPrice 12.50, quantity 3 and lineTotal 37.50",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-12",
+      "ears": "When the buyer changes a line quantity, the cart shall recalculate that line total and the order totals at once.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-12.1",
+        "given": "A CartStore holding 1 of a £12.50 part and 1 of a £5.00 part",
+        "when": "CartStore.setQuantity(\"BP-200\", 4) is called for the £12.50 part",
+        "then": "The returned lineTotal for that line is 50.00 and CartStore.subtotal() returns 55.00",
+        "level": "unit"
+       },
+       {
+        "id": "AC-12.2",
+        "given": "The Cart screen with a line at quantity 1",
+        "when": "the buyer types 4 in the quantity field",
+        "then": "The line total and the order total shown update without pressing any other button",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-13",
+      "ears": "If the buyer enters a quantity that is blank, 0, above 99 or not a whole number, then the cart shall set it to the nearest whole number from 1 to 99.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "ASM-12"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-13.1",
+        "given": "A CartStore line for a part with stock 500",
+        "when": "CartStore.setQuantity is called with \"\", 0, 150 and 2.6 in turn",
+        "then": "The returned quantity values are 1, 1, 99 and 3",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-14",
+      "ears": "If the buyer enters a quantity above the part's stock, then the cart shall set the quantity to the stock quantity and give the message \"Only n available\".",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-14.1",
+        "given": "A CartStore line for a part with stock 4",
+        "when": "CartStore.setQuantity(partNumber, 7) is called",
+        "then": "The returned quantity value is 4 and the returned message is \"Only 4 available\"",
+        "level": "unit"
+       },
+       {
+        "id": "AC-14.2",
+        "given": "The Cart screen with a line for a part with stock 4",
+        "when": "the buyer types 7 in the quantity field",
+        "then": "The field shows 4 and \"Only 4 available\" is displayed next to the line",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-15",
+      "ears": "When the buyer presses \"Remove\" on a cart line, the cart shall remove that line.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-15.1",
+        "given": "A CartStore with lines BP-200 and OF-100",
+        "when": "CartStore.removeLine(\"BP-200\") is called",
+        "then": "The returned lines list contains only OF-100 and CartStore.count() returns OF-100's quantity",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-16",
+      "ears": "The cart shall keep its lines in the browser's local storage under the signed-in buyer's ID, so the cart survives page reloads on the same device.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "ASM-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-16.1",
+        "given": "A CartStore for buyer B1 holding 2 of OF-100, using a given local storage",
+        "when": "a new CartStore is created for buyer B1 with the same local storage and lines() is called",
+        "then": "The returned list holds 2 of OF-100",
+        "level": "unit"
+       },
+       {
+        "id": "AC-16.2",
+        "given": "The same local storage holding buyer B1's cart",
+        "when": "a new CartStore is created for buyer B2 and lines() is called",
+        "then": "The returned list is empty",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-17",
+      "ears": "While the cart is empty, the portal shall show \"Your cart is empty\" with a link to Find parts and hide checkout.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-4",
+       "ASM-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-17.1",
+        "given": "A buyer with an empty cart",
+        "when": "they open /cart",
+        "then": "\"Your cart is empty\" and a link to /parts are shown, and no address field, delivery option or \"Place order\" button is displayed",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-18",
+      "ears": "The checkout shall enable \"Place order\" only when the delivery address has 5 to 200 characters and a delivery option (Standard or Next day) is selected.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "ASM-15"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-18.1",
+        "given": "A CheckoutForm with delivery option Standard",
+        "when": "CheckoutForm.canPlaceOrder() is called with addresses of 4, 5, 200 and 201 characters in turn",
+        "then": "The returned values are false, true, true and false",
+        "level": "unit"
+       },
+       {
+        "id": "AC-18.2",
+        "given": "A CheckoutForm with a 20-character address and no delivery option",
+        "when": "CheckoutForm.canPlaceOrder() is called",
+        "then": "The returned value is false",
+        "level": "unit"
+       },
+       {
+        "id": "AC-18.3",
+        "given": "A buyer who placed an earlier order",
+        "when": "they open checkout again",
+        "then": "The delivery address field is shown empty",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-19",
+      "ears": "The checkout shall show subtotal, delivery charge (Standard £0.00, Next day £9.99) and total, where total = subtotal + delivery charge.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "ASM-7",
+       "ASM-9"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-19.1",
+        "given": "A CartStore with subtotal 37.50",
+        "when": "CartStore.totals(\"NEXT_DAY\") is called",
+        "then": "The returned value is subtotal 37.50, deliveryCharge 9.99, total 47.49",
+        "level": "unit"
+       },
+       {
+        "id": "AC-19.2",
+        "given": "A CartStore with subtotal 37.50",
+        "when": "CartStore.totals(\"STANDARD\") is called",
+        "then": "The returned value is subtotal 37.50, deliveryCharge 0.00, total 37.50",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-20",
+      "ears": "When the buyer places an order with valid lines, address and delivery option, the orders API shall save an order with status Placed, a sequential order number ORD- followed by 6 zero-padded digits, each line's current part price as unit price, and total = subtotal + delivery charge.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "ASM-7",
+       "ASM-8",
+       "ASM-18"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-20.1",
+        "given": "Buyer B1, no earlier orders in the database, part BP-200 at £12.50 with stock 10",
+        "when": "B1 calls POST /api/orders with lines [{partNumber: BP-200, quantity: 2}], address \"1 High St, Leeds\", deliveryOption NEXT_DAY",
+        "then": "The response status is 201 and the response body has orderNumber \"ORD-000001\", status \"Placed\" and total 34.99",
+        "level": "api"
+       },
+       {
+        "id": "AC-20.2",
+        "given": "The order from AC-20.1",
+        "when": "the orders and order_lines tables are read",
+        "then": "There is one orders row for buyer B1 with ORD-000001, date placed, address, deliveryOption NEXT_DAY, total 34.99, status Placed, and one order_lines row with partNumber BP-200, quantity 2, unitPrice 12.50",
+        "level": "api"
+       },
+       {
+        "id": "AC-20.3",
+        "given": "ORD-000001 exists",
+        "when": "another valid order is placed",
+        "then": "The returned orderNumber is \"ORD-000002\"",
+        "level": "api"
+       },
+       {
+        "id": "AC-20.4",
+        "given": "A client sends unitPrice 1.00 for BP-200 priced £12.50",
+        "when": "it calls POST /api/orders",
+        "then": "The saved order_lines row has unitPrice 12.50, so the sent price value is ignored",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-21",
+      "ears": "If a place-order request has no lines, a quantity outside 1–99, an unknown part number, an address outside 5–200 characters, or a missing or unknown delivery option, then the orders API shall reject it with status 400 and save no order.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "I-5",
+       "ASM-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-21.1",
+        "given": "Buyer B1",
+        "when": "B1 calls POST /api/orders with an empty lines list and otherwise valid fields",
+        "then": "The response status is 400 and the orders table row count is unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-21.2",
+        "given": "Buyer B1",
+        "when": "B1 calls POST /api/orders with a 4-character address, then a 201-character address, then deliveryOption \"EXPRESS\", then quantity 0",
+        "then": "Each response status is 400 with an error field naming the invalid input, and the orders table row count is unchanged",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-22",
+      "ears": "If any line's quantity is above the part's stock when an order is placed, then the orders API shall reject the order with status 409 and return each affected part number with the stock now available, saving no order.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-5",
+       "ASM-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-22.1",
+        "given": "Part BP-200 with stock 3 and part OF-100 with stock 0",
+        "when": "B1 calls POST /api/orders with BP-200 quantity 5 and OF-100 quantity 1",
+        "then": "The response status is 409, the response lists {BP-200, available 3} and {OF-100, available 0}, and the orders table row count is unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-22.2",
+        "given": "A CartStore holding 5 of BP-200 and 1 of OF-100",
+        "when": "CartStore.applyStockLimits([{BP-200, 3}, {OF-100, 0}]) is called with the 409 response",
+        "then": "The returned BP-200 line has quantity 3 with message \"Only 3 available\", the OF-100 line has quantity 0 with message \"Only 0 available\", and the cart is not cleared",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-23",
+      "ears": "When an order is placed successfully, the portal shall empty the cart and show the new order number.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-23.1",
+        "given": "A buyer with 3 items in the cart and a valid address and delivery option",
+        "when": "they press \"Place order\" and the API returns ORD-000007",
+        "then": "\"ORD-000007\" is displayed, the header cart count shows 0, and reloading /cart shows \"Your cart is empty\"",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-24",
+      "ears": "If placing an order fails with a network error or a server error, then the portal shall show an error message and keep the cart lines, address and delivery option so the buyer can try again.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "ASM-11"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-24.1",
+        "given": "A buyer at checkout with 2 lines, an address and Next day selected, and the API returning status 500",
+        "when": "they press \"Place order\"",
+        "then": "An error message is shown, the 2 lines, the address and Next day are still displayed, and \"Place order\" is enabled",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-25",
+      "ears": "The orders API shall leave the stock quantity in the parts database unchanged when an order is placed or cancelled.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-6",
+       "ASM-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-25.1",
+        "given": "Part BP-200 with stock 10",
+        "when": "B1 places an order for 2 of BP-200 and then cancels it through the API",
+        "then": "The parts row for BP-200 still has stock value 10 after each call",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-26",
+      "ears": "If a request to the API has no valid session token or cookie from the existing company login, then the API shall reject it with status 401.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-5",
+       "ASM-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-26.1",
+        "given": "No session cookie, then an expired session token",
+        "when": "GET /api/parts, POST /api/orders and GET /api/orders are called",
+        "then": "Each response status is 401 and no orders row is written",
+        "level": "api"
+       },
+       {
+        "id": "AC-26.2",
+        "given": "A valid session for buyer B1",
+        "when": "B1 places an order",
+        "then": "The saved orders row has buyer ID B1 read from the session, even if the request body sends a different buyer ID value",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-27",
+      "ears": "The orders API shall return to a buyer only the orders placed by that buyer.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "ASM-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-27.1",
+        "given": "Buyer B1 has 2 orders and buyer B2 has 3 orders",
+        "when": "B1 calls GET /api/orders",
+        "then": "The returned list has exactly B1's 2 orders",
+        "level": "api"
+       },
+       {
+        "id": "AC-27.2",
+        "given": "Order ORD-000005 belongs to B2",
+        "when": "B1 calls GET /api/orders/ORD-000005 and POST /api/orders/ORD-000005/cancel",
+        "then": "Each response status is 404 and the order row status is unchanged",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-28",
+      "ears": "When a buyer requests their orders, the orders API shall return them newest first, each with order number, date placed, number of items (total of all quantities), total and status.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "ASM-13"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-28.1",
+        "given": "B1 placed ORD-000001 on 1 Oct (2 filters + 1 pad) and ORD-000002 on 3 Oct",
+        "when": "B1 calls GET /api/orders",
+        "then": "The returned list is ORD-000002 then ORD-000001, and ORD-000001 has fields datePlaced, itemCount 3, total and status",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-29",
+      "ears": "When the buyer picks a status filter on My orders, the orders API shall return only that buyer's orders with that status.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-29.1",
+        "given": "B1 has orders with statuses Placed, Placed and Cancelled",
+        "when": "B1 calls GET /api/orders?status=Cancelled",
+        "then": "The returned list has only the 1 Cancelled order",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-30",
+      "ears": "When a buyer opens one of their orders, the orders API shall return its lines (part number, name, quantity, unit price), delivery address, delivery option, total and status.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-30.1",
+        "given": "B1's order ORD-000001 with 2 of BP-200 at £12.50, Next day, address \"1 High St, Leeds\"",
+        "when": "B1 calls GET /api/orders/ORD-000001",
+        "then": "The response status is 200 and the response has the line {BP-200, Brake Pad, 2, 12.50}, address \"1 High St, Leeds\", deliveryOption NEXT_DAY, total 34.99 and status Placed",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-31",
+      "ears": "When the buyer opens an order, the portal shall show a status timeline Placed → Packed → Dispatched → Delivered with the current status marked by text as well as colour.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "I-7",
+       "ASM-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-31.1",
+        "given": "An order whose status was set to Dispatched in the database",
+        "when": "the buyer opens it on My orders",
+        "then": "The timeline shown lists the four steps in order, and Dispatched is marked as current with a text label, not by colour alone",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-32",
+      "ears": "While an order's status is Placed, the portal shall show a \"Cancel order\" button in the order detail that asks for confirmation before calling the cancel API.",
+      "op": "ADDED",
+      "sources": [
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-32.1",
+        "given": "An order with status Placed and one with status Packed",
+        "when": "the buyer opens each one",
+        "then": "\"Cancel order\" is shown only for the Placed order",
+        "level": "ui"
+       },
+       {
+        "id": "AC-32.2",
+        "given": "The buyer pressed \"Cancel order\" on a Placed order",
+        "when": "they decline the confirmation, then press it again and confirm",
+        "then": "No cancel request is sent after declining; after confirming, the status shown becomes Cancelled and the button is no longer displayed",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-33",
+      "ears": "When a buyer cancels their order whose status is still Placed, the orders API shall set the status to Cancelled.",
+      "op": "ADDED",
+      "sources": [
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-33.1",
+        "given": "B1's order ORD-000001 with status Placed",
+        "when": "B1 calls POST /api/orders/ORD-000001/cancel",
+        "then": "The response status is 200, the response status field is \"Cancelled\", and the orders row has status Cancelled",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-34",
+      "ears": "If the order's status is no longer Placed when the buyer confirms cancelling, then the orders API shall refuse with status 409 and leave the status unchanged.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "ASM-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-34.1",
+        "given": "B1's order ORD-000001 whose status was changed to Packed in the database",
+        "when": "B1 calls POST /api/orders/ORD-000001/cancel",
+        "then": "The response status is 409 with an error message, and the orders row status is still Packed",
+        "level": "api"
+       },
+       {
+        "id": "AC-34.2",
+        "given": "The buyer has an order open showing Placed, and its status was changed to Packed in the database",
+        "when": "they press \"Cancel order\" and confirm",
+        "then": "A message is shown saying the order can no longer be cancelled, the panel refreshes to show Packed, and \"Cancel order\" is no longer displayed",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-35",
+      "ears": "While the buyer has no orders, the portal shall show \"No orders yet\" and a link to Find parts on My orders.",
+      "op": "ADDED",
+      "sources": [
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-35.1",
+        "given": "Buyer B3 with no orders",
+        "when": "B3 calls GET /api/orders",
+        "then": "The response status is 200 and the returned list is empty",
+        "level": "api"
+       },
+       {
+        "id": "AC-35.2",
+        "given": "Buyer B3 with no orders",
+        "when": "they open /orders",
+        "then": "\"No orders yet\" and a link to /parts are shown",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-36",
+      "ears": "The portal shall show all three screens without horizontal scrolling at viewport widths from 360 px upwards.",
+      "op": "ADDED",
+      "sources": [
+       "I-7",
+       "ASM-17"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-36.1",
+        "given": "The latest two versions of Chrome, Edge, Safari and Firefox",
+        "when": "each screen is opened at 360 px, 768 px and 1280 px widths",
+        "then": "No horizontal scroll bar is shown and every button and field is displayed and usable",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-37",
+      "ears": "The portal shall give every form field a visible text label and let the buyer reach and use every control by keyboard alone.",
+      "op": "ADDED",
+      "sources": [
+       "I-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-37.1",
+        "given": "The three screens with a cart containing 2 lines",
+        "when": "a tester uses only the keyboard to search, filter, add to cart, change quantity, remove, place an order, open an order and cancel it",
+        "then": "Every step can be completed, focus is always visible, and every field has a label announced by a screen reader",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-38",
+      "ears": "While the parts database holds 5,000 parts, the Find parts screen shall load its first page of results in under 2 seconds.",
+      "op": "ADDED",
+      "sources": [
+       "I-8",
+       "ASM-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-38.1",
+        "given": "5,000 parts seeded in the parts database",
+        "when": "GET /api/parts?page=1&q=filter&category=Filters is called 100 times",
+        "then": "The 95th-percentile response time is under 500 ms and each response status is 200",
+        "level": "api"
+       },
+       {
+        "id": "AC-38.2",
+        "given": "5,000 parts seeded and a cold browser cache on a desktop with a 10 Mbps connection",
+        "when": "a tester opens /parts",
+        "then": "The first 20 parts are displayed within 2 seconds of navigation start",
+        "level": "manual"
+       }
+      ]
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Each of the three screens loads with 5,000 parts in the parts database.",
+      "metric": "95th-percentile time from navigation start until content is shown is under 2,000 ms for /parts, /cart and /orders, measured at 1,000 concurrent users"
+     },
+     {
+      "id": "NFR-2",
+      "text": "Capacity for the first year.",
+      "metric": "Supports 1,000 buyers and 100,000 order and order-line records with NFR-1 still met"
+     },
+     {
+      "id": "NFR-3",
+      "text": "WCAG 2.1 AA compliance on all three screens; colour is never the only signal for stock state or order status.",
+      "metric": "0 serious or critical violations in an automated axe scan of each screen, plus 100% of fields with labels and 100% of stock and status indicators carrying text"
+     },
+     {
+      "id": "NFR-4",
+      "text": "Responsive layout.",
+      "metric": "0 horizontal scroll at viewport widths of 360, 768 and 1280 px"
+     },
+     {
+      "id": "NFR-5",
+      "text": "Browser support.",
+      "metric": "100% of ui and manual acceptance criteria pass on the latest 2 versions of Chrome, Edge, Safari and Firefox"
+     },
+     {
+      "id": "NFR-6",
+      "text": "English only; prices in GBP.",
+      "metric": "100% of prices shown as £ with exactly 2 decimals; 0 non-English text strings"
+     }
+    ],
+    "outOfScope": [
+     "Sign-in and accounts (the existing company login is used as-is)",
+     "Payments and invoices",
+     "Admin or staff screens, including changing an order's status after Placed (ASM-6)",
+     "Adding or editing parts",
+     "Stock management, including changing stock when orders are placed or cancelled (ASM-2)",
+     "Returns",
+     "Emails and notifications",
+     "Multiple or saved delivery addresses (ASM-15)",
+     "Discounts",
+     "Vehicle (VIN) lookup",
+     "Reports",
+     "Mobile apps",
+     "Other languages or currencies",
+     "Integrations with other systems"
+    ],
+    "assumptions": [
+     "ASM-19: The API endpoints are GET /api/parts (q, category, brand, page), GET /api/parts/brands, POST /api/orders, GET /api/orders (status), GET /api/orders/{orderNumber} and POST /api/orders/{orderNumber}/cancel. Paths can be renamed as long as the behaviour stays the same.",
+     "ASM-20: Cart and checkout logic in the React app sits in public client classes CartStore (addPart, setQuantity, removeLine, lines, count, subtotal, totals, applyStockLimits) and CheckoutForm (canPlaceOrder), so it can be unit-tested directly.",
+     "ASM-21: API error statuses are 400 for invalid input, 401 for no valid session, 404 for an order that doesn't exist or belongs to another buyer, and 409 for stock or cancel conflicts.",
+     "ASM-22: A quantity that isn't a whole number is rounded to the nearest whole number before being limited to 1–99 (from ASM-12).",
+     "ASM-23: Pressing \"Add to cart\" when the line quantity already equals the part's stock leaves the quantity unchanged and shows \"Only n available\", the same as REQ-14.",
+     "ASM-24: The order total is calculated on the server from current part prices and the delivery charge. Prices and totals the client sends are ignored."
+    ],
+    "suggestions": [
+     "Decide how the status timeline should look for a Cancelled order. The request only gives the Placed → Packed → Dispatched → Delivered timeline.",
+     "Think about moving the delivery prices, stock thresholds (5) and page size (20) into configuration later. They are fixed constants in the code for now (ASM-9).",
+     "Think about prefilling the delivery address from the buyer's last order in a later release (ASM-15).",
+     "Think about an idempotency key on POST /api/orders so a retry after a network error (REQ-24) can't create a duplicate order.",
+     "Think about debouncing search requests on Find parts to lighten API load when 1,000 users are active.",
+     "Think about removing out-of-stock lines automatically after a 409 stock conflict, instead of leaving them at quantity 0 for the buyer to remove."
+    ]
+   },
+   "ms": 4,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,327 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Newest first. Open an order to follow it, or cancel it while it is still Placed.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-10482",
+         "14 Mar 2026",
+         "7",
+         "£286.40",
+         "Placed"
+        ],
+        [
+         "ORD-10471",
+         "11 Mar 2026",
+         "12",
+         "£1,042.18",
+         "Packed"
+        ],
+        [
+         "ORD-10455",
+         "6 Mar 2026",
+         "3",
+         "£58.90",
+         "Dispatched"
+        ],
+        [
+         "ORD-10430",
+         "27 Feb 2026",
+         "24",
+         "£412.75",
+         "Delivered"
+        ],
+        [
+         "ORD-10418",
+         "24 Feb 2026",
+         "2",
+         "£139.00",
+         "Cancelled"
+        ],
+        [
+         "ORD-10397",
+         "18 Feb 2026",
+         "9",
+         "£221.36",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "page": 1,
+       "pages": 2
+      }
+     ],
+     "links": [
+      {
+       "from": "Find parts",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "drawer",
+       "trigger": "ORD-10482",
+       "title": "Order ORD-10482",
+       "text": "Placed 14 Mar 2026, 09:42 · 7 items",
+       "blocks": [
+        {
+         "type": "timeline",
+         "items": [
+          {
+           "time": "14 Mar 09:42",
+           "title": "Placed",
+           "meta": "Current status",
+           "status": "now"
+          },
+          {
+           "time": "Expected 15 Mar",
+           "title": "Packed",
+           "status": "next"
+          },
+          {
+           "time": "Expected 15 Mar",
+           "title": "Dispatched",
+           "status": "next"
+          },
+          {
+           "time": "Expected 16 Mar",
+           "title": "Delivered",
+           "status": "next"
+          }
+         ]
+        },
+        {
+         "type": "detail",
+         "rows": [
+          {
+           "label": "Status",
+           "value": "Placed",
+           "badge": true
+          },
+          {
+           "label": "6204-2RS Ball bearing",
+           "value": "4 × £8.95 · £35.80"
+          },
+          {
+           "label": "GT2-1250 Drive belt",
+           "value": "2 × £46.50 · £93.00"
+          },
+          {
+           "label": "PS-24V Proximity sensor",
+           "value": "1 × £139.60 · £139.60"
+          },
+          {
+           "label": "Delivery address",
+           "value": "Unit 4, Brookfield Ind. Est., Leeds LS10 1PQ"
+          },
+          {
+           "label": "Delivery option",
+           "value": "Next day · £18.00"
+          },
+          {
+           "label": "Total",
+           "value": "£286.40"
+          }
+         ]
+        }
+       ],
+       "actions": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "Close",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel order ORD-10482?",
+       "text": "The order will be marked Cancelled and won't be packed. If it has already been packed, it can't be cancelled and its status stays as it is.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "secondary"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "Order ORD-10482 cancelled",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place show up here. Go to Find parts to start one.",
+      "error": "We couldn't load your orders. Check your connection and try again.",
+      "success": "Order ORD-10482 cancelled.",
+      "validation": "This order has already been packed, so it can no longer be cancelled."
+     }
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Newest first. Open an order to follow it, or cancel it while it is still Placed.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-10486",
+         "15 Mar 2026",
+         "1",
+         "£14.20",
+         "Placed"
+        ],
+        [
+         "ORD-10482",
+         "14 Mar 2026",
+         "7",
+         "£286.40",
+         "Placed"
+        ],
+        [
+         "ORD-10477",
+         "12 Mar 2026",
+         "40",
+         "£2,318.60",
+         "Packed"
+        ],
+        [
+         "ORD-10471",
+         "11 Mar 2026",
+         "12",
+         "£1,042.18",
+         "Packed"
+        ],
+        [
+         "ORD-10463",
+         "9 Mar 2026",
+         "5",
+         "£97.45",
+         "Dispatched"
+        ],
+        [
+         "ORD-10455",
+         "6 Mar 2026",
+         "3",
+         "£58.90",
+         "Dispatched"
+        ],
+        [
+         "ORD-10441",
+         "2 Mar 2026",
+         "16",
+         "£684.32",
+         "Delivered"
+        ],
+        [
+         "ORD-10430",
+         "27 Feb 2026",
+         "24",
+         "£412.75",
+         "Delivered"
+        ],
+        [
+         "ORD-10418",
+         "24 Feb 2026",
+         "2",
+         "£139.00",
+         "Cancelled"
+        ],
+        [
+         "ORD-10397",
+         "18 Feb 2026",
+         "9",
+         "£221.36",
+         "Delivered"
+        ],
+        [
+         "ORD-10384",
+         "13 Feb 2026",
+         "6",
+         "£1,175.00",
+         "Delivered"
+        ],
+        [
+         "ORD-10362",
+         "5 Feb 2026",
+         "11",
+         "£63.80",
+         "Cancelled"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc",
+       "page": 1,
+       "pages": 4
+      }
+     ]
+    }
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

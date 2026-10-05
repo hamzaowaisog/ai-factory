@@ -28,6 +28,7 @@ import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
 import { ensureMeasured } from "../design/refs/measure.js";
 import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } from "../design/looks.js";
 import { S, think, UNTRUSTED_IMAGE_NOTE, UNTRUSTED_NOTE } from "./think.js";
+import { carriedLines, carries } from "./gate-questions.js";
 import { buildDemo, demoStates, themeValues } from "../design/demo.js";
 import { contrastIssues } from "../design/palette.js";
 import { localeFit } from "../design/locale.js";
@@ -580,7 +581,7 @@ export function draftPreview(ctx: Pick<StepContext, "ledger" | "state" | "runId"
  * is drawn on its own against that list, a few at a time, with one more try for a page that fails its checks. The result has the
  * one-answer call's shape, so the step's checks and the demo measure it the same way.
  */
-async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true; output: z.infer<typeof DesignOut>; model: string } | { ok: false; outcome: StepOutcome }> {
+async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true; output: z.infer<typeof DesignOut>; model: string; risks: string[] } | { ok: false; outcome: StepOutcome }> {
   const p = await think({ ...ctx, priorFailures: failuresFor(ctx.priorFailures) }, {
     stage: "design", label: "design screen list", route: "design", cls: "read-large", budgetTokens: 80000, tools: [], schema: DesignPlan, maxTurns: 3,
     sections: [S.template("tpl", PLAN_RULES()), ...b.rules, ...b.context, S.task("List the screens and choose the look; the pages are drawn next.")],
@@ -592,9 +593,12 @@ async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true;
     ...mapFailures(mapDesign(b.spec.requirements.map((q) => q.id), plan as never, b.frames)),
     ...[...lookQuality(plan, b.existing, b.refs, b.recent, keptLook, b.fromRefs), ...a11yFit({ screens: [], theme: plan.theme } as never), ...modeFit(plan, b.reqText)].map((q) => failure(q.check, q.message)),
   ];
-  if (listed.length) {
+  // after the rounds of questions about failing checks, what still fails is carried as an open risk (src/stages/gate-questions.ts)
+  const risks: string[] = [];
+  if (listed.length && carries(ctx, listed)) risks.push(...carriedLines("the design checks", listed));
+  else if (listed.length) {
     p.forget?.();
-    return { ok: false, outcome: { kind: "fail", category: "other", failures: listed, signature: `design-plan:${[...new Set(listed.map((f) => f.check))].sort().join(",")}` } };
+    return { ok: false, outcome: { kind: "fail", category: "other", failures: listed, signature: `design-plan:${[...new Set(listed.map((f) => f.check))].sort().join(",")}`, gate: true } };
   }
 
   const ids = plan.screens.map((x) => x.id);
@@ -616,7 +620,7 @@ async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true;
     draftPreview(ctx, b.spec, plan, shown, { drawn: shown.size, total, failed: failedPages });
   };
   draftPreview(ctx, b.spec, plan, shown, { drawn: 0, total, failed: 0 });
-  const drawn = await inPool(plan.screens, PAGES_SIDE_BY_SIDE, async ({ title, purpose, ...entry }): Promise<{ screen: ScreenT } | { failures: Failure[] } | { outcome: StepOutcome }> => {
+  const drawn = await inPool(plan.screens, PAGES_SIDE_BY_SIDE, async ({ title, purpose, ...entry }): Promise<{ screen: ScreenT; risks?: string[] } | { failures: Failure[] } | { outcome: StepOutcome }> => {
     const kept = b.fine.find((x) => x.id === entry.id && x.route === entry.route);
     if (kept) { progress(entry.id, title, kept, "kept as approved"); return { screen: kept }; }
     const earlierPage = b.earlierScreens.find((x) => x.id === entry.id);
@@ -643,8 +647,10 @@ async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true;
       // the page alone: its app is checked with the list, its links against the list's ids
       const bad = designQuality({ flow: plan.flow, noScreen: [], screens: [{ ...screen, app: undefined }], ...(plan.theme ? { theme: plan.theme } : {}) } as never, b.existing, undefined, [], true, false, ids);
       if (!bad.length) { progress(entry.id, title, screen); return { screen }; }
+      const fs = bad.map((q) => failure(q.check, q.message));
+      if (attempt === 1 && carries(ctx, fs)) { progress(entry.id, title, screen, "drawn (its failing checks carried as open risks)"); return { screen, risks: carriedLines(`the checks of page ${entry.id}`, fs) }; }
       r.forget?.();
-      failures = bad.map((q) => failure(q.check, q.message));
+      failures = fs;
     }
     progress(entry.id, title);
     return { failures };
@@ -652,10 +658,10 @@ async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true;
   const stopped = drawn.find((d): d is { outcome: StepOutcome } => "outcome" in d);
   if (stopped) return { ok: false, outcome: stopped.outcome };
   const failed = drawn.flatMap((d) => ("failures" in d ? d.failures : []));
-  if (failed.length) return { ok: false, outcome: { kind: "fail", category: "other", failures: failed, signature: `design-pages:${[...new Set(failed.map((f) => f.check))].sort().join(",")}` } };
+  if (failed.length) return { ok: false, outcome: { kind: "fail", category: "other", failures: failed, signature: `design-pages:${[...new Set(failed.map((f) => f.check))].sort().join(",")}`, gate: true } };
   ctx.log(`design: ${plan.screens.length} pages drawn`);
   const { screens: _listed, ...rest } = plan;
-  return { ok: true, output: { ...rest, screens: drawn.map((d) => (d as { screen: ScreenT }).screen) }, model: p.model };
+  return { ok: true, output: { ...rest, screens: drawn.map((d) => (d as { screen: ScreenT }).screen) }, model: p.model, risks: [...risks, ...drawn.flatMap((d) => ("risks" in d && d.risks ? d.risks : []))] };
 }
 
 /** The links between requirements, screens and frames, as failures. */
@@ -859,7 +865,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       if (lightUi(intent, { existingLook: hasExistingLook(inv), frames: frames.length, references: ctx.state.info.references?.length ?? 0, earlierDesign: !!earlier && !earlier.skipped, reqs: spec.requirements.length, off: ctx.project.design?.lightNote === false })) {
         const n = await designNote(ctx, spec, inv!);
         if (n && "outcome" in n) return n.outcome;
-        if (n) return { kind: "done", outputs: { design: ctx.ledger.putJson({ ...n.note, header: header(ctx.runId, "design", "design", "", n.model) }) }, data: { screens: n.note.screens.length, note: true } };
+        if (n) return { kind: "done", outputs: { design: ctx.ledger.putJson({ ...n.note, header: header(ctx.runId, "design", "design", "", n.model) }) }, data: { screens: n.note.screens.length, note: true, ...(n.risks.length ? { openRisks: n.risks } : {}) } };
       }
       const sentBack = designRejections(ctx.state).slice(0, MAX_DESIGN_REVISIONS);
       // a design that was sent back is fixed where the lead pointed, or redrawn when that is what the note needs
@@ -932,10 +938,12 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         ...localeFit(out, reqText).map((q) => failure(q.check, q.message)),
         ...modeFit(out, reqText).map((q) => failure(q.check, q.message)),
       ];
-      if (bad.length) {
+      const openRisks = "risks" in r ? [...r.risks] : [];
+      if (bad.length && carries(ctx, bad)) openRisks.push(...carriedLines("the design checks", bad));
+      else if (bad.length) {
         // the one answer was rejected: a retry with these failures must not read it back
         (r as { forget?: () => void }).forget?.();
-        return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}` };
+        return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}`, gate: true };
       }
       // the drawn demo is measured in a browser: text past the frame, cut off or on top of other text, and (with layout references)
       // a screen that does not show its reference's navigation or regions, go back for one fix round together (after that round
@@ -962,7 +970,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         ...(prev ? { revision: sentBack.length, rework: [...(prev.rework ?? []), ...(again ? [again.round] : [])] } : {}),
         mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, ...(existing ? { themeSource: "repo" as const, ...(inv?.look ? { theme: inv.look.theme } : {}) } : { themeSource: "new" as const, ...(out.theme ? { theme: withFamilies(out.theme, reading, out.refUse) } : {}) }),
       };
-      return { kind: "done", outputs: { design: ctx.ledger.putJson(artifact) }, data: { screens: artifact.screens.length, states: artifact.screens.reduce((n, s) => n + Math.max(1, s.states.length), 0) } };
+      return { kind: "done", outputs: { design: ctx.ledger.putJson(artifact) }, data: { screens: artifact.screens.length, states: artifact.screens.reduce((n, s) => n + Math.max(1, s.states.length), 0), ...(openRisks.length ? { openRisks } : {}) } };
     },
   };
 }
@@ -973,7 +981,7 @@ export const designStep: StepDef = makeDesignStep();
  * The design note of a small UI fix: one small model call, no demo, no pictures. Undefined when the note says a page has to be
  * made (that needs the full design); its links to the requirements are checked like a full design's.
  */
-async function designNote(ctx: StepContext, spec: Spec, inv: DesignInventory): Promise<{ note: Record<string, unknown> & { screens: unknown[] }; model?: string } | { outcome: StepOutcome } | undefined> {
+async function designNote(ctx: StepContext, spec: Spec, inv: DesignInventory): Promise<{ note: Record<string, unknown> & { screens: unknown[] }; model?: string; risks: string[] } | { outcome: StepOutcome } | undefined> {
   const r = await think(ctx, {
     stage: "design", route: "design", cls: "read-small", budgetTokens: 12000, tools: [], schema: DesignNoteOut, maxTurns: 2,
     sections: [
@@ -994,12 +1002,13 @@ async function designNote(ctx: StepContext, spec: Spec, inv: DesignInventory): P
     ...map.duplicateIds.map((x) => failure("design-duplicate-id", `two screens share the id ${x}`)),
     ...map.duplicateRoutes.map((x) => failure("design-duplicate-route", `two screens share the route ${x}`)),
   ];
-  if (bad.length) return { outcome: { kind: "fail", category: "other", failures: bad, signature: `design-note:${bad.map((f) => f.check).sort().join(",")}` } };
+  const noteRisks = bad.length && carries(ctx, bad) ? carriedLines("the design note's checks", bad) : [];
+  if (bad.length && !noteRisks.length) return { outcome: { kind: "fail", category: "other", failures: bad, signature: `design-note:${bad.map((f) => f.check).sort().join(",")}`, gate: true } };
   return {
     note: {
       note: true, flow: out.flow, screens: out.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, size: s.size, change: s.change })),
       mapping: { unmappedReqs: [], orphanScreens: [] }, noScreen: out.noScreen, themeSource: "repo" as const, ...(inv.look ? { theme: inv.look.theme } : {}),
     },
-    ...(r.model ? { model: r.model } : {}),
+    ...(r.model ? { model: r.model } : {}), risks: noteRisks,
   };
 }

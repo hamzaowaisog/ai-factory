@@ -1,0 +1,397 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Invoice",
+     "subtitle": "INV-2026-00418 · Hartley Auto Repairs · order SO-10482",
+     "crumbs": [
+      "Invoices",
+      "INV-2026-00418"
+     ],
+     "badge": "Unpaid",
+     "blocks": [
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Mark as paid",
+         "variant": "primary",
+         "icon": "check"
+        },
+        {
+         "label": "Download PDF",
+         "variant": "secondary",
+         "icon": "download"
+        },
+        {
+         "label": "View order",
+         "variant": "ghost"
+        },
+        {
+         "label": "View customer",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Paid invoices are locked",
+       "text": "Once you mark this invoice paid, its status can't be changed again. Check the payment date against the bank statement first."
+      },
+      {
+       "type": "receipt",
+       "title": "Invoice INV-2026-00418",
+       "status": "Unpaid",
+       "from": "Northline Motor Factors Ltd, Unit 4 Calder Park, Wakefield WF2 7AW",
+       "to": "Hartley Auto Repairs, 12 Mill Lane, Leeds LS11 5QT",
+       "facts": [
+        {
+         "label": "Invoice date",
+         "value": "14 Mar 2026"
+        },
+        {
+         "label": "Order",
+         "value": "SO-10482"
+        },
+        {
+         "label": "Delivered",
+         "value": "14 Mar 2026"
+        },
+        {
+         "label": "Tax rate",
+         "value": "VAT 20%"
+        }
+       ],
+       "lines": [
+        {
+         "item": "Bosch front brake pad set 0 986 494 · £38.40 ea",
+         "qty": "2",
+         "amount": "£76.80"
+        },
+        {
+         "item": "Brembo front brake disc 09.A820.11 · £52.15 ea",
+         "qty": "2",
+         "amount": "£104.30"
+        },
+        {
+         "item": "Mann oil filter HU 711/51x · £6.85 ea",
+         "qty": "6",
+         "amount": "£41.10"
+        },
+        {
+         "item": "Castrol Edge 5W-30, 5 L · £34.90 ea",
+         "qty": "3",
+         "amount": "£104.70"
+        },
+        {
+         "item": "NGK spark plug ILZKR7B11 · £11.25 ea",
+         "qty": "4",
+         "amount": "£45.00"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Net total",
+         "value": "£371.90"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£74.38"
+        },
+        {
+         "label": "Gross total",
+         "value": "£446.28"
+        }
+       ],
+       "note": "Lines at order-time prices from price list Trade B. PDF shows prices excluding VAT."
+      },
+      {
+       "type": "detail",
+       "title": "Payment and record history",
+       "rows": [
+        {
+         "label": "Payment status",
+         "value": "Unpaid",
+         "badge": true
+        },
+        {
+         "label": "Payment date",
+         "value": "Not paid yet"
+        },
+        {
+         "label": "Marked paid by",
+         "value": "No one yet"
+        },
+        {
+         "label": "Created",
+         "value": "14 Mar 2026, 15:42"
+        },
+        {
+         "label": "Created by",
+         "value": "System (order delivered)"
+        },
+        {
+         "label": "Last changed",
+         "value": "14 Mar 2026, 15:42"
+        },
+        {
+         "label": "Last changed by",
+         "value": "System (order delivered)"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "View order",
+       "to": "S-17"
+      },
+      {
+       "from": "View customer",
+       "to": "S-21"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "modal",
+       "trigger": "Mark as paid",
+       "title": "Mark INV-2026-00418 as paid",
+       "text": "This sets the status to Paid, records you as the person who marked it, and locks the invoice.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Amount received",
+           "kind": "currency",
+           "value": "GBP 446.28",
+           "readOnly": true
+          },
+          {
+           "label": "Payment date",
+           "kind": "date",
+           "value": "18 Mar 2026",
+           "required": true,
+           "help": "Today or earlier",
+           "error": "Payment date can't be later than today"
+          }
+         ],
+         "submit": "Mark as paid"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Mark as paid",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Mark as paid",
+       "text": "INV-2026-00418 marked paid on 18 Mar 2026 and locked",
+       "tone": "ok"
+      },
+      {
+       "after": "Download PDF",
+       "text": "INV-2026-00418.pdf downloading",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "error": "This invoice is already paid and locked, so its status can't be changed. Refresh to see the latest.",
+      "success": "Invoice marked paid on 18 Mar 2026. It's now locked.",
+      "validation": "Enter a payment date no later than today."
+     }
+    },
+    "mockFull": {
+     "title": "Invoice",
+     "subtitle": "INV-2026-00418 · Hartley Auto Repairs · order SO-10482",
+     "crumbs": [
+      "Invoices",
+      "INV-2026-00418"
+     ],
+     "badge": "Unpaid",
+     "blocks": [
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Mark as paid",
+         "variant": "primary",
+         "icon": "check"
+        },
+        {
+         "label": "Download PDF",
+         "variant": "secondary",
+         "icon": "download"
+        },
+        {
+         "label": "View order",
+         "variant": "ghost"
+        },
+        {
+         "label": "View customer",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Paid invoices are locked",
+       "text": "Once you mark this invoice paid, its status can't be changed again. Check the payment date against the bank statement first."
+      },
+      {
+       "type": "receipt",
+       "title": "Invoice INV-2026-00418",
+       "status": "Unpaid",
+       "from": "Northline Motor Factors Ltd, Unit 4 Calder Park, Wakefield WF2 7AW",
+       "to": "Hartley Auto Repairs, 12 Mill Lane, Leeds LS11 5QT",
+       "facts": [
+        {
+         "label": "Invoice date",
+         "value": "14 Mar 2026"
+        },
+        {
+         "label": "Order",
+         "value": "SO-10482"
+        },
+        {
+         "label": "Delivered",
+         "value": "14 Mar 2026"
+        },
+        {
+         "label": "Tax rate",
+         "value": "VAT 20%"
+        }
+       ],
+       "lines": [
+        {
+         "item": "Bosch front brake pad set 0 986 494 · £38.40 ea",
+         "qty": "2",
+         "amount": "£76.80"
+        },
+        {
+         "item": "Brembo front brake disc 09.A820.11 · £52.15 ea",
+         "qty": "2",
+         "amount": "£104.30"
+        },
+        {
+         "item": "Mann oil filter HU 711/51x · £6.85 ea",
+         "qty": "6",
+         "amount": "£41.10"
+        },
+        {
+         "item": "Castrol Edge 5W-30, 5 L · £34.90 ea",
+         "qty": "3",
+         "amount": "£104.70"
+        },
+        {
+         "item": "NGK spark plug ILZKR7B11 · £11.25 ea",
+         "qty": "4",
+         "amount": "£45.00"
+        },
+        {
+         "item": "Mahle air filter LX 1780/3 · £12.60 ea",
+         "qty": "2",
+         "amount": "£25.20"
+        },
+        {
+         "item": "Gates timing belt kit K015603XS · £89.95 ea",
+         "qty": "1",
+         "amount": "£89.95"
+        },
+        {
+         "item": "Febi wiper blade 600 mm · £7.40 ea",
+         "qty": "4",
+         "amount": "£29.60"
+        },
+        {
+         "item": "Brake fluid DOT 4, 1 L · £5.95 ea",
+         "qty": "6",
+         "amount": "£35.70"
+        },
+        {
+         "item": "Varta Blue Dynamic E11 battery · £98.50 ea",
+         "qty": "1",
+         "amount": "£98.50"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Net total",
+         "value": "£650.85"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£130.17"
+        },
+        {
+         "label": "Gross total",
+         "value": "£781.02"
+        }
+       ],
+       "note": "Lines at order-time prices from price list Trade B. PDF shows prices excluding VAT."
+      },
+      {
+       "type": "detail",
+       "title": "Payment and record history",
+       "rows": [
+        {
+         "label": "Payment status",
+         "value": "Unpaid",
+         "badge": true
+        },
+        {
+         "label": "Payment date",
+         "value": "Not paid yet"
+        },
+        {
+         "label": "Marked paid by",
+         "value": "No one yet"
+        },
+        {
+         "label": "Created",
+         "value": "14 Mar 2026, 15:42"
+        },
+        {
+         "label": "Created by",
+         "value": "System (order delivered)"
+        },
+        {
+         "label": "Last changed",
+         "value": "14 Mar 2026, 15:42"
+        },
+        {
+         "label": "Last changed by",
+         "value": "System (order delivered)"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "This invoice is already paid and locked, so its status can't be changed. Refresh to see the latest.",
+      "success": "Invoice marked paid on 18 Mar 2026. It's now locked.",
+      "validation": "Enter a payment date no later than today."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

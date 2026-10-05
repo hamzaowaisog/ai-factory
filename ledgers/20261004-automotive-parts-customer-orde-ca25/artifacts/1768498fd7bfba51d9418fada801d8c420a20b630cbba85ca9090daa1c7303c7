@@ -1,0 +1,808 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "39-reporting",
+      "readingChosen": "Staff (not customers) can access three required reports (Orders per Day, Top Products, Revenue per Customer) filtered by a selected date range.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Staff selects a date range and views Orders per Day report showing date, order count, and order value per day within range."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff views Top Products report showing product name, quantity sold, and revenue for the selected range."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff views Revenue per Customer report showing customer name, number of orders, and revenue for the selected range."
+       },
+       {
+        "kind": "permission",
+        "text": "Only staff/admin roles can access report screens; customer users cannot view reports."
+       },
+       {
+        "kind": "error",
+        "text": "If no orders exist in the range, each report shows zero/empty rows rather than erroring."
+       },
+       {
+        "kind": "data",
+        "text": "Report revenue calculation includes/excludes cancelled orders and tax per a defined rule (currently undefined, flagged as open point)."
+       }
+      ]
+     },
+     {
+      "id": "40-report-filters",
+      "readingChosen": "Start/end date filters are mandatory for all reports; customer/product/category filters are optional/not required in phase 1.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "User enters start date and end date and report results update to only include records within that inclusive range."
+       },
+       {
+        "kind": "error",
+        "text": "If start date is after end date, system shows a validation error and does not run the report."
+       },
+       {
+        "kind": "error",
+        "text": "If no date range is supplied, system applies a default range or prompts the user (open point, default behaviour to be defined)."
+       }
+      ]
+     },
+     {
+      "id": "41-report-export",
+      "readingChosen": "Each of the three reports can be exported as CSV matching the on-screen data for the currently applied filters.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Staff clicks 'Export CSV' on a report and downloads a CSV file containing the same rows/columns shown on screen for the current filter."
+       },
+       {
+        "kind": "data",
+        "text": "CSV filename reflects report type and date range."
+       },
+       {
+        "kind": "permission",
+        "text": "Only staff with report access can trigger export."
+       },
+       {
+        "kind": "error",
+        "text": "Exporting an empty report (no results) still produces a valid CSV with header row only."
+       }
+      ]
+     },
+     {
+      "id": "42-audit-history",
+      "readingChosen": "Every listed event type is recorded as an immutable audit log entry visible to authorized staff/admin.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "System writes an audit log entry (actor, action type, target entity, timestamp) whenever any listed event occurs: user invited/deactivated, product created/changed/retired, price changed, customer price list changed, order created/amended/confirmed/cancelled/status changed, invoice created/marked paid, ERP import succeeded/failed."
+       },
+       {
+        "kind": "permission",
+        "text": "Only admin (and possibly staff) can view the Audit History screen; customers cannot."
+       },
+       {
+        "kind": "happy",
+        "text": "Admin views audit history list, filterable/sortable by date, user, or action type."
+       },
+       {
+        "kind": "error",
+        "text": "If an audited action fails before completion, no audit log entry for success is written (only failure events like ERP import failed)."
+       }
+      ]
+     },
+     {
+      "id": "43-notifications",
+      "readingChosen": "Each listed event automatically triggers a system email to the relevant recipient via the configured email provider.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Inviting a user sends an invitation email with a link to set up the account."
+       },
+       {
+        "kind": "happy",
+        "text": "Requesting password reset sends an email with a reset link."
+       },
+       {
+        "kind": "happy",
+        "text": "Confirming an order sends an order confirmation email to the customer."
+       },
+       {
+        "kind": "happy",
+        "text": "Amending an order sends an order amendment email to the customer."
+       },
+       {
+        "kind": "happy",
+        "text": "Marking an order out for delivery sends a notification email to the customer."
+       },
+       {
+        "kind": "happy",
+        "text": "Cancelling/rejecting an order sends a cancellation/rejection email where applicable."
+       },
+       {
+        "kind": "error",
+        "text": "If email sending fails, the triggering action (e.g. order confirmation) still completes and failure is logged rather than blocking the user."
+       }
+      ]
+     },
+     {
+      "id": "44-email-provider",
+      "readingChosen": "The application integrates with a yet-undetermined client email provider; concrete configuration is deferred.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Outgoing emails are sent using the client's configured provider credentials (SMTP or API) once determined."
+       },
+       {
+        "kind": "data",
+        "text": "Sender and reply-to addresses are configurable rather than hard-coded."
+       },
+       {
+        "kind": "error",
+        "text": "Provider/auth/template/bounce-handling specifics remain open and not yet implemented behaviours."
+       }
+      ]
+     },
+     {
+      "id": "45-erp-stock-integration",
+      "readingChosen": "A nightly scheduled job reads a CSV file supplied by the ERP, imports stock quantities into the portal, and never writes back to the ERP.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Scheduled nightly job reads the ERP CSV file and updates stock quantities for matched products."
+       },
+       {
+        "kind": "data",
+        "text": "Portal never writes stock changes or inventory transactions back to the ERP system."
+       },
+       {
+        "kind": "error",
+        "text": "If the file cannot be read/parsed, the import fails and an error/notification is generated (mechanism open)."
+       },
+       {
+        "kind": "data",
+        "text": "Exact file delivery, format, product identifier, frequency, and retention of historical imports are open points not yet defined."
+       }
+      ]
+     },
+     {
+      "id": "46-data-retention",
+      "readingChosen": "Orders and invoices must be stored for at least 7 years and remain visible to users with appropriate permission even after the acting user is deleted.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Order and invoice records are retained in the system for a minimum of 7 years from creation."
+       },
+       {
+        "kind": "happy",
+        "text": "Authorized users can still view historical orders/invoices tied to a deactivated/deleted user."
+       },
+       {
+        "kind": "error",
+        "text": "Deleting a user account does not delete or cascade-delete that user's associated order/invoice records."
+       }
+      ]
+     },
+     {
+      "id": "47-responsive-design",
+      "readingChosen": "All customer and staff pages must render and function correctly on mobile, tablet, and desktop, with mobile given priority for buyer screens.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Buyer-facing pages (catalogue, basket, checkout, etc.) are fully usable with touch input on small mobile screens."
+       },
+       {
+        "kind": "happy",
+        "text": "Same pages adapt layout correctly on tablet and desktop viewports."
+       },
+       {
+        "kind": "error",
+        "text": "Exact supported browser/device matrix is undefined; no specific legacy browser support guaranteed."
+       }
+      ]
+     },
+     {
+      "id": "48-performance",
+      "readingChosen": "The system must handle expected load (300 buyers, 15 staff, 150 orders/day) with reasonable response times on key workflows, though no numeric targets are fixed.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Catalogue browsing, search, product detail, basket operations, checkout, order history, and staff order queue respond within a reasonable time under expected concurrent load."
+       },
+       {
+        "kind": "data",
+        "text": "No explicit SLA/response-time thresholds are defined yet (open point)."
+       }
+      ]
+     },
+     {
+      "id": "49-security",
+      "readingChosen": "Standard web security controls are implemented application-wide: secure auth, hashed passwords, RBAC, tenant isolation, secure sessions, API protection, input/file validation, common-vulnerability protection, secure reset tokens, HTTPS in prod.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "User passwords are stored hashed (e.g. bcrypt), never in plaintext."
+       },
+       {
+        "kind": "permission",
+        "text": "Each API endpoint enforces role-based authorization server-side (customer/staff/admin)."
+       },
+       {
+        "kind": "error",
+        "text": "Unauthenticated or unauthorized API requests are rejected with 401/403 responses."
+       },
+       {
+        "kind": "happy",
+        "text": "File uploads are validated for type/size before acceptance; invalid files are rejected."
+       },
+       {
+        "kind": "happy",
+        "text": "Password-reset tokens are single-use, time-limited, and cryptographically secure."
+       },
+       {
+        "kind": "happy",
+        "text": "Production traffic is served only over HTTPS."
+       },
+       {
+        "kind": "error",
+        "text": "Input validation rejects malformed/malicious input (e.g. XSS, SQL injection attempts) with safe error responses."
+       }
+      ]
+     },
+     {
+      "id": "50-data-isolation",
+      "readingChosen": "Server-side authorization strictly prevents any customer user from accessing another customer's orders, invoices, addresses, pricing, users, or account info, regardless of frontend state.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer user requesting their own orders/invoices/addresses/pricing/users/account info receives only their own company's data."
+       },
+       {
+        "kind": "error",
+        "text": "Customer user attempting to access another customer's data (e.g. by changing an ID in the URL/API) receives a 403/404, not the data."
+       },
+       {
+        "kind": "data",
+        "text": "Authorization checks are enforced in backend API logic, not only hidden/disabled in the UI."
+       }
+      ]
+     },
+     {
+      "id": "51-accessibility",
+      "readingChosen": "The portal is designed following accessible practices (keyboard nav, labels, contrast, screen-reader structure) without committing to a specific WCAG conformance level.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "All interactive elements are reachable and operable via keyboard alone."
+       },
+       {
+        "kind": "happy",
+        "text": "Form fields have associated labels and validation messages are announced/readable by screen readers."
+       },
+       {
+        "kind": "happy",
+        "text": "Text and UI elements meet readable contrast levels."
+       },
+       {
+        "kind": "data",
+        "text": "Specific compliance target (e.g. WCAG 2.1 AA) is not fixed (open point)."
+       }
+      ]
+     },
+     {
+      "id": "52-error-handling",
+      "readingChosen": "User-facing errors across the listed scenarios show friendly messages, never raw stack traces or internal details.",
+      "behaviours": [
+       {
+        "kind": "error",
+        "text": "Invalid login shows a generic 'invalid credentials' message, not which field was wrong."
+       },
+       {
+        "kind": "error",
+        "text": "Expired password-reset link shows a message prompting the user to request a new one."
+       },
+       {
+        "kind": "error",
+        "text": "Attempting to order a product no longer available shows a friendly 'no longer available' message."
+       },
+       {
+        "kind": "error",
+        "text": "Stock import failure, failed order submission, email delivery failure, invalid CSV, and missing product all produce user-friendly messages without exposing stack traces/sensitive info."
+       },
+       {
+        "kind": "error",
+        "text": "Session expiration redirects user to sign-in with a message, preserving no sensitive cached data."
+       }
+      ]
+     },
+     {
+      "id": "53-empty-states",
+      "readingChosen": "Each listed list/search view shows a dedicated empty-state message/UI when there is no data, rather than a blank screen.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Search with no matches shows 'no results' empty state with suggestion to adjust search."
+       },
+       {
+        "kind": "happy",
+        "text": "Empty basket shows an empty-basket message with a call to browse catalogue."
+       },
+       {
+        "kind": "happy",
+        "text": "No orders/invoices/templates/report results show respective friendly empty-state messaging instead of blank tables."
+       }
+      ]
+     },
+     {
+      "id": "54-loading-states",
+      "readingChosen": "Each listed async operation/screen shows a visible loading indicator (spinner/skeleton) while data is fetched.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Catalogue, search, product detail, basket updates, checkout, order submission, invoice generation/download, reports, and staff queues each display a loading indicator while processing, then replace it with results or an error."
+       }
+      ]
+     },
+     {
+      "id": "55-main-customer-screens",
+      "readingChosen": "Each of the 16 listed customer screens must exist as a distinct, navigable page in the portal.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer can navigate to and use each of: sign in, forgot password, reset password, catalogue, product detail, vehicle search, basket, checkout, order confirmation, my orders, order detail, invoice list, invoice detail, saved basket templates, account/company details, delivery addresses."
+       },
+       {
+        "kind": "permission",
+        "text": "Unauthenticated users can only access sign-in/forgot/reset password screens, not authenticated customer screens."
+       }
+      ]
+     },
+     {
+      "id": "56-main-staff-screens",
+      "readingChosen": "Each of the 11 listed staff screens must exist and be accessible only to staff/admin roles.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Staff can navigate to and use each of: staff sign in, dashboard, order queue, order detail/editor, customer list, customer detail, customer orders, customer invoices, delivery export, reports, invoice management."
+       },
+       {
+        "kind": "permission",
+        "text": "Customer users cannot access any staff screen URLs even directly."
+       }
+      ]
+     },
+     {
+      "id": "57-main-admin-screens",
+      "readingChosen": "Each of the 13 listed admin screens must exist and be restricted to admin role only.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Admin can navigate to and use each of: admin dashboard, users, user detail, customers, customer detail, products, product editor, categories, vehicle compatibility, price lists, price list editor, system/import status, audit history."
+       },
+       {
+        "kind": "permission",
+        "text": "Staff (non-admin) and customer users are blocked from admin screens/routes."
+       }
+      ]
+     },
+     {
+      "id": "58-order-lifecycle",
+      "readingChosen": "Orders move through a fixed sequence of statuses (Received→Confirmed→Picking→Out for Delivery→Delivered→Invoice Created), with cancellation only allowed pre-confirmation.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "New order is created with status Received, and progresses through Confirmed, Picking, Out for Delivery, Delivered in sequence as staff update status."
+       },
+       {
+        "kind": "happy",
+        "text": "Delivered status triggers automatic invoice creation."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer can cancel an order only while it is in Received status, transitioning it to Cancelled."
+       },
+       {
+        "kind": "error",
+        "text": "Attempting to cancel an order once it is Confirmed or later is rejected by the system."
+       },
+       {
+        "kind": "data",
+        "text": "Staff-initiated rejection/cancellation at other stages follows separate business rules (not fully specified)."
+       }
+      ]
+     },
+     {
+      "id": "59-invoice-lifecycle",
+      "readingChosen": "An invoice is auto-created when an order is marked Delivered, starting as Unpaid, and can transition to Paid or Overdue.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Marking an order Delivered automatically creates an invoice with status Unpaid."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff can mark an invoice as Paid."
+       },
+       {
+        "kind": "data",
+        "text": "Invoice transitions to Overdue based on rules not yet defined (open point)."
+       }
+      ]
+     },
+     {
+      "id": "60-core-data-entities",
+      "readingChosen": "This is a conceptual data model list guiding implementation, not literal schema behaviours — no direct observable behaviour required.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "System's underlying data model conceptually includes entities such as User, Role, Customer, Product, Order, Invoice, AuditLog, EmailNotification, etc., to support all described behaviours."
+       }
+      ]
+     },
+     {
+      "id": "61-api-areas",
+      "readingChosen": "Backend exposes API endpoints grouped by these functional areas, each requiring appropriate auth/role enforcement.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Authentication APIs support sign in, sign out, password reset, invitation acceptance, and session/account status checks."
+       },
+       {
+        "kind": "happy",
+        "text": "Catalogue APIs return products, categories, product details, search results, and vehicle compatibility data."
+       },
+       {
+        "kind": "happy",
+        "text": "Basket APIs support get/add/update/remove/clear operations scoped to the authenticated customer's basket."
+       },
+       {
+        "kind": "happy",
+        "text": "Checkout APIs validate basket contents, return delivery options, and submit orders."
+       },
+       {
+        "kind": "happy",
+        "text": "Order APIs provide customer and staff order lists/detail, repeat order, cancel, staff edit/confirm/reject/status update, and staff-created orders."
+       },
+       {
+        "kind": "happy",
+        "text": "Invoice APIs provide list, detail, PDF download, and mark-paid actions."
+       },
+       {
+        "kind": "permission",
+        "text": "Administration APIs (users, customers, products, categories, price lists, vehicle compatibility, imports, audit logs) are restricted to admin role."
+       },
+       {
+        "kind": "happy",
+        "text": "Report APIs return orders-per-day, top-products, revenue-by-customer data and CSV exports."
+       }
+      ]
+     },
+     {
+      "id": "62-background-jobs",
+      "readingChosen": "Scheduled/background jobs run automatically for the listed maintenance tasks without manual staff triggering.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Nightly job automatically imports ERP stock CSV without manual intervention."
+       },
+       {
+        "kind": "happy",
+        "text": "Emails are sent asynchronously via a background job/queue rather than blocking the triggering request."
+       },
+       {
+        "kind": "happy",
+        "text": "Invoice generation runs automatically as a background process when an order is delivered."
+       },
+       {
+        "kind": "happy",
+        "text": "A scheduled job updates invoices to Overdue status based on defined rules."
+       },
+       {
+        "kind": "happy",
+        "text": "Expired password-reset tokens and stale invitations are automatically cleaned up/expired by a scheduled job."
+       }
+      ]
+     },
+     {
+      "id": "63-file-storage",
+      "readingChosen": "The system persists uploaded/generated files (product images, invoice PDFs, ERP CSVs, report files) in a durable storage location accessible to authorized features.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Uploaded product images are stored and retrievable for display on catalogue/product pages."
+       },
+       {
+        "kind": "happy",
+        "text": "Generated invoice PDFs are stored and retrievable for customer/staff download."
+       },
+       {
+        "kind": "data",
+        "text": "ERP CSV files and generated report files may also be persisted (provider/location open point)."
+       }
+      ]
+     },
+     {
+      "id": "64-pdf-generation",
+      "readingChosen": "Each created invoice has a corresponding PDF that customers and staff can download; exact template/branding specifics are open.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Customer can download a PDF of any of their invoices from the invoice detail screen."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff can download/view invoice PDFs for any customer's invoice."
+       },
+       {
+        "kind": "error",
+        "text": "If PDF generation fails, user sees a friendly error rather than a broken download, and can retry."
+       },
+       {
+        "kind": "data",
+        "text": "Template, branding, tax info, and numbering scheme are unresolved open points."
+       }
+      ]
+     },
+     {
+      "id": "65-csv-import-requirements",
+      "readingChosen": "The nightly ERP CSV import performs listed validations before applying stock changes, and reports results, rejecting invalid rows while continuing with valid ones.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Import validates required headers exist before processing; aborts with error if missing."
+       },
+       {
+        "kind": "error",
+        "text": "Rows with non-numeric quantities are rejected and reported, not applied."
+       },
+       {
+        "kind": "error",
+        "text": "Rows with invalid negative quantities are rejected unless explicitly supported."
+       },
+       {
+        "kind": "error",
+        "text": "Duplicate product identifiers within the file are detected and reported as errors."
+       },
+       {
+        "kind": "error",
+        "text": "Unknown product identifiers (not matching any portal product) are reported as errors, not silently ignored."
+       },
+       {
+        "kind": "error",
+        "text": "An empty file is rejected with an error rather than clearing all stock."
+       },
+       {
+        "kind": "data",
+        "text": "After each import, system records counts of records received, processed successfully, rejected, plus error details, accessible via System/Import status screen."
+       }
+      ]
+     },
+     {
+      "id": "66-csv-export-requirements",
+      "readingChosen": "All CSV exports across the system follow consistent formatting standards and are access-controlled.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Every CSV export includes a header row with consistent, human-readable column names."
+       },
+       {
+        "kind": "data",
+        "text": "Dates/times in exports use one consistent format; numbers use one consistent format (e.g. decimal separators) across all exports."
+       },
+       {
+        "kind": "permission",
+        "text": "Only authorized users (role-appropriate) can trigger/download a given CSV export; unauthorized requests are rejected."
+       }
+      ]
+     },
+     {
+      "id": "67-business-rules-summary",
+      "readingChosen": "These 20 rules are enforced as hard constraints system-wide unless later changed.",
+      "behaviours": [
+       {
+        "kind": "permission",
+        "text": "Customer users' data queries (orders, invoices, etc.) are always scoped to their own company only."
+       },
+       {
+        "kind": "happy",
+        "text": "Product prices shown/applied to a customer are derived from that customer's assigned price list."
+       },
+       {
+        "kind": "data",
+        "text": "Stock values displayed come solely from the last successful ERP CSV import; portal never pushes stock changes to ERP."
+       },
+       {
+        "kind": "happy",
+        "text": "Stock import runs nightly on schedule."
+       },
+       {
+        "kind": "happy",
+        "text": "Earliest delivery date offered at checkout is computed from order submission time relative to 14:00 cutoff."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer can trigger 'repeat order' to recreate a basket from a past order."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer can save a named basket template and reuse it later."
+       },
+       {
+        "kind": "error",
+        "text": "Customer cancellation action is blocked once an order is Confirmed or later (enforced server-side)."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff can modify order contents only while order is pre-confirmation."
+       },
+       {
+        "kind": "happy",
+        "text": "Email notification fires automatically on order confirmation and on out-for-delivery status change."
+       },
+       {
+        "kind": "happy",
+        "text": "Invoice is created automatically the moment an order's status becomes Delivered."
+       },
+       {
+        "kind": "happy",
+        "text": "Staff can manually mark any invoice as Paid."
+       },
+       {
+        "kind": "data",
+        "text": "Deactivating a user does not remove their historical orders/invoices from reports or records."
+       },
+       {
+        "kind": "data",
+        "text": "Order/invoice records persist in the system for at least 7 years."
+       },
+       {
+        "kind": "error",
+        "text": "No online payment capture features are present; payment status must be set manually by staff."
+       },
+       {
+        "kind": "error",
+        "text": "No native mobile app, delivery route planning, returns, or credit note functionality is present in this phase."
+       }
+      ]
+     },
+     {
+      "id": "68-out-of-scope",
+      "readingChosen": "The listed features are explicitly not built in phase 1; any UI referencing them is absent.",
+      "behaviours": [
+       {
+        "kind": "error",
+        "text": "No card payment flow, native app, multi-language switch, route planning, returns/credit-note screens, ERP write-back, or promotional/coupon/tiered-pricing features exist in the delivered system unless separately approved."
+       }
+      ]
+     },
+     {
+      "id": "69-open-questions",
+      "readingChosen": "These remain unresolved; no committed behaviour yet — flagged for clarification rather than implemented.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "No behaviour is implemented for items still under open question (self-registration, MFA, SSO, lockout policy, variants, substitutes, compatibility data source, volume/promo pricing, backordering, partial fulfillment, delivery slots/zones, VAT, credit notes, payment import, bounce tracking, hosting/provider choice, pen-testing, IP restriction) until clarified."
+       }
+      ]
+     },
+     {
+      "id": "70-environments",
+      "readingChosen": "Four environments (local, dev/test, staging/UAT, production) are provisioned for the project lifecycle.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Code can be deployed and run independently in local, dev/test, staging/UAT, and production environments with environment-specific configuration."
+       }
+      ]
+     },
+     {
+      "id": "71-testing-requirements",
+      "readingChosen": "Automated/manual test coverage exists for each listed scenario across auth, authorization, catalogue, pricing, stock, basket/checkout, orders, invoices, and reporting.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Test suite verifies successful and invalid login, account lockout, password reset, invitation acceptance, and deactivated-account login rejection."
+       },
+       {
+        "kind": "happy",
+        "text": "Test suite verifies customer data isolation, staff/admin access boundaries, and rejection of unauthorized API calls."
+       },
+       {
+        "kind": "happy",
+        "text": "Test suite verifies catalogue listing/search/filtering, vehicle compatibility, retired-product exclusion, and image display."
+       },
+       {
+        "kind": "happy",
+        "text": "Test suite verifies correct price-list pricing, price change handling, and that historical orders retain original price."
+       },
+       {
+        "kind": "happy",
+        "text": "Test suite verifies valid/invalid/duplicate/unknown-product stock imports and out-of-stock/low-stock status display."
+       },
+       {
+        "kind": "happy",
+        "text": "Test suite verifies basket operations, quantity validation, delivery-date rule, address selection, order submission, and duplicate-submission prevention."
+       },
+       {
+        "kind": "happy",
+        "text": "Test suite verifies order creation, confirmation, staff editing, cancellation, reorder, status transitions, and triggered email notifications."
+       },
+       {
+        "kind": "happy",
+        "text": "Test suite verifies automatic invoice creation, PDF generation, invoice visibility rules, payment status, and marking paid."
+       },
+       {
+        "kind": "happy",
+        "text": "Test suite verifies report date filtering, correct totals, and CSV export correctness."
+       }
+      ]
+     },
+     {
+      "id": "72-acceptance-criteria",
+      "readingChosen": "These given/when/then examples are binding acceptance tests for isolation, pricing, delivery date, cancellation, and invoice creation.",
+      "behaviours": [
+       {
+        "kind": "happy",
+        "text": "Buyer from Customer A requesting order list receives only Customer A's orders."
+       },
+       {
+        "kind": "error",
+        "text": "Buyer from Customer A modifying an order ID in URL/API to access Customer B's order is denied (not merely hidden in UI)."
+       },
+       {
+        "kind": "happy",
+        "text": "Customer A viewing Product X sees the price from their assigned Price List A."
+       },
+       {
+        "kind": "data",
+        "text": "Changing Price List A later does not alter the price shown/charged on Customer A's already-placed orders."
+       },
+       {
+        "kind": "happy",
+        "text": "Order submitted before 14:00 on a working day shows next working day as earliest delivery date."
+       },
+       {
+        "kind": "happy",
+        "text": "Order submitted at/after 14:00 shows the following working day as earliest delivery date."
+       },
+       {
+        "kind": "happy",
+        "text": "Cancelling a Received order changes its status to Cancelled."
+       },
+       {
+        "kind": "error",
+        "text": "Attempting to cancel a Confirmed order via the portal is blocked with an appropriate message."
+       },
+       {
+        "kind": "happy",
+        "text": "When an order's status is successfully saved as Delivered, an invoice is automatically created for it without manual staff action."
+       }
+      ]
+     },
+     {
+      "id": "73-suggested-delivery-phases",
+      "readingChosen": "This is a planning/sequencing structure, not itself a functional behaviour — included for completeness only.",
+      "behaviours": [
+       {
+        "kind": "data",
+        "text": "Feature delivery is organized into 8 phases (Foundation, Catalogue, Ordering, Staff Ops, Invoicing, Administration, Integrations/Reporting, QA/Production) guiding build order, not end-user-observable behaviour."
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

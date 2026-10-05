@@ -1,0 +1,61 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Reset your password",
+     "subtitle": "Enter the email you use to sign in to the parts portal and we'll send you a reset link.",
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Email address",
+         "kind": "email",
+         "placeholder": "parts@hendersonmotors.co.uk",
+         "required": true,
+         "help": "Use the email your account was set up with.",
+         "error": "Enter a valid email address, like name@garage.co.uk"
+        }
+       ],
+       "submit": "Send reset link"
+      },
+      {
+       "type": "text",
+       "body": "The link works once and expires after 1 hour. Can't find it? Check your spam folder, or call the trade counter on 0161 496 0723."
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Back to sign in",
+         "variant": "link",
+         "icon": "arrow-left"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Back to sign in",
+       "to": "S-1"
+      }
+     ],
+     "copy": {
+      "validation": "Enter a valid email address so we can send the reset link.",
+      "success": "If that email belongs to an account, a reset link is on its way. It works once and expires in 1 hour.",
+      "error": "We couldn't send the request just now. Try again in a minute."
+     }
+    }
+   },
+   "ms": 8,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

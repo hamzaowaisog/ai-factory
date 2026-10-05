@@ -1,0 +1,481 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Order details",
+     "subtitle": "ORD-24817 · placed 11 Mar 2026, 09:42 by Tom Hales · delivery Thu 12 Mar",
+     "crumbs": [
+      "Orders",
+      "ORD-24817"
+     ],
+     "badge": "Received",
+     "blocks": [
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Repeat order",
+         "variant": "primary",
+         "icon": "plus",
+         "hint": "Adds these lines to your basket at today's prices"
+        },
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Only possible while the order is Received"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Delivery",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Received",
+         "badge": true
+        },
+        {
+         "label": "Customer",
+         "value": "Hales Motor Repairs Ltd · HMR-0412"
+        },
+        {
+         "label": "Delivery address",
+         "value": "Unit 7, Canal Side Trading Estate, Tipton DY4 7UJ"
+        },
+        {
+         "label": "Requested delivery",
+         "value": "Thu 12 Mar 2026"
+        },
+        {
+         "label": "Note",
+         "value": "Deliver to rear roller door, ask for Dean"
+        }
+       ]
+      },
+      {
+       "type": "receipt",
+       "title": "Order ORD-24817",
+       "status": "Received",
+       "from": "Midland Motor Factors",
+       "to": "Hales Motor Repairs Ltd",
+       "facts": [
+        {
+         "label": "Order date",
+         "value": "11 Mar 2026, 09:42"
+        },
+        {
+         "label": "Placed by",
+         "value": "Tom Hales"
+        },
+        {
+         "label": "Terms",
+         "value": "30-day account"
+        }
+       ],
+       "lines": [
+        {
+         "item": "Bosch brake pad set, front · 0 986 494 712",
+         "qty": "2",
+         "amount": "£76.80"
+        },
+        {
+         "item": "Mann oil filter · W 712/95",
+         "qty": "10",
+         "amount": "£61.50"
+        },
+        {
+         "item": "Castrol Edge 5W-30, 5 L",
+         "qty": "4",
+         "amount": "£127.60"
+        },
+        {
+         "item": "NGK spark plug · ILZKR7B11",
+         "qty": "8",
+         "amount": "£78.80"
+        },
+        {
+         "item": "Gates timing belt kit · K015603XS",
+         "qty": "1",
+         "amount": "£112.30"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Subtotal",
+         "value": "£457.00"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£91.40"
+        },
+        {
+         "label": "Order total",
+         "value": "£548.40"
+        }
+       ],
+       "note": "Prices are your Trade B price list on the order date."
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Castrol Edge 5W-30, 5 L: qty 6 → 4",
+         "meta": "Priya Nair, office · 11 Mar 10:15 · only 4 in stock at Tipton",
+         "badge": "Quantity"
+        },
+        {
+         "title": "NGK ILZKR7B-11S replaced by ILZKR7B11",
+         "meta": "Priya Nair, office · 11 Mar 10:17 · superseded part, same fit",
+         "badge": "Substitute"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "11 Mar, 09:42",
+         "title": "Received",
+         "meta": "Tom Hales",
+         "status": "now"
+        },
+        {
+         "time": "Before 14:00",
+         "title": "Confirmed",
+         "meta": "Checked by the distributor office",
+         "status": "next"
+        },
+        {
+         "time": "12 Mar",
+         "title": "Dispatched",
+         "meta": "Morning van, Tipton route",
+         "status": "next"
+        },
+        {
+         "time": "Thu 12 Mar",
+         "title": "Delivered",
+         "meta": "Requested delivery date",
+         "status": "next"
+        }
+       ]
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel order ORD-24817?",
+       "text": "The order is set to Cancelled and nothing is picked or delivered. This can't be undone; you can repeat it later.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "modal",
+       "trigger": "Repeat order",
+       "title": "Lines added to your basket",
+       "text": "Added at today's prices. No order has been created yet.",
+       "blocks": [
+        {
+         "type": "list",
+         "items": [
+          {
+           "title": "Bosch brake pad set, front",
+           "meta": "2 added at £39.10 (price updated)",
+           "badge": "Added"
+          },
+          {
+           "title": "Mann oil filter W 712/95",
+           "meta": "10 added at £6.15",
+           "badge": "Added"
+          },
+          {
+           "title": "Castrol Edge 5W-30, 5 L",
+           "meta": "4 wanted, 3 in stock — reduced to 3",
+           "badge": "Reduced"
+          },
+          {
+           "title": "NGK spark plug ILZKR7B11",
+           "meta": "8 added at £9.85",
+           "badge": "Added"
+          },
+          {
+           "title": "Gates timing belt kit K015603XS",
+           "meta": "Retired product — not added",
+           "badge": "Unavailable"
+          }
+         ]
+        }
+       ],
+       "actions": [
+        {
+         "label": "Go to basket",
+         "variant": "primary"
+        },
+        {
+         "label": "Stay on order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "Order ORD-24817 cancelled",
+       "tone": "ok"
+      },
+      {
+       "after": "Go to basket",
+       "text": "4 lines added to your basket, 1 unavailable",
+       "tone": "info"
+      }
+     ],
+     "links": [
+      {
+       "from": "Orders",
+       "to": "S-10"
+      },
+      {
+       "from": "Go to basket",
+       "to": "S-7"
+      }
+     ],
+     "copy": {
+      "error": "We couldn't cancel this order because the office is already working on it — call the distributor office on 0121 496 0732.",
+      "success": "Order ORD-24817 cancelled; the office has been told."
+     }
+    },
+    "mockFull": {
+     "title": "Order details",
+     "subtitle": "ORD-24817 · placed 11 Mar 2026, 09:42 by Tom Hales · delivery Thu 12 Mar",
+     "crumbs": [
+      "Orders",
+      "ORD-24817"
+     ],
+     "badge": "Received",
+     "blocks": [
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Repeat order",
+         "variant": "primary",
+         "icon": "plus",
+         "hint": "Adds these lines to your basket at today's prices"
+        },
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Only possible while the order is Received"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Delivery",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Received",
+         "badge": true
+        },
+        {
+         "label": "Customer",
+         "value": "Hales Motor Repairs Ltd · HMR-0412"
+        },
+        {
+         "label": "Delivery address",
+         "value": "Unit 7, Canal Side Trading Estate, Tipton DY4 7UJ"
+        },
+        {
+         "label": "Requested delivery",
+         "value": "Thu 12 Mar 2026"
+        },
+        {
+         "label": "Note",
+         "value": "Rear roller door, ask for Dean. Battery is for the Focus."
+        }
+       ]
+      },
+      {
+       "type": "receipt",
+       "title": "Order ORD-24817",
+       "status": "Received",
+       "from": "Midland Motor Factors",
+       "to": "Hales Motor Repairs Ltd",
+       "facts": [
+        {
+         "label": "Order date",
+         "value": "11 Mar 2026, 09:42"
+        },
+        {
+         "label": "Placed by",
+         "value": "Tom Hales"
+        },
+        {
+         "label": "Terms",
+         "value": "30-day account"
+        },
+        {
+         "label": "Price list",
+         "value": "Trade B"
+        }
+       ],
+       "lines": [
+        {
+         "item": "Bosch brake pad set, front · 0 986 494 712",
+         "qty": "2",
+         "amount": "£76.80"
+        },
+        {
+         "item": "Mann oil filter · W 712/95",
+         "qty": "10",
+         "amount": "£61.50"
+        },
+        {
+         "item": "Castrol Edge 5W-30, 5 L",
+         "qty": "4",
+         "amount": "£127.60"
+        },
+        {
+         "item": "NGK spark plug · ILZKR7B11",
+         "qty": "8",
+         "amount": "£78.80"
+        },
+        {
+         "item": "Gates timing belt kit · K015603XS",
+         "qty": "1",
+         "amount": "£112.30"
+        },
+        {
+         "item": "Mahle air filter · LX 1780/3",
+         "qty": "6",
+         "amount": "£67.20"
+        },
+        {
+         "item": "Brembo brake disc, front · 09.A820.11",
+         "qty": "2",
+         "amount": "£89.50"
+        },
+        {
+         "item": "Valeo wiper blade 600 mm · 574695",
+         "qty": "5",
+         "amount": "£68.00"
+        },
+        {
+         "item": "Bosch S4 battery 60 Ah · S4 005",
+         "qty": "1",
+         "amount": "£89.95"
+        },
+        {
+         "item": "Comma Xstream G30 coolant, 5 L",
+         "qty": "3",
+         "amount": "£52.20"
+        }
+       ],
+       "totals": [
+        {
+         "label": "Subtotal",
+         "value": "£823.85"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£164.77"
+        },
+        {
+         "label": "Order total",
+         "value": "£988.62"
+        }
+       ],
+       "note": "Prices are your Trade B price list on the order date."
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Castrol Edge 5W-30, 5 L: qty 6 → 4",
+         "meta": "Priya Nair, office · 11 Mar 10:15 · only 4 in stock at Tipton",
+         "badge": "Quantity"
+        },
+        {
+         "title": "NGK ILZKR7B-11S replaced by ILZKR7B11",
+         "meta": "Priya Nair, office · 11 Mar 10:17 · superseded part, same fit",
+         "badge": "Substitute"
+        },
+        {
+         "title": "Valeo 574695: qty 4 → 5",
+         "meta": "Mark Ellis, office · 11 Mar 10:31 · requested by Tom Hales by phone",
+         "badge": "Quantity"
+        },
+        {
+         "title": "Delivery note added",
+         "meta": "Mark Ellis, office · 11 Mar 10:32 · battery is for the Focus",
+         "badge": "Note"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "11 Mar, 09:42",
+         "title": "Received",
+         "meta": "Tom Hales",
+         "status": "now"
+        },
+        {
+         "time": "Before 14:00",
+         "title": "Confirmed",
+         "meta": "Checked by the distributor office",
+         "status": "next"
+        },
+        {
+         "time": "12 Mar, early",
+         "title": "Picking",
+         "meta": "Tipton warehouse",
+         "status": "next"
+        },
+        {
+         "time": "12 Mar",
+         "title": "Dispatched",
+         "meta": "Morning van, Tipton route",
+         "status": "next"
+        },
+        {
+         "time": "Thu 12 Mar",
+         "title": "Delivered",
+         "meta": "Requested delivery date",
+         "status": "next"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "We couldn't cancel this order because the office is already working on it — call the distributor office on 0121 496 0732.",
+      "success": "Order ORD-24817 cancelled; the office has been told."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

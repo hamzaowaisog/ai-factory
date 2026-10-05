@@ -1,0 +1,38 @@
+{
+  "kind": "ai-factory/design-export",
+  "line": "20261005-parts-quick-order-requirements-d7a6",
+  "version": 1,
+  "designSha": "690b3d070482ab2a539d1d601be6b4d39085c8e30af19f641b89a24aaa735275",
+  "at": "2026-10-05T16:39:31.500Z",
+  "options": {
+    "formats": [
+      "pdf"
+    ]
+  },
+  "files": [
+    {
+      "format": "pdf",
+      "path": "design-book.pdf",
+      "sha256": "0519ee1ef23a184852ac8ebb460e4b9ea897bdd242d8c970726be528d49afb98",
+      "bytes": 14018820
+    }
+  ],
+  "notes": [],
+  "checks": [
+    {
+      "check": "pdf.screens",
+      "status": "PASS",
+      "detail": "every screen is in the book"
+    },
+    {
+      "check": "pdf.fonts",
+      "status": "PASS",
+      "detail": "every font is embedded"
+    },
+    {
+      "check": "pdf.pages",
+      "status": "PASS",
+      "detail": "design-book.pdf 30 page(s), 3 screen(s), 43 font(s)"
+    }
+  ]
+}

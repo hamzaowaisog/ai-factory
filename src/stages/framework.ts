@@ -8,6 +8,7 @@ import type { Ledger, Writer } from "../ledger/ledger.js";
 import type { RunState, StepKey } from "../ledger/state.js";
 import type { FailureCategory } from "../gates/ladder.js";
 import type { Trace } from "../util/trace.js";
+import type { GateAnswer } from "./gate-questions.js";
 
 export type StepOutcome =
   /** outputs: named artifact shas (first is the main one). */
@@ -15,9 +16,14 @@ export type StepOutcome =
   /** A human card was written; the executor exits. */
   /** extra: small metadata stored on human.requested (e.g. where the pending work is cached). */
   | { kind: "wait"; card: { cardId: string; kind: string; artifactSha: string; markdown: string; deadline?: string; defaultDecision?: Record<string, unknown>; extra?: Record<string, unknown> } }
-  /** data: small metadata stored on step.failed (e.g. the commit judged, how the attempt started). */
-  | { kind: "fail"; category: FailureCategory; failures: Failure[]; signature?: string; diffSha?: string; lockedFailedIds?: string[]; data?: Record<string, unknown> }
+  /** data: small metadata stored on step.failed (e.g. the commit judged, how the attempt started).
+   *  gate: a check on the step's output failed (not the model's answer, the code or the environment); in an estimate or a design run,
+   *  after the retry, the failures become questions instead of more attempts (src/stages/gate-questions.ts). */
+  | { kind: "fail"; category: FailureCategory; failures: Failure[]; signature?: string; diffSha?: string; lockedFailedIds?: string[]; data?: Record<string, unknown>; gate?: boolean }
   | { kind: "park"; reason: string }
+  /** A check failed that another attempt cannot fix (gate E1 on the spec, a breakdown the factory could not settle): questions now,
+   *  in an estimate or a design run; elsewhere, and once the rounds of questions are used up, the run parks with the reason. */
+  | { kind: "ask"; reason: string; failures: Failure[] }
   /** An earlier step has to run again first (this step changed its inputs, e.g. gate E1 sent the spec back to be settled); the run goes on with it. Not a failed attempt. */
   | { kind: "back"; reason: string }
   /** Run ends without delivery (e.g. not-reproduced). */
@@ -42,6 +48,10 @@ export interface StepContext {
   usage: (u: Usage & { model: string }) => Promise<void>;
   /** steps running side by side, this one included; each gets its share of what's left of the run's cost limit */
   share?: number;
+  /** answers to the questions this step's failing checks raised (src/stages/gate-questions.ts); every model call of the step reads them */
+  gateAnswers?: GateAnswer[];
+  /** the rounds of questions are used up: a check that still fails is carried as an open risk instead of failing the step */
+  carryOn?: boolean;
 }
 
 export interface StepDef {

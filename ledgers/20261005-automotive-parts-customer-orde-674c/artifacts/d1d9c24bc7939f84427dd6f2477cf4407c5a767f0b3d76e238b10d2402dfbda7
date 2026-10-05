@@ -1,0 +1,236 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Dashboard",
+     "subtitle": "Tuesday 9 March 2027 · Order cutoff 14:00",
+     "crumbs": [
+      "Orders"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "bad",
+       "title": "Stock import failed at 06:15 today",
+       "text": "stock_0309_0600.csv was rejected: row 1,284 has an unknown part number \"BRK-PAD-4471\". 2 imports have failed since the last successful one (Mon 8 Mar, 18:00).",
+       "action": "View stock imports"
+      },
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Received",
+         "value": "14",
+         "delta": "+6 since 08:00"
+        },
+        {
+         "label": "Confirmed",
+         "value": "23",
+         "delta": "+4 since 08:00"
+        },
+        {
+         "label": "Picking",
+         "value": "9",
+         "delta": "3 for 14:00 van"
+        },
+        {
+         "label": "Out for delivery",
+         "value": "17",
+         "delta": "2 vans on route"
+        }
+       ]
+      },
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Deliveries due today",
+         "value": "31",
+         "delta": "Excludes cancelled"
+        },
+        {
+         "label": "Unpaid invoices",
+         "value": "48",
+         "delta": "£18,420.60 open"
+        },
+        {
+         "label": "Overdue invoices",
+         "value": "12",
+         "delta": "£4,915.20 overdue"
+        },
+        {
+         "label": "Failed imports",
+         "value": "2",
+         "delta": "Since 8 Mar 18:00"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Open order queue",
+         "variant": "primary"
+        },
+        {
+         "label": "Today's deliveries",
+         "variant": "secondary",
+         "icon": "truck"
+        },
+        {
+         "label": "Open invoices",
+         "variant": "secondary"
+        },
+        {
+         "label": "View stock imports",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Open order queue",
+       "to": "S-16"
+      },
+      {
+       "from": "Today's deliveries",
+       "to": "S-19"
+      },
+      {
+       "from": "Open invoices",
+       "to": "S-23"
+      },
+      {
+       "from": "View stock imports",
+       "to": "S-32"
+      }
+     ],
+     "copy": {
+      "error": "We couldn't load today's counts. The figures shown are from 08:42 — try again in a moment."
+     }
+    },
+    "mockFull": {
+     "title": "Dashboard",
+     "subtitle": "Tuesday 9 March 2027 · Order cutoff 14:00",
+     "crumbs": [
+      "Orders"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "bad",
+       "title": "Stock import failed at 12:05 today",
+       "text": "stock_0309_1200.csv was rejected: 312 rows have a blank quantity on hand (first at row 87, OIL-5W30-5L). 3 imports have failed since the last successful one (Mon 8 Mar, 18:00).",
+       "action": "View stock imports"
+      },
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Received",
+         "value": "38",
+         "delta": "+21 since 08:00"
+        },
+        {
+         "label": "Confirmed",
+         "value": "52",
+         "delta": "+17 since 08:00"
+        },
+        {
+         "label": "Picking",
+         "value": "27",
+         "delta": "11 for 14:00 van"
+        },
+        {
+         "label": "Out for delivery",
+         "value": "44",
+         "delta": "6 vans on route"
+        },
+        {
+         "label": "Orders today",
+         "value": "119",
+         "delta": "+14% vs last Tue"
+        },
+        {
+         "label": "Before cutoff",
+         "value": "1h 52m",
+         "delta": "Cutoff 14:00"
+        }
+       ]
+      },
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Deliveries due today",
+         "value": "86",
+         "delta": "Excludes 3 cancelled"
+        },
+        {
+         "label": "Delivered so far",
+         "value": "42",
+         "delta": "of 86 due today"
+        },
+        {
+         "label": "Unpaid invoices",
+         "value": "137",
+         "delta": "£61,284.35 open"
+        },
+        {
+         "label": "Overdue invoices",
+         "value": "29",
+         "delta": "£12,870.90 overdue"
+        },
+        {
+         "label": "Failed imports",
+         "value": "3",
+         "delta": "Since 8 Mar 18:00"
+        },
+        {
+         "label": "Last good import",
+         "value": "8 Mar 18:00",
+         "delta": "18h 05m ago"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Open order queue",
+         "variant": "primary"
+        },
+        {
+         "label": "Today's deliveries",
+         "variant": "secondary",
+         "icon": "truck"
+        },
+        {
+         "label": "Open invoices",
+         "variant": "secondary"
+        },
+        {
+         "label": "View stock imports",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "We couldn't load today's counts. The figures shown are from 12:08 — try again in a moment."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

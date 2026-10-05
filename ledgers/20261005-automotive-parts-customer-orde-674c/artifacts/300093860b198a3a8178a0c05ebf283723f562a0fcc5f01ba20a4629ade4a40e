@@ -1,0 +1,385 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Product details",
+     "subtitle": "Brembo front brake pad set P 85 075 · BRP-P85075",
+     "crumbs": [
+      "Catalogue",
+      "Brakes",
+      "Brake pads"
+     ],
+     "badge": "Low stock",
+     "blocks": [
+      {
+       "type": "gallery",
+       "layout": "hero",
+       "items": [
+        {
+         "caption": "Front pad set, angled view"
+        },
+        {
+         "caption": "Friction face"
+        },
+        {
+         "caption": "Backing plate with shims"
+        },
+        {
+         "caption": "Wear indicator clip"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Brembo front brake pad set P 85 075",
+       "lead": {
+        "label": "Your price",
+        "value": "£38.40 per set ex VAT"
+       },
+       "rows": [
+        {
+         "label": "Product code",
+         "value": "BRP-P85075"
+        },
+        {
+         "label": "Manufacturer",
+         "value": "Brembo"
+        },
+        {
+         "label": "Unit",
+         "value": "Set (4 pads)"
+        },
+        {
+         "label": "Pack size",
+         "value": "1 set"
+        },
+        {
+         "label": "Stock status",
+         "value": "Low stock · 6 available",
+         "badge": true
+        },
+        {
+         "label": "Earliest delivery",
+         "value": "Thu 12 Mar if ordered by 14:00"
+        },
+        {
+         "label": "Price list",
+         "value": "Trade Band B"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Quantity (sets)",
+         "kind": "number",
+         "value": "2",
+         "required": true,
+         "help": "6 sets available · sold per set",
+         "error": "Only 6 available. Enter 6 or fewer."
+        }
+       ],
+       "submit": "Add to basket"
+      },
+      {
+       "type": "text",
+       "body": "Low-metallic front pads for 288 mm and 312 mm ventilated discs. Shims and chamfers fitted to cut squeal; ECE R90 approved. Wear indicator not included – reuse the existing sensor or order BRP-A00256."
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Make",
+        "Model",
+        "Engine",
+        "Years",
+        "Engine code"
+       ],
+       "rows": [
+        [
+         "Volkswagen",
+         "Golf Mk6",
+         "1.6 TDI 105 hp",
+         "2009–2013",
+         "CAYC"
+        ],
+        [
+         "Volkswagen",
+         "Golf Mk5",
+         "2.0 TDI 140 hp",
+         "2004–2009",
+         "BKD"
+        ],
+        [
+         "Audi",
+         "A3 (8P)",
+         "1.8 TFSI 160 hp",
+         "2006–2012",
+         "BZB"
+        ],
+        [
+         "Skoda",
+         "Octavia II",
+         "1.9 TDI 105 hp",
+         "2004–2010",
+         "BXE"
+        ],
+        [
+         "SEAT",
+         "Leon II",
+         "1.4 TSI 125 hp",
+         "2007–2012",
+         "CAXC"
+        ]
+       ],
+       "sortBy": 0,
+       "sortDir": "asc"
+      }
+     ],
+     "links": [
+      {
+       "from": "Volkswagen",
+       "to": "S-5"
+      },
+      {
+       "from": "Audi",
+       "to": "S-5"
+      },
+      {
+       "from": "Skoda",
+       "to": "S-5"
+      },
+      {
+       "from": "SEAT",
+       "to": "S-5"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Add to basket",
+       "text": "2 × Brembo front brake pad set added to your basket",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "error": "We couldn't load this part. Check your connection and try again.",
+      "success": "2 × Brembo front brake pad set added to your basket.",
+      "validation": "Only 6 sets are in stock. Enter 6 or fewer."
+     }
+    },
+    "mockFull": {
+     "title": "Product details",
+     "subtitle": "Brembo front brake pad set P 85 075 · BRP-P85075",
+     "crumbs": [
+      "Catalogue",
+      "Brakes",
+      "Brake pads"
+     ],
+     "badge": "Low stock",
+     "blocks": [
+      {
+       "type": "gallery",
+       "layout": "hero",
+       "items": [
+        {
+         "caption": "Front pad set, angled view"
+        },
+        {
+         "caption": "Friction face"
+        },
+        {
+         "caption": "Backing plate with shims"
+        },
+        {
+         "caption": "Wear indicator clip"
+        },
+        {
+         "caption": "Box and ECE R90 label"
+        },
+        {
+         "caption": "Fitted on 312 mm disc"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Brembo front brake pad set P 85 075",
+       "lead": {
+        "label": "Your price",
+        "value": "£38.40 per set ex VAT"
+       },
+       "rows": [
+        {
+         "label": "Product code",
+         "value": "BRP-P85075"
+        },
+        {
+         "label": "Manufacturer",
+         "value": "Brembo"
+        },
+        {
+         "label": "Unit",
+         "value": "Set (4 pads)"
+        },
+        {
+         "label": "Pack size",
+         "value": "1 set"
+        },
+        {
+         "label": "Stock status",
+         "value": "Low stock · 6 available",
+         "badge": true
+        },
+        {
+         "label": "Earliest delivery",
+         "value": "Thu 12 Mar if ordered by 14:00"
+        },
+        {
+         "label": "Price list",
+         "value": "Trade Band B"
+        },
+        {
+         "label": "OE reference",
+         "value": "1K0 698 151 A"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Quantity (sets)",
+         "kind": "number",
+         "value": "2",
+         "required": true,
+         "help": "6 sets available · sold per set",
+         "error": "Only 6 available. Enter 6 or fewer."
+        }
+       ],
+       "submit": "Add to basket"
+      },
+      {
+       "type": "text",
+       "body": "Low-metallic front pads for 288 mm and 312 mm ventilated discs. Shims and chamfers fitted to cut squeal; ECE R90 approved. Wear indicator not included – reuse the existing sensor or order BRP-A00256."
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Make",
+        "Model",
+        "Engine",
+        "Years",
+        "Engine code"
+       ],
+       "rows": [
+        [
+         "Audi",
+         "A3 (8P)",
+         "1.8 TFSI 160 hp",
+         "2006–2012",
+         "BZB"
+        ],
+        [
+         "Audi",
+         "A3 Sportback (8PA)",
+         "2.0 TDI 140 hp",
+         "2004–2013",
+         "BMM"
+        ],
+        [
+         "SEAT",
+         "Altea",
+         "1.9 TDI 105 hp",
+         "2004–2010",
+         "BXE"
+        ],
+        [
+         "SEAT",
+         "Leon II",
+         "1.4 TSI 125 hp",
+         "2007–2012",
+         "CAXC"
+        ],
+        [
+         "Skoda",
+         "Octavia II",
+         "1.9 TDI 105 hp",
+         "2004–2010",
+         "BXE"
+        ],
+        [
+         "Skoda",
+         "Superb II",
+         "2.0 TDI 170 hp",
+         "2008–2015",
+         "CFGB"
+        ],
+        [
+         "Skoda",
+         "Yeti",
+         "1.2 TSI 105 hp",
+         "2009–2017",
+         "CBZB"
+        ],
+        [
+         "Volkswagen",
+         "Caddy III",
+         "1.6 TDI 102 hp",
+         "2010–2015",
+         "CAYD"
+        ],
+        [
+         "Volkswagen",
+         "Golf Mk5",
+         "2.0 TDI 140 hp",
+         "2004–2009",
+         "BKD"
+        ],
+        [
+         "Volkswagen",
+         "Golf Mk6",
+         "1.6 TDI 105 hp",
+         "2009–2013",
+         "CAYC"
+        ],
+        [
+         "Volkswagen",
+         "Passat B6",
+         "2.0 TDI 170 hp",
+         "2005–2010",
+         "BMR"
+        ],
+        [
+         "Volkswagen",
+         "Touran",
+         "1.4 TSI 140 hp",
+         "2006–2015",
+         "BMY"
+        ]
+       ],
+       "sortBy": 0,
+       "sortDir": "asc",
+       "pages": 2,
+       "page": 1
+      }
+     ],
+     "copy": {
+      "error": "We couldn't load this part. Check your connection and try again.",
+      "success": "2 × Brembo front brake pad set added to your basket.",
+      "validation": "Only 6 sets are in stock. Enter 6 or fewer."
+     }
+    }
+   },
+   "ms": 5,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

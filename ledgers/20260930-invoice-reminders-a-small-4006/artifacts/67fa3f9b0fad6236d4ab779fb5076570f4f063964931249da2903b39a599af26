@@ -1,0 +1,270 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-1",
+      "category": "external",
+      "text": "Where do invoices and customers come from? Are they already stored in the client's existing .NET 8 API / Postgres database, or does this app create and own them?",
+      "options": [
+       "Invoices and customers already exist in the client's API/database; this app reads them and adds overdue and reminder data",
+       "This app owns new invoice and customer tables and imports data into them",
+       "Invoices are entered by hand in this app"
+      ],
+      "recommended": "Invoices and customers already exist in the client's API/database; this app reads them and adds overdue and reminder data",
+      "reason": "The request says it uses the client's existing API, and nothing in it mentions creating invoices.",
+      "spans": [
+       "I-1",
+       "I-6",
+       "I-7"
+      ],
+      "impact": 3,
+      "impactReason": "Decides the data model and which system writes the invoice records."
+     },
+     {
+      "id": "Q-2",
+      "category": "existing-data",
+      "text": "Payments are out of scope. So how does an invoice come off the overdue list once it is paid or closed?",
+      "options": [
+       "The existing system's invoice status (paid/cancelled) is read and closed invoices drop off automatically",
+       "Staff mark an invoice as paid/resolved in this app",
+       "Invoices never leave the list in this version"
+      ],
+      "recommended": "The existing system's invoice status (paid/cancelled) is read and closed invoices drop off automatically",
+      "reason": "This keeps payment handling out of scope and stops paid customers getting reminders.",
+      "spans": [
+       "I-1",
+       "I-4",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which invoices can get reminder emails sent to customers."
+     },
+     {
+      "id": "Q-3",
+      "category": "identifiers",
+      "text": "Should the 7-day overdue threshold be fixed in code or a configuration setting? And how are days counted (calendar days, in which time zone)?",
+      "options": [
+       "Configurable setting, default 7 calendar days, business time zone",
+       "Hardcoded 7 calendar days, business time zone",
+       "Configurable, counted in business days"
+      ],
+      "recommended": "Configurable setting, default 7 calendar days, business time zone",
+      "reason": "Businesses often change grace periods. Using a single time zone avoids off-by-one errors around midnight.",
+      "spans": [
+       "I-1",
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "Changes which invoices appear on the list and when."
+     },
+     {
+      "id": "Q-4",
+      "category": "terminology",
+      "text": "What does 'days overdue' mean in the list and its filter: days since the due date, or days since the invoice was marked overdue (due date + 7)?",
+      "options": [
+       "Days since the due date",
+       "Days since the invoice was marked overdue"
+      ],
+      "recommended": "Days since the due date",
+      "reason": "This matches the wording '7 days past its due date'.",
+      "spans": [
+       "I-1",
+       "I-5",
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the column staff see and what the filter returns."
+     },
+     {
+      "id": "Q-5",
+      "category": "scope",
+      "text": "How should the days-overdue filter work?",
+      "options": [
+       "Minimum threshold (e.g. 30+ days)",
+       "Range (from–to)",
+       "Preset buckets (7–30, 31–60, 60+)"
+      ],
+      "recommended": "Preset buckets (7–30, 31–60, 60+)",
+      "reason": "Aging buckets are the usual way to work through overdue accounts and are simple for staff.",
+      "spans": [
+       "I-5",
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "A visible filtering flow."
+     },
+     {
+      "id": "Q-6",
+      "category": "external",
+      "text": "Which email service sends reminders, and how is 'cannot be delivered' detected?",
+      "options": [
+       "Transactional email provider (e.g. SendGrid/Postmark) with bounce webhooks; both send errors and later bounces count as failures",
+       "SMTP relay; only errors at send time count as failures",
+       "Client's existing email service; to be confirmed"
+      ],
+      "recommended": "Transactional email provider (e.g. SendGrid/Postmark) with bounce webhooks; both send errors and later bounces count as failures",
+      "reason": "I-4 needs real delivery failures, and a plain SMTP send can't report later bounces.",
+      "spans": [
+       "I-2",
+       "I-4"
+      ],
+      "impact": 3,
+      "impactReason": "Needs an external integration, and decides which failures get stored and shown."
+     },
+     {
+      "id": "Q-7",
+      "category": "data-model",
+      "text": "Which email address receives the reminder, and what happens if the customer has several contacts or none?",
+      "options": [
+       "The customer's single billing email from the existing record; if missing, the send is blocked with an error",
+       "All contacts on the customer record",
+       "Staff choose or enter the recipient when sending"
+      ],
+      "recommended": "The customer's single billing email from the existing record; if missing, the send is blocked with an error",
+      "reason": "This is the simplest option and every reading already assumes an on-file address.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 3,
+      "impactReason": "Decides who receives emails about money owed."
+     },
+     {
+      "id": "Q-8",
+      "category": "roles",
+      "text": "Who can view the screens and send reminders, and how do staff sign in?",
+      "options": [
+       "Any authenticated staff user, using the existing API's authentication",
+       "Only certain roles (e.g. accounts) can send; all staff can view",
+       "A new login system for this app"
+      ],
+      "recommended": "Any authenticated staff user, using the existing API's authentication",
+      "reason": "The request names one staff role and an existing API.",
+      "spans": [
+       "I-2",
+       "I-3",
+       "I-6",
+       "I-7"
+      ],
+      "impact": 3,
+      "impactReason": "Permissions over who can email customers."
+     },
+     {
+      "id": "Q-9",
+      "category": "errors",
+      "text": "How should repeated sends be guarded against?",
+      "options": [
+       "Disable the button while a send is in progress only",
+       "Also block or warn if a reminder was already sent within a cooldown (e.g. 24h)",
+       "No guard"
+      ],
+      "recommended": "Also block or warn if a reminder was already sent within a cooldown (e.g. 24h)",
+      "reason": "This stops double-clicks and also stops different staff sending duplicate emails to the same customer.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 3,
+      "impactReason": "Controls outbound customer emails."
+     },
+     {
+      "id": "Q-10",
+      "category": "data-model",
+      "text": "Can reminder history entries be edited or deleted?",
+      "options": [
+       "No, they are append-only and immutable",
+       "Admins can delete entries"
+      ],
+      "recommended": "No, they are append-only and immutable",
+      "reason": "History is an audit trail of customer contact.",
+      "spans": [
+       "I-3"
+      ],
+      "impact": 3,
+      "impactReason": "Decides whether stored records can be changed."
+     },
+     {
+      "id": "Q-11",
+      "category": "data-model",
+      "text": "Does a send attempt that fails at once (e.g. provider error, no email) still create a reminder history entry?",
+      "options": [
+       "Yes, every attempt is logged with its outcome (sent/failed/bounced)",
+       "Only successful sends go into history; failures are recorded separately"
+      ],
+      "recommended": "Yes, every attempt is logged with its outcome (sent/failed/bounced)",
+      "reason": "A single log makes it easy to show history and failures together on the invoice detail screen.",
+      "spans": [
+       "I-3",
+       "I-4",
+       "I-7"
+      ],
+      "impact": 2,
+      "impactReason": "Changes what staff see in the history."
+     },
+     {
+      "id": "Q-12",
+      "category": "scope",
+      "text": "Can staff open the invoice detail screen from the overdue list?",
+      "options": [
+       "Yes, clicking the invoice number or row opens the detail screen",
+       "No, the detail screen is reached another way"
+      ],
+      "recommended": "Yes, clicking the invoice number or row opens the detail screen",
+      "reason": "Otherwise staff can't reach the history and failures from the list.",
+      "spans": [
+       "I-6",
+       "I-7"
+      ],
+      "impact": 2,
+      "impactReason": "Visible navigation flow.",
+      "difference": "D-3"
+     },
+     {
+      "id": "Q-13",
+      "category": "scope",
+      "text": "Should the invoice detail screen also have a 'Send reminder' button for overdue invoices?",
+      "options": [
+       "Yes, when the invoice is overdue",
+       "No, sending happens only from the overdue list"
+      ],
+      "recommended": "Yes, when the invoice is overdue",
+      "reason": "Staff usually want to resend straight after seeing a delivery failure.",
+      "spans": [
+       "I-7",
+       "I-2"
+      ],
+      "impact": 2,
+      "impactReason": "Adds a second send entry point.",
+      "difference": "D-4"
+     },
+     {
+      "id": "Q-14",
+      "category": "scope",
+      "text": "Does the reminder email need a specific template, sender name/address, or currency format?",
+      "options": [
+       "A simple fixed template from a configured sender address, amounts in GBP/local currency",
+       "The client provides the template and wording",
+       "Staff can edit the message before sending"
+      ],
+      "recommended": "A simple fixed template from a configured sender address, amounts in GBP/local currency",
+      "reason": "I-2 lists only the fields required, and a fixed template keeps the scope small.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 1,
+      "impactReason": "Wording and format only."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

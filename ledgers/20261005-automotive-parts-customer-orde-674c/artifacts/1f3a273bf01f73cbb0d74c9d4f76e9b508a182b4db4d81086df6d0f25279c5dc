@@ -1,0 +1,650 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Order",
+     "subtitle": "ORD-24817 · Hollis Motor Works · delivery Fri 15 May 2026",
+     "crumbs": [
+      "Orders",
+      "ORD-24817"
+     ],
+     "badge": "Received",
+     "blocks": [
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Confirm order",
+         "variant": "primary",
+         "icon": "check"
+        },
+        {
+         "label": "Advance status",
+         "variant": "secondary",
+         "state": "disabled",
+         "hint": "Confirm the order first. The next status after Received is Confirmed."
+        },
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "View customer",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "ORD-24817",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Received",
+         "badge": true
+        },
+        {
+         "label": "Customer",
+         "value": "Hollis Motor Works (account HMW-0192)"
+        },
+        {
+         "label": "Order date",
+         "value": "14 May 2026, 09:42"
+        },
+        {
+         "label": "Delivery address",
+         "value": "Unit 4, Canal Road, Leeds LS12 2PL"
+        },
+        {
+         "label": "Requested delivery",
+         "value": "Fri 15 May 2026"
+        },
+        {
+         "label": "Order total",
+         "value": "£448.75 ex VAT"
+        },
+        {
+         "label": "Invoice",
+         "value": "Created automatically when Delivered"
+        },
+        {
+         "label": "Created / last changed",
+         "value": "J. Patel 14 May 09:42 · S. Okafor 14 May 10:15"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Product",
+        "Qty",
+        "Stock",
+        "Unit price",
+        "Line total"
+       ],
+       "rows": [
+        [
+         "BRK-40211",
+         "Front brake pads, Focus Mk4",
+         "4",
+         "38 in stock",
+         "£18.40",
+         "£73.60"
+        ],
+        [
+         "OIL-5W30-5L",
+         "Castrol Edge 5W-30, 5 L",
+         "6",
+         "112 in stock",
+         "£32.95",
+         "£197.70"
+        ],
+        [
+         "FLT-OF-1187",
+         "Oil filter, VW 1.6 TDI",
+         "5",
+         "7 · Low stock",
+         "£4.85",
+         "£24.25"
+        ],
+        [
+         "DSC-FR-2290",
+         "Front discs pair, Focus Mk4",
+         "1",
+         "12 in stock",
+         "£64.20",
+         "£64.20"
+        ],
+        [
+         "BAT-096",
+         "Varta E11 battery",
+         "1",
+         "5 · Low stock",
+         "£89.00",
+         "£89.00"
+        ]
+       ],
+       "statusColumn": 3
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Line quantity · FLT-OF-1187 Oil filter",
+         "kind": "number",
+         "value": "5",
+         "required": true,
+         "help": "7 available from the latest stock import",
+         "error": "Only 7 available for FLT-OF-1187"
+        },
+        {
+         "label": "Delivery address",
+         "kind": "select",
+         "value": "Unit 4, Canal Road, Leeds LS12 2PL",
+         "options": [
+          "Unit 4, Canal Road, Leeds LS12 2PL",
+          "22 Kirkstall Road, Leeds LS3 1JA",
+          "Bay 7, Thornbury Ind. Est., Bradford BD3 8HZ"
+         ],
+         "required": true,
+         "help": "Only addresses of Hollis Motor Works",
+         "error": "Delivery address is not one of Hollis Motor Works' addresses"
+        },
+        {
+         "label": "Delivery date",
+         "kind": "date",
+         "value": "15 May 2026",
+         "required": true,
+         "help": "Working days from 15 May to 12 Jun 2026",
+         "error": "Delivery date 16 May 2026 is not a working day"
+        },
+        {
+         "label": "Note",
+         "kind": "textarea",
+         "value": "Leave at goods-in, ask for Dave. Pads needed for 11:00 job.",
+         "help": "Visible to the buyer"
+        }
+       ],
+       "submit": "Save changes"
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "FLT-OF-1187 Oil filter: 10 → 5",
+         "meta": "Sam Okafor · 14 May 2026, 10:15 · buyer emailed",
+         "badge": "Quantity"
+        },
+        {
+         "title": "OIL-5W30-5L Castrol Edge 5 L: 4 → 6",
+         "meta": "Sam Okafor · 14 May 2026, 10:15 · buyer emailed",
+         "badge": "Quantity"
+        },
+        {
+         "title": "WPR-650 Wiper blade 650 mm: 2 → 0",
+         "meta": "Sam Okafor · 14 May 2026, 10:14 · buyer emailed",
+         "badge": "Removed"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "14 May, 09:42",
+         "title": "Received",
+         "meta": "Submitted by Jamie Patel, Hollis Motor Works",
+         "status": "now"
+        },
+        {
+         "time": "—",
+         "title": "Confirmed",
+         "meta": "Staff check lines, stock and address",
+         "status": "next"
+        },
+        {
+         "time": "—",
+         "title": "Picking",
+         "status": "next"
+        },
+        {
+         "time": "—",
+         "title": "Out for delivery",
+         "status": "next"
+        },
+        {
+         "time": "—",
+         "title": "Delivered",
+         "meta": "Unpaid invoice created in the same step",
+         "status": "next"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Orders",
+       "to": "S-16"
+      },
+      {
+       "from": "View customer",
+       "to": "S-21"
+      },
+      {
+       "from": "BRK-40211",
+       "to": "S-27"
+      },
+      {
+       "from": "OIL-5W30-5L",
+       "to": "S-27"
+      },
+      {
+       "from": "FLT-OF-1187",
+       "to": "S-27"
+      },
+      {
+       "from": "DSC-FR-2290",
+       "to": "S-27"
+      },
+      {
+       "from": "BAT-096",
+       "to": "S-27"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Confirm order",
+       "title": "Confirm ORD-24817?",
+       "text": "All 5 lines are active and within stock and the delivery address exists. Status becomes Confirmed and lines can no longer be amended.",
+       "actions": [
+        {
+         "label": "Yes, confirm",
+         "variant": "primary"
+        },
+        {
+         "label": "Back",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel ORD-24817",
+       "text": "The order becomes Cancelled and Hollis Motor Works is emailed the reason. This can't be undone.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Reason",
+           "kind": "textarea",
+           "placeholder": "e.g. Customer ordered the wrong pads",
+           "required": true,
+           "error": "Enter a reason for the cancellation"
+          }
+         ],
+         "submit": "Cancel and email"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Cancel and email",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "menu",
+       "trigger": "More",
+       "title": "Line actions",
+       "items": [
+        "Change quantity",
+        "Remove line",
+        "Open product"
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Save changes",
+       "text": "Order amended. Hollis Motor Works emailed the changed lines.",
+       "tone": "ok"
+      },
+      {
+       "after": "Yes, confirm",
+       "text": "ORD-24817 confirmed. Timeline updated.",
+       "tone": "ok"
+      },
+      {
+       "after": "Cancel and email",
+       "text": "ORD-24817 cancelled. Reason sent to the buyer.",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "error": "Couldn't load order ORD-24817. Check your connection and try again.",
+      "success": "Changes saved. Hollis Motor Works has been emailed the changed lines.",
+      "validation": "Fix the highlighted fields. The order has not been changed."
+     }
+    },
+    "mockFull": {
+     "title": "Order",
+     "subtitle": "ORD-24817 · Hollis Motor Works · delivery Fri 15 May 2026",
+     "crumbs": [
+      "Orders",
+      "ORD-24817"
+     ],
+     "badge": "Received",
+     "blocks": [
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Confirm order",
+         "variant": "primary",
+         "icon": "check"
+        },
+        {
+         "label": "Advance status",
+         "variant": "secondary",
+         "state": "disabled",
+         "hint": "Confirm the order first. The next status after Received is Confirmed."
+        },
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "View customer",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "ORD-24817",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Received",
+         "badge": true
+        },
+        {
+         "label": "Customer",
+         "value": "Hollis Motor Works (account HMW-0192)"
+        },
+        {
+         "label": "Order date",
+         "value": "14 May 2026, 09:42"
+        },
+        {
+         "label": "Delivery address",
+         "value": "Unit 4, Canal Road, Leeds LS12 2PL"
+        },
+        {
+         "label": "Requested delivery",
+         "value": "Fri 15 May 2026"
+        },
+        {
+         "label": "Order total",
+         "value": "£614.80 ex VAT · 11 lines"
+        },
+        {
+         "label": "Invoice",
+         "value": "Created automatically when Delivered"
+        },
+        {
+         "label": "Created / last changed",
+         "value": "J. Patel 14 May 09:42 · S. Okafor 14 May 11:06"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Product",
+        "Qty",
+        "Stock",
+        "Unit price",
+        "Line total"
+       ],
+       "rows": [
+        [
+         "BRK-40211",
+         "Front brake pads, Focus Mk4",
+         "4",
+         "38 in stock",
+         "£18.40",
+         "£73.60"
+        ],
+        [
+         "DSC-FR-2290",
+         "Front discs pair, Focus Mk4",
+         "1",
+         "12 in stock",
+         "£64.20",
+         "£64.20"
+        ],
+        [
+         "OIL-5W30-5L",
+         "Castrol Edge 5W-30, 5 L",
+         "6",
+         "112 in stock",
+         "£32.95",
+         "£197.70"
+        ],
+        [
+         "FLT-OF-1187",
+         "Oil filter, VW 1.6 TDI",
+         "5",
+         "7 · Low stock",
+         "£4.85",
+         "£24.25"
+        ],
+        [
+         "FLT-AF-0442",
+         "Air filter, Golf Mk7",
+         "3",
+         "24 in stock",
+         "£9.60",
+         "£28.80"
+        ],
+        [
+         "BAT-096",
+         "Varta E11 battery",
+         "1",
+         "5 · Low stock",
+         "£89.00",
+         "£89.00"
+        ],
+        [
+         "SPK-NGK-4",
+         "NGK spark plugs, set of 4",
+         "2",
+         "60 in stock",
+         "£21.30",
+         "£42.60"
+        ],
+        [
+         "BLT-AUX-6PK",
+         "Aux belt 6PK1873",
+         "1",
+         "9 in stock",
+         "£17.45",
+         "£17.45"
+        ],
+        [
+         "CLN-AF-5L",
+         "Antifreeze G12, 5 L",
+         "2",
+         "40 in stock",
+         "£16.90",
+         "£33.80"
+        ],
+        [
+         "BLB-H7-2",
+         "H7 bulb, twin pack",
+         "4",
+         "150 in stock",
+         "£6.75",
+         "£27.00"
+        ],
+        [
+         "WPR-650",
+         "Wiper blade 650 mm",
+         "2",
+         "31 in stock",
+         "£8.20",
+         "£16.40"
+        ]
+       ],
+       "statusColumn": 3
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Line quantity · FLT-OF-1187 Oil filter",
+         "kind": "number",
+         "value": "5",
+         "required": true,
+         "help": "7 available from the latest stock import",
+         "error": "Only 7 available for FLT-OF-1187"
+        },
+        {
+         "label": "Line quantity · BAT-096 Varta E11 battery",
+         "kind": "number",
+         "value": "1",
+         "required": true,
+         "help": "5 available",
+         "error": "Only 5 available for BAT-096"
+        },
+        {
+         "label": "Delivery address",
+         "kind": "select",
+         "value": "Unit 4, Canal Road, Leeds LS12 2PL",
+         "options": [
+          "Unit 4, Canal Road, Leeds LS12 2PL",
+          "22 Kirkstall Road, Leeds LS3 1JA",
+          "Bay 7, Thornbury Ind. Est., Bradford BD3 8HZ"
+         ],
+         "required": true,
+         "help": "Only addresses of Hollis Motor Works",
+         "error": "Delivery address is not one of Hollis Motor Works' addresses"
+        },
+        {
+         "label": "Delivery date",
+         "kind": "date",
+         "value": "15 May 2026",
+         "required": true,
+         "help": "Working days from 15 May to 12 Jun 2026",
+         "error": "Delivery date 16 May 2026 is not a working day"
+        },
+        {
+         "label": "Note",
+         "kind": "textarea",
+         "value": "Leave at goods-in, ask for Dave. Pads needed for 11:00 job.",
+         "help": "Visible to the buyer"
+        }
+       ],
+       "submit": "Save changes"
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "BLB-H7-2 H7 bulb twin pack: 2 → 4",
+         "meta": "Sam Okafor · 14 May 2026, 11:06 · buyer emailed",
+         "badge": "Quantity"
+        },
+        {
+         "title": "MIR-GLS-L Mirror glass, left: 1 → 0",
+         "meta": "Sam Okafor · 14 May 2026, 11:05 · discontinued · buyer emailed",
+         "badge": "Removed"
+        },
+        {
+         "title": "BAT-096 Varta E11 battery: 2 → 1",
+         "meta": "Priya Shah · 14 May 2026, 10:32 · buyer emailed",
+         "badge": "Quantity"
+        },
+        {
+         "title": "FLT-OF-1187 Oil filter: 10 → 5",
+         "meta": "Sam Okafor · 14 May 2026, 10:15 · buyer emailed",
+         "badge": "Quantity"
+        },
+        {
+         "title": "OIL-5W30-5L Castrol Edge 5 L: 4 → 6",
+         "meta": "Sam Okafor · 14 May 2026, 10:15 · buyer emailed",
+         "badge": "Quantity"
+        },
+        {
+         "title": "CLN-AF-5L Antifreeze G12: 1 → 2",
+         "meta": "Priya Shah · 14 May 2026, 10:02 · buyer emailed",
+         "badge": "Quantity"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "14 May, 09:42",
+         "title": "Received",
+         "meta": "Submitted by Jamie Patel, Hollis Motor Works",
+         "status": "now"
+        },
+        {
+         "time": "—",
+         "title": "Confirmed",
+         "meta": "Staff check lines, stock and address",
+         "status": "next"
+        },
+        {
+         "time": "—",
+         "title": "Picking",
+         "status": "next"
+        },
+        {
+         "time": "—",
+         "title": "Out for delivery",
+         "status": "next"
+        },
+        {
+         "time": "—",
+         "title": "Delivered",
+         "meta": "Unpaid invoice created in the same step",
+         "status": "next"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "Couldn't load order ORD-24817. Check your connection and try again.",
+      "success": "Changes saved. Hollis Motor Works has been emailed the changed lines.",
+      "validation": "Fix the highlighted fields. The order has not been changed."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 245,
+   "isError": true,
+   "result": "The result doesn't match the schema: mock.blocks.3.fields.1.options.2: Too big: expected string to have <=40 characters; mockFull.blocks.3.fields.2.options.2: Too big: expected string to have <=40 characters. Fix it and call submit_result again."
+  }
+ ]
+}

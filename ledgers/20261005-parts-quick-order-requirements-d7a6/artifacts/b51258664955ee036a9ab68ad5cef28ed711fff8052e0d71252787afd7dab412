@@ -1,0 +1,365 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Cart and checkout",
+     "subtitle": "20 items · prices checked just now",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "Your cart was updated",
+       "text": "Coupling spider L-100 is now out of stock and was removed. V-belt A42: Only 3 available, so the quantity is now 3."
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Part",
+        "Unit price",
+        "Qty",
+        "Line total",
+        "Stock"
+       ],
+       "rows": [
+        [
+         "6204-2RS",
+         "Deep groove ball bearing 20 mm",
+         "£4.85",
+         "10",
+         "£48.50",
+         "In stock"
+        ],
+        [
+         "HB-M10x40-Z",
+         "Hex bolt M10×40 zinc, box of 50",
+         "£12.40",
+         "2",
+         "£24.80",
+         "In stock"
+        ],
+        [
+         "VB-A42",
+         "V-belt A42",
+         "£7.95",
+         "3",
+         "£23.85",
+         "Low stock (3 left)"
+        ],
+        [
+         "OS-35x52x7",
+         "Oil seal 35×52×7 NBR",
+         "£2.10",
+         "4",
+         "£8.40",
+         "In stock"
+        ],
+        [
+         "FLT-HY-10",
+         "Hydraulic return filter 10 µm",
+         "£36.20",
+         "1",
+         "£36.20",
+         "Low stock (2 left)"
+        ]
+       ],
+       "statusColumn": 5,
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Remove",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      },
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Subtotal",
+         "value": "£141.75",
+         "delta": "20 items"
+        },
+        {
+         "label": "Delivery",
+         "value": "£9.99",
+         "delta": "Next day"
+        },
+        {
+         "label": "Total",
+         "value": "£151.74"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Delivery address",
+         "kind": "textarea",
+         "value": "Unit 4, Castle Trading Estate, Mill Lane, Leeds LS11 5QT",
+         "required": true,
+         "help": "5 to 200 characters",
+         "error": "Enter a delivery address of 5 to 200 characters"
+        },
+        {
+         "label": "Delivery option",
+         "kind": "radio",
+         "options": [
+          "Standard — £0.00",
+          "Next day — £9.99"
+         ],
+         "value": "Next day — £9.99",
+         "required": true,
+         "error": "Choose Standard or Next day"
+        }
+       ],
+       "submit": "Place order"
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Continue shopping",
+         "variant": "link",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Continue shopping",
+       "to": "S-1"
+      },
+      {
+       "from": "Place order",
+       "to": "S-3"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Remove",
+       "text": "Line removed from your cart",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "Place order",
+       "text": "Order ORD-000148 placed",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "Your cart is empty",
+      "emptyHint": "Find parts by part number and add them here.",
+      "error": "We couldn't load current prices. Prices and checkout stay hidden until they load. Try again.",
+      "success": "Order ORD-000148 placed. Your cart is now empty; follow it in My orders.",
+      "validation": "Enter a delivery address of 5 to 200 characters and choose a delivery option to place your order."
+     }
+    },
+    "mockFull": {
+     "title": "Cart and checkout",
+     "subtitle": "47 items · prices checked just now",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "Your cart was updated",
+       "text": "Coupling spider L-100 is now out of stock and was removed. V-belt A42: Only 3 available, so the quantity is now 3."
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Part",
+        "Unit price",
+        "Qty",
+        "Line total",
+        "Stock"
+       ],
+       "rows": [
+        [
+         "6204-2RS",
+         "Deep groove ball bearing 20 mm",
+         "£4.85",
+         "10",
+         "£48.50",
+         "In stock"
+        ],
+        [
+         "HB-M10x40-Z",
+         "Hex bolt M10×40 zinc, box of 50",
+         "£12.40",
+         "2",
+         "£24.80",
+         "In stock"
+        ],
+        [
+         "VB-A42",
+         "V-belt A42",
+         "£7.95",
+         "3",
+         "£23.85",
+         "Low stock (3 left)"
+        ],
+        [
+         "OS-35x52x7",
+         "Oil seal 35×52×7 NBR",
+         "£2.10",
+         "4",
+         "£8.40",
+         "In stock"
+        ],
+        [
+         "FLT-HY-10",
+         "Hydraulic return filter 10 µm",
+         "£36.20",
+         "1",
+         "£36.20",
+         "Low stock (2 left)"
+        ],
+        [
+         "6205-ZZ",
+         "Ball bearing 25 mm, shielded",
+         "£5.60",
+         "6",
+         "£33.60",
+         "In stock"
+        ],
+        [
+         "RC-08B-1-5M",
+         "Roller chain 08B-1, 5 m",
+         "£27.50",
+         "1",
+         "£27.50",
+         "In stock"
+        ],
+        [
+         "GR-LT2-400",
+         "Lithium grease LT2, 400 g",
+         "£6.75",
+         "4",
+         "£27.00",
+         "In stock"
+        ],
+        [
+         "CT-48x300",
+         "Cable ties 4.8×300 mm, pack of 100",
+         "£3.95",
+         "5",
+         "£19.75",
+         "In stock"
+        ],
+        [
+         "FU-10A-BS",
+         "Cartridge fuse 10 A, pack of 10",
+         "£2.30",
+         "3",
+         "£6.90",
+         "Low stock (4 left)"
+        ],
+        [
+         "NW-M10-Z",
+         "Flat washer M10 zinc, pack of 100",
+         "£4.20",
+         "2",
+         "£8.40",
+         "In stock"
+        ],
+        [
+         "TP-PTFE-12",
+         "PTFE thread tape 12 mm",
+         "£0.95",
+         "6",
+         "£5.70",
+         "In stock"
+        ]
+       ],
+       "statusColumn": 5,
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Remove",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      },
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Subtotal",
+         "value": "£270.60",
+         "delta": "47 items"
+        },
+        {
+         "label": "Delivery",
+         "value": "£9.99",
+         "delta": "Next day"
+        },
+        {
+         "label": "Total",
+         "value": "£280.59"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Delivery address",
+         "kind": "textarea",
+         "value": "Unit 4, Castle Trading Estate, Mill Lane, Leeds LS11 5QT",
+         "required": true,
+         "help": "5 to 200 characters",
+         "error": "Enter a delivery address of 5 to 200 characters"
+        },
+        {
+         "label": "Delivery option",
+         "kind": "radio",
+         "options": [
+          "Standard — £0.00",
+          "Next day — £9.99"
+         ],
+         "value": "Next day — £9.99",
+         "required": true,
+         "error": "Choose Standard or Next day"
+        }
+       ],
+       "submit": "Place order"
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Continue shopping",
+         "variant": "link",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "Your cart is empty",
+      "emptyHint": "Find parts by part number and add them here.",
+      "error": "We couldn't load current prices. Prices and checkout stay hidden until they load. Try again.",
+      "success": "Order ORD-000148 placed. Your cart is now empty; follow it in My orders.",
+      "validation": "Enter a delivery address of 5 to 200 characters and choose a delivery option to place your order."
+     }
+    }
+   },
+   "ms": 12,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

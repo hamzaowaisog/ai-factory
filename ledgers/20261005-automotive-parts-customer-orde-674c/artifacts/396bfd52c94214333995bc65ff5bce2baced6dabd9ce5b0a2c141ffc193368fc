@@ -1,0 +1,454 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Categories",
+     "subtitle": "Single-level groups for products. Retired categories are hidden from the buyer category filter.",
+     "crumbs": [
+      "Catalogue"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "12 products have no category",
+       "text": "Products without a category don't appear under any category filter in the portal. Give each product one category.",
+       "action": "View products"
+      },
+      {
+       "type": "toolbar",
+       "search": "Search categories",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All",
+          "Active",
+          "Retired"
+         ],
+         "value": "All"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "New category",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Rename",
+         "variant": "secondary",
+         "icon": "edit",
+         "hint": "Rename the selected category"
+        },
+        {
+         "label": "Retire",
+         "variant": "danger",
+         "hint": "Hide the selected category from buyers"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Category",
+        "Products",
+        "Status",
+        "Created",
+        "Last changed"
+       ],
+       "rows": [
+        [
+         "Brakes",
+         "1,284",
+         "Active",
+         "04 Jan 2025 · A. Hughes",
+         "12 Mar 2026 · R. Patel"
+        ],
+        [
+         "Clutch & transmission",
+         "143",
+         "Active",
+         "04 Jan 2025 · A. Hughes",
+         "27 Feb 2026 · S. Okafor"
+        ],
+        [
+         "Engine cooling",
+         "418",
+         "Active",
+         "11 Feb 2025 · R. Patel",
+         "11 Feb 2025 · R. Patel"
+        ],
+        [
+         "Exhaust systems (legacy)",
+         "0",
+         "Retired",
+         "04 Jan 2025 · A. Hughes",
+         "09 Jan 2026 · A. Hughes"
+        ],
+        [
+         "Filters",
+         "962",
+         "Active",
+         "04 Jan 2025 · A. Hughes",
+         "02 Feb 2026 · S. Okafor"
+        ],
+        [
+         "Lighting & electrical",
+         "1,051",
+         "Active",
+         "18 Mar 2025 · S. Okafor",
+         "16 Mar 2026 · R. Patel"
+        ]
+       ],
+       "statusColumn": 2,
+       "sortBy": 0,
+       "sortDir": "asc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Export",
+         "icon": "download"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "View products",
+       "to": "S-26"
+      },
+      {
+       "from": "Brakes",
+       "to": "S-26"
+      },
+      {
+       "from": "Clutch & transmission",
+       "to": "S-26"
+      },
+      {
+       "from": "Engine cooling",
+       "to": "S-26"
+      },
+      {
+       "from": "Filters",
+       "to": "S-26"
+      },
+      {
+       "from": "Lighting & electrical",
+       "to": "S-26"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "modal",
+       "trigger": "New category",
+       "title": "New category",
+       "text": "Categories are one level only. Buyers see active categories in the catalogue filter.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Category name",
+           "kind": "text",
+           "placeholder": "e.g. Wipers & washers",
+           "required": true,
+           "help": "Up to 40 characters, unique across all categories",
+           "error": "Enter a category name that isn't already in use"
+          }
+         ],
+         "submit": "Create category"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Create category",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "modal",
+       "trigger": "Rename",
+       "title": "Rename category",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Category name",
+           "kind": "text",
+           "value": "Clutch & transmission",
+           "required": true,
+           "help": "Up to 40 characters, unique across all categories",
+           "error": "A category called Transmission already exists"
+          }
+         ],
+         "submit": "Save name"
+        },
+        {
+         "type": "detail",
+         "rows": [
+          {
+           "label": "Products",
+           "value": "143"
+          },
+          {
+           "label": "Created",
+           "value": "04 Jan 2025 09:12 · Alan Hughes"
+          },
+          {
+           "label": "Last changed",
+           "value": "27 Feb 2026 14:38 · Sade Okafor"
+          }
+         ]
+        }
+       ],
+       "actions": [
+        {
+         "label": "Save name",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Retire",
+       "title": "Retire Clutch & transmission?",
+       "text": "It will be hidden from the buyer category filter. Its 143 products keep this category until you move them to another one.",
+       "actions": [
+        {
+         "label": "Retire category",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep active",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Create category",
+       "text": "Category created and shown to buyers",
+       "tone": "ok"
+      },
+      {
+       "after": "Save name",
+       "text": "Category renamed",
+       "tone": "ok"
+      },
+      {
+       "after": "Retire category",
+       "text": "Clutch & transmission retired and hidden from buyers",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No categories yet",
+      "emptyHint": "Create the first category so products can be assigned and buyers can filter the catalogue by it.",
+      "validation": "Enter a category name of up to 40 characters that isn't already in use.",
+      "error": "Categories couldn't be loaded. Showing the last saved list.",
+      "success": "Category saved."
+     }
+    },
+    "mockFull": {
+     "title": "Categories",
+     "subtitle": "Single-level groups for products. Retired categories are hidden from the buyer category filter.",
+     "crumbs": [
+      "Catalogue"
+     ],
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "12 products have no category",
+       "text": "Products without a category don't appear under any category filter in the portal. Give each product one category.",
+       "action": "View products"
+      },
+      {
+       "type": "toolbar",
+       "search": "Search categories",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All",
+          "Active",
+          "Retired"
+         ],
+         "value": "All"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "New category",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Rename",
+         "variant": "secondary",
+         "icon": "edit",
+         "hint": "Rename the selected category"
+        },
+        {
+         "label": "Retire",
+         "variant": "danger",
+         "hint": "Hide the selected category from buyers"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Category",
+        "Products",
+        "Status",
+        "Created",
+        "Last changed"
+       ],
+       "rows": [
+        [
+         "Batteries",
+         "212",
+         "Active",
+         "04 Jan 2025 · A. Hughes",
+         "21 Jan 2026 · S. Okafor"
+        ],
+        [
+         "Brakes",
+         "1,284",
+         "Active",
+         "04 Jan 2025 · A. Hughes",
+         "12 Mar 2026 · R. Patel"
+        ],
+        [
+         "Clutch & transmission",
+         "143",
+         "Active",
+         "04 Jan 2025 · A. Hughes",
+         "27 Feb 2026 · S. Okafor"
+        ],
+        [
+         "Engine cooling",
+         "418",
+         "Active",
+         "11 Feb 2025 · R. Patel",
+         "11 Feb 2025 · R. Patel"
+        ],
+        [
+         "Engine parts",
+         "1,907",
+         "Active",
+         "04 Jan 2025 · A. Hughes",
+         "05 Mar 2026 · R. Patel"
+        ],
+        [
+         "Exhaust systems (legacy)",
+         "0",
+         "Retired",
+         "04 Jan 2025 · A. Hughes",
+         "09 Jan 2026 · A. Hughes"
+        ],
+        [
+         "Filters",
+         "962",
+         "Active",
+         "04 Jan 2025 · A. Hughes",
+         "02 Feb 2026 · S. Okafor"
+        ],
+        [
+         "Fuel & ignition",
+         "584",
+         "Active",
+         "22 Apr 2025 · S. Okafor",
+         "14 Nov 2025 · S. Okafor"
+        ],
+        [
+         "Lighting & electrical",
+         "1,051",
+         "Active",
+         "18 Mar 2025 · S. Okafor",
+         "16 Mar 2026 · R. Patel"
+        ],
+        [
+         "Oils & fluids",
+         "329",
+         "Active",
+         "04 Jan 2025 · A. Hughes",
+         "30 Sep 2025 · A. Hughes"
+        ],
+        [
+         "Seasonal (winter 2025)",
+         "0",
+         "Retired",
+         "01 Oct 2025 · R. Patel",
+         "03 Mar 2026 · R. Patel"
+        ],
+        [
+         "Suspension & steering",
+         "736",
+         "Active",
+         "04 Jan 2025 · A. Hughes",
+         "19 Feb 2026 · R. Patel"
+        ],
+        [
+         "Tools & workshop",
+         "268",
+         "Active",
+         "07 Jul 2025 · A. Hughes",
+         "07 Jul 2025 · A. Hughes"
+        ],
+        [
+         "Wipers & washers",
+         "97",
+         "Active",
+         "16 Mar 2026 · S. Okafor",
+         "17 Mar 2026 · S. Okafor"
+        ]
+       ],
+       "statusColumn": 2,
+       "sortBy": 0,
+       "sortDir": "asc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Export",
+         "icon": "download"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No categories yet",
+      "emptyHint": "Create the first category so products can be assigned and buyers can filter the catalogue by it.",
+      "validation": "Enter a category name of up to 40 characters that isn't already in use.",
+      "error": "Categories couldn't be loaded. Showing the last saved list.",
+      "success": "Category saved."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,204 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "readingChosen": "An invoice becomes overdue exactly when current date > due date + 7 days; status transitions automatically without manual action",
+      "behaviours": [
+       {
+        "text": "Invoice with due date more than 7 days in the past is automatically flagged with status 'Overdue'",
+        "kind": "happy"
+       },
+       {
+        "text": "Invoice exactly 7 days or fewer past due date is NOT marked overdue and does not appear on overdue list",
+        "kind": "data"
+       },
+       {
+        "text": "Overdue list displays all invoices currently marked overdue",
+        "kind": "happy"
+       },
+       {
+        "text": "Status recalculation runs on a schedule (e.g. daily) so invoices become overdue without user action",
+        "kind": "data"
+       },
+       {
+        "text": "Invoice that becomes paid or is no longer overdue is removed from the overdue list",
+        "kind": "data"
+       },
+       {
+        "text": "If due date data is missing or invalid, invoice is not marked overdue and is excluded/flagged as error",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "readingChosen": "Staff member clicks a send reminder action on an overdue invoice, triggering an outbound email containing invoice number, amount, and due date to the customer's email address",
+      "behaviours": [
+       {
+        "text": "Clicking 'Send reminder' on an overdue invoice sends an email to the customer containing invoice number, amount, and due date",
+        "kind": "happy"
+       },
+       {
+        "text": "Any logged-in staff user can trigger a reminder for any overdue invoice (no role restriction specified)",
+        "kind": "permission"
+       },
+       {
+        "text": "Attempting to send a reminder for a non-overdue invoice is rejected or button is not available",
+        "kind": "error"
+       },
+       {
+        "text": "If customer has no valid email address on file, sending fails with a clear error shown to staff",
+        "kind": "error"
+       },
+       {
+        "text": "Sending reminder for the same invoice multiple times is allowed and each attempt is independently recorded",
+        "kind": "data"
+       },
+       {
+        "text": "Confirmation shown to staff after reminder email is successfully queued/sent",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "readingChosen": "Every reminder send attempt (successful or not) is persisted as a history record with sender identity and timestamp",
+      "behaviours": [
+       {
+        "text": "Each reminder sent is stored with the sending staff user's identity and the exact date/time sent",
+        "kind": "data"
+       },
+       {
+        "text": "Reminder history is immutable (no edit/delete by staff) once recorded",
+        "kind": "data"
+       },
+       {
+        "text": "Invoice detail screen shows the full chronological list of reminders sent for that invoice",
+        "kind": "happy"
+       },
+       {
+        "text": "If sender identity cannot be determined (e.g. session issue), reminder sending is blocked rather than recorded anonymously",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "readingChosen": "When the email provider reports a delivery failure for a reminder, the system captures this and surfaces it on the invoice",
+      "behaviours": [
+       {
+        "text": "Failed email delivery (bounce, rejection, timeout) is recorded against the reminder attempt",
+        "kind": "error"
+       },
+       {
+        "text": "Invoice detail screen displays delivery failure status and reason alongside the relevant reminder history entry",
+        "kind": "error"
+       },
+       {
+        "text": "Invoice remains on the overdue list after a delivery failure (not silently marked resolved)",
+        "kind": "happy"
+       },
+       {
+        "text": "Staff can attempt to resend a reminder after a delivery failure",
+        "kind": "happy"
+       },
+       {
+        "text": "Successful delivery is distinguished from failed delivery in the history display",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "readingChosen": "Filtering is done via two independent controls (customer selector, days-overdue input/range) that can be combined",
+      "behaviours": [
+       {
+        "text": "Selecting a customer filter shows only that customer's overdue invoices",
+        "kind": "happy"
+       },
+       {
+        "text": "Entering/selecting a days-overdue filter shows only invoices overdue by that amount or matching range",
+        "kind": "happy"
+       },
+       {
+        "text": "Combining customer and days-overdue filters narrows results by both criteria simultaneously",
+        "kind": "happy"
+       },
+       {
+        "text": "Clearing filters restores the full overdue list",
+        "kind": "happy"
+       },
+       {
+        "text": "Filtering by a customer or days-overdue value with no matches shows an empty state, not an error",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-6",
+      "readingChosen": "A dedicated screen lists overdue invoices in a table with filter controls and a per-row send reminder action",
+      "behaviours": [
+       {
+        "text": "Overdue list screen renders a table with one row per overdue invoice showing key details (invoice number, customer, amount, days overdue)",
+        "kind": "happy"
+       },
+       {
+        "text": "Each row has a 'Send reminder' button that triggers the email-sending behaviour",
+        "kind": "happy"
+       },
+       {
+        "text": "Filter controls for customer and days overdue are present and visible at the top of the screen",
+        "kind": "happy"
+       },
+       {
+        "text": "Send reminder button shows a loading/disabled state while the request is in flight to prevent duplicate sends",
+        "kind": "data"
+       },
+       {
+        "text": "Screen shows an error state if the overdue list fails to load",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-7",
+      "readingChosen": "A per-invoice detail screen showing invoice fields plus the reminder history and any delivery failures",
+      "behaviours": [
+       {
+        "text": "Invoice detail screen displays amount and due date for the invoice",
+        "kind": "happy"
+       },
+       {
+        "text": "Invoice detail screen lists reminder history entries (sender, timestamp, delivery status)",
+        "kind": "happy"
+       },
+       {
+        "text": "Invoice detail screen highlights any delivery failures distinctly from successful sends",
+        "kind": "error"
+       },
+       {
+        "text": "Navigating to an invoice detail screen for a non-existent/invalid invoice ID shows a not-found error",
+        "kind": "error"
+       },
+       {
+        "text": "Send reminder action is also available from the invoice detail screen if the invoice is overdue",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

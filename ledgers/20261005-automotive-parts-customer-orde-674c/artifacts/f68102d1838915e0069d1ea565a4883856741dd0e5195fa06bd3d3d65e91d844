@@ -1,0 +1,70 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The estimate must list all 81 checklist items as individual line items under their section headings (Product/UX 8, Frontend 20, Backend 20, Integrations 5, QA 12, DevOps 10, Documentation 6), instead of estimating by screen count."
+     },
+     {
+      "n": 2,
+      "text": "Each line item must have its own low and high effort values in person-days, with subtotals per section and an overall grand total that reconcile with the line items."
+     },
+     {
+      "n": 3,
+      "text": "Each of the 33 first-release scope items must be mapped to at least one line item in the estimate."
+     },
+     {
+      "n": 4,
+      "text": "The 'Payments' line items must be scoped to staff manually setting invoice status to unpaid, paid or overdue, excluding any online payment collection."
+     },
+     {
+      "n": 5,
+      "text": "The 'Order amendments' line item must be scoped to staff amending orders only before dispatch."
+     },
+     {
+      "n": 6,
+      "text": "Authorization, user management, customer management, and permission-testing items must be based on exactly three roles (customer user, staff, admin), with staff managing customers and companies and only admins managing users, products and price lists."
+     },
+     {
+      "n": 7,
+      "text": "Order cancellation and order state transition items must allow both customer users and staff to cancel an order only until it is dispatched."
+     },
+     {
+      "n": 8,
+      "text": "Invoice line items must be scoped so invoices are created automatically on dispatch and are never changed by pre-dispatch order amendments."
+     },
+     {
+      "n": 9,
+      "text": "The 'ERP CSV import' and 'Import testing' items must be scoped to a daily scheduled pickup of a stock-quantity-only file that is rejected wholesale (keeping previous stock) when it has bad rows or unknown SKUs."
+     },
+     {
+      "n": 10,
+      "text": "The estimate must include a numbered assumptions list covering every unconfirmed dependency, including the daily pickup frequency and other listed items."
+     },
+     {
+      "n": 11,
+      "text": "The technology proposal must recommend one technology choice with a reason for each of the 10 specified areas, including an authentication approach supporting email-and-password sign-in with email reset."
+     },
+     {
+      "n": 12,
+      "text": "The technology proposal must explain how the stack supports up to 1,000 users and 100,000 records in the first year and retains order and invoice records for at least 7 years without deletion."
+     },
+     {
+      "n": 13,
+      "text": "The technology proposal must recommend hosting in a single cloud region within the client's own cloud account."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

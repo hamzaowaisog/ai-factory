@@ -84,12 +84,12 @@ async function makeRun(specBody: unknown, opts: { estimate?: Record<string, unkn
 }
 
 /** Run a step the way the executor does: a fresh replay of the ledger, and its outputs recorded for the next step. */
-async function exec(ledger: Ledger, step: StepDef, priorFailures: StepContext["priorFailures"] = [], attempt = 1): Promise<StepOutcome> {
+async function exec(ledger: Ledger, step: StepDef, priorFailures: StepContext["priorFailures"] = [], attempt = 1, extra: Partial<StepContext> = {}): Promise<StepOutcome> {
   const state = replay(ledger.events());
   const ctx: StepContext = {
     runId: state.info.runId, ledger, writer: HUMAN_WRITER, state, project: ProjectConfig.parse({ project: "demo", repo: "/x", stack: "dotnet" }),
     policy: DEFAULT_POLICY, attempt, rung: 0, priorFailures, log: () => undefined, trace: NO_TRACE,
-    usage: async () => undefined,
+    usage: async () => undefined, ...extra,
   };
   const out = await step.run(ctx);
   if (out.kind === "done") {
@@ -140,16 +140,22 @@ describe("breakdown step", () => {
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
   });
 
-  it("parks, without asking the model, when the spec is not ready (E1)", async () => {
+  it("asks, without asking the model, when the spec is not ready (E1); an answer settles it, and after the rounds it is carried", async () => {
     const ledger = await makeRun(spec(3, { roundTrip: { droppedSpans: ["I-1"], inventedCapabilities: [] } }));
     answer = () => { throw new Error("the model must not be called"); };
     const out = await exec(ledger, breakdownStep);
-    expect(out.kind).toBe("park");
-    expect((out as { reason: string }).reason).toMatch(/E1.*dropped.*clarify/);
+    expect(out).toMatchObject({ kind: "ask", reason: expect.stringMatching(/E1.*dropped/), failures: [expect.objectContaining({ message: "source span I-1 was dropped" })] });
     expect(calls).toHaveLength(0);
-    // a settled spec that still fails E1 needs the requirements changed: questions cannot settle a dropped span
-    const settled = await makeRun(spec(3, { roundTrip: { droppedSpans: ["I-1"], inventedCapabilities: [] }, settled: [] }));
-    expect((await exec(settled, breakdownStep) as { reason: string }).reason).toMatch(/need the requirements changed/);
+    // an answer that settles the failure lets the breakdown go on, and the model reads the answer
+    answer = breakdownAnswer(breakdown(3));
+    const gateAnswers = [{ id: "Q-4", step: "breakdown", question: "Is the dropped sentence in scope?", answer: "No: leave it out of the estimate", by: "factory", how: "assumed" as const, settles: ["source span I-1 was dropped"] }];
+    expect((await exec(ledger, breakdownStep, [], 1, { gateAnswers })).kind).toBe("done");
+    expect(asked[0]).toContain("Q-4: Is the dropped sentence in scope? → No: leave it out of the estimate");
+    // after the rounds of questions an open failure is carried as an open risk instead
+    const carried = await makeRun(spec(3, { roundTrip: { droppedSpans: ["I-1"], inventedCapabilities: [] } }));
+    const done = await exec(carried, breakdownStep, [], 5, { carryOn: true });
+    expect(done.kind).toBe("done");
+    expect((done as { data: { openRisks: string[] } }).data.openRisks).toEqual([expect.stringMatching(/^Open risk: source span I-1 was dropped \(gate E1 still fails after 2 rounds of questions/)]);
   });
 
   it("goes back to the specify step, without asking the model, when a spec from before settling has problems a question settles", async () => {
@@ -225,11 +231,29 @@ describe("breakdown step", () => {
     expect(e.assumptions.filter((a) => a.startsWith("Factory decision (hands-off"))).toHaveLength(4);
   });
 
-  it("hands-off: parks when the small call still leaves a requirement with no task", async () => {
+  it("hands-off: fails for questions, never parks, when the small call still leaves a requirement with no task; after the rounds it carries it", async () => {
     const ledger = await makeRun(spec(3), { estimate: { humanReview: false } });
     answer = (system) => (isPatch(system) ? { tasks: [], kinds: [] } : messy());
     const out = await exec(ledger, breakdownStep, [], 2);
-    expect(out).toMatchObject({ kind: "park", reason: expect.stringMatching(/could not settle it hands-off.*REQ-2 has no task/) });
+    expect(out).toMatchObject({ kind: "fail", gate: true, failures: expect.arrayContaining([expect.objectContaining({ message: expect.stringMatching(/REQ-2/) })]) });
+    // the rounds are used up: the breakdown goes on, and the estimate states the gap as an open risk
+    const done = await exec(ledger, breakdownStep, [], 5, { carryOn: true });
+    expect(done.kind).toBe("done");
+    expect((done as { data: { openRisks: string[] } }).data.openRisks.join("\n")).toMatch(/^Open risk: .*REQ-2.*\(gate E2 still fails after 2 rounds of questions/m);
+    calls = [];
+    const b = Breakdown.parse(ledger.getJson(replay(ledger.events()).steps.get("breakdown")!.outputs[0]!));
+    answer = (system) => { if (system.includes("sizing the tasks")) return sizing(b.tasks); throw new Error("unscripted"); };
+    const est = await exec(ledger, estimateStep);
+    const e = Estimate.parse(ledger.getJson((est as { outputs: Record<string, string> }).outputs.estimate!));
+    expect(e.assumptions.some((a) => /^Open risk: .*REQ-2.*gate E2/.test(a))).toBe(true);
+  });
+
+  it("with review, once the failures were asked about, the retry fails for the next round instead of a waiver card", async () => {
+    const ledger = await makeRun(spec(3));
+    answer = () => messy();
+    const gateAnswers = [{ id: "Q-4", step: "breakdown", question: "Keep the audit log?", answer: "No", by: "Ann", how: "answered" as const, settles: [] }];
+    const out = await exec(ledger, breakdownStep, [], 3, { gateAnswers });
+    expect(out).toMatchObject({ kind: "fail", gate: true });
   });
 
   it("hands-off keeps the first try: it fails with the failures fed back, as with review", async () => {
