@@ -1,0 +1,85 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { contractDiff, contractMatches, contractProblems, contractSummary, readContract } from "./contract.js";
+import { DEFAULT_POLICY } from "./policy.js";
+
+// the document a .NET 9 minimal API wrote at build time, with no network (the spike of 2026-10-05)
+const builtText = readFileSync(new URL("./fixtures/dotnet9-built.json", import.meta.url), "utf8");
+const CONTRACT = `openapi: 3.0.3
+info: { title: Clinic portal, version: "1" }
+paths:
+  /api/sign-in:
+    post:
+      operationId: signIn
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/SignIn" } } } }
+      responses:
+        "200": { description: signed in, content: { application/json: { schema: { $ref: "#/components/schemas/Session" }, example: { message: Signed in, userId: 1 } } } }
+        "400": { description: bad email, content: { application/json: { schema: { $ref: "#/components/schemas/Problem" }, example: { error: Enter a valid email } } } }
+  /api/appointments/today:
+    get:
+      operationId: listToday
+      responses:
+        "200":
+          description: today's appointments
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Appointment" } }
+              example: [{ id: 1, patient: Amina Yusuf, time: "09:30", status: Confirmed }]
+components:
+  schemas:
+    SignIn: { type: object, required: [email], properties: { email: { type: string } } }
+    Session: { type: object, required: [message, userId], properties: { message: { type: string }, userId: { type: integer } } }
+    Problem: { type: object, required: [error], properties: { error: { type: string } } }
+    Appointment: { type: object, required: [id, patient, time, status], properties: { id: { type: integer }, patient: { type: string }, time: { type: string }, status: { type: string } } }
+`;
+const contract = readContract(CONTRACT)!;
+const built = () => JSON.parse(builtText) as Record<string, any>;
+const gate = (b: string | undefined) => contractMatches.predicate({ contract: { text: CONTRACT }, built: { ...(b === undefined ? {} : { text: b }), path: "Api/openapi/built.json" } }, DEFAULT_POLICY);
+
+describe("the locked API contract", () => {
+  it("reads YAML or JSON, lists its operations for the card, and refuses what is not OpenAPI", () => {
+    expect(contractSummary(contract)).toEqual(["POST /api/sign-in -> 200, 400", "GET /api/appointments/today -> 200"]);
+    expect(readContract(builtText)).toBeTruthy();
+    expect(readContract("just: text")).toBeUndefined();
+    expect(readContract("{ not yaml")).toBeUndefined();
+  });
+
+  it("must be complete before it is locked: OpenAPI 3.0, an operationId and an example per JSON response", () => {
+    expect(contractProblems(contract)).toEqual([]);
+    const bad = readContract(CONTRACT.replace("openapi: 3.0.3", "openapi: 3.1.0").replace("      operationId: listToday\n", "").replace(", example: { error: Enter a valid email }", ""))!;
+    expect(contractProblems(bad).join("\n")).toMatch(/OpenAPI 3\.1\.0[\s\S]*POST \/api\/sign-in 400 has no example[\s\S]*GET \/api\/appointments\/today has no operationId/);
+  });
+
+  it("the document a real .NET 9 build wrote matches: tags, descriptions and int32 formats are not differences", () => {
+    expect(contractDiff(contract, built())).toEqual([]);
+    expect(gate(builtText)).toMatchObject({ passed: true });
+  });
+
+  it("names a renamed field, a changed type, a missing status, a missing route and an extra route", () => {
+    const renamed = built();
+    const s = renamed.components.schemas.Appointment;
+    s.properties.patientName = s.properties.patient; delete s.properties.patient; s.required = ["id", "patientName", "time", "status"];
+    expect(contractDiff(contract, renamed)).toEqual([
+      "missing in the API: GET /api/appointments/today 200 body[].patient required",
+      "missing in the API: GET /api/appointments/today 200 body[].patient",
+      "not in the contract: GET /api/appointments/today 200 body[].patientName required",
+      "not in the contract: GET /api/appointments/today 200 body[].patientName",
+    ]);
+    const g = gate(JSON.stringify(renamed));
+    expect(g.passed).toBe(false);
+    expect(g.failures![0]!.message).toMatch(/does not match the locked contract: missing in the API: .*patient/);
+
+    const typed = built(); typed.components.schemas.Session.properties.userId = { type: "string" };
+    expect(contractDiff(contract, typed)).toEqual(["POST /api/sign-in 200 body.userId: the contract says integer, the API has string"]);
+    const noStatus = built(); delete noStatus.paths["/api/sign-in"].post.responses["400"];
+    expect(contractDiff(contract, noStatus)).toEqual(["missing in the API: POST /api/sign-in 400"]);
+    const noRoute = built(); delete noRoute.paths["/api/appointments/today"];
+    expect(contractDiff(contract, noRoute)).toEqual(["missing in the API: GET /api/appointments/today"]);
+    const more = built(); more.paths["/api/extra"] = { get: { responses: { "200": { description: "OK" } } } };
+    expect(contractDiff(contract, more)).toEqual(["not in the contract: GET /api/extra"]);
+  });
+
+  it("fails plainly when the build wrote no document", () => {
+    expect(gate(undefined)).toMatchObject({ passed: false, details: expect.stringMatching(/did not write the API's OpenAPI document at Api\/openapi\/built\.json/) });
+  });
+});
