@@ -180,6 +180,18 @@ export const ProjectConfig = z.object({
     path: z.string().refine((p) => !/^[a-z+]+:\/\/|^git@/i.test(p), "a local path, not a URL"),
     role: z.string(),
   })).optional(),
+  /**
+   * A full-stack product's API contract: one OpenAPI file that both the API repo and the web repo hold, written by the plan
+   * (when the repo has none yet), approved on the plan card and locked with the tests. A .NET project names the document its
+   * build writes (`built`): it must say what the contract says. A Node project gets its client and test handlers generated from it.
+   */
+  contract: z.object({
+    file: z.string().default("contracts/openapi.yaml"),
+    /** .NET: the OpenAPI document the build writes (Microsoft.Extensions.ApiDescription.Server), relative to the repo */
+    built: z.string().optional(),
+    /** Node: where the API answers; the generated client calls it. ponytail: a fixed address, read it from the environment when one app serves several places */
+    apiUrl: z.string().default("http://localhost:5080"),
+  }).optional(),
   noGo: z.array(z.string()).default([]),
   /** USD per million tokens for models the factory has no price for (e.g. a GPT model). */
   prices: z.record(z.string(), z.object({

@@ -5,6 +5,9 @@ import {
 } from "../contracts/index.js";
 import { checkEvidence } from "../context/tools.js";
 import { buildRepoMap } from "../context/repomap.js";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { contractProblems, contractSummary, readContract } from "../gates/contract.js";
 import { failure } from "../gates/engine.js";
 import { anchorsResolve, planChecks } from "../gates/predicates.js";
 import { isConfigIntegrityPath } from "../gates/protected.js";
@@ -130,6 +133,14 @@ If nothing exists yet for a span (new behaviour), list it under notFound with wh
 
 // ---------- plan ----------
 
+/** What the plan is asked for when it writes the product's API contract. */
+const contractRules = (file: string): string => `API CONTRACT. This product has a web app and an API in two repos, and both are built against one contract.
+- Give one more stub: path "${file}", content the full OpenAPI 3.0.3 document (YAML) of every operation the approved screens and requirements need. It is outside every task's fileScope: nobody implements it, both sides follow it.
+- Every operation has an operationId (camelCase), its request body where it takes one, and every status code it answers with.
+- Schemas go under components/schemas with "required" lists. Take the field names and types from the approved screens' sample data; an id is an integer.
+- Every JSON response carries an "example" with believable data (the approved screens' sample rows): the web app's tests run against these examples.
+- The web app calls the API only through the client generated from this file (lib/api); do not plan a hand-written client.`;
+
 export const planStep: StepDef = {
   key: "plan", stage: "plan", templateVersion: "2",
   // a design approved in this run counts; with none the key is dropped, so the hash is what it always was
@@ -157,6 +168,10 @@ export const planStep: StepDef = {
     // a design built with a kit: the scaffold's files are known now, so the design-system task comes first and each screen task
     // fills in its container (docs/estimates-design.md, "Kit and scaffold"); a change request plans only the changed screens
     const scaf = approvedDesign ? scaffoldOfRun(ctx, "store") : undefined;
+    // a full-stack product's API contract (the project's `contract`): the repo's own when it has one (locked: the plan follows it),
+    // otherwise this plan writes it, a person approves it on the card and it is locked with the tests
+    const cfile = ctx.project.contract?.file;
+    const lockedContract = cfile && snap.files.includes(cfile) ? readFileSync(join(snap.root, cfile), "utf8") : undefined;
     const approvedTasks = ref ? ctx.ledger.getJson<Breakdown>(ref.breakdownSha).tasks : [];
     const map = buildRepoMap(snap.root, snap.files, { budgetTokens: 4000, focus: cb.claims.flatMap((c) => c.anchors.map((a) => a.path)) }).map;
     const impact = readImpact(ctx.state, ctx.ledger);
@@ -178,6 +193,8 @@ export const planStep: StepDef = {
         S.artifact("critic", "critic", critic),
         ...(approvedDesign ? [S.artifact("approved-design", "approved-design", approvedDesign)] : []),
         ...(impactNote ? [S.template("impact", impactNote)] : []),
+        ...(lockedContract ? [S.template("contract-locked", `API CONTRACT (locked, ${cfile}). The API and the web app are both held to this OpenAPI document: plan exactly its operations, with its paths, status codes and field names. Do not change the file and do not give a stub for it; a needed change to it is a change request.\n\n${lockedContract}`)]
+          : cfile ? [S.template("contract-new", contractRules(cfile))] : []),
         ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task, and that plan task's fileScope must include the approved screen's file." : "") + (newLook ? " The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them." : ""))] : []),
         // a direct build whose approved design is a new look (a restyle to the client's reference) puts the tokens in once too
         ...(dref ? [S.template("design-scope-lock", "This plan builds an APPROVED DESIGN. Every task delivers requirements of the approved spec (its reqs), and nothing else: anything more is a change to the design, not part of this plan." + (approvedDesign ? " Every approved screen must be delivered by a task that serves its requirements, and that task's fileScope must include the approved screen's file." : ""))] : []),
@@ -194,7 +211,15 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
     const fs: Failure[] = [];
     const waivable: BuildFailed[] = [];
     for (const m of scaf ? checkPlanScaffold(plan, scaf) : []) fs.push(failure("plan-scaffold", m));
-    for (const st of plan.stubs) if (!plan.tasks.some((t) => t.fileScope.some((g) => g === st.path || st.path.startsWith(g.replace(/\*.*$/, ""))))) fs.push(failure("plan-stub", `Stub ${st.path} is outside every task's file scope`));
+    const contractStub = cfile ? plan.stubs.find((st) => st.path === cfile) : undefined;
+    if (lockedContract && contractStub) fs.push(failure("plan-contract", `${cfile} is the locked API contract: the plan may not rewrite it. Drop its stub.`));
+    if (cfile && !lockedContract) {
+      const doc = contractStub ? readContract(contractStub.content) : undefined;
+      if (!contractStub) fs.push(failure("plan-contract", `No stub for the API contract. Give ${cfile} as a stub: the full OpenAPI 3.0 document of every operation the screens call.`));
+      else if (!doc) fs.push(failure("plan-contract", `${cfile} is not an OpenAPI document (it needs "openapi" and "paths").`));
+      else fs.push(...contractProblems(doc).map((m) => failure("plan-contract", m)));
+    }
+    for (const st of plan.stubs) if (st.path !== cfile && !plan.tasks.some((t) => t.fileScope.some((g) => g === st.path || st.path.startsWith(g.replace(/\*.*$/, ""))))) fs.push(failure("plan-stub", `Stub ${st.path} is outside every task's file scope`));
     if (impact) fs.push(...planCoverageFailures(plan, impact));
     const planSha = ctx.ledger.putJson(plan);
     const specSha = ctx.state.steps.get("specify")!.outputs[0]!;
@@ -298,7 +323,16 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
         return `- ${t.id} ${t.title} → ${t.reqs.join(", ")}${acs.length ? `; must pass ${acs.join(", ")}` : "; builds towards a later task (no criteria of its own)"}`;
       });
     })(),
-    ...(a.plan.stubs.length ? [``, `Stub commit (throws NotImplemented until implemented): ${a.plan.stubs.map((s) => s.path).join(", ")}`] : []),
+    ...(() => {
+      const cfile = ctx.project.contract?.file;
+      const stubs = a.plan.stubs.filter((s) => s.path !== cfile);
+      const doc = cfile ? readContract(a.plan.stubs.find((s) => s.path === cfile)?.content ?? "") : undefined;
+      return [
+        ...(stubs.length ? [``, `Stub commit (throws NotImplemented until implemented): ${stubs.map((s) => s.path).join(", ")}`] : []),
+        // approving the plan approves the contract: from then on it is locked with the tests, for the API and the web app alike
+        ...(doc ? [``, `## API contract (${cfile}; locked with the tests once you approve)`, ...contractSummary(doc).map((l) => `- ${l}`)] : []),
+      ];
+    })(),
     ``,
     `## Critic findings (${a.critic.findings.length})`,
     ...a.critic.findings.map((f) => `- [${f.severity}] ${f.reqId ?? ""} ${f.finding}`),

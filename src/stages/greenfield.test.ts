@@ -40,6 +40,17 @@ const spec = {
 };
 
 // (a drafted spec is linted: its Then names something observable)
+const CONTRACT = `openapi: 3.0.3
+info: { title: Clinic portal, version: "1" }
+paths:
+  /api/sign-in:
+    post:
+      operationId: signIn
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email], properties: { email: { type: string } } } } } }
+      responses:
+        "200": { description: signed in, content: { application/json: { schema: { type: object, required: [message], properties: { message: { type: string } } }, example: { message: Signed in } } } }
+`;
+let planContract: string | undefined = CONTRACT;
 const draft = { requirements: spec.requirements.map((r) => ({ ...r, acceptance: r.acceptance.map((a) => ({ ...a, then: "the screen shows Signed in" })) })), nfrs: [], outOfScope: [], assumptions: [], suggestions: [] };
 
 async function designRun(): Promise<string> {
@@ -72,7 +83,9 @@ function answerFor(system: string, user: string): unknown {
     return {
       tasks: [{ id: "TASK-1", title: "Sign-in screen", reqs: ["REQ-1"], fileScope: [...dsFiles, ...containers], exemplars: [], conventions: [], dependsOn: [], plannedLoc: 20, approach: "wire the sign-in form in the screen's container" }],
       options: [{ id: "O-1", summary: "the screen's container", simplest: true, tradeoffs: "none" }, { id: "O-2", summary: "a separate auth module", simplest: false, tradeoffs: "more code" }],
-      chosen: "O-1", adr: "Build it in the container the scaffold made.", protectedPathsDeclared: [], newDependencies: [], stubs: [],
+      chosen: "O-1", adr: "Build it in the container the scaffold made.", protectedPathsDeclared: [], newDependencies: [],
+      // asked for the product's API contract (a project with `contract`): the plan gives it as a stub, unless this test leaves it out
+      stubs: system.includes("API CONTRACT.") && planContract ? [{ path: "contracts/openapi.yaml", content: planContract, reason: "the API contract" }] : [],
     };
   }
   if (system.includes("review a finished change")) return { findings: [] };
@@ -110,6 +123,8 @@ class NodeLab implements ContainerRuntime {
   jobs: { fileScope: string[]; system: string }[] = [];
   /** an agent that adds a package on its own (edits package.json), to show the checks still catch it */
   addsPackage?: "test-writer";
+  /** an implementer that rewrites the locked API contract */
+  editsContract = false;
   /** the screen's container, as the planner scoped it */
   container = "";
   async version() { return "fake"; }
@@ -130,6 +145,7 @@ class NodeLab implements ContainerRuntime {
         writeFileSync(join(work, "tests", "sign-in.test.ts"), `import { it, expect } from "vitest";\nit("${AC}", () => { expect(1).toBe(1); });\n`);
         result({ tests: [{ acId: "AC-1.1", file: "tests/sign-in.test.ts", name: AC }], characterisation: [], probes: [], notes: "" });
       } else {
+        if (this.editsContract) writeFileSync(join(work, "contracts", "openapi.yaml"), readFileSync(join(work, "contracts", "openapi.yaml"), "utf8").replace("message:", "text:"));
         this.container = job.fileScope.find((f) => f.endsWith("container.tsx"))!;
         writeFileSync(join(work, this.container), `${readFileSync(join(work, this.container), "utf8")}\n${DONE}\n`);
         result({ done: true, filesChanged: [this.container], notes: "" });
@@ -142,6 +158,14 @@ class NodeLab implements ContainerRuntime {
       // as real npm does: an install with no lockfile writes one (a real-container run parked on this file twice)
       if (!existsSync(join(src!, "package-lock.json"))) writeFileSync(join(src!, "package-lock.json"), `${JSON.stringify({ lockfileVersion: 3, packages: Object.fromEntries(Array.from({ length: 2000 }, (_, i) => [`node_modules/p${i}`, { version: "1.0.0" }])) }, null, 2)}\n`);
       return 0;
+    }
+    if (s.cmd.includes("orval")) {
+      // the generator: reads the contract and its settings in the checkout, writes the client and its test handlers
+      const ops = [...readFileSync(join(src!, "contracts", "openapi.yaml"), "utf8").matchAll(/operationId: (\w+)/g)].map((m) => m[1]!);
+      mkdirSync(join(src!, "lib", "api"), { recursive: true });
+      writeFileSync(join(src!, "lib", "api", "client.ts"), ops.map((o) => `export const ${o} = async () => fetch("http://localhost:5080");\n`).join(""));
+      writeFileSync(join(src!, "lib", "api", "client.msw.ts"), `export const getApiMock = () => [];\n`);
+      return existsSync(join(src!, "orval.config.cjs")) && existsSync(join(src!, "node_modules")) ? 0 : 1;
     }
     if (s.cmd.includes("vitest")) {
       const tests = existsSync(join(src!, "tests")) ? readdirSync(join(src!, "tests")).filter((f) => f.endsWith(".test.ts")) : [];
@@ -190,6 +214,7 @@ beforeEach(() => {
   setSkipInfra(true);
   setProviderFactory(() => provider);
   prompts.length = 0;
+  planContract = CONTRACT;
 });
 
 describe("a new product end to end (greenfield, fakes)", () => {
@@ -297,6 +322,64 @@ describe("a new product end to end (greenfield, fakes)", () => {
     expect(r.status).not.toBe("delivered");
     expect(`${r.message}\n${readFileSync(join(ledger.dir, "run.log"), "utf8")}`).toMatch(/package\.json/);
     expect(replay(ledger.events()).steps.get("deliver")?.status).not.toBe("completed");
+  });
+
+  // a full-stack product (the project's `contract`): the web app's side of one locked API contract
+  describe("held to an API contract", () => {
+    const start = async () => {
+      writeFileSync(join(home, "projects", "shop.yaml"), stringify({ project: "shop", repo, stack: "node", design: { fidelity: false }, contract: {} }));
+      const runId = await createRun("A portal where clinic staff sign in", "shop", "tester", { mode: "greenfield", fromDesign: approvedDesign(await designRun()) });
+      return { runId, ledger: Ledger.open(runId), first: await execute(runId) };
+    };
+
+    it("the plan writes the contract, the card shows it, the client is generated from it, and both are locked with the tests", async () => {
+      const { runId, ledger, first } = await start();
+      expect(first.status, first.message).toBe("waiting");
+      const card = replay(ledger.events()).openCard!;
+      const text = readFileSync(join(ledger.dir, "cards", `${card.cardId}.md`), "utf8");
+      expect(text).toMatch(/## API contract \(contracts\/openapi\.yaml; locked with the tests once you approve\)\n- POST \/api\/sign-in -> 200/);
+      expect(text).not.toMatch(/Stub commit/);
+      await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 6), by: "lead" });
+      const done = await execute(runId);
+      expect(done.status, done.message).toBe("delivered");
+      const s = replay(ledger.events());
+      const tree = execFileSync("git", ["ls-tree", "-r", "--name-only", `factory/${runId}`], { cwd: repo, encoding: "utf8" });
+      for (const f of ["contracts/openapi.yaml", "lib/api/client.ts", "lib/api/client.msw.ts", "orval.config.cjs", "package-lock.json"]) expect(tree.split("\n"), f).toContain(f);
+      // the generator and what its output needs are pinned dev packages; the generated client is part of the scaffold, not the agents' change
+      const pkg = JSON.parse(execFileSync("git", ["show", `factory/${runId}:package.json`], { cwd: repo, encoding: "utf8" })) as { devDependencies: Record<string, string> };
+      expect(pkg.devDependencies).toMatchObject({ orval: "7.21.0", msw: "2.15.0", "@faker-js/faker": "9.9.0" });
+      const scaffoldCommit = (s.steps.get("stub-commit")!.data!.scaffold as { commit: string }).commit;
+      expect(execFileSync("git", ["show", "--stat", "--format=%s", scaffoldCommit], { cwd: repo, encoding: "utf8" })).toMatch(/API client and test handlers generated from contracts\/openapi\.yaml[\s\S]*lib\/api\/client\.ts/);
+      const lock = ledger.getJson<{ lock: { file: string }[] }>(s.steps.get("author-tests")!.outputs[0]!);
+      expect(lock.lock.map((l) => l.file)).toEqual(expect.arrayContaining(["tests/sign-in.test.ts", "contracts/openapi.yaml", "lib/api/client.ts", "lib/api/client.msw.ts", "orval.config.cjs"]));
+      // both agents were told to go through the generated client, and could not write to the locked files
+      const told = lab.jobs.map((j) => j.system).join("\n");
+      expect(told).toMatch(/only through the generated client in lib\/api\/client\.ts/);
+      expect(told).toMatch(/generated handlers from lib\/api\/client\.msw\.ts/);
+      expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+    });
+
+    it("a plan with no contract, or an incomplete one, is sent back", async () => {
+      planContract = undefined;
+      const none = await start();
+      expect(none.first.status).toBe("parked");
+      expect(none.first.message).toMatch(/No stub for the API contract/);
+      planContract = CONTRACT.replace("      operationId: signIn\n", "").replace(", example: { message: Signed in }", "");
+      const thin = await start();
+      expect(thin.first.message).toMatch(/has no operationId|has no example/);
+    });
+
+    it("an implementer that changes the locked contract is stopped", async () => {
+      const { runId, ledger } = await start();
+      await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "lead" });
+      lab.editsContract = true;
+      const r = await execute(runId);
+      expect(r.status).not.toBe("delivered");
+      const s = replay(ledger.events());
+      expect(s.gates.filter((g) => !g.passed).map((g) => g.gateId)).toContain("task.lock-set-unchanged");
+      expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/Changed locked test file contracts\/openapi\.yaml/);
+      expect(s.steps.get("deliver")?.status).not.toBe("completed");
+    });
   });
 
   // the PR #17 review, item 8: the fidelity check on a new product's app, in a real browser. The app is a stand-in server (the fake

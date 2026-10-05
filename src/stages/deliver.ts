@@ -23,10 +23,13 @@ import { S, think } from "./think.js";
 import { changeBase, ensureWorktree } from "./workspace.js";
 import { recordTestLesson } from "../context/lessons.js";
 import { followUpSection, readImpact } from "./impact.js";
+import { contractLockFiles } from "./contract.js";
 
 /** Only a delivered run teaches the next one where its tests go; never fails delivery. */
 function learnFrom(ctx: StepContext, wt: string, lockedFiles: string[]): void {
-  try { recordTestLesson(ctx.project.project, wt, lockedFiles); } catch (e) { ctx.log(`deliver: couldn't save the repo lesson: ${(e as Error).message}`); }
+  // (the locked API contract and its generated client are locked with the tests, but are not tests)
+  const notTests = contractLockFiles(ctx.project, wt);
+  try { recordTestLesson(ctx.project.project, wt, lockedFiles.filter((f) => !notTests.includes(f))); } catch (e) { ctx.log(`deliver: couldn't save the repo lesson: ${(e as Error).message}`); }
 }
 
 type Spec = z.infer<typeof SpecDraft>;

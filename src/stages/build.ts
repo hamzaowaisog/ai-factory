@@ -20,9 +20,11 @@ import { buildPack } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
 import { sha256 } from "../util/hash.js";
 import { factoryHome } from "../util/paths.js";
-import { produceDotnetTests, skippableKnownFailures, type Probe, type ProduceOutput } from "../verify/dotnet.js";
+import { buildCachePath, produceDotnetTests, skippableKnownFailures, type Probe, type ProduceOutput } from "../verify/dotnet.js";
 import type { ProjectConfig } from "../config/project.js";
-import { installIsCurrent, installNodeModules, labFor, markInstalled } from "../verify/lab.js";
+import { installIsCurrent, installNodeModules, labFor, markInstalled, runNodeOffline } from "../verify/lab.js";
+import { contractMatches } from "../gates/contract.js";
+import { CLIENT_CMD, CLIENT_DIR, contractLockFiles, prepareClient } from "./contract.js";
 import { authorIntro, implementIntro, notFoundHint } from "./stack-text.js";
 import type { Expectations } from "../verify/validate.js";
 import { approvedDesignFor } from "./design-inputs.js";
@@ -288,9 +290,32 @@ export const stubCommitStep: StepDef = {
       // a generated Node app has no lockfile until its first install writes one: install now and commit it as part of the
       // scaffold, so every later install is the same, and the file is neither charged to the test writer nor counted as the
       // agents' change (a real-container greenfield run parked on each)
-      if (scaffoldCommit && ctx.project.stack === "node" && existsSync(join(wt, "package.json")) && !existsSync(join(wt, "package-lock.json"))) {
-        await ensurePackages(ctx, scaffoldCommit, wt);
+      const firstInstall = !!scaffoldCommit && ctx.project.stack === "node" && existsSync(join(wt, "package.json")) && !existsSync(join(wt, "package-lock.json"));
+      // a web app held to an API contract (the project's `contract`): the contract goes in now, and the generator joins the app's
+      // dev packages before the first install, so the lockfile covers it
+      // ponytail: a fresh app only; an app that already has a lockfile needs its lockfile updated first (not built)
+      const c = ctx.project.contract;
+      const planned = c ? plan.stubs.find((st) => st.path === c.file) : undefined;
+      const client = !!c && firstInstall && (!!planned || existsSync(join(wt, c.file)));
+      if (c && client) {
+        if (planned) { mkdirSync(dirname(join(wt, c.file)), { recursive: true }); writeFileSync(join(wt, c.file), planned.content); }
+        prepareClient(wt, c.file, c.apiUrl);
+        scaffoldCommit = await commitAll(wt, `factory: API contract ${c.file} and its client settings for ${ctx.runId}`);
+      }
+      if (firstInstall) {
+        await ensurePackages(ctx, scaffoldCommit!, wt);
         if (existsSync(join(wt, "package-lock.json"))) scaffoldCommit = await commitAll(wt, `factory: lockfile from the scaffold's first install for ${ctx.runId}`);
+      }
+      // the client and its test handlers, generated from the contract with no network: factory-owned code, locked with the contract
+      if (c && client) {
+        ctx.log(`stub-commit: generating the API client and test handlers from ${c.file}`);
+        const g = await runNodeOffline(runtime(), {
+          runId: ctx.runId, key: "client", dir: wt, image: ctx.project.node.image, timeoutSec: ctx.project.node.buildTimeoutSec, cmd: CLIENT_CMD,
+          onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "client", data: { id, role: "producer" } }, ctx.writer); },
+          onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "client", data: { id } }, ctx.writer); },
+        });
+        if (!g.ok || !existsSync(join(wt, CLIENT_DIR, "client.ts"))) return { kind: "park", reason: `The API client could not be generated from ${c.file}: ${g.log.split("\n").filter(Boolean).slice(-4).join(" ")}` };
+        scaffoldCommit = await commitAll(wt, `factory: API client and test handlers generated from ${c.file} for ${ctx.runId}`);
       }
       scaffoldRec = { target: scaf.target, source: scaf.source, why: scaf.detected.why, kit: l.kit, root: l.root, fresh: l.fresh, written, kept: l.kept, protected: l.protected, screens: l.screens, removed: l.removed, designSystem: l.designSystem, notes: l.notes, summary: scaffoldSummary(l), ...(scaf.changed ? { changed: scaf.changed } : {}), ...(scaffoldCommit ? { commit: scaffoldCommit } : {}) };
       ctx.log(`stub-commit: scaffold ${l.target}: ${written.length} files written${l.kept.length ? `, ${l.kept.length} kept (the repo's own)` : ""}`);
@@ -427,13 +452,14 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
         S.artifact("acs", "acceptance-criteria", acs),
         ...(screens.length ? [S.artifact("approved-screens", "approved-screens", screens), S.template("approved-screens-rules", `The approved-screens section lists the screens a person approved for these requirements: route, states, and the exact words on them (title, buttons, field labels, column headers, empty, error, success and validation messages, toasts; "change" for a design note). Where a criterion is about what the user sees or is told, take the expected values from there, word for word, and do not invent other wording. A criterion with no screen there is tested as before.`)] : []),
         S.artifact("stubs", "stubs", plan.stubs.map((s) => ({ path: s.path, content: s.content }))),
+        ...contractNote(ctx.project, wt, "tests"),
         ...(priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "Your previous attempt was rejected:\n" + priorFailures.slice(0, 20).map((f) => `- [${f.check}] ${f.message}`).join("\n") }] : []),
         S.task(`Write the acceptance and characterisation tests now.${priorFailures.length ? " The previous attempt failed for the reasons above; fix them." : ""}`),
         S.recap(["one test per AC", "tests fail now for the right reason", "characterisation tests pass today", "don't touch production code"]),
       ],
     });
     const r = await new ClaudeAgentRunner(rt, {
-      runId: ctx.runId, key: `author-tests/${ctx.attempt}`, fileScope: TEST_SCOPE, lockedFiles: [], extraProtected: [], onProgress: agentTracer(ctx, "test writer"),
+      runId: ctx.runId, key: `author-tests/${ctx.attempt}`, fileScope: TEST_SCOPE, lockedFiles: [], extraProtected: contractLockFiles(ctx.project, wt), onProgress: agentTracer(ctx, "test writer"),
       protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
       onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "author-tests", data: { id, role: "agent" } }, ctx.writer); },
       onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "author-tests", data: { id } }, ctx.writer); },
@@ -497,7 +523,8 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
     const acIds = new Set(acs.filter((a) => a.level === "api").map((a) => a.id));
     const lock: Lock = {
       tests, characterisation, probes: out.probes.filter((p) => acIds.has(p.acId)),
-      lock: changed.filter((c) => c.status !== "D").map((c) => ({ file: c.path, sha: sha256(readFileSync(join(wt, c.path))) })),
+      // the API contract and the client generated from it are locked with the tests: nobody changes them after this
+      lock: [...changed.filter((c) => c.status !== "D").map((c) => c.path), ...contractLockFiles(ctx.project, wt)].map((file) => ({ file, sha: sha256(readFileSync(join(wt, file))) })),
     };
     // design allows one family until a second vendor's coding runner exists; say so in the evidence
     const implementer = modelFor(ctx.project, "implement", 0).model;
@@ -721,6 +748,7 @@ export function implementStep(taskId: string): StepDef {
 - Server code, API clients and validation go in the other files of your scope.`)] : []),
           ...(designSystemTask ? [S.template("design-system", `This is the design-system task. The generated files are already in the repo (the scaffold commit). Finish the wiring:\n${scaf!.designSystem.todo.map((t) => `- ${t}`).join("\n") || "- nothing left to wire: check the app builds"}\nDo not change the generated files.`)] : []),
           S.artifact("acs", "acceptance-criteria", spec.requirements.filter((r) => task.reqs.includes(r.id))),
+          ...contractNote(ctx.project, wt, "code"),
           S.artifact("tests", "locked-tests", myTests),
           S.pointers([...task.fileScope.map((p) => ({ path: p, reason: "you may change this" })), ...task.exemplars.map((p) => ({ path: p, reason: "follow this style" })), ...myTests.map((t) => ({ path: t.file, reason: `locked test for ${t.acId}; read, don't edit` }))]),
           ...(prevChange !== undefined ? [{ spec: { id: "previous-change", source: "artifact" as const, trust: "derived" as const, placement: "user" as const }, artifactKind: "diff",
@@ -769,7 +797,7 @@ export function implementStep(taskId: string): StepDef {
       });
       const run = storeRun(ctx, produced);
       // a failed build marks every expected test "Build failed": that's the build, not a regression
-      const gated = await gateAll(ctx, key, commit, [[testExpectations, { run: run.testRun, baseline: baselineSha }]], produced.build.ok ? earlier : undefined);
+      const gated = await gateAll(ctx, key, commit, [[testExpectations, { run: run.testRun, baseline: baselineSha }], ...(produced.build.ok ? contractGate(ctx, wt, commit) : [])], produced.build.ok ? earlier : undefined);
       if (gated) {
         if (!produced.build.ok) {
           gated.failures.unshift(...produced.build.errors.slice(0, 10).map((e) => failure("build", `${e.file}:${e.line} ${e.code} ${e.msg}`)));
@@ -782,6 +810,27 @@ export function implementStep(taskId: string): StepDef {
       return { kind: "done", outputs: { diff: diffSha, testRun: run.testRun }, treeSha: commit, data: { commit, ...retry, ...(task.estimateTaskId ? { estimateTaskId: task.estimateTaskId } : {}) } };
     },
   };
+}
+
+// ---------- the locked API contract ----------
+/** What an agent is told about the contract: the API side follows it, the web side calls it through the generated client. */
+function contractNote(project: ProjectConfig, wt: string, who: "tests" | "code"): ReturnType<typeof S.template>[] {
+  const c = project.contract;
+  if (!c || !existsSync(join(wt, c.file))) return [];
+  if (project.stack === "node") return [S.template("contract", `API CONTRACT (locked: ${c.file}). The app talks to the API only through the generated client in ${CLIENT_DIR}/client.ts; never write fetch calls or response types by hand, and never edit ${CLIENT_DIR} or ${c.file}. ${who === "tests" ? `Tests that need the API start the generated handlers from ${CLIENT_DIR}/client.msw.ts with msw's setupServer (msw/node); they answer with the contract's examples, so assert on that data.` : "The tests run against handlers generated from the same contract, so use its field names exactly."}`)];
+  return [S.template("contract", `API CONTRACT (locked: ${c.file}). The API must answer exactly as this OpenAPI document says: its paths, methods, status codes and JSON field names and types. After every build the factory compares the API's own OpenAPI document with it, so declare each status code on its route (Produces) and keep the project's OpenAPI build settings. Never edit ${c.file}.\n\n${readFileSync(join(wt, c.file), "utf8")}`)];
+}
+
+/**
+ * The contract gate for a .NET API whose build writes its OpenAPI document (the project's `contract.built`): read from the lab's
+ * kept build of this commit. With `judgedBefore`, a build that is no longer kept is not an error: a task's gate judged this commit.
+ */
+function contractGate(ctx: StepContext, wt: string, commit: string, judgedBefore = false): [GateDef, Record<string, string>][] {
+  const c = ctx.project.contract;
+  if (!c?.built || ctx.project.stack !== "dotnet" || !existsSync(join(wt, c.file))) return [];
+  const file = join(buildCachePath(join(factoryHome(), "tmp", ctx.runId, "builds"), commit, ctx.project), c.built);
+  if (!existsSync(file) && judgedBefore) return [];
+  return [[contractMatches, { contract: ctx.ledger.putJson({ text: readFileSync(join(wt, c.file), "utf8") }), built: ctx.ledger.putJson({ path: c.built, ...(existsSync(file) ? { text: readFileSync(file, "utf8") } : {}) }) }]];
 }
 
 // ---------- integrate (D) ----------
@@ -845,6 +894,8 @@ export const integrateStep: StepDef = {
       [testExpectations, { run: testRun, baseline: baselineSha }],
       [lockSetUnchanged, { diff: diffSha, tests: ctx.state.steps.get("author-tests")!.outputs[0]! }],
       [diffSize, { diff: diffSha }],
+      // the API still says what the locked contract says (a commit a task already judged is not built again just for this)
+      ...contractGate(ctx, wt, head, !!reused),
       // design.size-cap: the UI change may not be bigger than the approved design allows (a skipped design allows none)
       ...(uiActual
         ? [[designSizeCap, {

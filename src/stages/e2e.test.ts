@@ -106,9 +106,12 @@ function answerFor(system: string, allowMulti = true): unknown {
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
 }
 const modelCalls: string[] = [];
+/** the planner's whole prompt, as last sent */
+let planPrompt = "";
 const provider: Provider = {
   start(model, _e, system, user): Conversation {
     modelCalls.push(model);
+    if (system.includes("plan the implementation")) planPrompt = `${system}\n${user}`;
     const repair = user.includes("Repair this spec");
     if (repair) repairCalls++;
     return {
@@ -124,6 +127,8 @@ class Lab implements ContainerRuntime {
   specs = new Map<string, ContainerSpec>();
   n = 0;
   crashOnImplement = false;
+  /** the OpenAPI document the API's build writes (a project with a locked contract), from the checkout being built */
+  builtDoc?: (src: string) => string;
   /** the repo has a test that fails on its main branch too (a known failure) */
   knownBroken = false;
   /** multi: per file scope, the files each implement attempt writes (the last entry repeats) */
@@ -170,6 +175,11 @@ class Lab implements ContainerRuntime {
         writeFileSync(join(out, "result.json"), JSON.stringify({ status: "ok", output: { done: true, filesChanged: ["src/Api/Greeter.cs"], notes: "" }, instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 8000, output_tokens: 900 }, costUsd: 0.08, turns: 9 }));
       }
       return 0;
+    }
+    if (s.cmd[1] === "build" && this.builtDoc) {
+      const src = mount("/src")!;
+      mkdirSync(join(src, "src/Api/openapi"), { recursive: true });
+      writeFileSync(join(src, "src/Api/openapi/built.json"), this.builtDoc(src));
     }
     if (multi && s.cmd[1] === "build") {
       const src = mount("/src")!;
@@ -447,6 +457,57 @@ describe("brownfield slice end to end (fakes)", () => {
     writeFileSync(join(dir, "empty.md"), "  \n");
     expect(() => readRequestFile(join(dir, "empty.md"))).toThrow(/empty/);
     expect(() => readRequestFile(join(dir, "missing.md"))).toThrow(/No such file/);
+  });
+});
+
+// a full-stack product's API repo: the contract file is in the repo (approved with the web app's plan), and the API is held to it
+describe("a .NET API held to a locked API contract (fakes)", () => {
+  // the document a real .NET 9 build wrote (the spike); the contract says the same
+  const doc = readFileSync(new URL("../gates/fixtures/dotnet9-built.json", import.meta.url), "utf8");
+  const start = async () => {
+    const repo = makeRepo();
+    const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
+    mkdirSync(join(repo, "contracts"));
+    writeFileSync(join(repo, "contracts/openapi.yaml"), doc);
+    execFileSync("git", ["add", "-A"], { cwd: repo, env });
+    execFileSync("git", ["commit", "-q", "-m", "the approved API contract"], { cwd: repo, env });
+    writeFileSync(join(process.env.FACTORY_HOME!, "projects", "demo.yaml"), stringify({ project: "demo", repo, stack: "dotnet", contract: { built: "src/Api/openapi/built.json" } }));
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "lead" });
+    return { runId, ledger, repo };
+  };
+
+  it("delivers when the document the build wrote says what the contract says; the contract is locked with the tests", async () => {
+    lab.builtDoc = () => doc;
+    const { runId, ledger } = await start();
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    const s = replay(ledger.events());
+    expect(s.gates.filter((g) => g.gateId === "contract.matches").map((g) => g.passed)).toEqual(expect.arrayContaining([true]));
+    expect(s.gates.some((g) => g.gateId === "contract.matches" && !g.passed)).toBe(false);
+    expect(ledger.getJson<{ lock: { file: string }[] }>(s.steps.get("author-tests")!.outputs[0]!).lock.map((l) => l.file)).toContain("contracts/openapi.yaml");
+    // the planner and both agents were given the locked contract
+    expect(planPrompt).toContain("API CONTRACT (locked, contracts/openapi.yaml)");
+    expect(lab.jobs.every((j) => j.system.includes("API CONTRACT (locked: contracts/openapi.yaml)"))).toBe(true);
+  });
+
+  it("an API that renames a response field is caught by the contract gate, with the difference as the failure", async () => {
+    lab.builtDoc = () => doc.replaceAll('"patient"', '"patientName"');
+    const { runId, ledger } = await start();
+    const r = await execute(runId);
+    expect(r.status).not.toBe("delivered");
+    const s = replay(ledger.events());
+    expect(s.gates.some((g) => g.gateId === "contract.matches" && !g.passed)).toBe(true);
+    expect(s.steps.get("implement/TASK-1")?.status).not.toBe("completed");
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/The API does not match the locked contract: missing in the API: GET \/api\/appointments\/today 200 body\[\]\.patient/);
+  });
+
+  it("a build that writes no document fails the gate plainly", async () => {
+    const { runId, ledger } = await start();
+    const r = await execute(runId);
+    expect(r.status).not.toBe("delivered");
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/did not write the API's OpenAPI document at src\/Api\/openapi\/built\.json/);
   });
 });
 
