@@ -52,7 +52,9 @@ export interface Review2Inputs {
   /** the approved guidelines file, as written — not parsed, not summarised */
   guidelinesMarkdown: string;
   lint: { findings: unknown[] };
-  verification: { failed: string[]; flaky: string[] };
+  /** Absent when no verify pass ran. An empty list would read as "nothing failed", which is a
+   *  different claim and one nobody has checked. */
+  verification?: { failed: string[]; flaky: string[] };
   changedFiles: string[];
 }
 
@@ -76,8 +78,11 @@ export function review2Sections(a: Review2Inputs): ResolvedSection[] {
     // block and which merely advise.
     S.reference("conventions", a.guidelinesMarkdown),
     S.artifact("lint", "lint-run", a.lint.findings),
-    // labelled a claim in the template above, and the same projection the pre-PR reviewer is shown
-    S.artifact("claimed-verification", "verification", a.verification),
+    // labelled a claim in the template above, and the same projection the pre-PR reviewer is shown.
+    // When no verify pass ran, say so: an empty failed list would read as "nothing failed".
+    a.verification
+      ? S.artifact("claimed-verification", "verification", a.verification)
+      : S.reference("claimed-verification", "No verification results: the test lab did not run for this change. Do not assume the tests passed — you have been told nothing either way."),
     S.reference("changed-files", `Files this change touches:\n${a.changedFiles.map((f) => `- ${f}`).join("\n")}`),
     { spec: { id: "diff", source: "artifact", trust: "derived", placement: "user" }, content: a.diff, artifactKind: "diff" },
     S.task("Review this change on both axes. Start with the acceptance criteria, one at a time."),

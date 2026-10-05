@@ -33,7 +33,11 @@ export const DEFAULT_ROUTES: Record<string, StepRoute> = {
   implement: { runner: "claude-agent", model: SONNET, escalate: [OPUS], effort: "high" },
   review: { runner: "api", model: "gpt-5.5", escalate: [], effort: "high" },
   // the merge reviewer, deliberately a different family from `review` above: one reviewer run
-  // twice has the same blind spots twice
+  // twice has the same blind spots twice.
+  // Caveat: without OPENAI_API_KEY, `review` falls back to a Claude model and the two collapse into
+  // one family. That is detected rather than ignored — review-2.no-blocking reports "the merge
+  // reviewer is the same family as the pre-PR reviewer" on its verdict — but it is a weaker review
+  // than the routing implies, so set a project-level route if both keys are not available.
   "review-2": { runner: "api", model: OPUS, escalate: [], effort: "high" },
   /** impact lenses: only when the project turns them on */
   "impact-lens": { runner: "api", model: SONNET, escalate: [], effort: "medium" },

@@ -85,6 +85,20 @@ describe("review2Sections", () => {
     expect(text(review2Sections(inputs({ changedFiles: ["src/Orders/OrderService.cs"] })))).toMatch(/src\/Orders\/OrderService\.cs/);
   });
 
+  it("says plainly when no verify pass ran, instead of an empty failure list", () => {
+    // an empty `failed` array is a claim that nothing failed. Absent results are a different thing:
+    // nobody checked. Conflating them would have the reviewer trust a test run that never happened.
+    const t = text(review2Sections({ ...inputs(), verification: undefined }));
+    expect(t).toMatch(/the test lab did not run/i);
+    expect(t).toMatch(/Do not assume the tests passed/i);
+  });
+
+  it("shows the results as an artifact when there were any", () => {
+    const t = text(review2Sections(inputs({ verification: { failed: ["T9"], flaky: [] } })));
+    expect(t).toMatch(/T9/);
+    expect(t).not.toMatch(/did not run/i);
+  });
+
   it("puts the instructions first and the task last", () => {
     const ss = review2Sections(inputs());
     expect(ss[0]!.spec.id).toBe("tpl");

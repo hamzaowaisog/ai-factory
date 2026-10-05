@@ -134,9 +134,10 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
           acTests: lock,
           assumptions: questions ? (ledger.getJson<{ assumptions: unknown[] }>(questions).assumptions ?? []) : [],
           guidelinesMarkdown: conv.markdown,
-          // never fabricated: if the verify pass did not run, say so rather than claiming it was clean
           lint: lastVerify?.lint ?? { findings: [] },
-          verification: lastVerify?.verification ?? { failed: [], flaky: [] },
+          // left undefined when no verify pass ran, so the reviewer is told nothing was checked
+          // rather than shown an empty failure list that reads as clean
+          verification: lastVerify?.verification,
           changedFiles: diffFiles(diff),
         },
         model: modelFor(o.cfg, "review-2", 0).model,

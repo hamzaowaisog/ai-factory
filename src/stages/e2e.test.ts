@@ -84,7 +84,7 @@ function scriptedReview(user: string, findings: unknown[] = []) {
   return { findings, coverage: acIds.map((acId) => ({ acId, testId: "", verdict: "proves-it" as const, why: "scripted" })) };
 }
 
-function answerFor(system: string, allowMulti = true): unknown {
+function answerFor(system: string, allowMulti = true, user = ""): unknown {
   if (multi && allowMulti) { const m = multiAnswer(system); if (m !== undefined) return m; }
   if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "greet with Hello" }], changeClass: "feature", risk: intakeRisk, riskTags: [], rigor: "light", touchesUi: false };
   if (system.includes("grounding step")) return { claims: [{ id: "C-1", text: "Greeter says Hi", spans: ["I-1"], anchors: [{ path: "src/Api/Greeter.cs", lineStart: 4, lineEnd: 4, quote: 'public string Greet(string name) => "Hi " + name;', symbol: "Greeter.Greet" }] }], notFound: [] };
@@ -118,7 +118,7 @@ const provider: Provider = {
     const repair = user.includes("Repair this spec");
     if (repair) repairCalls++;
     return {
-      async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: repair && repairSpec ? repairSpec : answerFor(system) }], text: "", stop: "tool_use", usage: U }; },
+      async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: repair && repairSpec ? repairSpec : answerFor(system, true, user) }], text: "", stop: "tool_use", usage: U }; },
       toolResults() {}, say() {},
     };
   },
