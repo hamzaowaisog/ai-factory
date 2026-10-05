@@ -35,8 +35,8 @@ describe("mode manifests", () => {
     const { groundSha: _g, clarifySha: _c, ...bare } = ref;
     await l2.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: "x", designRef: bare } }, HUMAN_WRITER);
     expect(greenfieldSteps(replay(l2.events())).map((x) => x.key)).toEqual(["discover", "intake", "specify", "ground", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
-    const none = await stateFor("greenfield");
-    expect(() => greenfieldSteps(none)).toThrow(/approved design/);
+    // with no design run: the request is read, specified and drawn on the kit in this run, then built
+    expect(greenfieldSteps(await stateFor("greenfield")).map((x) => x.key)).toEqual(["discover", "intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "design", "design-baseline", "design-export", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
   });
 
   it("estimate mode reuses the spec pipeline, adds breakdown, estimate, approval and export, and stops before any build step", async () => {
@@ -106,7 +106,7 @@ describe("mode manifests", () => {
   });
 
   it("refuses a mode with no step list yet", async () => {
-    const g = await stateFor("greenfield");
-    expect(() => stepsFor(g)).toThrow(/greenfield/);
+    const g = await stateFor("mobile");
+    expect(() => stepsFor(g)).toThrow(/mobile/);
   });
 });
