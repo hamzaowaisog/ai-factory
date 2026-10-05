@@ -19,7 +19,7 @@ import { designSteps } from "./design-pipeline.js";
 import { designBaselineStep } from "./design-approve.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
-import { approvedDesign, copyArtifacts } from "../estimate/lineage.js";
+import { approvedDesign, copyArtifacts, estimateDesign } from "../estimate/lineage.js";
 import { designOnlySteps, estimateSteps } from "./modes.js";
 
 const sha = "a".repeat(64);
@@ -177,6 +177,37 @@ describe("design pipeline", () => {
     const s = replay(est.events());
     expect(approvedDesignFor<{ screens: { id: string }[] }>(s, est)?.design.screens.map((x) => x.id)).toEqual(["S-1"]);
     expect(estimateSteps(s).find((x) => x.key === "breakdown")!.inputs(s, est)).toBeTruthy();
+  });
+
+  it("an earlier estimate is sized again (--resize): its spec and approved design carry on, and only breakdown onwards runs", async () => {
+    const ledger = await newRun("estimate");
+    await complete(ledger, "intake", intent(true));
+    await complete(ledger, "ground", { cb: sha });
+    await complete(ledger, "clarify", { questions: [] });
+    await complete(ledger, "specify", spec);
+    expect(() => estimateDesign(ledger.runId)).toThrow(/design baseline/);
+    const steps = estimateSteps(replay(ledger.events()));
+    answer = drawn;
+    expect((await exec(ledger, steps.find((x) => x.key === "design")!)).kind).toBe("done");
+    const approve = steps.find((x) => x.key === "design-baseline")!;
+    await decide(ledger, await exec(ledger, approve), "design-baseline", "approve");
+    expect((await exec(ledger, approve)).kind).toBe("done");
+    modelCalls = 0;
+
+    const a = estimateDesign(ledger.runId);
+    const est = Ledger.create(`20261002-dpipe-resize-${Math.random().toString(16).slice(2, 6)}`);
+    copyArtifacts(est, a);
+    await est.append({ type: "run.created", data: { mode: "estimate", project: "demo", request: a.request, operator: "sam", designRef: a.ref } }, HUMAN_WRITER);
+    const again = estimateSteps(replay(est.events()));
+    expect(again.map((x) => x.key)).toEqual(["intake", "ground", "clarify", "specify", "design", "design-baseline", "breakdown", "estimate", "approve-estimate", "export"]);
+    for (const step of again.slice(0, 6)) expect((await exec(est, step)).kind).toBe("done");
+    // nothing before breakdown asks the model or a person
+    expect(modelCalls).toBe(0);
+    const s = replay(est.events());
+    expect(approvedDesignFor<{ screens: { id: string }[] }>(s, est)?.design.screens.map((x) => x.id)).toEqual(["S-1"]);
+    expect(again.find((x) => x.key === "breakdown")!.inputs(s, est)).toBeTruthy();
+    const design = await newRun("design");
+    expect(() => estimateDesign(design.runId)).toThrow(/not an estimate run/);
   });
 
   it("refuses to carry on a design that is not from a design run", async () => {
