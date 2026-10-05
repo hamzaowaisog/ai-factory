@@ -179,6 +179,26 @@ describe("design-export", () => {
     expect(((await exportRunPackage(state, ledger)) as { dir: string }).dir).toBe(pkg.dir);
   });
 
+  it("makes a design approved again in its own run the next version of the run's line, never a second v1", async () => {
+    const ledger = await approvedRun(design());
+    const first = await exportRunPackage(replay(ledger.events()), ledger) as { manifest: { version: number; designSha: string } };
+    expect(first.manifest.version).toBe(1);
+    // the run went back to its spec, the design was redrawn and approved again
+    const d2 = ledger.putJson(design([{ id: "S-2", route: "/report" }]));
+    const bundle = ledger.putJson({ design: d2, demo: ledger.putArtifact(Buffer.from("<!doctype html><title>demo 2</title>")) });
+    await ledger.append({ type: "human.requested", data: { cardId: "design-2", kind: "approve", artifactSha: bundle, step: "design-baseline" } }, HUMAN_WRITER);
+    await ledger.append({ type: "human.decided", data: { cardId: "design-2", decision: "approve", by: "lead", artifactSha: bundle } }, HUMAN_WRITER);
+    const base = ledger.putJson({ ui: true, design: d2, by: "lead" });
+    await ledger.append({ type: "step.completed", key: "design-baseline/2", inputsHash: "b".repeat(64), outputs: [base], data: { named: { "design-baseline": base } } }, HUMAN_WRITER);
+    const out = await designExportStep.run({ state: replay(ledger.events()), ledger, log: () => undefined } as never);
+    expect(out).toMatchObject({ kind: "done", data: { line: ledger.runId, version: 2 } });
+    const m = findPackage("demo", d2)!.manifest;
+    expect(m).toMatchObject({ line: ledger.runId, version: 2, previous: { version: 1, designSha: first.manifest.designSha, runId: ledger.runId } });
+    expect(m.changes!.join("\n")).toMatch(/S-2/);
+    // v1 is kept as it was
+    expect(listPackages("demo").filter((p) => p.manifest.line === ledger.runId).map((p) => p.manifest.designSha)).toEqual([first.manifest.designSha, d2]);
+  });
+
   it("says why there is no package: no approval, or no UI", async () => {
     const ledger = Ledger.create(`20261002-pkg-none-${Math.random().toString(16).slice(2, 6)}`);
     await ledger.append({ type: "run.created", data: { mode: "design", project: "demo", request: "r", operator: "sam" } }, HUMAN_WRITER);

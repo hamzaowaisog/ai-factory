@@ -153,11 +153,29 @@ export const CriticFinding = z.object({
   finding: z.string(), reqId: Id.optional(),
   severity: z.enum(["critical", "high", "medium", "low"]),
 });
+/**
+ * A problem the spec's checks found that its repairs did not fix, settled by a question (src/stages/settle.ts): answered by a
+ * person, assumed by the factory at the recommended answer (hands-off), found in the request after all, or carried as an open
+ * risk once the rounds of questions are used up. Gate E1 lets a settled problem through: somebody (or the stated assumption)
+ * decided it.
+ */
+export const SettledProblem = z.object({
+  kind: z.enum(["critic", "invented", "lint"]),
+  /** the problem as the check reported it: the critic's finding, the restated capability, or "<check>: <details>" for lint */
+  problem: z.string(),
+  how: z.enum(["answered", "assumed", "in-request", "open-risk"]),
+  /** the question that settled it (Q-n) */
+  ref: Id.optional(),
+  decision: z.string(),
+});
+export type SettledProblem = z.infer<typeof SettledProblem>;
 export const Spec = withHeader({
   ...SpecDraft.shape,
   lint: z.array(z.object({ check: z.string(), passed: z.boolean(), details: z.string() })),
   critic: z.array(CriticFinding),
   roundTrip: z.object({ droppedSpans: z.array(Id), inventedCapabilities: z.array(z.string()) }),
+  /** estimate and design runs: the problems settled by questions after the repairs (absent on a spec written before them) */
+  settled: z.array(SettledProblem).optional(),
 });
 export type Spec = z.infer<typeof Spec>;
 
@@ -638,8 +656,11 @@ export type EvidenceManifest = z.infer<typeof EvidenceManifest>;
 export const RunPreview = z.object({
   site: z.object({
     entry: z.string().default("index.html"),
-    screens: z.array(z.object({ path: z.string(), title: z.string(), req: z.string().optional() })).default([]),
+    /** pending: listed but not drawn yet (a draft) */
+    screens: z.array(z.object({ path: z.string(), title: z.string(), req: z.string().optional(), pending: z.boolean().optional() })).default([]),
   }).optional(),
+  /** the design while it is being drawn: how many pages are done; the approved preview has none */
+  draft: z.object({ drawn: z.number().int().nonnegative(), total: z.number().int().nonnegative(), failed: z.number().int().nonnegative().default(0) }).optional(),
   images: z.array(z.object({
     file: z.string(),
     screen: z.string(),

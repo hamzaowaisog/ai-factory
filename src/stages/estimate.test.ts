@@ -9,6 +9,7 @@ import { _resetEnvCache } from "../config/env.js";
 import { verifyEvidence } from "../gates/engine.js";
 import "../estimate/gates.js";
 import "../estimate/lint.js";
+import { specRefused } from "../estimate/settled.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
@@ -83,11 +84,11 @@ async function makeRun(specBody: unknown, opts: { estimate?: Record<string, unkn
 }
 
 /** Run a step the way the executor does: a fresh replay of the ledger, and its outputs recorded for the next step. */
-async function exec(ledger: Ledger, step: StepDef, priorFailures: StepContext["priorFailures"] = []): Promise<StepOutcome> {
+async function exec(ledger: Ledger, step: StepDef, priorFailures: StepContext["priorFailures"] = [], attempt = 1): Promise<StepOutcome> {
   const state = replay(ledger.events());
   const ctx: StepContext = {
     runId: state.info.runId, ledger, writer: HUMAN_WRITER, state, project: ProjectConfig.parse({ project: "demo", repo: "/x", stack: "dotnet" }),
-    policy: DEFAULT_POLICY, attempt: 1, rung: 0, priorFailures, log: () => undefined, trace: NO_TRACE,
+    policy: DEFAULT_POLICY, attempt, rung: 0, priorFailures, log: () => undefined, trace: NO_TRACE,
     usage: async () => undefined,
   };
   const out = await step.run(ctx);
@@ -140,12 +141,31 @@ describe("breakdown step", () => {
   });
 
   it("parks, without asking the model, when the spec is not ready (E1)", async () => {
-    const ledger = await makeRun(spec(3, { critic: [{ finding: "conflicting rules", severity: "high" }] }));
+    const ledger = await makeRun(spec(3, { roundTrip: { droppedSpans: ["I-1"], inventedCapabilities: [] } }));
     answer = () => { throw new Error("the model must not be called"); };
     const out = await exec(ledger, breakdownStep);
     expect(out.kind).toBe("park");
-    expect((out as { reason: string }).reason).toMatch(/E1.*clarify/);
+    expect((out as { reason: string }).reason).toMatch(/E1.*dropped.*clarify/);
     expect(calls).toHaveLength(0);
+    // a settled spec that still fails E1 needs the requirements changed: questions cannot settle a dropped span
+    const settled = await makeRun(spec(3, { roundTrip: { droppedSpans: ["I-1"], inventedCapabilities: [] }, settled: [] }));
+    expect((await exec(settled, breakdownStep) as { reason: string }).reason).toMatch(/need the requirements changed/);
+  });
+
+  it("goes back to the specify step, without asking the model, when a spec from before settling has problems a question settles", async () => {
+    const ledger = await makeRun(spec(3, { critic: [{ finding: "conflicting rules", severity: "high" }] }));
+    answer = () => { throw new Error("the model must not be called"); };
+    const out = await exec(ledger, breakdownStep);
+    expect(out).toMatchObject({ kind: "back", reason: expect.stringMatching(/E1 refused the spec \(1 open problem\).*settles it with questions/) });
+    expect(calls).toHaveLength(0);
+    // E1's verdict is recorded, so the specify step sees it and runs again
+    const state = replay(ledger.events());
+    expect(state.gates.find((g) => g.gateId === "estimate.e1-readiness")).toMatchObject({ passed: false });
+    expect(specRefused(state, ledger)).toBe(true);
+    // once settled (here: carried as an open risk), E1 passes it and the breakdown goes on
+    const done = await makeRun(spec(3, { critic: [{ finding: "conflicting rules", severity: "high" }], settled: [{ kind: "critic", problem: "conflicting rules", how: "open-risk", decision: "carried" }] }));
+    answer = breakdownAnswer(breakdown(3));
+    expect((await exec(done, breakdownStep)).kind).toBe("done");
   });
 
   it("fails on a requirement with no task (E2) and feeds the failures back on the retry", async () => {
@@ -160,6 +180,72 @@ describe("breakdown step", () => {
     answer = (system) => { seen = system; return breakdown(3); };
     const again = await exec(ledger, breakdownStep, f.map((x) => ({ ...x, frames: [] })));
     expect(again.kind).toBe("done");
+  });
+
+  /** a breakdown that misses REQ-2, has a task no requirement asks for, cites a requirement the spec lacks and leaves an item out with no reason */
+  const messy = () => {
+    const b = breakdown(3, { drop: 2 });
+    b.tasks = [
+      ...b.tasks.map((t) => (t.id === "EST-3" ? { ...t, reqs: ["REQ-3", "REQ-99"] } : t)),
+      { id: "EST-9", title: "Audit log", featureId: "F-1", reqs: [], items: ["log every change"], track: "backend", kind: "be-crud", executor: "factory", dependsOn: [], complexity: "standard" },
+    ];
+    b.tasks = b.tasks.map((t) => (t.id === "EST-4" ? { ...t, dependsOn: ["EST-9"] } : t));
+    b.checklist.push({ item: "monitoring", included: false } as never);
+    return b;
+  };
+  const patchTask = { id: "EST-10", title: "Build 2", featureId: "F-2", reqs: ["REQ-2"], items: ["item 2"], track: "web", kind: "ui-form", executor: "factory", dependsOn: [], complexity: "standard" };
+  const isPatch = (system: string) => system.includes("Most of it is fine");
+
+  it("hands-off, on the retry: the factory settles what the gates still find, asks only for the missing work, and writes each decision down", async () => {
+    const ledger = await makeRun(spec(3), { estimate: { humanReview: false } });
+    answer = (system) => (isPatch(system) ? { tasks: [patchTask], kinds: [] } : messy());
+    const out = await exec(ledger, breakdownStep, [], 2);
+    expect(out.kind).toBe("done");
+    // one breakdown call, then one small call that saw only the missing requirement
+    expect(calls).toHaveLength(2);
+    expect(asked[1]).toContain("REQ-2");
+    expect(asked[1]).not.toContain("The system shall do 3.");
+    const b = Breakdown.parse(ledger.getJson((out as { outputs: Record<string, string> }).outputs.breakdown!));
+    expect(b.tasks.map((t) => t.id)).toEqual(["EST-1", "EST-3", "EST-4", "EST-10"]);
+    expect(b.tasks.find((t) => t.id === "EST-3")!.reqs).toEqual(["REQ-3"]);
+    expect(b.tasks.find((t) => t.id === "EST-4")!.dependsOn).toEqual([]);
+    expect(b.checklist.find((c) => c.item === "monitoring")!.reason).toMatch(/not assessed.*confirm with the client/);
+    expect(b.suggested).toEqual([{ title: "Audit log", reason: expect.stringContaining("no requirement asks for it") }]);
+    expect(b.factoryFixes!.join("\n")).toMatch(/E3.*REQ-99[\s\S]*E3.*Audit log[\s\S]*E4.*monitoring[\s\S]*E2.*EST-10.*REQ-2/);
+    // every gate ran again on the settled breakdown and passed
+    const last = new Map(replay(ledger.events()).gates.map((g) => [g.gateId, g.passed]));
+    for (const g of ["estimate.e2-req-to-task", "estimate.e3-task-to-req", "estimate.e4-checklist", "estimate.e2c-task-kind"]) expect(last.get(g)).toBe(true);
+    expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+    // the estimate carries them: the task outside the total, the decisions in its assumptions
+    calls = [];
+    answer = (system) => { if (system.includes("sizing the tasks")) return sizing(b.tasks); throw new Error("unscripted"); };
+    const est = await exec(ledger, estimateStep);
+    const e = Estimate.parse(ledger.getJson((est as { outputs: Record<string, string> }).outputs.estimate!));
+    expect(e.suggested.map((x) => x.title)).toEqual(["Audit log"]);
+    expect(e.assumptions.filter((a) => a.startsWith("Factory decision (hands-off"))).toHaveLength(4);
+  });
+
+  it("hands-off: parks when the small call still leaves a requirement with no task", async () => {
+    const ledger = await makeRun(spec(3), { estimate: { humanReview: false } });
+    answer = (system) => (isPatch(system) ? { tasks: [], kinds: [] } : messy());
+    const out = await exec(ledger, breakdownStep, [], 2);
+    expect(out).toMatchObject({ kind: "park", reason: expect.stringMatching(/could not settle it hands-off.*REQ-2 has no task/) });
+  });
+
+  it("hands-off keeps the first try: it fails with the failures fed back, as with review", async () => {
+    const ledger = await makeRun(spec(3), { estimate: { humanReview: false } });
+    answer = (system) => (isPatch(system) ? { tasks: [patchTask], kinds: [] } : messy());
+    expect((await exec(ledger, breakdownStep)).kind).toBe("fail");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("with review, the retry still asks for a waiver (E3, E4) and never settles anything itself", async () => {
+    const ledger = await makeRun(spec(3));
+    const b = messy();
+    b.tasks.push({ ...patchTask, dependsOn: [] });
+    answer = (system) => { if (isPatch(system)) throw new Error("the model must not be asked for a patch"); return b; };
+    const out = await exec(ledger, breakdownStep, [], 2);
+    expect(out).toMatchObject({ kind: "wait", card: { kind: "waiver" } });
   });
 
   it("fails an empty forgotten-work checklist (E4)", async () => {
@@ -369,6 +455,22 @@ describe("estimate step", () => {
     const out = await exec(ledger, estimateStep);
     expect(out.kind).toBe("fail");
     expect((out as { failures: { check: string }[] }).failures.map((x) => x.check)).toContain("e5-outlier");
+  });
+
+  it("by anchors, hands-off on the retry: flags the outlier E5 still finds, with its reason as an open risk", async () => {
+    const ledger = await withBreakdown(9, { humanReview: false }, true);
+    const p = sizing(tasksOf(9));
+    p.tasks[8] = { ...p.tasks[8]!, ratio: 40 };
+    answer = () => p;
+    const out = await exec(ledger, estimateStep, [], 2);
+    expect(out.kind).toBe("done");
+    const e = Estimate.parse(ledger.getJson((out as { outputs: Record<string, string> }).outputs.estimate!));
+    expect(e.tasks.find((t) => t.taskId === "EST-9")!.flagged).toBe(true);
+    expect(e.assumptions.some((a) => /^Open risk: EST-9 flagged by the factory \(hands-off, gate E5\).*median/.test(a))).toBe(true);
+    const e5 = replay(ledger.events()).gates.filter((g) => g.gateId === "estimate.e5-consistency").map((g) => g.passed);
+    expect(e5).toEqual([false, true]);
+    // the factory approves it (a flagged task needs no sign-off when nobody reviews)
+    expect((await exec(ledger, approveEstimateStep)).kind).toBe("done");
   });
 });
 

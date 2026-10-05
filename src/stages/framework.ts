@@ -18,6 +18,8 @@ export type StepOutcome =
   /** data: small metadata stored on step.failed (e.g. the commit judged, how the attempt started). */
   | { kind: "fail"; category: FailureCategory; failures: Failure[]; signature?: string; diffSha?: string; lockedFailedIds?: string[]; data?: Record<string, unknown> }
   | { kind: "park"; reason: string }
+  /** An earlier step has to run again first (this step changed its inputs, e.g. gate E1 sent the spec back to be settled); the run goes on with it. Not a failed attempt. */
+  | { kind: "back"; reason: string }
   /** Run ends without delivery (e.g. not-reproduced). */
   | { kind: "close"; reason: "not-reproduced" | "stopped" };
 

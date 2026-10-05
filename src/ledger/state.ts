@@ -233,7 +233,7 @@ export function replay(events: LedgerEvent[]): RunState {
         const r = rec(step);
         r.status = "interrupted";
         r.attempts -= 1; // interrupted attempts don't count toward the cap
-        if (data.reason !== "waiting") r.interruptions += 1; // a human wait isn't a crash
+        if (data.reason !== "waiting" && data.reason !== "back") r.interruptions += 1; // a human wait, or going back to an earlier step, isn't a crash
         stopped(step);
         startedAt = undefined; // crash time is unknown; don't count it
         break;

@@ -11,6 +11,9 @@ import { lintSpec, OBSERVABLE_RULE, outOfScopeSpans, requestExcluded, sizeNote, 
 import { S, think, UNTRUSTED_NOTE, type ThinkSpec } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { LANE, lightSpec, specLane } from "./lane.js";
+import { SETTLE_MODES, specRefused, unsettled, type Found } from "../estimate/settled.js";
+import { settle, settleKey, type Answer, type Decided } from "./settle.js";
+import { hashJson } from "../util/hash.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -146,6 +149,11 @@ const hasRepo = (ctx: Pick<StepContext, "state">) => !!ctx.state.info.repoPath &
 const readTools = (ctx: StepContext): Pick<ThinkSpec<unknown>, "tools" | "repoTools"> =>
   (hasRepo(ctx) ? { tools: ["read_file", "search"], repoTools: toolsFor(ctx) } : { tools: [] });
 const decisionsOf = (i: { answers: { id: string }[]; assumptions: { id: string }[] }) => [...i.answers.map((a) => a.id), ...i.assumptions.map((a) => a.id)];
+
+/** The first question number after the clarify rounds' (Q-n), for the questions that settle the spec's problems. */
+export const nextQuestion = (answers: { id: string }[]) => 1 + Math.max(0, ...answers.map((a) => Number(/^Q-(\d+)$/.exec(a.id)?.[1] ?? 0)));
+/** A stored spec without its checks (the shape a repair works on). */
+const specOf = (s: Spec): Spec => ({ requirements: s.requirements, nfrs: s.nfrs, outOfScope: s.outOfScope, assumptions: s.assumptions });
 
 function inputsOf(ctx: StepContext) {
   const intent = requireOutput<Intent>(ctx.state, ctx.ledger, "intake");
@@ -297,8 +305,11 @@ export function problems(c: Checks): string[] {
 
 /** Final spec: check, repair (one drafter, merged spec + findings) up to 3 times (once on the light and requirements lanes). */
 export const specifyStep: StepDef = {
-  key: "specify", stage: "specify", templateVersion: "6",
-  inputs: (s) => (s.steps.get("merge")?.status === "completed" ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s) } : undefined),
+  key: "specify", stage: "specify", templateVersion: "7",
+  // refused: gate E1 refused a spec written before problems were settled by questions, so this step runs again to settle them
+  inputs: (s, l) => (s.steps.get("merge")?.status === "completed"
+    ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s), ...(SETTLE_MODES.has(s.info.mode ?? "") && specRefused(s, l) ? { refused: true } : {}) }
+    : undefined),
   async run(ctx) {
     const i = inputsOf(ctx);
     const lane = specLane(i.intent, ctx.state.info.mode);
@@ -321,6 +332,19 @@ export const specifyStep: StepDef = {
     let repairs = 0;
     const failed = (o: StepOutcome): StepOutcome =>
       (o.kind === "fail" && repaired ? { ...o, data: { ...(o.data ?? {}), repairedSpec: ctx.ledger.putJson(spec), repairedFrom: mergedSha } } : o);
+    const manualUi = new Set<string>();
+    const spanIds = i.intent.spans.map((s) => s.id);
+    let rejectedRepair: string[] | undefined;
+    // estimate and design runs: what the repairs leave open is settled by questions (src/stages/settle.ts)
+    const settling = SETTLE_MODES.has(ctx.state.info.mode ?? "");
+    const key = settleKey(mergedSha, request(ctx));
+    const resumed = settling && [...ctx.ledger.events()].some((e) => e.type === "human.requested" && (e.data as { settleKey?: string } | undefined)?.settleKey === key);
+    // a spec gate E1 refused before problems were settled by questions: settle that spec's problems, not a new spec's
+    const prior = readOutput<Spec & Found>(ctx.state, ctx.ledger, "specify");
+    const refused = settling && !resumed && unsettled(prior) && specRefused(ctx.state, ctx.ledger) ? prior : undefined;
+    if (resumed || refused) {
+      if (refused) ctx.log("specify: gate E1 refused this spec; settling its open problems with questions");
+    } else {
     if (rejections.length) {
       ctx.log(`specify: revising for your rejection: ${rejections[rejections.length - 1]}`);
       const r = await think(ctx, {
@@ -338,10 +362,7 @@ export const specifyStep: StepDef = {
       const stab = Object.fromEntries(spec.requirements.map((q) => [q.id, q.stability]));
       spec = { ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) };
     }
-    const manualUi = new Set<string>();
-    const spanIds = i.intent.spans.map((s) => s.id);
     let before: string[] | undefined;
-    let rejectedRepair: string[] | undefined;
     for (;;) {
       const d = downgradeUi(spec);
       spec = d.spec;
@@ -376,16 +397,53 @@ Answer with the changes only, not the whole spec: "requirements" holds each requ
       spec = next;
       repaired = true;
     }
+    }
+    let settled: Found["settled"];
+    if (settling) {
+      const withAnswers = (answers: Answer[]) => ({ ...i, answers: [...i.answers, ...answers] });
+      const s = await settle<Checks>(ctx, {
+        key, request: request(ctx), firstId: nextQuestion(i.answers),
+        start: () => (refused
+          ? { spec: specOf(refused), checks: { lint: refused.lint.map((l) => ({ ...l, blocking: false, fails: [] })), critic: refused.critic as Checks["critic"], roundTrip: refused.roundTrip as Checks["roundTrip"] } }
+          : { spec, checks: checks! }),
+        io: {
+          repair: async (before, answers, decided) => {
+            const r = await think(ctx, {
+              stage: "specify", route: "specify", label: "specify (answers)", cls: "read-large", budgetTokens: 30000, ...readTools(ctx), schema: RepairOut, maxTurns: 8,
+              sections: [
+                ...draftSections(ctx, withAnswers(answers)),
+                S.artifact("spec", "spec", before),
+                S.artifact("decisions", "decisions", decided.map((d) => ({ id: d.id, question: d.question, answer: d.answer, settles: d.problems.map((p) => p.text) }))),
+                S.task(`Each decision answers a question about a problem in this spec. Change the spec so it does exactly what each answer says: add or change requirements and acceptance criteria, cite the answer id (Q-n) in "sources", and remove what an answer leaves out. Keep requirement IDs stable where the meaning doesn't change. Change nothing the decisions don't need. Never move requested behaviour out of scope or delete the requirements that cover an intent span.
+Answer with the changes only, not the whole spec: "requirements" holds each requirement you change or add, whole, with all of its acceptance criteria; "nfrs" each NFR you change or add; "removed" the ids you delete; "outOfScope" and "assumptions" the whole list, only when it changes. Everything you leave out stays exactly as it is.`),
+              ],
+            });
+            if (!r.ok) return r;
+            const stab = Object.fromEntries(before.requirements.map((q) => [q.id, q.stability]));
+            const draft = applyRepair(before, r.output);
+            const d = downgradeUi({ ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) });
+            for (const id of d.downgraded) manualUi.add(id);
+            return { ok: true, spec: d.spec };
+          },
+          recheck: (next, answers) => checkSpec(ctx, next, withAnswers(answers), lane.criticEffort),
+          lost: (before, after) => lostCoverage(before, after, spanIds),
+        },
+      });
+      if (!s.ok) return failed(s.outcome);
+      spec = s.spec;
+      checks = s.checks;
+      settled = s.settled;
+    }
     const hardLint = checks!.lint.filter((l) => l.blocking && !l.passed);
     if (hardLint.length) {
       // a spec that still fails format checks can't go to a human for approval
       return failed({ kind: "fail", category: "other", failures: hardLint.map((l) => failure(`spec-lint ${l.check}`, l.details)), signature: `lint:${hardLint.map((l) => l.check).join(",")}` });
     }
-    const specSha = ctx.ledger.putJson({ ...spec, lint: checks!.lint.map(({ check, passed, details }) => ({ check, passed, details })), critic: checks!.critic, roundTrip: checks!.roundTrip });
+    const specSha = ctx.ledger.putJson({ ...spec, lint: checks!.lint.map(({ check, passed, details }) => ({ check, passed, details })), critic: checks!.critic, roundTrip: checks!.roundTrip, ...(settled ? { settled } : {}) });
     const criticSha = ctx.ledger.putJson({ findings: checks!.critic, note: checks!.criticNote });
     return {
       kind: "done", outputs: { spec: specSha, critic: criticSha },
-      data: { repairs, openFindings: problems(checks!), conflicts: merged.conflicts, ...(rejectedRepair ? { rejectedRepair } : {}),
+      data: { repairs, openFindings: problems(checks!), conflicts: merged.conflicts, ...(rejectedRepair ? { rejectedRepair } : {}), ...(settled?.length ? { settled: settled.length } : {}),
         ...(ctx.state.info.mode !== "estimate" && sizeNote(spec, i.intent.changeClass) ? { sizeNote: sizeNote(spec, i.intent.changeClass) } : {}), manualUi: [...manualUi], lane: lane.name },
     };
   },

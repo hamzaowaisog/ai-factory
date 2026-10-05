@@ -244,6 +244,8 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
   const writer = lock;
   const warned = new Set<string>();
   let completed = 0;
+  /** steps that went back to an earlier one since a step last completed */
+  const wentBack = new Set<string>();
   /** Run one step and record its outcome; an ExecuteResult when the run stops here, undefined to go on. */
   async function runStep(state: RunState, step: StepDef, hash: string, share: number): Promise<ExecuteResult | undefined> {
     const rec = state.steps.get(step.key);
@@ -285,6 +287,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         const treeSha = outcome.treeSha && /^[0-9a-f]{40}$/.test(outcome.treeSha) ? outcome.treeSha : undefined;
         await ledger.append({ type: "step.completed", key, inputsHash: hash, treeSha, outputs: Object.values(named), data: { ...(outcome.data ?? {}), named } }, writer);
         completed++;
+        wentBack.clear();
         const after = replay(ledger.events()).costUsd;
         // beside other steps, the run's total grew by theirs too
         slog(`✓ ${step.key} ($${(share > 1 ? spent : after - state.costUsd).toFixed(2)}, total $${after.toFixed(2)})`);
@@ -302,6 +305,19 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         await ledger.append({ type: "step.interrupted", key, data: { reason: "waiting" } }, writer);
         await ledger.append({ type: "human.requested", data: { ...(c.extra ?? {}), cardId: c.cardId, kind: c.kind, artifactSha: c.artifactSha, step: step.key, deadline: c.deadline, defaultDecision: c.defaultDecision } }, writer);
         return { status: "waiting", message: `A card needs you: factory show-card ${runId}` };
+      }
+      case "back": {
+        // once: a step that goes back again before anything else completed would loop, so it parks instead
+        if (wentBack.has(step.key)) {
+          const reason = `${outcome.reason}, but the step it goes back to did not run again`;
+          await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
+          await ledger.append({ type: "run.parked", data: { reason, step: step.key } }, writer);
+          return { status: "parked", message: reason };
+        }
+        wentBack.add(step.key);
+        await ledger.append({ type: "step.interrupted", key, data: { reason: "back" } }, writer);
+        slog(`↩ ${step.key}: ${outcome.reason}`);
+        break;
       }
       case "park":
         await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);

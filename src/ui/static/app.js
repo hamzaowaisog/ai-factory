@@ -1144,21 +1144,48 @@ function lightbox(img) {
   nextFrame(() => box.classList.add("open"));
 }
 
+/**
+ * The run's preview. While the design is being drawn it is a draft that fills in page by page: the banner and the page list
+ * follow it, and the demo reloads only when you pick a page, so it never jumps while you click around in it.
+ */
 async function previewScreen(id) {
   skeleton("grid");
-  const [r, p] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/preview`)]);
+  let lastJson = "";
+  let live;
+  poll(4000, async (first) => {
+    const [r, p] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/preview`)]);
+    const json = JSON.stringify(p);
+    if (json === lastJson) return;
+    lastJson = json;
+    if (live && p.preview?.draft && live(p)) return;
+    live = renderPreview(r, p, first);
+  });
+}
+
+function draftText(d) {
+  if (d.drawn + d.failed >= d.total) return `All ${d.total} pages are back${d.failed ? ` (${d.failed} failed and will be drawn again)` : ""}; the design is being checked. Not approved yet.`;
+  return `Draft: ${d.drawn} of ${d.total} pages drawn${d.failed ? `, ${d.failed} failed` : ""}. Pages not drawn yet show as wireframes; pick a page to see its latest. Not approved yet.`;
+}
+
+function renderPreview(r, p, first) {
   if (p.none) {
-    mount([...runHeader(r, "preview"), h("div", { class: "slot big-empty rise" }, icon("cursor"), h("strong", {}, "No preview for this run"), h("span", {}, p.none))], true);
-    return;
+    mount([...runHeader(r, "preview"), h("div", { class: "slot big-empty rise" }, icon("cursor"), h("strong", {}, "No preview for this run"), h("span", {}, p.none))], first);
+    return undefined;
   }
-  const pv = p.preview;
+  let pv = p.preview;
   // keep a "#screen" or "?query" tail out of the encoding: "index.html#S-1" must not become a file named "index.html%23S-1"
   const url = (path) => { const [file, ...tail] = path.split(/(?=[?#])/); return p.base + file.split("/").map(encodeURIComponent).join("/") + tail.join(""); };
+  // a draft is rewritten as pages come back: a fresh address so the frame does not show the last copy
+  const fresh = (path) => (pv.draft ? path.replace(/^([^?#]*)/, `$1?v=${pv.draft.drawn}-${pv.draft.failed}`) : path);
   const parts = [];
+  const banner = pv.draft ? h("section", { class: "callout live rise" }, icon("cursor"), h("div", {}, h("strong", {}, "Design being drawn"), h("p", {}, draftText(pv.draft)))) : null;
+  if (banner) parts.push(banner);
+  let paintList = () => undefined;
   if (pv.site) {
-    const screens = pv.site.screens.length ? pv.site.screens : [{ path: pv.site.entry, title: "Start" }];
     let width = 1280;
-    const frame = h("iframe", { sandbox: "allow-scripts", title: "Clickable preview", src: url(screens[0].path), referrerpolicy: "no-referrer", loading: "lazy" });
+    let picked = 0;
+    const screensOf = () => (pv.site.screens.length ? pv.site.screens : [{ path: pv.site.entry, title: "Start" }]);
+    const frame = h("iframe", { sandbox: "allow-scripts", title: "Clickable preview", src: url(fresh(screensOf()[0].path)), referrerpolicy: "no-referrer", loading: "lazy" });
     const stage = h("div", { class: "device" }, frame);
     const fit = () => {
       const avail = stage.parentElement ? stage.parentElement.clientWidth : width;
@@ -1171,10 +1198,13 @@ async function previewScreen(id) {
     const vpBtns = VIEWPORTS.map(([name, w]) => h("button", { type: "button", class: `tab${w === width ? " on" : ""}`, "data-w": w, onclick: (e) => {
       width = w; e.currentTarget.parentElement.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", Number(b.dataset.w) === w)); fit();
     } }, icon(name === "desktop" ? "browser" : "grid"), `${name} ${w}`));
-    const list = h("ul", { class: "screens" }, screens.map((sc, i) => h("li", {}, h("button", { type: "button", class: i === 0 ? "on" : undefined, onclick: (e) => {
-      frame.src = url(sc.path);
-      list.querySelectorAll("button").forEach((b) => b.classList.remove("on")); e.currentTarget.classList.add("on");
-    } }, h("span", {}, sc.title), sc.req ? h("span", { class: "tag" }, sc.req) : null))));
+    const list = h("ul", { class: "screens" });
+    paintList = () => list.replaceChildren(...screensOf().map((sc, i) => h("li", {}, h("button", { type: "button", class: i === picked ? "on" : undefined, onclick: () => {
+      picked = i;
+      frame.src = url(fresh(sc.path));
+      paintList();
+    } }, h("span", {}, sc.title), sc.pending ? h("span", { class: "tag" }, "drawing") : sc.req ? h("span", { class: "tag" }, sc.req) : null))));
+    paintList();
     parts.push(h("section", { class: "panel rise", vars: { "--i": 0 } },
       h("div", { class: "panel-head" }, h("h2", {}, icon("cursor"), "Clickable preview"), h("div", { class: "tabs-in vp" }, vpBtns)),
       h("div", { class: "pv" }, h("div", {}, h("div", { class: "eyebrow" }, "Screens"), list, h("p", { class: "small muted" }, "Runs in a locked frame: it can't reach this app, the network or your files.")),
@@ -1190,7 +1220,17 @@ async function previewScreen(id) {
         h("img", { src: img.url, alt: img.screen, loading: "lazy" }),
         h("span", { class: "cap" }, h("strong", {}, img.screen), img.req ? h("span", { class: "tag" }, img.req) : null, h("span", { class: "tag" }, img.viewport), img.beforeUrl ? h("span", { class: "tag ba-tag" }, "before / after") : null))))));
   }
-  mount([...runHeader(r, "preview"), h("div", { class: "stack" }, parts)], true);
+  mount([...runHeader(r, "preview"), h("div", { class: "stack" }, parts)], first);
+  // a draft that grows: the banner and the list follow, the frame stays where the lead is
+  if (!pv.draft || !pv.site || !banner) return undefined;
+  // true when updated in place; false when the page must be drawn again (a new screen list)
+  return (next) => {
+    if (!next.preview?.site || next.preview.site.screens.length !== pv.site.screens.length) return false;
+    pv = next.preview;
+    banner.querySelector("p").textContent = draftText(pv.draft);
+    paintList();
+    return true;
+  };
 }
 
 // ---------- estimate ----------
@@ -1244,10 +1284,11 @@ async function estimateScreen(id) {
     e.files.designNote ? h("span", { class: "small muted" }, `No design book: ${e.files.designNote}`) : null)
     : h("div", {}, h("div", { class: "row" }, dl("team", "Draft team workbook (.xlsx)", true), dl("client", "Draft client workbook (.xlsx)", true)),
       h("p", { class: "muted small" }, e.handsOff ? "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written once the estimate passes its checks." : "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written after you approve in your terminal."));
-  const tasks = table(["", "Task", "Track", "Who", "Hours", "Sized against", ""],
-    e.tasks.map((t) => [h("span", { class: "mono small" }, t.id), h("div", {}, h("div", {}, t.title, t.kind ? h("span", { class: "tag faint" }, t.size ? `${t.kind} · ${t.size}` : t.kind) : null), h("div", { class: "small muted" }, t.reason), t.references?.length ? h("div", { class: "small muted" }, `Like ${t.references.map((r) => `${r.taskId} of ${r.runId} (${r.size}, ${hrs(r.hours)})`).join(", ")}`) : null), t.track ?? "-", t.executor, hrs(t.hours),
-      t.anchor === t.id ? h("span", { class: "tag" }, "anchor") : `${t.anchor} × ${t.ratio}`, [t.flagged ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "estimators disagree") : "", t.splitAdvised ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "split before build") : ""]]), [4]);
+  const tasks = table(["", "Task", "Track", "Who", "Hours", "API cost", "Sized against", ""],
+    e.tasks.map((t) => [h("span", { class: "mono small" }, t.id), h("div", {}, h("div", {}, t.title, t.kind ? h("span", { class: "tag faint" }, t.size ? `${t.kind} · ${t.size}` : t.kind) : null), h("div", { class: "small muted" }, t.reason), t.references?.length ? h("div", { class: "small muted" }, `Like ${t.references.map((r) => `${r.taskId} of ${r.runId} (${r.size}, ${hrs(r.hours)})`).join(", ")}`) : null), t.track ?? "-", t.executor, hrs(t.hours), t.apiUsd ? usd(t.apiUsd) : "-",
+      t.anchor === t.id ? h("span", { class: "tag" }, "anchor") : `${t.anchor} × ${t.ratio}`, [t.flagged ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "estimators disagree") : "", t.splitAdvised ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "split before build") : ""]]), [4, 5]);
   const costTable = table(["Phase", "API cost"], e.apiCost.phases.map((p) => [p.phase, usd(p.usd)]), [1]);
+  const perTask = e.tasks.some((t) => t.apiUsd) ? h("p", { class: "muted small" }, "A task's API cost is its share of build and verification, by its hours; a human task costs nothing. Planning, design, breakdown and estimate are spent once per run.") : null;
   const extra = [];
   if (e.overheads.length) extra.push(h("h3", {}, "Overheads"), table(["Name", "Track", "Hours", "Why"], e.overheads.map((o) => [o.name, o.track ?? "-", hrs(o.hours), o.reason]), [2]));
   if (e.gateHours.length) extra.push(h("h3", {}, "Human gate hours (assumed)"), table(["Gate", "Track", "Hours"], e.gateHours.map((g) => [g.source, g.track ?? "-", hrs(g.hours)]), [2]));
@@ -1292,7 +1333,7 @@ async function estimateScreen(id) {
           [`#/new/brownfield/estimate/${rid}`, "layers", "Build this estimate"],
           [`#/new/estimate/revises/${rid}`, "pen", "Change request"],
         ]) : null,
-        panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", costTable),
+        panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", [costTable, perTask]),
         e.stack ? panel(3, "Stack priced", "layers", h("dl", { class: "facts" }, [["Backend", e.stack.backend], ["Web", e.stack.web], ["Mobile", e.stack.mobile], ["Database", e.stack.database], ["Hosting", e.stack.hosting], ["Architecture", e.stack.architecture]].filter((r) => r[1]).flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])),
           h("p", { class: "small muted" }, e.stack.basis === "repo" ? "From the repo." : e.stack.basis === "request" ? "Named in the requirements." : `Assumed by the estimate${e.stack.notes ? `: ${e.stack.notes}` : "."}`)) : null,
         e.factoryAssumptions?.length ? panel(3, "Assumed by the factory", "alert", h("p", { class: "small muted" }, "Nobody was asked: the requirements came refined, so each open question took its recommended answer. Confirm these with the client."),

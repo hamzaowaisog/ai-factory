@@ -94,6 +94,12 @@ describe("ApiRunner", () => {
     const tools = { call: () => "ok" };
     expect((await new ApiRunner({ provider: () => scripted(loop).provider, tools: tools as never }).run(job({ pack: pack(["read_file"]), limits: { maxTurns: 3, maxUsd: 1, timeoutSec: 60 } }))).status).toBe("bad-output");
     expect((await new ApiRunner({ provider: () => scripted(loop).provider, tools: tools as never }).run(job({ pack: pack(["read_file"]), limits: { maxTurns: 8, maxUsd: 0.0001, timeoutSec: 60 } }))).status).toBe("over-budget");
+    // an answer the over-limit turn already paid for is kept; only a further turn is refused
+    const kept = await new ApiRunner({ provider: () => scripted([call("submit_result", { changeClass: "feature", spans: ["a"] })]).provider }).run(job({ limits: { maxTurns: 8, maxUsd: 0.0001, timeoutSec: 60 } }));
+    expect(kept.status).toBe("ok");
+    const bad = scripted([call("submit_result", { changeClass: "nope" }), call("submit_result", { changeClass: "feature", spans: ["a"] })]);
+    expect((await new ApiRunner({ provider: () => bad.provider }).run(job({ limits: { maxTurns: 8, maxUsd: 0.0001, timeoutSec: 60 } }))).status).toBe("over-budget");
+    expect(bad.seen.toolResults).toEqual([]);
     expect((await new ApiRunner({ provider: () => scripted([{ calls: [], text: "", stop: "refusal", usage: U }]).provider }).run(job())).status).toBe("refused");
     expect((await new ApiRunner({ provider: () => scripted([new RateLimitedError("429")]).provider }).run(job())).status).toBe("rate-limited");
   });
@@ -131,6 +137,20 @@ describe("audit fixes", () => {
     expect(supportsEffort("claude-sonnet-5")).toBe(true);
     expect(supportsEffort("claude-opus-5-5")).toBe(true);
     expect(supportsEffort("gpt-5.5")).toBe(false);
+  });
+
+  it("passes a streaming answer's progress on, with the turn's time", async () => {
+    const provider: Provider = {
+      start: () => ({
+        async next(progress) { progress?.(4000); progress?.(9000); return call("submit_result", { changeClass: "bugfix", spans: ["x"] }); },
+        toolResults() {}, say() {},
+      }),
+    };
+    const seen: { chars: number; ms: number }[] = [];
+    const r = await new ApiRunner({ provider: () => provider, onProgress: (p) => seen.push(p) }).run(job());
+    expect(r.status).toBe("ok");
+    expect(seen.map((p) => p.chars)).toEqual([4000, 9000]);
+    expect(seen.every((p) => p.ms >= 0)).toBe(true);
   });
 
   it("tells the model when its next turn is the last one", async () => {

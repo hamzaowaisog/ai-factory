@@ -14,7 +14,7 @@ import { _resetEnvCache } from "../config/env.js";
 import { verifyEvidence } from "../gates/engine.js";
 import { loadWorkbook } from "../estimate/workbook-lint.js";
 import { decide } from "../ledger/human.js";
-import { Ledger } from "../ledger/ledger.js";
+import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { createRun, execute } from "./executor.js";
@@ -62,6 +62,8 @@ let mergeCalls = 0;
 /** intake says medium risk and full rigor (no light lane); the critic raises a new high finding on every call */
 let fullRigor = false;
 let criticCalls = 0;
+/** the spec questions each settle round asked about: the problems, as the question writer saw them */
+let settleProblems: string[][] = [];
 /** a large document: two modules, each with its own intake span, no questions, four requirements in all */
 let modular = false;
 let intakeCalls = 0;
@@ -90,8 +92,13 @@ const bigSizing = () => ({
   anchors: sizing.anchors, stack: sizing.stack,
   tasks: [1, 2, 3, 4, 5].map((n) => ({ taskId: `EST-${n}`, anchorId: "EST-1", ratio: n === 1 ? 1 : 1.25, reason: n === 1 ? "the anchor" : "a little more than the anchor", size: "typical", verify: "moderate", context: "complete" })),
 });
-function answerFor(system: string): unknown {
+function answerFor(system: string, user = ""): unknown {
   prompts.push(system.slice(0, 60));
+  if (system.includes("The spec below was checked and these problems are still open")) {
+    settleProblems.push([...user.matchAll(/"problem":\s*"([^"]+)"/g)].map((m) => m[1]!));
+    const lockout = "Lock the account for 15 minutes after 5 failed sign-ins";
+    return { questions: [{ problems: [1], text: "What happens after repeated failed sign-ins?", options: ["No lockout", lockout], recommended: lockout, reason: "the smallest change that closes the gap", impact: 2, impactReason: "a visible flow" }], inRequest: [] };
+  }
   if (modular && system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: MODULE_SPANS[intakeCalls++ % 2]! }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: false };
   if (modular && system.includes("sizing the tasks")) return bigSizing();
   if (modular && system.includes("turning a finished spec")) return bigBreakdown();
@@ -120,7 +127,7 @@ const provider: Provider = {
     if (system.includes("Senior engineer writing a behaviour spec")) drafterTools.push(tools.map((t) => t.name));
     if (system.includes("Adversarial reviewer")) { criticSystems.push(system); criticEfforts.push(_e); }
     if (system.includes("Merge three independent")) mergeCalls++;
-    return { async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answerFor(system) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
+    return { async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answerFor(system, _u) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
 
@@ -145,6 +152,7 @@ beforeEach(() => {
   mergeCalls = 0;
   fullRigor = false;
   criticCalls = 0;
+  settleProblems = [];
   modular = false;
   intakeCalls = 0;
   ui = false;
@@ -243,12 +251,94 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     expect(r.status, r.message).not.toBe("waiting");
     const s = replay(Ledger.open(runId).events());
     expect(s.steps.get("specify")?.status).toBe("completed");
-    // one draft, so the merge makes no model call; one repair, though every review found something new
-    expect(drafterTools).toHaveLength(2);
+    // one draft, so the merge makes no model call; one repair, though every review found something new (and a fix per round of questions)
+    expect(drafterTools).toHaveLength(4);
     expect(mergeCalls).toBe(0);
     expect(s.steps.get("merge")!.data).toMatchObject({ singleDraft: true });
-    expect(s.steps.get("specify")!.data).toMatchObject({ lane: "requirements", repairs: 1, openFindings: [expect.stringContaining("review 2")] });
-    expect(criticEfforts).toEqual(["medium", "medium"]);
+    expect(s.steps.get("specify")!.data).toMatchObject({ lane: "requirements", repairs: 1, openFindings: [expect.stringContaining("review 4")], settled: 3 });
+    // what the repair left open went to the question writer instead of stopping the run at E1: hands-off, each recommended
+    // answer is assumed and the spec fixed with it, for two rounds; what is still open after that is carried as an open risk
+    expect(settleProblems).toEqual([["missing lockout path (review 2)"], ["missing lockout path (review 3)"]]);
+    expect(criticEfforts).toEqual(["medium", "medium", "medium", "medium"]);
+    const ledger = Ledger.open(runId);
+    const spec = ledger.getJson<{ settled: { problem: string; how: string; ref?: string; decision: string }[] }>(s.steps.get("specify")!.outputs[0]!)!;
+    expect(spec.settled).toEqual([
+      expect.objectContaining({ kind: "critic", problem: "missing lockout path (review 2)", how: "assumed", ref: "Q-1", decision: expect.stringContaining("→ Lock the account") }),
+      expect.objectContaining({ kind: "critic", problem: "missing lockout path (review 3)", how: "assumed", ref: "Q-2" }),
+      expect.objectContaining({ kind: "critic", problem: "missing lockout path (review 4)", how: "open-risk" }),
+    ]);
+    // hands-off, clarify's question became an assumption (ASM-1), so the spec questions are numbered from Q-1
+    // E1 lets the settled spec through, and the estimate states each settled problem
+    expect(s.gates.find((g) => g.gateId === "estimate.e1-readiness")).toMatchObject({ passed: true });
+    const est = ledger.getJson<{ assumptions: string[] }>(s.steps.get("estimate")!.outputs[0]!)!;
+    expect(est.assumptions).toEqual(expect.arrayContaining([expect.stringMatching(/^Spec question Q-1: .*\(assumed by the factory, hands-off\)$/), "Open risk: missing lockout path (review 4)"]));
+  });
+
+  it("asks a person the spec questions on a card, round by round, and fixes the spec with their answers", async () => {
+    fullRigor = true;
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true } });
+    const ledger = Ledger.open(runId);
+    expect((await execute(runId)).status).toBe("waiting");
+    const q = replay(ledger.events()).openCard!;
+    await decide(ledger, { decision: "answer", hashPrefix: q.artifactSha.slice(0, 6), by: "lead", data: { answers: { "Q-1": "A" } } });
+    // what the repair left open comes back as a question card, numbered after clarify's questions
+    expect((await execute(runId)).status).toBe("waiting");
+    const c1 = replay(ledger.events()).openCard!;
+    expect(c1).toMatchObject({ kind: "question", cardId: expect.stringMatching(/^spec-questions-1-/) });
+    const md1 = ledger.readCard(c1.cardId);
+    expect(md1).toContain("round 1 of at most 2");
+    expect(md1).toMatch(/\*\*Q-2\*\* What happens after repeated failed sign-ins\?/);
+    expect(md1).toContain("(settles: missing lockout path (review 2))");
+    expect(md1).toContain(`factory answer ${runId} ${c1.artifactSha.slice(0, 8)} Q-2=A`);
+    await decide(ledger, { decision: "answer", hashPrefix: c1.artifactSha.slice(0, 6), by: "lead", data: { answers: { "Q-2": "Lock after 3 failed tries" } } });
+    // the fix and the fresh check find one more problem: a second round
+    expect((await execute(runId)).status).toBe("waiting");
+    const c2 = replay(ledger.events()).openCard!;
+    expect(c2.cardId).toMatch(/^spec-questions-2-/);
+    expect(ledger.readCard(c2.cardId)).toContain("**Q-3**");
+    await decide(ledger, { decision: "answer", hashPrefix: c2.artifactSha.slice(0, 6), by: "lead", data: { answers: { "Q-3": "B" } } });
+    expect((await execute(runId)).status).toBe("waiting");
+    const s = replay(ledger.events());
+    expect(s.openCard!.kind).toBe("estimate-approval");
+    // the repair loop ran once, before the first card; each answered round paid for one fix and one check
+    expect(drafterTools).toHaveLength(4);
+    expect(criticEfforts).toHaveLength(4);
+    expect(settleProblems).toHaveLength(2);
+    const spec = ledger.getJson<{ settled: unknown[] }>(s.steps.get("specify")!.outputs[0]!)!;
+    expect(spec.settled).toEqual([
+      expect.objectContaining({ problem: "missing lockout path (review 2)", how: "answered", ref: "Q-2", decision: "What happens after repeated failed sign-ins? → Lock after 3 failed tries" }),
+      expect.objectContaining({ problem: "missing lockout path (review 3)", how: "answered", ref: "Q-3", decision: expect.stringContaining("→ Lock the account for 15 minutes") }),
+      expect.objectContaining({ problem: "missing lockout path (review 4)", how: "open-risk" }),
+    ]);
+    expect(s.gates.find((g) => g.gateId === "estimate.e1-readiness")).toMatchObject({ passed: true });
+  });
+
+  it("sends a run whose spec was written before settling back to the spec step, which settles it, and estimates", async () => {
+    fullRigor = true;
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true, humanReview: false } });
+    const ledger = Ledger.open(runId);
+    expect((await execute(runId, () => undefined, { until: "specify" })).status).toBe("until");
+    // the spec as an older factory wrote it: the same step, its open problem not settled
+    const done = [...ledger.events()].reverse().find((e) => e.type === "step.completed" && e.key?.startsWith("specify/"))!;
+    const d = done.data as { named: Record<string, string> };
+    const { settled: _s, ...old } = ledger.getJson<Record<string, unknown>>(d.named.spec!)!;
+    const oldSha = ledger.putJson({ ...old, critic: [{ rubric: 2, reqId: "REQ-1", severity: "high", finding: "missing lockout path (old)" }] });
+    await ledger.append({ type: "step.completed", key: "specify/9", inputsHash: done.inputsHash, outputs: [oldSha, d.named.critic!], data: { ...d, named: { ...d.named, spec: oldSha } } }, HUMAN_WRITER);
+    drafterTools = []; criticEfforts = []; settleProblems = [];
+    const r = await execute(runId);
+    expect(r.status, r.message).not.toBe("waiting");
+    expect(r.status, r.message).not.toBe("parked");
+    const s = replay(ledger.events());
+    // E1 refused the old spec at breakdown; the spec step ran again from it (no new draft or repair loop) and settled it
+    const log = readFileSync(join(ledger.dir, "run.log"), "utf8");
+    expect(log).toContain("↩ breakdown: gate E1 refused the spec (1 open problem); the spec step runs again and settles it with questions");
+    expect(settleProblems[0]).toEqual(["missing lockout path (old)"]);
+    expect(drafterTools).toHaveLength(2);
+    expect(s.gates.filter((g) => g.gateId === "estimate.e1-readiness").map((g) => g.passed)).toEqual([false, true]);
+    expect(s.steps.get("breakdown")).toMatchObject({ status: "completed", interruptions: 0 });
+    for (const step of ["estimate", "approve-estimate", "export"]) expect(s.steps.get(step)?.status, step).toBe("completed");
+    const spec = ledger.getJson<{ settled: { problem: string; how: string }[] }>(s.steps.get("specify")!.outputs[0]!)!;
+    expect(spec.settled[0]).toMatchObject({ problem: "missing lockout path (old)", how: "assumed" });
   });
 
   it("specifies a large document module by module, joins the modules, and estimates the whole", async () => {

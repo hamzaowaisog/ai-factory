@@ -29,7 +29,8 @@ export interface Turn {
   usage: { inputTokens: number; outputTokens: number; cacheRead: number; cacheWrite: number };
 }
 export interface Conversation {
-  next(): Promise<Turn>;
+  /** `progress` gets the characters of answer streamed so far (text, tool input and thinking), where the provider streams */
+  next(progress?: (chars: number) => void): Promise<Turn>;
   toolResults(results: { id: string; content: string; isError?: boolean }[]): void;
   /** Plain user nudge (when the model answered without calling a tool). */
   say(text: string): void;
@@ -137,10 +138,10 @@ export class AnthropicProvider implements Provider {
       name: t.name, description: t.description, input_schema: t.schema as Anthropic.Tool.InputSchema,
     }));
     return {
-      async next(): Promise<Turn> {
+      async next(progress?: (chars: number) => void): Promise<Turn> {
         let msg: Anthropic.Message;
         try {
-          msg = await client.messages.stream({
+          const stream = client.messages.stream({
             model,
             max_tokens: MAX_OUTPUT_TOKENS,
             system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
@@ -151,7 +152,17 @@ export class AnthropicProvider implements Provider {
             // cache the conversation as it grows, so each tool turn re-reads it at the cached price
             ...(cachesConversation(tools, messages.length) ? { cache_control: { type: "ephemeral" } } : {}),
             messages,
-          } as Anthropic.MessageStreamParams).finalMessage();
+          } as Anthropic.MessageStreamParams);
+          if (progress) {
+            let chars = 0;
+            stream.on("streamEvent", (e) => {
+              if (e.type !== "content_block_delta") return;
+              const d = e.delta;
+              chars += d.type === "text_delta" ? d.text.length : d.type === "input_json_delta" ? d.partial_json.length : d.type === "thinking_delta" ? d.thinking.length : 0;
+              progress(chars);
+            });
+          }
+          msg = await stream.finalMessage();
         } catch (e) {
           if (transientAnthropic(e)) throw new RateLimitedError((e as Error).message);
           if (e instanceof Anthropic.APIError && CONFIG_STATUSES.has(e.status as number)) throw new ConfigError(e.status as number, (e as Error).message);
@@ -303,6 +314,8 @@ export interface ApiRunnerDeps {
   loadImage?: (sha: string) => Uint8Array;
   /** For the run trace: one call per model turn, after its tool calls were answered. */
   onTurn?: (t: TurnTrace) => void;
+  /** While a turn streams: the characters of answer so far and the turn's time, so a long answer shows it is arriving. */
+  onProgress?: (p: { chars: number; ms: number }) => void;
   /** Called after every model call so usage lands in the ledger even if we crash. */
   onUsage?: (u: { model: string; inputTokens: number; outputTokens: number; cacheRead: number; cacheWrite: number; costUsd: number }) => Promise<void>;
 }
@@ -357,7 +370,8 @@ export class ApiRunner implements Runner {
       let t: Turn;
       const turnStart = Date.now();
       try {
-        t = await convo.next();
+        const onProgress = this.deps.onProgress;
+        t = await convo.next(onProgress ? (chars) => onProgress({ chars, ms: Date.now() - turnStart }) : undefined);
       } catch (e) {
         if (e instanceof RateLimitedError) return done("rate-limited", { error: e.message });
         if (e instanceof ConfigError) return done("config-error", { error: configErrorText(e.status, e.message, job.model) });
@@ -366,7 +380,9 @@ export class ApiRunner implements Runner {
       const cost = costUsd(job.model, t.usage);
       usage = addUsage(usage, { ...t.usage, turns: 1, estUsd: cost });
       await this.deps.onUsage?.({ model: job.model, ...t.usage, costUsd: cost });
-      if (usage.estUsd > job.limits.maxUsd) return done("over-budget");
+      // over the limit: no further turn, but an answer this turn already paid for is kept (a resumed estimate run's critic
+      // answered at $0.29 against a $0.25 share and was thrown away, failing the step)
+      const over = usage.estUsd > job.limits.maxUsd;
       if (t.stop === "refusal") return done("refused", { error: "The model declined this request" });
 
       const traced: TurnTrace["calls"] = [];
@@ -377,6 +393,7 @@ export class ApiRunner implements Runner {
         report();
         // asking again only buys the same cut-off answer
         if (t.stop === "max_tokens") return done("bad-output", { error: CUT_OFF });
+        if (over) return done("over-budget");
         if (++reasks > MAX_REASKS) return done("bad-output", { error: "The model never submitted a result" });
         convo.say(`Call the ${SUBMIT} tool with your final answer.`);
         continue;
@@ -408,6 +425,7 @@ export class ApiRunner implements Runner {
       }
       report(schemaError);
       if (output !== undefined) return done("ok", { output });
+      if (over) return done("over-budget");
       // a submit cut off mid-way fails the schema; asking again only buys the same cut-off answer
       if (t.stop === "max_tokens") return done("bad-output", { error: CUT_OFF });
       if (reasks > MAX_REASKS) return done("bad-output", { error: "Output failed the schema after 2 re-asks" });
