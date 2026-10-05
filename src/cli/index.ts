@@ -12,6 +12,7 @@ import "../design/gates.js";
 import "../estimate/lint.js";
 import "../estimate/gates.js";
 import { registerDesignCommands } from "../design/cli.js";
+import { registerFullstackCommands } from "../fullstack/cli.js";
 import { assertTty, decide, DecisionError } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { MAX_BUDGET_CEILING, replay, statusLabel } from "../ledger/state.js";
@@ -672,6 +673,7 @@ program.command("doctor").description("check this machine and the setup").action
 
 // design runs (factory design start|show|list|open|check-refs) and the design toolkit (src/design): inventory|size|lint|brief|refs
 registerDesignCommands(program, (design) => registerDesignRunCommands(design, { log, openRun, runAndReport }));
+registerFullstackCommands(program, { log, runAndReport });
 
 program.parseAsync().catch((e: Error) => {
   if (e instanceof DecisionError) process.stderr.write(`${e.message}\n`);
