@@ -18,6 +18,8 @@ export type StepOutcome =
   /** data: small metadata stored on step.failed (e.g. the commit judged, how the attempt started). */
   | { kind: "fail"; category: FailureCategory; failures: Failure[]; signature?: string; diffSha?: string; lockedFailedIds?: string[]; data?: Record<string, unknown> }
   | { kind: "park"; reason: string }
+  /** An earlier step has to run again first (this step changed its inputs, e.g. gate E1 sent the spec back to be settled); the run goes on with it. Not a failed attempt. */
+  | { kind: "back"; reason: string }
   /** Run ends without delivery (e.g. not-reproduced). */
   | { kind: "close"; reason: "not-reproduced" | "stopped" };
 
@@ -38,6 +40,8 @@ export interface StepContext {
   trace: Trace;
   /** record model usage as it happens */
   usage: (u: Usage & { model: string }) => Promise<void>;
+  /** steps running side by side, this one included; each gets its share of what's left of the run's cost limit */
+  share?: number;
 }
 
 export interface StepDef {
@@ -50,6 +54,8 @@ export interface StepDef {
   model?(ctx: Pick<StepContext, "project" | "rung">): string | undefined;
   templateVersion: string;
   coding?: boolean;
+  /** may run side by side with the other parallel steps next to it in the run (one module's spec chain beside another's) */
+  parallel?: boolean;
   run(ctx: StepContext): Promise<StepOutcome>;
 }
 

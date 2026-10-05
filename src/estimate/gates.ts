@@ -11,6 +11,7 @@ import type { DiffSummary } from "../gates/predicates.js";
 import { hashJson } from "../util/hash.js";
 import { effortHours } from "./hours.js";
 import { kindProblem, type Catalogue } from "./catalogue.js";
+import { isSettled, lintText } from "./settled.js";
 
 /** An outlier task sits outside median / this .. median x this within its group (E5). */
 export const OUTLIER_FACTOR = 3;
@@ -32,14 +33,17 @@ export const readiness = defineGate<{ spec: Spec; questions?: Questions }>({
   id: "estimate.e1-readiness", after: "spec-gate", safety: false, waiver: "none",
   predicate: ({ spec, questions }) => {
     const fs = [];
-    for (const l of spec.lint) if (!l.passed) fs.push(failure("e1-lint", `spec lint ${l.check}: ${l.details}`));
-    for (const c of spec.critic) if (c.severity === "critical" || c.severity === "high") fs.push(failure("e1-critic", `critic ${c.severity}: ${c.finding}`));
+    // a problem settled by a question after the repairs (answered, assumed, found in the request or carried as an open risk) passes
+    const ok = (kind: Parameters<typeof isSettled>[1], text: string) => isSettled(spec.settled, kind, text);
+    for (const l of spec.lint) if (!l.passed && !ok("lint", lintText(l))) fs.push(failure("e1-lint", `spec lint ${l.check}: ${l.details}`));
+    for (const c of spec.critic) if ((c.severity === "critical" || c.severity === "high") && !ok("critic", c.finding)) fs.push(failure("e1-critic", `critic ${c.severity}: ${c.finding}`));
     for (const s of spec.roundTrip.droppedSpans) fs.push(failure("e1-round-trip", `source span ${s} was dropped`));
-    for (const c of spec.roundTrip.inventedCapabilities) fs.push(failure("e1-round-trip", `invented capability: ${c}`));
+    for (const c of spec.roundTrip.inventedCapabilities) if (!ok("invented", c)) fs.push(failure("e1-round-trip", `invented capability: ${c}`));
     if (!questions) fs.push(failure("e1-questions", "no questions record, so open questions cannot be ruled out"));
     else for (const q of questions.questions) if (!q.answer) fs.push(failure("e1-questions", `question ${q.id} is still open`));
     if (spec.requirements.length === 0) fs.push(failure("e1-empty", "the spec has no requirements"));
-    return verdict(fs, `${spec.requirements.length} requirements, lint, critic and round trip clean, no open questions`);
+    const n = spec.settled?.length ?? 0;
+    return verdict(fs, `${spec.requirements.length} requirements, lint, critic and round trip clean${n ? ` (${n} problem${n > 1 ? "s" : ""} settled by questions)` : ""}, no open questions`);
   },
 });
 
@@ -109,7 +113,7 @@ export const consistency = defineGate<{ estimate: Pick<Estimate, "tasks">; break
       const m = median(xs.map((x) => x.avg));
       if (m <= 0) continue;
       for (const x of xs) {
-        if ((x.avg > m * OUTLIER_FACTOR || x.avg < m / OUTLIER_FACTOR) && !x.flagged) fs.push(failure("e5-outlier", `${x.id} at ${x.avg}h is far from the ${key} median ${m}h and is not flagged`));
+        if ((x.avg > m * OUTLIER_FACTOR || x.avg < m / OUTLIER_FACTOR) && !x.flagged) fs.push(failure("e5-outlier", `${x.id} at ${x.avg}h is far from the ${key} median ${m}h and is not flagged`, { location: x.id }));
       }
     }
     if (ui) fs.push(...uiOrder(estimate, breakdown, ui));
@@ -140,7 +144,7 @@ function uiOrder(estimate: Pick<Estimate, "tasks">, breakdown: Pick<Breakdown, "
     const simple = list.filter(([id]) => ui[id] === "simple").sort((a, b) => b[1].avg - a[1].avg)[0];
     if (!simple) continue;
     for (const [id, x] of list) {
-      if (ui[id] === "complex" && x.avg < simple[1].avg) fs.push(failure("e5-ui-order", `screen ${id} is complex in the approved demo but its ${key} work (${x.ids.join(", ")}) is sized at ${Math.round(x.avg * 100) / 100}h, below simple screen ${simple[0]} at ${Math.round(simple[1].avg * 100) / 100}h`));
+      if (ui[id] === "complex" && x.avg < simple[1].avg) fs.push(failure("e5-ui-order", `screen ${id} is complex in the approved demo but its ${key} work (${x.ids.join(", ")}) is sized at ${Math.round(x.avg * 100) / 100}h, below simple screen ${simple[0]} at ${Math.round(simple[1].avg * 100) / 100}h`, { location: x.ids.join(",") }));
     }
   }
   return fs;

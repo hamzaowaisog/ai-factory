@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import type { RunState } from "../ledger/state.js";
 import { timeSplit } from "../report.js";
-import { complexityOf, LANE, lightBuild, lightSpec, testWriterTurns } from "./lane.js";
+import { complexityOf, LANE, lightBuild, lightSpec, specLane, testWriterTurns } from "./lane.js";
 import { downgradeUi } from "./specpipe.js";
 
 describe("light lane", () => {
@@ -31,6 +31,13 @@ describe("light lane", () => {
   it("the full lane keeps what every run had before", () => {
     expect(LANE.full).toMatchObject({ drafts: 3, maxRepairs: 3, groundTurns: 12, testWriterTurns: 60, criticEffort: undefined });
     expect(LANE.light).toMatchObject({ drafts: 1, maxRepairs: 1, groundTurns: 8, testWriterTurns: 25, criticEffort: "medium", maxCharacterisation: 2 });
+  });
+
+  it("an estimate or design run writes one draft and repairs once; a small change keeps the light lane", () => {
+    const big = { risk: "high", rigor: "full", changeClass: "feature" } as const;
+    for (const mode of ["estimate", "design"]) expect(specLane(big, mode)).toEqual({ drafts: 1, maxRepairs: 1, criticEffort: "medium", name: "requirements" });
+    for (const mode of ["brownfield", "greenfield", undefined]) expect(specLane(big, mode)).toMatchObject({ drafts: 3, maxRepairs: 3, criticEffort: undefined, name: "full" });
+    expect(specLane({ risk: "low", rigor: "light", changeClass: "feature" }, "estimate")).toMatchObject({ drafts: 1, name: "light" });
   });
 });
 

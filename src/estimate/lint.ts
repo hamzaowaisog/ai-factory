@@ -3,6 +3,7 @@
 import { defineGate, failure, verdict } from "../gates/engine.js";
 import type { Breakdown, Estimate } from "../contracts/index.js";
 import { mergeEstimators, scale } from "./hours.js";
+import { PER_TASK } from "./cost.js";
 import { computeTotals } from "./totals.js";
 
 const EPS = 0.011;
@@ -62,6 +63,12 @@ export function lintEstimate(e: Estimate, b: Pick<Breakdown, "tasks">): LintIssu
   const min = cost.phases.reduce((s, p) => s + p.usd.min, 0);
   const max = cost.phases.reduce((s, p) => s + p.usd.max, 0);
   if (!near(min, cost.total.min) || !near(max, cost.total.max)) bad("cost-total", `API cost stored ${cost.total.min}-${cost.total.max}, phases add to ${min.toFixed(2)}-${max.toFixed(2)}`);
+  // each task's API cost is its share of the build and verification phases (estimates from 2026-10-06 on)
+  if (e.tasks.some((t) => t.apiUsd)) {
+    const phase = (k: "min" | "max") => cost.phases.filter((p) => PER_TASK.includes(p.phase)).reduce((s, p) => s + p.usd[k], 0);
+    const shares = (k: "min" | "max") => e.tasks.reduce((s, t) => s + (t.apiUsd?.[k] ?? 0), 0);
+    if (!near(shares("min"), phase("min")) || !near(shares("max"), phase("max"))) bad("cost-tasks", `tasks' API cost adds to ${shares("min").toFixed(2)}-${shares("max").toFixed(2)}, build and verification are ${phase("min").toFixed(2)}-${phase("max").toFixed(2)}`);
+  }
   if (cost.records === 0 && cost.confidence !== "cold-start") bad("cost-confidence", "no benchmark records, but the confidence is not cold-start");
 
   // solely agentic carries no supervisor gates

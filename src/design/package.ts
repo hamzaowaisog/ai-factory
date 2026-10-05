@@ -56,7 +56,7 @@ export interface DesignManifest {
   look: "design" | "repo";
   references: { id: string; role: string; source: string; use?: string; how?: string }[];
   screens: PackageScreen[];
-  /** the version this one changes, and what changed (a change request only) */
+  /** the version this one changes, and what changed (a change request, or a design approved again in its own run) */
   previous?: { version: number; designSha: string; runId: string };
   changes?: string[];
   shots: Shot[];

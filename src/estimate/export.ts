@@ -9,7 +9,7 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import ExcelJS from "exceljs";
-import type { Breakdown, BreakdownTask, Estimate, Track } from "../contracts/index.js";
+import type { Breakdown, BreakdownTask, Estimate, TaskSizing, Track } from "../contracts/index.js";
 import { DEFAULT_ASSUMPTIONS, type Assumptions } from "./assumptions.js";
 import type { Consideration, ConsiderationKey } from "./considerations.js";
 import { effortHours } from "./hours.js";
@@ -147,6 +147,14 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   wb.creator = "AI Factory";
   const team = audience === "team";
   const sized = new Map(e.tasks.map((t) => [t.taskId, t]));
+  // every task sheet: what the factory spends in API credits on the task (J, K), and in the team file the sized hours (L, M)
+  const perTask = e.tasks.some((t) => t.apiUsd);
+  const extraHead: Record<string, string> = { G: "Executor", H: "Requirement id(s)", I: "Task id", ...(perTask ? { J: "API min ($)", K: "API max ($)" } : {}), ...(team ? { L: "Sized min (h)", M: "Sized max (h)" } : {}) };
+  const apiCells = (ws: ExcelJS.Worksheet, row: number, s: TaskSizing | undefined) => { if (s?.apiUsd) { n(ws, `J${row}`, s.apiUsd.min); n(ws, `K${row}`, s.apiUsd.max); } };
+  const sumCols = (ws: ExcelJS.Worksheet, row: number, from: number, to: number) => {
+    const cols = [...(perTask ? ["J", "K"] : []), ...(team ? ["L", "M"] : [])];
+    for (const c of cols) f(ws, `${c}${row}`, `SUM(${c}${from}:${c}${to})`);
+  };
 
   const sheets = new Map<string, ExcelJS.Worksheet>();
   const sheet = (name: string) => sheets.get(name) ?? (sheets.set(name, wb.getWorksheet(name) ?? wb.addWorksheet(name)), sheets.get(name)!);
@@ -229,14 +237,15 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
 
     const extras = (row: number, l: Line) => {
       if (l.task) { ws.getCell(`G${row}`).value = l.task.executor[0]!.toUpperCase() + l.task.executor.slice(1); ws.getCell(`H${row}`).value = l.task.reqs.join(", "); ws.getCell(`I${row}`).value = l.task.id; }
-      if (team && l.sized) { n(ws, `J${row}`, l.sized.min); n(ws, `K${row}`, l.sized.max); }
+      if (l.task) apiCells(ws, row, sized.get(l.task.id));
+      if (team && l.sized) { n(ws, `L${row}`, l.sized.min); n(ws, `M${row}`, l.sized.max); }
     };
     const line = (row: number, no: number | "", l: Line) => {
       put(ws, `B${row}`, no, "taskB"); put(ws, `C${row}`, l.name, "taskC"); n(ws, `D${row}`, l.min, "taskD"); n(ws, `E${row}`, l.max, "taskE"); put(ws, `F${row}`, l.comment, "taskF"); extras(row, l);
     };
     const sum = (row: number, from: number, to: number, role: [string, string], sizedToo = true) => {
       f(ws, `D${row}`, `SUM(D${from}:D${to})`, role[0], { font: BOLD }); f(ws, `E${row}`, `SUM(E${from}:E${to})`, role[1], { font: BOLD });
-      if (team && sizedToo) { f(ws, `J${row}`, `SUM(J${from}:J${to})`); f(ws, `K${row}`, `SUM(K${from}:K${to})`); }
+      if (sizedToo) sumCols(ws, row, from, to);
     };
     const sumOf = (row: number, rows: number[], role: [string, string]) => {
       for (const c of ["D", "E"] as const) f(ws, `${c}${row}`, rows.length ? rows.map((x) => `${c}${x}`).join("+") : "0", c === "D" ? role[0] : role[1], { font: BOLD });
@@ -251,7 +260,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     // detail: validation testing by cycle, each feature a numbered module
     put(ws, `B${r}`, "S.No", "headB", plainHead); put(ws, `C${r}`, "Validation Testing", "headC", plainHead);
     put(ws, `D${r}`, "Minimum", "headD", plainHead); put(ws, `E${r}`, "Maximum", "headE", plainHead); put(ws, `F${r}`, "Comments", "headF", plainHead);
-    for (const [col, text] of Object.entries({ G: "Executor", H: "Requirement id(s)", I: "Task id", ...(team ? { J: "Sized min (h)", K: "Sized max (h)" } : {}) })) put(ws, `${col}${r}`, text, "headF", plainHead);
+    for (const [col, text] of Object.entries(extraHead)) put(ws, `${col}${r}`, text, "headF", plainHead);
     r++;
     const cycleTotal = new Map<number, number>();
     for (const c of cycleNos) {
@@ -280,7 +289,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     let row = SUMMARY_AT;
     put(ws, "B8", "S.No", "headB", plainHead); put(ws, "C8", "Estimation Summary", "headC", plainHead);
     put(ws, "D8", "Minimum", "headD", plainHead); put(ws, "E8", "Maximum", "headE", plainHead); put(ws, "F8", "Comments", "headF", plainHead);
-    for (const [col, text] of Object.entries({ G: "Executor", H: "Requirement id(s)", I: "Task id", ...(team ? { J: "Sized min (h)", K: "Sized max (h)" } : {}) })) put(ws, `${col}8`, text, "headF", plainHead);
+    for (const [col, text] of Object.entries(extraHead)) put(ws, `${col}8`, text, "headF", plainHead);
     const itemRows: number[] = [];
     for (const it of QA_ITEMS) {
       const itemRow = row++;
@@ -313,7 +322,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   // ---------- track sheets (the template's layout: title block, Grand Total at the top, modules, other activities, research) ----------
   for (const def of SHEETS) {
     const ws = sheet(def.name);
-    widths(ws, { B: 7, C: 46, D: 12, E: 12, F: 60, G: 11, H: 22, I: 9, J: 12, K: 12 });
+    widths(ws, { B: 7, C: 46, D: 12, E: 12, F: 60, G: 11, H: 22, I: 9, J: 12, K: 12, L: 12, M: 12 });
     const tasks = tasksOf(def.tracks);
     const overheads = e.overheads.filter((o) => o.track && def.tracks.includes(o.track));
     const gates = e.gateHours.filter((g) => g.track && def.tracks.includes(g.track));
@@ -330,9 +339,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     const header = (row: number, title: string) => {
       put(ws, `B${row}`, "S.No", "headB", plainHead); put(ws, `C${row}`, title, "headC", plainHead);
       put(ws, `D${row}`, "Minimum", "headD", plainHead); put(ws, `E${row}`, "Maximum", "headE", plainHead); put(ws, `F${row}`, "Comments", "headF", plainHead);
-      const extra: Record<string, string> = { G: "Executor", H: "Requirement id(s)", I: "Task id" };
-      if (team) Object.assign(extra, { J: "Sized min (h)", K: "Sized max (h)" });
-      for (const [col, text] of Object.entries(extra)) put(ws, `${col}${row}`, text, "headF", plainHead);
+      for (const [col, text] of Object.entries(extraHead)) put(ws, `${col}${row}`, text, "headF", plainHead);
     };
     header(8, "Task");
     let row = 9;
@@ -355,12 +362,13 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
         n(ws, `D${row}`, eff.min, "taskD"); n(ws, `E${row}`, eff.max, "taskE");
         put(ws, `F${row}`, (t.overhead ? t.overhead : t.items.join("; ")) + why, "taskF");
         ws.getCell(`G${row}`).value = t.executor[0]!.toUpperCase() + t.executor.slice(1); ws.getCell(`H${row}`).value = t.reqs.join(", "); ws.getCell(`I${row}`).value = t.id;
-        if (team && s) { n(ws, `J${row}`, s.hours.min); n(ws, `K${row}`, s.hours.max); }
+        apiCells(ws, row, s);
+        if (team && s) { n(ws, `L${row}`, s.hours.min); n(ws, `M${row}`, s.hours.max); }
         row++;
       }
       f(ws, `D${modRow}`, `SUM(D${first}:D${row - 1})`, "modD", { font: BOLD }); f(ws, `E${modRow}`, `SUM(E${first}:E${row - 1})`, "modE", { font: BOLD });
       put(ws, `F${modRow}`, "", "modF");
-      if (team) { f(ws, `J${modRow}`, `SUM(J${first}:J${row - 1})`); f(ws, `K${modRow}`, `SUM(K${first}:K${row - 1})`); }
+      sumCols(ws, modRow, first, row - 1);
       row++;
     }
     if (!moduleRows.length) { put(ws, `C${row}`, "None", "taskC"); n(ws, `D${row}`, 0, "taskD"); n(ws, `E${row}`, 0, "taskE"); moduleRows.push(row); row += 2; }
@@ -383,7 +391,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     let k = 1;
     for (const r of acts.length ? acts : [{ name: "None", min: 0, max: 0, comment: "", sized: { min: 0, max: 0 } }]) {
       put(ws, `B${row}`, k++, "taskB"); put(ws, `C${row}`, r.name, "taskC"); n(ws, `D${row}`, r.min, "taskD"); n(ws, `E${row}`, r.max, "taskE"); put(ws, `F${row}`, r.comment, "taskF");
-      if (team) { n(ws, `J${row}`, r.sized.min); n(ws, `K${row}`, r.sized.max); }
+      if (team) { n(ws, `L${row}`, r.sized.min); n(ws, `M${row}`, r.sized.max); }
       row++;
     }
     const postRow = row++;
@@ -404,7 +412,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   // ---------- other: GD, PM, PDM and cross-cutting time, one section each with its own total ----------
   {
     const ws = sheet(SHEET.other);
-    widths(ws, { B: 7, C: 46, D: 12, E: 12, F: 60, G: 11, H: 22, I: 9, J: 12, K: 12 });
+    widths(ws, { B: 7, C: 46, D: 12, E: 12, F: 60, G: 11, H: 22, I: 9, J: 12, K: 12, L: 12, M: 12 });
     put(ws, "B2", `Other Estimates for ${input.header.project}`, "title", { font: { bold: true, size: 14 } }); merge(ws, "B2:F2");
     put(ws, "B3", input.header.date, "date"); merge(ws, "B3:F3");
     put(ws, "B4", `by ${input.header.pm}`, "by"); merge(ws, "B4:F4");
@@ -421,7 +429,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
         put(ws, `B${row}`, `Not in scope: ${input.notInScope?.[sec.tracks[0]!] ?? "no work in this estimate"}`, "", { font: { italic: true } }); row++;
       }
       put(ws, `B${row}`, "S.No", "headB", plainHead); put(ws, `C${row}`, "Task", "headC", plainHead); put(ws, `D${row}`, "Minimum", "headD", plainHead); put(ws, `E${row}`, "Maximum", "headE", plainHead); put(ws, `F${row}`, "Comments", "headF", plainHead);
-      for (const [col, text] of Object.entries({ G: "Executor", H: "Requirement id(s)", I: "Task id", ...(team ? { J: "Sized min (h)", K: "Sized max (h)" } : {}) })) put(ws, `${col}${row}`, text, "headF", plainHead);
+      for (const [col, text] of Object.entries(extraHead)) put(ws, `${col}${row}`, text, "headF", plainHead);
       row++;
       const rows = [
         ...tasks.map((t) => { const s = sized.get(t.id); const eff = s ? effortHours(s) : { min: 0, max: 0 }; return { name: t.title, min: eff.min, max: eff.max, executor: t.executor[0]!.toUpperCase() + t.executor.slice(1), reqs: t.reqs.join(", "), id: t.id, comment: (t.overhead ? t.overhead : t.items.join("; ")) + (team && s ? ` (${s.reason})` : ""), sized: s?.hours }; }),
@@ -433,7 +441,8 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
       for (const r of rows.length ? rows : [{ name: "None", min: 0, max: 0, executor: "", reqs: "", id: "", comment: "", sized: { min: 0, max: 0 } }]) {
         put(ws, `B${row}`, i++, "taskB"); put(ws, `C${row}`, r.name, "taskC"); n(ws, `D${row}`, r.min, "taskD"); n(ws, `E${row}`, r.max, "taskE"); put(ws, `F${row}`, r.comment, "taskF");
         ws.getCell(`G${row}`).value = r.executor; ws.getCell(`H${row}`).value = r.reqs; ws.getCell(`I${row}`).value = r.id;
-        if (team && r.sized) { n(ws, `J${row}`, r.sized.min); n(ws, `K${row}`, r.sized.max); }
+        apiCells(ws, row, sized.get(r.id));
+        if (team && r.sized) { n(ws, `L${row}`, r.sized.min); n(ws, `M${row}`, r.sized.max); }
         row++;
       }
       put(ws, `C${row}`, `${sec.title} TOTAL`, "totC", { font: BOLD });
@@ -524,7 +533,9 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   put(S, `B${r}`, "API credit cost total", "sumLabel", { font: BOLD });
   f(S, `C${r}`, `SUM(C${c0}:C${r - 1})`, undefined, { font: BOLD }); f(S, `D${r}`, `SUM(D${c0}:D${r - 1})`, undefined, { font: BOLD });
   r++;
-  put(S, `B${r}`, "Confidence", "sumLabel", { font: BOLD }); put(S, `C${r}`, `${e.apiCost.confidence} (${e.apiCost.records} measured record${e.apiCost.records === 1 ? "" : "s"})`, "sumValue"); r += 2;
+  put(S, `B${r}`, "Confidence", "sumLabel", { font: BOLD }); put(S, `C${r}`, `${e.apiCost.confidence} (${e.apiCost.records} measured record${e.apiCost.records === 1 ? "" : "s"})`, "sumValue"); r++;
+  if (perTask) { put(S, `B${r}`, "Per task", "sumLabel", { font: BOLD }); put(S, `C${r}`, "API min and max ($) on each task sheet: the task's share of build and verification, by its hours. A human task costs nothing; planning, design, breakdown and estimate are spent once per run.", "sumValue"); r++; }
+  r++;
 
   put(S, `B${r}`, "Elapsed time", "consHead", { font: { bold: true, size: 12 } }); r++;
   put(S, `B${r}`, "Planning (minutes)", "consB"); n(S, `C${r}`, e.elapsed.planningMinutes); r++;

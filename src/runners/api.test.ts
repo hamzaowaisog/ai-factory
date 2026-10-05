@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { ContextPack } from "../contracts/index.js";
 import Anthropic from "@anthropic-ai/sdk";
-import { anthropicUserContent, ApiRunner, chatUserContent, openaiResponsesUserContent, RateLimitedError, transientAnthropic, type Conversation, type Provider, type Turn } from "./api.js";
+import { anthropicUserContent, ApiRunner, cachesConversation, chatUserContent, openaiResponsesUserContent, RateLimitedError, transientAnthropic, type Conversation, type Provider, type Turn } from "./api.js";
 import type { ModelImage } from "../util/image.js";
 import { sniffImage, toModelImage } from "../util/image.js";
 import { costUsd } from "./pricing.js";
@@ -52,6 +52,17 @@ describe("ApiRunner", () => {
     expect(r.usage.estUsd).toBeCloseTo(costUsd("claude-sonnet-5", U));
   });
 
+  it("an answer cut off at the output limit fails at once instead of being asked for again", async () => {
+    const cut: Turn = { ...call("submit_result", { changeClass: "feature" }), stop: "max_tokens" };
+    const { provider, seen } = scripted([cut, call("submit_result", { changeClass: "feature", spans: ["a"] })]);
+    const r = await new ApiRunner({ provider: () => provider }).run(job());
+    expect(r.status).toBe("bad-output");
+    expect(r.error).toMatch(/cut off at the model's output limit/);
+    expect(seen.toolResults).toHaveLength(0);
+    const silent: Turn = { calls: [], text: "", stop: "max_tokens", usage: U };
+    expect((await new ApiRunner({ provider: () => scripted([silent]).provider }).run(job())).status).toBe("bad-output");
+  });
+
   it("re-asks on schema errors, at most twice", async () => {
     const bad = call("submit_result", { changeClass: "nope", spans: [] });
     const { provider, seen } = scripted([bad, call("submit_result", { changeClass: "feature", spans: ["a"] })]);
@@ -83,6 +94,12 @@ describe("ApiRunner", () => {
     const tools = { call: () => "ok" };
     expect((await new ApiRunner({ provider: () => scripted(loop).provider, tools: tools as never }).run(job({ pack: pack(["read_file"]), limits: { maxTurns: 3, maxUsd: 1, timeoutSec: 60 } }))).status).toBe("bad-output");
     expect((await new ApiRunner({ provider: () => scripted(loop).provider, tools: tools as never }).run(job({ pack: pack(["read_file"]), limits: { maxTurns: 8, maxUsd: 0.0001, timeoutSec: 60 } }))).status).toBe("over-budget");
+    // an answer the over-limit turn already paid for is kept; only a further turn is refused
+    const kept = await new ApiRunner({ provider: () => scripted([call("submit_result", { changeClass: "feature", spans: ["a"] })]).provider }).run(job({ limits: { maxTurns: 8, maxUsd: 0.0001, timeoutSec: 60 } }));
+    expect(kept.status).toBe("ok");
+    const bad = scripted([call("submit_result", { changeClass: "nope" }), call("submit_result", { changeClass: "feature", spans: ["a"] })]);
+    expect((await new ApiRunner({ provider: () => bad.provider }).run(job({ limits: { maxTurns: 8, maxUsd: 0.0001, timeoutSec: 60 } }))).status).toBe("over-budget");
+    expect(bad.seen.toolResults).toEqual([]);
     expect((await new ApiRunner({ provider: () => scripted([{ calls: [], text: "", stop: "refusal", usage: U }]).provider }).run(job())).status).toBe("refused");
     expect((await new ApiRunner({ provider: () => scripted([new RateLimitedError("429")]).provider }).run(job())).status).toBe("rate-limited");
   });
@@ -101,6 +118,16 @@ describe("helpers", () => {
     expect(family("claude-sonnet-5")).toBe("anthropic");
     expect(family("gpt-5.5")).toBe("openai");
   });
+
+  it("caches the conversation only when a later turn reads it", () => {
+    const submit = { name: "submit_result", description: "", schema: {} };
+    const read = { name: "read_file", description: "", schema: {} };
+    // a one-turn briefing (only submit_result): no cache write at 1.25x
+    expect(cachesConversation([submit], 1)).toBe(false);
+    // a re-ask after a rejected answer, or a step that reads the repo, goes on: cache it
+    expect(cachesConversation([submit], 3)).toBe(true);
+    expect(cachesConversation([read, submit], 1)).toBe(true);
+  });
 });
 
 describe("audit fixes", () => {
@@ -110,6 +137,20 @@ describe("audit fixes", () => {
     expect(supportsEffort("claude-sonnet-5")).toBe(true);
     expect(supportsEffort("claude-opus-5-5")).toBe(true);
     expect(supportsEffort("gpt-5.5")).toBe(false);
+  });
+
+  it("passes a streaming answer's progress on, with the turn's time", async () => {
+    const provider: Provider = {
+      start: () => ({
+        async next(progress) { progress?.(4000); progress?.(9000); return call("submit_result", { changeClass: "bugfix", spans: ["x"] }); },
+        toolResults() {}, say() {},
+      }),
+    };
+    const seen: { chars: number; ms: number }[] = [];
+    const r = await new ApiRunner({ provider: () => provider, onProgress: (p) => seen.push(p) }).run(job());
+    expect(r.status).toBe("ok");
+    expect(seen.map((p) => p.chars)).toEqual([4000, 9000]);
+    expect(seen.every((p) => p.ms >= 0)).toBe(true);
   });
 
   it("tells the model when its next turn is the last one", async () => {
@@ -156,6 +197,14 @@ describe("Anthropic errors worth waiting for", () => {
     expect(transientAnthropic(new Anthropic.APIError(529, body, undefined, new Headers()))).toBe(true);
     expect(transientAnthropic(new Anthropic.APIError(400, { type: "error", error: { type: "invalid_request_error" } }, undefined, new Headers(), "invalid_request_error"))).toBe(false);
     expect(transientAnthropic(new Error("x"))).toBe(false);
+  });
+
+  it("a connection cut mid-answer waits too: fetch's \"terminated\", a reset socket, the SDK's connection error", () => {
+    expect(transientAnthropic(new TypeError("terminated"))).toBe(true);
+    expect(transientAnthropic(Object.assign(new TypeError("fetch failed"), { cause: { code: "ECONNRESET" } }))).toBe(true);
+    expect(transientAnthropic(Object.assign(new Error("read"), { code: "ECONNRESET" }))).toBe(true);
+    expect(transientAnthropic(new Anthropic.APIConnectionError({ message: "Connection error." }))).toBe(true);
+    expect(transientAnthropic(new Anthropic.APIUserAbortError())).toBe(false);
   });
 });
 describe("images for each provider", () => {

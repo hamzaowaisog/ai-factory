@@ -13,6 +13,9 @@ import { toModelImage, type ModelImage } from "../util/image.js";
 import { addUsage, configErrorText, emptyUsage, type Effort, type Job, type Result, type Runner } from "./types.js";
 
 export const MAX_REASKS = 2;
+/** Output cap per Claude turn (thinking included). 64K is the most every routed Claude model accepts (Haiku 4.5's limit). */
+export const MAX_OUTPUT_TOKENS = 64_000;
+const CUT_OFF = "The answer was cut off at the model's output limit before it was complete";
 const SUBMIT = "submit_result";
 
 // ---------- provider abstraction (so tests can script a model) ----------
@@ -26,7 +29,8 @@ export interface Turn {
   usage: { inputTokens: number; outputTokens: number; cacheRead: number; cacheWrite: number };
 }
 export interface Conversation {
-  next(): Promise<Turn>;
+  /** `progress` gets the characters of answer streamed so far (text, tool input and thinking), where the provider streams */
+  next(progress?: (chars: number) => void): Promise<Turn>;
   toolResults(results: { id: string; content: string; isError?: boolean }[]): void;
   /** Plain user nudge (when the model answered without calling a tool). */
   say(text: string): void;
@@ -37,6 +41,15 @@ export interface Provider {
 }
 
 const imageLabel = (i: number) => `Image ${i + 1}:`;
+
+/**
+ * Cache the conversation only when a later turn will read it back: a step with repo tools, or any turn after the first.
+ * A briefing with only submit_result is answered in one turn, and writing it costs 1.25x input for nothing: on the
+ * 2026-10-05 estimate run every call wrote its whole briefing (580K Opus tokens) and read back only the system prompt.
+ */
+export function cachesConversation(tools: ToolSpec[], messages: number): boolean {
+  return messages > 1 || tools.some((t) => t.name !== SUBMIT);
+}
 
 /** Anthropic: each image after its label, then the briefing (images before the text that refers to them). */
 export function anthropicUserContent(user: string, images: ModelImage[] = []): string | Anthropic.ContentBlockParam[] {
@@ -81,9 +94,21 @@ export class RateLimitedError extends Error {}
  * error arrives after HTTP 200, so the SDK raises it with no status, only its type ("overloaded_error").
  */
 export function transientAnthropic(e: unknown): boolean {
+  if (droppedConnection(e)) return true;
   if (e instanceof Anthropic.RateLimitError || e instanceof Anthropic.InternalServerError) return true;
   if (!(e instanceof Anthropic.APIError)) return false;
   return e.status === 529 || ["overloaded_error", "rate_limit_error", "api_error"].includes(String(e.type ?? ""));
+}
+/**
+ * The connection failed or was cut mid-answer (network, proxy, VPN): nothing the model did, so it waits like an
+ * outage. A stream cut after HTTP 200 surfaces as fetch's own TypeError "terminated", not as an SDK error.
+ */
+export function droppedConnection(e: unknown): boolean {
+  if (e instanceof Anthropic.APIConnectionError || e instanceof OpenAI.APIConnectionError) return true;
+  if (!(e instanceof Error) || e instanceof Anthropic.APIError || e instanceof OpenAI.APIError) return false;
+  const code = String((e as { code?: unknown }).code ?? (e.cause as { code?: unknown } | undefined)?.code ?? "");
+  return /^(ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|ENOTFOUND|EAI_AGAIN|UND_ERR_\w+)$/.test(code)
+    || /^terminated$|fetch failed|socket hang up|premature close/i.test(e.message);
 }
 /** 400/401/403/404: retrying won't help. */
 export class ConfigError extends Error {
@@ -113,21 +138,31 @@ export class AnthropicProvider implements Provider {
       name: t.name, description: t.description, input_schema: t.schema as Anthropic.Tool.InputSchema,
     }));
     return {
-      async next(): Promise<Turn> {
+      async next(progress?: (chars: number) => void): Promise<Turn> {
         let msg: Anthropic.Message;
         try {
-          msg = await client.messages.stream({
+          const stream = client.messages.stream({
             model,
-            max_tokens: 32000,
+            max_tokens: MAX_OUTPUT_TOKENS,
             system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
             tools: toolParams,
             tool_choice: { type: "auto" },
             // effort is rejected by Haiku 4.5 and older models
             ...(supportsEffort(model) ? { output_config: { effort: effort ?? "high" } } : {}),
             // cache the conversation as it grows, so each tool turn re-reads it at the cached price
-            cache_control: { type: "ephemeral" },
+            ...(cachesConversation(tools, messages.length) ? { cache_control: { type: "ephemeral" } } : {}),
             messages,
-          } as Anthropic.MessageStreamParams).finalMessage();
+          } as Anthropic.MessageStreamParams);
+          if (progress) {
+            let chars = 0;
+            stream.on("streamEvent", (e) => {
+              if (e.type !== "content_block_delta") return;
+              const d = e.delta;
+              chars += d.type === "text_delta" ? d.text.length : d.type === "input_json_delta" ? d.partial_json.length : d.type === "thinking_delta" ? d.thinking.length : 0;
+              progress(chars);
+            });
+          }
+          msg = await stream.finalMessage();
         } catch (e) {
           if (transientAnthropic(e)) throw new RateLimitedError((e as Error).message);
           if (e instanceof Anthropic.APIError && CONFIG_STATUSES.has(e.status as number)) throw new ConfigError(e.status as number, (e as Error).message);
@@ -175,7 +210,7 @@ export class OpenAIProvider implements Provider {
   }
 
   private rethrow(e: unknown): never {
-    if (e instanceof OpenAI.RateLimitError || e instanceof OpenAI.InternalServerError) throw new RateLimitedError((e as Error).message);
+    if (droppedConnection(e) || e instanceof OpenAI.RateLimitError || e instanceof OpenAI.InternalServerError) throw new RateLimitedError((e as Error).message);
     if (e instanceof OpenAI.APIError && CONFIG_STATUSES.has(e.status as number)) throw new ConfigError(e.status as number, (e as Error).message);
     throw e;
   }
@@ -279,6 +314,8 @@ export interface ApiRunnerDeps {
   loadImage?: (sha: string) => Uint8Array;
   /** For the run trace: one call per model turn, after its tool calls were answered. */
   onTurn?: (t: TurnTrace) => void;
+  /** While a turn streams: the characters of answer so far and the turn's time, so a long answer shows it is arriving. */
+  onProgress?: (p: { chars: number; ms: number }) => void;
   /** Called after every model call so usage lands in the ledger even if we crash. */
   onUsage?: (u: { model: string; inputTokens: number; outputTokens: number; cacheRead: number; cacheWrite: number; costUsd: number }) => Promise<void>;
 }
@@ -333,7 +370,8 @@ export class ApiRunner implements Runner {
       let t: Turn;
       const turnStart = Date.now();
       try {
-        t = await convo.next();
+        const onProgress = this.deps.onProgress;
+        t = await convo.next(onProgress ? (chars) => onProgress({ chars, ms: Date.now() - turnStart }) : undefined);
       } catch (e) {
         if (e instanceof RateLimitedError) return done("rate-limited", { error: e.message });
         if (e instanceof ConfigError) return done("config-error", { error: configErrorText(e.status, e.message, job.model) });
@@ -342,7 +380,9 @@ export class ApiRunner implements Runner {
       const cost = costUsd(job.model, t.usage);
       usage = addUsage(usage, { ...t.usage, turns: 1, estUsd: cost });
       await this.deps.onUsage?.({ model: job.model, ...t.usage, costUsd: cost });
-      if (usage.estUsd > job.limits.maxUsd) return done("over-budget");
+      // over the limit: no further turn, but an answer this turn already paid for is kept (a resumed estimate run's critic
+      // answered at $0.29 against a $0.25 share and was thrown away, failing the step)
+      const over = usage.estUsd > job.limits.maxUsd;
       if (t.stop === "refusal") return done("refused", { error: "The model declined this request" });
 
       const traced: TurnTrace["calls"] = [];
@@ -351,6 +391,9 @@ export class ApiRunner implements Runner {
       });
       if (!t.calls.length) {
         report();
+        // asking again only buys the same cut-off answer
+        if (t.stop === "max_tokens") return done("bad-output", { error: CUT_OFF });
+        if (over) return done("over-budget");
         if (++reasks > MAX_REASKS) return done("bad-output", { error: "The model never submitted a result" });
         convo.say(`Call the ${SUBMIT} tool with your final answer.`);
         continue;
@@ -382,6 +425,9 @@ export class ApiRunner implements Runner {
       }
       report(schemaError);
       if (output !== undefined) return done("ok", { output });
+      if (over) return done("over-budget");
+      // a submit cut off mid-way fails the schema; asking again only buys the same cut-off answer
+      if (t.stop === "max_tokens") return done("bad-output", { error: CUT_OFF });
       if (reasks > MAX_REASKS) return done("bad-output", { error: "Output failed the schema after 2 re-asks" });
       // one turn left: say so, so the model answers with what it has instead of running out mid-search
       if (turn === job.limits.maxTurns - 2 && results.length) {

@@ -10,6 +10,7 @@ import type { Estimate } from "../contracts/estimate.js";
 import { DecisionError, decide } from "../ledger/human.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
+import { isLockFree, readLockInfo } from "../ledger/exec-lock.js";
 import { costCapUsd, MIN_CAP_USD } from "../ledger/caps.js";
 import { parseEstimateSettings } from "../estimate/settings.js";
 import { checkUploadedFrames, describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
@@ -383,4 +384,21 @@ export async function answerEstimateQuestions(ledger: Ledger, input: EstimateAns
     if (e instanceof DecisionError) throw new StartError(e.message, 409);
     throw e;
   }
+}
+
+/**
+ * Resume a parked run from the run page, like `factory resume`. It decides nothing: the run goes on from where it parked and
+ * stops again at the next card, limit or park. A paused run stays a terminal decision (factory resume), like pausing it.
+ */
+export async function resumeRun(ledger: Ledger, deps: StartDeps = {}): Promise<{ resumed: boolean }> {
+  const state = replay(ledger.events());
+  if (state.status === "paused") throw new StartError(`A paused run is resumed in your terminal: factory resume ${ledger.runId}`, 403);
+  if (state.status !== "parked") throw new StartError("Only a parked run can be resumed here.", 409);
+  const key = state.info.repoId ?? `run:${ledger.runId}`;
+  if (!(await isLockFree(key))) {
+    const holder = readLockInfo(key)?.runId;
+    throw new StartError(holder && holder !== ledger.runId ? `Run ${holder} is running on this repo. Resume this one when it stops.` : "This run is already running.", 409);
+  }
+  (deps.execute ?? runDetached)(ledger.runId);
+  return { resumed: true };
 }
