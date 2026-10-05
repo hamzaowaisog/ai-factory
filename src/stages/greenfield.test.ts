@@ -116,7 +116,12 @@ class NodeLab implements ContainerRuntime {
       return 0;
     }
     const src = mount("/src");
-    if (s.role === "restore") { mkdirSync(join(src!, "node_modules"), { recursive: true }); return 0; }
+    if (s.role === "restore") {
+      mkdirSync(join(src!, "node_modules"), { recursive: true });
+      // as real npm does: an install with no lockfile writes one (a real-container run parked on this file twice)
+      if (!existsSync(join(src!, "package-lock.json"))) writeFileSync(join(src!, "package-lock.json"), `${JSON.stringify({ lockfileVersion: 3, packages: Object.fromEntries(Array.from({ length: 2000 }, (_, i) => [`node_modules/p${i}`, { version: "1.0.0" }])) }, null, 2)}\n`);
+      return 0;
+    }
     if (s.cmd.includes("vitest")) {
       const tests = existsSync(join(src!, "tests")) ? readdirSync(join(src!, "tests")).filter((f) => f.endsWith(".test.ts")) : [];
       const t = s.cmd.indexOf("-t");
@@ -209,6 +214,11 @@ describe("a new product end to end (greenfield, fakes)", () => {
     const log = execFileSync("git", ["log", "--format=%s", `main..factory/${runId}`], { cwd: repo, encoding: "utf8" }).trim().split("\n");
     expect(log.some((l) => /scaffold next-shadcn/.test(l))).toBe(true);
     const tree = execFileSync("git", ["ls-tree", "-r", "--name-only", `factory/${runId}`], { cwd: repo, encoding: "utf8" });
+    // the first install's lockfile is committed as part of the scaffold: not the test writer's change, not the agents' diff
+    expect(log.some((l) => /lockfile from the scaffold's first install/.test(l))).toBe(true);
+    expect(tree).toMatch(/^package-lock\.json$/m);
+    const scaffoldCommit = (s2.steps.get("stub-commit")!.data!.scaffold as { commit: string }).commit;
+    expect(execFileSync("git", ["show", "--stat", "--format=%s", scaffoldCommit], { cwd: repo, encoding: "utf8" })).toMatch(/lockfile from the scaffold[\s\S]*package-lock\.json/);
     expect(tree).toMatch(/^package\.json$/m);
     expect(tree).toMatch(/^tests\/sign-in\.test\.ts$/m);
     expect(tree).not.toMatch(/node_modules/);

@@ -284,7 +284,14 @@ export const stubCommitStep: StepDef = {
     if (scaf?.layout) {
       const l = scaf.layout;
       const written = writeScaffold(l, wt);
-      const scaffoldCommit = written.length ? await commitAll(wt, `factory: scaffold ${l.target} (kit ${l.kit.id} ${l.kit.version}) for ${ctx.runId}`) : undefined;
+      let scaffoldCommit = written.length ? await commitAll(wt, `factory: scaffold ${l.target} (kit ${l.kit.id} ${l.kit.version}) for ${ctx.runId}`) : undefined;
+      // a generated Node app has no lockfile until its first install writes one: install now and commit it as part of the
+      // scaffold, so every later install is the same, and the file is neither charged to the test writer nor counted as the
+      // agents' change (a real-container greenfield run parked on each)
+      if (scaffoldCommit && ctx.project.stack === "node" && existsSync(join(wt, "package.json")) && !existsSync(join(wt, "package-lock.json"))) {
+        await ensurePackages(ctx, scaffoldCommit, wt);
+        if (existsSync(join(wt, "package-lock.json"))) scaffoldCommit = await commitAll(wt, `factory: lockfile from the scaffold's first install for ${ctx.runId}`);
+      }
       scaffoldRec = { target: scaf.target, source: scaf.source, why: scaf.detected.why, kit: l.kit, root: l.root, fresh: l.fresh, written, kept: l.kept, protected: l.protected, screens: l.screens, removed: l.removed, designSystem: l.designSystem, notes: l.notes, summary: scaffoldSummary(l), ...(scaf.changed ? { changed: scaf.changed } : {}), ...(scaffoldCommit ? { commit: scaffoldCommit } : {}) };
       ctx.log(`stub-commit: scaffold ${l.target}: ${written.length} files written${l.kept.length ? `, ${l.kept.length} kept (the repo's own)` : ""}`);
     } else if (scaf) ctx.log(`stub-commit: UI target ${scaf.target} (${scaf.source}; ${scaf.detected.why}): no scaffold, the screens are built with the repo's own components`);
