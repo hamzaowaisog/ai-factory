@@ -118,9 +118,21 @@ describe("runMergeReview", () => {
   });
 
   it("does not climb when the budget is spent: a stronger model cannot fix that", async () => {
-    const { provider, asked } = scripted({ "*": [submit(GOOD), submit(GOOD)] });
+    // the first turn must SPEND the budget without answering. ApiRunner keeps an answer the turn
+    // already paid for (api.ts: "an answer this turn already paid for is kept"), so a scripted
+    // submit on turn one now succeeds over budget rather than reporting over-budget.
+    const spendsItAll: Turn = { calls: [], text: "thinking out loud", stop: "end", usage: U };
+    const { provider, asked } = scripted({ "*": [spendsItAll, submit(GOOD)] });
     await expect(runMergeReview(opts({ provider, maxUsd: 0.0000001 }) as never)).rejects.toThrow(/did not finish/);
     expect(asked).toHaveLength(1);
+  });
+
+  it("keeps an answer the turn already paid for, even over budget", async () => {
+    // the other side of the same rule: a review that answered is a review, and throwing it away
+    // would re-run it for nothing
+    const { provider } = scripted({ "*": [submit(GOOD)] });
+    const got = await runMergeReview(opts({ provider, maxUsd: 0.0000001 }) as never);
+    expect(got.coverage).toBe(1);
   });
 
   it("names the stronger model only once, even when none is configured", async () => {
