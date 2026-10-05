@@ -797,7 +797,7 @@ export function implementStep(taskId: string): StepDef {
       });
       const run = storeRun(ctx, produced);
       // a failed build marks every expected test "Build failed": that's the build, not a regression
-      const gated = await gateAll(ctx, key, commit, [[testExpectations, { run: run.testRun, baseline: baselineSha }], ...(produced.build.ok ? contractGate(ctx, wt, commit) : [])], produced.build.ok ? earlier : undefined);
+      const gated = await gateAll(ctx, key, commit, [[testExpectations, { run: run.testRun, baseline: baselineSha }], ...(produced.build.ok ? contractGate(ctx, wt, commit, true) : [])], produced.build.ok ? earlier : undefined);
       if (gated) {
         if (!produced.build.ok) {
           gated.failures.unshift(...produced.build.errors.slice(0, 10).map((e) => failure("build", `${e.file}:${e.line} ${e.code} ${e.msg}`)));
@@ -821,16 +821,22 @@ function contractNote(project: ProjectConfig, wt: string, who: "tests" | "code")
   return [S.template("contract", `API CONTRACT (locked: ${c.file}). The API must answer exactly as this OpenAPI document says: its paths, methods, status codes and JSON field names and types. After every build the factory compares the API's own OpenAPI document with it, so declare each status code on its route (Produces) and keep the project's OpenAPI build settings. Never edit ${c.file}.\n\n${readFileSync(join(wt, c.file), "utf8")}`)];
 }
 
-/**
- * The contract gate for a .NET API whose build writes its OpenAPI document (the project's `contract.built`): read from the lab's
- * kept build of this commit. With `judgedBefore`, a build that is no longer kept is not an error: a task's gate judged this commit.
- */
-function contractGate(ctx: StepContext, wt: string, commit: string, judgedBefore = false): [GateDef, Record<string, string>][] {
+/** Where the lab keeps the OpenAPI document the build of `commit` wrote, for a .NET API held to a contract (the project's `contract.built`). */
+function builtContractFile(ctx: StepContext, wt: string, commit: string): string | undefined {
   const c = ctx.project.contract;
-  if (!c?.built || ctx.project.stack !== "dotnet" || !existsSync(join(wt, c.file))) return [];
-  const file = join(buildCachePath(join(factoryHome(), "tmp", ctx.runId, "builds"), commit, ctx.project), c.built);
-  if (!existsSync(file) && judgedBefore) return [];
-  return [[contractMatches, { contract: ctx.ledger.putJson({ text: readFileSync(join(wt, c.file), "utf8") }), built: ctx.ledger.putJson({ path: c.built, ...(existsSync(file) ? { text: readFileSync(file, "utf8") } : {}) }) }]];
+  if (!c?.built || ctx.project.stack !== "dotnet" || !existsSync(join(wt, c.file))) return undefined;
+  return join(buildCachePath(join(factoryHome(), "tmp", ctx.runId, "builds"), commit, ctx.project), c.built);
+}
+
+/**
+ * The contract gate: the API's own document, written by the build of this commit, against the locked contract. A task checks
+ * what it has built so far (`partial`: other tasks' operations may still be missing); integrate checks the whole contract.
+ */
+function contractGate(ctx: StepContext, wt: string, commit: string, partial: boolean): [GateDef, Record<string, string>][] {
+  const file = builtContractFile(ctx, wt, commit);
+  if (!file) return [];
+  const c = ctx.project.contract!;
+  return [[contractMatches, { contract: ctx.ledger.putJson({ text: readFileSync(join(wt, c.file), "utf8") }), built: ctx.ledger.putJson({ path: c.built, ...(partial ? { partial } : {}), ...(existsSync(file) ? { text: readFileSync(file, "utf8") } : {}) }) }]];
 }
 
 // ---------- integrate (D) ----------
@@ -877,7 +883,9 @@ export const integrateStep: StepDef = {
     const expectPass = [...lock.tests.map((t) => t.testId), ...lock.characterisation.map((c) => c.testId)];
     const compareToBaseline = baseline.results.map((b) => b.id);
     // the last task usually tested this exact commit with the full suite already: reuse that run
-    const reused = reusableTaskRun(ctx, head, expectPass, compareToBaseline);
+    // (a contract check needs the document this commit's build wrote: if the lab no longer keeps that build, build again)
+    const builtDoc = builtContractFile(ctx, wt, head);
+    const reused = builtDoc && !existsSync(builtDoc) ? undefined : reusableTaskRun(ctx, head, expectPass, compareToBaseline);
     let testRun: string;
     if (reused) {
       testRun = reused.testRun;
@@ -894,8 +902,8 @@ export const integrateStep: StepDef = {
       [testExpectations, { run: testRun, baseline: baselineSha }],
       [lockSetUnchanged, { diff: diffSha, tests: ctx.state.steps.get("author-tests")!.outputs[0]! }],
       [diffSize, { diff: diffSha }],
-      // the API still says what the locked contract says (a commit a task already judged is not built again just for this)
-      ...contractGate(ctx, wt, head, !!reused),
+      // the whole API says what the locked contract says
+      ...contractGate(ctx, wt, head, false),
       // design.size-cap: the UI change may not be bigger than the approved design allows (a skipped design allows none)
       ...(uiActual
         ? [[designSizeCap, {

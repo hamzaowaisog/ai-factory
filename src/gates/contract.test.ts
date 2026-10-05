@@ -75,6 +75,11 @@ describe("the locked API contract", () => {
     expect(contractDiff(contract, noStatus)).toEqual(["missing in the API: POST /api/sign-in 400"]);
     const noRoute = built(); delete noRoute.paths["/api/appointments/today"];
     expect(contractDiff(contract, noRoute)).toEqual(["missing in the API: GET /api/appointments/today"]);
+    // a task that is not the last: the route it has not built yet is not a mismatch, but a wrong field in a built one still is
+    const part = (b: Record<string, any>) => contractMatches.predicate({ contract: { text: CONTRACT }, built: { text: JSON.stringify(b), path: "x", partial: true } }, DEFAULT_POLICY).passed;
+    expect(part(noRoute)).toBe(true);
+    expect(part(noStatus)).toBe(false);
+    expect(gate(JSON.stringify(noRoute)).passed).toBe(false);
     const more = built(); more.paths["/api/extra"] = { get: { responses: { "200": { description: "OK" } } } };
     expect(contractDiff(contract, more)).toEqual(["not in the contract: GET /api/extra"]);
   });

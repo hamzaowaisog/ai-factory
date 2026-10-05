@@ -82,13 +82,15 @@ export function contractDiff(contract: Obj, built: Obj): string[] {
 }
 
 /** The API's own OpenAPI document, written by its build, says what the locked contract says. */
-export const contractMatches = defineGate<{ contract: { text: string }; built: { text?: string; path: string } }>({
+export const contractMatches = defineGate<{ contract: { text: string }; built: { text?: string; path: string; partial?: boolean } }>({
   id: "contract.matches", after: "implement", safety: false, waiver: "none",
   predicate: ({ contract, built }) => {
     const want = readContract(contract.text);
     if (!want) return verdict([failure("contract", "The locked contract is not an OpenAPI document")], "");
     const have = built.text === undefined ? undefined : readContract(built.text);
     if (!have) return verdict([failure("contract", `The build did not write the API's OpenAPI document at ${built.path}. Keep the project's build-time OpenAPI settings and the AddOpenApi() call.`)], "");
-    return verdict(contractDiff(want, have).slice(0, 20).map((d) => failure("contract", `The API does not match the locked contract: ${d}`)), "The API matches the locked contract");
+    // one task of several: an operation no task has built yet is not a mismatch; what is built must match, and nothing extra
+    const diff = contractDiff(want, have).filter((d) => !built.partial || !/^missing in the API: [A-Z]+ \S+$/.test(d));
+    return verdict(diff.slice(0, 20).map((d) => failure("contract", `The API does not match the locked contract: ${d}`)), "The API matches the locked contract");
   },
 });
