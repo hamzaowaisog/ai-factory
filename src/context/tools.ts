@@ -14,35 +14,50 @@ export interface ToolDef {
   input_schema: Record<string, unknown>;
 }
 
-export const TOOL_DEFS: ToolDef[] = [
-  {
-    name: "read_file",
-    description: "Read a file from the repository at the run's base commit. Returns numbered lines. Use start/end for large files.",
-    input_schema: {
-      type: "object",
-      properties: { path: { type: "string" }, start: { type: "integer", minimum: 1 }, end: { type: "integer", minimum: 1 } },
-      required: ["path"], additionalProperties: false,
+/**
+ * Which tree the tools read, in the model's own words. A reviewer reads the commit under review,
+ * and telling it "the base commit" would make it misread everything it opened: it would see the
+ * change already present and conclude the change did nothing.
+ */
+const AT: Record<"base" | "under-review", string> = {
+  base: "at the run's base commit",
+  "under-review": "as it is after the change under review (the reviewed commit, not the original)",
+};
+
+export function toolDefs(at: "base" | "under-review" = "base"): ToolDef[] {
+  return [
+    {
+      name: "read_file",
+      description: `Read a file from the repository ${AT[at]}. Returns numbered lines. Use start/end for large files.`,
+      input_schema: {
+        type: "object",
+        properties: { path: { type: "string" }, start: { type: "integer", minimum: 1 }, end: { type: "integer", minimum: 1 } },
+        required: ["path"], additionalProperties: false,
+      },
     },
-  },
-  {
-    name: "search",
-    description: "Search file contents with a regular expression (case-insensitive). Optional glob limits the files, e.g. \"src/**/*.cs\". Returns up to 50 matches as path:line: text.",
-    input_schema: {
-      type: "object",
-      properties: { pattern: { type: "string" }, glob: { type: "string" } },
-      required: ["pattern"], additionalProperties: false,
+    {
+      name: "search",
+      description: `Search file contents with a regular expression (case-insensitive), ${AT[at]}. Optional glob limits the files, e.g. "src/**/*.cs". Returns up to 50 matches as path:line: text.`,
+      input_schema: {
+        type: "object",
+        properties: { pattern: { type: "string" }, glob: { type: "string" } },
+        required: ["pattern"], additionalProperties: false,
+      },
     },
-  },
-  {
-    name: "repo_map",
-    description: "List code files with their main types and public members. Optional focus paths rank those folders first.",
-    input_schema: {
-      type: "object",
-      properties: { focus: { type: "array", items: { type: "string" } } },
-      additionalProperties: false,
+    {
+      name: "repo_map",
+      description: `List code files with their main types and public members, ${AT[at]}. Optional focus paths rank those folders first.`,
+      input_schema: {
+        type: "object",
+        properties: { focus: { type: "array", items: { type: "string" } } },
+        additionalProperties: false,
+      },
     },
-  },
-];
+  ];
+}
+
+/** The base-commit variant, for every caller that reads the tree a run started from. */
+export const TOOL_DEFS: ToolDef[] = toolDefs("base");
 
 const MAX_READ_LINES = 400;
 const MAX_SEARCH_HITS = 50;

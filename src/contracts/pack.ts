@@ -33,6 +33,12 @@ export const ContextPack = z.object({
   images: z.array(Sha),
   pointers: z.array(z.object({ path: z.string(), reason: z.string() })),
   tools: z.array(z.string()),
+  /**
+   * Which tree the repo tools read: the run's base commit (the default and the historic behaviour),
+   * or the commit under review. Only a reviewer sets it, and it is omitted when "base" so every
+   * existing pack keeps its exact bytes and its packSha.
+   */
+  toolsAt: z.enum(["base", "under-review"]).optional(),
   manifest: z.object({
     stage: StageName,
     model: z.string(),
