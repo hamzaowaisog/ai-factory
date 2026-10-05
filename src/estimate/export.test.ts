@@ -110,7 +110,8 @@ describe("workbook export", () => {
     const input = fixture("agentic");
     for (const aud of ["team", "client"] as const) {
       const X = buildWorkbook(input, aud).getWorksheet(ALL_TASKS_SHEET)!;
-      expect(X.autoFilter).toBe("B4:K9");
+      // API credits are team-only: the client's filter stops at the hours
+      expect(X.autoFilter).toBe(aud === "team" ? "B4:K9" : "B4:I9");
       const ids: unknown[] = []; X.eachRow((_x, n) => { const v = X.getCell(`B${n}`).value; if (typeof v === "string" && /^EST-/.test(v)) ids.push(v); });
       expect(ids).toEqual(["EST-1", "EST-2", "EST-3", "EST-4", "EST-5"]);
       expect(X.getCell("H10").value).toMatchObject({ formula: "SUBTOTAL(9,H5:H9)", result: input.estimate.tasks.reduce((s, t) => s + t.hours.min, 0) });
@@ -121,16 +122,20 @@ describe("workbook export", () => {
     expect(costBasisText({ ledger: 0, eval: 0 }, true)).toMatch(/^assumed/);
     expect(costBasisText({ ledger: 2, eval: 3 }, true)).toBe("measured: p10-p90 of 5 runs (2 ledger, 3 eval)");
     expect(costBasisText({ ledger: 2, eval: 3 }, false)).toBe("measured: p10-p90 of 5 runs");
-    const S = buildWorkbook(fixture(), "client").getWorksheet("Summary")!;
-    const based: unknown[] = []; S.eachRow((_x, n) => { if (S.getCell(`B${n}`).value === "build") based.push(S.getCell(`E${n}`).value); });
-    expect(based).toEqual(["assumed: no measured runs yet (cold-start figure)"]);
+    const basedIn = (aud: "team" | "client") => {
+      const S = buildWorkbook(fixture(), aud).getWorksheet("Summary")!;
+      const based: unknown[] = []; S.eachRow((_x, n) => { if (S.getCell(`B${n}`).value === "build") based.push(S.getCell(`E${n}`).value); });
+      return based;
+    };
+    expect(basedIn("team")).toEqual(["assumed: no measured runs yet (cold-start figure)"]);
+    expect(basedIn("client")).toEqual([]);
   });
 
-  it("shows each task's API cost beside its hours in both files, the module row adds them up, and the Summary comes to the API total", () => {
+  it("shows each task's API cost beside its hours in the team file, the module row adds them up, and the Summary comes to the API total", () => {
     const input = fixture();
     const est2 = input.estimate.tasks.find((t) => t.taskId === "EST-2")!.apiUsd!;
-    for (const aud of ["team", "client"] as const) {
-      const wb = buildWorkbook(input, aud);
+    {
+      const wb = buildWorkbook(input, "team");
       const ws = wb.getWorksheet(SHEET.web)!;
       let row = 0;
       ws.eachRow((_r, n) => { if (ws.getCell(`I${n}`).value === "EST-2") row = n; });
@@ -144,6 +149,21 @@ describe("workbook export", () => {
       S.eachRow((_x, n) => { if (S.getCell(`B${n}`).value === "Total") total = ["F", "G"].map((c) => (S.getCell(`${c}${n}`).value as { result: number }).result); });
       expect(total).toEqual([input.estimate.apiCost.total.min, input.estimate.apiCost.total.max]);
     }
+  });
+
+  it("keeps API cost out of the client file, and keeps its Avg, Resources and Weeks", () => {
+    const input = fixture();
+    const wb = buildWorkbook(input, "client");
+    const all: string[] = [];
+    for (const ws of wb.worksheets) ws.eachRow((row) => row.eachCell((c) => { if (typeof c.value === "string") all.push(c.value); }));
+    expect(all.filter((t) => /API (credits?|cost|min|max|total)|Project-level API/i.test(t))).toEqual([]);
+    const ws = wb.getWorksheet(SHEET.web)!;
+    expect([ws.getCell("J8").value, ws.getCell("K8").value]).toEqual([null, null]);
+    const S = wb.getWorksheet("Summary")!;
+    expect(["H10", "I10", "J10"].map((c) => S.getCell(c).value)).toEqual(["Avg", "Resources", "Weeks"]);
+    expect(lintWorkbook(wb, input.estimate, input.breakdown, "client")).toEqual([]);
+    ws.getCell("J8").value = "API min ($)";
+    expect(lintWorkbook(wb, input.estimate, input.breakdown, "client").map((i) => i.check)).toContain("client-leak");
   });
 
   it("marks an empty track as not in scope and keeps its total a real formula", () => {

@@ -1051,7 +1051,7 @@ Hamza, on the a8db workbooks: the client file still showed most tasks at 0, and 
 
 - **One Minimum and Maximum per task, in both files** (headed "Minimum", "Maximum", as the template has them): each task's **delivery hours** (`deliveryHours` in `src/estimate/durations.ts`). A factory or joint task shows the factory's hours (`agentHours`, the rule above: measured when the class has 3 or more builds, else its sized hours); a human task shows a person's hours. The Executor column (G) says who: Factory, Joint or Human. The separate Human and Agent columns are gone.
 - **No row reads 0.** Every task has hours, and gate E6 fails a task row at 0 (`task-hours`). Rows nobody sized (an empty template item, "None") still hold 0 for the formulas, shown as "–" by the number format.
-- **API cost beside the hours.** API min and max ($) move to J and K on every task sheet and the All Tasks sheet, with "API total ($)" beside each sheet's Grand Total. On the Summary, F and G carry each track's API beside its hours; a "Project-level API" row under the Total holds what is spent once per run (planning, design, breakdown and estimate), and the Total adds it, so it equals the API credit cost total. Gate E6 checks that (`cost-total`).
+- **API cost beside the hours.** API min and max ($) move to J and K on every task sheet and the All Tasks sheet, with "API total ($)" beside each sheet's Grand Total. On the Summary, F and G carry each track's API beside its hours; a "Project-level API" row under the Total holds what is spent once per run (planning, design, breakdown and estimate), and the Total adds it, so it equals the API credit cost total. Gate E6 checks that (`cost-total`). **Team file only**: API credits are the factory's own cost, so the client file shows no API anywhere (no J/K, no Summary F/G or project-level row, no API credit cost block); it keeps the hours, Comments, Executor, Avg, Resources and Weeks. Gate E6 fails a client file that shows API cost (`client-leak`).
 - **The team file explains who the hours belong to.** Its Summary has "How to read the hours" (also in the client file, without the team lines), what each executor means, the factory hours basis, and "Hours by executor": Factory, Joint, Human, and overheads and gate time.
 - **Stored totals stay human effort.** `Estimate.totals` is unchanged and still what the build's budget gates (B3, B5) are held to. The workbooks and the approval card show the delivery totals (`deliveryTotals` in `src/estimate/totals.ts`), which gate E6 recomputes; the card puts the human hours in brackets.
 
@@ -1186,7 +1186,7 @@ Two files come from one data model, so they cannot disagree.
 | G | Executor: Factory / Joint / Human |
 | H | Requirement id(s) |
 | I | Task id |
-| J, K | API min, max ($): what the factory spends in API credits building and verifying the task (both files, estimates from 2026-10-06; see "Cost in API credits") |
+| J, K | API min, max ($): what the factory spends in API credits building and verifying the task (team file only, estimates from 2026-10-06; see "Cost in API credits") |
 
 - Modules → tasks; module totals are `SUM` over the module's own rows.
 - **Other Development Activities:** bug fixing (parameter %), deployment (staging, production, app store), lead PR review, code fixing after review, documentation; memory leaks for mobile only.

@@ -175,9 +175,10 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   const taskById = new Map(b.tasks.map((t) => [t.id, t]));
   /** a task's hours in D and E: what it takes to deliver, whoever does it (the Executor column says who) */
   const hoursOf = (id: string): Range => { const s = sized.get(id), t = taskById.get(id); return s && t ? deliveryHours(s, t, e.elapsed.basis) : ZERO; };
-  // on estimates that have it, every line of every task sheet carries what it spends in API credits (J, K), beside its hours.
-  // Every line carries a number in each (0 when it has none), so each total is a plain sum over its rows.
-  const perTask = e.tasks.some((t) => t.apiUsd);
+  // API credits are the factory's own cost, so only the team file shows them. On estimates that have it, every line of every
+  // team task sheet carries what it spends in API credits (J, K), beside its hours. Every line carries a number in each (0 when
+  // it has none), so each total is a plain sum over its rows.
+  const perTask = team && e.tasks.some((t) => t.apiUsd);
   const REST = perTask ? ["J", "K"] : [];
   const extraHead: Record<string, string> = { G: "Executor", H: "Requirement id(s)", I: "Task id", ...(perTask ? { J: "API min ($)", K: "API max ($)" } : {}) };
   const restCells = (ws: ExcelJS.Worksheet, row: number, usd?: Range) => {
@@ -588,20 +589,22 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   if (team) pk(PARAM + 6, "Size band", e.band);
 
   r = PARAM + 9;
-  put(S, `B${r}`, "API credit cost (USD)", "consHead", { font: { bold: true, size: 12 } }); r++;
-  put(S, `B${r}`, "Phase", "consTh", plainHead); put(S, `C${r}`, "Min ($)", "consTh", plainHead); put(S, `D${r}`, "Max ($)", "consTh", plainHead); put(S, `E${r}`, "Based on", "consTh", plainHead); r++;
-  const c0 = r;
-  for (const p of e.apiCost.phases) { put(S, `B${r}`, p.phase, "consB"); n(S, `C${r}`, p.usd.min); n(S, `D${r}`, p.usd.max); if (p.basis) put(S, `E${r}`, costBasisText(p.basis, team), "consE"); r++; }
-  if (r === c0) { put(S, `B${r}`, "none", "consB"); n(S, `C${r}`, 0); n(S, `D${r}`, 0); r++; }
-  put(S, `B${r}`, "API credit cost total", "sumLabel", { font: BOLD });
-  f(S, `C${r}`, `SUM(C${c0}:C${r - 1})`, undefined, { font: BOLD }); f(S, `D${r}`, `SUM(D${c0}:D${r - 1})`, undefined, { font: BOLD });
-  r++;
-  put(S, `B${r}`, "Confidence", "sumLabel", { font: BOLD }); put(S, `C${r}`, `${e.apiCost.confidence} (${e.apiCost.records} measured record${e.apiCost.records === 1 ? "" : "s"})`, "sumValue"); r++;
-  if (perTask) { put(S, `B${r}`, "Per task", "sumLabel", { font: BOLD }); put(S, `C${r}`, "API min and max ($) on each task sheet: the task's share of build and verification, by its hours. A human task costs nothing; planning, design, breakdown and estimate are spent once per run.", "sumValue"); r++; }
-  r++;
+  if (team) {
+    put(S, `B${r}`, "API credit cost (USD)", "consHead", { font: { bold: true, size: 12 } }); r++;
+    put(S, `B${r}`, "Phase", "consTh", plainHead); put(S, `C${r}`, "Min ($)", "consTh", plainHead); put(S, `D${r}`, "Max ($)", "consTh", plainHead); put(S, `E${r}`, "Based on", "consTh", plainHead); r++;
+    const c0 = r;
+    for (const p of e.apiCost.phases) { put(S, `B${r}`, p.phase, "consB"); n(S, `C${r}`, p.usd.min); n(S, `D${r}`, p.usd.max); if (p.basis) put(S, `E${r}`, costBasisText(p.basis, team), "consE"); r++; }
+    if (r === c0) { put(S, `B${r}`, "none", "consB"); n(S, `C${r}`, 0); n(S, `D${r}`, 0); r++; }
+    put(S, `B${r}`, "API credit cost total", "sumLabel", { font: BOLD });
+    f(S, `C${r}`, `SUM(C${c0}:C${r - 1})`, undefined, { font: BOLD }); f(S, `D${r}`, `SUM(D${c0}:D${r - 1})`, undefined, { font: BOLD });
+    r++;
+    put(S, `B${r}`, "Confidence", "sumLabel", { font: BOLD }); put(S, `C${r}`, `${e.apiCost.confidence} (${e.apiCost.records} measured record${e.apiCost.records === 1 ? "" : "s"})`, "sumValue"); r++;
+    if (perTask) { put(S, `B${r}`, "Per task", "sumLabel", { font: BOLD }); put(S, `C${r}`, "API min and max ($) on each task sheet: the task's share of build and verification, by its hours. A human task costs nothing; planning, design, breakdown and estimate are spent once per run.", "sumValue"); r++; }
+    r++;
+  }
 
   put(S, `B${r}`, "How to read the hours", "consHead", { font: { bold: true, size: 12 } }); r++;
-  put(S, `B${r}`, "Each task's Minimum and Maximum are the hours it takes to deliver. Most of the work is done by AI agents; a person's hours are added only where a person is needed (client acceptance, design sign-off, project liaison, accounts and keys). The API credits beside the hours are what the AI spends to build and verify each task.", "consB"); r++;
+  put(S, `B${r}`, "Each task's Minimum and Maximum are the hours it takes to deliver. Most of the work is done by AI agents; a person's hours are added only where a person is needed (client acceptance, design sign-off, project liaison, accounts and keys)." + (perTask ? " The API credits beside the hours are what the AI spends to build and verify each task." : ""), "consB"); r++;
   if (team) {
     put(S, `B${r}`, "Executor", "consB"); put(S, `C${r}`, "Factory: the factory's hours only. Joint: the factory with a person's steps (keys, accounts, go-live). Human: a person's hours only (UAT, design sign-off, PM).", "sumValue"); r++;
     put(S, `B${r}`, "Factory hours basis", "consB"); put(S, `C${r}`, hoursBasisText(e.elapsed.basis), "sumValue"); r++;

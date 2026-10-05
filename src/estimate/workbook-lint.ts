@@ -139,13 +139,17 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
     if (typeof tMin !== "number" || typeof tMax !== "number" || !near(tMin, wantMin) || !near(tMax, wantMax)) bad("summary-total", `Total ${tMin}-${tMax} is not the sum of its rows ${wantMin}-${wantMax}`);
     if (typeof tMin === "number" && typeof tMax === "number" && (!near(tMin, totals.overall.min) || !near(tMax, totals.overall.max))) bad("summary-total", `Total ${tMin}-${tMax} differs from the estimate's overall ${totals.overall.min}-${totals.overall.max}`);
     // the API beside the hours: the track rows plus the project-level row come to the estimate's API total
-    if (e.tasks.some((t) => t.apiUsd)) {
+    if (audience === "team" && e.tasks.some((t) => t.apiUsd)) {
       const aMin = plain(S.getCell(`F${totalRow}`).value), aMax = plain(S.getCell(`G${totalRow}`).value);
       if (typeof aMin !== "number" || typeof aMax !== "number" || !near(aMin, e.apiCost.total.min) || !near(aMax, e.apiCost.total.max)) bad("cost-total", `the Summary's API beside the hours is ${aMin}-${aMax}, the estimate's API total is ${e.apiCost.total.min}-${e.apiCost.total.max}`);
     }
   }
 
-  // API cost total
+  // API credits are the factory's own cost: the team file states them, the client file never shows them
+  if (audience === "client") {
+    wb.eachSheet((ws) => ws.eachRow((row) => row.eachCell((c) => { const v = plain(c.value); if (typeof v === "string" && /API (credits?|cost|min|max|total)|Project-level API/i.test(v)) bad("client-leak", `the client file shows API cost: ${ws.name}!${c.address} "${v}"`); })));
+    return issues;
+  }
   let costRow = 0;
   S.eachRow((_row, rowNo) => { if (plain(S.getCell(`B${rowNo}`).value) === "API credit cost total") costRow = rowNo; });
   if (!costRow) bad("cost-total", "Summary has no API credit cost total");
