@@ -147,7 +147,7 @@ export function scriptedAnswer(system: string): unknown {
     options: [{ id: "O-1", summary: "TryGetValue in the handler", simplest: true, tradeoffs: "none" }, { id: "O-2", summary: "exception middleware mapping KeyNotFound to 404", simplest: false, tradeoffs: "hides other bugs" }],
     chosen: "O-1", adr: "Check the dictionary in the handler; a global exception mapping isn't asked for.", protectedPathsDeclared: [], newDependencies: [], stubs: [],
   };
-  if (system.includes("review a finished change")) return { findings: [] };
+  if (system.includes("review a finished change")) return { findings: [], coverage: [{ acId: "AC-1.1", testId: "", verdict: "proves-it", why: "the locked test asks for a missing order and expects 404" }] };
   throw new Error(`selftest has no scripted answer for this step: ${system.slice(0, 80)}`);
 }
 
