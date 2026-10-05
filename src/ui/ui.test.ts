@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { stringify } from "yaml";
 import { _resetEnvCache } from "../config/env.js";
+import { ExecutionLock } from "../ledger/exec-lock.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { outcomes, scoreRun, stageStats } from "../report.js";
@@ -206,10 +207,10 @@ describe("factory ui: who can talk to it", () => {
 describe("factory ui: no decisions from the web", () => {
   it("the route list has no decision routes; the only write starts a run", () => {
     const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note/i;
-    for (const r of ROUTES.filter((r) => !r.path.endsWith("/estimate-decision") && !r.path.endsWith("/estimate-answers"))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
+    for (const r of ROUTES.filter((r) => !/\/(estimate-decision|estimate-answers|resume)$/.test(r.path))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
     // the one exception: the estimate lead's approve or reject, on estimate cards only (and exporting an approved design or generating
-    // its scaffold, which write only under the run's exports/ and scaffold/)
-    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold"]);
+    // its scaffold, which write only under the run's exports/ and scaffold/; and resuming a parked run, which decides nothing)
+    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/resume", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold"]);
   });
 
   it("decision-looking URLs don't exist", async () => {
@@ -217,6 +218,33 @@ describe("factory ui: no decisions from the web", () => {
       expect((await call(p, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: "{}" })).status).toBe(404);
     }
     expect(replay(Ledger.open(ids.waiting).events()).openCard?.kind).toBe("approval");
+  });
+
+  it("a parked run resumes from the page, like factory resume; nothing else does", async () => {
+    const resume = (id: string) => call(`/api/runs/${id}/resume`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: "{}" });
+    expect((await resume("nope")).status).toBe(404);
+    // a run waiting on a card, or delivered, is not resumed: the card is the way on
+    expect((await resume(ids.waiting)).status).toBe(409);
+    expect((await resume(ids.delivered)).status).toBe(409);
+    // a pause is a terminal decision, so is undoing it
+    const paused = await createRun("Add a filter", "api", "tester");
+    await addEvents(paused, [{ type: "run.paused" }]);
+    expect((await resume(paused)).json().error).toMatch(/terminal: factory resume/);
+    expect(started).toEqual([]);
+    // another run holding the repo: refused, nothing started
+    const lock = await ExecutionLock.acquire("web", "20260101-other-run-0000");
+    try {
+      const busy = await resume(ids.parked);
+      expect(busy.status).toBe(409);
+      expect(busy.json().error).toMatch(/20260101-other-run-0000 is running/);
+    } finally { await lock.release(); }
+    expect(started).toEqual([]);
+    const r = await resume(ids.parked);
+    expect(r.status).toBe(200);
+    expect(r.json()).toEqual({ resumed: true });
+    expect(started).toEqual([ids.parked]);
+    // the page has the button on the parked panel
+    expect(readFileSync(join(staticDir(), "app.js"), "utf8")).toContain("/resume`, { method: \"POST\"");
   });
 
   it("the page says so, and has no decision buttons", () => {

@@ -4,7 +4,7 @@
 import { Estimate, type ArtifactHeader, type Breakdown, type DeliveryModel, type Executor, type SizeBand, type SizeStep, type SpecDraft, type StackChoice, type Track } from "../contracts/index.js";
 import type { z } from "zod";
 import { DEFAULT_ASSUMPTIONS, type Assumptions, type Range } from "./assumptions.js";
-import { estimateApiCost, type BenchmarkRecord } from "./cost.js";
+import { apiCostByTask, estimateApiCost, type BenchmarkRecord } from "./cost.js";
 import { taskDurations, type TaskRecord } from "./durations.js";
 import { gateHours, prCount } from "./gate-hours.js";
 import { loadRoundsPrior, withPrior } from "./priors.js";
@@ -77,6 +77,8 @@ export interface AssembleInput {
   /** clarify questions answered, critic findings on the card, minutes the planning phase took */
   counts: { questions: number; criticFindings: number; planningMinutes: number };
   assumptions: string[];
+  /** tasks taken out of the breakdown, outside the total */
+  suggested?: z.infer<typeof Estimate>["suggested"];
   records?: BenchmarkRecord[];
   /** per-task-class records of earlier builds (durations.ts); without them factory tasks keep their sized hours as duration */
   taskRecords?: TaskRecord[];
@@ -138,9 +140,13 @@ export function assembleEstimate(i: AssembleInput): z.infer<typeof Estimate> {
   const totals = computeTotals(b.tasks, tasks, [], gates, i.settings.designInTotal);
   const { duration: dur, basis } = taskDurations(b.tasks, tasks, i.taskRecords ?? [], a);
   const queue = gates.filter((g) => g.source === "Lead PR review").reduce((s, g) => s + g.hours.max, 0);
+  // the factory builds and verifies a joint task's code too, so it spends API credits on it as on a factory task
+  const built = tasks.filter((t) => t.executor !== "human").length;
   const apiCost = estimateApiCost({
-    planning: 1, design: units.screens > 0 ? 1 : 0, "breakdown-estimate": 1, build: factory, verification: factory,
+    planning: 1, design: units.screens > 0 ? 1 : 0, "breakdown-estimate": 1, build: built, verification: built,
   }, i.records ?? [], i.settings.deliveryModel, a);
+  const perTask = apiCostByTask(apiCost, tasks);
+  for (const t of tasks) t.apiUsd = perTask.get(t.taskId)!;
 
   return Estimate.parse({
     header: i.header,
@@ -162,7 +168,7 @@ export function assembleEstimate(i: AssembleInput): z.infer<typeof Estimate> {
     ...(lead.stack ? { stack: lead.stack } : {}),
     settings: { stackSource: i.settings.stackSource, designInTotal: i.settings.designInTotal, feedbackRounds: i.settings.feedbackRounds },
     scenarios: [],
-    suggested: [],
+    suggested: i.suggested ?? [],
     assumptions: [...i.assumptions, ...(tasks.some((t) => t.splitAdvised) ? [`Split before the build: ${tasks.filter((t) => t.splitAdvised).map((t) => t.taskId).join(", ")} (agent work over ${split} h or very large is split into smaller tasks; the hours stay as estimated).`] : [])],
   });
 }

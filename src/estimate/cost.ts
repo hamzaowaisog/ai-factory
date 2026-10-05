@@ -92,3 +92,33 @@ export function estimateApiCost(
   const total = { min: usd(phases.reduce((s, p) => s + p.usd.min, 0)), max: usd(phases.reduce((s, p) => s + p.usd.max, 0)) };
   return { phases, total, confidence: phases.length ? WEAKEST[weakest]! : "cold-start", records: used };
 }
+
+/** the phases the factory spends per task; the others (planning, design, breakdown and estimate) are spent once per run */
+export const PER_TASK: CostPhase[] = ["build", "verification"];
+
+/**
+ * Each task's API cost: its share of the build and verification phases, by its sized hours (the midpoint, so a task's min never
+ * passes its max), in whole cents that add up to those phases exactly. Only the tasks the factory builds (factory and joint)
+ * have a share; a human task costs nothing. With no hours at all, the tasks share equally.
+ */
+export function apiCostByTask(cost: Pick<ApiCost, "phases">, tasks: { taskId: string; executor: string; hours: Range }[]): Map<string, Range> {
+  const built = tasks.filter((t) => t.executor !== "human");
+  const out = new Map<string, Range>(tasks.map((t) => [t.taskId, { min: 0, max: 0 }]));
+  if (!built.length) return out;
+  const total = (k: "min" | "max") => cost.phases.filter((p) => PER_TASK.includes(p.phase)).reduce((s, p) => s + p.usd[k], 0);
+  const weights = built.map((t) => (t.hours.min + t.hours.max) / 2);
+  const sum = weights.reduce((s, w) => s + w, 0);
+  const shares = sum > 0 ? weights.map((w) => w / sum) : built.map(() => 1 / built.length);
+  const split = (k: "min" | "max"): number[] => {
+    const cents = Math.round(total(k) * 100);
+    const raw = shares.map((s) => s * cents);
+    const got = raw.map(Math.floor);
+    // largest remainder: the leftover cents go to the tasks closest to their next cent
+    const order = raw.map((x, i) => [x - got[i]!, i] as const).sort((a, b) => b[0] - a[0]);
+    for (let left = cents - got.reduce((s, x) => s + x, 0), j = 0; left > 0; left--, j++) got[order[j % order.length]![1]]!++;
+    return got;
+  };
+  const mins = split("min"), maxs = split("max");
+  built.forEach((t, i) => out.set(t.taskId, { min: mins[i]! / 100, max: Math.max(mins[i]!, maxs[i]!) / 100 }));
+  return out;
+}

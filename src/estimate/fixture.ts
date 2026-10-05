@@ -1,7 +1,7 @@
 // A small, complete estimate and breakdown for tests of the workbook export (no model, no ledger).
 import { Estimate } from "../contracts/index.js";
 import type { Breakdown } from "../contracts/index.js";
-import { estimateApiCost } from "./cost.js";
+import { apiCostByTask, estimateApiCost } from "./cost.js";
 import type { ExportInput } from "./export.js";
 import { gateHours } from "./gate-hours.js";
 import { sizeTasks } from "./hours.js";
@@ -29,11 +29,13 @@ export function fixture(model: "hitl" | "agentic" = "hitl", designInTotal = true
   const gates = gateHours(model, { questions: 4, approvalSections: 3, prs: { low: 1, medium: 1, high: 0 }, factoryTasks: 1, waivers: 0 });
   const overheads = [{ name: "Deployment", track: "backend" as const, hours: { min: 2, max: 4 }, reason: "staging and production" }, { name: "Documentation", hours: { min: 1, max: 2 }, reason: "handover notes" }];
   const totals = computeTotals(breakdown.tasks, sizing, overheads, gates, designInTotal);
+  const apiCost = estimateApiCost({ planning: 1, build: 2, verification: 2 }, [], model);
+  const perTask = apiCostByTask(apiCost, sizing);
   const estimate = Estimate.parse({
     header: { kind: "estimate", schemaVersion: 1, runId: "r", producedBy: { stage: "estimate" }, inputsHash: sha, createdAt: "2026-09-30T00:00:00Z" },
     deliveryModel: model, band: "M", uncertainty: "medium", breakdownSha: sha, specSha: sha,
-    anchors: [{ taskId: "EST-1", hours: { min: 4, max: 8 }, reason: "typical login form" }], tasks: sizing, overheads, gateHours: gates, totals,
-    apiCost: estimateApiCost({ planning: 1, build: 4, verification: 4 }, [], model),
+    anchors: [{ taskId: "EST-1", hours: { min: 4, max: 8 }, reason: "typical login form" }], tasks: sizing.map((t) => ({ ...t, apiUsd: perTask.get(t.taskId) })), overheads, gateHours: gates, totals,
+    apiCost,
     elapsed: { planningMinutes: 20, criticalPathDays: { min: 1, max: 2 } },
     settings: { stackSource: "client", designInTotal, feedbackRounds: 2 },
     assumptions: ["Client provides API keys before build"], suggested: [{ title: "Audit log", reason: "no requirement asks for it" }],

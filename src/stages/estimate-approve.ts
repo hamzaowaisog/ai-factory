@@ -70,6 +70,7 @@ export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<B
     `- Overall: ${h(e.totals.overall)} (design ${e.settings.designInTotal ? "included" : "not included"})`, ``,
     `## Cost and time`,
     `- API credits: ${usd(e.apiCost.total)}, ${e.apiCost.confidence} (${e.apiCost.records} measured record${e.apiCost.records === 1 ? "" : "s"}); indicative, not a quote`,
+    ...apiByTaskLines(e, title),
     `- Planning: ${e.elapsed.planningMinutes} min · build critical path: ${e.elapsed.criticalPathDays.min}-${e.elapsed.criticalPathDays.max} days`,
     ...durationLines(e), ``,
     `## Low-confidence lines (estimators disagree; each needs your sign-off)`,
@@ -82,6 +83,14 @@ export function estimateCard(runId: string, hash: string, e: Estimate, b: Pick<B
     `Edit:    factory edit-estimate ${runId} ${hash.slice(0, 8)} --anchor ${e.anchors[0]?.taskId ?? "EST-1"}=<min>-<max> --ratio <EST-n>=<multiple> --reason "why"   (everything recomputes; you get a new card)`,
     `Reject:  factory reject ${runId} ${hash.slice(0, 8)} --reason "why"`, ``, `Card hash: ${hash.slice(0, 8)}`,
   ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
+}
+
+/** The tasks that cost the most API credits to build and verify (every task's cost is on the workbooks' task sheets). */
+function apiByTaskLines(e: Estimate, title: Map<string, string>): string[] {
+  const priced = e.tasks.filter((t) => t.apiUsd && t.apiUsd.max > 0).sort((x, y) => y.apiUsd!.max - x.apiUsd!.max);
+  if (!priced.length) return [];
+  const top = priced.slice(0, 5).map((t) => `${t.taskId} ${title.get(t.taskId) ?? ""} ${usd(t.apiUsd!)}`.replace(/\s+/g, " "));
+  return [`- API credits per task (its share of build and verification, by hours; every task's on the task sheets): ${top.join("; ")}${priced.length > 5 ? `; and ${priced.length - 5} more` : ""}`];
 }
 
 /** Where the build time came from, and any class whose measured turns disagree with the pinned external prior. */

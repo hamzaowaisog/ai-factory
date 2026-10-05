@@ -71,9 +71,10 @@ export const MIN_STEP_USD = 0.25;
 
 /**
  * A step's own spend limit, never more than what's left of the run's cost limit, so one step can't
- * overshoot the run (the first real run's test writer had $4 with $2.45 left).
+ * overshoot the run (the first real run's test writer had $4 with $2.45 left). Steps running side by side
+ * (`share` of them) split what's left.
  */
-export function stepBudgetUsd(state: RunState, limitUsd: number): number {
-  const left = currentCostCap(state) - state.costUsd;
+export function stepBudgetUsd(state: RunState, limitUsd: number, share = 1): number {
+  const left = (currentCostCap(state) - state.costUsd) / Math.max(1, share);
   return Math.max(MIN_STEP_USD, Math.min(limitUsd, left));
 }

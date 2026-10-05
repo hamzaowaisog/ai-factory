@@ -3,7 +3,7 @@
 // steps that read the repository, the commit. The same key returns the stored answer, so the same
 // requirements give the same breakdown and proposals, and the hours maths (code) gives the same totals.
 // A change to any input, prompt or model is a different key, so a stale answer is never replayed.
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { hashJson } from "../util/hash.js";
 import { factoryHome } from "../util/paths.js";
@@ -39,6 +39,11 @@ export function cacheGet<T>(key: string): CacheEntry<T> | undefined {
     const e = JSON.parse(readFileSync(p, "utf8")) as CacheEntry<T>;
     return e.key === key ? e : undefined;
   } catch { return undefined; }
+}
+
+/** Drops a stored answer the step's own checks rejected, so a retry with the same briefing asks the model again. */
+export function cacheForget(key: string): void {
+  try { rmSync(file(key), { force: true }); } catch { /* ignore */ }
 }
 
 /** Best effort: a cache that cannot be written never fails a run. */

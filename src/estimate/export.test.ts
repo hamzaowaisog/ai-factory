@@ -72,8 +72,23 @@ describe("workbook export", () => {
     };
     const t = find(buildWorkbook(input, "team")), c = find(buildWorkbook(input, "client"));
     expect(t.ws.getCell(`D${t.row}`).value).toBe(0);
-    expect(t.ws.getCell(`J${t.row}`).value).toBe(8);
-    expect(c.ws.getCell(`J${c.row}`).value).toBeNull();
+    expect(t.ws.getCell(`L${t.row}`).value).toBe(8);
+    expect(c.ws.getCell(`L${c.row}`).value).toBeNull();
+  });
+
+  it("shows each task's API cost in both files, and the module row adds them up", () => {
+    const input = fixture();
+    const est2 = input.estimate.tasks.find((t) => t.taskId === "EST-2")!.apiUsd!;
+    for (const aud of ["team", "client"] as const) {
+      const ws = buildWorkbook(input, aud).getWorksheet(SHEET.web)!;
+      let row = 0;
+      ws.eachRow((_r, n) => { if (ws.getCell(`I${n}`).value === "EST-2") row = n; });
+      expect(ws.getCell("J8").value).toBe("API min ($)");
+      expect([ws.getCell(`J${row}`).value, ws.getCell(`K${row}`).value]).toEqual([est2.min, est2.max]);
+      let sums = 0;
+      ws.eachRow((_r, n) => { const v = ws.getCell(`J${n}`).value; if (v && typeof v === "object" && "formula" in v && /^SUM\(J/.test(v.formula)) sums++; });
+      expect(sums).toBeGreaterThan(0);
+    }
   });
 
   it("marks an empty track as not in scope and keeps its total a real formula", () => {
