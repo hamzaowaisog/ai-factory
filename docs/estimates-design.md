@@ -9,12 +9,12 @@ The factory gets an **estimate mode**. From a client's refined requirements (a n
 | | Option 1: HITL (supervisor + agents) | Option 2: Solely agentic |
 |---|---|---|
 | Who works | Agents build; a human supervisor gates and reviews | Agents run the whole workflow with no supervisor gates |
-| Human hours | Clarify answers, approval card, lead review of every PR, parked runs, waivers, plus client-side work | Client-side work only: **client UAT, design approval, PM** (these stay in both models) |
+| Human hours | Clarify answers, approval card, lead review of every PR, parked runs, waivers, plus client-side work | Client-side work only: **client UAT, design approval, PM** (these stay in both models; PM is client liaison only, see "Agent hours and the human tasks") |
 | Factory running cost | Yes | Yes, higher share of the total |
 | Elapsed time | Includes the gate and review queue | Agent time plus client waits |
 
 Every estimate states three things:
-- **Effort (hours):** human time the model needs. It is never modelled per task confirmation.
+- **Effort (hours):** human time the model needs. It is never modelled per task confirmation. Beside it, every task shows the factory's own **agent hours** (see "Agent hours and the human tasks").
 - **Cost in API credits (dollars):** what the factory spends on planning, specify, design, build and verification, calibrated from measured runs (see "Cost in API credits").
 - **Elapsed time:** the critical path, with planning time shown separately.
 
@@ -1030,7 +1030,20 @@ Every estimate says how many dollars of API credits the run will spend, broken d
   - spend is under-recorded for interrupted attempts (finding F7), so measured cost is a floor until that is fixed;
   - these are bug fixes only: nothing yet covers planning for a large feature, design, or a full build, so those phases stay **cold-start**.
 - **Until enough data exists:** the model starts from the first test run and other available runs, marks values as assumed, and tightens as the ledger grows.
-- **Per task (built 2026-10-06).** Every task also shows its own API cost, min and max: its share of the build and verification phases, by its sized hours (the midpoint, so a task's min never passes its max), in whole cents that add up to those phases exactly (`apiCostByTask` in `src/estimate/cost.ts`, stored as `apiUsd` on each sized task). Factory and joint tasks have a share, since the factory builds and verifies a joint task's code too (both count as build units from now on; before, only factory tasks did). A human task costs nothing. Planning, design, breakdown and estimate are spent once per run, so they stay per phase only. Where it shows: columns J and K ("API min ($)", "API max ($)") on every task sheet of both workbooks, with module rows adding them up (the team file's sized hours move to L and M); a note under the Summary's API block; an "API cost" column on the run page's task table; the five costliest tasks on the approval card. Gate E6 checks that the tasks' shares add up to build and verification (`cost-tasks`). Estimates made before this have no `apiUsd` and show none.
+- **Eval runs feed it too (built 2026-10-06).** Estimate and design runs never build, so the ledger alone leaves build and verification cold-start. The paid eval runs published under `evidence/` (`evidence/runs/*/row.json` and each case's run in `evidence/evals/e2e/*.json`, read once per run id) add build and verification records (`loadEvalRecords` in `src/estimate/records.ts`). Their planning is a ticket's, not a requirements document's, so it is not used. A run the ledger home already has is not read twice.
+- **Each phase says what it is based on (built 2026-10-06).** Every phase stores `basis: { ledger, eval }`, the measured runs behind it; none of either means the cold-start figure. The Summary's API block has a "Based on" column ("measured: p10-p90 of N runs", or "assumed: no measured runs yet"); the team file's Confidence sheet also names the sources (ledger runs, eval runs). Estimates made before have no basis and show none.
+- **Per task (built 2026-10-06).** Every task also shows its own API cost, min and max: its share of the build and verification phases, by its sized hours (the midpoint, so a task's min never passes its max), in whole cents that add up to those phases exactly (`apiCostByTask` in `src/estimate/cost.ts`, stored as `apiUsd` on each sized task). Factory and joint tasks have a share, since the factory builds and verifies a joint task's code too (both count as build units from now on; before, only factory tasks did). A human task costs nothing. Planning, design, breakdown and estimate are spent once per run, so they stay per phase only. Where it shows: columns L and M ("API min ($)", "API max ($)") on every task sheet of both workbooks, with module rows adding them up (J and K hold the agent hours); a note under the Summary's API block; an "API cost" column on the run page's task table; the five costliest tasks on the approval card. Gate E6 checks that the tasks' shares add up to build and verification (`cost-tasks`). Estimates made before this have no `apiUsd` and show none.
+
+## Agent hours and the human tasks (built 2026-10-06)
+
+Hamza, on the d7a6 workbooks: the solely agentic estimate showed 17 of 23 tasks at 0 hours and looked empty, and asked why PM is there at all. What changed:
+
+- **Agent hours on every task.** Columns J and K ("Agent min (h)", "Agent max (h)") on every task sheet, in both files, beside the human hours in D and E (now headed "Human min (h)", "Human max (h)"). A factory task has agent hours and no human hours; a **joint task has both**; a human task (client UAT, design approval, PM) has human hours only. Every module, total and Grand Total row adds them up ("Agent total (h)" beside each sheet's Grand Total), and the Summary carries them in F and G ("Agent (in hours)") with their own Total. Human hours stay what the totals, weeks and cost overlay count.
+- **Where agent hours come from** (`agentHours` in `src/estimate/durations.ts`, the same rule as the critical path): a factory task takes its class's measured duration (p10-p90 of this factory's builds of that track and complexity) once the ledger has 3 or more; until then, its sized hours, a reference size and not a measurement (cold-start). A joint task takes its sized hours. The Summary and the Confidence sheet say which ("Agent hours basis"). Old estimates show agent hours on re-export, since they are read from the stored sizes.
+- **All Tasks sheet, both files.** Every task on one sheet (task id, task, track, module, executor, requirements, human, agent and API hours) with a filter on every column, the header frozen, and a "Total (rows shown)" row of `SUBTOTAL(9, …)`, so the totals follow the filter. The track sheets keep the template's layout; this sheet is for sorting and filtering. The client file still differs from the team file by the five team sheets and the estimators' reasons.
+- **PM is client liaison only.** In the solely agentic model the factory plans and coordinates its own work, so PM stays only for what a person must do with the client: calls, scope decisions, sign-offs. Catalogue `pm-management` is 4-8 h at typical (was 16-24 h), catalogue version 2026-10-06.1.
+- **Design approval is a task.** When the request has an approved design, the breakdown adds one human task on the design track for the client's review and approval (kind `design-approval`, 2-4 h at typical: a walkthrough and two feedback rounds), so the Design sheet is no longer empty. The breakdown rules name the three human tasks every delivery has: client UAT, PM, design approval.
+- **Gate E6** checks each task's agent hours against the estimate (`workbook-agent-hours`) and that both files carry the All Tasks sheet; the task-row count skips that sheet.
 
 ## Task duration: the internal harness
 
@@ -1148,6 +1161,7 @@ Two files come from one data model, so they cannot disagree.
 | Requirements and traceability | Yes (extra sheet) | No |
 | Assumed parameters, gate and waiver log | Yes (extra sheets) | Parameters block on Summary only |
 | Cost overlay | Yes, if rates were given | No: hours only |
+| All Tasks (every task, filterable) | Yes | Yes |
 
 **All six sheets are mandatory:** Summary, Backend, Mobile, Web, QA, Design. A track that is out of scope keeps its sheet with "Not in scope: reason" and zero totals.
 
@@ -1157,13 +1171,13 @@ Two files come from one data model, so they cannot disagree.
 |---|---|
 | B | S.No |
 | C | Task |
-| D, E | Min, Max (hours) |
+| D, E | Human min, max (hours) |
 | F | Comments: what the task includes |
 | G | Executor: Factory / Joint / Human |
 | H | Requirement id(s) |
 | I | Task id |
-| J, K | API min, max ($): what the factory spends in API credits building and verifying the task (both files; see "Cost in API credits") |
-| L, M | Sized min, max (hours), team file only |
+| J, K | Agent min, max (hours): the factory's own hours on the task (both files; see "Agent hours and the human tasks") |
+| L, M | API min, max ($): what the factory spends in API credits building and verifying the task (both files, estimates from 2026-10-06; see "Cost in API credits") |
 
 - Modules → tasks; module totals are `SUM` over the module's own rows.
 - **Other Development Activities:** bug fixing (parameter %), deployment (staging, production, app store), lead PR review, code fixing after review, documentation; memory leaks for mobile only.
@@ -1172,7 +1186,7 @@ Two files come from one data model, so they cannot disagree.
 
 ### Summary
 - **Header:** client, project, PM, date, version, mode.
-- **Task summary:** one row per track (Backend, Mobile, Web/Admin, QA, GD, PM, PDM, Design) with Min, Max, Avg, resources, and weeks as a formula (hours ÷ 40 ÷ resources).
+- **Task summary:** one row per track (Backend, Mobile, Web/Admin, QA, GD, PM, PDM, Design) with human Min, Max, agent Min, Max (F, G), Avg, resources, and weeks as a formula (human hours ÷ 40 ÷ resources).
 - **Total:** `SUM(track rows) + IF(include Design = "Yes", Design)`. The switch is a visible cell and the Design row always shows.
 - **Delivery model** shown in the header, and one estimate per model.
 - **Lines** for API credit cost (with a per-phase breakdown) and elapsed time (planning time shown apart).
@@ -1252,7 +1266,7 @@ A walk-through of the spec (no hours) tested the design:
 
 - Estimate after requirements are refined; no seed table; model-proposed anchors with the lead's single review at approval.
 - Three estimators for every band, merged by median (changed 2026-10-03; was one for XS and S, three for M and up, with disagreement widening the range).
-- **Solely agentic only (changed 2026-10-03).** Two delivery models were planned, HITL (supervisor + agents) and solely agentic, with the second sized on request as a child run. Estimates are now always solely agentic; HITL estimates made before stay readable. Client UAT, design approval and PM stay.
+- **Solely agentic only (changed 2026-10-03).** Two delivery models were planned, HITL (supervisor + agents) and solely agentic, with the second sized on request as a child run. Estimates are now always solely agentic; HITL estimates made before stay readable. Client UAT, design approval and PM stay (PM as client liaison only, 4-8 h, since 2026-10-06).
 - **API credit cost is a headline number**, calibrated from measured runs, not guessed.
 - **Durations come from an internal harness built on the ledger**; external benchmarks are optional, later, and only as a pinned offline prior. Until data exists, values are labelled cold-start.
 - **The mock and clickable demo are the estimation baseline; the estimate is blocked until they are approved (E1b).**
@@ -1302,7 +1316,7 @@ Built and tested, with a scripted model, through the real executor (`src/stages/
 | QA sheet and notes blocks | The QA sheet uses the template's own shape: an Estimation Summary of eight items (Test Plan/Strategy, Test Environments, Validation and Smoke test cases, Validation testing, Smoke testing, Multi Browser Compatibility, UAT, Misc. Optional), then the validation detail by testing cycle with each feature a numbered module. Code places each QA task by plain words in its title (`qaPlace`); a feature test with requirements is validation cycle 1, a regression pass is cycle 2, anything else with no requirement is Misc. No hours are invented: cycle 2 and later exist only when the breakdown has tasks for them (the template's "half of cycle 1" formula is not applied). Every track sheet with work ends with the template's Assumptions & Constraints and Risks blocks. The Summary's special considerations (platforms, browsers, deployment, performance, security, documentation) come from the client's clarify answers: a question whose text names the topic gives the row its answer and its id; a topic nobody asked about reads "Not specified" |
 | Export | `export` step writes both workbooks to `<ledger>/export/` and lints each file cell by cell |
 | CLI | `factory estimate` with `--file` (Markdown, text or .docx), `--frames`, `--jira`, `--review` / `--hands-off`, `--stack-source`, `--no-design-in-total`, `--feedback-rounds`, `--rate track=usd`, `--no-repo`, `--client`, `--project-name`, `--pm`, `--max-cost` |
-| Benchmark records | `src/estimate/records.ts` reads every other run in the ledger home; a phase with records replaces its cold-start figure |
+| Benchmark records | `src/estimate/records.ts` reads every other run in the ledger home, and the paid eval runs under `evidence/` for build and verification; a phase with records replaces its cold-start figure and says what it is based on |
 | Task-class durations and external prior | `src/estimate/durations.ts` records each approved estimate task a build delivered (class = track/complexity, active minutes, turns, cost). A class with 3 or more completed records gives its factory tasks a measured p10-p90 duration for the critical path; others keep the sized hours as an assumed duration. `elapsed.basis` says which, and the approval card lists it. `src/estimate/priors.ts` reads a pinned copy of the OpenHands rounds band (`assets/priors.json`, source and revision recorded) and flags a class whose median turns fall outside p10-p90; it never changes a number. `npm run bench` (calibrate, gates, compare, external, evidence) and `npm run test:bench` run the benchmarks; the gate cases use the real E1-E7 and B1-B6 predicates |
 | Cost overlay | Team file's Cost sheet when `--rate` is given; the client file never has it |
 | Edit on the card | `factory edit-estimate <run> <hash> --anchor EST-1=6-12 --ratio EST-4=2 --reason "..."`: the stored proposals are edited, the estimate is assembled again by the same code (no new model call), and a new card follows. The edit is listed in the estimate's assumptions |

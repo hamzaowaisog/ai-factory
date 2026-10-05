@@ -19,6 +19,8 @@ export interface BenchmarkRecord {
   /** work units the step covered (requirements, screens, tasks); 1 when the step is per run */
   units: number;
   outcome: string;
+  /** where the record comes from: a run in this factory's ledger home (the default), or a paid eval run published under evidence/ */
+  source?: "ledger" | "eval";
   stack?: string;
   sizeBand?: string;
 }
@@ -86,7 +88,8 @@ export function estimateApiCost(
       per = { min: a.cost.coldStartUsdPerTask.min * share, max: a.cost.coldStartUsdPerTask.max * share };
     }
     const factor = model === "agentic" && (phase === "build" || phase === "verification") ? a.cost.agenticBuildFactor : 1;
-    phases.push({ phase, usd: { min: usd(per.min * n * factor), max: usd(per.max * n * factor) } });
+    const evals = rs.filter((r) => r.source === "eval").length;
+    phases.push({ phase, usd: { min: usd(per.min * n * factor), max: usd(per.max * n * factor) }, basis: { ledger: rs.length - evals, eval: evals } });
     weakest = Math.min(weakest, WEAKEST.indexOf(confidenceFor(rs.length, a)));
   }
   const total = { min: usd(phases.reduce((s, p) => s + p.usd.min, 0)), max: usd(phases.reduce((s, p) => s + p.usd.max, 0)) };

@@ -5,7 +5,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { Estimate } from "../contracts/index.js";
 import type { Breakdown } from "../contracts/index.js";
 import { estimateApiCost } from "./cost.js";
-import { buildWorkbook, exportWorkbooks, MANDATORY_SHEETS, SHEET, SUMMARY_LABEL, TEAM_SHEETS, type ExportInput } from "./export.js";
+import { ALL_TASKS_SHEET, buildWorkbook, costBasisText, exportWorkbooks, HUMAN_HEAD, MANDATORY_SHEETS, SHEET, SUMMARY_LABEL, TEAM_SHEETS, type ExportInput } from "./export.js";
 import { gateHours } from "./gate-hours.js";
 import { sizeTasks } from "./hours.js";
 import { computeTotals } from "./totals.js";
@@ -22,6 +22,8 @@ describe("formula evaluator", () => {
     expect(evalFormula("ROUND((A1+A2)/3,2)", "S", get)).toBe(1.67);
     expect(evalFormula(`IF(B1="Yes",'T'!C1,0)`, "S", get)).toBe(10);
     expect(evalFormula(`IF(B1="No",T!C1,0)`, "S", get)).toBe(0);
+    expect(evalFormula("SUBTOTAL(9,A1:A2)", "S", get)).toBe(5);
+    expect(() => evalFormula("SUBTOTAL(1,A1:A2)", "S", get)).toThrow(/SUBTOTAL\(9/);
   });
   it("fails on an empty cell, an empty sum, division by zero and unknown functions", () => {
     expect(() => evalFormula("A9+1", "S", get)).toThrow(/empty cell/);
@@ -63,17 +65,58 @@ describe("workbook export", () => {
     expect(backend).toBe(`'${SHEET.backend}'!D6`);
   });
 
-  it("shows a factory task at zero effort and its size only in the team file", () => {
-    const input = fixture();
-    const find = (wb: ReturnType<typeof buildWorkbook>) => {
-      const ws = wb.getWorksheet(SHEET.web)!; let row = 0;
-      ws.eachRow((_r, n) => { if (ws.getCell(`I${n}`).value === "EST-2") row = n; });
-      return { ws, row };
-    };
-    const t = find(buildWorkbook(input, "team")), c = find(buildWorkbook(input, "client"));
-    expect(t.ws.getCell(`D${t.row}`).value).toBe(0);
-    expect(t.ws.getCell(`L${t.row}`).value).toBe(8);
-    expect(c.ws.getCell(`L${c.row}`).value).toBeNull();
+  it("shows agent hours beside human hours in both files: a factory task has agent hours, a joint task both, a human task human only", () => {
+    const input = fixture("agentic");
+    for (const aud of ["team", "client"] as const) {
+      const wb = buildWorkbook(input, aud);
+      const row = (sheet: string, id: string) => {
+        const ws = wb.getWorksheet(sheet)!; let r = 0;
+        ws.eachRow((_x, n) => { if (ws.getCell(`I${n}`).value === id) r = n; });
+        return [ws.getCell(`D${r}`).value, ws.getCell(`E${r}`).value, ws.getCell(`J${r}`).value, ws.getCell(`K${r}`).value];
+      };
+      expect(row(SHEET.web, "EST-2")).toEqual([0, 0, 8, 16]); // factory: its sized hours, cold-start
+      expect(row(SHEET.backend, "EST-3")).toEqual([6, 12, 6, 12]); // joint: both
+      expect(row(SHEET.backend, "EST-1")).toEqual([4, 8, 0, 0]); // human
+      const web = wb.getWorksheet(SHEET.web)!;
+      expect([web.getCell("D8").value, web.getCell("J8").value]).toEqual([HUMAN_HEAD.min, "Agent min (h)"]);
+      expect((web.getCell("J6").value as { result: number }).result).toBe(8);
+      // the Summary carries the agent hours beside the human hours, with a total
+      const S = wb.getWorksheet("Summary")!;
+      let total: unknown[] = [];
+      S.eachRow((_x, n) => { if (S.getCell(`B${n}`).value === "Total") total = ["F", "G"].map((c) => (S.getCell(`${c}${n}`).value as { result: number }).result); });
+      expect(total).toEqual([14, 28]);
+    }
+  });
+
+  it("reads a factory task's agent hours from its class's measured duration when the ledger has enough builds", () => {
+    const input = fixture("agentic");
+    input.estimate.elapsed.basis = { confidence: "partial", records: 4, byClass: [{ taskClass: "web/standard", records: 4, confidence: "partial", minutes: { min: 90, max: 150 } }] };
+    const wb = buildWorkbook(input, "team");
+    const ws = wb.getWorksheet(SHEET.web)!; let r = 0;
+    ws.eachRow((_x, n) => { if (ws.getCell(`I${n}`).value === "EST-2") r = n; });
+    expect([ws.getCell(`J${r}`).value, ws.getCell(`K${r}`).value]).toEqual([1.5, 2.5]);
+    expect(lintWorkbook(wb, input.estimate, input.breakdown, "team")).toEqual([]);
+  });
+
+  it("lists every task once on a filterable sheet in both files, with totals over the rows shown", () => {
+    const input = fixture("agentic");
+    for (const aud of ["team", "client"] as const) {
+      const X = buildWorkbook(input, aud).getWorksheet(ALL_TASKS_SHEET)!;
+      expect(X.autoFilter).toBe("B4:M9");
+      const ids: unknown[] = []; X.eachRow((_x, n) => { const v = X.getCell(`B${n}`).value; if (typeof v === "string" && /^EST-/.test(v)) ids.push(v); });
+      expect(ids).toEqual(["EST-1", "EST-2", "EST-3", "EST-4", "EST-5"]);
+      expect(X.getCell("J10").value).toMatchObject({ formula: "SUBTOTAL(9,J5:J9)", result: 14 });
+      expect(X.getCell("H10").value).toMatchObject({ result: input.estimate.tasks.reduce((s, t) => s + (t.executor === "factory" ? 0 : t.hours.min), 0) });
+    }
+  });
+
+  it("says where each phase's API figure comes from: measured runs by source, or the cold-start assumption", () => {
+    expect(costBasisText({ ledger: 0, eval: 0 }, true)).toMatch(/^assumed/);
+    expect(costBasisText({ ledger: 2, eval: 3 }, true)).toBe("measured: p10-p90 of 5 runs (2 ledger, 3 eval)");
+    expect(costBasisText({ ledger: 2, eval: 3 }, false)).toBe("measured: p10-p90 of 5 runs");
+    const S = buildWorkbook(fixture(), "client").getWorksheet("Summary")!;
+    const based: unknown[] = []; S.eachRow((_x, n) => { if (S.getCell(`B${n}`).value === "build") based.push(S.getCell(`E${n}`).value); });
+    expect(based).toEqual(["assumed: no measured runs yet (cold-start figure)"]);
   });
 
   it("shows each task's API cost in both files, and the module row adds them up", () => {
@@ -83,10 +126,10 @@ describe("workbook export", () => {
       const ws = buildWorkbook(input, aud).getWorksheet(SHEET.web)!;
       let row = 0;
       ws.eachRow((_r, n) => { if (ws.getCell(`I${n}`).value === "EST-2") row = n; });
-      expect(ws.getCell("J8").value).toBe("API min ($)");
-      expect([ws.getCell(`J${row}`).value, ws.getCell(`K${row}`).value]).toEqual([est2.min, est2.max]);
+      expect(ws.getCell("L8").value).toBe("API min ($)");
+      expect([ws.getCell(`L${row}`).value, ws.getCell(`M${row}`).value]).toEqual([est2.min, est2.max]);
       let sums = 0;
-      ws.eachRow((_r, n) => { const v = ws.getCell(`J${n}`).value; if (v && typeof v === "object" && "formula" in v && /^SUM\(J/.test(v.formula)) sums++; });
+      ws.eachRow((_r, n) => { const v = ws.getCell(`L${n}`).value; if (v && typeof v === "object" && "formula" in v && /^SUM\(L/.test(v.formula)) sums++; });
       expect(sums).toBeGreaterThan(0);
     }
   });
