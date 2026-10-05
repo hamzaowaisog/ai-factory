@@ -78,6 +78,12 @@ function multiAnswer(system: string): unknown {
 }
 /** the clarifier's last instructions, as the model received them */
 let clarifierPrompt = "";
+/** A scripted review must now account for every acceptance criterion, as a real one must. */
+function scriptedReview(user: string, findings: unknown[] = []) {
+  const acIds = [...new Set([...user.matchAll(/"id":\s*"(AC-[\w.-]+)"/g)].map((m) => m[1]!))];
+  return { findings, coverage: acIds.map((acId) => ({ acId, testId: "", verdict: "proves-it" as const, why: "scripted" })) };
+}
+
 function answerFor(system: string, allowMulti = true): unknown {
   if (multi && allowMulti) { const m = multiAnswer(system); if (m !== undefined) return m; }
   if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "greet with Hello" }], changeClass: "feature", risk: intakeRisk, riskTags: [], rigor: "light", touchesUi: false };
@@ -102,7 +108,7 @@ function answerFor(system: string, allowMulti = true): unknown {
     options: [{ id: "O-1", summary: "change the literal", simplest: true, tradeoffs: "none" }, { id: "O-2", summary: "make it configurable", simplest: false, tradeoffs: "more code" }],
     chosen: "O-1", adr: "Change the literal; configuration isn't asked for.", protectedPathsDeclared: [], newDependencies: [], stubs: [],
   };
-  if (system.includes("review a finished change")) return { findings: reviewFindings };
+  if (system.includes("review a finished change")) return scriptedReview(user, reviewFindings);
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
 }
 const modelCalls: string[] = [];

@@ -9,7 +9,7 @@ import { buildPack } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
 import type { Snapshot } from "../context/snapshot.js";
 import { RepoTools } from "../context/tools.js";
-import { ReviewBody } from "../contracts/index.js";
+import { ReviewSubmit } from "../contracts/index.js";
 import type { Ledger, Writer } from "../ledger/ledger.js";
 import { ApiRunner, defaultProvider, type Provider } from "../runners/api.js";
 import { family } from "../runners/types.js";
@@ -68,7 +68,7 @@ export async function runMergeReview(o: ReviewRunOpts): Promise<ReviewRunResult>
       tools: new RepoTools(o.snap, redactor, o.noGo ?? []),
     });
     const res = await runner.run({
-      step: "review", model, pack, schema: ReviewBody,
+      step: "review", model, pack, schema: ReviewSubmit,
       limits: { maxTurns: 20, maxUsd: o.maxUsd ?? 4, timeoutSec: 900 },
     });
 

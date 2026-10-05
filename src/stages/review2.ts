@@ -4,7 +4,7 @@
 import { S, think } from "./think.js";
 import type { ResolvedSection } from "../context/pack.js";
 import type { LintRun, TestRun } from "../contracts/index.js";
-import { ReviewBody } from "../contracts/index.js";
+import { ReviewSubmit } from "../contracts/index.js";
 import { readApproved } from "../conventions/store.js";
 import { header, readOutput, requireOutput, type StepDef } from "./framework.js";
 import { diffFiles, verificationProjection } from "./deliver.js";
@@ -127,7 +127,7 @@ export const review2Step: StepDef = {
       stage: "review", route: "review-2", cls: "read-large",
       budgetTokens: 120_000, maxTurns: 20,
       tools: ["read_file", "search"], repoTools: toolsAt(ctx, mergeSha), toolsAt: "under-review",
-      schema: ReviewBody,
+      schema: ReviewSubmit,
       sections: review2Sections({
         diff,
         intent: requireOutput(ctx.state, ctx.ledger, "intake"),

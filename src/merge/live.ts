@@ -47,6 +47,9 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
   const forge = forgeAdapter({ gh: o.gh, cfg: o.cfg, requiredChecks: [] });
   // learned when the pull request is resolved to its run, and needed again when the gates run
   let runId = "";
+  // what the verify pass actually found. review-2 is shown these, and telling it the tests were
+  // clean when they were not would make its judgement worthless.
+  let lastVerify: { lint: { findings: unknown[] }; verification: { failed: string[]; flaky: string[] } } | undefined;
 
   return {
     ...forge,
@@ -85,6 +88,13 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
         ["review.covers-every-criterion", hashJson({ diffSha })],
         ["review-2.no-blocking", hashJson({ diffSha })],
       ]);
+      lastVerify = {
+        lint: { findings: out.lint?.findings ?? [] },
+        verification: {
+          failed: out.testRun.results.filter((r) => r.outcome === "failed").map((r) => r.id).sort(),
+          flaky: out.testRun.results.filter((r) => r.flaky).map((r) => r.id).sort(),
+        },
+      };
       const evidence: MergeEvidence = {
         build: out.build, testRun: out.testRun, lint: out.lint, lintBaseline: [],
         secretScan: { kind: "secrets", commit: mergeSha, hits: [] },
@@ -124,8 +134,9 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
           acTests: lock,
           assumptions: questions ? (ledger.getJson<{ assumptions: unknown[] }>(questions).assumptions ?? []) : [],
           guidelinesMarkdown: conv.markdown,
-          lint: { findings: [] },
-          verification: { failed: [], flaky: [] },
+          // never fabricated: if the verify pass did not run, say so rather than claiming it was clean
+          lint: lastVerify?.lint ?? { findings: [] },
+          verification: lastVerify?.verification ?? { failed: [], flaky: [] },
           changedFiles: diffFiles(diff),
         },
         model: modelFor(o.cfg, "review-2", 0).model,

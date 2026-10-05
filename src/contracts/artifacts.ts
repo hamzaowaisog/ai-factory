@@ -636,11 +636,27 @@ export const ReviewCoverage = z.object({
 });
 export type ReviewCoverage = z.infer<typeof ReviewCoverage>;
 
+/**
+ * What a stored review PARSES as. `coverage` is defaulted so reviews recorded before it existed keep
+ * reading. Never give this to a model: `.default()` makes the field optional on input, so the
+ * generated JSON schema would not require it and a reviewer could legitimately omit it.
+ */
 export const ReviewBody = z.object({
   findings: z.array(ReviewFinding),
-  /** Defaulted: reviews recorded before this existed must keep parsing. The gate, not the schema, is what requires it to be complete. */
   coverage: z.array(ReviewCoverage).default([]),
 });
+
+/**
+ * What a model must RETURN. `coverage` carries no default, so it is required in the generated schema
+ * and the reviewer is told so. Splitting the two is deliberate: one object cannot both tolerate an
+ * absent field when reading history and demand it when instructing a model, and conflating them made
+ * every review park on `review.covers-every-criterion` after the ladder ran out.
+ */
+export const ReviewSubmit = z.object({
+  findings: z.array(ReviewFinding),
+  coverage: z.array(ReviewCoverage),
+});
+export type ReviewSubmit = z.infer<typeof ReviewSubmit>;
 export const Review = withHeader(ReviewBody.shape);
 
 export const Delivery = withHeader({

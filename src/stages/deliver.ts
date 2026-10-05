@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { userInfo } from "node:os";
 import { z } from "zod";
 import type { EvidenceManifest, PlanBody, SpecDraft, TestRun } from "../contracts/index.js";
-import { ReviewBody } from "../contracts/index.js";
+import { ReviewSubmit } from "../contracts/index.js";
 import { scanText } from "../context/secrets.js";
 import { secret } from "../config/env.js";
 import { failure, runGate } from "../gates/engine.js";
@@ -139,7 +139,7 @@ export const reviewStep: StepDef = {
     const full = (await git(wt, ["diff", "--no-color", "-U5", changeBase(ctx.state), head])).stdout;
     const { text: diff, truncated, files } = truncateDiff(full);
     const r = await think(ctx, {
-      stage: "review", route: "review", cls: "read-large", budgetTokens: 80_000, schema: ReviewBody, maxTurns: 14,
+      stage: "review", route: "review", cls: "read-large", budgetTokens: 80_000, schema: ReviewSubmit, maxTurns: 14,
       // the diff shows changed lines with five lines of context, which is not enough to judge a
       // change: the reviewer needs the method it sits in and the test meant to prove it. It reads
       // the commit under review, never the base — see toolsAt.
