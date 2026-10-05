@@ -3,8 +3,8 @@
 // Summary must link to each sheet's own total; and the figures must match what the estimate stores.
 import ExcelJS from "exceljs";
 import type { Breakdown, Estimate } from "../contracts/index.js";
-import { agentHours } from "./durations.js";
-import { effortHours } from "./hours.js";
+import { deliveryHours } from "./durations.js";
+import { deliveryTotals } from "./totals.js";
 import { evalFormula, type CellValue } from "./xl-formula.js";
 import { ALL_TASKS_SHEET, DESIGN_SWITCH_LABEL, MANDATORY_SHEETS, OPTIONAL_TEAM_SHEETS, SHEET, SUMMARY_LABEL, TEAM_SHEETS, type Audience } from "./export.js";
 import type { LintIssue } from "./lint.js";
@@ -31,6 +31,10 @@ export async function loadWorkbook(path: string): Promise<ExcelJS.Workbook> {
   return wb;
 }
 
+/**
+ * The workbook's hours are each task's delivery hours (`deliveryHours`): the factory's on a factory or joint task, a person's
+ * on a human task. They are checked against the estimate they come from, not against its stored human-effort totals.
+ */
 export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdown, "tasks">, audience: Audience): LintIssue[] {
   const issues: LintIssue[] = [];
   const bad = (check: string, message: string) => issues.push({ check, message });
@@ -73,7 +77,7 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
     });
   }
 
-  // every breakdown task appears exactly once, on a track sheet, at its effort hours and its agent hours
+  // every breakdown task appears exactly once, on a track sheet, at its delivery hours, and none reads zero
   const sized = new Map(e.tasks.map((t) => [t.taskId, t]));
   const task = new Map(b.tasks.map((t) => [t.id, t]));
   const seen = new Map<string, number>();
@@ -85,15 +89,11 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
       seen.set(id, (seen.get(id) ?? 0) + 1);
       const s = sized.get(id);
       const min = plain(ws.getCell(`D${rowNo}`).value), max = plain(ws.getCell(`E${rowNo}`).value);
-      if (s) {
-        const eff = effortHours(s);
+      const t = task.get(id);
+      if (s && t) {
+        const eff = deliveryHours(s, t, e.elapsed.basis);
         if (typeof min !== "number" || typeof max !== "number" || !near(min, eff.min) || !near(max, eff.max)) bad("task-hours", `${id} on ${ws.name} shows ${min}-${max}, the estimate says ${eff.min}-${eff.max}`);
-        const t = task.get(id);
-        if (t) {
-          const ag = agentHours(s, t, e.elapsed.basis);
-          const amin = plain(ws.getCell(`J${rowNo}`).value), amax = plain(ws.getCell(`K${rowNo}`).value);
-          if (typeof amin !== "number" || typeof amax !== "number" || !near(amin, ag.min) || !near(amax, ag.max)) bad("agent-hours", `${id} on ${ws.name} shows agent ${amin}-${amax}, the estimate says ${ag.min}-${ag.max}`);
-        }
+        else if (max <= 0) bad("task-hours", `${id} on ${ws.name} shows 0 hours: every task takes time to deliver`);
       }
     });
   }
@@ -109,6 +109,7 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
     [SUMMARY_LABEL.qa]: { sheet: SHEET.qa, track: "qa" }, [SUMMARY_LABEL.gd]: { sheet: SHEET.other, track: "gd" }, [SUMMARY_LABEL.pm]: { sheet: SHEET.other, track: "pm" }, [SUMMARY_LABEL.pdm]: { sheet: SHEET.other, track: "pdm" },
     [SUMMARY_LABEL.cross]: { sheet: SHEET.other }, [SUMMARY_LABEL.design]: { sheet: SHEET.design, track: "design" },
   };
+  const totals = deliveryTotals(e, b);
   let sumMin = 0, sumMax = 0, designMin = 0, designMax = 0, totalRow = 0;
   S.eachRow((_row, rowNo) => {
     const label = plain(S.getCell(`B${rowNo}`).value);
@@ -122,7 +123,7 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
     const min = plain(S.getCell(`C${rowNo}`).value), max = plain(S.getCell(`D${rowNo}`).value);
     if (typeof min !== "number" || typeof max !== "number") return;
     if (want.track) {
-      const stored = e.totals.byTrack[want.track] ?? { min: 0, max: 0 };
+      const stored = totals.byTrack[want.track] ?? { min: 0, max: 0 };
       if (!near(min, stored.min) || !near(max, stored.max)) bad("summary-track", `${label}: workbook ${min}-${max}, estimate ${stored.min}-${stored.max}`);
     }
     if (want.track === "design") { designMin = min; designMax = max; } else { sumMin += min; sumMax += max; }
@@ -136,7 +137,12 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
     if (inc !== e.settings.designInTotal) bad("design-switch", `the Design switch says ${inc ? "Yes" : "No"}, the estimate says ${e.settings.designInTotal ? "Yes" : "No"}`);
     const wantMin = sumMin + (inc ? designMin : 0), wantMax = sumMax + (inc ? designMax : 0);
     if (typeof tMin !== "number" || typeof tMax !== "number" || !near(tMin, wantMin) || !near(tMax, wantMax)) bad("summary-total", `Total ${tMin}-${tMax} is not the sum of its rows ${wantMin}-${wantMax}`);
-    if (typeof tMin === "number" && typeof tMax === "number" && (!near(tMin, e.totals.overall.min) || !near(tMax, e.totals.overall.max))) bad("summary-total", `Total ${tMin}-${tMax} differs from the estimate's overall ${e.totals.overall.min}-${e.totals.overall.max}`);
+    if (typeof tMin === "number" && typeof tMax === "number" && (!near(tMin, totals.overall.min) || !near(tMax, totals.overall.max))) bad("summary-total", `Total ${tMin}-${tMax} differs from the estimate's overall ${totals.overall.min}-${totals.overall.max}`);
+    // the API beside the hours: the track rows plus the project-level row come to the estimate's API total
+    if (e.tasks.some((t) => t.apiUsd)) {
+      const aMin = plain(S.getCell(`F${totalRow}`).value), aMax = plain(S.getCell(`G${totalRow}`).value);
+      if (typeof aMin !== "number" || typeof aMax !== "number" || !near(aMin, e.apiCost.total.min) || !near(aMax, e.apiCost.total.max)) bad("cost-total", `the Summary's API beside the hours is ${aMin}-${aMax}, the estimate's API total is ${e.apiCost.total.min}-${e.apiCost.total.max}`);
+    }
   }
 
   // API cost total

@@ -12,8 +12,9 @@ import ExcelJS from "exceljs";
 import type { Breakdown, BreakdownTask, Estimate, Track } from "../contracts/index.js";
 import { DEFAULT_ASSUMPTIONS, type Assumptions, type Range } from "./assumptions.js";
 import type { Consideration, ConsiderationKey } from "./considerations.js";
-import { agentHours } from "./durations.js";
-import { effortHours, ZERO } from "./hours.js";
+import { PER_TASK } from "./cost.js";
+import { deliveryHours } from "./durations.js";
+import { ZERO } from "./hours.js";
 import { evalFormula, type CellValue } from "./xl-formula.js";
 import { catalogueStatusText } from "./catalogue-status.js";
 
@@ -52,8 +53,11 @@ export const TEAM_SHEETS = ["Confidence", "Anchors", "Traceability", "Parameters
 export const OPTIONAL_TEAM_SHEETS = ["Cost"] as const;
 /** Every task on one sheet with a filter on each column, in both files: the track sheets keep the template's layout, this one is for sorting and filtering. */
 export const ALL_TASKS_SHEET = "All Tasks";
-/** The template's Minimum and Maximum columns: the hours people spend (the factory's own hours sit beside them, in J and K). */
-export const HUMAN_HEAD = { min: "Human min (h)", max: "Human max (h)" } as const;
+/**
+ * The template's Minimum and Maximum columns: the hours each task takes to deliver (`deliveryHours`), whoever does it. The
+ * Executor column says who: the factory, the factory with a person's steps (joint), or a person (human).
+ */
+export const HOURS_HEAD = { min: "Minimum", max: "Maximum" } as const;
 
 /** Summary row labels, as the template words them. */
 export const SUMMARY_LABEL = {
@@ -142,7 +146,8 @@ export async function loadTemplate(path: string): Promise<Template> {
 
 const BOLD = { bold: true } as const;
 const HEAD_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E1F2" } };
-const NUM = "0.00";
+/** two decimals, and a dash for zero: no row reads 0 hours */
+const NUM = '0.00;-0.00;"–"';
 
 /** Where a phase's API figure comes from. The client file says measured or assumed; the team file also names the sources. */
 export function costBasisText(b: { ledger: number; eval: number }, team: boolean): string {
@@ -153,7 +158,7 @@ export function costBasisText(b: { ledger: number; eval: number }, team: boolean
 }
 
 /** Where the agent hours come from: measured task classes, or the sized hours (cold-start). */
-export function agentBasisText(basis: Estimate["elapsed"]["basis"]): string {
+export function hoursBasisText(basis: Estimate["elapsed"]["basis"]): string {
   const measured = (basis?.byClass ?? []).filter((c) => c.minutes);
   if (!measured.length) return "cold-start: each task's sized hours, a reference size, until this factory has built enough tasks of its class (3 or more)";
   return `measured for ${measured.map((c) => `${c.taskClass} (${c.records} builds)`).join(", ")}; other tasks use their sized hours (cold-start)`;
@@ -168,16 +173,15 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   const team = audience === "team";
   const sized = new Map(e.tasks.map((t) => [t.taskId, t]));
   const taskById = new Map(b.tasks.map((t) => [t.id, t]));
-  /** the factory's own hours on a task, beside the human hours in D and E: none on a human task */
-  const agentOf = (id: string): Range => { const s = sized.get(id), t = taskById.get(id); return s && t ? agentHours(s, t, e.elapsed.basis) : ZERO; };
-  // every line of every task sheet: the factory's hours (J, K) and, on estimates that have it, what it spends in API credits (L, M).
+  /** a task's hours in D and E: what it takes to deliver, whoever does it (the Executor column says who) */
+  const hoursOf = (id: string): Range => { const s = sized.get(id), t = taskById.get(id); return s && t ? deliveryHours(s, t, e.elapsed.basis) : ZERO; };
+  // on estimates that have it, every line of every task sheet carries what it spends in API credits (J, K), beside its hours.
   // Every line carries a number in each (0 when it has none), so each total is a plain sum over its rows.
   const perTask = e.tasks.some((t) => t.apiUsd);
-  const REST = ["J", "K", ...(perTask ? ["L", "M"] : [])];
-  const extraHead: Record<string, string> = { G: "Executor", H: "Requirement id(s)", I: "Task id", J: "Agent min (h)", K: "Agent max (h)", ...(perTask ? { L: "API min ($)", M: "API max ($)" } : {}) };
-  const restCells = (ws: ExcelJS.Worksheet, row: number, agent: Range, usd?: Range) => {
-    n(ws, `J${row}`, agent.min); n(ws, `K${row}`, agent.max);
-    if (perTask) { n(ws, `L${row}`, usd?.min ?? 0); n(ws, `M${row}`, usd?.max ?? 0); }
+  const REST = perTask ? ["J", "K"] : [];
+  const extraHead: Record<string, string> = { G: "Executor", H: "Requirement id(s)", I: "Task id", ...(perTask ? { J: "API min ($)", K: "API max ($)" } : {}) };
+  const restCells = (ws: ExcelJS.Worksheet, row: number, usd?: Range) => {
+    if (perTask) { n(ws, `J${row}`, usd?.min ?? 0); n(ws, `K${row}`, usd?.max ?? 0); }
   };
   const sumCols = (ws: ExcelJS.Worksheet, row: number, from: number, to: number) => {
     for (const c of REST) f(ws, `${c}${row}`, `SUM(${c}${from}:${c}${to})`);
@@ -186,9 +190,10 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   const addCols = (ws: ExcelJS.Worksheet, row: number, rows: number[]) => {
     for (const c of REST) f(ws, `${c}${row}`, rows.length ? rows.map((x) => `${c}${x}`).join("+") : "0", undefined, { font: BOLD });
   };
-  /** a sheet's agent total beside its Grand Total */
-  const agentGrand = (ws: ExcelJS.Worksheet, formula: (col: string) => string) => {
-    put(ws, "I6", "Agent total (h)", "grandLabel", { font: BOLD });
+  /** a sheet's API total beside its Grand Total */
+  const apiGrand = (ws: ExcelJS.Worksheet, formula: (col: string) => string) => {
+    if (!perTask) return;
+    put(ws, "I6", "API total ($)", "grandLabel", { font: BOLD });
     f(ws, "J6", formula("J"), "grandValue", { font: BOLD }); f(ws, "K6", formula("K"), "grandValue", { font: BOLD });
   };
 
@@ -251,10 +256,10 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
 
   // the QA sheet in the template's own shape: an Estimation Summary of eight items, then the validation detail by testing cycle
   const drawQa = (ws: ExcelJS.Worksheet, tasks: BreakdownTask[], overheads: Estimate["overheads"], gates: Estimate["gateHours"]): void => {
-    type Line = { name: string; min: number; max: number; comment: string; agent: Range; task?: BreakdownTask };
+    type Line = { name: string; min: number; max: number; comment: string; task?: BreakdownTask };
     const lineOf = (t: BreakdownTask): Line => {
-      const s = sized.get(t.id); const eff = s ? effortHours(s) : ZERO;
-      return { name: t.title, min: eff.min, max: eff.max, comment: (t.overhead ? t.overhead : t.items.join("; ")) + (team && s ? ` (${s.reason})` : ""), agent: agentOf(t.id), task: t };
+      const s = sized.get(t.id); const eff = hoursOf(t.id);
+      return { name: t.title, min: eff.min, max: eff.max, comment: (t.overhead ? t.overhead : t.items.join("; ")) + (team && s ? ` (${s.reason})` : ""), task: t };
     };
     const items = new Map<number, Line[]>(QA_ITEMS.map((i) => [i.no, []]));
     const cycles = new Map<number, BreakdownTask[]>();
@@ -265,15 +270,15 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     }
     for (const o of overheads) {
       const at = qaPlace({ title: o.name, reqs: [], overhead: o.reason }).item;
-      items.get(at === 4 ? 8 : at)!.push({ name: o.name, min: o.hours.min, max: o.hours.max, comment: o.reason, agent: ZERO });
+      items.get(at === 4 ? 8 : at)!.push({ name: o.name, min: o.hours.min, max: o.hours.max, comment: o.reason });
     }
-    for (const g of gates) items.get(8)!.push({ name: `Supervisor: ${g.source}`, min: g.hours.min, max: g.hours.max, comment: "assumed, editable", agent: ZERO });
+    for (const g of gates) items.get(8)!.push({ name: `Supervisor: ${g.source}`, min: g.hours.min, max: g.hours.max, comment: "assumed, editable" });
     const cycleNos = [...cycles.keys()].sort((x, y) => x - y);
     if (!cycleNos.length) cycleNos.push(1);
 
     const extras = (row: number, l: Line) => {
       if (l.task) { ws.getCell(`G${row}`).value = l.task.executor[0]!.toUpperCase() + l.task.executor.slice(1); ws.getCell(`H${row}`).value = l.task.reqs.join(", "); ws.getCell(`I${row}`).value = l.task.id; }
-      restCells(ws, row, l.agent, l.task ? sized.get(l.task.id)?.apiUsd : undefined);
+      restCells(ws, row, l.task ? sized.get(l.task.id)?.apiUsd : undefined);
     };
     const line = (row: number, no: number | "", l: Line) => {
       put(ws, `B${row}`, no, "taskB"); put(ws, `C${row}`, l.name, "taskC"); n(ws, `D${row}`, l.min, "taskD"); n(ws, `E${row}`, l.max, "taskE"); put(ws, `F${row}`, l.comment, "taskF"); extras(row, l);
@@ -295,7 +300,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
 
     // detail: validation testing by cycle, each feature a numbered module
     put(ws, `B${r}`, "S.No", "headB", plainHead); put(ws, `C${r}`, "Validation Testing", "headC", plainHead);
-    put(ws, `D${r}`, HUMAN_HEAD.min, "headD", plainHead); put(ws, `E${r}`, HUMAN_HEAD.max, "headE", plainHead); put(ws, `F${r}`, "Comments", "headF", plainHead);
+    put(ws, `D${r}`, HOURS_HEAD.min, "headD", plainHead); put(ws, `E${r}`, HOURS_HEAD.max, "headE", plainHead); put(ws, `F${r}`, "Comments", "headF", plainHead);
     for (const [col, text] of Object.entries(extraHead)) put(ws, `${col}${r}`, text, "headF", plainHead);
     r++;
     const cycleTotal = new Map<number, number>();
@@ -324,7 +329,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     // summary
     let row = SUMMARY_AT;
     put(ws, "B8", "S.No", "headB", plainHead); put(ws, "C8", "Estimation Summary", "headC", plainHead);
-    put(ws, "D8", HUMAN_HEAD.min, "headD", plainHead); put(ws, "E8", HUMAN_HEAD.max, "headE", plainHead); put(ws, "F8", "Comments", "headF", plainHead);
+    put(ws, "D8", HOURS_HEAD.min, "headD", plainHead); put(ws, "E8", HOURS_HEAD.max, "headE", plainHead); put(ws, "F8", "Comments", "headF", plainHead);
     for (const [col, text] of Object.entries(extraHead)) put(ws, `${col}8`, text, "headF", plainHead);
     const itemRows: number[] = [];
     for (const it of QA_ITEMS) {
@@ -354,14 +359,14 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     sumOf(totalRow, itemRows, ["totD", "totE"]);
     put(ws, "C6", "Grand Total Efforts (in hours)", "grandLabel", { font: BOLD }); put(ws, "F6", "Sum of QA and Misc.", "grandNote");
     f(ws, "D6", `D${totalRow}`, "grandValue", { font: BOLD }); f(ws, "E6", `E${totalRow}`, "grandValue", { font: BOLD });
-    agentGrand(ws, (c) => `${c}${totalRow}`);
+    apiGrand(ws, (c) => `${c}${totalRow}`);
     if (tasks.length || overheads.length || gates.length) notes(ws, r, ["qa"]);
   };
 
   // ---------- track sheets (the template's layout: title block, Grand Total at the top, modules, other activities, research) ----------
   for (const def of SHEETS) {
     const ws = sheet(def.name);
-    widths(ws, { B: 7, C: 46, D: 12, E: 12, F: 60, G: 11, H: 22, I: 9, J: 12, K: 12, L: 12, M: 12 });
+    widths(ws, { B: 7, C: 46, D: 12, E: 12, F: 60, G: 11, H: 22, I: 13, J: 12, K: 12 });
     const tasks = tasksOf(def.tracks);
     const overheads = e.overheads.filter((o) => o.track && def.tracks.includes(o.track));
     const gates = e.gateHours.filter((g) => g.track && def.tracks.includes(g.track));
@@ -377,7 +382,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
 
     const header = (row: number, title: string) => {
       put(ws, `B${row}`, "S.No", "headB", plainHead); put(ws, `C${row}`, title, "headC", plainHead);
-      put(ws, `D${row}`, HUMAN_HEAD.min, "headD", plainHead); put(ws, `E${row}`, HUMAN_HEAD.max, "headE", plainHead); put(ws, `F${row}`, "Comments", "headF", plainHead);
+      put(ws, `D${row}`, HOURS_HEAD.min, "headD", plainHead); put(ws, `E${row}`, HOURS_HEAD.max, "headE", plainHead); put(ws, `F${row}`, "Comments", "headF", plainHead);
       for (const [col, text] of Object.entries(extraHead)) put(ws, `${col}${row}`, text, "headF", plainHead);
     };
     header(8, "Task");
@@ -395,13 +400,13 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
       const first = row;
       for (const t of own) {
         const s = sized.get(t.id);
-        const eff = s ? effortHours(s) : ZERO;
+        const eff = hoursOf(t.id);
         const why = team && s ? ` (${s.reason})` : "";
         put(ws, `B${row}`, "", "taskB"); put(ws, `C${row}`, t.title, "taskC");
         n(ws, `D${row}`, eff.min, "taskD"); n(ws, `E${row}`, eff.max, "taskE");
         put(ws, `F${row}`, (t.overhead ? t.overhead : t.items.join("; ")) + why, "taskF");
         ws.getCell(`G${row}`).value = t.executor[0]!.toUpperCase() + t.executor.slice(1); ws.getCell(`H${row}`).value = t.reqs.join(", "); ws.getCell(`I${row}`).value = t.id;
-        restCells(ws, row, agentOf(t.id), s?.apiUsd);
+        restCells(ws, row, s?.apiUsd);
         row++;
       }
       f(ws, `D${modRow}`, `SUM(D${first}:D${row - 1})`, "modD", { font: BOLD }); f(ws, `E${modRow}`, `SUM(E${first}:E${row - 1})`, "modE", { font: BOLD });
@@ -409,7 +414,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
       sumCols(ws, modRow, first, row - 1);
       row++;
     }
-    if (!moduleRows.length) { put(ws, `C${row}`, "None", "taskC"); n(ws, `D${row}`, 0, "taskD"); n(ws, `E${row}`, 0, "taskE"); restCells(ws, row, ZERO); moduleRows.push(row); row += 2; }
+    if (!moduleRows.length) { put(ws, `C${row}`, "None", "taskC"); n(ws, `D${row}`, 0, "taskD"); n(ws, `E${row}`, 0, "taskE"); restCells(ws, row); moduleRows.push(row); row += 2; }
     const total = (r: number, label: string, parts: (string | number)[] | { from: number; to: number }) => {
       put(ws, `C${r}`, label, "totC", { font: BOLD }); put(ws, `B${r}`, "", "totC");
       for (const col of ["D", "E", ...REST]) {
@@ -432,7 +437,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     let k = 1;
     for (const r of acts.length ? acts : [{ name: "None", min: 0, max: 0, comment: "" }]) {
       put(ws, `B${row}`, k++, "taskB"); put(ws, `C${row}`, r.name, "taskC"); n(ws, `D${row}`, r.min, "taskD"); n(ws, `E${row}`, r.max, "taskE"); put(ws, `F${row}`, r.comment, "taskF");
-      restCells(ws, row, ZERO);
+      restCells(ws, row);
       row++;
     }
     const postRow = row++;
@@ -441,20 +446,20 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
 
     header(row, "Research Task (if any)"); row++;
     const resFirst = row;
-    put(ws, `B${row}`, 1, "taskB"); put(ws, `C${row}`, "None", "taskC"); n(ws, `D${row}`, 0, "taskD"); n(ws, `E${row}`, 0, "taskE"); put(ws, `F${row}`, "No research task in this estimate", "taskF"); restCells(ws, row, ZERO); row++;
+    put(ws, `B${row}`, 1, "taskB"); put(ws, `C${row}`, "None", "taskC"); n(ws, `D${row}`, 0, "taskD"); n(ws, `E${row}`, 0, "taskE"); put(ws, `F${row}`, "No research task in this estimate", "taskF"); restCells(ws, row); row++;
     const resRow = row++;
     total(resRow, "Research Total Efforts (in hours)", { from: resFirst, to: resRow - 1 });
 
     if (!empty) notes(ws, resRow + 3, def.tracks);
     f(ws, "D6", `D${devRow}+D${postRow}+D${resRow}`, "grandValue", { font: BOLD }); f(ws, "E6", `E${devRow}+E${postRow}+E${resRow}`, "grandValue", { font: BOLD });
-    agentGrand(ws, (c) => `${c}${devRow}+${c}${postRow}+${c}${resRow}`);
+    apiGrand(ws, (c) => `${c}${devRow}+${c}${postRow}+${c}${resRow}`);
     totalCell.set(def.key, { sheet: def.name, row: 6 });
   }
 
   // ---------- other: GD, PM, PDM and cross-cutting time, one section each with its own total ----------
   {
     const ws = sheet(SHEET.other);
-    widths(ws, { B: 7, C: 46, D: 12, E: 12, F: 60, G: 11, H: 22, I: 9, J: 12, K: 12, L: 12, M: 12 });
+    widths(ws, { B: 7, C: 46, D: 12, E: 12, F: 60, G: 11, H: 22, I: 13, J: 12, K: 12 });
     put(ws, "B2", `Other Estimates for ${input.header.project}`, "title", { font: { bold: true, size: 14 } }); merge(ws, "B2:F2");
     put(ws, "B3", input.header.date, "date"); merge(ws, "B3:F3");
     put(ws, "B4", `by ${input.header.pm}`, "by"); merge(ws, "B4:F4");
@@ -470,20 +475,20 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
       if (tasks.length === 0 && overheads.length === 0 && gates.length === 0 && !sec.cross) {
         put(ws, `B${row}`, `Not in scope: ${input.notInScope?.[sec.tracks[0]!] ?? "no work in this estimate"}`, "", { font: { italic: true } }); row++;
       }
-      put(ws, `B${row}`, "S.No", "headB", plainHead); put(ws, `C${row}`, "Task", "headC", plainHead); put(ws, `D${row}`, HUMAN_HEAD.min, "headD", plainHead); put(ws, `E${row}`, HUMAN_HEAD.max, "headE", plainHead); put(ws, `F${row}`, "Comments", "headF", plainHead);
+      put(ws, `B${row}`, "S.No", "headB", plainHead); put(ws, `C${row}`, "Task", "headC", plainHead); put(ws, `D${row}`, HOURS_HEAD.min, "headD", plainHead); put(ws, `E${row}`, HOURS_HEAD.max, "headE", plainHead); put(ws, `F${row}`, "Comments", "headF", plainHead);
       for (const [col, text] of Object.entries(extraHead)) put(ws, `${col}${row}`, text, "headF", plainHead);
       row++;
       const rows = [
-        ...tasks.map((t) => { const s = sized.get(t.id); const eff = s ? effortHours(s) : ZERO; return { name: t.title, min: eff.min, max: eff.max, executor: t.executor[0]!.toUpperCase() + t.executor.slice(1), reqs: t.reqs.join(", "), id: t.id, comment: (t.overhead ? t.overhead : t.items.join("; ")) + (team && s ? ` (${s.reason})` : ""), agent: agentOf(t.id) }; }),
-        ...overheads.map((o) => ({ name: o.name, min: o.hours.min, max: o.hours.max, executor: "", reqs: "", id: "", comment: o.reason, agent: ZERO })),
-        ...gates.map((g) => ({ name: `Supervisor: ${g.source}`, min: g.hours.min, max: g.hours.max, executor: "", reqs: "", id: "", comment: "assumed, editable", agent: ZERO })),
+        ...tasks.map((t) => { const s = sized.get(t.id); const eff = hoursOf(t.id); return { name: t.title, min: eff.min, max: eff.max, executor: t.executor[0]!.toUpperCase() + t.executor.slice(1), reqs: t.reqs.join(", "), id: t.id, comment: (t.overhead ? t.overhead : t.items.join("; ")) + (team && s ? ` (${s.reason})` : "") }; }),
+        ...overheads.map((o) => ({ name: o.name, min: o.hours.min, max: o.hours.max, executor: "", reqs: "", id: "", comment: o.reason })),
+        ...gates.map((g) => ({ name: `Supervisor: ${g.source}`, min: g.hours.min, max: g.hours.max, executor: "", reqs: "", id: "", comment: "assumed, editable" })),
       ];
       const first = row;
       let i = 1;
-      for (const r of rows.length ? rows : [{ name: "None", min: 0, max: 0, executor: "", reqs: "", id: "", comment: "", agent: ZERO }]) {
+      for (const r of rows.length ? rows : [{ name: "None", min: 0, max: 0, executor: "", reqs: "", id: "", comment: "" }]) {
         put(ws, `B${row}`, i++, "taskB"); put(ws, `C${row}`, r.name, "taskC"); n(ws, `D${row}`, r.min, "taskD"); n(ws, `E${row}`, r.max, "taskE"); put(ws, `F${row}`, r.comment, "taskF");
         ws.getCell(`G${row}`).value = r.executor; ws.getCell(`H${row}`).value = r.reqs; ws.getCell(`I${row}`).value = r.id;
-        restCells(ws, row, r.agent, sized.get(r.id)?.apiUsd);
+        restCells(ws, row, sized.get(r.id)?.apiUsd);
         row++;
       }
       put(ws, `C${row}`, `${sec.title} TOTAL`, "totC", { font: BOLD });
@@ -503,9 +508,13 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   put(S, "B3", "Summary of Estimates", "sumSub", { font: BOLD }); merge(S, "B3:E3");
   const kv = (row: number, k: string, v: string | number) => { put(S, `B${row}`, k, "sumLabel", { font: BOLD }); put(S, `C${row}`, v, "sumValue"); };
   kv(5, "Client Name", input.header.client); kv(6, "Project Manager", input.header.pm); kv(7, "Date", input.header.date); kv(8, "Version", input.header.version);
-  put(S, "C9", "Human effort (in hours)", "sumEff", { font: BOLD }); merge(S, "C9:D9");
-  put(S, "F9", "Agent (in hours)", "sumEff", { font: BOLD }); merge(S, "F9:G9");
-  const sumHead = { B: ["Task Summary", "sumHeadB"], C: [HUMAN_HEAD.min, "sumHeadC"], D: [HUMAN_HEAD.max, "sumHeadD"], E: ["Comments", "sumHeadE"], F: ["Agent min (h)", "sumHeadC"], G: ["Agent max (h)", "sumHeadD"], H: ["Avg", "sumHeadH"], I: ["Resources", "sumHeadI"], J: ["Weeks", "sumHeadJ"] } as const;
+  put(S, "C9", "Efforts (in hours)", "sumEff", { font: BOLD }); merge(S, "C9:D9");
+  if (perTask) { put(S, "F9", "API credits (USD)", "sumEff", { font: BOLD }); merge(S, "F9:G9"); }
+  const sumHead: Record<string, [string, string]> = {
+    B: ["Task Summary", "sumHeadB"], C: [HOURS_HEAD.min, "sumHeadC"], D: [HOURS_HEAD.max, "sumHeadD"], E: ["Comments", "sumHeadE"],
+    ...(perTask ? { F: ["API min ($)", "sumHeadC"], G: ["API max ($)", "sumHeadD"] } as Record<string, [string, string]> : {}),
+    H: ["Avg", "sumHeadH"], I: ["Resources", "sumHeadI"], J: ["Weeks", "sumHeadJ"],
+  };
   for (const [col, [text, role]] of Object.entries(sumHead)) put(S, `${col}10`, text, role, plainHead);
 
   // parameters sit below the tables; the formulas above refer to them
@@ -532,7 +541,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     put(S, `B${row}`, r.label, "sumRowB");
     f(S, `C${row}`, `'${link.sheet}'!D${link.row}`, "sumRowC"); f(S, `D${row}`, `'${link.sheet}'!E${link.row}`, "sumRowD");
     put(S, `E${row}`, r.comment, "sumRowE");
-    f(S, `F${row}`, `'${link.sheet}'!J${link.row}`, "sumRowC"); f(S, `G${row}`, `'${link.sheet}'!K${link.row}`, "sumRowD");
+    if (perTask) { f(S, `F${row}`, `'${link.sheet}'!J${link.row}`, "sumRowC"); f(S, `G${row}`, `'${link.sheet}'!K${link.row}`, "sumRowD"); }
     f(S, `H${row}`, `ROUND((C${row}+D${row})/2,2)`, "sumRowH");
     n(S, `I${row}`, (r.track && input.resources?.[r.track]) || 1, "sumRowI");
     f(S, `J${row}`, `ROUND(H${row}/(${HPW}*I${row}),2)`, "sumRowJ");
@@ -540,8 +549,17 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   const first = TABLE + 1, last = TABLE + rows.length, design = rowOf.get("design")!, tot = last + 1;
   put(S, `B${tot}`, "Total", "sumTotB", { font: { bold: true, size: 12 } });
   // the design row is the last one, so the plain sum stops one row above it
-  for (const c of ["C", "D", "F", "G"]) f(S, `${c}${tot}`, `SUM(${c}${first}:${c}${design - 1})+IF(${DESIGN_SWITCH}="Yes",${c}${design},0)`, c === "C" || c === "F" ? "sumTotC" : "sumTotD", { font: BOLD });
+  for (const c of ["C", "D"]) f(S, `${c}${tot}`, `SUM(${c}${first}:${c}${design - 1})+IF(${DESIGN_SWITCH}="Yes",${c}${design},0)`, c === "C" ? "sumTotC" : "sumTotD", { font: BOLD });
   f(S, `H${tot}`, `ROUND((C${tot}+D${tot})/2,2)`, "sumTotD", { font: BOLD });
+  if (perTask) {
+    // the API the factory spends once per project (planning, design, breakdown and estimate) sits under the Total, which counts
+    // it: the track rows carry only what their tasks spend to be built and verified. Design tasks spend none, so no switch.
+    const once = e.apiCost.phases.filter((p) => !PER_TASK.includes(p.phase));
+    const oneOff = { min: once.reduce((x, p) => x + p.usd.min, 0), max: once.reduce((x, p) => x + p.usd.max, 0) };
+    put(S, `B${tot + 1}`, "Project-level API (planning, design, breakdown and estimate, once per project)", "sumRowB");
+    n(S, `F${tot + 1}`, Math.round(oneOff.min * 100) / 100, "sumRowC"); n(S, `G${tot + 1}`, Math.round(oneOff.max * 100) / 100, "sumRowD");
+    for (const c of ["F", "G"]) f(S, `${c}${tot}`, `SUM(${c}${first}:${c}${last})+${c}${tot + 1}`, c === "F" ? "sumTotC" : "sumTotD", { font: BOLD });
+  }
 
   // special considerations (the template's block): what this estimate knows, and what it does not
   let r = tot + 3;
@@ -582,9 +600,24 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
   if (perTask) { put(S, `B${r}`, "Per task", "sumLabel", { font: BOLD }); put(S, `C${r}`, "API min and max ($) on each task sheet: the task's share of build and verification, by its hours. A human task costs nothing; planning, design, breakdown and estimate are spent once per run.", "sumValue"); r++; }
   r++;
 
-  put(S, `B${r}`, "Agent hours", "consHead", { font: { bold: true, size: 12 } }); r++;
-  put(S, `B${r}`, "The factory's own hours on each task, in J and K of every task sheet and in F and G above. A factory task has agent hours and no human hours; a joint task has both; a human task (client UAT, design approval, PM) has human hours only. Human hours are what people spend and what the totals count.", "consB"); r++;
-  put(S, `B${r}`, "Agent hours basis", "consB"); put(S, `C${r}`, agentBasisText(e.elapsed.basis), "sumValue"); r += 2;
+  put(S, `B${r}`, "How to read the hours", "consHead", { font: { bold: true, size: 12 } }); r++;
+  put(S, `B${r}`, "Each task's Minimum and Maximum are the hours it takes to deliver. Most of the work is done by AI agents; a person's hours are added only where a person is needed (client acceptance, design sign-off, project liaison, accounts and keys). The API credits beside the hours are what the AI spends to build and verify each task.", "consB"); r++;
+  if (team) {
+    put(S, `B${r}`, "Executor", "consB"); put(S, `C${r}`, "Factory: the factory's hours only. Joint: the factory with a person's steps (keys, accounts, go-live). Human: a person's hours only (UAT, design sign-off, PM).", "sumValue"); r++;
+    put(S, `B${r}`, "Factory hours basis", "consB"); put(S, `C${r}`, hoursBasisText(e.elapsed.basis), "sumValue"); r++;
+    // who the hours belong to, from the same figures as the task sheets
+    const by = new Map<string, Range>();
+    const add = (k: string, x: Range) => { const o = by.get(k) ?? ZERO; by.set(k, { min: Math.round((o.min + x.min) * 100) / 100, max: Math.round((o.max + x.max) * 100) / 100 }); };
+    for (const t of b.tasks) if (t.track !== "design" || e.settings.designInTotal) add(t.executor, hoursOf(t.id));
+    for (const x of [...e.overheads, ...e.gateHours]) if (x.track !== "design" || e.settings.designInTotal) add("other", x.hours);
+    put(S, `B${r}`, "Hours by executor", "consTh", plainHead); put(S, `C${r}`, HOURS_HEAD.min, "consTh", plainHead); put(S, `D${r}`, HOURS_HEAD.max, "consTh", plainHead); r++;
+    for (const [k, label] of [["factory", "Factory"], ["joint", "Joint"], ["human", "Human"], ["other", "Overheads and gate time"]] as const) {
+      const x = by.get(k);
+      if (!x) continue;
+      put(S, `B${r}`, label, "consB"); n(S, `C${r}`, x.min); n(S, `D${r}`, x.max); r++;
+    }
+  }
+  r++;
 
   put(S, `B${r}`, "Elapsed time", "consHead", { font: { bold: true, size: 12 } }); r++;
   put(S, `B${r}`, "Planning (minutes)", "consB"); n(S, `C${r}`, e.elapsed.planningMinutes); r++;
@@ -607,20 +640,20 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     X.getCell("B2").value = "Filter or sort any column. The Total row adds up only the rows the filter shows.";
     const cols: [string, string, number][] = [
       ["B", "Task id", 9], ["C", "Task", 46], ["D", "Track", 10], ["E", "Module", 30], ["F", "Executor", 10], ["G", "Requirement id(s)", 22],
-      ["H", HUMAN_HEAD.min, 13], ["I", HUMAN_HEAD.max, 13], ["J", "Agent min (h)", 13], ["K", "Agent max (h)", 13],
-      ...(perTask ? [["L", "API min ($)", 12], ["M", "API max ($)", 12]] as [string, string, number][] : []),
+      ["H", HOURS_HEAD.min, 13], ["I", HOURS_HEAD.max, 13],
+      ...(perTask ? [["J", "API min ($)", 12], ["K", "API max ($)", 12]] as [string, string, number][] : []),
     ];
     for (const [c, , w] of cols) X.getColumn(c).width = w;
     head(X, 4, Object.fromEntries(cols.map(([c, t]) => [c, t])));
     const TRACK_NAME: Record<string, string> = { backend: "Backend", mobile: "Mobile", web: "Web", qa: "QA", design: "Design", gd: "GD", pm: "PM", pdm: "PDM" };
     let xr = 5;
     for (const t of b.tasks) {
-      const s = sized.get(t.id); const eff = s ? effortHours(s) : ZERO; const ag = agentOf(t.id);
+      const s = sized.get(t.id); const eff = hoursOf(t.id);
       X.getCell(`B${xr}`).value = t.id; X.getCell(`C${xr}`).value = t.title; X.getCell(`D${xr}`).value = TRACK_NAME[t.track] ?? t.track;
       X.getCell(`E${xr}`).value = featureTitle.get(t.featureId) ?? t.featureId; X.getCell(`F${xr}`).value = t.executor[0]!.toUpperCase() + t.executor.slice(1);
       X.getCell(`G${xr}`).value = t.reqs.join(", ");
-      n(X, `H${xr}`, eff.min); n(X, `I${xr}`, eff.max); n(X, `J${xr}`, ag.min); n(X, `K${xr}`, ag.max);
-      if (perTask) { n(X, `L${xr}`, s?.apiUsd?.min ?? 0); n(X, `M${xr}`, s?.apiUsd?.max ?? 0); }
+      n(X, `H${xr}`, eff.min); n(X, `I${xr}`, eff.max);
+      if (perTask) { n(X, `J${xr}`, s?.apiUsd?.min ?? 0); n(X, `K${xr}`, s?.apiUsd?.max ?? 0); }
       xr++;
     }
     const lastCol = cols[cols.length - 1]![0];
@@ -641,7 +674,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     ck(8, "Spec sha", e.specSha); ck(9, "Breakdown sha", e.breakdownSha);
     // internal only: where the hours came from and how far they are measured (never on the client's copy)
     if (e.catalogue) { ck(10, "Task catalogue", `${e.catalogue.version} (stack ${e.catalogue.stack})`); ck(11, "Catalogue status", catalogueStatusText(e.catalogue)); }
-    ck(12, "Agent hours basis", agentBasisText(e.elapsed.basis));
+    ck(12, "Factory hours basis", hoursBasisText(e.elapsed.basis));
     // where each phase's API figure comes from: this factory's ledgers, its paid eval runs, or the cold-start assumption
     head(C, 14, { B: "API cost by phase", C: "Based on", D: "Ledger runs", E: "Eval runs" });
     C.getColumn("D").width = 12; C.getColumn("E").width = 12;

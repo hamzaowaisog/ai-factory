@@ -1045,6 +1045,16 @@ Hamza, on the d7a6 workbooks: the solely agentic estimate showed 17 of 23 tasks 
 - **Design approval is a task.** When the request has an approved design, the breakdown adds one human task on the design track for the client's review and approval (kind `design-approval`, 2-4 h at typical: a walkthrough and two feedback rounds), so the Design sheet is no longer empty. The breakdown rules name the three human tasks every delivery has: client UAT, PM, design approval.
 - **Gate E6** checks each task's agent hours against the estimate (`workbook-agent-hours`) and that both files carry the All Tasks sheet; the task-row count skips that sheet.
 
+## One hours column, with its executor (built 2026-10-06)
+
+Hamza, on the a8db workbooks: the client file still showed most tasks at 0, and the separate human and agent columns were confusing. A solely agentic delivery is mostly the factory's work; a person's hours belong only where a person is needed. What changed:
+
+- **One Minimum and Maximum per task, in both files** (headed "Minimum", "Maximum", as the template has them): each task's **delivery hours** (`deliveryHours` in `src/estimate/durations.ts`). A factory or joint task shows the factory's hours (`agentHours`, the rule above: measured when the class has 3 or more builds, else its sized hours); a human task shows a person's hours. The Executor column (G) says who: Factory, Joint or Human. The separate Human and Agent columns are gone.
+- **No row reads 0.** Every task has hours, and gate E6 fails a task row at 0 (`task-hours`). Rows nobody sized (an empty template item, "None") still hold 0 for the formulas, shown as "–" by the number format.
+- **API cost beside the hours.** API min and max ($) move to J and K on every task sheet and the All Tasks sheet, with "API total ($)" beside each sheet's Grand Total. On the Summary, F and G carry each track's API beside its hours; a "Project-level API" row under the Total holds what is spent once per run (planning, design, breakdown and estimate), and the Total adds it, so it equals the API credit cost total. Gate E6 checks that (`cost-total`).
+- **The team file explains who the hours belong to.** Its Summary has "How to read the hours" (also in the client file, without the team lines), what each executor means, the factory hours basis, and "Hours by executor": Factory, Joint, Human, and overheads and gate time.
+- **Stored totals stay human effort.** `Estimate.totals` is unchanged and still what the build's budget gates (B3, B5) are held to. The workbooks and the approval card show the delivery totals (`deliveryTotals` in `src/estimate/totals.ts`), which gate E6 recomputes; the card puts the human hours in brackets.
+
 ## Task duration: the internal harness
 
 How long a task takes is not decided by the model's opinion. A **duration harness** evaluates each task class and returns a duration and cost range, and code uses it alongside the anchors.
@@ -1171,13 +1181,12 @@ Two files come from one data model, so they cannot disagree.
 |---|---|
 | B | S.No |
 | C | Task |
-| D, E | Human min, max (hours) |
+| D, E | Minimum, Maximum (hours): the task's delivery hours, the factory's or a person's (see "One hours column, with its executor") |
 | F | Comments: what the task includes |
 | G | Executor: Factory / Joint / Human |
 | H | Requirement id(s) |
 | I | Task id |
-| J, K | Agent min, max (hours): the factory's own hours on the task (both files; see "Agent hours and the human tasks") |
-| L, M | API min, max ($): what the factory spends in API credits building and verifying the task (both files, estimates from 2026-10-06; see "Cost in API credits") |
+| J, K | API min, max ($): what the factory spends in API credits building and verifying the task (both files, estimates from 2026-10-06; see "Cost in API credits") |
 
 - Modules → tasks; module totals are `SUM` over the module's own rows.
 - **Other Development Activities:** bug fixing (parameter %), deployment (staging, production, app store), lead PR review, code fixing after review, documentation; memory leaks for mobile only.
@@ -1186,7 +1195,7 @@ Two files come from one data model, so they cannot disagree.
 
 ### Summary
 - **Header:** client, project, PM, date, version, mode.
-- **Task summary:** one row per track (Backend, Mobile, Web/Admin, QA, GD, PM, PDM, Design) with human Min, Max, agent Min, Max (F, G), Avg, resources, and weeks as a formula (human hours ÷ 40 ÷ resources).
+- **Task summary:** one row per track (Backend, Mobile, Web/Admin, QA, GD, PM, PDM, Design) with Min, Max (delivery hours), API min, max (F, G), Avg, resources, and weeks as a formula (hours ÷ 40 ÷ resources).
 - **Total:** `SUM(track rows) + IF(include Design = "Yes", Design)`. The switch is a visible cell and the Design row always shows.
 - **Delivery model** shown in the header, and one estimate per model.
 - **Lines** for API credit cost (with a per-phase breakdown) and elapsed time (planning time shown apart).
