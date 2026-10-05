@@ -22,7 +22,8 @@ import type { BenchmarkRecord } from "../estimate/cost.js";
 import { surveyText, type RepoSurvey } from "../context/survey.js";
 import { hashJson } from "../util/hash.js";
 import { waivedCache, waiverFor, WAIVER_AFTER_ATTEMPT, type Failed } from "./waiver.js";
-import { applyPatch, breakdownGaps, fixBreakdown, flagOutliers, noGaps, type BreakdownGaps } from "../estimate/fallbacks.js";
+import { carriedLines, gateNotes, GATE_ROUNDS, settledBy } from "./gate-questions.js";
+import { applyPatch, breakdownGaps, carryBreakdown, fixBreakdown, flagOutliers, noGaps, type BreakdownGaps } from "../estimate/fallbacks.js";
 import { humanReview } from "../estimate/settings.js";
 import { assembleEstimate, bandOf, DEFAULT_SETTINGS, estimatorsFor, gradeInputs, type EstimateSettings, type Proposal } from "../estimate/assemble.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
@@ -96,6 +97,7 @@ const failed = (signature: string, failures: Failure[]): StepOutcome => ({ kind:
 const TASK_RULES = `- Every task cites the requirement ids it delivers in "reqs". A task that delivers no requirement (deployment, project management, environment setup, client UAT) is an overhead: leave reqs empty and say why in "overhead". Nothing else may have empty reqs.
 - "items" lists the concrete things in the spec the task must deliver: fields and validations, screen states, rules, endpoints, messages. Do not invent items the spec does not have.
 - track: backend | mobile | web | qa | design | gd | pm | pdm. executor: factory (the AI factory builds it, humans only at gates), joint (factory plus human steps such as keys or store accounts) or human (full human hours: client UAT, design approval, PM).
+- Human tasks the delivery always has: client UAT (kind qa-uat); project management as client liaison only (kind pm-management, track pm: the factory plans and coordinates its own work); and, when the design section holds an approved design (not skipped), one task for the client's design review and approval (kind design-approval, track design). Each is an overhead with empty reqs.
 - complexity: standard | rules-or-algorithm | external-dependency | compliance-sensitive | real-time | new-to-stack.
 - kind: every task, overheads included, has exactly one kind from the "task-kinds" list, on a track that kind lists. Split the work so each task is one kind: one task per screen per platform (ui-list, ui-form, ui-detail, ui-complex), one task per entity's API (be-crud), one task per third-party service (be-integration), the app shell once per platform (ui-shell), the data model once (be-data). Do not merge two kinds into one task, and do not split one kind's work across tasks unless the parts are separate screens, entities or services.`;
 const SCREEN_RULES = `- Each approved screen carries "ui": its level (simple, moderate, complex) and what drives it, counted from the approved demo. A complex screen's parts (a map, a chat, a board, a form with a card field, overlays) are items of the task that builds it; split a complex screen into more than one task when its parts are separate work. "uiFactors" (two languages, right to left, both colour modes, several apps) apply to every UI task: list them as items where they add work.`;
@@ -298,6 +300,11 @@ async function breakdownGates(ctx: StepContext, b: BreakdownBrief, body: Breakdo
   return bad;
 }
 
+/** A lead may waive a waivable gate in review mode, until the step's failures were asked about (then the questions settle them). */
+const mayWaive = (ctx: StepContext): boolean => humanReview(ctx.state.info) && !ctx.gateAnswers?.length;
+/** "estimate.e2c-task-kind" -> "gate E2c" */
+const gateName = (id: string): string => { const m = /\.e(\d+)([a-z]?)-/.exec(id); return m ? `gate E${m[1]}${m[2]}` : id; };
+
 /** A hands-off estimate run, after the retry with the failures fed back: the factory settles what still fails instead of a waiver card. */
 const handsOffFallback = (ctx: StepContext): boolean => !humanReview(ctx.state.info) && ctx.attempt >= WAIVER_AFTER_ATTEMPT;
 
@@ -320,15 +327,15 @@ ${UNTRUSTED_NOTE}`;
 /**
  * Hands-off fallbacks for the breakdown's gates (src/estimate/fallbacks.ts): the rule-based fixes for E3, E4 and a screen the
  * design does not have, then one small call for requirements no task delivers, screens no task builds and kinds that do not fit
- * (E2, E1c, E2c). Every gate runs again on the result; what still fails parks the run. Each decision goes on the estimate.
+ * (E2, E1c, E2c). Every gate runs again on the result; what still fails is returned, and the step asks about it (src/stages/gate-questions.ts).
+ * A patch that does not merge is left out. Each decision goes on the estimate.
  */
-async function settleBreakdown(ctx: StepContext, b: BreakdownBrief, body0: BreakdownBodyT, bad0: Failed[]): Promise<{ ok: true; body: BreakdownBodyT; fix: { suggested: Breakdown["suggested"]; notes: string[] } } | { ok: false; outcome: StepOutcome }> {
+async function settleBreakdown(ctx: StepContext, b: BreakdownBrief, body0: BreakdownBodyT, bad0: Failed[]): Promise<{ ok: true; body: BreakdownBodyT; fix: { suggested: Breakdown["suggested"]; notes: string[] }; bad: Failed[] } | { ok: false; outcome: StepOutcome }> {
   const screens = b.design?.screens.map((x) => x.id) ?? [];
   const fx = fixBreakdown(body0, b.spec.requirements.map((r) => r.id), screens);
   let body = fx.body;
   const notes = [...fx.notes];
   const gaps = breakdownGaps(body, b.spec, screens, b.catalogue);
-  const stop = (why: string): { ok: false; outcome: StepOutcome } => ({ ok: false, outcome: { kind: "park", reason: `The breakdown still fails its gates after the retry, and the factory could not settle it hands-off: ${why}. Change the requirements or run with review to waive it.` } });
   if (!noGaps(gaps)) {
     const next = Math.max(0, ...body.tasks.map((t) => Number(/^EST-(\d+)$/.exec(t.id)?.[1] ?? 0))) + 1;
     ctx.log(`breakdown: hands-off, asking for the missing work only (${gapText(gaps)})`);
@@ -346,16 +353,14 @@ async function settleBreakdown(ctx: StepContext, b: BreakdownBrief, body0: Break
     });
     if (!p.ok) return { ok: false, outcome: p.outcome };
     const merged = applyPatch(body, p.output, gaps);
-    if ("error" in merged) return stop(merged.error);
-    const shape = BreakdownBody.safeParse(merged.body);
-    if (!shape.success) return stop(shape.error.issues.map((i) => i.message).join("; "));
-    body = shape.data;
-    notes.push(...merged.notes);
+    const shape = "error" in merged ? undefined : BreakdownBody.safeParse(merged.body);
+    if ("error" in merged || !shape?.success) ctx.log(`breakdown: hands-off, the patch was left out: ${"error" in merged ? merged.error : shape!.error!.issues.map((i) => i.message).join("; ")}`);
+    else { body = shape.data; notes.push(...merged.notes); }
   }
   const bad = await breakdownGates(ctx, b, body);
-  if (bad.length) return stop(bad.flatMap((x) => x.failures.map((f) => `${x.def.id}: ${f.message}`)).join("; "));
-  ctx.log(`breakdown: hands-off, the factory settled ${bad0.map((x) => x.def.id.replace("estimate.", "")).join(", ")} (${notes.length} decision${notes.length === 1 ? "" : "s"}, on the estimate's assumptions)`);
-  return { ok: true, body, fix: { suggested: fx.suggested, notes } };
+  if (bad.length) ctx.log(`breakdown: hands-off, the factory's fixes left ${bad.map((x) => x.def.id.replace("estimate.", "")).join(", ")} failing; questions next`);
+  else ctx.log(`breakdown: hands-off, the factory settled ${bad0.map((x) => x.def.id.replace("estimate.", "")).join(", ")} (${notes.length} decision${notes.length === 1 ? "" : "s"}, on the estimate's assumptions)`);
+  return { ok: true, body, fix: { suggested: fx.suggested, notes }, bad };
 }
 
 const gapText = (g: BreakdownGaps): string => [
@@ -378,7 +383,14 @@ export const breakdownStep: StepDef = {
     const back = await backToSettle(ctx, "breakdown");
     if (back) return back;
     const e1 = await gate(ctx, "breakdown", readiness, { spec, questions: { questions: c.answers.map((a) => ({ id: a.id, answer: a.answer })) } });
-    if (!e1.passed) return { kind: "park", reason: `The spec is not ready to estimate (gate E1): ${e1.details}.${spec.settled ? " Questions settle critic findings, unasked-for capabilities and lint; these need the requirements changed." : " Go back to clarify."}` };
+    // what the spec's own questions cannot settle (a dropped span, an open clarify question) is asked about here; an answer settles it,
+    // and after the rounds of questions what is still open is carried as an open risk (src/stages/gate-questions.ts)
+    const openRisks: string[] = [];
+    if (!e1.passed) {
+      const open = (e1.failures ?? [failure(readiness.id, e1.details)]).filter((f) => !settledBy(ctx.gateAnswers, f.message));
+      if (open.length && ctx.carryOn) openRisks.push(...carriedLines("gate E1", open));
+      else if (open.length) return { kind: "ask", reason: `The spec is not ready to estimate (gate E1): ${open.map((f) => f.message).join("; ")}`, failures: open };
+    }
 
     const intent = readOutput<Intent>(ctx.state, ctx.ledger, "intake");
     const survey = readOutput<RepoSurvey>(ctx.state, ctx.ledger, "ground", "survey");
@@ -409,20 +421,28 @@ export const breakdownStep: StepDef = {
       if (!r.ok) return r.outcome;
       body = r.output;
       model = r.model;
-      const bad = await breakdownGates(ctx, brief, body);
+      let bad = await breakdownGates(ctx, brief, body);
       if (bad.length && handsOffFallback(ctx)) {
         // hands-off, after the retry: no waiver card; the factory decides by rule, adds what only a model can in one small call, and checks again
         const fx = await settleBreakdown(ctx, brief, body, bad);
         if (!fx.ok) { (r as { forget?: () => void }).forget?.(); return fx.outcome; }
-        ({ body } = fx);
+        ({ body, bad } = fx);
         fixes = fx.fix;
+      }
+      if (bad.length && ctx.carryOn) {
+        // the rounds of questions are used up: the breakdown goes on, and what still fails is an open risk on the estimate
+        const carry = carryBreakdown(body, catalogue);
+        body = carry.body;
+        openRisks.push(...carry.notes, ...bad.filter((x) => x.def !== taskKind || !carry.notes.length).flatMap((x) => carriedLines(gateName(x.def.id), x.failures)));
+        ctx.log(`breakdown: ${bad.map((x) => x.def.id.replace("estimate.", "")).join(", ")} still failing after the rounds of questions; carried as open risks`);
       } else if (bad.length) {
         // a rejected answer is not read back from the store on the next try
         (r as { forget?: () => void }).forget?.();
-        const w = waiverFor(ctx, "breakdown", bad, { cacheKey, payload: body });
+        // review, before any question: a lead may waive gates that allow it; otherwise the executor asks about the failures after the retry
+        const w = !mayWaive(ctx) ? { kind: "none" as const } : waiverFor(ctx, "breakdown", bad, { cacheKey, payload: body });
         if (w.kind === "ask") return w.outcome;
         const all = bad.flatMap((b) => b.failures);
-        return failed(`breakdown:${all.map((f) => f.check).sort().join(",")}`, all);
+        return { ...failed(`breakdown:${all.map((f) => f.check).sort().join(",")}`, all), gate: true } as StepOutcome;
       }
     }
 
@@ -430,7 +450,7 @@ export const breakdownStep: StepDef = {
       header: header(ctx.runId, "work-breakdown", "breakdown", ctx.ledger.putJson({ specSha, body }), model), ...body, specSha,
       ...(fixes?.suggested?.length ? { suggested: fixes.suggested } : {}), ...(fixes?.notes.length ? { factoryFixes: fixes.notes } : {}),
     } as Breakdown;
-    return { kind: "done", outputs: { breakdown: ctx.ledger.putJson(artifact) }, data: { tasks: body.tasks.length, features: body.features.length, catalogue: catalogue.version, ...(waivers.length ? { waivers } : {}), ...(fixes?.notes.length ? { factoryFixes: fixes.notes.length } : {}) } };
+    return { kind: "done", outputs: { breakdown: ctx.ledger.putJson(artifact) }, data: { tasks: body.tasks.length, features: body.features.length, catalogue: catalogue.version, ...(waivers.length ? { waivers } : {}), ...(fixes?.notes.length ? { factoryFixes: fixes.notes.length } : {}), ...(openRisks.length ? { openRisks } : {}) } };
   },
 };
 
@@ -539,7 +559,7 @@ export const estimateStep: StepDef = {
         grades: gradeInputs({ assumptions: c.assumptions.length, requirements: spec.requirements.length, uiTasks: uiTasks.length, uiTasksWithScreen: uiTasks.filter((t) => t.screen).length, hasRepo: !!ctx.state.info.repoPath, stackSource: settings.stackSource }),
         counts: { questions: c.answers.length, criticFindings: spec.critic.length, planningMinutes: ctx.state.activeMs / 60000 },
         suggested: breakdown.suggested ?? [],
-        assumptions: [...c.assumptions.map((a) => a.text), ...(spec.settled ?? []).map(settledText), ...(breakdown.factoryFixes ?? []), ...edits.map((e) => `Lead edit: ${describeEdit(e)}`), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs."],
+        assumptions: [...c.assumptions.map((a) => a.text), ...(spec.settled ?? []).map(settledText), ...(breakdown.factoryFixes ?? []), ...gateNotes(ctx.ledger, ctx.state, "estimate"), ...edits.map((e) => `Lead edit: ${describeEdit(e)}`), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs."],
       });
       for (const t of estimate.tasks) { const r = refs.get(t.taskId); if (r?.length) t.references = r.map(({ runId, taskId, size, hours }) => ({ runId, taskId, size, hours })); }
     } catch (e) {
@@ -552,21 +572,31 @@ export const estimateStep: StepDef = {
       const res = await gate(ctx, "estimate", def, { estimate, breakdown, ...(ui ? { ui: uiLevels(ui) } : {}) });
       if (!res.passed) bad2.push({ def, failures: res.failures ?? [failure(def.id, res.details)] });
     }
-    // hands-off, after the retry: an outlier E5 still finds is flagged with the gate's reason instead of a waiver card (E6 stays a hard stop)
-    if (bad2.length && handsOffFallback(ctx) && bad2.every((x) => x.def === consistency)) {
-      const fx = flagOutliers(estimate, bad2.flatMap((x) => x.failures));
+    // hands-off after the retry, or once the rounds of questions are used up: an outlier E5 still finds is flagged with the gate's reason
+    // (E6 stays a hard stop: it is never asked about or carried)
+    const carry = ctx.carryOn;
+    if (bad2.length && (handsOffFallback(ctx) || carry) && bad2.every((x) => x.def === consistency)) {
+      const fx = flagOutliers(estimate, bad2.flatMap((x) => x.failures), carry ? `after ${GATE_ROUNDS} rounds of questions` : "hands-off");
       const again = await gate(ctx, "estimate", consistency, { estimate: fx.estimate, breakdown, ...(ui ? { ui: uiLevels(ui) } : {}) });
-      const lint = again.passed ? await gate(ctx, "estimate", estimateWorkbookLint, { estimate: fx.estimate, breakdown }) : again;
-      if (!lint.passed) return { kind: "park", reason: `The estimate still fails gate E5 after the retry, and flagging the outliers did not settle it hands-off: ${(lint.failures ?? []).map((f) => f.message).join("; ") || lint.details}. Run with review to waive it.` };
-      ctx.log(`estimate: hands-off, the factory flagged ${fx.notes.length} task${fx.notes.length === 1 ? "" : "s"} gate E5 found out of line (on the estimate's open risks)`);
-      estimate = fx.estimate;
-      bad2.length = 0;
+      const still = again.passed ? [] : again.failures ?? [failure(consistency.id, again.details)];
+      if (!still.length || carry) {
+        const flagged = carry && still.length ? { ...fx.estimate, assumptions: [...fx.estimate.assumptions, ...carriedLines("gate E5", still)] } : fx.estimate;
+        const lint = await gate(ctx, "estimate", estimateWorkbookLint, { estimate: flagged, breakdown });
+        if (!lint.passed) return failed(`estimate:${(lint.failures ?? []).map((f) => f.check).sort().join(",")}`, lint.failures ?? [failure(estimateWorkbookLint.id, lint.details)]);
+        ctx.log(`estimate: the factory flagged ${fx.notes.length} task${fx.notes.length === 1 ? "" : "s"} gate E5 found out of line (on the estimate's open risks)${still.length ? "; what E5 still finds is carried as an open risk" : ""}`);
+        estimate = flagged;
+        bad2.length = 0;
+      } else {
+        bad2.splice(0, bad2.length, { def: consistency, failures: still });
+      }
     }
     if (bad2.length) {
-      const w = waiverFor(ctx, "estimate", bad2, { cacheKey, payload: proposals });
+      const e5Only = bad2.every((x) => x.def === consistency);
+      // review, before any question: a lead may waive E5; otherwise the executor asks about it after the retry (never about E6)
+      const w = !mayWaive(ctx) ? { kind: "none" as const } : waiverFor(ctx, "estimate", bad2, { cacheKey, payload: proposals });
       if (w.kind === "ask") return w.outcome;
       const all = bad2.flatMap((b) => b.failures);
-      return failed(`estimate:${all.map((f) => f.check).sort().join(",")}`, all);
+      return { ...failed(`estimate:${all.map((f) => f.check).sort().join(",")}`, all), ...(e5Only ? { gate: true } : {}) } as StepOutcome;
     }
 
     // Phase 2: every size pick, logged as a decision record with derived features, so another backend can be compared later

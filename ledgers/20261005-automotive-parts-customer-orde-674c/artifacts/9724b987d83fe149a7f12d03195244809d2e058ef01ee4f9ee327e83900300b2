@@ -1,0 +1,547 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Price list",
+     "subtitle": "Trade Tier B · GBP ex VAT · assigned to 14 companies",
+     "crumbs": [
+      "Catalogue",
+      "Price lists",
+      "Trade Tier B"
+     ],
+     "badge": "Active",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Trade Tier B",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Active",
+         "badge": true
+        },
+        {
+         "label": "Currency",
+         "value": "GBP, ex VAT"
+        },
+        {
+         "label": "Prices set",
+         "value": "212 of 1,486 products"
+        },
+        {
+         "label": "Assigned to",
+         "value": "14 companies"
+        },
+        {
+         "label": "Created",
+         "value": "Priya Shah · 08 Jan 2025 09:12"
+        },
+        {
+         "label": "Last changed",
+         "value": "Hannah Reid · 12 Mar 2026 14:37"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Rename",
+         "variant": "secondary",
+         "icon": "edit"
+        },
+        {
+         "label": "View companies",
+         "variant": "ghost"
+        },
+        {
+         "label": "Deactivate",
+         "variant": "danger"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Existing orders keep their prices",
+       "text": "Changing or removing a price here only affects new orders. Unit prices already stored on orders and invoices stay as they were."
+      },
+      {
+       "type": "toolbar",
+       "search": "Search part no. or product",
+       "selects": [
+        {
+         "label": "Category",
+         "options": [
+          "All categories",
+          "Brakes",
+          "Filters",
+          "Clutch",
+          "Suspension",
+          "Batteries"
+         ],
+         "value": "All categories"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Add price",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Remove price",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Remove the ticked prices from this list"
+        },
+        {
+         "label": "Export",
+         "variant": "secondary",
+         "icon": "download",
+         "menu": [
+          "CSV",
+          "Excel"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Product",
+        "Standard price",
+        "This list",
+        "Last changed",
+        "Changed by"
+       ],
+       "rows": [
+        [
+         "BRK-1042",
+         "Front brake pad set – Ford Focus Mk3",
+         "£38.50",
+         "£31.20",
+         "12 Mar 2026",
+         "Hannah Reid"
+        ],
+        [
+         "FLT-2210",
+         "Oil filter – VW 1.6 TDI",
+         "£7.90",
+         "£5.85",
+         "04 Mar 2026",
+         "Hannah Reid"
+        ],
+        [
+         "CLU-0587",
+         "Clutch kit 3-piece – Vauxhall Astra J",
+         "£189.00",
+         "£152.40",
+         "27 Feb 2026",
+         "Tom Okafor"
+        ],
+        [
+         "SUS-3318",
+         "Rear shock absorber – Toyota Yaris",
+         "£64.20",
+         "£51.90",
+         "19 Feb 2026",
+         "Tom Okafor"
+        ],
+        [
+         "BAT-0096",
+         "Battery 096 12V 60Ah",
+         "£92.00",
+         "£78.00",
+         "02 Feb 2026",
+         "Priya Shah"
+        ]
+       ],
+       "sortBy": 4,
+       "sortDir": "desc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Remove price",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ],
+       "pages": 43,
+       "page": 1
+      }
+     ],
+     "links": [
+      {
+       "from": "View companies",
+       "to": "S-20"
+      },
+      {
+       "from": "BRK-1042",
+       "to": "S-27"
+      },
+      {
+       "from": "FLT-2210",
+       "to": "S-27"
+      },
+      {
+       "from": "CLU-0587",
+       "to": "S-27"
+      },
+      {
+       "from": "SUS-3318",
+       "to": "S-27"
+      },
+      {
+       "from": "BAT-0096",
+       "to": "S-27"
+      },
+      {
+       "from": "Price lists",
+       "to": "S-30"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "modal",
+       "trigger": "Add price",
+       "title": "Add price to Trade Tier B",
+       "text": "One price per product on this list. Applies to new orders only.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Product",
+           "kind": "combobox",
+           "placeholder": "Type a part number or name",
+           "required": true,
+           "error": "This product already has a price on this list"
+          },
+          {
+           "label": "Price",
+           "kind": "currency",
+           "value": "GBP 31.20",
+           "required": true,
+           "help": "Ex VAT, per unit",
+           "error": "Enter a price greater than £0.00"
+          }
+         ],
+         "submit": "Save price"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Save price",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "menu",
+       "trigger": "More",
+       "title": "Price actions",
+       "items": [
+        "Edit price",
+        "Remove price",
+        "View product"
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Remove price",
+       "title": "Remove price for BRK-1042?",
+       "text": "The 14 companies on Trade Tier B will pay the standard price of £38.50 on new orders. Existing orders and invoices keep £31.20.",
+       "actions": [
+        {
+         "label": "Remove",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep price",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Save price",
+       "text": "Price saved for BRK-1042: £31.20",
+       "tone": "ok"
+      },
+      {
+       "after": "Remove",
+       "text": "Price removed for BRK-1042",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "CSV",
+       "text": "Trade Tier B prices exported (212 rows)",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No prices on this list yet",
+      "emptyHint": "Add a price for each product this list should cover. Products without one sell at the standard price.",
+      "validation": "Pick a product without a price on this list and enter a price above £0.00.",
+      "success": "Price saved. New orders from companies on this list use it straight away.",
+      "error": "Prices couldn't be loaded. Try again in a moment."
+     }
+    },
+    "mockFull": {
+     "title": "Price list",
+     "subtitle": "Trade Tier B · GBP ex VAT · assigned to 14 companies",
+     "crumbs": [
+      "Catalogue",
+      "Price lists",
+      "Trade Tier B"
+     ],
+     "badge": "Active",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Trade Tier B",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Active",
+         "badge": true
+        },
+        {
+         "label": "Currency",
+         "value": "GBP, ex VAT"
+        },
+        {
+         "label": "Prices set",
+         "value": "212 of 1,486 products"
+        },
+        {
+         "label": "Assigned to",
+         "value": "14 companies"
+        },
+        {
+         "label": "Created",
+         "value": "Priya Shah · 08 Jan 2025 09:12"
+        },
+        {
+         "label": "Last changed",
+         "value": "Hannah Reid · 12 Mar 2026 14:37"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Rename",
+         "variant": "secondary",
+         "icon": "edit"
+        },
+        {
+         "label": "View companies",
+         "variant": "ghost"
+        },
+        {
+         "label": "Deactivate",
+         "variant": "danger"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Existing orders keep their prices",
+       "text": "Changing or removing a price here only affects new orders. Unit prices already stored on orders and invoices stay as they were."
+      },
+      {
+       "type": "toolbar",
+       "search": "Search part no. or product",
+       "selects": [
+        {
+         "label": "Category",
+         "options": [
+          "All categories",
+          "Brakes",
+          "Filters",
+          "Clutch",
+          "Suspension",
+          "Batteries",
+          "Ignition",
+          "Lighting"
+         ],
+         "value": "All categories"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Add price",
+         "variant": "primary",
+         "icon": "plus"
+        },
+        {
+         "label": "Remove price",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Remove the ticked prices from this list"
+        },
+        {
+         "label": "Export",
+         "variant": "secondary",
+         "icon": "download",
+         "menu": [
+          "CSV",
+          "Excel"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Product",
+        "Standard price",
+        "This list",
+        "Last changed",
+        "Changed by"
+       ],
+       "rows": [
+        [
+         "BRK-1042",
+         "Front brake pad set – Ford Focus Mk3",
+         "£38.50",
+         "£31.20",
+         "12 Mar 2026",
+         "Hannah Reid"
+        ],
+        [
+         "BRK-1187",
+         "Brake disc pair 280mm – VW Golf Mk7",
+         "£74.80",
+         "£61.30",
+         "12 Mar 2026",
+         "Hannah Reid"
+        ],
+        [
+         "FLT-2210",
+         "Oil filter – VW 1.6 TDI",
+         "£7.90",
+         "£5.85",
+         "04 Mar 2026",
+         "Hannah Reid"
+        ],
+        [
+         "FLT-2394",
+         "Cabin pollen filter – Nissan Qashqai J11",
+         "£14.60",
+         "£11.40",
+         "04 Mar 2026",
+         "Hannah Reid"
+        ],
+        [
+         "IGN-0712",
+         "Glow plug set x4 – Peugeot 1.6 HDi",
+         "£46.00",
+         "£37.95",
+         "01 Mar 2026",
+         "Priya Shah"
+        ],
+        [
+         "CLU-0587",
+         "Clutch kit 3-piece – Vauxhall Astra J",
+         "£189.00",
+         "£152.40",
+         "27 Feb 2026",
+         "Tom Okafor"
+        ],
+        [
+         "CLU-0611",
+         "Dual mass flywheel – Ford Transit 2.2",
+         "£412.00",
+         "£338.00",
+         "27 Feb 2026",
+         "Tom Okafor"
+        ],
+        [
+         "SUS-3318",
+         "Rear shock absorber – Toyota Yaris",
+         "£64.20",
+         "£51.90",
+         "19 Feb 2026",
+         "Tom Okafor"
+        ],
+        [
+         "SUS-3402",
+         "Front coil spring – Renault Clio IV",
+         "£29.50",
+         "£23.10",
+         "19 Feb 2026",
+         "Tom Okafor"
+        ],
+        [
+         "LMP-0055",
+         "H7 headlamp bulb 12V 55W twin pack",
+         "£9.80",
+         "£7.25",
+         "11 Feb 2026",
+         "Priya Shah"
+        ],
+        [
+         "BAT-0096",
+         "Battery 096 12V 60Ah",
+         "£92.00",
+         "£78.00",
+         "02 Feb 2026",
+         "Priya Shah"
+        ],
+        [
+         "BAT-0110",
+         "Battery 110 AGM 12V 95Ah stop-start",
+         "£198.00",
+         "£169.50",
+         "02 Feb 2026",
+         "Priya Shah"
+        ]
+       ],
+       "sortBy": 4,
+       "sortDir": "desc",
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Remove price",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ],
+       "pages": 18,
+       "page": 1
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No prices on this list yet",
+      "emptyHint": "Add a price for each product this list should cover. Products without one sell at the standard price.",
+      "validation": "Pick a product without a price on this list and enter a price above £0.00.",
+      "success": "Price saved. New orders from companies on this list use it straight away.",
+      "error": "Prices couldn't be loaded. Try again in a moment."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

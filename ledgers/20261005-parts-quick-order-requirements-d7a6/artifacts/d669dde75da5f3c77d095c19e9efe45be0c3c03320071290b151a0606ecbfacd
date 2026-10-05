@@ -1,0 +1,186 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The portal provides exactly three screens for signed-in buyers: Find parts at /parts, Cart and checkout at /cart, and My orders at /orders, with the order detail panel shown on the same /orders page."
+     },
+     {
+      "n": 2,
+      "text": "The header on each screen links to the other two screens."
+     },
+     {
+      "n": 3,
+      "text": "The parts API returns parts sorted alphabetically by name, paginated at 20 per page, including image, name, part number, brand, price in GBP with 2 decimals, stock state and whole-number stock quantity."
+     },
+     {
+      "n": 4,
+      "text": "The stock state is set to 'In stock' at 5 or more units, 'Low stock (n left)' at 1 to 4 units, and 'Out of stock' at 0 units."
+     },
+     {
+      "n": 5,
+      "text": "When search text has at least 2 characters, the parts API returns only parts whose name or part number contains that text, case-insensitively; shorter text applies no filter."
+     },
+     {
+      "n": 6,
+      "text": "The parts API filters results by a single chosen category and a single chosen brand, combined with any search text, where 'All' means no filter is applied."
+     },
+     {
+      "n": 7,
+      "text": "Changing the search text or a filter on Find parts resets the results to page 1."
+     },
+     {
+      "n": 8,
+      "text": "When no parts match the search and filters, the portal shows 'No parts match' along with a button to clear the search and filters and return to page 1 of all parts."
+     },
+     {
+      "n": 9,
+      "text": "Pressing 'Add to cart' on an in-stock part adds a new line with quantity 1 or increases an existing line's quantity by 1, capped at the part's stock, showing 'Only n available' if the cap is reached."
+     },
+     {
+      "n": 10,
+      "text": "The header shows a cart count equal to the sum of all quantities in the cart, updating live as the cart changes."
+     },
+     {
+      "n": 11,
+      "text": "The 'Add to cart' button is disabled for out-of-stock parts."
+     },
+     {
+      "n": 12,
+      "text": "Each cart line shows name, part number, unit price, quantity and line total, where line total equals unit price times quantity."
+     },
+     {
+      "n": 13,
+      "text": "Changing a line's quantity recalculates that line's total and the overall order totals immediately."
+     },
+     {
+      "n": 14,
+      "text": "Invalid quantity entries (blank, 0, above 99, or non-whole numbers) are corrected to the nearest whole number between 1 and 99."
+     },
+     {
+      "n": 15,
+      "text": "Entering a quantity above the part's stock sets the quantity to the available stock and shows 'Only n available'."
+     },
+     {
+      "n": 16,
+      "text": "Pressing 'Remove' on a cart line removes that line from the cart."
+     },
+     {
+      "n": 17,
+      "text": "Cart lines are stored in local storage keyed to the signed-in buyer's ID, so the cart persists across reloads on the same device and is isolated per buyer."
+     },
+     {
+      "n": 18,
+      "text": "When the cart is empty, the portal shows 'Your cart is empty' with a link to Find parts and hides the checkout fields and button."
+     },
+     {
+      "n": 19,
+      "text": "The 'Place order' button is enabled only when the delivery address is 5 to 200 characters and a delivery option (Standard or Next day) is selected."
+     },
+     {
+      "n": 20,
+      "text": "The checkout shows subtotal, delivery charge (Standard £0.00, Next day £9.99), and total as subtotal plus delivery charge."
+     },
+     {
+      "n": 21,
+      "text": "Placing a valid order saves it with status Placed, a sequential order number formatted ORD-000001 etc., each line's current part price as the unit price, and total as subtotal plus delivery charge."
+     },
+     {
+      "n": 22,
+      "text": "Orders with no lines, invalid quantities, unknown part numbers, invalid address length, or missing/unknown delivery option are rejected with status 400 and not saved."
+     },
+     {
+      "n": 23,
+      "text": "Orders with any line quantity exceeding available stock are rejected with status 409, returning each affected part number and its available stock, and are not saved."
+     },
+     {
+      "n": 24,
+      "text": "A successfully placed order empties the cart and displays the new order number."
+     },
+     {
+      "n": 25,
+      "text": "A failed order placement shows an error message (a specific message for network errors advising the buyer to check My orders) while preserving the cart lines, address and delivery option, and keeps 'Place order' enabled for retry."
+     },
+     {
+      "n": 26,
+      "text": "Placing or cancelling an order does not change the stock quantity in the parts database."
+     },
+     {
+      "n": 27,
+      "text": "The orders API returns to a buyer only that buyer's own orders, returning 404 for orders belonging to other buyers."
+     },
+     {
+      "n": 28,
+      "text": "The orders list is returned newest first, each with order number, date placed, item count, total and status."
+     },
+     {
+      "n": 29,
+      "text": "The orders API filters a buyer's orders by a selected status."
+     },
+     {
+      "n": 30,
+      "text": "Opening an order returns its lines (part number, name, quantity, unit price), delivery address, delivery option, total and status."
+     },
+     {
+      "n": 31,
+      "text": "The order detail view shows a status timeline (Placed → Packed → Dispatched → Delivered) with the current status marked by text as well as colour."
+     },
+     {
+      "n": 32,
+      "text": "A 'Cancel order' button, requiring confirmation, is shown only while the order's status is Placed."
+     },
+     {
+      "n": 33,
+      "text": "Cancelling an order that is still Placed sets its status to Cancelled."
+     },
+     {
+      "n": 34,
+      "text": "If the order's status is no longer Placed when cancellation is confirmed, the API refuses with status 409, leaves the status unchanged, and the portal shows a message and refreshes the display to the current status."
+     },
+     {
+      "n": 35,
+      "text": "When a buyer has no orders, the portal shows 'No orders yet' with a link to Find parts."
+     },
+     {
+      "n": 36,
+      "text": "All three screens display without horizontal scrolling at viewport widths from 360px upward."
+     },
+     {
+      "n": 37,
+      "text": "Every form field has a visible text label, and all controls are reachable and usable by keyboard alone."
+     },
+     {
+      "n": 38,
+      "text": "With 5,000 parts in the database, Find parts loads its first page of results in under 2 seconds."
+     },
+     {
+      "n": 39,
+      "text": "When an order is rejected due to a stock conflict, the cart lowers affected lines to the available stock with an 'Only n available' message, removes lines whose available stock is 0 with an '<part name> is now out of stock' message, and keeps all other lines unchanged."
+     },
+     {
+      "n": 40,
+      "text": "While a place-order request is in progress, 'Place order' is disabled to prevent duplicate submissions."
+     },
+     {
+      "n": 41,
+      "text": "When the cart is opened, it fetches each line's part's current price from the parts API and uses only those current prices for unit prices, line totals and totals."
+     },
+     {
+      "n": 42,
+      "text": "If the current part data shows a cart line's part now has 0 stock, the cart removes that line and shows an '<part name> is now out of stock' message."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

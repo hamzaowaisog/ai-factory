@@ -1,0 +1,403 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Basket",
+     "subtitle": "Hartley Motors Ltd · your price list, all prices ex VAT",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "Repeated from order ORD-10482",
+       "text": "Bosch Aerotwin 600 mm reduced to 4 (stock limit). Skipped: Mintex pads MDB1842 (retired), Febi coolant hose 36541 (out of stock).",
+       "action": "Dismiss"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Product",
+        "Unit price",
+        "Qty",
+        "Line total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "BRK-PD-2291",
+         "Brembo front pad set P85075",
+         "£28.40",
+         "6",
+         "£170.40",
+         "In stock"
+        ],
+        [
+         "OIL-5W30-5L",
+         "Castrol Edge 5W-30 5 L",
+         "£31.95",
+         "4",
+         "£127.80",
+         "In stock"
+        ],
+        [
+         "WIP-600-BS",
+         "Bosch Aerotwin 600 mm",
+         "£9.85",
+         "4",
+         "£39.40",
+         "Reduced to 4"
+        ],
+        [
+         "FLT-OC-217",
+         "Mahle oil filter OC 217",
+         "£4.62",
+         "10",
+         "£46.20",
+         "Low stock"
+        ],
+        [
+         "SPK-NGK-7090",
+         "NGK Laser Iridium plug",
+         "£8.75",
+         "8",
+         "£70.00",
+         "In stock"
+        ]
+       ],
+       "statusColumn": 5,
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Remove lines",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Basket summary",
+       "lead": {
+        "label": "Subtotal ex VAT",
+        "value": "£453.80"
+       },
+       "rows": [
+        {
+         "label": "Lines",
+         "value": "5"
+        },
+        {
+         "label": "Items",
+         "value": "32"
+        },
+        {
+         "label": "VAT",
+         "value": "Added at checkout"
+        },
+        {
+         "label": "Earliest delivery",
+         "value": "Tomorrow if submitted by 14:00"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Go to checkout",
+         "variant": "primary",
+         "icon": "arrow"
+        },
+        {
+         "label": "Load template",
+         "variant": "secondary"
+        },
+        {
+         "label": "Continue shopping",
+         "variant": "ghost"
+        },
+        {
+         "label": "Empty basket",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Go to checkout",
+       "to": "S-9"
+      },
+      {
+       "from": "Load template",
+       "to": "S-8"
+      },
+      {
+       "from": "Continue shopping",
+       "to": "S-5"
+      },
+      {
+       "from": "BRK-PD-2291",
+       "to": "S-6"
+      },
+      {
+       "from": "OIL-5W30-5L",
+       "to": "S-6"
+      },
+      {
+       "from": "WIP-600-BS",
+       "to": "S-6"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "menu",
+       "trigger": "More",
+       "title": "Line actions",
+       "items": [
+        "Change quantity",
+        "View product",
+        "Remove line"
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Empty basket",
+       "title": "Empty the basket?",
+       "text": "All 5 lines will be removed. Saved templates and past orders are not affected.",
+       "actions": [
+        {
+         "label": "Yes, empty basket",
+         "variant": "danger"
+        },
+        "Keep basket"
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Remove line",
+       "text": "Line removed from basket",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "Yes, empty basket",
+       "text": "Basket emptied",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "Remove lines",
+       "text": "Selected lines removed",
+       "tone": "ok",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "emptyTitle": "Your basket is empty",
+      "emptyHint": "Search the catalogue by part number or vehicle, or load a saved template to fill it.",
+      "validation": "Only 4 in stock for WIP-600-BS. Set the quantity to 4 or less (minimum 1).",
+      "error": "We couldn't update your basket. Your lines are kept; try again in a moment."
+     }
+    },
+    "mockFull": {
+     "title": "Basket",
+     "subtitle": "Hartley Motors Ltd · your price list, all prices ex VAT",
+     "blocks": [
+      {
+       "type": "alert",
+       "tone": "warn",
+       "title": "Repeated from order ORD-10482",
+       "text": "2 quantities reduced to stock: Bosch Aerotwin 600 mm to 4, Comma G12+ coolant to 3. Skipped: Mintex pads MDB1842 (retired), Febi hose 36541 (out of stock).",
+       "action": "Dismiss"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Product",
+        "Unit price",
+        "Qty",
+        "Line total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "BRK-PD-2291",
+         "Brembo front pad set P85075",
+         "£28.40",
+         "6",
+         "£170.40",
+         "In stock"
+        ],
+        [
+         "BRK-DS-0938",
+         "Brembo front disc 09.A820.11",
+         "£46.10",
+         "2",
+         "£92.20",
+         "In stock"
+        ],
+        [
+         "OIL-5W30-5L",
+         "Castrol Edge 5W-30 5 L",
+         "£31.95",
+         "4",
+         "£127.80",
+         "In stock"
+        ],
+        [
+         "WIP-600-BS",
+         "Bosch Aerotwin 600 mm",
+         "£9.85",
+         "4",
+         "£39.40",
+         "Reduced to 4"
+        ],
+        [
+         "FLT-OC-217",
+         "Mahle oil filter OC 217",
+         "£4.62",
+         "10",
+         "£46.20",
+         "Low stock"
+        ],
+        [
+         "FLT-LX-1780",
+         "Mahle air filter LX 1780",
+         "£11.30",
+         "3",
+         "£33.90",
+         "In stock"
+        ],
+        [
+         "SPK-NGK-7090",
+         "NGK Laser Iridium plug",
+         "£8.75",
+         "8",
+         "£70.00",
+         "In stock"
+        ],
+        [
+         "BAT-096-EX",
+         "Exide EB740 096 battery",
+         "£84.50",
+         "1",
+         "£84.50",
+         "Low stock"
+        ],
+        [
+         "BLT-6PK1873",
+         "Gates Micro-V belt 6PK1873",
+         "£14.20",
+         "2",
+         "£28.40",
+         "In stock"
+        ],
+        [
+         "CLN-G12-5L",
+         "Comma G12+ coolant 5 L",
+         "£18.60",
+         "3",
+         "£55.80",
+         "Reduced to 3"
+        ],
+        [
+         "BLB-H7-PHL",
+         "Philips H7 Vision bulb twin",
+         "£7.40",
+         "6",
+         "£44.40",
+         "In stock"
+        ],
+        [
+         "SHK-KYB-344",
+         "KYB Excel-G rear shock 344459",
+         "£52.75",
+         "2",
+         "£105.50",
+         "Low stock"
+        ]
+       ],
+       "statusColumn": 5,
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Remove lines",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Basket summary",
+       "lead": {
+        "label": "Subtotal ex VAT",
+        "value": "£898.50"
+       },
+       "rows": [
+        {
+         "label": "Lines",
+         "value": "12"
+        },
+        {
+         "label": "Items",
+         "value": "51"
+        },
+        {
+         "label": "VAT",
+         "value": "Added at checkout"
+        },
+        {
+         "label": "Earliest delivery",
+         "value": "Tomorrow if submitted by 14:00"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Go to checkout",
+         "variant": "primary",
+         "icon": "arrow"
+        },
+        {
+         "label": "Load template",
+         "variant": "secondary"
+        },
+        {
+         "label": "Continue shopping",
+         "variant": "ghost"
+        },
+        {
+         "label": "Empty basket",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "Your basket is empty",
+      "emptyHint": "Search the catalogue by part number or vehicle, or load a saved template to fill it.",
+      "validation": "Only 4 in stock for WIP-600-BS. Set the quantity to 4 or less (minimum 1).",
+      "error": "We couldn't update your basket. Your lines are kept; try again in a moment."
+     }
+    }
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

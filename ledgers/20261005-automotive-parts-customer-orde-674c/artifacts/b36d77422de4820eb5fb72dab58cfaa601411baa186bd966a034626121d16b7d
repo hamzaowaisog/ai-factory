@@ -1,0 +1,268 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My account",
+     "subtitle": "Your sign-in details, your company's trade account and where we deliver",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Your profile",
+       "rows": [
+        {
+         "label": "Name",
+         "value": "Dan Whitlock"
+        },
+        {
+         "label": "Email",
+         "value": "dan.whitlock@hollismotorworks.co.uk"
+        },
+        {
+         "label": "Phone",
+         "value": "07700 900123"
+        },
+        {
+         "label": "Role",
+         "value": "Buyer"
+        },
+        {
+         "label": "Last signed in",
+         "value": "Today, 07:42"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Company",
+       "rows": [
+        {
+         "label": "Company",
+         "value": "Hollis Motor Works Ltd"
+        },
+        {
+         "label": "Account no.",
+         "value": "HMW-00417"
+        },
+        {
+         "label": "Account status",
+         "value": "Active",
+         "badge": true
+        },
+        {
+         "label": "Price list",
+         "value": "Trade Band B"
+        },
+        {
+         "label": "Payment terms",
+         "value": "30 days end of month"
+        },
+        {
+         "label": "VAT number",
+         "value": "GB 284 5517 09"
+        },
+        {
+         "label": "Your sales contact",
+         "value": "Karen Doyle · 01632 960214"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Delivery addresses are kept by our office",
+       "text": "You can deliver to any address below at checkout. To add, change or remove one, call your sales contact on 01632 960214."
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Main workshop · Unit 4, Brindley Road",
+         "meta": "Coventry, West Midlands, CV3 4FJ, UK · Dan Whitlock · 07700 900123",
+         "badge": "Default"
+        },
+        {
+         "title": "Bodyshop · 18 Canal Street",
+         "meta": "Rugby, Warwickshire, CV21 2NP, UK · Priya Mistry · 07700 900456"
+        },
+        {
+         "title": "MOT centre · Arch 7, Station Approach",
+         "meta": "Leamington Spa, Warwickshire, CV31 3NS, UK · Gary Holt · 01632 960588"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Sign out",
+         "variant": "danger",
+         "icon": "logout"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Sign out",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Sign out",
+       "title": "Sign out of the portal?",
+       "text": "Your session ends on this device. Your basket is saved for when you sign back in.",
+       "actions": [
+        {
+         "label": "Sign out",
+         "variant": "danger"
+        },
+        {
+         "label": "Stay signed in",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "We couldn't load your account just now. Refresh the page or try again in a minute."
+     }
+    },
+    "mockFull": {
+     "title": "My account",
+     "subtitle": "Your sign-in details, your company's trade account and where we deliver",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Your profile",
+       "rows": [
+        {
+         "label": "Name",
+         "value": "Dan Whitlock"
+        },
+        {
+         "label": "Email",
+         "value": "dan.whitlock@hollismotorworks.co.uk"
+        },
+        {
+         "label": "Phone",
+         "value": "07700 900123"
+        },
+        {
+         "label": "Role",
+         "value": "Buyer"
+        },
+        {
+         "label": "Account created",
+         "value": "14 Feb 2024"
+        },
+        {
+         "label": "Last signed in",
+         "value": "Today, 07:42"
+        }
+       ]
+      },
+      {
+       "type": "detail",
+       "title": "Company",
+       "rows": [
+        {
+         "label": "Company",
+         "value": "Hollis Motor Works Ltd"
+        },
+        {
+         "label": "Account no.",
+         "value": "HMW-00417"
+        },
+        {
+         "label": "Account status",
+         "value": "Active",
+         "badge": true
+        },
+        {
+         "label": "Price list",
+         "value": "Trade Band B"
+        },
+        {
+         "label": "Payment terms",
+         "value": "30 days end of month"
+        },
+        {
+         "label": "Credit limit",
+         "value": "£12,000.00"
+        },
+        {
+         "label": "VAT number",
+         "value": "GB 284 5517 09"
+        },
+        {
+         "label": "Your sales contact",
+         "value": "Karen Doyle · 01632 960214"
+        }
+       ]
+      },
+      {
+       "type": "alert",
+       "tone": "info",
+       "title": "Delivery addresses are kept by our office",
+       "text": "You can deliver to any address below at checkout. To add, change or remove one, call your sales contact on 01632 960214."
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Main workshop · Unit 4, Brindley Road",
+         "meta": "Coventry, West Midlands, CV3 4FJ, UK · Dan Whitlock · 07700 900123",
+         "badge": "Default"
+        },
+        {
+         "title": "Bodyshop · 18 Canal Street",
+         "meta": "Rugby, Warwickshire, CV21 2NP, UK · Priya Mistry · 07700 900456"
+        },
+        {
+         "title": "MOT centre · Arch 7, Station Approach",
+         "meta": "Leamington Spa, Warwickshire, CV31 3NS, UK · Gary Holt · 01632 960588"
+        },
+        {
+         "title": "Tyre bay · 2 Foleshill Trading Park",
+         "meta": "Coventry, West Midlands, CV6 5RR, UK · Marek Nowak · 07700 900781"
+        },
+        {
+         "title": "Fleet depot · Gate B, Ansty Business Park",
+         "meta": "Ansty, Warwickshire, CV7 9JU, UK · Leanne Shaw · 01632 960913"
+        },
+        {
+         "title": "Nuneaton branch · 41 Weddington Road",
+         "meta": "Nuneaton, Warwickshire, CV10 0AD, UK · Tom Ridley · 07700 900334"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Sign out",
+         "variant": "danger",
+         "icon": "logout"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "error": "We couldn't load your account just now. Refresh the page or try again in a minute."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

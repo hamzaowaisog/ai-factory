@@ -1,0 +1,422 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My orders",
+     "subtitle": "Your orders, newest first. Choose one to see its lines, delivery and progress.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Date placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "SO-24817",
+         "16 Mar 2026",
+         "9",
+         "£148.60",
+         "Placed"
+        ],
+        [
+         "SO-24790",
+         "13 Mar 2026",
+         "3",
+         "£412.00",
+         "Packed"
+        ],
+        [
+         "SO-24733",
+         "11 Mar 2026",
+         "24",
+         "£86.40",
+         "Dispatched"
+        ],
+        [
+         "SO-24651",
+         "27 Feb 2026",
+         "2",
+         "£1,265.00",
+         "Delivered"
+        ],
+        [
+         "SO-24629",
+         "24 Feb 2026",
+         "15",
+         "£188.70",
+         "Cancelled"
+        ],
+        [
+         "SO-24540",
+         "12 Feb 2026",
+         "6",
+         "£233.15",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc"
+      },
+      {
+       "type": "detail",
+       "title": "Order SO-24817",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Placed",
+         "badge": true
+        },
+        {
+         "label": "6204-2RS",
+         "value": "Deep groove ball bearing · 4 × £6.40"
+        },
+        {
+         "label": "VB-A38",
+         "value": "Classic V-belt A38 · 2 × £11.95"
+        },
+        {
+         "label": "HF-6121",
+         "value": "Hydraulic return filter · 1 × £42.50"
+        },
+        {
+         "label": "IPS-M18-PNP",
+         "value": "Inductive proximity sensor M18 · 2 × £24.80"
+        },
+        {
+         "label": "Deliver to",
+         "value": "Unit 4, Kelvin Way Trading Estate, Leeds LS10 1RZ"
+        },
+        {
+         "label": "Delivery",
+         "value": "Next working day · £7.00"
+        },
+        {
+         "label": "Total",
+         "value": "£148.60 · 9 items"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "16 Mar, 08:47",
+         "title": "Placed · current status",
+         "meta": "We have your order. You can still cancel it.",
+         "status": "now"
+        },
+        {
+         "time": "Due 16 Mar",
+         "title": "Packed",
+         "meta": "Picked and packed at the Leeds depot",
+         "status": "next"
+        },
+        {
+         "time": "Due 16 Mar",
+         "title": "Dispatched",
+         "meta": "Next working day courier, tracking sent by email",
+         "status": "next"
+        },
+        {
+         "time": "Due 17 Mar",
+         "title": "Delivered",
+         "meta": "To Unit 4, Kelvin Way Trading Estate",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "x",
+         "hint": "Only possible while the order is Placed"
+        },
+        {
+         "label": "Find parts",
+         "variant": "link",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place will show here, newest first. Find parts to start your first order.",
+      "error": "We couldn't load your orders. Check your connection and Try again.",
+      "success": "Order SO-24817 cancelled. Its status is now Cancelled."
+     },
+     "links": [
+      {
+       "from": "Find parts",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel order SO-24817?",
+       "text": "It hasn't been packed yet, so we can still stop it. The status will change to Cancelled and nothing will be dispatched.",
+       "actions": [
+        {
+         "label": "Yes, cancel order",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Yes, cancel order",
+       "text": "Order SO-24817 cancelled",
+       "tone": "ok"
+      },
+      {
+       "after": "Yes, cancel order",
+       "text": "SO-24817 has already been packed and can't be cancelled",
+       "tone": "bad"
+      }
+     ]
+    },
+    "mockFull": {
+     "title": "My orders",
+     "subtitle": "Your orders, newest first. Choose one to see its lines, delivery and progress.",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "All",
+        "Placed",
+        "Packed",
+        "Dispatched",
+        "Delivered",
+        "Cancelled"
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Date placed",
+        "Items",
+        "Total",
+        "Status"
+       ],
+       "rows": [
+        [
+         "SO-24817",
+         "16 Mar 2026",
+         "9",
+         "£148.60",
+         "Placed"
+        ],
+        [
+         "SO-24811",
+         "15 Mar 2026",
+         "1",
+         "£318.00",
+         "Placed"
+        ],
+        [
+         "SO-24790",
+         "13 Mar 2026",
+         "3",
+         "£412.00",
+         "Packed"
+        ],
+        [
+         "SO-24776",
+         "12 Mar 2026",
+         "40",
+         "£96.00",
+         "Dispatched"
+        ],
+        [
+         "SO-24733",
+         "11 Mar 2026",
+         "24",
+         "£86.40",
+         "Dispatched"
+        ],
+        [
+         "SO-24708",
+         "5 Mar 2026",
+         "7",
+         "£529.35",
+         "Delivered"
+        ],
+        [
+         "SO-24651",
+         "27 Feb 2026",
+         "2",
+         "£1,265.00",
+         "Delivered"
+        ],
+        [
+         "SO-24629",
+         "24 Feb 2026",
+         "15",
+         "£188.70",
+         "Cancelled"
+        ],
+        [
+         "SO-24602",
+         "20 Feb 2026",
+         "12",
+         "£59.88",
+         "Delivered"
+        ],
+        [
+         "SO-24571",
+         "16 Feb 2026",
+         "5",
+         "£74.25",
+         "Cancelled"
+        ],
+        [
+         "SO-24540",
+         "12 Feb 2026",
+         "6",
+         "£233.15",
+         "Delivered"
+        ],
+        [
+         "SO-24498",
+         "5 Feb 2026",
+         "18",
+         "£642.90",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 1,
+       "sortDir": "desc"
+      },
+      {
+       "type": "detail",
+       "title": "Order SO-24817",
+       "rows": [
+        {
+         "label": "Status",
+         "value": "Placed",
+         "badge": true
+        },
+        {
+         "label": "6204-2RS",
+         "value": "Deep groove ball bearing · 4 × £6.40"
+        },
+        {
+         "label": "VB-A38",
+         "value": "Classic V-belt A38 · 2 × £11.95"
+        },
+        {
+         "label": "HF-6121",
+         "value": "Hydraulic return filter · 1 × £42.50"
+        },
+        {
+         "label": "IPS-M18-PNP",
+         "value": "Inductive proximity sensor M18 · 2 × £24.80"
+        },
+        {
+         "label": "Deliver to",
+         "value": "Unit 4, Kelvin Way Trading Estate, Leeds LS10 1RZ"
+        },
+        {
+         "label": "Delivery",
+         "value": "Next working day · £7.00"
+        },
+        {
+         "label": "Total",
+         "value": "£148.60 · 9 items"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "16 Mar, 08:47",
+         "title": "Placed · current status",
+         "meta": "We have your order. You can still cancel it.",
+         "status": "now"
+        },
+        {
+         "time": "Due 16 Mar",
+         "title": "Packed",
+         "meta": "Picked and packed at the Leeds depot",
+         "status": "next"
+        },
+        {
+         "time": "Due 16 Mar",
+         "title": "Dispatched",
+         "meta": "Next working day courier, tracking sent by email",
+         "status": "next"
+        },
+        {
+         "time": "Due 17 Mar",
+         "title": "Delivered",
+         "meta": "To Unit 4, Kelvin Way Trading Estate",
+         "status": "next"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "x",
+         "hint": "Only possible while the order is Placed"
+        },
+        {
+         "label": "Find parts",
+         "variant": "link",
+         "icon": "search"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No orders yet",
+      "emptyHint": "Orders you place will show here, newest first. Find parts to start your first order.",
+      "error": "We couldn't load your orders. Check your connection and Try again.",
+      "success": "Order SO-24817 cancelled. Its status is now Cancelled."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

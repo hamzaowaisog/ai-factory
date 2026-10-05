@@ -1,0 +1,1093 @@
+# Questions before the spec (round 1)
+
+Run 20261004-automotive-parts-customer-orde-609c. Your request:
+> # 39. Reporting
+> 
+> Staff can view reports for a selected date range.
+> 
+> Required reports:
+> 
+> ### Orders per Day
+> 
+> Shows:
+> 
+> - Date.
+> - Number of orders.
+> - Order value.
+> 
+> ### Top Products
+> 
+> Shows:
+> 
+> - Product.
+> - Quantity sold.
+> - Revenue.
+> 
+> ### Revenue per Customer
+> 
+> Shows:
+> 
+> - Customer.
+> - Number of orders.
+> - Revenue.
+> 
+> The exact revenue calculation rules are an open point.
+> 
+> ---
+> 
+> # 40. Report Filters
+> 
+> Reports should support:
+> 
+> - Start date.
+> - End date.
+> 
+> Additional filtering by customer/product/category may be considered but is not explicitly required.
+> 
+> ---
+> 
+> # 41. Report Export
+> 
+> Reports can be downloaded as CSV.
+> 
+> The CSV should contain the same core information presented in the report.
+> 
+> Exact column ordering and formatting are open points.
+> 
+> ---
+> 
+> # 42. Audit History
+> 
+> Important business actions should be auditable.
+> 
+> Potential audit events:
+> 
+> - User invited.
+> - User deactivated.
+> - Product created.
+> - Product changed.
+> - Product retired.
+> - Price changed.
+> - Customer price list changed.
+> - Order created.
+> - Order amended.
+> - Order confirmed.
+> - Order cancelled.
+> - Order status changed.
+> - Invoice created.
+> - Invoice marked paid.
+> - ERP import succeeded.
+> - ERP import failed.
+> 
+> The exact retention and visibility of audit logs are open points.
+> 
+> ---
+> 
+> # 43. Notifications
+> 
+> Required email notifications:
+> 
+> 1. User invitation.
+> 2. Password reset.
+> 3. Order confirmation.
+> 4. Order amendment.
+> 5. Order out for delivery.
+> 6. Order cancellation/rejection, where applicable.
+> 
+> The email provider will be the client's existing email provider.
+> 
+> The provider and integration method are currently unknown.
+> 
+> ---
+> 
+> # 44. Email Provider
+> 
+> The application must integrate with the client's existing email provider.
+> 
+> Open points:
+> 
+> - Provider.
+> - SMTP/API availability.
+> - Authentication mechanism.
+> - Sender address.
+> - Reply-to address.
+> - Email templates.
+> - Delivery tracking.
+> - Bounce handling.
+> 
+> ---
+> 
+> # 45. ERP Stock Integration
+> 
+> The ERP supplies stock through a nightly CSV file.
+> 
+> The portal:
+> 
+> - Reads the file.
+> - Imports stock.
+> - Does not write stock back to ERP.
+> - Does not perform inventory transactions in the ERP.
+> 
+> Open points:
+> 
+> - How the file is delivered.
+> - Exact CSV format.
+> - Product identifier.
+> - Stock quantity field.
+> - File frequency.
+> - Time of import.
+> - Error notification mechanism.
+> - Whether historical stock imports must be retained.
+> 
+> ---
+> 
+> # 46. Data Retention
+> 
+> Order and invoice data must be retained for 7 years.
+> 
+> Historical records should remain accessible according to the user's permissions.
+> 
+> Deleting a user must not delete historical order or invoice records.
+> 
+> The legal requirements around other data types are an open point.
+> 
+> ---
+> 
+> # 47. Responsive Design
+> 
+> All pages must be usable on phones.
+> 
+> The buyer experience is expected to be primarily mobile.
+> 
+> The system should also support:
+> 
+> - Tablet.
+> - Desktop.
+> 
+> The exact supported browser/device matrix is an open point.
+> 
+> ---
+> 
+> # 48. Performance
+> 
+> Expected scale:
+> 
+> - Approximately 300 buyers.
+> - Approximately 15 staff.
+> - Up to 150 orders per day.
+> 
+> The system should provide reasonable response times for:
+> 
+> - Catalogue browsing.
+> - Search.
+> - Product detail.
+> - Basket operations.
+> - Checkout.
+> - Order history.
+> - Staff order queue.
+> 
+> Exact performance targets are an open point.
+> 
+> ---
+> 
+> # 49. Security
+> 
+> The application should implement standard web security controls, including:
+> 
+> - Secure authentication.
+> - Password hashing.
+> - Authorization by role.
+> - Customer-level data isolation.
+> - Secure sessions.
+> - Protection against unauthorized API access.
+> - Input validation.
+> - File upload validation.
+> - Protection against common web vulnerabilities.
+> - Secure password-reset tokens.
+> - HTTPS in production.
+> 
+> Specific security standards and penetration-testing requirements are open points.
+> 
+> ---
+> 
+> # 50. Data Isolation
+> 
+> Customer users must never access another customer's:
+> 
+> - Orders.
+> - Invoices.
+> - Addresses.
+> - Pricing.
+> - Users.
+> - Account information.
+> 
+> Authorization must be enforced server-side and must not rely only on frontend restrictions.
+> 
+> ---
+> 
+> # 51. Accessibility
+> 
+> The portal should be designed with accessible web practices in mind.
+> 
+> Potential requirements include:
+> 
+> - Keyboard navigation.
+> - Appropriate labels.
+> - Accessible form controls.
+> - Readable contrast.
+> - Meaningful validation messages.
+> - Screen-reader-compatible structure.
+> 
+> The exact accessibility compliance target is an open point.
+> 
+> ---
+> 
+> # 52. Error Handling
+> 
+> The application should provide user-friendly error handling.
+> 
+> Examples:
+> 
+> - Invalid login.
+> - Expired password-reset link.
+> - Product no longer available.
+> - Stock import failure.
+> - Failed order submission.
+> - Email delivery failure.
+> - Invalid CSV.
+> - Missing product.
+> - Session expiration.
+> 
+> Users should not see raw server errors or sensitive technical information.
+> 
+> ---
+> 
+> # 53. Empty States
+> 
+> The UI should provide appropriate empty states for:
+> 
+> - No search results.
+> - Empty basket.
+> - No orders.
+> - No invoices.
+> - No saved templates.
+> - No matching products.
+> - No report results.
+> 
+> ---
+> 
+> # 54. Loading States
+> 
+> The application should provide appropriate loading feedback for:
+> 
+> - Catalogue loading.
+> - Search.
+> - Product details.
+> - Basket updates.
+> - Checkout.
+> - Order submission.
+> - Invoice generation/download.
+> - Reports.
+> - Staff queues.
+> 
+> ---
+> 
+> # 55. Main Customer Screens
+> 
+> Required customer-facing screens:
+> 
+> 1. Sign in.
+> 2. Forgot password.
+> 3. Reset password.
+> 4. Catalogue.
+> 5. Product detail.
+> 6. Vehicle search.
+> 7. Basket.
+> 8. Checkout.
+> 9. Order confirmation.
+> 10. My orders.
+> 11. Order detail.
+> 12. Invoice list.
+> 13. Invoice detail.
+> 14. Saved basket templates.
+> 15. Account/company details.
+> 16. Delivery addresses.
+> 
+> ---
+> 
+> # 56. Main Staff Screens
+> 
+> Required staff-facing screens:
+> 
+> 1. Staff sign in.
+> 2. Dashboard.
+> 3. Order queue.
+> 4. Order detail/editor.
+> 5. Customer list.
+> 6. Customer detail.
+> 7. Customer orders.
+> 8. Customer invoices.
+> 9. Delivery export.
+> 10. Reports.
+> 11. Invoice management.
+> 
+> ---
+> 
+> # 57. Main Admin Screens
+> 
+> Required admin screens:
+> 
+> 1. Admin dashboard.
+> 2. Users.
+> 3. User detail.
+> 4. Customers.
+> 5. Customer detail.
+> 6. Products.
+> 7. Product editor.
+> 8. Categories.
+> 9. Vehicle compatibility.
+> 10. Price lists.
+> 11. Price list editor.
+> 12. System/import status.
+> 13. Audit history.
+> 
+> ---
+> 
+> # 58. Order Lifecycle
+> 
+> Expected order lifecycle:
+> 
+> ```text
+> Customer submits order
+>         |
+>         v
+>      Received
+>         |
+>         v
+>      Confirmed
+>         |
+>         v
+>       Picking
+>         |
+>         v
+>  Out for Delivery
+>         |
+>         v
+>      Delivered
+>         |
+>         v
+>  Invoice Created
+> ```
+> 
+> Cancellation can occur before confirmation:
+> 
+> ```text
+> Received -> Cancelled
+> ```
+> 
+> Staff rejection/cancellation may also occur according to business rules.
+> 
+> ---
+> 
+> # 59. Invoice Lifecycle
+> 
+> Expected invoice lifecycle:
+> 
+> ```text
+> Order Delivered
+>        |
+>        v
+> Invoice Created
+>        |
+>        +----> Unpaid
+>        |
+>        +----> Paid
+>        |
+>        +----> Overdue
+> ```
+> 
+> Exact overdue rules are an open point.
+> 
+> ---
+> 
+> # 60. Suggested Core Data Entities
+> 
+> The implementation will likely require entities similar to:
+> 
+> - User
+> - Role
+> - Customer
+> - CustomerUser
+> - Address
+> - Product
+> - Category
+> - Manufacturer
+> - Vehicle
+> - ProductVehicleCompatibility
+> - PriceList
+> - PriceListItem
+> - CustomerPriceList
+> - StockItem
+> - StockImport
+> - Basket
+> - BasketItem
+> - BasketTemplate
+> - BasketTemplateItem
+> - Order
+> - OrderItem
+> - OrderStatusHistory
+> - Invoice
+> - InvoiceItem
+> - Payment
+> - AuditLog
+> - EmailNotification
+> 
+> This is a conceptual list for estimation and is not a final database schema.
+> 
+> ---
+> 
+> # 61. API Areas
+> 
+> The backend will likely require API functionality for:
+> 
+> ## Authentication
+> 
+> - Sign in.
+> - Sign out.
+> - Password reset.
+> - Invitation acceptance.
+> - Session/account status.
+> 
+> ## Catalogue
+> 
+> - Products.
+> - Categories.
+> - Product details.
+> - Search.
+> - Vehicle compatibility.
+> 
+> ## Basket
+> 
+> - Get basket.
+> - Add item.
+> - Update quantity.
+> - Remove item.
+> - Clear basket.
+> 
+> ## Checkout
+> 
+> - Validate basket.
+> - Get delivery options.
+> - Submit order.
+> 
+> ## Orders
+> 
+> - Customer order list.
+> - Customer order detail.
+> - Repeat order.
+> - Cancel order.
+> - Staff order list.
+> - Staff order detail.
+> - Staff order edit.
+> - Confirm.
+> - Reject.
+> - Status updates.
+> - Staff-created order.
+> 
+> ## Invoices
+> 
+> - Invoice list.
+> - Invoice detail.
+> - PDF generation/download.
+> - Mark paid.
+> 
+> ## Administration
+> 
+> - Users.
+> - Customers.
+> - Products.
+> - Categories.
+> - Price lists.
+> - Vehicle compatibility.
+> - Imports.
+> - Audit logs.
+> 
+> ## Reports
+> 
+> - Orders per day.
+> - Top products.
+> - Revenue by customer.
+> - CSV exports.
+> 
+> ---
+> 
+> # 62. Background Jobs / Scheduled Tasks
+> 
+> The system may require background processing for:
+> 
+> - Nightly ERP stock import.
+> - Email sending.
+> - Invoice generation.
+> - Invoice overdue status updates.
+> - Cleanup of expired password-reset tokens.
+> - Cleanup/expiration of invitations.
+> - Other scheduled maintenance tasks.
+> 
+> Exact scheduling and infrastructure are open points.
+> 
+> ---
+> 
+> # 63. File Storage
+> 
+> The application needs storage for:
+> 
+> - Product images.
+> - Invoice PDFs.
+> - Potentially ERP CSV files.
+> - Potentially generated report files.
+> 
+> The storage provider is an open point.
+> 
+> ---
+> 
+> # 64. PDF Generation
+> 
+> Invoice PDFs must be generated or stored so that customers can download them.
+> 
+> Questions requiring confirmation:
+> 
+> - Is there an existing invoice template?
+> - Must the portal reproduce the exact template?
+> - What branding is required?
+> - What paper/page size is required?
+> - Does the invoice need tax information?
+> - Does the invoice need a sequential numbering scheme provided by another system?
+> 
+> ---
+> 
+> # 65. CSV Import Requirements
+> 
+> The ERP stock CSV should be validated before processing.
+> 
+> Potential validation:
+> 
+> - Required headers exist.
+> - Product codes exist.
+> - Quantities are numeric.
+> - No invalid negative quantities unless explicitly supported.
+> - Duplicate product identifiers are detected.
+> - Unknown product identifiers are reported.
+> - File is not empty.
+> 
+> Import results should indicate:
+> 
+> - Number of records received.
+> - Number successfully processed.
+> - Number rejected.
+> - Error details.
+> 
+> ---
+> 
+> # 66. CSV Export Requirements
+> 
+> Exports should:
+> 
+> - Use consistent column names.
+> - Include a header row.
+> - Use a consistent date/time format.
+> - Use a consistent number format.
+> - Be downloadable by authorized users only.
+> 
+> ---
+> 
+> # 67. Business Rules Summary
+> 
+> The following rules are mandatory unless changed during clarification:
+> 
+> 1. Customers see only their own company data.
+> 2. Customer pricing comes from an assigned price list.
+> 3. Stock is read from the ERP CSV.
+> 4. The portal does not update ERP stock.
+> 5. Stock is imported nightly.
+> 6. Earliest delivery depends on whether the order is before or after 14:00.
+> 7. Customers can repeat previous orders.
+> 8. Customers can save named basket templates.
+> 9. Customers can cancel only before confirmation.
+> 10. Staff can edit orders before confirmation.
+> 11. Customers are notified when confirmed.
+> 12. Customers are notified when out for delivery.
+> 13. Invoice creation happens when an order is delivered.
+> 14. Staff can mark invoices paid.
+> 15. Historical records remain after user deactivation.
+> 16. Order and invoice data are retained for 7 years.
+> 17. Online payments are not included.
+> 18. Native mobile applications are not included.
+> 19. Delivery route planning is not included.
+> 20. Returns and credit notes are not included.
+> 
+> ---
+> 
+> # 68. Out of Scope
+> 
+> The following are explicitly outside the first phase:
+> 
+> - Online card payments.
+> - Native iOS application.
+> - Native Android application.
+> - Multi-language support.
+> - Delivery route planning.
+> - Returns management.
+> - Credit notes.
+> - Direct ERP inventory write-back.
+> - Automated driver route optimization.
+> - Customer self-service returns.
+> - Marketplace functionality.
+> 
+> Unless separately approved, advanced pricing features such as promotions, coupons, volume discounts, tiered pricing, and contract-specific pricing are also outside the initial scope.
+> 
+> ---
+> 
+> # 69. Open Questions
+> 
+> The following requirements should be clarified before final estimation or treated explicitly as assumptions.
+> 
+> ## Account and Authentication
+> 
+> - Is customer self-registration allowed?
+> - What password policy is required?
+> - How long should reset links remain valid?
+> - How long should invitations remain valid?
+> - Is MFA required?
+> - Is staff SSO required?
+> - What happens after repeated account lockouts?
+> 
+> ## Customers
+> 
+> - What customer/company fields are required?
+> - Can customers create their own delivery addresses?
+> - Can customer users see each other's orders?
+> - Is a customer account manager role required?
+> 
+> ## Catalogue
+> 
+> - Are categories flat or hierarchical?
+> - What product attributes are required?
+> - Are products allowed to have variants?
+> - Are substitute products required?
+> - Are discontinued products searchable?
+> 
+> ## Vehicle Compatibility
+> 
+> - Where does compatibility data come from?
+> - Is there a third-party vehicle database?
+> - How is compatibility data imported?
+> - How frequently does compatibility data change?
+> - How precise does vehicle matching need to be?
+> 
+> ## Pricing
+> 
+> - Are prices tax-inclusive or tax-exclusive?
+> - Are discounts required?
+> - Is volume pricing required?
+> - Are promotional prices required?
+> - Are price effective dates required?
+> - Can a customer have multiple price lists?
+> - Does pricing vary by delivery location?
+> 
+> ## Stock
+> 
+> - What is the ERP?
+> - How is the nightly CSV delivered?
+> - What is the exact CSV schema?
+> - What does "low stock" mean?
+> - Are reserved quantities included?
+> - Can customers order out-of-stock products?
+> - Is backordering required?
+> 
+> ## Ordering
+> 
+> - Can customers order quantities above available stock?
+> - Can staff override stock restrictions?
+> - Can staff change delivery dates?
+> - Can staff partially fulfill an order?
+> - Are partial shipments required?
+> - Are split deliveries required?
+> - Are minimum order values required?
+> - Are order cut-off times configurable?
+> 
+> ## Delivery
+> 
+> - What defines a working day?
+> - What are the public holidays?
+> - Are delivery dates customer-specific?
+> - Are delivery slots required?
+> - Are delivery charges required?
+> - Are delivery zones required?
+> 
+> ## Invoices
+> 
+> - What invoice template is required?
+> - Who generates invoice numbers?
+> - Are taxes/VAT required?
+> - How is overdue status calculated?
+> - Are credit notes required in a future phase?
+> - Does the ERP also contain invoices?
+> 
+> ## Payments
+> 
+> - What payment methods are recorded?
+> - Is payment information imported from an accounting system?
+> - Should staff manually mark all payments?
+> 
+> ## Email
+> 
+> - What provider is used?
+> - SMTP or API?
+> - What sender address should be used?
+> - What email templates are required?
+> - Are emails queued asynchronously?
+> - Is delivery/bounce tracking required?
+> 
+> ## Hosting
+> 
+> - Is the client's cloud required?
+> - Which cloud provider?
+> - Who manages production infrastructure?
+> - What environments are required?
+> - Is a staging environment required?
+> 
+> ## Security
+> 
+> - Is MFA required?
+> - Is penetration testing required?
+> - Are there specific compliance requirements?
+> - What audit-log retention is required?
+> - Are IP restrictions required for staff?
+> 
+> ## Reporting
+> 
+> - What exactly counts as revenue?
+> - Are taxes included?
+> - Are cancelled orders excluded?
+> - Are reports required in real time?
+> - What additional filters are required?
+> 
+> ---
+> 
+> # 70. Environments
+> 
+> The expected environments are likely:
+> 
+> - Local development.
+> - Development/test.
+> - Staging/UAT.
+> - Production.
+> 
+> The exact deployment strategy is not yet defined.
+> 
+> ---
+> 
+> # 71. Testing Requirements
+> 
+> The project should include testing for:
+> 
+> ## Authentication
+> 
+> - Successful login.
+> - Invalid login.
+> - Account lockout.
+> - Password reset.
+> - Invitation acceptance.
+> - Deactivated accounts.
+> 
+> ## Authorization
+> 
+> - Customer isolation.
+> - Staff access.
+> - Admin access.
+> - Unauthorized API access.
+> 
+> ## Catalogue
+> 
+> - Product listing.
+> - Search.
+> - Category filtering.
+> - Vehicle compatibility.
+> - Retired products.
+> - Product images.
+> 
+> ## Pricing
+> 
+> - Correct price list.
+> - Price changes.
+> - Existing order price preservation.
+> - Customer isolation.
+> 
+> ## Stock
+> 
+> - Valid import.
+> - Invalid import.
+> - Duplicate products.
+> - Unknown products.
+> - Out-of-stock products.
+> - Low-stock status.
+> 
+> ## Basket and Checkout
+> 
+> - Add/remove/update.
+> - Quantity validation.
+> - Delivery-date rules.
+> - Address selection.
+> - Order submission.
+> - Duplicate submission prevention.
+> 
+> ## Orders
+> 
+> - Order creation.
+> - Confirmation.
+> - Staff editing.
+> - Customer cancellation.
+> - Reordering.
+> - Status transitions.
+> - Email notifications.
+> 
+> ## Invoices
+> 
+> - Automatic invoice creation.
+> - Invoice PDF.
+> - Invoice visibility.
+> - Payment status.
+> - Marking invoice paid.
+> 
+> ## Reporting
+> 
+> - Date filtering.
+> - Correct totals.
+> - CSV exports.
+> 
+> ---
+> 
+> # 72. Acceptance Criteria Examples
+> 
+> ## Customer Isolation
+> 
+> Given a buyer belongs to Customer A,
+> 
+> When they request orders,
+> 
+> Then only Customer A's orders are returned.
+> 
+> They must not be able to retrieve Customer B's orders by modifying an ID in a URL or API request.
+> 
+> ---
+> 
+> ## Customer Pricing
+> 
+> Given Customer A is assigned Price List A,
+> 
+> When Customer A views Product X,
+> 
+> Then the price from Price List A is displayed.
+> 
+> If the price list changes later, previously placed orders retain their original price.
+> 
+> ---
+> 
+> ## Delivery Date
+> 
+> Given the current day is a working day:
+> 
+> - An order submitted before 14:00 gets the next working day as the earliest delivery date.
+> - An order submitted at or after 14:00 gets the following working day as the earliest delivery date.
+> 
+> ---
+> 
+> ## Order Cancellation
+> 
+> Given an order has status `Received`,
+> 
+> When the customer cancels it,
+> 
+> Then the order becomes `Cancelled`.
+> 
+> Given an order has status `Confirmed`,
+> 
+> When the customer attempts to cancel it,
+> 
+> Then cancellation through the portal is not allowed.
+> 
+> ---
+> 
+> ## Invoice Creation
+> 
+> Given an order is marked `Delivered`,
+> 
+> When the delivery status is successfully saved,
+> 
+> Then an invoice is automatically created for that order.
+> 
+> ---
+> 
+> # 73. Suggested Delivery Phases
+> 
+> The following is a planning structure only and should not be treated as an estimate.
+> 
+> ## Phase 1 — Foundation
+> 
+> - Project setup.
+> - Authentication.
+> - User roles.
+> - Database.
+> - Base application layout.
+> - Environment configuration.
+> - CI/CD foundation.
+> 
+> ## Phase 2 — Customer Catalogue
+> 
+> - Product catalogue.
+> - Categories.
+> - Search.
+> - Product detail.
+> - Customer pricing.
+> - Stock display.
+> 
+> ## Phase 3 — Ordering
+> 
+> - Basket.
+> - Checkout.
+> - Delivery dates.
+> - Addresses.
+> - Order creation.
+> - Order history.
+> - Repeat orders.
+> - Basket templates.
+> 
+> ## Phase 4 — Staff Operations
+> 
+> - Staff dashboard.
+> - Order queue.
+> - Order editing.
+> - Order confirmation.
+> - Order cancellation/rejection.
+> - Staff-created orders.
+> - Delivery export.
+> 
+> ## Phase 5 — Invoicing
+> 
+> - Invoice generation.
+> - Invoice list.
+> - Invoice details.
+> - PDF generation.
+> - Payment status.
+> - Staff payment recording.
+> 
+> ## Phase 6 — Administration
+> 
+> - Product management.
+> - Categories.
+> - Price lists.
+> - Customer management.
+> - User management.
+> - Vehicle compatibility.
+> 
+> ## Phase 7 — Integrations and Reporting
+> 
+> - ERP stock import.
+> - Email integration.
+> - Reports.
+> - CSV exports.
+> - Audit logs.
+> 
+> ## Phase 8 — QA and Production
+> 
+> - Integration testing.
+> - Security testing.
+> - Regression testing.
+> - UAT.
+> - Production deployment.
+> - Monitoring.
+> - Documentation.
+> 
+> ---
+> 
+
+**Q-1** How do the admin and staff roles relate?
+  A. Admin includes all staff permissions plus the admin screens   ← recommended: With only 15 staff, admins usually need the operational screens too.
+  B. Admin and staff are separate, non-overlapping roles
+  (why it matters: Decides who sees what.)
+
+**Q-2** How does an invoice become Overdue?
+  A. A daily scheduled job marks Unpaid invoices Overdue once a configurable payment term (default 30 days from invoice date) has passed   ← recommended: The request lists an overdue background job; a configurable term covers the open rule.
+  B. Staff mark invoices Overdue manually
+  C. Leave Overdue out until the rules are agreed
+  (why it matters: Changes invoice payment status that customers and staff see.)
+
+**Q-3** Is the invoice created in the same save as the Delivered status, or later by a background job?
+  A. In the same save (transaction) as the Delivered status change   ← recommended: The acceptance criteria say the invoice is created when Delivered is successfully saved, and this needs no queue.
+  B. Asynchronously by a background job after the status change
+  (why it matters: Decides whether a delivered order can exist without an invoice.)
+
+**Q-4** How is tax handled in prices and invoices?
+  A. Price lists hold prices excluding VAT; invoices add VAT at one configured rate   ← recommended: The usual B2B approach, needing only a single configurable rate.
+  B. Prices include VAT
+  C. No tax shown
+  (why it matters: Changes invoice amounts.)
+
+**Q-5** What is recorded when staff mark an invoice Paid?
+  A. Only the status change, plus who did it and when   ← recommended: Meets 'staff can mark invoices paid'; the audit log already records who and when.
+  B. A payment record with date, amount and method
+  C. Payment data imported from an accounting system
+  (why it matters: Payment status is money data.)
+
+Assumed unless you say otherwise:
+- ASM-1 (high risk, confirm on the approval card): What counts as 'order value' and 'revenue' in the three reports? → assumed: On-screen lists with filters and CSV export; no custom report builder.
+- ASM-2: Which date decides whether an order falls inside the report's date range? → assumed: On-screen lists with filters and CSV export; no custom report builder.
+- ASM-3: What happens when a report is opened without a date range? → assumed: On-screen lists with filters and CSV export; no custom report builder.
+- ASM-4 (high risk, confirm on the approval card): Who can view the audit history? → assumed: Who created and last changed each record, and when; no full audit trail.
+- ASM-5 (high risk, confirm on the approval card): If writing an audit entry fails, what happens to the business action? → assumed: Who created and last changed each record, and when; no full audit trail.
+- ASM-6: How long are audit log entries kept, and can they be edited or deleted? → assumed: Who created and last changed each record, and when; no full audit trail.
+- ASM-7: Which customer users receive order emails (confirmation, amendment, out for delivery, cancellation)? → assumed: Email only, from fixed templates; no SMS or push.
+- ASM-8: When does the 'order cancellation/rejection' email go out? → assumed: Email only, from fixed templates; no SMS or push.
+- ASM-9: If an email fails to send, what happens? → assumed: Email only, from fixed templates; no SMS or push.
+- ASM-10: How are the email provider settings (host or API key, sender address, reply-to) set? → assumed: Per-environment configuration (environment variables or secrets), behind one email-sending interface
+- ASM-11: How does the nightly ERP CSV file reach the portal? → assumed: The ERP drops it in a configured folder or storage location that the portal reads
+- ASM-12: Are the import time, CSV column names and product-identifier field constants or configuration? → assumed: Configuration values with defaults
+- ASM-13 (high risk, confirm on the approval card): When some rows in the stock file are invalid, how is the file processed? → assumed: Apply the valid rows and reject only the bad rows; reject the whole file only if headers are missing or the file is empty
+- ASM-14 (high risk, confirm on the approval card): What happens to portal products that do not appear in a night's stock file? → assumed: Leave their stock unchanged
+- ASM-15 (high risk, confirm on the approval card): How should duplicate product identifiers within one stock file be handled? → assumed: Reject all rows for that identifier and report them
+- ASM-16: How is a failed or partly failed stock import reported? → assumed: Shown on the admin System/Import status screen and in the audit log
+- ASM-17: How is stock shown to customers? → assumed: As status labels (In stock / Low stock / Out of stock) with a configurable low-stock threshold
+- ASM-18 (high risk, confirm on the approval card): Can customers order more than the available stock, or products that are out of stock? → assumed: Yes; ordering is allowed and staff handle shortages when confirming
+- ASM-19 (high risk, confirm on the approval card): What counts as a working day for the 14:00 cutoff, and in which timezone? → assumed: Monday to Friday, excluding public holidays from an admin-maintained list, in the business's local timezone
+- ASM-20: Is the 14:00 cutoff a constant or a configuration value? → assumed: A single configuration value, defaulting to 14:00
+- ASM-21 (high risk, confirm on the approval card): From which statuses can staff reject or cancel an order? → assumed: Received or Confirmed (before Picking)
+- ASM-22: Is 'Invoice Created' an order status, or just the event that follows Delivered? → assumed: An event only; the order's final status stays Delivered and the invoice has its own status
+- ASM-23: Is the invoice PDF generated once and stored, or generated on each download? → assumed: Generated once when the invoice is created, stored, and reused for every download
+- ASM-24 (high risk, confirm on the approval card): Who issues invoice numbers? → assumed: The portal assigns sequential numbers
+- ASM-25 (high risk, confirm on the approval card): How is duplicate order submission prevented? → assumed: Disable the submit control while the submission is in progress
+- ASM-26: How specific is the invalid-login message? → assumed: One generic 'invalid email or password' message that doesn't say which was wrong
+- ASM-27: Is staff sign-in a separate route, or one shared login that sends users to their area by role? → assumed: Email and password, with a reset link by email; no social or single sign-on.
+- ASM-28 (high risk, confirm on the approval card): Can users within one customer company see each other's orders and invoices? → assumed: Two roles: an administrator and a standard user.
+- ASM-29 (high risk, confirm on the approval card): How do customer user accounts get created? → assumed: Administrators work in the same app on admin-only screens; no separate back office.
+- ASM-30 (high risk, confirm on the approval card): Does 'deleting a user' mean deactivating them, or can user records really be removed? → assumed: Deactivation only; user records are never hard-deleted
+- ASM-31: What are the lockout threshold and the validity periods for reset links, invitations and sessions? → assumed: Email and password, with a reset link by email; no social or single sign-on.
+- ASM-32: Is MFA or SSO required for staff or admins? → assumed: Email and password, with a reset link by email; no social or single sign-on.
+- ASM-33 (high risk, confirm on the approval card): Who can add or change delivery addresses? → assumed: Staff and admins only; customers pick from their company's addresses
+- ASM-34: Where does vehicle-compatibility data come from? → assumed: Entered and maintained manually by admins
+- ASM-35: Are categories flat or hierarchical? → assumed: Flat list
+- ASM-36: Which fields does catalogue search match, and are retired products included? → assumed: Search by name or title with simple filters; no full-text search engine.
+- ASM-37: What does the staff 'Delivery export' produce? → assumed: A CSV of confirmed orders for a chosen delivery date: customer, address, items
+- ASM-38 (high risk, confirm on the approval card): Are existing customers, users, products, price lists or past orders to be migrated in? → assumed: No; the system starts empty, with seed data for set-up.
+- ASM-39: Which files can admins upload? → assumed: Images and PDFs up to 10 MB each, kept in cloud storage.
+- ASM-40: Where is the system hosted, and who runs production? → assumed: One cloud region, in the client's cloud account.
+- ASM-41: Which environments are set up? → assumed: Two: staging and production, with a build pipeline.
+- ASM-42: What accessibility level is required? → assumed: WCAG 2.1 AA on the main flows.
+- ASM-43: Which browsers are supported? → assumed: The latest two versions of Chrome, Edge, Safari and Firefox.
+- ASM-44: Which single language, currency and date/number format are used in the UI and in CSV exports? → assumed: English only, left to right.
+- ASM-45: Light mode, dark mode or both? → assumed: Light mode only.
+
+Answer with letters or your own words:
+  factory answer 20261004-automotive-parts-customer-orde-609c 6c8219e3 Q-1=A Q-2=A Q-3=A Q-4=A Q-5=A
+  (use quotes for words: Q-1="only for guest checkouts")
+
+Card hash: 6c8219e3

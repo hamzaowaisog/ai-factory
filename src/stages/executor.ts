@@ -7,7 +7,7 @@ import { basename, dirname, join } from "node:path";
 import type { Failure, LedgerEvent } from "../contracts/index.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY, mergePolicy, withPolicy, type Policy } from "../gates/policy.js";
-import { DEFAULT_LADDER, nextOnFailure, type AttemptRecord, type LadderAction } from "../gates/ladder.js";
+import { DEFAULT_LADDER, failureSignature, nextOnFailure, type AttemptRecord, type LadderAction } from "../gates/ladder.js";
 import { checkCaps } from "../ledger/caps.js";
 import { ExecutionLock, LockBusyError } from "../ledger/exec-lock.js";
 import { resolveRef } from "../ledger/git.js";
@@ -22,6 +22,7 @@ import { REPO_ROOT } from "../runners/netinfra.js";
 import { setPrice } from "../runners/pricing.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { stepsFor } from "./modes.js";
+import { answersOf, asksGates, asksPerson, gateCard, gateRounds, GATE_ROUNDS, nextQuestionId, ROUND_ATTEMPTS, writeGateQuestions, type FiledRound, type GateRound } from "./gate-questions.js";
 import { greenfieldRefusal, repoIsEmpty } from "../config/greenfield.js";
 import { availableRungs, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
@@ -211,7 +212,9 @@ function attemptHistory(ledger: Ledger, step: string): AttemptRecord[] {
   const lastDone = Math.max(-1, ...evs.filter((e) => e.type === "step.completed").map((e) => e.seq));
   // a human raising the attempt limit starts the ladder fresh
   const lastRaise = Math.max(-1, ...all.filter((e) => e.type === "human.decided" && (e.data as { decision?: string; extraAttempts?: number })?.decision === "waive-cap" && typeof (e.data as { extraAttempts?: number }).extraAttempts === "number").map((e) => e.seq));
-  const since = Math.max(lastDone, lastRaise);
+  // a round of questions about the step's failing checks starts it fresh too (src/stages/gate-questions.ts)
+  const lastRound = Math.max(-1, ...evs.filter((e) => e.type === "step.failed" && (e.data as { action?: string } | undefined)?.action === "questions").map((e) => e.seq));
+  const since = Math.max(lastDone, lastRaise, lastRound);
   return evs.filter((e) => e.type === "step.failed" && e.seq > since && !(e.data as { parked?: boolean })?.parked)
     .map((e) => e.data as unknown as AttemptRecord);
 }
@@ -248,13 +251,47 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
   let completed = 0;
   /** steps that went back to an earlier one since a step last completed */
   const wentBack = new Set<string>();
+  /**
+   * A round of questions about a step's failing checks (src/stages/gate-questions.ts), recorded as the attempt's failure: a hands-off run
+   * takes the recommended answers and goes on, a reviewed one waits on the card. Once the rounds are used up the step was already run
+   * with carryOn and could not carry what fails, so the run parks with the reason.
+   */
+  async function askRound(ctx: StepContext, step: StepDef, key: string, rounds: FiledRound[], failures: Failure[], rec2: AttemptRecord, nextRung: number, reason: string, data?: Record<string, unknown>): Promise<ExecuteResult | undefined> {
+    const failuresSha = ledger.putJson(failures.slice(0, 20));
+    const park = async (why: string): Promise<ExecuteResult> => {
+      await ledger.append({ type: "step.failed", key, outputs: [failuresSha], data: { ...(data ?? {}), ...rec2, action: "park", reason: why } }, writer);
+      await ledger.append({ type: "run.parked", data: { reason: `${step.key}: ${why}`, step: step.key } }, writer);
+      return { status: "parked", message: `${step.key}: ${why}. Last failure: ${failures[0]?.message ?? ""}` };
+    };
+    if (rounds.length >= GATE_ROUNDS) return park(`${reason}; still failing after ${GATE_ROUNDS} rounds of questions, and this check cannot be carried as an open risk`);
+    const round = rounds.length + 1;
+    const earlier = answersOf(rounds);
+    const q = await writeGateQuestions(ctx, { step: step.key, failures: failures.slice(0, 20), earlier, firstId: nextQuestionId(ledger, state) });
+    if (!q.ok) return park(`${reason}; the questions could not be written (${q.outcome.kind === "park" ? q.outcome.reason : q.outcome.kind === "fail" ? q.outcome.failures[0]?.message ?? "" : q.outcome.kind})`);
+    const handsOff = !asksPerson(state);
+    const filed: GateRound = { step: step.key, round, asked: q.asked, failures: failures.slice(0, 20), failureOf: q.failureOf, ...(handsOff || !q.asked.length ? { answers: Object.fromEntries(q.asked.map((x) => [x.id, x.recommended])) } : {}) };
+    const roundSha = ledger.putJson(filed);
+    const cardSha = handsOff || !q.asked.length ? undefined : ledger.putJson({ key: "gate", step: step.key, round, asked: q.asked, assumptions: [] });
+    await ledger.append({ type: "step.failed", key, outputs: [failuresSha], data: { ...(data ?? {}), ...rec2, action: "questions", nextRung, reason, round, roundSha, ...(cardSha ? { cardSha } : {}) } }, writer);
+    ctx.log(`? ${step.key}: ${reason}; round ${round} of ${GATE_ROUNDS}: ${q.asked.length} question${q.asked.length === 1 ? "" : "s"} about the failing checks${cardSha ? "" : q.asked.length ? " (hands-off: the recommended answers are assumed)" : ""}`);
+    if (!cardSha) return undefined;
+    const cardId = `check-questions-${round}-${cardSha.slice(0, 8)}`;
+    ledger.writeCard(cardId, gateCard(runId, step.key, round, q.asked, filed.failures, q.failureOf, cardSha));
+    await ledger.append({ type: "human.requested", data: { cardId, kind: "question", artifactSha: cardSha, step: step.key, gateStep: step.key, roundSha } }, writer);
+    return { status: "waiting", message: `The ${step.key} step's checks raised questions: factory show-card ${runId}` };
+  }
+
   /** Run one step and record its outcome; an ExecuteResult when the run stops here, undefined to go on. */
   async function runStep(state: RunState, step: StepDef, hash: string, share: number): Promise<ExecuteResult | undefined> {
     const rec = state.steps.get(step.key);
     const attempt = (rec?.lastAttempt ?? 0) + 1;
     const history = attemptHistory(ledger, step.key);
     const lastFail = [...ledger.events()].reverse().find((e) => e.type === "step.failed" && e.key && splitKey(e.key).step === step.key);
-    const rung = history.length ? Number((lastFail?.data as { nextRung?: number } | undefined)?.nextRung ?? 0) : 0;
+    const asked = (lastFail?.data as { action?: string } | undefined)?.action === "questions" && lastFail!.seq > Math.max(-1, ...ledger.events().filter((e) => e.type === "step.completed" && e.key && splitKey(e.key).step === step.key).map((e) => e.seq));
+    const rung = history.length || asked ? Number((lastFail?.data as { nextRung?: number } | undefined)?.nextRung ?? 0) : 0;
+    // the questions this step's failing checks raised, and whether their rounds are used up (an estimate or a design run)
+    const rounds = asksGates(state) ? gateRounds(ledger, state, step.key) : [];
+    const gateAnswers = answersOf(rounds);
     const priorFailures: Failure[] = history.length && lastFail?.outputs?.[0] ? ledger.getJson<Failure[]>(lastFail.outputs[0]) : [];
     const key = eventKey(step.key, attempt);
     const t = share > 1 ? trace.forStep(step.key, attempt) : trace;
@@ -266,6 +303,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
 
     const ctx: StepContext = {
       runId, ledger, writer, state, project, policy, attempt, rung, priorFailures, log: slog, trace: t, share,
+      ...(gateAnswers.length ? { gateAnswers } : {}), ...(rounds.length >= GATE_ROUNDS && rounds[rounds.length - 1]!.answered ? { carryOn: true } : {}),
       usage: async (u) => {
         spent += u.estUsd;
         await ledger.append({ type: "usage", key, data: {
@@ -325,6 +363,13 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
         await ledger.append({ type: "run.parked", data: { reason: outcome.reason, step: step.key } }, writer);
         return { status: "parked", message: outcome.reason };
+      case "ask":
+        if (!asksGates(state)) {
+          await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
+          await ledger.append({ type: "run.parked", data: { reason: outcome.reason, step: step.key } }, writer);
+          return { status: "parked", message: outcome.reason };
+        }
+        return askRound(ctx, step, key, rounds, outcome.failures, { category: "other", signature: failureSignature(outcome.failures.map((f) => `${f.check}:${f.message}`)), rung }, rung, outcome.reason);
       case "close":
         await ledger.append({ type: "step.failed", key, data: { category: "other", signature: outcome.reason, rung } }, writer);
         await ledger.append({ type: "run.closed", data: { reason: outcome.reason } }, writer);
@@ -337,6 +382,11 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
           // policy.retryBudget (default 6; a trial project can say 2)
           ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, step.stage, policy.localOnly), backoffSpentMs: backoffSpent, a5Done: new Set(),
         });
+        // an estimate or a design run: a failing check, after the retry with the failures fed back, becomes questions instead of more attempts or a park
+        const counted = history.filter((h) => h.category !== "rate-limit").length + 1;
+        if (outcome.gate && outcome.category === "other" && asksGates(state) && (action.action === "park" || counted >= ROUND_ATTEMPTS)) {
+          return askRound(ctx, step, key, rounds, outcome.failures, rec2, action.action === "retry" ? action.rung : rung, action.action === "park" ? action.reason : `${outcome.failures.length} check${outcome.failures.length === 1 ? "" : "s"} still fail after the retry`, outcome.data);
+        }
         const failuresSha = ledger.putJson(outcome.failures.slice(0, 20));
         await ledger.append({
           type: "step.failed", key, outputs: [failuresSha],

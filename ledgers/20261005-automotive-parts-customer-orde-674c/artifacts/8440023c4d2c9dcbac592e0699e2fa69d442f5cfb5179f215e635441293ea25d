@@ -1,0 +1,963 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "Buyers sign in (or come in through an invitation or reset link) and land on the Catalogue. From there they search by text, category or vehicle, open a product, add it to the Basket (or load a template, or repeat a past order) and go to Checkout to review and submit. Orders and Invoices in the top bar let them track deliveries, cancel or repeat orders and download PDFs. Office staff and admins land on the Dashboard. Its counts link into the Orders queue, where they open an order to amend, confirm, advance or cancel it, or start a new order for a customer. The grouped sidebar reaches Deliveries, Customers, Invoices, Reports, the catalogue tools (Products, Categories, Price lists, Stock imports) and, for admins only, Users, Audit log and Settings.",
+    "apps": [
+     {
+      "id": "portal",
+      "name": "Parts Ordering Portal",
+      "device": "web",
+      "shell": "topbar",
+      "users": "Buyers at customer garages and workshops, on a phone or a counter PC"
+     },
+     {
+      "id": "office",
+      "name": "Office Console",
+      "device": "web",
+      "shell": "sidebar",
+      "users": "Distributor office staff and administrators at a desk all day"
+     }
+    ],
+    "theme": {
+     "reading": {
+      "users": "Parts buyers at customer garages and workshops; the distributor's office staff and administrators",
+      "context": "Buyers reorder between jobs on a workshop phone or counter PC before the 14:00 cutoff; staff work the order queue at a desk all day",
+      "device": "both",
+      "tone": "plain, exact, trade-counter",
+      "hero": "A part found by vehicle fit, showing the company's own price, stock status and earliest delivery date",
+      "traits": [
+       "vehicle-fit search",
+       "company price lists",
+       "cutoff delivery dates",
+       "staff order queue"
+      ]
+     },
+     "basis": [
+      {
+       "ref": "IKEA",
+       "took": "one deep blue on a white page, plain bar, a calm grid of product images"
+      },
+      {
+       "ref": "Amazon",
+       "took": "dense results with a filter rail, price as the heaviest text on each card"
+      },
+      {
+       "ref": "Walmart",
+       "took": "large, clear price and stock figures that a buyer reads at a glance"
+      },
+      {
+       "ref": "Stripe",
+       "took": "cool, dense back-office tables with tabular figures for invoices and reports"
+      }
+     ],
+     "mood": "exact trade counter",
+     "brand": "#1A5FB4",
+     "neutral": "cool",
+     "chrome": "plain",
+     "font": "sans",
+     "heading": "condensed",
+     "mark": "emblem",
+     "radius": "soft",
+     "density": "compact",
+     "surface": "soft",
+     "motion": "calm",
+     "fx": "modern",
+     "mode": "light",
+     "shell": "auto",
+     "hero": "none",
+     "charts": "soft",
+     "imagery": "day"
+    },
+    "screens": [
+     {
+      "id": "S-1",
+      "app": "portal",
+      "route": "/login",
+      "file": "src/pages/auth/SignIn.tsx",
+      "title": "Sign in",
+      "purpose": "Any user enters email and password to sign in. Wrong details, a locked account, a deactivated account or an expired session each show a clear message.",
+      "reqs": [
+       "REQ-1",
+       "REQ-2",
+       "REQ-3",
+       "REQ-4",
+       "REQ-6",
+       "REQ-102"
+      ],
+      "states": [
+       "loading",
+       "validation",
+       "error"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-2",
+      "app": "portal",
+      "route": "/forgot-password",
+      "file": "src/pages/auth/ForgotPassword.tsx",
+      "title": "Reset your password",
+      "purpose": "The user enters an email address to request a reset link and sees the same confirmation whether or not the account exists.",
+      "reqs": [
+       "REQ-9"
+      ],
+      "states": [
+       "validation",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-3",
+      "app": "portal",
+      "route": "/reset-password/:token",
+      "file": "src/pages/auth/ResetPassword.tsx",
+      "title": "Choose a new password",
+      "purpose": "The user sets a new password from a reset link. An expired or already-used link shows an error.",
+      "reqs": [
+       "REQ-10",
+       "REQ-11",
+       "REQ-103"
+      ],
+      "states": [
+       "validation",
+       "error",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-4",
+      "app": "portal",
+      "route": "/invite/:token",
+      "file": "src/pages/auth/AcceptInvitation.tsx",
+      "title": "Activate your account",
+      "purpose": "An invited user sets a password to activate the account. An expired invitation link shows an error.",
+      "reqs": [
+       "REQ-14",
+       "REQ-103"
+      ],
+      "states": [
+       "validation",
+       "error",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-5",
+      "app": "portal",
+      "route": "/catalogue",
+      "file": "src/pages/portal/Catalogue.tsx",
+      "title": "Catalogue",
+      "purpose": "The buyer searches parts by text, category or vehicle (make, model, year, engine, fuel, variant). Results show image, code, maker, pack, the company's price or Price on request, and stock status.",
+      "reqs": [
+       "REQ-20",
+       "REQ-21",
+       "REQ-22",
+       "REQ-23",
+       "REQ-25",
+       "REQ-27",
+       "REQ-30",
+       "REQ-76",
+       "REQ-113",
+       "REQ-119",
+       "REQ-120",
+       "REQ-121"
+      ],
+      "states": [
+       "loading",
+       "empty"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-6",
+      "app": "portal",
+      "route": "/catalogue/:productId",
+      "file": "src/pages/portal/ProductDetail.tsx",
+      "title": "Product details",
+      "purpose": "The buyer sees a part's image, description, unit, pack size, company price, stock status and compatible vehicles, then adds a quantity to the basket.",
+      "reqs": [
+       "REQ-24",
+       "REQ-25",
+       "REQ-27",
+       "REQ-30",
+       "REQ-37",
+       "REQ-113",
+       "REQ-119"
+      ],
+      "states": [
+       "loading",
+       "error",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-7",
+      "app": "portal",
+      "route": "/basket",
+      "file": "src/pages/portal/Basket.tsx",
+      "title": "Basket",
+      "purpose": "The buyer reviews basket lines with unit price, quantity and line total, changes quantities or removes lines, sees the tax-exclusive subtotal and goes to checkout.",
+      "reqs": [
+       "REQ-37",
+       "REQ-38",
+       "REQ-52",
+       "REQ-116",
+       "REQ-119",
+       "REQ-120",
+       "REQ-121"
+      ],
+      "states": [
+       "loading",
+       "empty",
+       "validation"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-8",
+      "app": "portal",
+      "route": "/templates",
+      "file": "src/pages/portal/BasketTemplates.tsx",
+      "title": "Basket templates",
+      "purpose": "The buyer picks a saved basket template to load into the basket at current prices. A notice lists any retired products that were skipped.",
+      "reqs": [
+       "REQ-116",
+       "REQ-120"
+      ],
+      "states": [
+       "empty",
+       "loading",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-9",
+      "app": "portal",
+      "route": "/checkout",
+      "file": "src/pages/portal/Checkout.tsx",
+      "title": "Review and submit order",
+      "purpose": "The buyer chooses a company delivery address and a working-day delivery date from the earliest date allowed, adds a note and reviews lines and subtotal before submitting. Re-priced or short lines are listed.",
+      "reqs": [
+       "REQ-39",
+       "REQ-40",
+       "REQ-41",
+       "REQ-42",
+       "REQ-43",
+       "REQ-44",
+       "REQ-45",
+       "REQ-112",
+       "REQ-114",
+       "REQ-115",
+       "REQ-119",
+       "REQ-121"
+      ],
+      "states": [
+       "loading",
+       "validation",
+       "error",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-10",
+      "app": "portal",
+      "route": "/orders",
+      "file": "src/pages/portal/Orders.tsx",
+      "title": "Orders",
+      "purpose": "The buyer lists every order of the company, including those placed by colleagues and staff, with number, dates, address, total and status, filtered by status and date range.",
+      "reqs": [
+       "REQ-48",
+       "REQ-100",
+       "REQ-119",
+       "REQ-120",
+       "REQ-121"
+      ],
+      "states": [
+       "loading",
+       "empty"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-11",
+      "app": "portal",
+      "route": "/orders/:orderId",
+      "file": "src/pages/portal/OrderDetail.tsx",
+      "title": "Order details",
+      "purpose": "The buyer sees an order's lines, totals, address, delivery date, note, staff amendments and status timeline. They can cancel it while it is Received, or repeat it into the basket.",
+      "reqs": [
+       "REQ-46",
+       "REQ-49",
+       "REQ-50",
+       "REQ-51",
+       "REQ-52",
+       "REQ-106",
+       "REQ-116",
+       "REQ-119"
+      ],
+      "states": [
+       "loading",
+       "error",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-12",
+      "app": "portal",
+      "route": "/invoices",
+      "file": "src/pages/portal/Invoices.tsx",
+      "title": "Invoices",
+      "purpose": "The buyer lists the company's invoices with number, order, date, gross total and Unpaid, Overdue or Paid status, and downloads each one as a PDF.",
+      "reqs": [
+       "REQ-70",
+       "REQ-71",
+       "REQ-73",
+       "REQ-100",
+       "REQ-111",
+       "REQ-119",
+       "REQ-120",
+       "REQ-121"
+      ],
+      "states": [
+       "loading",
+       "empty",
+       "error"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-13",
+      "app": "portal",
+      "route": "/account",
+      "file": "src/pages/portal/Account.tsx",
+      "title": "My account",
+      "purpose": "The buyer sees their profile, the company's details and its delivery addresses (read-only), and signs out.",
+      "reqs": [
+       "REQ-5",
+       "REQ-8",
+       "REQ-80"
+      ],
+      "states": [
+       "loading"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-14",
+      "app": "portal",
+      "route": "/error",
+      "file": "src/pages/ErrorPage.tsx",
+      "title": "Something went wrong",
+      "purpose": "Shared error page: 'not found' for records the user may not see, 'no access' for areas outside their role, and a general error with a reference id.",
+      "reqs": [
+       "REQ-7",
+       "REQ-8",
+       "REQ-88",
+       "REQ-91",
+       "REQ-99",
+       "REQ-101",
+       "REQ-104",
+       "REQ-123"
+      ],
+      "states": [
+       "error"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-15",
+      "app": "office",
+      "group": "Orders",
+      "route": "/office",
+      "file": "src/pages/office/Dashboard.tsx",
+      "title": "Dashboard",
+      "purpose": "Staff see counts of Received, Confirmed, Picking and Out for delivery orders, deliveries due today, and Unpaid and Overdue invoices. A banner shows the latest failed stock import with its reason.",
+      "reqs": [
+       "REQ-65",
+       "REQ-66",
+       "REQ-67",
+       "REQ-68",
+       "REQ-121"
+      ],
+      "states": [
+       "loading",
+       "error"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-16",
+      "app": "office",
+      "group": "Orders",
+      "route": "/office/orders",
+      "file": "src/pages/office/Orders.tsx",
+      "title": "Orders",
+      "purpose": "Staff work the queue of all customers' orders (number, customer, dates, total, status), filtered by customer, date range and status, including orders of inactive companies.",
+      "reqs": [
+       "REQ-53",
+       "REQ-63",
+       "REQ-120",
+       "REQ-121"
+      ],
+      "states": [
+       "loading",
+       "empty"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-17",
+      "app": "office",
+      "group": "Orders",
+      "route": "/office/orders/:orderId",
+      "file": "src/pages/office/OrderDetail.tsx",
+      "title": "Order",
+      "purpose": "Staff review an order, amend lines, note, address or date while it is Received, confirm it, advance its status, cancel it with a reason, and see the amendments, timeline and the invoice created on delivery.",
+      "reqs": [
+       "REQ-37",
+       "REQ-40",
+       "REQ-41",
+       "REQ-46",
+       "REQ-49",
+       "REQ-55",
+       "REQ-56",
+       "REQ-57",
+       "REQ-59",
+       "REQ-61",
+       "REQ-63",
+       "REQ-69",
+       "REQ-82",
+       "REQ-105",
+       "REQ-107",
+       "REQ-108",
+       "REQ-117"
+      ],
+      "states": [
+       "loading",
+       "validation",
+       "error",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-18",
+      "app": "office",
+      "group": "Orders",
+      "route": "/office/orders/new",
+      "file": "src/pages/office/NewOrder.tsx",
+      "title": "New order for customer",
+      "purpose": "Staff choose an active customer company, add products at that company's prices within stock, then pick a company address and a valid delivery date, add a note and submit.",
+      "reqs": [
+       "REQ-25",
+       "REQ-26",
+       "REQ-27",
+       "REQ-37",
+       "REQ-39",
+       "REQ-40",
+       "REQ-41",
+       "REQ-45",
+       "REQ-62"
+      ],
+      "states": [
+       "validation",
+       "error",
+       "success",
+       "loading"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-19",
+      "app": "office",
+      "group": "Orders",
+      "route": "/office/deliveries",
+      "file": "src/pages/office/Deliveries.tsx",
+      "title": "Delivery list",
+      "purpose": "Staff pick a date (today by default), preview that day's non-cancelled deliveries with address, contact, lines and note, and export them as CSV.",
+      "reqs": [
+       "REQ-64"
+      ],
+      "states": [
+       "empty",
+       "loading"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-20",
+      "app": "office",
+      "group": "Customers & billing",
+      "route": "/office/customers",
+      "file": "src/pages/office/Customers.tsx",
+      "title": "Customers",
+      "purpose": "Staff search customer companies by partial name or account number and see each one's status and price list.",
+      "reqs": [
+       "REQ-54",
+       "REQ-120"
+      ],
+      "states": [
+       "empty",
+       "loading"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-21",
+      "app": "office",
+      "group": "Customers & billing",
+      "route": "/office/customers/:customerId",
+      "file": "src/pages/office/CustomerDetail.tsx",
+      "title": "Customer",
+      "purpose": "Staff see a company's details, assigned price list, users, active status, orders and invoices, and add, edit or remove its delivery addresses.",
+      "reqs": [
+       "REQ-54",
+       "REQ-63",
+       "REQ-80"
+      ],
+      "states": [
+       "loading",
+       "validation",
+       "empty"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-22",
+      "app": "office",
+      "group": "Customers & billing",
+      "route": "/office/customers/:customerId/edit",
+      "file": "src/pages/office/CustomerForm.tsx",
+      "title": "Edit customer",
+      "purpose": "Admins create or edit a company: name, unique account number, contact details, billing address, price list and active status, with created and changed details shown.",
+      "reqs": [
+       "REQ-28",
+       "REQ-79",
+       "REQ-82"
+      ],
+      "states": [
+       "validation",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-23",
+      "app": "office",
+      "group": "Customers & billing",
+      "route": "/office/invoices",
+      "file": "src/pages/office/Invoices.tsx",
+      "title": "Invoices",
+      "purpose": "Staff list all invoices with number, order, customer, date, gross total and payment status, filtered by customer and payment status.",
+      "reqs": [
+       "REQ-70",
+       "REQ-71",
+       "REQ-72",
+       "REQ-120",
+       "REQ-121"
+      ],
+      "states": [
+       "loading",
+       "empty"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-24",
+      "app": "office",
+      "group": "Customers & billing",
+      "route": "/office/invoices/:invoiceId",
+      "file": "src/pages/office/InvoiceDetail.tsx",
+      "title": "Invoice",
+      "purpose": "Staff view an invoice's lines and totals, download the PDF, and mark it paid with a payment date no later than today. Once Paid it is locked.",
+      "reqs": [
+       "REQ-69",
+       "REQ-73",
+       "REQ-74",
+       "REQ-82",
+       "REQ-110",
+       "REQ-111"
+      ],
+      "states": [
+       "validation",
+       "error",
+       "success",
+       "loading"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-25",
+      "app": "office",
+      "group": "Customers & billing",
+      "route": "/office/reports",
+      "file": "src/pages/office/Reports.tsx",
+      "title": "Reports",
+      "purpose": "Staff pick a report (Sales, Orders per day, Top products, Revenue per customer), a date range and an optional customer, read the results on screen and export them as CSV.",
+      "reqs": [
+       "REQ-83",
+       "REQ-84",
+       "REQ-85",
+       "REQ-86",
+       "REQ-87",
+       "REQ-89",
+       "REQ-120",
+       "REQ-121"
+      ],
+      "states": [
+       "loading",
+       "empty",
+       "validation"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-26",
+      "app": "office",
+      "group": "Catalogue",
+      "route": "/office/products",
+      "file": "src/pages/office/Products.tsx",
+      "title": "Products",
+      "purpose": "Staff list products, active and retired, with code, category, brand, stock quantity and status. Admins can start adding a product.",
+      "reqs": [
+       "REQ-30",
+       "REQ-75",
+       "REQ-120"
+      ],
+      "states": [
+       "loading",
+       "empty"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-27",
+      "app": "office",
+      "group": "Catalogue",
+      "route": "/office/products/:productId",
+      "file": "src/pages/office/ProductDetail.tsx",
+      "title": "Product",
+      "purpose": "Staff see a product's imported stock quantity, status, last successful import time, its price on each price list, and the price a chosen customer pays.",
+      "reqs": [
+       "REQ-26",
+       "REQ-30",
+       "REQ-36"
+      ],
+      "states": [
+       "loading"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-28",
+      "app": "office",
+      "group": "Catalogue",
+      "route": "/office/products/:productId/edit",
+      "file": "src/pages/office/ProductForm.tsx",
+      "title": "Edit product",
+      "purpose": "Admins add, edit or retire a product: identifiers, description, category, brand, unit and pack. They upload its image and manage its vehicle compatibility entries.",
+      "reqs": [
+       "REQ-75",
+       "REQ-76",
+       "REQ-77",
+       "REQ-78",
+       "REQ-82",
+       "REQ-118"
+      ],
+      "states": [
+       "validation",
+       "error",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-29",
+      "app": "office",
+      "group": "Catalogue",
+      "route": "/office/categories",
+      "file": "src/pages/office/Categories.tsx",
+      "title": "Categories",
+      "purpose": "Admins create, rename and retire single-level categories and see how many products each holds.",
+      "reqs": [
+       "REQ-76",
+       "REQ-82"
+      ],
+      "states": [
+       "empty",
+       "validation"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-30",
+      "app": "office",
+      "group": "Catalogue",
+      "route": "/office/price-lists",
+      "file": "src/pages/office/PriceLists.tsx",
+      "title": "Price lists",
+      "purpose": "Admins list price lists with status and assigned companies, then create, rename or deactivate them.",
+      "reqs": [
+       "REQ-28",
+       "REQ-82"
+      ],
+      "states": [
+       "empty",
+       "validation"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-31",
+      "app": "office",
+      "group": "Catalogue",
+      "route": "/office/price-lists/:priceListId",
+      "file": "src/pages/office/PriceListDetail.tsx",
+      "title": "Price list",
+      "purpose": "Admins set, edit and remove one price per product on a list. A note explains that existing orders and invoices keep their prices.",
+      "reqs": [
+       "REQ-28",
+       "REQ-29",
+       "REQ-82"
+      ],
+      "states": [
+       "empty",
+       "validation",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-32",
+      "app": "office",
+      "group": "Catalogue",
+      "route": "/office/imports",
+      "file": "src/pages/office/StockImports.tsx",
+      "title": "Stock imports",
+      "purpose": "Staff see each ERP stock import's time, status, received, applied and rejected counts, skipped identifiers and failure reason.",
+      "reqs": [
+       "REQ-31",
+       "REQ-32",
+       "REQ-33",
+       "REQ-34",
+       "REQ-96",
+       "REQ-98"
+      ],
+      "states": [
+       "empty",
+       "loading"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-33",
+      "app": "office",
+      "group": "Admin",
+      "route": "/office/users",
+      "file": "src/pages/office/Users.tsx",
+      "title": "Users",
+      "purpose": "Admins list users with role, customer company and status (Pending, Active, Deactivated) and open one to manage it.",
+      "reqs": [
+       "REQ-16"
+      ],
+      "states": [
+       "loading",
+       "empty"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-34",
+      "app": "office",
+      "group": "Admin",
+      "route": "/office/users/invite",
+      "file": "src/pages/office/InviteUser.tsx",
+      "title": "Invite user",
+      "purpose": "Admins invite a user by name and email with the role Buyer (linked to a company), Office Staff or Administrator.",
+      "reqs": [
+       "REQ-12",
+       "REQ-13"
+      ],
+      "states": [
+       "validation",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-35",
+      "app": "office",
+      "group": "Admin",
+      "route": "/office/users/:userId",
+      "file": "src/pages/office/UserDetail.tsx",
+      "title": "User",
+      "purpose": "Admins change a user's role or company, deactivate or reactivate them (blocked when the company is inactive) and resend a pending invitation, with created and changed details shown.",
+      "reqs": [
+       "REQ-15",
+       "REQ-16",
+       "REQ-17",
+       "REQ-18",
+       "REQ-19",
+       "REQ-82"
+      ],
+      "states": [
+       "error",
+       "success"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-36",
+      "app": "office",
+      "group": "Admin",
+      "route": "/office/audit",
+      "file": "src/pages/office/AuditLog.tsx",
+      "title": "Audit log",
+      "purpose": "Admins browse audit records (event type, actor, target record, timestamp) filtered by event and date.",
+      "reqs": [
+       "REQ-82",
+       "REQ-90",
+       "REQ-91"
+      ],
+      "states": [
+       "loading",
+       "empty"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-37",
+      "app": "office",
+      "group": "Admin",
+      "route": "/office/settings",
+      "file": "src/pages/office/Settings.tsx",
+      "title": "Settings",
+      "purpose": "Admins set the cutoff, timezone, non-working dates, maximum days ahead, low-stock threshold, overdue days, tax rate, number prefixes, link lifetimes, and the invoice company details and logo.",
+      "reqs": [
+       "REQ-81"
+      ],
+      "states": [
+       "validation",
+       "success"
+      ],
+      "size": "new"
+     }
+    ],
+    "noScreen": [
+     {
+      "req": "REQ-35",
+      "reason": "Integration rule: the portal never writes to the ERP."
+     },
+     {
+      "req": "REQ-97",
+      "reason": "Integration rule: no stock writes are sent to the ERP."
+     },
+     {
+      "req": "REQ-47",
+      "reason": "Email routing rule; no screen."
+     },
+     {
+      "req": "REQ-58",
+      "reason": "Content of the confirmation email, not a portal screen."
+     },
+     {
+      "req": "REQ-60",
+      "reason": "Content of the out-for-delivery email, not a portal screen."
+     },
+     {
+      "req": "REQ-92",
+      "reason": "Data retention policy, enforced in storage."
+     },
+     {
+      "req": "REQ-93",
+      "reason": "Sending template emails through the provider happens server-side."
+     },
+     {
+      "req": "REQ-94",
+      "reason": "Failed-email logging happens server-side; the action still completes."
+     },
+     {
+      "req": "REQ-95",
+      "reason": "Scheduled background stock import job; its results show on Stock imports."
+     },
+     {
+      "req": "REQ-109",
+      "reason": "Daily overdue background job."
+     },
+     {
+      "req": "REQ-122",
+      "reason": "Deployment and hosting requirement."
+     },
+     {
+      "req": "REQ-124",
+      "reason": "About the estimate document, not the product UI."
+     },
+     {
+      "req": "REQ-125",
+      "reason": "About the estimate document, not the product UI."
+     },
+     {
+      "req": "REQ-126",
+      "reason": "About the estimate document, not the product UI."
+     },
+     {
+      "req": "REQ-127",
+      "reason": "Scoping rule for the estimate's Payments line items."
+     },
+     {
+      "req": "REQ-128",
+      "reason": "Scoping rule for the estimate's Order amendments line item."
+     },
+     {
+      "req": "REQ-129",
+      "reason": "Scoping rule for the estimate's role-based line items."
+     },
+     {
+      "req": "REQ-130",
+      "reason": "Scoping rule for the estimate's cancellation line items."
+     },
+     {
+      "req": "REQ-131",
+      "reason": "Scoping rule for the estimate's invoice line items."
+     },
+     {
+      "req": "REQ-132",
+      "reason": "Scoping rule for the estimate's import line items."
+     },
+     {
+      "req": "REQ-133",
+      "reason": "Assumptions list in the estimate document."
+     },
+     {
+      "req": "REQ-134",
+      "reason": "Technology proposal document."
+     },
+     {
+      "req": "REQ-135",
+      "reason": "Technology proposal document."
+     },
+     {
+      "req": "REQ-136",
+      "reason": "Technology proposal hosting recommendation."
+     }
+    ]
+   },
+   "ms": 8,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,514 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Settings",
+     "subtitle": "System-wide rules for ordering, delivery, numbering and invoices. Changes apply to new orders straight away.",
+     "crumbs": [
+      "Admin"
+     ],
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Order cutoff time",
+         "kind": "time",
+         "value": "14:00",
+         "required": true,
+         "help": "Orders after this time get the next working day's delivery date",
+         "error": "Enter a cutoff time between 06:00 and 20:00"
+        },
+        {
+         "label": "System timezone",
+         "kind": "combobox",
+         "value": "Europe/London (GMT/BST)",
+         "options": [
+          "Europe/London (GMT/BST)",
+          "Europe/Dublin (GMT/IST)",
+          "Europe/Paris (CET)"
+         ],
+         "required": true
+        },
+        {
+         "label": "Maximum delivery days ahead",
+         "kind": "number",
+         "value": "14",
+         "required": true,
+         "help": "Days, 1 to 60",
+         "error": "Enter a number of days from 1 to 60"
+        },
+        {
+         "label": "Low-stock threshold",
+         "kind": "number",
+         "value": "5",
+         "required": true,
+         "help": "Units; at or below this a product shows Low stock"
+        },
+        {
+         "label": "Overdue after",
+         "kind": "number",
+         "value": "30",
+         "required": true,
+         "help": "Days after invoice date"
+        },
+        {
+         "label": "Tax rate",
+         "kind": "number",
+         "value": "20",
+         "required": true,
+         "help": "Percent, applied to invoice net totals",
+         "error": "Enter a rate from 0 to 100"
+        }
+       ],
+       "submit": "Save ordering settings"
+      },
+      {
+       "type": "calendar",
+       "month": "December 2026",
+       "startsOn": 1,
+       "days": 31,
+       "off": [
+        5,
+        6,
+        12,
+        13,
+        19,
+        20,
+        26,
+        27
+       ],
+       "marks": [
+        {
+         "day": 25,
+         "label": "Christmas Day",
+         "tone": "bad"
+        },
+        {
+         "day": 28,
+         "label": "Boxing Day (sub)",
+         "tone": "bad"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Add non-working date",
+         "variant": "secondary",
+         "icon": "plus"
+        },
+        {
+         "label": "View change history",
+         "variant": "ghost",
+         "icon": "clock"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Order number prefix",
+         "kind": "text",
+         "value": "ORD-",
+         "required": true,
+         "help": "Up to 6 letters, digits or dashes",
+         "error": "Use up to 6 letters, digits or dashes"
+        },
+        {
+         "label": "Invoice number prefix",
+         "kind": "text",
+         "value": "INV-",
+         "required": true,
+         "help": "Up to 6 letters, digits or dashes"
+        },
+        {
+         "label": "Password reset link valid for",
+         "kind": "number",
+         "value": "60",
+         "required": true,
+         "help": "Minutes, 15 to 1440"
+        },
+        {
+         "label": "Invitation link valid for",
+         "kind": "number",
+         "value": "7",
+         "required": true,
+         "help": "Days, 1 to 30",
+         "error": "Enter a number of days from 1 to 30"
+        }
+       ],
+       "submit": "Save numbering and links"
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Company name",
+         "kind": "text",
+         "value": "Northline Motor Factors Ltd",
+         "required": true
+        },
+        {
+         "label": "VAT number",
+         "kind": "text",
+         "value": "GB 284 7719 36",
+         "required": true,
+         "error": "Enter a valid UK VAT number"
+        },
+        {
+         "label": "Address",
+         "kind": "textarea",
+         "value": "Unit 4, Calder Park Trading Estate, Wakefield WF2 7AW",
+         "required": true
+        },
+        {
+         "label": "Accounts email",
+         "kind": "email",
+         "value": "accounts@northlinemf.co.uk",
+         "required": true
+        },
+        {
+         "label": "Phone",
+         "kind": "phone",
+         "value": "+44 1924 556 210"
+        },
+        {
+         "label": "Payment details",
+         "kind": "textarea",
+         "value": "Barclays · Sort 20-45-77 · Acc 63019284"
+        }
+       ],
+       "submit": "Save company details"
+      },
+      {
+       "type": "upload",
+       "label": "Invoice logo",
+       "hint": "PNG or SVG, at least 400 px wide, up to 2 MB",
+       "files": [
+        {
+         "name": "northline-logo.png",
+         "size": "184 KB",
+         "status": "done"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "View change history",
+       "to": "S-36"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "modal",
+       "trigger": "Add non-working date",
+       "title": "Add non-working date",
+       "text": "No deliveries are offered on this date; orders roll to the next working day.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Date",
+           "kind": "date",
+           "value": "31 Dec 2026",
+           "required": true
+          },
+          {
+           "label": "Reason",
+           "kind": "text",
+           "placeholder": "e.g. Stocktake"
+          }
+         ],
+         "submit": "Add date"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Add date",
+         "variant": "primary"
+        },
+        {
+         "label": "Cancel",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Save ordering settings",
+       "text": "Ordering settings saved. New cutoff applies from the next order.",
+       "tone": "ok"
+      },
+      {
+       "after": "Add date",
+       "text": "31 Dec 2026 added to non-working dates",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "Save company details",
+       "text": "Company details saved. New invoices will use them.",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "validation": "Some settings need fixing before they can be saved; check the fields marked in red.",
+      "success": "Settings saved. They apply to new orders and invoices from now on."
+     }
+    },
+    "mockFull": {
+     "title": "Settings",
+     "subtitle": "System-wide rules for ordering, delivery, numbering and invoices. Changes apply to new orders straight away.",
+     "crumbs": [
+      "Admin"
+     ],
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Order cutoff time",
+         "kind": "time",
+         "value": "14:00",
+         "required": true,
+         "help": "Orders after this time get the next working day's delivery date",
+         "error": "Enter a cutoff time between 06:00 and 20:00"
+        },
+        {
+         "label": "System timezone",
+         "kind": "combobox",
+         "value": "Europe/London (GMT/BST)",
+         "options": [
+          "Europe/London (GMT/BST)",
+          "Europe/Dublin (GMT/IST)",
+          "Europe/Paris (CET)",
+          "Europe/Amsterdam (CET)"
+         ],
+         "required": true
+        },
+        {
+         "label": "Maximum delivery days ahead",
+         "kind": "number",
+         "value": "14",
+         "required": true,
+         "help": "Days, 1 to 60",
+         "error": "Enter a number of days from 1 to 60"
+        },
+        {
+         "label": "Low-stock threshold",
+         "kind": "number",
+         "value": "5",
+         "required": true,
+         "help": "Units; at or below this a product shows Low stock"
+        },
+        {
+         "label": "Overdue after",
+         "kind": "number",
+         "value": "30",
+         "required": true,
+         "help": "Days after invoice date"
+        },
+        {
+         "label": "Tax rate",
+         "kind": "number",
+         "value": "20",
+         "required": true,
+         "help": "Percent, applied to invoice net totals",
+         "error": "Enter a rate from 0 to 100"
+        }
+       ],
+       "submit": "Save ordering settings"
+      },
+      {
+       "type": "calendar",
+       "month": "December 2026",
+       "startsOn": 1,
+       "days": 31,
+       "off": [
+        5,
+        6,
+        12,
+        13,
+        19,
+        20,
+        26,
+        27
+       ],
+       "marks": [
+        {
+         "day": 24,
+         "label": "Stocktake",
+         "tone": "warn"
+        },
+        {
+         "day": 25,
+         "label": "Christmas Day",
+         "tone": "bad"
+        },
+        {
+         "day": 28,
+         "label": "Boxing Day (sub)",
+         "tone": "bad"
+        },
+        {
+         "day": 29,
+         "label": "Warehouse closed",
+         "tone": "bad"
+        },
+        {
+         "day": 31,
+         "label": "Stocktake",
+         "tone": "warn"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Add non-working date",
+         "variant": "secondary",
+         "icon": "plus"
+        },
+        {
+         "label": "View change history",
+         "variant": "ghost",
+         "icon": "clock"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Order number prefix",
+         "kind": "text",
+         "value": "ORD-",
+         "required": true,
+         "help": "Up to 6 letters, digits or dashes · next: ORD-048213",
+         "error": "Use up to 6 letters, digits or dashes"
+        },
+        {
+         "label": "Invoice number prefix",
+         "kind": "text",
+         "value": "INV-",
+         "required": true,
+         "help": "Up to 6 letters, digits or dashes · next: INV-031907"
+        },
+        {
+         "label": "Password reset link valid for",
+         "kind": "number",
+         "value": "60",
+         "required": true,
+         "help": "Minutes, 15 to 1440"
+        },
+        {
+         "label": "Invitation link valid for",
+         "kind": "number",
+         "value": "7",
+         "required": true,
+         "help": "Days, 1 to 30",
+         "error": "Enter a number of days from 1 to 30"
+        }
+       ],
+       "submit": "Save numbering and links"
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Company name",
+         "kind": "text",
+         "value": "Northline Motor Factors Ltd",
+         "required": true
+        },
+        {
+         "label": "Company number",
+         "kind": "text",
+         "value": "08814427"
+        },
+        {
+         "label": "VAT number",
+         "kind": "text",
+         "value": "GB 284 7719 36",
+         "required": true,
+         "error": "Enter a valid UK VAT number"
+        },
+        {
+         "label": "Address",
+         "kind": "textarea",
+         "value": "Unit 4, Calder Park Trading Estate, Denby Dale Road, Wakefield WF2 7AW",
+         "required": true
+        },
+        {
+         "label": "Accounts email",
+         "kind": "email",
+         "value": "accounts@northlinemf.co.uk",
+         "required": true
+        },
+        {
+         "label": "Phone",
+         "kind": "phone",
+         "value": "+44 1924 556 210"
+        },
+        {
+         "label": "Payment details",
+         "kind": "textarea",
+         "value": "Barclays Business · Sort 20-45-77 · Acc 63019284"
+        },
+        {
+         "label": "Invoice footer note",
+         "kind": "textarea",
+         "value": "Payment due within 30 days. Parts remain our property until paid in full."
+        }
+       ],
+       "submit": "Save company details"
+      },
+      {
+       "type": "upload",
+       "label": "Invoice logo",
+       "hint": "PNG or SVG, at least 400 px wide, up to 2 MB",
+       "files": [
+        {
+         "name": "northline-logo-2026.svg",
+         "size": "42 KB",
+         "status": "uploading",
+         "progress": 68
+        },
+        {
+         "name": "northline-logo.png",
+         "size": "184 KB",
+         "status": "done"
+        },
+        {
+         "name": "northline-logo-print.tiff",
+         "size": "6.4 MB",
+         "status": "failed"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "validation": "Some settings need fixing before they can be saved; check the fields marked in red.",
+      "success": "Settings saved. They apply to new orders and invoices from now on."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

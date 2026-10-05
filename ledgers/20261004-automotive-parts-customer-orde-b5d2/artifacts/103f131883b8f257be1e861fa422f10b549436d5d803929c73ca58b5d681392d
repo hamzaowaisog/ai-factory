@@ -1,0 +1,402 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "Successful sign-in with matching email and password starts a session carrying the user's role and, for a Customer Buyer, their customer company."
+     },
+     {
+      "n": 2,
+      "text": "Failed sign-in with wrong or unregistered email returns the same 401 'Invalid email or password' message with no session issued."
+     },
+     {
+      "n": 3,
+      "text": "Signing out invalidates the user's session so later requests with that session token return 401."
+     },
+     {
+      "n": 4,
+      "text": "After 5 consecutive failed sign-in attempts, the account is locked for 15 minutes and all sign-in attempts during that time are rejected with an 'account temporarily locked' message."
+     },
+     {
+      "n": 5,
+      "text": "After the lock period expires, a correct sign-in succeeds and resets the failed-attempt counter to 0."
+     },
+     {
+      "n": 6,
+      "text": "A successful sign-in resets the failed-attempt counter so subsequent failures are counted independently."
+     },
+     {
+      "n": 7,
+      "text": "Requesting a password reset sends a single-use reset link valid for 1 hour that lets the user set a new password, with identical responses whether or not the email is registered."
+     },
+     {
+      "n": 8,
+      "text": "Using a reset link after it expires is rejected with an 'expired link' message, while the old password still works for sign-in."
+     },
+     {
+      "n": 9,
+      "text": "A used reset link cannot be reused, and after resetting the password the old password no longer works."
+     },
+     {
+      "n": 10,
+      "text": "Resetting the password does not bypass an active account lockout."
+     },
+     {
+      "n": 11,
+      "text": "Administrator invitations for a Customer Buyer or Office Staff user send a link valid for 7 days to set a password and activate the account."
+     },
+     {
+      "n": 12,
+      "text": "An expired invitation link is rejected and the account remains in Invited status."
+     },
+     {
+      "n": 13,
+      "text": "Resending an invitation issues a new 7-day link and invalidates the previous link."
+     },
+     {
+      "n": 14,
+      "text": "Inviting a user with a non-existent role is rejected with a 400 error."
+     },
+     {
+      "n": 15,
+      "text": "Deactivated users or users of an inactive company cannot sign in or submit orders, while their existing orders, invoices and history remain unchanged and visible to staff."
+     },
+     {
+      "n": 16,
+      "text": "Reactivating a deactivated user allows sign-in again with the correct password."
+     },
+     {
+      "n": 17,
+      "text": "Administrators can list users showing role, company and status, and can deactivate, reactivate, change role or change company, with changes applying from the user's next request and historical records preserved."
+     },
+     {
+      "n": 18,
+      "text": "Every Customer Buyer remains linked to exactly one customer company; changing role to Customer Buyer without specifying a company is rejected with 400."
+     },
+     {
+      "n": 19,
+      "text": "Only administrators, not Office Staff, can perform these user-management actions."
+     },
+     {
+      "n": 20,
+      "text": "Customer Buyers can only access orders, invoices, prices, delivery addresses and account details of their own company; requests for other companies' data return 404."
+     },
+     {
+      "n": 21,
+      "text": "Unauthenticated requests to catalogue, order or invoice endpoints return 401."
+     },
+     {
+      "n": 22,
+      "text": "Staff-only functions are restricted to Office Staff and Administrators, and admin-only functions to Administrators, with unauthorized calls returning 403 and causing no change."
+     },
+     {
+      "n": 23,
+      "text": "Catalogue text search matches active products by name, code, manufacturer part number or brand, ignoring case."
+     },
+     {
+      "n": 24,
+      "text": "Category filtering shows only active products in the selected single-level category, combinable with text or vehicle search."
+     },
+     {
+      "n": 25,
+      "text": "Only active categories are listed."
+     },
+     {
+      "n": 26,
+      "text": "Vehicle search by make, model, year, engine, fuel type and variant returns active products with at least one matching compatibility record for all supplied values."
+     },
+     {
+      "n": 27,
+      "text": "Catalogue list and detail views show image, name, code, manufacturer, unit of sale, pack size, customer-specific price and stock status, with detail also showing description and vehicle compatibility."
+     },
+     {
+      "n": 28,
+      "text": "A product with zero imported quantity shows stock status 'Out of stock'."
+     },
+     {
+      "n": 29,
+      "text": "Prices shown exclude tax and come from the price list assigned to the Buyer's company, in the configured currency."
+     },
+     {
+      "n": 30,
+      "text": "Changing a company's assigned price list changes the prices shown to its Buyers."
+     },
+     {
+      "n": 31,
+      "text": "A product missing from the company's price list, or with a deactivated price list, is shown as 'Price on request' and cannot be added to the basket (422 if attempted)."
+     },
+     {
+      "n": 32,
+      "text": "Stock status is derived from last imported quantity: Out of stock at 0 or never imported, Low stock up to the threshold, In stock above it."
+     },
+     {
+      "n": 33,
+      "text": "The scheduled stock import replaces quantities for matching product codes, skips unknown codes, and logs a success entry with timestamp, applied/skipped counts and skipped codes."
+     },
+     {
+      "n": 34,
+      "text": "The import does not send any outbound call or file to the ERP."
+     },
+     {
+      "n": 35,
+      "text": "An invalid or missing stock file (missing/unreadable/missing columns/invalid quantities) leaves stock unchanged and logs a failed import with a reason, visible only to Office Staff and Administrators."
+     },
+     {
+      "n": 36,
+      "text": "Each Customer Buyer has one saved basket persisting across sessions and devices until submitted as an order or emptied."
+     },
+     {
+      "n": 37,
+      "text": "Baskets are private per Buyer even within the same company."
+     },
+     {
+      "n": 38,
+      "text": "Submitting an order empties the basket."
+     },
+     {
+      "n": 39,
+      "text": "Basket line changes accept only whole-number quantities of 1 or more, with each change returning unit price, line total and basket subtotal excluding tax."
+     },
+     {
+      "n": 40,
+      "text": "Invalid quantities (0, negative, non-integer) are rejected without changing the basket."
+     },
+     {
+      "n": 41,
+      "text": "Earliest delivery date is the next working day for orders before cutoff and the second working day for orders at or after cutoff, excluding weekends and listed non-working dates, calculated in the configured timezone."
+     },
+     {
+      "n": 42,
+      "text": "Delivery date calculation correctly handles timezone conversion including daylight saving."
+     },
+     {
+      "n": 43,
+      "text": "A submitted delivery date that is not a working day, before the earliest allowed date, or beyond the booking horizon is rejected with a message naming the broken rule."
+     },
+     {
+      "n": 44,
+      "text": "A valid delivery date within the allowed range and horizon is accepted and the order created."
+     },
+     {
+      "n": 45,
+      "text": "The available delivery dates list starts at the earliest date and includes only working days up to the booking horizon."
+     },
+     {
+      "n": 46,
+      "text": "Checkout offers and accepts only active delivery addresses maintained by Office Staff or Administrators for the Buyer's company; addresses from other companies are rejected with 422."
+     },
+     {
+      "n": 47,
+      "text": "Buyers cannot create or edit delivery addresses (403)."
+     },
+     {
+      "n": 48,
+      "text": "Order submission is rejected if any line's quantity exceeds the last imported stock quantity, returning each affected line with its available quantity, without accounting for orders placed since import and without altering stored stock."
+     },
+     {
+      "n": 49,
+      "text": "Order submission is rejected if a line's current price differs from the price shown at review, or the product became 'Price on request', returning the affected lines with current prices for re-review."
+     },
+     {
+      "n": 50,
+      "text": "A valid checkout creates an order with a sequential ORD-###### number, Received status, order-time prices, delivery address, delivery date, optional note (max 1000 characters), and empties the basket."
+     },
+     {
+      "n": 51,
+      "text": "A note exceeding 1000 characters is rejected."
+     },
+     {
+      "n": 52,
+      "text": "Checkout flow shows basket review, address selection, date selection, note entry, a final review, and a confirmation page with the order number."
+     },
+     {
+      "n": 53,
+      "text": "Changing a price list price does not alter unit prices on existing orders or invoices."
+     },
+     {
+      "n": 54,
+      "text": "Office Staff can only change an order's status to the next status in sequence (Received→Confirmed→Picking→Out for delivery→Delivered) or to Cancelled; other transitions are rejected with 409."
+     },
+     {
+      "n": 55,
+      "text": "Each order status change adds a timeline entry with new status, timestamp and the user or process responsible."
+     },
+     {
+      "n": 56,
+      "text": "Confirming a Received order checks stock and company active status; if both pass, status becomes Confirmed with confirming user and time recorded; otherwise confirmation is rejected naming the reason."
+     },
+     {
+      "n": 57,
+      "text": "Once confirmed, the Buyer can no longer cancel the order."
+     },
+     {
+      "n": 58,
+      "text": "When an order becomes Confirmed, a confirmation email is sent to the order recipient with order number, lines, quantities, prices, total, address, delivery date, and any staff-made quantity changes or removals."
+     },
+     {
+      "n": 59,
+      "text": "Rejecting or cancelling a non-Delivered order requires a reason, sets status to Cancelled, records reason/user/time, and emails the recipient the cancellation with reason."
+     },
+     {
+      "n": 60,
+      "text": "Cancelling without a reason is rejected with 400; cancelling a Delivered order is rejected with 409."
+     },
+     {
+      "n": 61,
+      "text": "While Received, Office Staff can change line quantities, remove lines (keeping at least one), change delivery date, address (to another of the company's addresses) and note, applying checkout validation rules, and each change is recorded in an amendment history with user, time, and old/new values."
+     },
+     {
+      "n": 62,
+      "text": "Attempting these changes once an order is no longer Received is rejected with 409 and the order stays unchanged."
+     },
+     {
+      "n": 63,
+      "text": "Line quantity changes or removals on a Received order trigger an email to the recipient listing the order number and each changed line's old and new quantity."
+     },
+     {
+      "n": 64,
+      "text": "Changing only the note does not trigger an amendment email."
+     },
+     {
+      "n": 65,
+      "text": "When status changes to Out for delivery, an email is sent to the recipient stating the order number is out for delivery."
+     },
+     {
+      "n": 66,
+      "text": "Office Staff can submit orders on behalf of an active company, applying the same price, stock, address and delivery-date rules as customer checkout, recording the staff user as creator."
+     },
+     {
+      "n": 67,
+      "text": "Such staff-submitted orders are rejected with 422 if they violate address, stock or delivery-date rules."
+     },
+     {
+      "n": 68,
+      "text": "The staff order queue lists all orders with number, customer, order date, requested delivery date, total and status, filterable by customer, date range and status."
+     },
+     {
+      "n": 69,
+      "text": "The delivery list export for a date returns a CSV with one row per non-cancelled order due that date, including order number, customer, address, contact name/phone, delivery date, line summary, note and status."
+     },
+     {
+      "n": 70,
+      "text": "The staff/admin dashboard shows counts of orders by status, orders due today, Unpaid and Overdue invoice counts, and the latest stock import result and time."
+     },
+     {
+      "n": 71,
+      "text": "Customer Buyers can list all their company's orders, newest first, with number, order date, delivery date, address, total and status, filterable by status and date range."
+     },
+     {
+      "n": 72,
+      "text": "Customer Buyers can open an order of their company to see its number, dates, customer, address, status, timeline, lines, totals, note and staff amendments."
+     },
+     {
+      "n": 73,
+      "text": "A Customer Buyer can cancel an order only while it is Received, recording buyer and time; otherwise cancellation is rejected with a message to contact the distributor office."
+     },
+     {
+      "n": 74,
+      "text": "Repeating a previous order adds available active, priced, in-stock lines to the basket at current prices and original quantities (combining with existing basket quantities), flagging unavailable lines, without creating a new order."
+     },
+     {
+      "n": 75,
+      "text": "Buyers can save the basket as a named private template; adding a template to the basket uses current prices and flags unavailable products, and other Buyers cannot see or access another's template."
+     },
+     {
+      "n": 76,
+      "text": "When an order becomes Delivered, one Unpaid invoice is created with a sequential INV-###### number, invoice date, customer, billing address, order number, lines, net total, tax at the configured rate, and gross total."
+     },
+     {
+      "n": 77,
+      "text": "Changing the tax rate afterward does not alter existing invoices' tax or total."
+     },
+     {
+      "n": 78,
+      "text": "Invoice status is Paid when payment is recorded, Overdue when unpaid past the overdue-days setting, otherwise Unpaid."
+     },
+     {
+      "n": 79,
+      "text": "Buyers see only their own company's invoices; staff and admins see all invoices, each with number, order number, date, total and status."
+     },
+     {
+      "n": 80,
+      "text": "Invoice PDFs are downloadable by the invoiced company's Buyers and by staff, containing all specified invoice details; other companies' Buyers get 404."
+     },
+     {
+      "n": 81,
+      "text": "Staff can mark an invoice Paid with a payment date, recording status, date and user; invalid or buyer attempts are rejected."
+     },
+     {
+      "n": 82,
+      "text": "Administrators can add, edit or retire products with all specified fields; retired products are removed from the catalogue but remain visible on existing orders/invoices."
+     },
+     {
+      "n": 83,
+      "text": "Duplicate product codes are rejected with 409."
+     },
+     {
+      "n": 84,
+      "text": "Administrators can create, rename or retire single-level categories and assign products to them, affecting catalogue filtering; categories cannot have a parent (400 if attempted)."
+     },
+     {
+      "n": 85,
+      "text": "Administrators can upload product images limited to JPEG/PNG/WebP under 5MB, replacing the previous image; invalid uploads are rejected and the current image kept."
+     },
+     {
+      "n": 86,
+      "text": "Administrators can add or remove vehicle compatibility records per product, affecting vehicle search and product detail."
+     },
+     {
+      "n": 87,
+      "text": "Administrators can create, rename or deactivate price lists, manage product prices on them, and assign a price list to a company, affecting that company's displayed prices; one price per product per list and one list per company are enforced."
+     },
+     {
+      "n": 88,
+      "text": "Duplicate or negative prices are rejected with 409; Office Staff can view but not edit prices (403 on edit)."
+     },
+     {
+      "n": 89,
+      "text": "Administrators can create and edit customer companies with name, account number, contact details, billing address, price list and active status; duplicate account numbers are rejected with 409."
+     },
+     {
+      "n": 90,
+      "text": "Office Staff can edit a company's contact details and billing address but are refused (403) if they try to change its price list or active status."
+     },
+     {
+      "n": 91,
+      "text": "Office Staff and Administrators can add, edit, deactivate or remove a company's delivery addresses with specified fields, affecting checkout address availability."
+     },
+     {
+      "n": 92,
+      "text": "Staff can search customers by name or account number, viewing details, price list and status, and can open a company's users, orders and invoices."
+     },
+     {
+      "n": 93,
+      "text": "Administrators can edit and validate system settings (cutoff time, timezone, low-stock threshold, non-working dates, booking horizon, overdue days, tax rate, currency), applied to subsequent calculations; invalid values are rejected, and Office Staff cannot edit settings (403)."
+     },
+     {
+      "n": 94,
+      "text": "Creating, changing or deleting key entities (orders, invoices, companies, addresses, users, products, categories, price lists, prices, compatibility records) records an audit entry with acting user/system, timestamp, entity identity and field-level old/new values."
+     },
+     {
+      "n": 95,
+      "text": "Audit history is visible only to administrators, filterable by record type, record and date range, and entries cannot be edited or deleted by anyone."
+     },
+     {
+      "n": 96,
+      "text": "Office Staff and Administrators can request sales-by-period, sales-by-customer and top-products reports for a date range, shown on screen and as CSV, computed from net invoice totals in that range, with top products limited to the top 20 by quantity and net sales; Buyers are refused access (403)."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

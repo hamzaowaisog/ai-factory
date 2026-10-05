@@ -223,6 +223,8 @@ export function replay(events: LedgerEvent[]): RunState {
         const r = rec(step);
         r.status = "failed";
         r.failData = data;
+        // a round of questions about the step's failing checks starts its attempts afresh, like a raised attempt limit (src/stages/gate-questions.ts)
+        if (data.action === "questions") r.attempts = 0;
         if (typeof data.signature === "string") r.failureSignatures.push(data.signature);
         stopped(step);
         closeActive(ev.ts);

@@ -3,9 +3,10 @@
 // Summary must link to each sheet's own total; and the figures must match what the estimate stores.
 import ExcelJS from "exceljs";
 import type { Breakdown, Estimate } from "../contracts/index.js";
+import { agentHours } from "./durations.js";
 import { effortHours } from "./hours.js";
 import { evalFormula, type CellValue } from "./xl-formula.js";
-import { DESIGN_SWITCH_LABEL, MANDATORY_SHEETS, OPTIONAL_TEAM_SHEETS, SHEET, SUMMARY_LABEL, TEAM_SHEETS, type Audience } from "./export.js";
+import { ALL_TASKS_SHEET, DESIGN_SWITCH_LABEL, MANDATORY_SHEETS, OPTIONAL_TEAM_SHEETS, SHEET, SUMMARY_LABEL, TEAM_SHEETS, type Audience } from "./export.js";
 import type { LintIssue } from "./lint.js";
 
 const EPS = 0.011;
@@ -34,7 +35,7 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
   const issues: LintIssue[] = [];
   const bad = (check: string, message: string) => issues.push({ check, message });
 
-  for (const s of MANDATORY_SHEETS) if (!wb.getWorksheet(s)) bad("sheet-missing", `sheet ${s} is missing`);
+  for (const s of [...MANDATORY_SHEETS, ALL_TASKS_SHEET]) if (!wb.getWorksheet(s)) bad("sheet-missing", `sheet ${s} is missing`);
   for (const s of TEAM_SHEETS) {
     const has = !!wb.getWorksheet(s);
     if (audience === "client" && has) bad("client-leak", `the client file carries the team sheet ${s}`);
@@ -72,11 +73,12 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
     });
   }
 
-  // every breakdown task appears exactly once, on a track sheet, at its effort hours
+  // every breakdown task appears exactly once, on a track sheet, at its effort hours and its agent hours
   const sized = new Map(e.tasks.map((t) => [t.taskId, t]));
+  const task = new Map(b.tasks.map((t) => [t.id, t]));
   const seen = new Map<string, number>();
   for (const ws of wb.worksheets) {
-    if (ws.name === "Summary" || (TEAM_SHEETS as readonly string[]).includes(ws.name) || (OPTIONAL_TEAM_SHEETS as readonly string[]).includes(ws.name)) continue;
+    if (ws.name === "Summary" || ws.name === ALL_TASKS_SHEET || (TEAM_SHEETS as readonly string[]).includes(ws.name) || (OPTIONAL_TEAM_SHEETS as readonly string[]).includes(ws.name)) continue;
     ws.eachRow((_row, rowNo) => {
       const id = plain(ws.getCell(`I${rowNo}`).value);
       if (typeof id !== "string" || !/^EST-\d+$/.test(id)) return;
@@ -86,6 +88,12 @@ export function lintWorkbook(wb: ExcelJS.Workbook, e: Estimate, b: Pick<Breakdow
       if (s) {
         const eff = effortHours(s);
         if (typeof min !== "number" || typeof max !== "number" || !near(min, eff.min) || !near(max, eff.max)) bad("task-hours", `${id} on ${ws.name} shows ${min}-${max}, the estimate says ${eff.min}-${eff.max}`);
+        const t = task.get(id);
+        if (t) {
+          const ag = agentHours(s, t, e.elapsed.basis);
+          const amin = plain(ws.getCell(`J${rowNo}`).value), amax = plain(ws.getCell(`K${rowNo}`).value);
+          if (typeof amin !== "number" || typeof amax !== "number" || !near(amin, ag.min) || !near(amax, ag.max)) bad("agent-hours", `${id} on ${ws.name} shows agent ${amin}-${amax}, the estimate says ${ag.min}-${ag.max}`);
+        }
       }
     });
   }

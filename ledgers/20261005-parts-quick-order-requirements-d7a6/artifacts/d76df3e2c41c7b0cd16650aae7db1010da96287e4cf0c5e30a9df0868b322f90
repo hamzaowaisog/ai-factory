@@ -1,0 +1,78 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-43",
+      "ears": "If the request to the parts API for current prices fails with a network or server error when the cart opens, then the cart shall show the cart lines without unit prices, line totals or totals, show an error message with a \"Try again\" button, and hide checkout until current prices load.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-4",
+       "Q-5",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-43.1",
+        "given": "A CartStore holding 3 of BP-200 \"Brake Pad\" saved at unit price 12.50, and a parts API client stub that fails with a network error (no response)",
+        "when": "CartStore.refresh(partsClient) is called and then CartStore.lines(), CartStore.subtotal() and CartStore.totals(\"STANDARD\") are called",
+        "then": "The value returned by refresh has an error field set; the returned lines list has one BP-200 line with name \"Brake Pad\", quantity value 3, unitPrice null and lineTotal null; subtotal() returns null and totals() returns null, so the saved value 12.50 is never returned",
+        "level": "unit"
+       },
+       {
+        "id": "AC-43.2",
+        "given": "A CartStore holding 3 of BP-200 saved at unit price 12.50, and a parts API client stub that returns status 500",
+        "when": "CartStore.refresh(partsClient) is called and then CartStore.lines() and CartStore.subtotal() are called",
+        "then": "The value returned by refresh has an error field set, the returned BP-200 line has quantity value 3, unitPrice null and lineTotal null, and subtotal() returns null",
+        "level": "unit"
+       },
+       {
+        "id": "AC-43.3",
+        "given": "The CartStore after AC-43.2, and the parts API client stub now returning BP-200 with price 14.00 and stock 10",
+        "when": "CartStore.refresh(partsClient) is called again and then CartStore.lines() and CartStore.subtotal() are called",
+        "then": "The value returned by refresh has no error field set, the returned line has unitPrice 14.00 and lineTotal 42.00, and the returned subtotal value is 42.00",
+        "level": "unit"
+       },
+       {
+        "id": "AC-43.4",
+        "given": "A buyer whose stored cart holds 3 of BP-200 \"Brake Pad\" saved at £12.50, and GET /api/parts returning status 500",
+        "when": "they open /cart",
+        "then": "The line is shown with name \"Brake Pad\", part number BP-200 and quantity 3; no unit price, line total, subtotal, delivery charge or total is displayed and £12.50 is not displayed anywhere on the page; an error message and a \"Try again\" button are shown; no address field, delivery option or \"Place order\" button is displayed",
+        "level": "manual"
+       },
+       {
+        "id": "AC-43.5",
+        "given": "The /cart screen from AC-43.4, and GET /api/parts now returning BP-200 with price £14.00 and stock 10",
+        "when": "the buyer presses \"Try again\"",
+        "then": "The error message and \"Try again\" button are no longer shown, the unit price shown is £14.00 with line total £42.00, and the address field, delivery options and \"Place order\" button are displayed",
+        "level": "manual"
+       }
+      ]
+     }
+    ],
+    "assumptions": [
+     "ASM-19: The API endpoints are GET /api/parts (q, category, brand, page), GET /api/parts/brands, POST /api/orders, GET /api/orders (status), GET /api/orders/{orderNumber} and POST /api/orders/{orderNumber}/cancel. Paths can be renamed as long as the behaviour stays the same.",
+     "ASM-20: Cart and checkout logic in the React app sits in public client classes CartStore (addPart, setQuantity, removeLine, lines, count, subtotal, totals, applyStockLimits, refresh) and CheckoutForm (canPlaceOrder, startSubmit, finishSubmit), so it can be unit-tested directly; CartStore.refresh takes a parts API client so the outbound call can be stubbed.",
+     "ASM-21: API error statuses are 400 for invalid input, 404 for an order that doesn't exist or belongs to another buyer, and 409 for stock or cancel conflicts. Session handling is left to the existing company login (Q-4).",
+     "ASM-22: A quantity that isn't a whole number is rounded to the nearest whole number before being limited to 1–99 (from ASM-12).",
+     "ASM-23: Pressing \"Add to cart\" when the line quantity already equals the part's stock leaves the quantity unchanged and shows \"Only n available\", the same as REQ-14.",
+     "ASM-24: The order total is calculated on the server from current part prices and the delivery charge. Prices and totals the client sends are ignored.",
+     "ASM-25: When a cart line's part is found to have 0 stock (on a 409 stock conflict or when the cart opens), the line is removed from the cart rather than set to quantity 0, with the message \"<part name> is now out of stock\", so every remaining line keeps a quantity of 1–99 (settled by Q-1).",
+     "ASM-26: When the cart opens, CartStore.refresh reads the current price and stock of the cart's parts from the existing parts API (GET /api/parts filtered to the cart's part numbers); any price saved in local storage is never shown (Q-3).",
+     "ASM-27: The network-error message text is \"Your order may have been placed. Check My orders before trying again.\"; the exact wording can change as long as it tells the buyer to check My orders before retrying (Q-2).",
+     "ASM-28: When the parts API call in CartStore.refresh fails (network error or 5xx status), refresh returns a result with an error field set, lines() returns each line's name, part number and quantity with unitPrice and lineTotal null, and subtotal() and totals() return null until a later refresh succeeds; the cart lines and quantities are kept unchanged (Q-5). The exact error message wording is free."
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

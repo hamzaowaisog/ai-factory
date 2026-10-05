@@ -1,0 +1,270 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-1",
+      "category": "data-model",
+      "text": "Is an invoice exactly 7 days past its due date overdue, or does it only become overdue from day 8?",
+      "options": [
+       "Overdue from day 7 (today >= due date + 7)",
+       "Overdue from day 8 (today > due date + 7)"
+      ],
+      "recommended": "Overdue from day 7 (today >= due date + 7)",
+      "reason": "\"When an invoice is 7 days past its due date\" reads most naturally as the 7th day itself.",
+      "spans": [
+       "I-1",
+       "I-5",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which invoices get the overdue status and can be sent reminders.",
+      "difference": "D-1"
+     },
+     {
+      "id": "Q-2",
+      "category": "errors",
+      "text": "Can staff send another reminder for an invoice that was already reminded, and how do we stop accidental double clicks?",
+      "options": [
+       "Repeat reminders allowed at any time; only accidental double submits are blocked",
+       "Repeat reminders allowed, but a warning shows if one was sent in the last 24 hours",
+       "Only one reminder per invoice per day"
+      ],
+      "recommended": "Repeat reminders allowed at any time; only accidental double submits are blocked",
+      "reason": "Follow-up reminders are normal. Blocking double submits stops accidental duplicate emails without limiting staff.",
+      "spans": [
+       "I-2",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Controls how many emails go out to customers and how many history records are written.",
+      "difference": "D-2"
+     },
+     {
+      "id": "Q-3",
+      "category": "data-model",
+      "text": "Does reminder history record only successful sends, or every attempt including failures?",
+      "options": [
+       "Every attempt, each with a delivery status (sent / failed + reason)",
+       "Only successful sends; failures are stored separately"
+      ],
+      "recommended": "Every attempt, each with a delivery status (sent / failed + reason)",
+      "reason": "Keeping one record per attempt makes it easy to show who tried, when, and why it failed.",
+      "spans": [
+       "I-3",
+       "I-4",
+       "I-7"
+      ],
+      "impact": 3,
+      "impactReason": "Changes the data model and what the invoice history shows.",
+      "difference": "D-3"
+     },
+     {
+      "id": "Q-4",
+      "category": "external",
+      "text": "Where do invoices and customers come from? The request mentions the client's existing .NET 8 API, but no repository was found.",
+      "options": [
+       "They already exist in the client's API and Postgres database; we read them from there",
+       "This app creates new invoice and customer tables, filled by import or sync",
+       "Staff enter invoices in this app"
+      ],
+      "recommended": "They already exist in the client's API and Postgres database; we read them from there",
+      "reason": "The request says this is the client's existing API, so the invoice data most likely already exists there.",
+      "spans": [
+       "I-1",
+       "I-2",
+       "I-5",
+       "I-7"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which data we own and where the overdue status is written."
+     },
+     {
+      "id": "Q-5",
+      "category": "existing-data",
+      "text": "Payments are out of scope, so how does an invoice leave the overdue list (for example, once it is paid)?",
+      "options": [
+       "A paid/closed status in the existing invoice data removes it automatically",
+       "Staff can manually mark an invoice resolved in this app",
+       "It stays on the list until the due date changes"
+      ],
+      "recommended": "A paid/closed status in the existing invoice data removes it automatically",
+      "reason": "Without a way off the list, it only ever grows. Reusing existing payment status adds no payment features.",
+      "spans": [
+       "I-1",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which invoices appear on the overdue list and whether this app changes invoice status."
+     },
+     {
+      "id": "Q-6",
+      "category": "data-model",
+      "text": "Is the overdue status saved by a scheduled job, or worked out from the due date each time it is needed?",
+      "options": [
+       "Worked out from due date and today's date each time it is queried",
+       "Saved by a daily scheduled job"
+      ],
+      "recommended": "Worked out from due date and today's date each time it is queried",
+      "reason": "It is never out of date and needs no scheduled job that could fail.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 2,
+      "impactReason": "Affects whether the list is up to date and what parts the system needs."
+     },
+     {
+      "id": "Q-7",
+      "category": "identifiers",
+      "text": "Is the 7-day overdue threshold fixed in code or a configuration setting?",
+      "options": [
+       "Configuration setting, default 7",
+       "Constant in code"
+      ],
+      "recommended": "Configuration setting, default 7",
+      "reason": "Businesses often change grace periods, and a setting costs little.",
+      "spans": [
+       "I-1"
+      ],
+      "impact": 2,
+      "impactReason": "Changes which invoices count as overdue if it is ever changed."
+     },
+     {
+      "id": "Q-8",
+      "category": "terminology",
+      "text": "How is 'days overdue' counted for display and filtering?",
+      "options": [
+       "Days since the due date",
+       "Days since the invoice became overdue (due date + 7)"
+      ],
+      "recommended": "Days since the due date",
+      "reason": "This is the usual accounting meaning, and staff and customers will understand it.",
+      "spans": [
+       "I-5",
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the numbers shown and what the filter returns."
+     },
+     {
+      "id": "Q-9",
+      "category": "scope",
+      "text": "What kind of input is the days-overdue filter?",
+      "options": [
+       "Minimum days (e.g. 30+)",
+       "Fixed buckets (7–30, 31–60, 61–90, 90+)",
+       "Free min/max range"
+      ],
+      "recommended": "Fixed buckets (7–30, 31–60, 61–90, 90+)",
+      "reason": "Buckets match standard ageing reports and are simple to use.",
+      "spans": [
+       "I-5",
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "Changes the filter screen and the query behind it."
+     },
+     {
+      "id": "Q-10",
+      "category": "external",
+      "text": "Which email service sends reminders, and what counts as a delivery failure?",
+      "options": [
+       "Transactional provider (e.g. SendGrid/Postmark) with send errors plus bounces reported later by webhook",
+       "SMTP server; only immediate send errors count as failures",
+       "Client's existing email service in the .NET API"
+      ],
+      "recommended": "Transactional provider (e.g. SendGrid/Postmark) with send errors plus bounces reported later by webhook",
+      "reason": "Most real delivery failures are bounces that arrive after the send. Only a provider that reports bounces lets us catch them.",
+      "spans": [
+       "I-2",
+       "I-4"
+      ],
+      "impact": 3,
+      "impactReason": "Decides whether the system talks to an outside service and how the failure status gets updated."
+     },
+     {
+      "id": "Q-11",
+      "category": "roles",
+      "text": "Who can view the overdue list and send reminders, and where do staff accounts come from?",
+      "options": [
+       "Any authenticated staff user, using the existing API's authentication",
+       "Only staff with a specific role (e.g. accounts)",
+       "New staff accounts managed in this app"
+      ],
+      "recommended": "Any authenticated staff user, using the existing API's authentication",
+      "reason": "The request names no roles, and reusing the existing login gives us the sender's identity for history.",
+      "spans": [
+       "I-2",
+       "I-3",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Decides who can see invoices and send emails to customers."
+     },
+     {
+      "id": "Q-12",
+      "category": "data-model",
+      "text": "Which address does a reminder go to, and what if the customer has none or several?",
+      "options": [
+       "One billing email on the customer record; sending is blocked with an error if it is missing",
+       "All contact emails on the customer",
+       "Staff choose or enter the address when sending"
+      ],
+      "recommended": "One billing email on the customer record; sending is blocked with an error if it is missing",
+      "reason": "Simplest predictable behaviour, and it matches all the sketches.",
+      "spans": [
+       "I-2",
+       "I-4"
+      ],
+      "impact": 2,
+      "impactReason": "Decides who receives the email and what error staff see."
+     },
+     {
+      "id": "Q-13",
+      "category": "external",
+      "text": "Who supplies the reminder email wording and the from address?",
+      "options": [
+       "Fixed template in code with a configurable from address",
+       "Template editable by staff in the app",
+       "Client provides wording; template stored in config"
+      ],
+      "recommended": "Client provides wording; template stored in config",
+      "reason": "The wording goes to customers, so the client should own it, and keeping it in config means no edit screen to build.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 1,
+      "impactReason": "Only affects wording and setup."
+     },
+     {
+      "id": "Q-14",
+      "category": "data-model",
+      "text": "Which timezone is used to decide what day it is for the overdue calculation?",
+      "options": [
+       "The business's local timezone (configured)",
+       "UTC"
+      ],
+      "recommended": "The business's local timezone (configured)",
+      "reason": "Due dates are local business dates, so UTC could make an invoice overdue a day early or late.",
+      "spans": [
+       "I-1",
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "Changes which day an invoice becomes overdue."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

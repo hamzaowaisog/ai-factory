@@ -1,0 +1,653 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Order",
+     "subtitle": "ORD-24-01873 · Halden Motors Ltd · deliver Thu 12 Mar 2026",
+     "crumbs": [
+      "Orders",
+      "ORD-24-01873"
+     ],
+     "badge": "Received",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "ORD-24-01873",
+       "lead": {
+        "label": "Order total (net)",
+        "value": "£526.00"
+       },
+       "rows": [
+        {
+         "label": "Order date",
+         "value": "Tue 10 Mar 2026, 16:21"
+        },
+        {
+         "label": "Customer",
+         "value": "Halden Motors Ltd"
+        },
+        {
+         "label": "Delivery address",
+         "value": "Unit 4, Brookfield Ind. Est., Leeds LS10 1PQ"
+        },
+        {
+         "label": "Requested delivery",
+         "value": "Thu 12 Mar 2026"
+        },
+        {
+         "label": "Status",
+         "value": "Received",
+         "badge": true
+        },
+        {
+         "label": "Created",
+         "value": "J. Walsh (buyer) · 10 Mar 2026 16:21"
+        },
+        {
+         "label": "Last changed",
+         "value": "Priya Nair · 11 Mar 2026 09:42"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Confirm order",
+         "variant": "primary",
+         "icon": "check"
+        },
+        {
+         "label": "Advance status",
+         "variant": "secondary",
+         "state": "disabled",
+         "hint": "Confirm the order first. Then: Picking, Out for delivery, Delivered"
+        },
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "View customer",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no",
+        "Description",
+        "Qty",
+        "Unit price",
+        "Line total",
+        "Stock"
+       ],
+       "rows": [
+        [
+         "BRK-4471",
+         "Front brake pad set, Focus Mk4",
+         "6",
+         "£38.50",
+         "£231.00",
+         "Low · 6 left"
+        ],
+        [
+         "FLT-1120",
+         "Oil filter",
+         "12",
+         "£4.20",
+         "£50.40",
+         "In stock"
+        ],
+        [
+         "WIP-0650",
+         "Wiper blade 650 mm",
+         "4",
+         "£7.95",
+         "£31.80",
+         "In stock"
+        ],
+        [
+         "BAT-075",
+         "Battery 075 12V 70Ah",
+         "2",
+         "£68.00",
+         "£136.00",
+         "In stock"
+        ],
+        [
+         "SPK-3302",
+         "Iridium spark plug",
+         "8",
+         "£9.60",
+         "£76.80",
+         "Out of stock"
+        ]
+       ],
+       "statusColumn": 5,
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Remove lines",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Quantity: BRK-4471 Front brake pad set",
+         "kind": "number",
+         "value": "6",
+         "required": true,
+         "help": "Available: 6",
+         "error": "Only 6 available for BRK-4471"
+        },
+        {
+         "label": "Delivery address",
+         "kind": "select",
+         "value": "Unit 4, Brookfield Ind. Est., LS10 1PQ",
+         "options": [
+          "Unit 4, Brookfield Ind. Est., LS10 1PQ",
+          "12 Kirkstall Road, Leeds LS3 1HR"
+         ],
+         "required": true,
+         "error": "This delivery address isn't one of Halden Motors Ltd's addresses"
+        },
+        {
+         "label": "Delivery date",
+         "kind": "date",
+         "value": "Thu 12 Mar 2026",
+         "required": true,
+         "help": "Working days 12 Mar – 25 Mar 2026",
+         "error": "Delivery date Sat 14 Mar 2026 is not a working day"
+        },
+        {
+         "label": "Note",
+         "kind": "textarea",
+         "value": "Deliver before 10:00, side gate on Brookfield Way",
+         "help": "Shown to the buyer and on the delivery list"
+        }
+       ],
+       "submit": "Save changes"
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "BRK-4471 Front brake pad set: 8 → 6",
+         "meta": "Priya Nair · 11 Mar 2026 09:42 · emailed J. Walsh",
+         "badge": "Quantity"
+        },
+        {
+         "title": "OIL-5W30-5 Engine oil 5W-30 5L: 4 → removed",
+         "meta": "Priya Nair · 11 Mar 2026 09:40 · emailed J. Walsh",
+         "badge": "Removed"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "10 Mar 16:21",
+         "title": "Received",
+         "meta": "J. Walsh · submitted in portal",
+         "status": "now"
+        },
+        {
+         "time": "Next",
+         "title": "Confirmed",
+         "meta": "Needs all lines active and in stock",
+         "status": "next"
+        },
+        {
+         "time": "—",
+         "title": "Picking",
+         "status": "next"
+        },
+        {
+         "time": "—",
+         "title": "Out for delivery",
+         "status": "next"
+        },
+        {
+         "time": "Due 12 Mar",
+         "title": "Delivered",
+         "meta": "Invoice created as Unpaid on delivery",
+         "status": "next"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "View customer",
+       "to": "S-21"
+      },
+      {
+       "from": "BRK-4471",
+       "to": "S-27"
+      },
+      {
+       "from": "SPK-3302",
+       "to": "S-27"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Confirm order",
+       "title": "Confirm ORD-24-01873?",
+       "text": "Sets the status to Confirmed and logs you on the timeline. Lines that are inactive or over stock will be listed and block confirmation.",
+       "actions": [
+        {
+         "label": "Confirm",
+         "variant": "primary"
+        },
+        {
+         "label": "Back",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Cancel order",
+       "title": "Cancel this order?",
+       "text": "The order becomes Cancelled and J. Walsh at Halden Motors is emailed the reason. This can't be undone.",
+       "blocks": [
+        {
+         "type": "form",
+         "fields": [
+          {
+           "label": "Reason",
+           "kind": "textarea",
+           "required": true,
+           "placeholder": "e.g. Customer ordered the wrong pads, re-ordering",
+           "error": "Enter a reason for cancelling"
+          }
+         ],
+         "submit": "Cancel with reason"
+        }
+       ],
+       "actions": [
+        {
+         "label": "Cancel with reason",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep order",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Confirm",
+       "text": "ORD-24-01873 confirmed",
+       "tone": "ok"
+      },
+      {
+       "after": "Save changes",
+       "text": "Changes saved. J. Walsh emailed the changed lines",
+       "tone": "ok"
+      },
+      {
+       "after": "Cancel with reason",
+       "text": "Order cancelled. Reason emailed to the customer",
+       "tone": "info"
+      }
+     ],
+     "copy": {
+      "validation": "Fix the highlighted fields: quantities must fit stock, dates must be working days and addresses must belong to this customer.",
+      "error": "We couldn't load or save this order. The last saved version is shown.",
+      "success": "Changes saved and the customer has been emailed the changed lines."
+     }
+    },
+    "mockFull": {
+     "title": "Order",
+     "subtitle": "ORD-24-01873 · Halden Motors Ltd · deliver Thu 12 Mar 2026",
+     "crumbs": [
+      "Orders",
+      "ORD-24-01873"
+     ],
+     "badge": "Received",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "ORD-24-01873",
+       "lead": {
+        "label": "Order total (net)",
+        "value": "£956.80"
+       },
+       "rows": [
+        {
+         "label": "Order date",
+         "value": "Tue 10 Mar 2026, 16:21"
+        },
+        {
+         "label": "Customer",
+         "value": "Halden Motors Ltd"
+        },
+        {
+         "label": "Delivery address",
+         "value": "Unit 4, Brookfield Ind. Est., Leeds LS10 1PQ"
+        },
+        {
+         "label": "Requested delivery",
+         "value": "Thu 12 Mar 2026"
+        },
+        {
+         "label": "Status",
+         "value": "Received",
+         "badge": true
+        },
+        {
+         "label": "Created",
+         "value": "J. Walsh (buyer) · 10 Mar 2026 16:21"
+        },
+        {
+         "label": "Last changed",
+         "value": "Priya Nair · 11 Mar 2026 10:05"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Confirm order",
+         "variant": "primary",
+         "icon": "check"
+        },
+        {
+         "label": "Advance status",
+         "variant": "secondary",
+         "state": "disabled",
+         "hint": "Confirm the order first. Then: Picking, Out for delivery, Delivered"
+        },
+        {
+         "label": "Cancel order",
+         "variant": "danger",
+         "icon": "trash"
+        },
+        {
+         "label": "View customer",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no",
+        "Description",
+        "Qty",
+        "Unit price",
+        "Line total",
+        "Stock"
+       ],
+       "rows": [
+        [
+         "BRK-4471",
+         "Front brake pad set, Focus Mk4",
+         "6",
+         "£38.50",
+         "£231.00",
+         "Low · 6 left"
+        ],
+        [
+         "BRK-2210",
+         "Rear brake disc pair",
+         "2",
+         "£54.90",
+         "£109.80",
+         "In stock"
+        ],
+        [
+         "FLT-1120",
+         "Oil filter",
+         "12",
+         "£4.20",
+         "£50.40",
+         "In stock"
+        ],
+        [
+         "FLT-2045",
+         "Air filter",
+         "6",
+         "£9.75",
+         "£58.50",
+         "In stock"
+        ],
+        [
+         "FLT-3301",
+         "Cabin pollen filter",
+         "6",
+         "£8.40",
+         "£50.40",
+         "Low · 7 left"
+        ],
+        [
+         "WIP-0650",
+         "Wiper blade 650 mm",
+         "4",
+         "£7.95",
+         "£31.80",
+         "In stock"
+        ],
+        [
+         "BAT-075",
+         "Battery 075 12V 70Ah",
+         "2",
+         "£68.00",
+         "£136.00",
+         "In stock"
+        ],
+        [
+         "SPK-3302",
+         "Iridium spark plug",
+         "8",
+         "£9.60",
+         "£76.80",
+         "Out of stock"
+        ],
+        [
+         "BLB-H7",
+         "H7 headlamp bulb 55W",
+         "10",
+         "£3.85",
+         "£38.50",
+         "In stock"
+        ],
+        [
+         "CLT-G12-1",
+         "Coolant G12, 1 L",
+         "12",
+         "£5.10",
+         "£61.20",
+         "In stock"
+        ],
+        [
+         "TBK-0981",
+         "Timing belt kit",
+         "1",
+         "£112.40",
+         "£112.40",
+         "Inactive"
+        ]
+       ],
+       "statusColumn": 5,
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Remove lines",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Quantity: BRK-4471 Front brake pad set",
+         "kind": "number",
+         "value": "6",
+         "required": true,
+         "help": "Available: 6",
+         "error": "Only 6 available for BRK-4471"
+        },
+        {
+         "label": "Delivery address",
+         "kind": "select",
+         "value": "Unit 4, Brookfield Ind. Est., LS10 1PQ",
+         "options": [
+          "Unit 4, Brookfield Ind. Est., LS10 1PQ",
+          "12 Kirkstall Road, Leeds LS3 1HR",
+          "Bodyshop, 3 Sayner Lane, LS10 1LZ"
+         ],
+         "required": true,
+         "error": "This delivery address isn't one of Halden Motors Ltd's addresses"
+        },
+        {
+         "label": "Delivery date",
+         "kind": "date",
+         "value": "Thu 12 Mar 2026",
+         "required": true,
+         "help": "Working days 12 Mar – 25 Mar 2026",
+         "error": "Delivery date Sat 14 Mar 2026 is not a working day"
+        },
+        {
+         "label": "Note",
+         "kind": "textarea",
+         "value": "Deliver before 10:00, side gate on Brookfield Way",
+         "help": "Shown to the buyer and on the delivery list"
+        }
+       ],
+       "submit": "Save changes"
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "BRK-4471 Front brake pad set: 8 → 6",
+         "meta": "Priya Nair · 11 Mar 2026 09:42 · emailed J. Walsh",
+         "badge": "Quantity"
+        },
+        {
+         "title": "OIL-5W30-5 Engine oil 5W-30 5L: 4 → removed",
+         "meta": "Priya Nair · 11 Mar 2026 09:40 · emailed J. Walsh",
+         "badge": "Removed"
+        },
+        {
+         "title": "FLT-3301 Cabin pollen filter: 10 → 6",
+         "meta": "Priya Nair · 11 Mar 2026 09:38 · emailed J. Walsh",
+         "badge": "Quantity"
+        },
+        {
+         "title": "BLB-H7 H7 headlamp bulb 55W: 6 → 10",
+         "meta": "Tom Fairley · 11 Mar 2026 08:57 · emailed J. Walsh",
+         "badge": "Quantity"
+        },
+        {
+         "title": "WIP-0500 Wiper blade 500 mm: 2 → removed",
+         "meta": "Tom Fairley · 11 Mar 2026 08:55 · emailed J. Walsh",
+         "badge": "Removed"
+        },
+        {
+         "title": "Delivery date: Wed 11 Mar → Thu 12 Mar 2026",
+         "meta": "Tom Fairley · 11 Mar 2026 08:52",
+         "badge": "Date"
+        },
+        {
+         "title": "Note updated",
+         "meta": "Priya Nair · 11 Mar 2026 10:05",
+         "badge": "Note"
+        }
+       ]
+      },
+      {
+       "type": "timeline",
+       "items": [
+        {
+         "time": "10 Mar 16:21",
+         "title": "Received",
+         "meta": "J. Walsh · submitted in portal",
+         "status": "done"
+        },
+        {
+         "time": "11 Mar 08:52",
+         "title": "Delivery date moved to Thu 12 Mar",
+         "meta": "Tom Fairley",
+         "status": "done"
+        },
+        {
+         "time": "11 Mar 08:57",
+         "title": "2 lines amended",
+         "meta": "Tom Fairley · amendment email sent",
+         "status": "done"
+        },
+        {
+         "time": "11 Mar 09:42",
+         "title": "3 lines amended",
+         "meta": "Priya Nair · amendment email sent",
+         "status": "done"
+        },
+        {
+         "time": "11 Mar 10:05",
+         "title": "Note updated · awaiting confirmation",
+         "meta": "Priya Nair · status still Received",
+         "status": "now"
+        },
+        {
+         "time": "Next",
+         "title": "Confirmed",
+         "meta": "Blocked: SPK-3302 out of stock, TBK-0981 inactive",
+         "status": "next"
+        },
+        {
+         "time": "—",
+         "title": "Picking",
+         "status": "next"
+        },
+        {
+         "time": "—",
+         "title": "Out for delivery",
+         "meta": "Van 2 · Leeds south round",
+         "status": "next"
+        },
+        {
+         "time": "Due 12 Mar",
+         "title": "Delivered",
+         "meta": "Invoice created as Unpaid on delivery",
+         "status": "next"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "validation": "Fix the highlighted fields: quantities must fit stock, dates must be working days and addresses must belong to this customer.",
+      "error": "We couldn't load or save this order. The last saved version is shown.",
+      "success": "Changes saved and the customer has been emailed the changed lines."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

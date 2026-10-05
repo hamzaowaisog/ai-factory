@@ -1,0 +1,309 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Delivery list",
+     "subtitle": "Orders due for delivery on one date, ready to export for the drivers",
+     "crumbs": [
+      "Orders",
+      "Delivery list"
+     ],
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Delivery date",
+         "kind": "date",
+         "value": "Tue 14 Apr 2026",
+         "required": true,
+         "help": "Today by default. Cancelled orders are left out."
+        }
+       ],
+       "submit": "Show deliveries"
+      },
+      {
+       "type": "text",
+       "body": "6 orders due on Tue 14 Apr 2026 · 23 lines · 5 customers"
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Export CSV",
+         "variant": "primary",
+         "icon": "download",
+         "hint": "One row per order: number, customer, address, contact, date, lines, note, status"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Customer",
+        "Address · contact",
+        "Lines",
+        "Note",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24817",
+         "Hallam Road Garage",
+         "14 Hallam Rd, Sheffield S10 1BU · D. Pryor 07700 900412",
+         "Brake pads ×2, front disc ×2, +1 more",
+         "Rear gate, ring bell",
+         "Confirmed"
+        ],
+        [
+         "ORD-24822",
+         "Kestrel Autos",
+         "Unit 3, Mill Lane, Leeds LS12 · S. Khan 0113 496 0218",
+         "Oil filter ×6, 5W-30 5L ×4",
+         "—",
+         "Submitted"
+        ],
+        [
+         "ORD-24825",
+         "Brightside Motors",
+         "88 Attercliffe Rd, Sheffield S4 · J. Walsh 07700 900877",
+         "Clutch kit ×1",
+         "Before 11:00 please",
+         "Dispatched"
+        ],
+        [
+         "ORD-24829",
+         "Hallam Road Garage",
+         "14 Hallam Rd, Sheffield S10 1BU · D. Pryor 07700 900412",
+         "Wiper blade 24\" ×4",
+         "Second drop today",
+         "Confirmed"
+        ],
+        [
+         "ORD-24831",
+         "Peak Fleet Services",
+         "Station Yard, Chesterfield S41 · M. Ortega 01246 555 093",
+         "Air filter ×8, cabin filter ×8, +2 more",
+         "Ask for workshop, not office",
+         "Submitted"
+        ],
+        [
+         "ORD-24804",
+         "Don Valley Tyres & MOT",
+         "2 Brightside Ln, Rotherham S60 · L. Byrne 07700 900155",
+         "Bulb H7 ×10",
+         "—",
+         "Delivered"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 0,
+       "sortDir": "asc"
+      }
+     ],
+     "links": [
+      {
+       "from": "ORD-24817",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24822",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24825",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24829",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24831",
+       "to": "S-17"
+      },
+      {
+       "from": "ORD-24804",
+       "to": "S-17"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Export CSV",
+       "text": "deliveries-2026-04-14.csv downloaded · 6 orders",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No deliveries on this date",
+      "emptyHint": "No open orders ask for delivery on this day. Pick another date, or the CSV will contain headers only."
+     }
+    },
+    "mockFull": {
+     "title": "Delivery list",
+     "subtitle": "Orders due for delivery on one date, ready to export for the drivers",
+     "crumbs": [
+      "Orders",
+      "Delivery list"
+     ],
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Delivery date",
+         "kind": "date",
+         "value": "Tue 14 Apr 2026",
+         "required": true,
+         "help": "Today by default. Cancelled orders are left out."
+        }
+       ],
+       "submit": "Show deliveries"
+      },
+      {
+       "type": "text",
+       "body": "12 orders due on Tue 14 Apr 2026 · 51 lines · 10 customers · 2 cancelled orders excluded"
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Export CSV",
+         "variant": "primary",
+         "icon": "download",
+         "hint": "One row per order: number, customer, address, contact, date, lines, note, status"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Order",
+        "Customer",
+        "Address · contact",
+        "Lines",
+        "Note",
+        "Status"
+       ],
+       "rows": [
+        [
+         "ORD-24796",
+         "Don Valley Tyres & MOT",
+         "2 Brightside Ln, Rotherham S60 · L. Byrne 07700 900155",
+         "Bulb H7 ×10",
+         "—",
+         "Delivered"
+        ],
+        [
+         "ORD-24804",
+         "Crookes Car Care",
+         "51 Crookes Rd, Sheffield S10 · P. Nwosu 0114 268 3307",
+         "Spark plug ×8, coil pack ×2",
+         "Leave with neighbour at 49",
+         "Delivered"
+        ],
+        [
+         "ORD-24811",
+         "Wharncliffe Commercials",
+         "Unit 9, Station Rd, Stocksbridge S36 · R. Hale 07700 900631",
+         "DPF cleaner ×12, AdBlue 10L ×6, +3 more",
+         "Forklift on site",
+         "Dispatched"
+        ],
+        [
+         "ORD-24817",
+         "Hallam Road Garage",
+         "14 Hallam Rd, Sheffield S10 1BU · D. Pryor 07700 900412",
+         "Brake pads ×2, front disc ×2, +1 more",
+         "Rear gate, ring bell",
+         "Confirmed"
+        ],
+        [
+         "ORD-24819",
+         "Brightside Motors",
+         "88 Attercliffe Rd, Sheffield S4 · J. Walsh 07700 900877",
+         "Timing belt kit ×1, water pump ×1",
+         "—",
+         "Dispatched"
+        ],
+        [
+         "ORD-24822",
+         "Kestrel Autos",
+         "Unit 3, Mill Lane, Leeds LS12 · S. Khan 0113 496 0218",
+         "Oil filter ×6, 5W-30 5L ×4",
+         "—",
+         "Submitted"
+        ],
+        [
+         "ORD-24825",
+         "Brightside Motors",
+         "88 Attercliffe Rd, Sheffield S4 · J. Walsh 07700 900877",
+         "Clutch kit ×1",
+         "Before 11:00 please",
+         "Dispatched"
+        ],
+        [
+         "ORD-24827",
+         "Ecclesall Service Centre",
+         "302 Ecclesall Rd, Sheffield S11 · A. Fenwick 0114 267 1192",
+         "Shock absorber ×2, top mount ×2",
+         "Customer car waiting",
+         "Confirmed"
+        ],
+        [
+         "ORD-24829",
+         "Hallam Road Garage",
+         "14 Hallam Rd, Sheffield S10 1BU · D. Pryor 07700 900412",
+         "Wiper blade 24\" ×4",
+         "Second drop today",
+         "Confirmed"
+        ],
+        [
+         "ORD-24831",
+         "Peak Fleet Services",
+         "Station Yard, Chesterfield S41 · M. Ortega 01246 555 093",
+         "Air filter ×8, cabin filter ×8, +2 more",
+         "Ask for workshop, not office",
+         "Submitted"
+        ],
+        [
+         "ORD-24834",
+         "Barnsley Road Auto Electrics",
+         "117 Barnsley Rd, Sheffield S5 · T. Okafor 07700 900290",
+         "Alternator ×1, battery 096 ×2",
+         "—",
+         "Submitted"
+        ],
+        [
+         "ORD-24836",
+         "Kestrel Autos",
+         "Unit 3, Mill Lane, Leeds LS12 · S. Khan 0113 496 0218",
+         "Brake fluid DOT4 1L ×12",
+         "Add to morning drop if possible",
+         "Submitted"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 0,
+       "sortDir": "asc"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No deliveries on this date",
+      "emptyHint": "No open orders ask for delivery on this day. Pick another date, or the CSV will contain headers only."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -1,0 +1,373 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Users",
+     "subtitle": "Buyers, office staff and administrators who can sign in to the portal and console",
+     "crumbs": [
+      "Admin"
+     ],
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search name or email",
+       "selects": [
+        {
+         "label": "Role",
+         "options": [
+          "All roles",
+          "Buyer",
+          "Office staff",
+          "Administrator"
+         ],
+         "value": "All roles"
+        },
+        {
+         "label": "Status",
+         "options": [
+          "All statuses",
+          "Pending",
+          "Active",
+          "Deactivated"
+         ],
+         "value": "All statuses"
+        },
+        {
+         "label": "Customer company",
+         "options": [
+          "All companies",
+          "Halden Garage Ltd",
+          "Kestrel Auto Repairs",
+          "M&R Tyre and Exhaust",
+          "Brookside Commercials",
+          "No company"
+         ],
+         "value": "All companies"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Invite user",
+         "variant": "primary",
+         "icon": "plus"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Name",
+        "Email",
+        "Role",
+        "Customer company",
+        "Status",
+        "Last sign-in"
+       ],
+       "rows": [
+        [
+         "Aisha Rahman",
+         "aisha@haldengarage.co.uk",
+         "Buyer",
+         "Halden Garage Ltd",
+         "Active",
+         "12 Mar 2026, 08:41"
+        ],
+        [
+         "Tom Kowalski",
+         "tom.k@kestrelauto.co.uk",
+         "Buyer",
+         "Kestrel Auto Repairs",
+         "Active",
+         "11 Mar 2026, 13:52"
+        ],
+        [
+         "Gareth Lloyd",
+         "gareth@mrtyre.co.uk",
+         "Buyer",
+         "M&R Tyre and Exhaust",
+         "Pending",
+         "Invite sent 10 Mar"
+        ],
+        [
+         "Priya Nair",
+         "priya.nair@northgatemf.co.uk",
+         "Office staff",
+         "—",
+         "Active",
+         "12 Mar 2026, 07:58"
+        ],
+        [
+         "Dean Whitmore",
+         "dean@brooksidecomm.co.uk",
+         "Buyer",
+         "Brookside Commercials",
+         "Deactivated",
+         "02 Feb 2026, 16:20"
+        ],
+        [
+         "Helen Marsh",
+         "helen.marsh@northgatemf.co.uk",
+         "Administrator",
+         "—",
+         "Active",
+         "12 Mar 2026, 09:05"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 0,
+       "sortDir": "asc",
+       "page": 1,
+       "pages": 4
+      }
+     ],
+     "links": [
+      {
+       "from": "Invite user",
+       "to": "S-34"
+      },
+      {
+       "from": "Aisha Rahman",
+       "to": "S-35"
+      },
+      {
+       "from": "Tom Kowalski",
+       "to": "S-35"
+      },
+      {
+       "from": "Gareth Lloyd",
+       "to": "S-35"
+      },
+      {
+       "from": "Priya Nair",
+       "to": "S-35"
+      },
+      {
+       "from": "Dean Whitmore",
+       "to": "S-35"
+      },
+      {
+       "from": "Helen Marsh",
+       "to": "S-35"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "menu",
+       "trigger": "More",
+       "title": "User actions",
+       "items": [
+        "Open user",
+        "Change customer company",
+        "Resend invite",
+        "Deactivate user",
+        "Reactivate user"
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No users match",
+      "emptyHint": "Invite buyers from your customer garages, or clear the role and status filters to see everyone."
+     }
+    },
+    "mockFull": {
+     "title": "Users",
+     "subtitle": "Buyers, office staff and administrators who can sign in to the portal and console",
+     "crumbs": [
+      "Admin"
+     ],
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search name or email",
+       "selects": [
+        {
+         "label": "Role",
+         "options": [
+          "All roles",
+          "Buyer",
+          "Office staff",
+          "Administrator"
+         ],
+         "value": "All roles"
+        },
+        {
+         "label": "Status",
+         "options": [
+          "All statuses",
+          "Pending",
+          "Active",
+          "Deactivated"
+         ],
+         "value": "All statuses"
+        },
+        {
+         "label": "Customer company",
+         "options": [
+          "All companies",
+          "Halden Garage Ltd",
+          "Kestrel Auto Repairs",
+          "M&R Tyre and Exhaust",
+          "Brookside Commercials",
+          "Ashford Van Centre",
+          "No company"
+         ],
+         "value": "All companies"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Invite user",
+         "variant": "primary",
+         "icon": "plus"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Name",
+        "Email",
+        "Role",
+        "Customer company",
+        "Status",
+        "Last sign-in"
+       ],
+       "rows": [
+        [
+         "Aisha Rahman",
+         "aisha@haldengarage.co.uk",
+         "Buyer",
+         "Halden Garage Ltd",
+         "Active",
+         "12 Mar 2026, 08:41"
+        ],
+        [
+         "Ben Okafor",
+         "ben@ashfordvans.co.uk",
+         "Buyer",
+         "Ashford Van Centre",
+         "Active",
+         "12 Mar 2026, 10:17"
+        ],
+        [
+         "Carys Pugh",
+         "carys@haldengarage.co.uk",
+         "Buyer",
+         "Halden Garage Ltd",
+         "Pending",
+         "Invite sent 11 Mar"
+        ],
+        [
+         "Dean Whitmore",
+         "dean@brooksidecomm.co.uk",
+         "Buyer",
+         "Brookside Commercials",
+         "Deactivated",
+         "02 Feb 2026, 16:20"
+        ],
+        [
+         "Gareth Lloyd",
+         "gareth@mrtyre.co.uk",
+         "Buyer",
+         "M&R Tyre and Exhaust",
+         "Pending",
+         "Invite sent 10 Mar"
+        ],
+        [
+         "Helen Marsh",
+         "helen.marsh@northgatemf.co.uk",
+         "Administrator",
+         "—",
+         "Active",
+         "12 Mar 2026, 09:05"
+        ],
+        [
+         "Imran Siddiqui",
+         "imran@kestrelauto.co.uk",
+         "Buyer",
+         "Kestrel Auto Repairs",
+         "Active",
+         "09 Mar 2026, 15:33"
+        ],
+        [
+         "Joanne Fitzgerald",
+         "joanne.f@northgatemf.co.uk",
+         "Office staff",
+         "—",
+         "Active",
+         "12 Mar 2026, 08:02"
+        ],
+        [
+         "Liam Carter",
+         "liam@mrtyre.co.uk",
+         "Buyer",
+         "M&R Tyre and Exhaust",
+         "Deactivated",
+         "14 Dec 2025, 11:46"
+        ],
+        [
+         "Marek Nowak",
+         "marek@brooksidecomm.co.uk",
+         "Buyer",
+         "Brookside Commercials",
+         "Active",
+         "11 Mar 2026, 17:09"
+        ],
+        [
+         "Priya Nair",
+         "priya.nair@northgatemf.co.uk",
+         "Office staff",
+         "—",
+         "Active",
+         "12 Mar 2026, 07:58"
+        ],
+        [
+         "Ruth Ellison",
+         "ruth.e@northgatemf.co.uk",
+         "Office staff",
+         "—",
+         "Deactivated",
+         "30 Jan 2026, 12:14"
+        ],
+        [
+         "Sanjay Mehta",
+         "sanjay@ashfordvans.co.uk",
+         "Buyer",
+         "Ashford Van Centre",
+         "Pending",
+         "Invite sent 06 Mar"
+        ],
+        [
+         "Tom Kowalski",
+         "tom.k@kestrelauto.co.uk",
+         "Buyer",
+         "Kestrel Auto Repairs",
+         "Active",
+         "11 Mar 2026, 13:52"
+        ]
+       ],
+       "statusColumn": 4,
+       "sortBy": 0,
+       "sortDir": "asc",
+       "page": 1,
+       "pages": 4
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No users match",
+      "emptyHint": "Invite buyers from your customer garages, or clear the role and status filters to see everyone."
+     }
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

@@ -194,7 +194,8 @@ export type TaskSizing = z.infer<typeof TaskSizing>;
 export const CostPhase = z.enum(["planning", "design", "breakdown-estimate", "build", "verification"]);
 
 export const ApiCost = z.object({
-  phases: z.array(z.object({ phase: CostPhase, usd: Usd })),
+  /** basis: the measured runs behind a phase, by source (this factory's ledgers, its paid eval runs); none of either is the cold-start figure. Absent on estimates made before 2026-10-06 */
+  phases: z.array(z.object({ phase: CostPhase, usd: Usd, basis: z.object({ ledger: z.number().int().nonnegative(), eval: z.number().int().nonnegative() }).optional() })),
   total: Usd,
   confidence: Confidence,
   /** benchmark records behind the figures */

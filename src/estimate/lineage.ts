@@ -78,6 +78,24 @@ export function approvedDesign(runId: string): ApprovedDesign {
   const base = s.steps.get("design-baseline");
   if (base?.status !== "completed") throw new Error(`${runId} has no approved design yet. Approve it first (factory show-card ${runId}).`);
   if (!(base.data as { ui?: boolean } | undefined)?.ui) throw new Error(`${runId} has no UI to design (the request does not touch any screen), so there is no design to carry on.`);
+  return carried(runId, ledger, s);
+}
+
+/**
+ * An earlier estimate run's requirements, spec and approved design (or its note that there is no UI), for sizing them
+ * again (`factory estimate --resize`): only breakdown, sizing, approval and the workbooks run anew. The run need not be
+ * approved; it needs only to have got past the design baseline (E1b). Throws, in plain words, when it has not.
+ */
+export function estimateDesign(runId: string): ApprovedDesign {
+  const ledger = Ledger.open(runId);
+  const s = replay(ledger.events());
+  if (s.info.mode !== "estimate") throw new Error(`${runId} is not an estimate run. ${s.info.mode === "design" ? "Size a design run with --from-design." : ""}`.trim());
+  if (s.steps.get("design-baseline")?.status !== "completed") throw new Error(`${runId} has not got past its design baseline (E1b) yet, so there is no settled spec and design to size again. Finish it first (factory resume ${runId}).`);
+  return carried(runId, ledger, s);
+}
+
+/** The spec and design steps of a run, as a later run inherits them under the same step keys. */
+function carried(runId: string, ledger: Ledger, s: ReturnType<typeof replay>): ApprovedDesign {
   const out = (step: string, name?: string): string | undefined => {
     const r = s.steps.get(step);
     return r?.status === "completed" ? (name ? (r.data?.named as Record<string, string> | undefined)?.[name] : r.outputs[0]) : undefined;

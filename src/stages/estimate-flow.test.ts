@@ -235,14 +235,14 @@ describe("design baseline (E1b)", () => {
     expect(parked.kind).toBe("park");
     expect((parked as { reason: string }).reason).toMatch(/sent back 5 times.*round 5/);
   });
-  it("fails an approved design whose screen links to no requirement", async () => {
+  it("asks about an approved design whose screen links to no requirement (another attempt cannot fix it)", async () => {
     const ledger = await newRun();
     await complete(ledger, "specify", spec);
     await complete(ledger, "intake", uiIntent(true));
     await complete(ledger, "design", design({ screens: [{ id: "S-1", route: "/login", file: "a.tsx", reqs: [] }] }));
     await decide(ledger, await exec(ledger, designBaselineStep), "design-baseline", "approve");
     const out = await exec(ledger, designBaselineStep);
-    expect(out.kind).toBe("fail");
+    expect(out).toMatchObject({ kind: "ask", reason: expect.stringMatching(/gate E1b/) });
     expect((out as { failures: { check: string }[] }).failures.map((f) => f.check)).toContain("e1b-screen");
   });
 });

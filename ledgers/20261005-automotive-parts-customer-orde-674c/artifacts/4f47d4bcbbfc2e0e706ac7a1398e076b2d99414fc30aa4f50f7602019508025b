@@ -1,0 +1,377 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Products",
+     "subtitle": "1,284 products, active and retired · Low stock means 10 or fewer",
+     "crumbs": [
+      "Catalogue"
+     ],
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search code, name or part number",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All",
+          "In stock",
+          "Low stock",
+          "Out of stock",
+          "Retired"
+         ],
+         "value": "All"
+        },
+        {
+         "label": "Category",
+         "options": [
+          "All categories",
+          "Brakes",
+          "Filters",
+          "Ignition",
+          "Belts & chains",
+          "Clutch",
+          "Oils & fluids"
+         ],
+         "value": "All categories"
+        },
+        {
+         "label": "Brand",
+         "options": [
+          "All brands",
+          "Brembo",
+          "Mann-Filter",
+          "NGK",
+          "Gates",
+          "Valeo",
+          "Castrol",
+          "Bosch",
+          "Febi Bilstein"
+         ],
+         "value": "All brands"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Add product",
+         "variant": "primary",
+         "icon": "plus",
+         "hint": "Admins only"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Code",
+        "Product",
+        "Category",
+        "Brand",
+        "Stock qty",
+        "Status"
+       ],
+       "rows": [
+        [
+         "BRK-20431",
+         "Front brake pads P 85 020",
+         "Brakes",
+         "Brembo",
+         "142",
+         "In stock"
+        ],
+        [
+         "FLT-11872",
+         "Oil filter W 712/95",
+         "Filters",
+         "Mann-Filter",
+         "6",
+         "Low stock"
+        ],
+        [
+         "IGN-30215",
+         "Iridium spark plug ILZKR7B11",
+         "Ignition",
+         "NGK",
+         "0",
+         "Out of stock"
+        ],
+        [
+         "BLT-40977",
+         "Timing belt kit with water pump",
+         "Belts & chains",
+         "Gates",
+         "18",
+         "In stock"
+        ],
+        [
+         "CLT-52260",
+         "Clutch kit 3-piece, 228 mm",
+         "Clutch",
+         "Valeo",
+         "—",
+         "Out of stock"
+        ],
+        [
+         "FLD-61034",
+         "Engine oil 5W-30 C3, 5 L",
+         "Oils & fluids",
+         "Castrol",
+         "0",
+         "Retired"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 0,
+       "sortDir": "asc",
+       "page": 1,
+       "pages": 52
+      }
+     ],
+     "links": [
+      {
+       "from": "Add product",
+       "to": "S-28"
+      },
+      {
+       "from": "BRK-20431",
+       "to": "S-27"
+      },
+      {
+       "from": "FLT-11872",
+       "to": "S-27"
+      },
+      {
+       "from": "IGN-30215",
+       "to": "S-27"
+      },
+      {
+       "from": "BLT-40977",
+       "to": "S-27"
+      },
+      {
+       "from": "CLT-52260",
+       "to": "S-27"
+      },
+      {
+       "from": "FLD-61034",
+       "to": "S-27"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No products match",
+      "emptyHint": "Try another code, category or brand, or add a product to start the catalogue.",
+      "error": "Products could not be loaded. Showing the last list we had."
+     }
+    },
+    "mockFull": {
+     "title": "Products",
+     "subtitle": "1,284 products, active and retired · Low stock means 10 or fewer",
+     "crumbs": [
+      "Catalogue"
+     ],
+     "blocks": [
+      {
+       "type": "toolbar",
+       "search": "Search code, name or part number",
+       "selects": [
+        {
+         "label": "Status",
+         "options": [
+          "All",
+          "In stock",
+          "Low stock",
+          "Out of stock",
+          "Retired"
+         ],
+         "value": "All"
+        },
+        {
+         "label": "Category",
+         "options": [
+          "All categories",
+          "Brakes",
+          "Filters",
+          "Ignition",
+          "Belts & chains",
+          "Clutch",
+          "Oils & fluids"
+         ],
+         "value": "All categories"
+        },
+        {
+         "label": "Brand",
+         "options": [
+          "All brands",
+          "Brembo",
+          "Mann-Filter",
+          "NGK",
+          "Gates",
+          "Valeo",
+          "Castrol",
+          "Bosch",
+          "Febi Bilstein"
+         ],
+         "value": "All brands"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Add product",
+         "variant": "primary",
+         "icon": "plus",
+         "hint": "Admins only"
+        }
+       ]
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Code",
+        "Product",
+        "Category",
+        "Brand",
+        "Stock qty",
+        "Status"
+       ],
+       "rows": [
+        [
+         "BLT-40977",
+         "Timing belt kit with water pump",
+         "Belts & chains",
+         "Gates",
+         "18",
+         "In stock"
+        ],
+        [
+         "BLT-41203",
+         "Auxiliary V-ribbed belt 6PK1070",
+         "Belts & chains",
+         "Gates",
+         "3",
+         "Low stock"
+        ],
+        [
+         "BRK-20431",
+         "Front brake pads P 85 020",
+         "Brakes",
+         "Brembo",
+         "142",
+         "In stock"
+        ],
+        [
+         "BRK-20588",
+         "Rear brake discs 272 mm, pair",
+         "Brakes",
+         "Brembo",
+         "9",
+         "Low stock"
+        ],
+        [
+         "BRK-21017",
+         "Brake caliper repair kit",
+         "Brakes",
+         "Febi Bilstein",
+         "0",
+         "Retired"
+        ],
+        [
+         "CLT-52260",
+         "Clutch kit 3-piece, 228 mm",
+         "Clutch",
+         "Valeo",
+         "—",
+         "Out of stock"
+        ],
+        [
+         "CLT-52914",
+         "Dual-mass flywheel",
+         "Clutch",
+         "Valeo",
+         "4",
+         "Low stock"
+        ],
+        [
+         "FLD-61034",
+         "Engine oil 5W-30 C3, 5 L",
+         "Oils & fluids",
+         "Castrol",
+         "0",
+         "Retired"
+        ],
+        [
+         "FLD-61290",
+         "Brake fluid DOT 4, 1 L",
+         "Oils & fluids",
+         "Bosch",
+         "236",
+         "In stock"
+        ],
+        [
+         "FLT-11872",
+         "Oil filter W 712/95",
+         "Filters",
+         "Mann-Filter",
+         "6",
+         "Low stock"
+        ],
+        [
+         "FLT-12045",
+         "Cabin pollen filter CUK 2939",
+         "Filters",
+         "Mann-Filter",
+         "57",
+         "In stock"
+        ],
+        [
+         "IGN-30215",
+         "Iridium spark plug ILZKR7B11",
+         "Ignition",
+         "NGK",
+         "0",
+         "Out of stock"
+        ],
+        [
+         "IGN-30488",
+         "Ignition coil pack 0 221 504 470",
+         "Ignition",
+         "Bosch",
+         "22",
+         "In stock"
+        ],
+        [
+         "IGN-30702",
+         "Glow plug 0 250 202 132",
+         "Ignition",
+         "Bosch",
+         "-2",
+         "Out of stock"
+        ]
+       ],
+       "statusColumn": 5,
+       "sortBy": 0,
+       "sortDir": "asc",
+       "page": 1,
+       "pages": 52
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No products match",
+      "emptyHint": "Try another code, category or brand, or add a product to start the catalogue.",
+      "error": "Products could not be loaded. Showing the last list we had."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 229,
+   "isError": true,
+   "result": "The result doesn't match the schema: mock.blocks.0.selects.2.options: Too big: expected array to have <=8 items; mockFull.blocks.0.selects.2.options: Too big: expected array to have <=8 items. Fix it and call submit_result again."
+  }
+ ]
+}

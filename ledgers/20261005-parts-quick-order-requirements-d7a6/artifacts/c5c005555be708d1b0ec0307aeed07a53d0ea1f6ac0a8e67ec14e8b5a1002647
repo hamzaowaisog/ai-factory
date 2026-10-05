@@ -1,0 +1,324 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q1",
+      "category": "errors",
+      "difference": "D-1",
+      "text": "Does the 'Place order' button also need the cart to have at least one line, or is that already covered because checkout is hidden when the cart is empty?",
+      "options": [
+       "Covered already: checkout is hidden when the cart is empty, and the API also refuses an order with no lines",
+       "Add an explicit cart-not-empty check to the button-enabled rule as well"
+      ],
+      "recommended": "Covered already: checkout is hidden when the cart is empty, and the API also refuses an order with no lines",
+      "reason": "Requirement 12 already hides checkout when the cart is empty. A server-side check stops empty orders without adding another UI rule.",
+      "spans": [
+       "I-4",
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "Decides whether an order with no lines can ever be written."
+     },
+     {
+      "id": "Q2",
+      "category": "existing-data",
+      "text": "Does placing (or cancelling) an order change the stock quantity in the existing parts database?",
+      "options": [
+       "No: stock is read-only and orders never change it",
+       "Placing an order reduces stock and cancelling puts it back"
+      ],
+      "recommended": "No: stock is read-only and orders never change it",
+      "reason": "Stock management is out of scope, and the request says this work only reads parts and writes orders.",
+      "spans": [
+       "I-5",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Decides whether this work writes to shared stock data."
+     },
+     {
+      "id": "Q3",
+      "category": "errors",
+      "text": "What happens when a cart quantity is more than the current stock (or the part is now out of stock) at the moment the buyer presses 'Place order'?",
+      "options": [
+       "The API checks stock again, rejects the order, lowers the affected lines to the stock now available with 'Only n available', and keeps the cart",
+       "The order is placed anyway with the quantities in the cart",
+       "Lines that are short are removed silently and the rest is ordered"
+      ],
+      "recommended": "The API checks stock again, rejects the order, lowers the affected lines to the stock now available with 'Only n available', and keeps the cart",
+      "reason": "Uses the existing 'Only n available' behaviour, and no order is placed that can't be filled.",
+      "spans": [
+       "I-3",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "Changes which orders get written."
+     },
+     {
+      "id": "Q4",
+      "category": "data-model",
+      "text": "Where is the cart kept?",
+      "options": [
+       "In the browser's local storage for the signed-in buyer (kept across page reloads on the same device)",
+       "In memory only (lost when the page is reloaded)",
+       "In a new server-side cart table, shared across the buyer's devices"
+      ],
+      "recommended": "In the browser's local storage for the signed-in buyer (kept across page reloads on the same device)",
+      "reason": "Needs no new database tables, because the work only writes orders, and the cart still survives moving between the three screens.",
+      "spans": [
+       "I-3"
+      ],
+      "impact": 3,
+      "impactReason": "Decides whether new stored data is needed and whether the cart survives a reload."
+     },
+     {
+      "id": "Q5",
+      "category": "external",
+      "text": "How does the API find out which buyer is making a request through the existing company login?",
+      "options": [
+       "The API checks the existing company login's session token or cookie and reads the buyer ID from it",
+       "A trusted reverse proxy passes the buyer ID in a request header",
+       "Need details of the company login before deciding"
+      ],
+      "recommended": "The API checks the existing company login's session token or cookie and reads the buyer ID from it",
+      "reason": "Each buyer sees only their own orders, so the API needs an identity it can trust. The company login's own token is the most direct source.",
+      "spans": [
+       "I-1",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "Controls which orders each buyer can see and cancel."
+     },
+     {
+      "id": "Q6",
+      "category": "scope",
+      "text": "Nothing in this work moves an order to Packed, Dispatched or Delivered (no admin screens, no integrations). How do statuses change after Placed?",
+      "options": [
+       "Staff update the status directly in the database, outside this work; the portal only shows it",
+       "Statuses never move past Placed in this release; the timeline is ready for later",
+       "Add a small staff API endpoint to change status"
+      ],
+      "recommended": "Staff update the status directly in the database, outside this work; the portal only shows it",
+      "reason": "Keeps admin and integrations out of scope while still letting the timeline and the cancel rule mean something.",
+      "spans": [
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "Decides whether the timeline and status filter ever show anything except Placed or Cancelled."
+     },
+     {
+      "id": "Q7",
+      "category": "data-model",
+      "text": "Which unit price is saved on an order line, and what does the order 'total' include?",
+      "options": [
+       "The part's current price when the order is placed; total = subtotal + delivery charge",
+       "The price when the part was added to the cart; total = subtotal + delivery charge",
+       "The current price when placed; total = subtotal only, with the delivery charge saved separately"
+      ],
+      "recommended": "The part's current price when the order is placed; total = subtotal + delivery charge",
+      "reason": "Matches requirement 14, and the buyer is never charged a stale price.",
+      "spans": [
+       "I-4",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "Sets the money amounts saved on each order."
+     },
+     {
+      "id": "Q8",
+      "category": "identifiers",
+      "text": "How are 'ORD-' + 6-digit order numbers generated?",
+      "options": [
+       "Sequential from a database sequence, zero-padded (ORD-000001)",
+       "Random 6 digits, retried if the number is already taken"
+      ],
+      "recommended": "Sequential from a database sequence, zero-padded (ORD-000001)",
+      "reason": "Always unique, with no retry logic, inside the orders table this work already creates.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "Order numbers are shown to buyers and must be unique."
+     },
+     {
+      "id": "Q9",
+      "category": "identifiers",
+      "text": "Should the delivery prices (£0 / £9.99), the stock thresholds (5) and the page size (20) be fixed in the code or set in configuration?",
+      "options": [
+       "Fixed constants in the code",
+       "Configurable values (environment variables or a config file)"
+      ],
+      "recommended": "Fixed constants in the code",
+      "reason": "The request gives fixed values and lists no need to change them.",
+      "spans": [
+       "I-2",
+       "I-4"
+      ],
+      "impact": 2,
+      "impactReason": "Changing a price later would need a code release."
+     },
+     {
+      "id": "Q10",
+      "category": "errors",
+      "text": "What happens if the order's status changes from Placed (e.g. to Packed) after the buyer opened it but before they confirm cancelling?",
+      "options": [
+       "The API cancels only if the status is still Placed; otherwise it refuses, shows a message and refreshes the order",
+       "The cancel goes through whatever the current status is"
+      ],
+      "recommended": "The API cancels only if the status is still Placed; otherwise it refuses, shows a message and refreshes the order",
+      "reason": "Enforces requirement 19 on the server with a simple conditional update, not new concurrency machinery.",
+      "spans": [
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Stops packed or dispatched orders from being cancelled wrongly."
+     },
+     {
+      "id": "Q11",
+      "category": "errors",
+      "text": "What happens if placing an order fails (network or server error)?",
+      "options": [
+       "Show an error message, keep the cart and checkout details, and let the buyer try again",
+       "Clear the cart and ask the buyer to check My orders"
+      ],
+      "recommended": "Show an error message, keep the cart and checkout details, and let the buyer try again",
+      "reason": "Nothing the buyer entered is lost.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "A visible flow when an order fails."
+     },
+     {
+      "id": "Q12",
+      "category": "errors",
+      "text": "What happens when a quantity is set to 0, left blank, set above 99, or isn't a whole number?",
+      "options": [
+       "Put back the last valid quantity (0 does not remove the line; buyers use 'Remove')",
+       "Set it to the nearest value in range (blank or 0 becomes 1, above 99 becomes 99)",
+       "Setting 0 removes the line"
+      ],
+      "recommended": "Set it to the nearest value in range (blank or 0 becomes 1, above 99 becomes 99)",
+      "reason": "Works the same way as the existing reset-to-stock rule and keeps the 1–99 range.",
+      "spans": [
+       "I-3"
+      ],
+      "impact": 2,
+      "impactReason": "Visible cart behaviour."
+     },
+     {
+      "id": "Q13",
+      "category": "terminology",
+      "text": "What do 'cart count' in the header and 'number of items' in My orders count?",
+      "options": [
+       "The total of all quantities (2 filters + 1 pad = 3)",
+       "The number of distinct lines"
+      ],
+      "recommended": "The total of all quantities (2 filters + 1 pad = 3)",
+      "reason": "Matches 'add one to the cart' raising the count by one each time it's pressed.",
+      "spans": [
+       "I-3",
+       "I-5"
+      ],
+      "impact": 1,
+      "impactReason": "Only changes the numbers shown."
+     },
+     {
+      "id": "Q14",
+      "category": "scope",
+      "text": "How do the parts list filters and sort order work?",
+      "options": [
+       "One category and one brand at a time (each with 'All'), brands taken from the parts data, sorted by name A–Z, back to page 1 whenever the search or a filter changes",
+       "Several categories and brands can be picked at once, with the same sorting",
+       "Buyer can choose the sort (price, name)"
+      ],
+      "recommended": "One category and one brand at a time (each with 'All'), brands taken from the parts data, sorted by name A–Z, back to page 1 whenever the search or a filter changes",
+      "reason": "The simplest reading of 'picks a category or brand filter'.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 2,
+      "impactReason": "Visible search flow."
+     },
+     {
+      "id": "Q15",
+      "category": "scope",
+      "text": "Is the delivery address remembered from the buyer's previous order?",
+      "options": [
+       "No: typed fresh for each order",
+       "Pre-filled from the buyer's last order, and can be edited"
+      ],
+      "recommended": "No: typed fresh for each order",
+      "reason": "Saved addresses are close to 'multiple addresses', which is out of scope, and would need stored data.",
+      "spans": [
+       "I-4"
+      ],
+      "impact": 1,
+      "impactReason": "Convenience only."
+     },
+     {
+      "id": "Q16",
+      "category": "external",
+      "topic": "volumes",
+      "text": "Under what conditions is the 2-second load target measured, and how many buyers and orders are expected?",
+      "options": [
+       "First page of /parts plus search and filter results, with 5,000 parts, a single user on a normal connection; Cart and My orders with typical data",
+       "Under concurrent load with a stated number of buyers and orders"
+      ],
+      "recommended": "First page of /parts plus search and filter results, with 5,000 parts, a single user on a normal connection; Cart and My orders with typical data",
+      "reason": "Matches the stated target without inventing load-testing infrastructure.",
+      "spans": [
+       "I-8"
+      ],
+      "impact": 1,
+      "impactReason": "Changes how the work is checked, not how it behaves."
+     },
+     {
+      "id": "Q17",
+      "category": "scope",
+      "topic": "browsers",
+      "text": "Which browsers must be supported?",
+      "options": [
+       "Latest two versions of Chrome, Edge, Firefox and Safari (desktop and mobile)",
+       "Chrome only"
+      ],
+      "recommended": "Latest two versions of Chrome, Edge, Firefox and Safari (desktop and mobile)",
+      "reason": "A common baseline that covers desktop and phone use.",
+      "spans": [
+       "I-7"
+      ],
+      "impact": 1,
+      "impactReason": "Changes testing scope."
+     },
+     {
+      "id": "Q18",
+      "category": "external",
+      "text": "Are orders written to the same PostgreSQL database that holds the existing parts?",
+      "options": [
+       "Yes: new orders and order-lines tables in the same database, referring to parts by part number",
+       "A separate database just for orders"
+      ],
+      "recommended": "Yes: new orders and order-lines tables in the same database, referring to parts by part number",
+      "reason": "The simplest storage for the orders this work must write, and order lines can link straight to parts.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "Decides where order data is written."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

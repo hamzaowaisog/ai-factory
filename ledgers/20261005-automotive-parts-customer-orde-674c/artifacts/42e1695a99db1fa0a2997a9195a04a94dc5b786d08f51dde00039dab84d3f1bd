@@ -1,0 +1,274 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The portal shall authenticate users by email and password, starting a session and returning their role, and shall reject invalid attempts with one generic error and no token."
+     },
+     {
+      "n": 2,
+      "text": "The portal shall lock an account for 15 minutes after five consecutive failed sign-ins, rejecting all sign-in attempts during that lock."
+     },
+     {
+      "n": 3,
+      "text": "The portal shall block sign-in and all use of existing sessions, including order submission, for deactivated users or users of inactive companies."
+     },
+     {
+      "n": 4,
+      "text": "The portal shall end a user's session when they sign out."
+     },
+     {
+      "n": 5,
+      "text": "The portal shall require a valid session for every endpoint except sign-in, password reset and invitation acceptance, returning an unauthorized status with no data otherwise."
+     },
+     {
+      "n": 6,
+      "text": "The portal shall enforce role-based permissions for Buyer, Office Staff and Administrator, with Administrator including Office Staff rights, rejecting out-of-role calls."
+     },
+     {
+      "n": 7,
+      "text": "The portal shall confine a Buyer's visibility of orders, invoices, prices, delivery addresses and account data to their own company, rejecting access to another company's records."
+     },
+     {
+      "n": 8,
+      "text": "The portal shall support password reset via a single-use, time-limited emailed link, giving the same response whether or not the email belongs to an account, letting the user set a new password through a valid link while invalidating the link and clearing any lock, and rejecting the change if the link is expired or already used."
+     },
+     {
+      "n": 9,
+      "text": "The portal shall let administrators invite Buyers linked to a company, Office Staff, or Administrators by name, email and role, creating a pending account and emailing a time-limited invitation link that activates the account once a password is set, and let administrators resend invitations while invalidating prior links."
+     },
+     {
+      "n": 10,
+      "text": "The portal shall let administrators list users with role, company and status, link a Buyer to a company, deactivate and reactivate users without deleting their orders or invoices, change a user's role between Buyer and Office Staff or promote a user to Administrator, and block reactivation when the user's company is inactive."
+     },
+     {
+      "n": 11,
+      "text": "The portal shall let Buyers search the catalogue by text matching product name, code, part number or brand case-insensitively among active products, optionally filtered by category, and search by vehicle make, model, year, engine, fuel type and variant, returning only products whose compatibility matches every supplied value."
+     },
+     {
+      "n": 12,
+      "text": "The portal shall list active products with image, name, code, manufacturer, unit, pack size, the Buyer's price and stock status, and show fuller detail including description and compatible vehicles when a product is opened."
+     },
+     {
+      "n": 13,
+      "text": "The portal shall price every catalogue view, basket line, staff-created order and repeat order from the price list currently assigned to the Buyer's company, applying any reassignment immediately, while leaving prices already recorded on existing orders and invoices unchanged."
+     },
+     {
+      "n": 14,
+      "text": "The portal shall let Office Staff view a product's price for a given company from that company's assigned price list."
+     },
+     {
+      "n": 15,
+      "text": "The portal shall mark a product with no price on the assigned price list as price on request and block adding it to a basket or order."
+     },
+     {
+      "n": 16,
+      "text": "The portal shall let administrators create, rename and deactivate price lists, set, edit and remove a single price per product on a list, and assign an active list to a company."
+     },
+     {
+      "n": 17,
+      "text": "The portal shall classify stock as out of stock, low stock or in stock based on the imported quantity against a configurable threshold."
+     },
+     {
+      "n": 18,
+      "text": "The portal shall, on each scheduled valid stock import, update known products' quantities and stock status and log a successful import with row counts, skipping and listing any unknown product identifiers."
+     },
+     {
+      "n": 19,
+      "text": "The portal shall leave stock unchanged and log a failed import with its reason when the import file is missing, unreadable, empty, missing a required column, or contains invalid quantities."
+     },
+     {
+      "n": 20,
+      "text": "The portal shall let staff and administrators list past stock imports with time, status, rows applied, skipped identifiers and failure reason, and shall never send create, update or delete requests to the external stock system."
+     },
+     {
+      "n": 21,
+      "text": "The portal shall show staff a product's stock quantity, status, last successful import time and its price on every price list."
+     },
+     {
+      "n": 22,
+      "text": "The portal shall reject any basket line, staff order line or amendment that sets a quantity exceeding available stock, stating the quantity available."
+     },
+     {
+      "n": 23,
+      "text": "The portal shall maintain each Buyer's basket for the session, allowing adding products, changing quantities with a minimum of one, and removing lines, showing line and subtotal values, and clear the basket once the session ends."
+     },
+     {
+      "n": 24,
+      "text": "The portal shall compute the earliest delivery date from the configured cutoff time, timezone and non-working dates, and offer and accept only working days up to a configurable maximum number of days ahead for both Buyer and staff orders, re-validating the chosen date at submission."
+     },
+     {
+      "n": 25,
+      "text": "The portal shall reject a delivery address on a basket, order submission or edit that does not belong to the order's company."
+     },
+     {
+      "n": 26,
+      "text": "The portal shall re-check availability, stock and current price when a Buyer submits an order, rejecting the submission and listing any unavailable, over-stock or re-priced lines."
+     },
+     {
+      "n": 27,
+      "text": "The portal shall present a final checkout review of lines, prices, totals, delivery address, delivery date and note before the order is submitted."
+     },
+     {
+      "n": 28,
+      "text": "The portal shall, on valid submission, create a sequentially numbered order with order-time prices, a copied delivery address, the chosen date and note, received status and an initial timeline entry, then empty the basket."
+     },
+     {
+      "n": 29,
+      "text": "The portal shall reject order submission or staff creation of an order for a deactivated user or an inactive company, creating no order."
+     },
+     {
+      "n": 30,
+      "text": "The portal shall append a timeline entry recording the new status, the time, and the acting user or system whenever an order's status changes."
+     },
+     {
+      "n": 31,
+      "text": "The portal shall email order notifications to the placing Buyer, or to the company's contact email for staff-created orders."
+     },
+     {
+      "n": 32,
+      "text": "The portal shall let a Buyer list and view their company's orders, including colleagues' and staff-created ones, with key fields and filters, and let staff list and view all companies' orders similarly, and search and open customer company details."
+     },
+     {
+      "n": 33,
+      "text": "The portal shall let a Buyer cancel their company's received-status orders, and reject cancellation of orders in any other status with a message to contact the distributor office."
+     },
+     {
+      "n": 34,
+      "text": "The portal shall let a Buyer repeat a past order into the basket at current prices and available stock, flagging reduced or unavailable lines, without creating a new order."
+     },
+     {
+      "n": 35,
+      "text": "The portal shall let staff edit a received-status order's quantities, lines, note, delivery address within the same company, and delivery date, rejecting edits once the order leaves received status, and log and email the recipient about any quantity changes."
+     },
+     {
+      "n": 36,
+      "text": "The portal shall let staff confirm a received-status order whose lines and address are still valid, setting it to confirmed with a timeline entry and a confirmation email detailing the order and any prior quantity changes, or reject confirmation and list the failing lines."
+     },
+     {
+      "n": 37,
+      "text": "The portal shall let staff advance an order only to its next defined status in sequence or cancel it, logging each change, rejecting other transitions, and email the recipient when the status becomes out for delivery."
+     },
+     {
+      "n": 38,
+      "text": "The portal shall let staff cancel or reject any order that is not yet delivered or cancelled only with a required reason, recording the reason, actor and time, and emailing the recipient with that reason."
+     },
+     {
+      "n": 39,
+      "text": "The portal shall let staff create an order for an active company under the same pricing, stock, address and date rules as a Buyer order, recording the staff creator."
+     },
+     {
+      "n": 40,
+      "text": "The portal shall keep an inactive company's existing orders and invoices visible to staff and let staff progress, cancel and invoice its open orders."
+     },
+     {
+      "n": 41,
+      "text": "The portal shall let staff export a CSV delivery list for a given date, defaulting to today, listing each non-cancelled order due that day with specified details."
+     },
+     {
+      "n": 42,
+      "text": "The portal shall give staff a dashboard with counts of orders by status, orders due today, unpaid and overdue invoices and failed stock imports since the last success, and show the latest import's failure time and reason when the most recent import failed."
+     },
+     {
+      "n": 43,
+      "text": "The portal shall create one invoice automatically when an order becomes delivered, with a sequential number, customer and billing details, order-time lines, net, tax and gross totals and unpaid status."
+     },
+     {
+      "n": 44,
+      "text": "The portal shall report an invoice as unpaid, overdue after a configurable number of days, or paid once payment is recorded."
+     },
+     {
+      "n": 45,
+      "text": "The portal shall let a Buyer view their own company's invoices and let staff list, view and filter all invoices by customer and payment status, and let either download an invoice as a PDF with full invoice and company branding details."
+     },
+     {
+      "n": 46,
+      "text": "The portal shall let staff mark an unpaid or overdue invoice as paid with a payment date no later than today, recording the date and the staff user."
+     },
+     {
+      "n": 47,
+      "text": "The portal shall let administrators add, edit and retire products with specified details, removing retired products from the catalogue while keeping them on existing orders and invoices."
+     },
+     {
+      "n": 48,
+      "text": "The portal shall let administrators create, rename and retire single-level categories, assign each product to one category, and hide retired categories from the Buyer category filter."
+     },
+     {
+      "n": 49,
+      "text": "The portal shall let administrators upload a replacement product image of an allowed type and size, and add or remove vehicle compatibility entries on a product."
+     },
+     {
+      "n": 50,
+      "text": "The portal shall let administrators and Office Staff create and edit customer companies with specified fields and active or inactive status."
+     },
+     {
+      "n": 51,
+      "text": "The portal shall restrict adding, editing and removing a company's delivery addresses to staff and administrators, while letting a Buyer view their own company's addresses."
+     },
+     {
+      "n": 52,
+      "text": "The portal shall let administrators view and change system-wide settings including the order cutoff time, timezone, non-working dates, maximum delivery days ahead, low-stock threshold, overdue days, tax rate, numbering prefixes, link validity periods, and invoice branding details."
+     },
+     {
+      "n": 53,
+      "text": "The portal shall record who created and last changed each order, invoice, company, user, product, category and price list, and when, and show this to administrators."
+     },
+     {
+      "n": 54,
+      "text": "The portal shall let Office Staff and Administrators generate a sales report for a date range, optionally filtered by customer, showing per-customer order counts and net totals and per-product quantities and net totals, available on-screen and as a CSV export."
+     },
+     {
+      "n": 55,
+      "text": "The portal shall keep catalogue search, category filtering, vehicle search, and basket, checkout, order and invoice operations responding within bounded times under expected load."
+     },
+     {
+      "n": 56,
+      "text": "The portal shall complete the nightly stock import within its scheduled window, before business hours."
+     },
+     {
+      "n": 57,
+      "text": "The portal shall hand order, reset and account emails to the email service promptly."
+     },
+     {
+      "n": 58,
+      "text": "The portal shall store passwords only as salted adaptive one-way hashes and never write them to logs."
+     },
+     {
+      "n": 59,
+      "text": "The portal shall encrypt all traffic in transit and all personal and order data at rest."
+     },
+     {
+      "n": 60,
+      "text": "The portal shall verify cross-company data isolation for Buyers through automated authorisation tests."
+     },
+     {
+      "n": 61,
+      "text": "The portal shall treat the external stock data as read-only."
+     },
+     {
+      "n": 62,
+      "text": "The portal shall expire sessions after inactivity and after a maximum lifetime."
+     },
+     {
+      "n": 63,
+      "text": "The portal shall remain available, be usable as a responsive web app on desktop and mobile browsers, generate invoice PDFs promptly, and keep password-reset and invitation tokens unguessable and stored hashed."
+     },
+     {
+      "n": 64,
+      "text": "The portal shall back up data and be able to recover it within one cloud region in the client's account."
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

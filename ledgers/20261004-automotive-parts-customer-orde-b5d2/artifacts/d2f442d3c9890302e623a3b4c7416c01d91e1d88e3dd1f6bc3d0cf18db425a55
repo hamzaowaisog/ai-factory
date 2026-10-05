@@ -1,0 +1,1594 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "When a user submits an email address and password that match an active account, the portal shall start an authenticated session that carries the user's role and, for a Customer Buyer, the user's customer company.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "ASM-36"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-1.1",
+        "given": "An active Customer Buyer of company A with password 'Correct#1'",
+        "when": "POST /auth/sign-in is called with that email and 'Correct#1'",
+        "then": "The response is 200 with a session, and GET /me with that session returns role 'Customer Buyer' and company A",
+        "level": "api"
+       },
+       {
+        "id": "AC-1.2",
+        "given": "An active user account",
+        "when": "Sign-in is called once with a wrong password, and once with an email that is not registered",
+        "then": "Both calls return 401 with the same message 'Invalid email or password' and no session",
+        "level": "api"
+       },
+       {
+        "id": "AC-1.3",
+        "given": "A signed-in user",
+        "when": "POST /auth/sign-out is called and then GET /me is called with the same session",
+        "then": "Sign-out returns 200 and GET /me returns 401",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "If 5 consecutive sign-in attempts for one account fail, then the portal shall lock that account for 15 minutes and reject every sign-in attempt for it during that time with a message saying the account is temporarily locked.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "ASM-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "An active account with 4 consecutive failed sign-ins",
+        "when": "The correct password is submitted, and then 4 more wrong passwords are submitted",
+        "then": "The correct sign-in succeeds and the account is not locked after the 4 later failures",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.2",
+        "given": "An account with 5 consecutive failed sign-ins made at 10:00",
+        "when": "The correct password is submitted at 10:14",
+        "then": "Sign-in is rejected with the temporary-lock message and no session is created",
+        "level": "api"
+       },
+       {
+        "id": "AC-2.3",
+        "given": "An account locked at 10:00",
+        "when": "The correct password is submitted at 10:15 or later",
+        "then": "Sign-in succeeds and the failed-attempt count starts again from 0",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "When a user requests a password reset for their email address, the portal shall email that address a single-use reset link that is valid for 1 hour and lets the user set a new password.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "ASM-16",
+       "ASM-17",
+       "ASM-36"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-3.1",
+        "given": "A registered user and an unregistered email address",
+        "when": "POST /auth/password-reset is called for each",
+        "then": "Both calls return the same 202 response; one reset email containing a link is sent to the email service for the registered user and none for the unregistered address",
+        "level": "api"
+       },
+       {
+        "id": "AC-3.2",
+        "given": "A reset link issued 30 minutes ago",
+        "when": "The user sets new password 'NewPass#2' through the link, then signs in with the old and the new password, then uses the link again",
+        "then": "The new password signs in, the old password returns 401, and the second use of the link is rejected as invalid",
+        "level": "api"
+       },
+       {
+        "id": "AC-3.3",
+        "given": "A reset link issued 61 minutes ago",
+        "when": "The user tries to set a new password through it",
+        "then": "The request is rejected as expired and the password is unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-3.4",
+        "given": "An account locked 5 minutes ago",
+        "when": "The user requests a reset, sets a new password and immediately signs in with it",
+        "then": "The reset email is sent and the password changes, but sign-in is rejected with the lock message until 15 minutes after the lock started",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When an Administrator invites a Customer Buyer or Office Staff user, the portal shall email the invitee a link, valid for 7 days, through which the invitee sets a password and the account becomes active.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "I-17",
+       "ASM-16",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-4.1",
+        "given": "An Administrator invites buyer@a.example as a Customer Buyer of company A",
+        "when": "The invitee opens the emailed link 2 days later and sets a password",
+        "then": "The account changes from Pending to Active and the invitee can sign in",
+        "level": "api"
+       },
+       {
+        "id": "AC-4.2",
+        "given": "An invitation sent 7 days and 1 minute ago",
+        "when": "The invitee tries to set a password through its link",
+        "then": "The request is rejected as expired and the account stays Pending",
+        "level": "api"
+       },
+       {
+        "id": "AC-4.3",
+        "given": "A Pending invitation",
+        "when": "The Administrator resends it",
+        "then": "A new link is emailed with a new 7-day validity and the previous link is rejected as invalid",
+        "level": "api"
+       },
+       {
+        "id": "AC-4.4",
+        "given": "An Administrator",
+        "when": "The Administrator invites a user with role 'Customer Account Manager'",
+        "then": "The request is rejected with 400 because the role does not exist",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "If a user has been deactivated or the user's customer company is inactive, then the portal shall reject that user's sign-in and order submissions while keeping the user's and company's existing orders, invoices and history unchanged.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "I-17",
+       "ASM-18",
+       "ASM-34"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-5.1",
+        "given": "A deactivated Customer Buyer",
+        "when": "The Buyer signs in with the correct password",
+        "then": "Sign-in is rejected with an 'account inactive' message",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.2",
+        "given": "Company A with a Confirmed order, set to inactive by an Administrator",
+        "when": "A Buyer of company A signs in, and Office Staff open the Confirmed order",
+        "then": "The Buyer's sign-in is rejected, and the order is still shown to staff with status Confirmed and all its lines",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.3",
+        "given": "A Buyer with an open session who is then deactivated",
+        "when": "The Buyer submits a checkout",
+        "then": "The request returns 403 and no order is created",
+        "level": "api"
+       },
+       {
+        "id": "AC-5.4",
+        "given": "A deactivated user",
+        "when": "An Administrator reactivates the user and the user signs in",
+        "then": "Sign-in succeeds",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "The portal shall limit each Customer Buyer to the orders, invoices, prices, delivery addresses and account details of the Buyer's own customer company.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "I-5",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-6.1",
+        "given": "Buyer X of company A and order O-B of company B",
+        "when": "Buyer X requests the order detail, the invoice and the invoice PDF of company B",
+        "then": "Each request returns 404 and no company B data is returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-6.2",
+        "given": "Company A with one order placed by Buyer X, one by Buyer Y, and one created by Office Staff",
+        "when": "Buyer X lists orders",
+        "then": "All 3 orders are returned and no orders of other companies are returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-6.3",
+        "given": "Buyer X of company A",
+        "when": "Buyer X requests the delivery addresses or account details of company B by id",
+        "then": "The request returns 404",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "If a user calls a function reserved for Office Staff or Administrators without holding the required role, then the portal shall refuse the request with a 403 error and make no change.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "I-6",
+       "I-17",
+       "Q-4",
+       "Q-7"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-7.1",
+        "given": "A signed-in Customer Buyer",
+        "when": "The Buyer calls the staff order queue, marks an invoice paid, or requests a sales report",
+        "then": "Each call returns 403 and no data changes",
+        "level": "api"
+       },
+       {
+        "id": "AC-7.2",
+        "given": "A signed-in Office Staff user",
+        "when": "The user creates a price list, invites a user, or reads the audit history",
+        "then": "Each call returns 403 and no data changes",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "When a customer searches the catalogue with a text term, the portal shall return the active products whose name, distributor product code, manufacturer part number or brand contains the term, ignoring letter case.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "Active products 'Front Brake Pad Set' (code DP-1001, part number 0986494, brand Bosch) and 'Oil Filter' (code OF-200, brand Mann)",
+        "when": "The customer searches for 'brak', 'dp-10', '6494' and 'BOSCH'",
+        "then": "Each search returns 'Front Brake Pad Set' and none returns 'Oil Filter'",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "A retired product named 'Brake Hose'",
+        "when": "The customer searches for 'brake'",
+        "then": "'Brake Hose' is not returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-8.3",
+        "given": "A result list",
+        "when": "The customer reads a result row",
+        "then": "It contains image URL, name, product code, manufacturer, unit, pack size, the customer's price and stock status",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "When a customer selects a category filter, the portal shall list only active products assigned to that category, combined with any active text or vehicle search.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-10",
+       "ASM-37"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "Active products in categories 'Filters' and 'Brake system'",
+        "when": "The customer lists products with category 'Filters', then with 'Brake system', then with no category",
+        "then": "The lists contain only Filters products, then only Brake system products, then products of both categories",
+        "level": "api"
+       },
+       {
+        "id": "AC-9.2",
+        "given": "Category 'Filters' with 'Oil Filter' and 'Air Filter'",
+        "when": "The customer searches 'oil' with category 'Filters'",
+        "then": "Only 'Oil Filter' is returned",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-10",
+      "ears": "When a customer searches by vehicle using any combination of make, model, year, engine, fuel type and variant, the portal shall list the active products that have at least one compatibility record matching every value supplied.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-10",
+       "ASM-20"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-10.1",
+        "given": "Product P with one compatibility record Ford / Focus / 2018 / 1.0 EcoBoost / Petrol / Titanium",
+        "when": "The customer searches make Ford, model Focus, year 2018",
+        "then": "P is returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-10.2",
+        "given": "The same product P",
+        "when": "The customer searches make Ford, model Focus, year 2005, or make Ford, model Focus, fuel type Diesel",
+        "then": "P is not returned",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-11",
+      "ears": "When a customer opens a product, the portal shall return the product's image, name, product code, manufacturer, description, unit, pack size, the customer's price, stock status and compatible vehicles.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-11.1",
+        "given": "An active product with 2 compatibility records and a price on the customer's price list",
+        "when": "The customer requests the product detail",
+        "then": "The response contains all listed fields, the customer's price and both vehicles",
+        "level": "api"
+       },
+       {
+        "id": "AC-11.2",
+        "given": "An active product whose last imported quantity is 0",
+        "when": "The customer requests the product detail",
+        "then": "The product is returned with stock status 'Out of stock'",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-12",
+      "ears": "The portal shall show each customer, for every product, the price excluding tax taken from the price list assigned to the customer's company, in the single configured currency.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-11",
+       "ASM-4",
+       "ASM-31"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-12.1",
+        "given": "Product P priced 10.00 on 'Standard' and 8.00 on 'Fleet'; company A assigned 'Standard', company B assigned 'Fleet'",
+        "when": "A Buyer of each company views P",
+        "then": "The Buyer of A sees 10.00 and the Buyer of B sees 8.00, both marked excluding tax",
+        "level": "api"
+       },
+       {
+        "id": "AC-12.2",
+        "given": "The same set-up",
+        "when": "An Administrator reassigns company A to 'Fleet' and the Buyer of A views P again",
+        "then": "The Buyer of A sees 8.00",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-13",
+      "ears": "If a product has no price on the customer's assigned price list or that price list is deactivated, then the portal shall show the product with 'Price on request' and refuse to add it to the basket.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-11",
+       "ASM-30"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-13.1",
+        "given": "Product Q with no price on company A's price list",
+        "when": "A Buyer of A views Q and then adds Q to the basket",
+        "then": "Q is shown with 'Price on request' and the add call returns 422 with the basket unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-13.2",
+        "given": "Company A's assigned price list is deactivated",
+        "when": "A Buyer of A views any product",
+        "then": "Every product shows 'Price on request'",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-14",
+      "ears": "The portal shall derive each product's stock status from its last imported quantity as 'Out of stock' at 0 or when never imported, 'Low stock' from 1 up to and including the low-stock threshold, and 'In stock' above the threshold.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-12",
+       "ASM-5",
+       "ASM-6",
+       "ASM-27",
+       "ASM-41"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-14.1",
+        "given": "Low-stock threshold 5",
+        "when": "The stock status is calculated for quantities 0, 1, 5 and 6, and for a product with no imported quantity",
+        "then": "The results are Out of stock, Low stock, Low stock, In stock and Out of stock",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-15",
+      "ears": "When the scheduled stock import job reads a valid ERP CSV file from the configured location, the portal shall replace the stock quantity of each product whose distributor product code matches a row, skip rows with unknown codes, and record an import log entry with the counts of applied and skipped rows and the skipped codes.",
+      "op": "ADDED",
+      "sources": [
+       "I-12",
+       "ASM-8",
+       "ASM-9",
+       "ASM-33",
+       "ASM-41"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-15.1",
+        "given": "Products DP-1 (quantity 3) and DP-2 (quantity 0); a CSV with rows DP-1=12, DP-2=4, XX-9=7",
+        "when": "The import job runs",
+        "then": "DP-1 is 12, DP-2 is 4, the log entry is Success with 2 applied, 1 skipped, skipped code XX-9",
+        "level": "job"
+       },
+       {
+        "id": "AC-15.2",
+        "given": "A successful import",
+        "when": "The job finishes",
+        "then": "No outbound call or file is sent to the ERP",
+        "level": "job"
+       }
+      ]
+     },
+     {
+      "id": "REQ-16",
+      "ears": "If the ERP CSV file is missing, unreadable, lacks a required column, or contains a non-numeric or negative quantity, then the stock import job shall keep all stock quantities from the previous successful import and record a failed import entry with the reason.",
+      "op": "ADDED",
+      "sources": [
+       "I-12",
+       "I-6"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-16.1",
+        "given": "DP-1 has quantity 12 from the last import; the new CSV has DP-1=abc",
+        "when": "The import job runs",
+        "then": "DP-1 is still 12 and a Failed log entry names the invalid row",
+        "level": "job"
+       },
+       {
+        "id": "AC-16.2",
+        "given": "No file is present in the configured location",
+        "when": "The import job runs",
+        "then": "All quantities are unchanged and a Failed log entry says the file is missing",
+        "level": "job"
+       },
+       {
+        "id": "AC-16.3",
+        "given": "A failed import entry",
+        "when": "Office Staff and an Administrator read the import log",
+        "then": "Both see the failure, its time and reason",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-17",
+      "ears": "The portal shall keep one saved basket per Customer Buyer across sessions and devices until the Buyer submits it as an order or empties it.",
+      "op": "ADDED",
+      "sources": [
+       "I-13",
+       "ASM-35"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-17.1",
+        "given": "A Buyer adds 2 products to the basket and signs out",
+        "when": "The Buyer signs in from a new session and reads the basket",
+        "then": "The basket holds the same 2 lines and quantities",
+        "level": "api"
+       },
+       {
+        "id": "AC-17.2",
+        "given": "A Buyer with a 2-line basket",
+        "when": "The Buyer submits the order",
+        "then": "The basket is empty afterwards",
+        "level": "api"
+       },
+       {
+        "id": "AC-17.3",
+        "given": "Buyers X and Y of the same company",
+        "when": "X adds a product to the basket",
+        "then": "Y's basket is unchanged",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-18",
+      "ears": "When a Buyer adds, changes the quantity of, or removes a basket line, the portal shall return each line's unit price, line total as unit price times quantity, and the basket subtotal excluding tax.",
+      "op": "ADDED",
+      "sources": [
+       "I-13",
+       "I-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-18.1",
+        "given": "Product A at 12.50 and product B at 3.00",
+        "when": "The Buyer adds A with quantity 4 and B with quantity 2",
+        "then": "Line totals are 50.00 and 6.00 and the subtotal is 56.00",
+        "level": "api"
+       },
+       {
+        "id": "AC-18.2",
+        "given": "That basket",
+        "when": "The Buyer removes B, then sets A's quantity to 0",
+        "then": "After removal the subtotal is 50.00, and quantity 0 is rejected with 422 leaving A at 4",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-19",
+      "ears": "If a line in a submitted order asks for more than the product's quantity from the last successful stock import, then the portal shall refuse the submission and return each such line with the available quantity.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-13",
+       "Q-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-19.1",
+        "given": "Product P with last imported quantity 10",
+        "when": "A Buyer submits an order with P quantity 10, and another Buyer submits P quantity 11",
+        "then": "The first order is created and the second is rejected with 422 listing P with available quantity 10",
+        "level": "api"
+       },
+       {
+        "id": "AC-19.2",
+        "given": "Product P with last imported quantity 10 and an existing order for 8",
+        "when": "A Buyer submits a new order for P quantity 8 before the next import",
+        "then": "The order is created, because orders since the import are not subtracted",
+        "level": "api"
+       },
+       {
+        "id": "AC-19.3",
+        "given": "Product R that is Out of stock",
+        "when": "A Buyer submits an order containing R quantity 1",
+        "then": "The submission is rejected listing R with available quantity 0",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-20",
+      "ears": "The portal shall calculate the earliest delivery date, in the configured timezone, as the next working day for orders placed before the configured cutoff time and as the second working day after the order day for orders placed at or after the cutoff, where working days exclude weekends and admin-listed non-working dates.",
+      "op": "ADDED",
+      "sources": [
+       "I-13",
+       "ASM-11",
+       "ASM-27",
+       "ASM-28"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-20.1",
+        "given": "Cutoff 14:00 and no extra non-working dates",
+        "when": "The earliest date is calculated for Monday 13:00, Monday 14:00, Monday 15:00, Friday 15:00 and Saturday 10:00",
+        "then": "The results are Tuesday, Wednesday, Wednesday, the following Tuesday and the following Monday",
+        "level": "unit"
+       },
+       {
+        "id": "AC-20.2",
+        "given": "Cutoff 14:00 and Tuesday listed as a non-working date",
+        "when": "The earliest date is calculated for Monday 13:00",
+        "then": "The result is Wednesday",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-21",
+      "ears": "If a selected delivery date is not a working day, is before the earliest delivery date, or is more than the configured maximum number of days ahead, then the portal shall reject the selection with a message naming the broken rule.",
+      "op": "ADDED",
+      "sources": [
+       "I-13",
+       "ASM-12",
+       "ASM-29"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-21.1",
+        "given": "Order time Monday 13:00, cutoff 14:00, maximum 30 days ahead",
+        "when": "The Buyer selects Monday (same day), the coming Saturday, a date 31 days ahead, and Tuesday",
+        "then": "The first three are rejected with the rule named; Tuesday is accepted",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-22",
+      "ears": "When a Buyer checks out, the portal shall offer as delivery addresses only the active addresses that Office Staff or Administrators maintain for the Buyer's company.",
+      "op": "ADDED",
+      "sources": [
+       "I-13",
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-22.1",
+        "given": "Company A with 2 active and 1 deactivated delivery address",
+        "when": "A Buyer of A requests checkout addresses",
+        "then": "Only the 2 active addresses are returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-22.2",
+        "given": "A Buyer of company A",
+        "when": "The Buyer submits a checkout with an address id of company B, or calls the address create endpoint",
+        "then": "The checkout returns 422 and the create call returns 403",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-23",
+      "ears": "When a Buyer submits a checkout that passes stock, price, address and delivery date checks, the portal shall create an order with the next sequential ORD-prefixed number, status Received, the unit prices of the company's price list at that moment, the delivery address and date, and the optional note.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-4",
+       "I-13",
+       "ASM-22"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-23.1",
+        "given": "The last order number is ORD-000122 and a valid basket of 2 lines",
+        "when": "The Buyer submits with a valid address, date and note 'Rear door'",
+        "then": "Order ORD-000123 is created with status Received, the 2 lines at current prices, the address, date and note, and the response returns the order number",
+        "level": "api"
+       },
+       {
+        "id": "AC-23.2",
+        "given": "Order ORD-000123 with product P at 10.00",
+        "when": "An Administrator changes P's price on that list to 12.00",
+        "then": "ORD-000123 still shows P at 10.00",
+        "level": "api"
+       },
+       {
+        "id": "AC-23.3",
+        "given": "Order ORD-000123 just submitted",
+        "when": "Office Staff read the order queue",
+        "then": "ORD-000123 appears with status Received",
+        "level": "api"
+       },
+       {
+        "id": "AC-23.4",
+        "given": "A basket line whose product moved to 'Price on request' after it was added",
+        "when": "The Buyer submits",
+        "then": "The submission returns 422 naming that line and no order is created",
+        "level": "api"
+       },
+       {
+        "id": "AC-23.5",
+        "given": "A Buyer in a browser with a 2-line basket",
+        "when": "The Buyer goes through checkout",
+        "then": "Basket review, address selection, date selection, note and a final review showing lines, prices, total, address and date are shown before the submit button, and a confirmation page shows the order number",
+        "level": "ui"
+       }
+      ]
+     },
+     {
+      "id": "REQ-24",
+      "ears": "When a Buyer repeats a previous order of their company, the portal shall add that order's still-orderable products to the Buyer's basket with the original quantities at current price-list prices and flag lines whose product is retired, Out of stock or without a price, without creating an order.",
+      "op": "ADDED",
+      "sources": [
+       "I-15",
+       "ASM-45"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-24.1",
+        "given": "A past order with product A (now retired) qty 2 and product B qty 3 bought at 10.00, now priced 12.00",
+        "when": "The Buyer repeats the order",
+        "then": "The basket gains B qty 3 at 12.00, the response flags A as no longer available, and the company's order count is unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-24.2",
+        "given": "A basket already holding B qty 1",
+        "when": "The Buyer repeats the same order",
+        "then": "The basket holds B qty 4",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-25",
+      "ears": "When a Buyer lists orders, the portal shall return every order of the Buyer's company with order number, order date, delivery date, delivery address, total and status, filterable by order date range and status.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-15",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-25.1",
+        "given": "Company A with orders in January (Delivered) and March (Received)",
+        "when": "The Buyer lists orders filtered by March, and then by status Delivered",
+        "then": "The first returns only the March order and the second only the January order, each with all listed fields",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-26",
+      "ears": "When a Buyer opens an order of their company, the portal shall return the order number, order date, customer, delivery address, requested delivery date, current status, status timeline, lines with quantity, unit price and line total, order total, note and any staff amendments.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-15"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-26.1",
+        "given": "A Confirmed order whose line quantity staff changed from 5 to 3 before confirmation",
+        "when": "The Buyer opens the order",
+        "then": "All listed fields are returned, the timeline has Received and Confirmed entries, and the amendment shows quantity 5 changed to 3",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-27",
+      "ears": "While an order is in Received status, the portal shall let a Buyer of the order's company cancel it, recording the Buyer and time in the status timeline.",
+      "op": "ADDED",
+      "sources": [
+       "I-15"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-27.1",
+        "given": "A Received order of company A",
+        "when": "A Buyer of A cancels it",
+        "then": "The status is Cancelled and the timeline entry names the Buyer and time",
+        "level": "api"
+       },
+       {
+        "id": "AC-27.2",
+        "given": "A Confirmed order of company A",
+        "when": "A Buyer of A tries to cancel it",
+        "then": "The request returns 409 with a message to contact the distributor office and the status stays Confirmed",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-28",
+      "ears": "The portal shall give Office Staff an order queue of all orders showing order number, customer, order date, requested delivery date, total and status, filterable by customer, order date range and status.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "I-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-28.1",
+        "given": "Orders of companies A and B in statuses Received and Picking",
+        "when": "Office Staff filter by customer A and status Received",
+        "then": "Only company A's Received orders are returned with all listed fields",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-29",
+      "ears": "When Office Staff change an order's status, the portal shall accept only the next status in the sequence Received, Confirmed, Picking, Out for delivery, Delivered.",
+      "op": "ADDED",
+      "sources": [
+       "I-14",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-29.1",
+        "given": "A Received order and a Confirmed order",
+        "when": "Staff set the Received order to Picking and the Confirmed order back to Received",
+        "then": "Both requests return 409 and statuses are unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-29.2",
+        "given": "A Picking order",
+        "when": "Staff set it to Out for delivery and then to Delivered",
+        "then": "Both changes succeed",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-30",
+      "ears": "The portal shall record every order status change in the order's timeline with the new status, the timestamp and the user or system process that made it.",
+      "op": "ADDED",
+      "sources": [
+       "I-14",
+       "I-8",
+       "I-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-30.1",
+        "given": "An order submitted by Buyer X, confirmed by staff user S1 and moved to Picking by S2",
+        "when": "The order timeline is read",
+        "then": "It holds 3 entries in order: Received by X, Confirmed by S1, Picking by S2, each with a timestamp",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-31",
+      "ears": "When Office Staff confirm a Received order whose lines are all within the last imported stock quantities and whose customer company is active, the portal shall set the status to Confirmed, record the confirming user and time, and email an order confirmation listing the order number, lines, quantities, prices, delivery date, address and any staff quantity changes.",
+      "op": "ADDED",
+      "sources": [
+       "I-14",
+       "Q-8",
+       "ASM-15",
+       "ASM-25",
+       "ASM-39"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-31.1",
+        "given": "A Received order placed by Buyer X with all lines in stock",
+        "when": "Staff user S1 confirms it",
+        "then": "Status is Confirmed with S1 and time recorded, and one confirmation email with the order number and lines is sent to Buyer X",
+        "level": "api"
+       },
+       {
+        "id": "AC-31.2",
+        "given": "A Received order with product P quantity 8 and P's last imported quantity now 5",
+        "when": "Staff confirm it",
+        "then": "The request returns 409 naming P with available 5 and the status stays Received",
+        "level": "api"
+       },
+       {
+        "id": "AC-31.3",
+        "given": "A Received order created by staff for company A",
+        "when": "Staff confirm it",
+        "then": "The confirmation email is sent to company A's contact email",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-32",
+      "ears": "When Office Staff cancel or reject an order that is not Delivered, the portal shall set it to Cancelled, store the required reason, the staff user and time, and email the customer the cancellation with the reason.",
+      "op": "ADDED",
+      "sources": [
+       "I-14",
+       "Q-3",
+       "ASM-14",
+       "ASM-26",
+       "ASM-38",
+       "ASM-40"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-32.1",
+        "given": "An Out for delivery order",
+        "when": "Staff cancel it with reason 'Customer request by phone'",
+        "then": "Status is Cancelled, the reason, user and time are stored, and an email with the reason is sent to the customer",
+        "level": "api"
+       },
+       {
+        "id": "AC-32.2",
+        "given": "A Received order",
+        "when": "Staff reject it with no reason",
+        "then": "The request returns 400 and the status stays Received",
+        "level": "api"
+       },
+       {
+        "id": "AC-32.3",
+        "given": "A Delivered order",
+        "when": "Staff try to cancel it",
+        "then": "The request returns 409 and the status stays Delivered",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-33",
+      "ears": "While an order is in Received status, the portal shall let Office Staff change line quantities, remove lines, and change the delivery date, delivery address and note, storing each change with its old and new values.",
+      "op": "ADDED",
+      "sources": [
+       "I-14",
+       "I-8"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-33.1",
+        "given": "A Received order with P quantity 5",
+        "when": "Staff change P to 3 and set another of the company's addresses",
+        "then": "The order shows P quantity 3 and the new address, and the amendment history holds both changes with old and new values and the staff user",
+        "level": "api"
+       },
+       {
+        "id": "AC-33.2",
+        "given": "A Confirmed order",
+        "when": "Staff try to change a quantity",
+        "then": "The request returns 409 and the order is unchanged",
+        "level": "api"
+       },
+       {
+        "id": "AC-33.3",
+        "given": "A Received order",
+        "when": "Staff set a delivery date on a Saturday or an address of another company",
+        "then": "The request returns 422 and the order is unchanged",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-34",
+      "ears": "When Office Staff change a line quantity or remove a line on a Received order, the portal shall email the customer a message listing each changed line with its old and new quantity.",
+      "op": "ADDED",
+      "sources": [
+       "I-14",
+       "ASM-15",
+       "ASM-25",
+       "ASM-39"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-34.1",
+        "given": "A Received order placed by Buyer X with P quantity 5 and Q quantity 2",
+        "when": "Staff change P to 3 and remove Q",
+        "then": "One email to Buyer X lists P 5 to 3 and Q 2 to 0",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-35",
+      "ears": "When an order's status changes to Out for delivery, the portal shall email the customer a message with the order number saying the order is out for delivery.",
+      "op": "ADDED",
+      "sources": [
+       "I-14",
+       "I-5",
+       "ASM-25",
+       "ASM-39"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-35.1",
+        "given": "A Picking order ORD-000123 placed by Buyer X",
+        "when": "Staff set it to Out for delivery",
+        "then": "One email naming ORD-000123 and stating it is out for delivery is sent to Buyer X",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-36",
+      "ears": "When Office Staff create an order on behalf of a customer company, the portal shall apply the same price, stock, address and delivery-date rules as customer checkout and record the staff user as the order's creator.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "I-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-36.1",
+        "given": "Company A on price list 'Fleet' with P at 8.00",
+        "when": "Staff user S1 creates an order for A with P quantity 2, an address of A and a valid date",
+        "then": "The order is Received with P at 8.00, created by S1, and appears in company A's Buyer order list",
+        "level": "api"
+       },
+       {
+        "id": "AC-36.2",
+        "given": "Staff creating an order for company A",
+        "when": "They use an address of company B or a date before the earliest delivery date",
+        "then": "The request returns 422 and no order is created",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-37",
+      "ears": "When Office Staff export the delivery list for a date, the portal shall return a CSV with one row per order for delivery that date in status Confirmed, Picking, Out for delivery or Delivered, with order number, customer, delivery address, contact name, contact phone, delivery date, line summary, note and status.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "ASM-43"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-37.1",
+        "given": "For 12 May: one Confirmed, one Out for delivery, one Received and one Cancelled order; one Confirmed order for 13 May",
+        "when": "Staff export the delivery list for 12 May",
+        "then": "The CSV has a header and exactly 2 rows (the Confirmed and Out for delivery orders) with all listed columns",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-38",
+      "ears": "The portal shall show Office Staff and Administrators a dashboard with the counts of Received, Confirmed, Picking and Out for delivery orders, the number of orders due for delivery today, the number of Unpaid and Overdue invoices, and the result of the latest stock import.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "I-12",
+       "I-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-38.1",
+        "given": "3 Received orders, 1 Picking order, 2 orders due today, 4 Unpaid and 1 Overdue invoice, and a failed latest import",
+        "when": "Office Staff request the dashboard",
+        "then": "It returns Received 3, Picking 1, due today 2, Unpaid 4, Overdue 1 and the latest import as Failed with its time",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-39",
+      "ears": "When an order's status becomes Delivered, the portal shall create one invoice with the next sequential INV-prefixed number, invoice date, customer, billing address, order number, lines with quantity and order-time unit price, net total, tax at the configured rate, gross total and status Unpaid.",
+      "op": "ADDED",
+      "sources": [
+       "I-16",
+       "ASM-22",
+       "ASM-31",
+       "ASM-46"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-39.1",
+        "given": "An Out for delivery order with lines 10.00 x 2 and 5.00 x 1, tax rate 20%, last invoice INV-000040",
+        "when": "Staff set it to Delivered",
+        "then": "Invoice INV-000041 is created with net 25.00, tax 5.00, gross 30.00 and status Unpaid",
+        "level": "api"
+       },
+       {
+        "id": "AC-39.2",
+        "given": "Invoice INV-000041",
+        "when": "An Administrator changes the tax rate to 15%",
+        "then": "INV-000041 still shows tax 5.00 and gross 30.00",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-40",
+      "ears": "The portal shall report an unpaid invoice as Overdue once more than the configured number of payment days have passed since its invoice date, and as Unpaid before that.",
+      "op": "ADDED",
+      "sources": [
+       "I-16",
+       "I-5",
+       "ASM-10",
+       "ASM-32"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-40.1",
+        "given": "Payment days 30 and an unpaid invoice dated 1 March",
+        "when": "The status is calculated on 31 March and on 1 April",
+        "then": "It is Unpaid on 31 March and Overdue on 1 April",
+        "level": "unit"
+       },
+       {
+        "id": "AC-40.2",
+        "given": "An invoice dated 1 January marked paid",
+        "when": "The status is calculated on 1 June",
+        "then": "It is Paid",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-41",
+      "ears": "When a Buyer lists invoices, the portal shall return every invoice of the Buyer's company with invoice number, order number, invoice date, gross total and payment status.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-16",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-41.1",
+        "given": "Company A with 2 invoices from orders placed by different Buyers and company B with 1 invoice",
+        "when": "A Buyer of A lists invoices",
+        "then": "Both company A invoices are returned with all listed fields and the company B invoice is not",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-42",
+      "ears": "When a Buyer of the invoice's company or an Office Staff user downloads an invoice, the portal shall return a PDF with the invoice number, invoice date, customer, billing address, order number, lines with quantity, unit price and line total, net total, tax and gross total.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-42.1",
+        "given": "Invoice INV-000041 of company A",
+        "when": "A Buyer of A and an Office Staff user download its PDF",
+        "then": "Both receive content type application/pdf whose text contains INV-000041, the order number, each line, net 25.00, tax 5.00 and gross 30.00",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-43",
+      "ears": "When Office Staff mark an invoice as paid with a payment date, the portal shall set the invoice to Paid and store the payment date and the staff user who recorded it.",
+      "op": "ADDED",
+      "sources": [
+       "I-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-43.1",
+        "given": "An Overdue invoice",
+        "when": "Staff user S1 marks it paid with payment date 3 April",
+        "then": "The status is Paid with payment date 3 April and recorded by S1",
+        "level": "api"
+       },
+       {
+        "id": "AC-43.2",
+        "given": "An Unpaid invoice",
+        "when": "Staff mark it paid without a payment date",
+        "then": "The request returns 400 and the invoice stays Unpaid",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-44",
+      "ears": "The portal shall let Administrators create, edit and retire products with name, internal ID, manufacturer part number, unique distributor product code, description, category, brand, unit of sale and pack size, keeping retired products on existing orders and invoices.",
+      "op": "ADDED",
+      "sources": [
+       "I-10",
+       "I-17",
+       "ASM-41"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-44.1",
+        "given": "An Administrator",
+        "when": "The Administrator creates a product with code DP-1, then another product with code DP-1",
+        "then": "The first is created and the second returns 409",
+        "level": "api"
+       },
+       {
+        "id": "AC-44.2",
+        "given": "Product P on a Delivered order and its invoice",
+        "when": "An Administrator retires P",
+        "then": "P no longer appears in catalogue search, and the order detail and invoice still show P's line",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-45",
+      "ears": "If an uploaded product image is not JPEG, PNG or WebP or is larger than 5 MB, then the portal shall reject the upload and keep the product's current image.",
+      "op": "ADDED",
+      "sources": [
+       "I-17",
+       "I-10",
+       "ASM-42"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-45.1",
+        "given": "Product P with image img-1",
+        "when": "An Administrator uploads a 6 MB PNG and then a GIF",
+        "then": "Both uploads return 422 and P still shows img-1",
+        "level": "api"
+       },
+       {
+        "id": "AC-45.2",
+        "given": "Product P with image img-1",
+        "when": "An Administrator uploads a 1 MB PNG",
+        "then": "The upload succeeds and the catalogue returns the new image URL for P",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-46",
+      "ears": "The portal shall let Administrators create, rename and retire single-level categories and assign each product to one category.",
+      "op": "ADDED",
+      "sources": [
+       "I-10",
+       "I-17",
+       "ASM-19",
+       "ASM-37"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-46.1",
+        "given": "An Administrator",
+        "when": "The Administrator creates 'Exhaust' with a parent category",
+        "then": "The request returns 400 because categories have no parent",
+        "level": "api"
+       },
+       {
+        "id": "AC-46.2",
+        "given": "Category 'Exhaust' in use",
+        "when": "An Administrator retires it and a customer lists categories",
+        "then": "'Exhaust' is not offered as a filter",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-47",
+      "ears": "The portal shall let Administrators add and remove any number of vehicle compatibility records per product, each holding make, model, model year, engine, fuel type and variant.",
+      "op": "ADDED",
+      "sources": [
+       "I-10",
+       "I-17",
+       "ASM-20"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-47.1",
+        "given": "Product P with no compatibility records",
+        "when": "An Administrator adds 2 records and removes 1",
+        "then": "The product detail lists the remaining record and vehicle search finds P only for that record",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-48",
+      "ears": "The portal shall let Administrators create, rename and deactivate price lists, set, change and remove one price per product per list, and assign one price list to each customer company.",
+      "op": "ADDED",
+      "sources": [
+       "I-11",
+       "I-17"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-48.1",
+        "given": "Price list 'Fleet' with P at 8.00",
+        "when": "An Administrator sets P to 9.00 on 'Fleet'",
+        "then": "'Fleet' holds exactly one price for P, 9.00",
+        "level": "api"
+       },
+       {
+        "id": "AC-48.2",
+        "given": "Company A assigned 'Fleet'",
+        "when": "An Administrator assigns 'Dealer' to A",
+        "then": "A has only 'Dealer' assigned and its Buyers see 'Dealer' prices",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-49",
+      "ears": "The portal shall let Administrators create and edit customer companies with name, account number, primary contact, contact email, contact phone, billing address, assigned price list and active status.",
+      "op": "ADDED",
+      "sources": [
+       "I-17",
+       "I-9"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-49.1",
+        "given": "An Administrator",
+        "when": "The Administrator creates company A with all fields and then sets it inactive",
+        "then": "Company A is stored with the fields and its Buyers can no longer sign in",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-50",
+      "ears": "The portal shall let Office Staff and Administrators add, edit and deactivate the delivery addresses of a customer company, each with label, address lines, city, region, postal code, country, contact person and contact phone.",
+      "op": "ADDED",
+      "sources": [
+       "I-17",
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-50.1",
+        "given": "Company A with no addresses",
+        "when": "Office Staff add an address and an Administrator deactivates it",
+        "then": "The address is stored with all fields and is no longer offered at checkout after deactivation",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-51",
+      "ears": "When Office Staff search customers by name or account number, the portal shall return the matching companies with their details, assigned price list and status.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "I-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-51.1",
+        "given": "Companies 'Smith Motors' (ACC-100) and 'Jones Fleet' (ACC-200)",
+        "when": "Staff search 'smith' and then 'ACC-2'",
+        "then": "The first returns only Smith Motors and the second only Jones Fleet, each with details, price list and status",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-52",
+      "ears": "The portal shall let Administrators view users with their account status, deactivate and reactivate users, change a user's role between Customer Buyer, Office Staff and Administrator, and link each Customer Buyer to exactly one customer company.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "I-17",
+       "Q-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-52.1",
+        "given": "An active Office Staff user S",
+        "when": "An Administrator changes S's role to Customer Buyer without a company",
+        "then": "The request returns 400 and S keeps the Office Staff role",
+        "level": "api"
+       },
+       {
+        "id": "AC-52.2",
+        "given": "Users in statuses Pending, Active and Deactivated",
+        "when": "An Administrator lists users",
+        "then": "Each user is returned with role, company and status",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-53",
+      "ears": "The portal shall let Administrators set the low-stock threshold, order cutoff time, timezone, extra non-working dates, maximum delivery days ahead, invoice payment days and tax rate, applying each new value to calculations made after the change.",
+      "op": "ADDED",
+      "sources": [
+       "I-12",
+       "I-13",
+       "I-16",
+       "I-17",
+       "ASM-5",
+       "ASM-27",
+       "ASM-28",
+       "ASM-29",
+       "ASM-31",
+       "ASM-32"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-53.1",
+        "given": "Cutoff 14:00",
+        "when": "An Administrator sets cutoff to 12:00 and the earliest date is requested on Monday 13:00",
+        "then": "The earliest delivery date is Wednesday",
+        "level": "api"
+       },
+       {
+        "id": "AC-53.2",
+        "given": "Low-stock threshold 5 and a product with quantity 7",
+        "when": "An Administrator sets the threshold to 10",
+        "then": "The product shows Low stock",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-54",
+      "ears": "When an order, invoice, customer company, delivery address, user, product, category, price list or compatibility record is created, changed or removed, the portal shall store an audit entry with the acting user, timestamp, record identity and each changed field's old and new values.",
+      "op": "ADDED",
+      "sources": [
+       "I-8",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-54.1",
+        "given": "Product P priced 8.00 on 'Fleet'",
+        "when": "Administrator Ad1 sets it to 9.00",
+        "then": "An audit entry records Ad1, the time, price list 'Fleet' / product P, and price 8.00 to 9.00",
+        "level": "api"
+       },
+       {
+        "id": "AC-54.2",
+        "given": "Invoice INV-000041 Unpaid",
+        "when": "Staff user S1 marks it paid",
+        "then": "An audit entry records S1, the time, INV-000041, status Unpaid to Paid and the payment date",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-55",
+      "ears": "The portal shall show audit history only to Administrators, filterable by record type, record and date range, with no means to edit or delete entries.",
+      "op": "ADDED",
+      "sources": [
+       "I-8",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-55.1",
+        "given": "Audit entries for products and invoices",
+        "when": "An Administrator filters by record type Invoice and a date range",
+        "then": "Only invoice entries in that range are returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-55.2",
+        "given": "An existing audit entry",
+        "when": "An Administrator sends an update or delete request for it",
+        "then": "The request is refused and the entry is unchanged",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-56",
+      "ears": "When Office Staff or an Administrator request reports for a date range, the portal shall return net invoiced sales by day, week or month, net invoiced sales by customer, and the top 20 products by quantity and net sales, each downloadable as CSV.",
+      "op": "ADDED",
+      "sources": [
+       "I-7",
+       "Q-7",
+       "ASM-21",
+       "ASM-44"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-56.1",
+        "given": "In May, invoices for company A of net 100.00 and 50.00 and company B of net 30.00; an April invoice of net 70.00",
+        "when": "Staff request sales by customer for May",
+        "then": "A shows 150.00 and B shows 30.00 and the April invoice is excluded",
+        "level": "api"
+       },
+       {
+        "id": "AC-56.2",
+        "given": "25 products invoiced in May",
+        "when": "An Administrator requests top products for May as CSV",
+        "then": "A CSV with a header and 20 rows ordered by net sales descending is returned",
+        "level": "api"
+       }
+      ]
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "Catalogue text, category and vehicle searches respond quickly enough for counter use.",
+      "metric": "p95 response time ≤ 1 s with 100,000 active products and 50 concurrent users"
+     },
+     {
+      "id": "NFR-2",
+      "text": "Basket, checkout, order list and order detail API calls respond within a bounded time.",
+      "metric": "p95 response time ≤ 2 s at 50 concurrent users"
+     },
+     {
+      "id": "NFR-3",
+      "text": "Passwords are stored only as salted hashes.",
+      "metric": "0 plaintext or reversibly encrypted passwords; argon2id or bcrypt with cost ≥ 12"
+     },
+     {
+      "id": "NFR-4",
+      "text": "All portal traffic is encrypted in transit.",
+      "metric": "100% of endpoints served over TLS 1.2 or higher; plain HTTP redirected"
+     },
+     {
+      "id": "NFR-5",
+      "text": "Sessions expire after inactivity.",
+      "metric": "Idle timeout 30 minutes; absolute session lifetime 12 hours"
+     },
+     {
+      "id": "NFR-6",
+      "text": "The nightly stock import finishes before the business day.",
+      "metric": "A 100,000-row CSV imports in ≤ 15 minutes"
+     },
+     {
+      "id": "NFR-7",
+      "text": "Invoice PDFs are generated on request.",
+      "metric": "p95 PDF download time ≤ 5 s for an invoice of up to 200 lines"
+     },
+     {
+      "id": "NFR-8",
+      "text": "Order and invoice emails are sent soon after the triggering event.",
+      "metric": "≥ 99% of emails handed to the email service within 5 minutes of the event"
+     },
+     {
+      "id": "NFR-9",
+      "text": "The portal is available during business use.",
+      "metric": "≥ 99.5% monthly availability, hosted in 1 cloud region (ASM-24)"
+     },
+     {
+      "id": "NFR-10",
+      "text": "Customer screens are accessible.",
+      "metric": "0 WCAG 2.1 AA failures on sign-in, catalogue, product, basket, checkout, orders and invoices screens in an automated audit"
+     }
+    ],
+    "outOfScope": [
+     "Customer Account Manager role (Q-1)",
+     "Saved basket templates, section 16 (ASM-1)",
+     "Customers creating or editing their own delivery addresses (Q-5)",
+     "Backorders and ordering beyond the last imported stock quantity (Q-8)",
+     "Online card payments and payment method capture",
+     "Writing stock changes back to the ERP or subtracting orders from stock between imports (Q-8)",
+     "Volume, promotional, discount and effective-dated pricing; multiple currencies (ASM-4)",
+     "SMS or push notifications; editable email templates (ASM-15)",
+     "Single sign-on or social sign-in (ASM-36)",
+     "Nested categories (ASM-37)",
+     "A separate Rejected order status (ASM-38)",
+     "Custom report builder (ASM-21)",
+     "Migration of existing customers, products, price lists and users; system starts empty with seed data (ASM-23)",
+     "Route planning for deliveries",
+     "Bulk import of vehicle compatibility data; admins enter it manually (ASM-20)",
+     "Reproducing an existing client invoice template"
+    ],
+    "assumptions": [
+     "Conflict resolved: ASM-30 ('Price on request', also for deactivated price lists) is used instead of ASM-2.",
+     "Conflict resolved: ASM-31 (prices excluding tax, invoices add tax at one configurable rate) is used instead of ASM-3.",
+     "Conflict resolved: ASM-35 (one saved basket per Buyer across sessions) is used instead of ASM-13.",
+     "Conflict resolved: the answer Q-8 (an ordered quantity must not exceed the last imported quantity) replaces ASM-7.",
+     "ASM-39: Order emails go to the Buyer who placed the order. For staff-created orders they go to the customer company's contact email.",
+     "ASM-40: Staff must give a reason for every staff cancellation, not only rejections, and the customer gets that reason by email.",
+     "ASM-41: Stock CSV rows are matched on the distributor product code, which is unique per product. A product that has never been imported counts as Out of stock.",
+     "ASM-42: Accepted product image types are JPEG, PNG and WebP, up to 5 MB each. A new upload replaces the previous image.",
+     "ASM-43: The delivery list covers the chosen date (today by default) and includes orders in Confirmed, Picking, Out for delivery or Delivered status, with the columns listed in REQ-37.",
+     "ASM-44: Sales reports are based on invoices by invoice date and use net amounts. 'Top products' means the top 20.",
+     "ASM-45: Repeating an order adds its lines to the Buyer's existing saved basket. If a product is already in the basket, the quantities are added together.",
+     "ASM-46: Invoice tax is worked out on the net total and rounded to 2 decimals, half-up.",
+     "Staff can create and confirm orders and change their status. Only Administrators manage catalogue, price lists, users and settings. Office Staff can also maintain delivery addresses (Q-5)."
+    ],
+    "suggestions": [
+     "Saved basket templates (section 16) could come in a later run. They would be private to the Buyer who created them (Q-6).",
+     "Think about a Customer Account Manager role later, if larger customers need it (Q-1).",
+     "Think about letting customers ask for address changes through the portal instead of by phone.",
+     "Think about reserving stock for open orders between nightly imports so that confirmations fail less often.",
+     "Think about bulk CSV import for vehicle compatibility data and product catalogue set-up.",
+     "Think about an alert email to admins when the nightly stock import fails.",
+     "Think about search ranking, for example exact code matches first, once real usage data is available."
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

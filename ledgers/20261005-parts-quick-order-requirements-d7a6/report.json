@@ -1,0 +1,484 @@
+{
+  "runId": "20261005-parts-quick-order-requirements-d7a6",
+  "status": "running",
+  "request": "# Parts Quick Order — requirements\n\n## Purpose\nA small web portal where a garage's parts buyer finds car parts, orders them and tracks the order. This release has exactly three screens. Anything not w",
+  "costUsd": 8.185747300000001,
+  "activeMin": 35.71808333333333,
+  "firstTimePassRate": 0.8571428571428571,
+  "topCost": [
+    {
+      "step": "design",
+      "costUsd": 5.3640614
+    },
+    {
+      "step": "specify",
+      "costUsd": 1.3895489000000003
+    },
+    {
+      "step": "estimate",
+      "costUsd": 0.438951
+    }
+  ],
+  "steps": [
+    {
+      "step": "intake",
+      "stage": "intake",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-haiku-4-5"
+      ],
+      "tokens": {
+        "input": 2157,
+        "output": 802,
+        "cached": 0
+      },
+      "costUsd": 0.006167,
+      "activeSec": 7.527,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 7,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "ground",
+      "stage": "ground",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.014,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "clarify",
+      "stage": "clarify",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-sonnet-5",
+        "claude-haiku-4-5",
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 28672,
+        "output": 15883,
+        "cached": 0
+      },
+      "costUsd": 0.29228200000000004,
+      "activeSec": 88.167,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": [],
+        "questionsAsked": 0,
+        "answersChanged": 0
+      },
+      "time": {
+        "modelSec": 138,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "clarify-2",
+      "stage": "clarify-2",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.015,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": [],
+        "questionsAsked": 0,
+        "answersChanged": 0
+      }
+    },
+    {
+      "step": "drafts",
+      "stage": "drafts",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 5165,
+        "output": 15065,
+        "cached": 0
+      },
+      "costUsd": 0.331585,
+      "activeSec": 123.336,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 123,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "merge",
+      "stage": "merge",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.016,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "specify",
+      "stage": "specify",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 2,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-sonnet-5",
+        "claude-opus-5-5",
+        "claude-haiku-4-5"
+      ],
+      "tokens": {
+        "input": 201523,
+        "output": 41622,
+        "cached": 4557
+      },
+      "costUsd": 1.3895489000000003,
+      "activeSec": 317.5,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 392,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "design",
+      "stage": "design",
+      "outcome": "completed",
+      "firstTimePass": false,
+      "attempts": 9,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Retrying with the failures",
+        "Escalating after repeated failures",
+        "Retrying with the failures",
+        "Every retry option is used up",
+        "Retrying with the failures",
+        "Escalating after repeated failures"
+      ],
+      "highestRung": 1,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 73462,
+        "output": 187425,
+        "cached": 720142
+      },
+      "costUsd": 5.3640614,
+      "activeSec": 1416.3140000000003,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 1698,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "design-baseline",
+      "stage": "design-baseline",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 2,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 221.974,
+      "gates": {
+        "passed": 2,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 2,
+        "decisions": [
+          "approve",
+          "approve"
+        ]
+      }
+    },
+    {
+      "step": "design-export",
+      "stage": "design-export",
+      "outcome": "completed",
+      "firstTimePass": false,
+      "attempts": 7,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Same failure again; escalating",
+        "Every retry option is used up",
+        "Every retry option is used up",
+        "Every retry option is used up"
+      ],
+      "highestRung": 1,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 40.288,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "breakdown",
+      "stage": "breakdown",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 2,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 26398,
+        "output": 12390,
+        "cached": 0
+      },
+      "costUsd": 0.363152,
+      "activeSec": 103.75,
+      "gates": {
+        "passed": 6,
+        "failed": 1,
+        "failedIds": [
+          "estimate.e1-readiness"
+        ]
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 104,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "estimate",
+      "stage": "estimate",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [
+        "claude-opus-5-5"
+      ],
+      "tokens": {
+        "input": 41799,
+        "output": 12483,
+        "cached": 0
+      },
+      "costUsd": 0.438951,
+      "activeSec": 39.788,
+      "gates": {
+        "passed": 2,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      },
+      "time": {
+        "modelSec": 114,
+        "agentSec": 0,
+        "labSec": 0
+      }
+    },
+    {
+      "step": "approve-estimate",
+      "stage": "approve-estimate",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.037,
+      "gates": {
+        "passed": 1,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    },
+    {
+      "step": "export",
+      "stage": "export",
+      "outcome": "completed",
+      "firstTimePass": true,
+      "attempts": 1,
+      "interruptions": 0,
+      "retryReasons": [],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 6.15,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    }
+  ],
+  "createdAt": "2026-10-05T16:18:28.201Z",
+  "humanCards": [
+    "design-approval",
+    "cap",
+    "design-approval"
+  ]
+}

@@ -1,0 +1,531 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "New order for customer",
+     "subtitle": "Order on behalf of a customer company, at its own prices and within stock",
+     "crumbs": [
+      "Orders",
+      "New order"
+     ],
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Customer company",
+         "kind": "combobox",
+         "value": "Hartley Motors Ltd · ACC-10482",
+         "placeholder": "Search active companies",
+         "required": true,
+         "help": "Only active companies are listed",
+         "error": "Choose an active customer company"
+        },
+        {
+         "label": "Price list",
+         "kind": "text",
+         "value": "Trade Band B",
+         "readOnly": true,
+         "hint": "Prices come from the price list assigned to this company"
+        },
+        {
+         "label": "Product",
+         "kind": "search",
+         "value": "FLT-0921 Oil filter, VW 1.6 TDI",
+         "placeholder": "Part no., name or vehicle",
+         "required": true,
+         "error": "WPR-600 is Price on request and can't be added"
+        },
+        {
+         "label": "Quantity",
+         "kind": "number",
+         "value": "9",
+         "required": true,
+         "error": "Only 9 in stock for FLT-0921"
+        }
+       ],
+       "submit": "Add line"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Product",
+        "Unit price",
+        "Stock",
+        "Qty",
+        "Line total"
+       ],
+       "rows": [
+        [
+         "BRK-4471",
+         "Front brake pads, Ford Focus Mk4",
+         "£28.40",
+         "In stock · 36",
+         "4",
+         "£113.60"
+        ],
+        [
+         "OIL-5W30-5",
+         "Castrol Edge 5W-30, 5 L",
+         "£31.95",
+         "In stock · 120",
+         "6",
+         "£191.70"
+        ],
+        [
+         "SPK-NGK-3",
+         "NGK iridium spark plug",
+         "£7.20",
+         "Low · 8",
+         "8",
+         "£57.60"
+        ],
+        [
+         "BAT-096",
+         "Battery 096, 12V 70Ah",
+         "£74.50",
+         "In stock · 14",
+         "1",
+         "£74.50"
+        ],
+        [
+         "CLT-220",
+         "Clutch kit, Vauxhall Astra J",
+         "£142.00",
+         "Low · 5",
+         "1",
+         "£142.00"
+        ]
+       ],
+       "statusColumn": 3,
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Remove",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      },
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Lines",
+         "value": "5",
+         "delta": "20 units"
+        },
+        {
+         "label": "Subtotal",
+         "value": "£579.40"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£115.88"
+        },
+        {
+         "label": "Order total",
+         "value": "£695.28"
+        }
+       ]
+      },
+      {
+       "type": "calendar",
+       "month": "March 2026",
+       "startsOn": 6,
+       "days": 31,
+       "off": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        14,
+        15,
+        21,
+        22,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+       ],
+       "marks": [
+        {
+         "day": 12,
+         "label": "Earliest",
+         "tone": "info"
+        },
+        {
+         "day": 25,
+         "label": "Last bookable",
+         "tone": "warn"
+        }
+       ],
+       "picked": 13
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Delivery address",
+         "kind": "select",
+         "value": "Unit 4, Mill Lane, Leeds LS12 6AB",
+         "options": [
+          "Unit 4, Mill Lane, Leeds LS12 6AB",
+          "22 Canal Road, Bradford BD1 4SJ"
+         ],
+         "required": true,
+         "error": "That address doesn't belong to Hartley Motors Ltd"
+        },
+        {
+         "label": "Delivery date",
+         "kind": "date",
+         "value": "Fri 13 Mar 2026",
+         "required": true,
+         "help": "Working days 12–25 Mar · now 10:42, before the 14:00 cutoff",
+         "error": "Delivery date 14 Mar 2026 is not a working day"
+        },
+        {
+         "label": "Note for the driver",
+         "kind": "textarea",
+         "value": "Goods-in at the back, ask for Dave",
+         "help": "Optional · up to 500 characters"
+        },
+        {
+         "label": "Created by",
+         "kind": "text",
+         "value": "Priya Shah (Office)",
+         "readOnly": true
+        }
+       ],
+       "submit": "Submit order"
+      }
+     ],
+     "links": [
+      {
+       "from": "Submit order",
+       "to": "S-17"
+      },
+      {
+       "from": "BRK-4471",
+       "to": "S-27"
+      },
+      {
+       "from": "CLT-220",
+       "to": "S-27"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Submit order",
+       "text": "Order ORD-20931 created for Hartley Motors Ltd · Received",
+       "tone": "ok"
+      },
+      {
+       "after": "Remove",
+       "text": "Line removed from the order",
+       "tone": "info",
+       "undo": true
+      }
+     ],
+     "copy": {
+      "success": "Order ORD-20931 is in Received status, marked as created by you.",
+      "error": "We couldn't create the order. Nothing was saved — try again.",
+      "validation": "Check the highlighted lines: a quantity, address or delivery date isn't allowed for this company."
+     }
+    },
+    "mockFull": {
+     "title": "New order for customer",
+     "subtitle": "Order on behalf of a customer company, at its own prices and within stock",
+     "crumbs": [
+      "Orders",
+      "New order"
+     ],
+     "blocks": [
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Customer company",
+         "kind": "combobox",
+         "value": "Hartley Motors Ltd · ACC-10482",
+         "placeholder": "Search active companies",
+         "required": true,
+         "help": "Only active companies are listed",
+         "error": "Choose an active customer company"
+        },
+        {
+         "label": "Price list",
+         "kind": "text",
+         "value": "Trade Band B",
+         "readOnly": true,
+         "hint": "Prices come from the price list assigned to this company"
+        },
+        {
+         "label": "Product",
+         "kind": "search",
+         "value": "WPR-600 Wiper blade 600 mm",
+         "placeholder": "Part no., name or vehicle",
+         "required": true,
+         "error": "WPR-600 is Price on request and can't be added"
+        },
+        {
+         "label": "Quantity",
+         "kind": "number",
+         "value": "2",
+         "required": true,
+         "error": "Only 3 in stock for TMB-KIT9"
+        }
+       ],
+       "submit": "Add line"
+      },
+      {
+       "type": "table",
+       "columns": [
+        "Part no.",
+        "Product",
+        "Unit price",
+        "Stock",
+        "Qty",
+        "Line total"
+       ],
+       "rows": [
+        [
+         "BRK-4471",
+         "Front brake pads, Ford Focus Mk4",
+         "£28.40",
+         "In stock · 36",
+         "4",
+         "£113.60"
+        ],
+        [
+         "OIL-5W30-5",
+         "Castrol Edge 5W-30, 5 L",
+         "£31.95",
+         "In stock · 120",
+         "6",
+         "£191.70"
+        ],
+        [
+         "SPK-NGK-3",
+         "NGK iridium spark plug",
+         "£7.20",
+         "Low · 8",
+         "8",
+         "£57.60"
+        ],
+        [
+         "BAT-096",
+         "Battery 096, 12V 70Ah",
+         "£74.50",
+         "In stock · 14",
+         "1",
+         "£74.50"
+        ],
+        [
+         "CLT-220",
+         "Clutch kit, Vauxhall Astra J",
+         "£142.00",
+         "Low · 5",
+         "1",
+         "£142.00"
+        ],
+        [
+         "FLT-0921",
+         "Oil filter, VW 1.6 TDI",
+         "£6.85",
+         "Low · 9",
+         "9",
+         "£61.65"
+        ],
+        [
+         "DSC-3310",
+         "Brake discs pair, VW Golf Mk7",
+         "£58.90",
+         "In stock · 22",
+         "2",
+         "£117.80"
+        ],
+        [
+         "AIR-1187",
+         "Air filter, Toyota Yaris 1.0",
+         "£9.40",
+         "In stock · 41",
+         "3",
+         "£28.20"
+        ],
+        [
+         "BLB-H7-2",
+         "H7 halogen bulb, twin pack",
+         "£5.75",
+         "In stock · 200",
+         "10",
+         "£57.50"
+        ],
+        [
+         "CAB-0450",
+         "Cabin filter, Nissan Qashqai J11",
+         "£11.20",
+         "In stock · 30",
+         "2",
+         "£22.40"
+        ],
+        [
+         "ADB-10L",
+         "AdBlue, 10 L",
+         "£12.60",
+         "In stock · 64",
+         "4",
+         "£50.40"
+        ],
+        [
+         "TMB-KIT9",
+         "Timing belt kit, Ford 1.0 EcoBoost",
+         "£118.00",
+         "Low · 3",
+         "1",
+         "£118.00"
+        ]
+       ],
+       "statusColumn": 3,
+       "selectable": true,
+       "bulk": [
+        {
+         "label": "Remove",
+         "variant": "danger",
+         "icon": "trash"
+        }
+       ]
+      },
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Lines",
+         "value": "12",
+         "delta": "51 units"
+        },
+        {
+         "label": "Subtotal",
+         "value": "£1,035.35"
+        },
+        {
+         "label": "VAT 20%",
+         "value": "£207.07"
+        },
+        {
+         "label": "Order total",
+         "value": "£1,242.42"
+        }
+       ]
+      },
+      {
+       "type": "calendar",
+       "month": "March 2026",
+       "startsOn": 6,
+       "days": 31,
+       "off": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        14,
+        15,
+        21,
+        22,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+       ],
+       "marks": [
+        {
+         "day": 12,
+         "label": "Earliest",
+         "tone": "info"
+        },
+        {
+         "day": 25,
+         "label": "Last bookable",
+         "tone": "warn"
+        }
+       ],
+       "picked": 13
+      },
+      {
+       "type": "form",
+       "fields": [
+        {
+         "label": "Delivery address",
+         "kind": "select",
+         "value": "Unit 4, Mill Lane, Leeds LS12 6AB",
+         "options": [
+          "Unit 4, Mill Lane, Leeds LS12 6AB",
+          "22 Canal Road, Bradford BD1 4SJ",
+          "Hartley Fleet Bay, 9 Ring Road, Wakefield WF2 7DN"
+         ],
+         "required": true,
+         "error": "That address doesn't belong to Hartley Motors Ltd"
+        },
+        {
+         "label": "Delivery date",
+         "kind": "date",
+         "value": "Fri 13 Mar 2026",
+         "required": true,
+         "help": "Working days 12–25 Mar · now 10:42, before the 14:00 cutoff",
+         "error": "Delivery date 14 Mar 2026 is not a working day"
+        },
+        {
+         "label": "Note for the driver",
+         "kind": "textarea",
+         "value": "Goods-in at the back, ask for Dave. Batteries to the workshop counter.",
+         "help": "Optional · up to 500 characters"
+        },
+        {
+         "label": "Created by",
+         "kind": "text",
+         "value": "Priya Shah (Office)",
+         "readOnly": true
+        }
+       ],
+       "submit": "Submit order"
+      }
+     ],
+     "copy": {
+      "success": "Order ORD-20931 is in Received status, marked as created by you.",
+      "error": "We couldn't create the order. Nothing was saved — try again.",
+      "validation": "Check the highlighted lines: a quantity, address or delivery date isn't allowed for this company."
+     }
+    }
+   },
+   "ms": 2,
+   "resultChars": 161,
+   "isError": true,
+   "result": "The result doesn't match the schema: mockFull.blocks.4.fields.0.options.2: Too big: expected string to have <=40 characters. Fix it and call submit_result again."
+  }
+ ]
+}

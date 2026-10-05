@@ -1,6 +1,9 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { estimateApiCost } from "./cost.js";
-import { recordsFromRun } from "./records.js";
+import { loadEvalRecords, recordsFromEvidence, recordsFromRun } from "./records.js";
 import type { RunScore, StepScore } from "../report.js";
 
 const step = (name: string, costUsd: number, activeSec = 60, outcome = "completed"): StepScore => ({
@@ -31,5 +34,28 @@ describe("benchmark records from a run", () => {
     expect(cost.phases.find((p) => p.phase === "planning")!.usd).toEqual({ min: 2, max: 2 });
     expect(cost.phases.find((p) => p.phase === "build")!.usd).toEqual({ min: 12, max: 12 });
     expect(cost.records).toBe(2);
+  });
+});
+
+describe("benchmark records from published eval runs", () => {
+  const row = (runId: string, outcome: string, steps: [string, number][], kind = "factory") => ({ runId, kind, outcome, steps: steps.map(([step, costUsd]) => ({ step, costUsd, minutes: 2 })) });
+
+  it("adds build and verification only (a ticket's planning is not a requirements document's), marked as eval", () => {
+    const r = recordsFromEvidence(row("e1", "delivered", [["specify", 2], ["author-tests", 1], ["implement/TASK-1", 1], ["implement/TASK-2", 2], ["review", 0.4]]));
+    expect(r.map((x) => [x.phase, x.costUsd, x.units, x.source])).toEqual([["build", 4, 2, "eval"], ["verification", 0.4, 2, "eval"]]);
+    expect(recordsFromEvidence(row("e2", "delivered", [["implement/TASK-1", 1]], "claude-code"))).toEqual([]);
+  });
+
+  it("reads each published run once, skips runs the ledger already has, and the cost model names its sources", () => {
+    const dir = mkdtempSync(join(tmpdir(), "evidence-"));
+    mkdirSync(join(dir, "runs", "a"), { recursive: true }); mkdirSync(join(dir, "evals", "e2e"), { recursive: true });
+    const a = row("run-a", "delivered", [["implement/TASK-1", 1], ["review", 0.2]]);
+    writeFileSync(join(dir, "runs", "a", "row.json"), JSON.stringify(a));
+    writeFileSync(join(dir, "evals", "e2e", "x-paid.json"), JSON.stringify([{ caseId: "c", run: a }, { caseId: "d", run: row("run-b", "waiting", [["implement/TASK-1", 3]]) }, { caseId: "e" }]));
+    const records = loadEvalRecords(dir);
+    expect(records.map((x) => `${x.runId} ${x.phase}`)).toEqual(["run-a build", "run-a verification", "run-b build"]);
+    expect(loadEvalRecords(dir, new Set(["run-a"])).map((x) => x.runId)).toEqual(["run-b"]);
+    const cost = estimateApiCost({ build: 1, verification: 1 }, [...records, { runId: "l", phase: "build", stage: "build", costUsd: 2, activeSec: 1, units: 1, outcome: "completed", source: "ledger" }], "hitl");
+    expect(cost.phases.map((p) => [p.phase, p.basis])).toEqual([["build", { ledger: 1, eval: 2 }], ["verification", { ledger: 0, eval: 1 }]]);
   });
 });

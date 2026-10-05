@@ -1,0 +1,98 @@
+{
+ "model": "claude-haiku-4-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "I need to map each restated sentence (n=1 to 11) to the original intent spans (I-1 to I-7) and answers (Q-1 to Q-8) that it comes from.\n\nLet me analyze each sentence:\n\n**Sentence 1**: \"The system shall determine, on every request rather than by storing a flag, whether an invoice is overdue.\"\n- Maps to Q-6 (how overdue is determined - computed at query time)\n- No direct intent span match\n\n**Sentence 2**: \"An invoice shall be considered overdue only if its status is in a configured list of open statuses, which defaults to just 'open'.\"\n- Maps to Q-4 (closed invoices drop off automatically - relates to invoice status)\n- Related to I-1 (marking overdue)\n\n**Sentence 3**: \"An invoice shall be considered overdue only if it has a due date.\"\n- Maps to I-1 (7 days past due date - requires a due date)\n- General supporting requirement\n\n**Sentence 4**: \"An invoice shall be considered overdue only if the number of calendar days from its due date to today, calculated in a configured business time zone, is at least a configured overdue threshold, which defaults to 7.\"\n- Maps to I-1 (7 days past due date)\n\n**Sentence 5**: \"The system shall provide an authenticated staff endpoint that returns the list of all invoices currently classified as overdue.\"\n- Maps to I-1 (show on overdue list)\n- Maps to Q-1 (authenticated staff user)\n\n**Sentence 6**: \"Each invoice in the overdue list shall include its invoice ID, invoice number, customer name, amount, due date, and days overdue, where days overdue is the calendar days since the due date.\"\n- Maps to I-6 (build overdue list screen)\n- Maps to I-2 (invoice number, amount, due date shown)\n\n**Sentence 7**: \"The overdue list endpoint shall support filtering results by a customer identifier, returning only that customer's overdue invoices.\"\n- Maps to I-5 (filter by customer)\n\n**Sentence 8**: \"The overdue list endpoint shall support filtering results by a days-overdue bucket, using fixed inclusive ranges of 7-30, 31-60, and 61+ days, regardless of the configured overdue threshold.\"\n- Maps to I-5 (filter by days overdue)\n\n**Sentence 9**: \"If the requested bucket value is not one of the three defined buckets, the endpoint shall respond with HTTP 400 and a validation error identifying the bucket parameter.\"\n- Maps to I-5 (filter validation)\n- General API requirement\n\n**Sentence 10**: \"Any request to an Invoice Reminders endpoint without valid staff authentication shall be rejected with HTTP 401, without returning invoice data, sending email, or changing data.\"\n- Maps to Q-1 (authenticated staff user)\n- Security requirement\n\n**Sentence 11**: \"Any request to an Invoice Reminders endpoint with a valid, unexpired token whose principal is not a staff user shall be rejected with HTTP 403, without returning invoice or customer data or changing data.\"\n- Maps to Q-1 (authenticated staff user)\n- Security requirement",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mapping": [
+     {
+      "n": 1,
+      "spans": [
+       "Q-6"
+      ],
+      "answers": []
+     },
+     {
+      "n": 2,
+      "spans": [
+       "I-1",
+       "Q-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 3,
+      "spans": [
+       "I-1"
+      ],
+      "answers": []
+     },
+     {
+      "n": 4,
+      "spans": [
+       "I-1"
+      ],
+      "answers": []
+     },
+     {
+      "n": 5,
+      "spans": [
+       "I-1",
+       "Q-1"
+      ],
+      "answers": []
+     },
+     {
+      "n": 6,
+      "spans": [
+       "I-6",
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 7,
+      "spans": [
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 8,
+      "spans": [
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 9,
+      "spans": [
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 10,
+      "spans": [
+       "Q-1"
+      ],
+      "answers": []
+     },
+     {
+      "n": 11,
+      "spans": [
+       "Q-1"
+      ],
+      "answers": []
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}
