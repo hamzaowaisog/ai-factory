@@ -124,7 +124,13 @@ export function dependencyLoops(tasks: Pick<BreakdownTask, "id" | "dependsOn">[]
 
 /** What the model returns (its structured-output schema). */
 export const BreakdownBody = z.object(BreakdownShape).superRefine(checkBreakdown);
-export const Breakdown = withHeader({ ...BreakdownShape, specSha: Sha }).superRefine(checkBreakdown);
+export const Breakdown = withHeader({
+  ...BreakdownShape, specSha: Sha,
+  /** tasks a hands-off run took out of the breakdown (gate E3), for the estimate's "Suggested, not included" */
+  suggested: z.array(z.object({ title: z.string().min(1), reason: z.string().min(1) })).optional(),
+  /** each decision a hands-off run made instead of a waiver (src/estimate/fallbacks.ts), carried to the estimate's assumptions */
+  factoryFixes: z.array(z.string()).optional(),
+}).superRefine(checkBreakdown);
 export type Breakdown = z.infer<typeof Breakdown>;
 
 // ---------- estimate ----------
@@ -157,6 +163,10 @@ export const Anchor = z.object({
 
 export type Anchor = z.infer<typeof Anchor>;
 
+/** Money in API credits, as a range. */
+const Usd = z.object({ min: z.number().nonnegative(), max: z.number().nonnegative() })
+  .refine((r) => r.min <= r.max, "min must not exceed max");
+
 export const TaskSizing = z.object({
   taskId: EstimateTaskId,
   /** the anchor this task is sized against; an anchor sizes itself */
@@ -175,13 +185,11 @@ export const TaskSizing = z.object({
   /** independent estimators' readings for M and up (spread sets the range and flags the item) */
   estimators: z.array(Range).max(3).default([]),
   flagged: z.boolean().default(false),
+  /** what the factory spends in API credits building and verifying this task (its share of those phases); zero for a human task. Absent on estimates made before 2026-10-06 */
+  apiUsd: Usd.optional(),
 });
 
 export type TaskSizing = z.infer<typeof TaskSizing>;
-
-/** Money in API credits, as a range. */
-const Usd = z.object({ min: z.number().nonnegative(), max: z.number().nonnegative() })
-  .refine((r) => r.min <= r.max, "min must not exceed max");
 
 export const CostPhase = z.enum(["planning", "design", "breakdown-estimate", "build", "verification"]);
 

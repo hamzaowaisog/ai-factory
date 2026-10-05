@@ -1,7 +1,12 @@
 // Deterministic spec lint (spec-stage §4). L7 (open questions) and L5 details are partial in the POC.
 import type { ChangeClass, SpecDraft } from "../contracts/index.js";
 
-export interface LintResult { check: string; passed: boolean; details: string; blocking: boolean }
+export interface LintResult {
+  check: string; passed: boolean; blocking: boolean;
+  /** for people (cards, logs): the first few failures */ details: string;
+  /** every failure: what a repair is given, so one repair can fix them all */ fails: string[];
+  /** how to pass the check, said once to the repairer */ hint?: string;
+}
 
 const EARS = [
   /^The .+ shall .+/i,                                   // ubiquitous
@@ -14,6 +19,8 @@ const EARS = [
 const VAGUE = /\b(fast|quick(ly)?|user[- ]friendly|easy|easily|robust|efficient(ly)?|appropriate(ly)?|adequate|reasonable|as needed|etc\.?|some|several|many|few|flexible|seamless(ly)?|intuitive|optimal|minimi[sz]e|maximi[sz]e)\b/i;
 const NUMBER = /\d/;
 const OBSERVABLE = /\b(respon[sd]|status|return|row|record|table|database|db|call|request|sent|email|message|screen|page|display|shown|show|visible|error|log|event|header|body|json|field|value|count|list|file)\w*/i;
+/** L11 in words, for the drafters and the repairer: the check is a word match, so they need the words. */
+export const OBSERVABLE_RULE = `Each Then names what a test reads, using at least one of these words: response, status, returned, row, record, call, request, sent, email, message, error, event, field, value, count, list, file, screen, page, shown, displayed. "Sign-in succeeds" fails; "The response status is 200" passes.`;
 const LITERAL_ID = /\b([A-Z]{2,}-\d+|\d{4,}|[A-Z][a-z]+ (Inc|LLC|Ltd|GmbH|Corp))\b/;
 
 /** `id` as a whole token in `text`: "I-1" isn't in "I-12" (never substring matching). */
@@ -43,6 +50,9 @@ export function sizeNote(spec: SpecDraft, cls: ChangeClass): string | undefined 
   return `This spec has ${n} requirements, about ${runs} runs' worth of work for a ${cls}; approve it as one run or reject with which part to cut.`;
 }
 
+/** Failures of one check shown to a person; a repair gets all of them. */
+const SHOWN = 8;
+
 export function lintSpec(spec: SpecDraft, ctx: {
   spans: string[]; changeClass: ChangeClass; anchorOk: (reqId: string) => boolean;
   /** answer and assumption ids the human decided (Q-n, ASM-n) */ decisions?: string[];
@@ -50,8 +60,11 @@ export function lintSpec(spec: SpecDraft, ctx: {
   /** estimate mode prices the whole request: no size check */ estimate?: boolean;
 }): LintResult[] {
   const out: LintResult[] = [];
-  const add = (check: string, fails: string[], blocking = true) =>
-    out.push({ check, passed: fails.length === 0, details: fails.length ? fails.slice(0, 8).join("; ") : "ok", blocking });
+  const add = (check: string, fails: string[], blocking = true, hint?: string) =>
+    out.push({
+      check, passed: fails.length === 0, blocking, fails, ...(hint ? { hint } : {}),
+      details: fails.length ? fails.slice(0, SHOWN).join("; ") + (fails.length > SHOWN ? ` (+${fails.length - SHOWN} more)` : "") : "ok",
+    });
 
   // L1 ids unique and well-formed
   const ids = [...spec.requirements.map((r) => r.id), ...spec.requirements.flatMap((r) => r.acceptance.map((a) => a.id)), ...spec.nfrs.map((n) => n.id)];
@@ -104,7 +117,7 @@ export function lintSpec(spec: SpecDraft, ctx: {
   ]);
 
   // L11 observable surface
-  add("L11 observable", spec.requirements.flatMap((r) => r.acceptance.filter((a) => a.level !== "manual" && !OBSERVABLE.test(a.then)).map((a) => `${a.id}'s Then doesn't name something observable (response, row, call, screen)`)));
+  add("L11 observable", spec.requirements.flatMap((r) => r.acceptance.filter((a) => a.level !== "manual" && !OBSERVABLE.test(a.then)).map((a) => `${a.id}'s Then doesn't name something observable (response, row, call, screen)`)), true, OBSERVABLE_RULE);
 
   // L12 literal ids (advisory)
   add("L12 literals", spec.requirements.filter((r) => LITERAL_ID.test(r.ears)).map((r) => `${r.id} hardcodes "${r.ears.match(LITERAL_ID)![0]}"; should it be configuration?`), false);

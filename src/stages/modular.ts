@@ -6,6 +6,7 @@
 import type { z } from "zod";
 import { IntentBody, type Spec } from "../contracts/index.js";
 import type { Module } from "../estimate/modules.js";
+import { isSettled, lintText } from "../estimate/settled.js";
 import type { Ledger } from "../ledger/ledger.js";
 import type { RunState } from "../ledger/state.js";
 import { header, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
@@ -53,8 +54,9 @@ export function scoped(def: StepDef, modules: Module[], m: Module): StepDef {
 export const moduleIntakeSteps = (modules: Module[]): StepDef[] => modules.map((m) => scoped(intakeStep, modules, m));
 export const moduleClarifySteps = (modules: Module[], round: 1 | 2): StepDef[] => modules.map((m) => scoped(round === 1 ? clarifyStep : clarify2Step, modules, m));
 
+/** One spec chain per module; the chains run side by side (no step in them waits for a person). */
 export const moduleSteps = (modules: Module[]): StepDef[] =>
-  modules.flatMap((m) => [scoped(draftsStep, modules, m), scoped(mergeStep, modules, m), scoped(specifyStep, modules, m)]);
+  modules.flatMap((m) => [scoped(draftsStep, modules, m), scoped(mergeStep, modules, m), scoped(specifyStep, modules, m)].map((d) => ({ ...d, parallel: true })));
 
 // ---------- combine intake and clarify ----------
 
@@ -156,7 +158,8 @@ export function combineSpecs(specs: Spec[], modules: Module[]): { spec: Omit<Spe
       assumptions: [...new Set(specs.flatMap((s) => s.assumptions))],
       lint: lintNames.map((check) => {
         const all = specs.flatMap((s, k) => s.lint.filter((l) => l.check === check).map((l) => ({ ...l, m: modules[k]!.id })));
-        const bad = all.filter((l) => !l.passed);
+        // a lint problem a module settled with a question passes here: the joined details could not be matched to it later
+        const bad = all.filter((l) => !l.passed && !isSettled(specs[modules.findIndex((m) => m.id === l.m)]!.settled, "lint", lintText(l)));
         return { check, passed: bad.length === 0, details: bad.length ? bad.map((l) => `[${l.m}] ${l.details}`).join("; ") : all[0]?.details ?? "" };
       }),
       critic: specs.flatMap((s, k) => s.critic.map((f) => ({ ...f, ...(f.reqId ? { reqId: idMap[k]!.get(f.reqId) ?? f.reqId } : {}) }))),
@@ -164,6 +167,8 @@ export function combineSpecs(specs: Spec[], modules: Module[]): { spec: Omit<Spe
         droppedSpans: [...new Set(specs.flatMap((s) => s.roundTrip.droppedSpans))],
         inventedCapabilities: specs.flatMap((s) => s.roundTrip.inventedCapabilities),
       },
+      // question ids are per module (each module's questions start at its own Q-n), so each is named with its module
+      ...(specs.some((s) => s.settled) ? { settled: specs.flatMap((s, k) => (s.settled ?? []).map((x) => (x.ref ? { ...x, ref: `${modules[k]!.id} ${x.ref}` } : x))) } : {}),
     },
   };
 }
@@ -189,7 +194,7 @@ export function combineSpecsStep(modules: Module[]): StepDef {
         data: {
           modules: modules.map((m) => m.id), repairs: (d("repairs") as number[]).reduce((a, b) => a + (b ?? 0), 0),
           openFindings: (d("openFindings") as string[][]).flat().filter(Boolean), conflicts: (d("conflicts") as string[][]).flat().filter(Boolean),
-          manualUi: (d("manualUi") as string[][]).flat().filter(Boolean), lane: "full",
+          manualUi: (d("manualUi") as string[][]).flat().filter(Boolean), lane: [...new Set(d("lane").filter(Boolean))].join(", ") || "full",
         },
       };
     },

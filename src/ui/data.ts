@@ -459,7 +459,7 @@ export function estimateView(ledger: Ledger) {
     totals: est.totals, apiCost: est.apiCost, elapsed: est.elapsed,
     tasks: est.tasks.map((t) => {
       const b = titles.get(t.taskId);
-      return { id: t.taskId, title: b?.title ?? t.taskId, track: b?.track, kind: b?.kind, size: t.size, executor: t.executor, hours: t.hours, anchor: t.anchorId, ratio: t.ratio, reason: t.reason, flagged: t.flagged, splitAdvised: t.splitAdvised, references: t.references, screen: b?.screen, reqs: b?.reqs ?? [], overhead: b?.overhead };
+      return { id: t.taskId, title: b?.title ?? t.taskId, track: b?.track, kind: b?.kind, size: t.size, executor: t.executor, hours: t.hours, ...(t.apiUsd ? { apiUsd: t.apiUsd } : {}), anchor: t.anchorId, ratio: t.ratio, reason: t.reason, flagged: t.flagged, splitAdvised: t.splitAdvised, references: t.references, screen: b?.screen, reqs: b?.reqs ?? [], overhead: b?.overhead };
     }),
     anchors: est.anchors,
     overheads: est.overheads,
