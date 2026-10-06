@@ -9,7 +9,7 @@ import { join } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
 import { OWN_CHECK_NAME } from "../contracts/checks.js";
 import type { Gh } from "../forge/github.js";
-import { addWorktree, git, gitOut, resolveRef } from "../ledger/git.js";
+import { addWorktree, freshWorktree, git, gitOut, resolveRef } from "../ledger/git.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { factoryHome, paths } from "../util/paths.js";
@@ -23,7 +23,7 @@ import { HUMAN_WRITER } from "../ledger/ledger.js";
 import { diffFiles } from "../stages/deliver.js";
 import { modelFor } from "../stages/routing.js";
 import type { Review2Inputs } from "../stages/review2.js";
-import { commitsWithTrailers, forgeAdapter, mergeInto, openRunFacts, recordedVerdicts, reverifyWorktree } from "./adapters.js";
+import { commitsWithTrailers, forgeAdapter, mergeInto, openRunFacts, recordedVerdicts, reverifyWorktree, worktreeExists } from "./adapters.js";
 import { runMergeGates, type MergeEvidence } from "./gates-run.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { proposeRepair, repairIsEmpty } from "./repair-run.js";
@@ -34,10 +34,21 @@ import { resolveRunId } from "./sync.js";
 
 export interface LiveOpts { cfg: ProjectConfig; gh: Gh; log: (s: string) => void; policy?: typeof DEFAULT_POLICY }
 
-/** A worktree at the PR head with the base merged in. Never pushed from here. */
-async function mergedWorktree(o: LiveOpts, runId: string, headSha: string, baseSha: string) {
+/**
+ * A worktree at the PR head with the base merged in. Never pushed from here.
+ *
+ * `afterRepair` is the case that used to be impossible: the repair committed into this worktree, so
+ * rebuilding it from the PR head would throw away the repair and verify the broken tree. Then the
+ * rebuild itself threw anyway, because the path and the branch both already existed.
+ */
+async function mergedWorktree(o: LiveOpts, runId: string, headSha: string, baseSha: string, afterRepair = false) {
   const wt = reverifyWorktree(runId);
-  await addWorktree(o.cfg.repo, wt, `factory/reverify-${runId.slice(-8)}`, headSha, runId);
+  if (afterRepair) {
+    if (!worktreeExists(runId)) throw new Error(`No reverify worktree for ${runId}: nothing to verify after the repair.`);
+    // already at the merge result plus the repair commit, and already merged: do not touch it
+    return { wt, merged: { clean: true, conflicts: [] } };
+  }
+  await freshWorktree(o.cfg.repo, wt, `factory/reverify-${runId.slice(-8)}`, headSha, runId);
   const merged = await mergeInto(wt, baseSha);
   return { wt, merged };
 }
@@ -57,10 +68,11 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
     commitsSince: (gated, head) => commitsWithTrailers(o.cfg.repo, gated, head),
 
     async mergeVerify(a): Promise<MergeResult> {
-      const { wt, merged } = await mergedWorktree(o, a.runId, a.headSha, a.baseSha);
+      const { wt, merged } = await mergedWorktree(o, a.runId, a.headSha, a.baseSha, a.afterRepair);
       if (!merged.clean) {
         o.log(`conflict in ${merged.conflicts.length} file(s): ${merged.conflicts.slice(0, 5).join(", ")}`);
-        return { mergesClean: false, testsPass: false, current: new Map(), diffSha: "", mergeSha: "" };
+        // the paths travel with the result: the repair is given them, not asked to guess
+        return { mergesClean: false, testsPass: false, conflicts: merged.conflicts, current: new Map(), diffSha: "", mergeSha: "" };
       }
       const mergeSha = (await gitOut(wt, ["rev-parse", "HEAD"])).trim();
       const base = (await gitOut(wt, ["merge-base", "HEAD", a.baseSha])).trim();
@@ -107,7 +119,8 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       };
       return {
         mergesClean: true,
-        testsPass: out.testRun.results.every((r) => r.outcome !== "failed"),
+        testsPass: lastVerify.verification.failed.length === 0,
+        failedTests: lastVerify.verification.failed,
         current, diffSha, mergeSha,
         evidence: { ledger, evidence, treeSha: mergeSha },
       };
@@ -173,7 +186,7 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
 
       const proposal = await proposeRepair({
         snap, lockedFiles: lock.lock.map((x) => x.file), cls,
-        subject: [], noGo: o.cfg.noGo, log: o.log,
+        subject: a.subject, noGo: o.cfg.noGo, log: o.log,
         model: modelFor(o.cfg, "implement", 0).model,
         stronger: modelFor(o.cfg, "implement", 2).model,
       }, a.runId);
@@ -181,7 +194,9 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       if (repairIsEmpty(proposal)) {
         const why = proposal.rejected.length
           ? `the repair only proposed edits to locked test files (${proposal.rejected.map((r) => r.path).join(", ")}), which are not allowed`
-          : "the repair proposed no changes";
+          // case 4 of the conflict policy: declining to guess is a correct outcome, and the model's
+          // reason is the most useful thing a person can be handed here
+          : `the repair declined to resolve this automatically: ${proposal.summary}`;
         return { pushed: false, why };
       }
       for (const e of proposal.edits) writeFileSync(join(wt, e.path), e.content);

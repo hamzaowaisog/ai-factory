@@ -135,6 +135,40 @@ describe("reviewPr: when the base has moved", () => {
     expect(calls.repair).toBe(1);
   });
 
+  it("hands the repair the conflicted paths, instead of leaving it to find them", async () => {
+    let subject: string[] | undefined;
+    const { d, calls } = deps({
+      getPr: movedPr,
+      mergeVerify: async () => { calls.mergeVerify++; return mergeResult({ mergesClean: calls.mergeVerify > 1, conflicts: ["src/A.cs", "src/B.cs"] }); },
+      repair: async (_cls, x) => { calls.repair++; subject = x.subject; return { pushed: true, why: "resolved" }; },
+    });
+    await reviewPr(d, { pr: 42 });
+    expect(subject).toEqual(["src/A.cs", "src/B.cs"]);
+  });
+
+  it("hands the repair the failing locked tests for a broken merge", async () => {
+    let subject: string[] | undefined;
+    const { d, calls } = deps({
+      getPr: movedPr,
+      mergeVerify: async () => { calls.mergeVerify++; return mergeResult({ testsPass: calls.mergeVerify > 1, failedTests: ["Orders.Tests::Rejects"] }); },
+      repair: async (_cls, x) => { calls.repair++; subject = x.subject; return { pushed: true, why: "fixed" }; },
+    });
+    await reviewPr(d, { pr: 42 });
+    expect(subject).toEqual(["Orders.Tests::Rejects"]);
+  });
+
+  it("tells the second verification to judge the REPAIRED tree, not the head again", async () => {
+    // rebuilding from the head would discard the repair commit and verify the broken tree in its
+    // place — and then throw anyway, since the worktree is already there
+    const flags: (boolean | undefined)[] = [];
+    const { d, calls } = deps({
+      getPr: movedPr,
+      mergeVerify: async (x) => { calls.mergeVerify++; flags.push(x.afterRepair); return mergeResult({ mergesClean: calls.mergeVerify > 1 }); },
+    });
+    await reviewPr(d, { pr: 42 });
+    expect(flags).toEqual([false, true]);
+  });
+
   it("parks instead of repairing when the per-PR budget is spent", async () => {
     const { d, calls } = deps(
       { getPr: movedPr, mergeVerify: async () => { calls.mergeVerify++; return mergeResult({ mergesClean: false }); } },

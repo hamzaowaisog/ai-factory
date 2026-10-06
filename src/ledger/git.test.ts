@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { addWorktree, changedFiles, commitAll, diffIncludingUntracked, git, headSha, removeWorktree, repoRefusals, resetHard } from "./git.js";
+import { addWorktree, changedFiles, commitAll, diffIncludingUntracked, freshWorktree, git, headSha, removeWorktree, repoRefusals, resetHard } from "./git.js";
 
 function makeRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "factory-git-"));
@@ -44,6 +44,23 @@ describe("hardened git", () => {
     expect(existsSync(wt)).toBe(false);
     const branches = (await git(repo, ["branch", "--list", "factory/*"])).stdout;
     expect(branches).toContain("factory/run-1");
+  });
+
+  it("rebuilds a worktree that is already there, branch and all", async () => {
+    // the merge gate builds the SAME reverify worktree on every webhook for a pull request. With
+    // plain addWorktree the second build threw: the path existed, and removeWorktree leaves the
+    // branch behind (see the assertion above), so `add -b` hit an existing branch too.
+    const repo = makeRepo();
+    const base = await headSha(repo);
+    const wt = join(mkdtempSync(join(tmpdir(), "factory-wt-")), "w2");
+
+    await freshWorktree(repo, wt, "factory/reverify-1", base, "run-1");
+    writeFileSync(join(wt, "left-behind.txt"), "x");
+    await commitAll(wt, "a repair, committed into the worktree");
+
+    await freshWorktree(repo, wt, "factory/reverify-1", base, "run-1");
+    expect(existsSync(join(wt, "left-behind.txt"))).toBe(false);   // a FRESH tree at base
+    expect(await headSha(wt)).toBe(base);
   });
 
   it("refuses submodules", async () => {

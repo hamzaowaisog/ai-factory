@@ -20,17 +20,35 @@ import { repairTrailer } from "./sync.js";
 /** What the model may return: whole-file replacements, nothing else. No shell, no patches. */
 export const RepairEdits = z.object({
   summary: z.string().min(1).max(400),
+  // NO floor on `edits`: both templates tell the model it may return nothing - a conflict it
+  // cannot safely decide, or a locked test it believes is wrong. A `.min(1)` made that
+  // instruction impossible to obey, so the model had to invent an edit or fail validation.
+  // `repairIsEmpty` turns an empty result into a parked pull request, which is what we want.
   edits: z.array(z.object({
     path: z.string().min(1),
     content: z.string(),
     why: z.string().min(1).max(200),
-  })).min(1).max(20),
+  })).max(20),
 });
 export type RepairEdits = z.infer<typeof RepairEdits>;
 
 export const CONFLICT_TEMPLATE = `You are resolving a git merge conflict. The files below contain conflict markers (<<<<<<<, =======, >>>>>>>).
 
-For each conflicted file, return the FULL resolved content with every marker removed. Keep both sides' intent: a conflict usually means two changes to the same region, and discarding one silently is the failure mode to avoid. Where the two sides cannot both be honoured, keep the behaviour the tests require and say so in "why".
+For each conflicted file, return the FULL resolved content with every marker removed.
+
+Decide each conflicted region by this rule, in order. Stop at the first case that applies.
+
+1. The two sides change DIFFERENT things that merely sit near each other - they added one field, you added another. Keep both.
+
+2. The two sides are two versions of the SAME decision: the same rule, the same constant, the same signature, the same branch of logic. You cannot keep both. Keeping both is how a merge produces code that does not compile, or a rule enforced twice with two different limits. Keep the side the locked tests require, and name the side you dropped in "why".
+
+3. One side makes the other unnecessary or wrong - they moved or rewrote the very thing you were changing. Produce the end state the locked tests require, and say in "why" what you reconciled.
+
+4. You cannot tell which side is correct, or satisfying the tests would mean inventing behaviour neither side wrote. Return NO edits and explain in "summary". A person resolves it instead. THIS IS A CORRECT OUTCOME, not a failure: a wrong resolution that happens to compile costs far more than a parked pull request.
+
+Never leave a conflict marker. Never keep both sides of the same decision "just in case" - that is the most expensive mistake available here. Read the locked tests to learn which behaviour is required; they are the tie-breaker in cases 2 and 3.
+
+Your result must compile. "build.clean" is an unwaivable gate, so a resolution that does not build is rejected and your work is discarded.
 
 You may read any other file for context. You may not change any test file: those are locked, and an edit to one will be dropped.`;
 

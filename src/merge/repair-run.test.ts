@@ -1,6 +1,6 @@
 // Step 9: repair proposes edits, and can never touch a locked test.
 import { describe, expect, it } from "vitest";
-import { proposeRepair, repairIsEmpty, type RepairRunOpts } from "./repair-run.js";
+import { BROKEN_MERGE_TEMPLATE, CONFLICT_TEMPLATE, proposeRepair, RepairEdits, repairIsEmpty, type RepairRunOpts } from "./repair-run.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 
 const U = { inputTokens: 100, outputTokens: 10, cacheRead: 0, cacheWrite: 0 };
@@ -23,6 +23,23 @@ function scripted(byModel: Record<string, Turn[]>) {
     };
   };
   return { provider, asked };
+}
+
+/** Records what the model was shown, so a prompt the code never fills can be caught. */
+function capturing(turns: Turn[]) {
+  const seen: string[] = [];
+  const provider = (): Provider => ({
+    start(_m, _e, system, user): Conversation {
+      seen.push(`${system}
+${user}`);
+      let i = 0;
+      return {
+        async next() { const t = turns[i++]; if (!t) throw new Error("script ran out"); return t; },
+        toolResults() {}, say() {},
+      };
+    },
+  });
+  return { provider, seen };
 }
 
 const opts = (over: Partial<RepairRunOpts> = {}): RepairRunOpts => ({
@@ -105,5 +122,46 @@ describe("proposeRepair", () => {
     const { provider } = scripted({ "*": [submit({ summary: "x", edits: [codeEdit] })] });
     const got = await proposeRepair(opts({ provider, cls: "conflict", subject: ["src/A.cs"] }), "rv-1");
     expect(got.edits).toEqual([codeEdit]);
+  });
+
+  it("tells the model WHICH files are conflicted", async () => {
+    // the orchestrator hands these over; before that was wired the section rendered empty and the
+    // model was asked to resolve a conflict it had not been shown
+    const { provider, seen } = capturing([submit({ summary: "x", edits: [codeEdit] })]);
+    await proposeRepair(opts({ provider, cls: "conflict", subject: ["src/A.cs", "src/B.cs"] }), "rv-1");
+    expect(seen[0]).toContain("src/A.cs");
+    expect(seen[0]).toContain("src/B.cs");
+  });
+
+  it("tells the model WHICH locked tests failed", async () => {
+    const { provider, seen } = capturing([submit({ summary: "x", edits: [codeEdit] })]);
+    await proposeRepair(opts({ provider, cls: "broken-merge", subject: ["Orders.Tests::Rejects"] }), "rv-1");
+    expect(seen[0]).toContain("Orders.Tests::Rejects");
+  });
+
+  it("accepts a repair that DECLINES to resolve: case 4 is a legal answer, not a failure", async () => {
+    // `.min(1)` on `edits` made this impossible: declining failed schema validation, so the model
+    // had to invent a resolution or burn both attempts. A wrong merge that compiles is the most
+    // expensive outcome available here, so refusing has to be expressible.
+    const { provider } = scripted({ "*": [submit({ summary: "both sides change the same limit; a person should pick", edits: [] })] });
+    const got = await proposeRepair(opts({ provider, cls: "conflict", subject: ["src/A.cs"] }), "rv-1");
+    expect(got.edits).toEqual([]);
+    expect(repairIsEmpty(got)).toBe(true);
+    expect(got.summary).toMatch(/a person should pick/);
+  });
+
+  it("the contract permits what both templates instruct: returning nothing", () => {
+    // prompt and schema disagreeing is the bug class this pins. Both templates offer the escape
+    // hatch, so the contract must accept it.
+    expect(CONFLICT_TEMPLATE).toMatch(/Return NO edits/);
+    expect(BROKEN_MERGE_TEMPLATE).toMatch(/return no edits/);
+    expect(RepairEdits.safeParse({ summary: "cannot decide", edits: [] }).success).toBe(true);
+  });
+
+  it("the conflict policy forbids keeping both sides of a single decision", () => {
+    // the instruction used to be only "keep both sides' intent", which is exactly wrong when the
+    // two sides are two versions of the same rule: that is how a merge stops compiling
+    expect(CONFLICT_TEMPLATE).toMatch(/You cannot keep both/);
+    expect(CONFLICT_TEMPLATE).toMatch(/must compile/);
   });
 });

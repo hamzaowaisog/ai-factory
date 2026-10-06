@@ -26,6 +26,10 @@ export interface RunFacts {
 export interface MergeResult {
   mergesClean: boolean;
   testsPass: boolean;
+  /** Conflicted paths, when `mergesClean` is false. Repair cannot be told what to fix without them. */
+  conflicts?: string[];
+  /** Ids of the locked tests that failed, when `testsPass` is false. Same reason. */
+  failedTests?: string[];
   /** gate id → recomputed inputs hash for this tree */
   current: Map<string, string>;
   diffSha: string;
@@ -44,12 +48,17 @@ export interface ReviewPrDeps {
   /** Opens the run's ledger on this host. Undefined when it is not here. */
   openRun(runId: string): RunFacts | undefined;
   commitsSince(gatedSha: string, headSha: string): Promise<{ sha: string; trailers: string[] }[]>;
-  /** Worktree merge + build + locked tests. The only step that starts a container. */
-  mergeVerify(a: { runId: string; headSha: string; baseSha: string }): Promise<MergeResult>;
+  /**
+   * Worktree merge + build + locked tests. The only step that starts a container.
+   * `afterRepair` verifies the tree the repair just produced instead of rebuilding from the head,
+   * which would discard the repair and verify the broken tree in its place.
+   */
+  mergeVerify(a: { runId: string; headSha: string; baseSha: string; afterRepair?: boolean }): Promise<MergeResult>;
   /** The model call. Produces the review artifact and its coverage. */
   review2(a: { runId: string; mergeSha: string; diffSha: string }): Promise<void>;
   runGates(a: { ids: string[]; replay: string[]; evidence?: unknown }): Promise<GateOutcome[]>;
-  repair(cls: "conflict" | "broken-merge", a: { runId: string }): Promise<{ pushed: boolean; why: string }>;
+  /** `subject` is the conflicted paths, or the failing locked test ids: what the repair must act on. */
+  repair(cls: "conflict" | "broken-merge", a: { runId: string; subject: string[] }): Promise<{ pushed: boolean; why: string }>;
   writeCheck(a: { name: string; headSha: string; conclusion: Conclusion; title: string; summary: string }): Promise<void>;
   writeComment(a: { pr: number; runId: string; body: string }): Promise<void>;
   notify(msg: string): Promise<void>;
@@ -105,7 +114,8 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
   // clean, so ask only when something actually moved — an unchanged tree cannot have a new conflict.
   const moved = !run || pr.headSha !== run.gatedSha || pr.baseSha !== run.recordedBaseSha;
   let merge: MergeResult | undefined;
-  const probe = async (): Promise<MergeResult> => (merge ??= await deps.mergeVerify({ runId, headSha: pr.headSha, baseSha: pr.baseSha }));
+  const probe = async (afterRepair = false): Promise<MergeResult> =>
+    (merge ??= await deps.mergeVerify({ runId, headSha: pr.headSha, baseSha: pr.baseSha, afterRepair }));
 
   // the two cheapest classes are decided without touching the tree at all
   const cheap = classify({
@@ -152,7 +162,9 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
       await deps.notify(`${runId}: parked after ${cls} — ${may.why}`);
       return { conclusion: "failure", cls, why: may.why, forced: force, repaired: false };
     }
-    const r = await deps.repair(cls as "conflict" | "broken-merge", { runId });
+    // the subject comes from the probe that classified the tree: the only place that knows it
+    const subject = cls === "conflict" ? (m?.conflicts ?? []) : (m?.failedTests ?? []);
+    const r = await deps.repair(cls as "conflict" | "broken-merge", { runId, subject });
     repaired = r.pushed;
     if (!r.pushed) {
       await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: pr.headSha, conclusion: "failure", title: `Could not repair ${cls}`, summary: r.why });
@@ -161,7 +173,7 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     }
     // the repaired tree is a different tree; verify it rather than the one we classified
     merge = undefined;
-    await probe();
+    await probe(true);
   }
 
   // When nothing moved, the recorded hashes ARE the current hashes — that is what "unchanged" means.

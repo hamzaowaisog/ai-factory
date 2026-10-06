@@ -90,6 +90,20 @@ export async function removeWorktree(repo: string, wtPath: string): Promise<void
   await git(repo, ["worktree", "remove", "--force", wtPath]);
 }
 
+/**
+ * Like `addWorktree`, but survives a path that is already there. `worktree add -b` fails when
+ * either the path or the branch exists, and `removeWorktree` deliberately leaves the branch behind,
+ * so building the same worktree twice used to throw — which is what happened on every second
+ * reverify of a pull request, and on the verification that should have followed a repair.
+ */
+export async function freshWorktree(repo: string, wtPath: string, branch: string, base: string, runId: string): Promise<void> {
+  if (existsSync(wtPath)) await removeWorktree(repo, wtPath).catch(() => undefined);
+  // the administrative record outlives the directory; without this git still calls the path in use
+  await git(repo, ["worktree", "prune"]).catch(() => undefined);
+  await git(repo, ["branch", "-D", branch]).catch(() => undefined);
+  await addWorktree(repo, wtPath, branch, base, runId);
+}
+
 /** Stage everything and commit (even when empty, so every attempt has a tree SHA). */
 export async function commitAll(wt: string, message: string): Promise<string> {
   await git(wt, ["add", "-A"]);
