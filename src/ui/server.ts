@@ -1,9 +1,9 @@
 // `factory ui`: a small local web app to start runs and watch them. node:http only, plain files.
-// It can NEVER waive a gate, raise or waive a cost limit, unlock, steer, pause or stop: those decisions are TTY-only
-// (ledger/human.ts). What it can decide, each with a typed name and the card's hash (checked under the ledger lock, as the
-// terminal does) and recorded as "<name> (via web)": an estimate card (approve or reject, with sign-offs), a design card (E1b)
-// and a plan card (the spec and plan, with a full-stack product's API contract), approve or send back with a reason, and the answers
-// to a question card on any run. Resuming a parked run (POST /api/runs/:id/resume) decides nothing: it is `factory resume`, and the
+// It can NEVER waive a gate, unlock, steer or pause: those decisions are TTY-only (ledger/human.ts). What it can decide, each with
+// a typed name and the card's hash (checked under the ledger lock, as the terminal does) and recorded as "<name> (via web)": an
+// estimate card (approve or reject, with sign-offs), a design card (E1b) and a plan card (the spec and plan, with a full-stack
+// product's API contract), approve or send back with a reason, the answers to a question card on any run, and a limit card (cost,
+// time or attempts, or an estimate's budget): raise it one step and continue, or stop the run there. A bigger raise is the terminal's. Resuming a parked run (POST /api/runs/:id/resume) decides nothing: it is `factory resume`, and the
 // run stops again at its next card. Starting a new product may make one empty project (git init and factory init), and a full-stack
 // product its two repos (factory fullstack start); its run files (POST /api/fullstack/:name/up) start nothing. Exporting an
 // approved design (POST /api/runs/:id/exports) only writes files under the run's own exports/ folder, and generating its
@@ -23,7 +23,7 @@ import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
-import { answerQuestions, checkRefs, decideCard, decideEstimate, resumeRun, startRun, StartError, type StartDeps } from "./start.js";
+import { answerQuestions, checkRefs, decideCard, decideEstimate, raiseLimit, resumeRun, startRun, StartError, stopAtLimit, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
 import { figmaPluginZip } from "../design/figma.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
@@ -147,6 +147,32 @@ export const ROUTES: readonly Route[] = [
       if (!l) return notFound(`No run ${id}`);
       try {
         return { status: 200, json: await decideCard(l, (body ?? {}) as Record<string, unknown>, deps) };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/limit", what: "raise a limit card one step and continue, like factory waive-cap or waive-budget (limit cards only; needs a typed name, the card hash and, for a budget, a reason)",
+    handle: async ({ id }, body, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await raiseLimit(l, (body ?? {}) as Record<string, unknown>, deps) };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/limit-stop", what: "stop a run waiting on a limit card, like factory stop (needs a typed name and the card hash)",
+    handle: async ({ id }, body, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await stopAtLimit(l, (body ?? {}) as Record<string, unknown>, deps) };
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };

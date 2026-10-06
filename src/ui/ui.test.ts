@@ -10,6 +10,7 @@ import { stringify } from "yaml";
 import { _resetEnvCache } from "../config/env.js";
 import { ExecutionLock } from "../ledger/exec-lock.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
+import { currentCostCap } from "../ledger/caps.js";
 import { replay } from "../ledger/state.js";
 import { outcomes, scoreRun, stageStats } from "../report.js";
 import { ensurePackage } from "../stages/design-export.js";
@@ -206,13 +207,15 @@ describe("factory ui: who can talk to it", () => {
 });
 
 describe("factory ui: what the web can decide", () => {
-  it("the decision routes are the estimate, design, plan and question cards only; no waiver, limit, unlock, steer or pause", () => {
-    const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note/i;
-    for (const r of ROUTES.filter((r) => !/\/(estimate-decision|answers|decision|resume)$/.test(r.path))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
-    // decisions, each with a typed name and the card hash: an estimate card, a design or plan card, a question card's answers. Resuming a
-    // parked run decides nothing; exports and the scaffold write only under the run's own folders; the full-stack routes are factory fullstack
+  it("the decision routes are the estimate, design, plan, question and limit cards only; no gate waiver, unlock, steer or pause", () => {
+    const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note|limit/i;
+    for (const r of ROUTES.filter((r) => !/\/(estimate-decision|answers|decision|limit|limit-stop|resume)$/.test(r.path))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
+    // decisions, each with a typed name and the card hash: an estimate card, a design or plan card, a question card's answers, a limit
+    // card (raise one step, or stop the run there). Resuming a parked run decides nothing; exports and the scaffold write only under the
+    // run's own folders; the full-stack routes are factory fullstack
     expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual([
-      "POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/answers", "POST /api/runs/:id/decision", "POST /api/runs/:id/resume",
+      "POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/answers", "POST /api/runs/:id/decision",
+      "POST /api/runs/:id/limit", "POST /api/runs/:id/limit-stop", "POST /api/runs/:id/resume",
       "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/up", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
     ]);
   });
@@ -251,9 +254,9 @@ describe("factory ui: what the web can decide", () => {
     expect(readFileSync(join(staticDir(), "app.js"), "utf8")).toContain("/resume`, { method: \"POST\"");
   });
 
-  it("the page says so, and posts no waiver, limit, steer or pause", () => {
+  it("the page says so, and posts no gate waiver, steer or pause", () => {
     const html = readFileSync(join(staticDir(), "index.html"), "utf8");
-    expect(html).toContain("Questions, designs, plans and estimates can be decided here, each with your typed name and the card's hash. Waivers and cost limits are decided in your terminal only.");
+    expect(html).toContain("Questions, designs, plans, estimates and limits can be decided here, each with your typed name and the card's hash. Gate waivers and unlocks are decided in your terminal only.");
     const js = readFileSync(join(staticDir(), "app.js"), "utf8");
     expect(js).not.toMatch(/\/api\/runs\/\$\{[^}]+\}\/(approve|reject|waive|unlock|steer|stop|pause|cap)/);
     expect(js).toContain("/decision`, { method: \"POST\"");
@@ -1029,9 +1032,9 @@ describe("factory ui: design and plan card decisions", () => {
     expect(replay(l.events()).decisions.at(-1)).toMatchObject({ decision: "approve", by: "Sam Lead (via web)" });
   });
 
-  it("refuses every other card: waivers, cost limits and estimates are not decided here", async () => {
+  it("refuses every other card: gate waivers are the terminal's, limits and estimates have their own forms", async () => {
     const cards: [string, string, number, RegExp][] = [
-      ["waiver", "implement/TASK-1", 403, /terminal/], ["cap", "implement/TASK-1", 403, /terminal/], ["budget", "implement/TASK-1", 403, /terminal/],
+      ["waiver", "implement/TASK-1", 403, /terminal/], ["cap", "implement/TASK-1", 409, /form on the run page/], ["budget", "implement/TASK-1", 409, /form on the run page/],
       ["estimate-approval", "approve-estimate", 409, /Estimate tab/], ["question", "clarify", 409, /answer them/],
     ];
     for (const [kind, step, status, why] of cards) {
@@ -1046,6 +1049,115 @@ describe("factory ui: design and plan card decisions", () => {
     }
     // a run with no card at all
     expect((await decisionPost(ids.delivered, { hash: "aaaaaaaa", decision: "approve", by: "Sam Lead" })).status).toBe(409);
+  });
+});
+
+describe("factory ui: a limit card, raised one step or stopped", () => {
+  const post = (id: string, path: string, body: unknown) =>
+    call(`/api/runs/${id}/${path}`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+  // the card the executor writes: a cost, time or attempts limit with its suggestion (cap), or the approved budget (B5) with its next step
+  const waitOnLimit = async (id: string, kind: "cap" | "budget", extra: Record<string, unknown>) => {
+    const l = Ledger.open(id);
+    const sha = l.putJson({ kind, n: Math.random() });
+    l.writeCard(`${kind}-${sha.slice(0, 8)}`, kind === "cap"
+      ? `# Limit reached\n  factory waive-cap ${id} ${sha.slice(0, 8)} --cost 20\nOr stop here: factory stop ${id}`
+      : `# Budget reached\n  factory waive-budget ${id} ${sha.slice(0, 8)} --reason "why more is acceptable"`);
+    await addEvents(id, [
+      { type: "step.started", key: "implement/TASK-1/1", data: { rung: 0 } },
+      { type: "usage", data: { costUsd: kind === "cap" ? 10.4 - replay(l.events()).costUsd : 0 } },
+      { type: "human.requested", data: { cardId: `${kind}-${sha.slice(0, 8)}`, kind, artifactSha: sha, reason: kind === "cap" ? "Cost limit reached: $10.40 of $10.00" : "Approved budget reached (gate B5): API credits at 101%", ...extra } },
+    ]);
+    return { l, hash: sha.slice(0, 8) };
+  };
+
+  it("shows the numbers, raises the cost limit at most one step with a typed name, and the run goes on", async () => {
+    const id = await createRun("Add a filter (limit)", "web", "tester");
+    const { l, hash } = await waitOnLimit(id, "cap", { proposal: { costUsd: 20 } });
+    const view = (await call(`/api/runs/${id}`)).json();
+    expect(view.card.limit).toMatchObject({ kind: "cap", reason: "Cost limit reached: $10.40 of $10.00", proposal: { costUsd: 20 } });
+    expect(view.card.commands).toEqual(["factory show-card " + id, `factory waive-cap ${id} ${hash} --cost 20`, `factory stop ${id}`]);
+    const before = started.length;
+    const ok = { hash, by: "Sam Lead", costUsd: 15 };
+    expect((await post("nope", "limit", ok)).status).toBe(404);
+    expect((await post(id, "limit", { ...ok, by: "" })).json().error).toMatch(/Type your name/);
+    expect((await post(id, "limit", { ...ok, hash: "abcd" })).status).toBe(400);
+    expect((await post(id, "limit", { ...ok, hash: "deadbeef" })).status).toBe(409);
+    const big = await post(id, "limit", { ...ok, costUsd: 50 });
+    expect(big.status).toBe(400);
+    expect(big.json().error).toMatch(new RegExp(`one step at a time, to at most \\$20.*factory waive-cap ${id} ${hash}`));
+    expect((await post(id, "limit", { ...ok, costUsd: -1 })).json().error).toMatch(/positive/);
+    expect((await post(id, "limit", { ...ok, wallMinutes: 300 })).json().error).toMatch(/doesn't raise the time limit/);
+    expect((await post(id, "limit", { ...ok, costUsd: 9 })).json().error).toMatch(/above what the run has spent \(\$10\.40\)/);
+    // a plan card is not a limit
+    expect((await post(ids.waiting, "limit", { hash: "b".repeat(8), by: "Sam Lead" })).status).toBe(409);
+    expect(started.length).toBe(before);
+    expect(replay(l.events()).decisions).toEqual([]);
+    const r = await post(id, "limit", ok);
+    expect(r.status).toBe(200);
+    expect(r.json()).toEqual({ recorded: true });
+    const state = replay(l.events());
+    expect(state.decisions.at(-1)).toMatchObject({ decision: "waive-cap", costUsd: 15, by: "Sam Lead (via web)" });
+    expect(state.openCard).toBeUndefined();
+    expect(currentCostCap(state)).toBe(15);
+    expect(started.slice(before)).toEqual([id]);
+    // the run reaches it again: the next card is raised again from the page, to its suggestion when no number is sent
+    const next = await waitOnLimit(id, "cap", { proposal: { costUsd: 25 } });
+    expect((await post(id, "limit", { hash: next.hash, by: "Sam Lead" })).status).toBe(200);
+    expect(currentCostCap(replay(l.events()))).toBe(25);
+  });
+
+  it("raises a time or attempts limit the same way", async () => {
+    const id = await createRun("Add a filter (time)", "web", "tester");
+    const { l, hash } = await waitOnLimit(id, "cap", { proposal: { wallMinutes: 360, extraAttempts: 3 } });
+    expect((await post(id, "limit", { hash, by: "Sam Lead", extraAttempts: 5 })).json().error).toMatch(/extra attempts one step at a time/);
+    expect((await post(id, "limit", { hash, by: "Sam Lead", wallMinutes: 240, extraAttempts: 2 })).status).toBe(200);
+    expect(replay(l.events()).capOverrides).toMatchObject({ wallMinutes: 240, extraAttempts: 2 });
+  });
+
+  it("raises an approved budget one step with a reason, and refuses past the most a raise allows", async () => {
+    const id = await createRun("Add a filter (budget)", "web", "tester");
+    const { l, hash } = await waitOnLimit(id, "budget", { proposed: 1.5 });
+    expect((await call(`/api/runs/${id}`)).json().card.limit).toMatchObject({ kind: "budget", ceiling: 1, proposed: 1.5, max: 3 });
+    const ok = { hash, by: "Sam Lead", ceiling: 1.25, reason: "The client agreed to two more reports." };
+    expect((await post(id, "limit", { ...ok, reason: " " })).json().error).toMatch(/Say why/);
+    expect((await post(id, "limit", { ...ok, ceiling: 2 })).json().error).toMatch(/above 100% and at most 150%.*factory waive-budget/);
+    expect((await post(id, "limit", { ...ok, ceiling: 1 })).status).toBe(400);
+    expect((await post(id, "limit", ok)).status).toBe(200);
+    const state = replay(l.events());
+    expect(state.budgetCeiling).toBe(1.25);
+    expect(state.decisions.at(-1)).toMatchObject({ decision: "waive-budget", ceiling: 1.25, reason: "The client agreed to two more reports.", by: "Sam Lead (via web)" });
+    // at 300% the estimate is wrong for this work: no raise, from the page or the terminal; stopping is still there
+    const top = await createRun("Add a filter (budget at max)", "web", "tester");
+    const first = await waitOnLimit(top, "budget", { proposed: 3 });
+    expect((await post(top, "limit", { hash: first.hash, by: "Sam Lead", reason: "Agreed." })).status).toBe(200);
+    const atMax = await waitOnLimit(top, "budget", {});
+    expect((await call(`/api/runs/${top}`)).json().card.limit).toEqual({ kind: "budget", reason: expect.any(String), ceiling: 3, max: 3 });
+    const no = await post(top, "limit", { hash: atMax.hash, by: "Sam Lead", reason: "More." });
+    expect(no.status).toBe(409);
+    expect(no.json().error).toMatch(/300% of the approved maximum.*change request/);
+  });
+
+  it("stops the run at its limit with a typed name, like factory stop", async () => {
+    const id = await createRun("Add a filter (stop)", "web", "tester");
+    const { l, hash } = await waitOnLimit(id, "cap", { proposal: { costUsd: 20 } });
+    const before = started.length;
+    expect((await post(id, "limit-stop", { hash, by: "" })).status).toBe(400);
+    expect((await post(id, "limit-stop", { hash: "deadbeef", by: "Sam Lead" })).status).toBe(409);
+    expect((await post(ids.waiting, "limit-stop", { hash: "b".repeat(8), by: "Sam Lead" })).status).toBe(409);
+    expect(started.length).toBe(before);
+    expect(replay(l.events()).flags.stopRequested).toBe(false);
+    const r = await post(id, "limit-stop", { hash, by: "Sam Lead" });
+    expect(r.json()).toEqual({ stopped: true });
+    expect(replay(l.events()).flags.stopRequested).toBe(true);
+    expect(l.events().at(-1)).toMatchObject({ type: "run.stop-requested", data: { by: "Sam Lead (via web)", cardId: `cap-${hash}` } });
+    expect(started.slice(before)).toEqual([id]);
+  });
+
+  it("the page has the form: raise and continue, or stop", () => {
+    const js = readFileSync(join(staticDir(), "app.js"), "utf8");
+    expect(js).toContain('post("limit", ');
+    expect(js).toContain('post("limit-stop", {}');
+    expect(js).toContain("Raise and continue");
   });
 });
 

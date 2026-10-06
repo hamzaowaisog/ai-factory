@@ -630,7 +630,7 @@ function runsScreen() {
         h("td", { class: "mono small nowrap" }, r.step),
         h("td", { class: "num" }, money(r.costUsd)),
         h("td", { class: "nowrap muted small" }, ago(r.createdAt)),
-        h("td", {}, r.openCard ? pill("waiting", `${r.openCard} card${["question", "approval", "design-approval", "estimate-approval"].includes(r.openCard) ? "" : " · terminal"}`) : null),
+        h("td", {}, r.openCard ? pill("waiting", `${r.openCard} card${["question", "approval", "design-approval", "estimate-approval", "cap", "budget"].includes(r.openCard) ? "" : " · terminal"}`) : null),
       ))),
     )) : h("div", { class: "empty" }, "No runs yet. ", h("a", { href: "#/new" }, "Start one"), ".");
     mount([
@@ -704,7 +704,8 @@ function pipeline(r) {
     if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Pick an option for each in the panel below (or answer in the terminal); the run carries on right after.")));
     if (r.card?.kind === "design-approval") return h("div", { class: "pipe-note wait" }, icon("image"), h("div", {}, h("strong", {}, "The design needs your approval"), h("p", {}, "Walk the clickable demo, then approve it or send it back in the panel below (or in the terminal); the run carries on right after.")));
     if (r.card?.kind === "approval") return h("div", { class: "pipe-note wait" }, icon("shield"), h("div", {}, h("strong", {}, "The spec and plan need your approval"), h("p", {}, "Read the card, then approve or reject it in the panel below (or in the terminal); the run carries on right after.")));
-    if (r.card) return h("div", { class: "pipe-note wait" }, icon("terminal"), h("div", {}, h("strong", {}, `Waiting for you in the terminal: ${r.card.kind} card`), h("p", {}, "Waivers and cost limits are decided in your terminal only. The card and the command to paste are below.")));
+    if (r.card?.limit) return h("div", { class: "pipe-note wait" }, icon("dollar"), h("div", {}, h("strong", {}, r.card.limit.kind === "budget" ? "The approved budget is reached" : "A limit is reached"), h("p", {}, "Raise it and continue, or stop the run, in the panel below (or in the terminal); the run carries on right after a raise.")));
+    if (r.card) return h("div", { class: "pipe-note wait" }, icon("terminal"), h("div", {}, h("strong", {}, `Waiting for you in the terminal: ${r.card.kind} card`), h("p", {}, "Gate waivers and unlocks are decided in your terminal only. The card and the command to paste are below.")));
     if (r.delivered) return h("div", { class: "pipe-note ok" }, icon("check"), h("div", {}, h("strong", {}, "Delivered"), h("p", {}, r.delivered.branch ? `Branch ${r.delivered.branch}` : "")));
     if (r.status === "running" && r.lastActivity) return h("div", { class: "pipe-note live" }, icon("activity"), h("div", {}, h("strong", {}, `Working on ${r.step}`), h("p", {}, r.lastActivity.msg, h("span", { class: "muted" }, ` · ${ago(r.lastActivity.ts)}`))));
     return null;
@@ -915,16 +916,106 @@ function planPanel(r) {
       md(c.markdown)));
 }
 
+/**
+ * A limit card (cost, time or attempts, or an estimate's budget): raise it one step and continue, or stop the run. The page raises at
+ * most the card's suggestion; if the run reaches the new limit it stops again and is raised again here. A bigger step is the terminal's.
+ */
+const CAP_INPUTS = [
+  ["costUsd", "New cost limit (USD)", (v) => `$${v}`, "0.01"],
+  ["wallMinutes", "New active-time limit (minutes)", (v) => `${v} min`, "1"],
+  ["extraAttempts", "Extra attempts per step", (v) => String(v), "1"],
+];
+
+function limitPanel(r) {
+  const c = r.card, L = c.limit;
+  const draft = draftOf(r);
+  draft.values ??= {};
+  const who = nameInput();
+  who.id = "l-who";
+  const msg = h("p", { class: "small", role: "status" }, draft.msg);
+  const fields = [];
+  const values = {};
+  const numberField = (key, label, max, min, step, hint) => {
+    const el = h("input", { id: `l-${key}`, type: "number", inputmode: "decimal", min: String(min), max: String(max), step });
+    el.value = draft.values[key] ?? String(max);
+    el.addEventListener("input", () => { draft.values[key] = el.value; });
+    values[key] = el;
+    fields.push(h("div", { class: "fld" }, h("label", { for: el.id }, label), el, h("div", { class: "hint" }, hint)));
+  };
+  let reason;
+  let canRaise = true;
+  if (L.kind === "cap") {
+    for (const [key, label, show, step] of CAP_INPUTS) {
+      const max = L.proposal[key];
+      if (max === undefined) continue;
+      numberField(key, label, max, key === "costUsd" ? Math.ceil(L.spentUsd * 100 + 1) / 100 : 1, step,
+        `Up to ${show(max)} here, one step at a time. If the run reaches it, it stops again and you can raise it again here.`);
+    }
+    canRaise = fields.length > 0;
+  } else if (L.proposed !== undefined) {
+    const pct = (x) => Math.round(x * 100);
+    numberField("ceiling", "New limit (% of the approved maximum)", pct(L.proposed), pct(L.ceiling) + 1, "1",
+      `Now ${pct(L.ceiling)}%. Up to ${pct(L.proposed)}% here, one step at a time; ${pct(L.max)}% is the most any raise allows.`);
+    reason = h("textarea", { id: "l-reason", rows: "3", maxlength: "2000", placeholder: "e.g. The client added two reports in the plan review; agreed with them." });
+    reason.value = draft.reason;
+    reason.addEventListener("input", () => { draft.reason = reason.value; });
+    fields.push(h("div", { class: "fld" }, h("label", { for: "l-reason" }, "Why going past the approved estimate is fine"), reason, h("div", { class: "hint" }, "Recorded with your name, as the terminal's --reason.")));
+  } else canRaise = false;
+  const raise = h("button", { class: "btn primary", type: "button" }, icon("play"), "Raise and continue");
+  const stop = h("button", { class: "btn", type: "button" }, icon("x"), "Stop the run");
+  const lock = (on) => { raise.disabled = stop.disabled = on; };
+  lock(draft.sent);
+  const post = async (path, body, done) => {
+    lock(true);
+    msg.textContent = "";
+    try {
+      await api(`/api/runs/${encodeURIComponent(r.runId)}/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, by: who.value, ...body }) });
+      draft.sent = true;
+      msg.textContent = draft.msg = done;
+    } catch (err) { msg.textContent = draft.msg = err.message; lock(false); }
+  };
+  raise.addEventListener("click", () => {
+    if (reason && !reason.value.trim()) { msg.textContent = draft.msg = "Say why going past the approved estimate is fine."; reason.focus(); return; }
+    const body = Object.fromEntries(Object.entries(values).map(([k, el]) => [k, el.value === "" ? undefined : k === "ceiling" ? Number(el.value) / 100 : Number(el.value)]));
+    post("limit", { ...body, ...(reason ? { reason: reason.value } : {}) }, "Limit raised. The run is continuing…");
+  });
+  stop.addEventListener("click", () => {
+    if (!confirm("Stop this run? It is closed as stopped; its branch and everything it recorded stay.")) return;
+    post("limit-stop", {}, "Stopped. The run is closing…");
+  });
+  const facts = L.kind === "cap"
+    ? h("dl", { class: "facts" },
+      h("dt", {}, "Spent"), h("dd", {}, `${money(L.spentUsd)} of ${money(L.costCapUsd)}`),
+      h("dt", {}, "Active time"), h("dd", {}, `${Math.round(L.activeMin)} of ${Math.round(L.wallMin)} min`))
+    : null;
+  return h("section", { class: "card-box" },
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), L.kind === "budget" ? "The approved budget is reached" : "Limit reached"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    h("div", { class: "body stack" },
+      h("p", { class: "small" }, L.reason),
+      facts,
+      canRaise ? null : h("p", { class: "small muted" }, L.kind === "budget"
+        ? `The limit is already ${Math.round(L.max * 100)}% of the approved maximum, the most a raise allows: the estimate is wrong for this work. Revise it with a change request, or stop the run.`
+        : "This card has nothing to raise here: decide it in your terminal, or stop the run."),
+      h("div", { class: "stack decide" },
+        ...(canRaise ? fields : []),
+        h("div", { class: "fld" }, h("label", { for: "l-who" }, "Your name"), who, h("div", { class: "hint" }, `Recorded with the decision as "your name (via web)", with card ${c.hash}.`)),
+        h("div", { class: "row" }, canRaise ? raise : null, stop),
+        msg),
+      h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal (a bigger step too)"), h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd))))),
+      md(c.markdown)));
+}
+
 function cardPanel(r) {
   const c = r.card;
-  // questions, the design and the plan are decided on this page (or in the terminal); waivers and cost limits only in the terminal
+  // questions, the design, the plan and a limit are decided on this page (or in the terminal); gate waivers and unlocks only in the terminal
   if (c.questions) return questionPanel(r);
   if (c.kind === "design-approval") return designPanel(r);
   if (c.kind === "approval") return planPanel(r);
+  if (c.limit) return limitPanel(r);
   return h("section", { class: "card-box" },
     h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Waiting for you in the terminal"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body" },
-      h("p", { class: "small muted" }, c.kind === "estimate-approval" ? "Approve the estimate on its Estimate tab, or paste one of these:" : "Waivers and cost limits are decided in your terminal only. Read the card, then paste one of these:"),
+      h("p", { class: "small muted" }, c.kind === "estimate-approval" ? "Approve the estimate on its Estimate tab, or paste one of these:" : "Gate waivers and unlocks are decided in your terminal only. Read the card, then paste one of these:"),
       h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd)))),
       md(c.markdown)));
 }

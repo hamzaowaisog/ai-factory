@@ -9,8 +9,8 @@ import { basename, isAbsolute, join, resolve } from "node:path";
 import { ensureStandaloneProject, loadProject, STANDALONE_PROJECT } from "../config/project.js";
 import type { Estimate } from "../contracts/estimate.js";
 import { DecisionError, decide } from "../ledger/human.js";
-import { Ledger } from "../ledger/ledger.js";
-import { replay } from "../ledger/state.js";
+import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
+import { MAX_BUDGET_CEILING, replay, type OpenCard } from "../ledger/state.js";
 import { isLockFree, readLockInfo } from "../ledger/exec-lock.js";
 import { costCapUsd, MIN_CAP_USD } from "../ledger/caps.js";
 import { parseEstimateSettings } from "../estimate/settings.js";
@@ -402,14 +402,15 @@ export interface CardDecisionInput { hash?: unknown; decision?: unknown; by?: un
 
 /**
  * Approve or send back a design card or a plan card from the run page, as `factory approve` / `factory reject` do: a typed name, the
- * card's hash (checked under the ledger lock), and a reason to send it back. Waivers, limits, unlocks and every other card stay
- * terminal-only; so does an estimate card's approval here (it has its own route, with its sign-offs).
+ * card's hash (checked under the ledger lock), and a reason to send it back. A limit card has its own route (raiseLimit, stopAtLimit);
+ * gate waivers, unlocks and every other card stay terminal-only; so does an estimate card's approval here (it has its own route, with its sign-offs).
  */
 export async function decideCard(ledger: Ledger, input: CardDecisionInput, deps: StartDeps = {}): Promise<{ recorded: boolean }> {
   const open = replay(ledger.events()).openCard;
   if (!open) throw new StartError("This run has no design or plan waiting for a decision.", 409);
   if (open.kind === "question") throw new StartError("This run is waiting for answers to its questions, not an approval: answer them on the run page.", 409);
   if (open.kind === "estimate-approval") throw new StartError("An estimate is approved on its Estimate tab, with its sign-offs.", 409);
+  if ((WEB_LIMITS as readonly string[]).includes(open.kind)) throw new StartError("This run reached a limit: raise it and continue, or stop the run, with the form on the run page.", 409);
   if (!(WEB_DECIDED as readonly string[]).includes(open.kind)) throw new StartError(`A ${open.kind} card is decided in your terminal: factory show-card ${ledger.runId}`, 403);
   const design = open.kind === "design-approval";
   const hash = str(input.hash)?.trim() ?? "";
@@ -429,6 +430,83 @@ export async function decideCard(ledger: Ledger, input: CardDecisionInput, deps:
     data = { note };
   }
   return record(ledger, { decision, hashPrefix: hash, by: `${name} (via web)`, data }, deps);
+}
+
+/** The limit cards the run page decides: a cost, time or attempts limit (cap) and an estimate's approved budget (B5, budget). */
+export const WEB_LIMITS = ["cap", "budget"] as const;
+
+type LimitCard = OpenCard & { proposal?: { costUsd?: number; wallMinutes?: number; extraAttempts?: number }; proposed?: number };
+
+export interface RaiseInput { hash?: unknown; by?: unknown; costUsd?: unknown; wallMinutes?: unknown; extraAttempts?: unknown; ceiling?: unknown; reason?: unknown }
+
+/** The run's open limit card, with the typed name and the card's hash checked: what raising it and stopping at it share. */
+function openLimit(ledger: Ledger, input: { hash?: unknown; by?: unknown }, verb: string) {
+  const state = replay(ledger.events());
+  const card = state.openCard as LimitCard | undefined;
+  if (!card || !(WEB_LIMITS as readonly string[]).includes(card.kind)) throw new StartError("This run isn't waiting on a cost, time or budget limit.", 409);
+  const hash = str(input.hash)?.trim() ?? "";
+  if (hash.length < 8) throw new StartError("Send the card's hash from this page.");
+  const name = typedName(input.by, `Type your name to ${verb}; it is recorded with the decision.`);
+  return { state, card, hash, by: `${name} (via web)` };
+}
+
+const CAP_FIELDS = { costUsd: "cost limit", wallMinutes: "time limit", extraAttempts: "extra attempts" } as const;
+
+/**
+ * Raise a limit from the run page and continue, as `factory waive-cap` / `factory waive-budget` do: a typed name, the card's hash
+ * (checked under the ledger lock) and the new limit, recorded as "<name> (via web)". A page raise goes at most one step, the card's
+ * suggestion (the size's cap on top of the cost limit, double the time, 3 more attempts, the next budget step): the run stops at the
+ * next limit and is raised again from the page, so nothing waits on a terminal, and each step is a fresh look at what was spent.
+ * A bigger step is `factory waive-cap` / `factory waive-budget` in a terminal. A budget raise needs a reason, as in the terminal.
+ */
+export async function raiseLimit(ledger: Ledger, input: RaiseInput, deps: StartDeps = {}): Promise<{ recorded: boolean }> {
+  const { state, card, hash, by } = openLimit(ledger, input, "raise the limit");
+  const given = (v: unknown) => v !== undefined && v !== null && v !== "";
+  if (card.kind === "budget") {
+    const now = state.budgetCeiling, pct = (x: number) => `${Math.round(x * 100)}%`;
+    if (now >= MAX_BUDGET_CEILING || card.proposed === undefined) throw new StartError(`The limit is already ${pct(MAX_BUDGET_CEILING)} of the approved maximum, the most a raise allows: the estimate is wrong for this work. Revise it with a change request, start a new estimate, or stop the run.`, 409);
+    const ceiling = given(input.ceiling) ? Number(input.ceiling) : card.proposed;
+    if (!Number.isFinite(ceiling) || ceiling <= now || ceiling > card.proposed) throw new StartError(`The new limit must be above ${pct(now)} and at most ${pct(card.proposed)} of the approved maximum (one step from the page; up to ${pct(MAX_BUDGET_CEILING)} with factory waive-budget in your terminal).`);
+    const reason = str(input.reason)?.trim();
+    if (!reason) throw new StartError("Say why going past the approved estimate is acceptable; it is recorded with your name.");
+    if (reason.length > 2000) throw new StartError("The reason is too long (2000 characters at most).");
+    return record(ledger, { decision: "waive-budget", hashPrefix: hash, by, data: { reason, ceiling } }, deps);
+  }
+  const data: Record<string, number> = {};
+  for (const [k, label] of Object.entries(CAP_FIELDS) as [keyof typeof CAP_FIELDS, string][]) {
+    const max = card.proposal?.[k];
+    if (max === undefined) {
+      if (given(input[k])) throw new StartError(`This limit card doesn't raise the ${label}.`);
+      continue;
+    }
+    const n = given(input[k]) ? Number(input[k]) : max;
+    const v = k === "extraAttempts" ? Math.round(n) : n;
+    if (!Number.isFinite(v) || v <= 0) throw new StartError(`The ${label} must be a positive number.`);
+    const shown = k === "costUsd" ? `$${max}` : k === "wallMinutes" ? `${max} min` : String(max);
+    if (v > max) throw new StartError(`The page raises the ${label} one step at a time, to at most ${shown}; the run stops at the next limit and can be raised again here. For a bigger step: factory waive-cap ${ledger.runId} ${hash.slice(0, 8)} in your terminal.`);
+    data[k] = v;
+  }
+  if (!Object.keys(data).length) throw new StartError("This limit card has nothing to raise: decide it in your terminal.", 409);
+  if (data.costUsd !== undefined && data.costUsd <= state.costUsd) throw new StartError(`The new cost limit must be above what the run has spent ($${state.costUsd.toFixed(2)}).`);
+  if (data.wallMinutes !== undefined && data.wallMinutes * 60_000 <= state.activeMs) throw new StartError(`The new time limit must be above the run's active time (${Math.round(state.activeMs / 60_000)} min).`);
+  return record(ledger, { decision: "waive-cap", hashPrefix: hash, by, data }, deps);
+}
+
+/**
+ * Stop a run at its limit from the run page, as `factory stop` does: the stop is recorded with the typed name (bound to the card's
+ * hash, under the ledger lock) and the run is closed as stopped. Its branch and everything it recorded stay.
+ */
+export async function stopAtLimit(ledger: Ledger, input: { hash?: unknown; by?: unknown }, deps: StartDeps = {}): Promise<{ stopped: boolean }> {
+  const { hash, by } = openLimit(ledger, input, "stop the run");
+  const prefix = hash.toLowerCase();
+  await ledger.appendIf((events) => {
+    const card = replay(events).openCard;
+    if (!card || !card.artifactSha.startsWith(prefix)) throw new StartError("The card has changed since this page loaded: reload it and decide again.", 409);
+    return { type: "run.stop-requested", data: { by, cardId: card.cardId } };
+  }, HUMAN_WRITER);
+  // the executor sees the stop first and closes the run as stopped
+  (deps.execute ?? runDetached)(ledger.runId);
+  return { stopped: true };
 }
 
 /** The new empty project a greenfield start makes: a usable name and a full folder path ("~" is the home folder). Writes nothing. */

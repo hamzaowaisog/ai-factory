@@ -117,7 +117,7 @@ contract once the web plan is approved (with its operations, `GET /orders`), a S
 own max cost) and, once both runs are delivered, Write run files (`up`: it writes the compose file and shows the
 command; it starts nothing). Each run's cards are decided on its own run page: questions, the design card and the
 plan card, each with a typed name and the card's hash, recorded as "<name> (via web)". Approving the web run's plan
-there approves the contract, as `factory approve` does. Waivers and cost limits stay in the terminal. Code:
+there approves the contract, as `factory approve` does. A limit card is raised one step (or the run stopped) on the run page; gate waivers stay in the terminal. Code:
 `src/ui/fullstack.ts`, routes under `/api/fullstack` in `src/ui/server.ts`.
 
 ## Tests

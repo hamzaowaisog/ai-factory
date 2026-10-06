@@ -12,10 +12,10 @@ import { LEVEL_NAMES, LEVELS, plannedChanges, sizeChange, type SizeResult } from
 import { uiSizeCardLine } from "../design/card.js";
 import { gitSource } from "../design/source.js";
 import { verifyEvidence } from "../gates/engine.js";
-import { currentCostCap } from "../ledger/caps.js";
+import { currentCostCap, wallClockCapMs } from "../ledger/caps.js";
 import { readLockInfo, isLockFree } from "../ledger/exec-lock.js";
 import { Ledger } from "../ledger/ledger.js";
-import { replay, splitKey, type RunState } from "../ledger/state.js";
+import { MAX_BUDGET_CEILING, replay, splitKey, type RunState } from "../ledger/state.js";
 import { shownStatus } from "../stages/run-status.js";
 import { outcomes, scoreRun, stageStats, stageOf, type RunScore } from "../report.js";
 import { jiraConfigured } from "../sources/jira.js";
@@ -234,7 +234,7 @@ export function gateChips(s: RunState): GateChip[] {
 export function cardCommands(markdown: string, runId: string, hash8: string): string[] {
   const out = [`factory show-card ${runId}`];
   for (const line of markdown.split("\n")) {
-    const m = /(?:^|\s|`)(factory (?:approve|reject|answer|waive-cap|stop)\s[^`]*?)`?\s*$/.exec(line);
+    const m = /(?:^|\s|`)(factory (?:approve|reject|answer|waive-cap|waive-budget|stop)\s[^`]*?)`?\s*$/.exec(line);
     if (m) out.push(m[1]!.replace(/\s+/g, " ").replace("<hash>", hash8).trim());
   }
   return [...new Set(out)];
@@ -259,6 +259,20 @@ function questionsOf(ledger: Ledger, sha: string) {
     questions: body.asked.map((q) => ({ id: q.id, text: q.text, options: q.options, recommended: q.recommended, reason: q.reason, why: q.impactReason })),
     assumptions: (body.assumptions ?? []).map((a) => ({ id: a.id, text: a.text })),
   };
+}
+
+/**
+ * A limit card's numbers for the run page's raise form: what is spent against the limit in force and the card's suggestion, the
+ * most the page raises it in one step (cap: cost, time or attempts; budget: the approved estimate's ceiling, as a multiple of its maximum).
+ */
+function limitOf(s: RunState) {
+  const card = s.openCard as (RunState["openCard"] & { proposal?: { costUsd?: number; wallMinutes?: number; extraAttempts?: number }; proposed?: number; reason?: string }) | undefined;
+  if (card?.kind === "cap") {
+    const wallMin = s.capOverrides.wallMinutes ?? wallClockCapMs(s.info.complexity) / 60_000;
+    return { limit: { kind: "cap" as const, reason: card.reason ?? "", spentUsd: s.costUsd, costCapUsd: currentCostCap(s), activeMin: s.activeMs / 60_000, wallMin, proposal: card.proposal ?? {} } };
+  }
+  if (card?.kind === "budget") return { limit: { kind: "budget" as const, reason: card.reason ?? "", ceiling: s.budgetCeiling, max: MAX_BUDGET_CEILING, ...(s.budgetCeiling < MAX_BUDGET_CEILING && card.proposed !== undefined ? { proposed: card.proposed } : {}) } };
+  return {};
 }
 
 export function runView(ledger: Ledger) {
@@ -289,7 +303,7 @@ export function runView(ledger: Ledger) {
     lastActivity: last ? { ts: last.ts, msg: last.msg, where: last.step ?? "run" } : undefined,
     timeline: timeline(ledger, s),
     gates: gateChips(s),
-    card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}) } : undefined,
+    card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}), ...limitOf(s) } : undefined,
     trace,
     delivered: done ? {
       branch: d.branch ?? s.workspace?.branch, head: d.head, prUrl: d.prUrl, local: d.local !== false,

@@ -302,7 +302,7 @@ program.command("answer").argument("<run>").argument("<hash>", "first characters
 program.command("waive-budget").argument("<run>").argument("<hash>", "first characters of the budget card's hash")
   .requiredOption("--reason <text>", "why going past the approved estimate is acceptable (recorded with your name)")
   .option("--ceiling <n>", "new limit as a multiple of the approved maximum (default: the card's suggestion)")
-  .description("let a run that reached its approved estimate (gate B5) continue to a higher limit (terminal only)")
+  .description("let a run that reached its approved estimate (gate B5) continue to a higher limit (terminal only; factory ui raises it one step)")
   .action(async (run: string, hash: string, o: { reason: string; ceiling?: string }) => {
     assertTty();
     const l = openRun(run);
@@ -323,7 +323,7 @@ program.command("waive-cap").argument("<run>").argument("<hash>", "first charact
   .option("--cost <dollars>", "new cost limit for this run, in USD")
   .option("--minutes <n>", "new active-time limit, in minutes")
   .option("--attempts <n>", "extra attempts per step (the retry ladder starts again)")
-  .description("accept going past a limit (cost, time or attempts) and continue; without options uses the card's suggestion (terminal only)")
+  .description("accept going past a limit (cost, time or attempts) and continue; without options uses the card's suggestion (terminal only; factory ui raises it one step)")
   .action(async (run: string, hash: string, o: { cost?: string; minutes?: string; attempts?: string }) => {
     assertTty();
     const num = (v: string | undefined, name: string) => {
@@ -594,7 +594,7 @@ program.command("ui").option("--port <n>", "port on 127.0.0.1", "4321")
     const ui = createUiServer();
     const port = await listen(ui, Number(o.port), o.port === "4321" ? 10 : 1);
     log(`Factory screens: http://127.0.0.1:${port}/?t=${ui.token}`);
-    log("Only this computer can open it, and only with this link (a new key each time). A decision on the page needs your typed name and the card's hash; waivers and cost limits stay in your terminal. Ctrl+C to stop.");
+    log("Only this computer can open it, and only with this link (a new key each time). A decision on the page needs your typed name and the card's hash; a limit is raised there one step at a time, gate waivers stay in your terminal. Ctrl+C to stop.");
   });
 
 program.command("smoke").option("--project <name>", "also check models this project overrides")
