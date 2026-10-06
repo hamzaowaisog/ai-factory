@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
-import { stringify } from "yaml";
+import { parse, stringify } from "yaml";
 import "../gates/predicates.js";
 import { verifyEvidence } from "../gates/engine.js";
 import { decide } from "../ledger/human.js";
@@ -713,9 +713,30 @@ describe("spec repairs", () => {
     expect(repairCalls).toBe(1);
     expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toContain("the last repair left the same findings; stopping repairs");
     expect(ledger.readCard(s.openCard!.cardId)).toContain("## Still open after 1 repair");
-    // a build settles what the repairs leave open by questions too; with none to ask, the finding is carried as an open risk
-    // and the plan approval card states it
+    // a brownfield build asks nothing by default (brownfield.questions off): it settles no problems and asked no question
+    expect(ledger.readCard(s.openCard!.cardId)).not.toContain("## Settled by questions");
+    expect(replay(ledger.events()).info.asks).toBeUndefined();
+    expect(ledger.events().some((e) => e.type === "human.requested" && (e.data as { settleKey?: string }).settleKey)).toBe(false);
+    // approved as it stands, the build goes on to a delivered branch, as brownfield builds always have
+    await decide(ledger, { decision: "approve", hashPrefix: s.openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    expect((await execute(s.info.runId)).status).toBe("delivered");
+  });
+
+  it("a brownfield project with brownfield.questions settles the open problem by questions and shows it on the plan card", async () => {
+    intakeRisk = "medium";
+    criticFindings = [finding];
+    const file = join(process.env.FACTORY_HOME!, "projects", "demo.yaml");
+    writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), brownfield: { questions: true } }));
+    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester"));
+    const s = replay(ledger.events());
+    expect(s.info.asks).toBe(true);
+    // with none to ask, the finding is carried as an open risk and the plan approval card states it
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toContain("the run carries it as open risks");
     expect(ledger.readCard(s.openCard!.cardId)).toMatch(/## Settled by questions, and open risks\n- Open risk: No path for an empty name\./);
+    // approved with the risk stated, the build goes on to a delivered branch
+    await decide(ledger, { decision: "approve", hashPrefix: s.openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(s.info.runId);
+    expect(r.status, r.message).toBe("delivered");
   });
 
   it("a retry goes on from the failed attempt's repaired spec, and a repair answers with changes only", async () => {

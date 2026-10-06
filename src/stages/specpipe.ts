@@ -11,7 +11,7 @@ import { lintSpec, OBSERVABLE_RULE, outOfScopeSpans, requestExcluded, sizeNote, 
 import { S, think, UNTRUSTED_NOTE, type ThinkSpec } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { LANE, lightSpec, specLane } from "./lane.js";
-import { SETTLE_MODES, specRefused, unsettled, type Found } from "../estimate/settled.js";
+import { settles, specRefused, unsettled, type Found } from "../estimate/settled.js";
 import { settle, settleKey, type Answer, type Decided } from "./settle.js";
 import { hashJson } from "../util/hash.js";
 
@@ -308,7 +308,7 @@ export const specifyStep: StepDef = {
   key: "specify", stage: "specify", templateVersion: "7",
   // refused: gate E1 refused a spec written before problems were settled by questions, so this step runs again to settle them
   inputs: (s, l) => (s.steps.get("merge")?.status === "completed"
-    ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s), ...(SETTLE_MODES.has(s.info.mode ?? "") && specRefused(s, l) ? { refused: true } : {}) }
+    ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s), ...(settles(s.info) && specRefused(s, l) ? { refused: true } : {}) }
     : undefined),
   async run(ctx) {
     const i = inputsOf(ctx);
@@ -335,8 +335,8 @@ export const specifyStep: StepDef = {
     const manualUi = new Set<string>();
     const spanIds = i.intent.spans.map((s) => s.id);
     let rejectedRepair: string[] | undefined;
-    // estimate and design runs: what the repairs leave open is settled by questions (src/stages/settle.ts)
-    const settling = SETTLE_MODES.has(ctx.state.info.mode ?? "");
+    // estimate and design runs, and a build that asks: what the repairs leave open is settled by questions (src/stages/settle.ts)
+    const settling = settles(ctx.state.info);
     const key = settleKey(mergedSha, request(ctx));
     const resumed = settling && [...ctx.ledger.events()].some((e) => e.type === "human.requested" && (e.data as { settleKey?: string } | undefined)?.settleKey === key);
     // a spec gate E1 refused before problems were settled by questions: settle that spec's problems, not a new spec's

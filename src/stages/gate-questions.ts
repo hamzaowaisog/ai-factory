@@ -1,5 +1,5 @@
-// Questions instead of a park (docs/estimates-design.md, "Gate questions"). In any run that reads a request (estimate, design,
-// brownfield, greenfield), a check that still fails
+// Questions instead of a park (docs/estimates-design.md, "Gate questions"). In an estimate or a design run, or a build that asks
+// (src/estimate/settled.ts, settles), a check that still fails
 // after the retry with the failures fed back (a breakdown gate, gate E5, a design check, gate E1 on the spec) goes back to the client
 // as clarify questions instead of more attempts or a parked run: a person answers them on a card, or a hands-off run takes each
 // recommended answer as an assumption. The step runs again with the answers, which every model call of the step reads. After
@@ -8,7 +8,7 @@
 import { z } from "zod";
 import type { Failure } from "../contracts/index.js";
 import { humanReview } from "../estimate/settings.js";
-import { SETTLE_MODES } from "../estimate/settled.js";
+import { settles } from "../estimate/settled.js";
 import type { Ledger } from "../ledger/ledger.js";
 import { splitKey, type RunState } from "../ledger/state.js";
 import { resolveAnswer, type ScoredQuestion } from "./clarify.js";
@@ -23,11 +23,11 @@ export const ROUND_ATTEMPTS = 2;
 export const GATE_CAP = 6;
 
 /**
- * Runs whose failing checks are settled by questions: every mode that reads a request (estimate, design, brownfield, greenfield), so
- * the design steps work the same in all of them. Only the design and estimate steps raise such failures, so a build's own gates
- * (tests, diff, review) park and retry as before.
+ * Runs whose failing checks are settled by questions: estimate and design runs, and a build that asks (settles), so the design
+ * steps work the same in all of them. Only the design and estimate steps raise such failures, so a build's own gates (tests,
+ * diff, review) park and retry as before.
  */
-export const asksGates = (state: Pick<RunState, "info">): boolean => SETTLE_MODES.has(state.info.mode ?? "");
+export const asksGates = (state: Pick<RunState, "info">): boolean => settles(state.info);
 
 /** What the carried risks and the questions are about: the estimate, or the build (a build shows them on its plan approval card). */
 export const gateSubject = (state: Pick<RunState, "info">): "estimate" | "build" => (state.info.mode === "brownfield" || state.info.mode === "greenfield" ? "build" : "estimate");

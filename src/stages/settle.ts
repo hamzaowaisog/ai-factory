@@ -1,5 +1,5 @@
 // Settling a spec's problems by questions (docs/estimates-design.md, "The pipeline"). What the specify step's repairs leave
-// open in any run that writes its own spec (estimate, design, brownfield, greenfield) (a critical or high critic finding, a
+// open in an estimate or design run, or a build that asks (src/estimate/settled.ts, settles) (a critical or high critic finding, a
 // capability the request did not ask for, a lint check that does not block) goes back to the client as clarify questions
 // instead of stopping the run at gate E1: a person answers them on a card, or a hands-off run takes each recommended answer
 // as an assumption. The spec is repaired with the
@@ -8,7 +8,7 @@
 import { z } from "zod";
 import type { SettledProblem, SpecDraft as Spec } from "../contracts/index.js";
 import { humanReview } from "../estimate/settings.js";
-import { openProblems, SETTLE_MODES, unsettled, type Found, type Problem } from "../estimate/settled.js";
+import { openProblems, settles, unsettled, type Found, type Problem } from "../estimate/settled.js";
 import { readiness } from "../estimate/gates.js";
 import { runGate } from "../gates/engine.js";
 import { hashJson } from "../util/hash.js";
@@ -246,7 +246,7 @@ export function settledText(s: SettledProblem): string {
  * estimate) has no specify step to go back to: undefined, and the step goes on as before.
  */
 export async function backToSettle(ctx: StepContext, step: string, specStep = "specify"): Promise<StepOutcome | undefined> {
-  if (!SETTLE_MODES.has(ctx.state.info.mode ?? "") || ctx.state.info.designRef || ctx.state.info.estimateRef || ctx.state.info.parent?.kind === "sibling") return undefined;
+  if (!settles(ctx.state.info) || ctx.state.info.designRef || ctx.state.info.estimateRef || ctx.state.info.parent?.kind === "sibling") return undefined;
   const spec = readOutput<Found & { requirements: unknown[] }>(ctx.state, ctx.ledger, specStep);
   if (!unsettled(spec)) return undefined;
   const c = clarifications(readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify"), readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify-2"));

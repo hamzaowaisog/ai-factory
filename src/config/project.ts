@@ -93,6 +93,13 @@ export const ProjectConfig = z.object({
   estimateTemplate: z.string().optional(),
   /** estimate runs: a person answers the clarify questions and approves the estimate (E7) by default; humanReview false makes the project's estimates hands-off (opt-in; `factory estimate --hands-off` does it for one run) */
   estimate: z.object({ humanReview: z.boolean().default(true) }).optional(),
+  /**
+   * brownfield builds: questions true settles the spec's open problems and failing design checks with questions a person answers
+   * (carrying what two rounds leave open as an open risk on the plan approval card) and reads a large request per module, as an
+   * estimate does (docs/estimates-design.md, "Builds"). Off by default: a brownfield build parks on them as before. Greenfield
+   * builds always ask.
+   */
+  brownfield: z.object({ questions: z.boolean().default(false) }).optional(),
   /** Front end of the repo, when it has one (docs/design-step.md): overrides what the design checks would detect. */
   design: z.object({
     /** source root, e.g. "src/" ("" is the repo root); default: detected */

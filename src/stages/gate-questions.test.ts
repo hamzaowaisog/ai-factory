@@ -78,8 +78,13 @@ beforeEach(() => {
 });
 
 describe("questions about failing checks", () => {
-  it("asks in every run that reads a request (estimate, design, brownfield, greenfield), about the estimate or the build", () => {
-    for (const mode of ["estimate", "design", "brownfield", "greenfield"]) expect(asksGates({ info: { mode } as never }), mode).toBe(true);
+  it("asks in estimate and design runs and in a build that began asking, about the estimate or the build", () => {
+    for (const mode of ["estimate", "design"]) expect(asksGates({ info: { mode } as never }), mode).toBe(true);
+    for (const mode of ["brownfield", "greenfield"]) {
+      expect(asksGates({ info: { mode, asks: true } as never }), mode).toBe(true);
+      // a build started before builds asked, or a brownfield build of a project that leaves brownfield.questions off
+      expect(asksGates({ info: { mode } as never }), mode).toBe(false);
+    }
     expect(asksGates({ info: { mode: "mobile" } as never })).toBe(false);
     expect(gateSubject({ info: { mode: "estimate" } as never })).toBe("estimate");
     expect(gateSubject({ info: { mode: "design" } as never })).toBe("estimate");

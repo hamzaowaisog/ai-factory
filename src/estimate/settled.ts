@@ -16,10 +16,12 @@ export interface Found {
 }
 
 /**
- * The modes whose spec problems are settled by questions: every mode that writes its own spec. An estimate, a design-only run and a
- * build (brownfield, greenfield) read their request the same way; a run whose spec is seeded from another run has no specify step.
+ * Whether a run settles its spec problems and failing design checks by questions and reads a large request per module, as an
+ * estimate does: estimate and design runs always; a build (brownfield, greenfield) when it began so (`info.asks`, set at the start:
+ * every greenfield run, a brownfield run when its project turns `brownfield.questions` on). A build started before builds asked
+ * has no `asks` and goes on as it began. A run whose spec is seeded from another run has no specify step.
  */
-export const SETTLE_MODES = new Set(["estimate", "design", "brownfield", "greenfield"]);
+export const settles = (info: Pick<RunState["info"], "mode" | "asks">): boolean => info.mode === "estimate" || info.mode === "design" || info.asks === true;
 
 /** Problems compared loosely (case, spacing, trailing punctuation), with their kind. */
 const keyOf = (kind: ProblemKind, text: string) => `${kind}:${text.toLowerCase().replace(/\s+/g, " ").replace(/[.;:,\s]+$/, "").trim()}`;

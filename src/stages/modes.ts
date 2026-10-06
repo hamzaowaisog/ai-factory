@@ -8,6 +8,7 @@ import { breakdownStep, estimateStep } from "./estimate.js";
 import { approveStep, intakeStep, planStep } from "./spec.js";
 import { draftsStep, mergeStep, specifyStep } from "./specpipe.js";
 import { splitModules } from "../estimate/modules.js";
+import { settles } from "../estimate/settled.js";
 import { designCheckStep } from "./design-check.js";
 import { designFidelityStep } from "./design-fidelity.js";
 import { approveEstimateStep, exportStep } from "./estimate-approve.js";
@@ -23,7 +24,7 @@ export function brownfieldSteps(state: RunState): StepDef[] {
   const tasks = (state.steps.get("plan")?.status === "completed" ? (state.steps.get("plan")!.data?.tasks as string[] | undefined) : undefined) ?? [];
   // a build run seeded from an approved estimate inherits its spec (no clarify, no specify) and is held to it (gates B1-B5)
   // a build from an approved design-only run inherits that run's spec the same way, so its screens and requirements line up
-  // a direct build reads its request the way an estimate does: per module for a large request (buildHead)
+  // a direct build that asks reads its request the way an estimate does: per module for a large request (buildHead)
   const head: StepDef[] = state.info.estimateRef
     ? [intakeStep, brownfieldGroundStep, seedStep("specify", "specify", (i) => i.estimateRef?.specSha, { critic: (i) => i.estimateRef?.criticSha })]
     : state.info.designRef
@@ -118,13 +119,11 @@ export function requirementsHead(state: RunState, ground: StepDef = estimateGrou
 }
 
 /**
- * A build's road from its request to the spec, the estimate's (requirementsHead) with the build's own ground step: a large request
- * is split into modules as an estimate's is. A run that read its request in one piece before builds split it goes on as it began.
+ * A build's road from its request to the spec. A build that asks (settles) reads it as an estimate does (requirementsHead, with the
+ * build's own ground step): a large request is split into modules. Any other build reads it in one piece, as builds always have.
  */
 function buildHead(state: RunState, ground: StepDef): StepDef[] {
-  const modules = splitModules(state.info.request ?? "");
-  const begunWhole = !!modules.length && state.steps.has("intake") && !state.steps.has(`intake:${modules[0]!.id}`);
-  return begunWhole ? [intakeStep, ground, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep] : requirementsHead(state, ground);
+  return settles(state.info) ? requirementsHead(state, ground) : [intakeStep, ground, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
 }
 
 /** The steps of an approved design-only run, seeded into a new run under the same keys (`info.designRef`). */

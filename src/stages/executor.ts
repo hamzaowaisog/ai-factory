@@ -136,6 +136,8 @@ export async function createRun(request: string, projectName: string, operator: 
       ...(opts.fromDesign ? { designRef: opts.fromDesign.ref } : {}),
       ...(opts.designExport?.length ? { designExport: opts.designExport } : {}),
       ...(opts.uiTarget ? { uiTarget: opts.uiTarget } : {}),
+      // a build that asks (src/estimate/settled.ts, settles): fixed here, so a paused run resumes with the steps it began with
+      ...(opts.mode === "greenfield" || ((opts.mode ?? "brownfield") === "brownfield" && project.brownfield?.questions) ? { asks: true } : {}),
       ...(lin?.kind === "build" ? { estimateRef: { runId: lin.approved.runId, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}) } } : {}),
     },
   }, HUMAN_WRITER);

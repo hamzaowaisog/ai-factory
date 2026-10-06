@@ -312,6 +312,8 @@ describe("a new product end to end (greenfield, fakes)", () => {
     const runId = await createRun("A portal where clinic staff sign in", "shop", "tester");
     const ledger = Ledger.open(runId);
     expect(replay(ledger.events()).info.mode).toBe("greenfield");
+    // every greenfield run asks (settles its spec and design checks by questions), fixed at the start
+    expect(replay(ledger.events()).info.asks).toBe(true);
 
     const r1 = await execute(runId);
     expect(r1.status, r1.message).toBe("waiting");

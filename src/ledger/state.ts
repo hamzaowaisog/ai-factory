@@ -94,6 +94,12 @@ export interface RunInfo {
   designExport?: string[];
   /** `--ui-target`: the stack the approved design is built in when the project sets none (docs/estimates-design.md, "Kit and scaffold") */
   uiTarget?: "next-shadcn" | "vite-shadcn" | "repo";
+  /**
+   * a build that settles its spec problems and failing design checks by questions and reads a large request per module, as an
+   * estimate does (src/estimate/settled.ts, settles): every greenfield run, and a brownfield run whose project turns
+   * `brownfield.questions` on. Set at the start, so a run keeps what it began with; missing on builds started before builds asked.
+   */
+  asks?: boolean;
   createdAt: string;
 }
 
