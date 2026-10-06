@@ -11,7 +11,7 @@ import "../gates/predicates.js";
 import { _resetEnvCache } from "../config/env.js";
 import { seedEmptyRepo } from "../config/greenfield.js";
 import { ensureStandaloneProject } from "../config/project.js";
-import { approvedDesign } from "../estimate/lineage.js";
+import { approvedDesign, approvedEstimate } from "../estimate/lineage.js";
 import { verifyEvidence } from "../gates/engine.js";
 import { decide } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
@@ -72,6 +72,31 @@ async function designRun(): Promise<string> {
   return runId;
 }
 
+/** An approved estimate made with no repo (a new product): its spec, its approved design, one estimate task, approved by a person. */
+async function estimateRun(): Promise<string> {
+  ensureStandaloneProject();
+  const runId = await createRun("A portal where clinic staff sign in", "standalone-estimates", "tester", { mode: "estimate", estimate: { noRepo: true } });
+  const l = Ledger.open(runId);
+  const designSha = l.putJson({ flow: "A user signs in", theme, noScreen: [], screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["error"], size: "new", mock, mockFull: mock }] });
+  const done = async (step: string, outputs: string[], data: Record<string, unknown> = {}) =>
+    l.append({ type: "step.completed", key: `${step}/1`, inputsHash: "a".repeat(64), outputs, data: { ...data, named: { [step]: outputs[0], ...(data.named as object) } } }, HUMAN_WRITER);
+  const range = (min: number, max: number) => ({ min, max });
+  await done("intake", [l.putJson(intent)]);
+  await done("specify", [l.putJson(spec)], { named: { critic: l.putJson({ findings: [] }) } });
+  await done("design", [designSha]);
+  // gate E1b: a person approved the design and its demo
+  const demo = `<!doctype html><title>demo</title><section id="S-1"><button data-state="0">Default</button><h1>Sign in</h1><form><label>Email<input type="email"></label><button>Sign in</button></form></section>`;
+  const bundle = l.putJson({ design: designSha, demo: l.putArtifact(Buffer.from(demo)) });
+  await l.append({ type: "human.requested", data: { cardId: "design-1", kind: "approve", artifactSha: bundle, step: "design-baseline" } }, HUMAN_WRITER);
+  await l.append({ type: "human.decided", data: { cardId: "design-1", decision: "approve", by: "lead", artifactSha: bundle } }, HUMAN_WRITER);
+  await done("design-baseline", [l.putJson({ ui: true, design: designSha, by: "lead" })], { ui: true });
+  await done("breakdown", [l.putJson({ tasks: [{ id: "EST-1", title: "Sign-in screen", reqs: ["REQ-1"], track: "frontend", executor: "agent", items: [], screen: "S-1" }] })]);
+  await done("estimate", [l.putJson({ deliveryModel: "agentic", tasks: [{ taskId: "EST-1", hours: range(4, 40) }], totals: { overall: range(4, 40), byTrack: { frontend: range(4, 40) } }, apiCost: { total: range(1, 500) }, elapsed: { criticalPathDays: range(1, 30) } })]);
+  await done("approve-estimate", [l.putJson({ by: "lead" })], { by: "lead" });
+  await done("export", [l.putJson({})]);
+  return runId;
+}
+
 // ---------- scripted model: the planner reads the scaffold it is given; the reviewer finds nothing ----------
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
 const prompts: { system: string; user: string }[] = [];
@@ -87,7 +112,9 @@ function answerFor(system: string, user: string): unknown {
     const ds = /"designSystemTask":\s*\{\s*"fileScope":\s*(\[[^\]]*\])/.exec(user);
     const dsFiles = ds ? (JSON.parse(ds[1]!) as string[]) : [];
     return {
-      tasks: [{ id: "TASK-1", title: "Sign-in screen", reqs: ["REQ-1"], fileScope: [...dsFiles, ...containers], exemplars: [], conventions: [], dependsOn: [], plannedLoc: 20, approach: "wire the sign-in form in the screen's container" }],
+      tasks: [{ id: "TASK-1", title: "Sign-in screen", reqs: ["REQ-1"], fileScope: [...dsFiles, ...containers], exemplars: [], conventions: [], dependsOn: [], plannedLoc: 20, approach: "wire the sign-in form in the screen's container",
+        // a build from an approved estimate: the task delivers its estimate task (gate B1)
+        ...(system.includes("APPROVED ESTIMATE") ? { estimateTaskId: "EST-1" } : {}) }],
       options: [{ id: "O-1", summary: "the screen's container", simplest: true, tradeoffs: "none" }, { id: "O-2", summary: "a separate auth module", simplest: false, tradeoffs: "more code" }],
       chosen: "O-1", adr: "Build it in the container the scaffold made.", protectedPathsDeclared: [], newDependencies: [],
       // asked for the product's API contract (a project with `contract`): the plan gives it as a stub, unless this test leaves it out
@@ -97,6 +124,8 @@ function answerFor(system: string, user: string): unknown {
   if (system.includes("review a finished change")) return scriptedReview(user);
   // a run that starts from the request alone (no design run): the head of the pipeline, then the design on the kit
   if (system.includes("intake step")) return intent;
+  // the spec's open problems are settled by questions in a build too: none to ask here, so they are carried as open risks
+  if (system.includes("these problems are still open")) return { questions: [], inRequest: [] };
   if (system.includes("Requirements analyst")) return { questions: [], conflicts: [] };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: "staff sign in with their email", kind: "happy" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [] };
@@ -416,6 +445,46 @@ describe("a new product end to end (greenfield, fakes)", () => {
       if (off !== undefined) process.env.FACTORY_NO_SCREENSHOTS = off;
     }
   }, 120_000);
+
+  it("builds an approved estimate made with no repo as a new product: a greenfield run held to the estimate, through to delivery", async () => {
+    const est = await estimateRun();
+    // no mode: a build from a no-repo estimate into an empty Node repo is a greenfield run
+    const runId = await createRun("A portal where clinic staff sign in", "shop", "tester", { lineage: { kind: "build", approved: approvedEstimate(est, { build: true }) } });
+    const ledger = Ledger.open(runId);
+    const s0 = replay(ledger.events());
+    expect(s0.info.mode).toBe("greenfield");
+    expect(s0.info.estimateRef).toMatchObject({ runId: est });
+
+    const r1 = await execute(runId);
+    expect(r1.status, r1.message).toBe("waiting");
+    const s1 = replay(ledger.events());
+    expect(s1.openCard?.kind).toBe("approval");
+    // the spec is the estimate's; no clarify rounds, no design steps of its own; the ground stands in for a new product
+    expect(s1.steps.get("specify")!.data).toMatchObject({ seeded: true, from: est });
+    expect([...s1.steps.keys()].some((k) => k.startsWith("clarify") || k === "design")).toBe(false);
+    expect(s1.steps.get("ground")!.data).toMatchObject({ newProduct: true });
+    // the planner was held to the estimate's tasks and saw the scaffold of the approved design
+    const plan = prompts.find((p) => p.system.includes("plan the implementation"))!;
+    expect(plan.system).toMatch(/APPROVED ESTIMATE/);
+    expect(plan.user).toMatch(/"freshApp":\s*true/);
+    expect(s1.gates.map((g) => `${g.gateId}:${g.passed}`)).toEqual(expect.arrayContaining(["build.b1-scope-lock:true"]));
+    await decide(ledger, { decision: "approve", hashPrefix: s1.openCard!.artifactSha.slice(0, 6), by: "lead" });
+
+    const done = await execute(runId);
+    expect(done.status, done.message).toBe("delivered");
+    const s2 = replay(ledger.events());
+    expect(s2.steps.get("stub-commit")!.data).toMatchObject({ scaffold: { target: "next-shadcn" } });
+    expect(s2.gates.map((g) => `${g.gateId}:${g.passed}`)).toEqual(expect.arrayContaining(["build.b3-size-cap:true", "build.b4-unrequested:true"]));
+    expect(execFileSync("git", ["show", `factory/${runId}:${lab.container}`], { cwd: repo, encoding: "utf8" })).toContain(DONE);
+  }, 120_000);
+
+  it("refuses an estimate of a change to an existing repo as a new product", async () => {
+    const est = await estimateRun();
+    // (an estimate that read a repo, as its settings record it)
+    const withRepo = approvedEstimate(est, { build: true });
+    await expect(createRun("x", "shop", "tester", { lineage: { kind: "build", approved: { ...withRepo, settings: { ...withRepo.settings, noRepo: false } } } })).rejects.toThrow(/estimated a change to an existing repo/);
+    // (an estimate made with no repo may still be built into a repo that has code: a change to it, not a new product)
+  });
 
   it("refuses to start a new product in a repo that has code, a design with a repo as a greenfield run, and a brownfield run on a Node project", async () => {
     const design = await designRun();

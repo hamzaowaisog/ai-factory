@@ -23,11 +23,12 @@ export function brownfieldSteps(state: RunState): StepDef[] {
   const tasks = (state.steps.get("plan")?.status === "completed" ? (state.steps.get("plan")!.data?.tasks as string[] | undefined) : undefined) ?? [];
   // a build run seeded from an approved estimate inherits its spec (no clarify, no specify) and is held to it (gates B1-B5)
   // a build from an approved design-only run inherits that run's spec the same way, so its screens and requirements line up
-  const spec: StepDef[] = state.info.estimateRef
-    ? [seedStep("specify", "specify", (i) => i.estimateRef?.specSha, { critic: (i) => i.estimateRef?.criticSha })]
+  // a direct build reads its request the way an estimate does: per module for a large request (buildHead)
+  const head: StepDef[] = state.info.estimateRef
+    ? [intakeStep, brownfieldGroundStep, seedStep("specify", "specify", (i) => i.estimateRef?.specSha, { critic: (i) => i.estimateRef?.criticSha })]
     : state.info.designRef
-    ? [seedStep("specify", "specify", (i) => i.designRef?.specSha, { critic: (i) => i.designRef?.criticSha })]
-    : [clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
+    ? [intakeStep, brownfieldGroundStep, seedStep("specify", "specify", (i) => i.designRef?.specSha, { critic: (i) => i.designRef?.criticSha })]
+    : buildHead(state, brownfieldGroundStep);
   // a direct build that touches UI draws its design and a person approves it before plan (a build from an approved
   // estimate or design follows that one); once intake says there is no UI the steps drop out, so such a run is as before
   const intake = state.steps.get("intake");
@@ -39,7 +40,7 @@ export function brownfieldSteps(state: RunState): StepDef[] {
   const design = state.info.estimateRef || state.info.designRef || noUi || plannedWithout ? [] : designSteps({ sources: BROWNFIELD_SOURCES, purpose: "build", refs: !!state.info.references?.length, exportPackage: !committedWithout });
   return [
     // impact before design: the screens it finds can feed the design later
-    discoverStep, intakeStep, brownfieldGroundStep, ...spec, impactStep, ...design, planStep, approveStep,
+    discoverStep, ...head, impactStep, ...design, planStep, approveStep,
     stubCommitStep, authorTestsStep,
     ...tasks.map((t) => implementStep(t)),
     integrateStep, acceptStep, designFidelityStep, designCheckStep, reviewStep, deliverStep,
@@ -61,7 +62,11 @@ export function greenfieldSteps(state: RunState): StepDef[] {
   const head: StepDef[] = ref
     // the approved design itself is read through designRef, as in a brownfield build --from-design (no design steps of its own)
     ? [...seededFromDesign(state).filter((s) => !s.key.startsWith("design")), ...(ref.groundSha ? [] : [newProductGroundStep])]
-    : [intakeStep, newProductGroundStep, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep,
+    // an approved estimate made with no repo: its spec is inherited and the build is held to it (gates B1-B5), as a brownfield
+    // build --from-estimate is; its approved design is read through estimateRef (no design steps of its own)
+    : state.info.estimateRef
+    ? [intakeStep, newProductGroundStep, seedStep("specify", "specify", (i) => i.estimateRef?.specSha, { critic: (i) => i.estimateRef?.criticSha })]
+    : [...buildHead(state, newProductGroundStep),
       ...designSteps({ sources: { intent: "intake", spec: "specify", components: kitComponents() }, purpose: "build", refs: !!state.info.references?.length })];
   return [
     discoverStep, ...head,
@@ -103,13 +108,23 @@ export function estimateSteps(state: RunState): StepDef[] {
  * From the requirements to the spec, shared by the estimate and the design-only run: intake, ground,
  * two clarify rounds and the spec pipeline, per module for a large document.
  */
-export function requirementsHead(state: RunState): StepDef[] {
+export function requirementsHead(state: RunState, ground: StepDef = estimateGroundStep): StepDef[] {
   const modules = splitModules(state.info.request ?? "");
   return modules.length
-    ? [...moduleIntakeSteps(modules), combineIntakeStep(modules), estimateGroundStep,
+    ? [...moduleIntakeSteps(modules), combineIntakeStep(modules), ground,
       ...moduleClarifySteps(modules, 1), combineClarifyStep(modules, 1), ...moduleClarifySteps(modules, 2), combineClarifyStep(modules, 2),
       ...moduleSteps(modules), combineSpecsStep(modules)]
-    : [intakeStep, estimateGroundStep, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
+    : [intakeStep, ground, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep];
+}
+
+/**
+ * A build's road from its request to the spec, the estimate's (requirementsHead) with the build's own ground step: a large request
+ * is split into modules as an estimate's is. A run that read its request in one piece before builds split it goes on as it began.
+ */
+function buildHead(state: RunState, ground: StepDef): StepDef[] {
+  const modules = splitModules(state.info.request ?? "");
+  const begunWhole = !!modules.length && state.steps.has("intake") && !state.steps.has(`intake:${modules[0]!.id}`);
+  return begunWhole ? [intakeStep, ground, clarifyStep, clarify2Step, draftsStep, mergeStep, specifyStep] : requirementsHead(state, ground);
 }
 
 /** The steps of an approved design-only run, seeded into a new run under the same keys (`info.designRef`). */

@@ -77,6 +77,8 @@ export function webAnswer(system: string, user: string): unknown {
   }
   if (system.includes("review a finished change")) return scriptedReview(user);
   if (system.includes("intake step")) return intent;
+  // the spec's open problems are settled by questions in a build too: none to ask here, so they are carried as open risks
+  if (system.includes("these problems are still open")) return { questions: [], inRequest: [] };
   if (system.includes("Requirements analyst")) return { questions: [], conflicts: [] };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: "staff sign in with their email", kind: "happy" }] }, { id: "I-2", behaviours: [{ text: "staff see today's appointments", kind: "happy" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [] };

@@ -105,6 +105,37 @@ describe("mode manifests", () => {
     expect(brownfieldSteps(replay(l.events())).map((s) => s.key)).toEqual(["discover", "intake", "ground", "specify", "impact", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
   });
 
+  it("a greenfield build from an approved estimate made with no repo inherits its spec and is held to it, with no design steps of its own", async () => {
+    const l = Ledger.create("20261006-greenfield-fromest");
+    await l.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: "x", estimateRef: { runId: "r0", estimateSha: "e".repeat(64), breakdownSha: "b".repeat(64), specSha: "s".repeat(64), designSha: "d".repeat(64) } } }, HUMAN_WRITER);
+    expect(greenfieldSteps(replay(l.events())).map((s) => s.key)).toEqual(["discover", "intake", "ground", "specify", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
+  });
+
+  it("a large request is read per module in a build too (brownfield and greenfield), as an estimate reads it", async () => {
+    const section = (n: number) => `# Module ${n}\n\n${"The system shall do a thing in detail. ".repeat(300)}`;
+    const big = [1, 2].map(section).join("\n\n");
+    const head = ["intake:m1", "intake:m2", "intake", "ground", "clarify:m1", "clarify:m2", "clarify", "clarify-2:m1", "clarify-2:m2", "clarify-2", "drafts:m1", "merge:m1", "specify:m1", "drafts:m2", "merge:m2", "specify:m2", "specify"];
+    const b = Ledger.create("20261006-brownfield-big1");
+    await b.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: big } }, HUMAN_WRITER);
+    const bKeys = brownfieldSteps(replay(b.events())).map((s) => s.key);
+    expect(bKeys.slice(0, head.length + 1)).toEqual(["discover", ...head]);
+    expect(bKeys.slice(head.length + 1, head.length + 2)).toEqual(["impact"]);
+    const g = Ledger.create("20261006-greenfield-big1");
+    await g.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: big } }, HUMAN_WRITER);
+    const gKeys = greenfieldSteps(replay(g.events())).map((s) => s.key);
+    expect(gKeys.slice(0, head.length + 4)).toEqual(["discover", ...head, "design", "design-baseline", "design-export"]);
+    // the same request gives the same list (a replay must not reshuffle steps)
+    expect(greenfieldSteps(replay(g.events())).map((s) => s.key)).toEqual(gKeys);
+  });
+
+  it("a build begun on a large request before builds were split into modules keeps reading it whole", async () => {
+    const section = (n: number) => `# Module ${n}\n\n${"The system shall do a thing in detail. ".repeat(300)}`;
+    const l = Ledger.create("20261006-greenfield-big2");
+    await l.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: [1, 2].map(section).join("\n\n") } }, HUMAN_WRITER);
+    await l.append({ type: "step.completed", key: "intake/1", inputsHash: "a".repeat(64), outputs: ["1".repeat(64)] }, HUMAN_WRITER);
+    expect(greenfieldSteps(replay(l.events())).map((s) => s.key).slice(0, 11)).toEqual(["discover", "intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "design", "design-baseline", "design-export"]);
+  });
+
   it("refuses a mode with no step list yet", async () => {
     const g = await stateFor("mobile");
     expect(() => stepsFor(g)).toThrow(/mobile/);

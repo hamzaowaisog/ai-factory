@@ -90,6 +90,8 @@ function answerFor(system: string, allowMulti = true, user = ""): unknown {
   if (system.includes("grounding step")) return { claims: [{ id: "C-1", text: "Greeter says Hi", spans: ["I-1"], anchors: [{ path: "src/Api/Greeter.cs", lineStart: 4, lineEnd: 4, quote: 'public string Greet(string name) => "Hi " + name;', symbol: "Greeter.Greet" }] }], notFound: [] };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: system.length % 2 ? "Hello Ann" : "Hello, Ann!", kind: "happy" }, { text: "empty name returns Hello", kind: "error" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [{ id: "D-1", span: "I-1", topic: "punctuation", readings: [{ sketch: 1, behaviour: 0, summary: "Hello Ann" }, { sketch: 2, behaviour: 0, summary: "Hello, Ann!" }] }] };
+  // the spec's open problems are settled by questions in a build too: none to ask here, so they are carried as open risks
+  if (system.includes("these problems are still open")) return { questions: [], inRequest: [] };
   if (system.includes("Requirements analyst")) clarifierPrompt = system;
   if (system.includes("Requirements analyst")) return system.includes("already answered") ? { questions: [], conflicts: [] } : {
     questions: [{ id: "q1", category: "scope", text: "Keep the comma?", options: ["Hello Ann", "Hello, Ann!"], recommended: "Hello Ann", reason: "shortest", spans: ["I-1"], impact: 2, impactReason: "visible text", difference: "D-1" }], conflicts: [] };
@@ -711,6 +713,9 @@ describe("spec repairs", () => {
     expect(repairCalls).toBe(1);
     expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toContain("the last repair left the same findings; stopping repairs");
     expect(ledger.readCard(s.openCard!.cardId)).toContain("## Still open after 1 repair");
+    // a build settles what the repairs leave open by questions too; with none to ask, the finding is carried as an open risk
+    // and the plan approval card states it
+    expect(ledger.readCard(s.openCard!.cardId)).toMatch(/## Settled by questions, and open risks\n- Open risk: No path for an empty name\./);
   });
 
   it("a retry goes on from the failed attempt's repaired spec, and a repair answers with changes only", async () => {

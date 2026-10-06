@@ -165,6 +165,14 @@ describe("only people put scope out of scope", () => {
       critic: { findings: [] }, cb: { claims: [], notFound: [] }, risk: "low", clar: { answers: [], assumptions: [], conflicts: [] }, open: [], size: note,
     });
     expect(card).toContain(`**${note}**`);
+    expect(card).not.toContain("## Settled by questions");
+    const settled = approvalCard(ctx, {
+      intent: { source: "cli", spans: [{ id: "I-1", text: "remind" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "full", touchesUi: false },
+      spec: big, plan: { tasks: [], options: [], chosen: "O-1", adr: "", protectedPathsDeclared: [], newDependencies: [], stubs: [], complexity: "L" } as never,
+      critic: { findings: [] }, cb: { claims: [], notFound: [] }, risk: "low", clar: { answers: [], assumptions: [], conflicts: [] }, open: [],
+      settled: ["Spec question Q-3: Lock out after 5 tries? → Yes (answered)", "Open risk: no retry limit"],
+    });
+    expect(settled).toContain("## Settled by questions, and open risks\n- Spec question Q-3: Lock out after 5 tries? → Yes (answered)\n- Open risk: no retry limit");
   });
 
   it("a repair is told every lint failure and how to pass, while a card shows the first few", () => {

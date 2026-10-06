@@ -88,7 +88,7 @@ export function combineIntakeStep(modules: Module[]): StepDef {
       const intents = keys.map((k) => ctx.ledger.getJson<Intent>(ctx.state.steps.get(k)!.outputs[0]!)!);
       const intent = combineIntents(intents);
       const sha = ctx.ledger.putJson({ header: header(ctx.runId, "intent", "intake", ""), ...intent });
-      return { kind: "done", outputs: { intent: sha }, data: { changeClass: intent.changeClass, risk: intent.risk, modules: modules.map((m) => m.id) } };
+      return { kind: "done", outputs: { intent: sha }, data: { changeClass: intent.changeClass, risk: intent.risk, touchesUi: intent.touchesUi, modules: modules.map((m) => m.id) } };
     },
   };
 }

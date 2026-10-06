@@ -108,7 +108,7 @@ program.command("start")
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
       sources: req.sources, references, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}), ...(fromDesign ? { fromDesign, ...(fromDesign.repo ? {} : { mode: "greenfield" as const }) } : {}), ...(designExport ? { designExport } : {}), ...(uiTarget ? { uiTarget } : {}),
     });
-    log(`run ${runId} (request from ${fromDesign ? `design run ${fromDesign.runId}; the build follows its approved design${fromDesign.repo ? "" : ", a new product built into an empty repo"}` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""})`);
+    log(`run ${runId} (request from ${fromDesign ? `design run ${fromDesign.runId}; the build follows its approved design${fromDesign.repo ? "" : ", a new product built into an empty repo"}` : approved ? `estimate run ${approved.runId}; the build follows its approved spec and design and is held to its budget${replay(Ledger.open(runId).events()).info.mode === "greenfield" ? ", a new product built into an empty repo" : ""}` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""})`);
     if (approved || fromDesign) await exportSeededNow(runId, designExport, log);
     await runAndReport(runId);
   });

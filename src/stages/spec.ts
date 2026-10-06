@@ -1,7 +1,7 @@
 // Spec side of the brownfield slice: intake → ground → specify (+lint, critic) → plan → approval card.
 import { z } from "zod";
 import {
-  CurrentBehaviourBody, IntentBody, maxRisk, PlanBody, type Risk, SpecDraft, type Complexity, type Failure,
+  CurrentBehaviourBody, IntentBody, maxRisk, PlanBody, type Risk, SpecDraft, type Complexity, type Failure, type SettledProblem,
 } from "../contracts/index.js";
 import { checkEvidence } from "../context/tools.js";
 import { buildRepoMap } from "../context/repomap.js";
@@ -17,6 +17,8 @@ import { approvedDesignFor } from "./design-inputs.js";
 import { header, outputOf, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { acOwners } from "./build.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
+import { gateNotes } from "./gate-questions.js";
+import { settledText } from "./settle.js";
 import { CriticOut } from "./specpipe.js";
 import { describeSources } from "../sources/request.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
@@ -282,7 +284,7 @@ export function plannedFiles(plan: PlanT): string[] {
   return [...new Set(plan.tasks.flatMap((t) => t.fileScope))].sort();
 }
 
-export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; /** reworks the spec step made (the light lane allows 1) */ repairs?: number; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string; /** spec over the size budget: the human decides */ size?: string; /** ripple effects outside the plan (impact step) */ affects?: string[] }): string {
+export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; /** reworks the spec step made (the light lane allows 1) */ repairs?: number; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string; /** spec over the size budget: the human decides */ size?: string; /** ripple effects outside the plan (impact step) */ affects?: string[]; /** spec problems and failing design checks settled by questions, and what was carried as an open risk */ settled?: string[] }): string {
   const grounded = new Set(a.cb.claims.flatMap((c) => c.anchors.map((x) => x.path)));
   const files = plannedFiles(a.plan);
   const notGrounded = files.filter((f) => !grounded.has(f));
@@ -340,6 +342,7 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
     ...a.critic.findings.map((f) => `- [${f.severity}] ${f.reqId ?? ""} ${f.finding}`),
     ...(a.critic.note ? [`_${a.critic.note}_`] : []),
     ...(a.open.length ? [``, `## Still open after ${a.repairs ?? 3} repair${a.repairs === 1 ? "" : "s"}`, ...a.open.map((o) => `- ${o}`)] : []),
+    ...(a.settled?.length ? [``, `## Settled by questions, and open risks`, ...a.settled.map((x) => `- ${x}`)] : []),
     ...(a.roundTrip && !a.roundTrip.droppedSpans.length && !a.roundTrip.inventedCapabilities.length ? [``, `Round trip: the spec restated back matches your request (nothing dropped, nothing added).`] : []),
     ...(a.size ? [``, `**${a.size}**`] : []),
     ``,
@@ -379,6 +382,7 @@ export const approveStep: StepDef = {
       roundTrip: requireOutput<{ roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] } }>(ctx.state, ctx.ledger, "specify").roundTrip,
       uiSize: uiSizeForCard(snapshotFor(ctx), plannedFiles(requireOutput<PlanT>(ctx.state, ctx.ledger, "plan"))),
       ...(impact ? { affects: affectsLines(impact, plannedFiles(requireOutput<PlanT>(ctx.state, ctx.ledger, "plan"))) } : {}),
+      settled: [...(requireOutput<{ settled?: SettledProblem[] }>(ctx.state, ctx.ledger, "specify").settled ?? []).map(settledText), ...gateNotes(ctx.ledger, ctx.state, "approve")],
     });
     const card = `${md}\n\nCard hash: ${bundleSha.slice(0, 8)}`;
     return { kind: "wait", card: { cardId: `approval-${bundleSha.slice(0, 8)}`, kind: "approval", artifactSha: bundleSha, markdown: card } };

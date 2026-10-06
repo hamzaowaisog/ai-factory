@@ -22,7 +22,7 @@ import { REPO_ROOT } from "../runners/netinfra.js";
 import { setPrice } from "../runners/pricing.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { stepsFor } from "./modes.js";
-import { answersOf, asksGates, asksPerson, gateCard, gateRounds, GATE_ROUNDS, nextQuestionId, ROUND_ATTEMPTS, writeGateQuestions, type FiledRound, type GateRound } from "./gate-questions.js";
+import { answersOf, asksGates, asksPerson, gateCard, gateRounds, gateSubject, GATE_ROUNDS, nextQuestionId, ROUND_ATTEMPTS, writeGateQuestions, type FiledRound, type GateRound } from "./gate-questions.js";
 import { greenfieldRefusal, repoIsEmpty } from "../config/greenfield.js";
 import { availableRungs, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
@@ -96,10 +96,13 @@ export async function createRun(request: string, projectName: string, operator: 
   }
   // greenfield: an approved design with no repo, built into this project's empty repo (the callers check first; this is the guard)
   // a plain start on a Node project whose repo is still empty is a new product too: the run draws its own design
-  if (!opts.mode && !opts.fromDesign && !opts.lineage && project.stack === "node" && repoIsEmpty(project.repo, project.baseBranch)) opts = { ...opts, mode: "greenfield" };
+  // (and so is a build from an approved estimate made with no repo: it follows that estimate's spec and design)
+  const fromEstimate = opts.lineage?.kind === "build" ? opts.lineage.approved : undefined;
+  if (!opts.mode && !opts.fromDesign && (!opts.lineage || fromEstimate) && project.stack === "node" && repoIsEmpty(project.repo, project.baseBranch)) opts = { ...opts, mode: "greenfield" };
   if (opts.mode === "greenfield") {
     if (opts.fromDesign?.repo) throw new Error("A greenfield run builds an approved design for a new product (one designed with no repo).");
-    const why = greenfieldRefusal(opts.fromDesign?.runId ?? "This request", project);
+    if (fromEstimate && !fromEstimate.settings.noRepo) throw new Error(`${fromEstimate.runId} estimated a change to an existing repo, so it is built into that repo, not into project ${project.project}'s empty one. A new product is built from an estimate made with no repo.`);
+    const why = greenfieldRefusal(opts.fromDesign?.runId ?? fromEstimate?.runId ?? "This request", project);
     if (why) throw new Error(why);
   } else if (opts.fromDesign && !opts.fromDesign.repo && !readsRequirements(opts.mode)) throw new Error(`${opts.fromDesign.runId} is a new product (designed with no repo): build it as a greenfield run.`);
   // the Node lab builds only a new product for now; changing an existing Node app is not decided yet (PR #17 review, item 5)
@@ -276,7 +279,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
     ctx.log(`? ${step.key}: ${reason}; round ${round} of ${GATE_ROUNDS}: ${q.asked.length} question${q.asked.length === 1 ? "" : "s"} about the failing checks${cardSha ? "" : q.asked.length ? " (hands-off: the recommended answers are assumed)" : ""}`);
     if (!cardSha) return undefined;
     const cardId = `check-questions-${round}-${cardSha.slice(0, 8)}`;
-    ledger.writeCard(cardId, gateCard(runId, step.key, round, q.asked, filed.failures, q.failureOf, cardSha));
+    ledger.writeCard(cardId, gateCard(runId, step.key, round, q.asked, filed.failures, q.failureOf, cardSha, gateSubject(state)));
     await ledger.append({ type: "human.requested", data: { cardId, kind: "question", artifactSha: cardSha, step: step.key, gateStep: step.key, roundSha } }, writer);
     return { status: "waiting", message: `The ${step.key} step's checks raised questions: factory show-card ${runId}` };
   }
@@ -289,7 +292,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
     const lastFail = [...ledger.events()].reverse().find((e) => e.type === "step.failed" && e.key && splitKey(e.key).step === step.key);
     const asked = (lastFail?.data as { action?: string } | undefined)?.action === "questions" && lastFail!.seq > Math.max(-1, ...ledger.events().filter((e) => e.type === "step.completed" && e.key && splitKey(e.key).step === step.key).map((e) => e.seq));
     const rung = history.length || asked ? Number((lastFail?.data as { nextRung?: number } | undefined)?.nextRung ?? 0) : 0;
-    // the questions this step's failing checks raised, and whether their rounds are used up (an estimate or a design run)
+    // the questions this step's failing checks raised, and whether their rounds are used up (an estimate, a design or a greenfield run)
     const rounds = asksGates(state) ? gateRounds(ledger, state, step.key) : [];
     const gateAnswers = answersOf(rounds);
     const priorFailures: Failure[] = history.length && lastFail?.outputs?.[0] ? ledger.getJson<Failure[]>(lastFail.outputs[0]) : [];
@@ -382,7 +385,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
           // policy.retryBudget (default 6; a trial project can say 2)
           ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, step.stage, policy.localOnly), backoffSpentMs: backoffSpent, a5Done: new Set(),
         });
-        // an estimate or a design run: a failing check, after the retry with the failures fed back, becomes questions instead of more attempts or a park
+        // an estimate, a design or a greenfield run: a failing check, after the retry with the failures fed back, becomes questions instead of more attempts or a park
         const counted = history.filter((h) => h.category !== "rate-limit").length + 1;
         if (outcome.gate && outcome.category === "other" && asksGates(state) && (action.action === "park" || counted >= ROUND_ATTEMPTS)) {
           return askRound(ctx, step, key, rounds, outcome.failures, rec2, action.action === "retry" ? action.rung : rung, action.action === "park" ? action.reason : `${outcome.failures.length} check${outcome.failures.length === 1 ? "" : "s"} still fail after the retry`, outcome.data);

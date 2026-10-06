@@ -80,10 +80,11 @@ export function nodeProjectYaml(name: string, repo: string, baseBranch: string):
  * Why an approved design with no repo cannot be built into this project, or undefined when it can: the project must be a Node
  * project whose repo is still empty (a design for a new product is a whole app; it is not merged into existing code).
  */
+/** `runId`: the approved design or estimate (made with no repo) being built, or "This request" for a plain start. */
 export function greenfieldRefusal(designRunId: string, project: Pick<ProjectConfig, "project" | "repo" | "baseBranch" | "stack">): string | undefined {
   const init = `Create an empty git repo (git init) and run: factory init <folder>, then build into that project.`;
-  if (project.repo === "-") return `${designRunId} is a new product (designed with no repo); pick a project with an empty repo to build it into. ${init}`;
-  if (!repoIsEmpty(project.repo, project.baseBranch)) return `${designRunId} is a new product (designed with no repo), and project ${project.project}'s repo already has code. A new product is built into an empty repo. ${init}`;
+  if (project.repo === "-") return `${designRunId} is a new product (made with no repo); pick a project with an empty repo to build it into. ${init}`;
+  if (!repoIsEmpty(project.repo, project.baseBranch)) return `${designRunId} is a new product (made with no repo), and project ${project.project}'s repo already has code. A new product is built into an empty repo. ${init}`;
   if (project.stack !== "node") return `Project ${project.project} has an empty repo but is set up as stack: ${project.stack}. A new product is a Node app: run factory init <folder> --force again, or set stack: node in its config.`;
   return undefined;
 }

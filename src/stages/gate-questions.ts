@@ -1,4 +1,5 @@
-// Questions instead of a park (docs/estimates-design.md, "Gate questions"). In an estimate or a design run, a check that still fails
+// Questions instead of a park (docs/estimates-design.md, "Gate questions"). In any run that reads a request (estimate, design,
+// brownfield, greenfield), a check that still fails
 // after the retry with the failures fed back (a breakdown gate, gate E5, a design check, gate E1 on the spec) goes back to the client
 // as clarify questions instead of more attempts or a parked run: a person answers them on a card, or a hands-off run takes each
 // recommended answer as an assumption. The step runs again with the answers, which every model call of the step reads. After
@@ -21,8 +22,15 @@ export const ROUND_ATTEMPTS = 2;
 /** Questions on one round's card; one question may settle several failures. */
 export const GATE_CAP = 6;
 
-/** Runs whose failing checks are settled by questions: the ones that read a requirements document (estimate, design). */
+/**
+ * Runs whose failing checks are settled by questions: every mode that reads a request (estimate, design, brownfield, greenfield), so
+ * the design steps work the same in all of them. Only the design and estimate steps raise such failures, so a build's own gates
+ * (tests, diff, review) park and retry as before.
+ */
 export const asksGates = (state: Pick<RunState, "info">): boolean => SETTLE_MODES.has(state.info.mode ?? "");
+
+/** What the carried risks and the questions are about: the estimate, or the build (a build shows them on its plan approval card). */
+export const gateSubject = (state: Pick<RunState, "info">): "estimate" | "build" => (state.info.mode === "brownfield" || state.info.mode === "greenfield" ? "build" : "estimate");
 
 export const GateQuestionsOut = z.object({
   questions: z.array(z.object({
@@ -128,11 +136,11 @@ export function answersText(answers: GateAnswer[]): string {
 }
 
 /** The card a person answers in review mode: one question per line, the failures it settles, and how to answer. */
-export function gateCard(runId: string, step: string, round: number, asked: ScoredQuestion[], failures: Failure[], failureOf: Record<string, number[]>, cardHash: string): string {
+export function gateCard(runId: string, step: string, round: number, asked: ScoredQuestion[], failures: Failure[], failureOf: Record<string, number[]>, cardHash: string, subject: "estimate" | "build" = "estimate"): string {
   return [
     `# Questions about the ${step} step's checks (round ${round} of at most ${GATE_ROUNDS})`,
     ``,
-    `Run ${runId}. The ${step} step's checks still fail after a retry. Instead of parking the run, the factory asks you: each question settles one or more of the failures, and the step runs again with your answers. What still fails after ${GATE_ROUNDS} rounds is carried as an open risk on the estimate.`,
+    `Run ${runId}. The ${step} step's checks still fail after a retry. Instead of parking the run, the factory asks you: each question settles one or more of the failures, and the step runs again with your answers. What still fails after ${GATE_ROUNDS} rounds is carried as an open risk ${subject === "build" ? "and shown on the plan approval card" : "on the estimate"}.`,
     ``,
     ...asked.flatMap((q) => [
       `**${q.id}** ${q.text}`,
@@ -152,14 +160,15 @@ export function gateCard(runId: string, step: string, round: number, asked: Scor
 export async function writeGateQuestions(ctx: StepContext, a: { step: string; failures: Failure[]; earlier: GateAnswer[]; firstId: number }):
   Promise<{ ok: true; asked: ScoredQuestion[]; failureOf: Record<string, number[]> } | { ok: false; outcome: StepOutcome }> {
   const spec = readOutput<{ requirements?: { id: string; ears: string }[] }>(ctx.state, ctx.ledger, "specify");
+  const what = gateSubject(ctx.state);
   const r = await think({ ...ctx, priorFailures: [], gateAnswers: undefined }, {
     stage: "clarifier", route: "clarifier", label: "check questions", cls: "read-large", budgetTokens: 30000, tools: [], schema: GateQuestionsOut, maxTurns: 4,
     sections: [
       S.template("tpl", `Requirements analyst. The factory's ${a.step} step was checked and these checks still fail after a retry. Write the questions a client answers so the step can be redone and pass; you don't redo the step.
-- A failure usually means the requirements leave something open: which requirements the estimate covers, what a screen or task is for, how big something is, what is in or out of scope. Ask the question that decides it.
+- A failure usually means the requirements leave something open: which requirements the ${what} covers, what a screen or task is for, how big something is, what is in or out of scope. Ask the question that decides it.
 - One question settles one failure or several closely related ones; list their numbers in "failures". At most ${GATE_CAP} questions: settle the failures that change scope, data, money or who sees what first.
 - Each question has 2-4 options and one "recommended" (copy the option text exactly) with a one-line reason; impact 1-3 with a reason (3 = changes data, money or scope; 2 = a visible flow; 1 = wording).
-- The recommended option is always the smallest change that fully does what the request asks. Never recommend work the request doesn't ask for: offer it as another option. Leaving a thing out of the estimate, stated as an assumption, is an option when the request does not settle it.
+- The recommended option is always the smallest change that fully does what the request asks. Never recommend work the request doesn't ask for: offer it as another option. Leaving a thing out of the ${what}, stated as an assumption, is an option when the request does not settle it.
 - Never ask what the request, the requirements or the earlier answers already settle.
 ${UNTRUSTED_NOTE}`),
       S.artifact("failures", "failures", a.failures.map((f, n) => ({ n: n + 1, check: f.check, failure: f.message, ...(f.location ? { where: f.location } : {}) }))),

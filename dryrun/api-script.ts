@@ -97,6 +97,8 @@ const scriptedReview = (user: string) => ({ findings: [], coverage: [...new Set(
 export function apiAnswer(system: string, user = ""): unknown {
   if (system.includes("intake step")) return intent;
   if (system.includes("grounding step")) return { claims: [{ id: "C-1", text: "The API has only a health route today; it has no sign-in and no appointments route", spans: ["I-1", "I-2"], anchors: [{ ...ANCHOR, symbol: "MapGet /" }] }], notFound: [] };
+  // the spec's open problems are settled by questions in a build too: none to ask here, so they are carried as open risks
+  if (system.includes("these problems are still open")) return { questions: [], inRequest: [] };
   if (system.includes("Requirements analyst")) return { questions: [], conflicts: [] };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: "POST /api/sign-in answers 200", kind: "happy" }] }, { id: "I-2", behaviours: [{ text: "GET /api/appointments/today answers 200 with rows", kind: "happy" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [] };

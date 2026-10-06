@@ -136,6 +136,8 @@ export function scriptedAnswer(system: string): unknown {
   if (system.includes("grounding step")) return { claims: [{ id: "C-1", text: "GET /orders/{id} indexes the dictionary directly, so a missing id throws and the API answers 500", spans: ["I-1"], anchors: [{ ...ANCHOR, symbol: "MapGet /orders/{id}" }] }], notFound: [] };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: "GET /orders/999 returns 404", kind: "error" }, { text: "GET /orders/1 still returns the order", kind: "happy" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [] };
+  // the spec's open problems are settled by questions in a build too: none to ask here, so they are carried as open risks
+  if (system.includes("these problems are still open")) return { questions: [], inRequest: [] };
   if (system.includes("Requirements analyst")) return { questions: [], conflicts: [] };
   if (system.includes("Merge three independent")) return { spec: SPEC, alignment: [{ mergedReq: "REQ-1", from: ["d1:REQ-1", "d2:REQ-1", "d3:REQ-1"] }], conflicts: [] };
   if (system.includes("State, as numbered")) return { sentences: [{ n: 1, text: "Asking for an order that doesn't exist gives 404 Not Found." }] };

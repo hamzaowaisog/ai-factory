@@ -15,8 +15,11 @@ export interface Found {
   settled?: SettledProblem[];
 }
 
-/** The modes whose spec feeds an estimate (directly, or later through --from-design): their problems are settled by questions. */
-export const SETTLE_MODES = new Set(["estimate", "design"]);
+/**
+ * The modes whose spec problems are settled by questions: every mode that writes its own spec. An estimate, a design-only run and a
+ * build (brownfield, greenfield) read their request the same way; a run whose spec is seeded from another run has no specify step.
+ */
+export const SETTLE_MODES = new Set(["estimate", "design", "brownfield", "greenfield"]);
 
 /** Problems compared loosely (case, spacing, trailing punctuation), with their kind. */
 const keyOf = (kind: ProblemKind, text: string) => `${kind}:${text.toLowerCase().replace(/\s+/g, " ").replace(/[.;:,\s]+$/, "").trim()}`;
