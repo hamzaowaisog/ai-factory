@@ -219,10 +219,13 @@ const STATIC: Record<string, { file: string; type: string }> = {
   "/theme.js": { file: "theme.js", type: "text/javascript; charset=utf-8" },
   "/app.css": { file: "app.css", type: "text/css; charset=utf-8" },
   "/favicon.svg": { file: "favicon.svg", type: "image/svg+xml" },
+  // the page's typeface, bundled so it works offline (SIL OFL 1.1, fonts/OFL.txt)
+  "/fonts/geist.woff2": { file: "fonts/geist.woff2", type: "font/woff2" },
+  "/fonts/geist-mono.woff2": { file: "fonts/geist-mono.woff2", type: "font/woff2" },
 };
 
 const SECURITY_HEADERS = {
-  "Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+  "Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "no-referrer",
