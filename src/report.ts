@@ -4,6 +4,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Ledger } from "./ledger/ledger.js";
 import { replay, splitKey, statusLabel, type RunState } from "./ledger/state.js";
+import { priceOf } from "./runners/pricing.js";
 import { readTrace, type TraceEvent } from "./util/trace.js";
 
 /**
@@ -37,8 +38,14 @@ export interface StepScore {
   retryReasons: string[];
   highestRung: number;
   models: string[];
-  tokens: { input: number; output: number; cached: number };
+  /** input is the uncached part; cached is read from the prompt cache; cacheWrite was written to it (missing in older reports) */
+  tokens: { input: number; output: number; cached: number; cacheWrite?: number };
   costUsd: number;
+  /** model turns paid for; answers reused from an earlier run (src/estimate/cache.ts), which cost nothing */
+  calls?: number;
+  reused?: number;
+  /** what the prompt cache saved at list prices: reads below the input price, less the premium paid on writes */
+  cacheSavedUsd?: number;
   activeSec: number;
   /** where the step's time went, from the run trace: model calls, the coding agent's container, the test lab */
   time?: { modelSec: number; agentSec: number; labSec: number };
@@ -110,8 +117,13 @@ export function scoreRun(ledger: Ledger): RunScore {
         if (m && !s.models.includes(m)) s.models.push(m);
         s.tokens.input += Number(d["gen_ai.usage.input_tokens"] ?? 0);
         s.tokens.output += Number(d["gen_ai.usage.output_tokens"] ?? 0);
-        s.tokens.cached += Number(d["gen_ai.usage.cache_read_tokens"] ?? 0);
+        const read = Number(d["gen_ai.usage.cache_read_tokens"] ?? 0), wrote = Number(d["gen_ai.usage.cache_write_tokens"] ?? 0);
+        s.tokens.cached += read;
+        s.tokens.cacheWrite = (s.tokens.cacheWrite ?? 0) + wrote;
         s.costUsd += Number(d["gen_ai.usage.cost_usd"] ?? 0);
+        s.calls = (s.calls ?? 0) + 1;
+        const p = priceOf(m);
+        s.cacheSavedUsd = (s.cacheSavedUsd ?? 0) + (read * (p.input - p.cacheRead) - wrote * (p.cacheWrite - p.input)) / 1_000_000;
         break;
       }
       case "gate.result": {
@@ -154,9 +166,11 @@ export function scoreRun(ledger: Ledger): RunScore {
     get(step).human.answersChanged = asked.filter((q) => c.answers?.[q.id] !== undefined && c.answers[q.id] !== q.recommended).length;
   }
 
-  const steps = [...scores.values()].filter((s) => s.attempts > 0 || s.costUsd > 0 || s.human.cards > 0);
-  let split = new Map<string, { modelSec: number; agentSec: number; labSec: number }>();
-  try { split = timeSplit(readTrace(ledger.dir)); } catch { /* no trace: no split */ }
+  let trace: TraceEvent[] = [];
+  try { trace = readTrace(ledger.dir); } catch { /* no trace: no split, no reuse count */ }
+  for (const e of trace) if (e.kind === "cache.hit" && e.step) { const s = get(e.step); s.reused = (s.reused ?? 0) + 1; }
+  const steps = [...scores.values()].filter((s) => s.attempts > 0 || s.costUsd > 0 || s.human.cards > 0 || !!s.reused);
+  const split = timeSplit(trace);
   for (const s of steps) { const t = split.get(s.step); if (t && (t.modelSec || t.agentSec || t.labSec)) s.time = { modelSec: Math.round(t.modelSec), agentSec: Math.round(t.agentSec), labSec: Math.round(t.labSec) }; }
   const done = steps.filter((s) => s.outcome === "completed");
   return {
@@ -204,6 +218,45 @@ export function formatRun(r: RunScore): string {
     lines.push(`${s.step.padEnd(20)} ${s.outcome.padEnd(11)} ${(s.firstTimePass ? "yes" : "no").padEnd(5)} ${String(s.attempts).padEnd(5)} ${money(s.costUsd).padStart(7)} ${`${Math.round(s.activeSec)}s`.padStart(7)} ${(s.time ? `${s.time.modelSec}/${s.time.agentSec}/${s.time.labSec}s` : "-").padStart(16)} ${`${kTok(s.tokens.input + s.tokens.cached)}/${kTok(s.tokens.output)}`.padStart(14)}  ${`${s.gates.passed}✓${s.gates.failed ? ` ${s.gates.failed}✗` : ""}`.padEnd(6)} ${notes}`);
   }
   return lines.filter((l, i) => l !== "" || i === 4).join("\n");
+}
+
+// ---------- where the tokens went ----------
+
+export interface CostRow { name: string; calls: number; reused: number; input: number; cacheWrite: number; cacheRead: number; output: number; costUsd: number; cacheSavedUsd: number }
+
+/** Steps summed by name (a step, or with `by` a stage), most expensive first. */
+export function costRows(steps: StepScore[], by: (s: StepScore) => string = (s) => s.step): CostRow[] {
+  const rows = new Map<string, CostRow>();
+  for (const s of steps) {
+    const name = by(s);
+    const x = rows.get(name) ?? { name, calls: 0, reused: 0, input: 0, cacheWrite: 0, cacheRead: 0, output: 0, costUsd: 0, cacheSavedUsd: 0 };
+    x.calls += s.calls ?? 0; x.reused += s.reused ?? 0; x.input += s.tokens.input; x.cacheWrite += s.tokens.cacheWrite ?? 0;
+    x.cacheRead += s.tokens.cached; x.output += s.tokens.output; x.costUsd += s.costUsd; x.cacheSavedUsd += s.cacheSavedUsd ?? 0;
+    rows.set(name, x);
+  }
+  return [...rows.values()].filter((x) => x.calls || x.reused || x.costUsd).sort((a, b) => b.costUsd - a.costUsd);
+}
+
+/** Share of the prompt read from the cache: cached ÷ (uncached + written + cached). */
+export const hitRate = (x: Pick<CostRow, "input" | "cacheWrite" | "cacheRead">): number => {
+  const all = x.input + x.cacheWrite + x.cacheRead;
+  return all ? x.cacheRead / all : 0;
+};
+
+/** Per step (or stage): calls, tokens split by how the cache priced them, cost, and what caching saved. */
+export function formatCost(rows: CostRow[], title: string): string {
+  const pct = (n: number) => `${Math.round(n * 100)}%`;
+  const sum = rows.reduce((t, x) => ({ ...t, calls: t.calls + x.calls, reused: t.reused + x.reused, input: t.input + x.input, cacheWrite: t.cacheWrite + x.cacheWrite, cacheRead: t.cacheRead + x.cacheRead, output: t.output + x.output, costUsd: t.costUsd + x.costUsd, cacheSavedUsd: t.cacheSavedUsd + x.cacheSavedUsd }),
+    { name: "total", calls: 0, reused: 0, input: 0, cacheWrite: 0, cacheRead: 0, output: 0, costUsd: 0, cacheSavedUsd: 0 });
+  const line = (x: CostRow) => `${x.name.padEnd(20)} ${String(x.calls).padStart(5)} ${String(x.reused || "-").padStart(6)} ${kTok(x.input).padStart(8)} ${kTok(x.cacheWrite).padStart(8)} ${kTok(x.cacheRead).padStart(8)} ${kTok(x.output).padStart(8)} ${pct(hitRate(x)).padStart(5)} ${money(x.costUsd).padStart(8)} ${money(x.cacheSavedUsd).padStart(8)}`;
+  return [
+    title,
+    `Prompt cache: ${pct(hitRate(sum))} of the prompt read from cache; caching saved ${money(sum.cacheSavedUsd)} at list prices (after the write premium)${sum.reused ? `; ${sum.reused === 1 ? "1 answer reused from an earlier run" : `${sum.reused} answers reused from earlier runs`} at no cost` : ""}`,
+    "",
+    `${"step".padEnd(20)} ${"calls".padStart(5)} ${"reused".padStart(6)} ${"input".padStart(8)} ${"cache wr".padStart(8)} ${"cache rd".padStart(8)} ${"output".padStart(8)} ${"hit".padStart(5)} ${"cost".padStart(8)} ${"saved".padStart(8)}`,
+    ...rows.map(line),
+    line(sum),
+  ].join("\n");
 }
 
 export interface StageStats {

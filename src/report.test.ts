@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatAll, formatOutcomes, outcomes, stageStats, type RunScore, type StepScore } from "./report.js";
+import { costRows, formatAll, formatCost, formatOutcomes, hitRate, outcomes, stageStats, type RunScore, type StepScore } from "./report.js";
 
 const step = (step: string, over: Partial<StepScore> = {}): StepScore => ({
   step, stage: step.split("/")[0]!, outcome: "completed", firstTimePass: true, attempts: 1, interruptions: 0, retryReasons: [], highestRung: 0, models: [],
@@ -76,5 +76,25 @@ describe("stage table", () => {
   it("stageStats gives the same numbers as data", () => {
     expect(stageStats(runs)[0]).toEqual({ stage: "implement", count: 2, firstTimePassRate: 0.5, avgCostUsd: 2.625, avgActiveSec: 46.5, topProblem: { reason: "build", count: 2 } });
     expect(stageStats(runs)[1]!.topProblem).toBeUndefined();
+  });
+});
+
+describe("where the tokens went", () => {
+  it("sums the steps of a stage, splits the prompt by how the cache priced it, and totals what caching saved", () => {
+    const steps = [
+      step("design/S-1", { calls: 1, tokens: { input: 500, output: 2000, cached: 0, cacheWrite: 9000 }, costUsd: 0.1, cacheSavedUsd: -0.009 }),
+      step("design/S-2", { calls: 1, tokens: { input: 500, output: 2000, cached: 9000, cacheWrite: 0 }, costUsd: 0.05, cacheSavedUsd: 0.0342 }),
+      step("intake", { calls: 1, reused: 1, tokens: { input: 300, output: 100, cached: 0 }, costUsd: 0.01 }),
+      step("plan", { calls: 0, costUsd: 0 }),
+    ];
+    const rows = costRows(steps, (s) => s.stage);
+    expect(rows.map((x) => x.name)).toEqual(["design", "intake"]);
+    expect(rows[0]).toMatchObject({ calls: 2, input: 1000, cacheWrite: 9000, cacheRead: 9000, output: 4000 });
+    expect(hitRate(rows[0]!)).toBeCloseTo(9000 / 19000);
+    expect(rows[0]!.cacheSavedUsd).toBeCloseTo(0.0252);
+    const text = formatCost(rows, "Run r");
+    expect(text).toContain("47% of the prompt read from cache; caching saved $0.03");
+    expect(text).toContain("1 answer reused from an earlier run");
+    expect(text.split("\n").at(-1)).toMatch(/^total +3 +1 /);
   });
 });

@@ -435,16 +435,23 @@ program.command("logs").argument("<run>")
 
 program.command("report").argument("[run]")
   .option("--all", "compare steps across all runs, with outcome numbers on top")
-  .option("--json", "with --all: print {outcomes, stages} as JSON")
+  .option("--json", "with --all: print {outcomes, stages} as JSON; with --cost: the rows as JSON")
+  .option("--cost", "where the tokens went: calls, uncached input, cache writes and reads, output, cache hit rate, cost and what caching saved, per step (per stage with --all)")
   .description("step scorecard: first-time pass, retries and why, cost, time, tokens, gates, what you changed")
-  .action(async (run: string | undefined, o: { all?: boolean; json?: boolean }) => {
-    const { formatAll, formatOutcomes, formatRun, outcomes, scoreRun, stageStats } = await import("../report.js");
+  .action(async (run: string | undefined, o: { all?: boolean; json?: boolean; cost?: boolean }) => {
+    const { costRows, formatAll, formatCost, formatOutcomes, formatRun, outcomes, scoreRun, stageStats } = await import("../report.js");
     if (o.all || !run) {
       const runs = Ledger.listRuns().map((id) => { try { return scoreRun(Ledger.open(id)); } catch { return undefined; } }).filter((r): r is NonNullable<typeof r> => !!r);
+      if (o.cost) {
+        const rows = costRows(runs.flatMap((r) => r.steps), (s) => s.stage);
+        return log(o.json ? JSON.stringify(rows, null, 2) : runs.length ? formatCost(rows, `${runs.length} runs, per stage`) : "No runs yet.");
+      }
       if (o.json) return log(JSON.stringify({ outcomes: outcomes(runs), stages: stageStats(runs) }, null, 2));
       return log(runs.length ? `${formatOutcomes(outcomes(runs))}\n\n${formatAll(runs)}` : "No runs yet.");
     }
-    log(formatRun(scoreRun(openRun(run))));
+    const score = scoreRun(openRun(run));
+    if (o.cost) return log(o.json ? JSON.stringify(costRows(score.steps), null, 2) : formatCost(costRows(score.steps), `Run ${score.runId}: ${score.status}`));
+    log(formatRun(score));
   });
 
 program.command("calibrate")
