@@ -207,7 +207,7 @@ function modeScreen() {
   const card = (i, ico, title, text, href) => href
     ? h("a", { class: "panel mode rise", href, vars: { "--i": i } }, h("div", { class: "ico" }, icon(ico)), h("h2", {}, title), h("p", {}, text),
       h("div", { class: "go" }, "Start", icon("arrow")))
-    : h("div", { class: "panel mode off rise", "aria-disabled": "true", vars: { "--i": i } }, h("div", { class: "ribbon" }, "not built yet"), h("div", { class: "ico" }, icon(ico)), h("h2", {}, title), h("p", {}, text),
+    : h("div", { class: "panel mode off rise", "aria-disabled": "true", vars: { "--i": i } }, h("div", { class: "ribbon" }, h("span", {}, "not built yet")), h("div", { class: "ico" }, icon(ico)), h("h2", {}, title), h("p", {}, text),
       h("div", { class: "go faint" }, "Not built yet"));
   mount([
     h("div", { class: "page-head" }, h("div", {}, h("div", { class: "eyebrow" }, "New run"), h("h1", {}, "What kind of work is it?"),
@@ -616,14 +616,49 @@ function runsScreen() {
 
 // ---------- one run ----------
 
-const SPEC = new Set(["discover", "intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "plan", "approve"]);
-const BUILD = new Set(["stub-commit", "author-tests", "integrate"]);
-const phaseOf = (step) => (SPEC.has(step) ? 0 : BUILD.has(step) || step.startsWith("implement/") ? 1 : 2);
-const PHASES = ["Spec", "Build", "Ship"];
+/**
+ * The line: a work item travels stations grouped into sections, in the order it meets them. A step's
+ * section comes from its name, and the line is cut wherever the section changes, so a brownfield run's
+ * design (between its spec and its plan) sits in place, and an estimate's sizing is not called shipping.
+ */
+const SECTIONS = [
+  ["Spec", /^(discover|intake|ground|clarify|clarify-2|settle|drafts|merge|specify|impact)$/],
+  ["Design", /^design(-refs|-baseline|-export)?$/],
+  ["Size", /^(breakdown|estimate|approve-estimate|export)$/],
+  ["Plan", /^(plan|approve)$/],
+  ["Build", /^(stub-commit|restore|author-tests|integrate|implement\/.+)$/],
+  ["Ship", /^(accept|design-fidelity|design-check|review|deliver)$/],
+];
+/** The section a step belongs to; a step the list doesn't know stays in the section before it. */
+const sectionOf = (step, before = "Spec") => SECTIONS.find(([, re]) => re.test(step))?.[0] ?? before;
+function sectionsOf(timeline) {
+  const out = [];
+  for (const row of timeline) {
+    const name = sectionOf(row.step, out.at(-1)?.name);
+    if (out.at(-1)?.name !== name) out.push({ name, rows: [] });
+    out.at(-1).rows.push(row);
+  }
+  return out;
+}
 const NODE_ICON = { completed: "check", waiting: "terminal", decided: "clock", parked: "alert", failed: "x", interrupted: "pause" };
 const retriesOf = (row) => row.tries.filter((t) => t.outcome === "failed" && row.tries.some((u) => u.attempt > t.attempt)).length;
+/** A station holding the work item (working on it, or stopped on it). */
+const HELD = new Set(["running", "waiting", "decided", "parked", "failed", "interrupted"]);
+/** Where the work item is: the station holding it, else the next one it goes to, else the last. */
+const shippedRun = (r) => !!r.delivered || r.status === "finished" || r.status === "delivered";
+const activeRow = (r) => r.timeline.find((t) => HELD.has(t.status)) ?? r.timeline.find((t) => t.status === "pending") ?? r.timeline.at(-1);
+const WO_WORDS = { running: "in station", waiting: "hold · you", decided: "released", parked: "stopped", failed: "failed", interrupted: "stopped", pending: "queued", completed: "done" };
 
-const runState = { id: "", seenGates: new Set(), cost: 0, share: 0, drawer: "", last: undefined };
+/** Replays a one-shot CSS animation (a stamp, a press): a state change, never decoration. */
+function play(el, cls) {
+  if (reduced) return;
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+  el.addEventListener("animationend", () => el.classList.remove(cls), { once: true });
+}
+
+const runState = { id: "", seenGates: new Set(), drawer: "", last: undefined, ui: undefined };
 
 /** The four live views of one run: [route, icon, label]. */
 const RUN_TABS = [["run", "activity", "Interactive"], ["charts", "bars", "Graphical"], ["stats", "grid", "Statistical"], ["log", "terminal", "Text"]];
@@ -651,61 +686,194 @@ function runHeader(r, tab) {
 /** "stub-commit" → "stub-" <wbr> "commit": labels wrap at hyphens, never mid-word. */
 const breakable = (text) => text.split(/(?<=-)/).flatMap((part, i) => (i ? [h("wbr"), part] : [part]));
 
-function pipeline(r) {
-  const groups = [[], [], []];
-  for (const row of r.timeline) groups[phaseOf(row.step)].push(row);
-  const node = (row) => {
-    const task = row.step.startsWith("implement/");
-    const retries = retriesOf(row);
-    const ic = NODE_ICON[row.status];
-    return h("button", { class: `node s-${row.status}${runState.drawer === row.step ? " sel" : ""}`, type: "button", "data-step": row.step, title: `${row.step}: ${WORDS[row.status] ?? row.status}`, onclick: () => openDrawer(row.step) },
-      row.status === "running" ? h("span", { class: "flow" }) : null,
-      h("span", { class: "dot" }, ic ? icon(ic) : null),
-      retries ? h("span", { class: "loop", title: `${retries} retr${retries === 1 ? "y" : "ies"}` }, icon("loop"), String(retries)) : null,
-      h("span", { class: "lbl" }, breakable(task ? row.step.slice("implement/".length) : row.step), task ? h("small", {}, "implement") : null));
-  };
-  const note = (() => {
-    const parked = r.timeline.find((t) => t.status === "parked");
-    if (r.status === "parked") return h("div", { class: "pipe-note bad" }, icon("alert"), h("div", {}, h("strong", {}, parked ? `Parked at ${parked.step}` : "Parked"), h("p", {}, r.parkedReason ?? "")));
-    if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Pick an option for each in the panel below (or answer in the terminal); the run carries on right after.")));
-    if (r.card) return h("div", { class: "pipe-note wait" }, icon("terminal"), h("div", {}, h("strong", {}, `Waiting for you in the terminal: ${r.card.kind} card`), h("p", {}, "The run continues after you decide there. The card and the command to paste are below.")));
-    if (r.delivered) return h("div", { class: "pipe-note ok" }, icon("check"), h("div", {}, h("strong", {}, "Delivered"), h("p", {}, r.delivered.branch ? `Branch ${r.delivered.branch}` : "")));
-    if (r.status === "running" && r.lastActivity) return h("div", { class: "pipe-note live" }, icon("activity"), h("div", {}, h("strong", {}, `Working on ${r.step}`), h("p", {}, r.lastActivity.msg, h("span", { class: "muted" }, ` · ${ago(r.lastActivity.ts)}`))));
-    return null;
-  })();
-  return h("section", { class: "panel" },
-    h("div", { class: "panel-head" }, h("h2", {}, icon("activity"), "Pipeline"), h("span", { class: "pipe-hint" }, "Click a step for its attempts, gates, cost and time")),
-    h("div", { class: "pipe-wrap" }, h("div", { class: "phases" }, groups.map((g, i) => g.length ? h("div", { class: "phase", vars: { "flex-grow": g.length } }, h("div", { class: "phase-name" }, PHASES[i]), h("div", { class: "chain" }, g.map(node))) : null))),
-    note);
+/** One station: built once, then painted in place so a change of state can move. */
+function station(row) {
+  const task = row.step.startsWith("implement/");
+  return h("button", { class: "node s-pending", type: "button", "data-step": row.step, onclick: () => openDrawer(row.step) },
+    h("span", { class: "flow" }),
+    h("span", { class: "dot" }),
+    h("span", { class: "loop", hidden: true }, icon("loop"), h("b")),
+    h("span", { class: "stamp", "aria-hidden": "true" }, "passed"),
+    h("span", { class: "lbl" }, breakable(task ? row.step.slice("implement/".length) : row.step), task ? h("small", {}, "implement") : null));
 }
 
-function costPanel(r) {
-  const share = r.cost.capUsd ? Math.min(1, r.cost.usd / r.cost.capUsd) : 0;
-  const num = h("span", { class: "big" });
+function paintStation(el, row, was) {
+  for (const c of [...el.classList]) if (c.startsWith("s-")) el.classList.remove(c);
+  el.classList.add(`s-${row.status}`);
+  el.classList.toggle("sel", runState.drawer === row.step);
+  el.title = `${row.step}: ${WORDS[row.status] ?? row.status}`;
+  const dot = el.querySelector(".dot");
+  const ic = NODE_ICON[row.status] ?? "";
+  if (dot.dataset.icon !== ic) { dot.dataset.icon = ic; dot.replaceChildren(...(ic ? [icon(ic)] : [])); }
+  const retries = retriesOf(row);
+  const loop = el.querySelector(".loop");
+  loop.hidden = !retries;
+  loop.title = `${retries} retr${retries === 1 ? "y" : "ies"}`;
+  loop.querySelector("b").textContent = String(retries);
+  if (!was) return;
+  // the moves: a station that finishes is stamped, a retry turns the loop, a stop presses the plate
+  if (was.status !== row.status && row.status === "completed") play(el, "passed");
+  if (retries > retriesOf(was)) play(loop, "again");
+  if (was.status !== row.status && (row.status === "parked" || row.status === "failed")) play(el, "halt");
+}
+
+function linePanel(r) {
+  const ui = runState.ui;
+  ui.nodes = new Map();
+  ui.sectors = [];
+  const phases = h("div", { class: "phases" }, sectionsOf(r.timeline).map((sec, i) => {
+    const fill = h("i");
+    const el = h("div", { class: "phase", vars: { "flex-grow": sec.rows.length } },
+      h("div", { class: "phase-name" }, h("span", { class: "no" }, String(i + 1).padStart(2, "0")), sec.name),
+      h("div", { class: "sector" }, fill),
+      h("div", { class: "chain" }, sec.rows.map((row) => { const n = station(row); ui.nodes.set(row.step, n); return n; })));
+    ui.sectors.push({ el, fill, steps: sec.rows.map((x) => x.step) });
+    return el;
+  }));
+  ui.inner = h("div", { class: "line-inner" }, ui.tag, phases);
+  ui.wrap = h("div", { class: "pipe-wrap" }, ui.inner);
+  ui.note = h("div", { class: "pipe-note-box" });
+  ui.sig.note = undefined;
+  ui.resize?.disconnect();
+  if ("ResizeObserver" in window) { ui.resize = new ResizeObserver(() => placeTag(false)); ui.resize.observe(ui.inner); }
+  return h("section", { class: "panel line" },
+    h("div", { class: "panel-head" }, h("h2", {}, icon("activity"), "The line"), h("span", { class: "pipe-hint" }, "Click a station for its attempts, gates, cost and time")),
+    ui.wrap, ui.note);
+}
+
+/** The work-order tag rides above the station that holds the work item, and glides when it moves on. */
+function placeTag(animate) {
+  const ui = runState.ui;
+  if (!ui?.inner?.isConnected || !runState.last) return;
+  const r = runState.last;
+  // a shipped work item waits at the end of the line, whatever steps it skipped on the way
+  const row = shippedRun(r) ? r.timeline.at(-1) : activeRow(r);
+  const node = row && ui.nodes.get(row.step);
+  if (!node) return;
+  const dot = node.querySelector(".dot");
+  // offsets, not rectangles: they ignore scrolling and the stations' own hover moves
+  const x = node.offsetLeft + dot.offsetLeft + dot.offsetWidth / 2;
+  const w = ui.plate.offsetWidth;
+  const left = Math.max(0, Math.min(ui.inner.scrollWidth - w, x - w / 2));
+  ui.tag.classList.toggle("glide", animate && !reduced);
+  ui.tag.style.top = `${node.parentElement.offsetTop}px`;
+  ui.plate.style.transform = `translateX(${left}px)`;
+  ui.notch.style.transform = `translateX(${x}px)`;
+  // keep the work item in view on a narrow screen: jump there on first sight, follow it when it moves
+  const view = ui.wrap;
+  if ((animate || !ui.framed) && view.clientWidth && (x < view.scrollLeft + 40 || x > view.scrollLeft + view.clientWidth - 40)) {
+    view.scrollTo({ left: Math.max(0, x - view.clientWidth / 2), behavior: reduced || !ui.framed ? "auto" : "smooth" });
+  }
+  if (view.clientWidth) ui.framed = true;
+}
+
+function lineNote(r) {
+  const parked = r.timeline.find((t) => t.status === "parked");
+  if (r.status === "parked") return h("div", { class: "pipe-note bad" }, icon("alert"), h("div", {}, h("strong", {}, parked ? `Stopped at ${parked.step}` : "Stopped"), h("p", {}, r.parkedReason ?? "")));
+  if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Hold point: questions need your answers"), h("p", {}, "Pick an option for each in the panel below (or answer in the terminal); the run carries on right after.")));
+  if (r.card) return h("div", { class: "pipe-note wait" }, icon("terminal"), h("div", {}, h("strong", {}, `Hold point: ${r.card.kind} card, waiting for you in the terminal`), h("p", {}, "The run continues after you decide there. The card and the command to paste are below.")));
+  if (r.delivered) return h("div", { class: "pipe-note ok" }, icon("check"), h("div", {}, h("strong", {}, "Delivered: the work item left the line"), h("p", {}, r.delivered.branch ? `Branch ${r.delivered.branch}` : "")));
+  if (r.status === "running" && r.lastActivity) return h("div", { class: "pipe-note live" }, icon("activity"), h("div", {}, h("strong", {}, `In station: ${r.step}`), h("p", {}, r.lastActivity.msg, h("span", { class: "muted" }, ` · ${ago(r.lastActivity.ts)}`))));
+  return null;
+}
+
+function paintLine(r, before) {
+  const ui = runState.ui;
+  const was = new Map((before?.timeline ?? []).map((t) => [t.step, t]));
+  // a dead executor leaves its step reading "running": show the station stopped, not spinning
+  const live = (row) => (r.status === "interrupted" && row.status === "running" ? { ...row, status: "interrupted" } : row);
+  for (const row of r.timeline) paintStation(ui.nodes.get(row.step), live(row), was.get(row.step) && live(was.get(row.step)));
+  const byStep = new Map(r.timeline.map((t) => [t.step, t]));
+  for (const s of ui.sectors) {
+    const rows = s.steps.map((k) => byStep.get(k));
+    const done = rows.filter((x) => x.status === "completed").length;
+    s.fill.style.transform = `scaleX(${done / rows.length})`;
+    s.el.classList.toggle("done", done === rows.length);
+    s.el.classList.toggle("on", rows.some((x) => HELD.has(x.status)));
+  }
+  const at = activeRow(r);
+  const shipped = shippedRun(r);
+  // a stopped run outranks its step row, which can still read "running" after the executor died
+  const stopped = ["interrupted", "parked", "failed"].includes(r.status) ? r.status : undefined;
+  const status = shipped ? "completed" : stopped ?? at?.status ?? "pending";
+  ui.tag.className = `wo${ui.tag.classList.contains("glide") ? " glide" : ""} is-${shipped ? "ok" : tone(status)}`;
+  ui.tagState.textContent = shipped ? (r.delivered ? "shipped" : "done") : WO_WORDS[status] ?? status;
+  ui.tagId.textContent = r.runId;
+  const moved = !!before && activeRow(before)?.step !== at?.step;
+  placeTag(moved);
+  const noteSig = JSON.stringify([r.status, r.parkedReason, r.card?.kind, !!r.card?.questions, r.delivered?.branch, r.step, r.lastActivity]);
+  if (ui.sig.note !== noteSig) { ui.sig.note = noteSig; ui.note.replaceChildren(...[lineNote(r)].filter(Boolean)); }
+}
+
+/** Odometer digits: each digit is a reel that rolls to its number. */
+function setOdometer(el, text, roll) {
+  const chars = [...text];
+  const shape = chars.map((c) => (/\d/.test(c) ? "0" : c)).join("");
+  el.setAttribute("aria-label", text);
+  const fresh = el.dataset.shape !== shape;
+  if (fresh) {
+    el.dataset.shape = shape;
+    el.replaceChildren(...chars.map((c) => (/\d/.test(c)
+      ? h("span", { class: "reel", "aria-hidden": "true" }, h("span", { class: "strip" }, [..."0123456789"].map((d) => h("span", {}, d))))
+      : h("span", { class: "sep", "aria-hidden": "true" }, c))));
+  }
+  const set = () => [...el.children].forEach((k, i) => { if (k.classList.contains("reel")) k.firstChild.style.transform = `translateY(${-Number(chars[i]) * 10}%)`; });
+  if (fresh && roll && !reduced) nextFrame(set); else set();
+}
+
+/** The cost meter: built once; the number rolls and the meter fills as the run spends. */
+function costPanel() {
+  const num = h("span", { class: "big odo", role: "img" });
   const fill = h("div", { class: "fill" });
-  fill.style.transform = `scaleX(${runState.share})`;
-  nextFrame(() => { fill.style.transform = `scaleX(${share})`; });
-  countUp(num, r.cost.usd, money, runState.cost);
-  runState.cost = r.cost.usd; runState.share = share;
-  return h("section", { class: "panel" },
-    h("div", { class: "panel-head" }, h("h2", {}, icon("gauge"), "Cost so far"), h("span", { class: "small muted" }, `${Math.round(share * 100)}% of the limit`)),
-    h("div", { class: "meter-num" }, num, h("span", { class: "of" }, `of ${money(r.cost.capUsd)}`)),
-    h("div", { class: `gauge ${share >= 0.9 ? "bad" : share >= 0.7 ? "warn" : ""}` }, fill, h("div", { class: "ticks" })),
-    h("div", { class: "meter-foot" }, h("span", {}, `${r.activeMin.toFixed(1)} min of machine time`), h("span", {}, r.cost.maxCostUsd !== undefined ? `max cost set to ${money(r.cost.maxCostUsd)}` : "the limit grows with the plan's size")));
+  const gauge = h("div", { class: "gauge" }, fill, h("div", { class: "ticks" }));
+  const of = h("span", { class: "of" });
+  const share = h("span", { class: "small muted" });
+  const time = h("span");
+  const limit = h("span");
+  const el = h("section", { class: "panel" },
+    h("div", { class: "panel-head" }, h("h2", {}, icon("gauge"), "Cost so far"), share),
+    h("div", { class: "meter-num" }, num, of), gauge, h("div", { class: "meter-foot" }, time, limit));
+  let first = true;
+  return {
+    el,
+    paint(r) {
+      const k = r.cost.capUsd ? Math.min(1, r.cost.usd / r.cost.capUsd) : 0;
+      const level = k >= 0.9 ? "bad" : k >= 0.7 ? "warn" : "";
+      setOdometer(num, money(r.cost.usd), true);
+      num.className = `big odo ${level}`;
+      gauge.className = `gauge ${level}`;
+      if (first && !reduced) nextFrame(() => { fill.style.transform = `scaleX(${k})`; }); else fill.style.transform = `scaleX(${k})`;
+      first = false;
+      of.textContent = `of ${money(r.cost.capUsd)}`;
+      share.textContent = `${Math.round(k * 100)}% of the limit`;
+      time.textContent = `${r.activeMin.toFixed(1)} min of machine time`;
+      limit.textContent = r.cost.maxCostUsd !== undefined ? `max cost set to ${money(r.cost.maxCostUsd)}` : "the limit grows with the plan's size";
+    },
+  };
 }
 
-function gatesPanel(r) {
-  let i = 0;
-  const chips = r.gates.map((g) => {
-    const fresh = !runState.seenGates.has(g.seq);
-    return h("span", { class: `chip ${g.passed ? "pass" : "fail"}${fresh ? " new" : ""}`, title: `${g.gateId}${g.step ? ` (${g.step})` : ""}: ${g.passed ? "passed" : "failed"}`, vars: fresh ? { "--i": i++ } : undefined },
-      icon(g.passed ? "check" : "x"), g.gateId);
-  });
-  for (const g of r.gates) runState.seenGates.add(g.seq);
-  const passed = r.gates.filter((g) => g.passed).length;
-  return h("section", { class: "panel" },
-    h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Gates"), h("span", { class: "small muted" }, r.gates.length ? `${passed} passed · ${r.gates.length - passed} failed` : "")),
-    r.gates.length ? h("div", { class: "chips" }, chips) : h("p", { class: "muted small" }, "No gate results yet. Gates check each step's output (scope, locked tests, secrets, review) as the run goes."));
+/** Gate results: built once; each new result is stamped onto the board as it arrives. */
+function gatesPanel() {
+  const count = h("span", { class: "small muted" });
+  const chips = h("div", { class: "chips" });
+  const empty = h("p", { class: "muted small" }, "No gate results yet. Gates inspect each station's output (scope, locked tests, secrets, review) as the run goes.");
+  const el = h("section", { class: "panel" }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Inspection"), count), chips, empty);
+  return {
+    el,
+    paint(r) {
+      let i = 0;
+      for (const g of r.gates) {
+        if (runState.seenGates.has(g.seq)) continue;
+        chips.append(h("span", { class: `chip ${g.passed ? "pass" : "fail"} new`, title: `${g.gateId}${g.step ? ` (${g.step})` : ""}: ${g.passed ? "passed" : "failed"}`, vars: { "--i": Math.min(i++, 12) } },
+          icon(g.passed ? "check" : "x"), g.gateId));
+        runState.seenGates.add(g.seq);
+      }
+      const passed = r.gates.filter((g) => g.passed).length;
+      count.textContent = r.gates.length ? `${passed} passed · ${r.gates.length - passed} failed` : "";
+      chips.hidden = !r.gates.length;
+      empty.hidden = !!r.gates.length;
+    },
+  };
 }
 
 /** The name typed once is remembered in this browser (a convenience only; it is still sent and recorded with every decision). */
@@ -883,7 +1051,7 @@ function paintDrawer() {
   const retries = retriesOf(row);
   drawer.replaceChildren(...[
     h("button", { class: "icon-btn x", type: "button", "aria-label": "Close", onclick: closeDrawer }, icon("x")),
-    h("div", { class: "eyebrow" }, `${PHASES[phaseOf(row.step)]} · ${row.stage}`),
+    h("div", { class: "eyebrow" }, `${sectionOf(row.step)} · ${row.stage}`),
     h("h2", {}, row.step),
     pill(row.status),
     h("div", { class: "stats" },
@@ -904,33 +1072,68 @@ function paintDrawer() {
 }
 
 function runScreen(id) {
-  if (runState.id !== id) Object.assign(runState, { id, seenGates: new Set(), cost: 0, share: 0, drawer: "", last: undefined });
+  if (runState.id !== id) Object.assign(runState, { id, drawer: "", last: undefined });
+  runState.ui = undefined;
   skeleton("grid");
   let lastJson = "";
   poll(2000, async (first) => {
     const r = await api(`/api/runs/${encodeURIComponent(id)}`);
     const json = JSON.stringify(r);
-    if (json === lastJson) return; // nothing new: keep scroll positions and open sections
+    if (json === lastJson) return; // nothing new
     lastJson = json;
+    const before = runState.last;
     runState.last = r;
-    const open = [...view.querySelectorAll("details")].map((d) => d.open);
-    const oldTrace = view.querySelector(".trace");
-    const atBottom = !oldTrace || oldTrace.scrollTop + oldTrace.clientHeight >= oldTrace.scrollHeight - 8;
-    const right = [];
-    if (r.card) right.push(cardPanel(r));
-    if (r.status === "parked" || r.status === "interrupted") right.push(parkedPanel(r, r.status === "interrupted"));
-    if (r.delivered) right.push(deliveredPanel(r));
-    right.push(tracePanel(r));
-    mount([...runHeader(r, "run"), h("div", { class: "stack" }, pipeline(r), h("div", { class: "grid-2" },
-      h("div", { class: "stack" }, costPanel(r), gatesPanel(r)),
-      h("div", { class: "stack" }, right)))], first);
-    view.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
-    const t = view.querySelector(".trace");
-    if (t && atBottom) t.scrollTop = t.scrollHeight;
+    paintRun(r, before, first);
     if (runState.drawer) paintDrawer();
   });
 }
 
+/**
+ * The run page is built once and then painted in place: the stations, the work order, the meter and
+ * the gate board keep their elements, so a change of state can move instead of the page redrawing.
+ * The panels on the right are rebuilt only when what they show changes.
+ */
+function paintRun(r, before, first) {
+  let ui = runState.ui;
+  if (!ui || !ui.head.isConnected) {
+    const plate = h("span", { class: "plate" }, h("span", { class: "hole" }), h("span", { class: "wo-k" }, "WO"), h("span", { class: "wo-id mono" }), h("span", { class: "wo-st" }));
+    ui = runState.ui = {
+      head: h("div", { class: "run-head" }), lineBox: h("div"), cost: costPanel(), gates: gatesPanel(),
+      side: h("div", { class: "stack" }), trace: h("div"), sig: {}, plate, notch: h("span", { class: "notch" }),
+    };
+    ui.tag = h("div", { class: "wo", "aria-hidden": "true" }, plate, ui.notch);
+    ui.tagId = plate.querySelector(".wo-id");
+    ui.tagState = plate.querySelector(".wo-st");
+    runState.seenGates = new Set();
+    mount([ui.head, h("div", { class: "stack" }, ui.lineBox, h("div", { class: "grid-2" },
+      h("div", { class: "stack" }, ui.cost.el, ui.gates.el),
+      h("div", { class: "stack" }, ui.side, ui.trace)))], first);
+    before = undefined; // a fresh page shows where things are; it doesn't replay how they got there
+  }
+  const changed = (key, value) => (ui.sig[key] === value ? false : ((ui.sig[key] = value), true));
+  if (changed("head", JSON.stringify([r.status, r.request, r.project, r.sources, r.mode, r.createdAt, r.runId]))) ui.head.replaceChildren(...runHeader(r, "run"));
+  if (changed("steps", r.timeline.map((t) => t.step).join(" "))) ui.lineBox.replaceChildren(linePanel(r));
+  paintLine(r, before);
+  ui.cost.paint(r);
+  ui.gates.paint(r);
+  if (changed("side", JSON.stringify([r.card, r.status, r.delivered, r.parkedReason]))) {
+    const open = [...ui.side.querySelectorAll("details")].map((d) => d.open);
+    ui.side.replaceChildren(...[
+      r.card ? cardPanel(r) : null,
+      r.status === "parked" || r.status === "interrupted" ? parkedPanel(r, r.status === "interrupted") : null,
+      r.delivered ? deliveredPanel(r) : null,
+    ].filter(Boolean));
+    ui.side.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
+  }
+  if (changed("trace", JSON.stringify(r.trace))) {
+    const old = ui.trace.querySelector(".trace");
+    const atBottom = !old || old.scrollTop + old.clientHeight >= old.scrollHeight - 8;
+    ui.trace.replaceChildren(tracePanel(r));
+    const t = ui.trace.querySelector(".trace");
+    if (t && atBottom) t.scrollTop = t.scrollHeight;
+  }
+}
+addEventListener("resize", () => placeTag(false));
 
 // ---------- one run: graphical ----------
 
