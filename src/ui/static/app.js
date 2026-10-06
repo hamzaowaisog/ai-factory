@@ -646,7 +646,13 @@ const retriesOf = (row) => row.tries.filter((t) => t.outcome === "failed" && row
 const HELD = new Set(["running", "waiting", "decided", "parked", "failed", "interrupted"]);
 /** Where the work item is: the station holding it, else the next one it goes to, else the last. */
 const shippedRun = (r) => !!r.delivered || r.status === "finished" || r.status === "delivered";
-const activeRow = (r) => r.timeline.find((t) => HELD.has(t.status)) ?? r.timeline.find((t) => t.status === "pending") ?? r.timeline.at(-1);
+function activeRow(r) {
+  const held = r.timeline.find((t) => HELD.has(t.status));
+  if (held) return held;
+  // between stations: the first one ahead of the furthest the work item reached (steps it went past stay behind)
+  const reached = r.timeline.findLastIndex((t) => t.status !== "pending");
+  return r.timeline.slice(reached + 1).find((t) => t.status === "pending") ?? r.timeline.at(-1);
+}
 const WO_WORDS = { running: "in station", waiting: "hold · you", decided: "released", parked: "stopped", failed: "failed", interrupted: "stopped", pending: "queued", completed: "done" };
 
 /** Replays a one-shot CSS animation (a stamp, a press): a state change, never decoration. */
@@ -686,34 +692,51 @@ function runHeader(r, tab) {
 /** "stub-commit" → "stub-" <wbr> "commit": labels wrap at hyphens, never mid-word. */
 const breakable = (text) => text.split(/(?<=-)/).flatMap((part, i) => (i ? [h("wbr"), part] : [part]));
 
-/** One station: built once, then painted in place so a change of state can move. */
-function station(row) {
-  const task = row.step.startsWith("implement/");
-  return h("button", { class: "node s-pending", type: "button", "data-step": row.step, onclick: () => openDrawer(row.step) },
-    h("span", { class: "flow" }),
-    h("span", { class: "dot" }),
-    h("span", { class: "loop", hidden: true }, icon("loop"), h("b")),
-    h("span", { class: "stamp", "aria-hidden": "true" }, "passed"),
-    h("span", { class: "lbl" }, breakable(task ? row.step.slice("implement/".length) : row.step), task ? h("small", {}, "implement") : null));
+/** What a station's state means on the floor. */
+const STATION_WORDS = { completed: "passed", running: "at work", waiting: "hold · you", decided: "released", parked: "stopped", failed: "failed", interrupted: "stopped", pending: "ahead", skipped: "skipped" };
+const stationName = (step) => (step.startsWith("implement/") ? step.slice("implement/".length) : step);
+
+/** A row as the line shows it: a dead executor's "running" step is stopped, and a step the work item went past untouched was skipped. */
+function viewRow(r, row) {
+  if (r.status === "interrupted" && row.status === "running") return { ...row, status: "interrupted" };
+  if (row.status === "pending" && (shippedRun(r) || r.timeline.indexOf(row) < r.timeline.indexOf(activeRow(r)))) return { ...row, status: "skipped" };
+  return row;
+}
+
+/** A section's state in a word, and its tone. */
+function sectionState(rows) {
+  const held = rows.find((x) => HELD.has(x.status));
+  if (held) return [WO_WORDS[held.status] ?? held.status, tone(held.status)];
+  const done = rows.filter((x) => x.status === "completed").length;
+  const skipped = rows.filter((x) => x.status === "skipped").length;
+  if (done + skipped === rows.length) return [skipped ? `done · ${skipped} skipped` : "done", "ok"];
+  return done ? ["under way", "live"] : ["ahead", "idle"];
+}
+
+/** One station on the board: a segment of its section's track, built once and painted in place. */
+const segment = (row) => h("button", { class: "node s-pending", type: "button", "data-step": row.step, "aria-label": row.step, onclick: () => openDrawer(row.step) });
+
+/** The retry count on a station, present only once it went round again. */
+function setLoop(el, retries, cls) {
+  let loop = el.querySelector(".loop");
+  if (!retries) { loop?.remove(); return undefined; }
+  if (!loop) { loop = h("span", { class: cls }, icon("loop"), h("b")); el.append(loop); }
+  loop.title = `${retries} retr${retries === 1 ? "y" : "ies"}`;
+  loop.querySelector("b").textContent = String(retries);
+  return loop;
 }
 
 function paintStation(el, row, was) {
   for (const c of [...el.classList]) if (c.startsWith("s-")) el.classList.remove(c);
   el.classList.add(`s-${row.status}`);
   el.classList.toggle("sel", runState.drawer === row.step);
-  el.title = `${row.step}: ${WORDS[row.status] ?? row.status}`;
-  const dot = el.querySelector(".dot");
-  const ic = NODE_ICON[row.status] ?? "";
-  if (dot.dataset.icon !== ic) { dot.dataset.icon = ic; dot.replaceChildren(...(ic ? [icon(ic)] : [])); }
+  el.title = `${row.step}: ${STATION_WORDS[row.status] ?? row.status}`;
   const retries = retriesOf(row);
-  const loop = el.querySelector(".loop");
-  loop.hidden = !retries;
-  loop.title = `${retries} retr${retries === 1 ? "y" : "ies"}`;
-  loop.querySelector("b").textContent = String(retries);
+  const loop = setLoop(el, retries, "loop");
   if (!was) return;
-  // the moves: a station that finishes is stamped, a retry turns the loop, a stop presses the plate
+  // the moves: a station that clears flashes, a retry turns the loop, a stop jolts the segment
   if (was.status !== row.status && row.status === "completed") play(el, "passed");
-  if (retries > retriesOf(was)) play(loop, "again");
+  if (loop && retries > retriesOf(was)) play(loop, "again");
   if (was.status !== row.status && (row.status === "parked" || row.status === "failed")) play(el, "halt");
 }
 
@@ -721,50 +744,78 @@ function linePanel(r) {
   const ui = runState.ui;
   ui.nodes = new Map();
   ui.sectors = [];
-  const phases = h("div", { class: "phases" }, sectionsOf(r.timeline).map((sec, i) => {
-    const fill = h("i");
-    const el = h("div", { class: "phase", vars: { "flex-grow": sec.rows.length } },
-      h("div", { class: "phase-name" }, h("span", { class: "no" }, String(i + 1).padStart(2, "0")), sec.name),
-      h("div", { class: "sector" }, fill),
-      h("div", { class: "chain" }, sec.rows.map((row) => { const n = station(row); ui.nodes.set(row.step, n); return n; })));
-    ui.sectors.push({ el, fill, steps: sec.rows.map((x) => x.step) });
-    return el;
-  }));
-  ui.inner = h("div", { class: "line-inner" }, ui.tag, phases);
-  ui.wrap = h("div", { class: "pipe-wrap" }, ui.inner);
+  ui.focus = undefined;
+  ui.sig.stations = undefined;
+  const secs = sectionsOf(r.timeline);
+  ui.carriage = h("span", { class: "carriage", "aria-hidden": "true" });
+  ui.board = h("div", { class: "board phases", vars: { "--cols": secs.map((s) => `minmax(0, ${Math.max(2, s.rows.length)}fr)`).join(" ") } },
+    secs.map((sec, i) => {
+      const count = h("span", { class: "count" });
+      const word = h("span", { class: "sword" });
+      const el = h("div", { class: "sector-cell" },
+        h("button", { class: "sec-head", type: "button", title: `Show the ${sec.name} stations`, onclick: () => focusSection(i) },
+          h("span", { class: "no" }, String(i + 1).padStart(2, "0")), h("span", { class: "nm" }, sec.name), count),
+        h("div", { class: "track" }, sec.rows.map((row) => { const n = segment(row); ui.nodes.set(row.step, n); return n; })),
+        word);
+      ui.sectors.push({ el, count, word, name: sec.name, steps: sec.rows.map((x) => x.step) });
+      return el;
+    }),
+    ui.carriage);
+  ui.stations = h("div", { class: "stations" });
   ui.note = h("div", { class: "pipe-note-box" });
   ui.sig.note = undefined;
   ui.resize?.disconnect();
-  if ("ResizeObserver" in window) { ui.resize = new ResizeObserver(() => placeTag(false)); ui.resize.observe(ui.inner); }
+  if ("ResizeObserver" in window) { ui.resize = new ResizeObserver(() => placeCarriage(false)); ui.resize.observe(ui.board); }
   return h("section", { class: "panel line" },
-    h("div", { class: "panel-head" }, h("h2", {}, icon("activity"), "The line"), h("span", { class: "pipe-hint" }, "Click a station for its attempts, gates, cost and time")),
-    ui.wrap, ui.note);
+    h("div", { class: "panel-head" }, h("h2", {}, icon("activity"), "The line"), ui.tag),
+    ui.board, ui.stations, ui.note);
 }
 
-/** The work-order tag rides above the station that holds the work item, and glides when it moves on. */
-function placeTag(animate) {
+/** Opens a section's stations below the board; the open one again goes back to following the work item. */
+function focusSection(i) {
   const ui = runState.ui;
-  if (!ui?.inner?.isConnected || !runState.last) return;
-  const r = runState.last;
-  // a shipped work item waits at the end of the line, whatever steps it skipped on the way
+  ui.focus = ui.focus === i ? undefined : i;
+  if (runState.last) paintLine(runState.last, runState.last);
+}
+
+/** The section the work item is in (a shipped one waits in the last). */
+function workSection(r) {
   const row = shippedRun(r) ? r.timeline.at(-1) : activeRow(r);
-  const node = row && ui.nodes.get(row.step);
-  if (!node) return;
-  const dot = node.querySelector(".dot");
-  // offsets, not rectangles: they ignore scrolling and the stations' own hover moves
-  const x = node.offsetLeft + dot.offsetLeft + dot.offsetWidth / 2;
-  const w = ui.plate.offsetWidth;
-  const left = Math.max(0, Math.min(ui.inner.scrollWidth - w, x - w / 2));
-  ui.tag.classList.toggle("glide", animate && !reduced);
-  ui.tag.style.top = `${node.parentElement.offsetTop}px`;
-  ui.plate.style.transform = `translateX(${left}px)`;
-  ui.notch.style.transform = `translateX(${x}px)`;
-  // keep the work item in view on a narrow screen: jump there on first sight, follow it when it moves
-  const view = ui.wrap;
-  if ((animate || !ui.framed) && view.clientWidth && (x < view.scrollLeft + 40 || x > view.scrollLeft + view.clientWidth - 40)) {
-    view.scrollTo({ left: Math.max(0, x - view.clientWidth / 2), behavior: reduced || !ui.framed ? "auto" : "smooth" });
-  }
-  if (view.clientWidth) ui.framed = true;
+  const i = runState.ui.sectors.findIndex((s) => s.steps.includes(row?.step));
+  return i < 0 ? 0 : i;
+}
+
+/** The carriage: a bar that rides to the section holding the work item, across on a wide screen, down on a phone. */
+function placeCarriage(animate) {
+  const ui = runState.ui;
+  if (!ui?.board?.isConnected || !runState.last) return;
+  const cell = ui.sectors[workSection(runState.last)]?.el;
+  if (!cell) return;
+  const stacked = ui.sectors.length > 1 && ui.sectors[1].el.offsetTop > ui.sectors[0].el.offsetTop;
+  ui.carriage.classList.toggle("glide", animate && !reduced);
+  ui.carriage.style.transform = stacked
+    ? `translate(${cell.offsetLeft}px, ${cell.offsetTop}px) scale(3, ${cell.offsetHeight})`
+    : `translate(${cell.offsetLeft}px, ${cell.offsetTop}px) scale(${cell.offsetWidth}, 3)`;
+}
+
+/** The open section's stations, by name: the belt read close up. */
+function stationCards(r, i) {
+  const sec = runState.ui.sectors[i];
+  const byStep = new Map(r.timeline.map((t) => [t.step, viewRow(r, t)]));
+  const rows = sec.steps.map((k) => byStep.get(k));
+  return [
+    h("div", { class: "stations-head" }, h("span", {}, h("b", {}, sec.name), ` · ${rows.length} station${rows.length === 1 ? "" : "s"}`), h("span", { class: "pipe-hint" }, "Click a station for its attempts, gates, cost and time")),
+    h("div", { class: "stn-row" }, rows.map((row, k) => {
+      const task = row.step.startsWith("implement/");
+      const retries = retriesOf(row);
+      const ic = NODE_ICON[row.status];
+      return h("button", { class: `stn s-${row.status}${runState.drawer === row.step ? " sel" : ""} rise`, type: "button", "data-step": row.step, vars: { "--i": Math.min(k, 10) }, onclick: () => openDrawer(row.step) },
+        h("span", { class: "stn-ic" }, ic ? icon(ic) : null),
+        h("span", { class: "stn-tx" },
+          h("b", {}, breakable(stationName(row.step))),
+          h("small", {}, task ? "implement · " : "", STATION_WORDS[row.status] ?? row.status, retries ? ` · ${retries} retr${retries === 1 ? "y" : "ies"}` : "")));
+    })),
+  ];
 }
 
 function lineNote(r) {
@@ -779,28 +830,43 @@ function lineNote(r) {
 
 function paintLine(r, before) {
   const ui = runState.ui;
-  const was = new Map((before?.timeline ?? []).map((t) => [t.step, t]));
-  // a dead executor leaves its step reading "running": show the station stopped, not spinning
-  const live = (row) => (r.status === "interrupted" && row.status === "running" ? { ...row, status: "interrupted" } : row);
-  for (const row of r.timeline) paintStation(ui.nodes.get(row.step), live(row), was.get(row.step) && live(was.get(row.step)));
-  const byStep = new Map(r.timeline.map((t) => [t.step, t]));
-  for (const s of ui.sectors) {
-    const rows = s.steps.map((k) => byStep.get(k));
-    const done = rows.filter((x) => x.status === "completed").length;
-    s.fill.style.transform = `scaleX(${done / rows.length})`;
-    s.el.classList.toggle("done", done === rows.length);
-    s.el.classList.toggle("on", rows.some((x) => HELD.has(x.status)));
-  }
-  const at = activeRow(r);
+  const was = new Map((before?.timeline ?? []).map((t) => [t.step, viewRow(before, t)]));
+  const rows = new Map(r.timeline.map((t) => [t.step, viewRow(r, t)]));
+  for (const [step, row] of rows) paintStation(ui.nodes.get(step), row, was.get(step));
+  const work = workSection(r);
+  const open = ui.focus ?? work;
+  ui.sectors.forEach((s, i) => {
+    const sr = s.steps.map((k) => rows.get(k));
+    const done = sr.filter((x) => x.status === "completed").length;
+    const skipped = sr.filter((x) => x.status === "skipped").length;
+    const [word, t] = sectionState(sr);
+    s.count.textContent = `${done}/${sr.length - skipped}`;
+    s.word.textContent = word;
+    s.word.className = `sword is-${t}`;
+    s.el.classList.toggle("on", i === work);
+    s.el.classList.toggle("open", i === open);
+    s.el.classList.toggle("done", done + skipped === sr.length);
+  });
   const shipped = shippedRun(r);
   // a stopped run outranks its step row, which can still read "running" after the executor died
   const stopped = ["interrupted", "parked", "failed"].includes(r.status) ? r.status : undefined;
-  const status = shipped ? "completed" : stopped ?? at?.status ?? "pending";
-  ui.tag.className = `wo${ui.tag.classList.contains("glide") ? " glide" : ""} is-${shipped ? "ok" : tone(status)}`;
+  const status = shipped ? "completed" : stopped ?? activeRow(r)?.status ?? "pending";
+  const t = shipped ? "ok" : tone(status);
+  ui.tag.className = `wo is-${t}`;
+  ui.carriage.className = `carriage is-${t}${ui.carriage.classList.contains("glide") ? " glide" : ""}`;
   ui.tagState.textContent = shipped ? (r.delivered ? "shipped" : "done") : WO_WORDS[status] ?? status;
   ui.tagId.textContent = r.runId;
-  const moved = !!before && activeRow(before)?.step !== at?.step;
-  placeTag(moved);
+  ui.tagAt.textContent = shipped ? "" : stationName(activeRow(r)?.step ?? "");
+  placeCarriage(!!before && before !== r && workSection(before) !== work);
+  const stationSig = JSON.stringify([open, runState.drawer, ui.sectors[open].steps.map((k) => [rows.get(k).status, retriesOf(rows.get(k))])]);
+  if (ui.sig.stations !== stationSig) {
+    const moved = ui.sig.open !== open;
+    ui.sig.stations = stationSig;
+    ui.sig.open = open;
+    ui.stations.replaceChildren(...stationCards(r, open));
+    // cards rise only when a different section opens; a state change inside the same one repaints in place
+    if (!moved) ui.stations.querySelectorAll(".rise").forEach((c) => c.classList.remove("rise"));
+  }
   const noteSig = JSON.stringify([r.status, r.parkedReason, r.card?.kind, !!r.card?.questions, r.delivered?.branch, r.step, r.lastActivity]);
   if (ui.sig.note !== noteSig) { ui.sig.note = noteSig; ui.note.replaceChildren(...[lineNote(r)].filter(Boolean)); }
 }
@@ -1032,7 +1098,7 @@ document.body.append(scrim, h("div", { class: "drawer-layer" }, drawer));
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
 
 function markSelected() {
-  view.querySelectorAll(".node").forEach((n) => n.classList.toggle("sel", n.dataset.step === runState.drawer));
+  view.querySelectorAll(".node, .stn").forEach((n) => n.classList.toggle("sel", n.dataset.step === runState.drawer));
 }
 function openDrawer(step) {
   runState.drawer = step;
@@ -1096,14 +1162,15 @@ function runScreen(id) {
 function paintRun(r, before, first) {
   let ui = runState.ui;
   if (!ui || !ui.head.isConnected) {
-    const plate = h("span", { class: "plate" }, h("span", { class: "hole" }), h("span", { class: "wo-k" }, "WO"), h("span", { class: "wo-id mono" }), h("span", { class: "wo-st" }));
     ui = runState.ui = {
       head: h("div", { class: "run-head" }), lineBox: h("div"), cost: costPanel(), gates: gatesPanel(),
-      side: h("div", { class: "stack" }), trace: h("div"), sig: {}, plate, notch: h("span", { class: "notch" }),
+      side: h("div", { class: "stack" }), trace: h("div"), sig: {},
     };
-    ui.tag = h("div", { class: "wo", "aria-hidden": "true" }, plate, ui.notch);
-    ui.tagId = plate.querySelector(".wo-id");
-    ui.tagState = plate.querySelector(".wo-st");
+    // the work order: which run is on the line, what state it is in and at which station
+    ui.tag = h("div", { class: "wo" }, h("span", { class: "hole" }), h("span", { class: "wo-k" }, "WO"), h("span", { class: "wo-id mono" }), h("span", { class: "wo-st" }), h("span", { class: "wo-at mono" }));
+    ui.tagId = ui.tag.querySelector(".wo-id");
+    ui.tagState = ui.tag.querySelector(".wo-st");
+    ui.tagAt = ui.tag.querySelector(".wo-at");
     runState.seenGates = new Set();
     mount([ui.head, h("div", { class: "stack" }, ui.lineBox, h("div", { class: "grid-2" },
       h("div", { class: "stack" }, ui.cost.el, ui.gates.el),
@@ -1133,7 +1200,7 @@ function paintRun(r, before, first) {
     if (t && atBottom) t.scrollTop = t.scrollHeight;
   }
 }
-addEventListener("resize", () => placeTag(false));
+addEventListener("resize", () => placeCarriage(false));
 
 // ---------- one run: graphical ----------
 

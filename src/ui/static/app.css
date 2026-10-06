@@ -257,83 +257,104 @@ tbody tr:last-child td { border-bottom: 0; }
 .subnav a:hover { background: var(--panel-2); color: var(--text); text-decoration: none; }
 .subnav a.on { background: var(--panel-3); color: var(--text); }
 
-/* ---------- the line (the centrepiece): sections, stations on a belt, the work order ---------- */
-.pipe-wrap { overflow-x: auto; padding: 0.2rem 0.2rem 0.4rem; scrollbar-width: thin; }
-.line-inner { position: relative; min-width: min-content; }
-.phases { display: flex; width: 100%; }
-.phase { display: flex; flex-direction: column; flex: 1 1 0; min-width: min-content; }
-.phase + .phase { margin-left: 0.35rem; padding-left: 0.35rem; border-left: 1px solid var(--edge-lo); }
-.phase-name { display: flex; align-items: baseline; gap: 0.45rem; padding: 0 0.5rem 0.5rem; font-size: 0.68rem; font-weight: 650; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); transition: color 0.2s var(--ease); }
-.phase-name .no { font-family: var(--mono); letter-spacing: 0; opacity: 0.75; }
-.phase.done .phase-name { color: var(--muted); }
-.phase.on .phase-name { color: var(--text); }
-/* the sector bar: how much of the section the work item has cleared */
-.sector { position: relative; height: 3px; margin: 0 0.5rem; overflow: hidden; border-radius: 1px; background: var(--panel-3); }
-.sector i { position: absolute; inset: 0; transform-origin: left; transform: scaleX(0); background: var(--accent); transition: transform 0.5s var(--ease); }
-.phase.done .sector i { background: var(--ok); }
-/* the chain leaves a rail above the stations for the work-order tag */
-.chain { display: flex; padding-top: 38px; }
-.node { position: relative; flex: 1 1 0; min-width: 62px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0 0.1rem; border: 0; background: none; color: inherit; cursor: pointer; font: inherit; }
-/* a station: a machined plate */
-.node .dot { position: relative; z-index: 1; width: 30px; height: 30px; border-radius: var(--r-sm); display: grid; place-items: center; color: var(--faint); background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--edge-hi); transition: transform 0.15s var(--ease); }
-.node:hover .dot { transform: translateY(-2px); }
-.node .dot svg { width: 15px; height: 15px; stroke-width: 2.6; }
-.node .lbl { font-size: 0.72rem; line-height: 1.2; text-align: center; color: var(--muted); max-width: 78px; }
-.node .lbl small { display: block; color: var(--faint); font-size: 0.62rem; letter-spacing: 0.04em; }
-.node.sel .dot { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--text); }
-/* the belt between stations: grey ahead of the work item, green behind it, running into the station at work */
-.node::before { content: ""; position: absolute; top: 14px; right: 50%; width: 100%; height: 2px; background: var(--edge); }
-.chain .node:first-child::before, .chain .node:first-child .flow { display: none; }
-.node:not(.s-pending)::before { background: color-mix(in srgb, var(--ok) 55%, var(--edge)); }
-.node.s-running::before { background: var(--edge); }
-.node .flow { display: none; position: absolute; top: 14px; right: 50%; width: 100%; height: 2px; overflow: hidden; }
-.node.s-running .flow { display: block; }
-.node .flow::after { content: ""; position: absolute; top: 0; bottom: 0; left: -12px; right: 0; background: repeating-linear-gradient(90deg, var(--accent) 0 6px, transparent 6px 12px); animation: belt 0.55s linear infinite; }
-@keyframes belt { to { transform: translateX(12px); } }
-/* station states: the light means something, nothing glows */
-.node.s-completed .dot { background: var(--ok-soft); color: var(--ok); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ok) 55%, transparent); }
-.node.s-running .dot { background: var(--accent); color: var(--on-accent); box-shadow: none; }
-/* at work: a turning spindle and a working light around the plate */
-.node.s-running .dot::before { content: ""; width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--on-accent); border-right-color: transparent; animation: spin 0.9s linear infinite; }
-.node.s-running .dot::after { content: ""; position: absolute; inset: -4px; border-radius: 6px; border: 1px solid var(--accent); animation: work 1.4s var(--ease-in-out) infinite; }
-@keyframes work { 0%, 100% { opacity: 0.15; } 50% { opacity: 1; } }
-/* a hold point: hazard band round the plate, blinking like a beacon */
-.node.s-waiting .dot { background: var(--wait); color: var(--on-wait); box-shadow: none; }
-.node.s-waiting .dot::after { content: ""; position: absolute; inset: -5px; z-index: -1; border-radius: 6px; background: repeating-linear-gradient(-45deg, var(--wait) 0 3px, transparent 3px 6px); animation: beacon 1.2s steps(2, jump-none) infinite; }
-@keyframes beacon { 50% { opacity: 0.25; } }
-.node.s-decided .dot, .node.s-interrupted .dot { background: var(--wait-soft); color: var(--wait); box-shadow: inset 0 0 0 1px var(--wait); }
-.node.s-parked .dot, .node.s-failed .dot { background: var(--bad); color: var(--on-bad); box-shadow: none; }
-.node.s-parked .lbl, .node.s-failed .lbl { color: var(--bad); font-weight: 600; }
-.node.s-waiting .lbl { color: var(--wait); font-weight: 600; }
-.node.s-running .lbl { color: var(--text); font-weight: 600; }
+/* ---------- the line (the centrepiece): a board of sections, each a track of stations ---------- */
+/* the work order, in the panel head: which run is on the line, its state and its station */
+.wo { --wo: var(--muted); --wo-ink: var(--bg); display: inline-flex; align-items: center; gap: 0.45rem; min-width: 0; height: 24px; padding: 0 0.6rem 0 0.5rem; border-radius: 3px; background: var(--wo); color: var(--wo-ink); font-size: 0.66rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; transition: background-color 0.3s var(--ease); }
+.is-live { --wo: var(--accent); --wo-ink: var(--on-accent); }
+.is-wait { --wo: var(--wait); --wo-ink: var(--on-wait); }
+.is-bad { --wo: var(--bad); --wo-ink: var(--on-bad); }
+.is-ok { --wo: var(--ok); --wo-ink: var(--on-ok); }
+.is-idle { --wo: var(--faint); --wo-ink: var(--bg); }
+.wo .hole { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--panel); }
+.wo .wo-id { overflow: hidden; text-overflow: ellipsis; max-width: 22ch; letter-spacing: 0; text-transform: none; opacity: 0.75; }
+.wo .wo-st::before, .wo .wo-at:not(:empty)::before { content: "· "; opacity: 0.6; }
+.wo .wo-at { letter-spacing: 0; text-transform: none; }
+.wo .wo-at:empty { display: none; }
+
+/* the board: one cell per section, sized by its number of stations */
+.board { position: relative; display: grid; grid-template-columns: var(--cols); border: 1px solid var(--edge); border-radius: var(--r-sm); overflow: hidden; }
+.sector-cell { display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; padding: 0.8rem 0.9rem 0.75rem; transition: background-color 0.25s var(--ease); }
+.sector-cell + .sector-cell { border-left: 1px solid var(--edge); }
+.sector-cell.open { background: var(--panel-2); }
+.sec-head { display: flex; align-items: baseline; gap: 0.45rem; min-width: 0; padding: 0; border: 0; background: none; color: var(--muted); font: inherit; font-size: 0.7rem; font-weight: 650; letter-spacing: 0.12em; text-transform: uppercase; text-align: left; cursor: pointer; }
+.sec-head:hover { color: var(--text); }
+.sec-head .no { font-family: var(--mono); letter-spacing: 0; color: var(--faint); }
+.sec-head .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sec-head .count { margin-left: auto; letter-spacing: 0; color: var(--faint); }
+.sector-cell.on .sec-head, .sector-cell.open .sec-head { color: var(--text); }
+.sword { font-size: 0.72rem; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sword.is-live { color: var(--accent-2); }
+.sword.is-wait { color: var(--wait); }
+.sword.is-bad { color: var(--bad); }
+.sword.is-ok { color: var(--ok); }
+/* the carriage: rides to the section that holds the work item */
+.carriage { position: absolute; top: 0; left: 0; width: 1px; height: 1px; transform-origin: 0 0; background: var(--wo); pointer-events: none; }
+.carriage.glide { transition: transform 0.5s var(--ease-in-out), background-color 0.3s var(--ease); }
+
+/* a station: one segment of the track (the button is taller than the bar, for an honest hit area) */
+.track { display: flex; gap: 3px; padding-top: 6px; }
+.node { --seg: var(--panel-3); position: relative; flex: 1 1 0; min-width: 5px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; }
+.node::before, .node::after { content: ""; position: absolute; left: 0; right: 0; top: 5px; height: 12px; border-radius: 2px; }
+.node::before { background: var(--seg); box-shadow: inset 0 0 0 1px var(--edge); transition: background-color 0.25s var(--ease), transform 0.15s var(--ease); }
+.node:hover::before { transform: scaleY(1.4); }
+.node.sel::before { box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--text); }
+.node.s-completed { --seg: var(--ok); }
+.node.s-running { --seg: var(--accent); }
+.node.s-waiting { --seg: var(--wait); }
+.node.s-parked, .node.s-failed { --seg: var(--bad); }
+.node.s-decided, .node.s-interrupted { --seg: var(--wait-soft); }
+.node:is(.s-completed, .s-running, .s-waiting, .s-parked, .s-failed)::before { box-shadow: none; }
+.node:is(.s-decided, .s-interrupted)::before { box-shadow: inset 0 0 0 1.5px var(--wait); }
+.node.s-skipped::before { background: repeating-linear-gradient(-45deg, var(--edge-hi) 0 2px, transparent 2px 5px); box-shadow: none; }
+/* at work: the belt moves through the station */
+.node.s-running::after { background: repeating-linear-gradient(-45deg, rgb(255 255 255 / 30%) 0 4px, transparent 4px 8px) 0 0 / 11.3px 12px; animation: belt 0.6s linear infinite; }
+@keyframes belt { to { background-position: 11.3px 0; } }
+/* a hold point: a frame round the station, blinking like a beacon */
+.node.s-waiting::after { top: 2px; left: -3px; right: -3px; height: 18px; border-radius: 3px; box-shadow: 0 0 0 1.5px var(--wait); animation: beacon 1.2s steps(2, jump-none) infinite; }
+@keyframes beacon { 50% { opacity: 0.2; } }
+/* a station that clears flashes once; a stop jolts it */
+.node.passed::after { background: var(--text); animation: flash 0.6s var(--ease) both; }
+@keyframes flash { from { opacity: 0.85; } to { opacity: 0; } }
+.node.halt { animation: halt 0.3s var(--ease) both; }
+@keyframes halt { 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
 /* the retry loop: how many times the work went round again */
-.loop { position: absolute; z-index: 2; top: -8px; left: calc(50% + 9px); display: flex; align-items: center; gap: 0.12rem; padding: 0.02rem 0.3rem; border-radius: 2px; font-size: 0.64rem; font-weight: 700; background: var(--wait); color: var(--on-wait); box-shadow: 0 0 0 2px var(--panel); }
-.loop svg { width: 10px; height: 10px; stroke-width: 3; }
+.loop { position: absolute; z-index: 2; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 0.1rem; padding: 0 0.22rem; border-radius: 2px; font-size: 0.58rem; font-weight: 700; line-height: 1.35; background: var(--wait); color: var(--on-wait); box-shadow: 0 0 0 2px var(--panel); pointer-events: none; }
+.sector-cell.open .loop { box-shadow: 0 0 0 2px var(--panel-2); }
+.loop svg { width: 8px; height: 8px; stroke-width: 3; }
 .loop.again { animation: chip-in 0.3s var(--ease) both; }
-.loop.again svg { animation: spin 0.6s var(--ease-in-out) 1; }
-/* the inspection stamp, slammed on when a station clears */
-.node .stamp { position: absolute; top: -24px; left: 50%; z-index: 3; padding: 0.02rem 0.32rem; border: 1.5px solid currentColor; border-radius: 2px; background: var(--panel); color: var(--ok); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; pointer-events: none; opacity: 0; transform: translateX(-50%) rotate(-7deg); }
-.node.passed .stamp { animation: stamp 1.4s var(--ease) both; }
-.node.passed .dot, .node.halt .dot { animation: press 0.28s var(--ease) both; }
-@keyframes stamp {
-  0% { opacity: 0; transform: translateX(-50%) rotate(-7deg) scale(1.8); }
-  14% { opacity: 1; transform: translateX(-50%) rotate(-7deg) scale(1); }
-  78% { opacity: 1; transform: translateX(-50%) rotate(-7deg) scale(1); }
-  100% { opacity: 0; transform: translateX(-50%) rotate(-7deg) scale(1); }
+
+/* the open section's stations, by name */
+.stations { margin-top: 0.9rem; }
+.stations-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.55rem; font-size: 0.78rem; color: var(--faint); }
+.stations-head b { color: var(--text); font-weight: 650; }
+.stn-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.stn { display: flex; align-items: center; gap: 0.55rem; min-width: 0; padding: 0.4rem 0.75rem 0.4rem 0.45rem; border: 1px solid var(--edge); border-radius: var(--r-sm); background: var(--panel); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: border-color 0.15s var(--ease), transform 0.15s var(--ease); }
+.stn:hover { border-color: var(--edge-hi); transform: translateY(-1px); }
+.stn.sel { border-color: var(--text); }
+.stn-ic { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 3px; background: var(--panel-3); color: var(--faint); }
+.stn-ic svg { width: 13px; height: 13px; stroke-width: 2.6; }
+.stn-tx { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.stn-tx b { font-family: var(--mono); font-size: 0.78rem; font-weight: 500; }
+.stn-tx small { font-size: 0.68rem; color: var(--faint); }
+.stn.s-completed .stn-ic { background: var(--ok-soft); color: var(--ok); }
+.stn.s-running { border-color: var(--accent); }
+.stn.s-running .stn-ic { background: var(--accent); color: var(--on-accent); }
+.stn.s-running .stn-ic::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin 0.9s linear infinite; }
+.stn.s-running small { color: var(--accent-2); }
+.stn.s-waiting { border-color: var(--wait); }
+.stn.s-waiting .stn-ic { background: var(--wait); color: var(--on-wait); }
+.stn:is(.s-waiting, .s-decided, .s-interrupted) small { color: var(--wait); }
+.stn:is(.s-decided, .s-interrupted) .stn-ic { background: var(--wait-soft); color: var(--wait); }
+.stn:is(.s-parked, .s-failed) { border-color: var(--bad); }
+.stn:is(.s-parked, .s-failed) .stn-ic { background: var(--bad); color: var(--on-bad); }
+.stn:is(.s-parked, .s-failed) small { color: var(--bad); }
+.stn.s-skipped { border-style: dashed; color: var(--muted); }
+.stn.s-skipped .stn-ic { background: repeating-linear-gradient(-45deg, var(--edge-hi) 0 2px, transparent 2px 5px); }
+@media (max-width: 640px) {
+  .board { grid-template-columns: 1fr; }
+  .sector-cell + .sector-cell { border-left: 0; border-top: 1px solid var(--edge); }
+  .wo .wo-id { display: none; }
 }
-@keyframes press { 40% { transform: scale(0.86); } }
-/* the work-order tag: rides the rail above the station holding the work item */
-.wo { position: absolute; top: 0; left: 0; right: 0; height: 32px; z-index: 2; pointer-events: none; --wo: var(--text); --wo-ink: var(--bg); }
-.wo.is-live { --wo: var(--accent); --wo-ink: var(--on-accent); }
-.wo.is-wait { --wo: var(--wait); --wo-ink: var(--on-wait); }
-.wo.is-bad { --wo: var(--bad); --wo-ink: var(--on-bad); }
-.wo.is-ok { --wo: var(--ok); --wo-ink: var(--on-ok); }
-.wo .plate { position: absolute; top: 0; left: 0; display: inline-flex; align-items: center; gap: 0.4rem; height: 22px; padding: 0 0.5rem 0 0.4rem; border-radius: 3px; background: var(--wo); color: var(--wo-ink); font-size: 0.64rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
-.wo .hole { width: 5px; height: 5px; border-radius: 50%; background: var(--panel); }
-.wo .wo-id { max-width: 15ch; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0; text-transform: none; opacity: 0.8; }
-.wo .wo-st::before { content: "· "; opacity: 0.6; }
-.wo .notch { position: absolute; top: 22px; left: -4px; width: 0; height: 0; border: 4px solid transparent; border-top-color: var(--wo); }
-.wo.glide .plate, .wo.glide .notch { transition: transform 0.5s var(--ease-in-out); }
 .pipe-note { display: flex; align-items: flex-start; gap: 0.7rem; margin-top: 1rem; padding: 0.8rem 1rem; border-radius: var(--r-sm); animation: enter 0.25s var(--ease) both; }
 .pipe-note > svg { width: 20px; height: 20px; margin-top: 0.1rem; }
 .pipe-note p { margin: 0.15rem 0 0; color: var(--text); }
