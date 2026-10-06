@@ -32,11 +32,18 @@ export const DEFAULT_ROUTES: Record<string, StepRoute> = {
   "author-tests": { runner: "claude-agent", model: OPUS, escalate: [], effort: "high" },
   implement: { runner: "claude-agent", model: SONNET, escalate: [OPUS], effort: "high" },
   review: { runner: "api", model: "gpt-5.5", escalate: [], effort: "high" },
+  // the merge reviewer, deliberately a different family from `review` above: one reviewer run
+  // twice has the same blind spots twice.
+  // Caveat: without OPENAI_API_KEY, `review` falls back to a Claude model and the two collapse into
+  // one family. That is detected rather than ignored — review-2.no-blocking reports "the merge
+  // reviewer is the same family as the pre-PR reviewer" on its verdict — but it is a weaker review
+  // than the routing implies, so set a project-level route if both keys are not available.
+  "review-2": { runner: "api", model: OPUS, escalate: [], effort: "high" },
   /** impact lenses: only when the project turns them on */
   "impact-lens": { runner: "api", model: SONNET, escalate: [], effort: "medium" },
 };
 
-export const THINKING_STEPS = new Set(["intake", "ground", "specify", "specify-other", "critic", "plan", "breakdown", "estimate", "design", "design-triage", "design-read", "review", "sketches", "sketch-align", "clarifier", "merge", "restater", "rt-align", "impact", "impact-lens"]);
+export const THINKING_STEPS = new Set(["intake", "ground", "specify", "specify-other", "critic", "plan", "breakdown", "estimate", "design", "design-triage", "design-read", "review", "sketches", "sketch-align", "clarifier", "merge", "restater", "rt-align", "impact", "impact-lens", "review-2"]);
 /** The model steps an estimate run uses: it never plans, writes tests or code, or reviews, so it does not need those routes set up. */
 export const ESTIMATE_ROUTES = ["intake", "ground", "sketches", "sketch-align", "clarifier", "specify", "specify-other", "merge", "restater", "rt-align", "critic", "breakdown", "estimate", "design", "design-triage", "design-read"] as const;
 /** A design-only run: the estimate's steps up to the spec, then the design (no breakdown, no sizing). */

@@ -612,7 +612,22 @@ export type Failures = z.infer<typeof Failures>;
 
 export const ReviewFinding = z.object({
   id: Id,
-  category: z.enum(["correctness", "spec-mismatch", "error-handling", "security", "reuse", "convention-intent", "unrequested-behaviour"]),
+  category: z.enum([
+    "correctness", "spec-mismatch", "error-handling", "security", "reuse",
+    "convention-intent", "unrequested-behaviour",
+    // review-2: findings that undermine the EVIDENCE block; findings about tidiness do not
+    "use-case-gap",    // an acceptance criterion with no real coverage
+    "test-quality",    // a test that passes without asserting its criterion
+    "plan-deviation",  // built what the plan did not call for, or skipped what it did
+    "convention",      // breaks a confirmed convention
+    "best-practice",   // duplication, missing error handling, and similar
+  ]),
+  /**
+   * Which axis this finding belongs to. The two are reported separately and never ranked against
+   * each other: a change can follow every standard while implementing the wrong thing, and merging
+   * the lists lets one mask the other.
+   */
+  axis: z.enum(["standards", "spec"]).optional(),
   file: z.string(), line: z.number().int().nonnegative(), text: z.string(),
   confidence: z.number().min(0).max(1),
   severity: z.enum(["critical", "high", "medium", "low"]),
@@ -620,7 +635,46 @@ export const ReviewFinding = z.object({
   owasp: z.string().optional(),
 });
 export type ReviewFinding = z.infer<typeof ReviewFinding>;
-export const ReviewBody = z.object({ findings: z.array(ReviewFinding) });
+/**
+ * One per acceptance criterion: did the locked test for it actually assert what the criterion
+ * requires? `tests.expectations` proves a test ran and passed; it cannot prove the test checks the
+ * right thing, and the agent that wrote the code also wrote that test. A reviewer that leaves a
+ * criterion out fails `review.covers-every-criterion`.
+ */
+export const ReviewCoverage = z.object({
+  acId: Id,
+  /** The locked test judged, or "" when the reviewer found none. */
+  testId: z.string(),
+  verdict: z.enum([
+    "proves-it",  // the test asserts what the criterion requires
+    "weak",       // the test passes but does not assert the criterion
+    "no-test",    // nothing covers this criterion
+  ]),
+  why: z.string().min(1),
+});
+export type ReviewCoverage = z.infer<typeof ReviewCoverage>;
+
+/**
+ * What a stored review PARSES as. `coverage` is defaulted so reviews recorded before it existed keep
+ * reading. Never give this to a model: `.default()` makes the field optional on input, so the
+ * generated JSON schema would not require it and a reviewer could legitimately omit it.
+ */
+export const ReviewBody = z.object({
+  findings: z.array(ReviewFinding),
+  coverage: z.array(ReviewCoverage).default([]),
+});
+
+/**
+ * What a model must RETURN. `coverage` carries no default, so it is required in the generated schema
+ * and the reviewer is told so. Splitting the two is deliberate: one object cannot both tolerate an
+ * absent field when reading history and demand it when instructing a model, and conflating them made
+ * every review park on `review.covers-every-criterion` after the ladder ran out.
+ */
+export const ReviewSubmit = z.object({
+  findings: z.array(ReviewFinding),
+  coverage: z.array(ReviewCoverage),
+});
+export type ReviewSubmit = z.infer<typeof ReviewSubmit>;
 export const Review = withHeader(ReviewBody.shape);
 
 export const Delivery = withHeader({

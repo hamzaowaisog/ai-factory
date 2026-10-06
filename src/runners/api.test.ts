@@ -7,6 +7,7 @@ import type { ModelImage } from "../util/image.js";
 import { sniffImage, toModelImage } from "../util/image.js";
 import { costUsd } from "./pricing.js";
 import { family } from "./types.js";
+import { wrapToolResult } from "../context/pack.js";
 
 const pack = (tools: string[] = []): ContextPack => ({
   system: "sys", user: "usr", images: [], pointers: [], tools,
@@ -83,10 +84,14 @@ describe("ApiRunner", () => {
     const r = await new ApiRunner({ provider: () => provider, tools: tools as never }).run(job({ pack: pack(["read_file"]) }));
     expect(r.status).toBe("ok");
     expect(seen.tools).toEqual(["read_file", "submit_result"]);
-    expect(seen.toolResults[0]).toEqual([
-      { id: "a", content: 'read_file:{"path":"x.cs"}' },
-      { id: "b", content: "Tool bash isn't available.", isError: true },
-    ]);
+    // a repo tool's output is data, so it arrives wrapped like any untrusted document. The wrapper's
+    // own format is tested in review.test.ts; here it matters only that the runner applies it.
+    expect(seen.toolResults[0]![0]).toEqual({
+      id: "a",
+      content: wrapToolResult("read_file", { path: "x.cs" }, 'read_file:{"path":"x.cs"}'),
+    });
+    // the factory's own message about a missing tool is NOT wrapped: it is ours, not a file's
+    expect(seen.toolResults[0]![1]).toEqual({ id: "b", content: "Tool bash isn't available.", isError: true });
   });
 
   it("stops at the turn cap, the cost cap, on refusal and on rate limits", async () => {
@@ -159,8 +164,11 @@ describe("audit fixes", () => {
     const tools = { specs: [{ name: "read_file", description: "d", input_schema: {} }], call: () => "file text" };
     const r = await new ApiRunner({ provider: () => provider, tools: tools as never }).run(job({ pack: pack(["read_file"]), limits: { maxTurns: 3, maxUsd: 1, timeoutSec: 60 } }));
     expect(r.status).toBe("ok");
-    expect(seen.toolResults[0]![0]!.content).toBe("file text");
+    expect(seen.toolResults[0]![0]!.content).toBe(wrapToolResult("read_file", { path: "x.cs" }, "file text"));
     expect(seen.toolResults[1]![0]!.content).toContain("Your next turn is your last one: call submit_result now");
+    // the factory's note goes AFTER the wrapper closes, so it cannot read as part of the file
+    expect(seen.toolResults[1]![0]!.content.indexOf("</untrusted_document>"))
+      .toBeLessThan(seen.toolResults[1]![0]!.content.indexOf("Your next turn"));
   });
 
   it("loads the briefing's images and hands them to the provider in order", async () => {

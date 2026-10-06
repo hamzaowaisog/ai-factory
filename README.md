@@ -555,6 +555,8 @@ With a GitHub `forge:`, the pull request title and the branch carry the ticket k
 | `factory design baseline <run> [pages…] [--all] --reason "…"` / `--list` | Accepts the run's built pictures as the design line's baseline (the next check compares pixels with them), recorded in the ledger with your name and reason. Needs a terminal. `--list` shows what is accepted. |
 | `factory start … --ui-target <next-shadcn\|vite-shadcn\|repo>` | What the approved design is built in when the project's `design.uiTarget` sets nothing; otherwise detected from the repo. |
 | `factory estimate --from-design <run>` / `factory start --project <p> --from-design <run>` | Sizes or builds an approved design run without drawing it again: its spec and approved design carry over (a build needs a design run made with that project). |
+| `factory start --project <p> --file <requirements>` on an empty Node repo | A new product in one run: questions, spec, the design on the factory's kit (you approve it), then the build. See [docs/fullstack-contract.md](docs/fullstack-contract.md). |
+| `factory fullstack start --name <n> --file <requirements>` / `next <n>` / `up <n>` | A web app and a .NET API in two repos, both held to one locked API contract: makes the repos, runs the web build, hands the approved contract to the API build, then writes a compose file that starts both. See [docs/fullstack-contract.md](docs/fullstack-contract.md). |
 | `factory design inventory <repo>` | Scans a web app's look: theme settings, shared components and how often each is used, pages. No AI. |
 | `factory design size` | Says how big a UI change is (no UI, screen tweak, new screen, or a change to the shared look), from a plan's file list or a git diff, with reasons. |
 | `factory design lint` | Checks a change uses only the theme's colours and the app's existing components, and adds no new shared components. |
@@ -698,6 +700,8 @@ npm run screens      # retake docs/screens/*.jpg, dark and light
 ## Design docs
 
 Start with [`docs/design/BUILD-BRIEF.md`](docs/design/BUILD-BRIEF.md), then [`docs/design/stages-aligned.md`](docs/design/stages-aligned.md) (the source of truth for stages). Component designs: run manager, gate engine, verify runner, context builder, adapters. The design step for UI changes is in [`docs/design-step.md`](docs/design-step.md), with its test results in [`docs/design-eval/results.md`](docs/design-eval/results.md). Test-lab speed-ups (each commit built once, Integrate reusing the task's run, known failures skipped), before and after: [`docs/design/test-lab-reuse.md`](docs/design/test-lab-reuse.md).
+
+A new product in one run and the full-stack API contract: [`docs/fullstack-contract.md`](docs/fullstack-contract.md); where that work stands: [`docs/handoff-greenfield-fullstack.md`](docs/handoff-greenfield-fullstack.md); free dry runs on real containers: [`dryrun/`](dryrun/README.md).
 
 The estimates path: [`docs/estimates-overview.md`](docs/estimates-overview.md) (one page), then [`docs/estimates-design.md`](docs/estimates-design.md) (the design, and its build status at the end). Why estimates can vary and what repeats them: [`docs/estimate-consistency.md`](docs/estimate-consistency.md); a local sizing model (research only): [`docs/estimate-local-model.md`](docs/estimate-local-model.md). Benchmarks and pinned public data: [`bench/README.md`](bench/README.md), [`bench/external/README.md`](bench/external/README.md). First real runs: [`docs/runs/2026-09-30-first-real-runs.md`](docs/runs/2026-09-30-first-real-runs.md).
 

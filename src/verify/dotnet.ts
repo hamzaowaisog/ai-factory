@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync } from "node:fs";
 import { join } from "node:path";
-import type { BuildRun, TestResult, TestRun, VerifyStage } from "../contracts/index.js";
+import type { BuildRun, LintRun, TestResult, TestRun, VerifyStage } from "../contracts/index.js";
 import { fillTemplate, type ProjectConfig } from "../config/project.js";
 import { secret } from "../config/env.js";
 import { hardenedEnv } from "../ledger/git.js";
@@ -13,6 +13,7 @@ import { factoryHome } from "../util/paths.js";
 import { FEED_PROXY_URL, FEEDS_NET } from "../runners/netinfra.js";
 import { type ContainerRuntime, type ContainerSpec, stopAndRemove } from "./runtime.js";
 import { parseTrx } from "./trx.js";
+import { parseBuildWarnings } from "./warnings.js";
 import { buildTestRun, type Expectations, markFlaky, needsProbe, rerunCandidates } from "./validate.js";
 
 export interface ProduceInput {
@@ -66,6 +67,12 @@ export interface AcceptResult {
 export interface ProduceOutput {
   testRun: TestRun;
   build: BuildRun;
+  /**
+   * The analyzer warnings this build emitted. Present wherever a build log was parsed; absent when
+   * the build was reused from cache and no log exists to read. Never fatal: TreatWarningsAsErrors
+   * stays off, and `lint.no-new-findings` judges these against the baseline instead.
+   */
+  lint?: LintRun;
   reports: { name: string; content: string }[];
   logs: { restore: string; build: string; test: string };
   accept?: AcceptResult;
@@ -268,6 +275,8 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
       phase("build-reused", `lab: reused the build of ${inp.commit.slice(0, 10)} from an earlier lab run (${secs(t0)})`);
     }
     let build: BuildRun = { kind: "build", ok: reuse, errors: [] };
+    // only set when a build log was actually produced: a cache hit has no log to read
+    let lint: LintRun | undefined;
     if (!reuse) {
       copyTree(inp.repo, inp.commit, src);
       const target = findBuildTarget(src, project.dotnet.solution);
@@ -288,7 +297,7 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
       if (inp.restoreOnly) {
         const build: BuildRun = { kind: "build", ok: rCode === 0, errors: rCode === 0 ? [] : [{ file: "", line: 0, code: "RESTORE", msg: `dotnet restore failed (exit ${rCode ?? "timeout"})` }] };
         const testRun = buildTestRun({ treeSha: inp.commit, stage: inp.stage, toolVersions, exp: inp.exp, raw: { reports: [], results: [], discovered: [], exitCode: rCode ?? 124, buildFailed: rCode !== 0 }, probeOk: () => true });
-        return { testRun, build, reports: [], logs };
+        return { testRun, build, lint, reports: [], logs };
       }
 
       // build, no network
@@ -305,6 +314,7 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
         logs.build = await rt.logs(b);
         await finish(b);
         build = { kind: "build", ok: bCode === 0, errors: parseBuildErrors(logs.build) };
+        lint = { kind: "lint", tool: "dotnet-build", version: toolVersions["dotnet"] ?? "unknown", findings: parseBuildWarnings(logs.build) };
         // keep the build as it was before any test ran, for later lab runs on this commit
         if (build.ok && inp.buildCache) saveBuild(src, inp.buildCache, buildCachePath(inp.buildCache, inp.commit, project));
       } else {
@@ -317,7 +327,7 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
         treeSha: inp.commit, stage: inp.stage, toolVersions, exp: inp.exp,
         raw: { reports: [], results: [], discovered: [], exitCode: 1, buildFailed: true }, probeOk: () => true,
       });
-      return { testRun, build, reports: [], logs };
+      return { testRun, build, lint, reports: [], logs };
     }
 
     // db: loopback only
@@ -427,7 +437,7 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
       probeOk: () => probe,
     });
     if (skipped.length) testRun.skippedKnownFailures = skipped;
-    return { testRun, build, reports: first.reports.map((r) => ({ name: r.name, content: r.content })), logs, accept };
+    return { testRun, build, lint, reports: first.reports.map((r) => ({ name: r.name, content: r.content })), logs, accept };
   } finally {
     for (const id of live) await stopAndRemove(rt, id).catch(() => undefined);
     rmSync(work, { recursive: true, force: true });

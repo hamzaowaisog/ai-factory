@@ -66,8 +66,8 @@ export function seedEmptyRepo(repo: string): string {
 /** `factory init` on an empty repo: a Node project, built with the factory's kit from an approved design. */
 export function nodeProjectYaml(name: string, repo: string, baseBranch: string): string {
   return [
-    "# Written by `factory init` for a new product: the repo was empty. Build an approved design into it with",
-    `#   factory start --project ${name} --from-design <design run>`,
+    "# Written by `factory init` for a new product: the repo was empty. Build it with",
+    `#   factory start --project ${name} --file <requirements>      (or --from-design <design run> for an approved design)`,
     `project: ${name}`,
     `repo: ${repo}`,
     `baseBranch: ${baseBranch}`,

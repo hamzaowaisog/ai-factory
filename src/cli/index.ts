@@ -6,12 +6,15 @@ import { join } from "node:path";
 import { Command } from "commander";
 import { hasSecret } from "../config/env.js";
 import { loadProject, projectPath } from "../config/project.js";
+import { registerConventions } from "./conventions.js";
+import { registerMergeGate } from "./merge-gate.js";
 import { verifyEvidence } from "../gates/engine.js";
 import "../gates/predicates.js";
 import "../design/gates.js";
 import "../estimate/lint.js";
 import "../estimate/gates.js";
 import { registerDesignCommands } from "../design/cli.js";
+import { registerFullstackCommands } from "../fullstack/cli.js";
 import { assertTty, decide, DecisionError } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { MAX_BUDGET_CEILING, replay } from "../ledger/state.js";
@@ -640,6 +643,9 @@ program.command("selftest").option("--keep", "keep the sample repo and project a
     if (!r.ok) process.exitCode = 1;
   });
 
+registerConventions(program, log);
+registerMergeGate(program, log);
+
 program.command("doctor").description("check this machine and the setup").action(async () => {
   const ok = (b: boolean, m: string, fix?: string) => log(`${b ? "ok  " : "MISSING"} ${m}${!b && fix ? `\n      → ${fix}` : ""}`);
   ok(Number(process.versions.node.split(".")[0]) >= 22, `Node ${process.version}`, "install Node 22 with nvm");
@@ -685,6 +691,7 @@ program.command("doctor").description("check this machine and the setup").action
 
 // design runs (factory design start|show|list|open|check-refs) and the design toolkit (src/design): inventory|size|lint|brief|refs
 registerDesignCommands(program, (design) => registerDesignRunCommands(design, { log, openRun, runAndReport }));
+registerFullstackCommands(program, { log, runAndReport });
 
 program.parseAsync().catch((e: Error) => {
   if (e instanceof DecisionError) process.stderr.write(`${e.message}\n`);
