@@ -59,7 +59,7 @@ const partAnswer = (from: number, fs: string[], skipScreen = false) => {
 interface Call { system: string; user: string }
 let calls: Call[] = [];
 const isPlan = (c: Call) => c.system.includes("planning the work breakdown of a LARGE spec");
-const fromOf = (c: Call) => Number(/Number your tasks EST-(\d+)/.exec(c.system)?.[1]);
+const fromOf = (c: Call) => Number(/Number them EST-(\d+)/.exec(c.user)?.[1]);
 const featuresOf = (c: Call) => /Write the tasks of ([F\-\d, ]+)\./.exec(c.user)?.[1]!.split(", ") ?? [];
 const partOf = (c: Call) => (isPlan(c) ? "plan" : featuresOf(c).join("+"));
 let answer: (c: Call) => unknown;

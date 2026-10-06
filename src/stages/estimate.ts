@@ -144,12 +144,12 @@ ${CHECKLIST_RULE}
 - Do not write hours. Sizing is a later step.
 ${UNTRUSTED_NOTE}`;
 
-const PART_RULES = (from: number) => `You are writing the tasks of SOME features of a large work breakdown for an estimate. The features, the shared tasks and the checklist were planned first and are fixed: "plan" holds them, "these-features" are the features whose tasks you write.
+const PART_RULES = `You are writing the tasks of SOME features of a large work breakdown for an estimate. The features, the shared tasks and the checklist were planned first and are fixed: "plan" holds them, "these-features" are the features whose tasks you write.
 Rules (checked by code):
 - Write tasks only for the features in "these-features" ("featureId" is one of them), and every requirement in "requirements" is delivered by one of your tasks or by a shared task that cites it.
 ${TASK_RULES}
 - Do not repeat a shared task (the app shell, the data model, the overheads): depend on it instead.
-- Number your tasks EST-${from}, EST-${from + 1}, ... dependsOn names only your own tasks or shared tasks, for real ordering only.
+- Number your tasks from the EST- number the task gives, counting up by one. dependsOn names only your own tasks or shared tasks, for real ordering only.
 - Set "screen" when a task builds a screen of "these-screens"; build every screen there, and no other screen.
 ${SCREEN_RULES}
 - Do not write hours. Sizing is a later step.
@@ -248,14 +248,16 @@ async function breakdownInParts(ctx: StepContext, b: BreakdownBrief): Promise<{ 
       const r = await think({ ...ctx, priorFailures: failures }, {
         stage: "breakdown", label: `breakdown ${part.key} (${part.features.map((f) => f.id).join(", ")})`, route: "breakdown", cls: "read-large", budgetTokens: 40000, tools: [], schema: BreakdownPart, maxTurns: 4,
         sections: [
-          S.template("tpl", PART_RULES(part.from)),
+          S.template("tpl", PART_RULES),
           ...breakdownContext(b),
           S.artifact("plan", "breakdown-plan", planView),
           S.artifact("these-features", "breakdown-plan", part.features),
           S.artifact("requirements", "spec", reqs),
           ...(design ? [S.artifact("these-screens", "approved-design", { flow: design.flow, screens: screens.map(screenBrief(ui)), ...(ui?.factors.length ? { uiFactors: ui.factors } : {}) })] : []),
-          S.task(`Write the tasks of ${part.features.map((f) => f.id).join(", ")}.`),
+          S.task(`Write the tasks of ${part.features.map((f) => f.id).join(", ")}. Number them EST-${part.from}, EST-${part.from + 1}, ...`),
         ],
+        // the rules, the plan and the context are the same in every part: cached once, not once per part
+        ...(parts.length > 1 ? { shared: [...breakdownContext(b).map((x) => x.spec.id), "plan"] } : {}),
       });
       if (!r.ok) return { outcome: r.outcome };
       const tasks = r.output.tasks;
@@ -528,6 +530,8 @@ export const estimateStep: StepDef = {
           ...(catalogue && refText ? [S.reference("past-tasks", `Closest tasks of earlier approved estimates (catalogue ${catalogue.version}), with the size each was given:\n${refText}`)] : []),
           S.task(`Size the tasks (independent estimator ${k + 1} of ${n}).`),
         ],
+        // the estimators read the same briefing: cached once, not once per estimator
+        ...(n > 1 ? { shared: true as const } : {}),
       })));
       const bad = rs.find((r) => !r.ok);
       if (bad && !bad.ok) return bad.outcome;

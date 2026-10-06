@@ -110,7 +110,7 @@ describe("settling a spec", () => {
     expect(r.answers[0]).toMatchObject({ by: "factory", answer: expect.stringContaining("Yes:") });
     expect(fix.repairs).toBe(1);
     // the question writer saw the open problems
-    expect(users[0]).toContain('"problem": "Email the buyer a receipt"');
+    expect(users[0]).toContain('"problem":"Email the buyer a receipt"');
   });
 
   it("carries the problems as open risks, and keeps the spec, when the fix would drop requested behaviour", async () => {

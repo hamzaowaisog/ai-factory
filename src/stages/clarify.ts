@@ -212,6 +212,8 @@ ${UNTRUSTED_NOTE}`),
       S.untrusted("request", "cli", request(ctx)),
       S.task(`Reading #${n}: list the behaviours per span.`),
     ],
+    // the three readings get the same briefing: cached once, not once per reading
+    shared: true,
   });
   // a retry only pays for the readings the last attempt lost
   const sketchKey = hashJson({ intent: intent.spans, cb: cb.claims, request: request(ctx) });

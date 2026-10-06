@@ -429,7 +429,9 @@ interface SectionSpec { id: string;
   ref?: string; trust: "trusted" | "derived" | "untrusted"; placement: "system" | "user";
   trimmable?: "pointers-tail" | "map-depth" }
 // an "image" section carries imageSha (its ledger artifact); images below lists them in the order sent (2026-10-02)
-interface ContextPack { system: string; user: string; images: Sha[];
+// sharedChars: calls sent side by side (estimators, breakdown parts, design pages, sketches, drafts) put the user sections
+// they have in common first; user[0, sharedChars) is that part, cached once for all of them (2026-10-06)
+interface ContextPack { system: string; user: string; sharedChars?: number; images: Sha[];
   pointers: { path: string; reason: string }[]; tools: string[];
   manifest: { stage: StageName; model: string; recipeVersion: string;
     sections: { id: string; tokens: number; trimmed: boolean; trust: string }[];

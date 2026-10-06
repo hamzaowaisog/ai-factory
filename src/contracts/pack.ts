@@ -30,6 +30,8 @@ export type PackRecipe = z.infer<typeof PackRecipe>;
 export const ContextPack = z.object({
   system: z.string(),
   user: z.string(),
+  /** the user message's first sharedChars characters are the same in the calls sent beside this one: cached once, read by the rest */
+  sharedChars: z.number().int().positive().optional(),
   images: z.array(Sha),
   pointers: z.array(z.object({ path: z.string(), reason: z.string() })),
   tools: z.array(z.string()),

@@ -205,6 +205,8 @@ export const draftsStep: StepDef = {
     const rs = await Promise.all(routes.map((route, n) => think(ctx, {
       stage: "specify", route, model: models[n], cls: "read-large", budgetTokens: 30000, ...readTools(ctx), schema: DraftOut, maxTurns: 8,
       sections: [...draftSections(ctx, i), S.task(routes.length === 1 ? "Write the spec." : `Write the spec (independent draft ${n + 1}).`)],
+      // the drafts get the same briefing: cached once, not once per draft
+      ...(routes.length > 1 ? { shared: true as const } : {}),
     })));
     const bad = rs.find((r) => !r.ok);
     if (bad && !bad.ok) return bad.outcome;

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { ContextPack } from "../contracts/index.js";
 import Anthropic from "@anthropic-ai/sdk";
-import { anthropicUserContent, ApiRunner, cachesConversation, chatUserContent, openaiResponsesUserContent, RateLimitedError, transientAnthropic, type Conversation, type Provider, type Turn } from "./api.js";
+import { anthropicUserContent, ApiRunner, cachesConversation, chatUserContent, openaiResponsesUserContent, RateLimitedError, transientAnthropic, warmPrefix, type Conversation, type Provider, type Turn } from "./api.js";
 import type { ModelImage } from "../util/image.js";
 import { sniffImage, toModelImage } from "../util/image.js";
 import { costUsd } from "./pricing.js";
@@ -223,6 +223,18 @@ describe("images for each provider", () => {
     expect(chatUserContent("hi")).toBe("hi");
   });
 
+  it("caches the shared part of the briefing on its own, before the images and the rest", () => {
+    expect(anthropicUserContent("SHARED\n\nrest", [], 6)).toEqual([
+      { type: "text", text: "SHARED", cache_control: { type: "ephemeral" } },
+      { type: "text", text: "rest" },
+    ]);
+    const c = anthropicUserContent("SHARED\n\nrest", imgs, 6) as { type: string; text?: string }[];
+    expect(c.map((x) => x.type)).toEqual(["text", "text", "image", "text", "image", "text"]);
+    expect(c.at(-1)!.text).toBe("rest");
+    // nothing after the shared part: no split
+    expect(anthropicUserContent("all", [], 3)).toBe("all");
+  });
+
   it("puts each image after its label and the briefing last", () => {
     expect(anthropicUserContent("brief", imgs)).toEqual([
       { type: "text", text: "Image 1:" }, { type: "image", source: { type: "base64", media_type: "image/png", data: "AAA" } },
@@ -235,5 +247,35 @@ describe("images for each provider", () => {
     const c = chatUserContent("brief", imgs) as { type: string; image_url?: { url: string } }[];
     expect(c[3]!.image_url!.url).toBe("data:image/webp;base64,BBB");
     expect(c.at(-1)).toEqual({ type: "text", text: "brief" });
+  });
+});
+
+describe("warmPrefix", () => {
+  it("lets the first call go alone and the rest go together once it has started", async () => {
+    const order: string[] = [];
+    const first = await warmPrefix("k-1");
+    const rest = [1, 2, 3].map((n) => warmPrefix("k-1").then((s) => { order.push(`call ${n}`); return s; }));
+    const other = await warmPrefix("k-2");
+    await new Promise((r) => setTimeout(r, 5));
+    expect(order).toEqual([]);
+    first();
+    await Promise.all(rest);
+    expect(order).toEqual(["call 1", "call 2", "call 3"]);
+    other();
+  });
+
+  it("warms again once the cached prefix may have expired", async () => {
+    let t = 0;
+    const first = await warmPrefix("k-3", () => t);
+    first();
+    t = 5 * 60_000;
+    let went = false;
+    const again = await warmPrefix("k-3", () => t);
+    void warmPrefix("k-3", () => t).then(() => { went = true; });
+    await new Promise((r) => setTimeout(r, 5));
+    expect(went).toBe(false);
+    again();
+    await new Promise((r) => setTimeout(r, 5));
+    expect(went).toBe(true);
   });
 });

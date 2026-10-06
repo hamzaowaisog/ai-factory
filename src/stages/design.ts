@@ -641,6 +641,8 @@ async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true;
           ...(b.feedback ? [S.reference("design-feedback", b.feedback)] : []),
           S.task(`Draw page ${entry.id}, "${title}".`),
         ],
+        // the plan, the existing UI and the feedback are the same on every page: cached once, not once per page
+        ...(total > 1 ? { shared: ["design", "existing", "design-feedback"] } : {}),
       });
       if (!r.ok) return { outcome: r.outcome };
       const screen: ScreenT = { ...entry, ...r.output };

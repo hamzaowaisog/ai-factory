@@ -9,6 +9,7 @@ import type { RepoTools } from "../context/tools.js";
 import { TOOL_DEFS } from "../context/tools.js";
 import { secret } from "../config/env.js";
 import { costUsd } from "./pricing.js";
+import { hashJson } from "../util/hash.js";
 import { toModelImage, type ModelImage } from "../util/image.js";
 import { addUsage, configErrorText, emptyUsage, type Effort, type Job, type Result, type Runner } from "./types.js";
 
@@ -36,8 +37,11 @@ export interface Conversation {
   say(text: string): void;
 }
 export interface Provider {
-  /** `images` go with the first user message, each labelled "Image n" to match the briefing's markers. */
-  start(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[], images?: ModelImage[]): Conversation;
+  /**
+   * `images` go with the first user message, each labelled "Image n" to match the briefing's markers. `sharedChars`: the
+   * user message's first characters are the same in the calls sent beside this one (the pack's `sharedChars`).
+   */
+  start(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[], images?: ModelImage[], sharedChars?: number): Conversation;
 }
 
 const imageLabel = (i: number) => `Image ${i + 1}:`;
@@ -51,16 +55,40 @@ export function cachesConversation(tools: ToolSpec[], messages: number): boolean
   return messages > 1 || tools.some((t) => t.name !== SUBMIT);
 }
 
-/** Anthropic: each image after its label, then the briefing (images before the text that refers to them). */
-export function anthropicUserContent(user: string, images: ModelImage[] = []): string | Anthropic.ContentBlockParam[] {
-  if (!images.length) return user;
+/**
+ * Anthropic: each image after its label, then the briefing (images before the text that refers to them). With `sharedChars`,
+ * the shared part of the briefing comes first and is cached (it never holds an image's marker), then the images and the rest.
+ */
+export function anthropicUserContent(user: string, images: ModelImage[] = [], sharedChars?: number): string | Anthropic.ContentBlockParam[] {
+  const shared = sharedChars && sharedChars < user.length ? user.slice(0, sharedChars) : undefined;
+  if (!images.length && !shared) return user;
   return [
+    ...(shared ? [{ type: "text" as const, text: shared, cache_control: { type: "ephemeral" as const } }] : []),
     ...images.flatMap((m, i): Anthropic.ContentBlockParam[] => [
       { type: "text", text: imageLabel(i) },
       { type: "image", source: { type: "base64", media_type: m.mediaType, data: m.base64 } },
     ]),
-    { type: "text", text: user },
+    { type: "text", text: shared ? user.slice(sharedChars).replace(/^\n+/, "") : user },
   ];
+}
+
+/**
+ * Calls that share a cached prefix and are sent together: the first goes alone and the others wait until its answer starts
+ * streaming, because a cache entry is readable only from then on. Sent at the same moment, every call would pay to write it.
+ * Keyed by everything before the end of the shared part. Once the first has started the rest go at once; an entry is
+ * forgotten after a few minutes (the cache keeps a prefix about five), so a later group warms it again.
+ */
+const warming = new Map<string, { ready: Promise<void>; at: number }>();
+const WARM_MS = 4 * 60_000;
+
+/** Wait for the call with the same prefix that went first, or become that call: returns `started` to call when the answer starts. */
+export async function warmPrefix(key: string, now: () => number = Date.now): Promise<() => void> {
+  for (const [k, e] of warming) if (now() - e.at > WARM_MS) warming.delete(k);
+  const ahead = warming.get(key);
+  if (ahead) { await ahead.ready; return () => {}; }
+  let started!: () => void;
+  warming.set(key, { ready: new Promise<void>((resolve) => { started = resolve; }), at: now() });
+  return () => started();
 }
 
 /** OpenAI Responses API: the same order, images as data URLs. */
@@ -130,9 +158,13 @@ export class AnthropicProvider implements Provider {
     this.client = new Anthropic({ apiKey, maxRetries: 2 });
   }
 
-  start(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[], images: ModelImage[] = []): Conversation {
+  start(model: string, effort: Effort | undefined, system: string, user: string, tools: ToolSpec[], images: ModelImage[] = [], sharedChars?: number): Conversation {
     const client = this.client;
-    const messages: Anthropic.MessageParam[] = [{ role: "user", content: anthropicUserContent(user, images) }];
+    const messages: Anthropic.MessageParam[] = [{ role: "user", content: anthropicUserContent(user, images, sharedChars) }];
+    // only the first turn can collide with the calls sent beside it
+    let warmKey = sharedChars && sharedChars < user.length
+      ? hashJson({ model, effort: supportsEffort(model) ? effort ?? "high" : null, system, tools: tools.map((t) => t.name), shared: user.slice(0, sharedChars) })
+      : undefined;
     // Stable prefix first: tools → system; cache it (context-builder §2.3).
     const toolParams: Anthropic.Tool[] = tools.map((t) => ({
       name: t.name, description: t.description, input_schema: t.schema as Anthropic.Tool.InputSchema,
@@ -140,6 +172,8 @@ export class AnthropicProvider implements Provider {
     return {
       async next(progress?: (chars: number) => void): Promise<Turn> {
         let msg: Anthropic.Message;
+        const started = warmKey ? await warmPrefix(warmKey) : undefined;
+        warmKey = undefined;
         try {
           const stream = client.messages.stream({
             model,
@@ -153,6 +187,7 @@ export class AnthropicProvider implements Provider {
             ...(cachesConversation(tools, messages.length) ? { cache_control: { type: "ephemeral" } } : {}),
             messages,
           } as Anthropic.MessageStreamParams);
+          if (started) stream.on("streamEvent", started);
           if (progress) {
             let chars = 0;
             stream.on("streamEvent", (e) => {
@@ -164,10 +199,12 @@ export class AnthropicProvider implements Provider {
           }
           msg = await stream.finalMessage();
         } catch (e) {
+          started?.();
           if (transientAnthropic(e)) throw new RateLimitedError((e as Error).message);
           if (e instanceof Anthropic.APIError && CONFIG_STATUSES.has(e.status as number)) throw new ConfigError(e.status as number, (e as Error).message);
           throw e;
         }
+        started?.();
         // append the full content (thinking blocks must go back unchanged)
         messages.push({ role: "assistant", content: msg.content as Anthropic.ContentBlockParam[] });
         const calls = msg.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use").map((b) => ({ id: b.id, name: b.name, input: b.input }));
@@ -359,7 +396,7 @@ export class ApiRunner implements Runner {
       // a broken or oversized image is the factory's mistake, not the model's: stop before paying for a call
       return { status: "config-error", error: (e as Error).message, usage: { ...usage, wallMs: Date.now() - started } };
     }
-    const convo = this.deps.provider(job.model).start(job.model, job.effort, system, job.pack.user, tools, images);
+    const convo = this.deps.provider(job.model).start(job.model, job.effort, system, job.pack.user, tools, images, job.pack.sharedChars);
     let reasks = 0;
 
     const done = (status: Result<T>["status"], extra: Partial<Result<T>> = {}): Result<T> =>

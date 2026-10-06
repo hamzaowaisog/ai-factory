@@ -44,7 +44,15 @@ export interface BuildPackInput {
   sections: ResolvedSection[];
   tools: string[];
   redactor: Redactor;
+  /**
+   * Sections the calls sent beside this one carry unchanged (true: every user section before the feedback and the task).
+   * They go first in the user message, and the pack records where they end, so the model's prompt cache stores them once
+   * and the other calls read them back. Images never count as shared.
+   */
+  shared?: true | string[];
 }
+
+const TAIL: ReadonlySet<SectionSpec["source"]> = new Set(["feedback", "task", "recap", "image"]);
 
 const ORDER: SectionSpec["source"][] = ["template", "stackpack", "profile", "rules", "artifact", "doc", "image", "pointers", "feedback", "task", "recap"];
 
@@ -102,10 +110,15 @@ export function buildPack(inp: BuildPackInput): ContextPack {
   // images are numbered in the order they are sent, after the sort
   const images = prepared.filter((p) => p.s.spec.source === "image").map((p, i) => { p.imageN = i + 1; return p.s.imageSha!; });
 
+  const isShared = (s: ResolvedSection) => !!inp.shared && s.spec.placement === "user" && !TAIL.has(s.spec.source)
+    && (inp.shared === true || inp.shared.includes(s.spec.id));
   const render = () => {
     const sys = prepared.filter((p) => p.s.spec.placement === "system").map((p) => wrap(p.s, p.text, p.imageN));
-    const usr = prepared.filter((p) => p.s.spec.placement === "user").map((p) => wrap(p.s, p.text, p.imageN));
-    return { system: sys.join("\n\n"), user: usr.join("\n\n") };
+    const head = prepared.filter((p) => isShared(p.s)).map((p) => wrap(p.s, p.text, p.imageN)).join("\n\n");
+    const rest = prepared.filter((p) => p.s.spec.placement === "user" && !isShared(p.s)).map((p) => wrap(p.s, p.text, p.imageN)).join("\n\n");
+    const user = [head, rest].filter(Boolean).join("\n\n");
+    // the cached prefix ends after the shared sections, only when something follows it
+    return { system: sys.join("\n\n"), user, sharedChars: head && rest ? head.length : undefined };
   };
   const count = () => {
     const r = render();
@@ -142,10 +155,10 @@ export function buildPack(inp: BuildPackInput): ContextPack {
     throw new PackOverBudgetError(tokens, budget, biggest);
   }
 
-  const { system, user } = render();
+  const { system, user, sharedChars } = render();
   const pointers = prepared.flatMap((p) => p.pointers ?? []);
   const sections = prepared.map((p) => ({ id: p.s.spec.id, tokens: estimateTokens(p.text, inp.model) + (p.imageN ? IMAGE_TOKENS : 0), trimmed: p.trimmed, trust: p.s.spec.trust }));
-  const body = { system, user, images, pointers, tools: inp.tools };
+  const body = { system, user, ...(sharedChars ? { sharedChars } : {}), images, pointers, tools: inp.tools };
   const manifest = {
     stage: inp.stage, model: inp.model, recipeVersion: inp.recipeVersion, sections,
     packTokens: tokens, budgetTokens: budget, countMethod: "proxy" as const, redactions,

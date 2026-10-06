@@ -102,6 +102,32 @@ describe("buildPack", () => {
     expect(p.manifest.packSha).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  it("puts the shared sections first and says where they end, for calls sent side by side", () => {
+    const build = (shared: true | string[] | undefined, n: number) => buildPack({
+      stage: "estimate", cls: "read-large", model: "m", recipeVersion: "1", tools: [], redactor: new Redactor(), shared,
+      sections: [
+        sec("tpl", "template", "trusted", "system", "You size tasks."),
+        sec("mine", "artifact", "derived", "user", `only call ${n}`),
+        sec("plan", "artifact", "derived", "user", "the plan"),
+        sec("req", "doc", "untrusted", "user", "the document", { docId: "req", source: "cli" }),
+        sec("task", "task", "trusted", "user", `Size (estimator ${n}).`),
+      ],
+    });
+    const [a, b] = [build(["plan", "req"], 1), build(["plan", "req"], 2)];
+    expect(a.sharedChars).toBeGreaterThan(0);
+    const head = a.user.slice(0, a.sharedChars);
+    expect(head).toBe(b.user.slice(0, b.sharedChars));
+    expect(head).toContain("the plan");
+    expect(head).toContain("the document");
+    expect(head).not.toContain("only call");
+    expect(a.user.slice(a.sharedChars!)).toMatch(/only call 1[\s\S]*Size \(estimator 1\)/);
+    // true: every user section but the task; no split when nothing varies or nothing is shared
+    expect(build(true, 1).user.slice(0, build(true, 1).sharedChars)).toContain("only call 1");
+    expect(build(true, 1).user.slice(build(true, 1).sharedChars!)).not.toContain("only call");
+    expect(build(undefined, 1).sharedChars).toBeUndefined();
+    expect(build(["nope"], 1).sharedChars).toBeUndefined();
+  });
+
   it("untrusted text can't close or reopen its wrapper", () => {
     const p = buildPack({
       stage: "intake", cls: "read-small", model: "m", recipeVersion: "1", tools: [], redactor: new Redactor(),

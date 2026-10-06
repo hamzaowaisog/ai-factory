@@ -50,7 +50,7 @@ const provider: Provider = {
 };
 const isPlan = (c: Call) => c.system.includes("PAGES ARE DRAWN NEXT");
 const pageOf = (c: Call) => /Draw page (S-\d+)/.exec(c.user)?.[1];
-const titleOf = (c: Call) => /"title": "([^"]+)"/.exec(c.user.slice(c.user.indexOf("this-page")))?.[1] ?? "?";
+const titleOf = (c: Call) => /"title":"([^"]+)"/.exec(c.user.slice(c.user.indexOf("this-page")))?.[1] ?? "?";
 
 beforeEach(() => {
   process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "factory-dparts-"));

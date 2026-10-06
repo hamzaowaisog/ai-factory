@@ -43,6 +43,12 @@ export interface ThinkSpec<T> {
   timeoutSec?: number;
   /** Use this effort instead of the route's (e.g. a lighter critic on the light lane). */
   effort?: Effort;
+  /**
+   * Sibling calls sent at once (estimators, breakdown parts, design pages, sketches, drafts): these user sections are the same
+   * in each, so they go first and are cached once (src/context/pack.ts). `true` = every user section but the task and feedback.
+   * Leave unset for a lone call: the cache write costs more than it saves.
+   */
+  shared?: true | string[];
 }
 
 export type ThinkResult<T> =
@@ -89,7 +95,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
   try {
     pack = buildPack({
       stage: spec.stage, cls: spec.cls, budgetTokens: budgetFor(ctx, spec.budgetTokens, sections, model), model, recipeVersion: "1",
-      sections, tools: spec.tools, redactor: new Redactor(), local: model.startsWith("ollama/"),
+      sections, tools: spec.tools, redactor: new Redactor(), local: model.startsWith("ollama/"), shared: spec.shared,
     });
   } catch (e) {
     if (e instanceof PackOverBudgetError) return { ok: false, outcome: { kind: "park", reason: `The ${spec.stage} briefing is too big (${e.packTokens} tokens > ${e.budget}); biggest part: ${e.biggest}` } };
@@ -160,7 +166,7 @@ export const S = {
   template: (id: string, text: string): ResolvedSection => ({ spec: { id, source: "template", trust: "trusted", placement: "system" }, content: text }),
   profile: (id: string, text: string): ResolvedSection => ({ spec: { id, source: "profile", trust: "derived", placement: "system", trimmable: "map-depth" }, content: text }),
   artifact: (id: string, kind: string, value: unknown, sha?: string): ResolvedSection => ({
-    spec: { id, source: "artifact", trust: "derived", placement: "user" }, content: JSON.stringify(value, null, 1), artifactKind: kind, artifactSha: sha,
+    spec: { id, source: "artifact", trust: "derived", placement: "user" }, content: JSON.stringify(value), artifactKind: kind, artifactSha: sha,
   }),
   untrusted: (id: string, source: string, text: string): ResolvedSection => ({
     spec: { id, source: "doc", trust: "untrusted", placement: "user" }, content: text, docId: id, source,
