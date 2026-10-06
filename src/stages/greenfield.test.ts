@@ -488,6 +488,16 @@ describe("a new product end to end (greenfield, fakes)", () => {
     // (an estimate made with no repo may still be built into a repo that has code: a change to it, not a new product)
   });
 
+  it("refuses a no-repo estimate that prices its own API: one web app would not build it", async () => {
+    const est = await estimateRun();
+    const a = approvedEstimate(est, { build: true });
+    const bd = a.artifacts[a.breakdownSha] as { tasks: object[] };
+    const withApi = { ...a, artifacts: { ...a.artifacts, [a.breakdownSha]: { ...bd, tasks: [...bd.tasks, { id: "EST-2", title: "Orders API", track: "backend", kind: "be-crud", executor: "factory" }] } } };
+    const before = Ledger.listRuns().length;
+    await expect(createRun("x", "shop", "tester", { lineage: { kind: "build", approved: withApi } })).rejects.toThrow(/prices more than a web app: 1 backend task \(EST-2\)/);
+    expect(Ledger.listRuns().length).toBe(before);
+  });
+
   it("refuses to start a new product in a repo that has code, a design with a repo as a greenfield run, and a brownfield run on a Node project", async () => {
     const design = await designRun();
     writeFileSync(join(repo, "index.ts"), "export {};\n");

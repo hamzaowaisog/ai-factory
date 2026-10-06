@@ -6,11 +6,13 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { stringify } from "yaml";
-import { seedEmptyRepo } from "../config/greenfield.js";
+import { PRODUCT_NAME, seedEmptyRepo } from "../config/greenfield.js";
 import { projectPath } from "../config/project.js";
 import { hardenedEnv } from "../ledger/git.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
+import type { RequestSource } from "../sources/request.js";
+import { createRun } from "../stages/executor.js";
 import { factoryHome } from "../util/paths.js";
 import { API_BUILT_DOC, API_PORT, API_SDK_IMAGE, API_SKELETON, API_SOLUTION } from "./skeleton.js";
 
@@ -31,7 +33,7 @@ const git = (repo: string, args: string[]): string =>
 
 /** Make the two repos and their project configs. Refuses to touch a folder or a project that already exists. */
 export function setUpProduct(name: string, dir: string): Product {
-  if (!/^[a-z][a-z0-9-]{1,30}$/.test(name)) throw new Error(`"${name}" is not a usable name: lower-case letters, digits and dashes, starting with a letter.`);
+  if (!PRODUCT_NAME.test(name)) throw new Error(`"${name}" is not a usable name: lower-case letters, digits and dashes, starting with a letter.`);
   const p: Product = { name, dir, web: { project: `${name}-web`, repo: join(dir, `${name}-web`) }, api: { project: `${name}-api`, repo: join(dir, `${name}-api`) } };
   for (const side of [p.web, p.api]) {
     if (existsSync(side.repo) && readdirSync(side.repo).length) throw new Error(`${side.repo} already exists and is not empty.`);
@@ -54,6 +56,35 @@ export function setUpProduct(name: string, dir: string): Product {
   writeFileSync(projectPath(p.api.project), note("API") + stringify({ project: p.api.project, repo: p.api.repo, baseBranch: "main", stack: "dotnet", dotnet: { sdkImage: API_SDK_IMAGE, solution: API_SOLUTION }, contract: { file: CONTRACT_FILE, built: API_BUILT_DOC }, accept: { readyTimeoutSec: 180 } }));
   saveProduct(p);
   return p;
+}
+
+/** `factory fullstack start` after the checks: make the two repos and start the web run (greenfield). Returns the product with its run. */
+export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[] }, operator: string, maxCostUsd?: number): Promise<Product> {
+  const p = setUpProduct(name, dir);
+  p.request = request.text;
+  p.web.run = await createRun(request.text, p.web.project, operator, { ...(maxCostUsd !== undefined ? { maxCostUsd } : {}), ...(request.sources ? { sources: request.sources } : {}) });
+  saveProduct(p);
+  return p;
+}
+
+/**
+ * `factory fullstack next` once the web plan is approved: hand the contract to the API repo and start the API run. Undefined while the
+ * web plan is not approved; an error when the API run is already started.
+ */
+export async function startApiRun(p: Product, operator: string, maxCostUsd?: number): Promise<string | undefined> {
+  if (p.api.run) throw new Error(`The API run of ${p.name} is started already: ${p.api.run}.`);
+  const contract = approvedContract(p);
+  if (!contract) return undefined;
+  handOverContract(p, contract);
+  p.api.run = await createRun(apiRequest(p.request ?? ""), p.api.project, operator, { ...(maxCostUsd !== undefined ? { maxCostUsd } : {}) });
+  saveProduct(p);
+  return p.api.run;
+}
+
+/** Every full-stack product, by name. */
+export function productNames(): string[] {
+  const dir = join(factoryHome(), "fullstack");
+  return existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")).sort() : [];
 }
 
 const stateOf = (runId: string) => replay(Ledger.open(runId).events());

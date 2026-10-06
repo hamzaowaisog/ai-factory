@@ -21,6 +21,7 @@ import { outcomes, scoreRun, stageStats, stageOf, type RunScore } from "../repor
 import { jiraConfigured } from "../sources/jira.js";
 import { figmaConfigured } from "../sources/figma.js";
 import { designRunView } from "../design/runs.js";
+import { loadProduct, productNames } from "../fullstack/product.js";
 import type { VisualCheck } from "../design/visual-check.js";
 import { exportWorkbooks } from "../estimate/export.js";
 import { humanReview } from "../estimate/settings.js";
@@ -34,7 +35,7 @@ import { Redactor } from "../context/secrets.js";
 import { readPreview } from "./preview.js";
 import { factoryAssumed } from "../stages/gate-questions.js";
 import { loadProject, STANDALONE_PROJECT } from "../config/project.js";
-import { repoIsEmpty } from "../config/greenfield.js";
+import { repoIsEmpty, webOnlyRefusal, type EstimateScope } from "../config/greenfield.js";
 
 // ---------- helpers ----------
 
@@ -74,17 +75,28 @@ export async function busyRun(project: string): Promise<{ runId: string } | unde
   return { runId: info?.runId ?? "" };
 }
 
-export interface ApprovedEstimateRow { runId: string; project: string; request: string; createdAt: string; deliveryModel: string }
+/**
+ * `repo`: false for an estimate made with no repo, the kind a new product (greenfield) is built from. `webOnly`: for such an
+ * estimate, why a greenfield run would not build all of it (it prices an API or a phone app), when it would not.
+ */
+export interface ApprovedEstimateRow { runId: string; project: string; request: string; createdAt: string; deliveryModel: string; repo: boolean; webOnly?: string }
 
 /** Estimate runs that are approved and exported: the ones a build can start from (factory start --from-estimate). */
 export function approvedEstimatesView(): ApprovedEstimateRow[] {
   const rows: ApprovedEstimateRow[] = [];
   for (const id of Ledger.listRuns()) {
     try {
-      const s = replay(Ledger.open(id).events());
+      const ledger = Ledger.open(id);
+      const s = replay(ledger.events());
       if (s.info.mode !== "estimate") continue;
       if (!["estimate", "approve-estimate", "export"].every((k) => s.steps.get(k)?.status === "completed")) continue;
-      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt, deliveryModel: s.info.estimate?.deliveryModel ?? "hitl" });
+      const repo = s.info.estimate?.noRepo !== true;
+      let webOnly: string | undefined;
+      if (!repo) {
+        const out = (k: string) => { const sha = s.steps.get(k)?.outputs[0]; return sha ? ledger.getJson<EstimateScope>(sha) : undefined; };
+        webOnly = webOnlyRefusal(id, { ...out("breakdown"), stack: out("estimate")?.stack });
+      }
+      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt, deliveryModel: s.info.estimate?.deliveryModel ?? "hitl", repo, ...(webOnly ? { webOnly } : {}) });
     } catch { /* a broken ledger doesn't hide the others */ }
   }
   return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
@@ -268,6 +280,7 @@ export function runView(ledger: Ledger) {
     request: s.info.request ?? "",
     sources: s.info.sources ?? [],
     createdAt: s.info.createdAt,
+    ...productOf(ledger.runId),
     status: shownStatus(s),
     step: currentStep(s),
     parkedReason: s.parkedReason,
@@ -284,6 +297,18 @@ export function runView(ledger: Ledger) {
       evidence: evidence(ledger, s.lastSeq),
     } : undefined,
   };
+}
+
+/** The full-stack product a run is one side of (factory fullstack), so its page links to the product. */
+function productOf(runId: string): { product?: { name: string; side: "web" | "api" } } {
+  for (const name of productNames()) {
+    try {
+      const p = loadProduct(name);
+      if (p.web.run === runId) return { product: { name, side: "web" } };
+      if (p.api.run === runId) return { product: { name, side: "api" } };
+    } catch { /* a broken product file is skipped */ }
+  }
+  return {};
 }
 
 // ---------- dashboard ----------
@@ -470,6 +495,8 @@ export function estimateView(ledger: Ledger) {
     suggested: est.suggested,
     assumptions: est.assumptions,
     ...(est.stack ? { stack: est.stack } : {}),
+    // made with no repo but prices an API or a phone app: a greenfield run (one web app) would not build all of it
+    ...(s.info.estimate?.noRepo === true && bd ? (() => { const w = webOnlyRefusal(ledger.runId, { tasks: bd.tasks, stack: est.stack }); return w ? { webOnly: w } : {}; })() : {}),
     ...(est.catalogue ? { catalogue: { ...est.catalogue, statusText: catalogueStatusText(est.catalogue) } } : {}),
     design: baseline === undefined ? { pending: true } : !design ? { ui: false } : {
       ui: true, flow: design.flow,

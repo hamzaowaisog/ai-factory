@@ -18,6 +18,7 @@ import { cardCommands } from "./data.js";
 import { createUiServer, listen, MAX_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, ROUTES, staticDir, type UiServer } from "./server.js";
 import { _resetStarting } from "./start.js";
 import { ensureStandaloneProject } from "../config/project.js";
+import { makeNewProduct } from "../config/greenfield.js";
 // the page's Markdown renderer (plain browser JS, no DOM needed)
 import { renderMarkdown } from "./static/md.js";
 import { findChromium } from "../design/screenshots.js";
@@ -204,17 +205,20 @@ describe("factory ui: who can talk to it", () => {
   });
 });
 
-describe("factory ui: no decisions from the web", () => {
-  it("the route list has no decision routes; the only write starts a run", () => {
+describe("factory ui: what the web can decide", () => {
+  it("the decision routes are the estimate, design, plan and question cards only; no waiver, limit, unlock, steer or pause", () => {
     const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note/i;
-    for (const r of ROUTES.filter((r) => !/\/(estimate-decision|estimate-answers|resume)$/.test(r.path))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
-    // the one exception: the estimate lead's approve or reject, on estimate cards only (and exporting an approved design or generating
-    // its scaffold, which write only under the run's exports/ and scaffold/; and resuming a parked run, which decides nothing)
-    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/resume", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold"]);
+    for (const r of ROUTES.filter((r) => !/\/(estimate-decision|answers|decision|resume)$/.test(r.path))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
+    // decisions, each with a typed name and the card hash: an estimate card, a design or plan card, a question card's answers. Resuming a
+    // parked run decides nothing; exports and the scaffold write only under the run's own folders; the full-stack routes are factory fullstack
+    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual([
+      "POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/answers", "POST /api/runs/:id/decision", "POST /api/runs/:id/resume",
+      "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/up", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
+    ]);
   });
 
   it("decision-looking URLs don't exist", async () => {
-    for (const p of [`/api/runs/${ids.waiting}/approve`, `/api/runs/${ids.waiting}/answer`, `/api/runs/${ids.waiting}/stop`]) {
+    for (const p of [`/api/runs/${ids.waiting}/approve`, `/api/runs/${ids.waiting}/answer`, `/api/runs/${ids.waiting}/stop`, `/api/runs/${ids.waiting}/waive`, `/api/runs/${ids.waiting}/estimate-answers`]) {
       expect((await call(p, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: "{}" })).status).toBe(404);
     }
     expect(replay(Ledger.open(ids.waiting).events()).openCard?.kind).toBe("approval");
@@ -247,11 +251,13 @@ describe("factory ui: no decisions from the web", () => {
     expect(readFileSync(join(staticDir(), "app.js"), "utf8")).toContain("/resume`, { method: \"POST\"");
   });
 
-  it("the page says so, and has no decision buttons", () => {
+  it("the page says so, and posts no waiver, limit, steer or pause", () => {
     const html = readFileSync(join(staticDir(), "index.html"), "utf8");
-    expect(html).toContain("Plan decisions are made in your terminal, so no AI or script can approve its own plan. Only the estimate lead can approve an estimate here.");
+    expect(html).toContain("Questions, designs, plans and estimates can be decided here, each with your typed name and the card's hash. Waivers and cost limits are decided in your terminal only.");
     const js = readFileSync(join(staticDir(), "app.js"), "utf8");
-    expect(js).not.toMatch(/method: "POST"[^\n]*\/(approve|reject|answer|waive|stop|pause)/);
+    expect(js).not.toMatch(/\/api\/runs\/\$\{[^}]+\}\/(approve|reject|waive|unlock|steer|stop|pause|cap)/);
+    expect(js).toContain("/decision`, { method: \"POST\"");
+    expect(js).toContain("/answers`, { method: \"POST\"");
     // the only raw HTML the page writes is the escaped Markdown renderer's output
     expect(js.match(/innerHTML/g)).toHaveLength(1);
     expect(js).toContain("el.innerHTML = renderMarkdown(text)");
@@ -381,6 +387,151 @@ describe("factory ui: starting a run", () => {
     expect(again.json().error).toContain(runId);
     // other projects are free
     expect((await post({ project: "api", prompt: "Greet people with Hello instead of Hi" })).status).toBe(201);
+  });
+});
+
+describe("factory ui: a new product (greenfield)", () => {
+  const newDir = (name: string) => join(mkdtempSync(join(tmpdir(), "factory-ui-new-")), name);
+  const request = "A shop where buyers browse products, add them to a cart and check out.";
+
+  it("starts into an empty Node project; refuses a project with code, a UI target and an estimate made against a repo", async () => {
+    makeNewProduct("shop", newDir("shop"));
+    const projects = (await call("/api/projects")).json().projects as { name: string; empty?: boolean }[];
+    expect(projects.find((p) => p.name === "shop")).toMatchObject({ empty: true });
+    expect(projects.find((p) => p.name === "web")?.empty).toBeUndefined();
+    const before = Ledger.listRuns().length;
+    const code = await post({ project: "web", mode: "greenfield", prompt: request });
+    expect(code.status).toBe(400);
+    expect(code.json().error).toMatch(/already has code/);
+    const target = await post({ project: "shop", mode: "greenfield", prompt: request, uiTarget: "next-shadcn" });
+    expect(target.status).toBe(400);
+    expect(target.json().error).toMatch(/no UI target/);
+    expect(Ledger.listRuns().length).toBe(before);
+    expect(started).toEqual([]);
+    const r = await post({ project: "shop", mode: "greenfield", prompt: request, maxCost: "12" });
+    expect(r.status).toBe(201);
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info).toMatchObject({ mode: "greenfield", project: "shop", asks: true, maxCostUsd: 12 });
+    expect(started).toEqual([r.json().runId]);
+  });
+
+  it("makes a new empty project, as git init and factory init would, and starts into it", async () => {
+    const dir = newDir("cart");
+    const bad: [unknown, RegExp][] = [
+      [{ name: "My Cart", dir }, /not a usable name/],
+      [{ name: "cart", dir: "projects/cart" }, /not a full path/],
+      [{ name: "cart", dir: "" }, /folder/],
+      [{ name: "web", dir }, /Project web already exists/],
+      [{ name: "cart", dir: join(home, "projects") }, /not empty/],
+    ];
+    for (const [newProject, msg] of bad) {
+      const r = await post({ mode: "greenfield", newProject, prompt: request });
+      expect(r.status, JSON.stringify(newProject)).toBe(400);
+      expect(r.json().error).toMatch(msg);
+    }
+    // only a greenfield start makes a project
+    expect((await post({ mode: "brownfield", newProject: { name: "cart", dir }, prompt: request })).json().error).toMatch(/Greenfield/);
+    expect(existsSync(join(home, "projects", "cart.yaml"))).toBe(false);
+    expect(existsSync(dir)).toBe(false);
+    const r = await post({ mode: "greenfield", newProject: { name: "cart", dir }, prompt: request });
+    expect(r.status).toBe(201);
+    expect(readFileSync(join(home, "projects", "cart.yaml"), "utf8")).toMatch(/stack: node/);
+    expect(execFileSync("git", ["-C", dir, "log", "--format=%s"], { encoding: "utf8" }).trim()).toBe("Start (factory init: a new product)");
+    expect(replay(Ledger.open(r.json().runId).events()).info).toMatchObject({ mode: "greenfield", project: "cart" });
+    // the name is taken now
+    expect((await post({ mode: "greenfield", newProject: { name: "cart", dir: newDir("cart") }, prompt: request })).json().error).toMatch(/already exists/);
+  });
+
+  it("lists a no-repo estimate that prices an API, but won't build it as one web app, and says why", async () => {
+    makeNewProduct("parts", newDir("parts"));
+    ensureStandaloneProject();
+    const id = await createRun("A quick-order page for parts buyers", "standalone-estimates", "tester", { mode: "estimate", estimate: { noRepo: true } } as never);
+    const l = Ledger.open(id);
+    // d7a6's shape: web tasks, an API priced as ASP.NET Core, and environment set-up (not API work)
+    const range = (min: number, max: number) => ({ min, max });
+    const est = l.putJson({ deliveryModel: "agentic", tasks: [], totals: { overall: range(4, 40) }, apiCost: { total: range(1, 50) }, elapsed: { criticalPathDays: range(1, 10) }, stack: { backend: "ASP.NET Core Web API", web: "React SPA (Vite + TypeScript)" } });
+    const bd = l.putJson({ tasks: [{ id: "EST-1", track: "web", kind: "ui-form", executor: "factory" }, { id: "EST-3", track: "backend", kind: "be-endpoint", executor: "factory" }, { id: "EST-19", track: "backend", kind: "ops-setup", executor: "joint" }] });
+    await addEvents(id, [...step("breakdown", 0, {}, [bd]), ...step("specify", 0, {}, [l.putJson({ title: "s" })]), ...step("estimate", 0, {}, [est]), ...step("approve-estimate"), ...step("export")]);
+    const row = (await call("/api/projects")).json().estimates.find((e: { runId: string }) => e.runId === id);
+    expect(row).toMatchObject({ repo: false });
+    expect(row.webOnly).toMatch(/1 backend task \(EST-3; priced as ASP\.NET Core Web API\)/);
+    expect(row.webOnly).toMatch(/factory fullstack.*cannot start from an estimate yet/);
+    const before = Ledger.listRuns().length;
+    const r = await post({ project: "parts", mode: "greenfield", fromEstimate: id });
+    expect(r.status).toBe(400);
+    expect(r.json().error).toMatch(/prices more than a web app/);
+    expect(Ledger.listRuns().length).toBe(before);
+    expect(started).toEqual([]);
+    // the Estimate tab says the same, in place of its Build button
+    expect((await call(`/api/runs/${id}/estimate`)).json().webOnly).toBe(row.webOnly);
+  });
+});
+
+describe("factory ui: a web app + API product (factory fullstack)", () => {
+  const send = (path: string, body: unknown) => call(path, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+  const CONTRACT = "openapi: 3.0.3\ninfo: { title: Orders, version: '1' }\npaths:\n  /orders:\n    get: {}\n    post: {}\n  /orders/{id}:\n    patch: {}\n";
+
+  it("refuses bad input before anything is made", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+    const cases: [unknown, RegExp][] = [
+      [{ name: "My App", dir, prompt: "An orders app" }, /not a usable name/],
+      [{ name: "orders", dir: "here", prompt: "An orders app" }, /not a full path/],
+      [{ name: "orders", prompt: "An orders app" }, /folder/],
+      [{ name: "orders", dir }, /Describe the product/],
+      [{ name: "orders", dir, prompt: "An orders app", maxCost: 25 }, /can only lower/],
+      [{ name: "orders", dir, prompt: "An orders app", file: { name: "a.exe", text: "x" } }, /\.md\) or text/],
+    ];
+    for (const [body, msg] of cases) {
+      const r = await send("/api/fullstack", body);
+      expect(r.status, JSON.stringify(body)).toBe(400);
+      expect(r.json().error).toMatch(msg);
+    }
+    expect((await call("/api/fullstack")).json()).toEqual([]);
+    expect((await call("/api/fullstack/orders")).status).toBe(404);
+    expect((await send("/api/fullstack/orders/next", {})).status).toBe(404);
+    expect(started).toEqual([]);
+  });
+
+  it("start, then the API run once the web plan is approved, then the run files once both are delivered", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+    const r = await send("/api/fullstack", { name: "orders", dir: dir, prompt: "An orders app: staff list orders and mark one shipped.", maxCost: "12" });
+    expect(r.status).toBe(201);
+    const { webRun } = r.json();
+    expect(started).toEqual([webRun]);
+    expect(replay(Ledger.open(webRun).events()).info).toMatchObject({ mode: "greenfield", project: "orders-web", maxCostUsd: 12 });
+    expect((await send("/api/fullstack", { name: "orders", dir, prompt: "Again" })).json().error).toMatch(/already exists/);
+    expect((await call("/api/fullstack")).json()).toEqual([expect.objectContaining({ name: "orders", web: expect.objectContaining({ project: "orders-web" }) })]);
+    // the web run's page links to its product
+    expect((await call(`/api/runs/${webRun}`)).json().product).toEqual({ name: "orders", side: "web" });
+
+    let v = (await call("/api/fullstack/orders")).json();
+    expect(v.web.run).toMatchObject({ runId: webRun, delivered: false });
+    expect(v.api.run).toBeUndefined();
+    expect(v.contract).toBeUndefined();
+    expect(v.next).toMatchObject({ canStartApi: false, canWriteRunFiles: false });
+    const early = await send("/api/fullstack/orders/next", {});
+    expect(early.status).toBe(409);
+    expect(early.json().error).toMatch(/not approved yet/);
+
+    const wl = Ledger.open(webRun);
+    await addEvents(webRun, [...step("plan", 0, {}, [wl.putJson({ stubs: [{ path: "contracts/openapi.yaml", content: CONTRACT, reason: "" }] })]), ...step("approve", 0)]);
+    v = (await call("/api/fullstack/orders")).json();
+    expect(v.contract).toMatchObject({ file: "contracts/openapi.yaml", text: CONTRACT, operations: ["GET /orders", "POST /orders", "PATCH /orders/{id}"] });
+    expect(v.next.canStartApi).toBe(true);
+    expect((await send("/api/fullstack/orders/next", { maxCost: 25 })).status).toBe(400);
+    const next = await send("/api/fullstack/orders/next", { maxCost: "6" });
+    expect(next.status).toBe(201);
+    const { apiRun } = next.json();
+    expect(started).toEqual([webRun, apiRun]);
+    expect(replay(Ledger.open(apiRun).events()).info).toMatchObject({ project: "orders-api", maxCostUsd: 6 });
+    expect(readFileSync(join(dir, "orders-api", "contracts/openapi.yaml"), "utf8")).toBe(CONTRACT);
+    expect((await send("/api/fullstack/orders/next", {})).json().error).toMatch(/started already/);
+    expect((await call(`/api/runs/${apiRun}`)).json().product).toEqual({ name: "orders", side: "api" });
+    // the run files wait for both deliveries
+    const up = await send("/api/fullstack/orders/up", {});
+    expect(up.status).toBe(409);
+    expect(up.json().error).toMatch(/Both runs must be delivered/);
+    expect((await call("/api/fullstack/orders")).json().next).toMatchObject({ canStartApi: false, canWriteRunFiles: false });
   });
 });
 
@@ -763,27 +914,31 @@ describe("factory ui: the estimate lead's decision", () => {
   });
 });
 
-describe("factory ui: answering an estimate run's questions", () => {
+describe("factory ui: answering a run's questions", () => {
   const answersPost = (id: string, body: unknown) =>
-    call(`/api/runs/${id}/estimate-answers`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+    call(`/api/runs/${id}/answers`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
   const asked = [
     { id: "Q-1", text: "Who can refund an order?", options: ["Support only", "Support and finance"], recommended: "Support only", reason: "smaller", impactReason: "changes who sees money", impact: 3, uncertainty: 3, score: 9, category: "roles", spans: [] },
     { id: "Q-2", text: "Keep order history?", options: ["Yes", "No"], recommended: "Yes", reason: "usual", impactReason: "data kept", impact: 2, uncertainty: 2, score: 4, category: "scope", spans: [] },
   ];
+  const waitOnQuestions = async (id: string, step = "clarify") => {
+    const l = Ledger.open(id);
+    const body = l.putJson({ key: step, asked, assumptions: [{ id: "ASM-1", text: "Currency is USD" }] });
+    l.writeCard(`questions-1-${body.slice(0, 8)}`, "# Questions");
+    await addEvents(id, [
+      { type: "step.started", key: `${step}/1`, data: { rung: 0 } },
+      { type: "step.interrupted", key: `${step}/1`, data: { reason: "waiting" } },
+      { type: "human.requested", data: { cardId: `questions-1-${body.slice(0, 8)}`, kind: "question", artifactSha: body, step } },
+    ]);
+    return { l, body };
+  };
 
   it("shows the questions on the run, refuses a plan card, and takes typed answers that continue the run", async () => {
     const before = started.length;
-    expect((await answersPost(ids.waiting, { hash: "b".repeat(8), by: "Sam Lead", answers: {} })).status).toBe(403);
+    expect((await answersPost(ids.waiting, { hash: "b".repeat(8), by: "Sam Lead", answers: {} })).status).toBe(409);
     expect((await answersPost("nope", {})).status).toBe(404);
     const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
-    const l = Ledger.open(id);
-    const body = l.putJson({ key: "clarify", asked, assumptions: [{ id: "ASM-1", text: "Currency is USD" }] });
-    l.writeCard(`questions-1-${body.slice(0, 8)}`, "# Questions");
-    await addEvents(id, [
-      { type: "step.started", key: "clarify/1", data: { rung: 0 } },
-      { type: "step.interrupted", key: "clarify/1", data: { reason: "waiting" } },
-      { type: "human.requested", data: { cardId: `questions-1-${body.slice(0, 8)}`, kind: "question", artifactSha: body, step: "clarify" } },
-    ]);
+    const { l, body } = await waitOnQuestions(id);
     const view = (await call(`/api/runs/${id}`)).json();
     expect(view.card.questions.map((q: { id: string }) => q.id)).toEqual(["Q-1", "Q-2"]);
     expect(view.card.assumptions).toEqual([{ id: "ASM-1", text: "Currency is USD" }]);
@@ -803,30 +958,94 @@ describe("factory ui: answering an estimate run's questions", () => {
     expect(d.answers["Q-2"]).toBeUndefined();
   });
 
-  it("refuses answers for a build run's questions: only estimate cards are decided on the page", async () => {
-    const id = await createRun("Add a refund button to orders", "web", "tester");
-    const l = Ledger.open(id);
-    const body = l.putJson({ key: "clarify", asked, assumptions: [] });
-    l.writeCard(`questions-1-${body.slice(0, 8)}`, "# Questions");
-    await addEvents(id, [
-      { type: "step.started", key: "clarify/1", data: { rung: 0 } },
-      { type: "step.interrupted", key: "clarify/1", data: { reason: "waiting" } },
-      { type: "human.requested", data: { cardId: `questions-1-${body.slice(0, 8)}`, kind: "question", artifactSha: body, step: "clarify" } },
-    ]);
-    const before = started.length;
-    const r = await answersPost(id, { hash: body.slice(0, 8), by: "Sam Lead", answers: { "Q-2": "No" } });
-    expect(r.status).toBe(403);
-    expect(r.json().error).toMatch(/terminal/);
-    expect(started.length).toBe(before);
-    expect(replay(l.events()).decisions).toEqual([]);
+  it("takes a build run's answers too: its clarify questions and the questions its spec raised", async () => {
+    for (const step of ["clarify", "specify"]) {
+      const id = await createRun(`Add a refund button to orders (${step})`, "web", "tester");
+      const { l, body } = await waitOnQuestions(id, step);
+      const before = started.length;
+      const r = await answersPost(id, { hash: body.slice(0, 8), by: "Sam Lead", answers: { "Q-2": "No" } });
+      expect(r.status).toBe(200);
+      expect(started.length).toBe(before + 1);
+      expect(replay(l.events()).decisions.at(-1)).toMatchObject({ by: "Sam Lead (via web)", decision: "answer", answers: { "Q-2": "No" } });
+    }
   });
 });
 
-describe("factory ui: design card decisions", () => {
-  it("has no route to approve or reject a design: the design card is decided in the terminal", async () => {
-    expect(ROUTES.some((r) => r.path.endsWith("/design-decision"))).toBe(false);
-    const r = await call(`/api/runs/${ids.waiting}/design-decision`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify({ decision: "approve" }) });
-    expect(r.status).toBe(404);
+describe("factory ui: design and plan card decisions", () => {
+  const decisionPost = (id: string, body: unknown) =>
+    call(`/api/runs/${id}/decision`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+  const waitOn = async (id: string, kind: string, step: string) => {
+    const l = Ledger.open(id);
+    const sha = l.putJson({ kind, n: Math.random() });
+    l.writeCard(`${kind}-${sha.slice(0, 8)}`, `# ${kind}`);
+    await addEvents(id, [
+      { type: "step.started", key: `${step}/1`, data: { rung: 0 } },
+      { type: "step.interrupted", key: `${step}/1`, data: { reason: "waiting" } },
+      { type: "human.requested", data: { cardId: `${kind}-${sha.slice(0, 8)}`, kind, artifactSha: sha, step } },
+    ]);
+    return { l, hash: sha.slice(0, 8) };
+  };
+
+  it("approves a plan card with a typed name and its hash, and the run goes on", async () => {
+    expect((await decisionPost("nope", {})).status).toBe(404);
+    const ok = { hash: "b".repeat(8), decision: "approve", by: "Sam Lead", note: "watch the heading" };
+    const before = started.length;
+    expect((await decisionPost(ids.waiting, { ...ok, by: "" })).status).toBe(400);
+    expect((await decisionPost(ids.waiting, { ...ok, by: "x".repeat(61) })).status).toBe(400);
+    expect((await decisionPost(ids.waiting, { ...ok, hash: "bbbb" })).status).toBe(400);
+    expect((await decisionPost(ids.waiting, { ...ok, decision: "waive" })).status).toBe(400);
+    expect((await decisionPost(ids.waiting, { ...ok, hash: "deadbeef" })).status).toBe(409);
+    expect(started.length).toBe(before);
+    const r = await decisionPost(ids.waiting, ok);
+    expect(r.status).toBe(200);
+    expect(r.json()).toEqual({ recorded: true });
+    expect(started.at(-1)).toBe(ids.waiting);
+    const l = Ledger.open(ids.waiting);
+    expect(replay(l.events()).decisions.at(-1)).toMatchObject({ by: "Sam Lead (via web)", decision: "approve", note: "watch the heading" });
+    // decided: a second click finds no card waiting
+    expect((await decisionPost(ids.waiting, ok)).status).toBe(409);
+  });
+
+  it("a rejection needs a reason; a design sent back says what to change", async () => {
+    const plan = { hash: "b".repeat(8), decision: "reject", by: "Sam Lead" };
+    expect((await decisionPost(ids.waiting, plan)).json().error).toMatch(/needs a reason/);
+    const r = await decisionPost(ids.waiting, { ...plan, reason: "The plan touches the wrong page." });
+    expect(r.status).toBe(200);
+    expect(replay(Ledger.open(ids.waiting).events()).decisions.at(-1)).toMatchObject({ decision: "reject", reason: "The plan touches the wrong page.", by: "Sam Lead (via web)" });
+
+    const id = await createRun("Redesign the orders page", "web", "tester");
+    const { l, hash } = await waitOn(id, "design-approval", "design-baseline");
+    const no = await decisionPost(id, { hash, decision: "reject", by: "Sam Lead", reason: "  " });
+    expect(no.status).toBe(400);
+    expect(no.json().error).toMatch(/what to change/);
+    expect((await decisionPost(id, { hash, decision: "reject", by: "Sam Lead", reason: "Put the filters above the table." })).status).toBe(200);
+    expect(replay(l.events()).decisions.at(-1)).toMatchObject({ decision: "reject", reason: "Put the filters above the table." });
+  });
+
+  it("approves a design card", async () => {
+    const id = await createRun("Redesign the orders list", "web", "tester");
+    const { l, hash } = await waitOn(id, "design-approval", "design-baseline");
+    expect((await decisionPost(id, { hash, decision: "approve", by: "Sam Lead" })).status).toBe(200);
+    expect(replay(l.events()).decisions.at(-1)).toMatchObject({ decision: "approve", by: "Sam Lead (via web)" });
+  });
+
+  it("refuses every other card: waivers, cost limits and estimates are not decided here", async () => {
+    const cards: [string, string, number, RegExp][] = [
+      ["waiver", "implement/TASK-1", 403, /terminal/], ["cap", "implement/TASK-1", 403, /terminal/], ["budget", "implement/TASK-1", 403, /terminal/],
+      ["estimate-approval", "approve-estimate", 409, /Estimate tab/], ["question", "clarify", 409, /answer them/],
+    ];
+    for (const [kind, step, status, why] of cards) {
+      const id = await createRun(`Add a filter (${kind})`, "web", "tester");
+      const { l, hash } = await waitOn(id, kind, step);
+      const before = started.length;
+      const r = await decisionPost(id, { hash, decision: "approve", by: "Sam Lead" });
+      expect(r.status, kind).toBe(status);
+      expect(r.json().error).toMatch(why);
+      expect(started.length).toBe(before);
+      expect(replay(l.events()).decisions).toEqual([]);
+    }
+    // a run with no card at all
+    expect((await decisionPost(ids.delivered, { hash: "aaaaaaaa", decision: "approve", by: "Sam Lead" })).status).toBe(409);
   });
 });
 

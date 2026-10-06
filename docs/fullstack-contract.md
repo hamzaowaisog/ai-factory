@@ -110,6 +110,16 @@ share one coding image (`factory-agent:dotnet8`, rebuilt from the project's SDK 
 It is two ordinary runs underneath: two specs, two ledgers, two branches, and two PRs if the repos have a GitHub
 remote and a token.
 
+### In `factory ui`
+New run, Greenfield, then "Web app + API" is `start`: a name, the folder for both repos, the request (typed or a
+dropped `.md`) and the web run's max cost. Products lists each product; its page shows both runs side by side, the
+contract once the web plan is approved (with its operations, `GET /orders`), a Start API run button (`next`, with its
+own max cost) and, once both runs are delivered, Write run files (`up`: it writes the compose file and shows the
+command; it starts nothing). Each run's cards are decided on its own run page: questions, the design card and the
+plan card, each with a typed name and the card's hash, recorded as "<name> (via web)". Approving the web run's plan
+there approves the contract, as `factory approve` does. Waivers and cost limits stay in the terminal. Code:
+`src/ui/fullstack.ts`, routes under `/api/fullstack` in `src/ui/server.ts`.
+
 ## Tests
 | What | Where |
 |---|---|
@@ -118,10 +128,14 @@ remote and a token.
 | API side with a fake lab: a match delivers, a renamed field is caught, a build with no document fails, no design is drawn | `src/stages/e2e.test.ts` ("a .NET API held to a locked API contract") |
 | One-run greenfield with a fake lab; a test writer that adds a package is stopped | `src/stages/greenfield.test.ts`, `src/stages/modes.test.ts` |
 | The wrapper: setup, hand-over, guards | `src/fullstack/product.test.ts` |
+| The page: start, next and up, and their refusals | `src/ui/ui.test.ts` ("a web app + API product") |
 | The whole thing on real containers with scripted models | [`dryrun/`](../dryrun/README.md) |
 
 ## Limits
 - No real model has run the contract path. Everything is proven with scripted models.
+- A product cannot start from an approved estimate yet: one estimate would feed two runs, so its tasks, budget and
+  spec would have to be split per side, and the contract checked against its backend tasks. A greenfield run refuses
+  an estimate that prices its own API and points here.
 - The API skeleton is fixed (.NET 9 minimal API, SQLite). The factory refuses SQL Server; Postgres would use the
   project's `database` block and is not wired into the skeleton.
 - The client's API address is a fixed string from the project config.

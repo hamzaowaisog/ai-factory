@@ -1,8 +1,11 @@
 // A new product (greenfield follow-up to the PR #11 review): an approved design with no repo is built into an empty git repo.
 // "Empty" allows the few files a new repo is often created with (a README, a licence, git's own settings); anything else is code.
 import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { isAbsolute, join } from "node:path";
 import { hardenedEnv } from "../ledger/git.js";
-import type { ProjectConfig } from "./project.js";
+import { factoryHome } from "../util/paths.js";
+import { projectPath, type ProjectConfig } from "./project.js";
 
 const STARTER = /^(README|LICEN[CS]E|COPYING)(\.[A-Za-z]+)?$|^\.git(ignore|attributes)$|^\.editorconfig$/i;
 
@@ -74,6 +77,59 @@ export function nodeProjectYaml(name: string, repo: string, baseBranch: string):
     "stack: node",
     "",
   ].join("\n");
+}
+
+/** A new product's name: it names the project and the repo folder, so lower-case letters, digits and dashes. */
+export const PRODUCT_NAME = /^[a-z][a-z0-9-]{1,30}$/;
+
+/** Why a new product cannot be made with this name in this folder, or undefined when it can. Reads only; writes nothing. */
+export function newProductProblem(name: string, repo: string): string | undefined {
+  if (!PRODUCT_NAME.test(name)) return `"${name}" is not a usable name: lower-case letters, digits and dashes, starting with a letter.`;
+  if (!isAbsolute(repo)) return `${repo} is not a full path to a folder.`;
+  if (existsSync(repo) && readdirSync(repo).length) return `${repo} already exists and is not empty.`;
+  if (existsSync(projectPath(name))) return `Project ${name} already exists (${projectPath(name)}).`;
+  return undefined;
+}
+
+/**
+ * A new product from nothing, as `git init` and `factory init` do by hand: the folder, a git repo on main with its empty base
+ * commit, and a Node project config. Refuses a name or a folder that is in use. Returns the base commit.
+ */
+export function makeNewProduct(name: string, repo: string): string {
+  const why = newProductProblem(name, repo);
+  if (why) throw new Error(why);
+  mkdirSync(repo, { recursive: true });
+  execFileSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "safe.directory=*", "-C", repo, "init", "-q", "-b", "main"], { env: hardenedEnv(), stdio: ["ignore", "pipe", "pipe"] });
+  const base = seedEmptyRepo(repo);
+  mkdirSync(join(factoryHome(), "projects"), { recursive: true, mode: 0o700 });
+  writeFileSync(projectPath(name), nodeProjectYaml(name, repo, "main"));
+  return base;
+}
+
+/** An approved estimate's tasks and stack, as much of them as the check below reads. */
+export interface EstimateScope {
+  tasks?: { id: string; track: string; kind?: string; executor?: string }[];
+  stack?: { backend?: string; mobile?: string };
+}
+
+/**
+ * Why an approved estimate made with no repo is more than a greenfield run builds, or undefined when it is not. A greenfield run
+ * builds one Next.js app with no API of its own, so an estimate that prices a phone app (mobile tasks) or its own API and data
+ * (backend `be-*` tasks the factory or the factory with people builds) would be delivered without them: B1 only checks that
+ * each plan task maps to an estimate task, not that every estimate task is planned. Such a product is a web app + API.
+ */
+export function webOnlyRefusal(runId: string, scope: EstimateScope): string | undefined {
+  const built = (scope.tasks ?? []).filter((t) => t.executor !== "human");
+  const mobile = built.filter((t) => t.track === "mobile");
+  const backend = built.filter((t) => t.track === "backend" && t.kind?.startsWith("be-"));
+  if (!mobile.length && !backend.length) return undefined;
+  const ids = (ts: { id: string }[]) => `${ts.slice(0, 4).map((t) => t.id).join(", ")}${ts.length > 4 ? ", …" : ""}`;
+  const parts = [
+    ...(backend.length ? [`${backend.length} backend task${backend.length > 1 ? "s" : ""} (${ids(backend)}${scope.stack?.backend ? `; priced as ${scope.stack.backend}` : ""})`] : []),
+    ...(mobile.length ? [`${mobile.length} mobile task${mobile.length > 1 ? "s" : ""} (${ids(mobile)}${scope.stack?.mobile ? `; priced as ${scope.stack.mobile}` : ""})`] : []),
+  ];
+  return `${runId} prices more than a web app: ${parts.join(" and ")}. A greenfield run builds one Next.js app with no API of its own, so those tasks would not be built. ` +
+    `${backend.length ? "A web app with its own API is a full-stack product (factory fullstack, or Web app + API on the page), which cannot start from an estimate yet: start it from the requirements, or estimate again as a web app only." : "A phone app is not built yet: estimate again as a web app only."}`;
 }
 
 /**

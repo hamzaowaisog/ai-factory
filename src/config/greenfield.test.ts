@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { assertNothingWaiting, commitAt, currentBranch, greenfieldRefusal, isEmptyTree, nodeProjectYaml, repoIsEmpty, seedEmptyRepo, uncommittedCode } from "./greenfield.js";
+import { assertNothingWaiting, commitAt, currentBranch, greenfieldRefusal, isEmptyTree, nodeProjectYaml, repoIsEmpty, seedEmptyRepo, uncommittedCode, webOnlyRefusal } from "./greenfield.js";
 import { ProjectConfig } from "./project.js";
 import { parse } from "yaml";
 
@@ -83,5 +83,20 @@ describe("an empty repo (greenfield)", () => {
     expect(greenfieldRefusal("d1", { project: "shop", repo: empty, baseBranch: "main", stack: "dotnet" })).toMatch(/stack: dotnet/);
     expect(greenfieldRefusal("d1", { project: "api", repo: repo({ "a.cs": "" }), baseBranch: "main", stack: "node" })).toMatch(/already has code.*factory init/);
     expect(greenfieldRefusal("d1", { project: "standalone-estimates", repo: "-", baseBranch: "main", stack: "dotnet" })).toMatch(/pick a project with an empty repo/);
+  });
+});
+
+describe("an estimate built as a new product (one web app)", () => {
+  const t = (id: string, track: string, kind: string, executor = "factory") => ({ id, track, kind, executor });
+  it("accepts web work, environment set-up and backend work people do", () => {
+    expect(webOnlyRefusal("est", { tasks: [t("EST-1", "web", "ui-form"), t("EST-2", "qa", "qa-e2e"), t("EST-3", "backend", "ops-setup", "joint"), t("EST-4", "backend", "be-auth", "human")] })).toBeUndefined();
+    expect(webOnlyRefusal("est", {})).toBeUndefined();
+  });
+  it("refuses an estimate that prices its own API (d7a6's shape) or a phone app, and names the tasks", () => {
+    const api = webOnlyRefusal("d7a6", { tasks: [t("EST-1", "backend", "be-data"), t("EST-2", "backend", "be-auth", "joint"), t("EST-3", "backend", "be-endpoint"), t("EST-4", "backend", "be-endpoint"), t("EST-5", "backend", "be-crud"), t("EST-7", "web", "ui-list")], stack: { backend: "ASP.NET Core Web API" } });
+    expect(api).toMatch(/^d7a6 prices more than a web app: 5 backend tasks \(EST-1, EST-2, EST-3, EST-4, …; priced as ASP\.NET Core Web API\)/);
+    expect(api).toMatch(/full-stack product.*cannot start from an estimate yet/);
+    const phone = webOnlyRefusal("est", { tasks: [t("EST-1", "mobile", "ui-device")] });
+    expect(phone).toMatch(/1 mobile task \(EST-1\).*A phone app is not built yet/);
   });
 });

@@ -3,8 +3,7 @@ import { userInfo } from "node:os";
 import { resolve } from "node:path";
 import type { Command } from "commander";
 import { gatherRequest } from "../sources/request.js";
-import { createRun } from "../stages/executor.js";
-import { apiRequest, approvedContract, delivered, handOverContract, loadProduct, saveProduct, setUpProduct, writeRunFiles } from "./product.js";
+import { delivered, loadProduct, startApiRun, startProduct, writeRunFiles } from "./product.js";
 
 export function registerFullstackCommands(program: Command, d: { log: (m: string) => void; runAndReport: (runId: string) => Promise<void> }): void {
   const { log } = d;
@@ -19,13 +18,10 @@ export function registerFullstackCommands(program: Command, d: { log: (m: string
     .description("make the two repos and start the web run: questions, the design, then the plan with the API contract")
     .action(async (prompt: string | undefined, o: { name: string; file?: string; dir: string; maxCost?: string }) => {
       const req = await gatherRequest({ prompt, file: o.file }, {});
-      const p = setUpProduct(o.name, resolve(o.dir));
+      const p = await startProduct(o.name, resolve(o.dir), req, userInfo().username, o.maxCost !== undefined ? Number(o.maxCost) : undefined);
       log(`web repo ${p.web.repo} (project ${p.web.project}); API repo ${p.api.repo} (project ${p.api.project})`);
-      p.request = req.text;
-      p.web.run = await createRun(req.text, p.web.project, userInfo().username, { ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}), sources: req.sources });
-      saveProduct(p);
       log(`web run ${p.web.run}. Answer its cards as usual; once its plan is approved: factory fullstack next ${p.name}`);
-      await d.runAndReport(p.web.run);
+      await d.runAndReport(p.web.run!);
     });
 
   fs.command("next").argument("<name>")
@@ -34,14 +30,11 @@ export function registerFullstackCommands(program: Command, d: { log: (m: string
     .action(async (name: string, o: { maxCost?: string }) => {
       const p = loadProduct(name);
       if (!p.api.run) {
-        const contract = approvedContract(p);
-        if (!contract) return log(`The web run's plan is not approved yet, so there is no contract to hand over. See: factory status ${p.web.run}`);
-        handOverContract(p, contract);
+        const api = await startApiRun(p, userInfo().username, o.maxCost !== undefined ? Number(o.maxCost) : undefined);
+        if (!api) return log(`The web run's plan is not approved yet, so there is no contract to hand over. See: factory status ${p.web.run}`);
         log(`contract handed to ${p.api.repo}`);
-        p.api.run = await createRun(apiRequest(p.request ?? ""), p.api.project, userInfo().username, { ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}) });
-        saveProduct(p);
-        log(`API run ${p.api.run}. The web run goes on by itself: factory resume ${p.web.run}`);
-        return d.runAndReport(p.api.run);
+        log(`API run ${api}. The web run goes on by itself: factory resume ${p.web.run}`);
+        return d.runAndReport(api);
       }
       const [web, api] = [delivered(p.web.run), delivered(p.api.run)];
       log(`web run ${p.web.run}: ${web ? "delivered" : `not delivered yet (factory status ${p.web.run})`}`);

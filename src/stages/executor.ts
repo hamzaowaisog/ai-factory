@@ -23,7 +23,7 @@ import { setPrice } from "../runners/pricing.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { stepsFor } from "./modes.js";
 import { answersOf, asksGates, asksPerson, gateCard, gateRounds, gateSubject, GATE_ROUNDS, nextQuestionId, ROUND_ATTEMPTS, writeGateQuestions, type FiledRound, type GateRound } from "./gate-questions.js";
-import { greenfieldRefusal, repoIsEmpty } from "../config/greenfield.js";
+import { greenfieldRefusal, repoIsEmpty, webOnlyRefusal, type EstimateScope } from "../config/greenfield.js";
 import { availableRungs, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
 import type { RequestSource } from "../sources/request.js";
@@ -102,6 +102,11 @@ export async function createRun(request: string, projectName: string, operator: 
   if (opts.mode === "greenfield") {
     if (opts.fromDesign?.repo) throw new Error("A greenfield run builds an approved design for a new product (one designed with no repo).");
     if (fromEstimate && !fromEstimate.settings.noRepo) throw new Error(`${fromEstimate.runId} estimated a change to an existing repo, so it is built into that repo, not into project ${project.project}'s empty one. A new product is built from an estimate made with no repo.`);
+    if (fromEstimate) {
+      const scope = { ...(fromEstimate.artifacts[fromEstimate.breakdownSha] as EstimateScope | undefined), stack: (fromEstimate.artifacts[fromEstimate.estimateSha] as EstimateScope | undefined)?.stack };
+      const tooMuch = webOnlyRefusal(fromEstimate.runId, scope);
+      if (tooMuch) throw new Error(tooMuch);
+    }
     const why = greenfieldRefusal(opts.fromDesign?.runId ?? fromEstimate?.runId ?? "This request", project);
     if (why) throw new Error(why);
   } else if (opts.fromDesign && !opts.fromDesign.repo && !readsRequirements(opts.mode)) throw new Error(`${opts.fromDesign.runId} is a new product (designed with no repo): build it as a greenfield run.`);

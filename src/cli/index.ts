@@ -594,7 +594,7 @@ program.command("ui").option("--port <n>", "port on 127.0.0.1", "4321")
     const ui = createUiServer();
     const port = await listen(ui, Number(o.port), o.port === "4321" ? 10 : 1);
     log(`Factory screens: http://127.0.0.1:${port}/?t=${ui.token}`);
-    log("Only this computer can open it, and only with this link (a new key each time). Decisions are made in your terminal, so no AI or script can approve its own plan. Ctrl+C to stop.");
+    log("Only this computer can open it, and only with this link (a new key each time). A decision on the page needs your typed name and the card's hash; waivers and cost limits stay in your terminal. Ctrl+C to stop.");
   });
 
 program.command("smoke").option("--project <name>", "also check models this project overrides")
