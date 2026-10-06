@@ -113,23 +113,26 @@ export interface EstimateScope {
 }
 
 /**
- * Why an approved estimate made with no repo is more than a greenfield run builds, or undefined when it is not. A greenfield run
- * builds one Next.js app with no API of its own, so an estimate that prices a phone app (mobile tasks) or its own API and data
- * (backend `be-*` tasks the factory or the factory with people builds) would be delivered without them: B1 only checks that
- * each plan task maps to an estimate task, not that every estimate task is planned. Such a product is a web app + API.
+ * Why an approved estimate made with no repo is more than this new product builds, or undefined when it is not. A new product with
+ * its own API (`withApi`: Greenfield on the page, `factory fullstack`) builds the web app and a .NET API, so only a phone app
+ * (mobile tasks) is beyond it. A web app alone (Greenfield's "the client provides the backend", or a plain start into an empty
+ * Node project) builds no API either, so the
+ * estimate's backend `be-*` tasks the factory builds (executor factory or joint) would be dropped too: B1 only checks that each plan
+ * task maps to an estimate task, not that every estimate task is planned. Set-up (`ops-*`) and work people do don't count.
  */
-export function webOnlyRefusal(runId: string, scope: EstimateScope): string | undefined {
+export function newProductRefusal(runId: string, scope: EstimateScope, withApi: boolean): string | undefined {
   const built = (scope.tasks ?? []).filter((t) => t.executor !== "human");
   const mobile = built.filter((t) => t.track === "mobile");
-  const backend = built.filter((t) => t.track === "backend" && t.kind?.startsWith("be-"));
+  const backend = withApi ? [] : built.filter((t) => t.track === "backend" && t.kind?.startsWith("be-"));
   if (!mobile.length && !backend.length) return undefined;
   const ids = (ts: { id: string }[]) => `${ts.slice(0, 4).map((t) => t.id).join(", ")}${ts.length > 4 ? ", …" : ""}`;
   const parts = [
     ...(backend.length ? [`${backend.length} backend task${backend.length > 1 ? "s" : ""} (${ids(backend)}${scope.stack?.backend ? `; priced as ${scope.stack.backend}` : ""})`] : []),
     ...(mobile.length ? [`${mobile.length} mobile task${mobile.length > 1 ? "s" : ""} (${ids(mobile)}${scope.stack?.mobile ? `; priced as ${scope.stack.mobile}` : ""})`] : []),
   ];
-  return `${runId} prices more than a web app: ${parts.join(" and ")}. A greenfield run builds one Next.js app with no API of its own, so those tasks would not be built. ` +
-    `${backend.length ? "A web app with its own API is a full-stack product (factory fullstack, or Web app + API on the page), which cannot start from an estimate yet: start it from the requirements, or estimate again as a web app only." : "A phone app is not built yet: estimate again as a web app only."}`;
+  if (withApi) return `${runId} prices a phone app: ${parts.join(" and ")}. A new product is a web app and its API; a phone app is not built yet, so those tasks would not be built. Estimate again without the phone app.`;
+  return `${runId} prices more than a web app: ${parts.join(" and ")}. A web app alone is one Next.js app on a backend it does not build, so those tasks would not be built. ` +
+    `${backend.length ? `Build it with its API instead (Greenfield on the page, or factory fullstack start --from-estimate ${runId}); or, when the client provides the backend, estimate again without the backend work.` : "A phone app is not built yet: estimate again without it."}`;
 }
 
 /**

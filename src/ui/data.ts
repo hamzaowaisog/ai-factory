@@ -35,7 +35,7 @@ import { Redactor } from "../context/secrets.js";
 import { readPreview } from "./preview.js";
 import { factoryAssumed } from "../stages/gate-questions.js";
 import { loadProject, STANDALONE_PROJECT } from "../config/project.js";
-import { repoIsEmpty, webOnlyRefusal, type EstimateScope } from "../config/greenfield.js";
+import { newProductRefusal, repoIsEmpty, type EstimateScope } from "../config/greenfield.js";
 
 // ---------- helpers ----------
 
@@ -76,10 +76,11 @@ export async function busyRun(project: string): Promise<{ runId: string } | unde
 }
 
 /**
- * `repo`: false for an estimate made with no repo, the kind a new product (greenfield) is built from. `webOnly`: for such an
- * estimate, why a greenfield run would not build all of it (it prices an API or a phone app), when it would not.
+ * `repo`: false for an estimate made with no repo, the kind a new product (Greenfield: a web app and its API) is built from.
+ * `cannotBuild`: for such an estimate, why a new product (web app + API) would not build all of it (it prices a phone app);
+ * `cannotBuildWebOnly`: why a web app alone, on a backend the client provides, would not (it prices backend work too).
  */
-export interface ApprovedEstimateRow { runId: string; project: string; request: string; createdAt: string; deliveryModel: string; repo: boolean; webOnly?: string }
+export interface ApprovedEstimateRow { runId: string; project: string; request: string; createdAt: string; deliveryModel: string; repo: boolean; cannotBuild?: string; cannotBuildWebOnly?: string }
 
 /** Estimate runs that are approved and exported: the ones a build can start from (factory start --from-estimate). */
 export function approvedEstimatesView(): ApprovedEstimateRow[] {
@@ -91,12 +92,14 @@ export function approvedEstimatesView(): ApprovedEstimateRow[] {
       if (s.info.mode !== "estimate") continue;
       if (!["estimate", "approve-estimate", "export"].every((k) => s.steps.get(k)?.status === "completed")) continue;
       const repo = s.info.estimate?.noRepo !== true;
-      let webOnly: string | undefined;
+      let cannotBuild: string | undefined, cannotBuildWebOnly: string | undefined;
       if (!repo) {
         const out = (k: string) => { const sha = s.steps.get(k)?.outputs[0]; return sha ? ledger.getJson<EstimateScope>(sha) : undefined; };
-        webOnly = webOnlyRefusal(id, { ...out("breakdown"), stack: out("estimate")?.stack });
+        const scope = { ...out("breakdown"), stack: out("estimate")?.stack };
+        cannotBuild = newProductRefusal(id, scope, true);
+        cannotBuildWebOnly = newProductRefusal(id, scope, false);
       }
-      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt, deliveryModel: s.info.estimate?.deliveryModel ?? "hitl", repo, ...(webOnly ? { webOnly } : {}) });
+      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt, deliveryModel: s.info.estimate?.deliveryModel ?? "hitl", repo, ...(cannotBuild ? { cannotBuild } : {}), ...(cannotBuildWebOnly ? { cannotBuildWebOnly } : {}) });
     } catch { /* a broken ledger doesn't hide the others */ }
   }
   return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
@@ -510,7 +513,7 @@ export function estimateView(ledger: Ledger) {
     assumptions: est.assumptions,
     ...(est.stack ? { stack: est.stack } : {}),
     // made with no repo but prices an API or a phone app: a greenfield run (one web app) would not build all of it
-    ...(s.info.estimate?.noRepo === true && bd ? (() => { const w = webOnlyRefusal(ledger.runId, { tasks: bd.tasks, stack: est.stack }); return w ? { webOnly: w } : {}; })() : {}),
+    ...(s.info.estimate?.noRepo === true && bd ? (() => { const w = newProductRefusal(ledger.runId, { tasks: bd.tasks, stack: est.stack }, true); return w ? { cannotBuild: w } : {}; })() : {}),
     ...(est.catalogue ? { catalogue: { ...est.catalogue, statusText: catalogueStatusText(est.catalogue) } } : {}),
     design: baseline === undefined ? { pending: true } : !design ? { ui: false } : {
       ui: true, flow: design.flow,

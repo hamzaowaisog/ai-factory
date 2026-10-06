@@ -91,6 +91,7 @@ descriptions, `format`). The document comes from the lab's kept build of the com
 
 ```
 factory fullstack start --name clinic --file intent.md --dir ~/code --max-cost 10
+#   or start from an approved no-repo design or estimate: --from-design <run> / --from-estimate <run> (no request then)
 #   answer the web run's cards as usual (factory answer / factory approve / factory resume)
 factory fullstack next clinic --max-cost 6       # once the web plan is approved
 #   answer the API run's plan card; resume the web run if it stopped
@@ -100,7 +101,7 @@ docker compose -f ~/code/clinic-run/docker-compose.yml up
 
 | Command | What it does | Code |
 |---|---|---|
-| `start` | Makes `<name>-web` (empty) and `<name>-api` (the skeleton in `src/fullstack/skeleton.ts`: .NET 9, SQLite, one test, CORS for `localhost:3000`), writes both project configs, starts the web run. | `setUpProduct` |
+| `start` | Makes `<name>-web` (empty) and `<name>-api` (the skeleton in `src/fullstack/skeleton.ts`: .NET 9, SQLite, one test, CORS for `localhost:3000`), writes both project configs, starts the web run. From an approved design made with no repo, the web run builds that design and skips its design steps; from an approved estimate made with no repo, it is held to the estimate (gates B1-B6). Either brings its own request, and is checked before anything is made. With neither, the web run draws its own design and nothing is estimated. | `productSeed`, `setUpProduct`, `startProduct` |
 | `next` | Copies the contract approved with the web plan into the API repo's base branch and starts the API run. Before the plan is approved it only says so. Later it reports where each run is. | `approvedContract`, `handOverContract`, `apiRequest` |
 | `up` | Checks out the two delivered branches side by side and writes a compose file: the API on port 5080, the web app on 3000. | `writeRunFiles` |
 
@@ -111,8 +112,10 @@ It is two ordinary runs underneath: two specs, two ledgers, two branches, and tw
 remote and a token.
 
 ### In `factory ui`
-New run, Greenfield, then "Web app + API" is `start`: a name, the folder for both repos, the request (typed or a
-dropped `.md`) and the web run's max cost. Products lists each product; its page shows both runs side by side, the
+New run, Greenfield is `start` (Backend: "Build its API too", the default): a name, the folder for both repos, Start
+from (nothing, an approved no-repo design or an approved no-repo estimate), the request when nothing is picked (typed or
+a dropped `.md`) and the web run's max cost. "The client provides it" on the same form starts a web app alone in one
+new repo instead (a greenfield run, no API run). Products lists each product; its page shows both runs side by side, the
 contract once the web plan is approved (with its operations, `GET /orders`), a Start API run button (`next`, with its
 own max cost) and, once both runs are delivered, Write run files (`up`: it writes the compose file and shows the
 command; it starts nothing). Each run's cards are decided on its own run page: questions, the design card and the
@@ -128,14 +131,15 @@ there approves the contract, as `factory approve` does. A limit card is raised o
 | API side with a fake lab: a match delivers, a renamed field is caught, a build with no document fails, no design is drawn | `src/stages/e2e.test.ts` ("a .NET API held to a locked API contract") |
 | One-run greenfield with a fake lab; a test writer that adds a package is stopped | `src/stages/greenfield.test.ts`, `src/stages/modes.test.ts` |
 | The wrapper: setup, hand-over, guards | `src/fullstack/product.test.ts` |
-| The page: start, next and up, and their refusals | `src/ui/ui.test.ts` ("a web app + API product") |
+| The page: start (from a request, an approved design or an approved estimate), next and up, and their refusals | `src/ui/ui.test.ts` ("a web app + API product") |
 | The whole thing on real containers with scripted models | [`dryrun/`](../dryrun/README.md) |
 
 ## Limits
 - No real model has run the contract path. Everything is proven with scripted models.
-- A product cannot start from an approved estimate yet: one estimate would feed two runs, so its tasks, budget and
-  spec would have to be split per side, and the contract checked against its backend tasks. A greenfield run refuses
-  an estimate that prices its own API and points here.
+- A product started from an approved estimate holds only the web run to it (scope, budget, screens). The API run
+  builds the contract the web plan wrote and a person approved; it is not held to the estimate's backend tasks or
+  budget, and the contract is not checked against those tasks. Splitting one estimate across two runs is not built.
+  An estimate that prices a phone app is refused.
 - The API skeleton is fixed (.NET 9 minimal API, SQLite). The factory refuses SQL Server; Postgres would use the
   project's `database` block and is not wired into the skeleton.
 - The client's API address is a fixed string from the project config.

@@ -445,7 +445,7 @@ describe("factory ui: a new product (greenfield)", () => {
     expect((await post({ mode: "greenfield", newProject: { name: "cart", dir: newDir("cart") }, prompt: request })).json().error).toMatch(/already exists/);
   });
 
-  it("lists a no-repo estimate that prices an API, but won't build it as one web app, and says why", async () => {
+  it("lists a no-repo estimate that prices an API: built with its API, but not as a web app alone, and says why", async () => {
     makeNewProduct("parts", newDir("parts"));
     ensureStandaloneProject();
     const id = await createRun("A quick-order page for parts buyers", "standalone-estimates", "tester", { mode: "estimate", estimate: { noRepo: true } } as never);
@@ -457,16 +457,18 @@ describe("factory ui: a new product (greenfield)", () => {
     await addEvents(id, [...step("breakdown", 0, {}, [bd]), ...step("specify", 0, {}, [l.putJson({ title: "s" })]), ...step("estimate", 0, {}, [est]), ...step("approve-estimate"), ...step("export")]);
     const row = (await call("/api/projects")).json().estimates.find((e: { runId: string }) => e.runId === id);
     expect(row).toMatchObject({ repo: false });
-    expect(row.webOnly).toMatch(/1 backend task \(EST-3; priced as ASP\.NET Core Web API\)/);
-    expect(row.webOnly).toMatch(/factory fullstack.*cannot start from an estimate yet/);
+    // with its API (Greenfield's default) all of it is built; as a web app alone on the client's backend, the backend task is not
+    expect(row.cannotBuild).toBeUndefined();
+    expect(row.cannotBuildWebOnly).toMatch(/1 backend task \(EST-3; priced as ASP\.NET Core Web API\)/);
+    expect(row.cannotBuildWebOnly).toMatch(new RegExp(`factory fullstack start --from-estimate ${id}.*client provides the backend, estimate again without the backend work`));
     const before = Ledger.listRuns().length;
     const r = await post({ project: "parts", mode: "greenfield", fromEstimate: id });
     expect(r.status).toBe(400);
     expect(r.json().error).toMatch(/prices more than a web app/);
     expect(Ledger.listRuns().length).toBe(before);
     expect(started).toEqual([]);
-    // the Estimate tab says the same, in place of its Build button
-    expect((await call(`/api/runs/${id}/estimate`)).json().webOnly).toBe(row.webOnly);
+    // the Estimate tab's Build button leads to Greenfield, where it is built with its API
+    expect((await call(`/api/runs/${id}/estimate`)).json().cannotBuild).toBeUndefined();
   });
 });
 
@@ -483,6 +485,7 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
       [{ name: "orders", dir }, /Describe the product/],
       [{ name: "orders", dir, prompt: "An orders app", maxCost: 25 }, /can only lower/],
       [{ name: "orders", dir, prompt: "An orders app", file: { name: "a.exe", text: "x" } }, /\.md\) or text/],
+      [{ name: "orders", dir, fromDesign: "nope", fromEstimate: "nope" }, /one thing at a time/],
     ];
     for (const [body, msg] of cases) {
       const r = await send("/api/fullstack", body);
@@ -535,6 +538,58 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     expect(up.status).toBe(409);
     expect(up.json().error).toMatch(/Both runs must be delivered/);
     expect((await call("/api/fullstack/orders")).json().next).toMatchObject({ canStartApi: false, canWriteRunFiles: false });
+  });
+
+  /** An approved estimate made with no repo, with the tasks given (approved by a person, so a build may be held to it). */
+  async function noRepoEstimate(tasks: { id: string; track: string; kind: string; executor: string }[]): Promise<string> {
+    ensureStandaloneProject();
+    const id = await createRun("A quick-order page for parts buyers", "standalone-estimates", "tester", { mode: "estimate", estimate: { noRepo: true } } as never);
+    const l = Ledger.open(id);
+    const range = (min: number, max: number) => ({ min, max });
+    const est = l.putJson({ deliveryModel: "agentic", tasks: [], totals: { overall: range(4, 40) }, apiCost: { total: range(1, 50) }, elapsed: { criticalPathDays: range(1, 10) }, stack: { backend: "ASP.NET Core Web API", mobile: "React Native" } });
+    await addEvents(id, [...step("breakdown", 0, {}, [l.putJson({ tasks })]), ...step("specify", 0, {}, [l.putJson({ title: "s" })]), ...step("estimate", 0, {}, [est]), ...step("approve-estimate"), ...step("export")]);
+    return id;
+  }
+
+  it("starts from an approved estimate made with no repo: its request, and the web run held to it; a phone app is refused", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+    const id = await noRepoEstimate([{ id: "EST-1", track: "web", kind: "ui-form", executor: "factory" }, { id: "EST-3", track: "backend", kind: "be-endpoint", executor: "factory" }]);
+    expect((await send("/api/fullstack", { name: "parts", dir, fromEstimate: id, prompt: "more" })).json().error).toMatch(/brings its own request/);
+    const r = await send("/api/fullstack", { name: "parts", dir, fromEstimate: id });
+    expect(r.status).toBe(201);
+    const info = replay(Ledger.open(r.json().webRun).events()).info;
+    expect(info).toMatchObject({ mode: "greenfield", project: "parts-web", request: "A quick-order page for parts buyers", estimateRef: expect.objectContaining({ runId: id }) });
+    expect((await call("/api/fullstack/parts")).json()).toMatchObject({ request: "A quick-order page for parts buyers", from: { kind: "estimate", runId: id } });
+
+    const phone = await noRepoEstimate([{ id: "EST-1", track: "web", kind: "ui-form", executor: "factory" }, { id: "EST-2", track: "mobile", kind: "ui-device", executor: "factory" }]);
+    expect((await call("/api/projects")).json().estimates.find((e: { runId: string }) => e.runId === phone).cannotBuild).toMatch(/prices a phone app: 1 mobile task \(EST-2; priced as React Native\)/);
+    const refused = await send("/api/fullstack", { name: "phones", dir, fromEstimate: phone });
+    expect(refused.status).toBe(400);
+    expect(refused.json().error).toMatch(/prices a phone app/);
+    expect(existsSync(join(dir, "phones-web"))).toBe(false);
+    expect((await call("/api/fullstack")).json().map((p: { name: string }) => p.name)).toContain("parts");
+    expect((await call("/api/fullstack")).json().map((p: { name: string }) => p.name)).not.toContain("phones");
+  });
+
+  it("starts from an approved design made with no repo: its design steps are skipped; one made for a repo is refused", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+    const design = async (project?: string) => {
+      if (!project) ensureStandaloneProject();
+      const runId = await createRun("Build an order portal with login", project ?? "standalone-estimates", "tester", { mode: "design", ...(project ? {} : { estimate: { noRepo: true } }) } as never);
+      const l = Ledger.open(runId);
+      const designSha = l.putJson({ flow: "A user signs in", noScreen: [], screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["error"], size: "new" }] });
+      await addEvents(runId, [...step("intake", 0, {}, [l.putJson({ text: "x" })]), ...step("specify", 0, {}, [l.putJson({ title: "s" })]), ...step("design", 0, {}, [designSha]),
+        ...step("design-baseline", 0, { ui: true }, [l.putJson({ ui: true, design: designSha, by: "lead" })])]);
+      return runId;
+    };
+    const forRepo = await design("web");
+    expect((await send("/api/fullstack", { name: "portal", dir, fromDesign: forRepo })).json().error).toMatch(/designed against an existing repo/);
+    expect(existsSync(join(dir, "portal-web"))).toBe(false);
+    const alone = await design();
+    const r = await send("/api/fullstack", { name: "portal", dir, fromDesign: alone });
+    expect(r.status).toBe(201);
+    expect(replay(Ledger.open(r.json().webRun).events()).info).toMatchObject({ mode: "greenfield", project: "portal-web", designRef: expect.objectContaining({ runId: alone }) });
+    expect((await call("/api/fullstack/portal")).json().from).toEqual({ kind: "design", runId: alone });
   });
 });
 

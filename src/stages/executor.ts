@@ -23,7 +23,7 @@ import { setPrice } from "../runners/pricing.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { stepsFor } from "./modes.js";
 import { answersOf, asksGates, asksPerson, gateCard, gateRounds, gateSubject, GATE_ROUNDS, nextQuestionId, ROUND_ATTEMPTS, writeGateQuestions, type FiledRound, type GateRound } from "./gate-questions.js";
-import { greenfieldRefusal, repoIsEmpty, webOnlyRefusal, type EstimateScope } from "../config/greenfield.js";
+import { greenfieldRefusal, newProductRefusal, repoIsEmpty, type EstimateScope } from "../config/greenfield.js";
 import { availableRungs, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
 import type { RequestSource } from "../sources/request.js";
@@ -104,7 +104,8 @@ export async function createRun(request: string, projectName: string, operator: 
     if (fromEstimate && !fromEstimate.settings.noRepo) throw new Error(`${fromEstimate.runId} estimated a change to an existing repo, so it is built into that repo, not into project ${project.project}'s empty one. A new product is built from an estimate made with no repo.`);
     if (fromEstimate) {
       const scope = { ...(fromEstimate.artifacts[fromEstimate.breakdownSha] as EstimateScope | undefined), stack: (fromEstimate.artifacts[fromEstimate.estimateSha] as EstimateScope | undefined)?.stack };
-      const tooMuch = webOnlyRefusal(fromEstimate.runId, scope);
+      // a full-stack product's web side (its project holds the API contract) has the API run beside it
+      const tooMuch = newProductRefusal(fromEstimate.runId, scope, !!project.contract);
       if (tooMuch) throw new Error(tooMuch);
     }
     const why = greenfieldRefusal(opts.fromDesign?.runId ?? fromEstimate?.runId ?? "This request", project);

@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { assertNothingWaiting, commitAt, currentBranch, greenfieldRefusal, isEmptyTree, nodeProjectYaml, repoIsEmpty, seedEmptyRepo, uncommittedCode, webOnlyRefusal } from "./greenfield.js";
+import { assertNothingWaiting, commitAt, currentBranch, greenfieldRefusal, isEmptyTree, nodeProjectYaml, repoIsEmpty, seedEmptyRepo, uncommittedCode, newProductRefusal } from "./greenfield.js";
 import { ProjectConfig } from "./project.js";
 import { parse } from "yaml";
 
@@ -86,17 +86,23 @@ describe("an empty repo (greenfield)", () => {
   });
 });
 
-describe("an estimate built as a new product (one web app)", () => {
+describe("an estimate built as a new product: a web app and its API, or a web app alone", () => {
   const t = (id: string, track: string, kind: string, executor = "factory") => ({ id, track, kind, executor });
   it("accepts web work, environment set-up and backend work people do", () => {
-    expect(webOnlyRefusal("est", { tasks: [t("EST-1", "web", "ui-form"), t("EST-2", "qa", "qa-e2e"), t("EST-3", "backend", "ops-setup", "joint"), t("EST-4", "backend", "be-auth", "human")] })).toBeUndefined();
-    expect(webOnlyRefusal("est", {})).toBeUndefined();
+    for (const withApi of [true, false]) {
+      expect(newProductRefusal("est", { tasks: [t("EST-1", "web", "ui-form"), t("EST-2", "qa", "qa-e2e"), t("EST-3", "backend", "ops-setup", "joint"), t("EST-4", "backend", "be-auth", "human")] }, withApi)).toBeUndefined();
+      expect(newProductRefusal("est", {}, withApi)).toBeUndefined();
+    }
   });
-  it("refuses an estimate that prices its own API (d7a6's shape) or a phone app, and names the tasks", () => {
-    const api = webOnlyRefusal("d7a6", { tasks: [t("EST-1", "backend", "be-data"), t("EST-2", "backend", "be-auth", "joint"), t("EST-3", "backend", "be-endpoint"), t("EST-4", "backend", "be-endpoint"), t("EST-5", "backend", "be-crud"), t("EST-7", "web", "ui-list")], stack: { backend: "ASP.NET Core Web API" } });
-    expect(api).toMatch(/^d7a6 prices more than a web app: 5 backend tasks \(EST-1, EST-2, EST-3, EST-4, …; priced as ASP\.NET Core Web API\)/);
-    expect(api).toMatch(/full-stack product.*cannot start from an estimate yet/);
-    const phone = webOnlyRefusal("est", { tasks: [t("EST-1", "mobile", "ui-device")] });
-    expect(phone).toMatch(/1 mobile task \(EST-1\).*A phone app is not built yet/);
+  it("builds an estimate that prices its own API (d7a6's shape) with its API, but not as a web app alone", () => {
+    const scope = { tasks: [t("EST-1", "backend", "be-data"), t("EST-2", "backend", "be-auth", "joint"), t("EST-3", "backend", "be-endpoint"), t("EST-4", "backend", "be-endpoint"), t("EST-5", "backend", "be-crud"), t("EST-7", "web", "ui-list")], stack: { backend: "ASP.NET Core Web API" } };
+    expect(newProductRefusal("d7a6", scope, true)).toBeUndefined();
+    const alone = newProductRefusal("d7a6", scope, false);
+    expect(alone).toMatch(/^d7a6 prices more than a web app: 5 backend tasks \(EST-1, EST-2, EST-3, EST-4, …; priced as ASP\.NET Core Web API\)/);
+    expect(alone).toMatch(/factory fullstack start --from-estimate d7a6.*client provides the backend, estimate again without the backend work/);
+  });
+  it("refuses a phone app either way, and names the tasks", () => {
+    expect(newProductRefusal("est", { tasks: [t("EST-1", "mobile", "ui-device")] }, true)).toMatch(/^est prices a phone app: 1 mobile task \(EST-1\).*Estimate again without the phone app/);
+    expect(newProductRefusal("est", { tasks: [t("EST-1", "mobile", "ui-device")] }, false)).toMatch(/1 mobile task \(EST-1\).*A phone app is not built yet/);
   });
 });

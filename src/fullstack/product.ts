@@ -6,11 +6,12 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { stringify } from "yaml";
-import { PRODUCT_NAME, seedEmptyRepo } from "../config/greenfield.js";
+import { newProductRefusal, PRODUCT_NAME, seedEmptyRepo, type EstimateScope } from "../config/greenfield.js";
 import { projectPath } from "../config/project.js";
 import { hardenedEnv } from "../ledger/git.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
+import { approvedDesign, approvedEstimate, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
 import type { RequestSource } from "../sources/request.js";
 import { createRun } from "../stages/executor.js";
 import { factoryHome } from "../util/paths.js";
@@ -18,7 +19,32 @@ import { API_BUILT_DOC, API_PORT, API_SDK_IMAGE, API_SKELETON, API_SOLUTION } fr
 
 export const CONTRACT_FILE = "contracts/openapi.yaml";
 
-export interface Product { name: string; dir: string; web: { project: string; repo: string; run?: string }; api: { project: string; repo: string; run?: string }; request?: string }
+/** `from`: the approved design (its design steps are skipped) or approved estimate (the web run is held to it) the product started from. */
+export interface Product { name: string; dir: string; web: { project: string; repo: string; run?: string }; api: { project: string; repo: string; run?: string }; request?: string; from?: { kind: "design" | "estimate"; runId: string } }
+
+/** What a product may start from besides a request: an approved design or an approved estimate, each made with no repo. */
+export type ProductSeed = { design: ApprovedDesign } | { estimate: Approved };
+
+/**
+ * The approved design or estimate a new product starts from, read and checked before anything is made: made with no repo (a new
+ * product), approved by a person (an estimate a build is held to), and nothing the product would not build (a phone app). Throws in plain words.
+ */
+export function productSeed(from: { design?: string; estimate?: string }): ProductSeed | undefined {
+  if (from.design && from.estimate) throw new Error("Start from one thing at a time: an approved design or an approved estimate (an estimate brings its own design).");
+  if (from.design) {
+    const design = approvedDesign(from.design);
+    if (design.repo) throw new Error(`${design.runId} was designed against an existing repo, so it is built into that project, not as a new product. A new product starts from a design made with no repo.`);
+    return { design };
+  }
+  if (from.estimate) {
+    const estimate = approvedEstimate(from.estimate, { build: true });
+    if (!estimate.settings.noRepo) throw new Error(`${estimate.runId} estimated a change to an existing repo, so it is built into that repo, not as a new product. A new product starts from an estimate made with no repo.`);
+    const why = newProductRefusal(estimate.runId, { ...(estimate.artifacts[estimate.breakdownSha] as EstimateScope | undefined), stack: (estimate.artifacts[estimate.estimateSha] as EstimateScope | undefined)?.stack }, true);
+    if (why) throw new Error(why);
+    return { estimate };
+  }
+  return undefined;
+}
 
 const statePath = (name: string) => join(factoryHome(), "fullstack", `${name}.json`);
 export const saveProduct = (p: Product): void => { mkdirSync(dirname(statePath(p.name)), { recursive: true }); writeFileSync(statePath(p.name), `${JSON.stringify(p, null, 2)}\n`); };
@@ -58,11 +84,24 @@ export function setUpProduct(name: string, dir: string): Product {
   return p;
 }
 
-/** `factory fullstack start` after the checks: make the two repos and start the web run (greenfield). Returns the product with its run. */
-export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[] }, operator: string, maxCostUsd?: number): Promise<Product> {
+/**
+ * `factory fullstack start` after the checks: make the two repos and start the web run (greenfield). Returns the product with its run.
+ * From an approved design, the web run builds that design (its design steps are skipped); from an approved estimate, it follows the
+ * estimate's spec and design and is held to it (gates B1-B6). Either brings its own request. With neither, the run draws its own design
+ * and nothing is estimated.
+ */
+export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[] } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed): Promise<Product> {
+  const from = seed && ("design" in seed ? seed.design : seed.estimate);
+  const text = from?.request ?? request?.text;
+  if (!text) throw new Error("Describe the product, or start it from an approved design or estimate.");
   const p = setUpProduct(name, dir);
-  p.request = request.text;
-  p.web.run = await createRun(request.text, p.web.project, operator, { ...(maxCostUsd !== undefined ? { maxCostUsd } : {}), ...(request.sources ? { sources: request.sources } : {}) });
+  p.request = text;
+  if (seed) p.from = { kind: "design" in seed ? "design" : "estimate", runId: from!.runId };
+  p.web.run = await createRun(text, p.web.project, operator, {
+    ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
+    ...(from ? { sources: [{ kind: "prompt" as const }] } : request?.sources ? { sources: request.sources } : {}),
+    ...(seed ? { mode: "greenfield" as const, ...("design" in seed ? { fromDesign: seed.design } : { lineage: { kind: "build" as const, approved: seed.estimate } }) } : {}),
+  });
   saveProduct(p);
   return p;
 }

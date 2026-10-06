@@ -3,7 +3,7 @@ import { userInfo } from "node:os";
 import { resolve } from "node:path";
 import type { Command } from "commander";
 import { gatherRequest } from "../sources/request.js";
-import { delivered, loadProduct, startApiRun, startProduct, writeRunFiles } from "./product.js";
+import { delivered, loadProduct, productSeed, startApiRun, startProduct, writeRunFiles } from "./product.js";
 
 export function registerFullstackCommands(program: Command, d: { log: (m: string) => void; runAndReport: (runId: string) => Promise<void> }): void {
   const { log } = d;
@@ -14,12 +14,17 @@ export function registerFullstackCommands(program: Command, d: { log: (m: string
     .requiredOption("--name <name>", "the product's short name: the repos are <name>-web and <name>-api")
     .option("--file <path>", "the requirements as a Markdown or text file")
     .option("--dir <folder>", "where the two repos go", ".")
+    .option("--from-design <runId>", "start from an approved design made with no repo: its design steps are skipped")
+    .option("--from-estimate <runId>", "start from an approved estimate made with no repo: the web run is held to it")
     .option("--max-cost <usd>", "cost limit of the web run")
     .description("make the two repos and start the web run: questions, the design, then the plan with the API contract")
-    .action(async (prompt: string | undefined, o: { name: string; file?: string; dir: string; maxCost?: string }) => {
-      const req = await gatherRequest({ prompt, file: o.file }, {});
-      const p = await startProduct(o.name, resolve(o.dir), req, userInfo().username, o.maxCost !== undefined ? Number(o.maxCost) : undefined);
+    .action(async (prompt: string | undefined, o: { name: string; file?: string; dir: string; fromDesign?: string; fromEstimate?: string; maxCost?: string }) => {
+      const seed = productSeed({ design: o.fromDesign, estimate: o.fromEstimate });
+      if (seed && (prompt || o.file)) throw new Error("An approved design or estimate brings its own request: give no prompt and no --file.");
+      const req = seed ? undefined : await gatherRequest({ prompt, file: o.file }, {});
+      const p = await startProduct(o.name, resolve(o.dir), req, userInfo().username, o.maxCost !== undefined ? Number(o.maxCost) : undefined, seed);
       log(`web repo ${p.web.repo} (project ${p.web.project}); API repo ${p.api.repo} (project ${p.api.project})`);
+      if (p.from) log(p.from.kind === "design" ? `started from approved design ${p.from.runId}: its design steps are skipped` : `started from approved estimate ${p.from.runId}: the web run is held to it`);
       log(`web run ${p.web.run}. Answer its cards as usual; once its plan is approved: factory fullstack next ${p.name}`);
       await d.runAndReport(p.web.run!);
     });

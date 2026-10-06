@@ -12,7 +12,7 @@ import { gatherRequest } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
 import { shownStatus } from "../stages/run-status.js";
 import { API_PORT } from "../fullstack/skeleton.js";
-import { approvedContract, CONTRACT_FILE, delivered, loadProduct, productNames, startApiRun, startProduct, writeRunFiles, type Product } from "../fullstack/product.js";
+import { approvedContract, CONTRACT_FILE, delivered, loadProduct, productNames, productSeed, startApiRun, startProduct, writeRunFiles, type Product, type ProductSeed } from "../fullstack/product.js";
 import { factoryHome } from "../util/paths.js";
 import { currentStep } from "./data.js";
 import { folderOf, maxCostOf, StartError, str, uploadedFile, type StartDeps } from "./start.js";
@@ -24,6 +24,8 @@ export interface SideView {
 
 export interface ProductView {
   name: string; dir: string; request?: string; web: SideView; api: SideView;
+  /** the approved design or estimate the product started from */
+  from?: Product["from"];
   /** once the web plan is approved: the contract handed to the API run, and its operations ("GET /orders") */
   contract?: { file: string; text: string; operations: string[] };
   /** what to do next, in words, and whether the page's buttons apply */
@@ -65,7 +67,7 @@ export function productView(name: string): ProductView {
     : "Both runs are delivered. Write the run files, then start both apps together.";
   const out = join(p.dir, `${p.name}-run`);
   return {
-    name: p.name, dir: p.dir, ...(p.request ? { request: p.request } : {}), web, api, ...(contract ? { contract } : {}),
+    name: p.name, dir: p.dir, ...(p.request ? { request: p.request } : {}), ...(p.from ? { from: p.from } : {}), web, api, ...(contract ? { contract } : {}),
     next: { say, canStartApi: !p.api.run && !!contract, canWriteRunFiles: both },
     runFiles: { dir: out, command: `docker compose -f ${out}/docker-compose.yml up`, open: `http://localhost:3000 (the API answers on http://localhost:${API_PORT})` },
   };
@@ -80,8 +82,9 @@ export function productsView(): { name: string; web: SideView; api: SideView }[]
 }
 
 /**
- * Start a product, as `factory fullstack start`: { name, dir, prompt or file, maxCost }. Every check comes before anything is
- * written; then the two repos and their projects are made and the web run (greenfield) starts in the background.
+ * Start a product, as `factory fullstack start`: { name, dir, prompt or file, or fromDesign or fromEstimate, maxCost }. Every check
+ * comes before anything is written; then the two repos and their projects are made and the web run (greenfield) starts in the
+ * background. An approved design or estimate brings its own request.
  */
 export async function startFullstack(input: Record<string, unknown>, deps: StartDeps = {}): Promise<{ name: string; webRun: string }> {
   const name = str(input.name)?.trim() ?? "";
@@ -93,11 +96,14 @@ export async function startFullstack(input: Record<string, unknown>, deps: Start
   const maxCostUsd = maxCostOf(input.maxCost);
   const file = uploadedFile(input.file);
   const prompt = str(input.prompt);
-  if (!prompt && !file) throw new StartError("Describe the product, or upload its requirements.");
+  let seed: ProductSeed | undefined;
+  try { seed = productSeed({ design: str(input.fromDesign)?.trim() || undefined, estimate: str(input.fromEstimate)?.trim() || undefined }); } catch (e) { throw new StartError((e as Error).message); }
+  if (seed && (prompt || file)) throw new StartError("An approved design or estimate brings its own request: leave the request and the file empty.");
+  if (!seed && !prompt && !file) throw new StartError("Describe the product, or upload its requirements, or start it from an approved design or estimate.");
   if (prompt && file) throw new StartError("Give the request or a file, not both.");
   let tmp: string | undefined;
   let req;
-  try {
+  if (!seed) try {
     let path: string | undefined;
     if (file) {
       mkdirSync(join(factoryHome(), "tmp"), { recursive: true, mode: 0o700 });
@@ -112,7 +118,7 @@ export async function startFullstack(input: Record<string, unknown>, deps: Start
     if (tmp) rmSync(tmp, { recursive: true, force: true });
   }
   let p: Product;
-  try { p = await startProduct(name, dir, req, `${userInfo().username} (via web)`, maxCostUsd); } catch (e) { throw new StartError((e as Error).message); }
+  try { p = await startProduct(name, dir, req, `${userInfo().username} (via web)`, maxCostUsd, seed); } catch (e) { throw new StartError((e as Error).message); }
   (deps.execute ?? runDetached)(p.web.run!);
   return { name: p.name, webRun: p.web.run! };
 }

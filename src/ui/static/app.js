@@ -213,7 +213,7 @@ function modeScreen() {
       h("p", { class: "sub" }, "The factory turns a request into a tested branch. Answer its questions and approve its design and plan on the run page or in your terminal; waivers and cost limits stay in the terminal."))),
     h("div", { class: "grid-3 grid-4" },
       card(0, "layers", "Brownfield", "Change an existing .NET repo: request → spec → plan you approve → tests first → code → reviewed branch.", "#/new/brownfield"),
-      card(1, "sprout", "Greenfield", "A new product into an empty repo: a web app on the factory's kit, or a web app and its .NET API held to one API contract.", "#/new/greenfield"),
+      card(1, "sprout", "Greenfield", "A new product: a web app on the factory's kit and its .NET API, in two new repos held to one API contract. From a request, or an approved design or estimate.", "#/new/greenfield"),
       card(2, "ruler", "Estimate", "Size and price a request before any code is written: hours, API cost, elapsed time and the screens. The lead approves it on the Estimate tab (or in the terminal), then two workbooks are written.", "#/new/estimate"),
       card(3, "image", "Design", "See the design first: requirements and any references → spec → mock, clickable demo and look, approved by a lead. Nothing is sized or built; an estimate or build can take the approved design later.", "#/new/design"),
     ),
@@ -221,9 +221,6 @@ function modeScreen() {
 }
 
 // ---------- new run: request ----------
-
-// the project picker's value for "make a new empty project"
-const NEW_PROJECT = "+new";
 
 // design references (any mode, like --ref): files and links, each with a role and a note. The same limits are checked again
 // on the server, and every reference is read before the run exists, so one that cannot be read costs nothing.
@@ -327,50 +324,32 @@ function checkedRef(r) {
 
 async function requestScreen(kind = "brownfield", preset = []) {
   const designing = kind === "design";
-  // a new product: built into an empty Node project (or one made now), from a request or an approved no-repo estimate or design
-  const greenfield = kind === "greenfield";
   // an estimate and a design-only run both start from requirements and may have no project
   const estimating = kind === "estimate" || designing;
   skeleton();
   const meta = await api("/api/projects");
   const err = h("div", { class: "error", hidden: true });
-  const listed = greenfield ? meta.projects.filter((p) => p.empty) : meta.projects;
+  const listed = meta.projects;
   const project = h("select", { id: "project" },
-    h("option", { value: "" }, estimating ? "No project: requirements only (no repo)" : greenfield ? (listed.length ? "Choose an empty project…" : "No empty projects yet") : meta.projects.length ? "Choose a project…" : "No projects yet"),
-    listed.map((p) => h("option", { value: p.name, disabled: !!p.busy }, p.busy ? `${p.name}  (run ${p.busy.runId} is running)` : p.empty && !estimating && !greenfield ? `${p.name}  (empty repo: for a new product)` : p.name)),
-    greenfield ? h("option", { value: NEW_PROJECT }, "New empty project…") : null);
+    h("option", { value: "" }, estimating ? "No project: requirements only (no repo)" : meta.projects.length ? "Choose a project…" : "No projects yet"),
+    listed.map((p) => h("option", { value: p.name, disabled: !!p.busy }, p.busy ? `${p.name}  (run ${p.busy.runId} is running)` : p.empty && !estimating ? `${p.name}  (empty repo: for a new product)` : p.name)));
   if (!estimating && listed.length === 1 && !listed[0].busy) project.value = listed[0].name;
-  if (greenfield && !listed.some((p) => !p.busy)) project.value = NEW_PROJECT;
-  // greenfield: a new empty project, made as git init and factory init would (name and folder)
-  const newName = h("input", { type: "text", id: "newname", maxlength: "31", placeholder: "e.g. order-portal", autocomplete: "off" });
-  const newDir = h("input", { type: "text", id: "newdir", placeholder: "~/projects/order-portal", autocomplete: "off" });
-  let dirTouched = false;
-  newDir.addEventListener("input", () => { dirTouched = !!newDir.value.trim(); });
-  newName.addEventListener("input", () => { if (!dirTouched) newDir.value = newName.value.trim() ? `~/projects/${newName.value.trim()}` : ""; });
-  const newBox = h("div", { class: "est-grid", id: "newbox" },
-    h("div", { class: "fld" }, h("label", { for: "newname" }, "Name"), newName, h("div", { class: "hint" }, "Lower-case letters, digits and dashes. It names the project.")),
-    h("div", { class: "fld" }, h("label", { for: "newdir" }, "Folder"), newDir, h("div", { class: "hint" }, "A full path (~ is your home folder). It must be new or empty; it gets a git repo on main.")));
-  const syncNew = () => { newBox.hidden = project.value !== NEW_PROJECT; };
-  if (greenfield) { project.addEventListener("change", syncNew); syncNew(); }
 
   const projectLabel = (p) => (p === "standalone-estimates" ? "no project" : p);
   // a build can start from an approved estimate (its request, spec and tasks are inherited, like --from-estimate) or
   // an approved design run (its request and design, like --from-design); values are e:<run> and d:<run>
-  // a new product starts only from an estimate or a design made with no repo
-  const estimates = (meta.estimates ?? []).filter((e) => !greenfield || !e.repo), designs = (meta.designs ?? []).filter((d) => !greenfield || !d.repo);
-  const fromEst = h("select", { id: "fromest" }, h("option", { value: "" }, greenfield ? "Nothing: describe the new product" : "Nothing: a plain change request"),
-    estimates.length ? h("optgroup", { label: "Approved estimates" }, estimates.map((e) => h("option", { value: `e:${e.runId}`, disabled: greenfield && !!e.webOnly, ...(greenfield && e.webOnly ? { title: e.webOnly } : {}) }, `${e.runId}  ·  ${projectLabel(e.project)}  ·  ${e.request}${greenfield && e.webOnly ? "  (more than a web app: see below)" : ""}`))) : null,
-    designs.length ? h("optgroup", { label: "Approved designs" }, designs.map((d) => h("option", { value: `d:${d.runId}` }, `${d.runId}  ·  ${projectLabel(d.project)}  ·  ${d.request}${d.repo ? "" : "  (a new product: pick a project with an empty repo)"}`))) : null);
+  // one made with no repo is a new product, started under Greenfield
+  const estimates = (meta.estimates ?? []).filter((e) => e.repo), designs = (meta.designs ?? []).filter((d) => d.repo);
+  const fromEst = h("select", { id: "fromest" }, h("option", { value: "" }, "Nothing: a plain change request"),
+    estimates.length ? h("optgroup", { label: "Approved estimates" }, estimates.map((e) => h("option", { value: `e:${e.runId}` }, `${e.runId}  ·  ${projectLabel(e.project)}  ·  ${e.request}`))) : null,
+    designs.length ? h("optgroup", { label: "Approved designs" }, designs.map((d) => h("option", { value: `d:${d.runId}` }, `${d.runId}  ·  ${projectLabel(d.project)}  ·  ${d.request}`))) : null);
   const buildFrom = () => ({ kind: fromEst.value.slice(0, 1), id: fromEst.value.slice(2) });
   // the run it starts from decides the project
   const seedProject = (p) => { if (p && p !== "standalone-estimates" && [...project.options].some((o) => o.value === p && !o.disabled)) project.value = p; };
   const syncEst = () => {
     for (const id of ["reqblock", "refblock"]) { const b = form.querySelector(`#${id}`); if (b) b.hidden = !!fromEst.value; }
     const { kind: k, id } = buildFrom();
-    const from = (k === "e" ? estimates : designs).find((x) => x.runId === id);
-    // a new product (a design with no repo) goes into an empty repo: the only one there is, when there is one
-    const empties = meta.projects.filter((p) => p.empty && !p.busy);
-    seedProject(k === "d" && from && !from.repo ? (empties.length === 1 ? empties[0].name : undefined) : from?.project);
+    seedProject((k === "e" ? estimates : designs).find((x) => x.runId === id)?.project);
   };
   fromEst.addEventListener("change", syncEst);
 
@@ -385,7 +364,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const seedBox = h("div", { class: "fld", id: "seedbox" }, h("label", { for: "seedrun" }, "Run"), seedRun, seedHint);
 
   // the three inputs, which can be combined like factory start
-  const prompt = h("textarea", { id: "prompt", placeholder: greenfield ? "Describe the new app, or paste its requirements. e.g. A customer portal where buyers log in, see their orders and download invoices." : estimating ? "Paste the requirements: notes, a brief, a transcript, an email thread. e.g. A customer portal where buyers log in, see their orders and download invoices." : "e.g. Show the number of orders next to the Your orders heading, and keep the heading text." });
+  const prompt = h("textarea", { id: "prompt", placeholder: estimating ? "Paste the requirements: notes, a brief, a transcript, an email thread. e.g. A customer portal where buyers log in, see their orders and download invoices." : "e.g. Show the number of orders next to the Your orders heading, and keep the heading text." });
   const fileInput = h("input", { type: "file", accept: ".md,.markdown,.txt,text/markdown,text/plain" });
   const jira = h("input", { type: "text", id: "jira", placeholder: "ABC-123 or its link", disabled: !meta.jira.configured });
   let file;
@@ -513,7 +492,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
     : h("div", { class: "field" }, h("span", { class: "label" }, "Export the design on approval (optional)"), autoXBox, autoXHint);
   // a build: the stack the approved design is built in when the project sets none, like --ui-target
   const uiTarget = h("select", { id: "uitarget" }, h("option", { value: "" }, "Detect from the repo"), Object.entries(TARGET_LABELS).map(([v, t]) => h("option", { value: v }, t)));
-  const uiTargetBlock = !estimating && !greenfield ? h("div", { class: "field" }, h("label", { for: "uitarget" }, "UI target (optional)"), uiTarget,
+  const uiTargetBlock = !estimating ? h("div", { class: "field" }, h("label", { for: "uitarget" }, "UI target (optional)"), uiTarget,
     h("div", { class: "hint" }, "What the approved design is built in when the project's design.uiTarget sets nothing (like --ui-target). A kit target puts the kit, the theme and every approved page into the repo before the agents start; the agents write the behaviour. Detection picks the kit for a Next.js or Vite app and the repo's own components otherwise.")) : null;
   const maxCost = h("input", { type: "number", id: "maxcost", min: "0.5", step: "0.5", placeholder: "normal limit" });
   const startLabel = designing ? "Start design" : estimating ? "Start estimate" : "Start run";
@@ -523,18 +502,11 @@ async function requestScreen(kind = "brownfield", preset = []) {
     estimating ? sect(1, designing ? "Project" : "Start from and project", designing ? "Pick one to follow its look, or choose none for a new product." : "New requirements, or something already approved. Pick a project to read its code, or none to estimate from the requirements alone.",
       designing ? null : h("div", { class: "est-grid" }, h("div", { class: "fld" }, h("label", { for: "startfrom" }, "Start from"), startFrom), seedBox),
       h("div", { class: "fld" }, designing ? null : h("label", { for: "project" }, "Project"), project, standaloneNote))
-      : greenfield ? h("div", { class: "field" }, h("label", { for: "project" }, "Project"), project, newBox,
-        h("div", { class: "hint" }, "Only Node projects whose repo is still empty are listed. Choose New empty project to make one here, as git init and factory init would."))
       : h("div", { class: "field" }, h("label", { for: "project" }, "Project"), project, h("div", { class: "hint" }, "From ~/.factory/projects. Add one with factory init <repo>.")),
     !estimating ? h("div", { class: "field" }, h("label", { for: "fromest" }, "Build from (optional)"), fromEst,
-      h("div", { class: "hint" }, greenfield ? (estimates.length || designs.length
-        ? "An approved estimate or design run made with no repo: its request, spec and approved design carry over, and no design is drawn again. Choose nothing to describe the product here: the run asks its questions and draws the design first."
-        : "No approved estimate or design made with no repo yet. Describe the product here: the run asks its questions and draws the design first.")
-        : estimates.length || designs.length
-        ? "An approved estimate: its request, spec and tasks carry over, and the build is held to its size and budget (like --from-estimate). An approved design run: its request and design carry over (like --from-design). Choose nothing for a plain change request."
-        : "Nothing approved yet. Approve an estimate or a design run first (New run) to build from it; until then this is a plain change request."),
-      // an estimate that prices an API or a phone app is listed but can't be picked here: say why (the server refuses it too)
-      ...(greenfield ? estimates.filter((e) => e.webOnly).map((e) => h("div", { class: "hint warn-text" }, icon("alert"), " ", e.webOnly)) : [])) : null,
+      h("div", { class: "hint" }, estimates.length || designs.length
+        ? "An approved estimate: its request, spec and tasks carry over, and the build is held to its size and budget (like --from-estimate). An approved design run: its request and design carry over (like --from-design). Choose nothing for a plain change request. Ones made with no repo are new products: start them under Greenfield."
+        : "Nothing approved for an existing repo yet. Approve an estimate or a design run first (New run) to build from it; until then this is a plain change request. Ones made with no repo are new products: start them under Greenfield.")) : null,
     h("div", { id: "reqblock", class: estimating ? "sect" : "field" }, estimating ? h("div", { class: "sect-head" }, h("span", { class: "num" }, "2"), h("div", {}, h("h3", {}, "Requirements"), h("p", { class: "muted small" }, "Paste them, upload a file or give a Jira key. They are combined into one request."))) : h("span", { class: "label" }, "Request"),
       h("div", { class: "tabs-in", role: "tablist" }, tabs.prompt, tabs.file, tabs.jira),
       panels.prompt, panels.file, panels.jira,
@@ -562,8 +534,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
       const bf = buildFrom();
       const from = !estimating ? (bf.kind === "e" ? { fromEstimate: bf.id } : bf.kind === "d" ? { fromDesign: bf.id } : {})
         : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises" }[startFrom.value]]: seedRun.value } : {};
-      const made = greenfield && project.value === NEW_PROJECT;
-      const body = { project: made ? "" : project.value, ...(greenfield ? { mode: "greenfield", ...(made ? { newProject: { name: newName.value.trim(), dir: newDir.value.trim() } } : {}) } : {}), ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
+      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
         ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(handsOff.checked ? { humanReview: false } : {}) } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
@@ -600,16 +571,16 @@ async function requestScreen(kind = "brownfield", preset = []) {
     syncStart();
     if (preset[1] && [...seedRun.options].some((o) => o.value === preset[1])) { seedRun.value = preset[1]; syncStart(); }
   }
-  // #/new/<brownfield|greenfield>/<design|estimate>/<run>
+  // #/new/brownfield/<design|estimate>/<run>
   if (!estimating && preset[1]) {
     const v = `${preset[0] === "design" ? "d" : "e"}:${preset[1]}`;
     if ([...fromEst.options].some((o) => o.value === v && !o.disabled)) { fromEst.value = v; syncEst(); syncAutoX(); }
   }
   mount([
     h("div", { class: "page-head" }, h("div", {},
-      h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", greenfield ? [h("a", { href: "#/new/greenfield" }, "Greenfield"), "/", "Web app"] : designing ? "Design" : estimating ? "Estimate" : "Brownfield"),
-      h("h1", {}, greenfield ? "What should the new app do?" : designing ? "What should be designed?" : estimating ? "What should be estimated?" : "What should change?"),
-      h("p", { class: "sub" }, designing ? "Paste or upload the requirements. You get a mock, a clickable demo and a look to approve (on the run page or in the terminal); nothing is sized or built." : estimating ? "Paste or upload the refined requirements. A person answers the clarify questions and approves the estimate, on its run page or in the terminal; then the team and client workbooks are written. Tick \"Hands-off\" to let the factory approve it once its checks pass. A UI request also waits for its design to be approved." : greenfield ? "A Next.js app on the factory's kit, built into an empty repo. The run asks its questions, draws the design and writes the plan; you decide each on the run page. Every build gate runs." : "The request is read and checked before a run exists: a bad file or ticket costs nothing."))),
+      h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", designing ? "Design" : estimating ? "Estimate" : "Brownfield"),
+      h("h1", {}, designing ? "What should be designed?" : estimating ? "What should be estimated?" : "What should change?"),
+      h("p", { class: "sub" }, designing ? "Paste or upload the requirements. You get a mock, a clickable demo and a look to approve (on the run page or in the terminal); nothing is sized or built." : estimating ? "Paste or upload the refined requirements. A person answers the clarify questions and approves the estimate, on its run page or in the terminal; then the team and client workbooks are written. Tick \"Hands-off\" to let the factory approve it once its checks pass. A UI request also waits for its design to be approved." : "The request is read and checked before a run exists: a bad file or ticket costs nothing."))),
     h("div", { class: "panel" }, form),
   ], true);
 }
@@ -1538,9 +1509,9 @@ async function estimateScreen(id) {
     h("div", { class: "grid-2" },
       h("div", { class: "stack" }, decide,
         e.approved && e.files ? nextPanel("This estimate is approved. Build it or size a change to it.", [
-          // an estimate made with no repo is a new product: built into an empty project (greenfield)
-          // unless it prices an API or a phone app, which one web app would not build: then the button says why instead
-          s.noRepo ? [e.webOnly ? null : `#/new/greenfield/web/estimate/${rid}`, "sprout", "Build it as a new product", e.webOnly] : [`#/new/brownfield/estimate/${rid}`, "layers", "Build this estimate"],
+          // an estimate made with no repo is a new product: a web app and its API (greenfield)
+          // unless it prices a phone app, which a new product does not build yet: then the button says why instead
+          s.noRepo ? [e.cannotBuild ? null : `#/new/greenfield/estimate/${rid}`, "sprout", "Build it as a new product", e.cannotBuild] : [`#/new/brownfield/estimate/${rid}`, "layers", "Build this estimate"],
           [`#/new/estimate/revises/${rid}`, "pen", "Change request"],
         ]) : null,
         panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", [costTable, perTask]),
@@ -1855,10 +1826,10 @@ async function designScreen(id) {
     h("div", { class: "grid-2" },
       h("div", { class: "stack" },
         // a design-only run, once approved, is sized or built from here (like --from-design)
-        // a design with no repo (a new product) is built into a project whose repo is still empty (greenfield)
-        r.mode === "design" && xv.available ? nextPanel(r.repo ? "This design is approved. Size it, or build it in its project." : "This design is approved. Size it, or build it as a new product into an empty project (pick one, or make one on the form).", [
+        // a design with no repo is a new product: a web app and its API, in two new repos (greenfield)
+        r.mode === "design" && xv.available ? nextPanel(r.repo ? "This design is approved. Size it, or build it in its project." : "This design is approved. Size it, or build it as a new product: a web app and its API, in two new repos.", [
           [`#/new/estimate/design/${encodeURIComponent(id)}`, "ruler", "Estimate this design"],
-          r.repo ? [`#/new/brownfield/design/${encodeURIComponent(id)}`, "layers", "Build this design"] : [`#/new/greenfield/web/design/${encodeURIComponent(id)}`, "sprout", "Build it as a new product"],
+          r.repo ? [`#/new/brownfield/design/${encodeURIComponent(id)}`, "layers", "Build this design"] : [`#/new/greenfield/design/${encodeURIComponent(id)}`, "sprout", "Build it as a new product"],
         ]) : null,
         exportPanel(id, xv),
         codePanel(id, sv),
@@ -1922,36 +1893,43 @@ async function dashboardScreen() {
 
 // ---------- new product: greenfield ----------
 
-/** Greenfield: a web app alone, or a web app and its API held to one contract (factory fullstack); and the products so far. */
-async function greenfieldScreen() {
+/**
+ * Greenfield: a new product is a web app and its API (factory fullstack start), in two new repos held to one API contract; or,
+ * when the client provides the backend, the web app alone in one new repo (a greenfield run). It starts from a request, or from an
+ * approved design (its design steps are skipped) or approved estimate (the web run is held to it), each made with no repo; then
+ * the products so far. preset: [design|estimate, run] from a run page's link.
+ */
+async function greenfieldScreen(preset = []) {
   skeleton();
-  const products = await api("/api/fullstack");
-  const card = (i, ico, title, text, href) => h("a", { class: "panel mode rise", href, vars: { "--i": i } }, h("div", { class: "ico" }, icon(ico)), h("h2", {}, title), h("p", {}, text), h("div", { class: "go" }, "Start", icon("arrow")));
-  mount([
-    h("div", { class: "page-head" }, h("div", {}, h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", "Greenfield"), h("h1", {}, "What is the new product?"),
-      h("p", { class: "sub" }, "Built into empty repos: the run asks its questions, draws the design and writes the plan, and you decide each on the run page. Every build gate runs."))),
-    h("div", { class: "grid-3" },
-      card(0, "browser", "Web app", "A Next.js app on the factory's kit, in one empty project (pick one or make one). From a request, or from an approved estimate or design made with no repo.", "#/new/greenfield/web"),
-      card(1, "layers", "Web app + API", "Two repos from one request: the web run writes the API contract with its plan; once you approve it, the .NET API run builds exactly that contract. Then both start together.", "#/new/fullstack")),
-    h("section", { class: "panel rise", vars: { "--i": 2 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("layers"), "Web app + API products")),
-      products.length ? h("div", { class: "table-wrap" }, h("table", { class: "runs" },
-        h("thead", {}, h("tr", {}, ["Product", "Web run", "API run"].map((t) => h("th", {}, t)))),
-        h("tbody", {}, products.map((p) => h("tr", { onclick: () => { location.hash = `#/fullstack/${encodeURIComponent(p.name)}`; } },
-          h("td", {}, h("strong", {}, p.name)),
-          ...[p.web, p.api].map((side) => h("td", {}, side.run ? [pill(side.run.status), h("span", { class: "small muted" }, ` ${side.run.step}`)] : h("span", { class: "faint small" }, "not started")))))))) 
-        : h("p", { class: "muted small" }, "None yet. Start one with Web app + API.")),
-  ], true);
-}
-
-/** Start a web app + API product, as factory fullstack start: a name, the folder for both repos, the request and a cost limit for the web run. */
-function fullstackForm() {
+  const [products, meta] = await Promise.all([api("/api/fullstack"), api("/api/projects")]);
   const err = h("div", { class: "error", hidden: true });
   const fail = (m) => { err.replaceChildren(icon("alert"), h("span", {}, m)); err.hidden = false; };
   const name = h("input", { type: "text", id: "fs-name", maxlength: "31", placeholder: "e.g. orders", autocomplete: "off" });
   const dir = h("input", { type: "text", id: "fs-dir", value: "~/projects", autocomplete: "off" });
+  // the backend: built with the product (an API repo held to the contract the web plan writes), or the client's own
+  const backend = h("select", { id: "fs-backend" }, h("option", { value: "api" }, "Build its API too: a web app and a .NET API"), h("option", { value: "client" }, "The client provides it: the web app only"));
+  const webOnly = () => backend.value === "client";
+  const backendHint = h("div", { class: "hint" });
   const repos = h("div", { class: "hint" });
-  const syncRepos = () => { const n = name.value.trim() || "<name>"; repos.textContent = `The repos: ${dir.value.trim() || "…"}/${n}-web (empty, for the web run) and ${dir.value.trim() || "…"}/${n}-api (a .NET 9 API skeleton with SQLite).`; };
-  name.addEventListener("input", syncRepos); dir.addEventListener("input", syncRepos); syncRepos();
+  const syncRepos = () => {
+    const n = name.value.trim() || "<name>", d = dir.value.trim() || "…";
+    repos.textContent = webOnly() ? `The repo: ${d}/${n} (empty, for the web run). The project is ${n}.` : `The repos: ${d}/${n}-web (empty, for the web run) and ${d}/${n}-api (a .NET 9 API skeleton with SQLite).`;
+  };
+  name.addEventListener("input", syncRepos); dir.addEventListener("input", syncRepos);
+  // only what was made with no repo is a new product; an estimate it would not build all of is listed but can't be picked: it says why
+  const estimates = (meta.estimates ?? []).filter((e) => !e.repo), designs = (meta.designs ?? []).filter((d) => !d.repo);
+  const why = (e) => (webOnly() ? e.cannotBuildWebOnly : e.cannotBuild);
+  const fromSel = h("select", { id: "fs-from" });
+  const warns = h("div");
+  const fillFrom = () => {
+    const keep = fromSel.value;
+    fromSel.replaceChildren(h("option", { value: "" }, "Nothing: describe the product, and the run draws its design"),
+      designs.length ? h("optgroup", { label: "Approved designs (the design steps are skipped)" }, designs.map((d) => h("option", { value: `d:${d.runId}` }, `${d.runId}  ·  ${d.request}`))) : null,
+      estimates.length ? h("optgroup", { label: "Approved estimates (the web run is held to it)" }, estimates.map((e) => h("option", { value: `e:${e.runId}`, disabled: !!why(e), ...(why(e) ? { title: why(e) } : {}) }, `${e.runId}  ·  ${e.request}${why(e) ? "  (not all of it would be built: see below)" : ""}`))) : null);
+    if ([...fromSel.options].some((o) => o.value === keep && !o.disabled)) fromSel.value = keep;
+    warns.replaceChildren(...estimates.filter(why).map((e) => h("div", { class: "hint warn-text" }, icon("alert"), " ", why(e))));
+  };
+  const fromHint = h("div", { class: "hint" });
   const prompt = h("textarea", { id: "fs-prompt", placeholder: "Describe the product, or paste its requirements. e.g. An orders app: staff list orders, filter them by status and mark one shipped." });
   let file;
   const fileInput = h("input", { type: "file", accept: ".md,.markdown,.txt,text/markdown,text/plain", id: "fs-file" });
@@ -1968,33 +1946,75 @@ function fullstackForm() {
   const maxCost = h("input", { type: "number", id: "fs-max", min: "0.5", step: "0.5", placeholder: "normal limit" });
   const start = h("button", { class: "btn primary", type: "submit" }, "Make the repos and start the web run", icon("arrow"));
   const fld = (id, label, control, hint) => h("div", { class: "field" }, h("label", { for: id }, label), control, hint ? (typeof hint === "string" ? h("div", { class: "hint" }, hint) : hint) : null);
+  const reqBlock = h("div", { id: "fs-req" }, fld("fs-prompt", "Request", prompt),
+    h("div", { class: "field" }, h("label", { class: "drop slim", for: "fs-file" }, fileInput, icon("upload"), h("strong", {}, "Choose a requirements file")), fileBox));
+  // an approved design or estimate brings its own request
+  const syncFrom = () => {
+    const k = fromSel.value.slice(0, 1);
+    reqBlock.hidden = !!k;
+    fromHint.textContent = k === "d" ? "Its request and approved design carry over: the web run asks no design questions and draws nothing again. No estimate is made."
+      : k === "e" ? (webOnly() ? "Its request, spec, design and tasks carry over: the web run is held to the estimate's scope and budget."
+        : "Its request, spec, design and tasks carry over: the web run is held to the estimate's scope and budget, and the backend tasks go to the API run, which builds the approved contract (it is not held to the estimate).")
+      : "The web run asks its questions and draws the design for you to approve. No estimate is made.";
+  };
+  const syncBackend = () => {
+    backendHint.textContent = webOnly()
+      ? "One repo and one run: a Next.js app on the factory's kit. It builds no API: the app is written against the client's backend as the requirements describe it."
+      : "Two repos and two runs: the web run writes the API contract with its plan; once you approve it, start the API run from the product page. Then both start together.";
+    start.replaceChildren(webOnly() ? "Make the repo and start the run" : "Make the repos and start the web run", icon("arrow"));
+    syncRepos(); fillFrom(); syncFrom();
+  };
+  backend.addEventListener("change", syncBackend);
+  fromSel.addEventListener("change", syncFrom);
+  fillFrom();
+  if (["design", "estimate"].includes(preset[0]) && preset[1]) {
+    const v = `${preset[0] === "design" ? "d" : "e"}:${preset[1]}`;
+    if ([...fromSel.options].some((o) => o.value === v && !o.disabled)) fromSel.value = v;
+  }
+  syncBackend();
   const form = h("form", { class: "form", novalidate: true }, err,
-    fld("fs-name", "Product name", name, "Lower-case letters, digits and dashes. The projects are <name>-web and <name>-api."),
-    fld("fs-dir", "Folder for the two repos", dir, repos),
-    fld("fs-prompt", "Request", prompt),
-    h("div", { class: "field" }, h("label", { class: "drop slim", for: "fs-file" }, fileInput, icon("upload"), h("strong", {}, "Choose a requirements file")), fileBox),
-    fld("fs-max", "Max cost of the web run (optional)", h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), "It can only lower the normal limit, like --max-cost. The API run gets its own limit when you start it."),
-    h("div", { class: "row" }, start, h("span", { class: "hint" }, "Runs in the background. Decide the web run's questions, design and plan on its run page; then start the API run from the product page.")));
+    fld("fs-backend", "Backend", backend, backendHint),
+    fld("fs-name", "Product name", name, "Lower-case letters, digits and dashes. It names the project (with the API: <name>-web and <name>-api)."),
+    fld("fs-dir", "Folder for the repos", dir, repos),
+    h("div", { class: "field" }, h("label", { for: "fs-from" }, "Start from (optional)"), fromSel, fromHint, warns),
+    reqBlock,
+    fld("fs-max", "Max cost of the web run (optional)", h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), "It can only lower the normal limit, like --max-cost. With the API, the API run gets its own limit when you start it."),
+    h("div", { class: "row" }, start, h("span", { class: "hint" }, "Runs in the background. Decide the web run's cards on its run page.")));
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     err.hidden = true;
     start.disabled = true;
-    start.replaceChildren(h("span", { class: "spin" }), "Making the repos…");
+    start.replaceChildren(h("span", { class: "spin" }), webOnly() ? "Making the repo…" : "Making the repos…");
+    const k = fromSel.value.slice(0, 1), id = fromSel.value.slice(2);
+    const from = k === "d" ? { fromDesign: id } : k === "e" ? { fromEstimate: id } : file ? { file } : { prompt: prompt.value };
+    const n = name.value.trim(), d = dir.value.trim().replace(/\/+$/, "");
     try {
-      const r = await api("/api/fullstack", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.value.trim(), dir: dir.value.trim(), maxCost: maxCost.value, ...(file ? { file } : { prompt: prompt.value }) }) });
-      location.hash = `#/fullstack/${encodeURIComponent(r.name)}`;
+      // the web app alone is a greenfield run into a new empty project, as factory init and factory start would make it
+      if (webOnly()) {
+        const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "greenfield", project: "", newProject: { name: n, dir: d ? `${d}/${n}` : "" }, maxCost: maxCost.value, ...from }) });
+        location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
+      } else {
+        const r = await api("/api/fullstack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: n, dir: d, maxCost: maxCost.value, ...from }) });
+        location.hash = `#/fullstack/${encodeURIComponent(r.name)}`;
+      }
     } catch (e) {
       fail(e.message);
       start.disabled = false;
-      start.replaceChildren("Make the repos and start the web run", icon("arrow"));
+      syncBackend();
     }
   });
   mount([
-    h("div", { class: "page-head" }, h("div", {}, h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", h("a", { href: "#/new/greenfield" }, "Greenfield"), "/", "Web app + API"),
-      h("h1", {}, "What should the product do?"),
-      h("p", { class: "sub" }, "One request, two repos, one API contract. The web run asks, draws the design and writes the plan with the contract; once you approve the plan, the API run builds that contract exactly."))),
+    h("div", { class: "page-head" }, h("div", {}, h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", "Greenfield"), h("h1", {}, "What should the new product do?"),
+      h("p", { class: "sub" }, "A web app on the factory's kit and its .NET API, in two new repos held to one API contract; or, when the client provides the backend, the web app alone. Every build gate runs."))),
     h("div", { class: "panel" }, form),
+    h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("layers"), "Products")),
+      products.length ? h("div", { class: "table-wrap" }, h("table", { class: "runs" },
+        h("thead", {}, h("tr", {}, ["Product", "Web run", "API run"].map((t) => h("th", {}, t)))),
+        h("tbody", {}, products.map((p) => h("tr", { onclick: () => { location.hash = `#/fullstack/${encodeURIComponent(p.name)}`; } },
+          h("td", {}, h("strong", {}, p.name)),
+          ...[p.web, p.api].map((side) => h("td", {}, side.run ? [pill(side.run.status), h("span", { class: "small muted" }, ` ${side.run.step}`)] : h("span", { class: "faint small" }, "not started"))))))))
+        : h("p", { class: "muted small" }, "None yet.")),
   ], true);
 }
 
@@ -2037,8 +2057,10 @@ function productScreen(name) {
       writeFiles.disabled = false;
     });
     mount([
-      h("div", { class: "page-head" }, h("div", {}, h("div", { class: "crumbs" }, h("a", { href: "#/new/greenfield" }, "Greenfield"), "/", "Web app + API"), h("h1", {}, p.name),
-        p.request ? h("p", { class: "sub" }, p.request.length > 240 ? `${p.request.slice(0, 239)}…` : p.request) : null)),
+      h("div", { class: "page-head" }, h("div", {}, h("div", { class: "crumbs" }, h("a", { href: "#/new/greenfield" }, "Greenfield"), "/", "Product"), h("h1", {}, p.name),
+        p.request ? h("p", { class: "sub" }, p.request.length > 240 ? `${p.request.slice(0, 239)}…` : p.request) : null,
+        p.from ? h("p", { class: "small muted" }, `Started from approved ${p.from.kind} `, h("a", { href: `#/runs/${encodeURIComponent(p.from.runId)}/${p.from.kind}` }, p.from.runId),
+          p.from.kind === "design" ? ": its design steps are skipped." : ": the web run is held to it; the API run builds the approved contract.") : null)),
       h("div", { class: "stack" },
         h("section", { class: "panel rise next-panel" }, h("div", { class: "panel-head" }, h("h2", {}, icon("arrow"), "Next")),
           h("p", { class: "small muted" }, p.next.say),
@@ -2070,10 +2092,9 @@ async function route() {
   try {
     // #/new/estimate/<design|revises>/<run> and #/new/brownfield/<design|estimate>/<run> start from that run
     if (top === "new" && parts[1] === "brownfield") await requestScreen("brownfield", parts.slice(2));
-    // #/new/greenfield (web app or web app + API), #/new/greenfield/web[/<design|estimate>/<run>], #/new/fullstack
-    else if (top === "new" && parts[1] === "greenfield" && parts[2] === "web") await requestScreen("greenfield", parts.slice(3));
-    else if (top === "new" && parts[1] === "greenfield") await greenfieldScreen();
-    else if (top === "new" && parts[1] === "fullstack") fullstackForm();
+    // #/new/greenfield[/<design|estimate>/<run>]: a new product, web app + API; the older links #/new/greenfield/web/... and #/new/fullstack land there too
+    else if (top === "new" && parts[1] === "greenfield") await greenfieldScreen(parts.slice(parts[2] === "web" ? 3 : 2));
+    else if (top === "new" && parts[1] === "fullstack") await greenfieldScreen();
     else if (top === "fullstack" && parts[1]) productScreen(parts[1]);
     else if (top === "fullstack") await greenfieldScreen();
     else if (top === "new" && parts[1] === "estimate") await requestScreen("estimate", parts.slice(2));

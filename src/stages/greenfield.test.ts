@@ -488,7 +488,7 @@ describe("a new product end to end (greenfield, fakes)", () => {
     // (an estimate made with no repo may still be built into a repo that has code: a change to it, not a new product)
   });
 
-  it("refuses a no-repo estimate that prices its own API: one web app would not build it", async () => {
+  it("refuses a no-repo estimate that prices its own API as a web app alone, and builds it as the web side of a product with its API", async () => {
     const est = await estimateRun();
     const a = approvedEstimate(est, { build: true });
     const bd = a.artifacts[a.breakdownSha] as { tasks: object[] };
@@ -496,6 +496,13 @@ describe("a new product end to end (greenfield, fakes)", () => {
     const before = Ledger.listRuns().length;
     await expect(createRun("x", "shop", "tester", { lineage: { kind: "build", approved: withApi } })).rejects.toThrow(/prices more than a web app: 1 backend task \(EST-2\)/);
     expect(Ledger.listRuns().length).toBe(before);
+    // the web side of a product with its API (its project holds the API contract): the API run builds the backend tasks
+    writeFileSync(join(home, "projects", "shop.yaml"), stringify({ project: "shop", repo, stack: "node", contract: {} }));
+    // (a run copies each artifact under its own hash: the breakdown with the API task, stored as itself)
+    const bd2 = withApi.artifacts[a.breakdownSha], bd2Sha = Ledger.open(est).putJson(bd2);
+    const { [a.breakdownSha]: _old, ...rest } = withApi.artifacts;
+    const runId = await createRun("x", "shop", "tester", { lineage: { kind: "build", approved: { ...withApi, breakdownSha: bd2Sha, artifacts: { ...rest, [bd2Sha]: bd2 } } } });
+    expect(replay(Ledger.open(runId).events()).info).toMatchObject({ mode: "greenfield", estimateRef: expect.objectContaining({ runId: est }) });
   });
 
   it("refuses to start a new product in a repo that has code, a design with a repo as a greenfield run, and a brownfield run on a Node project", async () => {
