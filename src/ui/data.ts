@@ -15,7 +15,8 @@ import { verifyEvidence } from "../gates/engine.js";
 import { currentCostCap } from "../ledger/caps.js";
 import { readLockInfo, isLockFree } from "../ledger/exec-lock.js";
 import { Ledger } from "../ledger/ledger.js";
-import { replay, splitKey, statusLabel, type RunState } from "../ledger/state.js";
+import { replay, splitKey, type RunState } from "../ledger/state.js";
+import { shownStatus } from "../stages/run-status.js";
 import { outcomes, scoreRun, stageStats, stageOf, type RunScore } from "../report.js";
 import { jiraConfigured } from "../sources/jira.js";
 import { figmaConfigured } from "../sources/figma.js";
@@ -137,7 +138,7 @@ export function runsView(limit = 50): RunRow[] {
     try {
       const s = replay(Ledger.open(id).events());
       rows.push({
-        runId: id, request: shortRequest(s.info.request), project: s.info.project, status: statusLabel(s.status), step: currentStep(s),
+        runId: id, request: shortRequest(s.info.request), project: s.info.project, status: shownStatus(s), step: currentStep(s),
         costUsd: s.costUsd, createdAt: s.info.createdAt,
         ...(s.openCard ? { openCard: s.openCard.kind } : {}), ...(s.parkedReason ? { parkedReason: s.parkedReason } : {}),
       });
@@ -267,7 +268,7 @@ export function runView(ledger: Ledger) {
     request: s.info.request ?? "",
     sources: s.info.sources ?? [],
     createdAt: s.info.createdAt,
-    status: statusLabel(s.status),
+    status: shownStatus(s),
     step: currentStep(s),
     parkedReason: s.parkedReason,
     cost: { usd: s.costUsd, capUsd: currentCostCap(s), ...(s.info.maxCostUsd !== undefined ? { maxCostUsd: s.info.maxCostUsd } : {}) },

@@ -101,13 +101,13 @@ function ago(iso) {
 /** Colour family for a run or step status. */
 function tone(status) {
   const s = String(status);
-  if (s === "delivered" || s === "completed" || s.startsWith("closed: merged")) return "ok";
+  if (s === "delivered" || s === "finished" || s === "completed" || s.startsWith("closed: merged")) return "ok";
   if (s === "running" || s === "created") return "live";
   if (s === "waiting" || s === "decided" || s === "paused" || s === "interrupted") return "wait";
   if (s === "parked" || s === "failed" || s.startsWith("closed")) return "bad";
   return "idle";
 }
-const WORDS = { created: "created", running: "running", waiting: "waiting for you", paused: "paused", parked: "parked", delivered: "delivered", completed: "done", failed: "failed", interrupted: "interrupted", pending: "not started", decided: "decided · continues next" };
+const WORDS = { created: "created", running: "running", waiting: "waiting for you", paused: "paused", parked: "parked", delivered: "delivered", finished: "finished", completed: "done", failed: "failed", interrupted: "interrupted", pending: "not started", decided: "decided · continues next" };
 const pill = (status, text) => h("span", { class: `pill t-${tone(status)}` }, h("span", { class: "d" }), text ?? WORDS[status] ?? status);
 
 class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
@@ -832,7 +832,7 @@ function deliveredPanel(r) {
     d.prText ? h("details", {}, h("summary", {}, "PR text"), h("div", { class: "row" }, copyButton(d.prText, "Copy PR text")), md(d.prText, "md tall")) : null);
 }
 
-function parkedPanel(r) {
+function parkedPanel(r, interrupted = false) {
   const msg = h("p", { class: "small", role: "status" });
   const resume = h("button", { class: "btn", type: "button" }, icon("play"), "Resume run");
   resume.addEventListener("click", async () => {
@@ -840,12 +840,12 @@ function parkedPanel(r) {
     msg.textContent = "";
     try {
       await api(`/api/runs/${encodeURIComponent(r.runId)}/resume`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-      msg.textContent = "Resuming: the run goes on from where it parked.";
+      msg.textContent = `Resuming: the run goes on from where it ${interrupted ? "stopped" : "parked"}.`;
     } catch (err) { msg.textContent = err.message; resume.disabled = false; }
   });
   return h("section", { class: "callout bad" }, icon("alert"), h("div", {},
-    h("strong", {}, "Parked: a person needs to look"),
-    h("p", {}, "The reason is shown on the pipeline above. Fix what it parked on first (for example, top up the API credit), then resume: the run goes on from where it stopped."),
+    h("strong", {}, interrupted ? "Interrupted: the executor stopped mid-run" : "Parked: a person needs to look"),
+    h("p", {}, interrupted ? "Nothing is working on this run (the process ended, for example a closed terminal or a crash). Resume it: the step it was on runs again." : "The reason is shown on the pipeline above. Fix what it parked on first (for example, top up the API credit), then resume: the run goes on from where it stopped."),
     h("div", { class: "row" }, resume), msg,
     h("p", { class: "small" }, "In your terminal: ", h("code", {}, `factory resume ${r.runId}`), " · ", h("code", {}, `factory report ${r.runId}`), " · ", h("code", {}, `factory logs ${r.runId}`))));
 }
@@ -918,7 +918,7 @@ function runScreen(id) {
     const atBottom = !oldTrace || oldTrace.scrollTop + oldTrace.clientHeight >= oldTrace.scrollHeight - 8;
     const right = [];
     if (r.card) right.push(cardPanel(r));
-    if (r.status === "parked") right.push(parkedPanel(r));
+    if (r.status === "parked" || r.status === "interrupted") right.push(parkedPanel(r, r.status === "interrupted"));
     if (r.delivered) right.push(deliveredPanel(r));
     right.push(tracePanel(r));
     mount([...runHeader(r, "run"), h("div", { class: "stack" }, pipeline(r), h("div", { class: "grid-2" },

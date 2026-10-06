@@ -4,7 +4,8 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Reference } from "../contracts/index.js";
 import { Ledger } from "../ledger/ledger.js";
-import { replay, statusLabel, type RunState } from "../ledger/state.js";
+import { replay, type RunState } from "../ledger/state.js";
+import { shownStatus } from "../stages/run-status.js";
 
 export type DesignStage = "drafting" | "waiting for approval" | "approved" | "no UI" | "parked" | "stopped";
 
@@ -56,7 +57,7 @@ export function designRunView(ledger: Ledger): DesignRunView {
   const refsSha = s.steps.get("design-refs")?.status === "completed" ? s.steps.get("design-refs")!.outputs[0] : undefined;
   const reading = refsSha ? ledger.getJson<{ refs?: { id: string; kind: string; navigation: string; reqs: string[]; brief: { palette: { name: string; hex: string }[] } }[] }>(refsSha)?.refs ?? [] : [];
   return {
-    runId: ledger.runId, mode: s.info.mode, project: s.info.project, status: statusLabel(s.status), stage: stageOf(s),
+    runId: ledger.runId, mode: s.info.mode, project: s.info.project, status: shownStatus(s), stage: stageOf(s),
     request: (s.info.request ?? "").split("\n").find((l) => l.trim())?.trim().slice(0, 120) ?? "",
     ...(s.openCard?.kind === "design-approval" ? { card: s.openCard.artifactSha.slice(0, 8) } : {}),
     ...(t ? { theme: { mood: t.mood, mode: t.mode, brand: t.brand, font: t.font, radius: t.radius, density: t.density, ...(t.basis ? { basis: t.basis } : {}) } } : {}),

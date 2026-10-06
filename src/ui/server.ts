@@ -134,7 +134,7 @@ export const ROUTES: readonly Route[] = [
     },
   },
   {
-    method: "POST", path: "/api/runs/:id/resume", what: "resume a parked run in the background, like factory resume (parked runs only; a paused run is resumed in the terminal)",
+    method: "POST", path: "/api/runs/:id/resume", what: "resume a parked or interrupted run in the background, like factory resume (parked or interrupted runs only; a paused run is resumed in the terminal)",
     handle: async ({ id }, _b, deps) => {
       const l = findRun(id!);
       if (!l) return notFound(`No run ${id}`);

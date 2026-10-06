@@ -289,6 +289,8 @@ export function replay(events: LedgerEvent[]): RunState {
       case "run.stop-requested": s.flags.stopRequested = true; break;
       case "run.stopped": s.status = { closed: "stopped" }; closeActive(ev.ts); break;
       case "run.delivered": s.status = "delivered"; closeActive(ev.ts); break;
+      // a run with no delivery of its own (an estimate, a design) whose last step is done
+      case "run.finished": s.status = "finished"; closeActive(ev.ts); break;
       case "run.closed": s.status = { closed: data.reason as "merged" | "pr-closed" | "not-reproduced" }; break;
       case "workspace.created": s.workspace = { path: String(data.path), branch: String(data.branch) }; break;
       case "workspace.removed": s.workspace = undefined; break;

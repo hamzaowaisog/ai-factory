@@ -18,6 +18,7 @@ import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { createRun, execute } from "./executor.js";
+import { INTERRUPTED, shownStatus, statusHint } from "./run-status.js";
 import { previewFile, readPreview } from "../ui/preview.js";
 import { approvedEstimate } from "../estimate/lineage.js";
 import { setRecordsSource, setTaskRecordsSource } from "./estimate.js";
@@ -202,8 +203,21 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 6), by: "lead" });
 
     const r3 = await execute(runId);
-    expect(r3.status, r3.message).not.toBe("waiting");
+    expect(r3.status, r3.message).toBe("finished");
     const s = replay(ledger.events());
+    // the last step done, the run is finished, not still running; resuming it again adds nothing
+    expect(s.status).toBe("finished");
+    expect(shownStatus(s)).toBe("finished");
+    expect((await execute(runId)).status).toBe("finished");
+    expect(ledger.events().filter((e) => e.type === "run.finished")).toHaveLength(1);
+    // a run whose executor stopped: one that finished before runs recorded it reads finished, one stopped mid-export interrupted
+    const before = ledger.events().filter((e) => e.type !== "run.finished");
+    expect(shownStatus(replay(before), () => false)).toBe("finished");
+    const midExport = replay(before.filter((e) => !(e.type === "step.completed" && e.key?.startsWith("export"))));
+    expect(midExport.status).toBe("running");
+    expect(shownStatus(midExport, () => false)).toBe(INTERRUPTED);
+    expect(statusHint(INTERRUPTED, runId)).toContain(`factory resume ${runId}`);
+    expect(shownStatus(midExport, () => true)).toBe("running");
     for (const step of ["intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "design-baseline", "breakdown", "estimate", "approve-estimate", "export"]) {
       expect(s.steps.get(step)?.status, step).toBe("completed");
     }

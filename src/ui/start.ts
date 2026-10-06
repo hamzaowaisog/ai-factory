@@ -2,6 +2,7 @@
 // gatherRequest, createRun), then the executor runs in the background like the MCP start.
 // An uploaded file is written to a private temp folder under its own name and read by
 // gatherRequest like `--file`; a Jira key goes through gatherRequest like `--jira`.
+import { INTERRUPTED, shownStatus } from "../stages/run-status.js";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { userInfo } from "node:os";
 import { basename, join } from "node:path";
@@ -387,13 +388,14 @@ export async function answerEstimateQuestions(ledger: Ledger, input: EstimateAns
 }
 
 /**
- * Resume a parked run from the run page, like `factory resume`. It decides nothing: the run goes on from where it parked and
+ * Resume a parked or interrupted run from the run page, like `factory resume`. It decides nothing: the run goes on from where it parked and
  * stops again at the next card, limit or park. A paused run stays a terminal decision (factory resume), like pausing it.
  */
 export async function resumeRun(ledger: Ledger, deps: StartDeps = {}): Promise<{ resumed: boolean }> {
   const state = replay(ledger.events());
   if (state.status === "paused") throw new StartError(`A paused run is resumed in your terminal: factory resume ${ledger.runId}`, 403);
-  if (state.status !== "parked") throw new StartError("Only a parked run can be resumed here.", 409);
+  // a parked run, or one whose executor stopped mid-step (a crash or a closed terminal) and so still reads as running
+  if (state.status !== "parked" && shownStatus(state) !== INTERRUPTED) throw new StartError("Only a parked or interrupted run can be resumed here.", 409);
   const key = state.info.repoId ?? `run:${ledger.runId}`;
   if (!(await isLockFree(key))) {
     const holder = readLockInfo(key)?.runId;

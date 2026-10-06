@@ -451,7 +451,11 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
       }
 
       const n = next(state, ledger, project);
-      if (n.kind === "done") return { status: String(state.status), message: "All steps done." };
+      if (n.kind === "done") {
+        // an estimate or a design has no deliver step: its last step done, the run is finished, not still running
+        if (state.status !== "finished") await ledger.append({ type: "run.finished", data: { mode: state.info.mode } }, writer);
+        return { status: "finished", message: "All steps done." };
+      }
       if (n.kind === "blocked") throw new Error(`Step ${n.step} isn't ready but nothing before it is pending (bug)`);
       let batch = n.step.parallel ? nextBatch(state, ledger, project) : [{ step: n.step, hash: n.hash }];
       if (opts.until) {

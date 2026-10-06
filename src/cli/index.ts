@@ -14,7 +14,8 @@ import "../estimate/gates.js";
 import { registerDesignCommands } from "../design/cli.js";
 import { assertTty, decide, DecisionError } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
-import { MAX_BUDGET_CEILING, replay, statusLabel } from "../ledger/state.js";
+import { MAX_BUDGET_CEILING, replay } from "../ledger/state.js";
+import { shownStatus, statusHint } from "../stages/run-status.js";
 import { createRun, dirtyWarning, execute } from "../stages/executor.js";
 import { answerOpenQuestions, canPrompt, terminalIO } from "./interactive.js";
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
@@ -195,13 +196,14 @@ program.command("status").argument("[run]").description("state, current step, co
     const s = replay(Ledger.open(id).events());
     const steps = [...s.steps.values()];
     const current = s.inFlight?.step ?? steps.filter((x) => x.status !== "completed").pop()?.step ?? steps[steps.length - 1]?.step ?? "-";
-    log(`${id}  ${statusLabel(s.status).padEnd(10)} step ${current.padEnd(18)} $${s.costUsd.toFixed(2)}${s.openCard ? `  card: ${s.openCard.kind} ${s.openCard.artifactSha.slice(0, 8)}` : ""}${s.parkedReason ? `\n    parked: ${s.parkedReason}` : ""}`);
+    const shown = shownStatus(s), hint = statusHint(shown, id);
+    log(`${id}  ${shown.padEnd(11)} step ${current.padEnd(18)} $${s.costUsd.toFixed(2)}${s.openCard ? `  card: ${s.openCard.kind} ${s.openCard.artifactSha.slice(0, 8)}` : ""}${s.parkedReason ? `\n    parked: ${s.parkedReason}` : ""}${hint ? `\n    ${hint}` : ""}`);
     if (run) {
       const { lastActivity, fmtElapsed } = await import("../util/trace.js");
       const last = lastActivity(Ledger.open(id).dir);
       if (last) {
         const ago = Date.now() - Date.parse(last.ts);
-        const busy = s.status === "running" || !!s.inFlight;
+        const busy = shown === "running";
         log(`    now: ${last.step ?? "run"}${last.attempt ? ` attempt ${last.attempt}` : ""} · ${last.msg} · ${fmtElapsed(ago).slice(1)} ago${busy && ago > 10 * 60_000 ? `  ⚠ no activity for ${Math.round(ago / 60_000)} min (see factory logs ${id} --follow)` : ""}`);
       }
       for (const x of steps) log(`    ${x.status.padEnd(11)} ${x.step}  (attempts ${x.attempts})`);
@@ -425,7 +427,7 @@ program.command("logs").argument("<run>")
         const t = setInterval(() => {
           flush();
           const st = replay(l.events()).status;
-          if (typeof st === "object" || st === "delivered" || st === "parked" || st === "waiting" || st === "paused") { clearInterval(t); flush(); resolve(); }
+          if (typeof st === "object" || st === "delivered" || st === "finished" || st === "parked" || st === "waiting" || st === "paused") { clearInterval(t); flush(); resolve(); }
         }, 1000);
       });
     }
