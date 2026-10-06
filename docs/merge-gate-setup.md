@@ -107,6 +107,52 @@ Pass them unvalidated. The factory validates them itself: `--repository` must eq
 be a positive integer. Without that, a crafted webhook payload would aim the factory, holding your
 forge credential, at a repository nobody configured.
 
+### Without Harness: `factory review-open-prs`
+
+Harness is the intended trigger, not the only possible one. The requirement is only that *something
+on this host runs the command*, because the host is where `~/.factory`, the clones, Docker and the
+credentials are, and none of them may leave it.
+
+```bash
+factory review-open-prs --project shop --every 120     # Ctrl+C to stop
+factory review-open-prs --project shop --once          # one pass, for trying it
+```
+
+It asks GitHub which pull requests are open and gates each one, oldest first. Drafts are left alone:
+the factory opens its own pull request as a draft and marks it ready once it has posted its review,
+so a draft is one still being assembled.
+
+**It keeps no memory of what it has already gated, on purpose.** Remembering each head SHA would skip
+a pull request whose head is unchanged but whose *base* moved — the one case this whole gate exists
+for. Re-gating every pass is cheap instead, because `reviewPr` decides the cost itself: an unchanged
+tree replays its recorded verdicts, starts no container and spends no tokens, and both the check run
+and the comment are upserts, so a pass that changes nothing writes nothing new.
+
+A pull request that cannot be gated at all — a missing ledger, a container that will not start — is
+logged and the rest still run. One bad pull request does not stop the others.
+
+The trade against Harness or a webhook is latency and uptime: a pull request waits up to `--every`
+seconds, and nothing is gated while the machine is asleep. With `factory/merge-gate` required, a
+missed pass means a pull request cannot merge, which is the safe direction.
+
+**On a self-hosted GitHub Actions runner.** This also works, and is genuinely event-driven:
+
+```yaml
+on:
+  pull_request: { types: [opened, synchronize, reopened, ready_for_review] }
+  merge_group:
+jobs:
+  gate:
+    runs-on: self-hosted            # must be the factory host
+    steps:
+      - run: factory review-pr ${{ github.event.pull_request.number }}
+               --project shop --repository ${{ github.repository }} --json
+```
+
+⚠ **Not on a public repository.** A self-hosted runner on a public repo lets anyone who opens a pull
+request run code on this machine — the machine holding your forge token and API keys. Use
+`review-open-prs` there, which only ever makes outbound calls.
+
 ## Step 5 — Check the setup
 
 ```bash

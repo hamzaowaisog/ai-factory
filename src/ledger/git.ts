@@ -104,6 +104,21 @@ export async function freshWorktree(repo: string, wtPath: string, branch: string
   await addWorktree(repo, wtPath, branch, base, runId);
 }
 
+/**
+ * Update the remote-tracking refs the merge gate reads. Nothing else fetches, and the gate derives
+ * the base SHA from `origin/<base>` in this clone: without a fetch, a base that moved on the forge
+ * still reads as unchanged here, and the gate replays a green verdict for a tree that no longer
+ * exists. The head is fetched too, because `commitsSince` walks it locally.
+ *
+ * The base must be reachable afterwards, so a failure there is fatal. A head branch can legitimately
+ * be gone (deleted after a merge, or a fork), and the caller handles the pull request's state itself.
+ */
+export async function fetchForGate(repo: string, baseRef: string, headRef: string): Promise<void> {
+  const spec = (r: string) => `+refs/heads/${r}:refs/remotes/origin/${r}`;
+  await git(repo, ["fetch", "--quiet", "origin", spec(baseRef)]);
+  await git(repo, ["fetch", "--quiet", "origin", spec(headRef)]).catch(() => undefined);
+}
+
 /** Stage everything and commit (even when empty, so every attempt has a tree SHA). */
 export async function commitAll(wt: string, message: string): Promise<string> {
   await git(wt, ["add", "-A"]);

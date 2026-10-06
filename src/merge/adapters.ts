@@ -8,7 +8,7 @@ import { OWN_CHECK_NAME } from "../contracts/checks.js";
 import { findReviewBody, getPr, type Gh, listChecks, upsertCheckRun, upsertReviewComment } from "../forge/github.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
-import { git, gitOut } from "../ledger/git.js";
+import { fetchForGate, git, gitOut } from "../ledger/git.js";
 import { notifiersFor } from "../watch/notify.js";
 import { paths } from "../util/paths.js";
 import type { Conclusion, GateOutcome, PrFacts, ReviewPrDeps, RunFacts } from "./orchestrate.js";
@@ -76,6 +76,10 @@ export function forgeAdapter(o: ForgeAdapterOpts): Pick<ReviewPrDeps, "getPr" | 
   return {
     async getPr(n): Promise<PrFacts> {
       const pr = await getPr(o.gh, n);
+      // the fetch belongs here, beside the line that derives the base SHA from it: without it
+      // `origin/<base>` is whatever was last pulled, so a base that moved reads as unchanged and the
+      // gate replays a verdict for a tree that no longer exists
+      await fetchForGate(o.cfg.repo, pr.baseRef, pr.headRef);
       // the base SHA, not the base ref: a ref name does not change when the branch moves
       const baseSha = await gitOut(o.cfg.repo, ["rev-parse", `origin/${pr.baseRef}`]);
       return { ...pr, baseSha: baseSha.trim() };

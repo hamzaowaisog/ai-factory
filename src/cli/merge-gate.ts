@@ -54,4 +54,47 @@ export function registerMergeGate(program: Command, log: (s: string) => void): v
       else log(`${OWN_CHECK_NAME}: ${r.conclusion} on ${base} — ${r.why}`);
       process.exit(r.conclusion === "success" ? 0 : 1);
     });
+
+  program.command("review-open-prs")
+    .requiredOption("--project <name>")
+    .option("--once", "check once and exit (for trying the set-up)")
+    .option("--every <seconds>", "seconds between checks", "120")
+    .description("gate every open pull request, repeatedly: the trigger, without Harness")
+    .action(async (o: { project: string; once?: boolean; every: string }) => {
+      const cfg = loadProject(o.project);
+      if (!cfg.forge) {
+        log(`Project ${o.project} has no forge configured, so there are no pull requests to gate.`);
+        process.exit(2);
+      }
+      const every = Math.max(30, Number(o.every) || 120);
+
+      const { pollOnce, pollSummary } = await import("../merge/poll.js");
+      const { reviewPr } = await import("../merge/orchestrate.js");
+      const { liveDeps } = await import("../merge/live.js");
+      const { listOpenPrs } = await import("../forge/github.js");
+      const gh = githubApi(cfg);
+
+      const deps = {
+        openPrs: () => listOpenPrs(gh),
+        // a fresh deps per pull request: liveDeps holds the run id and the last verify pass of ONE
+        // review, and sharing it across pull requests would carry #3's results into #4's judgement
+        review: async (pr: number) => {
+          const r = await reviewPr(await liveDeps({ cfg, gh, log }), { pr });
+          return { conclusion: r.conclusion, cls: r.cls };
+        },
+        log,
+      };
+
+      if (!o.once) log(`Gating open pull requests on ${cfg.forge.repo} every ${every}s. Ctrl+C to stop. This computer must stay awake.`);
+      for (;;) {
+        try {
+          log(`${new Date().toTimeString().slice(0, 8)} ${pollSummary(await pollOnce(deps))}`);
+        } catch (e) {
+          // the forge being unreachable is not a reason to stop watching
+          log(`${new Date().toTimeString().slice(0, 8)} check failed: ${(e as Error).message}`);
+        }
+        if (o.once) return;
+        await new Promise((res) => setTimeout(res, every * 1000));
+      }
+    });
 }

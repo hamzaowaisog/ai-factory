@@ -38,6 +38,18 @@ const STATE_TO_STATUS = { pending: "in_progress", success: "completed", failure:
  * so both are folded into one payload — which is then recorded verbatim, because this is a third
  * party's assertion and a replay must not depend on what GitHub answers today.
  */
+/**
+ * Open pull requests, newest first, with whether each is still a draft. The factory opens a pull
+ * request as a draft and marks it ready once its own review is posted, so "draft" is the difference
+ * between a pull request that is still being assembled and one that is asking to be gated.
+ */
+export async function listOpenPrs(gh: Gh, f: typeof fetch = fetch): Promise<{ number: number; draft: boolean; headSha: string }[]> {
+  const prs = (await ok(
+    await f(`${gh.api}/pulls?state=open&sort=created&direction=desc&per_page=100`, { headers: gh.headers }), "open pulls",
+  )) as { number: number; draft?: boolean; head: { sha: string } }[];
+  return prs.map((p) => ({ number: p.number, draft: p.draft === true, headSha: p.head.sha }));
+}
+
 export async function listChecks(gh: Gh, sha: string, required: string[], f: typeof fetch = fetch): Promise<ExternalChecks> {
   const runs = (await ok(await f(`${gh.api}/commits/${sha}/check-runs?per_page=100`, { headers: gh.headers }), "check-runs")) as
     { check_runs: { name: string; status: string; conclusion?: string; details_url?: string; completed_at?: string }[] };
