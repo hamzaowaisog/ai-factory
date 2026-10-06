@@ -57,8 +57,11 @@ export interface ReviewPrDeps {
   /** The model call. Produces the review artifact and its coverage. */
   review2(a: { runId: string; mergeSha: string; diffSha: string }): Promise<void>;
   runGates(a: { ids: string[]; replay: string[]; evidence?: unknown }): Promise<GateOutcome[]>;
-  /** `subject` is the conflicted paths, or the failing locked test ids: what the repair must act on. */
-  repair(cls: "conflict" | "broken-merge", a: { runId: string; subject: string[] }): Promise<{ pushed: boolean; why: string }>;
+  /**
+   * `subject` is the conflicted paths, or the failing locked test ids: what the repair must act on.
+   * `headRef` is the pull request's own branch, which is where a successful repair is pushed.
+   */
+  repair(cls: "conflict" | "broken-merge", a: { runId: string; subject: string[]; headRef: string }): Promise<{ pushed: boolean; why: string }>;
   writeCheck(a: { name: string; headSha: string; conclusion: Conclusion; title: string; summary: string }): Promise<void>;
   writeComment(a: { pr: number; runId: string; body: string }): Promise<void>;
   notify(msg: string): Promise<void>;
@@ -164,7 +167,7 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     }
     // the subject comes from the probe that classified the tree: the only place that knows it
     const subject = cls === "conflict" ? (m?.conflicts ?? []) : (m?.failedTests ?? []);
-    const r = await deps.repair(cls as "conflict" | "broken-merge", { runId, subject });
+    const r = await deps.repair(cls as "conflict" | "broken-merge", { runId, subject, headRef: pr.headRef });
     repaired = r.pushed;
     if (!r.pushed) {
       await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: pr.headSha, conclusion: "failure", title: `Could not repair ${cls}`, summary: r.why });
@@ -197,7 +200,7 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     : `${outcomes.length} gates passed (${replay.length} replayed, ${rerun.length} re-run).`;
 
   await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: pr.headSha, conclusion, title: `${cls}: ${failed.length ? `${failed.length} blocking` : "clear"}`, summary });
-  await deps.writeComment({ pr: a.pr, runId, body: `**Merge gate — ${cls}**\n\n${summary}${repaired ? "\n\n_Repaired automatically since your approval; re-read the diff._" : ""}` });
+  await deps.writeComment({ pr: a.pr, runId, body: `**Merge gate — ${cls}**\n\n${summary}${repaired ? "\n\n_Repaired automatically after this pull request was last reported on; re-read the diff._" : ""}` });
   if (failed.length) await deps.notify(`${runId}: merge gate failed — ${failed.map((f) => f.id).join(", ")}`);
 
   return { conclusion, cls, why: summary, forced: force, repaired };

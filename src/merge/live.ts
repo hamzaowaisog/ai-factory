@@ -8,6 +8,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
 import { OWN_CHECK_NAME } from "../contracts/checks.js";
+import { secret } from "../config/env.js";
 import type { Gh } from "../forge/github.js";
 import { addWorktree, freshWorktree, git, gitOut, resolveRef } from "../ledger/git.js";
 import { Ledger } from "../ledger/ledger.js";
@@ -177,7 +178,13 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
     },
 
     async repair(cls, a) {
-      // the budget was already checked by mayRepair; what remains is the work and the binding
+      // the budget was already checked by mayRepair; what remains is the work and the binding.
+      // The token is checked FIRST: a repair that cannot be delivered is not worth paying a model for.
+      const forge = o.cfg.forge;
+      const token = forge ? secret(forge.tokenEnv) : undefined;
+      if (!forge) return { pushed: false, why: "no forge is configured, so a repair cannot be delivered to the pull request" };
+      if (!token) return { pushed: false, why: `${forge.tokenEnv} is missing in ~/.factory/.env, so a repair cannot be pushed` };
+
       const ledger = Ledger.open(a.runId);
       const state = replay(ledger.events());
       const lock = ledger.getJson<{ lock: { file: string }[] }>(state.steps.get("author-tests")!.outputs[0]!);
@@ -207,6 +214,22 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
 ${proposal.summary}
 
 ${proposal.trailer}`]);
+
+      // Until this existed the repair lived only on this host: the pull request never received it,
+      // and the trailer the loop guard reads never reached the remote. Same shape as deliver's push —
+      // the credential goes in through git's environment, never a command line, because a failed push
+      // prints its command into the error and from there into the ledger.
+      const auth = Buffer.from(`x-access-token:${token}`).toString("base64");
+      try {
+        await git(wt, ["push", forge.pushUrl ?? `https://github.com/${forge.repo}.git`, `HEAD:refs/heads/${a.headRef}`], {
+          env: { GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "http.extraHeader", GIT_CONFIG_VALUE_0: `Authorization: Basic ${auth}` },
+        });
+      } catch (e) {
+        // the edits are committed locally but the pull request has not moved, so this is NOT a repair
+        const why = (e as Error).message.replaceAll(token, "«SECRET»").slice(0, 300);
+        return { pushed: false, why: `the repair was made but could not be pushed to ${a.headRef}: ${why}` };
+      }
+      o.log(`pushed the repair to ${a.headRef}`);
       return { pushed: true, why: proposal.summary };
     },
 

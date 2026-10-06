@@ -1,6 +1,6 @@
 // Step 9: repair proposes edits, and can never touch a locked test.
 import { describe, expect, it } from "vitest";
-import { BROKEN_MERGE_TEMPLATE, CONFLICT_TEMPLATE, proposeRepair, RepairEdits, repairIsEmpty, type RepairRunOpts } from "./repair-run.js";
+import { BROKEN_MERGE_TEMPLATE, CONFLICT_TEMPLATE, proposeRepair, RepairEdits, repairIsEmpty, safeEditPath, type RepairRunOpts } from "./repair-run.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 
 const U = { inputTokens: 100, outputTokens: 10, cacheRead: 0, cacheWrite: 0 };
@@ -156,6 +156,33 @@ describe("proposeRepair", () => {
     expect(CONFLICT_TEMPLATE).toMatch(/Return NO edits/);
     expect(BROKEN_MERGE_TEMPLATE).toMatch(/return no edits/);
     expect(RepairEdits.safeParse({ summary: "cannot decide", edits: [] }).success).toBe(true);
+  });
+
+  it("DROPS an edit whose path climbs out of the repository", async () => {
+    // the caller writes these into the worktree and pushes the result, so an escaping path would be
+    // written outside the repo and shipped. The model has been reading repository files, so its
+    // output is untrusted in the strong sense.
+    const { provider } = scripted({ "*": [submit({ summary: "x", edits: [
+      codeEdit,
+      { path: "../../.ssh/authorized_keys", content: "key", why: "escapes upward" },
+      { path: "/etc/passwd", content: "x", why: "absolute" },
+      { path: "src/../../outside.cs", content: "x", why: "climbs out after normalising" },
+    ] })] });
+    const got = await proposeRepair(opts({ provider }), "rv-1");
+    expect(got.edits).toEqual([codeEdit]);
+    expect(got.rejected.filter((r) => r.why === "path is outside the repository")).toHaveLength(3);
+  });
+
+  it("safeEditPath keeps ordinary paths and refuses the ways out", () => {
+    expect(safeEditPath("src/A.cs")).toBe("src/A.cs");
+    expect(safeEditPath("./src/A.cs")).toBe("src/A.cs");
+    expect(safeEditPath("src\\A.cs")).toBe("src/A.cs");
+    expect(safeEditPath("src/sub/../A.cs")).toBe("src/A.cs");
+    expect(safeEditPath("../A.cs")).toBeUndefined();
+    expect(safeEditPath("src/../../A.cs")).toBeUndefined();
+    expect(safeEditPath("C:/Windows/System32/x.dll")).toBeUndefined();
+    expect(safeEditPath("/etc/passwd")).toBeUndefined();        // absolute, not reinterpreted
+    expect(safeEditPath("")).toBeUndefined();
   });
 
   it("the conflict policy forbids keeping both sides of a single decision", () => {

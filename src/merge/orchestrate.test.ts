@@ -157,6 +157,33 @@ describe("reviewPr: when the base has moved", () => {
     expect(subject).toEqual(["Orders.Tests::Rejects"]);
   });
 
+  it("tells the repair which branch to push to", async () => {
+    // without this the repair commits locally and the pull request never receives it
+    let got: { headRef: string } | undefined;
+    const { d, calls } = deps({
+      getPr: movedPr,
+      mergeVerify: async () => { calls.mergeVerify++; return mergeResult({ mergesClean: calls.mergeVerify > 1 }); },
+      repair: async (_cls, x) => { calls.repair++; got = x; return { pushed: true, why: "resolved" }; },
+    });
+    await reviewPr(d, { pr: 42 });
+    expect(got?.headRef).toBe("factory/run-1");
+  });
+
+  it("reports a failure, not a repair, when the fix could not be pushed", async () => {
+    // the edits exist locally but the pull request has not moved: calling that repaired would
+    // claim the tree was fixed when the tree a person sees is unchanged
+    const { d, calls } = deps({
+      getPr: movedPr,
+      mergeVerify: async () => { calls.mergeVerify++; return mergeResult({ mergesClean: false }); },
+      repair: async () => { calls.repair++; return { pushed: false, why: "GITHUB_TOKEN is missing in ~/.factory/.env" }; },
+    });
+    const got = await reviewPr(d, { pr: 42 });
+    expect(got.conclusion).toBe("failure");
+    expect(got.repaired).toBe(false);
+    expect(calls.checks[0]!.title).toMatch(/Could not repair/);
+    expect(calls.notify[0]).toMatch(/GITHUB_TOKEN/);
+  });
+
   it("tells the second verification to judge the REPAIRED tree, not the head again", async () => {
     // rebuilding from the head would discard the repair commit and verify the broken tree in its
     // place — and then throw anyway, since the worktree is already there
@@ -258,7 +285,7 @@ describe("reviewPr: what gets written back", () => {
     expect(calls.comments).toBe(1);
   });
 
-  it("tells a reviewer when the diff was repaired after their approval", async () => {
+  it("says on the pull request that the tree moved under it, so the diff is read again", async () => {
     const bodies: string[] = [];
     const { d, calls } = deps({
       getPr: async () => ({ headSha: SHA, headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false }),
@@ -266,7 +293,10 @@ describe("reviewPr: what gets written back", () => {
       writeComment: async (x) => { calls.comments++; bodies.push(x.body); },
     });
     await reviewPr(d, { pr: 42 });
-    expect(bodies[0]).toMatch(/Repaired automatically since your approval/);
+    // nobody approves these pull requests — the gates decide — so the note names what actually
+    // happened: the tree changed after it was last reported on
+    expect(bodies[0]).toMatch(/Repaired automatically after this pull request was last reported on/);
+    expect(bodies[0]).not.toMatch(/your approval/);
   });
 
   it("always reports under the one check name both paths share", async () => {

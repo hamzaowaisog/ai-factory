@@ -8,6 +8,7 @@
 // `lockedFiles` is enforced here, not merely requested in the prompt: an edit to any of them is
 // dropped and reported. That is the property that makes automatic repair safe — repair can fix the
 // code until the existing proof passes, and can never weaken the proof until the broken code passes.
+import { posix } from "node:path";
 import { z } from "zod";
 import { buildPack } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
@@ -88,6 +89,22 @@ export interface RepairRunResult {
 const MAX_ATTEMPTS = 2;
 
 /**
+ * Repo-relative and inside the repo, or undefined. The caller writes these straight into the worktree
+ * and then pushes the result, so a path that climbs out would be written outside the repo and shipped.
+ * RepoTools guards reads this way (context/tools.ts safePath); writes had no guard at all.
+ */
+export function safeEditPath(raw: string): string | undefined {
+  const slashed = raw.replace(/\\/g, "/");
+  // RepoTools strips a leading slash and reads the repo-relative file, which is harmless for a READ.
+  // A write is different: "/etc/passwd" would become a file called etc/passwd committed and pushed to
+  // the repository. An absolute path is not a repo-relative edit, so refuse it rather than reinterpret.
+  if (slashed.startsWith("/") || /^[a-zA-Z]:/.test(slashed)) return undefined;
+  const rel = posix.normalize(slashed.replace(/^(\.\/)+/, ""));
+  if (rel === "" || rel === "." || rel === ".." || rel.startsWith("../")) return undefined;
+  return rel;
+}
+
+/**
  * Produces the edits a repair would apply. Deliberately does NOT write them: the caller applies
  * them in the worktree, re-verifies the repaired tree in full, and only then commits with the
  * trailer. Keeping the decision separate from the write is what lets this be tested without a repo.
@@ -124,11 +141,12 @@ export async function proposeRepair(o: RepairRunOpts, reverifyRunId: string): Pr
     if (res.status === "ok" && res.output) {
       const rejected: { path: string; why: string }[] = [];
       const edits = res.output.edits.filter((e) => {
-        const p = e.path.replace(/\\/g, "/").replace(/^\.\//, "");
+        const p = safeEditPath(e.path);
+        if (!p) { rejected.push({ path: e.path, why: "path is outside the repository" }); return false; }
         if (locked.has(p)) { rejected.push({ path: p, why: e.why }); return false; }
         return true;
       });
-      o.log?.(`repair proposed ${edits.length} edit(s)${rejected.length ? `, dropped ${rejected.length} to locked test files` : ""}`);
+      o.log?.(`repair proposed ${edits.length} edit(s)${rejected.length ? `, dropped ${rejected.length} (locked tests or unsafe paths)` : ""}`);
       return { edits, summary: res.output.summary, rejected, model, trailer: repairTrailer(reverifyRunId) };
     }
 
