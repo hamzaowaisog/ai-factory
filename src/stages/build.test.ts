@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, TEST_SCOPE, testWriterTampering } from "./build.js";
+import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, TEST_SCOPE, testRetryMode, testWriterTampering } from "./build.js";
+import { attemptSpend } from "./executor.js";
 import { matchesAny } from "../util/glob.js";
 
 describe("earlier tasks' locked tests", () => {
@@ -72,6 +73,34 @@ describe("retry: keep the previous attempt's code or reset", () => {
     const done = [...failed, ev("step.completed", `${k}/2`), ev("step.started", `${k}/3`)];
     expect(previousAttempt(done, k, [])).toBeUndefined();
     expect(previousAttempt(failed, "implement/TASK-2", [])).toBeUndefined();
+  });
+
+  it("keeps unfinished code (out of budget or turns) even after a move up the ladder", () => {
+    expect(retryMode(prev(["agent-over-budget"]), 1)).toEqual({ mode: "keep", reason: "the previous attempt ran out of budget or turns" });
+    expect(mode(["agent-timeout"], 2, { rung: 0 })).toBe("keep");
+    expect(mode(["agent-over-budget"], 0, { interrupted: true })).toBe("reset");
+    expect(mode(["agent-over-budget", "secret"])).toBe("reset");
+  });
+
+  it("the test writer keeps its tests after a fixable failure, at any rung, and starts again after a safety one", () => {
+    for (const c of ["ac-coverage", "tests-compile", "test-not-found", "agent-over-budget", "agent-timeout", "passes-on-base", "wrong-failure-kind", "characterisation", "not-executed", "keep-passing"]) {
+      expect(testRetryMode(prev([c], { rung: 1 })).mode, c).toBe("keep");
+    }
+    expect(testRetryMode(prev(["ac-coverage", "ac-coverage"])).reason).toBe("the previous attempt failed only on ac-coverage");
+    for (const c of ["author-tests-scope", "author-tests-deleted", "author-tests-removed", "author-tests-skip", "agent-error", "agent-bad-output", "exception", "evidence"]) {
+      expect(testRetryMode(prev(["ac-coverage", c])).mode, c).toBe("reset");
+    }
+    expect(testRetryMode(undefined).mode).toBe("reset");
+    expect(testRetryMode(prev([])).mode).toBe("reset");
+    expect(testRetryMode(prev(["ac-coverage"], { interrupted: true })).mode).toBe("reset");
+  });
+
+  it("adds up what each attempt since the step last completed cost", () => {
+    let seq = 0;
+    const ev = (type: string, key: string, usd?: number) => ({ seq: seq++, ts: "", runId: "r", epoch: 0, type, key, data: usd === undefined ? {} : { "gen_ai.usage.cost_usd": usd } }) as LedgerEvent;
+    const evs = [ev("usage", "design/1", 9), ev("step.completed", "design/1"), ev("usage", "design/2", 1.5), ev("usage", "design/2", 0.25), ev("usage", "design/3", 0.5), ev("usage", "design-export/1", 7)];
+    expect(attemptSpend(evs, "design")).toEqual([1.75, 0.5]);
+    expect(attemptSpend(evs, "plan")).toEqual([]);
   });
 });
 

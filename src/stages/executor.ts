@@ -8,7 +8,8 @@ import type { Failure, LedgerEvent } from "../contracts/index.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY, mergePolicy, withPolicy, type Policy } from "../gates/policy.js";
 import { DEFAULT_LADDER, failureSignature, nextOnFailure, type AttemptRecord, type LadderAction } from "../gates/ladder.js";
-import { checkCaps } from "../ledger/caps.js";
+import { checkCaps, checkStartBudget, type CapHit } from "../ledger/caps.js";
+import { PackOverBudgetError } from "../context/pack.js";
 import { ExecutionLock, LockBusyError } from "../ledger/exec-lock.js";
 import { pullBase } from "../forge/repos.js";
 import { resolveRef } from "../ledger/git.js";
@@ -199,6 +200,19 @@ export function next(state: RunState, ledger: Ledger, project: ProjectConfig): N
   return { kind: "done" };
 }
 
+/** What each attempt of `step` since it last completed has cost (the start-budget check reads the dearest). */
+export function attemptSpend(events: LedgerEvent[], step: string): number[] {
+  const mine = events.filter((e) => e.key && splitKey(e.key).step === step);
+  const lastDone = Math.max(-1, ...mine.filter((e) => e.type === "step.completed").map((e) => e.seq));
+  const by = new Map<string, number>();
+  for (const e of mine) {
+    if (e.type !== "usage" || e.seq <= lastDone) continue;
+    const d = (e.data ?? {}) as Record<string, unknown>;
+    by.set(e.key!, (by.get(e.key!) ?? 0) + Number(d["gen_ai.usage.cost_usd"] ?? d.costUsd ?? 0));
+  }
+  return [...by.values()];
+}
+
 /** At most this many steps run side by side (a request splits into at most a few modules). */
 export const MAX_SIDE_BY_SIDE = 4;
 
@@ -332,7 +346,10 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
     } catch (e) {
       const msg = (e as Error).message;
       slog(`  error: ${msg}`);
-      outcome = { kind: "fail", category: /rate limit|overloaded|529|429/i.test(msg) ? "rate-limit" : "other", failures: [{ check: "exception", message: msg.slice(0, 1000), frames: [] }], signature: `exception:${msg.slice(0, 120)}` };
+      // a briefing still over its budget after everything that can shrink has: the same inputs give the same briefing, so
+      // another attempt cannot fit either (a real run tried three times, with an install each time)
+      if (e instanceof PackOverBudgetError) outcome = { kind: "park", reason: `${step.key}: the briefing does not fit (${e.packTokens} tokens, limit ${e.budget}; biggest section: ${e.biggest})` };
+      else outcome = { kind: "fail", category: /rate limit|overloaded|529|429/i.test(msg) ? "rate-limit" : "other", failures: [{ check: "exception", message: msg.slice(0, 1000), frames: [] }], signature: `exception:${msg.slice(0, 120)}` };
     }
 
     switch (outcome.kind) {
@@ -450,8 +467,8 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
       }
       const cap = checkCaps(state, policy.retryBudget);
       if (cap && !cap.waivable) { await ledger.append({ type: "run.parked", data: { reason: cap.reason } }, writer); return { status: "parked", message: cap.reason }; }
-      if (cap) {
-        // cost, time and attempts: a hash-bound card; a human decides on the terminal
+      // cost, time and attempts: a hash-bound card; a human decides on the terminal
+      const capCard = async (cap: CapHit): Promise<ExecuteResult> => {
         const artifactSha = hashJson({ kind: cap.kind, reason: cap.reason, seq: state.lastSeq });
         const cardId = `cap-${artifactSha.slice(0, 8)}`;
         const p = cap.proposal ?? {};
@@ -464,7 +481,8 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         ].join("\n"));
         await ledger.append({ type: "human.requested", data: { cardId, kind: "cap", artifactSha, proposal: p, reason: cap.reason } }, writer);
         return { status: "waiting", message: `${cap.reason}. Decide with: factory show-card ${runId}` };
-      }
+      };
+      if (cap) return capCard(cap);
 
       const n = next(state, ledger, project);
       if (n.kind === "done") {
@@ -480,6 +498,9 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         if (keys.indexOf(n.step.key) > keys.indexOf(opts.until)) return { status: "until", message: `Stopped before ${n.step.key}: ${opts.until} is done.` };
         batch = batch.filter((b) => keys.indexOf(b.step.key) <= keys.indexOf(opts.until!));
       }
+      // enough left for these steps to get anywhere? If not, the limit card comes before the attempt, not after its spend is lost
+      const short = checkStartBudget(state, batch.map((b) => ({ key: b.step.key, needsUsd: b.step.needsUsd, attemptsUsd: attemptSpend(ledger.events(), b.step.key) })));
+      if (short) return capCard(short);
       trace.setStep(batch.length > 1 ? undefined : batch[0]!.step.key);
       if (batch.length > 1) log(`side by side: ${batch.map((b) => b.step.key).join(", ")}`);
       // every step of the batch is recorded, whatever the others do; the first that ends the run's turn says how

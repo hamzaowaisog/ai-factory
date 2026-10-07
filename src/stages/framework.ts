@@ -5,7 +5,7 @@ import type { Failure, Usage } from "../contracts/index.js";
 import type { ProjectConfig } from "../config/project.js";
 import type { Policy } from "../gates/policy.js";
 import type { Ledger, Writer } from "../ledger/ledger.js";
-import type { RunState, StepKey } from "../ledger/state.js";
+import { splitKey, type RunState, type StepKey } from "../ledger/state.js";
 import type { FailureCategory } from "../gates/ladder.js";
 import type { Trace } from "../util/trace.js";
 import type { GateAnswer } from "./gate-questions.js";
@@ -64,6 +64,8 @@ export interface StepDef {
   model?(ctx: Pick<StepContext, "project" | "rung">): string | undefined;
   templateVersion: string;
   coding?: boolean;
+  /** the least left under the run's cost limit that this step is worth starting with (a coding agent); less, and the limit card comes first */
+  needsUsd?: number;
   /** may run side by side with the other parallel steps next to it in the run (one module's spec chain beside another's) */
   parallel?: boolean;
   run(ctx: StepContext): Promise<StepOutcome>;
@@ -90,6 +92,16 @@ export function requireOutput<T>(state: RunState, ledger: Ledger, step: StepKey,
 
 export function header(runId: string, kind: string, stage: string, inputsHash: string, model?: string) {
   return { kind, schemaVersion: 1 as const, runId, producedBy: { stage, model }, inputsHash, createdAt: new Date().toISOString() };
+}
+
+/**
+ * What this step's last attempt left for its retry (the `data` of its failure), or undefined when the step has not failed since
+ * it last completed. A step that failed its own checks stores the rejected answer here, so the retry fixes it and does not start over.
+ */
+export function lastFailureData(ledger: Ledger, step: StepKey): Record<string, unknown> | undefined {
+  const evs = ledger.events().filter((e) => e.key && splitKey(e.key).step === step);
+  const last = evs.filter((e) => e.type === "step.completed" || e.type === "step.failed" || e.type === "step.interrupted").at(-1);
+  return last?.type === "step.failed" ? (last.data ?? {}) as Record<string, unknown> : undefined;
 }
 
 /** Reasons a human gave when rejecting an approval card, oldest first (typed on a TTY: trusted). */

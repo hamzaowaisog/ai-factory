@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { chmodSync, existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -40,6 +40,15 @@ describe("hardened git", () => {
     expect(await changedFiles(wt, base)).toEqual([{ status: "A", path: "new.txt" }]);
     await resetHard(wt, base);
     expect(existsSync(join(wt, "new.txt"))).toBe(false);
+    // a reset can leave named untracked folders alone (installed packages)
+    mkdirSync(join(wt, "node_modules", "pkg"), { recursive: true });
+    writeFileSync(join(wt, "node_modules", "pkg", "index.js"), "x\n");
+    writeFileSync(join(wt, "stray.txt"), "x\n");
+    await resetHard(wt, base, ["node_modules"]);
+    expect(existsSync(join(wt, "node_modules", "pkg", "index.js"))).toBe(true);
+    expect(existsSync(join(wt, "stray.txt"))).toBe(false);
+    await resetHard(wt, base);
+    expect(existsSync(join(wt, "node_modules"))).toBe(false);
     await removeWorktree(repo, wt);
     expect(existsSync(wt)).toBe(false);
     const branches = (await git(repo, ["branch", "--list", "factory/*"])).stdout;

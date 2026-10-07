@@ -66,6 +66,32 @@ export function checkCaps(state: RunState, maxAttempts = MAX_ATTEMPTS_PER_TASK):
   return undefined;
 }
 
+/** A retry is started only with at least this share of what the step's dearest attempt so far cost. */
+export const RETRY_NEEDS_SHARE = 0.5;
+
+/**
+ * Before a step starts: is enough left under the cost limit for it to get anywhere? A step that starts with too little runs out
+ * part-way and its spend is lost (a real run's test writer needed $2.84, was retried with $0.96 left, and stopped after $1.00).
+ * The limit card comes before the attempt instead of after it. `needsUsd`: the least the step is worth starting with (a coding
+ * agent); `attemptsUsd`: what its attempts since it last completed cost. Steps side by side split what is left.
+ */
+export function checkStartBudget(state: RunState, steps: { key: string; needsUsd?: number; attemptsUsd: number[] }[]): CapHit | undefined {
+  const cap = currentCostCap(state);
+  const left = Math.max(0, cap - state.costUsd) / Math.max(1, steps.length);
+  for (const s of steps) {
+    const dearest = Math.max(0, ...s.attemptsUsd);
+    const need = Math.max(s.needsUsd ?? 0, RETRY_NEEDS_SHARE * dearest);
+    if (need <= 0 || left >= need) continue;
+    const step = Math.max(costCapUsd(state.info.changeClass, state.info.complexity), MIN_CAP_USD);
+    const why = RETRY_NEEDS_SHARE * dearest >= (s.needsUsd ?? 0) ? `its last attempt used $${dearest.toFixed(2)}` : `it needs about $${need.toFixed(2)} to start`;
+    return {
+      kind: "cost", waivable: true, proposal: { costUsd: Math.ceil(cap + Math.max(step, 2 * need)) },
+      reason: `Not enough left to run ${s.key}: $${left.toFixed(2)} of the $${cap.toFixed(2)} limit is left${steps.length > 1 ? " for each step" : ""}, and ${why}`,
+    };
+  }
+  return undefined;
+}
+
 /** Below this, a step isn't started with a smaller budget: it runs out, and the cap card follows. */
 export const MIN_STEP_USD = 0.25;
 

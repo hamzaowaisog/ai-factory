@@ -97,9 +97,10 @@ export async function commitAll(wt: string, message: string): Promise<string> {
   return headSha(wt);
 }
 
-export async function resetHard(wt: string, sha: string): Promise<void> {
+/** `keep`: untracked paths the clean leaves alone (a Node checkout's node_modules, so a retry doesn't install again). */
+export async function resetHard(wt: string, sha: string, keep: string[] = []): Promise<void> {
   await git(wt, ["reset", "--hard", sha]);
-  await git(wt, ["clean", "-fdx"]);
+  await git(wt, ["clean", "-fdx", ...keep.flatMap((k) => ["-e", k])]);
 }
 
 /** Diff from `from` to the working tree, untracked files included (run-manager §2.5). */

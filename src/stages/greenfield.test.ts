@@ -140,9 +140,12 @@ function answerFor(system: string, user: string): unknown {
   }
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
 }
+/** the tools each spec drafter was given */
+let draftTools: string[][] = [];
 const provider: Provider = {
-  start(_model, _e, system, user): Conversation {
+  start(_model, _e, system, user, tools): Conversation {
     prompts.push({ system, user });
+    if (system.includes("Senior engineer writing a behaviour spec")) draftTools.push(tools.map((t) => t.name));
     return {
       async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answerFor(system, user) }], text: "", stop: "tool_use", usage: U }; },
       toolResults() {}, say() {},
@@ -315,7 +318,11 @@ describe("a new product end to end (greenfield, fakes)", () => {
     // every greenfield run asks (settles its spec and design checks by questions), fixed at the start
     expect(replay(ledger.events()).info.asks).toBe(true);
 
+    draftTools = [];
     const r1 = await execute(runId);
+    // the repo is empty: a drafter has nothing to read, so it gets no repo tools (and writes no conversation cache for them)
+    expect(draftTools.length).toBeGreaterThan(0);
+    expect(draftTools.every((t) => t.join() === "submit_result")).toBe(true);
     expect(r1.status, r1.message).toBe("waiting");
     const s1 = replay(ledger.events());
     expect(s1.openCard?.kind).toBe("design-approval");

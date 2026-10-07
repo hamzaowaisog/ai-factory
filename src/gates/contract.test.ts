@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { contractDiff, contractMatches, contractProblems, contractSummary, readContract } from "./contract.js";
+import { contractDiff, contractMatches, contractProblems, contractReadProblem, contractSummary, readContract } from "./contract.js";
 import { DEFAULT_POLICY } from "./policy.js";
 
 // the document a .NET 9 minimal API wrote at build time, with no network (the spike of 2026-10-05)
@@ -86,5 +86,22 @@ describe("the locked API contract", () => {
 
   it("fails plainly when the build wrote no document", () => {
     expect(gate(undefined)).toMatchObject({ passed: false, details: expect.stringMatching(/did not write the API's OpenAPI document at Api\/openapi\/built\.json/) });
+  });
+});
+
+describe("why a text is not an OpenAPI document", () => {
+  it("gives the parser's message with the line that broke", () => {
+    const broken = "openapi: 3.0.3\npaths:\n  /a: {get: }}\n  /b: {}\n";
+    expect(readContract(broken)).toBeUndefined();
+    const why = contractReadProblem(broken)!;
+    expect(why).toMatch(/^it does not parse at line 3: /);
+    expect(why).toContain("(the line reads: /a: {get: }})");
+  });
+
+  it("names the missing top-level key, and says nothing of a document that reads", () => {
+    expect(contractReadProblem("paths: {}\n")).toMatch(/no top-level "openapi"/);
+    expect(contractReadProblem('openapi: "3.0.3"\n')).toBe('it has no top-level "paths"');
+    expect(contractReadProblem("- a\n- b\n")).toMatch(/not a mapping/);
+    expect(contractReadProblem('openapi: "3.0.3"\npaths: {}\n')).toBeUndefined();
   });
 });

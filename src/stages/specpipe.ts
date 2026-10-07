@@ -14,6 +14,7 @@ import { LANE, lightSpec, specLane } from "./lane.js";
 import { settles, specRefused, unsettled, type Found } from "../estimate/settled.js";
 import { settle, settleKey, type Answer, type Decided } from "./settle.js";
 import { hashJson } from "../util/hash.js";
+import { repoIsEmpty } from "../config/greenfield.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -145,9 +146,17 @@ The human answered questions and accepted assumptions (below). Scope they decide
 // ---------- helpers ----------
 const request = (ctx: Pick<StepContext, "state">) => ctx.state.info.request ?? "";
 const hasRepo = (ctx: Pick<StepContext, "state">) => !!ctx.state.info.repoPath && !!ctx.state.info.baseCommit;
-/** Drafters read the repo; with no repo there is nothing to read, so no tools. */
+/** A new product's repo before anything is built into it: only starter files at the base commit. */
+const nothingToRead = (ctx: Pick<StepContext, "state">): boolean => {
+  try { return repoIsEmpty(ctx.state.info.repoPath!, ctx.state.info.baseCommit!); } catch { return false; }
+};
+/**
+ * Drafters read the repo; with no repo, or an empty one, there is nothing to read, so no tools. Tools also make the briefing
+ * a cached conversation, written at 1.25x for a later turn to read back: on the web run of 2026-10-06 (an empty repo) seven
+ * draft calls wrote 200K tokens that way and answered in one turn.
+ */
 const readTools = (ctx: StepContext): Pick<ThinkSpec<unknown>, "tools" | "repoTools"> =>
-  (hasRepo(ctx) ? { tools: ["read_file", "search"], repoTools: toolsFor(ctx) } : { tools: [] });
+  (hasRepo(ctx) && !nothingToRead(ctx) ? { tools: ["read_file", "search"], repoTools: toolsFor(ctx) } : { tools: [] });
 const decisionsOf = (i: { answers: { id: string }[]; assumptions: { id: string }[] }) => [...i.answers.map((a) => a.id), ...i.assumptions.map((a) => a.id)];
 
 /** The first question number after the clarify rounds' (Q-n), for the questions that settle the spec's problems. */

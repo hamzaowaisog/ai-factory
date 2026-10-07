@@ -15,6 +15,25 @@ export function readContract(text: string): Obj | undefined {
   } catch { return undefined; }
 }
 
+/**
+ * Why a text is not an OpenAPI document, in words its writer can act on: the parser's own message with the line and the text
+ * of that line, or the top-level key that is missing. Undefined when it is one.
+ */
+export function contractReadProblem(text: string): string | undefined {
+  let d: unknown;
+  try { d = parse(text); } catch (e) {
+    const err = e as { message?: string; linePos?: { line: number; col: number }[] };
+    const line = err.linePos?.[0]?.line;
+    const first = String(err.message ?? e).split("\n")[0]!.replace(/\s+at line \d+, column \d+:?\s*$/, "").trim();
+    const src = line ? text.split("\n")[line - 1]?.trim().slice(0, 120) : undefined;
+    return `it does not parse${line ? ` at line ${line}` : ""}: ${first}${src ? ` (the line reads: ${src})` : ""}`;
+  }
+  if (!d || typeof d !== "object" || Array.isArray(d)) return "it is not a mapping: an OpenAPI document starts with the keys \"openapi\" and \"paths\"";
+  const o = d as Obj;
+  const missing = [typeof o.openapi === "string" ? "" : "\"openapi\" (a version string such as \"3.0.3\")", o.paths && typeof o.paths === "object" ? "" : "\"paths\""].filter(Boolean);
+  return missing.length ? `it has no top-level ${missing.join(" or ")}` : undefined;
+}
+
 const operations = (doc: Obj): { op: string; def: Obj }[] =>
   Object.entries(doc.paths as Obj).flatMap(([path, item]) => METHODS.filter((m) => (item as Obj)?.[m]).map((m) => ({ op: `${m.toUpperCase()} ${path}`, def: (item as Obj)[m] as Obj })));
 

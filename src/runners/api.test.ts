@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { ContextPack } from "../contracts/index.js";
 import Anthropic from "@anthropic-ai/sdk";
-import { anthropicUserContent, ApiRunner, cachesConversation, chatUserContent, openaiResponsesUserContent, RateLimitedError, transientAnthropic, type Conversation, type Provider, type Turn } from "./api.js";
+import { anthropicUserContent, ApiRunner, cachesConversation, mendAnswer, chatUserContent, openaiResponsesUserContent, RateLimitedError, transientAnthropic, type Conversation, type Provider, type Turn } from "./api.js";
 import type { ModelImage } from "../util/image.js";
 import { sniffImage, toModelImage } from "../util/image.js";
 import { costUsd } from "./pricing.js";
@@ -113,6 +113,42 @@ describe("ApiRunner", () => {
     const { provider, seen } = scripted([{ calls: [], text: "It's a bugfix", stop: "end", usage: U }, call("submit_result", { changeClass: "bugfix", spans: ["x"] })]);
     expect((await new ApiRunner({ provider: () => provider }).run(job())).status).toBe("ok");
     expect(seen.said[0]).toMatch(/submit_result/);
+  });
+});
+
+describe("slips in an answer that are mended instead of sent back", () => {
+  const Page = z.object({ title: z.string().max(40), id: z.string().max(20), options: z.array(z.string().max(40)).max(3), rows: z.array(z.object({ hint: z.string().max(80).optional() })).default([]) });
+  const long = "Choose how you would like to get reminded";  // 41 characters
+
+  it("reads a list sent as its JSON text and cuts a worded string a little over its limit", () => {
+    const m = mendAnswer(Page, { title: long, id: "S-1", options: JSON.stringify(["Email", `${long} about it`]), rows: [{ hint: "ok" }] })!;
+    expect(m.output.options[0]).toBe("Email");
+    expect(m.output.title.length).toBeLessThanOrEqual(40);
+    expect(m.output.title).toBe("Choose how you would like to get…");
+    expect(m.output.options[1]!.length).toBeLessThanOrEqual(40);
+    expect(m.mended).toEqual(expect.arrayContaining(["options: read from its JSON text", "title: cut from 41 to 40 characters"]));
+  });
+
+  it("leaves everything else to the model: far over the limit, an id, too many items, a missing field, text that is not a list", () => {
+    const ok = { title: "Reminders", id: "S-1", options: ["a"] };
+    expect(mendAnswer(Page, ok)).toBeUndefined();
+    expect(mendAnswer(Page, { ...ok, title: `${long} ${long}` })).toBeUndefined();
+    expect(mendAnswer(Page, { ...ok, id: "S-1-with-a-very-long-id" })).toBeUndefined();
+    expect(mendAnswer(Page, { ...ok, options: ["a", "b", "c", "d"] })).toBeUndefined();
+    expect(mendAnswer(Page, { id: "S-1", options: ["a"] })).toBeUndefined();
+    expect(mendAnswer(Page, { ...ok, options: "Email, SMS" })).toBeUndefined();
+    // a slip next to a real fault: nothing is accepted
+    expect(mendAnswer(Page, { title: long, id: "S-1", options: ["a", "b", "c", "d"] })).toBeUndefined();
+  });
+
+  it("the runner accepts a mended answer in the same turn and says what it mended", async () => {
+    const { provider, seen } = scripted([call("submit_result", { changeClass: "feature", spans: '["a","b"]' })]);
+    const turns: (string[] | undefined)[] = [];
+    const r = await new ApiRunner({ provider: () => provider, onTurn: (t) => turns.push(t.mended) }).run(job());
+    expect(r.status).toBe("ok");
+    expect(r.output).toEqual({ changeClass: "feature", spans: ["a", "b"] });
+    expect(seen.toolResults).toHaveLength(0);
+    expect(turns).toEqual([["spans: read from its JSON text"]]);
   });
 });
 

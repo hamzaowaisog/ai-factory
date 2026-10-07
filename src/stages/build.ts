@@ -16,7 +16,7 @@ import { failureSignature } from "../gates/ladder.js";
 import { changedFiles, commitAll, diffIncludingUntracked, git, headSha, repoRefusals, resetHard } from "../ledger/git.js";
 import { ClaudeAgentRunner, type AgentProgress } from "../runners/claude-agent.js";
 import { ensureAgentImage, ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
-import { buildPack } from "../context/pack.js";
+import { buildPack, FILE_INLINE_MAX } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
 import { sha256 } from "../util/hash.js";
 import { factoryHome } from "../util/paths.js";
@@ -55,6 +55,8 @@ type Plan = z.infer<typeof PlanBody> & { complexity: string };
 type Intent = z.infer<typeof IntentBody>;
 
 const LIGHT_TEST_WRITER = "claude-sonnet-5";
+/** A coding agent isn't started with less than this left under the cost limit: it reads the briefing and the repo before it writes anything. */
+const AGENT_START_USD = 1;
 
 /** "AC-2.3" → "REQ-2". */
 export const reqOfAc = (acId: string) => acId.replace(/^AC-(\d+)\..*$/, "REQ-$1");
@@ -137,21 +139,36 @@ function agentTracer(ctx: StepContext, who: string) {
   };
 }
 
+/** Package folders in a checkout's node_modules so far (a scope like @types counts its packages). */
+function installedPackages(wt: string): number {
+  const dir = join(wt, "node_modules");
+  try {
+    return readdirSync(dir).reduce((n, e) => n + (e.startsWith(".") ? 0 : e.startsWith("@") ? readdirSync(join(dir, e)).length : 1), 0);
+  } catch { return 0; }
+}
+
+/** What a reset of the checkout leaves in place: a Node app's installed packages (a retry installed them again each time; the
+ *  install key decides whether they are still current, and the lab never reads them: it installs from the commit). */
+const keptOnReset = (project: Pick<ProjectConfig, "stack">) => (project.stack === "node" ? ["node_modules"] : []);
+
 /**
  * The coding container reads restored packages from the run's package folder (read-only, no network).
  * If discover reused a cached baseline, nothing restored them yet for this run: do it now.
  */
 async function ensurePackages(ctx: StepContext, commit: string, wt: string): Promise<void> {
   if (ctx.project.stack === "node") {
-    // a Node checkout gets its node_modules installed in place, before each agent (a reset or clean removes them), and again
-    // whenever package.json or the lockfile changed since (PR #17 review, item 7)
+    // a Node checkout gets its node_modules installed in place, before the first agent, and again
+    // whenever package.json or the lockfile changed since (PR #17 review, item 7); a reset keeps them (keptOnReset)
     if (!existsSync(join(wt, "package.json")) || installIsCurrent(wt)) return;
-    ctx.log("installing the app's packages for the coding container");
+    ctx.log(`installing the app's packages for the coding container${existsSync(join(wt, "package-lock.json")) ? "" : " (the first install downloads every package: a few minutes)"}`);
+    // npm prints nothing until it ends: say how far it is, so a long first install doesn't look stuck (4 min of silence on a real run)
+    const began = Date.now();
+    const tick = setInterval(() => ctx.log(`still installing: ${installedPackages(wt)} packages so far (${Math.round((Date.now() - began) / 1000)}s)`), 30_000);
     const r = await installNodeModules(runtime(), {
       runId: ctx.runId, key: "restore", dir: wt, cache: packagesDir(ctx.runId, "node"), image: ctx.project.node.image, timeoutSec: ctx.project.node.buildTimeoutSec,
       onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "restore", data: { id, role: "restore" } }, ctx.writer); },
       onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "restore", data: { id } }, ctx.writer); },
-    });
+    }).finally(() => clearInterval(tick));
     if (!r.ok) throw new Error(`npm install failed: ${r.log.split("\n").filter(Boolean).slice(-5).join(" ")}`);
     markInstalled(wt);
     return;
@@ -409,8 +426,33 @@ export function testWriterTampering(files: { status: string; path: string; added
   return fs;
 }
 
+/**
+ * Failures a retry can put right in the tests the last attempt wrote: a criterion with no test, a compile error, a test the
+ * lab did not find or that fails for the wrong reason, or an agent that ran out of budget or turns. The files stay and the retry
+ * is told what is missing. (A real run wrote 14 test files for $2.84, missed two criteria, and wrote all of them again.)
+ */
+const TESTS_KEEPABLE = new Set(["ac-coverage", "tests-compile", "test-not-found", "agent-over-budget", "agent-timeout", "not-executed", "keep-passing", "passes-on-base", "wrong-failure-kind", "characterisation"]);
+
+/** Keep the previous attempt's tests for this retry, or start from the stub commit. Any rung: the tests are edited, not trusted. */
+export function testRetryMode(prev: PrevAttempt | undefined): { mode: "keep" | "reset"; reason: string } {
+  if (!prev) return { mode: "reset", reason: "no previous attempt" };
+  if (prev.interrupted) return { mode: "reset", reason: "the previous attempt didn't finish" };
+  if (!prev.checks.length) return { mode: "reset", reason: "no failures to fix" };
+  const bad = [...new Set(prev.checks.filter((c) => !TESTS_KEEPABLE.has(c)))];
+  if (bad.length) return { mode: "reset", reason: `the previous attempt failed on ${bad.join(", ")}` };
+  return { mode: "keep", reason: `the previous attempt failed only on ${[...new Set(prev.checks)].join(", ")}` };
+}
+
+/** The agent stopped before it answered (budget or turns): what it wrote is still worth finishing. */
+const UNFINISHED = new Set(["over-budget", "timeout"]);
+
+/** Uncommitted paths in the checkout (untracked files one by one). */
+async function dirtyPaths(wt: string): Promise<string[]> {
+  return (await git(wt, ["status", "--porcelain", "-uall"])).stdout.split("\n").filter(Boolean).map((l) => l.slice(3).replace(/^"|"$/g, ""));
+}
+
 export const authorTestsStep: StepDef = {
-  key: "author-tests", stage: "author-tests", templateVersion: "3", coding: true,
+  key: "author-tests", stage: "author-tests", templateVersion: "3", coding: true, needsUsd: AGENT_START_USD,
   inputs: (s) => (s.steps.get("stub-commit")?.status === "completed" ? { stubs: s.steps.get("stub-commit")!.outputs[0], spec: s.steps.get("specify")!.outputs[0] } : undefined),
   async run(ctx) {
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
@@ -419,15 +461,32 @@ export const authorTestsStep: StepDef = {
     const light = lightBuild(intent, plan.complexity);
     const start = String(ctx.state.steps.get("stub-commit")!.data!.commit);
     const wt = await ensureWorktree(ctx, start);
-    await resetHard(wt, start);
-    const routed = modelFor(ctx.project, "author-tests", ctx.rung);
+    // keep the previous attempt's tests when a retry can fix them, or start again from the stub commit
+    const prev = previousAttempt(ctx.ledger.events(), "author-tests", ctx.priorFailures.map((f) => f.check));
+    let mode = testRetryMode(prev);
+    let keptFiles: string[] = [];
+    if (mode.mode === "keep") {
+      const saved = prev!.commit;
+      if (saved && await isAncestor(wt, start, saved)) {
+        // the saved commit's files, with HEAD back at the stub commit so the tests still end as one commit
+        await resetHard(wt, saved, keptOnReset(ctx.project));
+        await git(wt, ["reset", "--mixed", "-q", start]);
+      } else if (saved || (await headSha(wt)) !== start) mode = { mode: "reset", reason: "the previous attempt's tests are not in the worktree" };
+      // (no saved commit: an attempt from before commits were saved left its files in the worktree; they are kept as they are)
+      if (mode.mode === "keep") {
+        keptFiles = await dirtyPaths(wt);
+        if (!keptFiles.length) mode = { mode: "reset", reason: "the previous attempt left no files" };
+        else if (keptFiles.some((f) => !matchesAny(f, TEST_SCOPE))) mode = { mode: "reset", reason: "the previous attempt left files outside the tests" };
+      }
+    }
+    if (mode.mode === "reset") { keptFiles = []; await resetHard(wt, start, keptOnReset(ctx.project)); }
+    else ctx.log(`author-tests: keeping the previous attempt's ${keptFiles.length} test file${keptFiles.length === 1 ? "" : "s"} (${mode.reason})`);
+    const prevOut = mode.mode === "keep" && prev?.out ? AuthorOut.safeParse(ctx.ledger.getJson(prev.out)).data : undefined;
+    const retry = { retryMode: mode.mode, retryReason: mode.reason };
+    const routed = modelFor(ctx.project, "author-tests", ctx.rung, undefined, ctx.priorFailures);
     // light lane: Sonnet writes the few small tests; Opus stays for bigger work, on escalation, or when the project routes it
     const model = light && !ctx.project.steps["author-tests"] && ctx.rung < 2 ? LIGHT_TEST_WRITER : routed.model;
     const { effort } = routed;
-    const rt = runtime();
-    await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
-    await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
-    await ensurePackages(ctx, start, wt);
     // what earlier runs on this repo learned about where tests go (only if those files still exist here)
     const lessons = usableLessons(readLessons(ctx.project.project), wt);
     if (lessons.length) ctx.log(`author-tests: pointing the test writer at ${lessons.map((l) => l.dir).join(", ")} (from earlier runs)`);
@@ -435,6 +494,7 @@ export const authorTestsStep: StepDef = {
     const priorFailures = ctx.priorFailures.filter((f) => f.check !== "passes-on-base");
         // The test author sees ACs, stub signatures and harness rules. Never the plan's approach.
     const acs = spec.requirements.flatMap((r) => r.acceptance.map((a) => ({ req: r.id, ...a })));
+    const needTest = acs.filter((a) => a.level !== "manual");
     // the approved screens behind these criteria: what the person approved is what the tests expect (PR #11 review, item 13)
     const screens = screenFacts(approvedDesignFor<ApprovedDesign>(ctx.state, ctx.ledger)?.design, [...new Set(acs.map((a) => a.req))]);
     // the contract is in the repo already (stub-commit wrote it, with the client and handlers made from it): point at it, don't
@@ -456,25 +516,42 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
         ...(pointers.length ? [S.pointers(pointers)] : []),
         S.artifact("acs", "acceptance-criteria", acs),
         ...(screens.length ? [S.artifact("approved-screens", "approved-screens", screens), S.template("approved-screens-rules", `The approved-screens section lists the screens a person approved for these requirements: route, states, and the exact words on them (title, buttons, field labels, column headers, empty, error, success and validation messages, toasts; "change" for a design note). Where a criterion is about what the user sees or is told, take the expected values from there, word for word, and do not invent other wording. A criterion with no screen there is tested as before.`)] : []),
-        S.artifact("stubs", "stubs", plan.stubs.filter((s) => s.path !== contractFile).map((s) => ({ path: s.path, content: s.content }))),
+        // the stubs are in the checkout (the stub commit): a big one is named, not pasted, and so are the biggest when the briefing is over
+        S.files("stubs", "stubs", plan.stubs.filter((s) => s.path !== contractFile).map((s) => ({ path: s.path, content: s.content }))),
         ...contractNote(ctx.project, wt, "tests"),
+        ...(keptFiles.length ? [S.artifact("previous-tests", "previous-tests", { files: keptFiles, ...(prevOut ? { tests: prevOut.tests, characterisation: prevOut.characterisation, probes: prevOut.probes } : {}) })] : []),
         ...(priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "Your previous attempt was rejected:\n" + priorFailures.slice(0, 20).map((f) => `- [${f.check}] ${f.message}`).join("\n") }] : []),
-        S.task(`Write the acceptance and characterisation tests now.${priorFailures.length ? " The previous attempt failed for the reasons above; fix them." : ""}`),
+        S.task(`Write the acceptance and characterisation tests now.${keptFiles.length
+          ? ` The previous attempt failed for the reasons above. Its test files are still in the checkout (previous-tests lists them${prevOut ? " and the tests it returned" : ""}): keep them, change only what the failures name, and write the tests that are missing.${prevOut ? "" : " It stopped before it finished, so read those files first and finish them."} Return the full list: the tests you kept and the new ones.`
+          : priorFailures.length ? " The previous attempt failed for the reasons above; fix them." : ""}
+Before you return, check your list against the criteria: each of these needs at least one test in it: ${needTest.map((a) => a.id).join(", ")}.`),
         S.recap(["one test per AC", "tests fail now for the right reason", "characterisation tests pass today", "don't touch production code"]),
       ],
     });
+    // the briefing is built first: one that doesn't fit stops the step before any container starts
+    const rt = runtime();
+    await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
+    await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
+    await ensurePackages(ctx, start, wt);
     const r = await new ClaudeAgentRunner(rt, {
       runId: ctx.runId, key: `author-tests/${ctx.attempt}`, fileScope: TEST_SCOPE, lockedFiles: [], extraProtected: contractLockFiles(ctx.project, wt), onProgress: agentTracer(ctx, "test writer"),
       protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
       onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "author-tests", data: { id, role: "agent" } }, ctx.writer); },
       onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "author-tests", data: { id } }, ctx.writer); },
-    }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits: { maxTurns: testWriterTurns(light, acs.filter((a) => a.level !== "manual").map((a) => a.level)), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
+    }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits: { maxTurns: testWriterTurns(light, needTest.map((a) => a.level)), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
     await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
     if (r.status === "config-error") return { kind: "park", reason: r.error ?? "The API rejected the coding agent's request" };
-    if (r.status !== "ok") return { kind: "fail", category: r.status === "rate-limited" ? "rate-limit" : "other", failures: [failure(`agent-${r.status}`, r.error ?? r.status)], signature: `author-tests:${r.status}` };
+    if (r.status !== "ok") {
+      // out of budget or turns: what it wrote is paid for, so it is saved for the retry to finish (test files only)
+      const left = UNFINISHED.has(r.status) ? await dirtyPaths(wt) : [];
+      const unfinished = left.length && left.every((f) => matchesAny(f, TEST_SCOPE)) ? await commitAll(wt, `factory: unfinished acceptance tests for ${ctx.runId}`) : undefined;
+      return { kind: "fail", category: r.status === "rate-limited" ? "rate-limit" : "other", failures: [failure(`agent-${r.status}`, r.error ?? r.status)], signature: `author-tests:${r.status}`, data: { ...retry, ...(unfinished ? { commit: unfinished, ...(prev?.out && mode.mode === "keep" ? { out: prev.out } : {}) } : {}) } };
+    }
     const out = r.output as z.infer<typeof AuthorOut>;
 
     const commit = await commitAll(wt, `factory: acceptance tests for ${ctx.runId}`);
+    // what a retry needs to carry on from here: the commit and the tests the writer listed
+    const keep = { ...retry, commit, out: ctx.ledger.putJson(out) };
     const changed = await changedFiles(wt, start, commit);
     const notTests = changed.filter((c) => !matchesAny(c.path, TEST_SCOPE));
     if (notTests.length) return { kind: "fail", category: "safety", failures: notTests.map((c) => failure("author-tests-scope", `Test author changed a non-test file: ${c.path}`)), signature: "author-tests:scope" };
@@ -483,8 +560,8 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
       return { ...c, ...patchLines(patch) };
     })));
     if (tampered.length) return { kind: "fail", category: "safety", failures: tampered, signature: "author-tests:tamper" };
-    const missingAc = acs.filter((a) => a.level !== "manual" && !out.tests.some((t) => t.acId === a.id));
-    if (missingAc.length) return { kind: "fail", category: "other", failures: missingAc.map((a) => failure("ac-coverage", `No test for ${a.id}`)), signature: "author-tests:coverage" };
+    const missingAc = needTest.filter((a) => !out.tests.some((t) => t.acId === a.id));
+    if (missingAc.length) return { kind: "fail", category: "other", failures: missingAc.map((a) => failure("ac-coverage", `No test for ${a.id}`)), signature: "author-tests:coverage", data: keep };
 
     // One lab run finds the real test IDs by method name AND is the first run on the old code: the IDs
     // (and so the expectations) are only known from its results, so they're decided from them.
@@ -515,11 +592,10 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
     const found = await produce(ctx, "author-tests/base-1", commit, "author-tests-on-base", none, undefined,
       labFor(ctx.project).nameFilter(names), undefined, fromResults);
     if (!found.build.ok || missing.length) {
-      await resetHard(wt, start);
       const why = !found.build.ok
         ? found.build.errors.slice(0, 10).map((e) => failure("tests-compile", `${e.file}:${e.line} ${e.code} ${e.msg}`))
         : missing.map((n) => failure("test-not-found", `No test method named ${n} ran. ${notFoundHint(ctx.project.stack)}`));
-      return { kind: "fail", category: "other", failures: why, signature: `author-tests:${!found.build.ok ? "compile" : "not-found"}` };
+      return { kind: "fail", category: "other", failures: why, signature: `author-tests:${!found.build.ok ? "compile" : "not-found"}`, data: keep };
     }
     const run1 = storeRun(ctx, found);
     const only = [...tests.map((t) => t.testId), ...characterisation.map((c) => c.testId)];
@@ -540,11 +616,8 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
     // rules: which fails-on-base rules this lock was written under (verify-evidence re-checks old locks the old way)
     const lockSha = ctx.ledger.putJson({ ...lock, unlocks: [], families, familyNote, rules: { productionExceptionOk: true }, header: header(ctx.runId, "acceptance-tests", "author-tests", "", model) });
     const g = await runGate(failsOnBase, ctx.ledger, ctx.writer, { run1: run1.testRun, run2: run2.testRun, tests: lockSha }, ctx.policy, { step: "author-tests", treeSha: commit });
-    if (!g.passed) {
-      await resetHard(wt, start);
-      return { kind: "fail", category: "other", failures: g.failures ?? [], signature: failureSignature((g.failures ?? []).map((f) => f.message)) };
-    }
-    return { kind: "done", outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, locked: lock.lock.length, familyNote, ...(lessons.length ? { lessonsUsed: lessons.map((l) => l.csproj) } : {}) } };
+    if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [], signature: failureSignature((g.failures ?? []).map((f) => f.message)), data: keep };
+    return { kind: "done", outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, ...retry, locked: lock.lock.length, familyNote, ...(lessons.length ? { lessonsUsed: lessons.map((l) => l.csproj) } : {}) } };
   },
 };
 
@@ -641,7 +714,7 @@ async function gateAll(ctx: StepContext, step: string, treeSha: string, gates: [
 /** Failures that leave the previous attempt's code worth building on: only behaviour (or the build) was wrong. */
 const KEEPABLE = new Set(["build", "locked-failed", "locked-flaky", "regression", "new-failure"]);
 
-export interface PrevAttempt { checks: string[]; rung: number; interrupted: boolean; commit?: string }
+export interface PrevAttempt { checks: string[]; rung: number; interrupted: boolean; commit?: string; /** author-tests: the stored answer of the attempt */ out?: string }
 
 /**
  * Keep the previous attempt's code for this retry, or start again from the task's start commit.
@@ -651,6 +724,8 @@ export interface PrevAttempt { checks: string[]; rung: number; interrupted: bool
 export function retryMode(prev: PrevAttempt | undefined, rung: number): { mode: "keep" | "reset"; reason: string } {
   if (!prev) return { mode: "reset", reason: "no previous attempt" };
   if (prev.interrupted) return { mode: "reset", reason: "the previous attempt didn't finish" };
+  // out of budget or turns is unfinished work, not a wrong approach: it is kept at any rung
+  if (prev.checks.length && prev.checks.every((c) => c === "agent-over-budget" || c === "agent-timeout")) return { mode: "keep", reason: "the previous attempt ran out of budget or turns" };
   if (prev.rung !== rung) return { mode: "reset", reason: `moved from rung ${prev.rung} to rung ${rung}` };
   if (!prev.checks.length) return { mode: "reset", reason: "no failures to fix" };
   const bad = [...new Set(prev.checks.filter((c) => !KEEPABLE.has(c)))];
@@ -664,8 +739,8 @@ export function previousAttempt(events: LedgerEvent[], step: string, checks: str
   const lastDone = Math.max(-1, ...evs.filter((e) => e.type === "step.completed").map((e) => e.seq));
   const end = evs.filter((e) => e.seq > lastDone && (e.type === "step.failed" || e.type === "step.interrupted")).at(-1);
   if (!end) return undefined;
-  const d = (end.data ?? {}) as { rung?: number; parked?: boolean; commit?: string };
-  return { checks, rung: Number(d.rung ?? 0), interrupted: end.type === "step.interrupted" || !!d.parked, commit: d.commit };
+  const d = (end.data ?? {}) as { rung?: number; parked?: boolean; commit?: string; out?: string };
+  return { checks, rung: Number(d.rung ?? 0), interrupted: end.type === "step.interrupted" || !!d.parked, commit: d.commit, ...(d.out ? { out: d.out } : {}) };
 }
 
 const PREV_CHANGE_CAP = 40_000;
@@ -673,7 +748,7 @@ const PREV_CHANGE_CAP = 40_000;
 export function implementStep(taskId: string): StepDef {
   const key = `implement/${taskId}`;
   return {
-    key, stage: "implement", templateVersion: "2", coding: true,
+    key, stage: "implement", templateVersion: "2", coding: true, needsUsd: AGENT_START_USD,
     inputs: (s) => {
       if (s.steps.get("author-tests")?.status !== "completed") return undefined;
       const plan = s.steps.get("plan")!.outputs[0];
@@ -709,15 +784,16 @@ export function implementStep(taskId: string): StepDef {
         const saved = ctx.ledger.putArtifact(prevChange);
         // files stay; HEAD goes back to the start so the task still ends as one commit
         await git(wt, ["reset", "--mixed", "-q", start]);
-        await git(wt, ["clean", "-fdX"]);
+        await git(wt, ["clean", "-fdX", ...keptOnReset(ctx.project).flatMap((k) => ["-e", k])]);
         ctx.log(`implement ${taskId}: keeping previous attempt's code (${mode.reason}; diff ${saved.slice(0, 8)})`);
       } else if (head !== start || dirty) {
         const saved = ctx.ledger.putArtifact(await diffIncludingUntracked(wt, start));
         ctx.log(`implement ${taskId}: saved previous attempt's diff (${saved.slice(0, 8)}) and reset (${mode.reason})`);
-        await resetHard(wt, start);
+        await resetHard(wt, start, keptOnReset(ctx.project));
       }
       const retry = { retryMode: mode.mode, retryReason: mode.reason };
-      const { model, effort } = modelFor(ctx.project, "implement", ctx.rung);
+      const unfinishedBefore = prevChange !== undefined && ctx.priorFailures.length > 0 && ctx.priorFailures.every((f) => f.check === "agent-over-budget" || f.check === "agent-timeout");
+      const { model, effort } = modelFor(ctx.project, "implement", ctx.rung, undefined, ctx.priorFailures);
       const owners = acOwners(plan, spec);
       const myTests = lock.tests.filter((t) => owners.get(t.acId) === task.id);
       const earlier = earlierTests(plan, owners, lock.tests, task.id);
@@ -734,11 +810,6 @@ export function implementStep(taskId: string): StepDef {
       const briefScreens = screen ? [screen] : fromScaffold ? [fromScaffold] : screensForTask(approvedDesign, task);
       const approvedScreen = !approvedDesign || !briefScreens.length ? undefined
         : briefScreens.length === 1 ? screenBrief(approvedDesign, briefScreens[0]!) : screensBrief(approvedDesign, briefScreens);
-      const rt = runtime();
-      await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
-      await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
-      // a Node app's packages, in the checkout (a .NET one reads the restored packages from the run's folder)
-      if (ctx.project.stack === "node") await ensurePackages(ctx, start, wt);
       const pack = buildPack({
         stage: "implement", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
         sections: [
@@ -759,12 +830,20 @@ export function implementStep(taskId: string): StepDef {
           ...(prevChange !== undefined ? [{ spec: { id: "previous-change", source: "artifact" as const, trust: "derived" as const, placement: "user" as const }, artifactKind: "diff",
             content: "Your previous change (diff from the task start; it is already in the files):\n" + (prevChange.length > PREV_CHANGE_CAP ? prevChange.slice(0, PREV_CHANGE_CAP) + `\n… (diff cut at ${PREV_CHANGE_CAP / 1000} KB; read the files for the rest)` : prevChange) }] : []),
           ...(ctx.priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: ctx.priorFailures.slice(0, 20).map((f) => `- [${f.check}] ${f.message}${f.frames.length ? `\n    ${f.frames.join("\n    ")}` : ""}`).join("\n") }] : []),
-          S.task(`Implement ${task.id}: ${task.title}.${prevChange !== undefined
+          S.task(`Implement ${task.id}: ${task.title}.${unfinishedBefore
+            ? " The previous attempt stopped before it finished (above). Its code is still in the files: read it, keep what is right and finish the task."
+            : prevChange !== undefined
             ? " The previous attempt failed; the failures are above. Its code is still in the files: fix the failures by editing that change, don't rewrite it."
             : ctx.priorFailures.length ? " The previous attempt failed; the failures are above." : ""}`),
           S.recap(["only the file scope", "don't touch tests", "no new packages", "return done=true when finished"]),
         ],
       });
+      // the briefing is built first: one that doesn't fit stops the step before any container starts
+      const rt = runtime();
+      await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
+      await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
+      // a Node app's packages, in the checkout (a .NET one reads the restored packages from the run's folder)
+      if (ctx.project.stack === "node") await ensurePackages(ctx, start, wt);
       const r = await new ClaudeAgentRunner(rt, {
         runId: ctx.runId, key: `${key}/${ctx.attempt}`, fileScope: task.fileScope, lockedFiles: lock.lock.map((l) => l.file), onProgress: agentTracer(ctx, "implementer"),
         extraProtected: scaf?.protected ?? [], ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
@@ -773,7 +852,11 @@ export function implementStep(taskId: string): StepDef {
       }).run({ step: "implement", model, effort, pack, schema: ImplementOut, limits: { maxTurns: 80, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
       await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
       if (r.status === "config-error") return { kind: "park", reason: r.error ?? "The API rejected the coding agent's request" };
-      if (r.status !== "ok") return { kind: "fail", category: r.status === "rate-limited" ? "rate-limit" : "other", failures: [failure(`agent-${r.status}`, r.error ?? r.status)], signature: `implement:${r.status}`, data: retry };
+      if (r.status !== "ok") {
+        // out of budget or turns: the code so far is paid for, so it is committed for the retry to finish
+        const unfinished = UNFINISHED.has(r.status) && (await dirtyPaths(wt)).length ? await commitAll(wt, `factory: ${task.id} unfinished`) : undefined;
+        return { kind: "fail", category: r.status === "rate-limited" ? "rate-limit" : "other", failures: [failure(`agent-${r.status}`, r.error ?? r.status)], signature: `implement:${r.status}`, data: { ...retry, ...(unfinished ? { commit: unfinished } : {}) } };
+      }
 
       // core commits (the agent has no git), then the producer judges that exact commit
       const commit = await commitAll(wt, `factory: ${task.id} ${task.title}`);
@@ -823,7 +906,9 @@ function contractNote(project: ProjectConfig, wt: string, who: "tests" | "code")
   const c = project.contract;
   if (!c || !existsSync(join(wt, c.file))) return [];
   if (project.stack === "node") return [S.template("contract", `API CONTRACT (locked: ${c.file}). The app talks to the API only through the generated client in ${CLIENT_DIR}/client.ts; never write fetch calls or response types by hand, and never edit ${CLIENT_DIR} or ${c.file}. ${who === "tests" ? `Tests that need the API start the generated handlers from ${CLIENT_DIR}/client.msw.ts with msw's setupServer (msw/node); they answer with the contract's examples, so assert on that data.` : "The tests run against handlers generated from the same contract, so use its field names exactly."}`)];
-  return [S.template("contract", `API CONTRACT (locked: ${c.file}). The API must answer exactly as this OpenAPI document says: its paths, methods, status codes and JSON field names and types. After every build the factory compares the API's own OpenAPI document with it, so declare each status code on its route (Produces) and keep the project's OpenAPI build settings. Never edit ${c.file}.\n\n${readFileSync(join(wt, c.file), "utf8")}`)];
+  // a small contract is pasted; a big one is read from the checkout (it would take most of the briefing's budget)
+  const doc = readFileSync(join(wt, c.file), "utf8");
+  return [S.template("contract", `API CONTRACT (locked: ${c.file}). The API must answer exactly as this OpenAPI document says: its paths, methods, status codes and JSON field names and types. After every build the factory compares the API's own OpenAPI document with it, so declare each status code on its route (Produces) and keep the project's OpenAPI build settings. Never edit ${c.file}.${doc.length > FILE_INLINE_MAX ? ` Read ${c.file} in the checkout before you write anything: it is not pasted here.` : `\n\n${doc}`}`)];
 }
 
 /** Where the lab keeps the OpenAPI document the build of `commit` wrote, for a .NET API held to a contract (the project's `contract.built`). */

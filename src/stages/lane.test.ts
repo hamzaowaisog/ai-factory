@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stepBudgetUsd } from "../ledger/caps.js";
+import { checkStartBudget, stepBudgetUsd } from "../ledger/caps.js";
 import type { RunState } from "../ledger/state.js";
 import { timeSplit } from "../report.js";
 import { complexityOf, LANE, lightBuild, lightSpec, specLane, testWriterTurns } from "./lane.js";
@@ -63,6 +63,21 @@ describe("a step's budget", () => {
     expect(stepBudgetUsd(state(2.55, { maxCostUsd: 5 }), 4)).toBeCloseTo(2.45);
     // nothing left: a small floor, so the step runs out and the cap card follows
     expect(stepBudgetUsd(state(5.2, { maxCostUsd: 5 }), 4)).toBe(0.25);
+  });
+
+  it("is checked before the step starts: too little left raises the limit card first", () => {
+    const st = (costUsd: number) => state(costUsd, { changeClass: "feature", complexity: "M", spendAtPlan: 0 } as never); // limit $10
+    // the real run: the test writer's first attempt used $2.84, and $0.96 was left for the second
+    const hit = checkStartBudget(st(9.04), [{ key: "author-tests", needsUsd: 1, attemptsUsd: [2.84] }])!;
+    expect(hit).toMatchObject({ kind: "cost", waivable: true, proposal: { costUsd: 20 } });
+    expect(hit.reason).toBe("Not enough left to run author-tests: $0.96 of the $10.00 limit is left, and its last attempt used $2.84");
+    // half of the dearest attempt is enough to start a retry (it keeps the earlier work)
+    expect(checkStartBudget(st(8.5), [{ key: "author-tests", needsUsd: 1, attemptsUsd: [0.4, 2.84] }])).toBeUndefined();
+    // a coding agent's first attempt needs its minimum; a step with no minimum and no failed attempt always starts
+    expect(checkStartBudget(st(9.5), [{ key: "implement/TASK-1", needsUsd: 1, attemptsUsd: [] }])!.reason).toMatch(/\$0\.50 of the \$10\.00 limit is left, and it needs about \$1\.00 to start$/);
+    expect(checkStartBudget(st(9.99), [{ key: "plan", attemptsUsd: [] }])).toBeUndefined();
+    // side by side, the steps split what is left
+    expect(checkStartBudget(st(8.5), [{ key: "a", needsUsd: 1, attemptsUsd: [] }, { key: "b", needsUsd: 1, attemptsUsd: [] }])!.reason).toMatch(/\$0\.75 of the \$10\.00 limit is left for each step/);
   });
 });
 

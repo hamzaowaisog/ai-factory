@@ -48,6 +48,8 @@ function makeRepo(): string {
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
 /** Three tasks, one criterion each: Greeter says Hello, Farewell says Bye, Third says Three. */
 let multi = false;
+/** how many times the multi-task planner leaves REQ-3 out of its plan */
+let planMisses = 0;
 /** what the scripted reviewer reports (non-blocking) */
 let reviewFindings: unknown[] = [];
 /** intake's risk: "low" takes the light lane, "medium" the full one */
@@ -72,6 +74,9 @@ function multiAnswer(system: string): unknown {
   if (system.includes("plan the implementation")) {
     const one = answerFor(system, false) as { tasks: { reqs: string[]; fileScope: string[] }[] };
     const t = (n: number) => ({ id: `TASK-${n}`, title: `Part ${n}`, reqs: [`REQ-${n}`], fileScope: [MULTI_FILES[n - 1]!], exemplars: [], conventions: [], dependsOn: n > 1 ? [`TASK-${n - 1}`] : [], plannedLoc: 3, approach: "small edit" });
+    // a plan that failed its checks is asked for as a patch: only the missing task comes back
+    if (system.includes("THE PLAN IS FIXED, NOT REWRITTEN")) return { tasks: [t(3)] };
+    if (planMisses-- > 0) return { ...one, tasks: [t(1), t(2)] };
     return { ...one, tasks: [t(1), t(2), t(3)] };
   }
   return undefined;
@@ -143,6 +148,11 @@ class Lab implements ContainerRuntime {
   edits: Record<string, Record<string, string>[]> = {};
   /** multi: what each implement attempt found before it edited */
   seen: { scope: string; head: string; task: string; files: Record<string, string | null> }[] = [];
+  /** multi: the test writer leaves the last criterion out of this many attempts, and stops out of budget in this many after */
+  missAc = 0;
+  testsOverBudget = 0;
+  /** multi: what each test-writer attempt found before it wrote (its own earlier files, the briefing) */
+  testSeen: { task: string; kept: string[] }[] = [];
   /** every coding-agent job as the container got it (model, limits, scope) */
   jobs: { model: string; maxTurns: number; maxUsd: number; fileScope: string[]; system: string }[] = [];
   async version() { return "fake"; }
@@ -157,8 +167,16 @@ class Lab implements ContainerRuntime {
       this.jobs.push(job as never);
       const out = mount("/job/out")!;
       if (multi && job.fileScope.includes("tests/**")) {
+        const mine = ["tests/Api.Tests/GreetTests.cs", "tests/Api.Tests/ThirdTests.cs"];
+        this.testSeen.push({ task: (job as unknown as { task: string }).task, kept: mine.filter((f) => existsSync(join(work, f))) });
+        const miss = this.missAc-- > 0;
         writeFileSync(join(work, "tests/Api.Tests/GreetTests.cs"), "namespace Api.Tests; public class GreetTests { }\n");
-        writeFileSync(join(out, "result.json"), JSON.stringify({ status: "ok", output: { tests: MULTI_TESTS.map((name, i) => ({ acId: `AC-${i + 1}.1`, file: "tests/Api.Tests/GreetTests.cs", name })), characterisation: [{ target: "Greeter", file: "tests/Api.Tests/ExistingTests.cs", name: "CHAR_Works" }], probes: [], notes: "" }, instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 5000, output_tokens: 800 }, costUsd: 0.05, turns: 6 }));
+        if (!miss) writeFileSync(join(work, "tests/Api.Tests/ThirdTests.cs"), "namespace Api.Tests; public class ThirdTests { }\n");
+        if (!miss && this.testsOverBudget-- > 0) {
+          writeFileSync(join(out, "result.json"), JSON.stringify({ status: "over-budget", error: "Reached maximum budget ($0.50)", instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 8000, output_tokens: 900 }, costUsd: 0.5, turns: 9 }));
+          return 0;
+        }
+        writeFileSync(join(out, "result.json"), JSON.stringify({ status: "ok", output: { tests: MULTI_TESTS.slice(0, miss ? -1 : undefined).map((name, i) => ({ acId: `AC-${i + 1}.1`, file: "tests/Api.Tests/GreetTests.cs", name })), characterisation: [{ target: "Greeter", file: "tests/Api.Tests/ExistingTests.cs", name: "CHAR_Works" }], probes: [], notes: "" }, instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 5000, output_tokens: 800 }, costUsd: 0.05, turns: 6 }));
       } else if (multi) {
         const job2 = JSON.parse(readFileSync(mount("/job/in.json")!, "utf8")) as { fileScope: string[]; task: string };
         const scope = job2.fileScope[0]!;
@@ -265,6 +283,7 @@ beforeEach(() => {
   setProviderFactory(() => provider);
   modelCalls.length = 0;
   multi = false;
+  planMisses = 0;
   intakeRisk = "low";
   reviewFindings = [];
   criticFindings = [];
@@ -592,6 +611,61 @@ describe("implement loop across tasks (fakes)", () => {
     // the last task's run already required every task's locked test: integrate reuses it
     expect(s.steps.get("integrate")!.data).toMatchObject({ reusedRunFrom: "implement/TASK-3" });
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+  }, 30_000);
+
+  it("a plan that fails its checks is fixed by a patch: the retry returns only the missing task", async () => {
+    multi = true;
+    planMisses = 1;
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    const s = replay(ledger.events());
+    expect(s.steps.get("plan")?.attempts).toBe(2);
+    const f = failedAttempts(ledger, "plan");
+    expect(ledger.getJson<{ check: string; message: string }[]>(f[0]!.outputs![0]!)).toEqual([expect.objectContaining({ check: "plan-coverage", message: "REQ-3 isn't covered by any task" })]);
+    expect(f[0]!.data).toMatchObject({ rejectedPlan: expect.any(String), patches: 0 });
+    // the retry was given the rejected plan and the failure, and asked for the changes alone
+    expect(planPrompt).toContain("THE PLAN IS FIXED, NOT REWRITTEN");
+    expect(planPrompt).toContain("previous-plan");
+    expect(planPrompt).toContain("REQ-3 isn't covered by any task");
+    expect(planPrompt).toContain("Return the changes that fix the failures.");
+    // the patched plan is the rejected one with the new task last, and it passed the same checks
+    const plan = ledger.getJson<{ tasks: { id: string; reqs: string[] }[]; adr: string }>(s.steps.get("plan")!.outputs[0]!);
+    expect(plan.tasks.map((t) => t.id)).toEqual(["TASK-1", "TASK-2", "TASK-3"]);
+    expect(plan.adr).toBe(ledger.getJson<{ adr: string }>(String(f[0]!.data!.rejectedPlan)).adr);
+  }, 30_000);
+
+  it("the test writer's retry keeps its files: after a missed criterion, and after it ran out of budget", async () => {
+    multi = true;
+    lab.missAc = 1;
+    lab.testsOverBudget = 1;
+    lab.edits = { "src/Api/Greeter.cs": [{ "src/Api/Greeter.cs": HELLO }], "src/Api/Farewell.cs": [{ "src/Api/Farewell.cs": cls("Bye") }], "src/Api/Third.cs": [{ "src/Api/Third.cs": cls("Three") }] };
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    const card = replay(ledger.events()).openCard!;
+    await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    const s = replay(ledger.events());
+    expect(s.steps.get("author-tests")?.attempts).toBe(3);
+    const f = failedAttempts(ledger, "author-tests");
+    expect(ledger.getJson<{ check: string; message: string }[]>(f[0]!.outputs![0]!)).toEqual([expect.objectContaining({ check: "ac-coverage", message: "No test for AC-3.1" })]);
+    expect(ledger.getJson<{ check: string }[]>(f[1]!.outputs![0]!).map((x) => x.check)).toEqual(["agent-over-budget"]);
+    // each failed attempt saved its commit; the answer of the first is carried past the one that never answered
+    expect(f[0]!.data).toMatchObject({ retryMode: "reset", commit: expect.stringMatching(/^[0-9a-f]{40}$/), out: expect.any(String) });
+    expect(f[1]!.data).toMatchObject({ retryMode: "keep", commit: expect.stringMatching(/^[0-9a-f]{40}$/), out: f[0]!.data!.out });
+    // attempt 2 finds attempt 1's file and is told to keep it; attempt 3 finds the unfinished attempt's files too
+    expect(lab.testSeen.map((x) => x.kept)).toEqual([[], ["tests/Api.Tests/GreetTests.cs"], ["tests/Api.Tests/GreetTests.cs", "tests/Api.Tests/ThirdTests.cs"]]);
+    expect(lab.testSeen[0]!.task).not.toContain("previous-tests");
+    expect(lab.testSeen[0]!.task).toContain("each of these needs at least one test in it: AC-1.1, AC-2.1, AC-3.1");
+    expect(lab.testSeen[1]!.task).toContain("No test for AC-3.1");
+    expect(lab.testSeen[1]!.task).toContain("keep them, change only what the failures name");
+    expect(lab.testSeen[1]!.task).toContain("AC_1_1_GreetsWithHello");
+    expect(lab.testSeen[2]!.task).toContain("Return the full list");
+    expect(s.steps.get("author-tests")!.data).toMatchObject({ retryMode: "keep" });
+    // the tests still end as one commit on the branch, with both files locked
+    const log = execFileSync("git", ["log", "--format=%s", `main..factory/${runId}`], { cwd: s.info.repoPath!, encoding: "utf8" });
+    expect(log.match(/acceptance tests/g)).toHaveLength(1);
+    expect(ledger.getJson<{ lock: { file: string }[] }>(s.steps.get("author-tests")!.outputs[0]!).lock.map((l) => l.file)).toEqual(expect.arrayContaining(["tests/Api.Tests/GreetTests.cs", "tests/Api.Tests/ThirdTests.cs"]));
   }, 30_000);
 
   it("two broken builds in a row climb the ladder instead of parking as a suspect test", async () => {

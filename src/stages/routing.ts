@@ -57,14 +57,27 @@ export function routeFor(project: ProjectConfig, stage: string): StepRoute {
 }
 
 /**
- * Model + effort for a ladder rung. With a policy that lists its models (no "*"), the final model must
+ * Failures that already say exactly what is wrong or missing: the answer did not fit its shape, the money or the turns ran out,
+ * or a listed item has nothing against it. More thinking does not fix these, so a retry keeps the step's own effort.
+ */
+const MECHANICAL = new Set([
+  "agent-over-budget", "agent-timeout", "not-executed",
+  "ac-coverage", "test-not-found", "missing-test", "plan-coverage", "impact-uncovered", "e2-uncovered", "b1-unmapped", "b1-unknown",
+  "design-unmapped", "design-orphan", "design-unknown-req", "design-duplicate-id", "design-duplicate-route", "design-layout",
+]);
+export const mechanical = (failures: { check: string }[]): boolean =>
+  failures.length > 0 && failures.every((f) => f.check.startsWith("runner-") || MECHANICAL.has(f.check));
+
+/**
+ * Model + effort for a ladder rung. The effort is raised from rung 1 on, unless every failure of the attempt before (`prior`)
+ * is a mechanical one. With a policy that lists its models (no "*"), the final model must
  * be on the list: a GPT step without an OpenAI key falls back to Opus only if Opus is listed, and an
  * escalation is checked too; otherwise `blocked` says why (the caller parks, never swaps silently).
  * No policy or "*": the old behaviour (the Opus fallback still noted).
  */
-export function modelFor(project: ProjectConfig, stage: string, rung: number, policy?: Pick<Policy, "allowedModels">): { model: string; effort: Effort; singleFamilyNote?: string; blocked?: string } {
+export function modelFor(project: ProjectConfig, stage: string, rung: number, policy?: Pick<Policy, "allowedModels">, prior: { check: string }[] = []): { model: string; effort: Effort; singleFamilyNote?: string; blocked?: string } {
   const r = routeFor(project, stage);
-  const effort: Effort = rung >= 1 ? "xhigh" : (r.effort ?? "high");
+  const effort: Effort = rung >= 1 && !mechanical(prior) ? "xhigh" : (r.effort ?? "high");
   if (policy && !policy.allowedModels.includes("*")) {
     const want = rung >= 2 && r.escalate[0] ? r.escalate[0] : r.model;
     let model = want, note: string | undefined;

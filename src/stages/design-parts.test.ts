@@ -16,7 +16,7 @@ import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import type { Failure } from "../contracts/common.js";
 import { NO_TRACE } from "../util/trace.js";
-import { designStep, DRAW_IN_PARTS_AT, failuresFor } from "./design.js";
+import { designStep, DRAW_IN_PARTS_AT, failuresFor, pagesToRedraw } from "./design.js";
 import { readPreview } from "../ui/preview.js";
 import type { StepContext, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
@@ -186,6 +186,45 @@ describe("a large design is drawn in parts", () => {
     expect(isPlan(calls[0]!)).toBe(false);
     // no draft for a one-answer design: the preview comes with design-baseline
     expect(existsSync(join(ledger.dir, "preview"))).toBe(false);
+  });
+});
+
+describe("a one-answer design that fails checks naming its pages", () => {
+  const small = reqs.slice(0, 6);
+  const screen = (k: number, title: string) => ({ id: `S-${k}`, route: `/p${k}`, file: `app/p${k}/page.tsx`, reqs: small.slice((k - 1) * 3, k * 3).map((r) => r.id), states: [], size: "new", ...page(title) });
+  const whole = (t2: string) => ({ theme, flow: "A user signs in and sees the queue.", noScreen: [], screens: [screen(1, "Sign in"), screen(2, t2)] });
+
+  it("draws only those pages again, each from its rejected drawing, and keeps the rest", async () => {
+    answer = () => whole("Page 2");
+    const ledger = await newRun(small);
+    const out = await draw(ledger);
+    expect(out).toMatchObject({ kind: "fail", data: { rejected: expect.any(String) } });
+    const failures = (out as { failures: Failure[] }).failures;
+    expect(failures.map((f) => f.check)).toEqual(["design-generic-title"]);
+    // as the executor records a failed attempt: its failures and what it left for the retry
+    await ledger.append({ type: "step.failed", key: "design/1", outputs: [ledger.putJson(failures)], data: (out as { data: Record<string, unknown> }).data }, HUMAN_WRITER);
+    calls = [];
+    answer = (c) => { if (!/Fix page S-2/.test(c.user)) throw new Error("only S-2 is drawn again"); return page("Clinic queue"); };
+    const again = await draw(ledger, failures);
+    expect(again.kind, JSON.stringify(again)).toBe("done");
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.user).toContain("rejected-page");
+    expect(calls[0]!.user).toContain("design-generic-title");
+    expect(calls[0]!.system).toContain("return it with those fixed and everything else as it was");
+    expect(logged.join("\n")).toContain("drawing again only S-2 (1 of 2 pages kept)");
+    const design = ledger.getJson<{ screens: { id: string; mock: { title: string } }[] }>((again as { outputs: { design: string } }).outputs.design);
+    expect(design.screens.map((x) => [x.id, x.mock.title])).toEqual([["S-1", "Sign in"], ["S-2", "Clinic queue"]]);
+  });
+
+  it("a failure about the look or the list, or one that names no page, has the whole design drawn again", () => {
+    const f = (check: string, message: string) => failure(check, message);
+    const ids = ["S-1", "S-2", "S-3"];
+    expect(pagesToRedraw(ids, [f("design-layout", 'On S-2, "Reorder all" is cut off in the drawn demo.'), f("design-generic-title", "Screen S-3 has a generic title")])).toEqual(["S-2", "S-3"]);
+    expect(pagesToRedraw(ids, [f("design-layout", 'On S-2, "Reorder all" is cut off'), f("design-theme", "The brand colour is a competitor's exact shade.")])).toBeUndefined();
+    expect(pagesToRedraw(ids, [f("design-orphan", "screen S-3 serves no requirement")])).toBeUndefined();
+    expect(pagesToRedraw(ids, [f("runner-bad-output", "cut off")])).toBeUndefined();
+    expect(pagesToRedraw(ids, [f("design-layout", "On S-9, a label is cut off")])).toBeUndefined();
+    expect(pagesToRedraw(ids, [])).toBeUndefined();
   });
 });
 
