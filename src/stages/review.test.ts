@@ -1,6 +1,6 @@
 // The pre-PR reviewer: what it is shown, and what it is allowed to read.
 import { describe, expect, it } from "vitest";
-import { diffFiles, truncateDiff, verificationProjection } from "./deliver.js";
+import { diffFiles, reviewRoom, truncateDiff, verificationProjection } from "./deliver.js";
 import { hashJson } from "../util/hash.js";
 import type { TestResult, TestRun } from "../contracts/index.js";
 import { toolDefs } from "../context/tools.js";
@@ -29,6 +29,12 @@ describe("diffFiles", () => {
 
   it("lists a file once however many hunks it has", () => {
     expect(diffFiles("+++ b/a.cs\n@@ -1 +1 @@\n+++ b/a.cs\n")).toEqual(["a.cs"]);
+  });
+});
+
+describe("reviewRoom", () => {
+  it("gives a review with many criteria more turns, money and time, up to three times the usual", () => {
+    expect([0, 12, 35, 36, 70, 104, 400].map(reviewRoom)).toEqual([1, 1, 1, 2, 2, 3, 3]);
   });
 });
 

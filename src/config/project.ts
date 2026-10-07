@@ -25,6 +25,8 @@ export const ProjectConfig = z.object({
     /** GitHub API and git push URLs; set only for GitHub Enterprise or tests (a local fake) */
     apiUrl: z.string().default("https://api.github.com"),
     pushUrl: z.string().optional(),
+    /** before each run, bring the local base branch up to GitHub's (a fast-forward): set on the repos the factory put on GitHub */
+    pullBase: z.boolean().default(false),
   }).optional(),
   /**
    * `factory watch`: a Jira ticket labelled `label` by someone on `allowedReporters` starts a run.
@@ -93,6 +95,13 @@ export const ProjectConfig = z.object({
   estimateTemplate: z.string().optional(),
   /** estimate runs: a person answers the clarify questions and approves the estimate (E7) by default; humanReview false makes the project's estimates hands-off (opt-in; `factory estimate --hands-off` does it for one run) */
   estimate: z.object({ humanReview: z.boolean().default(true) }).optional(),
+  /**
+   * brownfield builds: questions true settles the spec's open problems and failing design checks with questions a person answers
+   * (carrying what two rounds leave open as an open risk on the plan approval card) and reads a large request per module, as an
+   * estimate does (docs/estimates-design.md, "Builds"). Off by default: a brownfield build parks on them as before. Greenfield
+   * builds always ask.
+   */
+  brownfield: z.object({ questions: z.boolean().default(false) }).optional(),
   /** Front end of the repo, when it has one (docs/design-step.md): overrides what the design checks would detect. */
   design: z.object({
     /** source root, e.g. "src/" ("" is the repo root); default: detected */
@@ -180,6 +189,18 @@ export const ProjectConfig = z.object({
     path: z.string().refine((p) => !/^[a-z+]+:\/\/|^git@/i.test(p), "a local path, not a URL"),
     role: z.string(),
   })).optional(),
+  /**
+   * A full-stack product's API contract: one OpenAPI file that both the API repo and the web repo hold, written by the plan
+   * (when the repo has none yet), approved on the plan card and locked with the tests. A .NET project names the document its
+   * build writes (`built`): it must say what the contract says. A Node project gets its client and test handlers generated from it.
+   */
+  contract: z.object({
+    file: z.string().default("contracts/openapi.yaml"),
+    /** .NET: the OpenAPI document the build writes (Microsoft.Extensions.ApiDescription.Server), relative to the repo */
+    built: z.string().optional(),
+    /** Node: where the API answers; the generated client calls it. ponytail: a fixed address, read it from the environment when one app serves several places */
+    apiUrl: z.string().default("http://localhost:5080"),
+  }).optional(),
   noGo: z.array(z.string()).default([]),
   /** USD per million tokens for models the factory has no price for (e.g. a GPT model). */
   prices: z.record(z.string(), z.object({

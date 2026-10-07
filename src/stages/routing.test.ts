@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _resetEnvCache } from "../config/env.js";
 import { ProjectConfig } from "../config/project.js";
-import { availableRungs, checkRoutes, ESTIMATE_ROUTES, modelFor } from "./routing.js";
+import { availableRungs, checkRoutes, ESTIMATE_ROUTES, mechanical, modelFor } from "./routing.js";
 
 describe("start-up route checks", () => {
   const saved = { home: process.env.FACTORY_HOME, key: process.env.ANTHROPIC_API_KEY };
@@ -75,5 +75,27 @@ describe("allowed models (policy)", () => {
   it("localOnly: no escalation to a hosted model", () => {
     expect(availableRungs(project, "implement", false).has("stronger-model")).toBe(true);
     expect(availableRungs(project, "implement", true).has("stronger-model")).toBe(false);
+  });
+});
+
+describe("a retry's effort", () => {
+  const project = ProjectConfig.parse({ project: "p", repo: "-", stack: "dotnet" });
+  const f = (check: string) => ({ check });
+
+  it("is raised from the second rung on, unless every failure before it was a mechanical one", () => {
+    expect(modelFor(project, "plan", 0).effort).toBe("high");
+    expect(modelFor(project, "plan", 1).effort).toBe("xhigh");
+    expect(modelFor(project, "plan", 1, undefined, [f("plan-scope")]).effort).toBe("xhigh");
+    // an answer that did not fit its shape, money that ran out, an item with nothing against it: thinking harder does not fix these
+    expect(modelFor(project, "plan", 1, undefined, [f("plan-coverage"), f("runner-bad-output")]).effort).toBe("high");
+    expect(modelFor(project, "author-tests", 2, undefined, [f("ac-coverage"), f("agent-over-budget")]).effort).toBe("high");
+    expect(modelFor(project, "sketches", 1, undefined, [f("runner-timeout")]).effort).toBe("medium");
+    // one failure that needs thought raises it for the whole attempt
+    expect(modelFor(project, "plan", 1, undefined, [f("plan-coverage"), f("plan-scope")]).effort).toBe("xhigh");
+    expect(mechanical([])).toBe(false);
+  });
+
+  it("a stronger model is still chosen at its rung", () => {
+    expect(modelFor(project, "implement", 2, undefined, [f("agent-timeout")])).toMatchObject({ model: "claude-opus-5-5", effort: "high" });
   });
 });

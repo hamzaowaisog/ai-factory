@@ -1,5 +1,5 @@
 // buildPack (context-builder §2.5): resolve → check trust → redact → wrap → order → count
-// → trim (pointer tail, map depth only) → fit or fail → record.
+// → trim (largest files to pointers, pointer tail, map depth) → fit or fail → record.
 import type { ContextPack, PackClass, SectionSpec, StageName } from "../contracts/index.js";
 import { BUDGETS, LOCAL_PACK_CAP } from "../contracts/index.js";
 import { hashJson, stableStringify } from "../util/hash.js";
@@ -24,6 +24,8 @@ export interface ResolvedSection {
   content: string;
   /** for pointers sections */
   pointers?: { path: string; reason: string }[];
+  /** for files sections: files that are also in the checkout, so any of them can be named instead of pasted */
+  files?: { path: string; content: string }[];
   /** for untrusted docs */
   docId?: string;
   source?: string;
@@ -90,6 +92,15 @@ function pointersText(ps: { path: string; reason: string }[]): string {
   return ps.map((p) => `- ${p.path}: ${p.reason}`).join("\n");
 }
 
+/** What stands in for a file that is in the checkout but not pasted: the reader opens it there, so nothing is lost. */
+export const fileNotPasted = (f: { path: string; content: string }) => `(not pasted: ${f.content.split("\n").length} lines; open ${f.path} in the checkout)`;
+/** A file over this is named, not pasted, from the start (about 4k tokens). */
+export const FILE_INLINE_MAX = 16_000;
+const isPasted = (f: { content: string }) => !f.content.startsWith("(not pasted: ");
+export function filesText(fs: { path: string; content: string }[]): string {
+  return JSON.stringify(fs, null, 1);
+}
+
 export function buildPack(inp: BuildPackInput): ContextPack {
   // 2. check
   if (WRITING_STAGES.has(inp.stage)) {
@@ -108,10 +119,10 @@ export function buildPack(inp: BuildPackInput): ContextPack {
   // 3–5. redact, wrap, order
   let redactions = 0;
   const prepared = inp.sections.map((s) => {
-    const raw = s.spec.source === "pointers" ? pointersText(s.pointers ?? []) : s.content;
+    const raw = s.spec.source === "pointers" ? pointersText(s.pointers ?? []) : s.files ? filesText(s.files) : s.content;
     const r = inp.redactor.redact(raw);
     redactions += r.hits.length;
-    return { s, text: r.text, trimmed: false, pointers: s.pointers ? [...s.pointers] : undefined, imageN: undefined as number | undefined };
+    return { s, text: r.text, trimmed: false, pointers: s.pointers ? [...s.pointers] : undefined, files: s.files ? s.files.map((f) => ({ ...f })) : undefined, imageN: undefined as number | undefined };
   }).sort((a, b) => ORDER.indexOf(a.s.spec.source) - ORDER.indexOf(b.s.spec.source));
   // images are numbered in the order they are sent, after the sort
   const images = prepared.filter((p) => p.s.spec.source === "image").map((p, i) => { p.imageN = i + 1; return p.s.imageSha!; });
@@ -126,8 +137,21 @@ export function buildPack(inp: BuildPackInput): ContextPack {
     return estimateTokens(r.system + r.user, inp.model) + images.length * IMAGE_TOKENS;
   };
 
-  // 6–8. count, trim (a) pointer tail (b) map depth, fit
+  // 6–8. count, trim (a) largest files to pointers (b) pointer tail (c) map depth, fit
   let tokens = count();
+  // first, because it loses nothing: the file is in the checkout and the section says where
+  for (const p of prepared) {
+    if (tokens <= budget) break;
+    if (p.s.spec.trimmable !== "files-largest" || !p.files) continue;
+    for (;;) {
+      const big = p.files.filter(isPasted).sort((a, b) => b.content.length - a.content.length)[0];
+      if (tokens <= budget || !big || big.content.length <= fileNotPasted(big).length) break;
+      big.content = fileNotPasted(big);
+      p.text = inp.redactor.redact(filesText(p.files)).text;
+      p.trimmed = true;
+      tokens = count();
+    }
+  }
   for (const p of prepared) {
     if (tokens <= budget) break;
     if (p.s.spec.trimmable === "pointers-tail" && p.pointers) {

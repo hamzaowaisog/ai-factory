@@ -84,8 +84,8 @@ A family or field gives a starting point, not the answer. These keep two project
 - The brands shown start at a different place for each requirement (seeded by the requirement
   text, so one requirement always gets the same brief). The first is marked `(lead)`.
 - The brief tells the model that field defaults are where products start: it must change at least
-  two of bar, corners, type, density, surface, neutrals or mode for this product's audience, and
-  say why in `mood`.
+  two of bar, corners, type, density, surface, neutrals or mode for this product's audience, as
+  the theme's `reading` says (`mood` stays a label of at most 40 characters).
 - It must pick its own brand colour and may not reuse any listed brand's value, name or logo.
 
 The look record makes a repeat of a recent project fail in code. It counts the type as the body

@@ -35,8 +35,8 @@ describe("mode manifests", () => {
     const { groundSha: _g, clarifySha: _c, ...bare } = ref;
     await l2.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: "x", designRef: bare } }, HUMAN_WRITER);
     expect(greenfieldSteps(replay(l2.events())).map((x) => x.key)).toEqual(["discover", "intake", "specify", "ground", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
-    const none = await stateFor("greenfield");
-    expect(() => greenfieldSteps(none)).toThrow(/approved design/);
+    // with no design run: the request is read, specified and drawn on the kit in this run, then built
+    expect(greenfieldSteps(await stateFor("greenfield")).map((x) => x.key)).toEqual(["discover", "intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "design", "design-baseline", "design-export", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
   });
 
   it("estimate mode reuses the spec pipeline, adds breakdown, estimate, approval and export, and stops before any build step", async () => {
@@ -79,6 +79,22 @@ describe("mode manifests", () => {
     expect(keys).toEqual(["discover", "intake", "ground", "specify", "impact", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
   });
 
+  it("an estimate with the design left out goes from the spec straight to the breakdown", async () => {
+    const l = Ledger.create("20261007-estimate-nodesign");
+    await l.append({ type: "run.created", data: { mode: "estimate", project: "p", request: "x", estimate: { drawDesign: false } } }, HUMAN_WRITER);
+    expect(estimateSteps(replay(l.events())).map((s) => s.key)).toEqual(["intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "breakdown", "estimate", "approve-estimate", "export"]);
+  });
+
+  it("a build from an estimate that left the design out draws its own design before the plan (brownfield and greenfield)", async () => {
+    const ref = { runId: "r0", estimateSha: "e".repeat(64), breakdownSha: "b".repeat(64), specSha: "s".repeat(64), criticSha: "k".repeat(64), noDesign: true };
+    const b = Ledger.create("20261007-build-nodesign");
+    await b.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: "x", estimateRef: ref } }, HUMAN_WRITER);
+    expect(brownfieldSteps(replay(b.events())).map((s) => s.key)).toEqual(["discover", "intake", "ground", "specify", "impact", "design", "design-baseline", "design-export", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
+    const g = Ledger.create("20261007-greenfield-nodesign");
+    await g.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: "x", estimateRef: ref } }, HUMAN_WRITER);
+    expect(greenfieldSteps(replay(g.events())).map((s) => s.key)).toEqual(["discover", "intake", "ground", "specify", "design", "design-baseline", "design-export", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
+  });
+
   it("design mode runs the estimate's road to the spec, then the design pipeline, and stops at the approved design", async () => {
     const d = await stateFor("design");
     const keys = stepsFor(d).map((s) => s.key);
@@ -105,8 +121,43 @@ describe("mode manifests", () => {
     expect(brownfieldSteps(replay(l.events())).map((s) => s.key)).toEqual(["discover", "intake", "ground", "specify", "impact", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
   });
 
+  it("a greenfield build from an approved estimate made with no repo inherits its spec and is held to it, with no design steps of its own", async () => {
+    const l = Ledger.create("20261006-greenfield-fromest");
+    await l.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: "x", estimateRef: { runId: "r0", estimateSha: "e".repeat(64), breakdownSha: "b".repeat(64), specSha: "s".repeat(64), designSha: "d".repeat(64) } } }, HUMAN_WRITER);
+    expect(greenfieldSteps(replay(l.events())).map((s) => s.key)).toEqual(["discover", "intake", "ground", "specify", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
+  });
+
+  it("a large request is read per module in a build that asks (brownfield and greenfield), as an estimate reads it", async () => {
+    const section = (n: number) => `# Module ${n}\n\n${"The system shall do a thing in detail. ".repeat(300)}`;
+    const big = [1, 2].map(section).join("\n\n");
+    const head = ["intake:m1", "intake:m2", "intake", "ground", "clarify:m1", "clarify:m2", "clarify", "clarify-2:m1", "clarify-2:m2", "clarify-2", "drafts:m1", "merge:m1", "specify:m1", "drafts:m2", "merge:m2", "specify:m2", "specify"];
+    const b = Ledger.create("20261006-brownfield-big1");
+    await b.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: big, asks: true } }, HUMAN_WRITER);
+    const bKeys = brownfieldSteps(replay(b.events())).map((s) => s.key);
+    expect(bKeys.slice(0, head.length + 1)).toEqual(["discover", ...head]);
+    expect(bKeys.slice(head.length + 1, head.length + 2)).toEqual(["impact"]);
+    const g = Ledger.create("20261006-greenfield-big1");
+    await g.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: big, asks: true } }, HUMAN_WRITER);
+    const gKeys = greenfieldSteps(replay(g.events())).map((s) => s.key);
+    expect(gKeys.slice(0, head.length + 4)).toEqual(["discover", ...head, "design", "design-baseline", "design-export"]);
+    // the same request gives the same list (a replay must not reshuffle steps)
+    expect(greenfieldSteps(replay(g.events())).map((s) => s.key)).toEqual(gKeys);
+  });
+
+  it("a build that does not ask (begun before builds asked, or brownfield with questions off) reads a large request whole", async () => {
+    const section = (n: number) => `# Module ${n}\n\n${"The system shall do a thing in detail. ".repeat(300)}`;
+    const big = [1, 2].map(section).join("\n\n");
+    const whole = ["intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify"];
+    const g = Ledger.create("20261006-greenfield-big2");
+    await g.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: big } }, HUMAN_WRITER);
+    expect(greenfieldSteps(replay(g.events())).map((s) => s.key).slice(0, 11)).toEqual(["discover", ...whole, "design", "design-baseline", "design-export"]);
+    const b = Ledger.create("20261006-brownfield-big2");
+    await b.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: big } }, HUMAN_WRITER);
+    expect(brownfieldSteps(replay(b.events())).map((s) => s.key).slice(0, 9)).toEqual(["discover", ...whole, "impact"]);
+  });
+
   it("refuses a mode with no step list yet", async () => {
-    const g = await stateFor("greenfield");
-    expect(() => stepsFor(g)).toThrow(/greenfield/);
+    const g = await stateFor("mobile");
+    expect(() => stepsFor(g)).toThrow(/mobile/);
   });
 });

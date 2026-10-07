@@ -33,7 +33,7 @@ export type RunPhase = "active" | "waiting" | "parked" | "paused" | "delivered" 
 
 export function phaseOf(s: RunState): RunPhase {
   if (typeof s.status === "object") return "closed";
-  if (s.status === "delivered") return "delivered";
+  if (s.status === "delivered" || s.status === "finished") return "delivered";
   if (s.status === "parked") return "parked";
   if (s.status === "paused") return "paused";
   if (s.openCard) return "waiting";

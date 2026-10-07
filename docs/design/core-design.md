@@ -484,7 +484,7 @@ Full design: context-builder.md. Evidence: research-context-builder.md.
 - Secrets: path excludes + gitleaks; agents get an agent env template with dummy values, and real test settings go only to container B (amends run-manager).
 - Plan emits interface stubs committed before author-tests (amends gate-engine: not-implemented counts as an expected failure).
 - Isolation: Claude `settingSources: []` + `projectConfigRoot` + InstructionsLoaded fail-check; Codex `project_doc_max_bytes=0` + own CODEX_HOME, repo never trusted; masks in container A as a backstop; agent files in the config-integrity set. The canary test is this component's acceptance test.
-- No compaction; one task per fresh process; failures.json capped; 1-hour cache for implement ⟲ verify. Ollama uses the native API, explicit num_ctx, truncate:false. Local packs ≤16K.
+- Compaction on for the Claude coding agent (context-builder §2.10); one task per fresh process; failures.json capped; 1-hour cache for implement ⟲ verify. Ollama uses the native API, explicit num_ctx, truncate:false. Local packs ≤16K.
 - Budgets in three classes (read-small 15K, read-large 30K, agent 40K), manifest overrides; all [EVAL].
 
 ## 22. Container runtime (2026-09-27, research-no-docker.md)

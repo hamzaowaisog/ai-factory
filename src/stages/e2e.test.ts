@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
-import { stringify } from "yaml";
+import { parse, stringify } from "yaml";
 import "../gates/predicates.js";
 import { verifyEvidence } from "../gates/engine.js";
 import { decide } from "../ledger/human.js";
@@ -48,6 +48,8 @@ function makeRepo(): string {
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
 /** Three tasks, one criterion each: Greeter says Hello, Farewell says Bye, Third says Three. */
 let multi = false;
+/** how many times the multi-task planner leaves REQ-3 out of its plan */
+let planMisses = 0;
 /** what the scripted reviewer reports (non-blocking) */
 let reviewFindings: unknown[] = [];
 /** intake's risk: "low" takes the light lane, "medium" the full one */
@@ -72,6 +74,9 @@ function multiAnswer(system: string): unknown {
   if (system.includes("plan the implementation")) {
     const one = answerFor(system, false) as { tasks: { reqs: string[]; fileScope: string[] }[] };
     const t = (n: number) => ({ id: `TASK-${n}`, title: `Part ${n}`, reqs: [`REQ-${n}`], fileScope: [MULTI_FILES[n - 1]!], exemplars: [], conventions: [], dependsOn: n > 1 ? [`TASK-${n - 1}`] : [], plannedLoc: 3, approach: "small edit" });
+    // a plan that failed its checks is asked for as a patch: only the missing task comes back
+    if (system.includes("THE PLAN IS FIXED, NOT REWRITTEN")) return { tasks: [t(3)] };
+    if (planMisses-- > 0) return { ...one, tasks: [t(1), t(2)] };
     return { ...one, tasks: [t(1), t(2), t(3)] };
   }
   return undefined;
@@ -90,6 +95,8 @@ function answerFor(system: string, allowMulti = true, user = ""): unknown {
   if (system.includes("grounding step")) return { claims: [{ id: "C-1", text: "Greeter says Hi", spans: ["I-1"], anchors: [{ path: "src/Api/Greeter.cs", lineStart: 4, lineEnd: 4, quote: 'public string Greet(string name) => "Hi " + name;', symbol: "Greeter.Greet" }] }], notFound: [] };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: system.length % 2 ? "Hello Ann" : "Hello, Ann!", kind: "happy" }, { text: "empty name returns Hello", kind: "error" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [{ id: "D-1", span: "I-1", topic: "punctuation", readings: [{ sketch: 1, behaviour: 0, summary: "Hello Ann" }, { sketch: 2, behaviour: 0, summary: "Hello, Ann!" }] }] };
+  // the spec's open problems are settled by questions in a build too: none to ask here, so they are carried as open risks
+  if (system.includes("these problems are still open")) return { questions: [], inRequest: [] };
   if (system.includes("Requirements analyst")) clarifierPrompt = system;
   if (system.includes("Requirements analyst")) return system.includes("already answered") ? { questions: [], conflicts: [] } : {
     questions: [{ id: "q1", category: "scope", text: "Keep the comma?", options: ["Hello Ann", "Hello, Ann!"], recommended: "Hello Ann", reason: "shortest", spans: ["I-1"], impact: 2, impactReason: "visible text", difference: "D-1" }], conflicts: [] };
@@ -112,9 +119,12 @@ function answerFor(system: string, allowMulti = true, user = ""): unknown {
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
 }
 const modelCalls: string[] = [];
+/** the planner's whole prompt, as last sent */
+let planPrompt = "";
 const provider: Provider = {
   start(model, _e, system, user): Conversation {
     modelCalls.push(model);
+    if (system.includes("plan the implementation")) planPrompt = `${system}\n${user}`;
     const repair = user.includes("Repair this spec");
     if (repair) repairCalls++;
     return {
@@ -130,12 +140,19 @@ class Lab implements ContainerRuntime {
   specs = new Map<string, ContainerSpec>();
   n = 0;
   crashOnImplement = false;
+  /** the OpenAPI document the API's build writes (a project with a locked contract), from the checkout being built */
+  builtDoc?: (src: string) => string;
   /** the repo has a test that fails on its main branch too (a known failure) */
   knownBroken = false;
   /** multi: per file scope, the files each implement attempt writes (the last entry repeats) */
   edits: Record<string, Record<string, string>[]> = {};
   /** multi: what each implement attempt found before it edited */
   seen: { scope: string; head: string; task: string; files: Record<string, string | null> }[] = [];
+  /** multi: the test writer leaves the last criterion out of this many attempts, and stops out of budget in this many after */
+  missAc = 0;
+  testsOverBudget = 0;
+  /** multi: what each test-writer attempt found before it wrote (its own earlier files, the briefing) */
+  testSeen: { task: string; kept: string[] }[] = [];
   /** every coding-agent job as the container got it (model, limits, scope) */
   jobs: { model: string; maxTurns: number; maxUsd: number; fileScope: string[]; system: string }[] = [];
   async version() { return "fake"; }
@@ -150,8 +167,16 @@ class Lab implements ContainerRuntime {
       this.jobs.push(job as never);
       const out = mount("/job/out")!;
       if (multi && job.fileScope.includes("tests/**")) {
+        const mine = ["tests/Api.Tests/GreetTests.cs", "tests/Api.Tests/ThirdTests.cs"];
+        this.testSeen.push({ task: (job as unknown as { task: string }).task, kept: mine.filter((f) => existsSync(join(work, f))) });
+        const miss = this.missAc-- > 0;
         writeFileSync(join(work, "tests/Api.Tests/GreetTests.cs"), "namespace Api.Tests; public class GreetTests { }\n");
-        writeFileSync(join(out, "result.json"), JSON.stringify({ status: "ok", output: { tests: MULTI_TESTS.map((name, i) => ({ acId: `AC-${i + 1}.1`, file: "tests/Api.Tests/GreetTests.cs", name })), characterisation: [{ target: "Greeter", file: "tests/Api.Tests/ExistingTests.cs", name: "CHAR_Works" }], probes: [], notes: "" }, instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 5000, output_tokens: 800 }, costUsd: 0.05, turns: 6 }));
+        if (!miss) writeFileSync(join(work, "tests/Api.Tests/ThirdTests.cs"), "namespace Api.Tests; public class ThirdTests { }\n");
+        if (!miss && this.testsOverBudget-- > 0) {
+          writeFileSync(join(out, "result.json"), JSON.stringify({ status: "over-budget", error: "Reached maximum budget ($0.50)", instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 8000, output_tokens: 900 }, costUsd: 0.5, turns: 9 }));
+          return 0;
+        }
+        writeFileSync(join(out, "result.json"), JSON.stringify({ status: "ok", output: { tests: MULTI_TESTS.slice(0, miss ? -1 : undefined).map((name, i) => ({ acId: `AC-${i + 1}.1`, file: "tests/Api.Tests/GreetTests.cs", name })), characterisation: [{ target: "Greeter", file: "tests/Api.Tests/ExistingTests.cs", name: "CHAR_Works" }], probes: [], notes: "" }, instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 5000, output_tokens: 800 }, costUsd: 0.05, turns: 6 }));
       } else if (multi) {
         const job2 = JSON.parse(readFileSync(mount("/job/in.json")!, "utf8")) as { fileScope: string[]; task: string };
         const scope = job2.fileScope[0]!;
@@ -176,6 +201,11 @@ class Lab implements ContainerRuntime {
         writeFileSync(join(out, "result.json"), JSON.stringify({ status: "ok", output: { done: true, filesChanged: ["src/Api/Greeter.cs"], notes: "" }, instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 8000, output_tokens: 900 }, costUsd: 0.08, turns: 9 }));
       }
       return 0;
+    }
+    if (s.cmd[1] === "build" && this.builtDoc) {
+      const src = mount("/src")!;
+      mkdirSync(join(src, "src/Api/openapi"), { recursive: true });
+      writeFileSync(join(src, "src/Api/openapi/built.json"), this.builtDoc(src));
     }
     if (multi && s.cmd[1] === "build") {
       const src = mount("/src")!;
@@ -253,6 +283,7 @@ beforeEach(() => {
   setProviderFactory(() => provider);
   modelCalls.length = 0;
   multi = false;
+  planMisses = 0;
   intakeRisk = "low";
   reviewFindings = [];
   criticFindings = [];
@@ -351,6 +382,22 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(ev.app.ok).toBe(true);
     expect(ev.items[0]).toMatchObject({ ac: "AC-1.1", kind: "http", passed: true });
     expect(ledger.getArtifact(ev.items[0]!.http[0]!.bodySha).toString()).toBe("Hello Ann");
+  });
+
+  it("asks a person about a change over the size limit instead of parking for good", async () => {
+    const file = join(process.env.FACTORY_HOME!, "projects", "demo.yaml");
+    writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), policy: { maxDiffLines: 1 } }));
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("waiting");
+    const card = replay(ledger.events()).openCard!;
+    expect(card.kind).toBe("waiver");
+    expect(readFileSync(join(ledger.dir, "cards", `${card.cardId}.md`), "utf8")).toMatch(/integrate\.diff-size: Diff too large/);
+    await decide(ledger, { decision: "waive", hashPrefix: card.artifactSha.slice(0, 6), by: "lead", data: { reason: "one feature, reviewed as a whole" } });
+    expect((await execute(runId)).status).toBe("delivered");
+    expect(replay(ledger.events()).steps.get("integrate")!.data!.waivers).toMatchObject([{ gateIds: ["integrate.diff-size"], human: "lead" }]);
   });
 
   it("resumes after a crash mid-implement without redoing finished steps", async () => {
@@ -456,6 +503,59 @@ describe("brownfield slice end to end (fakes)", () => {
   });
 });
 
+// a full-stack product's API repo: the contract file is in the repo (approved with the web app's plan), and the API is held to it
+describe("a .NET API held to a locked API contract (fakes)", () => {
+  // the document a real .NET 9 build wrote (the spike); the contract says the same
+  const doc = readFileSync(new URL("../gates/fixtures/dotnet9-built.json", import.meta.url), "utf8");
+  const start = async () => {
+    const repo = makeRepo();
+    const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
+    mkdirSync(join(repo, "contracts"));
+    writeFileSync(join(repo, "contracts/openapi.yaml"), doc);
+    execFileSync("git", ["add", "-A"], { cwd: repo, env });
+    execFileSync("git", ["commit", "-q", "-m", "the approved API contract"], { cwd: repo, env });
+    writeFileSync(join(process.env.FACTORY_HOME!, "projects", "demo.yaml"), stringify({ project: "demo", repo, stack: "dotnet", contract: { built: "src/Api/openapi/built.json" } }));
+    // the product's request talks about its screens; this side still draws no design
+    const runId = await createRun("Greet people with Hello instead of Hi, on the web app's sign-in screen", "demo", "tester");
+    const ledger = await toApproval(runId);
+    expect(replay(ledger.events()).steps.has("design")).toBe(false);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "lead" });
+    return { runId, ledger, repo };
+  };
+
+  it("delivers when the document the build wrote says what the contract says; the contract is locked with the tests", async () => {
+    lab.builtDoc = () => doc;
+    const { runId, ledger } = await start();
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    const s = replay(ledger.events());
+    expect(s.gates.filter((g) => g.gateId === "contract.matches").map((g) => g.passed)).toEqual(expect.arrayContaining([true]));
+    expect(s.gates.some((g) => g.gateId === "contract.matches" && !g.passed)).toBe(false);
+    expect(ledger.getJson<{ lock: { file: string }[] }>(s.steps.get("author-tests")!.outputs[0]!).lock.map((l) => l.file)).toContain("contracts/openapi.yaml");
+    // the planner and both agents were given the locked contract
+    expect(planPrompt).toContain("API CONTRACT (locked, contracts/openapi.yaml)");
+    expect(lab.jobs.every((j) => j.system.includes("API CONTRACT (locked: contracts/openapi.yaml)"))).toBe(true);
+  });
+
+  it("an API that renames a response field is caught by the contract gate, with the difference as the failure", async () => {
+    lab.builtDoc = () => doc.replaceAll('"patient"', '"patientName"');
+    const { runId, ledger } = await start();
+    const r = await execute(runId);
+    expect(r.status).not.toBe("delivered");
+    const s = replay(ledger.events());
+    expect(s.gates.some((g) => g.gateId === "contract.matches" && !g.passed)).toBe(true);
+    expect(s.steps.get("implement/TASK-1")?.status).not.toBe("completed");
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/The API does not match the locked contract: missing in the API: GET \/api\/appointments\/today 200 body\[\]\.patient/);
+  });
+
+  it("a build that writes no document fails the gate plainly", async () => {
+    const { runId, ledger } = await start();
+    const r = await execute(runId);
+    expect(r.status).not.toBe("delivered");
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/did not write the API's OpenAPI document at src\/Api\/openapi\/built\.json/);
+  });
+});
+
 describe("implement loop across tasks (fakes)", () => {
   const HELLO = GREETER.replace('"Hi "', '"Hello "');
   const cls = (text: string) => `namespace Api; public static class X { public const string S = "${text}"; }\n`;
@@ -527,6 +627,93 @@ describe("implement loop across tasks (fakes)", () => {
     // the last task's run already required every task's locked test: integrate reuses it
     expect(s.steps.get("integrate")!.data).toMatchObject({ reusedRunFrom: "implement/TASK-3" });
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+  }, 30_000);
+
+  it("a plan built in layers: a task that cannot reach its own test hands it to the last task, without parking or another paid attempt", async () => {
+    multi = true;
+    const MODEL = GREETER + "// data model\n";
+    lab.edits = {
+      // TASK-1 is a layer: nothing it writes makes its own test pass (the greeting comes with TASK-3)
+      "src/Api/Greeter.cs": [{ "src/Api/Greeter.cs": MODEL }, { "src/Api/Greeter.cs": MODEL }],
+      "src/Api/Farewell.cs": [{ "src/Api/Farewell.cs": cls("Bye") }],
+      // TASK-3 completes it, with a fix in TASK-1's file
+      "src/Api/Third.cs": [{ "src/Api/Third.cs": cls("Three"), "src/Api/Greeter.cs": HELLO }],
+    };
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    const s = replay(ledger.events());
+    // TASK-1's test failed exactly as it did before the task: deferred on that first failure, not retried or parked, and the
+    // second attempt judged the same code without the implementer
+    expect(failedAttempts(ledger, "implement/TASK-1").map((e) => (e.data as { action: string }).action)).toEqual(["defer"]);
+    expect(failedAttempts(ledger, "implement/TASK-1")[0]!.data).toMatchObject({ untouched: true, nextRung: 0 });
+    expect(s.steps.get("implement/TASK-1")?.attempts).toBe(2);
+    expect(lab.seen.filter((x) => x.scope === MULTI_FILES[0])).toHaveLength(1);
+    // from then on the plan is layered: TASK-2 passed first time, and TASK-3 was held to all three tests and could change TASK-1's file
+    expect(s.steps.get("implement/TASK-2")?.attempts).toBe(1);
+    expect(s.steps.get("implement/TASK-3")?.attempts).toBe(1);
+    const ids = MULTI_TESTS.map((n) => `Api.Tests::Api.Tests.GreetTests.${n}`);
+    const expected = (task: string) => ledger.getJson<{ expectPass: string[] }>((s.steps.get(task)!.data!.named as { testRun: string }).testRun).expectPass;
+    expect(expected("implement/TASK-1")).not.toContain(ids[0]);
+    expect(expected("implement/TASK-3")).toEqual(expect.arrayContaining(ids));
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/implement TASK-3: also held to the criteria of TASK-1, TASK-2/);
+  }, 30_000);
+
+  it("a plan that fails its checks is fixed by a patch: the retry returns only the missing task", async () => {
+    multi = true;
+    planMisses = 1;
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    const s = replay(ledger.events());
+    expect(s.steps.get("plan")?.attempts).toBe(2);
+    const f = failedAttempts(ledger, "plan");
+    expect(ledger.getJson<{ check: string; message: string }[]>(f[0]!.outputs![0]!)).toEqual([expect.objectContaining({ check: "plan-coverage", message: "REQ-3 isn't covered by any task" })]);
+    expect(f[0]!.data).toMatchObject({ rejectedPlan: expect.any(String), patches: 0 });
+    // the retry was given the rejected plan and the failure, and asked for the changes alone
+    expect(planPrompt).toContain("THE PLAN IS FIXED, NOT REWRITTEN");
+    expect(planPrompt).toContain("previous-plan");
+    expect(planPrompt).toContain("REQ-3 isn't covered by any task");
+    expect(planPrompt).toContain("Return the changes that fix the failures.");
+    // the patched plan is the rejected one with the new task last, and it passed the same checks
+    const plan = ledger.getJson<{ tasks: { id: string; reqs: string[] }[]; adr: string }>(s.steps.get("plan")!.outputs[0]!);
+    expect(plan.tasks.map((t) => t.id)).toEqual(["TASK-1", "TASK-2", "TASK-3"]);
+    expect(plan.adr).toBe(ledger.getJson<{ adr: string }>(String(f[0]!.data!.rejectedPlan)).adr);
+  }, 30_000);
+
+  it("the test writer's retry keeps its files: after a missed criterion, and after it ran out of budget", async () => {
+    multi = true;
+    lab.missAc = 1;
+    lab.testsOverBudget = 1;
+    lab.edits = { "src/Api/Greeter.cs": [{ "src/Api/Greeter.cs": HELLO }], "src/Api/Farewell.cs": [{ "src/Api/Farewell.cs": cls("Bye") }], "src/Api/Third.cs": [{ "src/Api/Third.cs": cls("Three") }] };
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    const card = replay(ledger.events()).openCard!;
+    await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    const s = replay(ledger.events());
+    expect(s.steps.get("author-tests")?.attempts).toBe(3);
+    const f = failedAttempts(ledger, "author-tests");
+    expect(ledger.getJson<{ check: string; message: string }[]>(f[0]!.outputs![0]!)).toEqual([expect.objectContaining({ check: "ac-coverage", message: "No test for AC-3.1" })]);
+    expect(ledger.getJson<{ check: string }[]>(f[1]!.outputs![0]!).map((x) => x.check)).toEqual(["agent-over-budget"]);
+    // each failed attempt saved its commit; the answer of the first is carried past the one that never answered
+    expect(f[0]!.data).toMatchObject({ retryMode: "reset", commit: expect.stringMatching(/^[0-9a-f]{40}$/), out: expect.any(String) });
+    expect(f[1]!.data).toMatchObject({ retryMode: "keep", commit: expect.stringMatching(/^[0-9a-f]{40}$/), out: f[0]!.data!.out });
+    // attempt 2 finds attempt 1's file and is told to keep it; attempt 3 finds the unfinished attempt's files too
+    expect(lab.testSeen.map((x) => x.kept)).toEqual([[], ["tests/Api.Tests/GreetTests.cs"], ["tests/Api.Tests/GreetTests.cs", "tests/Api.Tests/ThirdTests.cs"]]);
+    expect(lab.testSeen[0]!.task).not.toContain("previous-tests");
+    expect(lab.testSeen[0]!.task).toContain("each of these needs at least one test in it: AC-1.1, AC-2.1, AC-3.1");
+    expect(lab.testSeen[1]!.task).toContain("No test for AC-3.1");
+    expect(lab.testSeen[1]!.task).toContain("keep them, change only what the failures name");
+    expect(lab.testSeen[1]!.task).toContain("AC_1_1_GreetsWithHello");
+    expect(lab.testSeen[2]!.task).toContain("Return the full list");
+    expect(s.steps.get("author-tests")!.data).toMatchObject({ retryMode: "keep" });
+    // the tests still end as one commit on the branch, with both files locked
+    const log = execFileSync("git", ["log", "--format=%s", `main..factory/${runId}`], { cwd: s.info.repoPath!, encoding: "utf8" });
+    expect(log.match(/acceptance tests/g)).toHaveLength(1);
+    expect(ledger.getJson<{ lock: { file: string }[] }>(s.steps.get("author-tests")!.outputs[0]!).lock.map((l) => l.file)).toEqual(expect.arrayContaining(["tests/Api.Tests/GreetTests.cs", "tests/Api.Tests/ThirdTests.cs"]));
   }, 30_000);
 
   it("two broken builds in a row climb the ladder instead of parking as a suspect test", async () => {
@@ -648,6 +835,30 @@ describe("spec repairs", () => {
     expect(repairCalls).toBe(1);
     expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toContain("the last repair left the same findings; stopping repairs");
     expect(ledger.readCard(s.openCard!.cardId)).toContain("## Still open after 1 repair");
+    // a brownfield build asks nothing by default (brownfield.questions off): it settles no problems and asked no question
+    expect(ledger.readCard(s.openCard!.cardId)).not.toContain("## Settled by questions");
+    expect(replay(ledger.events()).info.asks).toBeUndefined();
+    expect(ledger.events().some((e) => e.type === "human.requested" && (e.data as { settleKey?: string }).settleKey)).toBe(false);
+    // approved as it stands, the build goes on to a delivered branch, as brownfield builds always have
+    await decide(ledger, { decision: "approve", hashPrefix: s.openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    expect((await execute(s.info.runId)).status).toBe("delivered");
+  });
+
+  it("a brownfield project with brownfield.questions settles the open problem by questions and shows it on the plan card", async () => {
+    intakeRisk = "medium";
+    criticFindings = [finding];
+    const file = join(process.env.FACTORY_HOME!, "projects", "demo.yaml");
+    writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), brownfield: { questions: true } }));
+    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester"));
+    const s = replay(ledger.events());
+    expect(s.info.asks).toBe(true);
+    // with none to ask, the finding is carried as an open risk and the plan approval card states it
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toContain("the run carries it as open risks");
+    expect(ledger.readCard(s.openCard!.cardId)).toMatch(/## Settled by questions, and open risks\n- Open risk: No path for an empty name\./);
+    // approved with the risk stated, the build goes on to a delivered branch
+    await decide(ledger, { decision: "approve", hashPrefix: s.openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(s.info.runId);
+    expect(r.status, r.message).toBe("delivered");
   });
 
   it("a retry goes on from the failed attempt's repaired spec, and a repair answers with changes only", async () => {

@@ -4,6 +4,7 @@ import { execFile } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { matchesAny } from "../util/glob.js";
 
 const exec = promisify(execFile);
 
@@ -97,9 +98,32 @@ export async function commitAll(wt: string, message: string): Promise<string> {
   return headSha(wt);
 }
 
-export async function resetHard(wt: string, sha: string): Promise<void> {
+/**
+ * Files in `scope` that exist but an ignore rule hides, made visible to `git add -A`, diffs and `git clean -X`.
+ * A plan can name a source file an ignore rule matches: on a Mac `openapi/` (the built API document's folder)
+ * also matches `OpenApi/`, so the file was left out of every commit and the lab built without it (run 31fe).
+ */
+export async function trackIgnored(wt: string, scope: string[], except: string[] = []): Promise<string[]> {
+  const under = [...new Set(scope.map((g) => {
+    const cut = g.search(/[*?[{]/);
+    return cut < 0 ? g : g.slice(0, g.lastIndexOf("/", cut) + 1) || ".";
+  }))];
+  if (!under.length) return [];
+  const { stdout } = await git(wt, ["ls-files", "--others", "--ignored", "--exclude-standard", "-z", "--", ...under.map((u) => (u === "." ? u : `:(icase)${u}`))]).catch(() => ({ stdout: "" }));
+  // compared without case, and added under the plan's spelling: the folder on disk may carry the ignore rule's
+  const lower = except.map((e) => e.toLowerCase());
+  const globs = scope.map((g) => g.toLowerCase());
+  const files = stdout.split("\0")
+    .filter((f) => f && matchesAny(f.toLowerCase(), globs) && !lower.includes(f.toLowerCase()))
+    .map((f) => scope.find((g) => g.toLowerCase() === f.toLowerCase()) ?? f);
+  if (files.length) await git(wt, ["add", "-f", "--intent-to-add", "--", ...files]);
+  return files;
+}
+
+/** `keep`: untracked paths the clean leaves alone (a Node checkout's node_modules, so a retry doesn't install again). */
+export async function resetHard(wt: string, sha: string, keep: string[] = []): Promise<void> {
   await git(wt, ["reset", "--hard", sha]);
-  await git(wt, ["clean", "-fdx"]);
+  await git(wt, ["clean", "-fdx", ...keep.flatMap((k) => ["-e", k])]);
 }
 
 /** Diff from `from` to the working tree, untracked files included (run-manager §2.5). */

@@ -60,3 +60,17 @@ export async function installNodeModules(rt: ContainerRuntime, o: { runId: strin
     await o.onRemoved?.(id);
   }
 }
+
+/** Run one command in a Node checkout with no network (a generator that reads the checkout and writes into it). */
+export async function runNodeOffline(rt: ContainerRuntime, o: { runId: string; key: string; dir: string; image: string; timeoutSec: number; cmd: string[]; onContainer?: (id: string) => Promise<void>; onRemoved?: (id: string) => Promise<void> }): Promise<{ ok: boolean; log: string }> {
+  const id = await rt.create({ role: "producer", image: o.image, network: "none", workdir: "/src", user: hostUser(), labels: { run: o.runId, key: o.key }, env: NODE_ENV, mounts: [{ src: o.dir, dst: "/src" }], cmd: o.cmd });
+  await o.onContainer?.(id);
+  try {
+    await rt.start(id);
+    const code = await rt.wait(id, o.timeoutSec * 1000);
+    return { ok: code === 0, log: await rt.logs(id) };
+  } finally {
+    await stopAndRemove(rt, id);
+    await o.onRemoved?.(id);
+  }
+}

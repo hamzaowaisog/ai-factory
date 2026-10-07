@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, TEST_SCOPE, testWriterTampering } from "./build.js";
+import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, TEST_SCOPE, testRetryMode, testWriterTampering, labelRejectionLifted } from "./build.js";
+import { attemptSpend, startNeed } from "./executor.js";
 import { matchesAny } from "../util/glob.js";
 
 describe("earlier tasks' locked tests", () => {
@@ -46,6 +47,46 @@ describe("retry: keep the previous attempt's code or reset", () => {
     expect(mode(["regression"], 3, { rung: 2 })).toBe("reset");
   });
 
+  it("keeps on a move up the ladder when fewer locked tests failed than the attempt before", () => {
+    const at = (checks: string[], locked?: number, lockedBefore?: number) => retryMode({ checks, rung: 0, interrupted: false, locked, lockedBefore }, 1);
+    expect(at(["locked-failed"], 4, 20)).toEqual({ mode: "keep", reason: "fewer locked tests failed than the attempt before (4, was 20)" });
+    expect(at(["locked-failed", "locked-flaky"], 1, 2).mode).toBe("keep");
+    // not closer, nothing to compare with, or something other than locked tests wrong: the fresh start stands
+    expect(at(["locked-failed"], 20, 20).mode).toBe("reset");
+    expect(at(["locked-failed"], 21, 20).mode).toBe("reset");
+    expect(at(["locked-failed"], 4).mode).toBe("reset");
+    expect(at(["locked-failed", "build"], 4, 20).mode).toBe("reset");
+    expect(at(["locked-failed", "secret"], 4, 20).mode).toBe("reset");
+  });
+
+  it("keeps the code of an attempt that stopped when the model account ran out of credit", () => {
+    let seq = 0;
+    const ev = (data: Record<string, unknown>) => [{ seq: seq++, ts: "", runId: "r", epoch: 0, type: "step.failed", key: "implement/TASK-1/1", data }] as LedgerEvent[];
+    // parked with its commit: kept, at any rung, and not treated as an attempt that did not finish
+    const kept = previousAttempt(ev({ rung: 0, parked: true, noCredit: true, commit: "abc" }), "implement/TASK-1", [])!;
+    expect(kept).toMatchObject({ interrupted: false, noCredit: true, commit: "abc" });
+    expect(retryMode(kept, 0)).toEqual({ mode: "keep", reason: "the previous attempt stopped when the model account ran out of credit" });
+    // nothing was written before the credit ran out, or an ordinary park: start clean
+    expect(retryMode(previousAttempt(ev({ rung: 0, parked: true, noCredit: true }), "implement/TASK-1", [])!, 0).mode).toBe("reset");
+    expect(retryMode(previousAttempt(ev({ rung: 0, parked: true, commit: "abc" }), "implement/TASK-1", [])!, 0).mode).toBe("reset");
+  });
+
+  it("reads how many locked tests failed in the last two attempts", () => {
+    let seq = 0;
+    const ev = (type: string, key: string, data: Record<string, unknown> = {}) => ({ seq: seq++, ts: "", runId: "r", epoch: 0, type, key, data }) as LedgerEvent;
+    const evs = [
+      ev("step.failed", "implement/TASK-1/1", { rung: 0, category: "locked-test", lockedFailedIds: ["a", "b", "c"] }),
+      ev("step.failed", "implement/TASK-2/1", { rung: 0, category: "locked-test", lockedFailedIds: ["a"] }),
+      ev("step.failed", "implement/TASK-1/2", { rung: 0, category: "locked-test", lockedFailedIds: ["d"] }),
+    ];
+    expect(previousAttempt(evs, "implement/TASK-1", ["locked-failed"])).toMatchObject({ locked: 1, lockedBefore: 3 });
+    expect(previousAttempt(evs, "implement/TASK-2", ["locked-failed"])).toEqual({ checks: ["locked-failed"], rung: 0, interrupted: false, commit: undefined, locked: 1 });
+    // an attempt that ended on something else is no measure of how close the code was
+    const other = [...evs, ev("step.failed", "implement/TASK-1/3", { rung: 1, category: "other" }), ev("step.failed", "implement/TASK-1/4", { rung: 1, category: "locked-test", lockedFailedIds: ["d"] })];
+    expect(previousAttempt(other, "implement/TASK-1", ["locked-failed"])).toMatchObject({ locked: 1 });
+    expect(previousAttempt(other, "implement/TASK-1", ["locked-failed"])!.lockedBefore).toBeUndefined();
+  });
+
   it("resets after safety, scope, escape hatches, agent errors and bad evidence", () => {
     for (const c of ["lock-set", "config-integrity", "secret", "diff-in-scope", "escape-hatch", "agent-timeout", "agent-error", "exception", "evidence", "locked-not-executed", "expected-fail-passed"]) {
       expect(mode(["locked-failed", c]), c).toBe("reset");
@@ -72,6 +113,68 @@ describe("retry: keep the previous attempt's code or reset", () => {
     const done = [...failed, ev("step.completed", `${k}/2`), ev("step.started", `${k}/3`)];
     expect(previousAttempt(done, k, [])).toBeUndefined();
     expect(previousAttempt(failed, "implement/TASK-2", [])).toBeUndefined();
+  });
+
+  it("keeps unfinished code (out of budget or turns) even after a move up the ladder", () => {
+    expect(retryMode(prev(["agent-over-budget"]), 1)).toEqual({ mode: "keep", reason: "the previous attempt ran out of budget or turns" });
+    expect(mode(["agent-timeout"], 2, { rung: 0 })).toBe("keep");
+    expect(mode(["agent-over-budget"], 0, { interrupted: true })).toBe("reset");
+    expect(mode(["agent-over-budget", "secret"])).toBe("reset");
+  });
+
+  it("the test writer keeps its tests after a fixable failure, at any rung, and starts again after a safety one", () => {
+    for (const c of ["ac-coverage", "tests-compile", "test-not-found", "agent-over-budget", "agent-timeout", "passes-on-base", "wrong-failure-kind", "characterisation", "not-executed", "keep-passing"]) {
+      expect(testRetryMode(prev([c], { rung: 1 })).mode, c).toBe("keep");
+    }
+    expect(testRetryMode(prev(["ac-coverage", "ac-coverage"])).reason).toBe("the previous attempt failed only on ac-coverage");
+    for (const c of ["author-tests-scope", "author-tests-deleted", "author-tests-removed", "author-tests-skip", "agent-error", "agent-bad-output", "exception", "evidence"]) {
+      expect(testRetryMode(prev(["ac-coverage", c])).mode, c).toBe("reset");
+    }
+    expect(testRetryMode(undefined).mode).toBe("reset");
+    expect(testRetryMode(prev([])).mode).toBe("reset");
+    expect(testRetryMode(prev(["ac-coverage"], { interrupted: true })).mode).toBe("reset");
+  });
+
+  it("lifts a rejection that was only a wrong label, read again from the stored reports", () => {
+    const trx = (msg: string) => `<?xml version="1.0"?><TestRun><TestDefinitions><UnitTest name="AC_1_2" id="t1"><TestMethod className="App.Tests.ContractTests" name="AC_1_2" /></UnitTest></TestDefinitions>
+<Results><UnitTestResult testId="t1" testName="AC_1_2" outcome="Failed" duration="00:00:00.01"><Output><ErrorInfo><Message>${msg}</Message><StackTrace>   at App.Tests.ContractTests.AC_1_2() in /src/App.Tests/ContractTests.cs:line 33</StackTrace></ErrorInfo></Output></UnitTestResult></Results></TestRun>`;
+    const ledgerWith = (msg: string, runner = "vstest") => {
+      const blobs: Record<string, string> = { report: trx(msg), run: JSON.stringify({ runner, reportShas: ["report"] }) };
+      return {
+        events: () => [{ seq: 0, ts: "", runId: "r", epoch: 0, type: "gate.result", treeSha: "c1", data: { gateId: "author-tests.fails-on-base", inputs: { run1: "run", run2: "run" } } }] as LedgerEvent[],
+        getJson: <T,>(sha: string) => JSON.parse(blobs[sha]!) as T, getArtifact: (sha: string) => Buffer.from(blobs[sha]!), hasArtifact: (sha: string) => sha in blobs,
+      };
+    };
+    const wrong = [{ check: "wrong-failure-kind", testId: "app.tests::App.Tests.ContractTests.AC_1_2", message: "fails with exception", frames: [] }];
+    expect(labelRejectionLifted(ledgerWith("29 differences:"), "c1", wrong)).toBe(true);
+    // a real crash stays rejected, and so does anything the reports cannot show
+    expect(labelRejectionLifted(ledgerWith("System.NullReferenceException : Object reference not set"), "c1", wrong)).toBe(false);
+    expect(labelRejectionLifted(ledgerWith("29 differences:"), "c2", wrong)).toBe(false);
+    expect(labelRejectionLifted(ledgerWith("29 differences:"), undefined, wrong)).toBe(false);
+    expect(labelRejectionLifted(ledgerWith("29 differences:", "vitest"), "c1", wrong)).toBe(false);
+    expect(labelRejectionLifted(ledgerWith("29 differences:"), "c1", [...wrong, { check: "ac-coverage", message: "No test for AC-1.1", frames: [] }])).toBe(false);
+    expect(labelRejectionLifted(ledgerWith("29 differences:"), "c1", [{ ...wrong[0]!, testId: "app.tests::App.Tests.Other.Missing" }])).toBe(false);
+    expect(labelRejectionLifted(ledgerWith("29 differences:"), "c1", [])).toBe(false);
+  });
+
+  it("adds up what each attempt since the step last completed cost", () => {
+    let seq = 0;
+    const ev = (type: string, key: string, usd?: number) => ({ seq: seq++, ts: "", runId: "r", epoch: 0, type, key, data: usd === undefined ? {} : { "gen_ai.usage.cost_usd": usd } }) as LedgerEvent;
+    const evs = [ev("usage", "design/1", 9), ev("step.completed", "design/1"), ev("usage", "design/2", 1.5), ev("usage", "design/2", 0.25), ev("usage", "design/3", 0.5), ev("usage", "design-export/1", 7)];
+    expect(attemptSpend(evs, "design")).toEqual([1.75, 0.5]);
+    expect(attemptSpend(evs, "plan")).toEqual([]);
+  });
+
+  it("starts a coding step's first attempt only with what an earlier step of its stage needed", () => {
+    let seq = 0;
+    const ev = (key: string, usd: number) => ({ seq: seq++, ts: "", runId: "r", epoch: 0, type: "usage", key, data: { "gen_ai.usage.cost_usd": usd } }) as LedgerEvent;
+    const evs = [ev("author-tests/1", 6), ev("implement/TASK-1/1", 2.19), ev("implement/TASK-1/2", 2.5), ev("implement/TASK-1/2", 0.09), ev("implement/TASK-2/1", 0.4)];
+    const step = (key: string, needsUsd?: number) => ({ key, stage: key.split("/")[0]!, needsUsd });
+    expect(startNeed(evs, step("implement/TASK-3", 1))).toBeCloseTo(2.59);
+    // its own attempts say more than its neighbours' (the retry rule reads those), and the first coding step has only the floor
+    expect(startNeed(evs, step("implement/TASK-2", 1))).toBe(1);
+    expect(startNeed([], step("implement/TASK-1", 1))).toBe(1);
+    expect(startNeed(evs, step("review"))).toBeUndefined();
   });
 });
 

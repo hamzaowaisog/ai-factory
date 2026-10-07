@@ -1,0 +1,478 @@
+{
+ "model": "claude-haiku-4-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "I need to map each restated sentence (1-62) to the original intent spans (I-1 to I-10) and answers (Q-1 to Q-8) that it derives from.\n\nLet me analyze each sentence:\n\n1. Three screens, Schedule, Class Detail, My Bookings → I-3, Q-1 (Class Detail back behavior)\n2. Top bar with wordmark and avatar → I-1, I-7 (design quality)\n3. Timezone and time format → Q-4 (7-day window measured)\n4. Seed generator requirements → I-5\n5. Seed dates from today on first load → I-5, Q-6\n6. Persistence to local storage → I-6\n7. Booking validation rules → I-4, Q-2 (waitlist rules)\n8. Already booked error → I-4\n9. Class full error → I-4\n10. Waitlist join rules → I-2, I-4, Q-2\n11. 7-day booking window (168 hours) → I-4, Q-4\n12. 15-minute pre-start window → I-4\n13. Too late to book error → I-4\n14. Class has started rejection → I-4\n15. Studio-cancelled rejection → I-4, Q-2\n16. Overlap rejection → I-4\n17. 10-booking limit → I-4\n18. Late cancellation flag (2-hour window) → I-4, Q-7\n19. Cancellation with waitlist logic → I-4, Q-5\n20. Leave waitlist behavior → I-4\n21. Leave waitlist deletes record → I-4, Q-3\n22. Waitlist promotion via test hook → Q-5\n23. Promotion skip reasons → Q-5\n24. Skip reason display → Q-5\n25. Promotion toast on app open → Q-5\n26. Undo booking within 5 seconds → Q-3\n27. Past classes shown as Attended → Q-8\n28. Studio-cancelled in Past → I-4\n29. Upcoming/Past ordering → I-2\n30. Upcoming only includes unstarted → I-2\n31. My Bookings stats → I-2\n32. Action state computation → I-2\n33. Availability label → I-2\n34. Schedule availability labels → I-2\n35. Schedule filtering → I-2\n36. 7-day day strip → I-2, I-10\n37. Filter bar → I-2\n38. Session card details → I-2\n39. Action button labels → I-2\n40. Card activation opens Class Detail → I-2\n41. Booking toast with Undo → Q-3\n42. Other action toasts → I-2\n43. Error handling → I-7 (design quality)\n44. Loading states → I-2\n45. Back button preserves state → Q-1\n46. Class Detail hero header → I-2, I-3\n47. Class Detail action footer → I-2, I-3\n48. Cancellation confirmation with warning → I-4, Q-7\n49. Booking rejection handling → I-2\n50. My Bookings layout → I-2, I-3\n51. My Bookings empty/loading states → I-2\n52. Color design tokens → I-7\n53. Dark mode support → I-7\n54. Type system → I-7\n55. Reduced motion → I-7\n56. Keyboard navigation → I-8\n57. Semantic structure and accessibility → I-8\n58. Dialog focus management → I-8\n59. Responsive layout → I-10\n60. Touch targets 44×44 px → I-8\n61. Unit tests for business rules → I-9\n62. End-to-end test → I-9",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mapping": [
+     {
+      "n": 1,
+      "spans": [
+       "I-3"
+      ],
+      "answers": []
+     },
+     {
+      "n": 2,
+      "spans": [
+       "I-1",
+       "I-7"
+      ],
+      "answers": []
+     },
+     {
+      "n": 3,
+      "spans": [],
+      "answers": [
+       "Q-4"
+      ]
+     },
+     {
+      "n": 4,
+      "spans": [
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 5,
+      "spans": [
+       "I-5"
+      ],
+      "answers": [
+       "Q-6"
+      ]
+     },
+     {
+      "n": 6,
+      "spans": [
+       "I-6"
+      ],
+      "answers": []
+     },
+     {
+      "n": 7,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 8,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 9,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 10,
+      "spans": [
+       "I-2",
+       "I-4"
+      ],
+      "answers": [
+       "Q-2"
+      ]
+     },
+     {
+      "n": 11,
+      "spans": [
+       "I-4"
+      ],
+      "answers": [
+       "Q-4"
+      ]
+     },
+     {
+      "n": 12,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 13,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 14,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 15,
+      "spans": [
+       "I-4"
+      ],
+      "answers": [
+       "Q-2"
+      ]
+     },
+     {
+      "n": 16,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 17,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 18,
+      "spans": [
+       "I-4"
+      ],
+      "answers": [
+       "Q-7"
+      ]
+     },
+     {
+      "n": 19,
+      "spans": [
+       "I-4"
+      ],
+      "answers": [
+       "Q-5"
+      ]
+     },
+     {
+      "n": 20,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 21,
+      "spans": [
+       "I-4"
+      ],
+      "answers": [
+       "Q-3"
+      ]
+     },
+     {
+      "n": 22,
+      "spans": [],
+      "answers": [
+       "Q-5"
+      ]
+     },
+     {
+      "n": 23,
+      "spans": [],
+      "answers": [
+       "Q-5"
+      ]
+     },
+     {
+      "n": 24,
+      "spans": [],
+      "answers": [
+       "Q-5"
+      ]
+     },
+     {
+      "n": 25,
+      "spans": [],
+      "answers": [
+       "Q-5"
+      ]
+     },
+     {
+      "n": 26,
+      "spans": [],
+      "answers": [
+       "Q-3"
+      ]
+     },
+     {
+      "n": 27,
+      "spans": [],
+      "answers": [
+       "Q-8"
+      ]
+     },
+     {
+      "n": 28,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 29,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 30,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 31,
+      "spans": [
+       "I-2"
+      ],
+      "answers": [
+       "Q-7"
+      ]
+     },
+     {
+      "n": 32,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 33,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 34,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 35,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 36,
+      "spans": [
+       "I-2",
+       "I-10"
+      ],
+      "answers": []
+     },
+     {
+      "n": 37,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 38,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 39,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 40,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 41,
+      "spans": [
+       "I-2"
+      ],
+      "answers": [
+       "Q-3"
+      ]
+     },
+     {
+      "n": 42,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 43,
+      "spans": [
+       "I-7"
+      ],
+      "answers": []
+     },
+     {
+      "n": 44,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 45,
+      "spans": [],
+      "answers": [
+       "Q-1"
+      ]
+     },
+     {
+      "n": 46,
+      "spans": [
+       "I-2",
+       "I-3"
+      ],
+      "answers": []
+     },
+     {
+      "n": 47,
+      "spans": [
+       "I-2",
+       "I-3"
+      ],
+      "answers": []
+     },
+     {
+      "n": 48,
+      "spans": [
+       "I-4"
+      ],
+      "answers": [
+       "Q-7"
+      ]
+     },
+     {
+      "n": 49,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 50,
+      "spans": [
+       "I-2",
+       "I-3"
+      ],
+      "answers": []
+     },
+     {
+      "n": 51,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 52,
+      "spans": [
+       "I-7"
+      ],
+      "answers": []
+     },
+     {
+      "n": 53,
+      "spans": [
+       "I-7"
+      ],
+      "answers": []
+     },
+     {
+      "n": 54,
+      "spans": [
+       "I-7"
+      ],
+      "answers": []
+     },
+     {
+      "n": 55,
+      "spans": [
+       "I-7"
+      ],
+      "answers": []
+     },
+     {
+      "n": 56,
+      "spans": [
+       "I-8"
+      ],
+      "answers": []
+     },
+     {
+      "n": 57,
+      "spans": [
+       "I-8"
+      ],
+      "answers": []
+     },
+     {
+      "n": 58,
+      "spans": [
+       "I-8"
+      ],
+      "answers": []
+     },
+     {
+      "n": 59,
+      "spans": [
+       "I-10"
+      ],
+      "answers": []
+     },
+     {
+      "n": 60,
+      "spans": [
+       "I-8"
+      ],
+      "answers": []
+     },
+     {
+      "n": 61,
+      "spans": [
+       "I-9"
+      ],
+      "answers": []
+     },
+     {
+      "n": 62,
+      "spans": [
+       "I-9"
+      ],
+      "answers": []
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

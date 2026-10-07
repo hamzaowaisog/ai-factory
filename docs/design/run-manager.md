@@ -43,10 +43,13 @@ created → running ⇄ waiting   (a human card is open)
 running → parked              (cap hit, ladder exhausted, version changed; a human decides)
 running → paused              (pause requested; resumes on request)
 running → delivered           (PR open; the run stays OPEN: revise/steer still possible)
+running → finished            (an estimate or design run: its last step, export, is done; no deliver step, no PR)
 delivered → closed: merged | pr-closed
 running → closed: not-reproduced | stopped
 ```
 - **delivered is not terminal.** Review comments, CI failures (G2) and "amend" changes (Q3) re-enter `running` on the same run until the PR merges or closes. The forge state is checked on `status` and `revise`.
+- **finished is terminal (2026-10-06).** An estimate or a design run has no deliver step, so nothing used to end it: after export it stayed `running`. The executor now appends `run.finished` when `next()` returns done on a run that is not delivered, and re-running it does not append it twice.
+- **interrupted is shown, not stored (2026-10-06).** When the executor dies mid-step (a closed terminal, a crash), the ledger still says `running`. `factory status`, the web screens, `factory runs` and the MCP server show `interrupted` instead when no live executor holds the run's execution lock (§2.9; `executorHolds` in `src/ledger/exec-lock.ts`, `shownStatus` in `src/stages/run-status.ts`), with the hint `factory resume <run>`. A run with no executor whose steps are all completed (an estimate exported before `run.finished` existed) shows `finished`.
 - **Rejection (G7) is not a state.** A reject reason becomes a change input and the run goes back through the change path; the second rejection parks it.
 - Each stage/task: `pending | running | completed | failed | skipped`. "Stale" is not stored; it's computed at replay by comparing inputsHash.
 
@@ -75,7 +78,7 @@ interface LedgerEvent {
 }
 type EventType =
   | "run.created" | "run.resumed" | "run.pause-requested" | "run.paused" | "run.parked"
-  | "run.stop-requested" | "run.stopped" | "run.delivered" | "run.closed"
+  | "run.stop-requested" | "run.stopped" | "run.delivered" | "run.finished" | "run.closed"
   | "step.started" | "step.completed" | "step.failed" | "step.interrupted"
   | "gate.result" | "human.requested" | "human.decided" | "change.received"
   | "sink.intent" | "sink.done" | "usage"

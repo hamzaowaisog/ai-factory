@@ -1,0 +1,466 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The build must generate an OpenAPI document at App.Api/openapi/built.json whenever dotnet build runs on App.Api."
+     },
+     {
+      "n": 2,
+      "text": "The generated document must have the same 13 operationIds, paths, HTTP methods, parameters, request bodies, response status codes, and component schemas as contracts/openapi.yaml."
+     },
+     {
+      "n": 3,
+      "text": "The generated document's paths must be written without the /api prefix, matching the contract as written."
+     },
+     {
+      "n": 4,
+      "text": "The generated document's servers list must have url /api."
+     },
+     {
+      "n": 5,
+      "text": "The generated document must not include the existing GET / route."
+     },
+     {
+      "n": 6,
+      "text": "The GET / route must still answer with status 200 and body \"API is up\"."
+     },
+     {
+      "n": 7,
+      "text": "contracts/openapi.yaml must not be edited by this process."
+     },
+     {
+      "n": 8,
+      "text": "The API must answer each of the 13 contract operations using the HTTP method the contract declares."
+     },
+     {
+      "n": 9,
+      "text": "The API must answer each operation both at the /api-prefixed path and at the path as written in the contract."
+     },
+     {
+      "n": 10,
+      "text": "GET /me must return status 200 with id 1, name \"Alex Rivera\", initials \"AR\", and membership \"Unlimited Monthly\"."
+     },
+     {
+      "n": 11,
+      "text": "GET /schedule must return status 200 and compute today as the current Europe/London date."
+     },
+     {
+      "n": 12,
+      "text": "GET /schedule must return a date field equal to the supplied date parameter, or today when the parameter is absent."
+     },
+     {
+      "n": 13,
+      "text": "GET /schedule must return weekStart as the Monday of the week containing the resolved date."
+     },
+     {
+      "n": 14,
+      "text": "GET /schedule must return canGoPreviousWeek true only when the resolved date is in the next week relative to today."
+     },
+     {
+      "n": 15,
+      "text": "GET /schedule must return canGoNextWeek true only when the resolved date is in the current week relative to today."
+     },
+     {
+      "n": 16,
+      "text": "GET /schedule must return 7 days from Monday to Sunday, each labelled in the format \"ddd d\"."
+     },
+     {
+      "n": 17,
+      "text": "Each day entry must include isToday, true only for the current Europe/London date."
+     },
+     {
+      "n": 18,
+      "text": "Each day entry must include hasSessions, true when at least one session starts that day, ignoring any filters."
+     },
+     {
+      "n": 19,
+      "text": "GET /schedule must return the selected day's sessions, including studio-cancelled ones, ordered by startsAt ascending."
+     },
+     {
+      "n": 20,
+      "text": "GET /schedule must return status 400 with error code invalid_request when the date parameter is malformed or outside the current and next Europe/London week."
+     },
+     {
+      "n": 21,
+      "text": "GET /schedule must return status 400 with error code invalid_request when type, intensity, or timeOfDay values are not in the contract's enums."
+     },
+     {
+      "n": 22,
+      "text": "GET /schedule must filter returned sessions to those matching at least one listed value of every supplied filter (type, intensity, timeOfDay), ignoring filters not supplied."
+     },
+     {
+      "n": 23,
+      "text": "Morning must be defined as a Europe/London start before 12:00, Afternoon as 12:00 to 16:59, and Evening as 17:00 or later, for timeOfDay filtering."
+     },
+     {
+      "n": 24,
+      "text": "Every Session response must include bookedCount and waitlistCount counting both the demo member and other members."
+     },
+     {
+      "n": 25,
+      "text": "Every Session response must include capacityLabel formatted as \"{spotsLeft} of {capacity} spots left\"."
+     },
+     {
+      "n": 26,
+      "text": "Every Session response must include availabilityLabel: \"Cancelled\" for studio-cancelled sessions."
+     },
+     {
+      "n": 27,
+      "text": "availabilityLabel must be \"Full\" when a Scheduled session is full with zero on the waitlist."
+     },
+     {
+      "n": 28,
+      "text": "availabilityLabel must be \"Full · N on waitlist\" when a Scheduled session is full with N on the waitlist, including N=0."
+     },
+     {
+      "n": 29,
+      "text": "availabilityLabel must be \"1 spot left\" when exactly 1 spot remains."
+     },
+     {
+      "n": 30,
+      "text": "availabilityLabel must be \"Only N left\" when 2 or 3 spots remain."
+     },
+     {
+      "n": 31,
+      "text": "availabilityLabel must be \"N spots left\" when 4 or more spots remain."
+     },
+     {
+      "n": 32,
+      "text": "Each Session must include an actionState and myBookingId derived for the demo member."
+     },
+     {
+      "n": 33,
+      "text": "actionState must be booked (with bookingId and lateCancellation true when under 2 hours to start) when the demo member holds a Booked record, with canChange false once the class has started."
+     },
+     {
+      "n": 34,
+      "text": "actionState must be waitlisted (with bookingId and position) when the demo member holds a Waitlisted record, with canChange false once the class has started."
+     },
+     {
+      "n": 35,
+      "text": "actionState must be disabled with canChange false and reason \"Cancelled by studio\" when the demo member holds a Booked or Waitlisted record for a studio-cancelled session, checked before other disabled reasons and before examining the demo member's record type."
+     },
+     {
+      "n": 36,
+      "text": "When the demo member holds a Booked or Waitlisted record for a session, actionState must reflect that record (booked/waitlisted) even if the session is studio-cancelled, unless rule 35 applies first."
+     },
+     {
+      "n": 37,
+      "text": "actionState must be disabled with canChange false and reason \"Class has started\" when the demo member holds no record and the class has started."
+     },
+     {
+      "n": 38,
+      "text": "actionState must be disabled with canChange false and reason \"Booking opens 7 days before class\" when the demo member holds no record and the class starts more than 7 days away."
+     },
+     {
+      "n": 39,
+      "text": "actionState must be disabled with canChange false and reason \"Booking closes 15 minutes before class\" when the demo member holds no record and the class starts within 15 minutes."
+     },
+     {
+      "n": 40,
+      "text": "actionState must be join_waitlist with position equal to waitlistCount + 1 when the demo member holds no record and the session is full."
+     },
+     {
+      "n": 41,
+      "text": "actionState must be book with spotsLeft when the demo member holds no record, the session is not full, and none of the disabled conditions apply."
+     },
+     {
+      "n": 42,
+      "text": "GET /sessions/{sessionId} must return status 200 with the full Session including instructor, whatToBring list, counts, labels, actionState and myBookingId, or status 404 with error code not_found when no session has that id."
+     },
+     {
+      "n": 43,
+      "text": "Any request naming a sessionId or bookingId that does not exist must return status 404 with error code not_found."
+     },
+     {
+      "n": 44,
+      "text": "POST /bookings or POST /waitlist with a missing, malformed, or non-integer sessionId body must return status 400 with error code invalid_request."
+     },
+     {
+      "n": 45,
+      "text": "POST /bookings for a session passing all booking rules must store a Booked record for the demo member and return status 201 with a BookingChange."
+     },
+     {
+      "n": 46,
+      "text": "The BookingChange's booking must have status Booked and lateCancel false; the session must show bookedCount increased by 1 and actionState booked."
+     },
+     {
+      "n": 47,
+      "text": "The BookingChange's message must be \"You're booked for {name} · {ddd HH:mm}\" in Europe/London time."
+     },
+     {
+      "n": 48,
+      "text": "POST /bookings must return status 409 with error code cancelled_by_studio when the session is Cancelled by studio, checked first among these conditions."
+     },
+     {
+      "n": 49,
+      "text": "POST /bookings must return status 409 with error code class_has_started when the session has started, checked second."
+     },
+     {
+      "n": 50,
+      "text": "POST /bookings must return status 409 with error code outside_booking_window when the session starts more than 7 days away or less than 15 minutes away, checked third."
+     },
+     {
+      "n": 51,
+      "text": "No booking record must be stored when POST /bookings is rejected under rules 48-50."
+     },
+     {
+      "n": 52,
+      "text": "POST /bookings or POST /waitlist must return status 409 with error code already_booked when the demo member already holds a Booked or Waitlisted record for that session, checked atomically with the insert, without storing a new record."
+     },
+     {
+      "n": 53,
+      "text": "Cancelled records must not count toward the already_booked check, allowing a new record to be created."
+     },
+     {
+      "n": 54,
+      "text": "POST /bookings must return status 409 with error code class_full, including the refreshed Session (with actionState join_waitlist) in the error's session field, when bookedCount has reached capacity, without storing a record."
+     },
+     {
+      "n": 55,
+      "text": "POST /bookings must return status 409 with error code overlap when the requested session's time range overlaps a session for which the demo member holds a Booked record, using half-open ranges so back-to-back classes do not overlap, and ignoring Waitlisted records."
+     },
+     {
+      "n": 56,
+      "text": "The overlap error's message must be \"You're already booked for {name} at {HH:mm}–{HH:mm}.\" naming the conflicting class in Europe/London time."
+     },
+     {
+      "n": 57,
+      "text": "POST /bookings must return status 409 with error code limit_reached and message \"You've reached the limit of 10 upcoming classes.\" when the demo member holds 10 Booked records for sessions that have not started."
+     },
+     {
+      "n": 58,
+      "text": "POST /bookings/{bookingId}/undo for a Booked record no more than 5 seconds after its createdAt must delete the booking row and return status 200 with an UndoResult."
+     },
+     {
+      "n": 59,
+      "text": "The UndoResult's session must show counts as if the booking was never made, and its message must be \"Booking undone — {name}\"."
+     },
+     {
+      "n": 60,
+      "text": "POST /bookings/{bookingId}/undo must return status 409 with error code undo_expired when called more than 5 seconds after createdAt."
+     },
+     {
+      "n": 61,
+      "text": "POST /bookings/{bookingId}/undo must return status 409 with error code invalid_booking_state when the record is not Booked."
+     },
+     {
+      "n": 62,
+      "text": "POST /bookings/{bookingId}/undo must return status 404 with error code not_found for an unknown id."
+     },
+     {
+      "n": 63,
+      "text": "POST /bookings/{bookingId}/cancel for a Booked record whose class has not started must store it as Cancelled with cancelledAt set to now."
+     },
+     {
+      "n": 64,
+      "text": "The cancelled record's lateCancel must be true only when the class starts less than 2 hours from now."
+     },
+     {
+      "n": 65,
+      "text": "POST /bookings/{bookingId}/cancel must return status 200 with a BookingChange whose message begins \"Booking cancelled — {name}\"."
+     },
+     {
+      "n": 66,
+      "text": "POST /bookings/{bookingId}/cancel must return status 409 with error code class_has_started if the class has started."
+     },
+     {
+      "n": 67,
+      "text": "POST /bookings/{bookingId}/cancel must return status 409 with error code invalid_booking_state if the record is not Booked."
+     },
+     {
+      "n": 68,
+      "text": "POST /bookings/{bookingId}/cancel must return status 404 with error code not_found for an unknown id."
+     },
+     {
+      "n": 69,
+      "text": "When cancelling a Booked record for a session with waitlistCount greater than 0, the API must promote the first anonymous waitlisted member, lowering waitlistCount by 1 and leaving bookedCount unchanged."
+     },
+     {
+      "n": 70,
+      "text": "When cancelling a Booked record for a session with waitlistCount equal to 0, the API must lower bookedCount by 1."
+     },
+     {
+      "n": 71,
+      "text": "POST /waitlist for a full session passing the booking rules must store a Waitlisted record with waitlistPosition equal to the previous waitlistCount + 1 and return status 201 with a BookingChange."
+     },
+     {
+      "n": 72,
+      "text": "The BookingChange's session must show waitlistCount increased by 1 and actionState waitlisted."
+     },
+     {
+      "n": 73,
+      "text": "The BookingChange's message must be \"You're on the waitlist for {name} · {ddd HH:mm} — you're #{position}\" in Europe/London time."
+     },
+     {
+      "n": 74,
+      "text": "POST /waitlist must return status 409 with error code cancelled_by_studio, class_has_started, outside_booking_window, or not_full respectively, checked in that order after the not_found and already_booked checks, without storing a record."
+     },
+     {
+      "n": 75,
+      "text": "POST /bookings/{bookingId}/leave-waitlist for a Waitlisted record whose class has not started must store it as Cancelled with lateCancel false, waitlistPosition null, and cancelledAt now, and lower the session's waitlistCount by 1."
+     },
+     {
+      "n": 76,
+      "text": "POST /bookings/{bookingId}/leave-waitlist must return status 200 with a BookingChange whose message is \"You've left the waitlist for {name}\"."
+     },
+     {
+      "n": 77,
+      "text": "POST /bookings/{bookingId}/leave-waitlist must return status 409 with error code class_has_started if the class has started."
+     },
+     {
+      "n": 78,
+      "text": "POST /bookings/{bookingId}/leave-waitlist must return status 409 with error code invalid_booking_state if the record is not Waitlisted."
+     },
+     {
+      "n": 79,
+      "text": "POST /bookings/{bookingId}/leave-waitlist must return status 404 with error code not_found for an unknown id."
+     },
+     {
+      "n": 80,
+      "text": "POST /test/sessions/{sessionId}/simulate-other-member-cancellation must work in any environment."
+     },
+     {
+      "n": 81,
+      "text": "The simulate hook must promote the demo member to Booked, clearing waitlistPosition and recording a promoted-at timestamp, when they are first on the waitlist."
+     },
+     {
+      "n": 82,
+      "text": "The simulate hook must otherwise lower waitlistCount by 1 and move the demo member's waitlist position up by 1 when the waitlist is not empty."
+     },
+     {
+      "n": 83,
+      "text": "The simulate hook must otherwise lower bookedCount by 1 when the waitlist is empty."
+     },
+     {
+      "n": 84,
+      "text": "The simulate hook must return status 200 with a SimulationResult holding the refreshed session, with booking null when the demo member holds no Waitlisted record."
+     },
+     {
+      "n": 85,
+      "text": "The simulate hook must return status 404 with error code not_found for an unknown session."
+     },
+     {
+      "n": 86,
+      "text": "When the demo member is not promoted by the simulate hook, the SimulationResult's booking must be null, and the new waitlist position must be visible through GET /sessions/{id}."
+     },
+     {
+      "n": 87,
+      "text": "When the demo member holds a Waitlisted record but is not first in line, the simulate hook must return that Waitlisted booking with its new waitlistPosition and list no promotion notice."
+     },
+     {
+      "n": 88,
+      "text": "When the demo member is promoted from a waitlist, the booking must be set to Booked even if it overlaps another Booked class or takes the demo member over 10 upcoming Booked classes, with skipReason null."
+     },
+     {
+      "n": 89,
+      "text": "GET /me/promotion-notices must return status 200 with one notice per promoted booking that has not been acknowledged."
+     },
+     {
+      "n": 90,
+      "text": "Each promotion notice must include bookingId, sessionId, sessionName, startsAt, and message \"Good news! You're off the waitlist and booked for {name} · {ddd HH:mm}\" in Europe/London time."
+     },
+     {
+      "n": 91,
+      "text": "GET /me/promotion-notices must not acknowledge notices when read."
+     },
+     {
+      "n": 92,
+      "text": "POST /me/promotion-notices/acknowledge must mark every current promotion notice as acknowledged and return status 204 with no body."
+     },
+     {
+      "n": 93,
+      "text": "GET /me/bookings must return status 200 with an upcoming list holding Booked and Waitlisted records whose class has not ended, grouped by Europe/London day."
+     },
+     {
+      "n": 94,
+      "text": "Upcoming groups must be labelled \"Today\", \"Tomorrow\", or \"ddd d MMM\", in date order, with rows ordered by start time."
+     },
+     {
+      "n": 95,
+      "text": "GET /me/bookings must return a past list holding Attended, Cancelled, and Cancelled-by-studio records, ordered most recent start first."
+     },
+     {
+      "n": 96,
+      "text": "Each row returned by GET /me/bookings must include the contract badge (Booked, Waitlisted #N, Attended, Cancelled, Late cancel, Cancelled by studio), canChange, and isLateIfCancelledNow."
+     },
+     {
+      "n": 97,
+      "text": "A Booked record whose class has ended must be reported with status Attended, badge \"Attended\", and canChange false in every response, while the stored row keeps status Booked."
+     },
+     {
+      "n": 98,
+      "text": "GET /me/stats must return status 200 with upcoming as the count of Booked records whose class has not started."
+     },
+     {
+      "n": 99,
+      "text": "GET /me/stats must return classesThisMonth as the count of Attended records in the current Europe/London calendar month."
+     },
+     {
+      "n": 100,
+      "text": "GET /me/stats must return currentStreakWeeks as the number of consecutive Monday-to-Sunday London weeks with at least one Attended record, counted back from the current week, or from the previous week when the current week has none yet."
+     },
+     {
+      "n": 101,
+      "text": "If reading or writing the database fails, or any other exception is unhandled, the API must return status 500 with an Error whose code is storage_failure and whose message is plain text without exception type names or stack trace lines."
+     },
+     {
+      "n": 102,
+      "text": "The API must store sessions, instructors, and the demo member's bookings in a local SQLite database (connection string App, default app.db) so changes survive an application restart."
+     },
+     {
+      "n": 103,
+      "text": "When the application starts normally and the database has no tables or data, the API must create the schema with EnsureCreated and insert sample data."
+     },
+     {
+      "n": 104,
+      "text": "When data already exists, the application startup must leave it unchanged."
+     },
+     {
+      "n": 105,
+      "text": "When the application is run by the build to generate the OpenAPI document, it must not create, open, migrate, or seed the database."
+     },
+     {
+      "n": 106,
+      "text": "Seeded sample data must include sessions with instructors timed relative to the Europe/London day of seeding, including at least one session that day."
+     },
+     {
+      "n": 107,
+      "text": "Seeded sample data must include at least one bookable or joinable session, one full session with a waitlist, and one Cancelled by studio session."
+     },
+     {
+      "n": 108,
+      "text": "Seeded sample data must include demo member bookings with at least one upcoming Booked record, one Waitlisted record, and one Booked record for a class that has already ended."
+     },
+     {
+      "n": 109,
+      "text": "Seeding must result in today's schedule, the Upcoming list, and the Past list each returning at least one entry."
+     },
+     {
+      "n": 110,
+      "text": "Seeded sample data must contain between 3 and 12 sessions."
+     },
+     {
+      "n": 111,
+      "text": "Seeded sample data must contain at most 15 sessions."
+     },
+     {
+      "n": 112,
+      "text": "The API must read the current time for every time rule, label, \"today\" value, and seed date from the TimeProvider registered in dependency injection, defaulting to the system clock."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

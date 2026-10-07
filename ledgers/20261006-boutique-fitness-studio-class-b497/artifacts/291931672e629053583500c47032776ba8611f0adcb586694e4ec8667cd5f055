@@ -1,0 +1,1433 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "When the member books a Scheduled class session that has at least one free spot, starts between 15 minutes and 7×24 hours from now, does not overlap another Booked class, and the member holds fewer than 10 upcoming Booked classes, the booking module shall create a booking with status Booked and increase the session's booked count by one.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-4",
+       "ASM-6"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-1.1",
+        "given": "'Sunrise Vinyasa' has capacity 20 and booked count 18, starts in 2 days, and Alex holds no other bookings",
+        "when": "the booking module's book operation is called for that session",
+        "then": "the returned booking has status Booked, a booking ID and a created date/time, and the session's booked count value is 19 (1 free spot)",
+        "level": "unit"
+       },
+       {
+        "id": "AC-1.2",
+        "given": "the booking from AC-1.1 has been made",
+        "when": "the booking module's getMyBookings operation is called",
+        "then": "the returned Upcoming list contains the Sunrise Vinyasa booking with status Booked",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "If the member books a class session whose booked count equals its capacity, then the booking module shall reject the request with a class-full error and leave the booked count unchanged.",
+      "op": "ADDED",
+      "sources": [
+       "I-4"
+      ],
+      "stability": 0.95,
+      "acceptance": [
+       {
+        "id": "AC-2.1",
+        "given": "'Power HIIT' has capacity 16 and booked count 16",
+        "when": "book is called for that session",
+        "then": "a class-full error is returned, no booking record is created, and the session's booked count value stays 16",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "If the member books or joins the waitlist for a class session for which they already hold a Booked or Waitlisted booking, then the booking module shall reject the request without creating a second booking.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-4"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-3.1",
+        "given": "a session with capacity 20 and booked count 10",
+        "when": "book is called twice in a row for that session",
+        "then": "the second call returns an already-booked error, getMyBookings returns exactly 1 booking record for the session, and the booked count value is 11",
+        "level": "unit"
+       },
+       {
+        "id": "AC-3.2",
+        "given": "the Schedule screen shows a bookable class",
+        "when": "a person taps its Book button twice within 300 ms",
+        "then": "My Bookings shows exactly one row for that class",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "When the member joins the waitlist for a full Scheduled class session, the booking module shall create a Waitlisted booking whose waitlist position equals the previous waitlist count plus one and increase the session's waitlist count by one.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-4"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-4.1",
+        "given": "'Power HIIT' is full with waitlist count 2 and starts in 1 day",
+        "when": "joinWaitlist is called for that session",
+        "then": "the returned booking has status Waitlisted and waitlist position 3, and the session's waitlist count value is 3",
+        "level": "unit"
+       },
+       {
+        "id": "AC-4.2",
+        "given": "a session with capacity 20 and booked count 12",
+        "when": "joinWaitlist is called for that session",
+        "then": "a not-full error is returned and no booking record is created",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "If the member joins the waitlist for a class session that starts more than 7×24 hours from now, starts in less than 15 minutes, has already started, or has status Cancelled by studio, then the booking module shall reject the request with an error naming the broken rule.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-2",
+       "Q-4"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-5.1",
+        "given": "a full session starts in 10 minutes",
+        "when": "joinWaitlist is called",
+        "then": "a too-late-to-book error is returned and the waitlist count value is unchanged",
+        "level": "unit"
+       },
+       {
+        "id": "AC-5.2",
+        "given": "a full session starts 168 hours and 1 minute from now",
+        "when": "joinWaitlist is called",
+        "then": "an outside-booking-window error is returned and no booking record is created",
+        "level": "unit"
+       },
+       {
+        "id": "AC-5.3",
+        "given": "a full session started 5 minutes ago",
+        "when": "joinWaitlist is called",
+        "then": "a class-started error is returned",
+        "level": "unit"
+       },
+       {
+        "id": "AC-5.4",
+        "given": "a session has status Cancelled by studio",
+        "when": "joinWaitlist is called",
+        "then": "a class-cancelled error is returned",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When the member joins a waitlist, the booking module shall accept the request without checking overlap with the member's Booked classes or the 10-booking limit.",
+      "op": "ADDED",
+      "sources": [
+       "Q-2"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-6.1",
+        "given": "Alex is Booked for Power HIIT 18:00–18:45 and the 18:30 Spin on the same day is full",
+        "when": "joinWaitlist is called for the 18:30 Spin",
+        "then": "the returned booking has status Waitlisted with a waitlist position value",
+        "level": "unit"
+       },
+       {
+        "id": "AC-6.2",
+        "given": "Alex holds 10 upcoming Booked classes and another session is full",
+        "when": "joinWaitlist is called for that session",
+        "then": "the returned booking has status Waitlisted",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "If the member books a class session that starts more than 7×24 hours after the current time, then the booking module shall reject the request with an outside-booking-window error.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-4"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-7.1",
+        "given": "a session with free spots starts 168 hours and 1 minute from now",
+        "when": "book is called",
+        "then": "an outside-booking-window error is returned and the booked count value is unchanged",
+        "level": "unit"
+       },
+       {
+        "id": "AC-7.2",
+        "given": "a session with free spots starts 167 hours and 59 minutes from now",
+        "when": "book is called",
+        "then": "the returned booking has status Booked",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "If the member books a class session that has not started but starts in less than 15 minutes, then the booking module shall reject the request with a too-late-to-book error.",
+      "op": "ADDED",
+      "sources": [
+       "I-4"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-8.1",
+        "given": "a session with free spots starts in 14 minutes",
+        "when": "book is called",
+        "then": "a too-late-to-book error is returned",
+        "level": "unit"
+       },
+       {
+        "id": "AC-8.2",
+        "given": "a session with free spots starts in 16 minutes",
+        "when": "book is called",
+        "then": "the returned booking has status Booked",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "If the member books or cancels a class session whose start time has passed, then the booking module shall reject the request with a class-started error and leave bookings and counts unchanged.",
+      "op": "ADDED",
+      "sources": [
+       "I-4"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-9.1",
+        "given": "a session with free spots started 1 minute ago",
+        "when": "book is called",
+        "then": "a class-started error is returned and no booking record is created",
+        "level": "unit"
+       },
+       {
+        "id": "AC-9.2",
+        "given": "Alex is Booked for a session that started 10 minutes ago and has not ended",
+        "when": "cancel is called for that booking",
+        "then": "a class-started error is returned and the booking status value is still Booked",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-10",
+      "ears": "If the member books a class session with status Cancelled by studio, then the booking module shall reject the request with a class-cancelled error.",
+      "op": "ADDED",
+      "sources": [
+       "I-4"
+      ],
+      "stability": 0.95,
+      "acceptance": [
+       {
+        "id": "AC-10.1",
+        "given": "a session with status Cancelled by studio, capacity 20 and booked count 0, starting in 1 day",
+        "when": "book is called",
+        "then": "a class-cancelled error is returned and no booking record is created",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-11",
+      "ears": "If the member books a class session whose time range overlaps a class session they hold as Booked, then the booking module shall reject the request with the error message \"You're already booked for <class name> at <start>–<end>.\"",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "ASM-7",
+       "ASM-18"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-11.1",
+        "given": "Alex is Booked for Power HIIT 18:00–18:45 and a Spin session starts at 18:30 the same day",
+        "when": "book is called for the Spin session",
+        "then": "the returned error message is \"You're already booked for Power HIIT at 18:00–18:45.\"",
+        "level": "unit"
+       },
+       {
+        "id": "AC-11.2",
+        "given": "Alex is Booked for Power HIIT 18:00–18:45 and a Yoga session starts at 18:45 the same day",
+        "when": "book is called for the Yoga session",
+        "then": "the returned booking has status Booked",
+        "level": "unit"
+       },
+       {
+        "id": "AC-11.3",
+        "given": "the AC-11.1 setup, with the Spin session open on Class Detail",
+        "when": "a person presses Book this class",
+        "then": "the screen shows the message naming Power HIIT and 18:00–18:45",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-12",
+      "ears": "If the member books a class session while holding 10 upcoming Booked classes, then the booking module shall reject the request with the error message \"You've reached the limit of 10 upcoming classes.\"",
+      "op": "ADDED",
+      "sources": [
+       "I-4"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-12.1",
+        "given": "Alex holds 10 upcoming Booked classes",
+        "when": "book is called for an eleventh eligible session",
+        "then": "the returned error message is \"You've reached the limit of 10 upcoming classes.\"",
+        "level": "unit"
+       },
+       {
+        "id": "AC-12.2",
+        "given": "Alex holds 9 upcoming Booked classes and 3 Waitlisted classes",
+        "when": "book is called for another eligible session",
+        "then": "the returned booking has status Booked",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-13",
+      "ears": "When the member cancels a Booked booking for a class that has not started, the booking module shall set the booking status to Cancelled with a late flag that is true only when the class starts less than 2 hours later.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-4",
+       "Q-7",
+       "ASM-3"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-13.1",
+        "given": "Alex is Booked for a class starting in 90 minutes",
+        "when": "cancel is called",
+        "then": "the returned booking has status Cancelled and late flag value true",
+        "level": "unit"
+       },
+       {
+        "id": "AC-13.2",
+        "given": "Alex is Booked for a class starting in exactly 120 minutes",
+        "when": "cancel is called",
+        "then": "the returned booking has status Cancelled and late flag value false",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-14",
+      "ears": "When the member cancels a Booked booking, the booking module shall decrease the session's waitlist count by one and keep its booked count unchanged if the waitlist count is above zero, and otherwise decrease the booked count by one.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-5"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-14.1",
+        "given": "Alex is Booked on a session with capacity 20, booked count 20 and waitlist count 4",
+        "when": "cancel is called",
+        "then": "the session's booked count value is 20 and waitlist count value is 3",
+        "level": "unit"
+       },
+       {
+        "id": "AC-14.2",
+        "given": "Alex is Booked on a session with booked count 15 and waitlist count 0",
+        "when": "cancel is called",
+        "then": "the session's booked count value is 14 and waitlist count value is 0",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-15",
+      "ears": "When the member leaves a waitlist for a class that has not started, the booking module shall remove the Waitlisted booking and decrease the session's waitlist count by one.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM-22"
+      ],
+      "stability": 0.7,
+      "acceptance": [
+       {
+        "id": "AC-15.1",
+        "given": "Alex is Waitlisted #2 on a session with waitlist count 4",
+        "when": "leaveWaitlist is called",
+        "then": "the session's waitlist count value is 3 and getMyBookings returns no record for that session in either the Upcoming or Past list",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-16",
+      "ears": "When the demo hook that simulates another member cancelling runs for a full class session where Alex is Waitlisted at position 1 and promotion breaks no booking rule, the booking module shall change Alex's booking to Booked, decrease the waitlist count by one and keep the booked count unchanged.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-5",
+       "ASM-16"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-16.1",
+        "given": "a session with capacity 16, booked count 16 and waitlist count 3, Alex Waitlisted #1 with no overlapping Booked class and fewer than 10 upcoming Booked",
+        "when": "the simulate-other-member-cancellation hook is called for that session",
+        "then": "Alex's booking status value is Booked with no waitlist position, the booked count value is 16 and the waitlist count value is 2",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-17",
+      "ears": "When the demo hook that simulates another member cancelling runs for a class session where Alex is Waitlisted at a position greater than 1, the booking module shall decrease Alex's waitlist position and the session's waitlist count by one each.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "Q-5"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-17.1",
+        "given": "Alex is Waitlisted #3 on a full session with waitlist count 4",
+        "when": "the simulate-other-member-cancellation hook is called",
+        "then": "Alex's waitlist position value is 2, the waitlist count value is 3 and the booked count value is unchanged",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-18",
+      "ears": "If the demo hook would promote Alex from position 1 but the promotion would overlap a Booked class, exceed 10 upcoming Booked classes, or the class starts in less than 15 minutes, then the booking module shall keep Alex Waitlisted at position 1, promote the next waitlisted member, and record the reason Alex was skipped.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "ASM-2",
+       "ASM-14",
+       "ASM-23"
+      ],
+      "stability": 0.7,
+      "acceptance": [
+       {
+        "id": "AC-18.1",
+        "given": "Alex is Waitlisted #1 on a full session with waitlist count 3 and holds a Booked class that overlaps it",
+        "when": "the simulate-other-member-cancellation hook is called",
+        "then": "Alex's booking status value is Waitlisted at position 1, the waitlist count value is 2, the booked count value is unchanged, and the returned skip reason names the overlapping class",
+        "level": "unit"
+       },
+       {
+        "id": "AC-18.2",
+        "given": "Alex is Waitlisted #1 on a full session with waitlist count 2 and holds 10 upcoming Booked classes",
+        "when": "the hook is called",
+        "then": "Alex stays Waitlisted at position 1 and the returned skip reason value is the 10-booking limit",
+        "level": "unit"
+       },
+       {
+        "id": "AC-18.3",
+        "given": "Alex is Waitlisted #1 on a full session with waitlist count 1 and holds an overlapping Booked class",
+        "when": "the hook is called",
+        "then": "Alex stays Waitlisted at position 1, the waitlist count value is 1 and the booked count value decreases by one",
+        "level": "unit"
+       },
+       {
+        "id": "AC-18.4",
+        "given": "the AC-18.1 result",
+        "when": "a person opens that class's Class Detail",
+        "then": "the footer's secondary info shows the skip reason next to 'You're #1 on the waitlist'",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-19",
+      "ears": "When the app is opened after Alex has been promoted from a waitlist since the previous visit, the app shall show a toast naming the class Alex is now Booked for.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM-24"
+      ],
+      "stability": 0.6,
+      "acceptance": [
+       {
+        "id": "AC-19.1",
+        "given": "the promotion hook has moved Alex to Booked for 'Power HIIT' after the last time the app was open",
+        "when": "a person opens the app",
+        "then": "a toast naming Power HIIT is shown once and is not shown again on the next reload",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-20",
+      "ears": "When the member undoes a booking from the booking toast, the booking module shall delete the booking without creating a Cancelled record or late flag and restore the session's booked count to its value before the booking.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "Q-3"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-20.1",
+        "given": "Alex has just booked a session starting in 60 minutes whose booked count went from 18 to 19",
+        "when": "undoBooking is called for that booking",
+        "then": "the session's booked count value is 18 and getMyBookings returns no record for that session in the Upcoming or Past list",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-21",
+      "ears": "When the member books from a Schedule class card, the Schedule screen shall show a toast \"You're booked for <class name> · <Ddd HH:mm>\" with an Undo action for 5 seconds.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "Q-3",
+       "ASM-17"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-21.1",
+        "given": "Sunrise Vinyasa on Monday 07:00 is bookable on the Schedule screen",
+        "when": "a person taps Book on its card",
+        "then": "the card shows 'Booked ✓' and the toast \"You're booked for Sunrise Vinyasa · Mon 07:00\" with Undo is displayed, and the Undo action is gone after 5 seconds",
+        "level": "manual"
+       },
+       {
+        "id": "AC-21.2",
+        "given": "the toast from AC-21.1 is displayed",
+        "when": "the person activates Undo within 5 seconds",
+        "then": "the card shows 'Book' again with the previous availability label, and My Bookings shows no row for that class in Upcoming or Past",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-22",
+      "ears": "When the member joins a waitlist, cancels a booking, or leaves a waitlist, the app shall show a confirmation toast without an Undo action.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM-17"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-22.1",
+        "given": "a full class is open on Class Detail",
+        "when": "a person presses Join waitlist",
+        "then": "a confirmation toast is shown with no Undo action",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-23",
+      "ears": "When a class session's end time (start plus duration) has passed, the booking module shall return Alex's Booked booking for that session in the Past list with status Attended.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "Q-8",
+       "ASM-4"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-23.1",
+        "given": "Alex is Booked for a 45-minute class starting at 18:00 today",
+        "when": "getMyBookings is called with the clock at 18:46",
+        "then": "the returned Past list contains that booking with status Attended and the Upcoming list does not",
+        "level": "unit"
+       },
+       {
+        "id": "AC-23.2",
+        "given": "the same booking",
+        "when": "getMyBookings is called with the clock at 18:30",
+        "then": "the returned Upcoming list still contains the booking with status Booked",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-24",
+      "ears": "If a class session for which Alex holds a Booked or Waitlisted booking has status Cancelled by studio, then the booking module shall return that booking in the Past list with status Cancelled by studio.",
+      "op": "ADDED",
+      "sources": [
+       "ASM-19",
+       "ASM-8"
+      ],
+      "stability": 0.6,
+      "acceptance": [
+       {
+        "id": "AC-24.1",
+        "given": "stored data where Alex is Booked on a future session whose status is Cancelled by studio",
+        "when": "getMyBookings is called",
+        "then": "the returned Past list contains that booking with status value 'Cancelled by studio' and the Upcoming list does not",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-25",
+      "ears": "The booking module shall return Alex's Upcoming list as Booked and Waitlisted bookings for classes that have not ended ordered by start time ascending, and the Past list as Attended and Cancelled bookings ordered by start time descending.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-25.1",
+        "given": "Alex is Booked for Wed 07:00 and Mon 18:00 and Waitlisted for Tue 12:00 of the current week, with the clock at Mon 08:00",
+        "when": "getMyBookings is called",
+        "then": "the returned Upcoming list order is Mon 18:00, Tue 12:00, Wed 07:00",
+        "level": "unit"
+       },
+       {
+        "id": "AC-25.2",
+        "given": "Alex has Attended bookings from 3, 5 and 10 days ago and a late Cancelled booking from 1 day ago",
+        "when": "getMyBookings is called",
+        "then": "the returned Past list order is 1, 3, 5, 10 days ago and the cancelled record has late flag true",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-26",
+      "ears": "The booking module shall return stats where Upcoming is the count of upcoming Booked bookings, Classes this month is the count of Attended bookings in the current calendar month in Europe/London, and Current streak is the number of consecutive Monday–Sunday weeks with at least one Attended booking.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-7",
+       "ASM-11",
+       "ASM-25"
+      ],
+      "stability": 0.7,
+      "acceptance": [
+       {
+        "id": "AC-26.1",
+        "given": "Alex has 2 upcoming Booked and 1 Waitlisted booking",
+        "when": "getStats is called",
+        "then": "the returned Upcoming value is 2",
+        "level": "unit"
+       },
+       {
+        "id": "AC-26.2",
+        "given": "Alex has 3 Attended bookings this month, 1 Attended last month and 2 late Cancelled bookings this month",
+        "when": "getStats is called",
+        "then": "the returned Classes this month value is 3",
+        "level": "unit"
+       },
+       {
+        "id": "AC-26.3",
+        "given": "Alex has Attended classes in each of the last 3 completed weeks, none in the week before, and none yet in the current week",
+        "when": "getStats is called",
+        "then": "the returned Current streak value is 3",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-27",
+      "ears": "When the booking module is created over browser local storage written by a previous instance, the booking module shall return the bookings, statuses, late flags, counts and waitlist positions saved by that instance.",
+      "op": "ADDED",
+      "sources": [
+       "I-6",
+       "ASM-6",
+       "ASM-15"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-27.1",
+        "given": "one module instance has booked one class, cancelled another late, and joined a waitlist at position 3, over a given local storage",
+        "when": "a new module instance is created over the same storage and getMyBookings is called",
+        "then": "the returned lists contain the same 3 records with the same status, late flag and waitlist position values, and the session counts match",
+        "level": "unit"
+       },
+       {
+        "id": "AC-27.2",
+        "given": "a person has booked a class in the app",
+        "when": "they reload the page",
+        "then": "My Bookings still shows the class under Upcoming with status Booked",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-28",
+      "ears": "When the booking module starts with empty local storage, the booking module shall generate and store seed data dated within the current and next Monday–Sunday weeks in Europe/London containing at least 40 class sessions across all 5 class types and 3 rooms, 5 instructors, at least 3 full sessions, at least 3 sessions with 1–3 free spots, at least 1 session Cancelled by studio, and Alex with 2 upcoming Booked, 1 Waitlisted and 3 past Attended bookings, none on a studio-cancelled session.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-5",
+       "Q-6",
+       "ASM-5",
+       "ASM-8",
+       "ASM-20"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-28.1",
+        "given": "empty local storage and the clock at Wednesday 10:00 Europe/London",
+        "when": "the module starts and getSchedule is called for each of the 14 days",
+        "then": "the returned sessions count is at least 40, every start date falls between this Monday and next Sunday, all of Yoga, Pilates, HIIT, Spin, Boxing and Studio A, Studio B, Spin Room appear, exactly 5 distinct instructors appear, at least 3 sessions have booked count equal to capacity, at least 3 have 1–3 free spots, and at least 1 has status Cancelled by studio",
+        "level": "unit"
+       },
+       {
+        "id": "AC-28.2",
+        "given": "the same start",
+        "when": "getMyBookings is called",
+        "then": "the returned Upcoming list has 2 Booked and 1 Waitlisted records, the Past list has 3 Attended records, and no record references a Cancelled by studio session",
+        "level": "unit"
+       },
+       {
+        "id": "AC-28.3",
+        "given": "each seeded session",
+        "when": "its fields are read",
+        "then": "every session has a name, type, intensity, instructor with name and bio, room, start, duration of 30, 45, 60 or 75, capacity, booked count, waitlist count, a 2–4 sentence description and a what-to-bring list",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-29",
+      "ears": "When the booking module starts with seed data already in local storage, the booking module shall keep the stored session dates instead of generating new ones.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "I-6",
+       "Q-6",
+       "ASM-5"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-29.1",
+        "given": "the module first started on Monday and stored seed data",
+        "when": "a new instance starts over the same storage with the clock 3 days later",
+        "then": "the returned session IDs and start times are identical to those stored on Monday",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-30",
+      "ears": "When the schedule is requested for a day with filters, the booking module shall return that day's sessions, including sessions Cancelled by studio, ordered by start time and matching any selected class type, any selected intensity, and any selected time-of-day band, where Morning is before 12:00, Afternoon is 12:00–16:59 and Evening is 17:00 onward.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM-10",
+       "ASM-26"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-30.1",
+        "given": "a day with Yoga 07:00, HIIT 12:00, Spin 17:00 and a Cancelled by studio Boxing 19:00",
+        "when": "getSchedule is called for that day with no filters",
+        "then": "the returned list is Yoga 07:00, HIIT 12:00, Spin 17:00, Boxing 19:00 with the Boxing status Cancelled by studio",
+        "level": "unit"
+       },
+       {
+        "id": "AC-30.2",
+        "given": "the same day",
+        "when": "getSchedule is called with time-of-day filter Afternoon",
+        "then": "the returned list contains only HIIT 12:00 and not Spin 17:00",
+        "level": "unit"
+       },
+       {
+        "id": "AC-30.3",
+        "given": "the same day",
+        "when": "getSchedule is called with class types Yoga and Spin selected",
+        "then": "the returned list contains Yoga 07:00 and Spin 17:00 only",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-31",
+      "ears": "The app shall determine 'today' and display every time in 24-hour format in the Europe/London timezone.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-4"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-31.1",
+        "given": "the clock is 23:30 UTC on 15 July (00:30 BST on 16 July)",
+        "when": "the booking module's today value is read",
+        "then": "the returned date is 16 July",
+        "level": "unit"
+       },
+       {
+        "id": "AC-31.2",
+        "given": "a class starting at 18:30 London time",
+        "when": "a person views its card on a device set to a US timezone and 12-hour clock",
+        "then": "the card displays 18:30",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-32",
+      "ears": "The Schedule screen shall show a top bar with the Pulse Studio wordmark and the 'AR' member avatar linking to My Bookings, and a day strip of 7 chips for one Monday–Sunday week with today highlighted, days without classes dimmed, and previous/next week arrows limited to the current and next week.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "I-2",
+       "I-3",
+       "ASM-9",
+       "ASM-20"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-32.1",
+        "given": "the app opens on the current week",
+        "when": "a person looks at the day strip",
+        "then": "7 chips Mon–Sun are displayed with today highlighted, the previous-week arrow is disabled, and after pressing next-week once the next-week arrow is disabled",
+        "level": "manual"
+       },
+       {
+        "id": "AC-32.2",
+        "given": "the Schedule screen",
+        "when": "a person activates the AR avatar",
+        "then": "the My Bookings screen is shown",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-33",
+      "ears": "The Schedule screen shall show a filter bar with multi-select class type chips in each type's accent colour, Low/Medium/High intensity options, Morning/Afternoon/Evening options, and a Clear filters action that resets all filters.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-33.1",
+        "given": "Yoga and Evening filters are selected",
+        "when": "a person activates Clear filters",
+        "then": "no filter chip is shown as selected and the list shows all classes for the selected day",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-34",
+      "ears": "The Schedule screen shall show each class card with start time and duration, class name, a colour-coded type tag with text, an intensity indicator, instructor avatar and name, room, a capacity bar, an availability label and an action button, with sessions Cancelled by studio shown struck through.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "I-4"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-34.1",
+        "given": "a day containing a Cancelled by studio session",
+        "when": "a person views the Schedule for that day",
+        "then": "each card displays all listed fields and the cancelled session is shown struck through with a disabled button",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-35",
+      "ears": "The app shall label availability as \"N spots left\" when more than 3 spots are free, \"Only N left\" when 1–3 spots are free, \"Full · N on waitlist\" when full, and \"Cancelled\" when the session is Cancelled by studio.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "ASM-21"
+      ],
+      "stability": 0.6,
+      "acceptance": [
+       {
+        "id": "AC-35.1",
+        "given": "sessions with 8 free spots, 2 free spots, full with 4 waitlisted, and Cancelled by studio",
+        "when": "a person views their cards",
+        "then": "the labels shown are '8 spots left', 'Only 2 left', 'Full · 4 on waitlist' and 'Cancelled'",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-36",
+      "ears": "The Schedule screen shall label each card's action button Book, Join waitlist, Booked ✓, or Waitlisted #N according to Alex's state, and disable it for started, studio-cancelled or outside-booking-window sessions.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-4"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-36.1",
+        "given": "'Power HIIT' is full with 2 on the waitlist",
+        "when": "a person taps Join waitlist on its card",
+        "then": "the button shows 'Waitlisted #3'",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-37",
+      "ears": "When the member taps a class card outside its action button or a My Bookings row, the app shall open the Class Detail for that class.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-37.1",
+        "given": "the Schedule screen",
+        "when": "a person taps the class name area of a card",
+        "then": "the Class Detail for that class is shown and no booking is made",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-38",
+      "ears": "When the member activates Back on Class Detail, the app shall return to the screen Class Detail was opened from with that screen's selected day, filters and tab unchanged.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-1"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-38.1",
+        "given": "Schedule shows Thursday with the Yoga filter, and a class detail was opened from it",
+        "when": "a person activates Back",
+        "then": "the Schedule screen is shown with Thursday selected and the Yoga filter still applied",
+        "level": "manual"
+       },
+       {
+        "id": "AC-38.2",
+        "given": "a class detail was opened from the Past tab of My Bookings",
+        "when": "a person activates Back",
+        "then": "My Bookings is shown with the Past tab selected",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-39",
+      "ears": "While the schedule is loading, has no classes on the selected day, has no classes matching the filters, or failed to load, the Schedule screen shall show skeleton cards, 'No classes on this day' with an icon, 'No classes match your filters' with Clear filters, or an inline error with Retry respectively.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-39.1",
+        "given": "filters that match no class on the selected day",
+        "when": "the Schedule screen renders",
+        "then": "the message 'No classes match your filters' and a Clear filters button are displayed",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-40",
+      "ears": "The Class Detail screen shall show a hero header in the class type's accent colour with class name, type tag and intensity, the date, start–end time, duration and room, an instructor card with avatar, name and bio, the description, a what-to-bring list with icons, an availability block, and the hint 'Free cancellation until 2 hours before class.'",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-7"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-40.1",
+        "given": "a Pilates class detail is opened",
+        "when": "a person views the screen",
+        "then": "all listed content is displayed and the hero uses the Pilates dusty rose accent",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-41",
+      "ears": "The Class Detail screen shall show an action footer with 'Book this class' and 'X spots left' when not booked with spots free, 'Join waitlist' and 'You'd be #N' when full, 'Cancel booking' in destructive style and 'You're booked' when Booked, 'Leave waitlist' and 'You're #N on the waitlist' when Waitlisted, or a disabled button with reason text when started, past, studio-cancelled or outside the booking window, pinned to the bottom on mobile widths.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "I-4",
+       "I-10",
+       "ASM-1"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-41.1",
+        "given": "a 375 px wide viewport and a full class with 2 on the waitlist",
+        "when": "a person scrolls to the top, middle and bottom of Class Detail",
+        "then": "the 'Join waitlist' button and 'You'd be #3' text are shown at every scroll position",
+        "level": "manual"
+       },
+       {
+        "id": "AC-41.2",
+        "given": "a class starting 8 days from now",
+        "when": "a person opens its Class Detail",
+        "then": "the button is disabled and reason text about the 7-day booking window is shown",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-42",
+      "ears": "When the member chooses to cancel a booking, the app shall show a confirmation dialog before the booking is cancelled.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3",
+       "ASM-27"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-42.1",
+        "given": "Alex is Booked for a class starting in 1 day",
+        "when": "a person presses Cancel booking and then dismisses the dialog",
+        "then": "the booking is still shown as Booked in My Bookings",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-43",
+      "ears": "When the member chooses to cancel a booking for a class starting less than 2 hours later, the app shall show the warning 'Late cancellation — this counts as a missed class.' in warning style in the confirmation dialog.",
+      "op": "ADDED",
+      "sources": [
+       "I-4",
+       "ASM-3"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-43.1",
+        "given": "a booked class starts in 90 minutes",
+        "when": "a person presses Cancel booking",
+        "then": "the dialog displays 'Late cancellation — this counts as a missed class.' in warning style",
+        "level": "manual"
+       },
+       {
+        "id": "AC-43.2",
+        "given": "a booked class starts in 3 hours",
+        "when": "a person presses Cancel booking",
+        "then": "the dialog displays no late-cancellation warning",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-44",
+      "ears": "If a booking attempt from Class Detail is rejected because the class became full, then the Class Detail screen shall refresh the availability and offer 'Join waitlist'.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-3"
+      ],
+      "stability": 0.75,
+      "acceptance": [
+       {
+        "id": "AC-44.1",
+        "given": "Class Detail shows 1 spot left, and the stored data is changed so the class is full",
+        "when": "a person presses Book this class",
+        "then": "the availability block shows the class as full and the footer button shows 'Join waitlist'",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-45",
+      "ears": "The My Bookings screen shall show a header with the AR avatar, 'Alex Rivera' and 'Unlimited Monthly', three stat tiles (Upcoming, Classes this month, Current streak), and Upcoming/Past tabs, with Upcoming rows grouped under 'Today', 'Tomorrow' or 'Ddd D Mmm' showing time, class name, type tag, instructor, room, status badge and a Cancel or Leave action, and Past rows showing badges Attended, Cancelled, 'Late cancel' or 'Cancelled by studio'.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-7",
+       "ASM-19"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-45.1",
+        "given": "seed data plus one late cancellation",
+        "when": "a person opens My Bookings and switches to Past",
+        "then": "the late-cancelled class row shows a 'Late cancel' badge and the stat tile values match getStats",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-46",
+      "ears": "While My Bookings has no upcoming classes, no past classes, is loading, or failed to load, the My Bookings screen shall show 'No upcoming classes' with a 'Browse schedule' button to Schedule, 'Your class history will appear here.', skeleton rows, or an inline error with Retry respectively.",
+      "op": "ADDED",
+      "sources": [
+       "I-3"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-46.1",
+        "given": "Alex has no upcoming bookings",
+        "when": "a person opens the Upcoming tab and presses Browse schedule",
+        "then": "'No upcoming classes' is displayed first and then the Schedule screen is shown",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-47",
+      "ears": "If a book, cancel, join-waitlist or leave-waitlist action fails after its optimistic update, then the app shall revert the displayed change and show an error toast containing no raw error text or stack trace.",
+      "op": "ADDED",
+      "sources": [
+       "I-2",
+       "I-6"
+      ],
+      "stability": 0.75,
+      "acceptance": [
+       {
+        "id": "AC-47.1",
+        "given": "local storage writes are made to fail (e.g. storage quota filled)",
+        "when": "a person taps Book on a card",
+        "then": "the card returns to 'Book' with its previous availability and an error toast in plain language is shown with no exception text",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-48",
+      "ears": "The app shall define colours as design tokens with a warm off-white background, near-black text, one brand primary for primary actions, semantic success, warning, danger and muted colours, and accents of sage green for Yoga, dusty rose for Pilates, coral for HIIT, electric blue for Spin and deep plum for Boxing used on tags, card edges and the detail hero.",
+      "op": "ADDED",
+      "sources": [
+       "I-7"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-48.1",
+        "given": "the built app",
+        "when": "a reviewer inspects the stylesheet and the three screens",
+        "then": "all colours come from named tokens and each class type uses its listed accent on its tag, card edge and detail hero",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-49",
+      "ears": "Where the system colour preference is dark, the app shall render all three screens in a dark theme.",
+      "op": "ADDED",
+      "sources": [
+       "I-7"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-49.1",
+        "given": "the operating system is set to dark mode",
+        "when": "a person opens Schedule, Class Detail and My Bookings",
+        "then": "each screen is displayed in the dark theme with no light-background panels",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-50",
+      "ears": "The app shall use one display font for headings and class names, one sans-serif body font, a type scale with display, h1, h2, body and caption sizes, and tabular figures for times and numbers.",
+      "op": "ADDED",
+      "sources": [
+       "I-7"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-50.1",
+        "given": "the Schedule list",
+        "when": "a reviewer compares start times of consecutive cards",
+        "then": "digits align vertically and the computed font-variant-numeric value is tabular-nums",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-51",
+      "ears": "While the system prefers reduced motion, the app shall replace card press, panel slide, capacity bar fill and toast slide animations with instant changes.",
+      "op": "ADDED",
+      "sources": [
+       "I-7"
+      ],
+      "stability": 0.8,
+      "acceptance": [
+       {
+        "id": "AC-51.1",
+        "given": "prefers-reduced-motion is enabled",
+        "when": "a person opens Class Detail and books a class",
+        "then": "the panel and toast appear without sliding and the capacity bar changes without animation",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-52",
+      "ears": "The app shall make every interactive element reachable and operable by keyboard alone with a visible focus indicator.",
+      "op": "ADDED",
+      "sources": [
+       "I-8"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-52.1",
+        "given": "a keyboard and no mouse",
+        "when": "a person opens Schedule, filters by Yoga, books a class, opens My Bookings and cancels it",
+        "then": "every step completes and a focus indicator is shown on each focused element",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-53",
+      "ears": "The app shall expose landmarks, headings and text labels to screen readers, with the capacity bar announced as 'N of M spots left' and type tags and status badges carrying text so colour is never the only signal.",
+      "op": "ADDED",
+      "sources": [
+       "I-8"
+      ],
+      "stability": 0.85,
+      "acceptance": [
+       {
+        "id": "AC-53.1",
+        "given": "a screen reader (VoiceOver or NVDA)",
+        "when": "a person navigates to a card for a class with capacity 20 and 14 booked",
+        "then": "the capacity bar is announced as '6 of 20 spots left' and the type tag is announced by name",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-54",
+      "ears": "While a dialog is open, the app shall keep keyboard focus inside the dialog and close it when Escape is pressed.",
+      "op": "ADDED",
+      "sources": [
+       "I-8"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-54.1",
+        "given": "the cancel confirmation dialog is open",
+        "when": "a person presses Tab repeatedly and then Escape",
+        "then": "focus never leaves the dialog, and after Escape the dialog is closed and the booking is still Booked",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-55",
+      "ears": "The app shall render all three screens without horizontal page scrolling at widths from 360 px, show schedule cards in 2 columns at widths from 768 px to 1023 px, and at 1024 px and wider show Class Detail as a side panel beside the schedule with a maximum content width.",
+      "op": "ADDED",
+      "sources": [
+       "I-10",
+       "ASM-28"
+      ],
+      "stability": 0.75,
+      "acceptance": [
+       {
+        "id": "AC-55.1",
+        "given": "a 360 px wide viewport",
+        "when": "a person opens each of the three screens",
+        "then": "the page shows no horizontal scrollbar (only the day strip may scroll sideways)",
+        "level": "manual"
+       },
+       {
+        "id": "AC-55.2",
+        "given": "an 800 px wide viewport",
+        "when": "the Schedule is displayed",
+        "then": "cards are shown in 2 columns",
+        "level": "manual"
+       },
+       {
+        "id": "AC-55.3",
+        "given": "a 1280 px wide viewport",
+        "when": "a person opens a class",
+        "then": "Class Detail is shown as a side panel with the schedule list still visible",
+        "level": "manual"
+       }
+      ]
+     },
+     {
+      "id": "REQ-56",
+      "ears": "The project shall include automated tests that call the booking module directly for booking success, full-class rejection with waitlist join, waitlist promotion, the 7-day and 15-minute windows, the late-cancellation flag, overlap rejection, the 10-booking limit, and rejection of past and studio-cancelled classes.",
+      "op": "ADDED",
+      "sources": [
+       "I-9",
+       "I-4"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-56.1",
+        "given": "the repository",
+        "when": "the unit test command runs in CI",
+        "then": "the exit status is 0 and the test report list contains at least one passing test for each of the 8 named rules",
+        "level": "job"
+       }
+      ]
+     },
+     {
+      "id": "REQ-57",
+      "ears": "The project shall include an automated end-to-end test that opens the Schedule, filters by Yoga, books a class, finds it in My Bookings and cancels it.",
+      "op": "ADDED",
+      "sources": [
+       "I-9"
+      ],
+      "stability": 0.9,
+      "acceptance": [
+       {
+        "id": "AC-57.1",
+        "given": "the built app",
+        "when": "the end-to-end test command runs in CI",
+        "then": "the exit status is 0 and the report shows the schedule → Yoga filter → book → My Bookings → cancel test passed",
+        "level": "job"
+       }
+      ]
+     }
+    ],
+    "nfrs": [
+     {
+      "id": "NFR-1",
+      "text": "The Schedule for a selected day renders with seed data on a mid-range phone.",
+      "metric": "Time from day-chip tap to cards rendered < 1000 ms, measured in Chrome DevTools with 4× CPU throttling, median of 5 runs"
+     },
+     {
+      "id": "NFR-2",
+      "text": "Book, cancel, join-waitlist and leave-waitlist actions give visual feedback optimistically.",
+      "metric": "Button/card state change visible ≤ 100 ms after tap, measured with a Performance trace, 95th percentile over 20 taps"
+     },
+     {
+      "id": "NFR-3",
+      "text": "All text and UI component colour pairs meet WCAG 2.1 AA in light and dark themes.",
+      "metric": "Contrast ≥ 4.5:1 for normal text, ≥ 3:1 for large text and UI components; 0 failures in an axe-core scan of all 3 screens in both themes"
+     },
+     {
+      "id": "NFR-4",
+      "text": "Interactive targets are large enough for touch.",
+      "metric": "100% of interactive elements have a hit area ≥ 44 × 44 CSS px at 360 px width"
+     },
+     {
+      "id": "NFR-5",
+      "text": "Members can find and book a class quickly.",
+      "metric": "Median time from app open to confirmed booking ≤ 30 s across 5 test participants"
+     },
+     {
+      "id": "NFR-6",
+      "text": "The app works in supported browsers (ASM-12).",
+      "metric": "End-to-end test passes on 100% of the latest 2 versions of Chrome, Edge, Safari and Firefox"
+     },
+     {
+      "id": "NFR-7",
+      "text": "Member and booking data stays on the device (PII).",
+      "metric": "0 outbound network requests carrying booking or member data during the end-to-end test run"
+     },
+     {
+      "id": "NFR-8",
+      "text": "Static hosting is in the client's cloud account (ASM-13).",
+      "metric": "Deployed to exactly 1 cloud region"
+     }
+    ],
+    "outOfScope": [
+     "Sign-in, sign-up and password reset; a single demo member is pre-signed-in (request §12)",
+     "Payments, credits, class packs and membership purchase (request §12)",
+     "Staff, instructor or admin screens, schedule editing, and any operation for the studio to cancel a class (request §12)",
+     "Email, SMS and push notifications (request §12)",
+     "Calendar export or sync (request §12)",
+     "Multiple studio locations (request §12)",
+     "Native mobile apps (request §12)",
+     "Multi-language support (request §12)",
+     "A backend server or database; persistence is browser local storage only (ASM-15)",
+     "Any visible UI for the waitlist promotion demo hook; it is for tests only (ASM-16)"
+    ],
+    "assumptions": [
+     "Greenfield build: there is no existing code, so every requirement is ADDED and has no anchors.",
+     "All business rules live in one booking module (ASM-6) with public operations book, cancel, joinWaitlist, leaveWaitlist, undoBooking, getSchedule, getMyBookings, getStats, a today value, and a test-only simulate-other-member-cancellation hook; the module takes an injectable clock and storage so unit tests can control 'now'.",
+     "ASM-21: Free spots of 1–3 are labelled 'Only N left' (matches the card examples and the '≤ 3 spots left = almost full' seed rule); the §11 example wording '1 spot left' is read as 'Only 1 left'. This conflicts with the request and needs confirming.",
+     "ASM-22: Leaving a waitlist deletes the Waitlisted entry and does not store a Cancelled record, so it does not appear in Past.",
+     "ASM-23: If Alex is skipped at position 1 and nobody else is on the waitlist, the freed seat stays empty (booked count drops by one) and Alex stays Waitlisted #1.",
+     "ASM-24: Promotion notice follows request §13: a toast the next time the app is opened, shown once.",
+     "ASM-25: Classes this month counts only Attended bookings (request §13). Current streak counts back through consecutive Monday–Sunday weeks with ≥ 1 Attended class; if the current week has none yet, counting starts from the previous week. Late cancellations do not affect stats (Q-7).",
+     "ASM-26: Within each filter group (type, intensity, time of day) multiple selections are OR-ed; across groups they are AND-ed.",
+     "ASM-27: The quick Cancel action on My Bookings also opens the same confirmation dialog, with the late warning when it applies.",
+     "ASM-28: The tablet breakpoint is 768–1023 px; desktop is ≥ 1024 px as stated.",
+     "Boundaries: booking is allowed when the start is exactly 15 minutes away; cancelling exactly 120 minutes before start is free (late flag false).",
+     "A Booked class that has started but not ended stays in Upcoming with its actions disabled, and becomes Attended at its end time (Q-8). A Waitlisted entry whose class has ended leaves Upcoming and is not shown in Past."
+    ],
+    "suggestions": [
+     "Add a seed self-check test confirming the seeded bookings for Alex follow every rule themselves (no overlaps, within windows).",
+     "Keep open tabs in sync with a storage event listener so two tabs cannot each book the last spot.",
+     "Plan a move to a real backend with server-side rule checks before adding sign-in or payments, since rules enforced only in local storage can be bypassed.",
+     "Add a visual regression test of the three screens in light and dark themes so design quality is checked automatically.",
+     "Confirm the 'Only N left' versus '1 spot left' wording (ASM-21) with the studio before building."
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

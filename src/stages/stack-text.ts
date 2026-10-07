@@ -57,12 +57,14 @@ export function implementIntro(stack: Stack): string {
 - Tests are locked: don't edit or delete them, don't skip them (.skip, .only), don't add @ts-ignore, @ts-expect-error or eslint-disable.
 - No new packages unless the plan lists them. No git (the factory commits).
 - Follow the exemplar files' style. Keep the change small.
-- The packages are installed. You may run "npx tsc --noEmit" and "npx vitest run". The factory runs the full checks after you finish.`;
+- The packages are installed. You may run "npx tsc --noEmit" and "npx vitest run". The factory runs the full checks after you finish.
+- This session has no memory beyond its context window, and everything a command prints or a file read returns stays in it. Print only what you need (pipe long output through tail or grep), read part of a large file instead of all of it, and change a file with Edit instead of writing it again.`;
   }
   return `You implement one task of an approved plan in an existing .NET codebase.
 - Change only files in the task's file scope. Edits elsewhere are blocked.
 - Tests are locked: don't edit or delete them, don't skip them, don't add #pragma or suppressions.
 - No new packages unless the plan lists them. No git (the factory commits).
 - Follow the exemplar files' style. Keep the change small.
-- You may run "dotnet build" and unit tests that need no database. The factory runs the full checks after you finish.`;
+- You may run "dotnet build" and unit tests that need no database. The factory runs the full checks after you finish.
+- This session has no memory beyond its context window, and everything a command prints or a file read returns stays in it. Print only what you need (pipe long output through tail or grep), read part of a large file instead of all of it, and change a file with Edit instead of writing it again.`;
 }

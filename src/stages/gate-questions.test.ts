@@ -14,7 +14,7 @@ import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { NO_TRACE } from "../util/trace.js";
 import type { StepContext } from "./framework.js";
 import {
-  answersOf, asksGates, carriedLines, carries, factoryAssumed, gateCard, gateNotes, gateRounds, nextQuestionId, settledBy, writeGateQuestions, type GateRound,
+  answersOf, asksGates, carriedLines, carries, factoryAssumed, gateCard, gateNotes, gateRounds, gateSubject, nextQuestionId, settledBy, writeGateQuestions, type GateRound,
 } from "./gate-questions.js";
 import { setProviderFactory } from "./think.js";
 
@@ -78,10 +78,18 @@ beforeEach(() => {
 });
 
 describe("questions about failing checks", () => {
-  it("asks only in runs that read a requirements document", () => {
-    expect(asksGates({ info: { mode: "estimate" } as never })).toBe(true);
-    expect(asksGates({ info: { mode: "design" } as never })).toBe(true);
-    expect(asksGates({ info: { mode: "build" } as never })).toBe(false);
+  it("asks in estimate and design runs and in a build that began asking, about the estimate or the build", () => {
+    for (const mode of ["estimate", "design"]) expect(asksGates({ info: { mode } as never }), mode).toBe(true);
+    for (const mode of ["brownfield", "greenfield"]) {
+      expect(asksGates({ info: { mode, asks: true } as never }), mode).toBe(true);
+      // a build started before builds asked, or a brownfield build of a project that leaves brownfield.questions off
+      expect(asksGates({ info: { mode } as never }), mode).toBe(false);
+    }
+    expect(asksGates({ info: { mode: "mobile" } as never })).toBe(false);
+    expect(gateSubject({ info: { mode: "estimate" } as never })).toBe("estimate");
+    expect(gateSubject({ info: { mode: "design" } as never })).toBe("estimate");
+    expect(gateSubject({ info: { mode: "brownfield" } as never })).toBe("build");
+    expect(gateSubject({ info: { mode: "greenfield" } as never })).toBe("build");
   });
 
   it("numbers the questions after the clarify and spec questions, and drops failures the model made up", async () => {
@@ -122,6 +130,9 @@ describe("questions about failing checks", () => {
     const card = gateCard("run-1", "breakdown", 1, q.asked, FAILS, q.failureOf, q.cardSha!);
     expect(card).toContain(`factory answer run-1 ${q.cardSha!.slice(0, 8)} Q-4=A Q-5=A`);
     expect(card).toContain("← recommended: the smallest scope");
+    expect(card).toMatch(/carried as an open risk on the estimate/);
+    // a build shows what is still open on its plan approval card instead
+    expect(gateCard("run-1", "design", 1, q.asked, FAILS, q.failureOf, q.cardSha!, "build")).toMatch(/carried as an open risk and shown on the plan approval card/);
     await ledger.append({ type: "human.decided", data: { cardId: "check-questions-1", decision: "answer", by: "lead", artifactSha: q.cardSha, answers: { "Q-4": "A", "Q-5": "only for trade customers" } } }, HUMAN_WRITER);
     const answers = answersOf(gateRounds(ledger, replay(ledger.events()), "breakdown"));
     expect(answers.map((a) => [a.id, a.answer, a.how, a.by])).toEqual([

@@ -1,0 +1,36 @@
+diff --git a/App.Api/AppDb.cs b/App.Api/AppDb.cs
+index a800455..175b195 100644
+--- a/App.Api/AppDb.cs
++++ b/App.Api/AppDb.cs
+@@ -1,5 +1,6 @@
+ using App.Api.Data;
+ using Microsoft.EntityFrameworkCore;
++using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+ 
+ namespace App.Api;
+ 
+@@ -12,5 +13,24 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)
+     protected override void OnModelCreating(ModelBuilder modelBuilder)
+     {
+         modelBuilder.Entity<SessionEntity>().OwnsMany(s => s.WhatToBring, b => b.ToJson());
++        modelBuilder.Entity<SessionEntity>().Property(s => s.Type).HasConversion<string>();
++        modelBuilder.Entity<SessionEntity>().Property(s => s.Intensity).HasConversion<string>();
++        modelBuilder.Entity<SessionEntity>().Property(s => s.Room).HasConversion<string>();
++        modelBuilder.Entity<SessionEntity>().Property(s => s.Status).HasConversion<string>();
++        modelBuilder.Entity<BookingEntity>().Property(b => b.Status).HasConversion<string>();
++    }
++
++    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
++    {
++        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
++        configurationBuilder.Properties<DateTime?>().HaveConversion<UtcNullableDateTimeConverter>();
+     }
+ }
++
++file sealed class UtcDateTimeConverter() : ValueConverter<DateTime, DateTime>(
++    v => DateTime.SpecifyKind(v, DateTimeKind.Utc),
++    v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
++
++file sealed class UtcNullableDateTimeConverter() : ValueConverter<DateTime?, DateTime?>(
++    v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v,
++    v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);

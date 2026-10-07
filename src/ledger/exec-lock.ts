@@ -40,6 +40,17 @@ export async function isLockFree(key: string): Promise<boolean> {
   return !(await lockfile.check(p, { realpath: false, stale: STALE_MS }));
 }
 
+/** True when a live executor holds the lock for this run (not stale, and the holder it recorded is this run). */
+export function executorHolds(key: string, runId: string): boolean {
+  const p = lockPath(key);
+  if (!existsSync(p)) return false;
+  try {
+    return lockfile.checkSync(p, { realpath: false, stale: STALE_MS }) && readLockInfo(key)?.runId === runId;
+  } catch {
+    return false;
+  }
+}
+
 export class ExecutionLock implements Writer {
   private released = false;
   private compromised?: Error;

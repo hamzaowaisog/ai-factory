@@ -161,7 +161,7 @@ export function referenceBrief(industries: RefIndustry[], measured: Record<strin
       `${i.label} (colours are approximate reference values; use them to see the family, not to copy):`,
       ...brands,
       `Shared: ${i.pattern}`,
-      `Field defaults: ${u.mode} mode, ${u.chrome} chrome, ${u.neutral} neutrals, ${u.font} type, ${u.radius} corners, ${u.density}, ${u.surface} surfaces. Defaults are where products in a field start, not where they end: change at least two of them (bar, corners, type, density, surface, neutrals, mode) because of who uses THIS product and what it must do, and say why in "mood".`,
+      `Field defaults: ${u.mode} mode, ${u.chrome} chrome, ${u.neutral} neutrals, ${u.font} type, ${u.radius} corners, ${u.density}, ${u.surface} surfaces. Defaults are where products in a field start, not where they end: change at least two of them (bar, corners, type, density, surface, neutrals, mode) because of who uses THIS product and what it must do, as the reading says.`,
     ].join("\n");
   }).join("\n\n")
     + "\nPick a brand colour in the same family as these, but do not reuse any one brand's exact value, name or logo. Make it feel like another competitor in the field.";

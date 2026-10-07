@@ -10,6 +10,7 @@ import { stringify } from "yaml";
 import { _resetEnvCache } from "../config/env.js";
 import { ExecutionLock } from "../ledger/exec-lock.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
+import { currentCostCap } from "../ledger/caps.js";
 import { replay } from "../ledger/state.js";
 import { outcomes, scoreRun, stageStats } from "../report.js";
 import { ensurePackage } from "../stages/design-export.js";
@@ -18,6 +19,9 @@ import { cardCommands } from "./data.js";
 import { createUiServer, listen, MAX_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, ROUTES, staticDir, type UiServer } from "./server.js";
 import { _resetStarting } from "./start.js";
 import { ensureStandaloneProject } from "../config/project.js";
+import { makeNewProduct } from "../config/greenfield.js";
+import { loadProject } from "../config/project.js";
+import { fakeGithub } from "../forge/testutil.js";
 // the page's Markdown renderer (plain browser JS, no DOM needed)
 import { renderMarkdown } from "./static/md.js";
 import { findChromium } from "../design/screenshots.js";
@@ -204,17 +208,22 @@ describe("factory ui: who can talk to it", () => {
   });
 });
 
-describe("factory ui: no decisions from the web", () => {
-  it("the route list has no decision routes; the only write starts a run", () => {
-    const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note/i;
-    for (const r of ROUTES.filter((r) => !/\/(estimate-decision|estimate-answers|resume)$/.test(r.path))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
-    // the one exception: the estimate lead's approve or reject, on estimate cards only (and exporting an approved design or generating
-    // its scaffold, which write only under the run's exports/ and scaffold/; and resuming a parked run, which decides nothing)
-    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/estimate-answers", "POST /api/runs/:id/resume", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold"]);
+describe("factory ui: what the web can decide", () => {
+  it("the decision routes are the estimate, design, plan, question and limit cards only; no gate waiver, unlock, steer or pause", () => {
+    const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note|limit/i;
+    for (const r of ROUTES.filter((r) => !/\/(estimate-decision|answers|decision|limit|limit-stop|resume)$/.test(r.path))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
+    // decisions, each with a typed name and the card hash: an estimate card, a design or plan card, a question card's answers, a limit
+    // card (raise one step, or stop the run there). Resuming a parked run decides nothing; exports and the scaffold write only under the
+    // run's own folders; the full-stack routes are factory fullstack
+    expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual([
+      "POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/answers", "POST /api/runs/:id/decision",
+      "POST /api/runs/:id/limit", "POST /api/runs/:id/limit-stop", "POST /api/runs/:id/resume",
+      "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/up", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
+    ]);
   });
 
   it("decision-looking URLs don't exist", async () => {
-    for (const p of [`/api/runs/${ids.waiting}/approve`, `/api/runs/${ids.waiting}/answer`, `/api/runs/${ids.waiting}/stop`]) {
+    for (const p of [`/api/runs/${ids.waiting}/approve`, `/api/runs/${ids.waiting}/answer`, `/api/runs/${ids.waiting}/stop`, `/api/runs/${ids.waiting}/waive`, `/api/runs/${ids.waiting}/estimate-answers`]) {
       expect((await call(p, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: "{}" })).status).toBe(404);
     }
     expect(replay(Ledger.open(ids.waiting).events()).openCard?.kind).toBe("approval");
@@ -247,11 +256,13 @@ describe("factory ui: no decisions from the web", () => {
     expect(readFileSync(join(staticDir(), "app.js"), "utf8")).toContain("/resume`, { method: \"POST\"");
   });
 
-  it("the page says so, and has no decision buttons", () => {
+  it("the page says so, and posts no gate waiver, steer or pause", () => {
     const html = readFileSync(join(staticDir(), "index.html"), "utf8");
-    expect(html).toContain("Plan decisions are made in your terminal, so no AI or script can approve its own plan. Only the estimate lead can approve an estimate here.");
+    expect(html).toContain("Questions, designs, plans, estimates and limits can be decided here, each with your typed name and the card's hash. Gate waivers and unlocks are decided in your terminal only.");
     const js = readFileSync(join(staticDir(), "app.js"), "utf8");
-    expect(js).not.toMatch(/method: "POST"[^\n]*\/(approve|reject|answer|waive|stop|pause)/);
+    expect(js).not.toMatch(/\/api\/runs\/\$\{[^}]+\}\/(approve|reject|waive|unlock|steer|stop|pause|cap)/);
+    expect(js).toContain("/decision`, { method: \"POST\"");
+    expect(js).toContain("/answers`, { method: \"POST\"");
     // the only raw HTML the page writes is the escaped Markdown renderer's output
     expect(js.match(/innerHTML/g)).toHaveLength(1);
     expect(js).toContain("el.innerHTML = renderMarkdown(text)");
@@ -381,6 +392,292 @@ describe("factory ui: starting a run", () => {
     expect(again.json().error).toContain(runId);
     // other projects are free
     expect((await post({ project: "api", prompt: "Greet people with Hello instead of Hi" })).status).toBe(201);
+  });
+});
+
+describe("factory ui: a new product (greenfield)", () => {
+  const newDir = (name: string) => join(mkdtempSync(join(tmpdir(), "factory-ui-new-")), name);
+  const request = "A shop where buyers browse products, add them to a cart and check out.";
+
+  it("starts into an empty Node project; refuses a project with code, a UI target and an estimate made against a repo", async () => {
+    makeNewProduct("shop", newDir("shop"));
+    const projects = (await call("/api/projects")).json().projects as { name: string; empty?: boolean }[];
+    expect(projects.find((p) => p.name === "shop")).toMatchObject({ empty: true });
+    expect(projects.find((p) => p.name === "web")?.empty).toBeUndefined();
+    const before = Ledger.listRuns().length;
+    const code = await post({ project: "web", mode: "greenfield", prompt: request });
+    expect(code.status).toBe(400);
+    expect(code.json().error).toMatch(/already has code/);
+    const target = await post({ project: "shop", mode: "greenfield", prompt: request, uiTarget: "next-shadcn" });
+    expect(target.status).toBe(400);
+    expect(target.json().error).toMatch(/no UI target/);
+    expect(Ledger.listRuns().length).toBe(before);
+    expect(started).toEqual([]);
+    const r = await post({ project: "shop", mode: "greenfield", prompt: request, maxCost: "12" });
+    expect(r.status).toBe(201);
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info).toMatchObject({ mode: "greenfield", project: "shop", asks: true, maxCostUsd: 12 });
+    expect(started).toEqual([r.json().runId]);
+  });
+
+  it("makes a new empty project, as git init and factory init would, and starts into it", async () => {
+    const dir = newDir("cart");
+    const bad: [unknown, RegExp][] = [
+      [{ name: "My Cart", dir }, /not a usable name/],
+      [{ name: "cart", dir: "projects/cart" }, /not a full path/],
+      [{ name: "cart", dir: "" }, /folder/],
+      [{ name: "web", dir }, /Project web already exists/],
+      [{ name: "cart", dir: join(home, "projects") }, /not empty/],
+    ];
+    for (const [newProject, msg] of bad) {
+      const r = await post({ mode: "greenfield", newProject, prompt: request });
+      expect(r.status, JSON.stringify(newProject)).toBe(400);
+      expect(r.json().error).toMatch(msg);
+    }
+    // only a greenfield start makes a project
+    expect((await post({ mode: "brownfield", newProject: { name: "cart", dir }, prompt: request })).json().error).toMatch(/Greenfield/);
+    expect(existsSync(join(home, "projects", "cart.yaml"))).toBe(false);
+    expect(existsSync(dir)).toBe(false);
+    const r = await post({ mode: "greenfield", newProject: { name: "cart", dir }, prompt: request });
+    expect(r.status).toBe(201);
+    expect(readFileSync(join(home, "projects", "cart.yaml"), "utf8")).toMatch(/stack: node/);
+    expect(execFileSync("git", ["-C", dir, "log", "--format=%s"], { encoding: "utf8" }).trim()).toBe("Start (factory init: a new product)");
+    expect(replay(Ledger.open(r.json().runId).events()).info).toMatchObject({ mode: "greenfield", project: "cart" });
+    // the name is taken now
+    expect((await post({ mode: "greenfield", newProject: { name: "cart", dir: newDir("cart") }, prompt: request })).json().error).toMatch(/already exists/);
+  });
+
+  it("puts a new project made now on GitHub when asked: a private repo, main pushed, the forge block; only a new one", async () => {
+    expect((await call("/api/projects")).json().github).toEqual({ configured: false, why: expect.stringMatching(/add GITHUB_TOKEN to ~\/\.factory\/\.env/) });
+    const gh = await fakeGithub();
+    try {
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nGITHUB_TOKEN=${gh.token}\nGITHUB_API_URL=${gh.url}\n`, { mode: 0o600 });
+      _resetEnvCache();
+      expect((await call("/api/projects")).json().github).toEqual({ configured: true });
+      makeNewProduct("old", newDir("old"));
+      expect((await post({ project: "old", mode: "greenfield", prompt: request, github: true })).json().error).toMatch(/Only a new product made now is put on GitHub/);
+      const dir = newDir("cart");
+      const r = await post({ mode: "greenfield", newProject: { name: "cart", dir }, prompt: request, github: true });
+      expect(r.status).toBe(201);
+      expect(gh.asked).toEqual([expect.objectContaining({ name: "cart", private: true })]);
+      expect(gh.head("acme/cart")).toBe(execFileSync("git", ["-C", dir, "rev-parse", "main"], { encoding: "utf8" }).trim());
+      expect(loadProject("cart").forge).toMatchObject({ kind: "github", repo: "acme/cart", pullBase: true });
+      expect(replay(Ledger.open(r.json().runId).events()).info).toMatchObject({ mode: "greenfield", project: "cart" });
+      // a name taken on GitHub is refused before anything is made here
+      const taken = newDir("cart2");
+      gh.made.push("acme/cart2");
+      execFileSync("git", ["init", "-q", "--bare", join(gh.root, "acme/cart2.git")]);
+      expect((await post({ mode: "greenfield", newProject: { name: "cart2", dir: taken }, prompt: request, github: true })).json().error).toMatch(/acme\/cart2 already exists on GitHub/);
+      expect(existsSync(taken)).toBe(false);
+      expect(existsSync(join(home, "projects", "cart2.yaml"))).toBe(false);
+      // GitHub refuses to make it: the new project is not kept either
+      gh.refuseCreate = 403;
+      const refused = await post({ mode: "greenfield", newProject: { name: "shop", dir: newDir("shop") }, prompt: request, github: true });
+      expect(refused.status).toBe(400);
+      expect(refused.json().error).toMatch(/GITHUB_TOKEN may not create repos.*Nothing was kept on this machine\./s);
+      expect(existsSync(join(home, "projects", "shop.yaml"))).toBe(false);
+      expect(started).toEqual([r.json().runId]);
+    } finally { await gh.close(); }
+  });
+
+  it("lists a no-repo estimate that prices an API: built with its API, but not as a web app alone, and says why", async () => {
+    makeNewProduct("parts", newDir("parts"));
+    ensureStandaloneProject();
+    const id = await createRun("A quick-order page for parts buyers", "standalone-estimates", "tester", { mode: "estimate", estimate: { noRepo: true } } as never);
+    const l = Ledger.open(id);
+    // d7a6's shape: web tasks, an API priced as ASP.NET Core, and environment set-up (not API work)
+    const range = (min: number, max: number) => ({ min, max });
+    const est = l.putJson({ deliveryModel: "agentic", tasks: [], totals: { overall: range(4, 40) }, apiCost: { total: range(1, 50) }, elapsed: { criticalPathDays: range(1, 10) }, stack: { backend: "ASP.NET Core Web API", web: "React SPA (Vite + TypeScript)" } });
+    const bd = l.putJson({ tasks: [{ id: "EST-1", track: "web", kind: "ui-form", executor: "factory" }, { id: "EST-3", track: "backend", kind: "be-endpoint", executor: "factory" }, { id: "EST-19", track: "backend", kind: "ops-setup", executor: "joint" }] });
+    await addEvents(id, [...step("breakdown", 0, {}, [bd]), ...step("specify", 0, {}, [l.putJson({ title: "s" })]), ...step("estimate", 0, {}, [est]), ...step("approve-estimate"), ...step("export")]);
+    const row = (await call("/api/projects")).json().estimates.find((e: { runId: string }) => e.runId === id);
+    expect(row).toMatchObject({ repo: false });
+    // with its API (Greenfield's default) all of it is built; as a web app alone on the client's backend, the backend task is not
+    expect(row.cannotBuild).toBeUndefined();
+    expect(row.cannotBuildWebOnly).toMatch(/1 backend task \(EST-3; priced as ASP\.NET Core Web API\)/);
+    expect(row.cannotBuildWebOnly).toMatch(new RegExp(`factory fullstack start --from-estimate ${id}.*client provides the backend, estimate again without the backend work`));
+    const before = Ledger.listRuns().length;
+    const r = await post({ project: "parts", mode: "greenfield", fromEstimate: id });
+    expect(r.status).toBe(400);
+    expect(r.json().error).toMatch(/prices more than a web app/);
+    expect(Ledger.listRuns().length).toBe(before);
+    expect(started).toEqual([]);
+    // the Estimate tab's Build button leads to Greenfield, where it is built with its API
+    expect((await call(`/api/runs/${id}/estimate`)).json().cannotBuild).toBeUndefined();
+  });
+});
+
+describe("factory ui: a web app + API product (factory fullstack)", () => {
+  const send = (path: string, body: unknown) => call(path, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+  const CONTRACT = "openapi: 3.0.3\ninfo: { title: Orders, version: '1' }\npaths:\n  /orders:\n    get: {}\n    post: {}\n  /orders/{id}:\n    patch: {}\n";
+
+  it("refuses bad input before anything is made", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+    const cases: [unknown, RegExp][] = [
+      [{ name: "My App", dir, prompt: "An orders app" }, /not a usable name/],
+      [{ name: "orders", dir: "here", prompt: "An orders app" }, /not a full path/],
+      [{ name: "orders", prompt: "An orders app" }, /folder/],
+      [{ name: "orders", dir }, /Describe the product/],
+      [{ name: "orders", dir, prompt: "An orders app", maxCost: 25 }, /can only lower/],
+      [{ name: "orders", dir, prompt: "An orders app", file: { name: "a.exe", text: "x" } }, /\.md\) or text/],
+      [{ name: "orders", dir, fromDesign: "nope", fromEstimate: "nope" }, /one thing at a time/],
+    ];
+    for (const [body, msg] of cases) {
+      const r = await send("/api/fullstack", body);
+      expect(r.status, JSON.stringify(body)).toBe(400);
+      expect(r.json().error).toMatch(msg);
+    }
+    expect((await call("/api/fullstack")).json()).toEqual([]);
+    expect((await call("/api/fullstack/orders")).status).toBe(404);
+    expect((await send("/api/fullstack/orders/next", {})).status).toBe(404);
+    expect(started).toEqual([]);
+  });
+
+  it("start, then the API run once the web plan is approved, then the run files once both are delivered", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+    const r = await send("/api/fullstack", { name: "orders", dir: dir, prompt: "An orders app: staff list orders and mark one shipped.", maxCost: "12" });
+    expect(r.status).toBe(201);
+    const { webRun } = r.json();
+    expect(started).toEqual([webRun]);
+    expect(replay(Ledger.open(webRun).events()).info).toMatchObject({ mode: "greenfield", project: "orders-web", maxCostUsd: 12 });
+    expect((await send("/api/fullstack", { name: "orders", dir, prompt: "Again" })).json().error).toMatch(/already exists/);
+    expect((await call("/api/fullstack")).json()).toEqual([expect.objectContaining({ name: "orders", web: expect.objectContaining({ project: "orders-web" }) })]);
+    // the web run's page links to its product
+    expect((await call(`/api/runs/${webRun}`)).json().product).toEqual({ name: "orders", side: "web" });
+
+    let v = (await call("/api/fullstack/orders")).json();
+    expect(v.web.run).toMatchObject({ runId: webRun, delivered: false });
+    expect(v.api.run).toBeUndefined();
+    expect(v.contract).toBeUndefined();
+    expect(v.next).toMatchObject({ canStartApi: false, canWriteRunFiles: false });
+    const early = await send("/api/fullstack/orders/next", {});
+    expect(early.status).toBe(409);
+    expect(early.json().error).toMatch(/not approved yet/);
+
+    const wl = Ledger.open(webRun);
+    await addEvents(webRun, [...step("plan", 0, {}, [wl.putJson({ stubs: [{ path: "contracts/openapi.yaml", content: CONTRACT, reason: "" }] })]), ...step("approve", 0)]);
+    v = (await call("/api/fullstack/orders")).json();
+    expect(v.contract).toMatchObject({ file: "contracts/openapi.yaml", text: CONTRACT, operations: ["GET /orders", "POST /orders", "PATCH /orders/{id}"] });
+    expect(v.next.canStartApi).toBe(true);
+    expect((await send("/api/fullstack/orders/next", { maxCost: 25 })).status).toBe(400);
+    const next = await send("/api/fullstack/orders/next", { maxCost: "6" });
+    expect(next.status).toBe(201);
+    const { apiRun } = next.json();
+    expect(started).toEqual([webRun, apiRun]);
+    expect(replay(Ledger.open(apiRun).events()).info).toMatchObject({ project: "orders-api", maxCostUsd: 6 });
+    expect(readFileSync(join(dir, "orders-api", "contracts/openapi.yaml"), "utf8")).toBe(CONTRACT);
+    expect((await send("/api/fullstack/orders/next", {})).json().error).toMatch(/started already/);
+    expect((await call(`/api/runs/${apiRun}`)).json().product).toEqual({ name: "orders", side: "api" });
+    // the run files wait for both deliveries
+    const up = await send("/api/fullstack/orders/up", {});
+    expect(up.status).toBe(409);
+    expect(up.json().error).toMatch(/Both runs must be delivered/);
+    expect((await call("/api/fullstack/orders")).json().next).toMatchObject({ canStartApi: false, canWriteRunFiles: false });
+  });
+
+  it("puts both repos on GitHub when asked: each a private repo with main pushed; the contract goes to the API repo's main", async () => {
+    const gh = await fakeGithub();
+    try {
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nGITHUB_TOKEN=${gh.token}\nGITHUB_API_URL=${gh.url}\n`, { mode: 0o600 });
+      _resetEnvCache();
+      const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+      const r = await send("/api/fullstack", { name: "orders", dir, prompt: "An orders app: staff list orders and mark one shipped.", github: true });
+      expect(r.status).toBe(201);
+      expect(gh.made).toEqual(["acme/orders-web", "acme/orders-api"]);
+      expect(gh.asked.every((a) => a.private === true)).toBe(true);
+      for (const side of ["web", "api"]) {
+        expect(gh.head(`acme/orders-${side}`)).toBe(execFileSync("git", ["-C", join(dir, `orders-${side}`), "rev-parse", "main"], { encoding: "utf8" }).trim());
+        expect(loadProject(`orders-${side}`).forge).toMatchObject({ kind: "github", repo: `acme/orders-${side}`, pullBase: true });
+      }
+      const v = (await call("/api/fullstack/orders")).json();
+      expect(v.web).toMatchObject({ github: `${gh.url}/acme/orders-web` });
+      expect(v.api).toMatchObject({ github: `${gh.url}/acme/orders-api` });
+      // the web plan approved: the contract is committed to the API repo and pushed to its main on GitHub, and the API run starts from it
+      const { webRun } = r.json();
+      const wl = Ledger.open(webRun);
+      await addEvents(webRun, [...step("plan", 0, {}, [wl.putJson({ stubs: [{ path: "contracts/openapi.yaml", content: CONTRACT, reason: "" }] })]), ...step("approve", 0)]);
+      const next = await send("/api/fullstack/orders/next", {});
+      expect(next.status).toBe(201);
+      const apiMain = execFileSync("git", ["-C", join(dir, "orders-api"), "rev-parse", "main"], { encoding: "utf8" }).trim();
+      expect(gh.head("acme/orders-api")).toBe(apiMain);
+      expect(replay(Ledger.open(next.json().apiRun).events()).info.baseCommit).toBe(apiMain);
+    } finally { await gh.close(); }
+  });
+
+  it("when GitHub refuses a repo, keeps nothing on this machine and names any repo already made there", async () => {
+    const gh = await fakeGithub();
+    try {
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nGITHUB_TOKEN=${gh.token}\nGITHUB_API_URL=${gh.url}\n`, { mode: 0o600 });
+      _resetEnvCache();
+      const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+      // the API repo is refused after the web repo was made
+      gh.refuseName = "orders-api";
+      const r = await send("/api/fullstack", { name: "orders", dir, prompt: "An orders app", github: true });
+      expect(r.status).toBe(400);
+      expect(r.json().error).toMatch(/GitHub refused to create acme\/orders-api: GITHUB_TOKEN may not create repos.* acme\/orders-web was made on GitHub already: delete it there before using this name again\. Nothing was kept on this machine\./s);
+      expect(existsSync(join(dir, "orders-web"))).toBe(false);
+      expect(existsSync(join(dir, "orders-api"))).toBe(false);
+      expect(existsSync(join(home, "projects", "orders-web.yaml"))).toBe(false);
+      expect((await call("/api/fullstack")).json()).toEqual([]);
+      expect(started).toEqual([]);
+      // without a token it is refused before anything is made
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\n`, { mode: 0o600 });
+      _resetEnvCache();
+      expect((await send("/api/fullstack", { name: "orders", dir, prompt: "An orders app", github: true })).json().error).toMatch(/add GITHUB_TOKEN/);
+      expect(existsSync(join(dir, "orders-web"))).toBe(false);
+    } finally { await gh.close(); }
+  });
+
+  /** An approved estimate made with no repo, with the tasks given (approved by a person, so a build may be held to it). */
+  async function noRepoEstimate(tasks: { id: string; track: string; kind: string; executor: string }[]): Promise<string> {
+    ensureStandaloneProject();
+    const id = await createRun("A quick-order page for parts buyers", "standalone-estimates", "tester", { mode: "estimate", estimate: { noRepo: true } } as never);
+    const l = Ledger.open(id);
+    const range = (min: number, max: number) => ({ min, max });
+    const est = l.putJson({ deliveryModel: "agentic", tasks: [], totals: { overall: range(4, 40) }, apiCost: { total: range(1, 50) }, elapsed: { criticalPathDays: range(1, 10) }, stack: { backend: "ASP.NET Core Web API", mobile: "React Native" } });
+    await addEvents(id, [...step("breakdown", 0, {}, [l.putJson({ tasks })]), ...step("specify", 0, {}, [l.putJson({ title: "s" })]), ...step("estimate", 0, {}, [est]), ...step("approve-estimate"), ...step("export")]);
+    return id;
+  }
+
+  it("starts from an approved estimate made with no repo: its request, and the web run held to it; a phone app is refused", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+    const id = await noRepoEstimate([{ id: "EST-1", track: "web", kind: "ui-form", executor: "factory" }, { id: "EST-3", track: "backend", kind: "be-endpoint", executor: "factory" }]);
+    expect((await send("/api/fullstack", { name: "parts", dir, fromEstimate: id, prompt: "more" })).json().error).toMatch(/brings its own request/);
+    const r = await send("/api/fullstack", { name: "parts", dir, fromEstimate: id });
+    expect(r.status).toBe(201);
+    const info = replay(Ledger.open(r.json().webRun).events()).info;
+    expect(info).toMatchObject({ mode: "greenfield", project: "parts-web", request: "A quick-order page for parts buyers", estimateRef: expect.objectContaining({ runId: id }) });
+    expect((await call("/api/fullstack/parts")).json()).toMatchObject({ request: "A quick-order page for parts buyers", from: { kind: "estimate", runId: id } });
+
+    const phone = await noRepoEstimate([{ id: "EST-1", track: "web", kind: "ui-form", executor: "factory" }, { id: "EST-2", track: "mobile", kind: "ui-device", executor: "factory" }]);
+    expect((await call("/api/projects")).json().estimates.find((e: { runId: string }) => e.runId === phone).cannotBuild).toMatch(/prices a phone app: 1 mobile task \(EST-2; priced as React Native\)/);
+    const refused = await send("/api/fullstack", { name: "phones", dir, fromEstimate: phone });
+    expect(refused.status).toBe(400);
+    expect(refused.json().error).toMatch(/prices a phone app/);
+    expect(existsSync(join(dir, "phones-web"))).toBe(false);
+    expect((await call("/api/fullstack")).json().map((p: { name: string }) => p.name)).toContain("parts");
+    expect((await call("/api/fullstack")).json().map((p: { name: string }) => p.name)).not.toContain("phones");
+  });
+
+  it("starts from an approved design made with no repo: its design steps are skipped; one made for a repo is refused", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+    const design = async (project?: string) => {
+      if (!project) ensureStandaloneProject();
+      const runId = await createRun("Build an order portal with login", project ?? "standalone-estimates", "tester", { mode: "design", ...(project ? {} : { estimate: { noRepo: true } }) } as never);
+      const l = Ledger.open(runId);
+      const designSha = l.putJson({ flow: "A user signs in", noScreen: [], screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["error"], size: "new" }] });
+      await addEvents(runId, [...step("intake", 0, {}, [l.putJson({ text: "x" })]), ...step("specify", 0, {}, [l.putJson({ title: "s" })]), ...step("design", 0, {}, [designSha]),
+        ...step("design-baseline", 0, { ui: true }, [l.putJson({ ui: true, design: designSha, by: "lead" })])]);
+      return runId;
+    };
+    const forRepo = await design("web");
+    expect((await send("/api/fullstack", { name: "portal", dir, fromDesign: forRepo })).json().error).toMatch(/designed against an existing repo/);
+    expect(existsSync(join(dir, "portal-web"))).toBe(false);
+    const alone = await design();
+    const r = await send("/api/fullstack", { name: "portal", dir, fromDesign: alone });
+    expect(r.status).toBe(201);
+    expect(replay(Ledger.open(r.json().webRun).events()).info).toMatchObject({ mode: "greenfield", project: "portal-web", designRef: expect.objectContaining({ runId: alone }) });
+    expect((await call("/api/fullstack/portal")).json().from).toEqual({ kind: "design", runId: alone });
   });
 });
 
@@ -548,6 +845,17 @@ describe("factory ui: design-only runs", () => {
     expect(replay(Ledger.open(fig.json().runId).events()).info.designExport).toEqual(["figma"]);
     expect((await post({ mode: "design", prompt: "Build an order portal", designExport: ["gif"] })).json().error).toMatch(/Unknown format/);
     expect((await post({ mode: "design", prompt: "Build an order portal", designExport: "png" })).json().error).toMatch(/list of formats/);
+  });
+
+  it("an estimate started with Draw the design off records it, and refuses what only a design uses", async () => {
+    const prompt = "Build an order portal with login and a dashboard";
+    const r = await post({ mode: "estimate", prompt, estimate: { noRepo: true, drawDesign: false } });
+    expect(r.status, r.body).toBe(201);
+    expect(replay(Ledger.open(r.json().runId).events()).info.estimate?.drawDesign).toBe(false);
+    // left on (the default), nothing is recorded
+    const on = await post({ mode: "estimate", prompt, estimate: { noRepo: true } });
+    expect(replay(Ledger.open(on.json().runId).events()).info.estimate).not.toHaveProperty("drawDesign");
+    expect((await post({ mode: "estimate", prompt, estimate: { noRepo: true, drawDesign: false }, designExport: ["png"] })).json().error).toMatch(/With the design left out nothing is drawn/);
   });
 });
 
@@ -763,27 +1071,31 @@ describe("factory ui: the estimate lead's decision", () => {
   });
 });
 
-describe("factory ui: answering an estimate run's questions", () => {
+describe("factory ui: answering a run's questions", () => {
   const answersPost = (id: string, body: unknown) =>
-    call(`/api/runs/${id}/estimate-answers`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+    call(`/api/runs/${id}/answers`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
   const asked = [
     { id: "Q-1", text: "Who can refund an order?", options: ["Support only", "Support and finance"], recommended: "Support only", reason: "smaller", impactReason: "changes who sees money", impact: 3, uncertainty: 3, score: 9, category: "roles", spans: [] },
     { id: "Q-2", text: "Keep order history?", options: ["Yes", "No"], recommended: "Yes", reason: "usual", impactReason: "data kept", impact: 2, uncertainty: 2, score: 4, category: "scope", spans: [] },
   ];
+  const waitOnQuestions = async (id: string, step = "clarify") => {
+    const l = Ledger.open(id);
+    const body = l.putJson({ key: step, asked, assumptions: [{ id: "ASM-1", text: "Currency is USD" }] });
+    l.writeCard(`questions-1-${body.slice(0, 8)}`, "# Questions");
+    await addEvents(id, [
+      { type: "step.started", key: `${step}/1`, data: { rung: 0 } },
+      { type: "step.interrupted", key: `${step}/1`, data: { reason: "waiting" } },
+      { type: "human.requested", data: { cardId: `questions-1-${body.slice(0, 8)}`, kind: "question", artifactSha: body, step } },
+    ]);
+    return { l, body };
+  };
 
   it("shows the questions on the run, refuses a plan card, and takes typed answers that continue the run", async () => {
     const before = started.length;
-    expect((await answersPost(ids.waiting, { hash: "b".repeat(8), by: "Sam Lead", answers: {} })).status).toBe(403);
+    expect((await answersPost(ids.waiting, { hash: "b".repeat(8), by: "Sam Lead", answers: {} })).status).toBe(409);
     expect((await answersPost("nope", {})).status).toBe(404);
     const id = await createRun("Build an order portal", "web", "tester", { mode: "estimate" } as never);
-    const l = Ledger.open(id);
-    const body = l.putJson({ key: "clarify", asked, assumptions: [{ id: "ASM-1", text: "Currency is USD" }] });
-    l.writeCard(`questions-1-${body.slice(0, 8)}`, "# Questions");
-    await addEvents(id, [
-      { type: "step.started", key: "clarify/1", data: { rung: 0 } },
-      { type: "step.interrupted", key: "clarify/1", data: { reason: "waiting" } },
-      { type: "human.requested", data: { cardId: `questions-1-${body.slice(0, 8)}`, kind: "question", artifactSha: body, step: "clarify" } },
-    ]);
+    const { l, body } = await waitOnQuestions(id);
     const view = (await call(`/api/runs/${id}`)).json();
     expect(view.card.questions.map((q: { id: string }) => q.id)).toEqual(["Q-1", "Q-2"]);
     expect(view.card.assumptions).toEqual([{ id: "ASM-1", text: "Currency is USD" }]);
@@ -803,30 +1115,203 @@ describe("factory ui: answering an estimate run's questions", () => {
     expect(d.answers["Q-2"]).toBeUndefined();
   });
 
-  it("refuses answers for a build run's questions: only estimate cards are decided on the page", async () => {
-    const id = await createRun("Add a refund button to orders", "web", "tester");
-    const l = Ledger.open(id);
-    const body = l.putJson({ key: "clarify", asked, assumptions: [] });
-    l.writeCard(`questions-1-${body.slice(0, 8)}`, "# Questions");
-    await addEvents(id, [
-      { type: "step.started", key: "clarify/1", data: { rung: 0 } },
-      { type: "step.interrupted", key: "clarify/1", data: { reason: "waiting" } },
-      { type: "human.requested", data: { cardId: `questions-1-${body.slice(0, 8)}`, kind: "question", artifactSha: body, step: "clarify" } },
-    ]);
-    const before = started.length;
-    const r = await answersPost(id, { hash: body.slice(0, 8), by: "Sam Lead", answers: { "Q-2": "No" } });
-    expect(r.status).toBe(403);
-    expect(r.json().error).toMatch(/terminal/);
-    expect(started.length).toBe(before);
-    expect(replay(l.events()).decisions).toEqual([]);
+  it("takes a build run's answers too: its clarify questions and the questions its spec raised", async () => {
+    for (const step of ["clarify", "specify"]) {
+      const id = await createRun(`Add a refund button to orders (${step})`, "web", "tester");
+      const { l, body } = await waitOnQuestions(id, step);
+      const before = started.length;
+      const r = await answersPost(id, { hash: body.slice(0, 8), by: "Sam Lead", answers: { "Q-2": "No" } });
+      expect(r.status).toBe(200);
+      expect(started.length).toBe(before + 1);
+      expect(replay(l.events()).decisions.at(-1)).toMatchObject({ by: "Sam Lead (via web)", decision: "answer", answers: { "Q-2": "No" } });
+    }
   });
 });
 
-describe("factory ui: design card decisions", () => {
-  it("has no route to approve or reject a design: the design card is decided in the terminal", async () => {
-    expect(ROUTES.some((r) => r.path.endsWith("/design-decision"))).toBe(false);
-    const r = await call(`/api/runs/${ids.waiting}/design-decision`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify({ decision: "approve" }) });
-    expect(r.status).toBe(404);
+describe("factory ui: design and plan card decisions", () => {
+  const decisionPost = (id: string, body: unknown) =>
+    call(`/api/runs/${id}/decision`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+  const waitOn = async (id: string, kind: string, step: string) => {
+    const l = Ledger.open(id);
+    const sha = l.putJson({ kind, n: Math.random() });
+    l.writeCard(`${kind}-${sha.slice(0, 8)}`, `# ${kind}`);
+    await addEvents(id, [
+      { type: "step.started", key: `${step}/1`, data: { rung: 0 } },
+      { type: "step.interrupted", key: `${step}/1`, data: { reason: "waiting" } },
+      { type: "human.requested", data: { cardId: `${kind}-${sha.slice(0, 8)}`, kind, artifactSha: sha, step } },
+    ]);
+    return { l, hash: sha.slice(0, 8) };
+  };
+
+  it("approves a plan card with a typed name and its hash, and the run goes on", async () => {
+    expect((await decisionPost("nope", {})).status).toBe(404);
+    const ok = { hash: "b".repeat(8), decision: "approve", by: "Sam Lead", note: "watch the heading" };
+    const before = started.length;
+    expect((await decisionPost(ids.waiting, { ...ok, by: "" })).status).toBe(400);
+    expect((await decisionPost(ids.waiting, { ...ok, by: "x".repeat(61) })).status).toBe(400);
+    expect((await decisionPost(ids.waiting, { ...ok, hash: "bbbb" })).status).toBe(400);
+    expect((await decisionPost(ids.waiting, { ...ok, decision: "waive" })).status).toBe(400);
+    expect((await decisionPost(ids.waiting, { ...ok, hash: "deadbeef" })).status).toBe(409);
+    expect(started.length).toBe(before);
+    const r = await decisionPost(ids.waiting, ok);
+    expect(r.status).toBe(200);
+    expect(r.json()).toEqual({ recorded: true });
+    expect(started.at(-1)).toBe(ids.waiting);
+    const l = Ledger.open(ids.waiting);
+    expect(replay(l.events()).decisions.at(-1)).toMatchObject({ by: "Sam Lead (via web)", decision: "approve", note: "watch the heading" });
+    // decided: a second click finds no card waiting
+    expect((await decisionPost(ids.waiting, ok)).status).toBe(409);
+  });
+
+  it("a rejection needs a reason; a design sent back says what to change", async () => {
+    const plan = { hash: "b".repeat(8), decision: "reject", by: "Sam Lead" };
+    expect((await decisionPost(ids.waiting, plan)).json().error).toMatch(/needs a reason/);
+    const r = await decisionPost(ids.waiting, { ...plan, reason: "The plan touches the wrong page." });
+    expect(r.status).toBe(200);
+    expect(replay(Ledger.open(ids.waiting).events()).decisions.at(-1)).toMatchObject({ decision: "reject", reason: "The plan touches the wrong page.", by: "Sam Lead (via web)" });
+
+    const id = await createRun("Redesign the orders page", "web", "tester");
+    const { l, hash } = await waitOn(id, "design-approval", "design-baseline");
+    const no = await decisionPost(id, { hash, decision: "reject", by: "Sam Lead", reason: "  " });
+    expect(no.status).toBe(400);
+    expect(no.json().error).toMatch(/what to change/);
+    expect((await decisionPost(id, { hash, decision: "reject", by: "Sam Lead", reason: "Put the filters above the table." })).status).toBe(200);
+    expect(replay(l.events()).decisions.at(-1)).toMatchObject({ decision: "reject", reason: "Put the filters above the table." });
+  });
+
+  it("approves a design card", async () => {
+    const id = await createRun("Redesign the orders list", "web", "tester");
+    const { l, hash } = await waitOn(id, "design-approval", "design-baseline");
+    expect((await decisionPost(id, { hash, decision: "approve", by: "Sam Lead" })).status).toBe(200);
+    expect(replay(l.events()).decisions.at(-1)).toMatchObject({ decision: "approve", by: "Sam Lead (via web)" });
+  });
+
+  it("refuses every other card: gate waivers are the terminal's, limits and estimates have their own forms", async () => {
+    const cards: [string, string, number, RegExp][] = [
+      ["waiver", "implement/TASK-1", 403, /terminal/], ["cap", "implement/TASK-1", 409, /form on the run page/], ["budget", "implement/TASK-1", 409, /form on the run page/],
+      ["estimate-approval", "approve-estimate", 409, /Estimate tab/], ["question", "clarify", 409, /answer them/],
+    ];
+    for (const [kind, step, status, why] of cards) {
+      const id = await createRun(`Add a filter (${kind})`, "web", "tester");
+      const { l, hash } = await waitOn(id, kind, step);
+      const before = started.length;
+      const r = await decisionPost(id, { hash, decision: "approve", by: "Sam Lead" });
+      expect(r.status, kind).toBe(status);
+      expect(r.json().error).toMatch(why);
+      expect(started.length).toBe(before);
+      expect(replay(l.events()).decisions).toEqual([]);
+    }
+    // a run with no card at all
+    expect((await decisionPost(ids.delivered, { hash: "aaaaaaaa", decision: "approve", by: "Sam Lead" })).status).toBe(409);
+  });
+});
+
+describe("factory ui: a limit card, raised one step or stopped", () => {
+  const post = (id: string, path: string, body: unknown) =>
+    call(`/api/runs/${id}/${path}`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+  // the card the executor writes: a cost, time or attempts limit with its suggestion (cap), or the approved budget (B5) with its next step
+  const waitOnLimit = async (id: string, kind: "cap" | "budget", extra: Record<string, unknown>) => {
+    const l = Ledger.open(id);
+    const sha = l.putJson({ kind, n: Math.random() });
+    l.writeCard(`${kind}-${sha.slice(0, 8)}`, kind === "cap"
+      ? `# Limit reached\n  factory waive-cap ${id} ${sha.slice(0, 8)} --cost 20\nOr stop here: factory stop ${id}`
+      : `# Budget reached\n  factory waive-budget ${id} ${sha.slice(0, 8)} --reason "why more is acceptable"`);
+    await addEvents(id, [
+      { type: "step.started", key: "implement/TASK-1/1", data: { rung: 0 } },
+      { type: "usage", data: { costUsd: kind === "cap" ? 10.4 - replay(l.events()).costUsd : 0 } },
+      { type: "human.requested", data: { cardId: `${kind}-${sha.slice(0, 8)}`, kind, artifactSha: sha, reason: kind === "cap" ? "Cost limit reached: $10.40 of $10.00" : "Approved budget reached (gate B5): API credits at 101%", ...extra } },
+    ]);
+    return { l, hash: sha.slice(0, 8) };
+  };
+
+  it("shows the numbers, raises the cost limit at most one step with a typed name, and the run goes on", async () => {
+    const id = await createRun("Add a filter (limit)", "web", "tester");
+    const { l, hash } = await waitOnLimit(id, "cap", { proposal: { costUsd: 20 } });
+    const view = (await call(`/api/runs/${id}`)).json();
+    expect(view.card.limit).toMatchObject({ kind: "cap", reason: "Cost limit reached: $10.40 of $10.00", proposal: { costUsd: 20 } });
+    expect(view.card.commands).toEqual(["factory show-card " + id, `factory waive-cap ${id} ${hash} --cost 20`, `factory stop ${id}`]);
+    const before = started.length;
+    const ok = { hash, by: "Sam Lead", costUsd: 15 };
+    expect((await post("nope", "limit", ok)).status).toBe(404);
+    expect((await post(id, "limit", { ...ok, by: "" })).json().error).toMatch(/Type your name/);
+    expect((await post(id, "limit", { ...ok, hash: "abcd" })).status).toBe(400);
+    expect((await post(id, "limit", { ...ok, hash: "deadbeef" })).status).toBe(409);
+    const big = await post(id, "limit", { ...ok, costUsd: 50 });
+    expect(big.status).toBe(400);
+    expect(big.json().error).toMatch(new RegExp(`one step at a time, to at most \\$20.*factory waive-cap ${id} ${hash}`));
+    expect((await post(id, "limit", { ...ok, costUsd: -1 })).json().error).toMatch(/positive/);
+    expect((await post(id, "limit", { ...ok, wallMinutes: 300 })).json().error).toMatch(/doesn't raise the time limit/);
+    expect((await post(id, "limit", { ...ok, costUsd: 9 })).json().error).toMatch(/above what the run has spent \(\$10\.40\)/);
+    // a plan card is not a limit
+    expect((await post(ids.waiting, "limit", { hash: "b".repeat(8), by: "Sam Lead" })).status).toBe(409);
+    expect(started.length).toBe(before);
+    expect(replay(l.events()).decisions).toEqual([]);
+    const r = await post(id, "limit", ok);
+    expect(r.status).toBe(200);
+    expect(r.json()).toEqual({ recorded: true });
+    const state = replay(l.events());
+    expect(state.decisions.at(-1)).toMatchObject({ decision: "waive-cap", costUsd: 15, by: "Sam Lead (via web)" });
+    expect(state.openCard).toBeUndefined();
+    expect(currentCostCap(state)).toBe(15);
+    expect(started.slice(before)).toEqual([id]);
+    // the run reaches it again: the next card is raised again from the page, to its suggestion when no number is sent
+    const next = await waitOnLimit(id, "cap", { proposal: { costUsd: 25 } });
+    expect((await post(id, "limit", { hash: next.hash, by: "Sam Lead" })).status).toBe(200);
+    expect(currentCostCap(replay(l.events()))).toBe(25);
+  });
+
+  it("raises a time or attempts limit the same way", async () => {
+    const id = await createRun("Add a filter (time)", "web", "tester");
+    const { l, hash } = await waitOnLimit(id, "cap", { proposal: { wallMinutes: 360, extraAttempts: 3 } });
+    expect((await post(id, "limit", { hash, by: "Sam Lead", extraAttempts: 5 })).json().error).toMatch(/extra attempts one step at a time/);
+    expect((await post(id, "limit", { hash, by: "Sam Lead", wallMinutes: 240, extraAttempts: 2 })).status).toBe(200);
+    expect(replay(l.events()).capOverrides).toMatchObject({ wallMinutes: 240, extraAttempts: 2 });
+  });
+
+  it("raises an approved budget one step with a reason, and refuses past the most a raise allows", async () => {
+    const id = await createRun("Add a filter (budget)", "web", "tester");
+    const { l, hash } = await waitOnLimit(id, "budget", { proposed: 1.5 });
+    expect((await call(`/api/runs/${id}`)).json().card.limit).toMatchObject({ kind: "budget", ceiling: 1, proposed: 1.5, max: 3 });
+    const ok = { hash, by: "Sam Lead", ceiling: 1.25, reason: "The client agreed to two more reports." };
+    expect((await post(id, "limit", { ...ok, reason: " " })).json().error).toMatch(/Say why/);
+    expect((await post(id, "limit", { ...ok, ceiling: 2 })).json().error).toMatch(/above 100% and at most 150%.*factory waive-budget/);
+    expect((await post(id, "limit", { ...ok, ceiling: 1 })).status).toBe(400);
+    expect((await post(id, "limit", ok)).status).toBe(200);
+    const state = replay(l.events());
+    expect(state.budgetCeiling).toBe(1.25);
+    expect(state.decisions.at(-1)).toMatchObject({ decision: "waive-budget", ceiling: 1.25, reason: "The client agreed to two more reports.", by: "Sam Lead (via web)" });
+    // at 300% the estimate is wrong for this work: no raise, from the page or the terminal; stopping is still there
+    const top = await createRun("Add a filter (budget at max)", "web", "tester");
+    const first = await waitOnLimit(top, "budget", { proposed: 3 });
+    expect((await post(top, "limit", { hash: first.hash, by: "Sam Lead", reason: "Agreed." })).status).toBe(200);
+    const atMax = await waitOnLimit(top, "budget", {});
+    expect((await call(`/api/runs/${top}`)).json().card.limit).toEqual({ kind: "budget", reason: expect.any(String), ceiling: 3, max: 3 });
+    const no = await post(top, "limit", { hash: atMax.hash, by: "Sam Lead", reason: "More." });
+    expect(no.status).toBe(409);
+    expect(no.json().error).toMatch(/300% of the approved maximum.*change request/);
+  });
+
+  it("stops the run at its limit with a typed name, like factory stop", async () => {
+    const id = await createRun("Add a filter (stop)", "web", "tester");
+    const { l, hash } = await waitOnLimit(id, "cap", { proposal: { costUsd: 20 } });
+    const before = started.length;
+    expect((await post(id, "limit-stop", { hash, by: "" })).status).toBe(400);
+    expect((await post(id, "limit-stop", { hash: "deadbeef", by: "Sam Lead" })).status).toBe(409);
+    expect((await post(ids.waiting, "limit-stop", { hash: "b".repeat(8), by: "Sam Lead" })).status).toBe(409);
+    expect(started.length).toBe(before);
+    expect(replay(l.events()).flags.stopRequested).toBe(false);
+    const r = await post(id, "limit-stop", { hash, by: "Sam Lead" });
+    expect(r.json()).toEqual({ stopped: true });
+    expect(replay(l.events()).flags.stopRequested).toBe(true);
+    expect(l.events().at(-1)).toMatchObject({ type: "run.stop-requested", data: { by: "Sam Lead (via web)", cardId: `cap-${hash}` } });
+    expect(started.slice(before)).toEqual([id]);
+  });
+
+  it("the page has the form: raise and continue, or stop", () => {
+    const js = readFileSync(join(staticDir(), "app.js"), "utf8");
+    expect(js).toContain('post("limit", ');
+    expect(js).toContain('post("limit-stop", {}');
+    expect(js).toContain("Raise and continue");
   });
 });
 

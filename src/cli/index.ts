@@ -14,9 +14,11 @@ import "../design/gates.js";
 import "../estimate/lint.js";
 import "../estimate/gates.js";
 import { registerDesignCommands } from "../design/cli.js";
+import { registerFullstackCommands } from "../fullstack/cli.js";
 import { assertTty, decide, DecisionError } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
-import { MAX_BUDGET_CEILING, replay, statusLabel } from "../ledger/state.js";
+import { MAX_BUDGET_CEILING, replay } from "../ledger/state.js";
+import { shownStatus, statusHint } from "../stages/run-status.js";
 import { createRun, dirtyWarning, execute } from "../stages/executor.js";
 import { answerOpenQuestions, canPrompt, terminalIO } from "./interactive.js";
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
@@ -106,7 +108,7 @@ program.command("start")
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
       sources: req.sources, references, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}), ...(fromDesign ? { fromDesign, ...(fromDesign.repo ? {} : { mode: "greenfield" as const }) } : {}), ...(designExport ? { designExport } : {}), ...(uiTarget ? { uiTarget } : {}),
     });
-    log(`run ${runId} (request from ${fromDesign ? `design run ${fromDesign.runId}; the build follows its approved design${fromDesign.repo ? "" : ", a new product built into an empty repo"}` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""})`);
+    log(`run ${runId} (request from ${fromDesign ? `design run ${fromDesign.runId}; the build follows its approved design${fromDesign.repo ? "" : ", a new product built into an empty repo"}` : approved ? `estimate run ${approved.runId}; the build follows its approved spec and design and is held to its budget${replay(Ledger.open(runId).events()).info.mode === "greenfield" ? ", a new product built into an empty repo" : ""}` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""})`);
     if (approved || fromDesign) await exportSeededNow(runId, designExport, log);
     await runAndReport(runId);
   });
@@ -119,6 +121,7 @@ program.command("estimate")
   .option("--jira <key>", "the requirements as a Jira ticket (ABC-123 or its link)")
   .option("--ref <ref>", 'a design reference: an image, an https link, a Figma link, a PDF, a .docx or a Figma JSON export; optional role match:, inspire: or layout: in front and a note after |, e.g. --ref "layout:dash.jpg|table like this"; repeat it', (v: string, prev: string[] = []) => [...prev, v])
   .option("--stack-source <source>", "client (fixed), folio3 (we decide) or undecided (a default pack, stated as an assumption)", "undecided")
+  .option("--no-design", "leave the design out: nothing is drawn or approved, and the run goes from the spec straight to the breakdown (UI hours get a wider range; a build from this estimate draws its own design)")
   .option("--no-design-in-total", "keep Design out of the Summary total (the row still shows)")
   .option("--feedback-rounds <n>", "client feedback rounds to allow for", "2")
   .option("--rate <track=usd>", "hourly rate per track (backend, mobile, web, qa, design, gd, pm, pdm, default); repeat it; adds the team file's cost overlay", (v: string, prev: string[] = []) => [...prev, v])
@@ -130,7 +133,7 @@ program.command("estimate")
   .option("--hands-off", "opt in to a hands-off run: nobody is asked, open questions become assumptions and the factory approves the estimate once its gates pass. A build cannot follow it: estimate again with a review to build")
   .option("--revises <run>", "a change request: the new requirements revise an approved estimate, and the card shows what changed")
   .option("--from-design <run>", "size an approved design-only run (factory design start): its spec, answers and approved design are reused, only the sizing is new")
-  .option("--resize <run>", "size an earlier estimate run again: its requirements, answers, spec, approved design and settings are reused (no clarify, no design), and only breakdown, sizing, approval and the workbooks run anew")
+  .option("--resize <run>", "size an earlier estimate run again: its requirements, answers, spec, approved design and settings (hands-off or reviewed too) are reused (no clarify, no design), and only breakdown, sizing, approval and the workbooks run anew")
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .option("--fresh", "ask the model again even if the same requirements were estimated before (skips the stored answers)")
   .option("--design-export <formats>", DESIGN_EXPORT_HELP)
@@ -138,6 +141,11 @@ program.command("estimate")
   .action(async (prompt: string | undefined, o: EstimateOptions & { handsOff?: boolean; project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; revises?: string; fromDesign?: string; resize?: string; fresh?: boolean; ref?: string[]; designExport?: string }) => {
     if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
     const designExport = designExportOption(o.designExport);
+    if (o.design === false) {
+      if (o.fromDesign) throw new Error("--no-design leaves the design out, and --from-design sizes an approved one; use one of them.");
+      if (o.resize) throw new Error("--resize sizes the earlier run as it was, with or without its design; drop --no-design.");
+      if (o.ref?.length || o.frames || designExport) throw new Error("--no-design draws no design, so there is nothing for --ref, --frames or --design-export to feed or export; drop them, or drop --no-design.");
+    }
     let fromDesign: ApprovedDesign | undefined;
     if (o.resize) {
       if (o.fromDesign || o.revises) throw new Error("--resize starts a new estimate from an earlier one; it does not go with --from-design or --revises.");
@@ -159,10 +167,12 @@ program.command("estimate")
     const problems = checkRoutes(project, ESTIMATE_ROUTES);
     if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
     if (o.handsOff && o.review) throw new Error("Use --review or --hands-off, not both.");
+    const reviewGiven = !!o.handsOff || o.review !== undefined;
     o.review = o.handsOff ? false : o.review ?? project.estimate?.humanReview ?? true;
     let settings = parseEstimateSettings(o.project && !fromDesign?.settings.noRepo ? o : { ...o, repo: false });
-    // a resize is the same estimate sized again, so the earlier run's settings stand; only who reviews is asked anew
-    if (o.resize) settings = { ...fromDesign!.settings, humanReview: settings.humanReview };
+    // a resize is the same estimate sized again, so the earlier run's settings stand, its review too (a hands-off run stays
+    // hands-off) unless --review or --hands-off says otherwise
+    if (o.resize) settings = { ...fromDesign!.settings, humanReview: reviewGiven ? settings.humanReview : fromDesign!.settings.humanReview !== false };
     // the design run's product details stand unless given again
     else if (fromDesign) settings = { ...settings, ...Object.fromEntries(Object.entries({ client: fromDesign.settings.client, projectName: fromDesign.settings.projectName }).filter(([k, v]) => v && !(settings as Record<string, unknown>)[k])) };
     let lineage: { kind: "change"; approved: Approved } | undefined;
@@ -180,7 +190,7 @@ program.command("estimate")
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}), ...(designExport ? { designExport } : {}),
     });
     if (fromDesign) await exportSeededNow(runId, designExport, log);
-    log(`estimate run ${runId} (requirements from ${o.resize ? `estimate run ${o.resize}, with its spec and approved design; only the sizing is new` : fromDesign ? `design run ${fromDesign.runId}, with its approved design` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""}; solely agentic${settings.humanReview ? ", with human review" : ", hands-off"})`);
+    log(`estimate run ${runId} (requirements from ${o.resize ? `estimate run ${o.resize}, with its spec and approved design; only the sizing is new` : fromDesign ? `design run ${fromDesign.runId}, with its approved design` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""}; solely agentic${settings.humanReview ? ", with human review" : ", hands-off"}${settings.drawDesign === false ? ", no design" : ""})`);
     await runAndReport(runId);
   });
 
@@ -195,13 +205,14 @@ program.command("status").argument("[run]").description("state, current step, co
     const s = replay(Ledger.open(id).events());
     const steps = [...s.steps.values()];
     const current = s.inFlight?.step ?? steps.filter((x) => x.status !== "completed").pop()?.step ?? steps[steps.length - 1]?.step ?? "-";
-    log(`${id}  ${statusLabel(s.status).padEnd(10)} step ${current.padEnd(18)} $${s.costUsd.toFixed(2)}${s.openCard ? `  card: ${s.openCard.kind} ${s.openCard.artifactSha.slice(0, 8)}` : ""}${s.parkedReason ? `\n    parked: ${s.parkedReason}` : ""}`);
+    const shown = shownStatus(s), hint = statusHint(shown, id);
+    log(`${id}  ${shown.padEnd(11)} step ${current.padEnd(18)} $${s.costUsd.toFixed(2)}${s.openCard ? `  card: ${s.openCard.kind} ${s.openCard.artifactSha.slice(0, 8)}` : ""}${s.parkedReason ? `\n    parked: ${s.parkedReason}` : ""}${hint ? `\n    ${hint}` : ""}`);
     if (run) {
       const { lastActivity, fmtElapsed } = await import("../util/trace.js");
       const last = lastActivity(Ledger.open(id).dir);
       if (last) {
         const ago = Date.now() - Date.parse(last.ts);
-        const busy = s.status === "running" || !!s.inFlight;
+        const busy = shown === "running";
         log(`    now: ${last.step ?? "run"}${last.attempt ? ` attempt ${last.attempt}` : ""} · ${last.msg} · ${fmtElapsed(ago).slice(1)} ago${busy && ago > 10 * 60_000 ? `  ⚠ no activity for ${Math.round(ago / 60_000)} min (see factory logs ${id} --follow)` : ""}`);
       }
       for (const x of steps) log(`    ${x.status.padEnd(11)} ${x.step}  (attempts ${x.attempts})`);
@@ -297,7 +308,7 @@ program.command("answer").argument("<run>").argument("<hash>", "first characters
 program.command("waive-budget").argument("<run>").argument("<hash>", "first characters of the budget card's hash")
   .requiredOption("--reason <text>", "why going past the approved estimate is acceptable (recorded with your name)")
   .option("--ceiling <n>", "new limit as a multiple of the approved maximum (default: the card's suggestion)")
-  .description("let a run that reached its approved estimate (gate B5) continue to a higher limit (terminal only)")
+  .description("let a run that reached its approved estimate (gate B5) continue to a higher limit (terminal only; factory ui raises it one step)")
   .action(async (run: string, hash: string, o: { reason: string; ceiling?: string }) => {
     assertTty();
     const l = openRun(run);
@@ -318,7 +329,7 @@ program.command("waive-cap").argument("<run>").argument("<hash>", "first charact
   .option("--cost <dollars>", "new cost limit for this run, in USD")
   .option("--minutes <n>", "new active-time limit, in minutes")
   .option("--attempts <n>", "extra attempts per step (the retry ladder starts again)")
-  .description("accept going past a limit (cost, time or attempts) and continue; without options uses the card's suggestion (terminal only)")
+  .description("accept going past a limit (cost, time or attempts) and continue; without options uses the card's suggestion (terminal only; factory ui raises it one step)")
   .action(async (run: string, hash: string, o: { cost?: string; minutes?: string; attempts?: string }) => {
     assertTty();
     const num = (v: string | undefined, name: string) => {
@@ -425,7 +436,7 @@ program.command("logs").argument("<run>")
         const t = setInterval(() => {
           flush();
           const st = replay(l.events()).status;
-          if (typeof st === "object" || st === "delivered" || st === "parked" || st === "waiting" || st === "paused") { clearInterval(t); flush(); resolve(); }
+          if (typeof st === "object" || st === "delivered" || st === "finished" || st === "parked" || st === "waiting" || st === "paused") { clearInterval(t); flush(); resolve(); }
         }, 1000);
       });
     }
@@ -589,7 +600,7 @@ program.command("ui").option("--port <n>", "port on 127.0.0.1", "4321")
     const ui = createUiServer();
     const port = await listen(ui, Number(o.port), o.port === "4321" ? 10 : 1);
     log(`Factory screens: http://127.0.0.1:${port}/?t=${ui.token}`);
-    log("Only this computer can open it, and only with this link (a new key each time). Decisions are made in your terminal, so no AI or script can approve its own plan. Ctrl+C to stop.");
+    log("Only this computer can open it, and only with this link (a new key each time). A decision on the page needs your typed name and the card's hash; a limit is raised there one step at a time, gate waivers stay in your terminal. Ctrl+C to stop.");
   });
 
 program.command("smoke").option("--project <name>", "also check models this project overrides")
@@ -662,6 +673,8 @@ program.command("doctor").description("check this machine and the setup").action
   log(`${hasSecret("OPENAI_API_KEY") ? "ok  " : "note"} OPENAI_API_KEY ${hasSecret("OPENAI_API_KEY") ? "set" : "not set: critic and review will use Claude (single family)"}`);
   const { jiraConfigured } = await import("../sources/jira.js");
   log(jiraConfigured() ? "ok   Jira set up (factory start --jira ABC-123)" : "note Jira not set up (optional): add JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN to ~/.factory/.env to use --jira");
+  log(hasSecret("GITHUB_TOKEN") ? "ok   GITHUB_TOKEN set: a new product can be put on GitHub (Greenfield's \"Put it on GitHub\", factory fullstack start --github)"
+    : "note GITHUB_TOKEN not set (optional): branches stay on this machine; add a token that may create repos to put new products on GitHub");
   if (hasSecret("OPENAI_API_KEY")) {
     const { DEFAULT_ROUTES } = await import("../stages/routing.js");
     const gpt = [...new Set(Object.values(DEFAULT_ROUTES).map((r) => r.model).filter((m) => /^gpt|^o\d/.test(m)))];
@@ -686,6 +699,7 @@ program.command("doctor").description("check this machine and the setup").action
 
 // design runs (factory design start|show|list|open|check-refs) and the design toolkit (src/design): inventory|size|lint|brief|refs
 registerDesignCommands(program, (design) => registerDesignRunCommands(design, { log, openRun, runAndReport }));
+registerFullstackCommands(program, { log, runAndReport });
 
 program.parseAsync().catch((e: Error) => {
   if (e instanceof DecisionError) process.stderr.write(`${e.message}\n`);

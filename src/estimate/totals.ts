@@ -2,6 +2,7 @@
 // Gate E6 recomputes these independently and compares (src/estimate/lint.ts).
 import type { BreakdownTask, Estimate, TaskSizing, Track } from "../contracts/index.js";
 import { DEFAULT_ASSUMPTIONS, type Assumptions, type Range } from "./assumptions.js";
+import { deliveryHours } from "./durations.js";
 import { addRange, effortHours, ZERO } from "./hours.js";
 
 export type Totals = Estimate["totals"];
@@ -18,6 +19,7 @@ const round = (n: number): number => Math.round(n * 100) / 100;
 export function computeTotals(
   tasks: Pick<BreakdownTask, "id" | "track">[], sized: Pick<TaskSizing, "taskId" | "executor" | "hours">[],
   overheads: Pick<Overhead, "track" | "hours">[], gates: Pick<GateLine, "track" | "hours">[], designInTotal: boolean,
+  hoursOf: (s: Pick<TaskSizing, "taskId" | "executor" | "hours">) => Range = effortHours,
 ): Totals {
   const trackOf = new Map(tasks.map((t) => [t.id, t.track]));
   const by = new Map<Track, Range>();
@@ -25,7 +27,7 @@ export function computeTotals(
   for (const s of sized) {
     const t = trackOf.get(s.taskId);
     if (!t) throw new Error(`${s.taskId} is not in the breakdown`);
-    add(t, effortHours(s));
+    add(t, hoursOf(s));
   }
   let untracked = ZERO;
   for (const x of [...overheads, ...gates]) {
@@ -38,6 +40,17 @@ export function computeTotals(
     if (t !== "design" || designInTotal) overall = addRange(overall, r);
   }
   return { byTrack, overall };
+}
+
+/**
+ * The totals both workbooks show: every task at its delivery hours (`deliveryHours`), overheads and gate hours as in
+ * `computeTotals`. The stored totals (`Estimate.totals`) stay human effort, which the build's budget gates are held to.
+ */
+export function deliveryTotals(
+  e: Pick<Estimate, "tasks" | "overheads" | "gateHours" | "settings" | "elapsed">, b: { tasks: Pick<BreakdownTask, "id" | "track" | "complexity">[] },
+): Totals {
+  const task = new Map(b.tasks.map((t) => [t.id, t]));
+  return computeTotals(b.tasks, e.tasks, e.overheads, e.gateHours, e.settings.designInTotal, (s) => deliveryHours(s, task.get(s.taskId)!, e.elapsed.basis));
 }
 
 /** Calendar weeks for a track: hours / hoursPerWeek / resources. */

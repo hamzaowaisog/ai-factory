@@ -1,6 +1,7 @@
 // AI Factory screens: one page, hash routes. Everything the server sends is data; text goes into
 // the page with textContent, and card/PR Markdown goes through md.js (escaped first).
-// There is no button that decides anything: cards show the terminal command to paste.
+// Decisions on the page are few and each needs a typed name and the card's hash: an estimate card, a design or plan card
+// (approve, or send back with a reason) and a question card's answers. Waivers and cost limits show the terminal command to paste.
 import { renderMarkdown } from "./md.js";
 
 const view = document.getElementById("view");
@@ -101,13 +102,13 @@ function ago(iso) {
 /** Colour family for a run or step status. */
 function tone(status) {
   const s = String(status);
-  if (s === "delivered" || s === "completed" || s.startsWith("closed: merged")) return "ok";
+  if (s === "delivered" || s === "finished" || s === "completed" || s.startsWith("closed: merged")) return "ok";
   if (s === "running" || s === "created") return "live";
   if (s === "waiting" || s === "decided" || s === "paused" || s === "interrupted") return "wait";
   if (s === "parked" || s === "failed" || s.startsWith("closed")) return "bad";
   return "idle";
 }
-const WORDS = { created: "created", running: "running", waiting: "waiting for you", paused: "paused", parked: "parked", delivered: "delivered", completed: "done", failed: "failed", interrupted: "interrupted", pending: "not started", decided: "decided · continues next" };
+const WORDS = { created: "created", running: "running", waiting: "waiting for you", paused: "paused", parked: "parked", delivered: "delivered", finished: "finished", completed: "done", failed: "failed", interrupted: "interrupted", pending: "not started", decided: "decided · continues next" };
 const pill = (status, text) => h("span", { class: `pill t-${tone(status)}` }, h("span", { class: "d" }), text ?? WORDS[status] ?? status);
 
 class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
@@ -204,17 +205,15 @@ paintThemeButton();
 // ---------- new run: mode ----------
 
 function modeScreen() {
-  const card = (i, ico, title, text, href) => href
-    ? h("a", { class: "panel mode rise", href, vars: { "--i": i } }, h("div", { class: "ico" }, icon(ico)), h("h2", {}, title), h("p", {}, text),
-      h("div", { class: "go" }, "Start", icon("arrow")))
-    : h("div", { class: "panel mode off rise", "aria-disabled": "true", vars: { "--i": i } }, h("div", { class: "ribbon" }, "not built yet"), h("div", { class: "ico" }, icon(ico)), h("h2", {}, title), h("p", {}, text),
-      h("div", { class: "go faint" }, "Not built yet"));
+  const card = (i, ico, title, text, href) =>
+    h("a", { class: "panel mode rise", href, vars: { "--i": i } }, h("div", { class: "ico" }, icon(ico)), h("h2", {}, title), h("p", {}, text),
+      h("div", { class: "go" }, "Start", icon("arrow")));
   mount([
     h("div", { class: "page-head" }, h("div", {}, h("div", { class: "eyebrow" }, "New run"), h("h1", {}, "What kind of work is it?"),
-      h("p", { class: "sub" }, "The factory turns a request into a tested branch. You approve the plan in your terminal, and answer questions there or on the run page (estimates can be approved on the web)."))),
+      h("p", { class: "sub" }, "The factory turns a request into a tested branch. Answer its questions and approve its design and plan on the run page or in your terminal; waivers and cost limits stay in the terminal."))),
     h("div", { class: "grid-3 grid-4" },
       card(0, "layers", "Brownfield", "Change an existing .NET repo: request → spec → plan you approve → tests first → code → reviewed branch.", "#/new/brownfield"),
-      card(1, "sprout", "Greenfield", "Start a new app from a request."),
+      card(1, "sprout", "Greenfield", "A new product: a web app on the factory's kit and its .NET API, in two new repos held to one API contract. From a request, or an approved design or estimate.", "#/new/greenfield"),
       card(2, "ruler", "Estimate", "Size and price a request before any code is written: hours, API cost, elapsed time and the screens. The lead approves it on the Estimate tab (or in the terminal), then two workbooks are written.", "#/new/estimate"),
       card(3, "image", "Design", "See the design first: requirements and any references → spec → mock, clickable demo and look, approved by a lead. Nothing is sized or built; an estimate or build can take the approved design later.", "#/new/design"),
     ),
@@ -330,28 +329,27 @@ async function requestScreen(kind = "brownfield", preset = []) {
   skeleton();
   const meta = await api("/api/projects");
   const err = h("div", { class: "error", hidden: true });
+  const listed = meta.projects;
   const project = h("select", { id: "project" },
     h("option", { value: "" }, estimating ? "No project: requirements only (no repo)" : meta.projects.length ? "Choose a project…" : "No projects yet"),
-    meta.projects.map((p) => h("option", { value: p.name, disabled: !!p.busy }, p.busy ? `${p.name}  (run ${p.busy.runId} is running)` : p.empty && !estimating ? `${p.name}  (empty repo: for a new product)` : p.name)));
-  if (!estimating && meta.projects.length === 1 && !meta.projects[0].busy) project.value = meta.projects[0].name;
+    listed.map((p) => h("option", { value: p.name, disabled: !!p.busy }, p.busy ? `${p.name}  (run ${p.busy.runId} is running)` : p.empty && !estimating ? `${p.name}  (empty repo: for a new product)` : p.name)));
+  if (!estimating && listed.length === 1 && !listed[0].busy) project.value = listed[0].name;
 
   const projectLabel = (p) => (p === "standalone-estimates" ? "no project" : p);
   // a build can start from an approved estimate (its request, spec and tasks are inherited, like --from-estimate) or
   // an approved design run (its request and design, like --from-design); values are e:<run> and d:<run>
-  const estimates = meta.estimates ?? [], designs = meta.designs ?? [];
+  // one made with no repo is a new product, started under Greenfield
+  const estimates = (meta.estimates ?? []).filter((e) => e.repo), designs = (meta.designs ?? []).filter((d) => d.repo);
   const fromEst = h("select", { id: "fromest" }, h("option", { value: "" }, "Nothing: a plain change request"),
     estimates.length ? h("optgroup", { label: "Approved estimates" }, estimates.map((e) => h("option", { value: `e:${e.runId}` }, `${e.runId}  ·  ${projectLabel(e.project)}  ·  ${e.request}`))) : null,
-    designs.length ? h("optgroup", { label: "Approved designs" }, designs.map((d) => h("option", { value: `d:${d.runId}` }, `${d.runId}  ·  ${projectLabel(d.project)}  ·  ${d.request}${d.repo ? "" : "  (a new product: pick a project with an empty repo)"}`))) : null);
+    designs.length ? h("optgroup", { label: "Approved designs" }, designs.map((d) => h("option", { value: `d:${d.runId}` }, `${d.runId}  ·  ${projectLabel(d.project)}  ·  ${d.request}`))) : null);
   const buildFrom = () => ({ kind: fromEst.value.slice(0, 1), id: fromEst.value.slice(2) });
   // the run it starts from decides the project
   const seedProject = (p) => { if (p && p !== "standalone-estimates" && [...project.options].some((o) => o.value === p && !o.disabled)) project.value = p; };
   const syncEst = () => {
     for (const id of ["reqblock", "refblock"]) { const b = form.querySelector(`#${id}`); if (b) b.hidden = !!fromEst.value; }
     const { kind: k, id } = buildFrom();
-    const from = (k === "e" ? estimates : designs).find((x) => x.runId === id);
-    // a new product (a design with no repo) goes into an empty repo: the only one there is, when there is one
-    const empties = meta.projects.filter((p) => p.empty && !p.busy);
-    seedProject(k === "d" && from && !from.repo ? (empties.length === 1 ? empties[0].name : undefined) : from?.project);
+    seedProject((k === "e" ? estimates : designs).find((x) => x.runId === id)?.project);
   };
   fromEst.addEventListener("change", syncEst);
 
@@ -422,6 +420,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const stack = h("select", { id: "stack" }, opt("undecided", "Undecided (default pack)"), opt("client", "Client's stack (fixed)"), opt("folio3", "Folio3 decides"));
   const rounds = h("input", { type: "number", id: "rounds", min: "0", max: "10", step: "1", value: "2" });
   const designIn = h("input", { type: "checkbox", id: "designin", checked: true });
+  const drawDesign = h("input", { type: "checkbox", id: "drawdesign", checked: true });
   const noRepo = h("input", { type: "checkbox", id: "norepo" });
   const handsOff = h("input", { type: "checkbox", id: "handsoff" });
   const hdr = h("input", { type: "text", id: "client", placeholder: "client name (workbook header)" });
@@ -464,6 +463,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
         fld("stack", "Stack", stack, "Who picks the technology. Undecided uses a default pack, stated as an assumption."),
         fld("rounds", "Client feedback rounds", rounds, "Rounds of change the client may ask for, allowed for in the hours.")),
       h("div", { class: "opts" },
+        opt2("drawdesign", drawDesign, "Draw the design", "On (the default): the screens are drawn and a person approves them before the breakdown. Turn off to leave the design out: the run goes from the spec straight to the breakdown, which is cheaper and faster, the UI hours get a wider range, and a build from this estimate draws its own design."),
         opt2("designin", designIn, "Design counts in the total", "Turn off to keep Design out of the Summary total (its row still shows)."),
         opt2("norepo", noRepo, "The requirements stand alone", "There is no existing code to read. Always on when no project is chosen."),
         opt2("handsoff", handsOff, "Hands-off (no human review)", "Nobody is asked: the clarify questions become assumptions and the factory approves the estimate once its checks pass. Off (the default): a person answers the questions and approves it, on the run page or in the terminal. A build cannot follow a hands-off estimate: to build it, estimate it again with a review."))),
@@ -507,8 +507,8 @@ async function requestScreen(kind = "brownfield", preset = []) {
       : h("div", { class: "field" }, h("label", { for: "project" }, "Project"), project, h("div", { class: "hint" }, "From ~/.factory/projects. Add one with factory init <repo>.")),
     !estimating ? h("div", { class: "field" }, h("label", { for: "fromest" }, "Build from (optional)"), fromEst,
       h("div", { class: "hint" }, estimates.length || designs.length
-        ? "An approved estimate: its request, spec and tasks carry over, and the build is held to its size and budget (like --from-estimate). An approved design run: its request and design carry over (like --from-design). Choose nothing for a plain change request."
-        : "Nothing approved yet. Approve an estimate or a design run first (New run) to build from it; until then this is a plain change request.")) : null,
+        ? "An approved estimate: its request, spec and tasks carry over, and the build is held to its size and budget (like --from-estimate). An approved design run: its request and design carry over (like --from-design). Choose nothing for a plain change request. Ones made with no repo are new products: start them under Greenfield."
+        : "Nothing approved for an existing repo yet. Approve an estimate or a design run first (New run) to build from it; until then this is a plain change request. Ones made with no repo are new products: start them under Greenfield.")) : null,
     h("div", { id: "reqblock", class: estimating ? "sect" : "field" }, estimating ? h("div", { class: "sect-head" }, h("span", { class: "num" }, "2"), h("div", {}, h("h3", {}, "Requirements"), h("p", { class: "muted small" }, "Paste them, upload a file or give a Jira key. They are combined into one request."))) : h("span", { class: "label" }, "Request"),
       h("div", { class: "tabs-in", role: "tablist" }, tabs.prompt, tabs.file, tabs.jira),
       panels.prompt, panels.file, panels.jira,
@@ -520,24 +520,28 @@ async function requestScreen(kind = "brownfield", preset = []) {
     estimating ? sect(designing ? 7 : 8, "Cost", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
       h("div", { class: "opts" }, opt2("fresh", fresh, "Ask the model again", "Don't reuse answers stored from an identical earlier request (like --fresh). It costs more; use it when an answer should be redone.")))
       : h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
-    h("div", { class: "row" }, start, h("span", { class: "hint" }, designing ? "Runs in the background. Questions and the design approval can be answered here on the run page or in your terminal." : "Runs in the background. Questions can be answered here on the run page or in your terminal; the plan approval stays in your terminal.")),
+    h("div", { class: "row" }, start, h("span", { class: "hint" }, designing ? "Runs in the background. Questions and the design approval can be answered here on the run page or in your terminal." : "Runs in the background. Questions, the design and the plan can be decided here on the run page or in your terminal; waivers and cost limits stay in the terminal.")),
   );
+  // an estimate with the design left out has nothing to draw from or export: the frames, references and export blocks go
+  const noDesign = () => estimating && !designing && !drawDesign.checked;
+  const syncDesignOff = () => { for (const el of [form.querySelector("#framesblock"), refBlock, autoXBlock]) if (el) el.hidden = noDesign(); };
+  drawDesign.addEventListener("change", syncDesignOff);
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     err.hidden = true;
     start.disabled = true;
     start.replaceChildren(h("span", { class: "spin" }), "Reading the request…");
     try {
-      const sent = estimating && frames.length ? await Promise.all(frames.map(async (f) => ({ name: f.name, data: await b64(f) }))) : undefined;
+      const sent = estimating && frames.length && !noDesign() ? await Promise.all(frames.map(async (f) => ({ name: f.name, data: await b64(f) }))) : undefined;
       const seeded = !estimating ? !!fromEst.value : startFrom.value === "design";
-      const sentRefs = refs.count() && !seeded ? await refs.collect() : undefined;
+      const sentRefs = refs.count() && !seeded && !noDesign() ? await refs.collect() : undefined;
       if (sentRefs) start.replaceChildren(h("span", { class: "spin" }), `Reading the request and ${sentRefs.length} design reference${sentRefs.length === 1 ? "" : "s"}…`);
-      const designExport = autoXPicked();
+      const designExport = noDesign() ? [] : autoXPicked();
       const bf = buildFrom();
       const from = !estimating ? (bf.kind === "e" ? { fromEstimate: bf.id } : bf.kind === "d" ? { fromDesign: bf.id } : {})
         : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises" }[startFrom.value]]: seedRun.value } : {};
       const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
-        ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(handsOff.checked ? { humanReview: false } : {}) } } : {}) };
+        ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, ...(drawDesign.checked ? {} : { drawDesign: false }), noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(handsOff.checked ? { humanReview: false } : {}) } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
     } catch (e) {
@@ -603,7 +607,7 @@ function runsScreen() {
         h("td", { class: "mono small nowrap" }, r.step),
         h("td", { class: "num" }, money(r.costUsd)),
         h("td", { class: "nowrap muted small" }, ago(r.createdAt)),
-        h("td", {}, r.openCard ? pill("waiting", `${r.openCard} card · terminal`) : null),
+        h("td", {}, r.openCard ? pill("waiting", `${r.openCard} card${["question", "approval", "design-approval", "estimate-approval", "cap", "budget"].includes(r.openCard) ? "" : " · terminal"}`) : null),
       ))),
     )) : h("div", { class: "empty" }, "No runs yet. ", h("a", { href: "#/new" }, "Start one"), ".");
     mount([
@@ -623,7 +627,14 @@ const PHASES = ["Spec", "Build", "Ship"];
 const NODE_ICON = { completed: "check", waiting: "terminal", decided: "clock", parked: "alert", failed: "x", interrupted: "pause" };
 const retriesOf = (row) => row.tries.filter((t) => t.outcome === "failed" && row.tries.some((u) => u.attempt > t.attempt)).length;
 
-const runState = { id: "", seenGates: new Set(), cost: 0, share: 0, drawer: "", last: undefined };
+const runState = { id: "", seenGates: new Set(), cost: 0, share: 0, drawer: "", last: undefined, drafts: new Map() };
+
+/** What a person has typed or picked on an open card, kept across the run page's re-renders (by run and card hash). */
+function draftOf(r) {
+  const key = `${r.runId}:${r.card.hash}`;
+  if (!runState.drafts.has(key)) runState.drafts.set(key, { note: "", reason: "", picks: undefined, at: 0, sent: false, msg: "" });
+  return runState.drafts.get(key);
+}
 
 /** The four live views of one run: [route, icon, label]. */
 const RUN_TABS = [["run", "activity", "Interactive"], ["charts", "bars", "Graphical"], ["stats", "grid", "Statistical"], ["log", "terminal", "Text"]];
@@ -668,7 +679,10 @@ function pipeline(r) {
     const parked = r.timeline.find((t) => t.status === "parked");
     if (r.status === "parked") return h("div", { class: "pipe-note bad" }, icon("alert"), h("div", {}, h("strong", {}, parked ? `Parked at ${parked.step}` : "Parked"), h("p", {}, r.parkedReason ?? "")));
     if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Pick an option for each in the panel below (or answer in the terminal); the run carries on right after.")));
-    if (r.card) return h("div", { class: "pipe-note wait" }, icon("terminal"), h("div", {}, h("strong", {}, `Waiting for you in the terminal: ${r.card.kind} card`), h("p", {}, "The run continues after you decide there. The card and the command to paste are below.")));
+    if (r.card?.kind === "design-approval") return h("div", { class: "pipe-note wait" }, icon("image"), h("div", {}, h("strong", {}, "The design needs your approval"), h("p", {}, "Walk the clickable demo, then approve it or send it back in the panel below (or in the terminal); the run carries on right after.")));
+    if (r.card?.kind === "approval") return h("div", { class: "pipe-note wait" }, icon("shield"), h("div", {}, h("strong", {}, "The spec and plan need your approval"), h("p", {}, "Read the card, then approve or reject it in the panel below (or in the terminal); the run carries on right after.")));
+    if (r.card?.limit) return h("div", { class: "pipe-note wait" }, icon("dollar"), h("div", {}, h("strong", {}, r.card.limit.kind === "budget" ? "The approved budget is reached" : "A limit is reached"), h("p", {}, "Raise it and continue, or stop the run, in the panel below (or in the terminal); the run carries on right after a raise.")));
+    if (r.card) return h("div", { class: "pipe-note wait" }, icon("terminal"), h("div", {}, h("strong", {}, `Waiting for you in the terminal: ${r.card.kind} card`), h("p", {}, "Gate waivers and unlocks are decided in your terminal only. The card and the command to paste are below.")));
     if (r.delivered) return h("div", { class: "pipe-note ok" }, icon("check"), h("div", {}, h("strong", {}, "Delivered"), h("p", {}, r.delivered.branch ? `Branch ${r.delivered.branch}` : "")));
     if (r.status === "running" && r.lastActivity) return h("div", { class: "pipe-note live" }, icon("activity"), h("div", {}, h("strong", {}, `Working on ${r.step}`), h("p", {}, r.lastActivity.msg, h("span", { class: "muted" }, ` · ${ago(r.lastActivity.ts)}`))));
     return null;
@@ -713,20 +727,26 @@ function nameInput() {
   let saved = "";
   try { saved = localStorage.getItem("factory-lead-name") || ""; } catch { /* storage can be blocked */ }
   const el = h("input", { type: "text", placeholder: "Your name (recorded with the decision)", maxlength: "60", "aria-label": "Your name", value: saved });
-  el.addEventListener("change", () => { try { localStorage.setItem("factory-lead-name", el.value.trim()); } catch { /* ignore */ } });
+  el.addEventListener("input", () => { try { localStorage.setItem("factory-lead-name", el.value.trim()); } catch { /* ignore */ } });
   return el;
 }
 
-/** Clarification questions, one at a time: pick an option and it moves on; the chosen options are the answers. */
+/**
+ * A question card, on any run (the clarify questions, the spec's questions, or a failing check's), one question at a time: pick an
+ * option and it moves on; the chosen options are the answers. Picks are kept while the page redraws.
+ */
 function questionPanel(r) {
   const c = r.card;
   const qs = c.questions;
-  const picks = Object.fromEntries(qs.map((q) => [q.id, q.recommended]));
+  const draft = draftOf(r);
+  draft.picks ??= Object.fromEntries(qs.map((q) => [q.id, q.recommended]));
+  const picks = draft.picks;
   const who = nameInput();
   who.id = "q-who";
-  const msg = h("p", { class: "small muted", role: "status" }, "");
+  const msg = h("p", { class: "small muted", role: "status" }, draft.msg);
   const body = h("div", { class: "body stack" });
-  let at = 0, sent = false;
+  let at = draft.at, sent = draft.sent;
+  const go = (n) => { at = draft.at = n; draw(); };
   const letter = (i) => String.fromCharCode(65 + i);
   const draw = () => {
     body.replaceChildren();
@@ -740,13 +760,13 @@ function questionPanel(r) {
             h("span", { class: "q-key" }, letter(i)),
             h("span", { class: "q-label" }, o, o === q.recommended ? h("span", { class: "q-rec" }, "Recommended") : null),
             o === q.recommended && q.reason ? h("span", { class: "q-why small muted" }, q.reason) : null);
-          b.addEventListener("click", () => { picks[q.id] = o; draw(); setTimeout(() => { if (at === qs.indexOf(q)) { at++; draw(); } }, 220); });
+          b.addEventListener("click", () => { picks[q.id] = o; draw(); setTimeout(() => { if (at === qs.indexOf(q)) go(at + 1); }, 220); });
           return b;
         })),
         h("p", { class: "small muted" }, `Why it matters: ${q.why}`),
         h("div", { class: "row" },
-          at > 0 ? (() => { const bk = h("button", { class: "btn ghost", type: "button" }, "Back"); bk.addEventListener("click", () => { at--; draw(); }); return bk; })() : null,
-          (() => { const nx = h("button", { class: "btn ghost", type: "button" }, at === qs.length - 1 ? "Review" : "Next"); nx.addEventListener("click", () => { at++; draw(); }); return nx; })()));
+          at > 0 ? (() => { const bk = h("button", { class: "btn ghost", type: "button" }, "Back"); bk.addEventListener("click", () => go(at - 1)); return bk; })() : null,
+          (() => { const nx = h("button", { class: "btn ghost", type: "button" }, at === qs.length - 1 ? "Review" : "Next"); nx.addEventListener("click", () => go(at + 1)); return nx; })()));
       return;
     }
     const send = h("button", { class: "btn", type: "button" }, icon("check"), "Send answers and continue");
@@ -754,16 +774,16 @@ function questionPanel(r) {
     send.addEventListener("click", async () => {
       msg.textContent = "";
       try {
-        await api(`/api/runs/${encodeURIComponent(r.runId)}/estimate-answers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, by: who.value, answers: picks }) });
-        sent = true; send.disabled = true;
-        msg.textContent = "Answers recorded. The run is continuing…";
-      } catch (err) { msg.textContent = err.message; }
+        await api(`/api/runs/${encodeURIComponent(r.runId)}/answers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, by: who.value, answers: picks }) });
+        sent = draft.sent = true; send.disabled = true;
+        msg.textContent = draft.msg = "Answers recorded. The run is continuing…";
+      } catch (err) { msg.textContent = draft.msg = err.message; }
     });
     body.append(
       h("h3", { class: "q-text" }, "Your answers"),
       h("ul", { class: "q-review" }, qs.map((q, i) => {
         const ch = h("button", { type: "button", class: "linkish small" }, "Change");
-        ch.addEventListener("click", () => { at = i; draw(); });
+        ch.addEventListener("click", () => go(i));
         return h("li", {}, h("span", { class: "small muted" }, q.text), h("strong", {}, picks[q.id]), ch);
       })),
       c.assumptions?.length ? h("details", { class: "q-assumed" },
@@ -778,12 +798,54 @@ function questionPanel(r) {
     body);
 }
 
-/** The design card (E1b): the card, the demo link and the references. The decision is made in the terminal (only estimate cards are decided on this page). */
+/**
+ * Approve or send back a design or plan card, as factory approve / factory reject: a typed name (recorded as "<name> (via web)"),
+ * the card's hash, a note to approve and a reason to send it back. What is typed is kept while the page redraws.
+ */
+function decisionForm(r, o) {
+  const c = r.card;
+  const draft = draftOf(r);
+  const who = nameInput();
+  who.id = "d-who";
+  const note = h("textarea", { id: "d-note", rows: "2", maxlength: "2000", placeholder: o.notePlaceholder });
+  note.value = draft.note;
+  note.addEventListener("input", () => { draft.note = note.value; });
+  const reason = h("textarea", { id: "d-reason", rows: "3", maxlength: "2000", placeholder: o.reasonPlaceholder });
+  reason.value = draft.reason;
+  reason.addEventListener("input", () => { draft.reason = reason.value; });
+  const msg = h("p", { class: "small", role: "status" }, draft.msg);
+  const ok = h("button", { class: "btn primary", type: "button" }, icon("check"), o.approveLabel);
+  const no = h("button", { class: "btn", type: "button" }, o.rejectLabel);
+  const lock = (on) => { ok.disabled = no.disabled = on; };
+  lock(draft.sent);
+  const send = async (decision) => {
+    if (decision === "reject" && !reason.value.trim()) { msg.textContent = draft.msg = o.reasonNeeded; reason.focus(); return; }
+    lock(true);
+    msg.textContent = "";
+    try {
+      await api(`/api/runs/${encodeURIComponent(r.runId)}/decision`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hash: c.hash, decision, by: who.value, ...(decision === "approve" ? { note: note.value } : { reason: reason.value }) }) });
+      draft.sent = true;
+      msg.textContent = draft.msg = decision === "approve" ? o.approved : o.rejected;
+    } catch (err) { msg.textContent = draft.msg = err.message; lock(false); }
+  };
+  ok.addEventListener("click", () => send("approve"));
+  no.addEventListener("click", () => send("reject"));
+  return h("div", { class: "stack decide" },
+    h("div", { class: "fld" }, h("label", { for: "d-who" }, "Your name"), who, h("div", { class: "hint" }, `Recorded with the decision as "your name (via web)", with card ${c.hash}.`)),
+    h("div", { class: "fld" }, h("label", { for: "d-note" }, o.noteLabel), note),
+    h("div", { class: "row" }, ok),
+    h("div", { class: "fld" }, h("label", { for: "d-reason" }, o.reasonLabel), reason, h("div", { class: "hint" }, o.reasonHint)),
+    h("div", { class: "row" }, no),
+    msg);
+}
+
+/** The design card (E1b): the card, the demo link, the references, and approve or send back with what to change. */
 // the design card's words for each kind of run (the terminal card has the same three, by its purpose)
 const DESIGN_CARD_TEXT = {
-  estimate: "The estimate stands on this design. Walk the clickable demo, then approve it or send it back with what to change, in your terminal.",
-  design: "This is a design-only run: approving keeps this mock, clickable demo and look, and nothing is sized or built. Walk the clickable demo, then approve it or send it back with what to change, in your terminal.",
-  build: "The build follows this design: its screens, states, sample content and look are what gets built. Walk the clickable demo, then approve it or send it back with what to change, in your terminal.",
+  estimate: "The estimate stands on this design. Walk the clickable demo, then approve it or send it back with what to change, here or in your terminal.",
+  design: "This is a design-only run: approving keeps this mock, clickable demo and look, and nothing is sized or built. Walk the clickable demo, then approve it or send it back with what to change, here or in your terminal.",
+  build: "The build follows this design: its screens, states, sample content and look are what gets built. Walk the clickable demo, then approve it or send it back with what to change, here or in your terminal.",
 };
 
 function designPanel(r) {
@@ -793,25 +855,144 @@ function designPanel(r) {
   const refsBox = h("div");
   api(`/api/runs/${encodeURIComponent(r.runId)}/references`).then((v) => { if (v.references.length) refsBox.replaceChildren(h("h3", { class: "small" }, "Drawn from these references"), refsPanel(v, true)); }).catch(() => undefined);
   return h("section", { class: "card-box" },
-    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Approve the design in your terminal"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Approve the design"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body stack" },
       h("p", { class: "small muted" }, intro),
       h("div", { class: "row" }, h("a", { class: "btn", href: `#/runs/${r.runId}/preview` }, icon("cursor"), "Open the clickable demo"),
         h("span", { class: "btn ghost", "aria-disabled": "true", title: "A design is exported once it is approved: PNG, PDF, the demo, tokens or JSON, from the Design tab." }, icon("download"), "Export after approval")),
-      h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd)))),
+      decisionForm(r, {
+        approveLabel: "Approve the design", rejectLabel: "Send it back",
+        noteLabel: "Note (optional)", notePlaceholder: "Anything to keep in mind",
+        reasonLabel: "To send it back: what to change", reasonPlaceholder: "e.g. On the orders page, put the filters above the table and show the total in the header.",
+        reasonHint: "Name the page or the part in your own words; the design is redrawn with it.", reasonNeeded: "Say what to change, naming the page or the part in your own words.",
+        approved: "Approved. The run is continuing…", rejected: "Sent back. The design is being redrawn with what to change…",
+      }),
+      h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal"), h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd))))),
       refsBox,
+      md(c.markdown)));
+}
+
+/** The plan card: the spec and plan (for a full-stack product's web run, with the API contract the API run is held to), approve or reject. */
+function planPanel(r) {
+  const c = r.card;
+  return h("section", { class: "card-box" },
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Approve the spec and plan"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    h("div", { class: "body stack" },
+      h("p", { class: "small muted" }, r.product?.side === "web"
+        ? `Read the card below, the API contract most of all: the API run of ${r.product.name} builds exactly that contract, and the web app calls it. Approving lets this run build and the API run start (from the product page).`
+        : "Read the card below: what will be built, the tasks and their files, and any open risks. Approving lets the run write the tests and the code; rejecting with a reason revises the spec and plan."),
+      decisionForm(r, {
+        approveLabel: "Approve the plan", rejectLabel: "Reject",
+        noteLabel: "Risk note (optional)", notePlaceholder: "e.g. Watch the totals on the orders page",
+        reasonLabel: "To reject: why", reasonPlaceholder: "e.g. The refund task should not touch the payments module.",
+        reasonHint: "The spec and plan are revised with it.", reasonNeeded: "A rejection needs a reason.",
+        approved: "Approved. The run is continuing…", rejected: "Rejected. The spec and plan are being revised…",
+      }),
+      r.product ? h("p", { class: "small" }, h("a", { href: `#/fullstack/${encodeURIComponent(r.product.name)}` }, icon("layers"), ` Product ${r.product.name}`)) : null,
+      h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal"), h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd))))),
+      md(c.markdown)));
+}
+
+/**
+ * A limit card (cost, time or attempts, or an estimate's budget): raise it one step and continue, or stop the run. The page raises at
+ * most the card's suggestion; if the run reaches the new limit it stops again and is raised again here. A bigger step is the terminal's.
+ */
+const CAP_INPUTS = [
+  ["costUsd", "New cost limit (USD)", (v) => `$${v}`, "0.01"],
+  ["wallMinutes", "New active-time limit (minutes)", (v) => `${v} min`, "1"],
+  ["extraAttempts", "Extra attempts per step", (v) => String(v), "1"],
+];
+
+function limitPanel(r) {
+  const c = r.card, L = c.limit;
+  const draft = draftOf(r);
+  draft.values ??= {};
+  const who = nameInput();
+  who.id = "l-who";
+  const msg = h("p", { class: "small", role: "status" }, draft.msg);
+  const fields = [];
+  const values = {};
+  const numberField = (key, label, max, min, step, hint) => {
+    const el = h("input", { id: `l-${key}`, type: "number", inputmode: "decimal", min: String(min), max: String(max), step });
+    el.value = draft.values[key] ?? String(max);
+    el.addEventListener("input", () => { draft.values[key] = el.value; });
+    values[key] = el;
+    fields.push(h("div", { class: "fld" }, h("label", { for: el.id }, label), el, h("div", { class: "hint" }, hint)));
+  };
+  let reason;
+  let canRaise = true;
+  if (L.kind === "cap") {
+    for (const [key, label, show, step] of CAP_INPUTS) {
+      const max = L.proposal[key];
+      if (max === undefined) continue;
+      numberField(key, label, max, key === "costUsd" ? Math.ceil(L.spentUsd * 100 + 1) / 100 : 1, step,
+        `Up to ${show(max)} here, one step at a time. If the run reaches it, it stops again and you can raise it again here.`);
+    }
+    canRaise = fields.length > 0;
+  } else if (L.proposed !== undefined) {
+    const pct = (x) => Math.round(x * 100);
+    numberField("ceiling", "New limit (% of the approved maximum)", pct(L.proposed), pct(L.ceiling) + 1, "1",
+      `Now ${pct(L.ceiling)}%. Up to ${pct(L.proposed)}% here, one step at a time; ${pct(L.max)}% is the most any raise allows.`);
+    reason = h("textarea", { id: "l-reason", rows: "3", maxlength: "2000", placeholder: "e.g. The client added two reports in the plan review; agreed with them." });
+    reason.value = draft.reason;
+    reason.addEventListener("input", () => { draft.reason = reason.value; });
+    fields.push(h("div", { class: "fld" }, h("label", { for: "l-reason" }, "Why going past the approved estimate is fine"), reason, h("div", { class: "hint" }, "Recorded with your name, as the terminal's --reason.")));
+  } else canRaise = false;
+  const raise = h("button", { class: "btn primary", type: "button" }, icon("play"), "Raise and continue");
+  const stop = h("button", { class: "btn", type: "button" }, icon("x"), "Stop the run");
+  const lock = (on) => { raise.disabled = stop.disabled = on; };
+  lock(draft.sent);
+  const post = async (path, body, done) => {
+    lock(true);
+    msg.textContent = "";
+    try {
+      await api(`/api/runs/${encodeURIComponent(r.runId)}/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash: c.hash, by: who.value, ...body }) });
+      draft.sent = true;
+      msg.textContent = draft.msg = done;
+    } catch (err) { msg.textContent = draft.msg = err.message; lock(false); }
+  };
+  raise.addEventListener("click", () => {
+    if (reason && !reason.value.trim()) { msg.textContent = draft.msg = "Say why going past the approved estimate is fine."; reason.focus(); return; }
+    const body = Object.fromEntries(Object.entries(values).map(([k, el]) => [k, el.value === "" ? undefined : k === "ceiling" ? Number(el.value) / 100 : Number(el.value)]));
+    post("limit", { ...body, ...(reason ? { reason: reason.value } : {}) }, "Limit raised. The run is continuing…");
+  });
+  stop.addEventListener("click", () => {
+    if (!confirm("Stop this run? It is closed as stopped; its branch and everything it recorded stay.")) return;
+    post("limit-stop", {}, "Stopped. The run is closing…");
+  });
+  const facts = L.kind === "cap"
+    ? h("dl", { class: "facts" },
+      h("dt", {}, "Spent"), h("dd", {}, `${money(L.spentUsd)} of ${money(L.costCapUsd)}`),
+      h("dt", {}, "Active time"), h("dd", {}, `${Math.round(L.activeMin)} of ${Math.round(L.wallMin)} min`))
+    : null;
+  return h("section", { class: "card-box" },
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), L.kind === "budget" ? "The approved budget is reached" : "Limit reached"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    h("div", { class: "body stack" },
+      h("p", { class: "small" }, L.reason),
+      facts,
+      canRaise ? null : h("p", { class: "small muted" }, L.kind === "budget"
+        ? `The limit is already ${Math.round(L.max * 100)}% of the approved maximum, the most a raise allows: the estimate is wrong for this work. Revise it with a change request, or stop the run.`
+        : "This card has nothing to raise here: decide it in your terminal, or stop the run."),
+      h("div", { class: "stack decide" },
+        ...(canRaise ? fields : []),
+        h("div", { class: "fld" }, h("label", { for: "l-who" }, "Your name"), who, h("div", { class: "hint" }, `Recorded with the decision as "your name (via web)", with card ${c.hash}.`)),
+        h("div", { class: "row" }, canRaise ? raise : null, stop),
+        msg),
+      h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal (a bigger step too)"), h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd))))),
       md(c.markdown)));
 }
 
 function cardPanel(r) {
   const c = r.card;
-  // only an estimate run's questions are answered on this page; every other card is decided in the terminal
-  if (c.questions && r.mode === "estimate") return questionPanel(r);
+  // questions, the design, the plan and a limit are decided on this page (or in the terminal); gate waivers and unlocks only in the terminal
+  if (c.questions) return questionPanel(r);
   if (c.kind === "design-approval") return designPanel(r);
+  if (c.kind === "approval") return planPanel(r);
+  if (c.limit) return limitPanel(r);
   return h("section", { class: "card-box" },
     h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Waiting for you in the terminal"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body" },
-      h("p", { class: "small muted" }, "Decisions are made in your terminal, so no AI or script can approve its own plan. Read the card, then paste one of these:"),
+      h("p", { class: "small muted" }, c.kind === "estimate-approval" ? "Approve the estimate on its Estimate tab, or paste one of these:" : "Gate waivers and unlocks are decided in your terminal only. Read the card, then paste one of these:"),
       h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd)))),
       md(c.markdown)));
 }
@@ -832,7 +1013,7 @@ function deliveredPanel(r) {
     d.prText ? h("details", {}, h("summary", {}, "PR text"), h("div", { class: "row" }, copyButton(d.prText, "Copy PR text")), md(d.prText, "md tall")) : null);
 }
 
-function parkedPanel(r) {
+function parkedPanel(r, interrupted = false) {
   const msg = h("p", { class: "small", role: "status" });
   const resume = h("button", { class: "btn", type: "button" }, icon("play"), "Resume run");
   resume.addEventListener("click", async () => {
@@ -840,12 +1021,12 @@ function parkedPanel(r) {
     msg.textContent = "";
     try {
       await api(`/api/runs/${encodeURIComponent(r.runId)}/resume`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-      msg.textContent = "Resuming: the run goes on from where it parked.";
+      msg.textContent = `Resuming: the run goes on from where it ${interrupted ? "stopped" : "parked"}.`;
     } catch (err) { msg.textContent = err.message; resume.disabled = false; }
   });
   return h("section", { class: "callout bad" }, icon("alert"), h("div", {},
-    h("strong", {}, "Parked: a person needs to look"),
-    h("p", {}, "The reason is shown on the pipeline above. Fix what it parked on first (for example, top up the API credit), then resume: the run goes on from where it stopped."),
+    h("strong", {}, interrupted ? "Interrupted: the executor stopped mid-run" : "Parked: a person needs to look"),
+    h("p", {}, interrupted ? "Nothing is working on this run (the process ended, for example a closed terminal or a crash). Resume it: the step it was on runs again." : "The reason is shown on the pipeline above. Fix what it parked on first (for example, top up the API credit), then resume: the run goes on from where it stopped."),
     h("div", { class: "row" }, resume), msg,
     h("p", { class: "small" }, "In your terminal: ", h("code", {}, `factory resume ${r.runId}`), " · ", h("code", {}, `factory report ${r.runId}`), " · ", h("code", {}, `factory logs ${r.runId}`))));
 }
@@ -904,7 +1085,7 @@ function paintDrawer() {
 }
 
 function runScreen(id) {
-  if (runState.id !== id) Object.assign(runState, { id, seenGates: new Set(), cost: 0, share: 0, drawer: "", last: undefined });
+  if (runState.id !== id) Object.assign(runState, { id, seenGates: new Set(), cost: 0, share: 0, drawer: "", last: undefined, drafts: new Map() });
   skeleton("grid");
   let lastJson = "";
   poll(2000, async (first) => {
@@ -914,17 +1095,21 @@ function runScreen(id) {
     lastJson = json;
     runState.last = r;
     const open = [...view.querySelectorAll("details")].map((d) => d.open);
+    // a person typing on a card keeps the cursor where it was when the page redraws
+    const focused = document.activeElement?.id && view.contains(document.activeElement) ? document.activeElement : undefined;
+    const caret = focused && "selectionStart" in focused ? [focused.selectionStart, focused.selectionEnd] : undefined;
     const oldTrace = view.querySelector(".trace");
     const atBottom = !oldTrace || oldTrace.scrollTop + oldTrace.clientHeight >= oldTrace.scrollHeight - 8;
     const right = [];
     if (r.card) right.push(cardPanel(r));
-    if (r.status === "parked") right.push(parkedPanel(r));
+    if (r.status === "parked" || r.status === "interrupted") right.push(parkedPanel(r, r.status === "interrupted"));
     if (r.delivered) right.push(deliveredPanel(r));
     right.push(tracePanel(r));
     mount([...runHeader(r, "run"), h("div", { class: "stack" }, pipeline(r), h("div", { class: "grid-2" },
       h("div", { class: "stack" }, costPanel(r), gatesPanel(r)),
       h("div", { class: "stack" }, right)))], first);
     view.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
+    if (focused) { const again = document.getElementById(focused.id); if (again) { again.focus({ preventScroll: true }); if (caret) try { again.setSelectionRange(...caret); } catch { /* not a text field */ } } }
     const t = view.querySelector(".trace");
     if (t && atBottom) t.scrollTop = t.scrollHeight;
     if (runState.drawer) paintDrawer();
@@ -1272,7 +1457,7 @@ async function estimateScreen(id) {
     e.catalogue ? fact("Task catalogue", h("span", { class: "tags" }, h("span", { class: "tag" }, e.catalogue.version), h("span", { class: "tag" }, `stack ${e.catalogue.stack}`),
       h("span", { class: `pill ${e.catalogue.status === "draft" ? "t-wait" : "t-ok"}` }, h("span", { class: "d" }), e.catalogue.statusText))) : [],
     fact("Delivery model", e.deliveryModel === "hitl" ? "HITL: a supervisor plus agents" : "Solely agentic"),
-    fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : "", e.handsOff ? "hands-off (no human review)" : ""].filter(Boolean).join(" · ")),
+    fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.drawDesign === false ? "no design drawn" : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : "", e.handsOff ? "hands-off (no human review)" : ""].filter(Boolean).join(" · ")),
     fact("Approval", e.approved ? h("span", { class: "pill t-ok" }, h("span", { class: "d" }), `${e.approved.auto ? "approved by the factory (no human review)" : `approved by ${e.approved.by || "?"}`}${e.approved.hash ? ` (${e.approved.hash})` : ""}`)
       : h("span", { class: "pill t-wait" }, h("span", { class: "d" }), e.handsOff ? "approves itself once its checks pass" : "waiting for approval in your terminal")),
   );
@@ -1330,7 +1515,9 @@ async function estimateScreen(id) {
     h("div", { class: "grid-2" },
       h("div", { class: "stack" }, decide,
         e.approved && e.files ? nextPanel("This estimate is approved. Build it or size a change to it.", [
-          [`#/new/brownfield/estimate/${rid}`, "layers", "Build this estimate"],
+          // an estimate made with no repo is a new product: a web app and its API (greenfield)
+          // unless it prices a phone app, which a new product does not build yet: then the button says why instead
+          s.noRepo ? [e.cannotBuild ? null : `#/new/greenfield/estimate/${rid}`, "sprout", "Build it as a new product", e.cannotBuild] : [`#/new/brownfield/estimate/${rid}`, "layers", "Build this estimate"],
           [`#/new/estimate/revises/${rid}`, "pen", "Change request"],
         ]) : null,
         panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", [costTable, perTask]),
@@ -1645,10 +1832,10 @@ async function designScreen(id) {
     h("div", { class: "grid-2" },
       h("div", { class: "stack" },
         // a design-only run, once approved, is sized or built from here (like --from-design)
-        // a design with no repo (a new product) is built into a project whose repo is still empty (greenfield)
-        r.mode === "design" && xv.available ? nextPanel(r.repo ? "This design is approved. Size it, or build it in its project." : "This design is approved. Size it, or build it as a new product into an empty repo (git init a folder, then factory init it).", [
+        // a design with no repo is a new product: a web app and its API, in two new repos (greenfield)
+        r.mode === "design" && xv.available ? nextPanel(r.repo ? "This design is approved. Size it, or build it in its project." : "This design is approved. Size it, or build it as a new product: a web app and its API, in two new repos.", [
           [`#/new/estimate/design/${encodeURIComponent(id)}`, "ruler", "Estimate this design"],
-          [`#/new/brownfield/design/${encodeURIComponent(id)}`, "layers", "Build this design"],
+          r.repo ? [`#/new/brownfield/design/${encodeURIComponent(id)}`, "layers", "Build this design"] : [`#/new/greenfield/design/${encodeURIComponent(id)}`, "sprout", "Build it as a new product"],
         ]) : null,
         exportPanel(id, xv),
         codePanel(id, sv),
@@ -1710,6 +1897,200 @@ async function dashboardScreen() {
   nextFrame(() => { for (const [f, share] of fills) f.style.transform = `scaleX(${share})`; });
 }
 
+// ---------- new product: greenfield ----------
+
+/**
+ * Greenfield: a new product is a web app and its API (factory fullstack start), in two new repos held to one API contract; or,
+ * when the client provides the backend, the web app alone in one new repo (a greenfield run). It starts from a request, or from an
+ * approved design (its design steps are skipped) or approved estimate (the web run is held to it), each made with no repo; then
+ * the products so far. preset: [design|estimate, run] from a run page's link.
+ */
+async function greenfieldScreen(preset = []) {
+  skeleton();
+  const [products, meta] = await Promise.all([api("/api/fullstack"), api("/api/projects")]);
+  const err = h("div", { class: "error", hidden: true });
+  const fail = (m) => { err.replaceChildren(icon("alert"), h("span", {}, m)); err.hidden = false; };
+  const name = h("input", { type: "text", id: "fs-name", maxlength: "31", placeholder: "e.g. orders", autocomplete: "off" });
+  const dir = h("input", { type: "text", id: "fs-dir", value: "~/projects", autocomplete: "off" });
+  // the backend: built with the product (an API repo held to the contract the web plan writes), or the client's own
+  const backend = h("select", { id: "fs-backend" }, h("option", { value: "api" }, "Build its API too: a web app and a .NET API"), h("option", { value: "client" }, "The client provides it: the web app only"));
+  const webOnly = () => backend.value === "client";
+  const backendHint = h("div", { class: "hint" });
+  const repos = h("div", { class: "hint" });
+  // GitHub: private repos under the token's account, main pushed; each run then pushes its own branch and opens a PR into main
+  const gh = meta.github ?? { configured: false };
+  const onGithub = h("input", { type: "checkbox", id: "fs-github", checked: !!gh.configured, disabled: !gh.configured });
+  const ghText = h("span", { class: "hint" });
+  const syncRepos = () => {
+    const n = name.value.trim() || "<name>", d = dir.value.trim() || "…";
+    repos.textContent = webOnly() ? `The repo: ${d}/${n} (empty, for the web run). The project is ${n}.` : `The repos: ${d}/${n}-web (empty, for the web run) and ${d}/${n}-api (a .NET 9 API skeleton with SQLite).`;
+    ghText.textContent = !gh.configured ? gh.why
+      : `${webOnly() ? `A private repo ${n}` : `Private repos ${n}-web and ${n}-api`} under the GitHub account of the factory's token, with main pushed. Each run pushes its own branch and opens a PR into main. Off: the branches stay on this machine.`;
+  };
+  name.addEventListener("input", syncRepos); dir.addEventListener("input", syncRepos);
+  // only what was made with no repo is a new product; an estimate it would not build all of is listed but can't be picked: it says why
+  const estimates = (meta.estimates ?? []).filter((e) => !e.repo), designs = (meta.designs ?? []).filter((d) => !d.repo);
+  const why = (e) => (webOnly() ? e.cannotBuildWebOnly : e.cannotBuild);
+  const fromSel = h("select", { id: "fs-from" });
+  const warns = h("div");
+  const fillFrom = () => {
+    const keep = fromSel.value;
+    fromSel.replaceChildren(h("option", { value: "" }, "Nothing: describe the product, and the run draws its design"),
+      designs.length ? h("optgroup", { label: "Approved designs (the design steps are skipped)" }, designs.map((d) => h("option", { value: `d:${d.runId}` }, `${d.runId}  ·  ${d.request}`))) : null,
+      estimates.length ? h("optgroup", { label: "Approved estimates (the web run is held to it)" }, estimates.map((e) => h("option", { value: `e:${e.runId}`, disabled: !!why(e), ...(why(e) ? { title: why(e) } : {}) }, `${e.runId}  ·  ${e.request}${why(e) ? "  (not all of it would be built: see below)" : ""}`))) : null);
+    if ([...fromSel.options].some((o) => o.value === keep && !o.disabled)) fromSel.value = keep;
+    warns.replaceChildren(...estimates.filter(why).map((e) => h("div", { class: "hint warn-text" }, icon("alert"), " ", why(e))));
+  };
+  const fromHint = h("div", { class: "hint" });
+  const prompt = h("textarea", { id: "fs-prompt", placeholder: "Describe the product, or paste its requirements. e.g. An orders app: staff list orders, filter them by status and mark one shipped." });
+  let file;
+  const fileInput = h("input", { type: "file", accept: ".md,.markdown,.txt,text/markdown,text/plain", id: "fs-file" });
+  const fileBox = h("div", { class: "small muted" }, "Or upload a .md or .txt file instead.");
+  fileInput.addEventListener("change", async () => {
+    const f = fileInput.files?.[0];
+    err.hidden = true;
+    if (!f) { file = undefined; return; }
+    if (!/\.(md|markdown|txt)$/i.test(f.name)) return fail("Upload a Markdown (.md) or text (.txt) file.");
+    if (f.size > 1_000_000) return fail(`${f.name} is over 1 MB.`);
+    file = { name: f.name, text: await f.text() };
+    fileBox.replaceChildren(h("div", { class: "file-chip" }, icon("file"), h("span", { class: "mono" }, file.name), h("button", { class: "btn sm", type: "button", onclick: () => { file = undefined; fileInput.value = ""; fileBox.textContent = "Or upload a .md or .txt file instead."; } }, icon("x"), "Remove")));
+  });
+  const maxCost = h("input", { type: "number", id: "fs-max", min: "0.5", step: "0.5", placeholder: "normal limit" });
+  const start = h("button", { class: "btn primary", type: "submit" }, "Make the repos and start the web run", icon("arrow"));
+  const fld = (id, label, control, hint) => h("div", { class: "field" }, h("label", { for: id }, label), control, hint ? (typeof hint === "string" ? h("div", { class: "hint" }, hint) : hint) : null);
+  const reqBlock = h("div", { id: "fs-req" }, fld("fs-prompt", "Request", prompt),
+    h("div", { class: "field" }, h("label", { class: "drop slim", for: "fs-file" }, fileInput, icon("upload"), h("strong", {}, "Choose a requirements file")), fileBox));
+  // an approved design or estimate brings its own request
+  const syncFrom = () => {
+    const k = fromSel.value.slice(0, 1);
+    reqBlock.hidden = !!k;
+    fromHint.textContent = k === "d" ? "Its request and approved design carry over: the web run asks no design questions and draws nothing again. No estimate is made."
+      : k === "e" ? (webOnly() ? "Its request, spec, design and tasks carry over: the web run is held to the estimate's scope and budget."
+        : "Its request, spec, design and tasks carry over: the web run is held to the estimate's scope and budget, and the backend tasks go to the API run, which builds the approved contract (it is not held to the estimate).")
+      : "The web run asks its questions and draws the design for you to approve. No estimate is made.";
+  };
+  const syncBackend = () => {
+    backendHint.textContent = webOnly()
+      ? "One repo and one run: a Next.js app on the factory's kit. It builds no API: the app is written against the client's backend as the requirements describe it."
+      : "Two repos and two runs: the web run writes the API contract with its plan; once you approve it, start the API run from the product page. Then both start together.";
+    start.replaceChildren(webOnly() ? "Make the repo and start the run" : "Make the repos and start the web run", icon("arrow"));
+    syncRepos(); fillFrom(); syncFrom();
+  };
+  backend.addEventListener("change", syncBackend);
+  fromSel.addEventListener("change", syncFrom);
+  fillFrom();
+  if (["design", "estimate"].includes(preset[0]) && preset[1]) {
+    const v = `${preset[0] === "design" ? "d" : "e"}:${preset[1]}`;
+    if ([...fromSel.options].some((o) => o.value === v && !o.disabled)) fromSel.value = v;
+  }
+  syncBackend();
+  const form = h("form", { class: "form", novalidate: true }, err,
+    fld("fs-backend", "Backend", backend, backendHint),
+    fld("fs-name", "Product name", name, "Lower-case letters, digits and dashes. It names the project (with the API: <name>-web and <name>-api)."),
+    fld("fs-dir", "Folder for the repos", dir, repos),
+    h("div", { class: "field" }, h("label", { class: "opt", for: "fs-github" }, onGithub, h("span", {}, h("strong", {}, "Put it on GitHub"), ghText))),
+    h("div", { class: "field" }, h("label", { for: "fs-from" }, "Start from (optional)"), fromSel, fromHint, warns),
+    reqBlock,
+    fld("fs-max", "Max cost of the web run (optional)", h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), "It can only lower the normal limit, like --max-cost. With the API, the API run gets its own limit when you start it."),
+    h("div", { class: "row" }, start, h("span", { class: "hint" }, "Runs in the background. Decide the web run's cards on its run page.")));
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    err.hidden = true;
+    start.disabled = true;
+    start.replaceChildren(h("span", { class: "spin" }), webOnly() ? "Making the repo…" : "Making the repos…");
+    const k = fromSel.value.slice(0, 1), id = fromSel.value.slice(2);
+    const from = k === "d" ? { fromDesign: id } : k === "e" ? { fromEstimate: id } : file ? { file } : { prompt: prompt.value };
+    const n = name.value.trim(), d = dir.value.trim().replace(/\/+$/, "");
+    try {
+      // the web app alone is a greenfield run into a new empty project, as factory init and factory start would make it
+      if (webOnly()) {
+        const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: "greenfield", project: "", newProject: { name: n, dir: d ? `${d}/${n}` : "" }, github: onGithub.checked, maxCost: maxCost.value, ...from }) });
+        location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
+      } else {
+        const r = await api("/api/fullstack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: n, dir: d, github: onGithub.checked, maxCost: maxCost.value, ...from }) });
+        location.hash = `#/fullstack/${encodeURIComponent(r.name)}`;
+      }
+    } catch (e) {
+      fail(e.message);
+      start.disabled = false;
+      syncBackend();
+    }
+  });
+  mount([
+    h("div", { class: "page-head" }, h("div", {}, h("div", { class: "crumbs" }, h("a", { href: "#/new" }, "New run"), "/", "Greenfield"), h("h1", {}, "What should the new product do?"),
+      h("p", { class: "sub" }, "A web app on the factory's kit and its .NET API, in two new repos held to one API contract; or, when the client provides the backend, the web app alone. Every build gate runs."))),
+    h("div", { class: "panel" }, form),
+    h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("layers"), "Products")),
+      products.length ? h("div", { class: "table-wrap" }, h("table", { class: "runs" },
+        h("thead", {}, h("tr", {}, ["Product", "Web run", "API run"].map((t) => h("th", {}, t)))),
+        h("tbody", {}, products.map((p) => h("tr", { onclick: () => { location.hash = `#/fullstack/${encodeURIComponent(p.name)}`; } },
+          h("td", {}, h("strong", {}, p.name)),
+          ...[p.web, p.api].map((side) => h("td", {}, side.run ? [pill(side.run.status), h("span", { class: "small muted" }, ` ${side.run.step}`)] : h("span", { class: "faint small" }, "not started"))))))))
+        : h("p", { class: "muted small" }, "None yet.")),
+  ], true);
+}
+
+/** One web app + API product: both runs, the approved contract, and the next step (start the API run, then write the run files). */
+function productScreen(name) {
+  skeleton("grid");
+  let lastJson = "";
+  const msg = h("p", { class: "small", role: "status" });
+  const apiCap = h("input", { type: "number", id: "fs-apimax", min: "0.5", step: "0.5", placeholder: "normal limit" });
+  poll(3000, async (first) => {
+    const p = await api(`/api/fullstack/${encodeURIComponent(name)}`);
+    const json = JSON.stringify(p);
+    if (json === lastJson) return;
+    lastJson = json;
+    const side = (title, ico, s) => h("section", { class: "panel rise" }, h("div", { class: "panel-head" }, h("h2", {}, icon(ico), title), s.run ? pill(s.run.status) : h("span", { class: "faint small" }, "not started")),
+      h("dl", { class: "facts" },
+        h("dt", {}, "Project"), h("dd", {}, h("code", {}, s.project)),
+        h("dt", {}, "Repo"), h("dd", {}, h("code", {}, s.repo), copyButton(s.repo)),
+        s.github ? [h("dt", {}, "GitHub"), h("dd", {}, h("a", { href: s.github, target: "_blank", rel: "noopener" }, s.github.replace(/^https?:\/\/[^/]+\//, "")))] : null,
+        s.prUrl ? [h("dt", {}, "PR"), h("dd", {}, h("a", { href: s.prUrl, target: "_blank", rel: "noopener" }, s.prUrl.replace(/^.*\/pull\//, "#")))] : null,
+        s.run ? [h("dt", {}, "Run"), h("dd", {}, h("a", { href: `#/runs/${encodeURIComponent(s.run.runId)}` }, s.run.runId)),
+          h("dt", {}, "Step"), h("dd", {}, s.run.step || "-"),
+          h("dt", {}, "Cost"), h("dd", {}, money(s.run.costUsd)),
+          s.run.openCard ? [h("dt", {}, "Waiting on"), h("dd", {}, h("a", { href: `#/runs/${encodeURIComponent(s.run.runId)}` }, `${s.run.openCard} card`))] : null] : null));
+    const startApi = h("button", { class: "btn primary", type: "button", disabled: !p.next.canStartApi }, icon("play"), "Hand over the contract and start the API run");
+    startApi.addEventListener("click", async () => {
+      startApi.disabled = true; msg.textContent = "";
+      try {
+        const r = await api(`/api/fullstack/${encodeURIComponent(name)}/next`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ maxCost: apiCap.value }) });
+        msg.textContent = `API run ${r.apiRun} started.`;
+        lastJson = "";
+      } catch (e) { msg.textContent = e.message; startApi.disabled = false; }
+    });
+    const writeFiles = h("button", { class: "btn", type: "button", disabled: !p.next.canWriteRunFiles }, icon("download"), "Write the run files");
+    const files = h("div");
+    writeFiles.addEventListener("click", async () => {
+      writeFiles.disabled = true; msg.textContent = "";
+      try {
+        const r = await api(`/api/fullstack/${encodeURIComponent(name)}/up`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        files.replaceChildren(h("p", { class: "small" }, `Written to ${r.dir}. Start both apps, then open ${p.runFiles.open}:`), h("div", { class: "cmds" }, h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, r.command), copyButton(r.command))));
+      } catch (e) { msg.textContent = e.message; }
+      writeFiles.disabled = false;
+    });
+    mount([
+      h("div", { class: "page-head" }, h("div", {}, h("div", { class: "crumbs" }, h("a", { href: "#/new/greenfield" }, "Greenfield"), "/", "Product"), h("h1", {}, p.name),
+        p.request ? h("p", { class: "sub" }, p.request.length > 240 ? `${p.request.slice(0, 239)}…` : p.request) : null,
+        p.from ? h("p", { class: "small muted" }, `Started from approved ${p.from.kind} `, h("a", { href: `#/runs/${encodeURIComponent(p.from.runId)}/${p.from.kind}` }, p.from.runId),
+          p.from.kind === "design" ? ": its design steps are skipped." : ": the web run is held to it; the API run builds the approved contract.") : null)),
+      h("div", { class: "stack" },
+        h("section", { class: "panel rise next-panel" }, h("div", { class: "panel-head" }, h("h2", {}, icon("arrow"), "Next")),
+          h("p", { class: "small muted" }, p.next.say),
+          !p.api.run ? h("div", { class: "row" }, h("div", { class: "money-in" }, h("span", {}, "$"), apiCap), h("span", { class: "hint" }, "API run's max cost (optional)"), startApi) : null,
+          h("div", { class: "row" }, writeFiles, h("span", { class: "hint" }, "Once both runs are delivered: both branches side by side and a compose file. Starts nothing.")),
+          files, msg),
+        h("div", { class: "grid-2" }, side("Web run", "browser", p.web), side("API run", "layers", p.api)),
+        p.contract ? h("section", { class: "panel rise" }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "API contract (approved)"), h("code", { class: "small muted" }, p.contract.file)),
+          p.contract.operations.length ? h("div", { class: "tags" }, p.contract.operations.map((o) => h("span", { class: "tag mono" }, o))) : null,
+          h("details", {}, h("summary", { class: "small muted" }, "The contract"), h("pre", { class: "contract mono small" }, p.contract.text)))
+          : h("section", { class: "panel rise" }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "API contract")), h("p", { class: "small muted" }, "Written by the web run's plan and shown on its plan card. It appears here once you approve that plan."))),
+    ], first);
+  });
+}
+
 // ---------- router ----------
 
 async function route() {
@@ -1722,10 +2103,15 @@ async function route() {
   const parts = hash.split("/").filter(Boolean).map(decodeURIComponent);
   const top = parts[0] ?? "new";
   document.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("on", a.dataset.nav === top));
-  document.title = `AI Factory · ${{ new: "New run", runs: parts[1] ? parts[1] : "Runs", dashboard: "Dashboard" }[top] ?? ""}`;
+  document.title = `AI Factory · ${{ new: "New run", runs: parts[1] ? parts[1] : "Runs", dashboard: "Dashboard", fullstack: parts[1] ? parts[1] : "Products" }[top] ?? ""}`;
   try {
     // #/new/estimate/<design|revises>/<run> and #/new/brownfield/<design|estimate>/<run> start from that run
     if (top === "new" && parts[1] === "brownfield") await requestScreen("brownfield", parts.slice(2));
+    // #/new/greenfield[/<design|estimate>/<run>]: a new product, web app + API; the older links #/new/greenfield/web/... and #/new/fullstack land there too
+    else if (top === "new" && parts[1] === "greenfield") await greenfieldScreen(parts.slice(parts[2] === "web" ? 3 : 2));
+    else if (top === "new" && parts[1] === "fullstack") await greenfieldScreen();
+    else if (top === "fullstack" && parts[1]) productScreen(parts[1]);
+    else if (top === "fullstack") await greenfieldScreen();
     else if (top === "new" && parts[1] === "estimate") await requestScreen("estimate", parts.slice(2));
     else if (top === "new" && parts[1] === "design") await requestScreen("design");
     else if (top === "runs" && parts[1] && parts[2] === "estimate") await estimateScreen(parts[1]);

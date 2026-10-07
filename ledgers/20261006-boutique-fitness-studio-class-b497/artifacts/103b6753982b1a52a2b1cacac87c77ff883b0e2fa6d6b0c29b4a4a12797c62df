@@ -1,0 +1,353 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Schedule",
+     "subtitle": "Wed 13 May · 6 classes · book up to 7 days ahead",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "Yoga",
+        "Pilates",
+        "HIIT",
+        "Spin",
+        "Boxing"
+       ]
+      },
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Day",
+         "options": [
+          "Mon 11",
+          "Tue 12",
+          "Wed 13 · Today",
+          "Thu 14",
+          "Fri 15",
+          "Sat 16",
+          "Sun 17"
+         ],
+         "value": "Wed 13 · Today"
+        },
+        {
+         "label": "Intensity",
+         "options": [
+          "Any",
+          "Low",
+          "Medium",
+          "High"
+         ],
+         "value": "Any"
+        },
+        {
+         "label": "Time of day",
+         "options": [
+          "Any time",
+          "Morning",
+          "Afternoon",
+          "Evening"
+         ],
+         "value": "Any time"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Previous week",
+         "icon": "chevron-left",
+         "iconOnly": true,
+         "state": "disabled",
+         "hint": "You're already on this week"
+        },
+        {
+         "label": "Next week",
+         "icon": "chevron-right",
+         "iconOnly": true,
+         "hint": "Mon 18 – Sun 24 May"
+        },
+        {
+         "label": "Clear filters",
+         "variant": "ghost",
+         "icon": "x"
+        }
+       ]
+      },
+      {
+       "type": "cards",
+       "items": [
+        {
+         "title": "Lunch HIIT",
+         "meta": "HIIT · High · 12:15 · 30 min · Studio B · Only 2 left",
+         "badge": "Booking closed",
+         "people": [
+          "Jordan Okafor"
+         ]
+        },
+        {
+         "title": "Core Pilates",
+         "meta": "Pilates · Medium · 13:00 · 50 min · Reformer Room · 1 spot left",
+         "badge": "Book",
+         "people": [
+          "Priya Shah"
+         ]
+        },
+        {
+         "title": "HIIT Burn",
+         "meta": "HIIT · High · 17:30 · 45 min · Studio B · Full · 5 on waitlist",
+         "badge": "Join waitlist",
+         "people": [
+          "Jordan Okafor"
+         ]
+        },
+        {
+         "title": "Power Spin",
+         "meta": "Spin · High · 18:00 · 45 min · Spin Studio · Full · 3 on waitlist",
+         "badge": "Waitlisted #2",
+         "people": [
+          "Leo Martins"
+         ]
+        },
+        {
+         "title": "Boxing Fundamentals",
+         "meta": "Boxing · Medium · 18:30 · 60 min · Studio B · 8 spots left",
+         "badge": "Booked ✓",
+         "people": [
+          "Sam Reid"
+         ]
+        },
+        {
+         "title": "Candlelight Yin Yoga",
+         "meta": "Yoga · Low · 19:45 · 75 min · Studio A · Cancelled",
+         "badge": "Cancelled",
+         "people": [
+          "Maya Chen"
+         ]
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Lunch HIIT",
+       "to": "S-2"
+      },
+      {
+       "from": "Core Pilates",
+       "to": "S-2"
+      },
+      {
+       "from": "HIIT Burn",
+       "to": "S-2"
+      },
+      {
+       "from": "Power Spin",
+       "to": "S-2"
+      },
+      {
+       "from": "Boxing Fundamentals",
+       "to": "S-2"
+      },
+      {
+       "from": "Candlelight Yin Yoga",
+       "to": "S-2"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Book",
+       "text": "You're booked for Core Pilates · Wed 13:00",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "Join waitlist",
+       "text": "You're #6 on the waitlist for HIIT Burn · Wed 17:30",
+       "tone": "info"
+      },
+      {
+       "after": "Schedule",
+       "text": "Good news! You moved off the waitlist and you're booked for Power Spin · Wed 18:00",
+       "tone": "ok"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No classes on this day",
+      "emptyHint": "Pick another day from the strip. If your filters hide everything, tap Clear filters.",
+      "error": "We couldn't load the schedule. Check your connection and tap Retry.",
+      "success": "You're booked for Core Pilates · Wed 13:00",
+      "validation": "That spot just went. We've put the card back the way it was, so try another class."
+     }
+    },
+    "mockFull": {
+     "title": "Schedule",
+     "subtitle": "Wed 13 May · 9 classes · book up to 7 days ahead",
+     "blocks": [
+      {
+       "type": "filters",
+       "chips": [
+        "Yoga",
+        "Pilates",
+        "HIIT",
+        "Spin",
+        "Boxing"
+       ]
+      },
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Day",
+         "options": [
+          "Mon 11",
+          "Tue 12",
+          "Wed 13 · Today",
+          "Thu 14",
+          "Fri 15",
+          "Sat 16",
+          "Sun 17"
+         ],
+         "value": "Wed 13 · Today"
+        },
+        {
+         "label": "Intensity",
+         "options": [
+          "Any",
+          "Low",
+          "Medium",
+          "High"
+         ],
+         "value": "Any"
+        },
+        {
+         "label": "Time of day",
+         "options": [
+          "Any time",
+          "Morning",
+          "Afternoon",
+          "Evening"
+         ],
+         "value": "Any time"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Previous week",
+         "icon": "chevron-left",
+         "iconOnly": true,
+         "state": "disabled",
+         "hint": "You're already on this week"
+        },
+        {
+         "label": "Next week",
+         "icon": "chevron-right",
+         "iconOnly": true,
+         "hint": "Mon 18 – Sun 24 May"
+        },
+        {
+         "label": "Clear filters",
+         "variant": "ghost",
+         "icon": "x"
+        }
+       ]
+      },
+      {
+       "type": "cards",
+       "items": [
+        {
+         "title": "Sunrise Flow",
+         "meta": "Yoga · Low · 07:00 · 60 min · Studio A · 3 spots left",
+         "badge": "Started",
+         "people": [
+          "Maya Chen"
+         ]
+        },
+        {
+         "title": "Express Spin",
+         "meta": "Spin · High · 07:30 · 45 min · Spin Studio · Full · 2 on waitlist",
+         "badge": "Started",
+         "people": [
+          "Leo Martins"
+         ]
+        },
+        {
+         "title": "Mat Pilates",
+         "meta": "Pilates · Low · 09:30 · 50 min · Studio A · 6 spots left",
+         "badge": "Started",
+         "people": [
+          "Priya Shah"
+         ]
+        },
+        {
+         "title": "Lunch HIIT",
+         "meta": "HIIT · High · 12:15 · 30 min · Studio B · Only 2 left",
+         "badge": "Booking closed",
+         "people": [
+          "Jordan Okafor"
+         ]
+        },
+        {
+         "title": "Core Pilates",
+         "meta": "Pilates · Medium · 13:00 · 50 min · Reformer Room · 1 spot left",
+         "badge": "Book",
+         "people": [
+          "Priya Shah"
+         ]
+        },
+        {
+         "title": "HIIT Burn",
+         "meta": "HIIT · High · 17:30 · 45 min · Studio B · Full · 5 on waitlist",
+         "badge": "Join waitlist",
+         "people": [
+          "Jordan Okafor"
+         ]
+        },
+        {
+         "title": "Power Spin",
+         "meta": "Spin · High · 18:00 · 45 min · Spin Studio · Full · 3 on waitlist",
+         "badge": "Waitlisted #2",
+         "people": [
+          "Leo Martins"
+         ]
+        },
+        {
+         "title": "Boxing Fundamentals",
+         "meta": "Boxing · Medium · 18:30 · 60 min · Studio B · 8 spots left",
+         "badge": "Booked ✓",
+         "people": [
+          "Sam Reid"
+         ]
+        },
+        {
+         "title": "Candlelight Yin Yoga",
+         "meta": "Yoga · Low · 19:45 · 75 min · Studio A · Cancelled",
+         "badge": "Cancelled",
+         "people": [
+          "Maya Chen"
+         ]
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No classes on this day",
+      "emptyHint": "Pick another day from the strip. If your filters hide everything, tap Clear filters.",
+      "error": "We couldn't load the schedule. Check your connection and tap Retry.",
+      "success": "You're booked for Core Pilates · Wed 13:00",
+      "validation": "That spot just went. We've put the card back the way it was, so try another class."
+     }
+    }
+   },
+   "ms": 4,
+   "resultChars": 143,
+   "isError": true,
+   "result": "The result doesn't match the schema: mock.toasts.2.text: Too big: expected string to have <=80 characters. Fix it and call submit_result again."
+  }
+ ]
+}

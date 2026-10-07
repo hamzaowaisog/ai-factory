@@ -2,7 +2,7 @@
 // store pack + output in the ledger, map runner results to step outcomes.
 import type { z } from "zod";
 import { readsRequirements, type PackClass, type StageName } from "../contracts/index.js";
-import { buildPack, PackOverBudgetError, type ResolvedSection } from "../context/pack.js";
+import { buildPack, fileNotPasted, FILE_INLINE_MAX, PackOverBudgetError, type ResolvedSection } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
 import { estimateTokens } from "../context/tokens.js";
 import type { RepoTools } from "../context/tools.js";
@@ -13,7 +13,7 @@ import { argsSummary } from "../util/trace.js";
 import { cacheDisabled, cacheForget, cacheGet, cacheKey, cachePut } from "../estimate/cache.js";
 
 const kTok = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n));
-import { modelFor } from "./routing.js";
+import { mechanical, modelFor } from "./routing.js";
 import { blockedText, modelAllowed } from "../gates/policy.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
 import { replay } from "../ledger/state.js";
@@ -48,7 +48,7 @@ export interface ThinkSpec<T> {
 }
 
 export type ThinkResult<T> =
-  /** `forget` drops the stored answer (estimate and design runs) when the step's own checks reject it */
+  /** `forget` drops the stored answer when the step's own checks reject it */
   | { ok: true; output: T; model: string; packSha: string; note?: string; forget?: () => void }
   | { ok: false; outcome: StepOutcome };
 
@@ -70,8 +70,8 @@ export function budgetFor(ctx: Pick<StepContext, "state">, base: number | undefi
 const PROGRESS_EVERY_MS = 45_000;
 
 export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<ThinkResult<T>> {
-  const routed = modelFor(ctx.project, spec.route, ctx.rung, ctx.policy);
-  const effort = spec.effort && ctx.rung === 0 ? spec.effort : routed.effort;
+  const routed = modelFor(ctx.project, spec.route, ctx.rung, ctx.policy, ctx.priorFailures);
+  const effort = spec.effort && (ctx.rung === 0 || mechanical(ctx.priorFailures)) ? spec.effort : routed.effort;
   const { singleFamilyNote } = routed;
   const model = spec.model ?? routed.model;
   // the run's policy decides the models: park, never swap (a fixed model here, e.g. the light lane's, too)
@@ -99,14 +99,20 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
   }
   const packSha = ctx.ledger.putJson(pack);
 
-  // estimate and design modes: the same briefing, model and repository state gives the stored answer (src/estimate/cache.ts)
+  // the same briefing, model and repository state gives the stored answer (src/estimate/cache.ts): from any run in estimate and
+  // design modes (the same requirements give the same estimate), and from this run alone in a build run, where it saves a
+  // retry or a resume from paying again for the calls of the step that had already passed
   const reads = spec.tools.length > 0 && !!ctx.state.info.repoPath;
-  const cacheable = readsRequirements(ctx.state.info.mode) && !cacheDisabled() && !(reads && !ctx.state.info.baseCommit);
+  const sameRunOnly = !readsRequirements(ctx.state.info.mode);
+  // a reviewer's tools read the commit under review, which the key does not hold
+  // and an answer written against failures is a retry's: if it is rejected for the same reasons, the next retry must ask again
+  const cacheable = !cacheDisabled() && !(reads && !ctx.state.info.baseCommit) && !(sameRunOnly && (spec.toolsAt === "under-review" || ctx.priorFailures.length > 0));
   const key = cacheable
     ? cacheKey({ model, effort, system: pack.system, user: pack.user, images: pack.images, tools: pack.tools, ...(reads ? { repoCommit: ctx.state.info.baseCommit } : {}) })
     : undefined;
   if (key) {
-    const hit = cacheGet<unknown>(key);
+    const stored = cacheGet<unknown>(key);
+    const hit = stored && (!sameRunOnly || stored.runId === ctx.runId) ? stored : undefined;
     const parsed = hit ? spec.schema.safeParse(hit.output) : undefined;
     if (hit && parsed?.success) {
       ctx.log(`${spec.label ?? spec.stage}: reused the stored answer from run ${hit.runId} (same briefing, model and settings; no model call)`);
@@ -125,7 +131,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
       ctx.trace.event("model.turn",
         `${spec.label ?? spec.stage} turn ${t.turn} ${t.model}  in ${kTok(t.usage.inputTokens + t.usage.cacheRead)} out ${kTok(t.usage.outputTokens)} $${t.costUsd.toFixed(3)} ${(t.ms / 1000).toFixed(1)}s`
           + (tools.length ? `  → ${tools.join(", ")}` : "")
-          + (t.calls.some((c) => c.name === "submit_result") ? (t.schemaError ? `  → answer REJECTED: ${t.schemaError.slice(0, 160)}` : "  → answered") : "")
+          + (t.calls.some((c) => c.name === "submit_result") ? (t.schemaError ? `  → answer REJECTED: ${t.schemaError.slice(0, 160)}` : t.mended?.length ? `  → answered (mended: ${t.mended.join("; ").slice(0, 160)})` : "  → answered") : "")
           + (t.stop === "max_tokens" ? "  (hit max tokens)" : ""),
         { model: t.model, turn: t.turn, costUsd: t.costUsd, ms: t.ms, usage: t.usage, turnSha: sha });
     },
@@ -163,6 +169,11 @@ export const S = {
   profile: (id: string, text: string): ResolvedSection => ({ spec: { id, source: "profile", trust: "derived", placement: "system", trimmable: "map-depth" }, content: text }),
   artifact: (id: string, kind: string, value: unknown, sha?: string): ResolvedSection => ({
     spec: { id, source: "artifact", trust: "derived", placement: "user" }, content: JSON.stringify(value, null, 1), artifactKind: kind, artifactSha: sha,
+  }),
+  /** files that are in the checkout too: a big one is named instead of pasted, and the biggest go the same way when the briefing is over its budget */
+  files: (id: string, kind: string, files: { path: string; content: string }[]): ResolvedSection => ({
+    spec: { id, source: "artifact", trust: "derived", placement: "user", trimmable: "files-largest" }, content: "", artifactKind: kind,
+    files: files.map((f) => (f.content.length > FILE_INLINE_MAX ? { path: f.path, content: fileNotPasted(f) } : { path: f.path, content: f.content })),
   }),
   untrusted: (id: string, source: string, text: string): ResolvedSection => ({
     spec: { id, source: "doc", trust: "untrusted", placement: "user" }, content: text, docId: id, source,

@@ -1,0 +1,270 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "sentences": [
+     {
+      "n": 1,
+      "text": "The app must be a responsive single-location booking web app for Pulse Studio offering Yoga, Pilates, HIIT, Spin and Boxing classes."
+     },
+     {
+      "n": 2,
+      "text": "It must present exactly three screens: Schedule (home at root URL), Class Detail, and My Bookings."
+     },
+     {
+      "n": 3,
+      "text": "There is a single pre-signed-in member, Alex Rivera, with no sign-in screen."
+     },
+     {
+      "n": 4,
+      "text": "A top bar must show the Pulse Studio wordmark and an avatar with initials AR linking to My Bookings."
+     },
+     {
+      "n": 5,
+      "text": "All dates, day boundaries and time-based rules must be computed in the Europe/London timezone and times displayed in 24-hour HH:mm format regardless of device timezone or clock setting."
+     },
+     {
+      "n": 6,
+      "text": "A seed generator must produce at least 40 class sessions across the five class types and three rooms, five instructors with name, bio and avatar, at least 3 full sessions, at least 3 sessions with 1-3 spots left, at least 1 studio-cancelled session, and for Alex 2 upcoming Booked, 1 Waitlisted and 3 past Attended bookings, none on a cancelled session."
+     },
+     {
+      "n": 7,
+      "text": "On app load, seed sessions must be generated for the current and next Monday-Sunday week (Europe/London) and stored in local storage if none exists, or existing stored sessions must be reused unchanged."
+     },
+     {
+      "n": 8,
+      "text": "Every booking action must persist bookings, statuses, late flags, session counts and waitlist positions to local storage before reporting success, so data survives a new instance or page reload."
+     },
+     {
+      "n": 9,
+      "text": "Booking a session with free spots, within the booking window, no overlap, and under the 10-upcoming-booking limit must create a Booked record and increment booked count."
+     },
+     {
+      "n": 10,
+      "text": "Booking or waitlisting a session Alex already holds a record for must be rejected with an 'already booked' error without side effects."
+     },
+     {
+      "n": 11,
+      "text": "Booking a full session must be rejected with a 'class full' error with counts unchanged."
+     },
+     {
+      "n": 12,
+      "text": "Joining a waitlist on a full, in-window session must create a Waitlisted record with the correct position and increment waitlist count, bypassing overlap and limit checks; joining a waitlist on a non-full session must be rejected."
+     },
+     {
+      "n": 13,
+      "text": "Booking or waitlisting a session starting more than 168 hours from now must be rejected with an 'outside booking window' error; exactly 168 hours is allowed."
+     },
+     {
+      "n": 14,
+      "text": "Booking or waitlisting a session starting less than 15 minutes from now must be rejected with an 'outside booking window' error; exactly 15 minutes is allowed."
+     },
+     {
+      "n": 15,
+      "text": "Booking, waitlisting, cancelling or leaving a waitlist for a session that has already started must be rejected with a 'class has started' error, leaving data unchanged."
+     },
+     {
+      "n": 16,
+      "text": "Booking or waitlisting a studio-cancelled session must be rejected with a 'cancelled by studio' error."
+     },
+     {
+      "n": 17,
+      "text": "Booking a session that overlaps another Booked session must be rejected with a specific message naming the conflicting class and its time range; sessions touching end-to-start are not considered overlapping."
+     },
+     {
+      "n": 18,
+      "text": "Booking beyond 10 upcoming Booked sessions must be rejected with a specific limit message; Waitlisted records do not count toward this limit."
+     },
+     {
+      "n": 19,
+      "text": "Cancelling a Booked record for a not-yet-started session must set it to Cancelled with a late flag true only if less than 2 hours remain before start."
+     },
+     {
+      "n": 20,
+      "text": "Cancelling a Booked record must decrement the waitlist count (keeping booked count) if waitlisted members exist, otherwise decrement the booked count."
+     },
+     {
+      "n": 21,
+      "text": "Leaving a waitlist for a not-yet-started session must set the record to Cancelled with late flag false, remove it from Upcoming, and decrement waitlist count."
+     },
+     {
+      "n": 22,
+      "text": "A test-only hook must promote the first waitlisted member on cancellation: Alex at position 1 becomes Booked if eligible, Alex at higher positions is bumped down by one, and counts are adjusted accordingly."
+     },
+     {
+      "n": 23,
+      "text": "If promoting Alex from waitlist position 1 would cause overlap, exceed the 10-booking limit, or violate the 15-minute window, Alex must remain Waitlisted at position 1 with a stored skip reason, and the next member or counts must be adjusted instead."
+     },
+     {
+      "n": 24,
+      "text": "Class Detail must display the stored skip reason next to Alex's waitlist position when applicable."
+     },
+     {
+      "n": 25,
+      "text": "On app open, if Alex was promoted from waitlist to Booked since the last visit, a one-time toast naming the class must be shown."
+     },
+     {
+      "n": 26,
+      "text": "Undoing a booking within 5 seconds of the toast must delete the Booked record entirely (no Cancelled record or late flag) and restore the prior booked count."
+     },
+     {
+      "n": 27,
+      "text": "A Booked record whose session end time has passed must be returned as Attended in the Past list."
+     },
+     {
+      "n": 28,
+      "text": "A Booked or Waitlisted record for a session later marked studio-cancelled must appear in the Past list with status 'Cancelled by studio'."
+     },
+     {
+      "n": 29,
+      "text": "The Upcoming list must contain Booked and Waitlisted records for unended sessions, ordered ascending and grouped by day label; the Past list must contain Attended and Cancelled records ordered most recent first."
+     },
+     {
+      "n": 30,
+      "text": "My Bookings stats must compute Upcoming count, Classes this month count, and Current streak of consecutive weeks with attendance, unaffected by late cancellations."
+     },
+     {
+      "n": 31,
+      "text": "A session action state must be computable as Book, Join waitlist, Booked, Waitlisted (with position and skip reason), or Disabled with a reason, following the stated precedence rules."
+     },
+     {
+      "n": 32,
+      "text": "An availability label function must return 'Cancelled', 'Full · N on waitlist', '1 spot left', 'Only N left' (2-3 spots), or 'N spots left' (4+ spots) as appropriate."
+     },
+     {
+      "n": 33,
+      "text": "Schedule cards must display the computed availability label per the above rules."
+     },
+     {
+      "n": 34,
+      "text": "A schedule filter function must return a day's sessions, including studio-cancelled ones, ordered by start time, matching any selected type, intensity, and time-of-day filters, with empty filter groups matching everything."
+     },
+     {
+      "n": 35,
+      "text": "The Schedule screen must show a Monday-Sunday day strip of 7 chips with today highlighted, days without sessions dimmed, and prev/next-week navigation limited to current and next week."
+     },
+     {
+      "n": 36,
+      "text": "The Schedule screen must show a filter bar with type, intensity, and time-of-day chips plus a Clear filters action."
+     },
+     {
+      "n": 37,
+      "text": "Each day's session must be shown as a card with time, duration, name, type tag, intensity, instructor, room, capacity bar with label, and an action button, with cancelled sessions struck through."
+     },
+     {
+      "n": 38,
+      "text": "The action button on each card must read Book, Join waitlist, Booked ✓, or Waitlisted #N, or be disabled for started, cancelled, or out-of-window sessions."
+     },
+     {
+      "n": 39,
+      "text": "Activating a schedule card outside its button (or a My Bookings row) must open Class Detail for that session without creating a booking."
+     },
+     {
+      "n": 40,
+      "text": "Booking from a Schedule card must update the card immediately and show a toast with an Undo action available for 5 seconds."
+     },
+     {
+      "n": 41,
+      "text": "Joining/leaving a waitlist or cancelling a booking must show a confirmation toast with no Undo action."
+     },
+     {
+      "n": 42,
+      "text": "If an optimistic booking action is rejected or fails, the UI must revert to its previous state and show a plain-language error toast with no raw error or stack trace."
+     },
+     {
+      "n": 43,
+      "text": "The Schedule screen must show skeleton cards while loading, an empty-day message, a no-filter-match message with Clear filters, or an inline error with Retry, as appropriate."
+     },
+     {
+      "n": 44,
+      "text": "Using Back from Class Detail must return to the originating screen with its prior day, week, filter and tab state preserved."
+     },
+     {
+      "n": 45,
+      "text": "Class Detail must show a hero header with accent colour, class info, timing, room, instructor card, description, what-to-bring list, availability block, and the free-cancellation text."
+     },
+     {
+      "n": 46,
+      "text": "The Class Detail footer must show the correct action/status text per booking state, stay pinned at the bottom on small viewports, and reflect disabled reasons as appropriate."
+     },
+     {
+      "n": 47,
+      "text": "Cancelling from Class Detail or My Bookings must open a confirmation dialog, showing a late-cancellation warning when under 2 hours remain."
+     },
+     {
+      "n": 48,
+      "text": "A rejected booking attempt from Class Detail must show the rule's error message and, if due to the class becoming full, refresh availability and switch the footer to Join waitlist."
+     },
+     {
+      "n": 49,
+      "text": "My Bookings must show a header, three stat tiles, Upcoming/Past tabs, with Upcoming rows grouped by day showing badges and actions, and Past rows showing status badges."
+     },
+     {
+      "n": 50,
+      "text": "My Bookings must show empty-state and loading/error messages for no-upcoming, no-past, loading, and failed states, respectively."
+     },
+     {
+      "n": 51,
+      "text": "The app must use defined colour design tokens including background, text, semantic colours, and per-class-type accent colours applied consistently."
+     },
+     {
+      "n": 52,
+      "text": "The app must support a dark theme matching the system preference, meeting contrast requirements."
+     },
+     {
+      "n": 53,
+      "text": "The app must use defined display and body fonts, a type scale, and tabular figures for numbers/times."
+     },
+     {
+      "n": 54,
+      "text": "The app must replace animations with instant changes when reduced motion is preferred."
+     },
+     {
+      "n": 55,
+      "text": "All interactive elements must be reachable and operable via keyboard with visible focus indicators."
+     },
+     {
+      "n": 56,
+      "text": "The app must use semantic markup, accessible capacity bar announcements, and pair colour signals with text or icons."
+     },
+     {
+      "n": 57,
+      "text": "Dialogs must trap focus, close on Escape, and return focus to the triggering control."
+     },
+     {
+      "n": 58,
+      "text": "The app must avoid horizontal scrolling at narrow widths, use a 2-column card layout at tablet widths, and show Class Detail as a side panel at desktop widths."
+     },
+     {
+      "n": 59,
+      "text": "All interactive targets must be at least 44x44 px."
+     },
+     {
+      "n": 60,
+      "text": "Automated unit tests must cover the core booking business rules and pass in CI."
+     },
+     {
+      "n": 61,
+      "text": "An automated end-to-end test must cover the schedule-to-booking-to-cancel flow and pass in CI."
+     },
+     {
+      "n": 62,
+      "text": "When loaded data does not cover the current/next week, the service must generate missing weeks' sessions across all class types without altering existing bookings, sessions, or counts."
+     },
+     {
+      "n": 63,
+      "text": "Cancelling a non-Booked record or leaving a waitlist on a non-Waitlisted record must be rejected with an 'invalid booking state' error, leaving all data unchanged."
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

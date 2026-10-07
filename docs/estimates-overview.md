@@ -23,7 +23,7 @@ Every estimate is solely agentic. HITL was the other option and is no longer off
 4. Every task has a kind from the task catalogue. The model picks a size step against the kind's written scale (with the closest approved past tasks as references); code reads the hours from the catalogue and does all arithmetic. The factory proposes a tuned catalogue from finished builds and real project hours, within limits; a person promotes it as a new version (`factory calibrate --apply`), and a run keeps the version it was sized with.
 5. Three independent estimators size every job. Each task takes the middle reading (the median), so one estimator that reads high or low does not move the estimate; a task they disagree on is flagged.
 6. Duration and API cost come from **our own measured runs** (per phase, and per task class for build time). Until enough runs exist, they are labelled cold-start with wide ranges. A pinned public benchmark is only a flagged prior and never changes a number.
-7. Gates check the result. A lead approves it (the default), or the factory in an opt-in hands-off run. Two files are exported from one data model: team file and client file.
+7. Gates check the result. A lead approves it (the default), or the factory in an opt-in hands-off run. Two files are exported from one data model: team file and client file. API credit cost is the factory's own cost and appears in the team file only. Once the workbooks are exported the run shows `finished`.
 
 ## Gates
 | Gate | Checks |

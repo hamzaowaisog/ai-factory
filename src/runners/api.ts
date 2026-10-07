@@ -327,10 +327,66 @@ export interface TurnTrace {
   text: string;
   calls: { name: string; input: unknown; ms: number; resultChars: number; isError?: boolean; result: string }[];
   schemaError?: string;
+  /** slips in the submitted answer that were mended instead of sent back (mendAnswer) */
+  mended?: string[];
 }
 
 function zodIssues(err: z.ZodError): string {
   return err.issues.slice(0, 10).map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ");
+}
+
+/** A string this far over its length limit is cut to fit; further over, the answer goes back. */
+const OVER_LENGTH = 1.25;
+/** Limits under this are ids, codes and short names: never cut. */
+const CUT_FROM = 20;
+
+function cutTo(text: string, max: number): string {
+  const head = text.slice(0, max - 1);
+  const space = head.lastIndexOf(" ");
+  return `${(space > max * 0.6 ? head.slice(0, space) : head).replace(/[\s,;:.\-]+$/, "")}…`;
+}
+
+/**
+ * An answer that fails its schema only for slips with one obvious fix is mended instead of sent back, since a re-ask pays for
+ * the whole answer again (21 such rejections on the runs of 2026-10-05 and 06). Two slips are mended: a list or object sent
+ * as its JSON text is read, and a worded string up to a quarter over its length limit is cut to it at a word, ending "…".
+ * Anything else (a missing field, a wrong value, too many items, an id too long) still goes back to the model.
+ */
+export function mendAnswer<T>(schema: z.ZodType<T>, input: unknown): { output: T; mended: string[] } | undefined {
+  let value: unknown;
+  try { value = structuredClone(input); } catch { return undefined; }
+  const mended: string[] = [];
+  for (let pass = 0; pass < 4; pass++) {
+    const r = schema.safeParse(value);
+    if (r.success) return mended.length ? { output: r.data, mended } : undefined;
+    let fixed = 0;
+    for (const issue of r.error.issues) {
+      const path = issue.path as (string | number)[];
+      if (!path.length) continue;
+      let holder = value as Record<string | number, unknown> | undefined;
+      for (const k of path.slice(0, -1)) holder = holder && typeof holder === "object" ? holder[k] as Record<string | number, unknown> : undefined;
+      const last = path[path.length - 1]!;
+      const at = holder && typeof holder === "object" ? holder[last] : undefined;
+      if (typeof at !== "string") continue;
+      const where = path.join(".");
+      if (issue.code === "invalid_type" && (issue.expected === "array" || issue.expected === "object")) {
+        let read: unknown;
+        try { read = JSON.parse(at); } catch { continue; }
+        if (issue.expected === "array" ? !Array.isArray(read) : !read || typeof read !== "object" || Array.isArray(read)) continue;
+        holder![last] = read;
+        mended.push(`${where}: read from its JSON text`);
+        fixed++;
+      } else if (issue.code === "too_big" && issue.origin === "string") {
+        const max = Number(issue.maximum);
+        if (!(max >= CUT_FROM) || at.length > Math.ceil(max * OVER_LENGTH) || !/\s/.test(at.trim())) continue;
+        holder![last] = cutTo(at, max);
+        mended.push(`${where}: cut from ${at.length} to ${max} characters`);
+        fixed++;
+      }
+    }
+    if (!fixed) return undefined;
+  }
+  return undefined;
 }
 
 export class ApiRunner implements Runner {
@@ -388,8 +444,8 @@ export class ApiRunner implements Runner {
       if (t.stop === "refusal") return done("refused", { error: "The model declined this request" });
 
       const traced: TurnTrace["calls"] = [];
-      const report = (schemaError?: string) => this.deps.onTurn?.({
-        model: job.model, turn: turn + 1, ms: Date.now() - turnStart, stop: t.stop, usage: t.usage, costUsd: cost, text: t.text, calls: traced, schemaError,
+      const report = (schemaError?: string, mended?: string[]) => this.deps.onTurn?.({
+        model: job.model, turn: turn + 1, ms: Date.now() - turnStart, stop: t.stop, usage: t.usage, costUsd: cost, text: t.text, calls: traced, schemaError, ...(mended ? { mended } : {}),
       });
       if (!t.calls.length) {
         report();
@@ -403,10 +459,15 @@ export class ApiRunner implements Runner {
       const results: { id: string; content: string; isError?: boolean }[] = [];
       let output: T | undefined;
       let schemaError: string | undefined;
+      let mended: string[] | undefined;
       for (const c of t.calls) {
         const callStart = Date.now();
         if (c.name === SUBMIT) {
-          const parsed = job.schema.safeParse(c.input);
+          let parsed: { success: true; data: T } | { success: false; error: z.ZodError } = job.schema.safeParse(c.input);
+          if (!parsed.success) {
+            const m = mendAnswer(job.schema, c.input);
+            if (m) { parsed = { success: true, data: m.output }; mended = m.mended; }
+          }
           if (parsed.success && output === undefined) {
             output = parsed.data;
             results.push({ id: c.id, content: "Accepted." });
@@ -428,7 +489,7 @@ export class ApiRunner implements Runner {
         const r = results[results.length - 1]!;
         traced.push({ name: c.name, input: c.input, ms: Date.now() - callStart, resultChars: r.content.length, isError: r.isError, result: r.content });
       }
-      report(schemaError);
+      report(schemaError, mended);
       if (output !== undefined) return done("ok", { output });
       if (over) return done("over-budget");
       // a submit cut off mid-way fails the schema; asking again only buys the same cut-off answer

@@ -11,9 +11,10 @@ import { lintSpec, OBSERVABLE_RULE, outOfScopeSpans, requestExcluded, sizeNote, 
 import { S, think, UNTRUSTED_NOTE, type ThinkSpec } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { LANE, lightSpec, specLane } from "./lane.js";
-import { SETTLE_MODES, specRefused, unsettled, type Found } from "../estimate/settled.js";
+import { settles, specRefused, unsettled, type Found } from "../estimate/settled.js";
 import { settle, settleKey, type Answer, type Decided } from "./settle.js";
 import { hashJson } from "../util/hash.js";
+import { repoIsEmpty } from "../config/greenfield.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -145,9 +146,17 @@ The human answered questions and accepted assumptions (below). Scope they decide
 // ---------- helpers ----------
 const request = (ctx: Pick<StepContext, "state">) => ctx.state.info.request ?? "";
 const hasRepo = (ctx: Pick<StepContext, "state">) => !!ctx.state.info.repoPath && !!ctx.state.info.baseCommit;
-/** Drafters read the repo; with no repo there is nothing to read, so no tools. */
+/** A new product's repo before anything is built into it: only starter files at the base commit. */
+const nothingToRead = (ctx: Pick<StepContext, "state">): boolean => {
+  try { return repoIsEmpty(ctx.state.info.repoPath!, ctx.state.info.baseCommit!); } catch { return false; }
+};
+/**
+ * Drafters read the repo; with no repo, or an empty one, there is nothing to read, so no tools. Tools also make the briefing
+ * a cached conversation, written at 1.25x for a later turn to read back: on the web run of 2026-10-06 (an empty repo) seven
+ * draft calls wrote 200K tokens that way and answered in one turn.
+ */
 const readTools = (ctx: StepContext): Pick<ThinkSpec<unknown>, "tools" | "repoTools"> =>
-  (hasRepo(ctx) ? { tools: ["read_file", "search"], repoTools: toolsFor(ctx) } : { tools: [] });
+  (hasRepo(ctx) && !nothingToRead(ctx) ? { tools: ["read_file", "search"], repoTools: toolsFor(ctx) } : { tools: [] });
 const decisionsOf = (i: { answers: { id: string }[]; assumptions: { id: string }[] }) => [...i.answers.map((a) => a.id), ...i.assumptions.map((a) => a.id)];
 
 /** The first question number after the clarify rounds' (Q-n), for the questions that settle the spec's problems. */
@@ -308,7 +317,7 @@ export const specifyStep: StepDef = {
   key: "specify", stage: "specify", templateVersion: "7",
   // refused: gate E1 refused a spec written before problems were settled by questions, so this step runs again to settle them
   inputs: (s, l) => (s.steps.get("merge")?.status === "completed"
-    ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s), ...(SETTLE_MODES.has(s.info.mode ?? "") && specRefused(s, l) ? { refused: true } : {}) }
+    ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s), ...(settles(s.info) && specRefused(s, l) ? { refused: true } : {}) }
     : undefined),
   async run(ctx) {
     const i = inputsOf(ctx);
@@ -335,8 +344,8 @@ export const specifyStep: StepDef = {
     const manualUi = new Set<string>();
     const spanIds = i.intent.spans.map((s) => s.id);
     let rejectedRepair: string[] | undefined;
-    // estimate and design runs: what the repairs leave open is settled by questions (src/stages/settle.ts)
-    const settling = SETTLE_MODES.has(ctx.state.info.mode ?? "");
+    // estimate and design runs, and a build that asks: what the repairs leave open is settled by questions (src/stages/settle.ts)
+    const settling = settles(ctx.state.info);
     const key = settleKey(mergedSha, request(ctx));
     const resumed = settling && [...ctx.ledger.events()].some((e) => e.type === "human.requested" && (e.data as { settleKey?: string } | undefined)?.settleKey === key);
     // a spec gate E1 refused before problems were settled by questions: settle that spec's problems, not a new spec's
