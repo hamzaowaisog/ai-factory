@@ -155,7 +155,7 @@ class NodeLab implements ContainerRuntime {
   binary = "fake";
   specs = new Map<string, ContainerSpec>();
   n = 0;
-  jobs: { fileScope: string[]; system: string }[] = [];
+  jobs: { fileScope: string[]; system: string; task: string }[] = [];
   /** an agent that adds a package on its own (edits package.json), to show the checks still catch it */
   addsPackage?: "test-writer";
   /** an implementer that rewrites the locked API contract */
@@ -170,7 +170,7 @@ class NodeLab implements ContainerRuntime {
     const mount = (dst: string) => s.mounts.find((m) => m.dst === dst)?.src;
     if (s.role === "agent") {
       const work = mount("/work")!, out = mount("/job/out")!;
-      const job = JSON.parse(readFileSync(mount("/job/in.json")!, "utf8")) as { fileScope: string[]; system: string };
+      const job = JSON.parse(readFileSync(mount("/job/in.json")!, "utf8")) as { fileScope: string[]; system: string; task: string };
       this.jobs.push(job);
       const addPackage = () => { const f = join(work, "package.json"); const j = JSON.parse(readFileSync(f, "utf8")) as { dependencies?: Record<string, string> }; writeFileSync(f, JSON.stringify({ ...j, dependencies: { ...j.dependencies, "left-pad": "1.3.0" } }, null, 2)); };
       if (this.addsPackage && job.fileScope.includes("tests/**")) addPackage();
@@ -393,6 +393,10 @@ describe("a new product end to end (greenfield, fakes)", () => {
       const told = lab.jobs.map((j) => j.system).join("\n");
       expect(told).toMatch(/only through the generated client in lib\/api\/client\.ts/);
       expect(told).toMatch(/generated handlers from lib\/api\/client\.msw\.ts/);
+      // the test writer is pointed at the contract in the repo, not handed it again (a full document took the pack over its budget)
+      const writer = lab.jobs.find((j) => j.fileScope.includes("tests/**"))!;
+      expect(writer.system + writer.task).toMatch(/contracts\/openapi\.yaml: the locked API contract/);
+      expect(writer.system + writer.task).not.toContain("/api/sign-in:");
       expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
     });
 

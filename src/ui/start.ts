@@ -6,7 +6,8 @@ import { INTERRUPTED, shownStatus } from "../stages/run-status.js";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { basename, isAbsolute, join, resolve } from "node:path";
-import { ensureStandaloneProject, loadProject, STANDALONE_PROJECT } from "../config/project.js";
+import { ensureStandaloneProject, loadProject, projectPath, STANDALONE_PROJECT } from "../config/project.js";
+import { addForge, createGithubRepo, githubPreflight, type GithubAccount } from "../forge/repos.js";
 import type { Estimate } from "../contracts/estimate.js";
 import { DecisionError, decide } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
@@ -45,6 +46,8 @@ export interface StartInput {
   mode?: unknown;
   /** greenfield: a new empty project to build into, { name, dir }, made as git init and factory init would (instead of `project`) */
   newProject?: unknown;
+  /** with newProject: true also puts it on GitHub (a private repo under the token's account; each run then opens a PR) */
+  github?: unknown;
   /** estimate settings, read like the factory estimate flags */
   estimate?: unknown;
   /** design-only settings: { noRepo, client, projectName } */
@@ -159,6 +162,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   const greenfieldAsked = input.mode === "greenfield";
   const newProject = greenfieldAsked ? newProjectInput(input.newProject) : undefined;
   if (input.newProject !== undefined && input.newProject !== null && !greenfieldAsked) throw new StartError("A new empty project is made for a new product: start it under New run, Greenfield.");
+  if (input.github === true && !newProject) throw new StartError("Only a new product made now is put on GitHub: give its name and folder.");
   // an estimate and a design-only run both start from requirements: no project needed, frames allowed
   const estimating = input.mode === "estimate" || designing;
 
@@ -254,6 +258,9 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
 
   // the same checks, in the same order, as `factory start`
   if (standalone) ensureStandaloneProject();
+  // GitHub is asked before anything is made: the token, and that the name is free there
+  let github: GithubAccount | undefined;
+  if (newProject && input.github === true) try { github = await githubPreflight([newProject.name]); } catch (err) { throw new StartError((err as Error).message); }
   if (newProject) try { makeNewProduct(newProject.name, newProject.dir); } catch (err) { throw new StartError((err as Error).message); }
   const cfg = loadProject(project);
   // a design for a new product (no repo) is built into a project whose repo is still empty (greenfield), as is anything started as one
@@ -294,6 +301,14 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     if (dir) rmSync(dir, { recursive: true, force: true });
   }
 
+  // the repo goes on GitHub once everything is read, just before the run; when GitHub fails, the new project is not kept either
+  if (newProject && github) try {
+    addForge(newProject.name, github, await createGithubRepo(github, newProject.name, newProject.dir, `${newProject.name}: the web app, built by the AI factory`));
+  } catch (err) {
+    rmSync(newProject.dir, { recursive: true, force: true });
+    rmSync(projectPath(newProject.name), { force: true });
+    throw new StartError(`${(err as Error).message} Nothing was kept on this machine.`);
+  }
   const runId = await createRun(req.text, project, `${userInfo().username} (via web)`, {
     ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
     sources: req.sources, ...(references.length ? { references } : {}),

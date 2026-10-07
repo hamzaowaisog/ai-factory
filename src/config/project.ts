@@ -25,6 +25,8 @@ export const ProjectConfig = z.object({
     /** GitHub API and git push URLs; set only for GitHub Enterprise or tests (a local fake) */
     apiUrl: z.string().default("https://api.github.com"),
     pushUrl: z.string().optional(),
+    /** before each run, bring the local base branch up to GitHub's (a fast-forward): set on the repos the factory put on GitHub */
+    pullBase: z.boolean().default(false),
   }).optional(),
   /**
    * `factory watch`: a Jira ticket labelled `label` by someone on `allowedReporters` starts a run.

@@ -1911,9 +1911,15 @@ async function greenfieldScreen(preset = []) {
   const webOnly = () => backend.value === "client";
   const backendHint = h("div", { class: "hint" });
   const repos = h("div", { class: "hint" });
+  // GitHub: private repos under the token's account, main pushed; each run then pushes its own branch and opens a PR into main
+  const gh = meta.github ?? { configured: false };
+  const onGithub = h("input", { type: "checkbox", id: "fs-github", checked: !!gh.configured, disabled: !gh.configured });
+  const ghText = h("span", { class: "hint" });
   const syncRepos = () => {
     const n = name.value.trim() || "<name>", d = dir.value.trim() || "…";
     repos.textContent = webOnly() ? `The repo: ${d}/${n} (empty, for the web run). The project is ${n}.` : `The repos: ${d}/${n}-web (empty, for the web run) and ${d}/${n}-api (a .NET 9 API skeleton with SQLite).`;
+    ghText.textContent = !gh.configured ? gh.why
+      : `${webOnly() ? `A private repo ${n}` : `Private repos ${n}-web and ${n}-api`} under the GitHub account of the factory's token, with main pushed. Each run pushes its own branch and opens a PR into main. Off: the branches stay on this machine.`;
   };
   name.addEventListener("input", syncRepos); dir.addEventListener("input", syncRepos);
   // only what was made with no repo is a new product; an estimate it would not build all of is listed but can't be picked: it says why
@@ -1976,6 +1982,7 @@ async function greenfieldScreen(preset = []) {
     fld("fs-backend", "Backend", backend, backendHint),
     fld("fs-name", "Product name", name, "Lower-case letters, digits and dashes. It names the project (with the API: <name>-web and <name>-api)."),
     fld("fs-dir", "Folder for the repos", dir, repos),
+    h("div", { class: "field" }, h("label", { class: "opt", for: "fs-github" }, onGithub, h("span", {}, h("strong", {}, "Put it on GitHub"), ghText))),
     h("div", { class: "field" }, h("label", { for: "fs-from" }, "Start from (optional)"), fromSel, fromHint, warns),
     reqBlock,
     fld("fs-max", "Max cost of the web run (optional)", h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), "It can only lower the normal limit, like --max-cost. With the API, the API run gets its own limit when you start it."),
@@ -1992,10 +1999,10 @@ async function greenfieldScreen(preset = []) {
       // the web app alone is a greenfield run into a new empty project, as factory init and factory start would make it
       if (webOnly()) {
         const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "greenfield", project: "", newProject: { name: n, dir: d ? `${d}/${n}` : "" }, maxCost: maxCost.value, ...from }) });
+          body: JSON.stringify({ mode: "greenfield", project: "", newProject: { name: n, dir: d ? `${d}/${n}` : "" }, github: onGithub.checked, maxCost: maxCost.value, ...from }) });
         location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
       } else {
-        const r = await api("/api/fullstack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: n, dir: d, maxCost: maxCost.value, ...from }) });
+        const r = await api("/api/fullstack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: n, dir: d, github: onGithub.checked, maxCost: maxCost.value, ...from }) });
         location.hash = `#/fullstack/${encodeURIComponent(r.name)}`;
       }
     } catch (e) {
@@ -2033,6 +2040,8 @@ function productScreen(name) {
       h("dl", { class: "facts" },
         h("dt", {}, "Project"), h("dd", {}, h("code", {}, s.project)),
         h("dt", {}, "Repo"), h("dd", {}, h("code", {}, s.repo), copyButton(s.repo)),
+        s.github ? [h("dt", {}, "GitHub"), h("dd", {}, h("a", { href: s.github, target: "_blank", rel: "noopener" }, s.github.replace(/^https?:\/\/[^/]+\//, "")))] : null,
+        s.prUrl ? [h("dt", {}, "PR"), h("dd", {}, h("a", { href: s.prUrl, target: "_blank", rel: "noopener" }, s.prUrl.replace(/^.*\/pull\//, "#")))] : null,
         s.run ? [h("dt", {}, "Run"), h("dd", {}, h("a", { href: `#/runs/${encodeURIComponent(s.run.runId)}` }, s.run.runId)),
           h("dt", {}, "Step"), h("dd", {}, s.run.step || "-"),
           h("dt", {}, "Cost"), h("dd", {}, money(s.run.costUsd)),

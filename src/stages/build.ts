@@ -437,6 +437,11 @@ export const authorTestsStep: StepDef = {
     const acs = spec.requirements.flatMap((r) => r.acceptance.map((a) => ({ req: r.id, ...a })));
     // the approved screens behind these criteria: what the person approved is what the tests expect (PR #11 review, item 13)
     const screens = screenFacts(approvedDesignFor<ApprovedDesign>(ctx.state, ctx.ledger)?.design, [...new Set(acs.map((a) => a.req))]);
+    // the contract is in the repo already (stub-commit wrote it, with the client and handlers made from it): point at it, don't
+    // paste it; a full OpenAPI document took the pack over its budget on a real run
+    const contractFile = ctx.project.contract && existsSync(join(wt, ctx.project.contract.file)) ? ctx.project.contract.file : undefined;
+    const pointers = [...anchorFiles(spec).map((p) => ({ path: p, reason: "the code these criteria are about" })), ...lessonPointers(lessons),
+      ...(contractFile && plan.stubs.some((s) => s.path === contractFile) ? [{ path: contractFile, reason: `the locked API contract; the client and test handlers in ${CLIENT_DIR} are generated from it` }] : [])];
     const pack = buildPack({
       stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
       sections: [
@@ -448,10 +453,10 @@ export const authorTestsStep: StepDef = {
         S.template("tpl-end", `
 - For each "api" criterion whose endpoint needs NO login, also give one HTTP probe: method, path, optional JSON body, and the status code the criterion expects once implemented. The factory sends it to the running app (with an empty test database) as evidence. Skip criteria that need a login or seeded data.
 Return the list of tests you wrote (acId, file, method name) and the probes.`),
-        ...(anchorFiles(spec).length || lessons.length ? [S.pointers([...anchorFiles(spec).map((p) => ({ path: p, reason: "the code these criteria are about" })), ...lessonPointers(lessons)])] : []),
+        ...(pointers.length ? [S.pointers(pointers)] : []),
         S.artifact("acs", "acceptance-criteria", acs),
         ...(screens.length ? [S.artifact("approved-screens", "approved-screens", screens), S.template("approved-screens-rules", `The approved-screens section lists the screens a person approved for these requirements: route, states, and the exact words on them (title, buttons, field labels, column headers, empty, error, success and validation messages, toasts; "change" for a design note). Where a criterion is about what the user sees or is told, take the expected values from there, word for word, and do not invent other wording. A criterion with no screen there is tested as before.`)] : []),
-        S.artifact("stubs", "stubs", plan.stubs.map((s) => ({ path: s.path, content: s.content }))),
+        S.artifact("stubs", "stubs", plan.stubs.filter((s) => s.path !== contractFile).map((s) => ({ path: s.path, content: s.content }))),
         ...contractNote(ctx.project, wt, "tests"),
         ...(priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "Your previous attempt was rejected:\n" + priorFailures.slice(0, 20).map((f) => `- [${f.check}] ${f.message}`).join("\n") }] : []),
         S.task(`Write the acceptance and characterisation tests now.${priorFailures.length ? " The previous attempt failed for the reasons above; fix them." : ""}`),

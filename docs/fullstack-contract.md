@@ -92,6 +92,7 @@ descriptions, `format`). The document comes from the lab's kept build of the com
 ```
 factory fullstack start --name clinic --file intent.md --dir ~/code --max-cost 10
 #   or start from an approved no-repo design or estimate: --from-design <run> / --from-estimate <run> (no request then)
+#   --github: both repos also go on GitHub (private, under GITHUB_TOKEN's account); each run then opens a PR into main
 #   answer the web run's cards as usual (factory answer / factory approve / factory resume)
 factory fullstack next clinic --max-cost 6       # once the web plan is approved
 #   answer the API run's plan card; resume the web run if it stopped
@@ -102,7 +103,7 @@ docker compose -f ~/code/clinic-run/docker-compose.yml up
 | Command | What it does | Code |
 |---|---|---|
 | `start` | Makes `<name>-web` (empty) and `<name>-api` (the skeleton in `src/fullstack/skeleton.ts`: .NET 9, SQLite, one test, CORS for `localhost:3000`), writes both project configs, starts the web run. From an approved design made with no repo, the web run builds that design and skips its design steps; from an approved estimate made with no repo, it is held to the estimate (gates B1-B6). Either brings its own request, and is checked before anything is made. With neither, the web run draws its own design and nothing is estimated. | `productSeed`, `setUpProduct`, `startProduct` |
-| `next` | Copies the contract approved with the web plan into the API repo's base branch and starts the API run. Before the plan is approved it only says so. Later it reports where each run is. | `approvedContract`, `handOverContract`, `apiRequest` |
+| `next` | Copies the contract approved with the web plan into the API repo's base branch (and pushes it to GitHub's main, for a product on GitHub) and starts the API run. Before the plan is approved it only says so. Later it reports where each run is. | `approvedContract`, `handOverContract`, `apiRequest` |
 | `up` | Checks out the two delivered branches side by side and writes a compose file: the API on port 5080, the web app on 3000. | `writeRunFiles` |
 
 State is kept in `~/.factory/fullstack/<name>.json`. Both project configs name the same SDK image, so the two runs
@@ -110,6 +111,21 @@ share one coding image (`factory-agent:dotnet8`, rebuilt from the project's SDK 
 
 It is two ordinary runs underneath: two specs, two ledgers, two branches, and two PRs if the repos have a GitHub
 remote and a token.
+
+### On GitHub
+With `--github` (on the page: "Put it on GitHub", on by default when `GITHUB_TOKEN` is set), `start` first asks GitHub
+for the token's account and checks that `<name>-web` and `<name>-api` are free there, before anything is made. Then
+it makes both repos as above, creates a private GitHub repo for each under that account, pushes `main`, and writes a
+`forge` block into each project config (`pullBase: true`). From then on each run is an ordinary GitHub delivery: it
+pushes its own branch (`factory/<run>`) and opens a PR into `main`, first as a draft with the factory's review on it,
+then ready. Before each run, `pullBase` brings the local `main` up to GitHub's (a fast-forward), so a request made
+after a PR was merged starts from what was merged; a local `main` with commits GitHub lacks is refused. If GitHub
+refuses a repo, nothing is kept on this machine and the error names any repo already made there. The web app alone
+(the client's backend) works the same with one repo. Code: `src/forge/repos.ts`; tests: `src/forge/repos.test.ts`,
+against a GitHub fake on 127.0.0.1 (`src/forge/testutil.ts`).
+
+The token goes in `~/.factory/.env` as `GITHUB_TOKEN`. It must be allowed to create repos: a fine-grained token with
+All repositories and Administration, Contents and Pull requests set to Read and write, or a classic token with `repo`.
 
 ### In `factory ui`
 New run, Greenfield is `start` (Backend: "Build its API too", the default): a name, the folder for both repos, Start
@@ -143,6 +159,9 @@ there approves the contract, as `factory approve` does. A limit card is raised o
 - The API skeleton is fixed (.NET 9 minimal API, SQLite). The factory refuses SQL Server; Postgres would use the
   project's `database` block and is not wired into the skeleton.
 - The client's API address is a fixed string from the project config.
+- On GitHub, a later request on the API repo is a new run with its own branch and PR. A later request on the web repo
+  is refused once its first PR is merged: the factory builds a Node app only into an empty repo (PR #17 review, item 5).
+- Repos go under the token's own account; an organisation is not offered.
 - The first task of a fresh web app has `package.json` in its file scope (set by the scaffold in `src/design/`), so
   that implementer can add a package without a check.
 - The scaffold writes no page at `/`.

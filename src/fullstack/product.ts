@@ -3,11 +3,13 @@
 // plan wrote (and a person approved) to the API repo, and write the files that start the two delivered apps together.
 // The runs themselves are a greenfield web run and a .NET run, unchanged.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { stringify } from "yaml";
 import { newProductRefusal, PRODUCT_NAME, seedEmptyRepo, type EstimateScope } from "../config/greenfield.js";
-import { projectPath } from "../config/project.js";
+import { loadProject, projectPath } from "../config/project.js";
+import { secret } from "../config/env.js";
+import { addForge, createGithubRepo, githubPreflight, pushBranch, type GithubAccount } from "../forge/repos.js";
 import { hardenedEnv } from "../ledger/git.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
@@ -19,8 +21,12 @@ import { API_BUILT_DOC, API_PORT, API_SDK_IMAGE, API_SKELETON, API_SOLUTION } fr
 
 export const CONTRACT_FILE = "contracts/openapi.yaml";
 
-/** `from`: the approved design (its design steps are skipped) or approved estimate (the web run is held to it) the product started from. */
-export interface Product { name: string; dir: string; web: { project: string; repo: string; run?: string }; api: { project: string; repo: string; run?: string }; request?: string; from?: { kind: "design" | "estimate"; runId: string } }
+/**
+ * `from`: the approved design (its design steps are skipped) or approved estimate (the web run is held to it) the product started from.
+ * A side's `github`: the GitHub repo the factory made for it (its page), when the product was put on GitHub.
+ */
+export interface ProductSide { project: string; repo: string; run?: string; github?: string }
+export interface Product { name: string; dir: string; web: ProductSide; api: ProductSide; request?: string; from?: { kind: "design" | "estimate"; runId: string } }
 
 /** What a product may start from besides a request: an approved design or an approved estimate, each made with no repo. */
 export type ProductSeed = { design: ApprovedDesign } | { estimate: Approved };
@@ -84,17 +90,50 @@ export function setUpProduct(name: string, dir: string): Product {
   return p;
 }
 
+/** Undo `setUpProduct`: its two repo folders (empty or missing before it ran), their project configs and the product's state. */
+function undoSetUp(p: Product): void {
+  for (const side of [p.web, p.api]) {
+    rmSync(side.repo, { recursive: true, force: true });
+    rmSync(projectPath(side.project), { force: true });
+  }
+  rmSync(statePath(p.name), { force: true });
+}
+
+/**
+ * Both repos on GitHub: private, under the token's account, named as the projects (`<name>-web`, `<name>-api`), main pushed, and each
+ * project given its forge block, so each run pushes its branch and opens a PR into main. When GitHub fails, nothing is kept on this
+ * machine and the error names any repo already made there.
+ */
+async function putOnGithub(p: Product, acct: GithubAccount): Promise<void> {
+  const made: string[] = [];
+  try {
+    for (const [side, what] of [[p.web, "web app"], [p.api, "API"]] as const) {
+      const r = await createGithubRepo(acct, side.project, side.repo, `${p.name}: the ${what}, built by the AI factory`);
+      made.push(r.repo);
+      addForge(side.project, acct, r);
+      side.github = r.url;
+    }
+  } catch (e) {
+    undoSetUp(p);
+    const also = made.length ? ` ${made.join(" and ")} ${made.length > 1 ? "were" : "was"} made on GitHub already: delete ${made.length > 1 ? "them" : "it"} there before using this name again.` : "";
+    throw new Error(`${(e as Error).message}${also} Nothing was kept on this machine.`);
+  }
+  saveProduct(p);
+}
+
 /**
  * `factory fullstack start` after the checks: make the two repos and start the web run (greenfield). Returns the product with its run.
  * From an approved design, the web run builds that design (its design steps are skipped); from an approved estimate, it follows the
  * estimate's spec and design and is held to it (gates B1-B6). Either brings its own request. With neither, the run draws its own design
- * and nothing is estimated.
+ * and nothing is estimated. `github`: put both repos on GitHub first (`putOnGithub`); GitHub is asked before anything is made.
  */
-export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[] } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed): Promise<Product> {
+export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[] } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed, github = false): Promise<Product> {
   const from = seed && ("design" in seed ? seed.design : seed.estimate);
   const text = from?.request ?? request?.text;
   if (!text) throw new Error("Describe the product, or start it from an approved design or estimate.");
+  const acct = github ? await githubPreflight([`${name}-web`, `${name}-api`]) : undefined;
   const p = setUpProduct(name, dir);
+  if (acct) await putOnGithub(p, acct);
   p.request = text;
   if (seed) p.from = { kind: "design" in seed ? "design" : "estimate", runId: from!.runId };
   p.web.run = await createRun(text, p.web.project, operator, {
@@ -115,6 +154,13 @@ export async function startApiRun(p: Product, operator: string, maxCostUsd?: num
   const contract = approvedContract(p);
   if (!contract) return undefined;
   handOverContract(p, contract);
+  // a product on GitHub: the contract goes to GitHub's main too, so the API run starts from it there and its PR holds only the API's work
+  const forge = loadProject(p.api.project).forge;
+  if (forge?.pullBase) {
+    const token = secret(forge.tokenEnv);
+    if (!token) throw new Error(`${forge.tokenEnv} is missing in ~/.factory/.env, so the contract cannot be pushed to ${forge.repo}.`);
+    await pushBranch(p.api.repo, forge.pushUrl ?? `https://github.com/${forge.repo}.git`, token, "main");
+  }
   p.api.run = await createRun(apiRequest(p.request ?? ""), p.api.project, operator, { ...(maxCostUsd !== undefined ? { maxCostUsd } : {}) });
   saveProduct(p);
   return p.api.run;

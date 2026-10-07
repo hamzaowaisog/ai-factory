@@ -20,6 +20,8 @@ import { createUiServer, listen, MAX_BODY_BYTES, MAX_UPLOAD_BODY_BYTES, ROUTES, 
 import { _resetStarting } from "./start.js";
 import { ensureStandaloneProject } from "../config/project.js";
 import { makeNewProduct } from "../config/greenfield.js";
+import { loadProject } from "../config/project.js";
+import { fakeGithub } from "../forge/testutil.js";
 // the page's Markdown renderer (plain browser JS, no DOM needed)
 import { renderMarkdown } from "./static/md.js";
 import { findChromium } from "../design/screenshots.js";
@@ -445,6 +447,39 @@ describe("factory ui: a new product (greenfield)", () => {
     expect((await post({ mode: "greenfield", newProject: { name: "cart", dir: newDir("cart") }, prompt: request })).json().error).toMatch(/already exists/);
   });
 
+  it("puts a new project made now on GitHub when asked: a private repo, main pushed, the forge block; only a new one", async () => {
+    expect((await call("/api/projects")).json().github).toEqual({ configured: false, why: expect.stringMatching(/add GITHUB_TOKEN to ~\/\.factory\/\.env/) });
+    const gh = await fakeGithub();
+    try {
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nGITHUB_TOKEN=${gh.token}\nGITHUB_API_URL=${gh.url}\n`, { mode: 0o600 });
+      _resetEnvCache();
+      expect((await call("/api/projects")).json().github).toEqual({ configured: true });
+      makeNewProduct("old", newDir("old"));
+      expect((await post({ project: "old", mode: "greenfield", prompt: request, github: true })).json().error).toMatch(/Only a new product made now is put on GitHub/);
+      const dir = newDir("cart");
+      const r = await post({ mode: "greenfield", newProject: { name: "cart", dir }, prompt: request, github: true });
+      expect(r.status).toBe(201);
+      expect(gh.asked).toEqual([expect.objectContaining({ name: "cart", private: true })]);
+      expect(gh.head("acme/cart")).toBe(execFileSync("git", ["-C", dir, "rev-parse", "main"], { encoding: "utf8" }).trim());
+      expect(loadProject("cart").forge).toMatchObject({ kind: "github", repo: "acme/cart", pullBase: true });
+      expect(replay(Ledger.open(r.json().runId).events()).info).toMatchObject({ mode: "greenfield", project: "cart" });
+      // a name taken on GitHub is refused before anything is made here
+      const taken = newDir("cart2");
+      gh.made.push("acme/cart2");
+      execFileSync("git", ["init", "-q", "--bare", join(gh.root, "acme/cart2.git")]);
+      expect((await post({ mode: "greenfield", newProject: { name: "cart2", dir: taken }, prompt: request, github: true })).json().error).toMatch(/acme\/cart2 already exists on GitHub/);
+      expect(existsSync(taken)).toBe(false);
+      expect(existsSync(join(home, "projects", "cart2.yaml"))).toBe(false);
+      // GitHub refuses to make it: the new project is not kept either
+      gh.refuseCreate = 403;
+      const refused = await post({ mode: "greenfield", newProject: { name: "shop", dir: newDir("shop") }, prompt: request, github: true });
+      expect(refused.status).toBe(400);
+      expect(refused.json().error).toMatch(/GITHUB_TOKEN may not create repos.*Nothing was kept on this machine\./s);
+      expect(existsSync(join(home, "projects", "shop.yaml"))).toBe(false);
+      expect(started).toEqual([r.json().runId]);
+    } finally { await gh.close(); }
+  });
+
   it("lists a no-repo estimate that prices an API: built with its API, but not as a web app alone, and says why", async () => {
     makeNewProduct("parts", newDir("parts"));
     ensureStandaloneProject();
@@ -538,6 +573,59 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     expect(up.status).toBe(409);
     expect(up.json().error).toMatch(/Both runs must be delivered/);
     expect((await call("/api/fullstack/orders")).json().next).toMatchObject({ canStartApi: false, canWriteRunFiles: false });
+  });
+
+  it("puts both repos on GitHub when asked: each a private repo with main pushed; the contract goes to the API repo's main", async () => {
+    const gh = await fakeGithub();
+    try {
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nGITHUB_TOKEN=${gh.token}\nGITHUB_API_URL=${gh.url}\n`, { mode: 0o600 });
+      _resetEnvCache();
+      const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+      const r = await send("/api/fullstack", { name: "orders", dir, prompt: "An orders app: staff list orders and mark one shipped.", github: true });
+      expect(r.status).toBe(201);
+      expect(gh.made).toEqual(["acme/orders-web", "acme/orders-api"]);
+      expect(gh.asked.every((a) => a.private === true)).toBe(true);
+      for (const side of ["web", "api"]) {
+        expect(gh.head(`acme/orders-${side}`)).toBe(execFileSync("git", ["-C", join(dir, `orders-${side}`), "rev-parse", "main"], { encoding: "utf8" }).trim());
+        expect(loadProject(`orders-${side}`).forge).toMatchObject({ kind: "github", repo: `acme/orders-${side}`, pullBase: true });
+      }
+      const v = (await call("/api/fullstack/orders")).json();
+      expect(v.web).toMatchObject({ github: `${gh.url}/acme/orders-web` });
+      expect(v.api).toMatchObject({ github: `${gh.url}/acme/orders-api` });
+      // the web plan approved: the contract is committed to the API repo and pushed to its main on GitHub, and the API run starts from it
+      const { webRun } = r.json();
+      const wl = Ledger.open(webRun);
+      await addEvents(webRun, [...step("plan", 0, {}, [wl.putJson({ stubs: [{ path: "contracts/openapi.yaml", content: CONTRACT, reason: "" }] })]), ...step("approve", 0)]);
+      const next = await send("/api/fullstack/orders/next", {});
+      expect(next.status).toBe(201);
+      const apiMain = execFileSync("git", ["-C", join(dir, "orders-api"), "rev-parse", "main"], { encoding: "utf8" }).trim();
+      expect(gh.head("acme/orders-api")).toBe(apiMain);
+      expect(replay(Ledger.open(next.json().apiRun).events()).info.baseCommit).toBe(apiMain);
+    } finally { await gh.close(); }
+  });
+
+  it("when GitHub refuses a repo, keeps nothing on this machine and names any repo already made there", async () => {
+    const gh = await fakeGithub();
+    try {
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nGITHUB_TOKEN=${gh.token}\nGITHUB_API_URL=${gh.url}\n`, { mode: 0o600 });
+      _resetEnvCache();
+      const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+      // the API repo is refused after the web repo was made
+      gh.refuseName = "orders-api";
+      const r = await send("/api/fullstack", { name: "orders", dir, prompt: "An orders app", github: true });
+      expect(r.status).toBe(400);
+      expect(r.json().error).toMatch(/GitHub refused to create acme\/orders-api: GITHUB_TOKEN may not create repos.* acme\/orders-web was made on GitHub already: delete it there before using this name again\. Nothing was kept on this machine\./s);
+      expect(existsSync(join(dir, "orders-web"))).toBe(false);
+      expect(existsSync(join(dir, "orders-api"))).toBe(false);
+      expect(existsSync(join(home, "projects", "orders-web.yaml"))).toBe(false);
+      expect((await call("/api/fullstack")).json()).toEqual([]);
+      expect(started).toEqual([]);
+      // without a token it is refused before anything is made
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\n`, { mode: 0o600 });
+      _resetEnvCache();
+      expect((await send("/api/fullstack", { name: "orders", dir, prompt: "An orders app", github: true })).json().error).toMatch(/add GITHUB_TOKEN/);
+      expect(existsSync(join(dir, "orders-web"))).toBe(false);
+    } finally { await gh.close(); }
   });
 
   /** An approved estimate made with no repo, with the tasks given (approved by a person, so a build may be held to it). */

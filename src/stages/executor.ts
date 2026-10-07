@@ -10,6 +10,7 @@ import { DEFAULT_POLICY, mergePolicy, withPolicy, type Policy } from "../gates/p
 import { DEFAULT_LADDER, failureSignature, nextOnFailure, type AttemptRecord, type LadderAction } from "../gates/ladder.js";
 import { checkCaps } from "../ledger/caps.js";
 import { ExecutionLock, LockBusyError } from "../ledger/exec-lock.js";
+import { pullBase } from "../forge/repos.js";
 import { resolveRef } from "../ledger/git.js";
 import { applyExpiredDeadline } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
@@ -93,6 +94,8 @@ export async function createRun(request: string, projectName: string, operator: 
   if (!noRepo) {
     assertSupportedPath(project.repo);
     assertDeliverable(project);
+    // a repo the factory put on GitHub: each run starts from GitHub's main, so a request after a merged PR builds on it
+    if (project.forge?.pullBase) await pullBase(project);
   }
   // greenfield: an approved design with no repo, built into this project's empty repo (the callers check first; this is the guard)
   // a plain start on a Node project whose repo is still empty is a new product too: the run draws its own design

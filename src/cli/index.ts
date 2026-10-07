@@ -667,6 +667,8 @@ program.command("doctor").description("check this machine and the setup").action
   log(`${hasSecret("OPENAI_API_KEY") ? "ok  " : "note"} OPENAI_API_KEY ${hasSecret("OPENAI_API_KEY") ? "set" : "not set: critic and review will use Claude (single family)"}`);
   const { jiraConfigured } = await import("../sources/jira.js");
   log(jiraConfigured() ? "ok   Jira set up (factory start --jira ABC-123)" : "note Jira not set up (optional): add JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN to ~/.factory/.env to use --jira");
+  log(hasSecret("GITHUB_TOKEN") ? "ok   GITHUB_TOKEN set: a new product can be put on GitHub (Greenfield's \"Put it on GitHub\", factory fullstack start --github)"
+    : "note GITHUB_TOKEN not set (optional): branches stay on this machine; add a token that may create repos to put new products on GitHub");
   if (hasSecret("OPENAI_API_KEY")) {
     const { DEFAULT_ROUTES } = await import("../stages/routing.js");
     const gpt = [...new Set(Object.values(DEFAULT_ROUTES).map((r) => r.model).filter((m) => /^gpt|^o\d/.test(m)))];

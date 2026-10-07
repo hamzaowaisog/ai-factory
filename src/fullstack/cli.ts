@@ -17,13 +17,15 @@ export function registerFullstackCommands(program: Command, d: { log: (m: string
     .option("--from-design <runId>", "start from an approved design made with no repo: its design steps are skipped")
     .option("--from-estimate <runId>", "start from an approved estimate made with no repo: the web run is held to it")
     .option("--max-cost <usd>", "cost limit of the web run")
+    .option("--github", "also put both repos on GitHub (private, under the account of GITHUB_TOKEN): each run then pushes its branch and opens a PR")
     .description("make the two repos and start the web run: questions, the design, then the plan with the API contract")
-    .action(async (prompt: string | undefined, o: { name: string; file?: string; dir: string; fromDesign?: string; fromEstimate?: string; maxCost?: string }) => {
+    .action(async (prompt: string | undefined, o: { name: string; file?: string; dir: string; fromDesign?: string; fromEstimate?: string; maxCost?: string; github?: boolean }) => {
       const seed = productSeed({ design: o.fromDesign, estimate: o.fromEstimate });
       if (seed && (prompt || o.file)) throw new Error("An approved design or estimate brings its own request: give no prompt and no --file.");
       const req = seed ? undefined : await gatherRequest({ prompt, file: o.file }, {});
-      const p = await startProduct(o.name, resolve(o.dir), req, userInfo().username, o.maxCost !== undefined ? Number(o.maxCost) : undefined, seed);
+      const p = await startProduct(o.name, resolve(o.dir), req, userInfo().username, o.maxCost !== undefined ? Number(o.maxCost) : undefined, seed, !!o.github);
       log(`web repo ${p.web.repo} (project ${p.web.project}); API repo ${p.api.repo} (project ${p.api.project})`);
+      if (p.web.github) log(`on GitHub: ${p.web.github} and ${p.api.github}`);
       if (p.from) log(p.from.kind === "design" ? `started from approved design ${p.from.runId}: its design steps are skipped` : `started from approved estimate ${p.from.runId}: the web run is held to it`);
       log(`web run ${p.web.run}. Answer its cards as usual; once its plan is approved: factory fullstack next ${p.name}`);
       await d.runAndReport(p.web.run!);

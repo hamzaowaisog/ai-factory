@@ -19,6 +19,8 @@ import { folderOf, maxCostOf, StartError, str, uploadedFile, type StartDeps } fr
 
 export interface SideView {
   project: string; repo: string;
+  /** the side's GitHub repo, when the product was put on GitHub, and the run's PR once it is delivered there */
+  github?: string; prUrl?: string;
   run?: { runId: string; status: string; step: string; costUsd: number; openCard?: string; delivered: boolean };
 }
 
@@ -35,14 +37,16 @@ export interface ProductView {
 }
 
 function sideView(side: Product["web"]): SideView {
-  if (!side.run) return { project: side.project, repo: side.repo };
+  const at = { project: side.project, repo: side.repo, ...(side.github ? { github: side.github } : {}) };
+  if (!side.run) return at;
   try {
     const s = replay(Ledger.open(side.run).events());
+    const prUrl = s.steps.get("deliver")?.data?.prUrl;
     return {
-      project: side.project, repo: side.repo,
+      ...at, ...(typeof prUrl === "string" ? { prUrl } : {}),
       run: { runId: side.run, status: shownStatus(s), step: currentStep(s), costUsd: s.costUsd, ...(s.openCard ? { openCard: s.openCard.kind } : {}), delivered: delivered(side.run) },
     };
-  } catch { return { project: side.project, repo: side.repo, run: { runId: side.run, status: "unknown", step: "", costUsd: 0, delivered: false } }; }
+  } catch { return { ...at, run: { runId: side.run, status: "unknown", step: "", costUsd: 0, delivered: false } }; }
 }
 
 /** The operations a contract names, "METHOD /path", in its own order (none when it does not read as OpenAPI). */
@@ -82,8 +86,8 @@ export function productsView(): { name: string; web: SideView; api: SideView }[]
 }
 
 /**
- * Start a product, as `factory fullstack start`: { name, dir, prompt or file, or fromDesign or fromEstimate, maxCost }. Every check
- * comes before anything is written; then the two repos and their projects are made and the web run (greenfield) starts in the
+ * Start a product, as `factory fullstack start`: { name, dir, prompt or file, or fromDesign or fromEstimate, maxCost, github }. Every
+ * check comes before anything is written (with `github`, GitHub is asked too: the token, and that both names are free); then the two repos and their projects are made and the web run (greenfield) starts in the
  * background. An approved design or estimate brings its own request.
  */
 export async function startFullstack(input: Record<string, unknown>, deps: StartDeps = {}): Promise<{ name: string; webRun: string }> {
@@ -118,7 +122,7 @@ export async function startFullstack(input: Record<string, unknown>, deps: Start
     if (tmp) rmSync(tmp, { recursive: true, force: true });
   }
   let p: Product;
-  try { p = await startProduct(name, dir, req, `${userInfo().username} (via web)`, maxCostUsd, seed); } catch (e) { throw new StartError((e as Error).message); }
+  try { p = await startProduct(name, dir, req, `${userInfo().username} (via web)`, maxCostUsd, seed, input.github === true); } catch (e) { throw new StartError((e as Error).message); }
   (deps.execute ?? runDetached)(p.web.run!);
   return { name: p.name, webRun: p.web.run! };
 }

@@ -35,6 +35,7 @@ import { Redactor } from "../context/secrets.js";
 import { readPreview } from "./preview.js";
 import { factoryAssumed } from "../stages/gate-questions.js";
 import { loadProject, STANDALONE_PROJECT } from "../config/project.js";
+import { githubConfigured, NO_GITHUB_TOKEN } from "../forge/repos.js";
 import { newProductRefusal, repoIsEmpty, type EstimateScope } from "../config/greenfield.js";
 
 // ---------- helpers ----------
@@ -122,7 +123,7 @@ export function approvedDesignsView(): ApprovedDesignRow[] {
   return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
 }
 
-export async function projectsView(): Promise<{ projects: ProjectRow[]; estimates: ApprovedEstimateRow[]; designs: ApprovedDesignRow[]; jira: { configured: boolean; why?: string }; figma: { configured: boolean; why?: string } }> {
+export async function projectsView(): Promise<{ projects: ProjectRow[]; estimates: ApprovedEstimateRow[]; designs: ApprovedDesignRow[]; jira: { configured: boolean; why?: string }; figma: { configured: boolean; why?: string }; github: { configured: boolean; why?: string } }> {
   const projects: ProjectRow[] = [];
   for (const name of projectNames()) {
     const busy = await busyRun(name);
@@ -136,6 +137,7 @@ export async function projectsView(): Promise<{ projects: ProjectRow[]; estimate
     estimates: approvedEstimatesView(),
     designs: approvedDesignsView(),
     jira: configured ? { configured } : { configured, why: "Jira isn't set up. Add JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN to ~/.factory/.env (factory doctor checks it)." },
+    github: githubConfigured() ? { configured: true } : { configured: false, why: NO_GITHUB_TOKEN },
     figma: figmaConfigured() ? { configured: true } : { configured: false, why: "Figma links need FIGMA_TOKEN in ~/.factory/.env (a personal access token with read access to files). Until then, export the frames as PNG and attach them, or attach a Figma JSON export." },
   };
 }
