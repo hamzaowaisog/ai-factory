@@ -477,6 +477,17 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     return runId;
   }
 
+  it("stops on a limit card when the cost limit is reached, written before the executor lets go of the run", async () => {
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true }, maxCostUsd: 0.000001 });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("waiting");
+    expect(r.message).toMatch(/Cost limit reached/);
+    const s = replay(Ledger.open(runId).events());
+    expect(s.openCard?.kind).toBe("cap");
+    // a second resume finds the card and waits; it does not fail
+    expect((await execute(runId)).status).toBe("waiting");
+  });
+
   it("refuses to build on an estimate that is not approved yet", async () => {
     const runId = await createRun("Build a client portal.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true } });
     await execute(runId);

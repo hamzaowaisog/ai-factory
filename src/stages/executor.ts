@@ -482,7 +482,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         await ledger.append({ type: "human.requested", data: { cardId, kind: "cap", artifactSha, proposal: p, reason: cap.reason } }, writer);
         return { status: "waiting", message: `${cap.reason}. Decide with: factory show-card ${runId}` };
       };
-      if (cap) return capCard(cap);
+      if (cap) return await capCard(cap);
 
       const n = next(state, ledger, project);
       if (n.kind === "done") {
@@ -500,7 +500,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
       }
       // enough left for these steps to get anywhere? If not, the limit card comes before the attempt, not after its spend is lost
       const short = checkStartBudget(state, batch.map((b) => ({ key: b.step.key, needsUsd: b.step.needsUsd, attemptsUsd: attemptSpend(ledger.events(), b.step.key) })));
-      if (short) return capCard(short);
+      if (short) return await capCard(short);
       trace.setStep(batch.length > 1 ? undefined : batch[0]!.step.key);
       if (batch.length > 1) log(`side by side: ${batch.map((b) => b.step.key).join(", ")}`);
       // every step of the batch is recorded, whatever the others do; the first that ends the run's turn says how
