@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
 import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, TEST_SCOPE, testRetryMode, testWriterTampering, labelRejectionLifted } from "./build.js";
-import { attemptSpend } from "./executor.js";
+import { attemptSpend, startNeed } from "./executor.js";
 import { matchesAny } from "../util/glob.js";
 
 describe("earlier tasks' locked tests", () => {
@@ -45,6 +45,34 @@ describe("retry: keep the previous attempt's code or reset", () => {
   it("resets on any move up the ladder", () => {
     expect(retryMode(prev(["locked-failed"]), 1)).toEqual({ mode: "reset", reason: "moved from rung 0 to rung 1" });
     expect(mode(["regression"], 3, { rung: 2 })).toBe("reset");
+  });
+
+  it("keeps on a move up the ladder when fewer locked tests failed than the attempt before", () => {
+    const at = (checks: string[], locked?: number, lockedBefore?: number) => retryMode({ checks, rung: 0, interrupted: false, locked, lockedBefore }, 1);
+    expect(at(["locked-failed"], 4, 20)).toEqual({ mode: "keep", reason: "fewer locked tests failed than the attempt before (4, was 20)" });
+    expect(at(["locked-failed", "locked-flaky"], 1, 2).mode).toBe("keep");
+    // not closer, nothing to compare with, or something other than locked tests wrong: the fresh start stands
+    expect(at(["locked-failed"], 20, 20).mode).toBe("reset");
+    expect(at(["locked-failed"], 21, 20).mode).toBe("reset");
+    expect(at(["locked-failed"], 4).mode).toBe("reset");
+    expect(at(["locked-failed", "build"], 4, 20).mode).toBe("reset");
+    expect(at(["locked-failed", "secret"], 4, 20).mode).toBe("reset");
+  });
+
+  it("reads how many locked tests failed in the last two attempts", () => {
+    let seq = 0;
+    const ev = (type: string, key: string, data: Record<string, unknown> = {}) => ({ seq: seq++, ts: "", runId: "r", epoch: 0, type, key, data }) as LedgerEvent;
+    const evs = [
+      ev("step.failed", "implement/TASK-1/1", { rung: 0, category: "locked-test", lockedFailedIds: ["a", "b", "c"] }),
+      ev("step.failed", "implement/TASK-2/1", { rung: 0, category: "locked-test", lockedFailedIds: ["a"] }),
+      ev("step.failed", "implement/TASK-1/2", { rung: 0, category: "locked-test", lockedFailedIds: ["d"] }),
+    ];
+    expect(previousAttempt(evs, "implement/TASK-1", ["locked-failed"])).toMatchObject({ locked: 1, lockedBefore: 3 });
+    expect(previousAttempt(evs, "implement/TASK-2", ["locked-failed"])).toEqual({ checks: ["locked-failed"], rung: 0, interrupted: false, commit: undefined, locked: 1 });
+    // an attempt that ended on something else is no measure of how close the code was
+    const other = [...evs, ev("step.failed", "implement/TASK-1/3", { rung: 1, category: "other" }), ev("step.failed", "implement/TASK-1/4", { rung: 1, category: "locked-test", lockedFailedIds: ["d"] })];
+    expect(previousAttempt(other, "implement/TASK-1", ["locked-failed"])).toMatchObject({ locked: 1 });
+    expect(previousAttempt(other, "implement/TASK-1", ["locked-failed"])!.lockedBefore).toBeUndefined();
   });
 
   it("resets after safety, scope, escape hatches, agent errors and bad evidence", () => {
@@ -123,6 +151,18 @@ describe("retry: keep the previous attempt's code or reset", () => {
     const evs = [ev("usage", "design/1", 9), ev("step.completed", "design/1"), ev("usage", "design/2", 1.5), ev("usage", "design/2", 0.25), ev("usage", "design/3", 0.5), ev("usage", "design-export/1", 7)];
     expect(attemptSpend(evs, "design")).toEqual([1.75, 0.5]);
     expect(attemptSpend(evs, "plan")).toEqual([]);
+  });
+
+  it("starts a coding step's first attempt only with what an earlier step of its stage needed", () => {
+    let seq = 0;
+    const ev = (key: string, usd: number) => ({ seq: seq++, ts: "", runId: "r", epoch: 0, type: "usage", key, data: { "gen_ai.usage.cost_usd": usd } }) as LedgerEvent;
+    const evs = [ev("author-tests/1", 6), ev("implement/TASK-1/1", 2.19), ev("implement/TASK-1/2", 2.5), ev("implement/TASK-1/2", 0.09), ev("implement/TASK-2/1", 0.4)];
+    const step = (key: string, needsUsd?: number) => ({ key, stage: key.split("/")[0]!, needsUsd });
+    expect(startNeed(evs, step("implement/TASK-3", 1))).toBeCloseTo(2.59);
+    // its own attempts say more than its neighbours' (the retry rule reads those), and the first coding step has only the floor
+    expect(startNeed(evs, step("implement/TASK-2", 1))).toBe(1);
+    expect(startNeed([], step("implement/TASK-1", 1))).toBe(1);
+    expect(startNeed(evs, step("review"))).toBeUndefined();
   });
 });
 

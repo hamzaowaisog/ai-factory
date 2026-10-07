@@ -101,7 +101,7 @@ async function main() {
       systemPrompt: { type: "preset", preset: "claude_code", append: job.system, excludeDynamicSections: true },
       outputFormat: { type: "json_schema", schema: job.schema },
       hooks,
-      env: { ...process.env, DISABLE_COMPACT: "1", DISABLE_AUTOUPDATER: "1", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1", CLAUDE_AGENT_SDK_CLIENT_APP: "ai-factory/0.1" },
+      env: { ...process.env, DISABLE_AUTOUPDATER: "1", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1", CLAUDE_AGENT_SDK_CLIENT_APP: "ai-factory/0.1" },
     },
   });
   for await (const m of res) {

@@ -19,7 +19,11 @@ export type StepOutcome =
   /** data: small metadata stored on step.failed (e.g. the commit judged, how the attempt started).
    *  gate: a check on the step's output failed (not the model's answer, the code or the environment); in an estimate or a design run,
    *  after the retry, the failures become questions instead of more attempts (src/stages/gate-questions.ts). */
-  | { kind: "fail"; category: FailureCategory; failures: Failure[]; signature?: string; diffSha?: string; lockedFailedIds?: string[]; data?: Record<string, unknown>; gate?: boolean }
+  | { kind: "fail"; category: FailureCategory; failures: Failure[]; signature?: string; diffSha?: string; lockedFailedIds?: string[]; data?: Record<string, unknown>; gate?: boolean;
+      /** the locked tests that failed cannot pass at this task (a later task completes what they run): failing twice is not "test or code wrong" */
+      deferrable?: boolean;
+      /** and each of them fails exactly as it did before the task started: they move to the later task on this failure, not the second */
+      deferNow?: boolean }
   | { kind: "park"; reason: string }
   /** A check failed that another attempt cannot fix (gate E1 on the spec, a breakdown the factory could not settle): questions now,
    *  in an estimate or a design run; elsewhere, and once the rounds of questions are used up, the run parks with the reason. */

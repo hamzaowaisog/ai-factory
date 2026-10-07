@@ -384,6 +384,22 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(ledger.getArtifact(ev.items[0]!.http[0]!.bodySha).toString()).toBe("Hello Ann");
   });
 
+  it("asks a person about a change over the size limit instead of parking for good", async () => {
+    const file = join(process.env.FACTORY_HOME!, "projects", "demo.yaml");
+    writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), policy: { maxDiffLines: 1 } }));
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("waiting");
+    const card = replay(ledger.events()).openCard!;
+    expect(card.kind).toBe("waiver");
+    expect(readFileSync(join(ledger.dir, "cards", `${card.cardId}.md`), "utf8")).toMatch(/integrate\.diff-size: Diff too large/);
+    await decide(ledger, { decision: "waive", hashPrefix: card.artifactSha.slice(0, 6), by: "lead", data: { reason: "one feature, reviewed as a whole" } });
+    expect((await execute(runId)).status).toBe("delivered");
+    expect(replay(ledger.events()).steps.get("integrate")!.data!.waivers).toMatchObject([{ gateIds: ["integrate.diff-size"], human: "lead" }]);
+  });
+
   it("resumes after a crash mid-implement without redoing finished steps", async () => {
     const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
     const ledger = await toApproval(runId);
@@ -611,6 +627,38 @@ describe("implement loop across tasks (fakes)", () => {
     // the last task's run already required every task's locked test: integrate reuses it
     expect(s.steps.get("integrate")!.data).toMatchObject({ reusedRunFrom: "implement/TASK-3" });
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
+  }, 30_000);
+
+  it("a plan built in layers: a task that cannot reach its own test hands it to the last task, without parking or another paid attempt", async () => {
+    multi = true;
+    const MODEL = GREETER + "// data model\n";
+    lab.edits = {
+      // TASK-1 is a layer: nothing it writes makes its own test pass (the greeting comes with TASK-3)
+      "src/Api/Greeter.cs": [{ "src/Api/Greeter.cs": MODEL }, { "src/Api/Greeter.cs": MODEL }],
+      "src/Api/Farewell.cs": [{ "src/Api/Farewell.cs": cls("Bye") }],
+      // TASK-3 completes it, with a fix in TASK-1's file
+      "src/Api/Third.cs": [{ "src/Api/Third.cs": cls("Three"), "src/Api/Greeter.cs": HELLO }],
+    };
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    const s = replay(ledger.events());
+    // TASK-1's test failed exactly as it did before the task: deferred on that first failure, not retried or parked, and the
+    // second attempt judged the same code without the implementer
+    expect(failedAttempts(ledger, "implement/TASK-1").map((e) => (e.data as { action: string }).action)).toEqual(["defer"]);
+    expect(failedAttempts(ledger, "implement/TASK-1")[0]!.data).toMatchObject({ untouched: true, nextRung: 0 });
+    expect(s.steps.get("implement/TASK-1")?.attempts).toBe(2);
+    expect(lab.seen.filter((x) => x.scope === MULTI_FILES[0])).toHaveLength(1);
+    // from then on the plan is layered: TASK-2 passed first time, and TASK-3 was held to all three tests and could change TASK-1's file
+    expect(s.steps.get("implement/TASK-2")?.attempts).toBe(1);
+    expect(s.steps.get("implement/TASK-3")?.attempts).toBe(1);
+    const ids = MULTI_TESTS.map((n) => `Api.Tests::Api.Tests.GreetTests.${n}`);
+    const expected = (task: string) => ledger.getJson<{ expectPass: string[] }>((s.steps.get(task)!.data!.named as { testRun: string }).testRun).expectPass;
+    expect(expected("implement/TASK-1")).not.toContain(ids[0]);
+    expect(expected("implement/TASK-3")).toEqual(expect.arrayContaining(ids));
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/implement TASK-3: also held to the criteria of TASK-1, TASK-2/);
   }, 30_000);
 
   it("a plan that fails its checks is fixed by a patch: the retry returns only the missing task", async () => {

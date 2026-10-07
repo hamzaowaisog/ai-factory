@@ -187,6 +187,8 @@ export const planStep: StepDef = {
       S.template("tpl", `${planIntro(ctx.project.stack)}
 - Give at least 2 options (one marked simplest), choose one, and write a decision record of at most 5 lines (adr).
 - Split into tasks TASK-1.. in dependency order. Each task: the requirements it delivers, fileScope (exact repo paths or narrow globs it may change, no overlap between tasks), 1-2 exemplar files to imitate, plannedLoc, approach (short instructions for the implementer).
+- List a requirement on the task after which its criteria can pass. A criterion checked through the API or a screen passes only once that route or screen is wired, so prefer tasks that each deliver a working slice: the logic together with its endpoint or screen. If you build in layers and wire last, give the wiring task a dependsOn on every layer it serves; those criteria are then checked at the wiring task, and a mistake in an early layer is found only there.
+- dependsOn: only the tasks whose code this task really needs.
 - Test projects, test files and CI config are not in any file scope: tests are written separately.
 - stubs: for every NEW public type/method/endpoint the tests will call, give a compilable stub file (full file content) whose bodies ${stubRule(ctx.project.stack)}, so tests compile before implementation. Existing APIs need no stubs. Stub paths must be inside a task's fileScope.
 - protectedPathsDeclared: list any migration, CI, build-config or package-feed file you must change (a human will see it).

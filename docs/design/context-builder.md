@@ -126,7 +126,7 @@ USER (per call)
 **Primary control: adapter settings + a hard check.**
 | Adapter | Settings |
 |---|---|
-| Claude Agent SDK | `settingSources: []`, `projectConfigRoot` → factory folder, `systemPrompt: {preset: "claude_code", append: <SYSTEM>, excludeDynamicSections: true}`, `claudeMdExcludes: ["**"]`, auto memory off, `persistSession: false`, `DISABLE_COMPACT=1`. An `InstructionsLoaded` hook logs every instruction file; **any file not from the factory fails the step**. The docs conflict on whether `settingSources: []` alone blocks CLAUDE.md, hence the belt-and-braces [docs/source]. |
+| Claude Agent SDK | `settingSources: []`, `projectConfigRoot` → factory folder, `systemPrompt: {preset: "claude_code", append: <SYSTEM>, excludeDynamicSections: true}`, `claudeMdExcludes: ["**"]`, auto memory off, `persistSession: false`, auto-compaction on (§2.10). An `InstructionsLoaded` hook logs every instruction file; **any file not from the factory fails the step**. The docs conflict on whether `settingSources: []` alone blocks CLAUDE.md, hence the belt-and-braces [docs/source]. |
 | Codex SDK | factory-owned `CODEX_HOME`, `developer_instructions` via `--config`, `project_doc_max_bytes=0`, client repos never marked trusted (a trusted repo can replace Codex's base prompt via `model_instructions_file`), auto-compaction off [source]. |
 | jcode | reads only `<cwd>/AGENTS.md` and `~/AGENTS.md`, with no off switch [source]. Container A's HOME is factory-owned and the root AGENTS.md is masked, which covers both. Kept (local models are in scope); canary-tested. |
 | Ollama | native `/api/chat` with explicit `num_ctx`, `truncate: false`, `shift: false`, so an oversized prompt errors instead of dropping the oldest messages silently (the default logs only at debug level; the default context is 4K on machines under 24 GiB VRAM) [source; VERIFY the flags]. `prompt_eval_count` is logged, not used to fail. |
@@ -141,8 +141,11 @@ Files appearing later (e.g. inside `node_modules` after restore) are caught by t
 
 **Canary test (this component's acceptance test):** a fixture repo whose every agent file, a `.claude/settings.json` hook, a `.mcp.json` server, a symlinked AGENTS.md and a `node_modules/x/CLAUDE.md` each carry a unique marker. A run through every adapter must show no marker in any transcript or tool call. Re-run on every SDK upgrade.
 
-### 2.10 Long sessions: no compaction
-- One task = one fresh process (R4). Compaction is **off**. Summarising compressors made reliably solved tasks intermittent, and Claude's compactor kept 10% of safety rules after 5 rounds (both UNVERIFIED preprints).
+### 2.10 Long sessions: compaction on for the Claude coding agent
+- One task = one fresh process (R4). Compaction is **on** for the Claude Agent SDK session (changed 2026-10-07; it was off). With it off, run `31fe` lost two paid attempts of one task: the session grew from about 80K to 175K tokens in 62 turns, the API answered "Prompt is too long", and the code written was thrown away.
+- Why it was off, and why that no longer decides it: summarising compressors made reliably solved tasks intermittent, and Claude's compactor kept 10% of safety rules after 5 rounds (both UNVERIFIED preprints). The rules the agent must keep are in the system prompt, which is not summarised, and file scope and locked tests are enforced by hooks and gates, not by the agent's memory. The remaining risk is an agent that forgets what it already tried; watch for repeated work in traces **[EVAL]**.
+- Safety net: a session that still fills the window (one very large output) is read as unfinished, like running out of turns. Its code is committed and the retry finishes it in a fresh session.
+- Compaction does not cut cost: a long session still pays for its history each turn, plus one call per summary. The turn and USD caps still end it.
 - A session that outgrows its cap (turns, USD, or ~50% of the effective window measured on the full request [EVAL]) fails → failure ladder → re-plan smaller.
 - Must-survive rules live in the system prompt/append, never only in turn history.
 - Between attempts: `failures.json` (capped), prior failure signatures, the saved diff as an optional overlay. Never a transcript (R8).

@@ -75,6 +75,9 @@ export function readProgress(file: string, offset: number): { lines: AgentProgre
   return { lines, offset: offset + Buffer.byteLength(chunk.slice(0, end + 1)) };
 }
 
+/** The API's refusal of a request that no longer fits the model's context window. */
+const SESSION_FULL = /prompt is too long/i;
+
 export interface AgentOut {
   status: string;
   output?: unknown;
@@ -220,6 +223,8 @@ export class ClaudeAgentRunner implements Runner {
         return { status: "error", error: `Agent loaded instruction files: ${out.instructionsLoaded.join(", ")}`, usage: u, sessionId: out.sessionId };
       }
       if (out.status !== "ok") {
+        // compaction is on (context-builder §2.10), but one huge output can still fill the model's window: unfinished work, like running out of turns
+        if (SESSION_FULL.test(out.error ?? "")) return { status: "timeout", error: "The session filled the model's context window before it finished", usage: u, sessionId: out.sessionId };
         if (out.status === "config-error") {
           return { status: "config-error", error: out.apiErrorStatus === 403
             ? "The coding agent's API calls were refused by the factory's key proxy or the API (403). Run factory doctor."

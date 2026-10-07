@@ -262,4 +262,70 @@ describe("acceptance criteria ownership", () => {
     // TASK-1 owns nothing: it must only keep characterisation tests and the baseline green
     expect([...o.values()].includes("TASK-1")).toBe(false);
   });
+
+  it("a plan built in layers: a task whose own API tests fail twice shows it, and those criteria wait for the last task built on it", async () => {
+    const { acOwners, failsForLayers, planShowsLayers, takenOver } = await import("./build.js");
+    const req = (id: string, level: "api" | "unit") => ({ id, acceptance: [{ id: id.replace("REQ-", "AC-") + ".1", level }] });
+    const spec = { requirements: [req("REQ-1", "api"), req("REQ-2", "unit"), req("REQ-3", "api"), req("REQ-4", "api")] };
+    const task = (id: string, reqs: string[], dependsOn: string[]) => ({ id, reqs, dependsOn, fileScope: [`src/${id}.cs`] });
+    // data, services, a side task nothing is built on, then the endpoints
+    const plan = { tasks: [task("TASK-1", ["REQ-1", "REQ-2"], []), task("TASK-2", ["REQ-3"], ["TASK-1"]), task("TASK-3", [], []), task("TASK-4", ["REQ-4"], ["TASK-2"])] };
+    const tests = [{ acId: "AC-1.1", testId: "t1" }, { acId: "AC-2.1", testId: "t2" }, { acId: "AC-3.1", testId: "t3" }, { acId: "AC-4.1", testId: "t4" }];
+    // until the run shows it, each task is held to its own criteria
+    expect(Object.fromEntries(acOwners(plan, spec))).toEqual({ "AC-1.1": "TASK-1", "AC-2.1": "TASK-1", "AC-3.1": "TASK-2", "AC-4.1": "TASK-4" });
+    expect(takenOver(plan, spec, "TASK-4")).toEqual({ reqs: [], from: [], fileScope: [] });
+
+    expect(failsForLayers(plan, spec, tests, "TASK-1", ["t1"])).toBe(true);
+    // not for a unit test, another task's test, the last task, or nothing failed
+    expect(failsForLayers(plan, spec, tests, "TASK-1", ["t1", "t2"])).toBe(false);
+    expect(failsForLayers(plan, spec, tests, "TASK-2", ["t1"])).toBe(false);
+    expect(failsForLayers(plan, spec, tests, "TASK-4", ["t4"])).toBe(false);
+    expect(failsForLayers(plan, spec, tests, "TASK-1", [])).toBe(false);
+
+    const failed = (key: string, action: string, ids: string[]) => ({ seq: 0, ts: "", runId: "r", epoch: 0, type: "step.failed", key, data: { action, lockedFailedIds: ids } }) as never;
+    expect(planShowsLayers([failed("implement/TASK-1/1", "retry", ["t1"])], plan, spec, tests)).toBe(false);
+    expect(planShowsLayers([failed("implement/TASK-4/2", "a5-check", ["t4"])], plan, spec, tests)).toBe(false);
+    expect(planShowsLayers([failed("implement/TASK-1/2", "defer", ["t1"])], plan, spec, tests)).toBe(true);
+    expect(planShowsLayers([failed("implement/TASK-1/2", "a5-check", ["t1"])], plan, spec, tests)).toBe(true);
+
+    // the plan's own files show it before any task runs: the only task that writes a route is the last, built on the others
+    const { layeredByFiles, failsAsBefore } = await import("./build.js");
+    const files = (scopes: string[][]) => ({ tasks: plan.tasks.map((t, i) => ({ ...t, fileScope: scopes[i]! })) });
+    const layers = files([["App.Api/Data/Entities.cs"], ["App.Api/Services/Queries.cs"], ["docs/x.md"], ["App.Api/Endpoints/StudioEndpoints.cs", "App.Api/Program.cs"]]);
+    expect(layeredByFiles(layers, spec, "dotnet")).toBe(true);
+    expect(planShowsLayers([], layers, spec, tests, "dotnet")).toBe(true);
+    // not when each task writes its own route, when no task writes one (the routes exist already), or for a stack with no rule
+    expect(layeredByFiles(files([["App.Api/Controllers/AController.cs"], ["App.Api/Endpoints/B.cs"], ["docs/x.md"], ["App.Api/Endpoints/C.cs"]]), spec, "dotnet")).toBe(false);
+    expect(layeredByFiles(plan, spec, "dotnet")).toBe(false);
+    expect(layeredByFiles(layers, spec, undefined)).toBe(false);
+    expect(planShowsLayers([], layers, spec, tests)).toBe(false);
+    // a web app: the page comes last
+    expect(layeredByFiles(files([["lib/data.ts"], ["lib/service.ts"], ["docs/x.md"], ["app/classes/page.tsx"]]), { requirements: [req("REQ-1", "ui" as never), req("REQ-3", "ui" as never), req("REQ-4", "ui" as never)] }, "node")).toBe(true);
+    expect(layeredByFiles(files([["lib/data.ts"], ["lib/service.ts"], ["docs/x.md"], ["app/layout.tsx"]]), spec, "node")).toBe(false);
+
+    // a test that fails now exactly as it did before the task started was not touched by the task
+    const res = (id: string, message: string | undefined, outcome = "failed", failureKind = "assertion") => ({ id, outcome, message, failureKind }) as never;
+    const was = { results: [res("t1", "Expected 200, got 404"), res("t2", "Expected 201, got 404"), res("t3", "ok", "passed")] };
+    expect(failsAsBefore(was, { results: [res("t1", "Expected 200, got 404"), res("t2", "Expected 201, got 404")] }, ["t1", "t2"])).toBe(true);
+    // a different message is a real change (404 → 500), and so is a different kind, a test that passed before, or nothing to compare
+    expect(failsAsBefore(was, { results: [res("t1", "Expected 200, got 500")] }, ["t1"])).toBe(false);
+    expect(failsAsBefore(was, { results: [res("t1", "Expected 200, got 404", "failed", "exception")] }, ["t1"])).toBe(false);
+    expect(failsAsBefore(was, { results: [res("t3", "ok")] }, ["t3"])).toBe(false);
+    expect(failsAsBefore(was, { results: [res("t1", "Expected 200, got 404")] }, ["t1", "t9"])).toBe(false);
+    expect(failsAsBefore({ results: [res("t1", undefined)] }, { results: [res("t1", undefined)] }, ["t1"])).toBe(false);
+    expect(failsAsBefore(undefined, was, ["t1"])).toBe(false);
+    expect(failsAsBefore(was, was, [])).toBe(false);
+
+    // layered: the API criteria of TASK-1 and TASK-2 go to TASK-4; the unit criterion stays; TASK-4 gets their requirements and files
+    expect(Object.fromEntries(acOwners(plan, spec, true))).toEqual({ "AC-1.1": "TASK-4", "AC-2.1": "TASK-1", "AC-3.1": "TASK-4", "AC-4.1": "TASK-4" });
+    expect(takenOver(plan, spec, "TASK-4", true)).toEqual({ reqs: ["REQ-1", "REQ-3"], from: ["TASK-1", "TASK-2"], fileScope: ["src/TASK-1.cs", "src/TASK-2.cs"] });
+    expect(takenOver(plan, spec, "TASK-1", true)).toEqual({ reqs: [], from: [], fileScope: [] });
+
+    // a layer whose requirements a later layer lists again (DTOs): nothing is taken over from it by name, but the tests still
+    // run through its code, so the last task may change its files too
+    const dto = { tasks: [task("TASK-1", ["REQ-1"], []), task("TASK-2", ["REQ-1"], ["TASK-1"]), task("TASK-3", [], []), task("TASK-4", ["REQ-4"], ["TASK-2"])] };
+    expect(takenOver(dto, spec, "TASK-4", true)).toEqual({ reqs: ["REQ-1"], from: ["TASK-2"], fileScope: ["src/TASK-2.cs", "src/TASK-1.cs"] });
+    // a task that takes nothing over stays inside its own files
+    expect(takenOver(dto, spec, "TASK-2", true).fileScope).toEqual([]);
+  });
 });

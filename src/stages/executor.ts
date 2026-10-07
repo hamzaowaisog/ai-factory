@@ -213,6 +213,22 @@ export function attemptSpend(events: LedgerEvent[], step: string): number[] {
   return [...by.values()];
 }
 
+/**
+ * The least a coding step is started with. A first attempt has no spend of its own to go by, so it takes the dearest attempt
+ * of the earlier steps of its stage in this run: with less than that left it runs out part-way, and the next session pays
+ * to read everything again.
+ */
+export function startNeed(events: LedgerEvent[], step: Pick<StepDef, "key" | "stage" | "needsUsd">): number | undefined {
+  if (!step.needsUsd || attemptSpend(events, step.key).length) return step.needsUsd;
+  const by = new Map<string, number>();
+  for (const e of events) {
+    if (e.type !== "usage" || !e.key || !e.key.startsWith(`${step.stage}/`) || splitKey(e.key).step === step.key) continue;
+    const d = (e.data ?? {}) as Record<string, unknown>;
+    by.set(e.key, (by.get(e.key) ?? 0) + Number(d["gen_ai.usage.cost_usd"] ?? d.costUsd ?? 0));
+  }
+  return Math.max(step.needsUsd, ...by.values());
+}
+
 /** At most this many steps run side by side (a request splits into at most a few modules). */
 export const MAX_SIDE_BY_SIDE = 4;
 
@@ -418,12 +434,16 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         if (outcome.gate && outcome.category === "other" && asksGates(state) && (action.action === "park" || counted >= ROUND_ATTEMPTS)) {
           return askRound(ctx, step, key, rounds, outcome.failures, rec2, action.action === "retry" ? action.rung : rung, action.action === "park" ? action.reason : `${outcome.failures.length} check${outcome.failures.length === 1 ? "" : "s"} still fail after the retry`, outcome.data);
         }
+        // the same locked test failed twice, but at a task that cannot reach it yet: the test waits for the later task, the run goes on.
+        // Once is enough when it fails exactly as it did before the task: the retry would be paid for and change nothing.
+        const defer = !!outcome.deferrable && (action.action === "a5-check" || (action.action === "retry" && !!outcome.deferNow));
         const failuresSha = ledger.putJson(outcome.failures.slice(0, 20));
         await ledger.append({
           type: "step.failed", key, outputs: [failuresSha],
-          data: { ...(outcome.data ?? {}), ...rec2, action: action.action, nextRung: action.action === "retry" ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason },
+          data: { ...(outcome.data ?? {}), ...rec2, action: defer ? "defer" : action.action, nextRung: action.action === "retry" && !defer ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason },
         }, writer);
-        slog(`✗ ${step.key}: ${outcome.failures.slice(0, 2).map((f) => f.message).join("; ").slice(0, 300)} → ${action.action}`);
+        slog(`✗ ${step.key}: ${outcome.failures.slice(0, 2).map((f) => f.message).join("; ").slice(0, 300)} → ${defer ? "defer" : action.action}`);
+        if (defer) { slog(`  ${step.key}: these tests need a task that comes later, so they are checked there`); break; }
         if (action.action === "park") { await ledger.append({ type: "run.parked", data: { reason: `${step.key}: ${action.reason}`, step: step.key } }, writer); return { status: "parked", message: `${step.key}: ${action.reason}. Last failure: ${outcome.failures[0]?.message ?? ""}` }; }
         if (action.action === "a5-check") {
           const reason = `Locked tests ${action.testIds.join(", ")} failed twice. Either the code or the test is wrong; the test-defect check and unlock card aren't built yet, so a human needs to look.`;
@@ -499,7 +519,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         batch = batch.filter((b) => keys.indexOf(b.step.key) <= keys.indexOf(opts.until!));
       }
       // enough left for these steps to get anywhere? If not, the limit card comes before the attempt, not after its spend is lost
-      const short = checkStartBudget(state, batch.map((b) => ({ key: b.step.key, needsUsd: b.step.needsUsd, attemptsUsd: attemptSpend(ledger.events(), b.step.key) })));
+      const short = checkStartBudget(state, batch.map((b) => ({ key: b.step.key, needsUsd: startNeed(ledger.events(), b.step), attemptsUsd: attemptSpend(ledger.events(), b.step.key) })));
       if (short) return await capCard(short);
       trace.setStep(batch.length > 1 ? undefined : batch[0]!.step.key);
       if (batch.length > 1) log(`side by side: ${batch.map((b) => b.step.key).join(", ")}`);
