@@ -103,13 +103,33 @@ The test writer and the coder work inside the project folder, so a file pasted i
 - Neither run can reach coding today, so parallel coding has nothing to run on until fixes 1 to 12 are in.
 - The gain is not measured. One sequential run through coding shows how long it takes and how many tasks in a real plan are independent.
 
+### Verdict (2026-10-07): do not build it now
+
+Checked against the two plans the runs already have. A task can run beside another only if neither depends on the other and their file lists don't overlap.
+
+| Run | Tasks | Could run side by side | Best case |
+|---|---|---|---|
+| `b497` (web) | 7 | None: the planner declared every task as depending on the one before | No time saved |
+| `31fe` (API) | 8 | 5 tasks, in two groups (2 and 3) | 8 slots become 5, about a third less coding time |
+
+- **The planner writes chains.** It is told to put tasks "in dependency order", and on the web run it made each task depend on the previous one. The three screen tasks (TASK-5, 6, 7) look independent, but the plan says they are not. Parallel coding does nothing until the planner declares only real dependencies.
+- **The API saving is an upper bound.** The side-by-side tasks are queries, commands, seed and transformers, which are likely to touch the same registration and startup files. A merge conflict sends a task back to run alone, and the saving shrinks.
+- **It costs the same money and adds risk.** The tokens are the same, and several agents spending at once can overshoot the cost cap, which is only checked between steps.
+- **Coding time is not known yet.** No run has reached coding. On these two runs the time went on spec, design and test writing.
+
+What to do instead, in order:
+
+1. Get one run through coding one task at a time and read the per-task times from its trace.
+2. If coding is the slow part, change the plan prompt so tasks declare only real dependencies, and check the next plans for how many tasks come out independent. This is a small change.
+3. Build the waves only if those plans show a real gain: roughly a third or more of the tasks able to run together.
+
 ## 4. Order
 
 | Step | Fixes | Why |
 |---|---|---|
 | First (built) | 1 to 12 | Gets both parked runs moving |
 | Next (built) | 13 to 16, 18 to 20 | Cuts the cost of rewrites |
-| Then | 22 | Parallel coding, once a run has gone through coding one task at a time |
+| Later, if measured | 22 | Parallel coding: not now, see the verdict in section 3 |
 | Left as is | 17, 21 | Draft count and default caps stay as they are (Hamza, 2026-10-07) |
 
 `dist` is rebuilt with fixes 1 to 16 and 18 to 20. Resuming the two runs spends API credit and `31fe` needs its cap raised first, so both wait for a go-ahead.

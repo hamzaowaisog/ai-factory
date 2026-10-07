@@ -148,7 +148,7 @@ export async function createRun(request: string, projectName: string, operator: 
       ...(opts.uiTarget ? { uiTarget: opts.uiTarget } : {}),
       // a build that asks (src/estimate/settled.ts, settles): fixed here, so a paused run resumes with the steps it began with
       ...(opts.mode === "greenfield" || ((opts.mode ?? "brownfield") === "brownfield" && project.brownfield?.questions) ? { asks: true } : {}),
-      ...(lin?.kind === "build" ? { estimateRef: { runId: lin.approved.runId, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}) } } : {}),
+      ...(lin?.kind === "build" ? { estimateRef: { runId: lin.approved.runId, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}), ...(lin.approved.settings.drawDesign === false ? { noDesign: true as const } : {}) } } : {}),
     },
   }, HUMAN_WRITER);
   for (const a of opts.attachments ?? []) {

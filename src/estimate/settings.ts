@@ -15,6 +15,8 @@ export interface EstimateOptions {
   pm?: string;
   /** a person answers the clarify questions and approves the estimate; on by default, false only for an explicit hands-off run */
   review?: boolean;
+  /** draw the design (the default); false with --no-design: the run goes from the spec straight to the breakdown */
+  design?: boolean;
 }
 
 export const RATE_KEYS = ["backend", "mobile", "web", "qa", "design", "gd", "pm", "pdm", "default"] as const;
@@ -42,8 +44,12 @@ export function parseEstimateSettings(o: EstimateOptions): NonNullable<RunInfo["
     ...(o.repo ? {} : { noRepo: true }),
     ...(o.client ? { client: o.client } : {}), ...(o.projectName ? { projectName: o.projectName } : {}), ...(o.pm ? { pm: o.pm } : {}),
     humanReview: o.review !== false,
+    ...(o.design === false ? { drawDesign: false } : {}),
   };
 }
+
+/** Whether this estimate run draws a design: every one does unless it was started with the design left out. */
+export const drawsDesign = (info: Pick<RunInfo, "estimate">): boolean => info.estimate?.drawDesign !== false;
 
 /**
  * Whether a person reviews this run: answers the clarify questions and approves the estimate (E7). Only an estimate

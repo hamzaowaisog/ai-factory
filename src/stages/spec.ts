@@ -265,10 +265,12 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
     }
     // B1, B2, B6 and B7 for a build from an approved design: its spec, and its screens through the requirements they serve
     if (dref) {
-      const designSha = scaf?.layout ? ctx.ledger.putJson(designForScopeGate(ctx.ledger.getJson<{ screens: { id: string; file?: string }[] }>(dref.designSha), scaf)) : dref.designSha;
+      // a build's design reference always holds the design (only a resized estimate's may not)
+      const approvedSha = dref.designSha!;
+      const designSha = scaf?.layout ? ctx.ledger.putJson(designForScopeGate(ctx.ledger.getJson<{ screens: { id: string; file?: string }[] }>(approvedSha), scaf)) : approvedSha;
       const checks: [GateDef, Record<string, string>][] = [
         [designScopeLock, { plan: planSha, approvedSpec: dref.specSha }],
-        [changeRequest, { spec: specSha, approvedSpec: dref.specSha, approvedEstimateSha: dref.designSha }],
+        [changeRequest, { spec: specSha, approvedSpec: dref.specSha, approvedEstimateSha: approvedSha }],
         [designScreensPlanned, { plan: planSha, design: designSha }],
       ];
       for (const [def, inputs] of checks) {

@@ -250,7 +250,11 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
         repo: standalone || fromDesign?.settings.noRepo ? false : e.noRepo !== true, ...(str(e.client) ? { client: str(e.client)!.trim() } : {}),
         ...(str(e.projectName) ? { projectName: str(e.projectName)!.trim() } : {}), ...(str(e.pm) ? { pm: str(e.pm)!.trim() } : {}),
         ...(typeof e.humanReview === "boolean" ? { review: e.humanReview } : {}),
+        ...(e.drawDesign === false ? { design: false } : {}),
       });
+      // the same checks as `factory estimate --no-design`
+      if (e.drawDesign === false && fromDesign) throw new Error("An estimate with the design left out cannot start from an approved design; choose one of them.");
+      if (e.drawDesign === false && (frameFiles?.length || checkUploadedRefs(input.refs).length || designExport?.length)) throw new Error("With the design left out nothing is drawn, so there is nothing for design frames, design references or an export on approval to feed or export. Remove them, or turn Draw the design back on.");
     } catch (err) { throw new StartError((err as Error).message); }
     // the design run's product details stand unless given again
     if (fromDesign && settings) settings = { ...settings, ...Object.fromEntries(Object.entries({ client: fromDesign.settings.client, projectName: fromDesign.settings.projectName }).filter(([k, v]) => v && !(settings as Record<string, unknown>)[k])) };

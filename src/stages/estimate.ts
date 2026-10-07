@@ -24,7 +24,7 @@ import { hashJson } from "../util/hash.js";
 import { waivedCache, waiverFor, WAIVER_AFTER_ATTEMPT, type Failed } from "./waiver.js";
 import { carriedLines, gateNotes, GATE_ROUNDS, settledBy } from "./gate-questions.js";
 import { applyPatch, breakdownGaps, carryBreakdown, fixBreakdown, flagOutliers, noGaps, type BreakdownGaps } from "../estimate/fallbacks.js";
-import { humanReview } from "../estimate/settings.js";
+import { drawsDesign, humanReview } from "../estimate/settings.js";
 import { assembleEstimate, bandOf, DEFAULT_SETTINGS, estimatorsFor, gradeInputs, type EstimateSettings, type Proposal } from "../estimate/assemble.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
 import { header, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
@@ -166,7 +166,15 @@ const screenBrief = (ui: ReturnType<typeof designUi> | undefined) => (s: DesignS
 interface BreakdownBrief {
   spec: SpecArtifact; catalogue: Catalogue; c: ReturnType<typeof clarifications>;
   survey?: RepoSurvey | undefined; design?: DesignForUi | undefined; ui?: ReturnType<typeof designUi> | undefined; intent?: Intent | undefined;
+  /** the estimate was started with the design left out (--no-design) */
+  noDesign?: boolean;
 }
+/** The line an estimate with the design left out carries on its card and in its workbooks. */
+export const NO_DESIGN_NOTE = "No design was drawn for this estimate (it was left out at the start): the UI tasks are sized from the requirements alone, with no approved screens behind them, so their range is wider. A build from this estimate draws the design and has it approved before its plan.";
+
+/** For an estimate with the design left out: there are no approved screens to cite, and no design approval to plan for. */
+const NO_DESIGN_RULE = `NO DESIGN WAS DRAWN for this estimate (it was left out at the start). There are no approved screens: leave "screen" unset on every task and add no design-approval task. Work out the screens from the spec alone, still one UI task per screen per platform.`;
+
 /** The briefing every breakdown call shares: the task kinds, the answers, the existing system and the intent. */
 const breakdownContext = (b: BreakdownBrief): ResolvedSection[] => [
   S.reference("task-kinds", `Task kinds (catalogue ${b.catalogue.version}), with the tracks each can sit on:\n${catalogueText(b.catalogue)}`),
@@ -174,6 +182,7 @@ const breakdownContext = (b: BreakdownBrief): ResolvedSection[] => [
   S.artifact("assumptions", "assumptions", b.c.assumptions),
   ...(b.survey ? [S.profile("repo", `The existing system (a read of the repository, not the requirements):\n${surveyText(b.survey)}\nTasks that change existing code are sized by what they touch; new build work is sized by counted units.`)] : []),
   ...(b.intent ? [S.artifact("intent", "intent", { touchesUi: b.intent.touchesUi, riskTags: b.intent.riskTags })] : []),
+  ...(b.noDesign && !b.design ? [S.template("no-design", NO_DESIGN_RULE)] : []),
 ];
 
 /** Which earlier failures a part of the breakdown gets: a part those it raised, the plan the rest; a runner failure was the one big answer's. */
@@ -371,7 +380,10 @@ const gapText = (g: BreakdownGaps): string => [
 
 export const breakdownStep: StepDef = {
   key: "breakdown", stage: "breakdown", templateVersion: "4",
-  inputs: (s) => (s.steps.get("specify")?.status === "completed" && s.steps.get("design-baseline")?.status === "completed"
+  // an estimate with the design left out (--no-design) has no baseline to wait for: the breakdown follows the spec
+  inputs: (s) => (s.steps.get("specify")?.status !== "completed" ? undefined
+    : !drawsDesign(s.info) ? { spec: s.steps.get("specify")!.outputs[0], c1: s.steps.get("clarify")?.outputs[0], c2: s.steps.get("clarify-2")?.outputs[0], design: "left out", survey: s.steps.get("ground")?.data?.named }
+    : s.steps.get("design-baseline")?.status === "completed"
     ? { spec: s.steps.get("specify")!.outputs[0], c1: s.steps.get("clarify")?.outputs[0], c2: s.steps.get("clarify-2")?.outputs[0], baseline: s.steps.get("design-baseline")!.outputs[0], design: s.steps.get("design")?.outputs[0], survey: s.steps.get("ground")?.data?.named }
     : undefined),
   async run(ctx) {
@@ -400,7 +412,7 @@ export const breakdownStep: StepDef = {
     const catalogue = currentCatalogue();
     const cacheKey = hashJson({ step: "breakdown", catalogue: rootOf(catalogue.version), spec: specSha, answers: c.answers, survey: !!survey, design: done(ctx, "design") });
     const cached = waivedCache<BreakdownBodyT>(ctx, "breakdown", cacheKey);
-    const brief: BreakdownBrief = { spec, catalogue, c, survey, design: design && !design.skipped ? design : undefined, ui, intent };
+    const brief: BreakdownBrief = { spec, catalogue, c, survey, design: design && !design.skipped ? design : undefined, ui, intent, ...(drawsDesign(ctx.state.info) ? {} : { noDesign: true }) };
     let body: BreakdownBodyT;
     let model: string | undefined;
     let waivers: WaiverList = [];
@@ -559,7 +571,7 @@ export const estimateStep: StepDef = {
         grades: gradeInputs({ assumptions: c.assumptions.length, requirements: spec.requirements.length, uiTasks: uiTasks.length, uiTasksWithScreen: uiTasks.filter((t) => t.screen).length, hasRepo: !!ctx.state.info.repoPath, stackSource: settings.stackSource }),
         counts: { questions: c.answers.length, criticFindings: spec.critic.length, planningMinutes: ctx.state.activeMs / 60000 },
         suggested: breakdown.suggested ?? [],
-        assumptions: [...c.assumptions.map((a) => a.text), ...(spec.settled ?? []).map(settledText), ...(breakdown.factoryFixes ?? []), ...gateNotes(ctx.ledger, ctx.state, "estimate"), ...edits.map((e) => `Lead edit: ${describeEdit(e)}`), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs."],
+        assumptions: [...c.assumptions.map((a) => a.text), ...(spec.settled ?? []).map(settledText), ...(breakdown.factoryFixes ?? []), ...gateNotes(ctx.ledger, ctx.state, "estimate"), ...edits.map((e) => `Lead edit: ${describeEdit(e)}`), ...(!drawsDesign(ctx.state.info) && uiTasks.length ? [NO_DESIGN_NOTE] : []), "Gate time, cost and duration are assumed figures, labelled cold-start until the ledger has measured runs."],
       });
       for (const t of estimate.tasks) { const r = refs.get(t.taskId); if (r?.length) t.references = r.map(({ runId, taskId, size, hours }) => ({ runId, taskId, size, hours })); }
     } catch (e) {

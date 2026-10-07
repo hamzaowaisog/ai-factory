@@ -75,7 +75,7 @@ export interface RunInfo {
   /** `factory start --max-cost`: a lower limit for this run */
   maxCostUsd?: number;
   /** estimate and design modes: the run settings a person chose at the start (missing fields take the defaults); a design run uses only noRepo, client and projectName */
-  estimate?: { deliveryModel?: "hitl" | "agentic"; stackSource?: "client" | "folio3" | "undecided"; designInTotal?: boolean; feedbackRounds?: number; /** optional hourly rates in USD per track, plus "default" */ rates?: Record<string, number>; /** a request with no repo (requirements only) */ noRepo?: boolean; client?: string; projectName?: string; pm?: string; /** estimate mode: a person answers the clarify questions and approves the estimate (E7); false runs hands-off. Missing on runs started before the switch, which keep their reviews */ humanReview?: boolean };
+  estimate?: { deliveryModel?: "hitl" | "agentic"; stackSource?: "client" | "folio3" | "undecided"; designInTotal?: boolean; feedbackRounds?: number; /** optional hourly rates in USD per track, plus "default" */ rates?: Record<string, number>; /** a request with no repo (requirements only) */ noRepo?: boolean; client?: string; projectName?: string; pm?: string; /** estimate mode: a person answers the clarify questions and approves the estimate (E7); false runs hands-off. Missing on runs started before the switch, which keep their reviews */ humanReview?: boolean; /** estimate mode: false leaves the design out (`--no-design`): no drawing, no approval, the run goes from the spec to the breakdown. Missing means the design is drawn */ drawDesign?: boolean };
   /**
    * estimate mode: the approved estimate this run revises ("change": new requirements, full pipeline) or
    * re-estimates under the other delivery model ("sibling": seeded with the approved spec and breakdown).
@@ -83,7 +83,7 @@ export interface RunInfo {
    */
   parent?: { runId: string; kind: "change" | "sibling"; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string; clarifySha?: string; clarify2Sha?: string; /** the approved design and its baseline approval (absent on estimates made before the design step) */ designSha?: string; baselineSha?: string };
   /** a build run seeded from an approved estimate: it inherits the spec and plans against the estimate's tasks (gates B1-B5) */
-  estimateRef?: { runId: string; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string; /** the approved screen inventory the build is held to */ designSha?: string };
+  estimateRef?: { runId: string; estimateSha: string; breakdownSha: string; specSha: string; criticSha?: string; /** the approved screen inventory the build is held to */ designSha?: string; /** the estimate left the design out (`--no-design`): the build draws its own and a person approves it before the plan */ noDesign?: true };
   /**
    * a run seeded from an approved design-only run (`--from-design`): an estimate inherits its intake,
    * grounding, answers, spec and approved design and only sizes them; a build inherits the spec and is
@@ -106,8 +106,9 @@ export interface RunInfo {
 /** What a run seeded from an approved design-only run carries (`src/estimate/lineage.ts`, `approvedDesign`). */
 export interface DesignRef {
   runId: string;
-  designSha: string;
-  baselineSha: string;
+  /** absent only when an estimate that left the design out is sized again (`--resize`) */
+  designSha?: string;
+  baselineSha?: string;
   intakeSha: string;
   specSha: string;
   criticSha?: string;

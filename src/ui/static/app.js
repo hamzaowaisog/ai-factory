@@ -420,6 +420,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const stack = h("select", { id: "stack" }, opt("undecided", "Undecided (default pack)"), opt("client", "Client's stack (fixed)"), opt("folio3", "Folio3 decides"));
   const rounds = h("input", { type: "number", id: "rounds", min: "0", max: "10", step: "1", value: "2" });
   const designIn = h("input", { type: "checkbox", id: "designin", checked: true });
+  const drawDesign = h("input", { type: "checkbox", id: "drawdesign", checked: true });
   const noRepo = h("input", { type: "checkbox", id: "norepo" });
   const handsOff = h("input", { type: "checkbox", id: "handsoff" });
   const hdr = h("input", { type: "text", id: "client", placeholder: "client name (workbook header)" });
@@ -462,6 +463,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
         fld("stack", "Stack", stack, "Who picks the technology. Undecided uses a default pack, stated as an assumption."),
         fld("rounds", "Client feedback rounds", rounds, "Rounds of change the client may ask for, allowed for in the hours.")),
       h("div", { class: "opts" },
+        opt2("drawdesign", drawDesign, "Draw the design", "On (the default): the screens are drawn and a person approves them before the breakdown. Turn off to leave the design out: the run goes from the spec straight to the breakdown, which is cheaper and faster, the UI hours get a wider range, and a build from this estimate draws its own design."),
         opt2("designin", designIn, "Design counts in the total", "Turn off to keep Design out of the Summary total (its row still shows)."),
         opt2("norepo", noRepo, "The requirements stand alone", "There is no existing code to read. Always on when no project is chosen."),
         opt2("handsoff", handsOff, "Hands-off (no human review)", "Nobody is asked: the clarify questions become assumptions and the factory approves the estimate once its checks pass. Off (the default): a person answers the questions and approves it, on the run page or in the terminal. A build cannot follow a hands-off estimate: to build it, estimate it again with a review."))),
@@ -520,22 +522,26 @@ async function requestScreen(kind = "brownfield", preset = []) {
       : h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
     h("div", { class: "row" }, start, h("span", { class: "hint" }, designing ? "Runs in the background. Questions and the design approval can be answered here on the run page or in your terminal." : "Runs in the background. Questions, the design and the plan can be decided here on the run page or in your terminal; waivers and cost limits stay in the terminal.")),
   );
+  // an estimate with the design left out has nothing to draw from or export: the frames, references and export blocks go
+  const noDesign = () => estimating && !designing && !drawDesign.checked;
+  const syncDesignOff = () => { for (const el of [form.querySelector("#framesblock"), refBlock, autoXBlock]) if (el) el.hidden = noDesign(); };
+  drawDesign.addEventListener("change", syncDesignOff);
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
     err.hidden = true;
     start.disabled = true;
     start.replaceChildren(h("span", { class: "spin" }), "Reading the request…");
     try {
-      const sent = estimating && frames.length ? await Promise.all(frames.map(async (f) => ({ name: f.name, data: await b64(f) }))) : undefined;
+      const sent = estimating && frames.length && !noDesign() ? await Promise.all(frames.map(async (f) => ({ name: f.name, data: await b64(f) }))) : undefined;
       const seeded = !estimating ? !!fromEst.value : startFrom.value === "design";
-      const sentRefs = refs.count() && !seeded ? await refs.collect() : undefined;
+      const sentRefs = refs.count() && !seeded && !noDesign() ? await refs.collect() : undefined;
       if (sentRefs) start.replaceChildren(h("span", { class: "spin" }), `Reading the request and ${sentRefs.length} design reference${sentRefs.length === 1 ? "" : "s"}…`);
-      const designExport = autoXPicked();
+      const designExport = noDesign() ? [] : autoXPicked();
       const bf = buildFrom();
       const from = !estimating ? (bf.kind === "e" ? { fromEstimate: bf.id } : bf.kind === "d" ? { fromDesign: bf.id } : {})
         : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises" }[startFrom.value]]: seedRun.value } : {};
       const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
-        ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(handsOff.checked ? { humanReview: false } : {}) } } : {}) };
+        ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, ...(drawDesign.checked ? {} : { drawDesign: false }), noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(handsOff.checked ? { humanReview: false } : {}) } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
     } catch (e) {
@@ -1451,7 +1457,7 @@ async function estimateScreen(id) {
     e.catalogue ? fact("Task catalogue", h("span", { class: "tags" }, h("span", { class: "tag" }, e.catalogue.version), h("span", { class: "tag" }, `stack ${e.catalogue.stack}`),
       h("span", { class: `pill ${e.catalogue.status === "draft" ? "t-wait" : "t-ok"}` }, h("span", { class: "d" }), e.catalogue.statusText))) : [],
     fact("Delivery model", e.deliveryModel === "hitl" ? "HITL: a supervisor plus agents" : "Solely agentic"),
-    fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : "", e.handsOff ? "hands-off (no human review)" : ""].filter(Boolean).join(" · ")),
+    fact("Settings", [s.stackSource ? `stack ${s.stackSource}` : "", s.feedbackRounds !== undefined ? `${s.feedbackRounds} feedback rounds` : "", s.drawDesign === false ? "no design drawn" : "", s.designInTotal === false ? "Design kept out of the total" : "Design in the total", s.noRepo ? "no repo" : "", e.handsOff ? "hands-off (no human review)" : ""].filter(Boolean).join(" · ")),
     fact("Approval", e.approved ? h("span", { class: "pill t-ok" }, h("span", { class: "d" }), `${e.approved.auto ? "approved by the factory (no human review)" : `approved by ${e.approved.by || "?"}`}${e.approved.hash ? ` (${e.approved.hash})` : ""}`)
       : h("span", { class: "pill t-wait" }, h("span", { class: "d" }), e.handsOff ? "approves itself once its checks pass" : "waiting for approval in your terminal")),
   );

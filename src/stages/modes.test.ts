@@ -79,6 +79,22 @@ describe("mode manifests", () => {
     expect(keys).toEqual(["discover", "intake", "ground", "specify", "impact", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
   });
 
+  it("an estimate with the design left out goes from the spec straight to the breakdown", async () => {
+    const l = Ledger.create("20261007-estimate-nodesign");
+    await l.append({ type: "run.created", data: { mode: "estimate", project: "p", request: "x", estimate: { drawDesign: false } } }, HUMAN_WRITER);
+    expect(estimateSteps(replay(l.events())).map((s) => s.key)).toEqual(["intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "breakdown", "estimate", "approve-estimate", "export"]);
+  });
+
+  it("a build from an estimate that left the design out draws its own design before the plan (brownfield and greenfield)", async () => {
+    const ref = { runId: "r0", estimateSha: "e".repeat(64), breakdownSha: "b".repeat(64), specSha: "s".repeat(64), criticSha: "k".repeat(64), noDesign: true };
+    const b = Ledger.create("20261007-build-nodesign");
+    await b.append({ type: "run.created", data: { mode: "brownfield", project: "p", request: "x", estimateRef: ref } }, HUMAN_WRITER);
+    expect(brownfieldSteps(replay(b.events())).map((s) => s.key)).toEqual(["discover", "intake", "ground", "specify", "impact", "design", "design-baseline", "design-export", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
+    const g = Ledger.create("20261007-greenfield-nodesign");
+    await g.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: "x", estimateRef: ref } }, HUMAN_WRITER);
+    expect(greenfieldSteps(replay(g.events())).map((s) => s.key)).toEqual(["discover", "intake", "ground", "specify", "design", "design-baseline", "design-export", "plan", "approve", "stub-commit", "author-tests", "integrate", "accept", "design-fidelity", "design-check", "review", "deliver"]);
+  });
+
   it("design mode runs the estimate's road to the spec, then the design pipeline, and stops at the approved design", async () => {
     const d = await stateFor("design");
     const keys = stepsFor(d).map((s) => s.key);

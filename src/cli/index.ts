@@ -121,6 +121,7 @@ program.command("estimate")
   .option("--jira <key>", "the requirements as a Jira ticket (ABC-123 or its link)")
   .option("--ref <ref>", 'a design reference: an image, an https link, a Figma link, a PDF, a .docx or a Figma JSON export; optional role match:, inspire: or layout: in front and a note after |, e.g. --ref "layout:dash.jpg|table like this"; repeat it', (v: string, prev: string[] = []) => [...prev, v])
   .option("--stack-source <source>", "client (fixed), folio3 (we decide) or undecided (a default pack, stated as an assumption)", "undecided")
+  .option("--no-design", "leave the design out: nothing is drawn or approved, and the run goes from the spec straight to the breakdown (UI hours get a wider range; a build from this estimate draws its own design)")
   .option("--no-design-in-total", "keep Design out of the Summary total (the row still shows)")
   .option("--feedback-rounds <n>", "client feedback rounds to allow for", "2")
   .option("--rate <track=usd>", "hourly rate per track (backend, mobile, web, qa, design, gd, pm, pdm, default); repeat it; adds the team file's cost overlay", (v: string, prev: string[] = []) => [...prev, v])
@@ -140,6 +141,11 @@ program.command("estimate")
   .action(async (prompt: string | undefined, o: EstimateOptions & { handsOff?: boolean; project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; revises?: string; fromDesign?: string; resize?: string; fresh?: boolean; ref?: string[]; designExport?: string }) => {
     if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
     const designExport = designExportOption(o.designExport);
+    if (o.design === false) {
+      if (o.fromDesign) throw new Error("--no-design leaves the design out, and --from-design sizes an approved one; use one of them.");
+      if (o.resize) throw new Error("--resize sizes the earlier run as it was, with or without its design; drop --no-design.");
+      if (o.ref?.length || o.frames || designExport) throw new Error("--no-design draws no design, so there is nothing for --ref, --frames or --design-export to feed or export; drop them, or drop --no-design.");
+    }
     let fromDesign: ApprovedDesign | undefined;
     if (o.resize) {
       if (o.fromDesign || o.revises) throw new Error("--resize starts a new estimate from an earlier one; it does not go with --from-design or --revises.");
@@ -184,7 +190,7 @@ program.command("estimate")
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}), ...(designExport ? { designExport } : {}),
     });
     if (fromDesign) await exportSeededNow(runId, designExport, log);
-    log(`estimate run ${runId} (requirements from ${o.resize ? `estimate run ${o.resize}, with its spec and approved design; only the sizing is new` : fromDesign ? `design run ${fromDesign.runId}, with its approved design` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""}; solely agentic${settings.humanReview ? ", with human review" : ", hands-off"})`);
+    log(`estimate run ${runId} (requirements from ${o.resize ? `estimate run ${o.resize}, with its spec and approved design; only the sizing is new` : fromDesign ? `design run ${fromDesign.runId}, with its approved design` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""}; solely agentic${settings.humanReview ? ", with human review" : ", hands-off"}${settings.drawDesign === false ? ", no design" : ""})`);
     await runAndReport(runId);
   });
 

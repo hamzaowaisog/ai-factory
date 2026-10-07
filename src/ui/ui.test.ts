@@ -846,6 +846,17 @@ describe("factory ui: design-only runs", () => {
     expect((await post({ mode: "design", prompt: "Build an order portal", designExport: ["gif"] })).json().error).toMatch(/Unknown format/);
     expect((await post({ mode: "design", prompt: "Build an order portal", designExport: "png" })).json().error).toMatch(/list of formats/);
   });
+
+  it("an estimate started with Draw the design off records it, and refuses what only a design uses", async () => {
+    const prompt = "Build an order portal with login and a dashboard";
+    const r = await post({ mode: "estimate", prompt, estimate: { noRepo: true, drawDesign: false } });
+    expect(r.status, r.body).toBe(201);
+    expect(replay(Ledger.open(r.json().runId).events()).info.estimate?.drawDesign).toBe(false);
+    // left on (the default), nothing is recorded
+    const on = await post({ mode: "estimate", prompt, estimate: { noRepo: true } });
+    expect(replay(Ledger.open(on.json().runId).events()).info.estimate).not.toHaveProperty("drawDesign");
+    expect((await post({ mode: "estimate", prompt, estimate: { noRepo: true, drawDesign: false }, designExport: ["png"] })).json().error).toMatch(/With the design left out nothing is drawn/);
+  });
 });
 
 describe("factory ui: estimate runs", () => {

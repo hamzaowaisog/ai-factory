@@ -90,24 +90,28 @@ export function estimateDesign(runId: string): ApprovedDesign {
   const ledger = Ledger.open(runId);
   const s = replay(ledger.events());
   if (s.info.mode !== "estimate") throw new Error(`${runId} is not an estimate run. ${s.info.mode === "design" ? "Size a design run with --from-design." : ""}`.trim());
-  if (s.steps.get("design-baseline")?.status !== "completed") throw new Error(`${runId} has not got past its design baseline (E1b) yet, so there is no settled spec and design to size again. Finish it first (factory resume ${runId}).`);
-  return carried(runId, ledger, s);
+  // an estimate that left the design out (--no-design) has no baseline: its settled spec is enough
+  const noDesign = s.info.estimate?.drawDesign === false;
+  if (noDesign && s.steps.get("specify")?.status !== "completed") throw new Error(`${runId} has not finished its spec yet, so there is nothing settled to size again. Finish it first (factory resume ${runId}).`);
+  if (!noDesign && s.steps.get("design-baseline")?.status !== "completed") throw new Error(`${runId} has not got past its design baseline (E1b) yet, so there is no settled spec and design to size again. Finish it first (factory resume ${runId}).`);
+  return carried(runId, ledger, s, noDesign);
 }
 
 /** The spec and design steps of a run, as a later run inherits them under the same step keys. */
-function carried(runId: string, ledger: Ledger, s: ReturnType<typeof replay>): ApprovedDesign {
+function carried(runId: string, ledger: Ledger, s: ReturnType<typeof replay>, noDesign = false): ApprovedDesign {
   const out = (step: string, name?: string): string | undefined => {
     const r = s.steps.get(step);
     return r?.status === "completed" ? (name ? (r.data?.named as Record<string, string> | undefined)?.[name] : r.outputs[0]) : undefined;
   };
   const ref: DesignRef = {
-    runId, designSha: out("design")!, baselineSha: out("design-baseline")!, intakeSha: out("intake")!, specSha: out("specify")!,
+    runId, intakeSha: out("intake")!, specSha: out("specify")!,
     ...Object.fromEntries(Object.entries({
+      designSha: out("design"), baselineSha: out("design-baseline"),
       criticSha: out("specify", "critic"), clarifySha: out("clarify"), clarify2Sha: out("clarify-2"),
       groundSha: out("ground"), surveySha: out("ground", "survey"), inventorySha: out("ground", "design"),
     }).filter(([, v]) => v)),
   };
-  for (const k of ["designSha", "intakeSha", "specSha"] as const) if (!ref[k]) throw new Error(`${runId} is missing its ${k.replace("Sha", "")} output; it cannot be carried on.`);
+  for (const k of [...(noDesign ? [] : ["designSha" as const]), "intakeSha" as const, "specSha" as const]) if (!ref[k]) throw new Error(`${runId} is missing its ${k.replace("Sha", "")} output; it cannot be carried on.`);
   const artifacts: Record<string, unknown> = {};
   for (const [k, sha] of Object.entries(ref)) if (k !== "runId" && sha) artifacts[sha] = ledger.getJson(sha);
   return {
