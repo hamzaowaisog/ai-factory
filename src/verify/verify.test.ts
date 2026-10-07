@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { ProjectConfig } from "../config/project.js";
 import { buildCachePath, filterFor, findBuildTarget, KEEP_BUILDS, MAX_SKIP_FILTER, parseBuildErrors, produceDotnetTests, saveBuild, skipFilterFor, skippableKnownFailures } from "./dotnet.js";
 import type { ContainerRuntime, ContainerSpec } from "./runtime.js";
-import { classifyFailure, parseTrx } from "./trx.js";
+import { classifyFailure, classifyTrxFailure, parseTrx } from "./trx.js";
 import { buildTestRun, classify, rerunCandidates, validate } from "./validate.js";
 import { trx } from "./testutil.js";
 
@@ -35,6 +35,17 @@ describe("TRX", () => {
     expect(classifyFailure("Npgsql.NpgsqlException: Failed to connect to 127.0.0.1:5432")).toBe("infra");
     expect(classifyFailure("System.NullReferenceException: Object reference not set")).toBe("exception");
     expect(classifyFailure("Test timed out after 30s")).toBe("timeout");
+  });
+
+  it("reads an assertion with its own message as an assertion, and a thrown exception as an exception", () => {
+    const frame = "   at App.Tests.ContractTests.AC_1_2() in /src/App.Tests/ContractTests.cs:line 33";
+    expect(classifyTrxFailure("29 differences:\nservers: contract /api, built none", frame)).toBe("assertion");
+    expect(classifyTrxFailure("undeclared 404:", frame)).toBe("assertion");
+    expect(classifyTrxFailure("System.NullReferenceException : Object reference not set", frame)).toBe("exception");
+    expect(classifyTrxFailure("System.Collections.Generic.KeyNotFoundException : The given key 'x' was not present", frame)).toBe("exception");
+    expect(classifyTrxFailure("Test method App.Tests.T.M threw exception: \nSystem.InvalidOperationException: no", frame)).toBe("exception");
+    expect(classifyTrxFailure("", frame)).toBe("exception");
+    expect(classifyTrxFailure("System.NotImplementedException : later", frame)).toBe("not-implemented");
   });
 
   it("rejects a non-TRX file", () => {

@@ -19,6 +19,8 @@ import { ensureAgentImage, ensureEgress, feedHostsFrom } from "../runners/netinf
 import { buildPack, FILE_INLINE_MAX } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
 import { sha256 } from "../util/hash.js";
+import type { Ledger } from "../ledger/ledger.js";
+import { parseTrx } from "../verify/trx.js";
 import { factoryHome } from "../util/paths.js";
 import { buildCachePath, produceDotnetTests, skippableKnownFailures, type Probe, type ProduceOutput } from "../verify/dotnet.js";
 import type { ProjectConfig } from "../config/project.js";
@@ -443,6 +445,32 @@ export function testRetryMode(prev: PrevAttempt | undefined): { mode: "keep" | "
   return { mode: "keep", reason: `the previous attempt failed only on ${[...new Set(prev.checks)].join(", ")}` };
 }
 
+/**
+ * The previous attempt was rejected only for how its test failures were labelled ("fails with exception"). The labels come from
+ * the factory's reading of the raw test reports, so those reports are read again by today's rules: true when every test the
+ * rejection named now fails for an accepted reason. The tests were never wrong then, and the test writer has nothing to fix.
+ * False whenever that cannot be shown (another kind of failure, a capped list, a report that is gone, a stack other than .NET).
+ */
+export function labelRejectionLifted(ledger: Pick<Ledger, "events" | "getJson" | "getArtifact" | "hasArtifact">, commit: string | undefined, failures: Failure[]): boolean {
+  if (!commit || !failures.length || failures.length >= 20 || failures.some((f) => f.check !== "wrong-failure-kind" || !f.testId)) return false;
+  const gate = ledger.events().filter((e) => e.type === "gate.result" && e.treeSha === commit && (e.data as { gateId?: string } | undefined)?.gateId === "author-tests.fails-on-base").at(-1);
+  const inputs = (gate?.data as { inputs?: { run1?: string; run2?: string } } | undefined)?.inputs;
+  if (!inputs?.run1 || !inputs.run2) return false;
+  const name = (id: string) => id.split("::").pop()!;
+  for (const sha of [inputs.run1, inputs.run2]) {
+    if (!ledger.hasArtifact(sha)) return false;
+    const run = ledger.getJson<TestRun>(sha);
+    if (run.runner !== "vstest" || !run.reportShas.length) return false;
+    const kinds = new Map<string, string | undefined>();
+    for (const r of run.reportShas) {
+      if (!ledger.hasArtifact(r)) return false;
+      try { for (const t of parseTrx(ledger.getArtifact(r).toString("utf8")).results) kinds.set(name(t.id), t.outcome === "failed" ? t.failureKind : t.outcome); } catch { return false; }
+    }
+    if (failures.some((f) => !["assertion", "not-implemented"].includes(kinds.get(name(f.testId!)) ?? ""))) return false;
+  }
+  return true;
+}
+
 /** The agent stopped before it answered (budget or turns): what it wrote is still worth finishing. */
 const UNFINISHED = new Set(["over-budget", "timeout"]);
 
@@ -533,25 +561,33 @@ Before you return, check your list against the criteria: each of these needs at 
     await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
     await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
     await ensurePackages(ctx, start, wt);
-    const r = await new ClaudeAgentRunner(rt, {
-      runId: ctx.runId, key: `author-tests/${ctx.attempt}`, fileScope: TEST_SCOPE, lockedFiles: [], extraProtected: contractLockFiles(ctx.project, wt), onProgress: agentTracer(ctx, "test writer"),
-      protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
-      onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "author-tests", data: { id, role: "agent" } }, ctx.writer); },
-      onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "author-tests", data: { id } }, ctx.writer); },
-    }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits: { maxTurns: testWriterTurns(light, needTest.map((a) => a.level)), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
-    await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
-    if (r.status === "config-error") return { kind: "park", reason: r.error ?? "The API rejected the coding agent's request" };
-    if (r.status !== "ok") {
-      // out of budget or turns: what it wrote is paid for, so it is saved for the retry to finish (test files only)
-      const left = UNFINISHED.has(r.status) ? await dirtyPaths(wt) : [];
-      const unfinished = left.length && left.every((f) => matchesAny(f, TEST_SCOPE)) ? await commitAll(wt, `factory: unfinished acceptance tests for ${ctx.runId}`) : undefined;
-      return { kind: "fail", category: r.status === "rate-limited" ? "rate-limit" : "other", failures: [failure(`agent-${r.status}`, r.error ?? r.status)], signature: `author-tests:${r.status}`, data: { ...retry, ...(unfinished ? { commit: unfinished, ...(prev?.out && mode.mode === "keep" ? { out: prev.out } : {}) } : {}) } };
+    // rejected only for a label the factory itself gave, and the stored reports no longer say so: the tests go to the lab as they are
+    const recheck = mode.mode === "keep" && !!prevOut && labelRejectionLifted(ctx.ledger, prev!.commit, ctx.priorFailures);
+    let out: z.infer<typeof AuthorOut>;
+    if (recheck) {
+      ctx.log(`author-tests: the previous attempt's ${ctx.priorFailures.length} rejected test${ctx.priorFailures.length === 1 ? "" : "s"} fail for an accepted reason when its reports are read again; checking its tests again without the test writer`);
+      out = prevOut!;
+    } else {
+      const r = await new ClaudeAgentRunner(rt, {
+        runId: ctx.runId, key: `author-tests/${ctx.attempt}`, fileScope: TEST_SCOPE, lockedFiles: [], extraProtected: contractLockFiles(ctx.project, wt), onProgress: agentTracer(ctx, "test writer"),
+        protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
+        onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "author-tests", data: { id, role: "agent" } }, ctx.writer); },
+        onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "author-tests", data: { id } }, ctx.writer); },
+      }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits: { maxTurns: testWriterTurns(light, needTest.map((a) => a.level)), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
+      await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
+      if (r.status === "config-error") return { kind: "park", reason: r.error ?? "The API rejected the coding agent's request" };
+      if (r.status !== "ok") {
+        // out of budget or turns: what it wrote is paid for, so it is saved for the retry to finish (test files only)
+        const left = UNFINISHED.has(r.status) ? await dirtyPaths(wt) : [];
+        const unfinished = left.length && left.every((f) => matchesAny(f, TEST_SCOPE)) ? await commitAll(wt, `factory: unfinished acceptance tests for ${ctx.runId}`) : undefined;
+        return { kind: "fail", category: r.status === "rate-limited" ? "rate-limit" : "other", failures: [failure(`agent-${r.status}`, r.error ?? r.status)], signature: `author-tests:${r.status}`, data: { ...retry, ...(unfinished ? { commit: unfinished, ...(prev?.out && mode.mode === "keep" ? { out: prev.out } : {}) } : {}) } };
+      }
+      out = r.output as z.infer<typeof AuthorOut>;
     }
-    const out = r.output as z.infer<typeof AuthorOut>;
 
     const commit = await commitAll(wt, `factory: acceptance tests for ${ctx.runId}`);
     // what a retry needs to carry on from here: the commit and the tests the writer listed
-    const keep = { ...retry, commit, out: ctx.ledger.putJson(out) };
+    const keep = { ...retry, ...(recheck ? { recheck: true } : {}), commit, out: ctx.ledger.putJson(out) };
     const changed = await changedFiles(wt, start, commit);
     const notTests = changed.filter((c) => !matchesAny(c.path, TEST_SCOPE));
     if (notTests.length) return { kind: "fail", category: "safety", failures: notTests.map((c) => failure("author-tests-scope", `Test author changed a non-test file: ${c.path}`)), signature: "author-tests:scope" };

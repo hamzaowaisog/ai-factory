@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, TEST_SCOPE, testRetryMode, testWriterTampering } from "./build.js";
+import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, TEST_SCOPE, testRetryMode, testWriterTampering, labelRejectionLifted } from "./build.js";
 import { attemptSpend } from "./executor.js";
 import { matchesAny } from "../util/glob.js";
 
@@ -93,6 +93,28 @@ describe("retry: keep the previous attempt's code or reset", () => {
     expect(testRetryMode(undefined).mode).toBe("reset");
     expect(testRetryMode(prev([])).mode).toBe("reset");
     expect(testRetryMode(prev(["ac-coverage"], { interrupted: true })).mode).toBe("reset");
+  });
+
+  it("lifts a rejection that was only a wrong label, read again from the stored reports", () => {
+    const trx = (msg: string) => `<?xml version="1.0"?><TestRun><TestDefinitions><UnitTest name="AC_1_2" id="t1"><TestMethod className="App.Tests.ContractTests" name="AC_1_2" /></UnitTest></TestDefinitions>
+<Results><UnitTestResult testId="t1" testName="AC_1_2" outcome="Failed" duration="00:00:00.01"><Output><ErrorInfo><Message>${msg}</Message><StackTrace>   at App.Tests.ContractTests.AC_1_2() in /src/App.Tests/ContractTests.cs:line 33</StackTrace></ErrorInfo></Output></UnitTestResult></Results></TestRun>`;
+    const ledgerWith = (msg: string, runner = "vstest") => {
+      const blobs: Record<string, string> = { report: trx(msg), run: JSON.stringify({ runner, reportShas: ["report"] }) };
+      return {
+        events: () => [{ seq: 0, ts: "", runId: "r", epoch: 0, type: "gate.result", treeSha: "c1", data: { gateId: "author-tests.fails-on-base", inputs: { run1: "run", run2: "run" } } }] as LedgerEvent[],
+        getJson: <T,>(sha: string) => JSON.parse(blobs[sha]!) as T, getArtifact: (sha: string) => Buffer.from(blobs[sha]!), hasArtifact: (sha: string) => sha in blobs,
+      };
+    };
+    const wrong = [{ check: "wrong-failure-kind", testId: "app.tests::App.Tests.ContractTests.AC_1_2", message: "fails with exception", frames: [] }];
+    expect(labelRejectionLifted(ledgerWith("29 differences:"), "c1", wrong)).toBe(true);
+    // a real crash stays rejected, and so does anything the reports cannot show
+    expect(labelRejectionLifted(ledgerWith("System.NullReferenceException : Object reference not set"), "c1", wrong)).toBe(false);
+    expect(labelRejectionLifted(ledgerWith("29 differences:"), "c2", wrong)).toBe(false);
+    expect(labelRejectionLifted(ledgerWith("29 differences:"), undefined, wrong)).toBe(false);
+    expect(labelRejectionLifted(ledgerWith("29 differences:", "vitest"), "c1", wrong)).toBe(false);
+    expect(labelRejectionLifted(ledgerWith("29 differences:"), "c1", [...wrong, { check: "ac-coverage", message: "No test for AC-1.1", frames: [] }])).toBe(false);
+    expect(labelRejectionLifted(ledgerWith("29 differences:"), "c1", [{ ...wrong[0]!, testId: "app.tests::App.Tests.Other.Missing" }])).toBe(false);
+    expect(labelRejectionLifted(ledgerWith("29 differences:"), "c1", [])).toBe(false);
   });
 
   it("adds up what each attempt since the step last completed cost", () => {
