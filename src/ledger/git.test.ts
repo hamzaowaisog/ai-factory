@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { addWorktree, changedFiles, commitAll, diffIncludingUntracked, git, headSha, removeWorktree, repoRefusals, resetHard } from "./git.js";
+import { addWorktree, changedFiles, commitAll, diffIncludingUntracked, git, headSha, removeWorktree, repoRefusals, resetHard, trackIgnored } from "./git.js";
 
 function makeRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "factory-git-"));
@@ -59,5 +59,23 @@ describe("hardened git", () => {
     const repo = makeRepo();
     writeFileSync(join(repo, ".gitmodules"), "");
     expect((await repoRefusals(repo)).map((r) => r.code)).toContain("submodules");
+  });
+  it("commits a file the plan names even when an ignore rule hides it, and keeps it through a clean", async () => {
+    const repo = makeRepo();
+    writeFileSync(join(repo, ".gitignore"), "gen/\n");
+    const start = await commitAll(repo, "ignore");
+    mkdirSync(join(repo, "gen", "deep"), { recursive: true });
+    for (const f of ["gen/Source.cs", "gen/deep/More.cs", "gen/built.json", "gen/other.txt"]) writeFileSync(join(repo, f), "x\n");
+    const scope = ["gen/Source.cs", "gen/**/*.cs", "gen/built.json"];
+    expect((await trackIgnored(repo, scope, ["gen/built.json"])).sort()).toEqual(["gen/Source.cs", "gen/deep/More.cs"]);
+    const commit = await commitAll(repo, "task");
+    expect((await changedFiles(repo, start, commit)).map((f) => f.path).sort()).toEqual(["gen/Source.cs", "gen/deep/More.cs"]);
+    // keep mode: HEAD back to the start, then the build output is cleaned
+    await git(repo, ["reset", "--mixed", "-q", start]);
+    await trackIgnored(repo, scope, ["gen/built.json"]);
+    await git(repo, ["clean", "-fdX"]);
+    expect(existsSync(join(repo, "gen/Source.cs"))).toBe(true);
+    expect(existsSync(join(repo, "gen/built.json"))).toBe(false);
+    expect(await trackIgnored(repo, ["src/**"])).toEqual([]);
   });
 });

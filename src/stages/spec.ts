@@ -15,7 +15,7 @@ import { runGate, type GateDef } from "../gates/engine.js";
 import { hashJson } from "../util/hash.js";
 import { approvedDesignFor } from "./design-inputs.js";
 import { header, lastFailureData, outputOf, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
-import { acOwners } from "./build.js";
+import { acOwners, slicesProblem } from "./build.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
 import { gateNotes } from "./gate-questions.js";
 import { settledText } from "./settle.js";
@@ -187,7 +187,8 @@ export const planStep: StepDef = {
       S.template("tpl", `${planIntro(ctx.project.stack)}
 - Give at least 2 options (one marked simplest), choose one, and write a decision record of at most 5 lines (adr).
 - Split into tasks TASK-1.. in dependency order. Each task: the requirements it delivers, fileScope (exact repo paths or narrow globs it may change, no overlap between tasks), 1-2 exemplar files to imitate, plannedLoc, approach (short instructions for the implementer).
-- List a requirement on the task after which its criteria can pass. A criterion checked through the API or a screen passes only once that route or screen is wired, so prefer tasks that each deliver a working slice: the logic together with its endpoint or screen. If you build in layers and wire last, give the wiring task a dependsOn on every layer it serves; those criteria are then checked at the wiring task, and a mistake in an early layer is found only there.
+- Build in working slices, not layers. A criterion checked through the API or a screen passes only once that route or screen is wired, so the first task that adds a route or screen also wires the app's entry (the startup file, the router, the layout), and each later task adds its logic together with its own endpoint or screen. Code a slice needs (an entity, a helper) goes into the first slice that uses it, not into a task of its own. File scopes may not overlap, so have that first task register routes by convention (file-based routes, or every class of one kind found at startup): later tasks then add only their own files.
+- List a requirement on the task after which its criteria can pass. Do not leave the wiring to a last task that then holds every criterion checked through the app: each earlier task is then checked only there, in the longest and dearest task of the run. Only where the repo's structure forces layers, give the wiring task a dependsOn on every layer it serves.
 - dependsOn: only the tasks whose code this task really needs.
 - Test projects, test files and CI config are not in any file scope: tests are written separately.
 - stubs: for every NEW public type/method/endpoint the tests will call, give a compilable stub file (full file content) whose bodies ${stubRule(ctx.project.stack)}, so tests compile before implementation. Existing APIs need no stubs. Stub paths must be inside a task's fileScope.
@@ -243,6 +244,10 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
     }
     for (const st of plan.stubs) if (st.path !== cfile && !plan.tasks.some((t) => t.fileScope.some((g) => g === st.path || st.path.startsWith(g.replace(/\*.*$/, ""))))) fs.push(failure("plan-stub", `Stub ${st.path} is outside every task's file scope`));
     if (impact) fs.push(...planCoverageFailures(plan, impact));
+    // asked once: where the approved tasks or the repo force layers, the plan runs as it is
+    const asked = ctx.ledger.events().some((e) => e.type === "step.failed" && String(e.key).startsWith("plan/") && String((e.data as { signature?: string } | undefined)?.signature).includes("plan-slices"));
+    const slices = asked ? undefined : slicesProblem(plan, spec, ctx.project.stack);
+    if (slices) fs.push(failure("plan-slices", slices));
     const planSha = ctx.ledger.putJson(plan);
     const specSha = ctx.state.steps.get("specify")!.outputs[0]!;
     const g = await runGate(planChecks, ctx.ledger, ctx.writer, { plan: planSha, spec: specSha }, ctx.policy, { step: "plan" });

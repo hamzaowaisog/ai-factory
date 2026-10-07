@@ -61,3 +61,24 @@ A failed build marks every expected test as a failed locked test ("Build failed"
 
 - `src/stages/build.test.ts`: `earlierTests`, `labelRegressions`, `retryMode` (keep on test, build and regression failures; reset on a rung move, safety, scope, escape hatch, agent timeout, interrupted, first attempt), `previousAttempt`.
 - `src/stages/e2e.test.ts`, "implement loop across tasks": a scripted three-task run on the fake runtime. An out-of-scope edit resets to the start commit. TASK-2 breaks TASK-1's test twice: it gets a regression naming TASK-1, keeps its code on the same-rung retry, climbs instead of parking, starts fresh at rung 1 and passes. TASK-3's tests aren't in TASK-2's `expectPass`. TASK-3's own test fails once and the retry starts from the kept code with the previous diff in its instructions. The branch holds one commit per task.
+
+## Added on 2026-10-07: plans built in layers
+
+Found on the first run to reach coding (`31fe`). The full list with the other fixes from that run is in `docs/cost-and-failure-fixes.md`, section 5.
+
+**The problem.** A plan can put the data model, the services and the endpoints in separate tasks. A test that goes through the running app cannot pass until the endpoint task, but ownership (`acOwners`) held it to the last task that lists its requirement, often a service task. That task then failed the same test on every attempt.
+
+**What happens now** (`src/stages/build.ts`)
+
+- **Seen from the plan's files** (`layeredByFiles`): a requirement tested through the app (level api, ui or job) is held by a task that writes no route or page file, no task under it does, and a task built on it does. The plan is then layered before any task runs.
+- **Seen from the first failure** (`failsAsBefore`, `deferNow`): the task's own app-level tests fail with the same kind and message as before the task started, nothing else failed, and the task writes no route or page itself. The executor records the attempt with action `defer` and does not climb the ladder.
+- **Seen from the second failure** (`failsForLayers`, `deferrable`): the same own app-level tests failed twice and a later task is built on this one. This is the fallback when the message changed between attempts.
+- **Once the plan is layered**, app-level criteria are held at the last task built on their owner. The earlier task's code is judged again without a coding session (`recheck`), since it is no longer held to those tests.
+- **The task that takes them over** (`takenOver`) gets the requirements, the files of the tasks it took over from and of every task it is built on, and twice the turns, budget and time.
+
+**Keeping code on the way up the ladder.** See change 2 above: a move up keeps the code when fewer locked tests failed than the attempt before.
+
+**Starting a first attempt.** `startNeed` (`src/stages/executor.ts`): a first coding attempt needs at least what the dearest earlier coding attempt in the run cost, so the limit card comes before the attempt.
+
+**Limits of the file check.** It reads file names, so a plan that names its routes differently is not caught there and falls to the first-failure rule. In an existing app, a logic task followed by a task that adds a new route and depends on it has its tests checked one task later than they could be.
+

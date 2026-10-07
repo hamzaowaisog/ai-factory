@@ -37,7 +37,7 @@ describe("a full-stack product: two repos, one contract", () => {
     expect(files).not.toContain(CONTRACT_FILE);
     // the build writes the document the contract gate reads, and it is not committed
     expect(readFileSync(join(p.api.repo, "App.Api/App.Api.csproj"), "utf8")).toMatch(/OpenApiDocumentsDirectory>\$\(MSBuildProjectDirectory\)\/openapi</);
-    expect(readFileSync(join(p.api.repo, ".gitignore"), "utf8")).toMatch(/^openapi\/$/m);
+    expect(readFileSync(join(p.api.repo, ".gitignore"), "utf8")).toMatch(/^openapi\/\*\.json$/m);
   });
 
   it("refuses a bad name, a product that exists and a folder that is in use", () => {

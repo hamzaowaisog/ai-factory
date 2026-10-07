@@ -7,6 +7,7 @@ import { basename, dirname, join } from "node:path";
 import type { Failure, LedgerEvent } from "../contracts/index.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY, mergePolicy, withPolicy, type Policy } from "../gates/policy.js";
+import { NO_CREDIT } from "../runners/claude-agent.js";
 import { DEFAULT_LADDER, failureSignature, nextOnFailure, type AttemptRecord, type LadderAction } from "../gates/ladder.js";
 import { checkCaps, checkStartBudget, type CapHit } from "../ledger/caps.js";
 import { PackOverBudgetError } from "../context/pack.js";
@@ -259,8 +260,19 @@ function attemptHistory(ledger: Ledger, step: string): AttemptRecord[] {
   // a round of questions about the step's failing checks starts it fresh too (src/stages/gate-questions.ts)
   const lastRound = Math.max(-1, ...evs.filter((e) => e.type === "step.failed" && (e.data as { action?: string } | undefined)?.action === "questions").map((e) => e.seq));
   const since = Math.max(lastDone, lastRaise, lastRound);
-  return evs.filter((e) => e.type === "step.failed" && e.seq > since && !(e.data as { parked?: boolean })?.parked)
+  return evs.filter((e) => e.type === "step.failed" && e.seq > since && !(e.data as { parked?: boolean })?.parked && !outOfCredit(ledger, e))
     .map((e) => e.data as unknown as AttemptRecord);
+}
+
+/**
+ * A failure that was only the model account running out of credit: it says nothing about the work, so it is no attempt on the
+ * ladder and does not move the step to a dearer model. Read from the stored failure too, for runs from before this was a park
+ * (run 31fe lost three attempts and two rungs to it in five seconds).
+ */
+function outOfCredit(ledger: Ledger, e: LedgerEvent): boolean {
+  if ((e.data as { noCredit?: boolean } | undefined)?.noCredit) return true;
+  if (!e.outputs?.[0]) return false;
+  try { return (ledger.getJson<Failure[]>(e.outputs[0]) ?? []).some((f) => NO_CREDIT.test(f.message ?? "")); } catch { return false; }
 }
 
 /** A run that has ended never reuses a build again: free the disk its kept builds use. */
@@ -330,7 +342,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
     const rec = state.steps.get(step.key);
     const attempt = (rec?.lastAttempt ?? 0) + 1;
     const history = attemptHistory(ledger, step.key);
-    const lastFail = [...ledger.events()].reverse().find((e) => e.type === "step.failed" && e.key && splitKey(e.key).step === step.key);
+    const lastFail = [...ledger.events()].reverse().find((e) => e.type === "step.failed" && e.key && splitKey(e.key).step === step.key && !outOfCredit(ledger, e));
     const asked = (lastFail?.data as { action?: string } | undefined)?.action === "questions" && lastFail!.seq > Math.max(-1, ...ledger.events().filter((e) => e.type === "step.completed" && e.key && splitKey(e.key).step === step.key).map((e) => e.seq));
     const rung = history.length || asked ? Number((lastFail?.data as { nextRung?: number } | undefined)?.nextRung ?? 0) : 0;
     // the questions this step's failing checks raised, and whether their rounds are used up (an estimate, a design or a greenfield run)
@@ -407,7 +419,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         break;
       }
       case "park":
-        await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
+        await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true, ...(outcome.data ?? {}) } }, writer);
         await ledger.append({ type: "run.parked", data: { reason: outcome.reason, step: step.key } }, writer);
         return { status: "parked", message: outcome.reason };
       case "ask":

@@ -59,35 +59,45 @@ export function contractProblems(doc: Obj): string[] {
 }
 
 /** A schema as flat facts ("body.items[].id" -> "integer"), following $ref; what a generator adds (format, description) is left out. */
-function facts(doc: Obj, schema: Obj | undefined, at: string, out: Map<string, string>, depth = 0): void {
+function facts(doc: Obj, schema: Obj | undefined, at: string, out: Map<string, string>, depth = 0, detail = false): void {
   if (!schema || depth > 12) return;
-  if (typeof schema.$ref === "string") return facts(doc, schema.$ref.split("/").slice(1).reduce((o: Obj | undefined, k: string) => o?.[k], doc), at, out, depth + 1);
+  if (typeof schema.$ref === "string") return facts(doc, schema.$ref.split("/").slice(1).reduce((o: Obj | undefined, k: string) => o?.[k], doc), at, out, depth + 1, detail);
   const type = Array.isArray(schema.type) ? [...schema.type].sort().join("|") : schema.type ?? (schema.properties ? "object" : "any");
-  if (type === "array") return facts(doc, schema.items, `${at}[]`, out, depth + 1);
+  if (type === "array") return facts(doc, schema.items, `${at}[]`, out, depth + 1, detail);
+  if (detail && Array.isArray(schema.enum)) out.set(`${at} values`, schema.enum.map(String).sort().join(", "));
+  if (detail && at.includes(".")) out.set(`${at} nullable`, schema.nullable === true ? "yes" : "no");
   if (type !== "object") { out.set(at, String(type)); return; }
   out.set(at, "object");
   for (const [name, p] of Object.entries((schema.properties ?? {}) as Obj)) {
     out.set(`${at}.${name} required`, (schema.required ?? []).includes(name) ? "yes" : "no");
-    facts(doc, p as Obj, `${at}.${name}`, out, depth + 1);
+    facts(doc, p as Obj, `${at}.${name}`, out, depth + 1, detail);
   }
 }
 
-function contractFacts(doc: Obj): Map<string, string> {
+function contractFacts(doc: Obj, detail = false): Map<string, string> {
   const out = new Map<string, string>();
   for (const { op, def } of operations(doc)) {
     out.set(op, "exists");
-    facts(doc, def.requestBody?.content?.[JSON_TYPE]?.schema, `${op} request`, out);
+    if (detail) {
+      out.set(`${op} operationId`, String(def.operationId ?? "none"));
+      for (const p of (def.parameters ?? []) as Obj[]) out.set(`${op} parameter ${p.name} (${p.in})`, `${p.schema?.type ?? "any"}, ${p.required ? "required" : "optional"}`);
+    }
+    facts(doc, def.requestBody?.content?.[JSON_TYPE]?.schema, `${op} request`, out, 0, detail);
     for (const [code, r] of Object.entries((def.responses ?? {}) as Obj)) {
       out.set(`${op} ${code}`, "exists");
-      facts(doc, (r as Obj)?.content?.[JSON_TYPE]?.schema, `${op} ${code} body`, out);
+      facts(doc, (r as Obj)?.content?.[JSON_TYPE]?.schema, `${op} ${code} body`, out, 0, detail);
     }
   }
   return out;
 }
 
-/** Where a built API's document differs from the contract: paths, methods, status codes and request/response fields. Empty when they match. */
-export function contractDiff(contract: Obj, built: Obj): string[] {
-  const want = contractFacts(contract), have = contractFacts(built);
+/**
+ * Where a built API's document differs from the contract: paths, methods, status codes and request/response fields. Empty when they match.
+ * `detail` adds what the gate does not hold the API to but a run's own contract tests usually do: operation ids, parameters,
+ * enum values and nullable fields. It is for the coding agent's list (contractGap), never for the gate.
+ */
+export function contractDiff(contract: Obj, built: Obj, detail = false): string[] {
+  const want = contractFacts(contract, detail), have = contractFacts(built, detail);
   const out: string[] = [];
   // a missing operation or object is named once, not once per field under it
   const under = (k: string, gone: string[]) => gone.some((g) => k.startsWith(`${g} `) || k.startsWith(`${g}.`) || k.startsWith(`${g}[`));
@@ -113,3 +123,9 @@ export const contractMatches = defineGate<{ contract: { text: string }; built: {
     return verdict(diff.slice(0, 20).map((d) => failure("contract", `The API does not match the locked contract: ${d}`)), "The API matches the locked contract");
   },
 });
+
+/** What is left between a built document and the contract, in full detail, for the coding agent to work down. */
+export function contractGap(contractText: string, builtText: string | undefined): string[] | undefined {
+  const want = readContract(contractText), have = builtText ? readContract(builtText) : undefined;
+  return want && have ? contractDiff(want, have, true) : undefined;
+}

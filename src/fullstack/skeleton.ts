@@ -109,6 +109,7 @@ public class HealthTests : IClassFixture<WebApplicationFactory<Program>>
     }
 }
 `,
-  ".gitignore": "bin/\nobj/\nopenapi/\n*.db\n*.db-shm\n*.db-wal\n",
+  // only the built document: `openapi/` alone also hides a source folder named OpenApi/ on a Mac
+  ".gitignore": "bin/\nobj/\nopenapi/*.json\n*.db\n*.db-shm\n*.db-wal\n",
 };
 

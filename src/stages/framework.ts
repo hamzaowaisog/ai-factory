@@ -24,7 +24,7 @@ export type StepOutcome =
       deferrable?: boolean;
       /** and each of them fails exactly as it did before the task started: they move to the later task on this failure, not the second */
       deferNow?: boolean }
-  | { kind: "park"; reason: string }
+  | { kind: "park"; reason: string; /** recorded on the step's failure event (an out-of-credit stop keeps its commit there) */ data?: Record<string, unknown> }
   /** A check failed that another attempt cannot fix (gate E1 on the spec, a breakdown the factory could not settle): questions now,
    *  in an estimate or a design run; elsewhere, and once the rounds of questions are used up, the run parks with the reason. */
   | { kind: "ask"; reason: string; failures: Failure[] }

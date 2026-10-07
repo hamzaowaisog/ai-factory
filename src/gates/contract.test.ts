@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { contractDiff, contractMatches, contractProblems, contractReadProblem, contractSummary, readContract } from "./contract.js";
+import { contractDiff, contractGap, contractMatches, contractProblems, contractReadProblem, contractSummary, readContract } from "./contract.js";
 import { DEFAULT_POLICY } from "./policy.js";
 
 // the document a .NET 9 minimal API wrote at build time, with no network (the spike of 2026-10-05)
@@ -103,5 +103,25 @@ describe("why a text is not an OpenAPI document", () => {
     expect(contractReadProblem('openapi: "3.0.3"\n')).toBe('it has no top-level "paths"');
     expect(contractReadProblem("- a\n- b\n")).toMatch(/not a mapping/);
     expect(contractReadProblem('openapi: "3.0.3"\npaths: {}\n')).toBeUndefined();
+  });
+  it("lists for the coding agent the details the gate leaves out: operation ids, parameters, enum values, nullable fields", () => {
+    const doc = (o: { id: string; status: Record<string, unknown>; param: Record<string, unknown>; note: Record<string, unknown> }) => JSON.stringify({
+      openapi: "3.0.3", info: { title: "t", version: "1" },
+      paths: { "/visits": { get: { operationId: o.id, parameters: [o.param], responses: { "200": { description: "ok", content: { "application/json": { schema: { type: "object", required: ["status"], properties: { status: o.status, note: o.note } } } } } } } } },
+    });
+    const want = doc({ id: "listVisits", status: { type: "string", enum: ["Booked", "Cancelled"] }, param: { name: "day", in: "query", required: true, schema: { type: "string" } }, note: { type: "string", nullable: true } });
+    const have = doc({ id: "ListVisits", status: { type: "string" }, param: { name: "day", in: "query", schema: { type: "string" } }, note: { type: "string" } });
+    // the gate's comparison sees no difference; the agent's list names all four
+    expect(contractDiff(readContract(want)!, readContract(have)!)).toEqual([]);
+    expect(contractGap(want, have)).toEqual([
+      "GET /visits operationId: the contract says listVisits, the API has ListVisits",
+      "GET /visits parameter day (query): the contract says string, required, the API has string, optional",
+      "missing in the API: GET /visits 200 body.status values",
+      "GET /visits 200 body.note nullable: the contract says yes, the API has no",
+    ]);
+    expect(contractGap(want, want)).toEqual([]);
+    expect(contractGap(want, undefined)).toBeUndefined();
+    // the real .NET 9 document against its contract: still no difference the gate would miss being reported as noise
+    expect(contractGap(CONTRACT, builtText)!.filter((d) => !/operationId|nullable/.test(d))).toEqual(contractDiff(contract, built()));
   });
 });

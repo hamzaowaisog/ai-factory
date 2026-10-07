@@ -77,6 +77,9 @@ export function readProgress(file: string, offset: number): { lines: AgentProgre
 
 /** The API's refusal of a request that no longer fits the model's context window. */
 const SESSION_FULL = /prompt is too long/i;
+/** The API account has no credit left: no retry, model or effort can fix it, only a person adding credit. */
+export const NO_CREDIT = /credit balance is too low/i;
+export const NO_CREDIT_TEXT = "The model account is out of credit (the API said: Credit balance is too low). Add credit, then resume the run.";
 
 export interface AgentOut {
   status: string;
@@ -225,6 +228,7 @@ export class ClaudeAgentRunner implements Runner {
       if (out.status !== "ok") {
         // compaction is on (context-builder §2.10), but one huge output can still fill the model's window: unfinished work, like running out of turns
         if (SESSION_FULL.test(out.error ?? "")) return { status: "timeout", error: "The session filled the model's context window before it finished", usage: u, sessionId: out.sessionId };
+        if (NO_CREDIT.test(out.error ?? "")) return { status: "config-error", error: NO_CREDIT_TEXT, usage: u, sessionId: out.sessionId };
         if (out.status === "config-error") {
           return { status: "config-error", error: out.apiErrorStatus === 403
             ? "The coding agent's API calls were refused by the factory's key proxy or the API (403). Run factory doctor."

@@ -59,6 +59,18 @@ describe("retry: keep the previous attempt's code or reset", () => {
     expect(at(["locked-failed", "secret"], 4, 20).mode).toBe("reset");
   });
 
+  it("keeps the code of an attempt that stopped when the model account ran out of credit", () => {
+    let seq = 0;
+    const ev = (data: Record<string, unknown>) => [{ seq: seq++, ts: "", runId: "r", epoch: 0, type: "step.failed", key: "implement/TASK-1/1", data }] as LedgerEvent[];
+    // parked with its commit: kept, at any rung, and not treated as an attempt that did not finish
+    const kept = previousAttempt(ev({ rung: 0, parked: true, noCredit: true, commit: "abc" }), "implement/TASK-1", [])!;
+    expect(kept).toMatchObject({ interrupted: false, noCredit: true, commit: "abc" });
+    expect(retryMode(kept, 0)).toEqual({ mode: "keep", reason: "the previous attempt stopped when the model account ran out of credit" });
+    // nothing was written before the credit ran out, or an ordinary park: start clean
+    expect(retryMode(previousAttempt(ev({ rung: 0, parked: true, noCredit: true }), "implement/TASK-1", [])!, 0).mode).toBe("reset");
+    expect(retryMode(previousAttempt(ev({ rung: 0, parked: true, commit: "abc" }), "implement/TASK-1", [])!, 0).mode).toBe("reset");
+  });
+
   it("reads how many locked tests failed in the last two attempts", () => {
     let seq = 0;
     const ev = (type: string, key: string, data: Record<string, unknown> = {}) => ({ seq: seq++, ts: "", runId: "r", epoch: 0, type, key, data }) as LedgerEvent;

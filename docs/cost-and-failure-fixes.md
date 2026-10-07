@@ -1,6 +1,6 @@
 # AI Factory: cost and failure fixes (proposed)
 
-*Written on 2026-10-07, branch `Hamza/greenfield`. Fixes 1 to 16 and 18 to 20 are built and tested (uncommitted). 17 and 21 are left as they are, 22 comes later.*
+*Written on 2026-10-07, branch `Hamza/greenfield`. Fixes 1 to 16 and 18 to 20 are built and tested. 17 and 21 are left as they are, 22 comes later. Fixes 23 to 35 (section 5) came from the first run to reach coding and are committed (`cafbca4`, `98d23aa`).*
 
 This is the list of fixes found by reading the code against four live runs:
 
@@ -137,3 +137,55 @@ What to do instead, in order:
 On resume, `31fe` keeps the first attempt's 15 test files ($2.84): they were restored into its working folder from commit `43a7801`. The second attempt's three files are set aside in a git stash.
 
 None of fixes 13 to 20 has been through a live run yet. Both parked runs are past the plan and the design, so the first run to show the plan patch and the page redraw will be a new one.
+
+## 5. Fixes from the first run through coding (`31fe`, 2026-10-07)
+
+`31fe` was the first run to reach the coding step. It finished six of eight tasks and then parked at TASK-7 with $27.65 of its $30 limit spent. Before resuming, every remaining step was traced against its ledger without spending. These are the fixes from the coding itself and from that trace.
+
+### What the run showed
+
+- **The plan was built in layers.** Tasks 1 to 7 wrote the data model, the services and the API document code. TASK-8 wrote the endpoints. 100 of the 106 locked tests go through HTTP, so they answered "404" until TASK-8, whatever the earlier tasks wrote.
+- **Tasks were held to tests they could not pass.** TASK-7 used five paid attempts (about $2.50 each) on three tests that needed TASK-8's endpoints.
+- **A long session filled the model's context window** ("prompt is too long") and was treated as an error, so its code was thrown away.
+- **Each move to a stronger model started from nothing**, paying again for much the same code.
+
+### Coding step
+
+23. **A test failure is read for what it is.** A test that fails because the answer does not match the contract is an ordinary failed assertion, not a crash (`src/verify/trx.ts`). Before, the test writer's work was rejected for it.
+24. **Free re-check.** When the last attempt failed only on tests the task is no longer held to, its code is judged again as it is, with no coding session (`recheck` in `src/stages/build.ts`).
+25. **Tests wait for the task that can reach them.** A criterion proven through the running app (level api, ui or job) is held at the last task built on its owner once the plan is known to be layered (`acOwners`, `planShowsLayers`). That task gets those requirements in its briefing (`takenOver`).
+26. **A layered plan is seen from its files, before any task runs.** If a requirement tested through the app sits on a task that writes no route or page file, nothing under it does, and a task built on it does, the plan is layered from the start (`layeredByFiles`). No model call. It goes by file names (`Program.cs`, `Endpoints`, `Controllers`; `page` and `route` files), and says nothing when no task writes such a file.
+27. **Hand over on the first failure, not the second.** When a task's own app-level tests fail with exactly the same kind and message as before the task started, nothing else failed, and the task writes no route or page itself, the tests move to the later task at once (`failsAsBefore`, `deferNow`). A real bug changes the message and still gets its retry. Covers the plans fix 26 does not recognise.
+28. **The task that takes tests over can fix what they run.** It may edit the files of the tasks it took over from and of every task it is built on, and it gets twice the turns, budget and time (160 turns, $8, 90 minutes).
+29. **A full context window is unfinished work.** The code is kept and the next attempt finishes it, as for running out of budget or turns (`src/runners/claude-agent.ts`). Compaction is switched on for the coding agent (`docs/design/context-builder.md` §2.10), and the briefing asks the agent to keep command output and file reads small.
+30. **A move up the ladder keeps code that is getting closer.** If the last attempt failed only on locked tests and fewer of them than the attempt before, the code is kept. Same or more failures still get the fresh start (`retryMode`).
+31. **The limit card comes before a first attempt too.** A first coding attempt starts only with at least what the dearest earlier coding attempt in the run cost (`startNeed` in `src/stages/executor.ts`). Before, it needed $1 and would have been cut off part-way.
+32. **The planner is told to list a requirement on the task after which its criteria can pass** (`src/stages/spec.ts`): prefer tasks that each deliver a working slice, the logic together with its endpoint or screen, and if it builds in layers, make the wiring task depend on every layer it serves. It is also told to declare only real dependencies. Applies to new plans.
+
+### Integrate and review
+
+33. **A change over the size limit asks for a waiver.** `integrate.diff-size` runs after the other integration checks, and when it is the only one failing the run stops on a waiver card (`factory waive`). Before, it parked with no way forward: `31fe` is 2,839 lines against a limit of 1,500, and a project can only lower that limit.
+34. **Review limits grow with the number of criteria.** Every criterion needs its own verdict, and running out before the last one fails the review and pays for it again. The usual 14 turns, $2 and 15 minutes fit about 35 criteria; a larger change gets two or three times that (`reviewRoom` in `src/stages/deliver.ts`). `31fe` has 104.
+
+### Checked and found fine
+
+35. **Deliver.** Traced for `31fe` at no cost: no secrets in its nine commits, the PR text is 44,000 of GitHub's 65,536 characters, the manifest commit holds one file, and the token can push to the repo.
+
+### From the resume of 2026-10-07
+
+What the resume showed: TASK-7 passed on the free re-check, compaction worked in a live session (164k tokens down to 17k), and TASK-8 has not passed yet. Three things stopped it, none of them the code it wrote.
+
+36. **A file the plan names is committed even when an ignore rule hides it.** The skeleton's `.gitignore` had `openapi/`, for the built API document in `App.Api/openapi/`. The plan put a source file in `App.Api/OpenApi/`. On a Mac those are one folder and git matches ignore rules without case, so the file was left out of every commit. The test lab judges the commit, so TASK-7 was tested five times without the code it wrote. Before each task commit, and before the clean on a "keep the code" retry, the factory now adds the files of the task's scope that an ignore rule hides, under the plan's spelling (`trackIgnored` in `src/ledger/git.ts`). The built document stays out.
+37. **The agent is told not to delete that folder.** It ran `rm -rf openapi` to get a fresh document and removed its own source file with it. When a scope file shares the built document's folder, the prompt says to delete only the document.
+38. **New projects ignore only the built document.** The skeleton's rule is now `openapi/*.json`.
+39. **Out of credit stops the run at once.** "Credit balance is too low" was an ordinary failure: three attempts and two rungs went in five seconds, the task moved to the dearest model, and twelve minutes of code were thrown away on the rung move. It is now a park. The code so far is committed and the next attempt carries on from it at the same rung. Such a failure is no attempt on the ladder, also when it is read from a run's earlier events, so `31fe` goes back to rung 0.
+40. **The planner must build in working slices.** Fix 32 was a preference; it is now the rule, and the plan is checked (`slicesProblem` in `src/stages/build.ts`). A plan goes back to the planner once when its files show layers, or when one task holds more than 60% of the criteria checked through the app (plans of four or more tasks and twelve or more such criteria). A plan that stays layered still runs, with the hand-over of fixes 28 and 29. File scopes may not overlap, so the planner is told to have the first slice register routes by convention.
+41. **A task that writes the API gets the contract differences.** The list compares the document of the last build with the contract and includes what the contract gate does not check: operation ids, parameters, enum values and nullable fields (`contractGap` in `src/gates/contract.ts`). The gate itself is unchanged. On a first attempt the list mostly says which operations are missing; it earns its place on retries. In `31fe` the gate passed while the run's own contract tests failed on exactly these details.
+
+Also learned: a sleeping laptop freezes a run while its time limit keeps counting. Attempt 1 of TASK-8 lost about 76 of its 99 minutes that way. Keep the machine awake (`caffeinate -dims`).
+
+### Still unproven
+
+- No run has finished TASK-8, review or delivery yet. `31fe` is the first.
+- Fixes 40 and 41 have not been through a paid run: no plan has been written under the new rule yet.
+- Review will run on `gpt-5.5`, which `31fe` has not called. The project file has no price for it, so the factory counts it at its dearest rate.

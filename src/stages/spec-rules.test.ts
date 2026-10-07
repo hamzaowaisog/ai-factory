@@ -328,4 +328,26 @@ describe("acceptance criteria ownership", () => {
     // a task that takes nothing over stays inside its own files
     expect(takenOver(dto, spec, "TASK-2", true).fileScope).toEqual([]);
   });
+  it("finds scope files that share the built document's folder under another case", async () => {
+    const { sharesFolder } = await import("./build.js");
+    expect(sharesFolder(["App.Api/OpenApi/ContractOpenApi.cs", "App.Api/Program.cs", "App.Api/openapi/extra.cs"], "App.Api/openapi/built.json")).toEqual(["App.Api/OpenApi/ContractOpenApi.cs"]);
+    expect(sharesFolder(["App.Api/OpenApi/ContractOpenApi.cs"], undefined)).toEqual([]);
+  });
+  it("asks the planner for working slices when the plan is layered or one task holds nearly every criterion", async () => {
+    const { slicesProblem } = await import("./build.js");
+    const acs = (req: string, n: number) => Array.from({ length: n }, (_, i) => ({ id: `${req}-AC-${i + 1}`, level: "api" }));
+    const spec = { requirements: [{ id: "REQ-1", acceptance: acs("REQ-1", 5) }, { id: "REQ-2", acceptance: acs("REQ-2", 5) }, { id: "REQ-3", acceptance: acs("REQ-3", 5) }] } as never;
+    const task = (id: string, reqs: string[], fileScope: string[], dependsOn: string[] = []) => ({ id, reqs, fileScope, dependsOn });
+    // layers: the data task holds a requirement, the route comes last
+    const layers = { tasks: [task("TASK-1", ["REQ-1"], ["App.Api/Data/Entities.cs"]), task("TASK-2", ["REQ-2"], ["App.Api/Services/S.cs"], ["TASK-1"]), task("TASK-3", [], ["App.Api/Services/T.cs"], ["TASK-2"]), task("TASK-4", ["REQ-3"], ["App.Api/Program.cs"], ["TASK-3"])] };
+    expect(slicesProblem(layers, spec, "dotnet")).toMatch(/built in layers/);
+    // the same plan with every requirement moved to the wiring task
+    const wiredLast = { tasks: layers.tasks.map((t) => ({ ...t, reqs: t.id === "TASK-4" ? ["REQ-1", "REQ-2", "REQ-3"] : [] })) };
+    expect(slicesProblem(wiredLast, spec, "dotnet")).toMatch(/TASK-4 holds 15 of the 15 criteria/);
+    // slices: each task has its own route and its own requirement
+    const slices = { tasks: [task("TASK-1", ["REQ-1"], ["App.Api/Program.cs", "App.Api/Endpoints/AEndpoints.cs"]), task("TASK-2", ["REQ-2"], ["App.Api/Endpoints/BEndpoints.cs"], ["TASK-1"]), task("TASK-3", ["REQ-3"], ["App.Api/Endpoints/CEndpoints.cs"], ["TASK-1"]), task("TASK-4", [], ["docs/x.md"])] };
+    expect(slicesProblem(slices, spec, "dotnet")).toBeUndefined();
+    // a small plan is left alone
+    expect(slicesProblem({ tasks: wiredLast.tasks.slice(2) }, spec, "dotnet")).toBeUndefined();
+  });
 });
