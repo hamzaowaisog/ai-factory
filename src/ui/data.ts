@@ -26,6 +26,7 @@ import type { VisualCheck } from "../design/visual-check.js";
 import { exportWorkbooks } from "../estimate/export.js";
 import { humanReview } from "../estimate/settings.js";
 import { catalogueStatusText } from "../estimate/catalogue-status.js";
+import { deliveryTotals } from "../estimate/totals.js";
 import { exportInputFor } from "../stages/estimate-approve.js";
 import { stepsFor } from "../stages/modes.js";
 import { factoryHome } from "../util/paths.js";
@@ -502,7 +503,7 @@ export function estimateView(ledger: Ledger) {
     runId: ledger.runId,
     settings: s.info.estimate ?? {},
     deliveryModel: est.deliveryModel, band: est.band, uncertainty: est.uncertainty, complexity: est.complexity,
-    totals: est.totals, apiCost: est.apiCost, elapsed: est.elapsed,
+    totals: est.totals, ...(bd ? { delivery: deliveryTotals(est, bd) } : {}), apiCost: est.apiCost, elapsed: est.elapsed,
     tasks: est.tasks.map((t) => {
       const b = titles.get(t.taskId);
       return { id: t.taskId, title: b?.title ?? t.taskId, track: b?.track, kind: b?.kind, size: t.size, executor: t.executor, hours: t.hours, ...(t.apiUsd ? { apiUsd: t.apiUsd } : {}), anchor: t.anchorId, ratio: t.ratio, reason: t.reason, flagged: t.flagged, splitAdvised: t.splitAdvised, references: t.references, screen: b?.screen, reqs: b?.reqs ?? [], overhead: b?.overhead };

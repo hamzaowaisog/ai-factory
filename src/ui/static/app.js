@@ -217,6 +217,15 @@ function modeScreen() {
       card(2, "ruler", "Estimate", "Size and price a request before any code is written: hours, API cost, elapsed time and the screens. The lead approves it on the Estimate tab (or in the terminal), then two workbooks are written.", "#/new/estimate"),
       card(3, "image", "Design", "See the design first: requirements and any references → spec → mock, clickable demo and look, approved by a lead. Nothing is sized or built; an estimate or build can take the approved design later.", "#/new/design"),
     ),
+    h("section", { class: "panel term rise home-term", vars: { "--i": 4 } },
+      h("div", { class: "panel-head" }, h("h2", {}, icon("terminal"), "Or start from your terminal"), h("span", { class: "small muted" }, "every screen here has a command behind it")),
+      h("div", { class: "cmds two" },
+        cmdRow('factory start --project <name> "<what should change>"', "brownfield"),
+        cmdRow('factory fullstack start --name <name> "<what the product does>"', "greenfield"),
+        cmdRow('factory estimate --file requirements.md', "estimate"),
+        cmdRow('factory design start --file requirements.md', "design"),
+        cmdRow("factory status", "every run"),
+        cmdRow("factory report --all", "the dashboard's numbers"))),
   ], true);
 }
 
@@ -497,6 +506,9 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const uiTargetBlock = !estimating ? h("div", { class: "field" }, h("label", { for: "uitarget" }, "UI target (optional)"), uiTarget,
     h("div", { class: "hint" }, "What the approved design is built in when the project's design.uiTarget sets nothing (like --ui-target). A kit target puts the kit, the theme and every approved page into the repo before the agents start; the agents write the behaviour. Detection picks the kit for a Next.js or Vite app and the repo's own components otherwise.")) : null;
   const maxCost = h("input", { type: "number", id: "maxcost", min: "0.5", step: "0.5", placeholder: "normal limit" });
+  // optional and rarely changed: folded, so the form reads as request, then start
+  const moreOpts = h("details", { class: "more-opts" }, h("summary", {}, h("strong", {}, "More options"), h("span", { class: "hint" }, estimating ? "design references · export on approval" : "design references · export on approval · UI target")),
+    refBlock, autoXBlock, uiTargetBlock);
   const startLabel = designing ? "Start design" : estimating ? "Start estimate" : "Start run";
   const start = h("button", { class: "btn primary", type: "submit" }, startLabel, icon("arrow"));
   const form = h("form", { class: "form", novalidate: true },
@@ -514,9 +526,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
       panels.prompt, panels.file, panels.jira,
       h("div", { class: "hint" }, "Use one input or several: they are combined into one request, like factory start does.")),
     settings,
-    refBlock,
-    autoXBlock,
-    uiTargetBlock,
+    moreOpts,
     estimating ? sect(designing ? 7 : 8, "Cost", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
       h("div", { class: "opts" }, opt2("fresh", fresh, "Ask the model again", "Don't reuse answers stored from an identical earlier request (like --fresh). It costs more; use it when an answer should be redone.")))
       : h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
@@ -524,7 +534,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   );
   // an estimate with the design left out has nothing to draw from or export: the frames, references and export blocks go
   const noDesign = () => estimating && !designing && !drawDesign.checked;
-  const syncDesignOff = () => { for (const el of [form.querySelector("#framesblock"), refBlock, autoXBlock]) if (el) el.hidden = noDesign(); };
+  const syncDesignOff = () => { for (const el of [form.querySelector("#framesblock"), refBlock, autoXBlock, moreOpts]) if (el) el.hidden = noDesign(); };
   drawDesign.addEventListener("change", syncDesignOff);
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
@@ -593,28 +603,62 @@ async function requestScreen(kind = "brownfield", preset = []) {
 
 // ---------- runs ----------
 
+/** What the Runs list is narrowed to, kept while the page is open. */
+const runsFilter = { status: "all", project: "", q: "", open: new Set() };
+const RUN_FILTERS = [["all", "All", () => true], ["wait", "Needs you", (r) => tone(r.status) === "wait"], ["live", "Running", (r) => tone(r.status) === "live"],
+  ["ok", "Delivered", (r) => tone(r.status) === "ok"], ["bad", "Parked or stopped", (r) => tone(r.status) === "bad"]];
+
 function runsScreen() {
   skeleton();
-  poll(3000, async (first) => {
-    const runs = await api("/api/runs");
-    const body = runs.length ? h("div", { class: "table-wrap" }, h("table", { class: "runs" },
+  let runs = [];
+  const box = h("div", { class: "panel" });
+  const chips = h("div", { class: "seg filter", role: "group", "aria-label": "Status" });
+  const project = h("select", { "aria-label": "Project" });
+  const search = h("input", { type: "text", placeholder: "Search requests and run ids", "aria-label": "Search runs", value: runsFilter.q });
+  const count = h("span", { class: "small muted", role: "status" });
+  const row = (r, extra) => h("tr", { class: `k-${tone(r.status)}${extra?.sub ? " sub" : ""}`, onclick: (e) => { if (!e.target.closest("a, button")) location.hash = `#/runs/${encodeURIComponent(r.runId)}`; } },
+    h("td", {}, h("a", { class: "req", href: `#/runs/${encodeURIComponent(r.runId)}` }, r.request || r.runId), h("div", { class: "id" }, r.runId),
+      r.parkedReason ? h("div", { class: "why-line", title: r.parkedReason }, r.parkedReason.length > 110 ? `${r.parkedReason.slice(0, 109)}…` : r.parkedReason) : null,
+      extra?.more ? h("button", { class: "linkish small more", type: "button", "aria-expanded": String(extra.open), onclick: extra.toggle }, extra.open ? `Hide ${extra.more} earlier` : `+ ${extra.more} earlier run${extra.more === 1 ? "" : "s"} of this request`) : null),
+    h("td", {}, r.project),
+    h("td", {}, pill(r.status)),
+    h("td", { class: "mono small nowrap" }, r.step),
+    h("td", { class: "num" }, money(r.costUsd)),
+    h("td", { class: "nowrap muted small" }, ago(r.createdAt)),
+    h("td", {}, r.openCard ? pill("waiting", `${r.openCard} card${["question", "approval", "design-approval", "estimate-approval", "cap", "budget"].includes(r.openCard) ? "" : " · terminal"}`) : null));
+  const paint = () => {
+    const q = runsFilter.q.trim().toLowerCase();
+    const inScope = runs.filter((r) => (!runsFilter.project || r.project === runsFilter.project) && (!q || `${r.request} ${r.runId} ${r.project}`.toLowerCase().includes(q)));
+    chips.replaceChildren(...RUN_FILTERS.map(([key, label, test]) => h("button", { type: "button", class: runsFilter.status === key ? "on" : undefined, "aria-pressed": String(runsFilter.status === key),
+      onclick: () => { runsFilter.status = key; paint(); } }, label, h("span", { class: "n" }, String(inScope.filter(test).length)))));
+    const projects = [...new Set(runs.map((r) => r.project))].sort();
+    project.replaceChildren(h("option", { value: "" }, "All projects"), ...projects.map((p) => h("option", { value: p }, p)));
+    project.value = projects.includes(runsFilter.project) ? runsFilter.project : (runsFilter.project = "");
+    const shown = inScope.filter(RUN_FILTERS.find(([key]) => key === runsFilter.status)[2]);
+    // the same request run again (a retry, a self-test) folds under its newest run
+    const groups = new Map();
+    for (const r of shown) { const key = `${r.project}\n${r.request || r.runId}`; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(r); }
+    count.textContent = shown.length === runs.length ? `${runs.length} runs` : `${shown.length} of ${runs.length} runs`;
+    if (!runs.length) return box.replaceChildren(h("div", { class: "empty" }, "No runs yet. ", h("a", { href: "#/new" }, "Start one"), "."));
+    if (!shown.length) return box.replaceChildren(h("div", { class: "empty" }, "No runs match. ", h("button", { class: "linkish", type: "button", onclick: () => { Object.assign(runsFilter, { status: "all", project: "", q: "" }); search.value = ""; paint(); } }, "Clear the filters"), "."));
+    box.replaceChildren(h("div", { class: "table-wrap" }, h("table", { class: "runs" },
       h("thead", {}, h("tr", {}, ["Request", "Project", "Status", "Step", "Cost", "Started", "Card"].map((t, i) => h("th", { class: i === 4 ? "num" : undefined }, t)))),
-      h("tbody", {}, runs.map((r) => h("tr", { class: `k-${tone(r.status)}`, onclick: () => { location.hash = `#/runs/${encodeURIComponent(r.runId)}`; } },
-        h("td", {}, h("div", { class: "req" }, r.request || r.runId), h("div", { class: "id" }, r.runId),
-          r.parkedReason ? h("div", { class: "why-line", title: r.parkedReason }, r.parkedReason.length > 110 ? `${r.parkedReason.slice(0, 109)}…` : r.parkedReason) : null),
-        h("td", {}, r.project),
-        h("td", {}, pill(r.status)),
-        h("td", { class: "mono small nowrap" }, r.step),
-        h("td", { class: "num" }, money(r.costUsd)),
-        h("td", { class: "nowrap muted small" }, ago(r.createdAt)),
-        h("td", {}, r.openCard ? pill("waiting", `${r.openCard} card${["question", "approval", "design-approval", "estimate-approval", "cap", "budget"].includes(r.openCard) ? "" : " · terminal"}`) : null),
-      ))),
-    )) : h("div", { class: "empty" }, "No runs yet. ", h("a", { href: "#/new" }, "Start one"), ".");
-    mount([
+      h("tbody", {}, [...groups.entries()].flatMap(([key, [first, ...rest]]) => {
+        const open = runsFilter.open.has(key);
+        return [row(first, { more: rest.length, open, toggle: () => { if (open) runsFilter.open.delete(key); else runsFilter.open.add(key); paint(); } }), ...(open ? rest.map((r) => row(r, { sub: true })) : [])];
+      })))));
+  };
+  project.addEventListener("change", () => { runsFilter.project = project.value; paint(); });
+  search.addEventListener("input", () => { runsFilter.q = search.value; paint(); });
+  poll(3000, async (first) => {
+    runs = await api("/api/runs");
+    if (first) mount([
       h("div", { class: "page-head" }, h("div", {}, h("div", { class: "eyebrow" }, "Runs"), h("h1", {}, "Recent runs"), h("p", { class: "sub" }, "Newest first. Updates every few seconds.")),
         h("a", { class: "btn primary", href: "#/new" }, icon("plus"), "New run")),
-      h("div", { class: "panel" }, body),
-    ], first);
+      h("div", { class: "filter-bar" }, chips, project, h("div", { class: "search-in" }, icon("search"), search), count),
+      box,
+    ], true);
+    paint();
   });
 }
 
@@ -688,9 +732,20 @@ function pipeline(r) {
     return null;
   })();
   return h("section", { class: "panel" },
-    h("div", { class: "panel-head" }, h("h2", {}, icon("activity"), "Pipeline"), h("span", { class: "pipe-hint" }, "Click a step for its attempts, gates, cost and time")),
-    h("div", { class: "pipe-wrap" }, h("div", { class: "phases" }, groups.map((g, i) => g.length ? h("div", { class: "phase", vars: { "flex-grow": g.length } }, h("div", { class: "phase-name" }, PHASES[i]), h("div", { class: "chain" }, g.map(node))) : null))),
+    h("div", { class: "panel-head" }, h("h2", {}, icon("activity"), "Pipeline"), h("span", { class: "pipe-hint" }, `${r.timeline.filter((t) => t.status === "completed").length} of ${r.timeline.length} steps done · click a step for its attempts, gates, cost and time`)),
+    h("div", { class: "pipe-outer" },
+      h("button", { class: "pipe-go l", type: "button", "aria-label": "Earlier steps", onclick: (e) => e.currentTarget.parentElement.querySelector(".pipe-wrap").scrollBy({ left: -420, behavior: "smooth" }) }, icon("arrow")),
+      h("div", { class: "pipe-wrap" }, h("div", { class: "phases" }, groups.map((g, i) => g.length ? h("div", { class: "phase", vars: { "flex-grow": g.length } }, h("div", { class: "phase-name" }, PHASES[i]), h("div", { class: "chain" }, g.map(node))) : null))),
+      h("button", { class: "pipe-go r", type: "button", "aria-label": "Later steps", onclick: (e) => e.currentTarget.parentElement.querySelector(".pipe-wrap").scrollBy({ left: 420, behavior: "smooth" }) }, icon("arrow"))),
     note);
+}
+
+/** Where the limit comes from: a person's raise wins over the max cost the run started with. */
+function capNote(c) {
+  if (c.maxCostUsd === undefined) return "the limit grows with the plan's size";
+  if (c.capUsd > c.maxCostUsd + 0.005) return `limit raised by a person from ${money(c.maxCostUsd)}`;
+  if (c.capUsd < c.maxCostUsd - 0.005) return `limit from the plan's size · max cost ${money(c.maxCostUsd)}`;
+  return `max cost set to ${money(c.maxCostUsd)}`;
 }
 
 function costPanel(r) {
@@ -705,21 +760,40 @@ function costPanel(r) {
     h("div", { class: "panel-head" }, h("h2", {}, icon("gauge"), "Cost so far"), h("span", { class: "small muted" }, `${Math.round(share * 100)}% of the limit`)),
     h("div", { class: "meter-num" }, num, h("span", { class: "of" }, `of ${money(r.cost.capUsd)}`)),
     h("div", { class: `gauge ${share >= 0.9 ? "bad" : share >= 0.7 ? "warn" : ""}` }, fill, h("div", { class: "ticks" })),
-    h("div", { class: "meter-foot" }, h("span", {}, `${r.activeMin.toFixed(1)} min of machine time`), h("span", {}, r.cost.maxCostUsd !== undefined ? `max cost set to ${money(r.cost.maxCostUsd)}` : "the limit grows with the plan's size")));
+    h("div", { class: "meter-foot" }, h("span", {}, `${r.activeMin.toFixed(1)} min of machine time`), h("span", {}, capNote(r.cost))));
 }
 
 function gatesPanel(r) {
-  let i = 0;
-  const chips = r.gates.map((g) => {
-    const fresh = !runState.seenGates.has(g.seq);
-    return h("span", { class: `chip ${g.passed ? "pass" : "fail"}${fresh ? " new" : ""}`, title: `${g.gateId}${g.step ? ` (${g.step})` : ""}: ${g.passed ? "passed" : "failed"}`, vars: fresh ? { "--i": i++ } : undefined },
-      icon(g.passed ? "check" : "x"), g.gateId);
-  });
+  // one line per step, one chip per gate: a gate that ran five times is one chip with its count
+  const steps = new Map();
+  for (const g of r.gates) {
+    const key = g.step || "run";
+    if (!steps.has(key)) steps.set(key, new Map());
+    const row = steps.get(key).get(g.gateId) ?? { pass: 0, fail: 0, last: true, fresh: false };
+    row[g.passed ? "pass" : "fail"]++; row.last = g.passed; row.fresh ||= !runState.seenGates.has(g.seq);
+    steps.get(key).set(g.gateId, row);
+  }
   for (const g of r.gates) runState.seenGates.add(g.seq);
+  let i = 0;
+  const chip = (id, c, step) => h("span", { class: `chip ${c.last ? "pass" : "fail"}${c.fresh ? " new" : ""}`, vars: c.fresh ? { "--i": i++ } : undefined,
+    title: `${id}${step ? ` (${step})` : ""}: ${c.pass} passed, ${c.fail} failed` },
+    icon(c.last ? "check" : "x"), id, step ? h("span", { class: "at" }, step.replace(/^implement\//, "")) : null, c.pass + c.fail > 1 ? h("span", { class: "x" }, `×${c.pass + c.fail}`) : null);
+  const all = [...steps.entries()].flatMap(([step, gates]) => [...gates.entries()].map(([id, c]) => ({ step, id, c })));
+  const failing = all.filter((x) => !x.c.last);
+  const recovered = all.filter((x) => x.c.last && x.c.fail);
   const passed = r.gates.filter((g) => g.passed).length;
+  if (!r.gates.length) return h("section", { class: "panel" }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Gates")),
+    h("p", { class: "muted small" }, "No gate results yet. Gates check each step's output (scope, locked tests, secrets, review) as the run goes."));
   return h("section", { class: "panel" },
-    h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Gates"), h("span", { class: "small muted" }, r.gates.length ? `${passed} passed · ${r.gates.length - passed} failed` : "")),
-    r.gates.length ? h("div", { class: "chips" }, chips) : h("p", { class: "muted small" }, "No gate results yet. Gates check each step's output (scope, locked tests, secrets, review) as the run goes."));
+    h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Gates"), h("span", { class: "small muted" }, `${passed} passed · ${r.gates.length - passed} failed`)),
+    h("div", { class: "gate-bar", role: "img", "aria-label": `${passed} of ${r.gates.length} gate checks passed` }, h("span", { vars: { "flex-grow": passed } }), h("span", { class: "bad", vars: { "flex-grow": r.gates.length - passed } })),
+    h("p", { class: "small muted gate-sum" }, `${all.length} checks across ${steps.size} step${steps.size === 1 ? "" : "s"}. `,
+      failing.length ? `${failing.length} still failing.` : "None failing now.", recovered.length ? ` ${recovered.length} failed first, then passed on a retry.` : ""),
+    failing.length ? [h("h3", { class: "gate-h bad" }, "Failing now"), h("div", { class: "chips" }, failing.map((x) => chip(x.id, x.c, x.step)))] : null,
+    recovered.length ? [h("h3", { class: "gate-h" }, "Passed on a retry"), h("div", { class: "chips" }, recovered.map((x) => chip(x.id, x.c, x.step)))] : null,
+    h("details", { class: "gate-all" }, h("summary", {}, `Every check, step by step (${steps.size})`),
+      h("div", { class: "gate-steps" }, [...steps.entries()].map(([step, gates]) => h("div", { class: "gate-step" },
+        h("div", { class: "mono small nm" }, step.replace(/^implement\//, "")), h("div", { class: "chips" }, [...gates.entries()].map(([id, c]) => chip(id, c))))))));
 }
 
 /** The name typed once is remembered in this browser (a convenience only; it is still sent and recorded with every decision). */
@@ -867,7 +941,7 @@ function designPanel(r) {
         reasonHint: "Name the page or the part in your own words; the design is redrawn with it.", reasonNeeded: "Say what to change, naming the page or the part in your own words.",
         approved: "Approved. The run is continuing…", rejected: "Sent back. The design is being redrawn with what to change…",
       }),
-      h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal"), h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd))))),
+      h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal"), h("div", { class: "cmds" }, c.commands.map((cmd) => cmdRow(cmd)))),
       refsBox,
       md(c.markdown)));
 }
@@ -889,7 +963,7 @@ function planPanel(r) {
         approved: "Approved. The run is continuing…", rejected: "Rejected. The spec and plan are being revised…",
       }),
       r.product ? h("p", { class: "small" }, h("a", { href: `#/fullstack/${encodeURIComponent(r.product.name)}` }, icon("layers"), ` Product ${r.product.name}`)) : null,
-      h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal"), h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd))))),
+      h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal"), h("div", { class: "cmds" }, c.commands.map((cmd) => cmdRow(cmd)))),
       md(c.markdown)));
 }
 
@@ -978,7 +1052,7 @@ function limitPanel(r) {
         h("div", { class: "fld" }, h("label", { for: "l-who" }, "Your name"), who, h("div", { class: "hint" }, `Recorded with the decision as "your name (via web)", with card ${c.hash}.`)),
         h("div", { class: "row" }, canRaise ? raise : null, stop),
         msg),
-      h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal (a bigger step too)"), h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd))))),
+      h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal (a bigger step too)"), h("div", { class: "cmds" }, c.commands.map((cmd) => cmdRow(cmd)))),
       md(c.markdown)));
 }
 
@@ -993,7 +1067,7 @@ function cardPanel(r) {
     h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Waiting for you in the terminal"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body" },
       h("p", { class: "small muted" }, c.kind === "estimate-approval" ? "Approve the estimate on its Estimate tab, or paste one of these:" : "Gate waivers and unlocks are decided in your terminal only. Read the card, then paste one of these:"),
-      h("div", { class: "cmds" }, c.commands.map((cmd) => h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), copyButton(cmd)))),
+      h("div", { class: "cmds" }, c.commands.map((cmd) => cmdRow(cmd))),
       md(c.markdown)));
 }
 
@@ -1028,13 +1102,33 @@ function parkedPanel(r, interrupted = false) {
     h("strong", {}, interrupted ? "Interrupted: the executor stopped mid-run" : "Parked: a person needs to look"),
     h("p", {}, interrupted ? "Nothing is working on this run (the process ended, for example a closed terminal or a crash). Resume it: the step it was on runs again." : "The reason is shown on the pipeline above. Fix what it parked on first (for example, top up the API credit), then resume: the run goes on from where it stopped."),
     h("div", { class: "row" }, resume), msg,
-    h("p", { class: "small" }, "In your terminal: ", h("code", {}, `factory resume ${r.runId}`), " · ", h("code", {}, `factory report ${r.runId}`), " · ", h("code", {}, `factory logs ${r.runId}`))));
+    h("p", { class: "small" }, "Or resume it from your terminal: the commands are in the panel below.")));
+}
+
+/** One copyable command line, as it is typed in the terminal. */
+function cmdRow(cmd, what) {
+  return h("div", { class: "cmd" }, h("span", { class: "prompt" }, "$"), h("code", {}, cmd), what ? h("span", { class: "what" }, what) : null, copyButton(cmd));
+}
+
+/** Every screen has a command behind it: the ones for this run, ready to paste. */
+function terminalPanel(r) {
+  const id = r.runId;
+  const stopped = r.status === "parked" || r.status === "interrupted";
+  return h("section", { class: "panel term" },
+    h("div", { class: "panel-head" }, h("h2", {}, icon("terminal"), "In your terminal"), h("span", { class: "small muted" }, "the same run, from the command line")),
+    h("div", { class: "cmds" },
+      stopped ? cmdRow(`factory resume ${id}`, "carry on from here") : null,
+      r.card ? cmdRow(`factory show-card ${id}`, "read the open card") : null,
+      cmdRow(`factory status ${id}`, "step, cost, open card"),
+      cmdRow(`factory logs ${id} --follow`, "live activity"),
+      cmdRow(`factory report ${id}`, "the full report"),
+      r.delivered ? cmdRow(`factory verify-evidence ${id}`, "re-check every gate") : null));
 }
 
 function tracePanel(r) {
   const box = h("div", { class: "trace" }, r.trace.length ? r.trace.map((e) => h("div", { class: `k-${e.kind}` },
     h("span", { class: "t" }, new Date(e.ts).toTimeString().slice(0, 8)), h("span", { class: "w", title: e.where }, e.where), h("span", {}, e.msg))) : h("span", { class: "muted" }, "No trace lines yet."));
-  return h("section", { class: "panel" }, h("div", { class: "panel-head" }, h("h2", {}, icon("terminal"), "Latest activity"), h("code", { class: "small muted" }, `factory logs ${r.runId} --follow`)), box);
+  return h("section", { class: "panel" }, h("div", { class: "panel-head" }, h("h2", {}, icon("activity"), "Latest activity"), h("a", { class: "small", href: `#/runs/${encodeURIComponent(r.runId)}/log` }, "Full log")), box);
 }
 
 // the side drawer for one step
@@ -1085,7 +1179,7 @@ function paintDrawer() {
 }
 
 function runScreen(id) {
-  if (runState.id !== id) Object.assign(runState, { id, seenGates: new Set(), cost: 0, share: 0, drawer: "", last: undefined, drafts: new Map() });
+  if (runState.id !== id) Object.assign(runState, { id, seenGates: new Set(), cost: 0, share: 0, drawer: "", last: undefined, drafts: new Map(), pipeX: undefined });
   skeleton("grid");
   let lastJson = "";
   poll(2000, async (first) => {
@@ -1104,7 +1198,7 @@ function runScreen(id) {
     if (r.card) right.push(cardPanel(r));
     if (r.status === "parked" || r.status === "interrupted") right.push(parkedPanel(r, r.status === "interrupted"));
     if (r.delivered) right.push(deliveredPanel(r));
-    right.push(tracePanel(r));
+    right.push(tracePanel(r), terminalPanel(r));
     mount([...runHeader(r, "run"), h("div", { class: "stack" }, pipeline(r), h("div", { class: "grid-2" },
       h("div", { class: "stack" }, costPanel(r), gatesPanel(r)),
       h("div", { class: "stack" }, right)))], first);
@@ -1113,7 +1207,27 @@ function runScreen(id) {
     const t = view.querySelector(".trace");
     if (t && atBottom) t.scrollTop = t.scrollHeight;
     if (runState.drawer) paintDrawer();
+    placePipeline();
   });
+}
+
+/** Bring the step the run is on into view (a long run has more steps than fit), and mark the sides that have more. */
+function placePipeline() {
+  const wrap = view.querySelector(".pipe-wrap");
+  if (!wrap) return;
+  const outer = wrap.parentElement;
+  const edges = () => {
+    outer.classList.toggle("more-l", wrap.scrollLeft > 4);
+    outer.classList.toggle("more-r", wrap.scrollLeft + wrap.clientWidth < wrap.scrollWidth - 4);
+  };
+  if (runState.pipeX === undefined) {
+    const done = [...wrap.querySelectorAll(".node.s-completed, .node.s-decided")];
+    const cur = wrap.querySelector(".node.s-parked, .node.s-failed, .node.s-waiting, .node.s-running") ?? done[done.length - 1];
+    if (cur) wrap.scrollLeft += cur.getBoundingClientRect().left - wrap.getBoundingClientRect().left - (wrap.clientWidth - cur.offsetWidth) / 2;
+  } else wrap.scrollLeft = runState.pipeX;
+  runState.pipeX = wrap.scrollLeft;
+  wrap.addEventListener("scroll", () => { runState.pipeX = wrap.scrollLeft; edges(); }, { passive: true });
+  edges();
 }
 
 
@@ -1361,7 +1475,8 @@ function renderPreview(r, p, first) {
   // keep a "#screen" or "?query" tail out of the encoding: "index.html#S-1" must not become a file named "index.html%23S-1"
   const url = (path) => { const [file, ...tail] = path.split(/(?=[?#])/); return p.base + file.split("/").map(encodeURIComponent).join("/") + tail.join(""); };
   // a draft is rewritten as pages come back: a fresh address so the frame does not show the last copy
-  const fresh = (path) => (pv.draft ? path.replace(/^([^?#]*)/, `$1?v=${pv.draft.drawn}-${pv.draft.failed}`) : path);
+  // frame=1: the demo page leaves out its own side list, which the Screens row here already is
+  const fresh = (path) => path.replace(/^([^?#]*)/, pv.draft ? `$1?frame=1&v=${pv.draft.drawn}-${pv.draft.failed}` : "$1?frame=1");
   const parts = [];
   const banner = pv.draft ? h("section", { class: "callout live rise" }, icon("cursor"), h("div", {}, h("strong", {}, "Design being drawn"), h("p", {}, draftText(pv.draft)))) : null;
   if (banner) parts.push(banner);
@@ -1372,14 +1487,30 @@ function renderPreview(r, p, first) {
     const screensOf = () => (pv.site.screens.length ? pv.site.screens : [{ path: pv.site.entry, title: "Start" }]);
     const frame = h("iframe", { sandbox: "allow-scripts", title: "Clickable preview", src: url(fresh(screensOf()[0].path)), referrerpolicy: "no-referrer", loading: "lazy" });
     const stage = h("div", { class: "device" }, frame);
+    let full = false;
+    // the frame takes the panel's whole width and most of the window's height, so a desktop page shows near its real size
     const fit = () => {
       const avail = stage.parentElement ? stage.parentElement.clientWidth : width;
+      const room = Math.max(420, window.innerHeight - (full ? 96 : 250));
       const k = Math.min(1, avail / width);
+      const tall = Math.max(width < 600 ? 780 : 640, Math.round(room / k));
       frame.style.width = `${width}px`;
+      frame.style.height = `${tall}px`;
       frame.style.transform = `scale(${k})`;
-      stage.style.height = `${Math.round(720 * k)}px`;
+      stage.style.height = `${Math.round(tall * k)}px`;
       stage.style.width = `${Math.round(width * k)}px`;
     };
+    // the browser's own full screen: the frame is not moved, so the demo keeps the page and state it is on
+    const fullBtn = h("button", { type: "button", class: "btn sm", "aria-pressed": "false", onclick: () => {
+      if (document.fullscreenElement) document.exitFullscreen(); else section.requestFullscreen?.().catch(() => undefined);
+    } }, icon("browser"), "Full screen");
+    document.addEventListener("fullscreenchange", () => {
+      if (!section.isConnected) return;
+      full = document.fullscreenElement === section;
+      fullBtn.setAttribute("aria-pressed", String(full));
+      fullBtn.lastChild.textContent = full ? "Exit full screen" : "Full screen";
+      nextFrame(fit);
+    });
     const vpBtns = VIEWPORTS.map(([name, w]) => h("button", { type: "button", class: `tab${w === width ? " on" : ""}`, "data-w": w, onclick: (e) => {
       width = w; e.currentTarget.parentElement.querySelectorAll(".tab").forEach((b) => b.classList.toggle("on", Number(b.dataset.w) === w)); fit();
     } }, icon(name === "desktop" ? "browser" : "grid"), `${name} ${w}`));
@@ -1390,10 +1521,12 @@ function renderPreview(r, p, first) {
       paintList();
     } }, h("span", {}, sc.title), sc.pending ? h("span", { class: "tag" }, "drawing") : sc.req ? h("span", { class: "tag" }, sc.req) : null))));
     paintList();
-    parts.push(h("section", { class: "panel rise", vars: { "--i": 0 } },
-      h("div", { class: "panel-head" }, h("h2", {}, icon("cursor"), "Clickable preview"), h("div", { class: "tabs-in vp" }, vpBtns)),
-      h("div", { class: "pv" }, h("div", {}, h("div", { class: "eyebrow" }, "Screens"), list, h("p", { class: "small muted" }, "Runs in a locked frame: it can't reach this app, the network or your files.")),
-        h("div", { class: "device-wrap" }, stage))));
+    const section = h("section", { class: "panel rise pv-panel", vars: { "--i": 0 } },
+      h("div", { class: "panel-head" }, h("h2", {}, icon("cursor"), "Clickable preview"), h("div", { class: "row" }, h("div", { class: "tabs-in vp" }, vpBtns), fullBtn)),
+      h("div", { class: "pv" }, h("div", { class: "pv-bar" }, h("div", { class: "eyebrow" }, "Screens"), list),
+        h("div", { class: "device-wrap" }, stage),
+        h("p", { class: "small muted pv-note" }, icon("shield"), "Runs in a locked frame: it can't reach this app, the network or your files.")));
+    parts.push(section);
     nextFrame(fit);
     onResize = fit;
   }
@@ -1420,7 +1553,24 @@ function renderPreview(r, p, first) {
 
 // ---------- estimate ----------
 
-const hrs = (r) => (r.min === r.max ? `${r.min} h` : `${r.min}–${r.max} h`);
+// an estimate is a range, not a measurement: whole hours from 10 up, one decimal below (the workbooks keep the exact figures)
+// both ends of a range are rounded the same way, by its larger end
+const hr = (n, by) => (Math.abs(by ?? n) >= 10 ? Math.round(n) : Math.round(n * 10) / 10).toLocaleString("en-US");
+const span = (r, unit) => (hr(r.min, r.max) === hr(r.max) ? `${hr(r.max)} ${unit}` : `${hr(r.min, r.max)}–${hr(r.max)} ${unit}`);
+const hrs = (r) => span(r, "h");
+const days = (r) => span(r, "days");
+/** A long table shows its first rows, with a button for the rest. */
+const foldTable = (head, rows, numCols, top, noun) => {
+  const wrap = h("div", {});
+  let all = rows.length <= top + 2;
+  const more = h("button", { class: "linkish small", type: "button", onclick: () => { all = !all; paint(); } });
+  const paint = () => {
+    more.textContent = all ? `Show the first ${top} only` : `Show all ${rows.length} ${noun}`;
+    wrap.replaceChildren(table(head, all ? rows : rows.slice(0, top), numCols), rows.length > top + 2 ? h("div", { class: "table-foot" }, more) : "");
+  };
+  paint();
+  return wrap;
+};
 const usd = (r) => (r.min === r.max ? money(r.min) : `${money(r.min)}–${money(r.max)}`);
 const table = (head, rows, numCols = []) => h("div", { class: "table-wrap" }, h("table", {},
   h("thead", {}, h("tr", {}, head.map((t, i) => h("th", { class: numCols.includes(i) ? "num" : undefined }, t)))),
@@ -1449,10 +1599,16 @@ async function estimateScreen(id) {
   const fact = (k, v) => [h("dt", {}, k), h("dd", {}, v)];
   const s = e.settings ?? {};
   const summary = h("dl", { class: "facts" },
-    fact("Effort (all tracks)", h("strong", {}, hrs(e.totals.overall))),
-    ...Object.entries(e.totals.byTrack).map(([t, v]) => fact(`  ${t}`, hrs(v))),
+    // Hours to deliver, as the workbooks show them; the people's share of those hours beside each.
+    ...(e.delivery ? [
+      fact("Hours to deliver (all tracks)", h("span", {}, h("strong", {}, hrs(e.delivery.overall)), h("span", { class: "small faint" }, ` human ${hrs(e.totals.overall)}`))),
+      ...Object.entries(e.delivery.byTrack).map(([t, v]) => fact(`  ${t}`, h("span", {}, hrs(v), h("span", { class: "small faint" }, ` human ${hrs(e.totals.byTrack[t] ?? { min: 0, max: 0 })}`)))),
+    ] : [
+      fact("Human effort (all tracks)", h("strong", {}, hrs(e.totals.overall))),
+      ...Object.entries(e.totals.byTrack).map(([t, v]) => fact(`  ${t}`, hrs(v))),
+    ]),
     fact("API cost", h("span", {}, h("strong", {}, usd(e.apiCost.total)), h("span", { class: "tag" }, e.apiCost.confidence), h("span", { class: "small faint" }, `${e.apiCost.records} benchmark record${e.apiCost.records === 1 ? "" : "s"}`))),
-    fact("Elapsed", `${e.elapsed.criticalPathDays.min}–${e.elapsed.criticalPathDays.max} days on the critical path, plus ${e.elapsed.planningMinutes} min planning`),
+    fact("Elapsed", `${days(e.elapsed.criticalPathDays)} on the critical path, plus ${Math.round(e.elapsed.planningMinutes)} min planning`),
     fact("Size and certainty", h("span", { class: "tags" }, h("span", { class: "tag" }, e.band), h("span", { class: "tag" }, `${e.uncertainty} uncertainty`), e.complexity ? h("span", { class: "tag" }, e.complexity) : null)),
     e.catalogue ? fact("Task catalogue", h("span", { class: "tags" }, h("span", { class: "tag" }, e.catalogue.version), h("span", { class: "tag" }, `stack ${e.catalogue.stack}`),
       h("span", { class: `pill ${e.catalogue.status === "draft" ? "t-wait" : "t-ok"}` }, h("span", { class: "d" }), e.catalogue.statusText))) : [],
@@ -1469,21 +1625,23 @@ async function estimateScreen(id) {
     e.files.designNote ? h("span", { class: "small muted" }, `No design book: ${e.files.designNote}`) : null)
     : h("div", {}, h("div", { class: "row" }, dl("team", "Draft team workbook (.xlsx)", true), dl("client", "Draft client workbook (.xlsx)", true)),
       h("p", { class: "muted small" }, e.handsOff ? "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written once the estimate passes its checks." : "Drafts come from this estimate before approval and are named DRAFT. The final workbooks are written after you approve in your terminal."));
-  const tasks = table(["", "Task", "Track", "Who", "Hours", "API cost", "Sized against", ""],
+  const tasks = foldTable(["", "Task", "Track", "Who", "Hours", "API cost", "Sized against", ""],
     e.tasks.map((t) => [h("span", { class: "mono small" }, t.id), h("div", {}, h("div", {}, t.title, t.kind ? h("span", { class: "tag faint" }, t.size ? `${t.kind} · ${t.size}` : t.kind) : null), h("div", { class: "small muted" }, t.reason), t.references?.length ? h("div", { class: "small muted" }, `Like ${t.references.map((r) => `${r.taskId} of ${r.runId} (${r.size}, ${hrs(r.hours)})`).join(", ")}`) : null), t.track ?? "-", t.executor, hrs(t.hours), t.apiUsd ? usd(t.apiUsd) : "-",
-      t.anchor === t.id ? h("span", { class: "tag" }, "anchor") : `${t.anchor} × ${t.ratio}`, [t.flagged ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "estimators disagree") : "", t.splitAdvised ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "split before build") : ""]]), [4, 5]);
+      t.anchor === t.id ? h("span", { class: "tag" }, "anchor") : `${t.anchor} × ${t.ratio}`, [t.flagged ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "estimators disagree") : "", t.splitAdvised ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "split before build") : ""]]), [4, 5], 10, "tasks");
   const costTable = table(["Phase", "API cost"], e.apiCost.phases.map((p) => [p.phase, usd(p.usd)]), [1]);
   const perTask = e.tasks.some((t) => t.apiUsd) ? h("p", { class: "muted small" }, "A task's API cost is its share of build and verification, by its hours; a human task costs nothing. Planning, design, breakdown and estimate are spent once per run.") : null;
   const extra = [];
-  if (e.overheads.length) extra.push(h("h3", {}, "Overheads"), table(["Name", "Track", "Hours", "Why"], e.overheads.map((o) => [o.name, o.track ?? "-", hrs(o.hours), o.reason]), [2]));
-  if (e.gateHours.length) extra.push(h("h3", {}, "Human gate hours (assumed)"), table(["Gate", "Track", "Hours"], e.gateHours.map((g) => [g.source, g.track ?? "-", hrs(g.hours)]), [2]));
-  if (e.scenarios.length) extra.push(h("h3", {}, "Scenarios"), table(["Scenario", "What changes", "Total"], e.scenarios.map((x) => [x.name, x.changes, hrs(x.totals)]), [2]));
-  if (e.suggested.length) extra.push(h("h3", {}, "Suggested extras, outside the total"), h("ul", { class: "reasons small" }, e.suggested.map((x) => h("li", {}, h("strong", {}, x.title), ` ${x.reason}`))));
+  const fold = (title, n, ...body) => h("details", { class: "fold" }, h("summary", {}, title, n ? h("span", { class: "n" }, String(n)) : null), ...body);
+  if (e.overheads.length) extra.push(fold("Overheads", e.overheads.length, table(["Name", "Track", "Hours", "Why"], e.overheads.map((o) => [o.name, o.track ?? "-", hrs(o.hours), o.reason]), [2])));
+  if (e.gateHours.length) extra.push(fold("Human gate hours (assumed)", e.gateHours.length, table(["Gate", "Track", "Hours"], e.gateHours.map((g) => [g.source, g.track ?? "-", hrs(g.hours)]), [2])));
+  if (e.scenarios.length) extra.push(fold("Scenarios", e.scenarios.length, table(["Scenario", "What changes", "Total"], e.scenarios.map((x) => [x.name, x.changes, hrs(x.totals)]), [2])));
+  if (e.suggested.length) extra.push(fold("Suggested extras, outside the total", e.suggested.length, h("ul", { class: "reasons small" }, e.suggested.map((x) => h("li", {}, h("strong", {}, x.title), ` ${x.reason}`)))));
   const d = e.design;
   const design = d.pending ? h("p", { class: "muted small" }, "The design step hasn't finished.")
     : !d.ui ? h("p", { class: "muted small" }, "No UI in this request, so no screens were drawn.")
     : [h("p", { class: "small" }, d.flow),
-      table(["Screen", "Route", "Size", "States", "Requirements"], d.screens.map((x) => [h("span", { class: "mono" }, x.id), h("span", { class: "mono small" }, x.route), x.size, x.states.join(", ") || "-", x.reqs.join(", ")])),
+      foldTable(["Screen", "Route", "Size", "States", "Requirements"], d.screens.map((x) => [h("span", { class: "mono" }, x.id), h("span", { class: "mono small" }, x.route), x.size,
+        x.states.length ? h("span", { class: "tags tight" }, x.states.map((st) => h("span", { class: "tag", title: st }, st.split(":")[0].trim()))) : "-", h("span", { class: "mono small" }, x.reqs.join(", "))]), [], 6, "screens"),
       d.unmapped.length ? h("p", { class: "small" }, h("strong", {}, "Requirements with no screen: "), d.unmapped.join(", ")) : null,
       d.noScreen.length ? h("p", { class: "small muted" }, `Not screens: ${d.noScreen.map((n) => `${n.req} (${n.reason})`).join("; ")}`) : null,
       h("a", { class: "btn", href: `#/runs/${rid}/preview` }, icon("cursor"), "Open the clickable demo")];
@@ -1511,22 +1669,35 @@ async function estimateScreen(id) {
       h("p", { class: "small muted" }, `Card ${e.pending.hash}. You are approving exactly the figures on this page. Your name is recorded with the decision.`),
       who, note, ...boxes.map((b) => b[1]), why, h("div", { class: "row" }, ok, no), msg));
   }
+  const top = e.delivery?.overall ?? e.totals.overall;
+  const tile = (i, ico, label, value, small) => h("div", { class: "panel tile rise", vars: { "--i": i } }, h("div", { class: "k" }, icon(ico), label), h("div", { class: "big" }, value), h("div", { class: "sm" }, small));
+  const assumed = (e.factoryAssumptions?.length ?? 0) + e.assumptions.length;
   mount([...head,
-    h("div", { class: "grid-2" },
-      h("div", { class: "stack" }, decide,
-        e.approved && e.files ? nextPanel("This estimate is approved. Build it or size a change to it.", [
-          // an estimate made with no repo is a new product: a web app and its API (greenfield)
-          // unless it prices a phone app, which a new product does not build yet: then the button says why instead
-          s.noRepo ? [e.cannotBuild ? null : `#/new/greenfield/estimate/${rid}`, "sprout", "Build it as a new product", e.cannotBuild] : [`#/new/brownfield/estimate/${rid}`, "layers", "Build this estimate"],
-          [`#/new/estimate/revises/${rid}`, "pen", "Change request"],
-        ]) : null,
-        panel(0, "Estimate", "ruler", summary, files), panel(2, "API cost by phase", "grid", [costTable, perTask]),
-        e.stack ? panel(3, "Stack priced", "layers", h("dl", { class: "facts" }, [["Backend", e.stack.backend], ["Web", e.stack.web], ["Mobile", e.stack.mobile], ["Database", e.stack.database], ["Hosting", e.stack.hosting], ["Architecture", e.stack.architecture]].filter((r) => r[1]).flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])),
-          h("p", { class: "small muted" }, e.stack.basis === "repo" ? "From the repo." : e.stack.basis === "request" ? "Named in the requirements." : `Assumed by the estimate${e.stack.notes ? `: ${e.stack.notes}` : "."}`)) : null,
-        e.factoryAssumptions?.length ? panel(3, "Assumed by the factory", "alert", h("p", { class: "small muted" }, "Nobody was asked: the requirements came refined, so each open question took its recommended answer. Confirm these with the client."),
+    h("div", { class: "tiles four" },
+      tile(0, "ruler", e.delivery ? "Hours to deliver" : "Human effort", hrs(top), e.delivery ? `all tracks · people's share ${hrs(e.totals.overall)}` : "all tracks"),
+      tile(1, "dollar", "API cost", usd(e.apiCost.total), `${e.apiCost.confidence} confidence · ${e.apiCost.records} benchmark record${e.apiCost.records === 1 ? "" : "s"}`),
+      tile(2, "clock", "Elapsed", days(e.elapsed.criticalPathDays), "on the critical path"),
+      tile(3, "layers", "Scope", `${e.tasks.length} tasks`, `${d.ui && !d.pending ? `${d.screens.length} screens · ` : ""}${e.band} · ${e.uncertainty} uncertainty`)),
+    h("div", { class: "stack" },
+      h("div", { class: "grid-2 even" },
+        h("div", { class: "stack" }, decide,
+          e.approved && e.files ? nextPanel("This estimate is approved. Build it or size a change to it.", [
+            // an estimate made with no repo is a new product: a web app and its API (greenfield)
+            // unless it prices a phone app, which a new product does not build yet: then the button says why instead
+            s.noRepo ? [e.cannotBuild ? null : `#/new/greenfield/estimate/${rid}`, "sprout", "Build it as a new product", e.cannotBuild] : [`#/new/brownfield/estimate/${rid}`, "layers", "Build this estimate"],
+            [`#/new/estimate/revises/${rid}`, "pen", "Change request"],
+          ]) : null,
+          panel(0, "Estimate", "ruler", summary, files)),
+        h("div", { class: "stack" },
+          panel(1, "Screens", "browser", design),
+          panel(2, "API cost by phase", "grid", [costTable, perTask]),
+          e.stack ? panel(3, "Stack priced", "layers", h("dl", { class: "facts" }, [["Backend", e.stack.backend], ["Web", e.stack.web], ["Mobile", e.stack.mobile], ["Database", e.stack.database], ["Hosting", e.stack.hosting], ["Architecture", e.stack.architecture]].filter((r) => r[1]).flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])),
+            h("p", { class: "small muted" }, e.stack.basis === "repo" ? "From the repo." : e.stack.basis === "request" ? "Named in the requirements." : `Assumed by the estimate${e.stack.notes ? `: ${e.stack.notes}` : "."}`)) : null)),
+      panel(2, `Tasks (${e.tasks.length})`, "layers", tasks, ...extra),
+      assumed ? panel(3, `Assumptions (${assumed})`, "alert",
+        e.factoryAssumptions?.length ? fold("Assumed by the factory", e.factoryAssumptions.length, h("p", { class: "small muted" }, "Nobody was asked: the requirements came refined, so each open question took its recommended answer. Confirm these with the client."),
           h("ul", { class: "reasons small" }, e.factoryAssumptions.map((a) => h("li", {}, h("span", { class: "mono" }, a.id), " ", a.text, a.fromDefault ? h("span", { class: "tag faint" }, `standard answer: ${a.fromDefault}`) : null, a.risk === "high" ? h("span", { class: "tag" }, "high risk") : null)))) : null,
-        e.assumptions.length ? panel(3, "Assumptions", "alert", h("ul", { class: "reasons small" }, e.assumptions.map((x) => h("li", {}, x)))) : null),
-      h("div", { class: "stack" }, panel(1, "Screens", "browser", design), panel(2, "Tasks", "layers", tasks, ...extra))),
+        e.assumptions.length ? fold("From the estimate", e.assumptions.length, h("ul", { class: "reasons small" }, e.assumptions.map((x) => h("li", {}, x)))) : null) : null),
   ], true);
 }
 
@@ -1828,27 +1999,39 @@ async function designScreen(id) {
   const style = d.styleChecks.length
     ? h("div", { class: "chips" }, d.styleChecks.map((g) => h("span", { class: `chip ${g.passed ? "pass" : "fail"}` }, icon(g.passed ? "check" : "x"), g.gateId)))
     : h("p", { class: "muted small" }, "No style check results for this run. The build runs the style check on each task that changes UI files, so a run that changed none has no results. By hand: ", h("code", {}, "factory design lint --git <base> <head> --repo <repo>"), ".");
+  const rid = encodeURIComponent(id);
+  const has = [], hasNot = [];
+  const put = (empty, ico, title, why, make) => { if (empty) hasNot.push([ico, title, why]); else has.push(make()); };
+  put(!xv.available && !xv.exports.length, "download", "Export the design", xv.why, () => exportPanel(id, xv));
+  put(!sv.available, "code", "Code: kit and scaffold", sv.why, () => codePanel(id, sv));
+  put("none" in d.uiSize, "ruler", "UI change size", d.uiSize.none, () => h("section", { class: "panel rise", vars: { "--i": 0 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("ruler"), "UI change size")), size));
+  put(!d.styleChecks.length, "shield", "Style check", ["The build checks style on each task that changes UI files; this run changed none. By hand: ", h("code", {}, "factory design lint --git <base> <head> --repo <repo>")],
+    () => h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Style check")), style));
+  put(!!fv.none || (!!fv.skipped && !fv.pages?.length), "shield", "Fidelity to the approved design", fv.none ?? [`Not run: ${fv.skipped}. By hand: `, h("code", {}, `factory design fidelity ${id} --url http://localhost:3000`)], () => fidelityPanel(id, fv));
+  put(!!d.visual.none || !!d.visual.skipped, "image", "Before and after", d.visual.none ?? [`Skipped: ${d.visual.skipped}. By hand: `, h("code", {}, "factory design capture"), " then ", h("code", {}, "factory design pixel")], () => visualPanel(id, d.visual));
+  put(!refv.references.length, "image", "References", refv.none, () => h("section", { class: "panel rise", vars: { "--i": 4 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("image"), `References (${refv.references.length})`)), refsPanel(refv)));
+  const invPanel = "none" in d.inventory ? (hasNot.push(["browser", "The app's pages and building blocks", d.inventory.none]), null)
+    : h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("grid"), "The app's pages and building blocks")), inv);
+  // a brownfield build draws a design too when it touches UI (its timeline then has the design step)
+  const drawn = r.mode === "estimate" || r.mode === "design" || (r.timeline ?? []).some((t) => t.step === "design");
+  const lead = [
+    // a design-only run, once approved, is sized or built from here (like --from-design)
+    // a design with no repo is a new product: a web app and its API, in two new repos (greenfield)
+    r.mode === "design" && xv.available ? nextPanel(r.repo ? "This design is approved. Size it, or build it in its project." : "This design is approved. Size it, or build it as a new product: a web app and its API, in two new repos.", [
+      [`#/new/estimate/design/${rid}`, "ruler", "Estimate this design"],
+      r.repo ? [`#/new/brownfield/design/${rid}`, "layers", "Build this design"] : [`#/new/greenfield/design/${rid}`, "sprout", "Build it as a new product"],
+    ]) : null,
+    drawn ? h("a", { class: "panel proto rise", href: `#/runs/${rid}/preview` }, h("span", { class: "ico" }, icon("cursor")), h("span", {}, h("strong", {}, "Clickable prototype"), h("span", { class: "small muted" }, "Walk the demo and its screenshots under Preview.")), h("span", { class: "go" }, "Open", icon("arrow"))) : null,
+  ];
+  const rest = hasNot.length ? h(has.length || invPanel ? "details" : "section", { class: "panel not-here", open: has.length || invPanel ? undefined : "" },
+    h(has.length || invPanel ? "summary" : "h2", {}, `Not part of this run (${hasNot.length})`),
+    h("ul", { class: "not-list" }, hasNot.map(([ico, title, why]) => h("li", {}, icon(ico), h("div", {}, h("strong", {}, title), h("p", { class: "small muted" }, why)))))) : null;
   mount([...runHeader(r, "design"),
-    h("div", { class: "grid-2" },
-      h("div", { class: "stack" },
-        // a design-only run, once approved, is sized or built from here (like --from-design)
-        // a design with no repo is a new product: a web app and its API, in two new repos (greenfield)
-        r.mode === "design" && xv.available ? nextPanel(r.repo ? "This design is approved. Size it, or build it in its project." : "This design is approved. Size it, or build it as a new product: a web app and its API, in two new repos.", [
-          [`#/new/estimate/design/${encodeURIComponent(id)}`, "ruler", "Estimate this design"],
-          r.repo ? [`#/new/brownfield/design/${encodeURIComponent(id)}`, "layers", "Build this design"] : [`#/new/greenfield/design/${encodeURIComponent(id)}`, "sprout", "Build it as a new product"],
-        ]) : null,
-        exportPanel(id, xv),
-        codePanel(id, sv),
-        h("section", { class: "panel rise", vars: { "--i": 0 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("ruler"), "UI change size")), size),
-        h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Style check")), style),
-        fidelityPanel(id, fv),
-        visualPanel(id, d.visual),
-        // a brownfield build draws a design too when it touches UI (its timeline then has the design step)
-        r.mode === "estimate" || r.mode === "design" || (r.timeline ?? []).some((t) => t.step === "design") ? h("a", { class: "slot rise", href: `#/runs/${encodeURIComponent(id)}/preview`, vars: { "--i": 3 } }, icon("cursor"), h("strong", {}, "Clickable prototype"), h("span", {}, "The demo and its screenshots are under Preview.")) : null,
-        h("section", { class: "panel rise", vars: { "--i": 4 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("image"), `References${refv.references.length ? ` (${refv.references.length})` : ""}`)), refsPanel(refv)),
-      ),
-      h("section", { class: "panel rise", vars: { "--i": 1 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("grid"), "The app's pages and building blocks")), inv),
-    )], true);
+    h("div", { class: "stack" },
+      !has.length && !invPanel && !drawn ? h("div", { class: "slot rise" }, icon("image"), h("strong", {}, "No design work in this run"), h("span", { class: "small" }, "It drew no screens and changed no UI files, so there is nothing to show here.")) : null,
+      ...lead,
+      invPanel ? h("div", { class: "grid-2" }, h("div", { class: "stack" }, has), invPanel) : has.length > 1 ? h("div", { class: "grid-2 even" }, h("div", { class: "stack" }, has.filter((_, i) => i % 2 === 0)), h("div", { class: "stack" }, has.filter((_, i) => i % 2 === 1))) : has,
+      rest)], true);
 }
 
 // ---------- dashboard ----------
@@ -1869,26 +2052,44 @@ async function dashboardScreen() {
     fills.push([fill, Math.max(0, Math.min(1, share))]);
     return h("div", { class: `hbar ${cls}` }, h("div", { class: "track" }, fill), h("span", { class: "v" }, value));
   };
+  // the stages that did real work come first; the rest (never run, or free and instant) wait behind a button
+  const STAGE_TOP = 8;
+  const worked = stages.filter((s) => s.count && (s.avgCostUsd >= 0.005 || s.avgActiveSec >= 1 || s.topProblem));
+  const quiet = stages.filter((s) => !worked.includes(s));
+  let allStages = false;
+  const stageBody = h("tbody");
+  const stageMore = h("button", { class: "linkish small", type: "button", onclick: () => { allStages = !allStages; paintStages(); } });
+  const paintStages = () => {
+    const rows = allStages ? [...worked, ...quiet] : worked.slice(0, STAGE_TOP);
+    stageBody.replaceChildren(...rows.map((s, i) => h("tr", {},
+      h("td", { class: "mono" }, s.stage), h("td", { class: "num" }, s.count),
+      h("td", {}, hbar(pct(s.firstTimePassRate), s.firstTimePassRate, "ok", i)),
+      h("td", {}, hbar(money(s.avgCostUsd), s.avgCostUsd / maxCost, "", i)),
+      h("td", { class: "num" }, secs(s.avgActiveSec)),
+      h("td", { class: "small" }, s.topProblem ? `${s.topProblem.reason} (${s.topProblem.count}×)` : h("span", { class: "faint" }, "-")))));
+    const hidden = stages.length - Math.min(worked.length, STAGE_TOP);
+    stageMore.hidden = hidden <= 0;
+    stageMore.textContent = allStages ? `Show the top ${Math.min(worked.length, STAGE_TOP)} only` : `Show all ${stages.length} stages`;
+    nextFrame(() => { for (const [f, share] of fills) f.style.transform = `scaleX(${share})`; });
+  };
+  const stagePanel = h("section", { class: "panel rise", vars: { "--i": 5 } },
+    h("div", { class: "panel-head" }, h("h2", {}, icon("bars"), "Where the cost and time go"), h("span", { class: "small muted" }, "per stage, most expensive first")),
+    h("div", { class: "table-wrap" }, h("table", {},
+      h("thead", {}, h("tr", {}, h("th", {}, "Stage"), h("th", { class: "num" }, "Runs"), h("th", {}, "First-time pass"), h("th", {}, "Avg cost"), h("th", { class: "num" }, "Avg time"), h("th", {}, "Most common problem"))),
+      stageBody)),
+    h("div", { class: "table-foot" }, stageMore, h("code", { class: "small muted" }, "factory report --all")));
+  paintStages();
   mount([
     h("div", { class: "page-head" }, h("div", {}, h("div", { class: "eyebrow" }, "Dashboard"), h("h1", {}, "How the factory is doing"),
       h("p", { class: "sub" }, `Across all ${o.runs} runs on this computer: the same numbers as factory report --all.`))),
-    o.runs ? h("div", { class: "tiles" },
+    o.runs ? h("div", { class: "tiles five" },
       tile(0, "check", "Delivered", o.delivered, (n) => String(Math.round(n)), `of ${o.runs}`, `${o.parked} parked, ${o.waiting} waiting, ${o.running} running`),
       tile(1, "dollar", "Cost per delivered change", o.costPerDeliveredUsd, money, "", `all spend ${money(o.totalCostUsd)}, parked runs included · a delivered run alone ${money(o.avgDeliveredRunCostUsd)}`),
       tile(2, "clock", "Request → branch", o.wallMin.median, (n) => n.toFixed(n < 10 ? 1 : 0), o.wallMin.median === undefined ? "" : "min", `wall-clock median, includes waiting for people · worst ${mins(o.wallMin.worst)} · machine time median ${mins(o.activeMinMedian)}`),
       tile(3, "user", "Human stops", o.humanStopsPerDelivered, (n) => n.toFixed(1), "", `cards per delivered run · only the plan approval: ${pct(o.approvalOnlyShare)}`),
       tile(4, "shield", "First-time pass", o.firstTimePass.rate === undefined ? undefined : o.firstTimePass.rate * 100, (n) => String(Math.round(n)), o.firstTimePass.rate === undefined ? "" : "%", `of ${o.firstTimePass.finished} finished steps`),
     ) : h("div", { class: "panel empty" }, "No runs yet."),
-    stages.length ? h("section", { class: "panel rise", vars: { "--i": 5 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("bars"), "Per stage"), h("span", { class: "small muted" }, "most expensive first")),
-      h("div", { class: "table-wrap" }, h("table", {},
-        h("thead", {}, h("tr", {}, h("th", {}, "Stage"), h("th", { class: "num" }, "Runs"), h("th", {}, "First-time pass"), h("th", {}, "Avg cost"), h("th", { class: "num" }, "Avg time"), h("th", {}, "Most common problem"))),
-        h("tbody", {}, stages.map((s, i) => h("tr", {},
-          h("td", { class: "mono" }, s.stage), h("td", { class: "num" }, s.count),
-          h("td", {}, hbar(pct(s.firstTimePassRate), s.firstTimePassRate, "ok", i)),
-          h("td", {}, hbar(money(s.avgCostUsd), s.avgCostUsd / maxCost, "", i)),
-          h("td", { class: "num" }, secs(s.avgActiveSec)),
-          h("td", { class: "small" }, s.topProblem ? `${s.topProblem.reason} (${s.topProblem.count}×)` : h("span", { class: "faint" }, "-")),
-        )))))) : null,
+    stages.length ? stagePanel : null,
     recent.length ? h("section", { class: "panel rise", vars: { "--i": 6 } }, h("div", { class: "panel-head" }, h("h2", {}, icon("activity"), "Recent runs"), h("a", { href: "#/runs", class: "small" }, "All runs")),
       h("ul", { class: "recent" }, recent.map((r, i) => h("li", { class: `k-${tone(r.status)} rise`, vars: { "--i": i } },
         h("a", { href: `#/runs/${encodeURIComponent(r.runId)}` }, h("span", { class: "bar" }), h("span", { class: "req" }, r.request || r.runId),
@@ -2032,6 +2233,24 @@ async function greenfieldScreen(preset = []) {
 }
 
 /** One web app + API product: both runs, the approved contract, and the next step (start the API run, then write the run files). */
+async function productsScreen() {
+  skeleton();
+  const products = await api("/api/fullstack");
+  mount([
+    h("div", { class: "page-head" }, h("div", {}, h("div", { class: "eyebrow" }, "Products"), h("h1", {}, "New products"),
+      h("p", { class: "sub" }, "Each is a web app and its .NET API, built in two new repos held to one API contract.")),
+      h("a", { class: "btn primary", href: "#/new/greenfield" }, icon("plus"), "New product")),
+    products.length ? h("div", { class: "panel" }, h("div", { class: "table-wrap" }, h("table", { class: "runs" },
+      h("thead", {}, h("tr", {}, ["Product", "Web run", "API run"].map((t) => h("th", {}, t)))),
+      h("tbody", {}, products.map((p) => h("tr", { onclick: (e) => { if (!e.target.closest("a")) location.hash = `#/fullstack/${encodeURIComponent(p.name)}`; } },
+        h("td", {}, h("a", { class: "req", href: `#/fullstack/${encodeURIComponent(p.name)}` }, p.name)),
+        ...[p.web, p.api].map((side) => h("td", {}, side.run ? [pill(side.run.status), h("span", { class: "small muted" }, ` ${side.run.step}`)] : h("span", { class: "faint small" }, "not started")))))))))
+      : h("div", { class: "slot big-empty rise" }, icon("sprout"), h("strong", {}, "No products yet"), h("span", {}, "Start one from a request, or from an approved design or estimate."), h("a", { class: "btn", href: "#/new/greenfield" }, icon("plus"), "New product")),
+    h("section", { class: "panel term" }, h("div", { class: "panel-head" }, h("h2", {}, icon("terminal"), "In your terminal")),
+      h("div", { class: "cmds" }, cmdRow('factory fullstack start --name <name> "<what the product does>"', "start a product"))),
+  ], true);
+}
+
 function productScreen(name) {
   skeleton("grid");
   let lastJson = "";
@@ -2111,7 +2330,7 @@ async function route() {
     else if (top === "new" && parts[1] === "greenfield") await greenfieldScreen(parts.slice(parts[2] === "web" ? 3 : 2));
     else if (top === "new" && parts[1] === "fullstack") await greenfieldScreen();
     else if (top === "fullstack" && parts[1]) productScreen(parts[1]);
-    else if (top === "fullstack") await greenfieldScreen();
+    else if (top === "fullstack") await productsScreen();
     else if (top === "new" && parts[1] === "estimate") await requestScreen("estimate", parts.slice(2));
     else if (top === "new" && parts[1] === "design") await requestScreen("design");
     else if (top === "runs" && parts[1] && parts[2] === "estimate") await estimateScreen(parts[1]);

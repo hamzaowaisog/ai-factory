@@ -370,7 +370,11 @@ async function readBody(req: IncomingMessage, limit = MAX_BODY_BYTES): Promise<s
 
 const LOCKED_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>AI Factory</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/app.css"></head>
-<body><main class="locked"><h1>AI Factory</h1><p>Open the link that <code>factory ui</code> printed in your terminal. It carries the key for this session.</p></main></body></html>`;
+<body><main class="locked"><h1>AI Factory</h1><p>Open the link that <code>factory ui</code> printed in your terminal. It carries the key for this session.</p>
+<p class="small muted">Paste the link into the address bar: a link followed from another site is refused.</p></main></body></html>`;
+
+/** Added to a demo page shown inside the screens' own frame: the demo's side list repeats the screens' list beside it, so it is hidden there. */
+const FRAME_STYLE = "<style>html{scroll-padding-top:14px}aside{display:none!important}main{padding:14px 18px 28px!important}.screen>.file{display:none!important}</style>";
 
 export function createUiServer(opts: UiServerOptions = {}): UiServer {
   const token = opts.token ?? randomBytes(24).toString("base64url");
@@ -392,10 +396,14 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
     // a page on another site (or a rebound DNS name) can't talk to this server
     if (!allowedHosts.includes(String(req.headers.host ?? ""))) return send(res, 403, "Wrong host.", "text/plain; charset=utf-8");
     const early = new URL(req.url ?? "/", `http://${req.headers.host}`).pathname;
-    if (early.startsWith("/preview/")) return servePreview(req, res, early);
+    if (early.startsWith("/preview/")) return servePreview(req, res, early, new URL(req.url ?? "/", `http://${req.headers.host}`).searchParams.get("frame") === "1");
     const origin = req.headers.origin;
     if (origin !== undefined && !allowedHosts.map((h) => `http://${h}`).includes(origin)) return sendJson(res, 403, { error: "Cross-origin requests are refused." });
-    if (req.headers["sec-fetch-site"] === "cross-site") return sendJson(res, 403, { error: "Cross-site requests are refused." });
+    if (req.headers["sec-fetch-site"] === "cross-site") {
+      // a person who followed a link from another site gets a page that says what to do, not a line of JSON; still refused
+      if (req.method === "GET" && req.headers["sec-fetch-mode"] === "navigate") return send(res, 403, LOCKED_PAGE, "text/html; charset=utf-8");
+      return sendJson(res, 403, { error: "Cross-site requests are refused." });
+    }
 
     const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
     const path = url.pathname;
@@ -509,7 +517,7 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
   }
 
   /** GET /preview/<previewKey>/<run>/<file>: read-only, the preview key instead of the session key. */
-  function servePreview(req: IncomingMessage, res: ServerResponse, path: string): void {
+  function servePreview(req: IncomingMessage, res: ServerResponse, path: string, framed = false): void {
     const plain = (status: number, text: string) => { res.writeHead(status, { ...PREVIEW_HEADERS, "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" }); res.end(text); };
     if (req.method !== "GET" && req.method !== "HEAD") return plain(405, "Read-only.");
     // raw (still encoded) segments: the file part is decoded and checked once, in previewFile
@@ -521,7 +529,8 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
     const f = l && rest.length ? previewFile(l, rest.join("/")) : undefined;
     if (!f) return plain(404, "Not found.");
     res.writeHead(200, { ...PREVIEW_HEADERS, "Content-Type": f.type, "Cache-Control": "no-store" });
-    res.end(req.method === "HEAD" ? undefined : f.body);
+    const body = framed && f.type.startsWith("text/html") ? Buffer.concat([f.body, Buffer.from(FRAME_STYLE)]) : f.body;
+    res.end(req.method === "HEAD" ? undefined : body);
   }
 
   return { server, token, previewKey, exportJobs: jobs };
