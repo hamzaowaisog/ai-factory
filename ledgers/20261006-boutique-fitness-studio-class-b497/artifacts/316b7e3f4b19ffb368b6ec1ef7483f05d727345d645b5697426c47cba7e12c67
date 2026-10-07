@@ -1,0 +1,264 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "flow": "Alex lands on Schedule at the root URL, picks a day on the week strip, narrows by type, intensity or time of day, and books or joins a waitlist straight from a class card. Tapping a card anywhere except its button opens Class Detail. On phones this is a full page with a pinned action footer. From 1024 px it opens as a side panel next to the schedule, and Back returns to the same day, week and filters. The AR avatar in the top bar opens My Bookings, which shows stats and Upcoming and Past tabs. Each row opens Class Detail, and its quick Cancel or Leave action uses the same confirmation dialog.",
+    "screens": [
+     {
+      "id": "S-1",
+      "route": "/",
+      "file": "app/page.tsx",
+      "title": "Schedule",
+      "purpose": "Alex scans a Monday–Sunday day strip, filters the day's classes by type, intensity and time of day, and books, joins a waitlist or opens a class from its card.",
+      "reqs": [
+       "REQ-1",
+       "REQ-2",
+       "REQ-3",
+       "REQ-6",
+       "REQ-7",
+       "REQ-8",
+       "REQ-9",
+       "REQ-10",
+       "REQ-11",
+       "REQ-13",
+       "REQ-14",
+       "REQ-15",
+       "REQ-16",
+       "REQ-24",
+       "REQ-25",
+       "REQ-31",
+       "REQ-32",
+       "REQ-33",
+       "REQ-34",
+       "REQ-35",
+       "REQ-36",
+       "REQ-37",
+       "REQ-38",
+       "REQ-39",
+       "REQ-40",
+       "REQ-41",
+       "REQ-42",
+       "REQ-43",
+       "REQ-51",
+       "REQ-52",
+       "REQ-53",
+       "REQ-54",
+       "REQ-55",
+       "REQ-56",
+       "REQ-58",
+       "REQ-59"
+      ],
+      "states": [
+       "loading",
+       "empty",
+       "empty-filtered",
+       "error",
+       "success-booked-toast-undo",
+       "promoted-toast",
+       "error-toast"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-2",
+      "route": "/classes/[sessionId]",
+      "file": "app/classes/[sessionId]/page.tsx",
+      "title": "Class detail",
+      "purpose": "Alex reads a class's time, room, instructor, description, what to bring and availability, then books, joins or leaves the waitlist, or cancels from the pinned action footer.",
+      "reqs": [
+       "REQ-1",
+       "REQ-2",
+       "REQ-3",
+       "REQ-6",
+       "REQ-7",
+       "REQ-8",
+       "REQ-9",
+       "REQ-10",
+       "REQ-11",
+       "REQ-13",
+       "REQ-14",
+       "REQ-15",
+       "REQ-16",
+       "REQ-17",
+       "REQ-18",
+       "REQ-19",
+       "REQ-22",
+       "REQ-23",
+       "REQ-31",
+       "REQ-32",
+       "REQ-41",
+       "REQ-42",
+       "REQ-44",
+       "REQ-45",
+       "REQ-46",
+       "REQ-47",
+       "REQ-48",
+       "REQ-51",
+       "REQ-52",
+       "REQ-53",
+       "REQ-54",
+       "REQ-55",
+       "REQ-56",
+       "REQ-57",
+       "REQ-58",
+       "REQ-59",
+       "REQ-63"
+      ],
+      "states": [
+       "loading",
+       "error",
+       "booked",
+       "waitlisted",
+       "waitlisted-skip-reason",
+       "full-join-waitlist",
+       "disabled-started",
+       "disabled-cancelled-by-studio",
+       "disabled-outside-window",
+       "cancel-dialog",
+       "late-cancel-dialog",
+       "rejected-overlap",
+       "rejected-became-full",
+       "success-toast"
+      ],
+      "size": "new"
+     },
+     {
+      "id": "S-3",
+      "route": "/bookings",
+      "file": "app/bookings/page.tsx",
+      "title": "My bookings",
+      "purpose": "Alex sees their membership header, Upcoming, Classes this month and streak tiles, then manages upcoming bookings by day and reviews past classes with their status badges.",
+      "reqs": [
+       "REQ-1",
+       "REQ-2",
+       "REQ-3",
+       "REQ-17",
+       "REQ-18",
+       "REQ-19",
+       "REQ-26",
+       "REQ-27",
+       "REQ-28",
+       "REQ-30",
+       "REQ-39",
+       "REQ-41",
+       "REQ-42",
+       "REQ-47",
+       "REQ-49",
+       "REQ-50",
+       "REQ-51",
+       "REQ-52",
+       "REQ-53",
+       "REQ-54",
+       "REQ-55",
+       "REQ-56",
+       "REQ-57",
+       "REQ-58",
+       "REQ-59",
+       "REQ-63"
+      ],
+      "states": [
+       "loading",
+       "error",
+       "empty-upcoming",
+       "empty-past",
+       "past-tab",
+       "cancel-dialog",
+       "late-cancel-dialog",
+       "success-toast",
+       "error-toast"
+      ],
+      "size": "new"
+     }
+    ],
+    "noScreen": [
+     {
+      "req": "REQ-4",
+      "reason": "Seed generation and local-storage bootstrap at load is service logic. Users only see its output on the screens."
+     },
+     {
+      "req": "REQ-5",
+      "reason": "Writing to local storage before reporting success is a persistence rule with no interface of its own."
+     },
+     {
+      "req": "REQ-21",
+      "reason": "simulateOtherMemberCancellation is a test-only service hook. Its visible results are the promotion toast (S-1) and the waitlist position on S-2."
+     },
+     {
+      "req": "REQ-60",
+      "reason": "Service-level unit tests run in the automated test job, not in the app."
+     },
+     {
+      "req": "REQ-61",
+      "reason": "The end-to-end test is project tooling. It runs the existing screens but adds none."
+     },
+     {
+      "req": "REQ-62",
+      "reason": "Filling missing weeks with seed data on load is background service logic with no screen."
+     }
+    ],
+    "theme": {
+     "reading": {
+      "users": "Members of one boutique fitness studio, here Alex Rivera on an Unlimited Monthly plan, booking their own classes",
+      "context": "Quick visits several times a week, mostly on a phone between work and the studio, sometimes on a laptop to plan the week",
+      "device": "both",
+      "tone": "energetic, warm, confident",
+      "hero": "Tapping Book on a class with 'Only 2 left' and seeing 'You're booked' with Undo",
+      "traits": [
+       "colour-coded class types",
+       "scarcity and waitlist",
+       "weekly streak",
+       "two-hour cancel rule"
+      ]
+     },
+     "mood": "Boutique energetic, warm and round",
+     "brand": "#232A4E",
+     "neutral": "warm",
+     "chrome": "plain",
+     "mode": "auto",
+     "font": "grotesk",
+     "heading": "condensed",
+     "families": {
+      "heading": "Barlow Condensed",
+      "body": "Inter Tight"
+     },
+     "mark": "wordmark",
+     "radius": "round",
+     "density": "comfortable",
+     "surface": "soft",
+     "motion": "lively",
+     "fx": "modern",
+     "shell": "topbar",
+     "hero": "none",
+     "charts": "bold",
+     "imagery": "icons",
+     "basis": [
+      {
+       "ref": "Booking.com",
+       "took": "Scarcity labels next to capacity ('Only 2 left'), and a deep blue for the one primary action"
+      },
+      {
+       "ref": "Airbnb",
+       "took": "Warm white page, round corners and charcoal text, with colour kept to one action plus the class-type tags"
+      },
+      {
+       "ref": "Expedia",
+       "took": "A deep navy ink as the brand, so the five type accents stay the loudest colour"
+      },
+      {
+       "ref": "Hyatt",
+       "took": "Generous white space and a calm, editorial plain top bar with the wordmark"
+      }
+     ]
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

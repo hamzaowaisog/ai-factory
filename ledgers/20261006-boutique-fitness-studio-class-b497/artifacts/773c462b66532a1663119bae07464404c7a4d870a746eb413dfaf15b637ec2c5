@@ -1,0 +1,416 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Schedule",
+     "subtitle": "Wed 14 Jan · Pulse Studio · Book up to 7 days ahead",
+     "blocks": [
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Day",
+         "options": [
+          "Mon 12",
+          "Tue 13",
+          "Wed 14 · Today",
+          "Thu 15",
+          "Fri 16",
+          "Sat 17",
+          "Sun 18"
+         ],
+         "value": "Wed 14 · Today"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Previous week",
+         "icon": "chevron-left",
+         "iconOnly": true,
+         "state": "disabled",
+         "hint": "You can book this week and next week"
+        },
+        {
+         "label": "Today",
+         "variant": "secondary"
+        },
+        {
+         "label": "Next week",
+         "icon": "chevron-right",
+         "iconOnly": true,
+         "hint": "19–25 Jan"
+        }
+       ]
+      },
+      {
+       "type": "filters",
+       "chips": [
+        "Yoga",
+        "Pilates",
+        "HIIT",
+        "Spin",
+        "Boxing"
+       ]
+      },
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Intensity",
+         "options": [
+          "Any",
+          "Low",
+          "Medium",
+          "High"
+         ],
+         "value": "Any"
+        },
+        {
+         "label": "Time of day",
+         "options": [
+          "Any time",
+          "Morning",
+          "Afternoon",
+          "Evening"
+         ],
+         "value": "Any time"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Clear filters",
+         "variant": "ghost",
+         "icon": "x"
+        }
+       ]
+      },
+      {
+       "type": "cards",
+       "items": [
+        {
+         "title": "Sunrise Flow",
+         "meta": "08:00 · 60 min · Yoga · Low · Studio A · 6 spots left",
+         "badge": "Booked ✓",
+         "people": [
+          "Maya Okafor"
+         ]
+        },
+        {
+         "title": "Reformer Core",
+         "meta": "09:30 · 50 min · Pilates · Medium · Studio B · Only 2 left",
+         "badge": "Book",
+         "people": [
+          "Lena Fischer"
+         ]
+        },
+        {
+         "title": "HIIT Blast",
+         "meta": "12:15 · 45 min · HIIT · High · Studio A · Full · 3 on waitlist",
+         "badge": "Join waitlist",
+         "people": [
+          "Jordan Blake"
+         ]
+        },
+        {
+         "title": "Rhythm Ride",
+         "meta": "17:30 · 45 min · Spin · High · Spin Room · 1 spot left",
+         "badge": "Book",
+         "people": [
+          "Priya Nair"
+         ]
+        },
+        {
+         "title": "Fight Club Basics",
+         "meta": "18:30 · 60 min · Boxing · Medium · Studio B · Full · 2 on waitlist",
+         "badge": "Waitlisted #2",
+         "people": [
+          "Marcus Cole"
+         ]
+        },
+        {
+         "title": "Restore & Stretch",
+         "meta": "19:45 · 45 min · Yoga · Low · Studio A · Cancelled",
+         "badge": "Cancelled by studio",
+         "people": [
+          "Maya Okafor"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Book",
+         "variant": "primary",
+         "hint": "Reformer Core · Only 2 left"
+        },
+        {
+         "label": "Join waitlist",
+         "variant": "secondary",
+         "hint": "HIIT Blast · you'd be #4"
+        },
+        {
+         "label": "My bookings",
+         "variant": "link",
+         "icon": "user"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Sunrise Flow",
+       "to": "S-2"
+      },
+      {
+       "from": "Reformer Core",
+       "to": "S-2"
+      },
+      {
+       "from": "HIIT Blast",
+       "to": "S-2"
+      },
+      {
+       "from": "Rhythm Ride",
+       "to": "S-2"
+      },
+      {
+       "from": "Fight Club Basics",
+       "to": "S-2"
+      },
+      {
+       "from": "Restore & Stretch",
+       "to": "S-2"
+      },
+      {
+       "from": "My bookings",
+       "to": "S-3"
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Book",
+       "text": "You're booked for Reformer Core · Wed 09:30",
+       "tone": "ok",
+       "undo": true
+      },
+      {
+       "after": "Today",
+       "text": "Good news! You're off the waitlist and booked for Power Ride · Thu 07:15",
+       "tone": "info"
+      },
+      {
+       "after": "Join waitlist",
+       "text": "We couldn't add you to the HIIT Blast waitlist. Please try again.",
+       "tone": "bad"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No classes on this day",
+      "emptyHint": "Pick another day on the strip, or if nothing matches your filters, tap Clear filters.",
+      "error": "We couldn't load the schedule just now. Check your connection and tap Retry.",
+      "success": "You're booked for Reformer Core · Wed 09:30"
+     }
+    },
+    "mockFull": {
+     "title": "Schedule",
+     "subtitle": "Wed 14 Jan · Pulse Studio · Book up to 7 days ahead",
+     "blocks": [
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Day",
+         "options": [
+          "Mon 12",
+          "Tue 13",
+          "Wed 14 · Today",
+          "Thu 15",
+          "Fri 16",
+          "Sat 17",
+          "Sun 18"
+         ],
+         "value": "Wed 14 · Today"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Previous week",
+         "icon": "chevron-left",
+         "iconOnly": true,
+         "state": "disabled",
+         "hint": "You can book this week and next week"
+        },
+        {
+         "label": "Today",
+         "variant": "secondary"
+        },
+        {
+         "label": "Next week",
+         "icon": "chevron-right",
+         "iconOnly": true,
+         "hint": "19–25 Jan"
+        }
+       ]
+      },
+      {
+       "type": "filters",
+       "chips": [
+        "Yoga",
+        "Pilates",
+        "HIIT",
+        "Spin",
+        "Boxing"
+       ]
+      },
+      {
+       "type": "toolbar",
+       "selects": [
+        {
+         "label": "Intensity",
+         "options": [
+          "Any",
+          "Low",
+          "Medium",
+          "High"
+         ],
+         "value": "Any"
+        },
+        {
+         "label": "Time of day",
+         "options": [
+          "Any time",
+          "Morning",
+          "Afternoon",
+          "Evening"
+         ],
+         "value": "Any time"
+        }
+       ],
+       "buttons": [
+        {
+         "label": "Clear filters",
+         "variant": "ghost",
+         "icon": "x"
+        }
+       ]
+      },
+      {
+       "type": "cards",
+       "items": [
+        {
+         "title": "Express Burn",
+         "meta": "06:30 · 30 min · HIIT · High · Studio B · 4 spots left",
+         "badge": "Started",
+         "people": [
+          "Jordan Blake"
+         ]
+        },
+        {
+         "title": "Sunrise Flow",
+         "meta": "08:00 · 60 min · Yoga · Low · Studio A · 6 spots left",
+         "badge": "Booked ✓",
+         "people": [
+          "Maya Okafor"
+         ]
+        },
+        {
+         "title": "Reformer Core",
+         "meta": "09:30 · 50 min · Pilates · Medium · Studio B · Only 2 left",
+         "badge": "Book",
+         "people": [
+          "Lena Fischer"
+         ]
+        },
+        {
+         "title": "HIIT Blast",
+         "meta": "12:15 · 45 min · HIIT · High · Studio A · Full · 3 on waitlist",
+         "badge": "Join waitlist",
+         "people": [
+          "Jordan Blake"
+         ]
+        },
+        {
+         "title": "Lunchtime Mat Pilates",
+         "meta": "13:00 · 50 min · Pilates · Low · Studio B · 8 spots left",
+         "badge": "Book",
+         "people": [
+          "Lena Fischer"
+         ]
+        },
+        {
+         "title": "Rhythm Ride",
+         "meta": "17:30 · 45 min · Spin · High · Spin Room · 1 spot left",
+         "badge": "Book",
+         "people": [
+          "Priya Nair"
+         ]
+        },
+        {
+         "title": "Fight Club Basics",
+         "meta": "18:30 · 60 min · Boxing · Medium · Studio B · Full · 2 on waitlist",
+         "badge": "Waitlisted #2",
+         "people": [
+          "Marcus Cole"
+         ]
+        },
+        {
+         "title": "Restore & Stretch",
+         "meta": "19:45 · 45 min · Yoga · Low · Studio A · Cancelled",
+         "badge": "Cancelled by studio",
+         "people": [
+          "Maya Okafor"
+         ]
+        },
+        {
+         "title": "Late Climb Ride",
+         "meta": "20:30 · 45 min · Spin · Medium · Spin Room · Only 3 left",
+         "badge": "Book",
+         "people": [
+          "Priya Nair"
+         ]
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Book",
+         "variant": "primary",
+         "hint": "Reformer Core · Only 2 left"
+        },
+        {
+         "label": "Join waitlist",
+         "variant": "secondary",
+         "hint": "HIIT Blast · you'd be #4"
+        },
+        {
+         "label": "My bookings",
+         "variant": "link",
+         "icon": "user"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No classes on this day",
+      "emptyHint": "Pick another day on the strip, or if nothing matches your filters, tap Clear filters.",
+      "error": "We couldn't load the schedule just now. Check your connection and tap Retry.",
+      "success": "You're booked for Reformer Core · Wed 09:30"
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

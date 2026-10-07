@@ -1,0 +1,260 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My bookings",
+     "subtitle": "Alex Rivera · Unlimited Monthly",
+     "tabs": [
+      "Upcoming",
+      "Past"
+     ],
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Upcoming",
+         "value": "2"
+        },
+        {
+         "label": "Classes this month",
+         "value": "3"
+        },
+        {
+         "label": "Current streak (weeks)",
+         "value": "3"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Today · 19:00 Power Spin",
+         "meta": "Spin · Jordan Blake · Spin Room",
+         "badge": "Booked"
+        },
+        {
+         "title": "Tomorrow · 07:00 Vinyasa Flow",
+         "meta": "Yoga · Maya Chen · Studio A",
+         "badge": "Waitlisted #2"
+        },
+        {
+         "title": "Thu 15 Oct · 18:15 Boxing Fundamentals",
+         "meta": "Boxing · Marcus Reid · Studio B",
+         "badge": "Booked"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel",
+         "variant": "danger",
+         "icon": "x",
+         "hint": "Cancel a booked class"
+        },
+        {
+         "label": "Leave waitlist",
+         "variant": "secondary"
+        },
+        {
+         "label": "Browse schedule",
+         "variant": "ghost",
+         "icon": "calendar"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No upcoming classes",
+      "emptyHint": "Find a class you love on the schedule and it will show up here.",
+      "error": "We couldn't load your bookings. Check your connection and try again.",
+      "success": "Booking cancelled. Your spot has gone to the next person in line.",
+      "validation": "This booking can't be changed any more. Refresh to see its latest status."
+     },
+     "links": [
+      {
+       "from": "Today · 19:00 Power Spin",
+       "to": "S-2"
+      },
+      {
+       "from": "Tomorrow · 07:00 Vinyasa Flow",
+       "to": "S-2"
+      },
+      {
+       "from": "Thu 15 Oct · 18:15 Boxing Fundamentals",
+       "to": "S-2"
+      },
+      {
+       "from": "Browse schedule",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel",
+       "title": "Cancel Power Spin?",
+       "text": "Today 19:00 · Spin Room with Jordan Blake. Your spot goes to the next person on the waitlist.",
+       "blocks": [
+        {
+         "type": "alert",
+         "tone": "warn",
+         "text": "Late cancellation — this counts as a missed class."
+        }
+       ],
+       "actions": [
+        {
+         "label": "Cancel booking",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep booking",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Leave waitlist",
+       "title": "Leave the waitlist?",
+       "text": "Vinyasa Flow, tomorrow 07:00 · Studio A. You're #2 now and will lose your place.",
+       "actions": [
+        {
+         "label": "Leave",
+         "variant": "danger"
+        },
+        {
+         "label": "Stay on waitlist",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Cancel booking",
+       "text": "Booking cancelled — Power Spin, today 19:00",
+       "tone": "ok"
+      },
+      {
+       "after": "Leave",
+       "text": "We couldn't remove you. You're still on the waitlist — try again.",
+       "tone": "bad"
+      }
+     ]
+    },
+    "mockFull": {
+     "title": "My bookings",
+     "subtitle": "Alex Rivera · Unlimited Monthly",
+     "tabs": [
+      "Upcoming",
+      "Past"
+     ],
+     "blocks": [
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Upcoming",
+         "value": "5"
+        },
+        {
+         "label": "Classes this month",
+         "value": "9"
+        },
+        {
+         "label": "Current streak (weeks)",
+         "value": "7"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Today · 19:00 Power Spin",
+         "meta": "Spin · Jordan Blake · Spin Room",
+         "badge": "Booked"
+        },
+        {
+         "title": "Tomorrow · 07:00 Vinyasa Flow",
+         "meta": "Yoga · Maya Chen · Studio A",
+         "badge": "Waitlisted #2"
+        },
+        {
+         "title": "Tomorrow · 12:30 HIIT Express",
+         "meta": "HIIT · Priya Nair · Studio B",
+         "badge": "Booked"
+        },
+        {
+         "title": "Thu 15 Oct · 18:15 Boxing Fundamentals",
+         "meta": "Boxing · Marcus Reid · Studio B",
+         "badge": "Booked"
+        },
+        {
+         "title": "Fri 16 Oct · 07:30 Reformer Pilates",
+         "meta": "Pilates · Sofia Alvarez · Studio A",
+         "badge": "Waitlisted #4"
+        },
+        {
+         "title": "Sat 17 Oct · 09:00 Rhythm Ride",
+         "meta": "Spin · Jordan Blake · Spin Room",
+         "badge": "Booked"
+        },
+        {
+         "title": "Sun 18 Oct · 10:30 Yin & Restore",
+         "meta": "Yoga · Maya Chen · Studio A",
+         "badge": "Booked"
+        },
+        {
+         "title": "Mon 19 Oct · 18:00 Core Pilates",
+         "meta": "Pilates · Sofia Alvarez · Studio A",
+         "badge": "Waitlisted #1"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel",
+         "variant": "danger",
+         "icon": "x",
+         "hint": "Cancel a booked class"
+        },
+        {
+         "label": "Leave waitlist",
+         "variant": "secondary"
+        },
+        {
+         "label": "Browse schedule",
+         "variant": "ghost",
+         "icon": "calendar"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No upcoming classes",
+      "emptyHint": "Find a class you love on the schedule and it will show up here.",
+      "error": "We couldn't load your bookings. Check your connection and try again.",
+      "success": "Booking cancelled. Your spot has gone to the next person in line.",
+      "validation": "This booking can't be changed any more. Refresh to see its latest status."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}
