@@ -101,6 +101,20 @@ export function plannedInputHashes(ledger: Ledger, policy: Policy, e: MergeEvide
   return new Map(planned(e).map(({ def, inputs }) => [def.id, gateInputsHash(def.id, stored(ledger, inputs), policy)]));
 }
 
+/**
+ * review-2's output, the model families and the spec, as the merge gates read them. Without these the
+ * review gates are never planned, so a blocking review-2 finding was paid for and then ignored.
+ */
+export function reviewEvidence(ledger: Ledger, a: { reviewSha: string; familiesSha: string; specSha: string }):
+  Pick<MergeEvidence, "review2" | "families" | "spec"> {
+  const review = ledger.getJson<{ findings: ReviewFinding[]; coverage: ReviewCoverage[] }>(a.reviewSha);
+  return {
+    review2: { findings: review.findings, coverage: review.coverage },
+    families: ledger.getJson<NonNullable<MergeEvidence["families"]>>(a.familiesSha),
+    spec: { requirements: ledger.getJson<{ requirements: Requirement[] }>(a.specSha).requirements ?? [] },
+  };
+}
+
 /** The gate ids this evidence would produce, in order, without evaluating anything. */
 export function plannedGateIds(e: MergeEvidence): string[] {
   return planned(e).map((p) => p.def.id);

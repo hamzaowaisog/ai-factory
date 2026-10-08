@@ -15,6 +15,8 @@ export interface PrFacts {
 /** What the run that built this PR recorded. `undefined` means no ledger on this host. */
 export interface RunFacts {
   gatedSha: string;
+  /** the head deliver pushed: the gated commit plus its evidence-manifest commit */
+  deliveredSha?: string;
   recordedBaseSha: string;
   /** gate id → recorded inputs hash */
   recorded: Map<string, string>;
@@ -152,7 +154,10 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
 
   const run = deps.openRun(runId);
   if (!run && a.onlyLocal) return notHere(`No ledger for ${runId} on this host.`);
-  const commits = run ? await deps.commitsSince(run.gatedSha, pr.headSha) : [];
+  // new commits count from what deliver pushed: the gated commit plus its evidence-manifest commit,
+  // which carries no repair trailer and would otherwise make every pull request "unexpected-commits"
+  const anchor = run ? (run.deliveredSha ?? run.gatedSha) : pr.headSha;
+  const commits = run ? await deps.commitsSince(anchor, pr.headSha) : [];
 
   // what this pass ends up judging, written back so the next pass knows it has already been judged
   let attempted = false;
@@ -178,7 +183,7 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
 
   // classification FIRST, before any container and any token. It needs to know whether the merge is
   // clean, so ask only when something actually moved — an unchanged tree cannot have a new conflict.
-  const moved = !run || pr.headSha !== (run.judgedHeadSha ?? run.gatedSha) || pr.baseSha !== run.recordedBaseSha;
+  const moved = !run || pr.headSha !== (run.judgedHeadSha ?? anchor) || pr.baseSha !== run.recordedBaseSha;
   let merge: MergeResult | undefined;
   const probe = async (afterRepair = false): Promise<MergeResult> =>
     (merge ??= await deps.mergeVerify({ runId, headSha: pr.headSha, baseSha: pr.baseSha, afterRepair }));
@@ -187,7 +192,7 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
   const cheap = classify({
     ledgerPresent: !!run,
     evidenceReconciles: run?.evidenceReconciles ?? false,
-    headSha: pr.headSha, gatedSha: run?.gatedSha ?? pr.headSha,
+    headSha: pr.headSha, gatedSha: anchor,
     baseSha: pr.baseSha, recordedBaseSha: run?.recordedBaseSha ?? pr.baseSha,
     newCommits: commits,
     mergesClean: true, mergeTestsPass: true,
@@ -204,7 +209,8 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: pr.headSha, conclusion: prior, title: "Concluded from the last verdict", summary: "Neither the head nor the base moved since this pull request was last judged." });
     return done(prior, "unchanged", "Nothing moved since the last verdict: concluding from it.");
   }
-  if (cheap.cls === "self-push" && run?.priorConclusion) {
+  // only while the base is the one last judged: after a base move the merge must be verified again
+  if (cheap.cls === "self-push" && run?.priorConclusion && pr.baseSha === run.recordedBaseSha) {
     await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: pr.headSha, conclusion: run.priorConclusion, title: "Concluded from the previous run", summary: cheap.why });
     await record(run.priorConclusion, cheap.cls);
     return done(run.priorConclusion, cheap.cls, cheap.why);
@@ -221,7 +227,7 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
   const cls = m
     ? classify({
         ledgerPresent: true, evidenceReconciles: run!.evidenceReconciles,
-        headSha: pr.headSha, gatedSha: run!.gatedSha,
+        headSha: pr.headSha, gatedSha: anchor,
         baseSha: pr.baseSha, recordedBaseSha: run!.recordedBaseSha,
         newCommits: commits, mergesClean: m.mergesClean, mergeTestsPass: m.testsPass,
         priorReverifyConcluded: run!.priorReverifyConcluded,
@@ -251,6 +257,12 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
       return fail(cls, "Repair did not verify", `The repair was made, but the repaired tree ${still}. Nothing was pushed.`);
     }
     repairPending = true;
+  }
+
+  // a tree that does not merge has nothing to gate, and an empty gate list must never read as green
+  const judged = merge as MergeResult | undefined;
+  if (judged && !judged.mergesClean) {
+    return fail(cls, "Does not merge cleanly", `The branch does not merge cleanly with ${pr.baseSha.slice(0, 8)} (${(judged.conflicts ?? []).join(", ") || "no paths reported"}), and ${cls} is not repaired automatically.`);
   }
 
   // When nothing moved, the recorded hashes ARE the current hashes — that is what "unchanged" means.

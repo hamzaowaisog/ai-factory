@@ -459,3 +459,36 @@ describe("reviewPr: what it will not gate", () => {
     }
   });
 });
+
+describe("reviewPr: final review fixes", () => {
+  it("counts new commits from the delivered head, so deliver's manifest commit is not 'unexpected'", async () => {
+    let from = "";
+    const { d, calls } = deps({ commitsSince: async (f) => { from = f; return []; } },
+      runFacts({ gatedSha: "gated1", deliveredSha: SHA }));
+    const got = await reviewPr(d, { pr: 42 });
+    expect(from).toBe(SHA);
+    expect(got.cls).toBe("unchanged");
+    expect(calls.mergeVerify).toBe(0);
+  });
+
+  it("verifies a repaired pull request again when the base moves, instead of concluding from the repair", async () => {
+    const { d, calls } = deps({
+      getPr: async () => ({ headSha: "r1", headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false }),
+      commitsSince: async () => [{ sha: "r1", trailers: ["Factory-Repair: run-1"] }],
+    }, runFacts({ judgedHeadSha: "r1", recordedBaseSha: "base1", priorConclusion: "success" }));
+    await reviewPr(d, { pr: 42 });
+    expect(calls.mergeVerify).toBeGreaterThan(0);
+  });
+
+  it("never concludes success on a tree that does not merge, whatever the class", async () => {
+    const { d, calls } = deps({
+      getPr: async () => ({ headSha: "theirs", headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false }),
+      commitsSince: async () => [{ sha: "x1", trailers: [] }],
+      mergeVerify: async () => { calls.mergeVerify++; return mergeResult({ mergesClean: false, current: new Map() }); },
+    });
+    const got = await reviewPr(d, { pr: 42 });
+    expect(got.cls).toBe("unexpected-commits");
+    expect(got.conclusion).toBe("failure");
+    expect(calls.repair).toBe(0);
+  });
+});

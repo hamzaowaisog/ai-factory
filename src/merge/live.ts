@@ -22,8 +22,8 @@ import { HUMAN_WRITER } from "../ledger/ledger.js";
 import { diffFiles } from "../stages/deliver.js";
 import { modelFor } from "../stages/routing.js";
 import type { Review2Inputs } from "../stages/review2.js";
-import { commitRepair, commitsWithTrailers, forgeAdapter, forgeRemote, mergeInto, merging, openRunFacts, ownReviewBody, recordedVerdicts, reverifyWorktree, workingTreeCommit, worktreeExists } from "./adapters.js";
-import { plannedInputHashes, runMergeGates, type MergeEvidence } from "./gates-run.js";
+import { commitRepair, commitsWithTrailers, forgeAdapter, forgeRemote, insideWorktree, mergeInto, merging, openRunFacts, ownReviewBody, recordedVerdicts, reverifyWorktree, workingTreeCommit, worktreeExists } from "./adapters.js";
+import { plannedInputHashes, reviewEvidence, runMergeGates, type MergeEvidence } from "./gates-run.js";
 import { gateInputsHash } from "../gates/engine.js";
 import { scanText } from "../context/secrets.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
@@ -168,9 +168,17 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
         return a.ids.map((id) => recorded.get(id) ?? { id, passed: false, details: `no recorded verdict for ${id}` });
       }
       const { ledger, evidence, treeSha } = a.evidence as { ledger: Ledger; evidence: MergeEvidence; treeSha: string };
-      const replay = new Map([...recordedVerdicts(ledger)].filter(([id]) => a.replay.includes(id)));
+      // review-2's latest output gates too: it is of this diff, either written by this pass or
+      // replayed because the diff it read is unchanged
+      const state = replay(ledger.events());
+      const r2 = state.steps.get("review-2");
+      const spec = state.steps.get("specify")?.outputs[0];
+      const judged = r2?.status === "completed" && r2.outputs.length >= 2 && spec
+        ? { ...evidence, ...reviewEvidence(ledger, { reviewSha: r2.outputs[0]!, familiesSha: r2.outputs[1]!, specSha: spec }) }
+        : evidence;
+      const replayed = new Map([...recordedVerdicts(ledger)].filter(([id]) => a.replay.includes(id)));
       return runMergeGates(ledger, HUMAN_WRITER, o.policy ?? DEFAULT_POLICY, {
-        evidence, step: "reverify", treeSha, replay,
+        evidence: judged, step: "reverify", treeSha, replay: replayed,
       });
     },
 
@@ -206,7 +214,10 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
           : `the repair declined to resolve this automatically: ${proposal.summary}`;
         return { made: false, why };
       }
-      // paths are already normalised and checked by proposeRepair; a new file may need its folder
+      // paths are already normalised and checked by proposeRepair; a symlink in the merged tree must
+      // still not carry a write out of the worktree, so every target is checked before any is written
+      const escapes = proposal.edits.filter((e) => !insideWorktree(wt, e.path)).map((e) => e.path);
+      if (escapes.length) return { made: false, why: `the repair would write outside the worktree through a link: ${escapes.join(", ")}` };
       for (const e of proposal.edits) {
         mkdirSync(dirname(join(wt, e.path)), { recursive: true });
         writeFileSync(join(wt, e.path), e.content);
@@ -216,7 +227,7 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
 
 ${proposal.summary}
 
-${proposal.trailer}`);
+${proposal.trailer}`, proposal.edits.map((e) => e.path));
       if (!c.ok) return { made: false, why: c.why };
       return { made: true, why: proposal.summary };
     },

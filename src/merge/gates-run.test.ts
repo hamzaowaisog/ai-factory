@@ -1,6 +1,6 @@
 // Step 12: the gates, their order, and what gets recorded.
 import { describe, expect, it } from "vitest";
-import { plannedGateIds, plannedInputHashes, runMergeGates, type MergeEvidence } from "./gates-run.js";
+import { plannedGateIds, plannedInputHashes, reviewEvidence, runMergeGates, type MergeEvidence } from "./gates-run.js";
 import { HUMAN_WRITER, type Ledger } from "../ledger/ledger.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { sha256, stableStringify } from "../util/hash.js";
@@ -177,5 +177,18 @@ describe("plannedInputHashes", () => {
     const b = plannedInputHashes(ledger, DEFAULT_POLICY, evidence({ build: { kind: "build", ok: false, errors: [] } }));
     expect(b.get("build.clean")).not.toBe(a.get("build.clean"));
     expect(b.get("integrate.diff-size")).toBe(a.get("integrate.diff-size"));
+  });
+});
+
+describe("reviewEvidence", () => {
+  it("hands the merge gates review-2's findings, families and the spec, so its verdict gates", () => {
+    const ledger = fakeLedger();
+    const reviewSha = ledger.putJson({ header: { x: 1 }, findings: [{ id: "F1", severity: "blocking", text: "t" }], coverage: [] });
+    const familiesSha = ledger.putJson({ implementer: "anthropic", reviewer: "openai", reviewer2: "google" });
+    const specSha = ledger.putJson({ requirements: [{ id: "R1" }] });
+    const got = reviewEvidence(ledger, { reviewSha, familiesSha, specSha });
+    expect(got.review2).toEqual({ findings: [{ id: "F1", severity: "blocking", text: "t" }], coverage: [] });
+    expect(got.families?.reviewer2).toBe("google");
+    expect(plannedGateIds(evidence(got))).toEqual(expect.arrayContaining(["review.covers-every-criterion", "review-2.no-blocking"]));
   });
 });

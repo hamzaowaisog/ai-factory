@@ -1,9 +1,9 @@
 // The thin layer between `reviewPr`'s decisions and the real world. Everything here touches the
 // ledger, a worktree, Docker or GitHub — which is why it is kept separate from orchestrate.ts,
 // where the decisions live and can be tested without any of them.
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
 import { OWN_CHECK_NAME } from "../contracts/checks.js";
 import { secret } from "../config/env.js";
@@ -64,6 +64,7 @@ export function openRunFacts(runId: string): RunFacts | undefined {
   const rv = reverify?.status === "completed" ? reverify.data : undefined;
   return {
     gatedSha: String(integrate.data.commit),
+    deliveredSha: typeof deliver?.data?.head === "string" ? deliver.data.head : undefined,
     // the base the last verdict judged, so a base that moved once does not read as moved forever
     recordedBaseSha: String(rv?.baseSha ?? state.info.baseCommit ?? ""),
     recorded: recordedGateHashes(events as never),
@@ -107,7 +108,7 @@ export function forgeAdapter(o: ForgeAdapterOpts): Pick<ReviewPrDeps, "getPr" | 
       const pr = await getPr(o.gh, n);
       // a head in any other repository is not the factory's: refused by reviewPr, and never fetched
       // here, since this remote's branch of the same name is a different branch
-      const fromFork = pr.headRepo !== o.cfg.forge?.repo;
+      const fromFork = isFork(pr.headRepo, o.cfg.forge?.repo);
       // the fetch belongs here, beside the line that derives the base SHA from it: without it
       // `origin/<base>` is whatever was last pulled, so a base that moved reads as unchanged and the
       // gate replays a verdict for a tree that no longer exists
@@ -164,10 +165,14 @@ export async function merging(wt: string): Promise<boolean> {
 export async function mergeInto(wt: string, baseSha: string): Promise<{ clean: boolean; conflicts: string[] }> {
   try {
     await git(wt, ["merge", "--no-commit", "--no-ff", baseSha]);
-  } catch {
+  } catch (e) {
     // a conflicting merge exits non-zero, which the hardened git wrapper turns into a throw
     const names = await gitOut(wt, ["diff", "--name-only", "--diff-filter=U"]);
-    return { clean: false, conflicts: names.split("\n").map((x) => x.trim()).filter(Boolean) };
+    const conflicts = names.split("\n").map((x) => x.trim()).filter(Boolean);
+    // no conflicted path means the merge failed for another reason (a file in the way, unrelated
+    // histories): not something a repair can be given, and not worth paying a model to guess at
+    if (!conflicts.length) throw e;
+    return { clean: false, conflicts };
   }
   // "Already up to date" starts no merge: HEAD already contains the base, and is the result
   if (await merging(wt)) await git(wt, ["commit", "--no-edit", "-m", `${VERIFY_MERGE} ${baseSha.slice(0, 8)}`]);
@@ -197,15 +202,19 @@ export async function workingTreeCommit(wt: string): Promise<string> {
  * trailer. A conflicted merge is concluded; a broken merge's fix is folded into the verification
  * merge; with no merge commit to fold into (the base was already merged), a plain commit on top.
  * Never commits a conflict marker or an unmerged path.
+ *
+ * `written` is the paths the repair wrote. Every path git left unmerged must be one of them: `add -A`
+ * would otherwise settle an untouched modify/delete or binary conflict silently, in whatever state the
+ * worktree happens to hold. Markers are looked for in the unmerged paths only, so a file that merely
+ * contains a line of "=======" elsewhere cannot block every repair.
  */
-export async function commitRepair(wt: string, message: string): Promise<{ ok: true } | { ok: false; why: string }> {
+export async function commitRepair(wt: string, message: string, written: string[]): Promise<{ ok: true } | { ok: false; why: string }> {
+  const unmerged = (await gitOut(wt, ["diff", "--name-only", "--diff-filter=U"])).split("\n").filter(Boolean);
+  const untouched = unmerged.filter((f) => !written.includes(f));
+  if (untouched.length) return { ok: false, why: `the repair left a conflict unresolved in ${untouched.join(", ")}` };
+  const marked = unmerged.filter((f) => existsSync(join(wt, f)) && CONFLICT_MARKER.test(readFileSync(join(wt, f), "utf8")));
+  if (marked.length) return { ok: false, why: `the repair left conflict markers in ${marked.join(", ")}` };
   await git(wt, ["add", "-A"]);
-  const unmerged = await gitOut(wt, ["diff", "--cached", "--name-only", "--diff-filter=U"]);
-  const changed = (await gitOut(wt, ["diff", "--cached", "--name-only", "--diff-filter=AM", "HEAD"])).split("\n").filter(Boolean);
-  const marked = changed.filter((f) => CONFLICT_MARKER.test(readFileSync(join(wt, f), "utf8")));
-  if (unmerged || marked.length) {
-    return { ok: false, why: `the repair left a conflict unresolved in ${unmerged ? unmerged.split("\n").join(", ") : marked.join(", ")}` };
-  }
   // only the verification merge is folded into: amending anything else would rewrite the pull
   // request's own history
   const fold = !(await merging(wt)) && (await gitOut(wt, ["log", "-1", "--format=%s"])).startsWith(VERIFY_MERGE);
@@ -213,4 +222,22 @@ export async function commitRepair(wt: string, message: string): Promise<{ ok: t
   return { ok: true };
 }
 
-const CONFLICT_MARKER = /^(<{7}|>{7})(\s|$)|^={7}$/m;
+const CONFLICT_MARKER = /^(<{7}|>{7})(\s|$)/m;
+
+/**
+ * True when writing `rel` stays inside the worktree once symlinks are followed. A committed symlink
+ * (docs -> ~/.factory) would otherwise carry a repair's write onto the host before git ever saw it.
+ */
+export function insideWorktree(wt: string, rel: string): boolean {
+  const root = realpathSync(wt);
+  let p = resolve(wt, rel);
+  // the deepest part of the path that exists is where the write would really land
+  while (!existsSync(p) && dirname(p) !== p) p = dirname(p);
+  const real = realpathSync(p);
+  return real === root || real.startsWith(root + sep);
+}
+
+/** A head branch in any other repository than the configured one. GitHub's names ignore case. */
+export function isFork(headRepo: string, repo: string | undefined): boolean {
+  return !headRepo || !repo || headRepo.toLowerCase() !== repo.toLowerCase();
+}

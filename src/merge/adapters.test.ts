@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { commitRepair, commitsWithTrailers, mergeInto, merging, workingTreeCommit } from "./adapters.js";
+import { commitRepair, commitsWithTrailers, insideWorktree, isFork, mergeInto, merging, workingTreeCommit } from "./adapters.js";
 
 const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
 const g = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, env }).toString().trim();
@@ -89,7 +89,7 @@ describe("commitRepair", () => {
     const { repo, base, head } = forked(true);
     await mergeInto(repo, base);
     writeFileSync(join(repo, "a.txt"), "resolved\n");
-    expect(await commitRepair(repo, "factory: repair conflict\n\nFactory-Repair: run-1")).toEqual({ ok: true });
+    expect(await commitRepair(repo, "factory: repair conflict\n\nFactory-Repair: run-1", ["a.txt"])).toEqual({ ok: true });
     expect(g(repo, "rev-list", "--parents", "-n", "1", "HEAD").split(" ").slice(1)).toEqual([head, base]);
     expect(g(repo, "log", "-1", "--format=%B")).toMatch(/Factory-Repair: run-1/);
   });
@@ -97,7 +97,7 @@ describe("commitRepair", () => {
   it("refuses a resolution that leaves a conflict marker", async () => {
     const { repo, base } = forked(true);
     await mergeInto(repo, base);
-    const got = await commitRepair(repo, "x");
+    const got = await commitRepair(repo, "x", []);
     expect(got.ok).toBe(false);
     expect(await merging(repo)).toBe(true);
   });
@@ -106,7 +106,7 @@ describe("commitRepair", () => {
     const { repo, base, head } = forked(false);
     await mergeInto(repo, base);
     writeFileSync(join(repo, "c.txt"), "fixed\n");
-    expect((await commitRepair(repo, "factory: repair broken-merge\n\nFactory-Repair: run-1")).ok).toBe(true);
+    expect((await commitRepair(repo, "factory: repair broken-merge\n\nFactory-Repair: run-1", ["c.txt"])).ok).toBe(true);
     expect(g(repo, "rev-list", "--parents", "-n", "1", "HEAD").split(" ").slice(1)).toEqual([head, base]);
     expect(readFileSync(join(repo, "b.txt"), "utf8")).toBe("base only\n");
     expect(g(repo, "show", "HEAD:c.txt")).toBe("fixed");
@@ -118,7 +118,56 @@ describe("commitRepair", () => {
     const before = g(repo, "rev-parse", "HEAD");
     await mergeInto(repo, base);
     writeFileSync(join(repo, "c.txt"), "fixed\n");
-    await commitRepair(repo, "factory: repair\n\nFactory-Repair: run-1");
+    await commitRepair(repo, "factory: repair\n\nFactory-Repair: run-1", ["c.txt"]);
     expect(g(repo, "rev-parse", "HEAD^")).toBe(before);
+  });
+});
+
+describe("final review fixes", () => {
+  it("treats a repository name in another case as the same repository, not a fork", () => {
+    expect(isFork("Im-Ahsan/AI-Factory", "im-ahsan/ai-factory")).toBe(false);
+    expect(isFork("someone/ai-factory", "im-ahsan/ai-factory")).toBe(true);
+    expect(isFork("", "im-ahsan/ai-factory")).toBe(true);
+  });
+
+  it("refuses a repair that leaves an unmerged path it never wrote (modify/delete has no markers)", async () => {
+    const repo = mkdtempSync(join(tmpdir(), "factory-md-"));
+    g(repo, "init", "-q", "-b", "main");
+    writeFileSync(join(repo, "a.txt"), "one\n"); writeFileSync(join(repo, "k.txt"), "keep\n");
+    g(repo, "add", "."); g(repo, "commit", "-q", "-m", "init");
+    g(repo, "checkout", "-q", "-b", "pr");
+    writeFileSync(join(repo, "a.txt"), "pr changed it\n");
+    g(repo, "add", "."); g(repo, "commit", "-q", "-m", "pr");
+    g(repo, "checkout", "-q", "main");
+    g(repo, "rm", "-q", "a.txt"); g(repo, "commit", "-q", "-m", "base deleted it");
+    const base = g(repo, "rev-parse", "HEAD");
+    g(repo, "checkout", "-q", "pr");
+    expect((await mergeInto(repo, base)).clean).toBe(false);
+    writeFileSync(join(repo, "k.txt"), "an unrelated edit\n");
+    const got = await commitRepair(repo, "x", ["k.txt"]);
+    expect(got.ok).toBe(false);
+    expect(await merging(repo)).toBe(true);
+  });
+
+  it("accepts a resolution of every unmerged path, even beside a file with a ======= line", async () => {
+    const { repo, base } = forked(true);
+    await mergeInto(repo, base);
+    writeFileSync(join(repo, "a.txt"), "resolved\n");
+    writeFileSync(join(repo, "notes.md"), "Title\n=======\n");
+    expect(await commitRepair(repo, "factory: repair\n\nFactory-Repair: run-1", ["a.txt", "notes.md"])).toEqual({ ok: true });
+  });
+
+  it("throws on a merge that fails for a reason other than a conflict, rather than paying a repair to guess", async () => {
+    const { repo, base } = forked(false);
+    writeFileSync(join(repo, "b.txt"), "untracked, in the way\n");
+    await expect(mergeInto(repo, base)).rejects.toThrow();
+  });
+
+  it("refuses a write through a symlink that leaves the worktree", () => {
+    const wt = mkdtempSync(join(tmpdir(), "factory-wt-"));
+    const outside = mkdtempSync(join(tmpdir(), "factory-out-"));
+    try { symlinkSync(outside, join(wt, "docs"), "junction"); } catch { return; }   // no symlink rights here
+    expect(insideWorktree(wt, "docs/.env")).toBe(false);
+    expect(insideWorktree(wt, "src/new/File.cs")).toBe(true);
   });
 });
