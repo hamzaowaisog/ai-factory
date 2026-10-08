@@ -11,6 +11,8 @@
 import { posix } from "node:path";
 import { z } from "zod";
 import { buildPack } from "../context/pack.js";
+import { isSecretPath } from "../gates/protected.js";
+import { matchesAny } from "../util/glob.js";
 import { Redactor } from "../context/secrets.js";
 import type { Snapshot } from "../context/snapshot.js";
 import { RepoTools } from "../context/tools.js";
@@ -105,6 +107,17 @@ export function safeEditPath(raw: string): string | undefined {
 }
 
 /**
+ * Paths a repair may never write. The result is pushed with the forge token, so a workflow file it
+ * wrote would run on the next push (on a self-hosted runner, on this host), and the evidence
+ * manifest is what binds the gates' verdicts to the branch.
+ */
+const PUSH_PROTECTED = [".github/**", ".factory/**"];
+
+export function isPushProtected(path: string, noGo: readonly string[] = []): boolean {
+  return matchesAny(path, PUSH_PROTECTED) || isSecretPath(path, noGo);
+}
+
+/**
  * Produces the edits a repair would apply. Deliberately does NOT write them: the caller applies
  * them in the worktree, re-verifies the repaired tree in full, and only then commits with the
  * trailer. Keeping the decision separate from the write is what lets this be tested without a repo.
@@ -140,12 +153,15 @@ export async function proposeRepair(o: RepairRunOpts, reverifyRunId: string): Pr
 
     if (res.status === "ok" && res.output) {
       const rejected: { path: string; why: string }[] = [];
-      const edits = res.output.edits.filter((e) => {
+      const edits: RepairEdits["edits"] = [];
+      for (const e of res.output.edits) {
         const p = safeEditPath(e.path);
-        if (!p) { rejected.push({ path: e.path, why: "path is outside the repository" }); return false; }
-        if (locked.has(p)) { rejected.push({ path: p, why: e.why }); return false; }
-        return true;
-      });
+        if (!p) { rejected.push({ path: e.path, why: "path is outside the repository" }); continue; }
+        if (locked.has(p)) { rejected.push({ path: p, why: e.why }); continue; }
+        if (isPushProtected(p, o.noGo ?? [])) { rejected.push({ path: p, why: "a repair may not write workflows, the evidence manifest or a no-go path" }); continue; }
+        // the normalised path, which is the one that was checked: on Linux a backslash is part of the file name
+        edits.push({ ...e, path: p });
+      }
       o.log?.(`repair proposed ${edits.length} edit(s)${rejected.length ? `, dropped ${rejected.length} (locked tests or unsafe paths)` : ""}`);
       return { edits, summary: res.output.summary, rejected, model, trailer: repairTrailer(reverifyRunId) };
     }

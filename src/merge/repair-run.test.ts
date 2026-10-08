@@ -192,3 +192,25 @@ describe("proposeRepair", () => {
     expect(CONFLICT_TEMPLATE).toMatch(/must compile/);
   });
 });
+
+describe("proposeRepair: what a repair may write", () => {
+  it("returns the normalised path, so a backslash never becomes part of a file name", async () => {
+    const { provider } = scripted({ "*": [submit({ summary: "x", edits: [{ ...codeEdit, path: String.raw`.\src\Orders\OrderService.cs` }] })] });
+    const got = await proposeRepair(opts({ provider }), "rv-1");
+    expect(got.edits.map((e) => e.path)).toEqual(["src/Orders/OrderService.cs"]);
+  });
+
+  it("refuses workflows, the evidence manifest and no-go paths: they are pushed with the forge token", async () => {
+    const edits = [
+      { path: ".github/workflows/ci.yml", content: "on: push", why: "x" },
+      { path: ".factory/evidence-manifest.json", content: "{}", why: "x" },
+      { path: "config/prod.secret.json", content: "{}", why: "x" },
+      { path: "src/.env", content: "K=V", why: "x" },
+      codeEdit,
+    ];
+    const { provider } = scripted({ "*": [submit({ summary: "x", edits })] });
+    const got = await proposeRepair(opts({ provider, noGo: ["config/*.secret.json"] }), "rv-1");
+    expect(got.edits).toEqual([codeEdit]);
+    expect(got.rejected.map((r) => r.path).sort()).toEqual([".factory/evidence-manifest.json", ".github/workflows/ci.yml", "config/prod.secret.json", "src/.env"]);
+  });
+});
