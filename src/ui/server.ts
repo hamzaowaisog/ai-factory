@@ -29,7 +29,7 @@ import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./
 import { figmaPluginZip } from "../design/figma.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
 import { fidelityPanel, fidelityShot } from "./fidelity.js";
-import { fullstackDatabase, fullstackNext, fullstackUp, productsView, productView, startFullstack } from "./fullstack.js";
+import { fullstackNext, fullstackUp, productsView, productView, startFullstack } from "./fullstack.js";
 import { productNames } from "../fullstack/product.js";
 import type { ExportFormat } from "../design/export.js";
 
@@ -215,15 +215,6 @@ export const ROUTES: readonly Route[] = [
     handle: async ({ name }, body, deps) => {
       if (!productNames().includes(name!)) return notFound(`No full-stack product ${name}`);
       try { return { status: 201, json: await fullstackNext(name!, (body ?? {}) as Record<string, unknown>, deps) }; } catch (e) {
-        return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
-      }
-    },
-  },
-  {
-    method: "POST", path: "/api/fullstack/:name/database", what: "switch a product's database (sqlite or postgres) while its API run has not started, like factory fullstack database",
-    handle: ({ name }, body) => {
-      if (!productNames().includes(name!)) return notFound(`No full-stack product ${name}`);
-      try { return ok(fullstackDatabase(name!, (body ?? {}) as Record<string, unknown>) as unknown as Json); } catch (e) {
         return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
       }
     },

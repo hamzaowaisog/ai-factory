@@ -1,14 +1,12 @@
 // The API side of a full-stack product starts from this skeleton (the factory has no .NET scaffold of its own yet): a .NET 9
-// minimal API with its database (a local SQLite file, or PostgreSQL: src/fullstack/database.ts), one passing test, and a build
+// minimal API with its PostgreSQL database (src/fullstack/database.ts), one passing test, and a build
 // that writes the API's OpenAPI document, which the contract gate reads (src/gates/contract.ts). Nothing here is product code:
 // a run adds the routes the contract names.
-import type { DatabaseKind } from "./database.js";
-
 export const API_SOLUTION = "App.sln";
 export const API_BUILT_DOC = "App.Api/openapi/built.json";
 export const API_SDK_IMAGE = "mcr.microsoft.com/dotnet/sdk:9.0";
 export const API_PORT = 5080;
-/** PostgreSQL for a product that chose it: the image the lab and the run files start, and the login of the run files' own database. */
+/** The product's PostgreSQL: the image the lab and the run files start, and the login of the run files' own database. */
 export const POSTGRES_IMAGE = "postgres:16-alpine";
 export const POSTGRES_LOCAL = { host: "localhost", port: 5432, name: "app", user: "app", password: "app" };
 const connection = (host: string) => `Host=${host};Port=${POSTGRES_LOCAL.port};Database=${POSTGRES_LOCAL.name};Username=${POSTGRES_LOCAL.user};Password=${POSTGRES_LOCAL.password}`;
@@ -16,14 +14,13 @@ const connection = (host: string) => `Host=${host};Port=${POSTGRES_LOCAL.port};D
 export const postgresConnection = connection;
 
 export const HEALTH_LINE = 'app.MapGet("/", () => "API is up").ExcludeFromDescription();';
-export const apiProgram = (routes: string, db: DatabaseKind = "sqlite") => `using App.Api;
+export const apiProgram = (routes: string) => `using App.Api;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
-${db === "postgres" ? `// PostgreSQL: the connection comes from ConnectionStrings__App; the fallback is a local server for development
-builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("App") ?? "${connection("localhost")}"));` : `// a local file database, created below when the app really starts
-builder.Services.AddDbContext<AppDb>(o => o.UseSqlite(builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db"));`}
+// PostgreSQL: the connection comes from ConnectionStrings__App; the fallback is a local server for development
+builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("App") ?? "${connection("localhost")}"));
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
 var app = builder.Build();
 // Create the database with every table when the app starts. The build also runs this file, to write the API's OpenAPI
@@ -52,8 +49,8 @@ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)
 {
 ${body}}
 `;
-/** The API repo at its first commit, on the database chosen: path -> content. The contract file joins it once the web run's plan is approved. */
-export const apiSkeleton = (db: DatabaseKind = "sqlite"): Record<string, string> => ({
+/** The API repo at its first commit: path -> content. The contract file joins it once the web run's plan is approved. */
+export const API_SKELETON: Record<string, string> = {
   "App.sln": `
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
@@ -87,11 +84,11 @@ EndGlobal
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="9.0.0">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    ${db === "postgres" ? '<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />' : '<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />'}
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
   </ItemGroup>
 </Project>
 `,
-  "App.Api/Program.cs": apiProgram("", db),
+  "App.Api/Program.cs": apiProgram(""),
   "App.Api/AppDb.cs": apiDb(""),
   "App.Tests/App.Tests.csproj": `<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
@@ -131,7 +128,6 @@ public class HealthTests : IClassFixture<WebApplicationFactory<Program>>
 }
 `,
   // only the built document: `openapi/` alone also hides a source folder named OpenApi/ on a Mac
-  ".gitignore": "bin/\nobj/\nopenapi/*.json\n*.db\n*.db-shm\n*.db-wal\n",
-});
-export const API_SKELETON: Record<string, string> = apiSkeleton();
+  ".gitignore": "bin/\nobj/\nopenapi/*.json\n",
+};
 

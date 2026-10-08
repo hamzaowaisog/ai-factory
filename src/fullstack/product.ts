@@ -17,15 +17,15 @@ import { approvedDesign, approvedEstimate, type Approved, type ApprovedDesign } 
 import type { RequestSource } from "../sources/request.js";
 import { createRun } from "../stages/executor.js";
 import { factoryHome } from "../util/paths.js";
-import { chooseDatabase, DATABASE_NAME, type DatabaseChoice, type DatabaseKind } from "./database.js";
-import { API_BUILT_DOC, API_PORT, API_SDK_IMAGE, API_SOLUTION, apiSkeleton, POSTGRES_IMAGE, POSTGRES_LOCAL, postgresConnection } from "./skeleton.js";
+import { newProductDatabase, type DatabaseChoice, type DatabaseKind } from "./database.js";
+import { API_BUILT_DOC, API_PORT, API_SDK_IMAGE, API_SKELETON, API_SOLUTION, POSTGRES_IMAGE, POSTGRES_LOCAL, postgresConnection } from "./skeleton.js";
 
 export const CONTRACT_FILE = "contracts/openapi.yaml";
 
 /**
  * `from`: the approved design (its design steps are skipped) or approved estimate (the web run is held to it) the product started from.
  * A side's `github`: the GitHub repo the factory made for it (its page), when the product was put on GitHub.
- * `database`: what the API keeps its data in and why (src/fullstack/database.ts); a product from before the choice has none and is on SQLite.
+ * `database`: what the API keeps its data in (src/fullstack/database.ts): PostgreSQL. A product from before that was settled has none and is on SQLite.
  */
 export interface ProductSide { project: string; repo: string; run?: string; github?: string }
 export interface Product { name: string; dir: string; web: ProductSide; api: ProductSide; request?: string; from?: { kind: "design" | "estimate"; runId: string }; database?: DatabaseChoice }
@@ -67,19 +67,13 @@ const git = (repo: string, args: string[]): string =>
 
 export const databaseOf = (p: Product): DatabaseKind => p.database?.kind ?? "sqlite";
 
-/**
- * The project's `database` block for an API on PostgreSQL: the lab starts this image beside the tests and the booted app, and
- * hands them the connection the skeleton reads. None for SQLite: the app makes its own file.
- */
-const labDatabase = (kind: DatabaseKind) => kind === "postgres"
-  ? { image: POSTGRES_IMAGE, producerEnv: { ConnectionStrings__App: "Host={{DB_HOST}};Port={{DB_PORT}};Database={{DB_NAME}};Username={{DB_USER}};Password={{DB_PASSWORD}}" } }
-  : undefined;
+/** The API project's `database` block: the lab starts this image beside the tests and the booted app, and hands them the connection the skeleton reads. */
+const LAB_DATABASE = { image: POSTGRES_IMAGE, producerEnv: { ConnectionStrings__App: "Host={{DB_HOST}};Port={{DB_PORT}};Database={{DB_NAME}};Username={{DB_USER}};Password={{DB_PASSWORD}}" } };
 
 /** Make the two repos and their project configs. Refuses to touch a folder or a project that already exists. */
-export function setUpProduct(name: string, dir: string, database?: DatabaseKind): Product {
+export function setUpProduct(name: string, dir: string, request = ""): Product {
   if (!PRODUCT_NAME.test(name)) throw new Error(`"${name}" is not a usable name: lower-case letters, digits and dashes, starting with a letter.`);
-  const p: Product = { name, dir, web: { project: `${name}-web`, repo: join(dir, `${name}-web`) }, api: { project: `${name}-api`, repo: join(dir, `${name}-api`) }, ...(database ? { database: { kind: database, reason: "Picked when the product was set up.", by: "option" as const } } : {}) };
-  const db = databaseOf(p);
+  const p: Product = { name, dir, web: { project: `${name}-web`, repo: join(dir, `${name}-web`) }, api: { project: `${name}-api`, repo: join(dir, `${name}-api`) }, database: newProductDatabase(request) };
   for (const side of [p.web, p.api]) {
     if (existsSync(side.repo) && readdirSync(side.repo).length) throw new Error(`${side.repo} already exists and is not empty.`);
     if (existsSync(projectPath(side.project))) throw new Error(`Project ${side.project} already exists (${projectPath(side.project)}).`);
@@ -90,36 +84,15 @@ export function setUpProduct(name: string, dir: string, database?: DatabaseKind)
   git(p.web.repo, ["init", "-q", "-b", "main"]);
   seedEmptyRepo(p.web.repo);
   // the API repo: the skeleton
-  for (const [path, content] of Object.entries(apiSkeleton(db))) { mkdirSync(dirname(join(p.api.repo, path)), { recursive: true }); writeFileSync(join(p.api.repo, path), content); }
+  for (const [path, content] of Object.entries(API_SKELETON)) { mkdirSync(dirname(join(p.api.repo, path)), { recursive: true }); writeFileSync(join(p.api.repo, path), content); }
   git(p.api.repo, ["init", "-q", "-b", "main"]);
   git(p.api.repo, ["add", "-A"]);
-  git(p.api.repo, ["commit", "-q", "-m", `API skeleton (factory fullstack): .NET 9, ${DATABASE_NAME[db]}, one test`]);
+  git(p.api.repo, ["commit", "-q", "-m", "API skeleton (factory fullstack): .NET 9, PostgreSQL, one test"]);
   mkdirSync(dirname(projectPath(p.web.project)), { recursive: true });
   const note = (side: string) => `# Written by \`factory fullstack start\` for ${name}: the ${side} side of one product. Both sides hold the same ${CONTRACT_FILE}.\n`;
   // both sides name the same SDK image, so their coding containers are one image and the two runs can overlap
   writeFileSync(projectPath(p.web.project), note("web") + stringify({ project: p.web.project, repo: p.web.repo, baseBranch: "main", stack: "node", dotnet: { sdkImage: API_SDK_IMAGE }, contract: { file: CONTRACT_FILE, apiUrl: `http://localhost:${API_PORT}` } }));
-  writeFileSync(projectPath(p.api.project), note("API") + stringify({ project: p.api.project, repo: p.api.repo, baseBranch: "main", stack: "dotnet", dotnet: { sdkImage: API_SDK_IMAGE, solution: API_SOLUTION }, contract: { file: CONTRACT_FILE, built: API_BUILT_DOC }, accept: { readyTimeoutSec: 180 }, ...(labDatabase(db) ? { database: labDatabase(db) } : {}) }));
-  saveProduct(p);
-  return p;
-}
-
-/**
- * Switch the product's database, which a person may do until the API run starts: the skeleton's files that differ are rewritten
- * and committed on the API repo's main, and the API project gains or loses its `database` block. Nothing else of the project changes.
- */
-export function setProductDatabase(p: Product, kind: DatabaseKind): Product {
-  if (p.api.run) throw new Error(`The API run of ${p.name} is started already (${p.api.run}), so its database (${DATABASE_NAME[databaseOf(p)]}) is set.`);
-  if (kind !== databaseOf(p)) {
-    const [was, now] = [apiSkeleton(databaseOf(p)), apiSkeleton(kind)];
-    for (const [path, content] of Object.entries(now)) if (was[path] !== content) writeFileSync(join(p.api.repo, path), content);
-    git(p.api.repo, ["add", "-A"]);
-    if (git(p.api.repo, ["status", "--porcelain"]).trim()) git(p.api.repo, ["commit", "-q", "-m", `The API's database is ${DATABASE_NAME[kind]}`]);
-    const file = projectPath(p.api.project);
-    const text = readFileSync(file, "utf8");
-    const { database: _old, ...rest } = parse(text) as Record<string, unknown>;
-    writeFileSync(file, text.slice(0, text.indexOf("\n") + 1) + stringify({ ...rest, ...(labDatabase(kind) ? { database: labDatabase(kind) } : {}) }));
-  }
-  p.database = { kind, reason: "Switched on the product before the API run started.", by: "option" };
+  writeFileSync(projectPath(p.api.project), note("API") + stringify({ project: p.api.project, repo: p.api.repo, baseBranch: "main", stack: "dotnet", dotnet: { sdkImage: API_SDK_IMAGE, solution: API_SOLUTION }, contract: { file: CONTRACT_FILE, built: API_BUILT_DOC }, accept: { readyTimeoutSec: 180 }, database: LAB_DATABASE }));
   saveProduct(p);
   return p;
 }
@@ -161,14 +134,12 @@ async function putOnGithub(p: Product, acct: GithubAccount): Promise<void> {
  * estimate's spec and design and is held to it (gates B1-B6). Either brings its own request. With neither, the run draws its own design
  * and nothing is estimated. `github`: put both repos on GitHub first (`putOnGithub`); GitHub is asked before anything is made.
  */
-export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[] } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed, github = false, database?: DatabaseKind): Promise<Product> {
+export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[] } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed, github = false): Promise<Product> {
   const from = seed && ("design" in seed ? seed.design : seed.estimate);
   const text = from?.request ?? request?.text;
   if (!text) throw new Error("Describe the product, or start it from an approved design or estimate.");
   const acct = github ? await githubPreflight([`${name}-web`, `${name}-api`]) : undefined;
-  const choice = chooseDatabase(text, database);
-  const p = setUpProduct(name, dir, choice.kind);
-  p.database = choice;
+  const p = setUpProduct(name, dir, text);
   if (acct) await putOnGithub(p, acct);
   p.request = text;
   if (seed) p.from = { kind: "design" in seed ? "design" : "estimate", runId: from!.runId };
@@ -228,13 +199,13 @@ export function handOverContract(p: Product, contract: string): void {
   if (git(p.api.repo, ["status", "--porcelain"]).trim()) git(p.api.repo, ["commit", "-q", "-m", `API contract, approved with the web plan in ${p.web.run}`]);
 }
 
-/** The API run's request: the product's own words, and what this side is. */
-export const apiRequest = (request: string, database: DatabaseKind = "sqlite"): string =>
+/** The API run's request: the product's own words, and what this side is. Only a product from before PostgreSQL was settled is on SQLite. */
+export const apiRequest = (request: string, database: DatabaseKind = "postgres"): string =>
   `${request.trim()}\n\nThis run builds the API side of the product above, in an existing .NET API project. Build every operation of the locked API contract in ${CONTRACT_FILE}, exactly as it is written there. Keep the data in ${database === "postgres" ? "the project's PostgreSQL database (the connection string named App, which the project already reads)" : "the project's local SQLite database"}, with a few rows of sample data so each list has something to show. The web app is built in its own repo; do not build screens here.`;
 
 /**
- * Check out the two delivered branches side by side and write a compose file that starts them: the API (with its SQLite file, or
- * a PostgreSQL server of its own that keeps its data in a volume) on the port the web client calls, the web app on 3000. Returns the folder.
+ * Check out the two delivered branches side by side and write a compose file that starts them: the API (with a PostgreSQL server of
+ * its own that keeps its data in a volume; an older product has its SQLite file instead) on the port the web client calls, the web app on 3000. Returns the folder.
  */
 export function writeRunFiles(p: Product): string {
   if (!delivered(p.web.run) || !delivered(p.api.run)) throw new Error("Both runs must be delivered first (factory fullstack next shows where each is).");

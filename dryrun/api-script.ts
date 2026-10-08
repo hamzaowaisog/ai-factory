@@ -86,9 +86,7 @@ public class PortalTests : IClassFixture<WebApplicationFactory<Program>>
 
 export const UNUSED_REQUEST = "The clinic portal's API: staff sign in with their email, and the portal lists today's appointments from the local database. Follow the API contract in contracts/openapi.yaml.";
 const intent = { source: "cli", spans: [{ id: "I-1", text: "staff sign in with their email" }, { id: "I-2", text: "the portal lists today's appointments from the local database" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: false };
-// DRYRUN_DATABASE=postgres: the same script on the PostgreSQL skeleton (the lab then starts a PostgreSQL beside the tests)
-export const DRYRUN_DB = process.env.DRYRUN_DATABASE === "postgres" ? "postgres" as const : "sqlite" as const;
-const ANCHOR = { path: "App.Api/Program.cs", lineStart: apiProgram("", DRYRUN_DB).split("\n").indexOf(HEALTH_LINE) + 1, lineEnd: apiProgram("", DRYRUN_DB).split("\n").indexOf(HEALTH_LINE) + 1, quote: HEALTH_LINE };
+const ANCHOR = { path: "App.Api/Program.cs", lineStart: apiProgram("").split("\n").indexOf(HEALTH_LINE) + 1, lineEnd: apiProgram("").split("\n").indexOf(HEALTH_LINE) + 1, quote: HEALTH_LINE };
 const REQS = [
   { id: "REQ-1", ears: "When a user posts their email to /api/sign-in, the API shall respond with 200 and a Signed in message.", op: "ADDED", sources: ["I-1"], anchors: [], acceptance: [{ id: "AC-1.1", given: "a valid email", when: "POST /api/sign-in is called", then: "the response status is 200", level: "api" }] },
   { id: "REQ-2", ears: "When /api/appointments/today is requested, the API shall respond with 200 and today's appointments.", op: "ADDED", sources: ["I-2"], anchors: [], acceptance: [{ id: "AC-2.1", given: "three appointments stored", when: "GET /api/appointments/today is called", then: "the response status is 200 with the stored rows", level: "api" }] },
@@ -114,15 +112,15 @@ export function apiAnswer(system: string, user = ""): unknown {
     return {
       tasks: [
         { id: "TASK-1", title: "Sign in", reqs: ["REQ-1"], fileScope: ["App.Api/Program.cs", "App.Api/SignInRoutes.cs"], exemplars: [], conventions: [], dependsOn: [], plannedLoc: 15, approach: "map POST /api/sign-in as the contract says" },
-        { id: "TASK-2", title: "Today's appointments", reqs: ["REQ-2"], fileScope: ["App.Api/AppointmentRoutes.cs", "App.Api/AppDb.cs"], exemplars: [], conventions: [], dependsOn: ["TASK-1"], plannedLoc: 30, approach: "store appointments in SQLite, map GET /api/appointments/today as the contract says" },
+        { id: "TASK-2", title: "Today's appointments", reqs: ["REQ-2"], fileScope: ["App.Api/AppointmentRoutes.cs", "App.Api/AppDb.cs"], exemplars: [], conventions: [], dependsOn: ["TASK-1"], plannedLoc: 30, approach: "store appointments in PostgreSQL, map GET /api/appointments/today as the contract says" },
       ],
       options: [{ id: "O-1", summary: "one routes file per feature", simplest: true, tradeoffs: "none" }, { id: "O-2", summary: "controllers", simplest: false, tradeoffs: "more code" }],
-      chosen: "O-1", adr: "Minimal API routes in one file per feature; SQLite through the existing DbContext.", protectedPathsDeclared: [], newDependencies: [],
+      chosen: "O-1", adr: "Minimal API routes in one file per feature; PostgreSQL through the existing DbContext.", protectedPathsDeclared: [], newDependencies: [],
       dataModel: { tables: [{ name: "Appointments", purpose: "today's appointments at the front desk", columns: [
         { name: "Id", type: "int", required: true, pk: true }, { name: "Patient", type: "string", required: true },
         { name: "Time", type: "string", required: true }, { name: "Status", type: "string", required: true }] }] },
       stubs: [
-        { path: "App.Api/Program.cs", content: apiProgram(ROUTES, DRYRUN_DB), reason: "calls the two route groups" },
+        { path: "App.Api/Program.cs", content: apiProgram(ROUTES), reason: "calls the two route groups" },
         { path: "App.Api/SignInRoutes.cs", content: signInRoutes(""), reason: "compiles before TASK-1" },
         { path: "App.Api/AppointmentRoutes.cs", content: appointmentRoutes("Patient", ""), reason: "compiles before TASK-2" },
       ],

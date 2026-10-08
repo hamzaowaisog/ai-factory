@@ -218,7 +218,7 @@ describe("factory ui: what the web can decide", () => {
     expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual([
       "POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/answers", "POST /api/runs/:id/decision",
       "POST /api/runs/:id/limit", "POST /api/runs/:id/limit-stop", "POST /api/runs/:id/resume",
-      "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/database", "POST /api/fullstack/:name/up", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
+      "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/up", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
     ]);
   });
 
@@ -543,17 +543,14 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     expect((await send("/api/fullstack", { name: "orders", dir, prompt: "Again" })).json().error).toMatch(/already exists/);
     expect((await call("/api/fullstack")).json()).toEqual([expect.objectContaining({ name: "orders", web: expect.objectContaining({ project: "orders-web" }) })]);
     // the web run's page links to its product
-    // and says what the API will keep its data in: proposed from the request's words, with the reason, and still open to a switch
-    expect((await call(`/api/runs/${webRun}`)).json().product).toEqual({ name: "orders", side: "web", database: { name: "PostgreSQL", reason: expect.stringMatching(/several people change the same records at once \("orders"\)/), canSwitch: true } });
+    // and says what the API will keep its data in
+    expect((await call(`/api/runs/${webRun}`)).json().product).toEqual({ name: "orders", side: "web", database: { name: "PostgreSQL", reason: "Every new product's API is built on PostgreSQL." } });
 
     let v = (await call("/api/fullstack/orders")).json();
-    expect(v.database).toMatchObject({ kind: "postgres", name: "PostgreSQL", by: "proposal", switchTo: { kind: "sqlite", name: "SQLite" } });
+    expect(v.database).toEqual({ kind: "postgres", name: "PostgreSQL", reason: "Every new product's API is built on PostgreSQL." });
     expect(readFileSync(join(dir, "orders-api", "App.Api/App.Api.csproj"), "utf8")).toMatch(/Npgsql/);
-    // a person switches it on the product page, and back: the API repo and its project follow
-    expect((await send("/api/fullstack/orders/database", { database: "mysql" })).json().error).toMatch(/use sqlite, postgres, or auto/);
-    expect((await send("/api/fullstack/orders/database", { database: "sqlite" })).json()).toMatchObject({ kind: "sqlite", by: "option", switchTo: { kind: "postgres" } });
-    expect(readFileSync(join(dir, "orders-api", "App.Api/App.Api.csproj"), "utf8")).toMatch(/Sqlite/);
-    expect((await send("/api/fullstack/orders/database", { database: "postgres" })).status).toBe(200);
+    // the database is not a choice: no option on the start, and nothing switches it
+    expect((await send("/api/fullstack/orders/database", { database: "sqlite" })).status).toBe(404);
     v = (await call("/api/fullstack/orders")).json();
     expect(v.web.run).toMatchObject({ runId: webRun, delivered: false });
     expect(v.api.run).toBeUndefined();
@@ -576,11 +573,9 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     expect(replay(Ledger.open(apiRun).events()).info).toMatchObject({ project: "orders-api", maxCostUsd: 6 });
     expect(readFileSync(join(dir, "orders-api", "contracts/openapi.yaml"), "utf8")).toBe(CONTRACT);
     expect((await send("/api/fullstack/orders/next", {})).json().error).toMatch(/started already/);
-    expect((await call(`/api/runs/${apiRun}`)).json().product).toMatchObject({ name: "orders", side: "api", database: { name: "PostgreSQL", canSwitch: false } });
-    // the API run is told its database, and the database is set from here on
+    expect((await call(`/api/runs/${apiRun}`)).json().product).toMatchObject({ name: "orders", side: "api", database: { name: "PostgreSQL" } });
+    // the API run is told its database
     expect(replay(Ledger.open(apiRun).events()).info.request).toMatch(/PostgreSQL database \(the connection string named App/);
-    expect((await call("/api/fullstack/orders")).json().database.switchTo).toBeUndefined();
-    expect((await send("/api/fullstack/orders/database", { database: "sqlite" })).status).toBe(409);
     // the run files wait for both deliveries
     const up = await send("/api/fullstack/orders/up", {});
     expect(up.status).toBe(409);

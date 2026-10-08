@@ -9,7 +9,7 @@ import { loadProject, projectPath } from "../config/project.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { createRun } from "../stages/executor.js";
-import { apiRequest, approvedContract, CONTRACT_FILE, handOverContract, loadProduct, saveProduct, setProductDatabase, setUpProduct, writeRunFiles } from "./product.js";
+import { apiRequest, approvedContract, CONTRACT_FILE, handOverContract, loadProduct, saveProduct, setUpProduct, writeRunFiles } from "./product.js";
 
 let dir: string;
 beforeEach(() => {
@@ -66,34 +66,21 @@ describe("a full-stack product: two repos, one contract", () => {
     handOverContract(p, contract); // again: nothing new to commit
     expect(git(p.api.repo, "rev-list", "--count", "main").trim()).toBe("2");
     // the API run's request keeps the product's words and says which side this is
-    expect(apiRequest("Staff sign in.")).toMatch(/^Staff sign in\.\n\nThis run builds the API side[\s\S]*contracts\/openapi\.yaml[\s\S]*SQLite/);
+    expect(apiRequest("Staff sign in.")).toMatch(/^Staff sign in\.\n\nThis run builds the API side[\s\S]*contracts\/openapi\.yaml[\s\S]*PostgreSQL database \(the connection string named App/);
   });
 
-  it("sets the API up on PostgreSQL when that is the database, and switches until the API run starts", () => {
-    const p = setUpProduct("clinic", dir, "postgres");
+  it("sets every new product's API up on PostgreSQL, and says so when the request names another database", () => {
+    const p = setUpProduct("clinic", dir, "Staff sign in. Keep it in SQLite.");
     const read = (f: string) => readFileSync(join(p.api.repo, f), "utf8");
     expect(read("App.Api/App.Api.csproj")).toMatch(/Npgsql\.EntityFrameworkCore\.PostgreSQL/);
     expect(read("App.Api/App.Api.csproj")).not.toMatch(/Sqlite/);
     expect(read("App.Api/Program.cs")).toMatch(/UseNpgsql\(builder\.Configuration\.GetConnectionString\("App"\)/);
+    expect(git(p.api.repo, "log", "-1", "--format=%s").trim()).toBe("API skeleton (factory fullstack): .NET 9, PostgreSQL, one test");
     // the lab starts a PostgreSQL beside the tests and hands the app its connection
     expect(loadProject("clinic-api").database).toMatchObject({ image: "postgres:16-alpine", producerEnv: { ConnectionStrings__App: expect.stringContaining("Host={{DB_HOST}}") } });
-    expect(apiRequest("Staff sign in.", "postgres")).toMatch(/PostgreSQL database \(the connection string named App/);
-
-    // a person switches before the API run: the skeleton, a commit, and the project follow
-    setProductDatabase(p, "sqlite");
-    expect(read("App.Api/Program.cs")).toMatch(/UseSqlite/);
-    expect(git(p.api.repo, "log", "-1", "--format=%s").trim()).toBe("The API's database is SQLite");
-    expect(git(p.api.repo, "status", "--porcelain").trim()).toBe("");
-    const api = loadProject("clinic-api");
-    expect(api.database).toBeUndefined();
-    expect(api).toMatchObject({ stack: "dotnet", contract: { file: CONTRACT_FILE, built: "App.Api/openapi/built.json" } });
-    expect(loadProduct("clinic").database).toMatchObject({ kind: "sqlite", by: "option" });
-    setProductDatabase(p, "postgres");
-    expect(loadProject("clinic-api").database?.image).toBe("postgres:16-alpine");
-    expect(readFileSync(projectPath("clinic-api"), "utf8")).toMatch(/^# Written by `factory fullstack start` for clinic/);
-
-    p.api.run = "20260101-x-0000";
-    expect(() => setProductDatabase(p, "sqlite")).toThrow(/started already.*PostgreSQL/);
+    expect(loadProduct("clinic").database).toEqual({ kind: "postgres", reason: "Every new product's API is built on PostgreSQL. The request names SQLite, which the factory does not set up for a new product." });
+    // a product from before PostgreSQL was settled is on SQLite, and its API run is still told so
+    expect(apiRequest("Staff sign in.", "sqlite")).toMatch(/local SQLite database/);
   });
 
   it("writes the files that start both apps only when both runs are delivered", async () => {

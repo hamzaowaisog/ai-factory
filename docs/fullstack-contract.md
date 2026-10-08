@@ -4,7 +4,7 @@ Two features, built on top of each other:
 
 1. **Greenfield in one run.** `factory start` on an empty Node repo reads the request, writes the spec, draws the design
    on the factory's shadcn kit, and builds the web app. No separate design run.
-2. **Full stack on one contract.** A web app (Next.js) and an API (.NET 9 on SQLite or PostgreSQL) in two repos, both held to one
+2. **Full stack on one contract.** A web app (Next.js) and an API (.NET 9 on PostgreSQL) in two repos, both held to one
    OpenAPI file that is written before any code, approved by a person, and locked the way tests are locked.
    `factory fullstack` runs the two builds as one product.
 
@@ -146,37 +146,29 @@ keys (`src/gates/data-model.ts`).
   the plan names the tables it touches, and the gate passes with "Not compared". Give such a project a `migrate`
   command to bring it in.
 
-## 2c. The database of a new product (SQLite or PostgreSQL)
+## 2c. The database of a new product: PostgreSQL
 
 Code: `src/fullstack/database.ts`, `src/fullstack/skeleton.ts`, `src/fullstack/product.ts`. No model call.
 
-- **Who decides.** A person's choice wins: `--database sqlite|postgres` (or the Database field of the new product form),
-  or a database the request names. Otherwise the factory proposes one and says why in a line.
-- **How the proposal is made.** A fixed word list over the request, so the same request always gets the same answer.
-  PostgreSQL when the request says: several people change the same records at once (bookings, reservations, orders,
-  checkout, payments, inventory, concurrent, multi-user); it is hosted where a local file does not last or is not shared
-  (production, deploy, cloud and its names, replicas, scale); or it keeps money, audit or reporting data (invoices,
-  billing, ledger, audit, reporting, analytics). SQLite when the request reads as small or local (demo, prototype, proof
-  of concept, local database, single user) and names no hosting, and when nothing above is said.
-- **Where a person sees it, and switches.** The `start` output, the product page (a Database panel with the reason and
-  a "Use the other one instead" button), and a line on the web run's plan card, which a person answers anyway. No extra
-  stop. Switching is open until the API run starts (`factory fullstack database <name> sqlite|postgres`, or the
-  button): the API repo's skeleton files that differ are rewritten and committed, and the API project gains or loses
-  its `database` block. After that the database is set.
-- **What PostgreSQL changes.** The skeleton uses `Npgsql.EntityFrameworkCore.PostgreSQL` and reads the connection
-  string `App` (`ConnectionStrings__App`). The API project gets a `database` block, so the lab starts `postgres:16-alpine`
+- **No choice.** Every new product's API is built on PostgreSQL. There is no option, no proposal and no switch.
+- **What that means in the repos.** The skeleton uses `Npgsql.EntityFrameworkCore.PostgreSQL` and reads the connection
+  string `App` (`ConnectionStrings__App`). The API project has a `database` block, so the lab starts `postgres:16-alpine`
   beside the tests and the booted app and hands them that connection. The API run's request names PostgreSQL. The run
-  files (`fullstack up`) add a `db` service with a volume and give the API its connection.
-- **Limits.** Two databases only; a request that names another (MySQL, SQL Server, MongoDB) is told so in the reason.
-  The word list reads words, not meaning: the reason shows which words decided, so a wrong proposal is easy to spot
-  and switch.
+  files (`fullstack up`) have a `db` service with a volume and give the API its connection.
+- **Where a person sees it.** The `start` output, the product page (a Database panel) and a line on the web run's plan
+  card.
+- **A request that names another database** (SQLite, MySQL, SQL Server, MongoDB) is still built on PostgreSQL, and the
+  line a person sees says so: "The request names SQLite, which the factory does not set up for a new product."
+- **A product started before this** has a SQLite file beside its API and stays on it: its API run is told SQLite and its
+  run files have no `db` service. Nothing moves it to PostgreSQL.
+- **Existing backends are not affected.** A backend that already keeps its data in a SQLite file is still read and
+  checked (§2b): this section is only about what the factory sets up for a new product.
 
 ## 3. `factory fullstack`: one request, two repos
 
 ```
 factory fullstack start --name clinic --file intent.md --dir ~/code --max-cost 10
 #   or start from an approved no-repo design or estimate: --from-design <run> / --from-estimate <run> (no request then)
-#   --database sqlite|postgres|auto: what the API keeps its data in (auto: the factory proposes one and says why, §2c)
 #   --github: both repos also go on GitHub (private, under GITHUB_TOKEN's account); each run then opens a PR into main
 #   answer the web run's cards as usual (factory answer / factory approve / factory resume)
 factory fullstack next clinic --max-cost 6       # once the web plan is approved
@@ -187,10 +179,9 @@ docker compose -f ~/code/clinic-run/docker-compose.yml up
 
 | Command | What it does | Code |
 |---|---|---|
-| `start` | Makes `<name>-web` (empty) and `<name>-api` (the skeleton in `src/fullstack/skeleton.ts`: .NET 9, SQLite or PostgreSQL (§2c), one test, CORS for `localhost:3000`), writes both project configs, starts the web run. From an approved design made with no repo, the web run builds that design and skips its design steps; from an approved estimate made with no repo, it is held to the estimate (gates B1-B6). Either brings its own request, and is checked before anything is made. With neither, the web run draws its own design and nothing is estimated. | `productSeed`, `setUpProduct`, `startProduct` |
+| `start` | Makes `<name>-web` (empty) and `<name>-api` (the skeleton in `src/fullstack/skeleton.ts`: .NET 9, PostgreSQL (§2c), one test, CORS for `localhost:3000`), writes both project configs, starts the web run. From an approved design made with no repo, the web run builds that design and skips its design steps; from an approved estimate made with no repo, it is held to the estimate (gates B1-B6). Either brings its own request, and is checked before anything is made. With neither, the web run draws its own design and nothing is estimated. | `productSeed`, `setUpProduct`, `startProduct` |
 | `next` | Copies the contract approved with the web plan into the API repo's base branch (and pushes it to GitHub's main, for a product on GitHub) and starts the API run. Before the plan is approved it only says so. Later it reports where each run is. | `approvedContract`, `handOverContract`, `apiRequest` |
-| `database` | Says what the API keeps its data in and why; with `sqlite` or `postgres`, switches it while the API run has not started (§2c). | `setProductDatabase` |
-| `up` | Checks out the two delivered branches side by side and writes a compose file: the API on port 5080, the web app on 3000, and a PostgreSQL server when that is the database. | `writeRunFiles` |
+| `up` | Checks out the two delivered branches side by side and writes a compose file: the API on port 5080, the web app on 3000, and the product's PostgreSQL server. | `writeRunFiles` |
 
 State is kept in `~/.factory/fullstack/<name>.json`. Both project configs name the same SDK image, so the two runs
 share one coding image (`factory-agent:dotnet8`, rebuilt from the project's SDK image) and may overlap.
@@ -242,7 +233,7 @@ there approves the contract, as `factory approve` does. A limit card is raised o
   builds the contract the web plan wrote and a person approved; it is not held to the estimate's backend tasks or
   budget, and the contract is not checked against those tasks. Splitting one estimate across two runs is not built.
   An estimate that prices a phone app is refused.
-- The API skeleton is fixed (.NET 9 minimal API) on SQLite or PostgreSQL (§2c). The factory refuses SQL Server.
+- The API skeleton is fixed (.NET 9 minimal API) on PostgreSQL (§2c). The factory refuses SQL Server.
 - The client's API address is a fixed string from the project config.
 - On GitHub, a later request on the API repo is a new run with its own branch and PR. A later request on the web repo
   is refused once its first PR is merged: the factory builds a Node app only into an empty repo (PR #17 review, item 5).

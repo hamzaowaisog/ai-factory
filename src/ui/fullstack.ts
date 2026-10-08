@@ -12,8 +12,8 @@ import { gatherRequest } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
 import { shownStatus } from "../stages/run-status.js";
 import { API_PORT } from "../fullstack/skeleton.js";
-import { DATABASE_KINDS, DATABASE_NAME, databaseOption, type DatabaseKind } from "../fullstack/database.js";
-import { approvedContract, CONTRACT_FILE, databaseOf, delivered, loadProduct, productNames, productSeed, setProductDatabase, startApiRun, startProduct, writeRunFiles, type Product, type ProductSeed } from "../fullstack/product.js";
+import { DATABASE_NAME, type DatabaseKind } from "../fullstack/database.js";
+import { approvedContract, CONTRACT_FILE, databaseOf, delivered, loadProduct, productNames, productSeed, startApiRun, startProduct, writeRunFiles, type Product, type ProductSeed } from "../fullstack/product.js";
 import { factoryHome } from "../util/paths.js";
 import { currentStep } from "./data.js";
 import { folderOf, maxCostOf, StartError, str, uploadedFile, type StartDeps } from "./start.js";
@@ -39,15 +39,11 @@ export interface ProductView {
   runFiles: { dir: string; command: string; open: string };
 }
 
-export interface DatabaseView { kind: DatabaseKind; name: string; reason: string; by: "option" | "request" | "proposal"; switchTo?: { kind: DatabaseKind; name: string } }
+export interface DatabaseView { kind: DatabaseKind; name: string; reason: string }
 
 export function databaseView(p: Product): DatabaseView {
   const kind = databaseOf(p);
-  const other = DATABASE_KINDS.find((k) => k !== kind)!;
-  return {
-    kind, name: DATABASE_NAME[kind], reason: p.database?.reason ?? "Started before the database could be chosen.", by: p.database?.by ?? "proposal",
-    ...(p.api.run ? {} : { switchTo: { kind: other, name: DATABASE_NAME[other] } }),
-  };
+  return { kind, name: DATABASE_NAME[kind], reason: p.database?.reason ?? "Started before every new product's API was built on PostgreSQL." };
 }
 
 function sideView(side: Product["web"]): SideView {
@@ -135,10 +131,8 @@ export async function startFullstack(input: Record<string, unknown>, deps: Start
   } finally {
     if (tmp) rmSync(tmp, { recursive: true, force: true });
   }
-  let database: DatabaseKind | undefined;
-  try { database = databaseOption(str(input.database)); } catch (e) { throw new StartError((e as Error).message); }
   let p: Product;
-  try { p = await startProduct(name, dir, req, `${userInfo().username} (via web)`, maxCostUsd, seed, input.github === true, database); } catch (e) { throw new StartError((e as Error).message); }
+  try { p = await startProduct(name, dir, req, `${userInfo().username} (via web)`, maxCostUsd, seed, input.github === true); } catch (e) { throw new StartError((e as Error).message); }
   (deps.execute ?? runDetached)(p.web.run!);
   return { name: p.name, webRun: p.web.run! };
 }
@@ -152,15 +146,6 @@ export async function fullstackNext(name: string, input: Record<string, unknown>
   if (!api) throw new StartError("The web run's plan is not approved yet, so there is no contract to hand over. Approve it on the web run's page first.", 409);
   (deps.execute ?? runDetached)(api);
   return { apiRun: api };
-}
-
-/** `factory fullstack database` from the page: switch the product's database, while the API run has not started. */
-export function fullstackDatabase(name: string, input: Record<string, unknown>): DatabaseView {
-  const kind = databaseOption(str(input.database));
-  if (!kind) throw new StartError("Say which database: sqlite or postgres.");
-  const p = loadProduct(name);
-  if (p.api.run) throw new StartError(`The API run of ${p.name} is started already, so its database is set.`, 409);
-  return databaseView(setProductDatabase(p, kind));
 }
 
 /** `factory fullstack up` from the page: check out both delivered branches side by side and write the compose file. Starts nothing. */

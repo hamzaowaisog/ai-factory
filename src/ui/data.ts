@@ -321,11 +321,11 @@ export function runView(ledger: Ledger) {
 }
 
 /** The full-stack product a run is one side of (factory fullstack), so its page links to the product. */
-function productOf(runId: string): { product?: { name: string; side: "web" | "api"; database: { name: string; reason: string; canSwitch: boolean } } } {
+function productOf(runId: string): { product?: { name: string; side: "web" | "api"; database: { name: string; reason: string } } } {
   for (const name of productNames()) {
     try {
       const p = loadProduct(name);
-      const database = { name: DATABASE_NAME[databaseOf(p)], reason: p.database?.reason ?? "", canSwitch: !p.api.run };
+      const database = { name: DATABASE_NAME[databaseOf(p)], reason: p.database?.reason ?? "" };
       if (p.web.run === runId) return { product: { name, side: "web", database } };
       if (p.api.run === runId) return { product: { name, side: "api", database } };
     } catch { /* a broken product file is skipped */ }
