@@ -78,8 +78,10 @@ export function registerMergeGate(program: Command, log: (s: string) => void): v
         openPrs: () => listOpenPrs(gh),
         // a fresh deps per pull request: liveDeps holds the run id and the last verify pass of ONE
         // review, and sharing it across pull requests would carry #3's results into #4's judgement
+        // onlyLocal: a pull request whose ledger is not on this host (another machine's run, a person's
+        // branch, a fork) is left alone, instead of failing it and notifying about it every pass
         review: async (pr: number) => {
-          const r = await reviewPr(await liveDeps({ cfg, gh, log }), { pr });
+          const r = await reviewPr(await liveDeps({ cfg, gh, log }), { pr, onlyLocal: true });
           return { conclusion: r.conclusion, cls: r.cls };
         },
         log,

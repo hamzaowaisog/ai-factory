@@ -1,11 +1,13 @@
 // The thin layer between `reviewPr`'s decisions and the real world. Everything here touches the
 // ledger, a worktree, Docker or GitHub — which is why it is kept separate from orchestrate.ts,
 // where the decisions live and can be tested without any of them.
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
 import { OWN_CHECK_NAME } from "../contracts/checks.js";
-import { findReviewBody, getPr, type Gh, listChecks, upsertCheckRun, upsertReviewComment } from "../forge/github.js";
+import { secret } from "../config/env.js";
+import { factoryLogin, findReviewBody, getPr, type Gh, listChecks, upsertCheckRun, upsertReviewComment } from "../forge/github.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { fetchForGate, git, gitOut } from "../ledger/git.js";
@@ -57,17 +59,42 @@ export function openRunFacts(runId: string): RunFacts | undefined {
   const integrate = state.steps.get("integrate");
   const deliver = state.steps.get("deliver");
   if (!integrate?.data?.commit) return undefined;                  // never reached a gated commit
+  // the last verdict reverify wrote (recordReverify): what it judged, and when
   const reverify = state.steps.get("reverify");
+  const rv = reverify?.status === "completed" ? reverify.data : undefined;
   return {
     gatedSha: String(integrate.data.commit),
-    recordedBaseSha: state.info.baseCommit ?? "",
+    // the base the last verdict judged, so a base that moved once does not read as moved forever
+    recordedBaseSha: String(rv?.baseSha ?? state.info.baseCommit ?? ""),
     recorded: recordedGateHashes(events as never),
     // the manifest commit is what binds the evidence to the branch; without it nothing reconciles
     evidenceReconciles: deliver?.status === "completed" && !!deliver.data?.manifestHash,
-    priorReverifyConcluded: reverify?.status === "completed",
-    priorConclusion: reverify?.data?.conclusion as Conclusion | undefined,
-    attemptsThisPr: Number(reverify?.data?.attemptsThisPr ?? 0),
-    lastReverifyAt: reverify?.lastAttempt,
+    priorReverifyConcluded: !!rv,
+    priorConclusion: rv?.conclusion as Conclusion | undefined,
+    attemptsThisPr: Number(rv?.attemptsThisPr ?? 0),
+    lastReverifyAt: typeof rv?.at === "number" ? rv.at : undefined,
+    judgedHeadSha: typeof rv?.headSha === "string" ? rv.headSha : undefined,
+    reviewed: new Map(Object.entries((rv?.reviewed ?? {}) as Record<string, string>)),
+  };
+}
+
+/** Where the forge repository is fetched from and pushed to: one URL for both, with the same token. */
+export function forgeRemote(cfg: ProjectConfig): { url: string; token?: string } | undefined {
+  const forge = cfg.forge;
+  if (!forge) return undefined;
+  return { url: forge.pushUrl ?? `https://github.com/${forge.repo}.git`, token: secret(forge.tokenEnv) };
+}
+
+/**
+ * The factory's own review body, found only among reviews the factory's account wrote. When the
+ * account cannot be read (an App token has no /user), no review counts and the run is resolved
+ * from the branch name alone: failing closed, since the marker decides which ledger may push.
+ */
+export function ownReviewBody(gh: Gh): (n: number) => Promise<string | undefined> {
+  let login: Promise<string | undefined> | undefined;
+  return async (n) => {
+    const me = await (login ??= factoryLogin(gh).catch(() => undefined));
+    return me ? findReviewBody(gh, n, fetch, me) : undefined;
   };
 }
 
@@ -78,15 +105,18 @@ export function forgeAdapter(o: ForgeAdapterOpts): Pick<ReviewPrDeps, "getPr" | 
   return {
     async getPr(n): Promise<PrFacts> {
       const pr = await getPr(o.gh, n);
+      // a head in any other repository is not the factory's: refused by reviewPr, and never fetched
+      // here, since this remote's branch of the same name is a different branch
+      const fromFork = pr.headRepo !== o.cfg.forge?.repo;
       // the fetch belongs here, beside the line that derives the base SHA from it: without it
       // `origin/<base>` is whatever was last pulled, so a base that moved reads as unchanged and the
       // gate replays a verdict for a tree that no longer exists
-      await fetchForGate(o.cfg.repo, pr.baseRef, pr.headRef);
+      await fetchForGate(o.cfg.repo, pr.baseRef, fromFork ? undefined : pr.headRef, forgeRemote(o.cfg));
       // the base SHA, not the base ref: a ref name does not change when the branch moves
       const baseSha = await gitOut(o.cfg.repo, ["rev-parse", `origin/${pr.baseRef}`]);
-      return { ...pr, baseSha: baseSha.trim() };
+      return { headSha: pr.headSha, headRef: pr.headRef, baseRef: pr.baseRef, state: pr.state, merged: pr.merged, baseSha: baseSha.trim(), fromFork };
     },
-    findReviewBody: (n) => findReviewBody(o.gh, n),
+    findReviewBody: ownReviewBody(o.gh),
     async writeCheck(a) {
       await upsertCheckRun(o.gh, { ...a, name: OWN_CHECK_NAME });
     },
@@ -116,15 +146,71 @@ export function worktreeExists(runId: string): boolean {
   return existsSync(reverifyWorktree(runId));
 }
 
-/** Merge the base into the PR head in a throwaway worktree. Does not push. */
+/** The subject of the merge commit `mergeInto` makes, which is how `commitRepair` recognises it. */
+const VERIFY_MERGE = "factory: verify the merge of";
+
+/** True while a merge is in progress in the worktree (conflicted, or not yet committed). */
+export async function merging(wt: string): Promise<boolean> {
+  return git(wt, ["rev-parse", "-q", "--verify", "MERGE_HEAD"]).then(() => true, () => false);
+}
+
+/**
+ * Merge the base into the PR head in a throwaway worktree. Does not push.
+ *
+ * A clean merge is COMMITTED: the lab builds `git archive <commit>`, and an uncommitted merge leaves
+ * HEAD at the PR head, so the base's changes were never built or tested. A conflicting merge is left
+ * in progress, markers and both sides in place: that is what the repair has to read and resolve.
+ */
 export async function mergeInto(wt: string, baseSha: string): Promise<{ clean: boolean; conflicts: string[] }> {
   try {
     await git(wt, ["merge", "--no-commit", "--no-ff", baseSha]);
-    return { clean: true, conflicts: [] };
   } catch {
     // a conflicting merge exits non-zero, which the hardened git wrapper turns into a throw
     const names = await gitOut(wt, ["diff", "--name-only", "--diff-filter=U"]);
-    await git(wt, ["merge", "--abort"]).catch(() => undefined);
     return { clean: false, conflicts: names.split("\n").map((x) => x.trim()).filter(Boolean) };
   }
+  // "Already up to date" starts no merge: HEAD already contains the base, and is the result
+  if (await merging(wt)) await git(wt, ["commit", "--no-edit", "-m", `${VERIFY_MERGE} ${baseSha.slice(0, 8)}`]);
+  return { clean: true, conflicts: [] };
 }
+
+/**
+ * The worktree as it stands, conflict markers included, as a commit the snapshot can copy. A
+ * conflicted index cannot be written as a tree, so a throwaway index is used instead; the merge in
+ * progress is not touched. Without this the repair read HEAD: no markers, and no base side at all.
+ */
+export async function workingTreeCommit(wt: string): Promise<string> {
+  const dir = mkdtempSync(join(tmpdir(), "factory-index-"));
+  const env = { GIT_INDEX_FILE: join(dir, "index") };
+  try {
+    await git(wt, ["read-tree", "HEAD"], { env });
+    await git(wt, ["add", "-A"], { env });
+    const tree = (await git(wt, ["write-tree"], { env })).stdout.trim();
+    return await gitOut(wt, ["commit-tree", tree, "-p", "HEAD", "-m", "factory: the worktree a repair reads"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Commits the repair's edits, already written into the worktree, as ONE merge commit carrying the
+ * trailer. A conflicted merge is concluded; a broken merge's fix is folded into the verification
+ * merge; with no merge commit to fold into (the base was already merged), a plain commit on top.
+ * Never commits a conflict marker or an unmerged path.
+ */
+export async function commitRepair(wt: string, message: string): Promise<{ ok: true } | { ok: false; why: string }> {
+  await git(wt, ["add", "-A"]);
+  const unmerged = await gitOut(wt, ["diff", "--cached", "--name-only", "--diff-filter=U"]);
+  const changed = (await gitOut(wt, ["diff", "--cached", "--name-only", "--diff-filter=AM", "HEAD"])).split("\n").filter(Boolean);
+  const marked = changed.filter((f) => CONFLICT_MARKER.test(readFileSync(join(wt, f), "utf8")));
+  if (unmerged || marked.length) {
+    return { ok: false, why: `the repair left a conflict unresolved in ${unmerged ? unmerged.split("\n").join(", ") : marked.join(", ")}` };
+  }
+  // only the verification merge is folded into: amending anything else would rewrite the pull
+  // request's own history
+  const fold = !(await merging(wt)) && (await gitOut(wt, ["log", "-1", "--format=%s"])).startsWith(VERIFY_MERGE);
+  await git(wt, fold ? ["commit", "--amend", "-m", message] : ["commit", "-m", message]);
+  return { ok: true };
+}
+
+const CONFLICT_MARKER = /^(<{7}|>{7})(\s|$)|^={7}$/m;

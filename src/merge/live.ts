@@ -4,28 +4,28 @@
 // native Windows host (src/util/paths.ts refuses, and fsync is unreliable on /mnt). The decisions
 // these feed — orchestrate.ts and group-run.ts — are covered by 31 tests against fakes; this
 // assembly is not, and must be exercised under WSL2 before it is trusted.
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
 import { OWN_CHECK_NAME } from "../contracts/checks.js";
 import { secret } from "../config/env.js";
 import type { Gh } from "../forge/github.js";
-import { addWorktree, freshWorktree, git, gitOut, resolveRef } from "../ledger/git.js";
+import { addWorktree, authEnv, freshWorktree, git, gitOut, resolveRef } from "../ledger/git.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { factoryHome, paths } from "../util/paths.js";
-import { hashJson } from "../util/hash.js";
 import { DockerCli } from "../verify/runtime.js";
 import { labFor } from "../verify/lab.js";
-import { writeFileSync } from "node:fs";
 import { createSnapshot, snapshotDir } from "../context/snapshot.js";
 import { readApproved } from "../conventions/store.js";
 import { HUMAN_WRITER } from "../ledger/ledger.js";
 import { diffFiles } from "../stages/deliver.js";
 import { modelFor } from "../stages/routing.js";
 import type { Review2Inputs } from "../stages/review2.js";
-import { commitsWithTrailers, forgeAdapter, mergeInto, openRunFacts, recordedVerdicts, reverifyWorktree, worktreeExists } from "./adapters.js";
-import { runMergeGates, type MergeEvidence } from "./gates-run.js";
+import { commitRepair, commitsWithTrailers, forgeAdapter, forgeRemote, mergeInto, merging, openRunFacts, ownReviewBody, recordedVerdicts, reverifyWorktree, workingTreeCommit, worktreeExists } from "./adapters.js";
+import { plannedInputHashes, runMergeGates, type MergeEvidence } from "./gates-run.js";
+import { gateInputsHash } from "../gates/engine.js";
+import { scanText } from "../context/secrets.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { proposeRepair, repairIsEmpty } from "./repair-run.js";
 import { runMergeReview } from "./review-run.js";
@@ -75,12 +75,14 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
         // the paths travel with the result: the repair is given them, not asked to guess
         return { mergesClean: false, testsPass: false, conflicts: merged.conflicts, current: new Map(), diffSha: "", mergeSha: "" };
       }
+      // the merge result is committed (mergeInto, or the repair), so HEAD is what the lab builds
       const mergeSha = (await gitOut(wt, ["rev-parse", "HEAD"])).trim();
-      const base = (await gitOut(wt, ["merge-base", "HEAD", a.baseSha])).trim();
-      const diff = (await git(wt, ["diff", "--no-color", "-U5", base, "HEAD"])).stdout;
+      // what this pull request adds on top of the base it now contains
+      const diff = (await git(wt, ["diff", "--no-color", "-U5", a.baseSha, "HEAD"])).stdout;
 
       const ledger = Ledger.open(a.runId);
       const diffSha = ledger.putArtifact(diff);
+      const policy = o.policy ?? DEFAULT_POLICY;
 
       const pk = join(factoryHome(), "tmp", `reverify-${a.runId}`, o.cfg.stack === "node" ? "npm-cache" : "nuget");
       mkdirSync(pk, { recursive: true });
@@ -91,16 +93,6 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
         onContainer: async (id, role) => o.log(`  container ${role} ${id.slice(0, 12)}`),
       });
 
-      // what each gate depends on, for the replay decision. Tree-derived gates move with the merge
-      // result; the review gates move with what the reviewer reads.
-      const current = new Map<string, string>([
-        ["build.clean", hashJson({ build: out.build })],
-        ["tests.expectations", hashJson({ run: out.testRun })],
-        ["lint.no-new-findings", hashJson({ lint: out.lint?.findings ?? [], files: diff.length })],
-        ["conventions.followed", hashJson({ diffSha })],
-        ["review.covers-every-criterion", hashJson({ diffSha })],
-        ["review-2.no-blocking", hashJson({ diffSha })],
-      ]);
       lastVerify = {
         lint: { findings: out.lint?.findings ?? [] },
         verification: {
@@ -110,7 +102,8 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       };
       const evidence: MergeEvidence = {
         build: out.build, testRun: out.testRun, lint: out.lint, lintBaseline: [],
-        secretScan: { kind: "secrets", commit: mergeSha, hits: [] },
+        // the lines this tree adds, scanned for real: a repair is pushed with the forge token
+        secretScan: { kind: "secrets", commit: mergeSha, hits: secretHits(diff) },
         diff: { files: diffFiles(diff).map((path) => ({ path, added: [], removed: [] })) },
         guidelines: readApproved(o.cfg.project),
         violations: [],
@@ -118,6 +111,10 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
         head: { sha: a.headSha },
         gatedSha: mergeSha,
       };
+      // what each gate depends on, for the replay decision, hashed exactly as the engine records it
+      // so an unchanged gate can ever match. The review gates move with what the reviewer reads.
+      const current = plannedInputHashes(ledger, policy, evidence);
+      for (const id of ["review.covers-every-criterion", "review-2.no-blocking"]) current.set(id, gateInputsHash(id, { diff: diffSha }, policy));
       return {
         mergesClean: true,
         testsPass: lastVerify.verification.failed.length === 0,
@@ -181,15 +178,18 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       // the budget was already checked by mayRepair; what remains is the work and the binding.
       // The token is checked FIRST: a repair that cannot be delivered is not worth paying a model for.
       const forge = o.cfg.forge;
-      const token = forge ? secret(forge.tokenEnv) : undefined;
-      if (!forge) return { pushed: false, why: "no forge is configured, so a repair cannot be delivered to the pull request" };
-      if (!token) return { pushed: false, why: `${forge.tokenEnv} is missing in ~/.factory/.env, so a repair cannot be pushed` };
+      if (!forge) return { made: false, why: "no forge is configured, so a repair cannot be delivered to the pull request" };
+      if (!secret(forge.tokenEnv)) return { made: false, why: `${forge.tokenEnv} is missing in ~/.factory/.env, so a repair cannot be pushed` };
 
       const ledger = Ledger.open(a.runId);
       const state = replay(ledger.events());
       const lock = ledger.getJson<{ lock: { file: string }[] }>(state.steps.get("author-tests")!.outputs[0]!);
       const wt = reverifyWorktree(a.runId);
-      const snap = createSnapshot(wt, "HEAD", snapshotDir(a.runId, `repair-${Date.now()}`), o.cfg.noGo);
+      // the model reads the MERGED tree: for a conflict the working tree with its markers and both
+      // sides (HEAD has neither), for a broken merge the committed merge result. Reading the PR head
+      // instead made its whole-file edits silently drop whatever the base changed in those files.
+      const reads = (await merging(wt)) ? await workingTreeCommit(wt) : (await gitOut(wt, ["rev-parse", "HEAD"])).trim();
+      const snap = createSnapshot(wt, reads, snapshotDir(a.runId, `repair-${reads.slice(0, 12)}`), o.cfg.noGo);
 
       const proposal = await proposeRepair({
         snap, lockedFiles: lock.lock.map((x) => x.file), cls,
@@ -200,46 +200,70 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
 
       if (repairIsEmpty(proposal)) {
         const why = proposal.rejected.length
-          ? `the repair only proposed edits to locked test files (${proposal.rejected.map((r) => r.path).join(", ")}), which are not allowed`
+          ? `the repair only proposed edits it may not make (${proposal.rejected.map((r) => `${r.path}: ${r.why}`).join("; ")})`
           // case 4 of the conflict policy: declining to guess is a correct outcome, and the model's
           // reason is the most useful thing a person can be handed here
           : `the repair declined to resolve this automatically: ${proposal.summary}`;
-        return { pushed: false, why };
+        return { made: false, why };
       }
-      for (const e of proposal.edits) writeFileSync(join(wt, e.path), e.content);
-      await git(wt, ["add", "-A"]);
-      // the trailer is what the NEXT webhook reads to recognise this push as ours
-      await git(wt, ["commit", "-m", `factory: repair ${cls}
+      // paths are already normalised and checked by proposeRepair; a new file may need its folder
+      for (const e of proposal.edits) {
+        mkdirSync(dirname(join(wt, e.path)), { recursive: true });
+        writeFileSync(join(wt, e.path), e.content);
+      }
+      // ONE merge commit, carrying the trailer the next pass reads to recognise this push as ours
+      const c = await commitRepair(wt, `factory: repair ${cls}
 
 ${proposal.summary}
 
-${proposal.trailer}`]);
+${proposal.trailer}`);
+      if (!c.ok) return { made: false, why: c.why };
+      return { made: true, why: proposal.summary };
+    },
 
-      // Until this existed the repair lived only on this host: the pull request never received it,
-      // and the trailer the loop guard reads never reached the remote. Same shape as deliver's push —
-      // the credential goes in through git's environment, never a command line, because a failed push
-      // prints its command into the error and from there into the ledger.
-      const auth = Buffer.from(`x-access-token:${token}`).toString("base64");
+    async pushRepair(a) {
+      // reached only once the repaired tree has been verified and every gate passed on it: deliver's
+      // rule, that only a gated tree is pushed, holds here too
+      const remote = forgeRemote(o.cfg);
+      if (!remote?.token) return { pushed: false, why: "no forge token is configured, so the repair cannot be pushed" };
+      const wt = reverifyWorktree(a.runId);
+      const sha = (await gitOut(wt, ["rev-parse", "HEAD"])).trim();
       try {
-        await git(wt, ["push", forge.pushUrl ?? `https://github.com/${forge.repo}.git`, `HEAD:refs/heads/${a.headRef}`], {
-          env: { GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "http.extraHeader", GIT_CONFIG_VALUE_0: `Authorization: Basic ${auth}` },
-        });
+        await git(wt, ["push", remote.url, `HEAD:refs/heads/${a.headRef}`], { env: authEnv(remote.token) });
       } catch (e) {
         // the edits are committed locally but the pull request has not moved, so this is NOT a repair
-        const why = (e as Error).message.replaceAll(token, "«SECRET»").slice(0, 300);
-        return { pushed: false, why: `the repair was made but could not be pushed to ${a.headRef}: ${why}` };
+        const why = (e as Error).message.replaceAll(remote.token, "«SECRET»").slice(0, 300);
+        return { pushed: false, why: `the repair passed but could not be pushed to ${a.headRef}: ${why}` };
       }
       o.log(`pushed the repair to ${a.headRef}`);
-      return { pushed: true, why: proposal.summary };
+      return { pushed: true, why: "pushed", sha };
+    },
+
+    async recordReverify(r) {
+      // the next pass reads this back through openRunFacts: without it nothing ever stopped the loop
+      const { runId, ...data } = r;
+      await Ledger.open(runId).append({ type: "step.completed", key: "reverify", outputs: [], data }, HUMAN_WRITER);
     },
 
     now: () => Date.now(),
   };
 }
 
+/** Secret-scan hits in the lines a diff adds, file by file, the way deliver scans a branch. */
+function secretHits(diff: string): { file: string; line: number; rule: string }[] {
+  const hits: { file: string; line: number; rule: string }[] = [];
+  let file = "";
+  for (const line of diff.split("\n")) {
+    if (line.startsWith("+++ b/")) file = line.slice(6);
+    else if (line.startsWith("+") && !line.startsWith("+++")) hits.push(...scanText(file, line.slice(1)).map((h) => ({ ...h, line: 0 })));
+  }
+  return hits;
+}
+
 export async function liveGroupDeps(o: LiveOpts): Promise<GroupDeps> {
   const rt = new DockerCli();
   const forge = forgeAdapter({ gh: o.gh, cfg: o.cfg, requiredChecks: [] });
+  const reviewBody = ownReviewBody(o.gh);
 
   return {
     async membersOf(ref) {
@@ -250,9 +274,9 @@ export async function liveGroupDeps(o: LiveOpts): Promise<GroupDeps> {
       const prs = [...body.matchAll(/#(\d+)/g)].map((m) => Number(m[1]));
       const out: { pr: number; headRef: string; reviewBody?: string }[] = [];
       for (const pr of [...new Set(prs)]) {
-        const { getPr, findReviewBody } = await import("../forge/github.js");
+        const { getPr } = await import("../forge/github.js");
         const p = await getPr(o.gh, pr);
-        out.push({ pr, headRef: p.headRef, reviewBody: await findReviewBody(o.gh, pr) });
+        out.push({ pr, headRef: p.headRef, reviewBody: await reviewBody(pr) });
       }
       return out;
     },
