@@ -1,6 +1,6 @@
 // The GitHub client. No network: every call takes `fetch`, and the tests script it.
 import { describe, expect, it, vi } from "vitest";
-import { findReviewBody, listChecks, upsertCheckRun, upsertReviewComment } from "./github.js";
+import { factoryLogin, findReviewBody, getPr, listChecks, listOpenPrs, upsertCheckRun, upsertReviewComment } from "./github.js";
 
 const gh = { root: "https://api.github.com", api: "https://api.github.com/repos/acme/shop", headers: {} };
 const json = (body: unknown) =>
@@ -122,5 +122,51 @@ describe("findReviewBody", () => {
   it("survives a review with no body at all", async () => {
     const f = vi.fn().mockResolvedValueOnce(json([{ body: null }]));
     expect(await findReviewBody(gh, 42, f as never)).toBeUndefined();
+  });
+});
+
+describe("findReviewBody: only the factory's own account counts", () => {
+  it("ignores a marker written by anyone else", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json([{ body: "<!-- factory-review:run-evil -->", user: { login: "mallory" } }]));
+    expect(await findReviewBody(gh, 42, f as never, "factory-bot")).toBeUndefined();
+  });
+
+  it("takes the marker the factory's account wrote", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json([
+      { body: "<!-- factory-review:run-evil -->", user: { login: "mallory" } },
+      { body: "<!-- factory-review:run-7 -->", user: { login: "factory-bot" } },
+    ]));
+    expect(await findReviewBody(gh, 42, f as never, "factory-bot")).toMatch(/run-7/);
+  });
+
+  it("reads the token's own login", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ login: "factory-bot" }));
+    expect(await factoryLogin(gh, f as never)).toBe("factory-bot");
+    expect(String(f.mock.calls[0]![0])).toBe("https://api.github.com/user");
+  });
+});
+
+describe("getPr", () => {
+  it("names the head's repository, so a fork can be told apart", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ head: { sha: SHA, ref: "main", repo: { full_name: "someone/shop" } }, base: { ref: "main" }, state: "open", merged: false }));
+    expect(await getPr(gh, 7, f as never)).toMatchObject({ headRepo: "someone/shop", headRef: "main" });
+  });
+
+  it("reads a deleted head repository as no repository", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ head: { sha: SHA, ref: "x", repo: null }, base: { ref: "main" }, state: "open", merged: false }));
+    expect((await getPr(gh, 7, f as never)).headRepo).toBe("");
+  });
+});
+
+describe("listOpenPrs", () => {
+  it("follows the next page instead of stopping at 100", async () => {
+    const page = (body: unknown, link?: string) =>
+      ({ ...json(body), headers: new Headers(link ? { link } : {}) }) as Response;
+    const f = vi.fn()
+      .mockResolvedValueOnce(page([{ number: 2, head: { sha: "b" } }], '<https://api.github.com/repos/acme/shop/pulls?page=2>; rel="next", <x>; rel="last"'))
+      .mockResolvedValueOnce(page([{ number: 1, draft: true, head: { sha: "a" } }]));
+    const got = await listOpenPrs(gh, f as never);
+    expect(got.map((p) => p.number)).toEqual([2, 1]);
+    expect(String(f.mock.calls[1]![0])).toBe("https://api.github.com/repos/acme/shop/pulls?page=2");
   });
 });

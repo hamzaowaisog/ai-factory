@@ -44,10 +44,17 @@ const STATE_TO_STATUS = { pending: "in_progress", success: "completed", failure:
  * between a pull request that is still being assembled and one that is asking to be gated.
  */
 export async function listOpenPrs(gh: Gh, f: typeof fetch = fetch): Promise<{ number: number; draft: boolean; headSha: string }[]> {
-  const prs = (await ok(
-    await f(`${gh.api}/pulls?state=open&sort=created&direction=desc&per_page=100`, { headers: gh.headers }), "open pulls",
-  )) as { number: number; draft?: boolean; head: { sha: string } }[];
-  return prs.map((p) => ({ number: p.number, draft: p.draft === true, headSha: p.head.sha }));
+  const out: { number: number; draft: boolean; headSha: string }[] = [];
+  // every page: past 100 open pull requests the oldest would otherwise never be gated
+  let url: string | undefined = `${gh.api}/pulls?state=open&sort=created&direction=desc&per_page=100`;
+  while (url) {
+    const res = await f(url, { headers: gh.headers });
+    const next = /<([^>]+)>;\s*rel="next"/.exec(res.headers?.get?.("link") ?? "");
+    const prs = (await ok(res, "open pulls")) as { number: number; draft?: boolean; head: { sha: string } }[];
+    out.push(...prs.map((p) => ({ number: p.number, draft: p.draft === true, headSha: p.head.sha })));
+    url = next?.[1];
+  }
+  return out;
 }
 
 export async function listChecks(gh: Gh, sha: string, required: string[], f: typeof fetch = fetch): Promise<ExternalChecks> {
@@ -119,16 +126,29 @@ export async function upsertReviewComment(
 }
 
 export async function getPr(gh: Gh, n: number, f: typeof fetch = fetch): Promise<{
-  headSha: string; headRef: string; baseRef: string; state: string; merged: boolean;
+  headSha: string; headRef: string; headRepo: string; baseRef: string; state: string; merged: boolean;
 }> {
   const pr = (await ok(await f(`${gh.api}/pulls/${n}`, { headers: gh.headers }), `pull ${n}`)) as
-    { head: { sha: string; ref: string }; base: { ref: string }; state: string; merged: boolean };
-  return { headSha: pr.head.sha, headRef: pr.head.ref, baseRef: pr.base.ref, state: pr.state, merged: pr.merged };
+    { head: { sha: string; ref: string; repo?: { full_name: string } | null }; base: { ref: string }; state: string; merged: boolean };
+  // the head's repository, "" when it was deleted: a fork's branch lives somewhere a push must never aim
+  return { headSha: pr.head.sha, headRef: pr.head.ref, headRepo: pr.head.repo?.full_name ?? "", baseRef: pr.base.ref, state: pr.state, merged: pr.merged };
 }
 
-/** The factory's own review body on a pull request, for the run-id marker. */
-export async function findReviewBody(gh: Gh, n: number, f: typeof fetch = fetch): Promise<string | undefined> {
+/** The account the forge token belongs to: the one that posts the factory's own reviews. */
+export async function factoryLogin(gh: Gh, f: typeof fetch = fetch): Promise<string> {
+  const me = (await ok(await f(`${gh.root}/user`, { headers: gh.headers }), "user")) as { login: string };
+  return me.login;
+}
+
+/**
+ * The factory's own review body on a pull request, for the run-id marker. With `author`, only a review
+ * that account wrote counts: the marker now decides which ledger authorises a push, and anyone who can
+ * comment on the pull request could otherwise write one.
+ */
+export async function findReviewBody(gh: Gh, n: number, f: typeof fetch = fetch, author?: string): Promise<string | undefined> {
   const reviews = (await ok(await f(`${gh.api}/pulls/${n}/reviews?per_page=100`, { headers: gh.headers }), `reviews ${n}`)) as
-    { body: string }[];
-  return reviews.map((r) => r.body).find((b) => /factory-review:/.test(b ?? ""));
+    { body: string; user?: { login: string } | null }[];
+  return reviews
+    .filter((r) => author === undefined || r.user?.login === author)
+    .map((r) => r.body).find((b) => /factory-review:/.test(b ?? ""));
 }
