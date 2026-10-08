@@ -79,10 +79,7 @@ export async function runMergeGates(
   for (const { def, inputs } of planned(a.evidence)) {
     const recorded = a.replay?.get(def.id);
     if (recorded) { out.push(recorded); continue; }
-    // the engine loads inputs from the ledger by sha, so each one is stored first — which is also
-    // what makes the decision re-checkable long afterwards
-    const shas = Object.fromEntries(Object.entries(inputs).map(([k, v]) => [k, ledger.putJson(v)]));
-    const r = await runGate(def, ledger, writer, shas, policy, { step: a.step, treeSha: a.treeSha });
+    const r = await runGate(def, ledger, writer, stored(ledger, inputs), policy, { step: a.step, treeSha: a.treeSha });
     out.push({ id: def.id, passed: r.passed, details: r.details });
   }
   return out;
