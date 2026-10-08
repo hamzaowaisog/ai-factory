@@ -9,7 +9,8 @@ import type { ProjectConfig } from "./config/project.js";
 import type { ContextPack } from "./contracts/index.js";
 import { ApiRunner, type Provider } from "./runners/api.js";
 import { ClaudeAgentRunner } from "./runners/claude-agent.js";
-import { AGENT_NET, agentImageFingerprint, API_PROXY, ensureAgentImage, ensureEgress, feedHostsFrom, PROXY_IMAGE, REPO_ROOT } from "./runners/netinfra.js";
+import { AGENT_NET, agentImageFingerprint, API_PROXY, ensureAgentImage, ensureEgress, feedHostsFrom, issueProxyToken, PROXY_IMAGE, REPO_ROOT, revokeProxyToken } from "./runners/netinfra.js";
+import { priceOf } from "./runners/pricing.js";
 import { DEFAULT_ROUTES, modelFor } from "./stages/routing.js";
 import { DEFAULT_POLICY } from "./gates/policy.js";
 import { factoryHome } from "./util/paths.js";
@@ -105,15 +106,19 @@ export async function runSmoke(d: SmokeDeps): Promise<SmokeCheck[]> {
   return checkAgent();
 
   async function checkProxy(): Promise<void> {
-  const script = `fetch("http://${API_PROXY}:8080/anthropic/v1/messages",{method:"POST",headers:{"content-type":"application/json","anthropic-version":"2023-06-01","x-api-key":"placeholder"},body:JSON.stringify({model:"${CHEAP_AGENT_MODEL}",max_tokens:5,messages:[{role:"user",content:"ping"}]})}).then(async r=>{const j=await r.json().catch(()=>({}));console.log(r.status,JSON.stringify(j.usage??j.error??{}))}).catch(e=>console.log(0,e.message))`;
-  const id = await d.rt.create({ image: PROXY_IMAGE, role: "producer", labels: { run: "smoke", key: "proxy" }, network: AGENT_NET, mounts: [], env: {}, cmd: ["node", "-e", script], user: "node" });
+  // the proxy takes a call only with a registered step token
+  const token = issueProxyToken({ run: "smoke", key: "proxy", model: CHEAP_AGENT_MODEL, capUsd: 0.05, usdPerMTok: priceOf(CHEAP_AGENT_MODEL) });
+  const script = `fetch("http://${API_PROXY}:8080/anthropic/v1/messages",{method:"POST",headers:{"content-type":"application/json","anthropic-version":"2023-06-01","x-api-key":"${token}"},body:JSON.stringify({model:"${CHEAP_AGENT_MODEL}",max_tokens:5,messages:[{role:"user",content:"ping"}]})}).then(async r=>{const j=await r.json().catch(()=>({}));console.log(r.status,JSON.stringify(j.usage??j.error??{}))}).catch(e=>console.log(0,e.message))`;
   let out = "";
+  let id: string | undefined;
   try {
+    id = await d.rt.create({ image: PROXY_IMAGE, role: "producer", labels: { run: "smoke", key: "proxy" }, network: AGENT_NET, mounts: [], env: {}, cmd: ["node", "-e", script], user: "node" });
     await d.rt.start(id);
     await d.rt.wait(id, 60_000);
     out = (await d.rt.logs(id)).trim();
   } finally {
-    await stopAndRemove(d.rt, id);
+    if (id) await stopAndRemove(d.rt, id);
+    revokeProxyToken(token);
   }
   const status = Number(out.split(" ")[0]);
   const u = /"input_tokens":(\d+).*"output_tokens":(\d+)/.exec(out);

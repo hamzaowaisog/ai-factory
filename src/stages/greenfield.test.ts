@@ -415,7 +415,7 @@ describe("a new product end to end (greenfield, fakes)", () => {
       planContract = CONTRACT.replace("      operationId: signIn\n", "").replace(", example: { message: Signed in }", "");
       const thin = await start();
       expect(thin.first.message).toMatch(/has no operationId|has no example/);
-    });
+    }, 120_000); // two whole starts: passes alone, but ran past the 30 s default when the full suite ran beside it
 
     it("an implementer that changes the locked contract is stopped", async () => {
       const { runId, ledger } = await start();

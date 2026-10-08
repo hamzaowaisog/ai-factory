@@ -1,0 +1,25 @@
+# The whole suite on every pull request: types, then all tests. No path filter, so a change anywhere is checked
+# (the kit workflow covers only the UI kit's slow builds). The tests use no model key and no containers.
+name: test
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # the tests make their own repositories and commit in them
+      - run: |
+          git config --global user.name "factory-ci"
+          git config --global user.email "factory-ci@example.invalid"
+          git config --global init.defaultBranch main
+      - run: npm test

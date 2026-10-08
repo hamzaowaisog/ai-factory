@@ -15,8 +15,8 @@ import type { ContainerRuntime, Mount } from "../verify/runtime.js";
 import { stopAndRemove } from "../verify/runtime.js";
 import type { Usage } from "../contracts/index.js";
 import { supportsEffort } from "./api.js";
-import { AGENT_IMAGE, AGENT_NET, API_BASE_URL } from "./netinfra.js";
-import { costUsd } from "./pricing.js";
+import { AGENT_IMAGE, AGENT_NET, API_BASE_URL, issueProxyToken, revokeProxyToken } from "./netinfra.js";
+import { costUsd, priceOf } from "./pricing.js";
 import { configErrorText, emptyUsage, type Job, type Result, type Runner } from "./types.js";
 
 export interface AgentJobExtras {
@@ -83,6 +83,23 @@ export function readProgress(file: string, offset: number): { lines: AgentProgre
  *  - the context is summarised at this many tokens, or at the model's own window when that is smaller (context-builder §2.10)
  */
 export const AGENT_CONTEXT = { bashOutputChars: 10_000, readTokens: 12_000, compactWindow: 400_000 };
+
+/**
+ * A session that goes this many turns in a row without changing a file is stopped, and what it wrote is kept
+ * like any unfinished work. A backstop, set above every past session: across the 24 sessions of run 31fe the
+ * longest such stretch was 32 turns in one that finished (reading before its first edit) and 40 in one that failed.
+ */
+export const AGENT_IDLE_TURNS = 45;
+
+/**
+ * The key proxy counts what a step's token spends and refuses it past this. The agent SDK enforces the step's
+ * own budget between turns, so this sits above it: it is for calls made around the SDK, or a budget that failed.
+ */
+export function proxyCapUsd(maxUsd: number): number {
+  return maxUsd * 1.5 + 1;
+}
+/** The proxy's refusal of a token past its cap (proxy.mjs CAP_TEXT). */
+const PROXY_CAP = /factory proxy: this step's spending cap is reached/i;
 
 /** The API's refusal of a request that no longer fits the model's context window. */
 const SESSION_FULL = /prompt is too long/i;
@@ -168,7 +185,7 @@ export class ClaudeAgentRunner implements Runner {
       fileScope: x.fileScope,
       protectedGlobs: [...(x.protectedGlobs ?? [...LOCK_SET_GLOBS, ...CONFIG_INTEGRITY_GLOBS]), ...x.lockedFiles, ...x.extraProtected],
       script: agentScript?.(job.step),
-      context: AGENT_CONTEXT,
+      context: { ...AGENT_CONTEXT, idleTurns: AGENT_IDLE_TURNS },
     }));
 
     const mounts: Mount[] = [
@@ -190,6 +207,8 @@ export class ClaudeAgentRunner implements Runner {
     for (const d of masks.dirs) mounts.push({ src: emptyDir, dst: `/work/${d}`, ro: true });
     if (x.packagesDir) mounts.push({ src: x.packagesDir, dst: "/nuget", ro: true });
 
+    // this step's own pass through the key proxy: gone when the step ends
+    const token = issueProxyToken({ run: x.runId, key: x.key, model: job.model, capUsd: proxyCapUsd(job.limits.maxUsd), usdPerMTok: priceOf(job.model) });
     let id: string | undefined;
     try {
       id = await this.rt.create({
@@ -198,7 +217,7 @@ export class ClaudeAgentRunner implements Runner {
         env: {
           ...x.agentEnv,
           ANTHROPIC_BASE_URL: API_BASE_URL,
-          ANTHROPIC_API_KEY: "added-by-factory-proxy",
+          ANTHROPIC_API_KEY: token, // not a key: the proxy swaps it for the real one
           HOME: "/tmp/home", CLAUDE_CONFIG_DIR: "/tmp/claude",
         },
         cmd: [], tmpfs: ["/tmp:exec,size=2g"],
@@ -242,12 +261,13 @@ export class ClaudeAgentRunner implements Runner {
         // compaction is on (context-builder §2.10), but one huge output can still fill the model's window: unfinished work, like running out of turns
         if (SESSION_FULL.test(out.error ?? "")) return { status: "timeout", error: "The session filled the model's context window before it finished", usage: u, sessionId: out.sessionId };
         if (NO_CREDIT.test(out.error ?? "")) return { status: "config-error", error: NO_CREDIT_TEXT, usage: u, sessionId: out.sessionId };
+        if (PROXY_CAP.test(out.error ?? "")) return { status: "over-budget", error: "The key proxy stopped this step: its calls cost more than the step's budget allows", usage: u, sessionId: out.sessionId };
         if (out.status === "config-error") {
           return { status: "config-error", error: out.apiErrorStatus === 403
             ? "The coding agent's API calls were refused by the factory's key proxy or the API (403). Run factory doctor."
             : configErrorText(out.apiErrorStatus, out.error ?? "", job.model), usage: u, sessionId: out.sessionId };
         }
-        const status = out.status === "over-budget" ? "over-budget" : out.status === "bad-output" ? "bad-output" : out.status === "max-turns" ? "timeout" : "error";
+        const status = out.status === "over-budget" ? "over-budget" : out.status === "bad-output" ? "bad-output" : out.status === "max-turns" || out.status === "no-progress" ? "timeout" : "error";
         return { status, error: out.error, usage: u, sessionId: out.sessionId };
       }
       const parsed = job.schema.safeParse(out.output);
@@ -258,6 +278,7 @@ export class ClaudeAgentRunner implements Runner {
         await stopAndRemove(this.rt, id).catch(() => undefined);
         await x.onRemoved?.(id);
       }
+      revokeProxyToken(token);
       rmSync(jobDir, { recursive: true, force: true });
     }
   }

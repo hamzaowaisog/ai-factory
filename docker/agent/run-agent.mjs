@@ -37,13 +37,19 @@ function editDecision(path) {
   return undefined;
 }
 
+// turns (API messages) since a file last changed: a session that only reads and runs things pays for its whole
+// context again on every one of them. Edits count, and so do commands that write files.
+const idleTurns = new Set();
+const EDIT_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit"];
+const WRITING_COMMAND = /\bsed\s+-i|\btee\b|\bmv\b|\bcp\b|\brm\b|\bmkdir\b|\btouch\b|\bdotnet\s+(new|format|ef)\b|(^|[^0-9&>])>>?\s*[^&\s>]/;
+
 const hooks = {
   PreToolUse: [{
     hooks: [async (input) => {
       const tool = input.tool_name;
       const ti = input.tool_input ?? {};
       progress({ kind: "tool", tool, target: short(rel(ti.file_path ?? ti.notebook_path ?? ti.path ?? "") || ti.command || ti.pattern || "") });
-      if (["Write", "Edit", "MultiEdit", "NotebookEdit"].includes(tool)) {
+      if (EDIT_TOOLS.includes(tool)) {
         const reason = editDecision(ti.file_path ?? ti.notebook_path);
         if (reason) {
           out.deniedEdits.push(rel(ti.file_path ?? ti.notebook_path));
@@ -64,6 +70,8 @@ const hooks = {
       let chars = 0;
       try { chars = typeof r === "string" ? r.length : JSON.stringify(r ?? "").length; } catch { /* size unknown */ }
       progress({ kind: "result", tool: input.tool_name, target: short(rel(ti.file_path ?? ti.notebook_path ?? ti.path ?? "") || ti.command || ti.pattern || ""), chars });
+      // this hook runs only for a call that ran (a denied edit never gets here)
+      if (EDIT_TOOLS.includes(input.tool_name) || (input.tool_name === "Bash" && WRITING_COMMAND.test(String(ti.command ?? "")))) idleTurns.clear();
       return {};
     }],
   }],
@@ -97,10 +105,12 @@ async function scripted(script) {
 async function main() {
   if (job.script) return scripted(job.script);
   const ctxLimits = job.context ?? {};
+  const stop = new AbortController();
   const res = query({
     prompt: job.task,
     options: {
       cwd: "/work",
+      abortController: stop,
       model: job.model,
       effort: job.effort,
       maxTurns: job.maxTurns,
@@ -125,6 +135,15 @@ async function main() {
       const u = m.message?.usage ?? {};
       const text = (m.message?.content ?? []).filter((b) => b.type === "text").map((b) => b.text).join(" ");
       progress({ kind: "turn", id: m.message?.id, in: (u.input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0), out: u.output_tokens ?? 0, cacheRead: u.cache_read_input_tokens ?? 0, cacheWrite: u.cache_creation_input_tokens ?? 0, text: short(text, 160) });
+      // too long without changing a file: stopped here, and the core keeps what was written as unfinished work.
+      // No SDK total comes after this, so the core counts the spend from the turn lines above.
+      if (m.message?.id) idleTurns.add(m.message.id);
+      if (ctxLimits.idleTurns && idleTurns.size > ctxLimits.idleTurns) {
+        out.status = "no-progress";
+        out.error = `Stopped: no file was changed in ${ctxLimits.idleTurns} turns in a row`;
+        stop.abort();
+        break;
+      }
     }
     if (m.type === "result") {
       out.turns = m.num_turns;
@@ -148,6 +167,10 @@ async function main() {
 }
 
 // the SDK throws after a result that ended on a limit ("Reached maximum budget"): the result's own status stands
-const LIMIT_STOPS = new Set(["over-budget", "max-turns", "bad-output", "config-error"]);
+const LIMIT_STOPS = new Set(["over-budget", "max-turns", "bad-output", "config-error", "no-progress"]);
 main().catch((e) => { if (!LIMIT_STOPS.has(out.status)) { out.status = "error"; out.error = String(e?.message ?? e); } })
-  .finally(() => writeFileSync("/job/out/result.json", JSON.stringify(out)));
+  .finally(() => {
+    writeFileSync("/job/out/result.json", JSON.stringify(out));
+    // a stopped session's child process may linger: the result is written, so don't wait for it
+    if (out.status === "no-progress") setTimeout(() => process.exit(0), 2000);
+  });
