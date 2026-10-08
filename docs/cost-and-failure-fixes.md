@@ -189,3 +189,49 @@ Also learned: a sleeping laptop freezes a run while its time limit keeps countin
 - No run has finished TASK-8, review or delivery yet. `31fe` is the first.
 - Fixes 40 and 41 have not been through a paid run: no plan has been written under the new rule yet.
 - Review will run on `gpt-5.5`, which `31fe` has not called. The project file has no price for it, so the factory counts it at its dearest rate.
+
+## 6. Cost logging (2026-10-08)
+
+Built before the next resume, so the run itself shows where to save. No prompt changed, so parked runs resume into it unchanged.
+
+`factory report <run> --cost` (add `--json` for the data) reads the ledger and the run trace, with no model call. It shows:
+
+- **Money by kind of token**, for the run and per stage: answers written (output), context read again (cache read), context stored (cache write), context sent uncached (input).
+- **Attempts that did not pass**: what each one cost, on which model, and why it failed.
+- **Coding agent sessions**: turns, the largest and the average context, how often the context was summarised, and how often it was stored again instead of read (a gap longer than the cache keeps it).
+- **What the tool calls put into the context**: calls and tokens per tool, and the largest single results with the command or file.
+- **Briefings**: tokens per step against the limit, and the largest sections.
+- **Answers sent back for their shape, answers cut off at the output limit, stored answers reused.**
+
+What is new in the trace (`trace.jsonl`):
+
+| Line | What it holds |
+|---|---|
+| `agent.turn` | now carries the numbers: context size, output, cache read, cache write |
+| `agent.result` | a tool result of about 2,000 tokens or more: the tool, the command or file, its size |
+| `agent.compact` | the context was summarised, and its size before |
+| `agent.summary` | at the end of a session: the largest context, and calls and size per tool |
+| `agent.end` | now also written for a session that timed out or was cut off, so its time is counted |
+| `pack` | each briefing's size against its limit, by section |
+
+Tool result sizes and briefing sections exist only for sessions run after this change; older runs show the rest. The agent image is rebuilt once on the next run, because its script changed.
+
+First reading, run `31fe` ($32.40): 72% went on attempts that did not pass. Of the $18.12 spent on coding, $8.28 was the agent reading its own context again and $4.27 storing it; the sessions that failed averaged about 100K tokens of context per turn.
+
+## 7. Smaller agent context (2026-10-08)
+
+Both are settings of the coding agent's session, sent with each job (`AGENT_CONTEXT` in `src/runners/claude-agent.ts`). Not through a paid run yet; section 6's report shows their effect.
+
+42. **A tool result is capped.** A command's output past 10,000 characters (about 2,500 tokens) is saved to a file, and the agent gets a preview and the path; before, up to 30,000 characters went into the context. One file read returns at most 12,000 tokens and a bigger file is read in parts; before, 25,000. Nothing is lost: the agent can search the saved output or read the next part.
+43. **The compaction window is set to 400,000 tokens.** The SDK summarises at the smaller of this number and the model's own window. The sessions in `31fe` ran on a 200K window ("Prompt is too long" came at about 175K), so there this changes nothing: the context is summarised where it was before. It takes effect only on a model with a window above 400K. To summarise earlier and cut the re-read cost on a 200K model, the number has to be below the window; the SDK accepts 100,000 to 1,000,000.
+
+## 8. From the stop of run 31fe (2026-10-08)
+
+Run `31fe` was stopped by decision at $40 with TASK-8 one failing test short. These came out of reading its ledger, and of checking the web path for the same faults.
+
+44. **A budget stop is read as a budget stop.** The SDK throws "Reached maximum budget" after the result, and that replaced the result's own status with a plain error, so the code was left uncommitted and the next attempt would reset it. The agent script keeps the result's status (`LIMIT_STOPS` in `docker/agent/run-agent.mjs`), and a stop stored the old way is read as out of budget (`checkOf` in `src/stages/build.ts`), in the coding step and the test-writing step.
+45. **The test writer keeps its tests when credit runs out.** The coding step already committed its work on that stop; the test-writing step parked without it, and the resume started from the stub commit (run `b497` paid $1.91 for tests that were thrown away). It now commits the test files and the next attempt carries on from them.
+46. **A move up the ladder keeps the code.** A retry on a stronger model used to start from the task's start. It now keeps the code whenever only tests or the build failed, as a retry on the same rung does, and the agent is told to replace a part only where its approach cannot pass the tests. A safety failure, an agent error or a crash still starts fresh.
+47. **The agent is told its limits.** Turns, minutes and whole dollars of the session go in the task text of the coding agent and the test writer (`limitsNote`), with the advice to run the tests early. Before, the agent could not know them (attempt 7 of TASK-8 was cut off at $5 with 105 of 106 tests passing).
+
+Unproven in a paid run: 44 to 47. Checked on a dry run only.

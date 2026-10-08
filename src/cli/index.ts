@@ -444,10 +444,17 @@ program.command("logs").argument("<run>")
 
 program.command("report").argument("[run]")
   .option("--all", "compare steps across all runs, with outcome numbers on top")
-  .option("--json", "with --all: print {outcomes, stages} as JSON")
+  .option("--json", "with --all: print {outcomes, stages} as JSON; with --cost: the cost report as JSON")
+  .option("--cost", "one run: where the money and tokens went, what failed attempts cost, and what filled the coding agent's context")
   .description("step scorecard: first-time pass, retries and why, cost, time, tokens, gates, what you changed")
-  .action(async (run: string | undefined, o: { all?: boolean; json?: boolean }) => {
+  .action(async (run: string | undefined, o: { all?: boolean; json?: boolean; cost?: boolean }) => {
     const { formatAll, formatOutcomes, formatRun, outcomes, scoreRun, stageStats } = await import("../report.js");
+    if (o.cost) {
+      if (!run) return log("Name a run: factory report <run> --cost");
+      const { costReportFor, formatCost } = await import("../cost-report.js");
+      const c = costReportFor(openRun(run));
+      return log(o.json ? JSON.stringify(c, null, 2) : formatCost(c));
+    }
     if (o.all || !run) {
       const runs = Ledger.listRuns().map((id) => { try { return scoreRun(Ledger.open(id)); } catch { return undefined; } }).filter((r): r is NonNullable<typeof r> => !!r);
       if (o.json) return log(JSON.stringify({ outcomes: outcomes(runs), stages: stageStats(runs) }, null, 2));

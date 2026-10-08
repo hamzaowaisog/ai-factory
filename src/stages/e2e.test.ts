@@ -604,15 +604,16 @@ describe("implement loop across tasks (fakes)", () => {
     expect(f2.map((e) => [e.data!.rung, e.data!.action, e.data!.nextRung])).toEqual([[0, "retry", 0], [0, "retry", 1]]);
     const why = ledger.getJson<{ check: string; message: string }[]>(f2[0]!.outputs![0]!);
     expect(why).toContainEqual(expect.objectContaining({ check: "regression", message: expect.stringMatching(/^Your change broke TASK-1's locked test .*AC_1_1_GreetsWithHello \(AC-1\.1\)/) }));
-    // same rung → keeps the code; the climb to rung 1 → starts fresh
+    // same rung → keeps the code; the climb to rung 1 keeps it too, and says a part may be replaced
     const t2 = lab.seen.filter((x) => x.scope === MULTI_FILES[1]);
     expect(t2[1]!.files["src/Api/Farewell.cs"]).toBe(cls("Bye BREAK"));
     expect(t2[1]!.task).toContain("Your previous change");
     expect(t2[1]!.task).toContain("don't rewrite it");
-    expect(t2[2]!.files["src/Api/Farewell.cs"]).toBeNull();
-    expect(t2[2]!.task).not.toContain("Your previous change");
+    expect(t2[2]!.files["src/Api/Farewell.cs"]).not.toBeNull();
+    expect(t2[2]!.task).toContain("Your previous change");
+    expect(t2[2]!.task).toContain("Replace a part only where its approach cannot pass the tests");
     expect(f2[1]!.data).toMatchObject({ retryMode: "keep" });
-    expect(s.steps.get("implement/TASK-2")!.data).toMatchObject({ retryMode: "reset", retryReason: "moved from rung 0 to rung 1" });
+    expect(s.steps.get("implement/TASK-2")!.data).toMatchObject({ retryMode: "keep", retryReason: "moved from rung 0 to rung 1; the previous attempt failed only on regression" });
 
     // TASK-3: its own test failed once → the retry keeps the code, HEAD stays at the task start
     const t3 = lab.seen.filter((x) => x.scope === MULTI_FILES[2]);

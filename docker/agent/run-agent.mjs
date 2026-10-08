@@ -56,6 +56,17 @@ const hooks = {
       return {};
     }],
   }],
+  // what each tool call put into the session's context: the agent re-reads all of it on every later turn
+  PostToolUse: [{
+    hooks: [async (input) => {
+      const ti = input.tool_input ?? {};
+      const r = input.tool_response;
+      let chars = 0;
+      try { chars = typeof r === "string" ? r.length : JSON.stringify(r ?? "").length; } catch { /* size unknown */ }
+      progress({ kind: "result", tool: input.tool_name, target: short(rel(ti.file_path ?? ti.notebook_path ?? ti.path ?? "") || ti.command || ti.pattern || ""), chars });
+      return {};
+    }],
+  }],
   InstructionsLoaded: [{
     hooks: [async (input) => { out.instructionsLoaded.push(input.file_path); return {}; }],
   }],
@@ -85,6 +96,7 @@ async function scripted(script) {
 
 async function main() {
   if (job.script) return scripted(job.script);
+  const ctxLimits = job.context ?? {};
   const res = query({
     prompt: job.task,
     options: {
@@ -101,11 +113,14 @@ async function main() {
       systemPrompt: { type: "preset", preset: "claude_code", append: job.system, excludeDynamicSections: true },
       outputFormat: { type: "json_schema", schema: job.schema },
       hooks,
-      env: { ...process.env, DISABLE_AUTOUPDATER: "1", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1", CLAUDE_AGENT_SDK_CLIENT_APP: "ai-factory/0.1" },
+      // limits on what one tool call may put into the context, and when the context is summarised (set by the core)
+      settings: { ...(ctxLimits.bashOutputChars ? { bashOutputMaxChars: ctxLimits.bashOutputChars } : {}), ...(ctxLimits.compactWindow ? { autoCompactWindow: ctxLimits.compactWindow } : {}) },
+      env: { ...process.env, DISABLE_AUTOUPDATER: "1", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1", CLAUDE_AGENT_SDK_CLIENT_APP: "ai-factory/0.1", ...(ctxLimits.readTokens ? { CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS: String(ctxLimits.readTokens) } : {}) },
     },
   });
   for await (const m of res) {
     if (m.type === "system" && m.subtype === "init") { out.sessionId = m.session_id; progress({ kind: "start", model: m.model }); }
+    if (m.type === "system" && m.subtype === "compact_boundary") progress({ kind: "compact", pre: m.compact_metadata?.pre_tokens, trigger: m.compact_metadata?.trigger });
     if (m.type === "assistant") {
       const u = m.message?.usage ?? {};
       const text = (m.message?.content ?? []).filter((b) => b.type === "text").map((b) => b.text).join(" ");
@@ -132,5 +147,7 @@ async function main() {
   }
 }
 
-main().catch((e) => { out.status = "error"; out.error = String(e?.message ?? e); })
+// the SDK throws after a result that ended on a limit ("Reached maximum budget"): the result's own status stands
+const LIMIT_STOPS = new Set(["over-budget", "max-turns", "bad-output", "config-error"]);
+main().catch((e) => { if (!LIMIT_STOPS.has(out.status)) { out.status = "error"; out.error = String(e?.message ?? e); } })
   .finally(() => writeFileSync("/job/out/result.json", JSON.stringify(out)));

@@ -197,7 +197,10 @@ describe("the coding agent's output schema", () => {
     const orig = rt.wait.bind(rt);
     rt.wait = async () => {
       const inJson = rt.spec!.mounts.find((m) => m.dst === "/job/in.json")!.src;
-      sent = JSON.parse((await import("node:fs")).readFileSync(inJson, "utf8")).schema;
+      const job = JSON.parse((await import("node:fs")).readFileSync(inJson, "utf8"));
+      sent = job.schema;
+      // the session's context limits go with the job: output cap, read cap, and when it is summarised
+      expect(job.context).toEqual({ bashOutputChars: 10_000, readTokens: 12_000, compactWindow: 400_000 });
       return orig();
     };
     await new ClaudeAgentRunner(rt, { runId: "r", key: "k", fileScope: [], lockedFiles: [], extraProtected: [], agentEnv: {} })

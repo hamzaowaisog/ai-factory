@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, TEST_SCOPE, testRetryMode, testWriterTampering, labelRejectionLifted } from "./build.js";
+import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, checkOf, limitsNote, TEST_SCOPE, testRetryMode, testWriterTampering, labelRejectionLifted } from "./build.js";
 import { attemptSpend, startNeed } from "./executor.js";
 import { matchesAny } from "../util/glob.js";
 
@@ -42,20 +42,30 @@ describe("retry: keep the previous attempt's code or reset", () => {
     expect(retryMode(prev(["locked-failed"]), 0).reason).toMatch(/failed only on locked-failed/);
   });
 
-  it("resets on any move up the ladder", () => {
-    expect(retryMode(prev(["locked-failed"]), 1)).toEqual({ mode: "reset", reason: "moved from rung 0 to rung 1" });
-    expect(mode(["regression"], 3, { rung: 2 })).toBe("reset");
+  it("keeps on a move up the ladder when only behaviour or the build was wrong, and resets on anything else", () => {
+    expect(retryMode(prev(["locked-failed"]), 1)).toEqual({ mode: "keep", reason: "moved from rung 0 to rung 1; the previous attempt failed only on locked-failed" });
+    expect(mode(["regression"], 3, { rung: 2 })).toBe("keep");
+    expect(mode(["build", "locked-failed"], 1)).toBe("keep");
+    expect(retryMode(prev(["agent-error"]), 1).mode).toBe("reset");
+    expect(retryMode(prev(["locked-failed", "secret"]), 1).mode).toBe("reset");
+    expect(retryMode(prev([]), 1)).toEqual({ mode: "reset", reason: "moved from rung 0 to rung 1" });
+  });
+
+  it("tells the agent the limits of its session in whole dollars", () => {
+    const note = limitsNote({ maxTurns: 80, maxUsd: 3.42, timeoutSec: 2700 }, "Return early.");
+    expect(note).toContain("80 turns, 45 minutes or about $3 of model use");
+    expect(note).toMatch(/Return early\.$/);
+    expect(limitsNote({ maxTurns: 80, maxUsd: 0.4, timeoutSec: 60 }, "x")).toContain("about $1");
   });
 
   it("keeps on a move up the ladder when fewer locked tests failed than the attempt before", () => {
     const at = (checks: string[], locked?: number, lockedBefore?: number) => retryMode({ checks, rung: 0, interrupted: false, locked, lockedBefore }, 1);
     expect(at(["locked-failed"], 4, 20)).toEqual({ mode: "keep", reason: "fewer locked tests failed than the attempt before (4, was 20)" });
     expect(at(["locked-failed", "locked-flaky"], 1, 2).mode).toBe("keep");
-    // not closer, nothing to compare with, or something other than locked tests wrong: the fresh start stands
-    expect(at(["locked-failed"], 20, 20).mode).toBe("reset");
-    expect(at(["locked-failed"], 21, 20).mode).toBe("reset");
-    expect(at(["locked-failed"], 4).mode).toBe("reset");
-    expect(at(["locked-failed", "build"], 4, 20).mode).toBe("reset");
+    // not closer or nothing to compare with: still kept, as any behaviour failure is; a safety failure starts fresh
+    expect(at(["locked-failed"], 20, 20).mode).toBe("keep");
+    expect(at(["locked-failed"], 4).mode).toBe("keep");
+    expect(at(["locked-failed", "build"], 4, 20).mode).toBe("keep");
     expect(at(["locked-failed", "secret"], 4, 20).mode).toBe("reset");
   });
 
@@ -115,6 +125,14 @@ describe("retry: keep the previous attempt's code or reset", () => {
     expect(previousAttempt(failed, "implement/TASK-2", [])).toBeUndefined();
   });
 
+  it("reads a budget stop that was stored as a plain agent error as out of budget, so its code is kept", () => {
+    const stored = { check: "agent-error", message: "Claude Code returned an error result: Reached maximum budget ($5.003289200000005)" };
+    expect(checkOf(stored)).toBe("agent-over-budget");
+    expect(checkOf({ check: "agent-error", message: "socket hang up" })).toBe("agent-error");
+    expect(checkOf({ check: "locked-failed", message: "Reached maximum budget" })).toBe("locked-failed");
+    expect(retryMode(prev([checkOf(stored)]), 1).mode).toBe("keep");
+  });
+
   it("keeps unfinished code (out of budget or turns) even after a move up the ladder", () => {
     expect(retryMode(prev(["agent-over-budget"]), 1)).toEqual({ mode: "keep", reason: "the previous attempt ran out of budget or turns" });
     expect(mode(["agent-timeout"], 2, { rung: 0 })).toBe("keep");
@@ -132,6 +150,9 @@ describe("retry: keep the previous attempt's code or reset", () => {
     }
     expect(testRetryMode(undefined).mode).toBe("reset");
     expect(testRetryMode(prev([])).mode).toBe("reset");
+    // out of credit with its tests committed: kept, though the attempt has no failures to fix; a budget stop stored as a plain error reads as one
+    expect(testRetryMode({ checks: [], rung: 1, interrupted: false, noCredit: true, commit: "abc" }).mode).toBe("keep");
+    expect(testRetryMode(prev([{ check: "agent-error", message: "Claude Code returned an error result: Reached maximum budget ($4.01)" }].map(checkOf))).mode).toBe("keep");
     expect(testRetryMode(prev(["ac-coverage"], { interrupted: true })).mode).toBe("reset");
   });
 

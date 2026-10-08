@@ -1,7 +1,7 @@
 // Shared plumbing for thinking steps: build the pack in the locked room, run ApiRunner,
 // store pack + output in the ledger, map runner results to step outcomes.
 import type { z } from "zod";
-import { readsRequirements, type PackClass, type StageName } from "../contracts/index.js";
+import { readsRequirements, type ContextPack, type PackClass, type StageName } from "../contracts/index.js";
 import { buildPack, fileNotPasted, FILE_INLINE_MAX, PackOverBudgetError, type ResolvedSection } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
 import { estimateTokens } from "../context/tokens.js";
@@ -9,7 +9,7 @@ import type { RepoTools } from "../context/tools.js";
 import { ApiRunner, defaultProvider, type Provider } from "../runners/api.js";
 import type { StepContext, StepOutcome } from "./framework.js";
 import { answersText } from "./gate-questions.js";
-import { argsSummary } from "../util/trace.js";
+import { argsSummary, type Trace } from "../util/trace.js";
 import { cacheDisabled, cacheForget, cacheGet, cacheKey, cachePut } from "../estimate/cache.js";
 
 const kTok = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n));
@@ -98,6 +98,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
     throw e;
   }
   const packSha = ctx.ledger.putJson(pack);
+  tracePack(ctx.trace, spec.label ?? spec.stage, pack);
 
   // the same briefing, model and repository state gives the stored answer (src/estimate/cache.ts): from any run in estimate and
   // design modes (the same requirements give the same estimate), and from this run alone in a build run, where it saves a
@@ -133,7 +134,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
           + (tools.length ? `  → ${tools.join(", ")}` : "")
           + (t.calls.some((c) => c.name === "submit_result") ? (t.schemaError ? `  → answer REJECTED: ${t.schemaError.slice(0, 160)}` : t.mended?.length ? `  → answered (mended: ${t.mended.join("; ").slice(0, 160)})` : "  → answered") : "")
           + (t.stop === "max_tokens" ? "  (hit max tokens)" : ""),
-        { model: t.model, turn: t.turn, costUsd: t.costUsd, ms: t.ms, usage: t.usage, turnSha: sha });
+        { model: t.model, turn: t.turn, costUsd: t.costUsd, ms: t.ms, usage: t.usage, turnSha: sha, ...(t.schemaError ? { rejected: true } : {}), ...(t.stop === "max_tokens" ? { maxTokens: true } : {}) });
     },
     // a long answer (a large design takes minutes) says it is arriving, instead of the heartbeat's "no new activity"
     onProgress: (p) => {
@@ -160,6 +161,14 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
     ok: false,
     outcome: { kind: "fail", category, failures: [{ check: `runner-${r.status}`, message: r.error ?? r.status, frames: [] }], signature: `${spec.stage}:${r.status}` },
   };
+}
+
+/** The briefing's size by section in the run trace, so `factory report <run> --cost` can show what each step was sent. */
+export function tracePack(trace: Trace, who: string, pack: ContextPack): void {
+  const m = pack.manifest;
+  const top = [...m.sections].sort((x, y) => y.tokens - x.tokens).slice(0, 3).filter((x) => x.tokens > 0);
+  trace.event("pack", `${who}: briefing ${kTok(m.packTokens)} tokens of ${kTok(m.budgetTokens)}${top.length ? ` (largest: ${top.map((x) => `${x.id} ${kTok(x.tokens)}`).join(", ")})` : ""}`,
+    { packTokens: m.packTokens, budgetTokens: m.budgetTokens, sections: m.sections.map((x) => ({ id: x.id, tokens: x.tokens, trimmed: x.trimmed })) });
 }
 
 // ---------- section helpers ----------

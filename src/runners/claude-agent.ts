@@ -40,7 +40,8 @@ export interface AgentJobExtras {
   onProgress?: (p: AgentProgress) => void;
 }
 
-export interface AgentProgress { ts: number; kind: "start" | "tool" | "turn" | "end"; tool?: string; target?: string; id?: string; in?: number; out?: number; cacheRead?: number; cacheWrite?: number; text?: string; status?: string; turns?: number; costUsd?: number; model?: string }
+/** `result`: what a tool call returned, in characters. `compact`: the session's context was summarised (`pre` = tokens before). */
+export interface AgentProgress { ts: number; kind: "start" | "tool" | "result" | "compact" | "turn" | "end"; tool?: string; target?: string; id?: string; in?: number; out?: number; cacheRead?: number; cacheWrite?: number; text?: string; status?: string; turns?: number; costUsd?: number; model?: string; chars?: number; pre?: number; trigger?: string }
 
 /**
  * Spend from the per-turn lines when the agent left no SDK total (timeout, crash): tokens summed,
@@ -74,6 +75,14 @@ export function readProgress(file: string, offset: number): { lines: AgentProgre
   const lines = chunk.slice(0, end).split("\n").filter(Boolean).flatMap((l) => { try { return [JSON.parse(l) as AgentProgress]; } catch { return []; } });
   return { lines, offset: offset + Buffer.byteLength(chunk.slice(0, end + 1)) };
 }
+
+/**
+ * What keeps a coding session's context small: every later turn pays to read it again.
+ *  - a command's output past this many characters goes to a file, and the agent gets a preview and the path (the SDK's default is 30,000)
+ *  - one file read returns at most this many tokens; a bigger file is read in parts (the SDK's default is 25,000)
+ *  - the context is summarised at this many tokens, or at the model's own window when that is smaller (context-builder §2.10)
+ */
+export const AGENT_CONTEXT = { bashOutputChars: 10_000, readTokens: 12_000, compactWindow: 400_000 };
 
 /** The API's refusal of a request that no longer fits the model's context window. */
 const SESSION_FULL = /prompt is too long/i;
@@ -159,6 +168,7 @@ export class ClaudeAgentRunner implements Runner {
       fileScope: x.fileScope,
       protectedGlobs: [...(x.protectedGlobs ?? [...LOCK_SET_GLOBS, ...CONFIG_INTEGRITY_GLOBS]), ...x.lockedFiles, ...x.extraProtected],
       script: agentScript?.(job.step),
+      context: AGENT_CONTEXT,
     }));
 
     const mounts: Mount[] = [
@@ -198,7 +208,8 @@ export class ClaudeAgentRunner implements Runner {
       // forward the agent's progress to the trace while it works
       const progressFile = join(outDir, "progress.jsonl");
       let offset = 0;
-      const pump = () => { const r = readProgress(progressFile, offset); offset = r.offset; for (const p of r.lines) x.onProgress?.(p); };
+      let ended = false;
+      const pump = () => { const r = readProgress(progressFile, offset); offset = r.offset; for (const p of r.lines) { if (p.kind === "end") ended = true; x.onProgress?.(p); } };
       const timer = x.onProgress ? setInterval(pump, 3000) : undefined;
       let code: number | undefined;
       try {
@@ -211,6 +222,8 @@ export class ClaudeAgentRunner implements Runner {
       const resultPath = join(outDir, "result.json");
       // no SDK total (timeout, crash): count the spend from the per-turn lines before the folder goes
       const fromProgress = (): Usage => ({ ...usageFromProgress(progressFile, job.model), wallMs: Date.now() - started });
+      // a session that was cut off wrote no end line: the trace gets one, so its time and totals are counted like any other
+      if (!ended && existsSync(progressFile)) { const u = fromProgress(); x.onProgress?.({ ts: Date.now(), kind: "end", status: code === undefined ? "timeout" : "cut off", turns: u.turns, costUsd: u.estUsd }); }
       if (code === undefined) return { status: "timeout", usage: fromProgress() };
       if (!existsSync(resultPath)) return { status: "error", error: `Agent exited ${code} without a result`, usage: fromProgress() };
       const out = JSON.parse(readFileSync(resultPath, "utf8")) as AgentOut;

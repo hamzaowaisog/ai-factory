@@ -33,7 +33,7 @@ import { approvedDesignFor } from "./design-inputs.js";
 import { header, outputOf, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { modelFor } from "./routing.js";
 import { family } from "../runners/types.js";
-import { S } from "./think.js";
+import { S, tracePack } from "./think.js";
 import { changeBase, ensureWorktree, runtime, snapshotFor, uiBase } from "./workspace.js";
 import { replay, splitKey } from "../ledger/state.js";
 import { REPO_DESIGN_DIR, repoFiles, type DesignPackage } from "../design/package.js";
@@ -132,12 +132,31 @@ function phaseTracer(ctx: StepContext) {
 }
 
 /** Coding-agent progress → trace. */
-function agentTracer(ctx: StepContext, who: string) {
+/** A tool result this large (characters, about 2,000 tokens) gets its own line in the run log; every result is counted in the session's summary. */
+const BIG_RESULT_CHARS = 8000;
+
+export function agentTracer(ctx: Pick<StepContext, "trace">, who: string) {
+  // what the session's context was made of, for `factory report <run> --cost`
+  const tools = new Map<string, { calls: number; chars: number }>();
+  let peak = 0, compactions = 0;
   return (p: AgentProgress) => {
     if (p.kind === "tool") ctx.trace.event("agent.tool", `${who}: ${p.tool} ${p.target ?? ""}`);
-    else if (p.kind === "turn") ctx.trace.event("agent.turn", `${who}: turn  in ${p.in ?? 0} out ${p.out ?? 0}${p.text ? `  "${p.text}"` : ""}`);
-    else if (p.kind === "start") ctx.trace.event("agent.start", `${who}: agent started (${p.model ?? "?"})`);
-    else if (p.kind === "end") ctx.trace.event("agent.end", `${who}: agent finished: ${p.status} after ${p.turns ?? "?"} turns, $${(p.costUsd ?? 0).toFixed(3)}`);
+    else if (p.kind === "turn") {
+      peak = Math.max(peak, p.in ?? 0);
+      ctx.trace.event("agent.turn", `${who}: turn  in ${p.in ?? 0} out ${p.out ?? 0}${p.text ? `  "${p.text}"` : ""}`, { id: p.id, in: p.in ?? 0, out: p.out ?? 0, cacheRead: p.cacheRead ?? 0, cacheWrite: p.cacheWrite ?? 0 });
+    } else if (p.kind === "result") {
+      const t = tools.get(p.tool ?? "?") ?? { calls: 0, chars: 0 };
+      tools.set(p.tool ?? "?", { calls: t.calls + 1, chars: t.chars + (p.chars ?? 0) });
+      if ((p.chars ?? 0) >= BIG_RESULT_CHARS) ctx.trace.event("agent.result", `${who}: large result, about ${Math.round((p.chars ?? 0) / 4000)}K tokens, from ${p.tool} ${p.target ?? ""}`, { tool: p.tool, target: p.target, chars: p.chars });
+    } else if (p.kind === "compact") {
+      compactions++;
+      ctx.trace.event("agent.compact", `${who}: context summarised${p.pre ? ` at ${Math.round(p.pre / 1000)}K tokens` : ""}`, { pre: p.pre, trigger: p.trigger });
+    } else if (p.kind === "start") ctx.trace.event("agent.start", `${who}: agent started (${p.model ?? "?"})`);
+    else if (p.kind === "end") {
+      ctx.trace.event("agent.end", `${who}: agent finished: ${p.status} after ${p.turns ?? "?"} turns, $${(p.costUsd ?? 0).toFixed(3)}`);
+      if (peak || tools.size) ctx.trace.event("agent.summary", `${who}: context peaked at ${Math.round(peak / 1000)}K tokens${compactions ? `, summarised ${compactions}x` : ""}; tool results: ${[...tools].sort((x, y) => y[1].chars - x[1].chars).map(([n, t]) => `${n} ${t.calls}x ${Math.round(t.chars / 4000)}K`).join(", ") || "none"}`,
+        { peak, compactions, tools: Object.fromEntries(tools) });
+    }
   };
 }
 
@@ -438,6 +457,7 @@ const TESTS_KEEPABLE = new Set(["ac-coverage", "tests-compile", "test-not-found"
 /** Keep the previous attempt's tests for this retry, or start from the stub commit. Any rung: the tests are edited, not trusted. */
 export function testRetryMode(prev: PrevAttempt | undefined): { mode: "keep" | "reset"; reason: string } {
   if (!prev) return { mode: "reset", reason: "no previous attempt" };
+  if (prev.noCredit) return { mode: "keep", reason: "the previous attempt stopped when the model account ran out of credit" };
   if (prev.interrupted) return { mode: "reset", reason: "the previous attempt didn't finish" };
   if (!prev.checks.length) return { mode: "reset", reason: "no failures to fix" };
   const bad = [...new Set(prev.checks.filter((c) => !TESTS_KEEPABLE.has(c)))];
@@ -471,8 +491,24 @@ export function labelRejectionLifted(ledger: Pick<Ledger, "events" | "getJson" |
   return true;
 }
 
+/**
+ * The session's limits, told to the agent: it cannot see them, and one that does not know them explores until it is cut off
+ * with the work unfinished (run 31fe, attempt 7: stopped at $5 one failing test short). Whole dollars, so the text is steady.
+ */
+export function limitsNote(l: { maxTurns: number; maxUsd: number; timeoutSec: number }, advice: string): string {
+  return `\nThis session is cut off after ${l.maxTurns} turns, ${Math.round(l.timeoutSec / 60)} minutes or about $${Math.max(1, Math.floor(l.maxUsd))} of model use, whichever comes first, and you are not warned. Long tool output, whole-file rewrites and reading a file again all use it up. ${advice}`;
+}
+
 /** The agent stopped before it answered (budget, turns or a full context window): what it wrote is still worth finishing. */
 const UNFINISHED = new Set(["over-budget", "timeout"]);
+
+/**
+ * A failure's check, with a budget stop that was stored as a plain agent error read as what it was: the SDK throws
+ * "Reached maximum budget" after the result, and that used to replace the result's own status.
+ */
+export function checkOf(f: { check: string; message?: string }): string {
+  return f.check === "agent-error" && /Reached maximum budget/i.test(f.message ?? "") ? "agent-over-budget" : f.check;
+}
 
 /** Uncommitted paths in the checkout (untracked files one by one). */
 const GAP_CAP = 60;
@@ -512,7 +548,7 @@ export const authorTestsStep: StepDef = {
     const start = String(ctx.state.steps.get("stub-commit")!.data!.commit);
     const wt = await ensureWorktree(ctx, start);
     // keep the previous attempt's tests when a retry can fix them, or start again from the stub commit
-    const prev = previousAttempt(ctx.ledger.events(), "author-tests", ctx.priorFailures.map((f) => f.check));
+    const prev = previousAttempt(ctx.ledger.events(), "author-tests", ctx.priorFailures.map(checkOf));
     let mode = testRetryMode(prev);
     let keptFiles: string[] = [];
     if (mode.mode === "keep") {
@@ -552,6 +588,7 @@ export const authorTestsStep: StepDef = {
     const contractFile = ctx.project.contract && existsSync(join(wt, ctx.project.contract.file)) ? ctx.project.contract.file : undefined;
     const pointers = [...anchorFiles(spec).map((p) => ({ path: p, reason: "the code these criteria are about" })), ...lessonPointers(lessons),
       ...(contractFile && plan.stubs.some((s) => s.path === contractFile) ? [{ path: contractFile, reason: `the locked API contract; the client and test handlers in ${CLIENT_DIR} are generated from it` }] : [])];
+    const limits = { maxTurns: testWriterTurns(light, needTest.map((a) => a.level)), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 };
     const pack = buildPack({
       stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
       sections: [
@@ -574,11 +611,12 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
         S.task(`Write the acceptance and characterisation tests now.${keptFiles.length
           ? ` The previous attempt failed for the reasons above. Its test files are still in the checkout (previous-tests lists them${prevOut ? " and the tests it returned" : ""}): keep them, change only what the failures name, and write the tests that are missing.${prevOut ? "" : " It stopped before it finished, so read those files first and finish them."} Return the full list: the tests you kept and the new ones.`
           : priorFailures.length ? " The previous attempt failed for the reasons above; fix them." : ""}
-Before you return, check your list against the criteria: each of these needs at least one test in it: ${needTest.map((a) => a.id).join(", ")}.`),
+Before you return, check your list against the criteria: each of these needs at least one test in it: ${needTest.map((a) => a.id).join(", ")}.${limitsNote(limits, "Write every test first, then check them.")}`),
         S.recap(["one test per AC", "tests fail now for the right reason", "characterisation tests pass today", "don't touch production code"]),
       ],
     });
     // the briefing is built first: one that doesn't fit stops the step before any container starts
+    tracePack(ctx.trace, "test writer", pack);
     const rt = runtime();
     await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
     await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
@@ -595,8 +633,14 @@ Before you return, check your list against the criteria: each of these needs at 
         protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
         onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "author-tests", data: { id, role: "agent" } }, ctx.writer); },
         onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "author-tests", data: { id } }, ctx.writer); },
-      }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits: { maxTurns: testWriterTurns(light, needTest.map((a) => a.level)), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 }, workdir: wt });
+      }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits, workdir: wt });
       await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
+      if (r.status === "config-error" && r.error === NO_CREDIT_TEXT) {
+        // the tests so far are paid for: committed, and the next attempt carries on from them (run b497 lost $1.91 of tests this way)
+        const left = await dirtyPaths(wt);
+        const unfinished = left.length && left.every((f) => matchesAny(f, TEST_SCOPE)) ? await commitAll(wt, `factory: unfinished acceptance tests for ${ctx.runId}`) : undefined;
+        return { kind: "park", reason: r.error, data: { noCredit: true, rung: ctx.rung, ...(unfinished ? { commit: unfinished } : {}) } };
+      }
       if (r.status === "config-error") return { kind: "park", reason: r.error ?? "The API rejected the coding agent's request" };
       if (r.status !== "ok") {
         // out of budget or turns: what it wrote is paid for, so it is saved for the retry to finish (test files only)
@@ -909,10 +953,9 @@ export interface PrevAttempt {
 
 /**
  * Keep the previous attempt's code for this retry, or start again from the task's start commit.
- * Keep only after a recorded failure of keepable checks at the same rung: a move up the ladder
- * starts fresh so a stronger model isn't anchored on a weaker model's approach. The exception is
- * code that is getting closer: fewer locked tests failed than in the attempt before, so the
- * approach works and the higher rung finishes it instead of paying for it again.
+ * Keep after a recorded failure of keepable checks, at the same rung or after a move up the ladder: the stronger
+ * model is told it may replace what cannot work, instead of paying to write all of it again (run 31fe: a reset on
+ * each move, $5 a time). Anything else wrong (a safety check, an agent error) starts fresh.
  */
 export function retryMode(prev: PrevAttempt | undefined, rung: number): { mode: "keep" | "reset"; reason: string } {
   if (!prev) return { mode: "reset", reason: "no previous attempt" };
@@ -923,10 +966,10 @@ export function retryMode(prev: PrevAttempt | undefined, rung: number): { mode: 
   const closer = prev.locked !== undefined && prev.lockedBefore !== undefined && prev.locked < prev.lockedBefore
     && prev.checks.length > 0 && prev.checks.every((c) => c === "locked-failed" || c === "locked-flaky");
   if (closer && prev.rung !== rung) return { mode: "keep", reason: `fewer locked tests failed than the attempt before (${prev.locked}, was ${prev.lockedBefore})` };
-  if (prev.rung !== rung) return { mode: "reset", reason: `moved from rung ${prev.rung} to rung ${rung}` };
-  if (!prev.checks.length) return { mode: "reset", reason: "no failures to fix" };
+  if (!prev.checks.length) return { mode: "reset", reason: prev.rung !== rung ? `moved from rung ${prev.rung} to rung ${rung}` : "no failures to fix" };
   const bad = [...new Set(prev.checks.filter((c) => !KEEPABLE.has(c)))];
   if (bad.length) return { mode: "reset", reason: `the previous attempt failed on ${bad.join(", ")}` };
+  if (prev.rung !== rung) return { mode: "keep", reason: `moved from rung ${prev.rung} to rung ${rung}; the previous attempt failed only on ${[...new Set(prev.checks)].join(", ")}` };
   return { mode: "keep", reason: `the previous attempt failed only on ${[...new Set(prev.checks)].join(", ")}` };
 }
 
@@ -979,8 +1022,13 @@ export function implementStep(taskId: string): StepDef {
       const wt = await ensureWorktree(ctx, start);
       const builtDoc = ctx.project.contract?.built ? [ctx.project.contract.built] : [];
       // keep the previous attempt's code, or start fresh from a clean commit (its diff saved first)
-      const prev = previousAttempt(ctx.ledger.events(), key, ctx.priorFailures.map((f) => f.check));
+      const prev = previousAttempt(ctx.ledger.events(), key, ctx.priorFailures.map(checkOf));
       let mode = retryMode(prev, ctx.rung);
+      // an attempt that ended on its budget before that was read as one (run 31fe, attempt 7) left its code uncommitted: commit it now
+      if (mode.mode === "keep" && !prev?.commit && ctx.priorFailures.some((f) => f.check !== checkOf(f)) && (await headSha(wt)) === start && (await dirtyPaths(wt)).length) {
+        await trackIgnored(wt, [...task.fileScope, ...takenOver(plan, spec, task.id, planShowsLayers(ctx.ledger.events(), plan, spec, lock.tests, ctx.project.stack)).fileScope], builtDoc);
+        await commitAll(wt, `factory: ${task.id} unfinished`);
+      }
       const head = await headSha(wt);
       const dirty = !!(await git(wt, ["status", "--porcelain"])).stdout.trim();
       if (mode.mode === "keep" && (dirty || head === start || (prev?.commit && prev.commit !== head) || !(await isAncestor(wt, start, head)))) {
@@ -1002,7 +1050,7 @@ export function implementStep(taskId: string): StepDef {
         await resetHard(wt, start, keptOnReset(ctx.project));
       }
       const retry = { retryMode: mode.mode, retryReason: mode.reason };
-      const unfinishedBefore = prevChange !== undefined && ctx.priorFailures.length > 0 && ctx.priorFailures.every((f) => f.check === "agent-over-budget" || f.check === "agent-timeout");
+      const unfinishedBefore = prevChange !== undefined && ctx.priorFailures.length > 0 && ctx.priorFailures.every((f) => checkOf(f) === "agent-over-budget" || f.check === "agent-timeout");
       const { model, effort } = modelFor(ctx.project, "implement", ctx.rung, undefined, ctx.priorFailures);
       // a plan built in layers shows itself at the first task whose tests need a later layer; from then on those tests wait for it
       const layered = planShowsLayers(ctx.ledger.events(), plan, spec, lock.tests, ctx.project.stack);
@@ -1029,6 +1077,9 @@ export function implementStep(taskId: string): StepDef {
       const briefScreens = screen ? [screen] : fromScaffold ? [fromScaffold] : screensForTask(approvedDesign, task);
       const approvedScreen = !approvedDesign || !briefScreens.length ? undefined
         : briefScreens.length === 1 ? screenBrief(approvedDesign, briefScreens[0]!) : screensBrief(approvedDesign, briefScreens);
+      // a task that also holds earlier tasks' tests has their work to prove as well as its own: twice the turns, budget and time
+      const room = taken.from.length ? 2 : 1;
+      const limits = { maxTurns: 80 * room, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4 * room), timeoutSec: 45 * 60 * room };
       const pack = buildPack({
         stage: "implement", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
         sections: [
@@ -1055,14 +1106,17 @@ export function implementStep(taskId: string): StepDef {
           S.task(`Implement ${task.id}: ${task.title}.${unfinishedBefore
             ? " The previous attempt stopped before it finished (above). Its code is still in the files: read it, keep what is right and finish the task."
             : prevChange !== undefined
-            ? " The previous attempt failed; the failures are above. Its code is still in the files: fix the failures by editing that change, don't rewrite it."
-            : ctx.priorFailures.length ? " The previous attempt failed; the failures are above." : ""}`),
+            ? prev && prev.rung !== ctx.rung
+              ? " The previous attempts failed; the latest failures are above. Their code is still in the files: keep what is right and fix the failures there. Replace a part only where its approach cannot pass the tests."
+              : " The previous attempt failed; the failures are above. Its code is still in the files: fix the failures by editing that change, don't rewrite it."
+            : ctx.priorFailures.length ? " The previous attempt failed; the failures are above." : ""}${limitsNote(limits, "Build and run the locked tests early, and return done=true as soon as they pass.")}`),
           S.recap(["only the file scope", "don't touch tests", "no new packages", "return done=true when finished"]),
         ],
       });
       // the briefing is built first: one that doesn't fit stops the step before any container starts
       const rt = runtime();
       await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
+      tracePack(ctx.trace, `implementer ${taskId}`, pack);
       await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
       // a Node app's packages, in the checkout (a .NET one reads the restored packages from the run's folder)
       if (ctx.project.stack === "node") await ensurePackages(ctx, start, wt);
@@ -1073,13 +1127,12 @@ export function implementStep(taskId: string): StepDef {
       else {
         // a task that also holds earlier tasks' tests has their work to prove as well as its own: twice the turns, budget and
         // time of one task, so it is not cut off and started again part-way (each new session pays to read everything again)
-        const room = taken.from.length ? 2 : 1;
         const r = await new ClaudeAgentRunner(rt, {
           runId: ctx.runId, key: `${key}/${ctx.attempt}`, fileScope, lockedFiles: lock.lock.map((l) => l.file), onProgress: agentTracer(ctx, "implementer"),
           extraProtected: scaf?.protected ?? [], ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
           onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key, data: { id, role: "agent" } }, ctx.writer); },
           onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key, data: { id } }, ctx.writer); },
-        }).run({ step: "implement", model, effort, pack, schema: ImplementOut, limits: { maxTurns: 80 * room, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4 * room), timeoutSec: 45 * 60 * room }, workdir: wt });
+        }).run({ step: "implement", model, effort, pack, schema: ImplementOut, limits, workdir: wt });
         await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
         if (r.status === "config-error" && r.error === NO_CREDIT_TEXT) {
           // the code so far is paid for: committed, and the next attempt carries on from it at the same rung
