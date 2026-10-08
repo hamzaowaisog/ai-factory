@@ -10,7 +10,7 @@ import type { BuildRun, LintRun, ReviewFinding, Requirement, ReviewCoverage, Tes
 import type { ExternalChecks } from "../contracts/checks.js";
 import type { Convention } from "../contracts/index.js";
 import type { Violation } from "../conventions/check.js";
-import { type GateDef, runGate } from "../gates/engine.js";
+import { type GateDef, gateInputsHash, runGate } from "../gates/engine.js";
 import type { Policy } from "../gates/policy.js";
 import { diffSize, noSecrets, shaBinding, testExpectations } from "../gates/predicates.js";
 import { reviewCoversCriteria } from "../gates/coverage.js";
@@ -86,6 +86,22 @@ export async function runMergeGates(
     out.push({ id: def.id, passed: r.passed, details: r.details });
   }
   return out;
+}
+
+/**
+ * The engine loads inputs from the ledger by sha, so each one is stored first — which is also what
+ * makes the decision re-checkable long afterwards.
+ */
+function stored(ledger: Ledger, inputs: Record<string, unknown>): Record<string, string> {
+  return Object.fromEntries(Object.entries(inputs).map(([k, v]) => [k, ledger.putJson(v)]));
+}
+
+/**
+ * Each planned gate's inputs hash, computed the way the engine computes the one it records. Anything
+ * else can never equal a recorded hash, and every gate would be re-run on every pass.
+ */
+export function plannedInputHashes(ledger: Ledger, policy: Policy, e: MergeEvidence): Map<string, string> {
+  return new Map(planned(e).map(({ def, inputs }) => [def.id, gateInputsHash(def.id, stored(ledger, inputs), policy)]));
 }
 
 /** The gate ids this evidence would produce, in order, without evaluating anything. */

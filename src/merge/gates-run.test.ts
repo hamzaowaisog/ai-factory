@@ -1,6 +1,6 @@
 // Step 12: the gates, their order, and what gets recorded.
 import { describe, expect, it } from "vitest";
-import { plannedGateIds, runMergeGates, type MergeEvidence } from "./gates-run.js";
+import { plannedGateIds, plannedInputHashes, runMergeGates, type MergeEvidence } from "./gates-run.js";
 import { HUMAN_WRITER, type Ledger } from "../ledger/ledger.js";
 import { DEFAULT_POLICY } from "../gates/policy.js";
 import { sha256, stableStringify } from "../util/hash.js";
@@ -157,5 +157,25 @@ describe("runMergeGates", () => {
     const got = await runMergeGates(l, HUMAN_WRITER, DEFAULT_POLICY, { evidence: evidence(), step: "reverify", treeSha: "a".repeat(40), replay });
     expect(got.length).toBeGreaterThan(1);
     expect(l.events().some((e) => e.type === "gate.result" && e.data?.gateId === "secrets.none")).toBe(true);
+  });
+});
+
+describe("plannedInputHashes", () => {
+  it("is exactly the inputs hash the engine records, so an unchanged gate replays", async () => {
+    const ledger = fakeLedger();
+    const e = withReview();
+    await runMergeGates(ledger, HUMAN_WRITER, DEFAULT_POLICY, { evidence: e, step: "reverify", treeSha: "a".repeat(40) });
+    const recorded = new Map(ledger.events().map((ev) => [String(ev.data?.gateId), ev.inputsHash]));
+    const current = plannedInputHashes(ledger, DEFAULT_POLICY, e);
+    expect([...current.keys()]).toEqual(plannedGateIds(e));
+    for (const [id, h] of current) expect(h).toBe(recorded.get(id));
+  });
+
+  it("moves when what a gate reads moves", () => {
+    const ledger = fakeLedger();
+    const a = plannedInputHashes(ledger, DEFAULT_POLICY, evidence());
+    const b = plannedInputHashes(ledger, DEFAULT_POLICY, evidence({ build: { kind: "build", ok: false, errors: [] } }));
+    expect(b.get("build.clean")).not.toBe(a.get("build.clean"));
+    expect(b.get("integrate.diff-size")).toBe(a.get("integrate.diff-size"));
   });
 });
