@@ -122,13 +122,23 @@ It asks GitHub which pull requests are open and gates each one, oldest first. Dr
 the factory opens its own pull request as a draft and marks it ready once it has posted its review,
 so a draft is one still being assembled.
 
-**It keeps no memory of what it has already gated, on purpose.** Remembering each head SHA would skip
-a pull request whose head is unchanged but whose *base* moved — the one case this whole gate exists
-for. Re-gating every pass is cheap instead, because `reviewPr` decides the cost itself: an unchanged
-tree replays its recorded verdicts, starts no container and spends no tokens, and both the check run
-and the comment are upserts, so a pass that changes nothing writes nothing new.
+**The poller itself keeps no memory; the run's ledger does.** Each verdict writes a `reverify` step
+to the run's ledger, recording the head and base it judged, the conclusion, and the repair attempts.
+On the next pass, a pull request whose head and base are both unchanged is concluded from that
+record: no container, no tokens, and no repeat notification. A base that moved is judged again,
+which is the case this gate exists for. If the pull request was judged less than 5 minutes ago, it
+waits until the next pass after that, so a burst of pushes is judged once.
 
-A pull request that cannot be gated at all — a missing ledger, a container that will not start — is
+**One host owns a repository.** The poller gates only pull requests whose ledger is on this host,
+from a branch in the configured repository. It leaves everything else alone and writes nothing to it:
+- a run from another machine
+- a branch a person opened
+- a fork
+
+Two hosts polling the same repository would overwrite each other's check, so run it on one.
+`review-pr`, the explicit trigger, still fails these pull requests loudly.
+
+A pull request that cannot be gated at all, for example because a container will not start, is
 logged and the rest still run. One bad pull request does not stop the others.
 
 The trade against Harness or a webhook is latency and uptime: a pull request waits up to `--every`
@@ -210,6 +220,19 @@ Minimum interval between runs for one pull request | 5 minutes |
 Repair on the merge-queue path | **never** — pushing to a queued branch ejects it |
 
 Past any of those: park, red check, Slack, wait for a person. `main` is untouched throughout.
+
+A repair goes through these steps in order:
+1. The model reads the merged tree. For a conflict, that includes the markers and both sides.
+2. The repair is committed locally as one merge commit with a `Factory-Repair:` trailer.
+3. That commit is built and tested.
+4. Every gate is run on it.
+5. **Only then is it pushed**, and the check is written to the commit it pushed.
+
+A repair that does not verify, or that a gate blocks, is never pushed. A repair may not write:
+- locked tests
+- `.github/**`
+- `.factory/**`
+- secret or no-go paths
 
 ## Forcing a re-review
 
