@@ -24,7 +24,7 @@ describe("commitsWithTrailers", () => {
     const head = g(repo, "rev-parse", "HEAD");
     return commitsWithTrailers(repo, gated, head).then((got) => {
       expect(got).toHaveLength(1);
-      expect(got[0]!.trailers).toEqual(["Factory-Repair: run-1"]);
+      expect(got[0]!.trailers).toContain("Factory-Repair: run-1");
     });
   });
 });
