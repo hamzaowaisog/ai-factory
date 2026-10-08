@@ -39,8 +39,10 @@ export function recordedVerdicts(ledger: Ledger): Map<string, GateOutcome> {
 /** The commit trailers of each commit in a range, for the repair-loop guard. */
 export async function commitsWithTrailers(repo: string, from: string, to: string): Promise<{ sha: string; trailers: string[] }[]> {
   if (from === to) return [];
-  // %x1e between commits, %x1f between sha and body: characters git will not emit itself
-  const out = await gitOut(repo, ["log", "--format=%H%x1f%B%x1e", `${from}..${to}`]);
+  // %x1e between commits, %x1f between sha and body: characters git will not emit itself.
+  // First parent only: a repair is a merge commit, and its second parent brings in the base's own
+  // commits, which carry no trailer and would read as commits nobody in the factory wrote.
+  const out = await gitOut(repo, ["log", "--first-parent", "--format=%H%x1f%B%x1e", `${from}..${to}`]);
   return out.split("\x1e").map((c) => c.trim()).filter(Boolean).map((c) => {
     const [sha, body = ""] = c.split("\x1f");
     return { sha: sha!.trim(), trailers: body.split("\n").map((l) => l.trim()).filter((l) => /^[A-Za-z-]+:\s/.test(l)) };

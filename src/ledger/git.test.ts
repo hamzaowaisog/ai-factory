@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { addWorktree, changedFiles, commitAll, diffIncludingUntracked, freshWorktree, git, headSha, removeWorktree, repoRefusals, resetHard, trackIgnored } from "./git.js";
+import { addWorktree, authEnv, changedFiles, commitAll, diffIncludingUntracked, fetchForGate, freshWorktree, git, headSha, removeWorktree, repoRefusals, resetHard, trackIgnored } from "./git.js";
 
 function makeRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "factory-git-"));
@@ -94,5 +94,18 @@ describe("hardened git", () => {
     expect(existsSync(join(repo, "gen/Source.cs"))).toBe(true);
     expect(existsSync(join(repo, "gen/built.json"))).toBe(false);
     expect(await trackIgnored(repo, ["src/**"])).toEqual([]);
+  });
+  it("passes the forge token through git's environment only, base64 in an auth header", () => {
+    const env = authEnv("tok-123");
+    expect(Object.keys(env).sort()).toEqual(["GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"]);
+    expect(env.GIT_CONFIG_KEY_0).toBe("http.extraHeader");
+    expect(env.GIT_CONFIG_VALUE_0).toBe(`Authorization: Basic ${Buffer.from("x-access-token:tok-123").toString("base64")}`);
+  });
+
+  it("fails the gate's fetch when the base cannot be reached, without the token in the error", async () => {
+    const repo = makeRepo();
+    const err = await fetchForGate(repo, "main", undefined, { url: "https://127.0.0.1:9/none.git", token: "tok-SECRET-9" }).catch((e: Error) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).not.toContain("tok-SECRET-9");
   });
 });

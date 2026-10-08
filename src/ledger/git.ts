@@ -112,12 +112,32 @@ export async function freshWorktree(repo: string, wtPath: string, branch: string
  * exists. The head is fetched too, because `commitsSince` walks it locally.
  *
  * The base must be reachable afterwards, so a failure there is fatal. A head branch can legitimately
- * be gone (deleted after a merge, or a fork), and the caller handles the pull request's state itself.
+ * be gone (deleted after a merge), and the caller handles the pull request's state itself. A fork's
+ * head is not on this remote at all, so the caller passes no `headRef` for one: fetching the base
+ * repository's branch of the same name would walk the wrong commits.
+ *
+ * `remote` is the forge's URL and token, the same ones the repair push uses. Hardened git reads no
+ * credential helper, so without them a private HTTPS repository refuses the fetch, and `origin` is
+ * not necessarily the forge repository anyway.
  */
-export async function fetchForGate(repo: string, baseRef: string, headRef: string): Promise<void> {
+export async function fetchForGate(repo: string, baseRef: string, headRef?: string, remote?: { url: string; token?: string }): Promise<void> {
   const spec = (r: string) => `+refs/heads/${r}:refs/remotes/origin/${r}`;
-  await git(repo, ["fetch", "--quiet", "origin", spec(baseRef)]);
-  await git(repo, ["fetch", "--quiet", "origin", spec(headRef)]).catch(() => undefined);
+  const from = remote?.url ?? "origin";
+  const env = remote?.token ? authEnv(remote.token) : undefined;
+  const run = (r: string) => git(repo, ["fetch", "--quiet", from, spec(r)], { env }).catch((e: Error) => {
+    throw remote?.token ? new Error(e.message.replaceAll(remote.token, "«SECRET»")) : e;
+  });
+  await run(baseRef);
+  if (headRef) await run(headRef).catch(() => undefined);
+}
+
+/**
+ * The forge token as git configuration in the environment, never on a command line: a failed fetch
+ * or push prints its command into the error, and from there into the ledger.
+ */
+export function authEnv(token: string): Record<string, string> {
+  const auth = Buffer.from(`x-access-token:${token}`).toString("base64");
+  return { GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "http.extraHeader", GIT_CONFIG_VALUE_0: `Authorization: Basic ${auth}` };
 }
 
 /** Stage everything and commit (even when empty, so every attempt has a tree SHA). */
