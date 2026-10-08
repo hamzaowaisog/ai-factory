@@ -1,13 +1,14 @@
 // Settling a spec's problems by questions (docs/estimates-design.md, "The pipeline"). What the specify step's repairs leave
-// open in an estimate or design run (a critical or high critic finding, a capability the request did not ask for, a lint
-// check that does not block) goes back to the client as clarify questions instead of stopping the run at gate E1: a person
-// answers them on a card, or a hands-off run takes each recommended answer as an assumption. The spec is repaired with the
+// open in an estimate or design run, or a build that asks (src/estimate/settled.ts, settles) (a critical or high critic finding, a
+// capability the request did not ask for, a lint check that does not block) goes back to the client as clarify questions
+// instead of stopping the run at gate E1: a person answers them on a card, or a hands-off run takes each recommended answer
+// as an assumption. The spec is repaired with the
 // answers and checked again, for at most SETTLE_ROUNDS rounds; what is still open after that is carried as an open risk,
-// stated on the estimate. Gate E1 lets a settled problem through.
+// stated on the estimate (a build: on its plan approval card). Gate E1 lets a settled problem through.
 import { z } from "zod";
 import type { SettledProblem, SpecDraft as Spec } from "../contracts/index.js";
 import { humanReview } from "../estimate/settings.js";
-import { openProblems, SETTLE_MODES, unsettled, type Found, type Problem } from "../estimate/settled.js";
+import { openProblems, settles, unsettled, type Found, type Problem } from "../estimate/settled.js";
 import { readiness } from "../estimate/gates.js";
 import { runGate } from "../gates/engine.js";
 import { hashJson } from "../util/hash.js";
@@ -200,7 +201,7 @@ export async function settle<C extends Found>(ctx: StepContext, a: { key: string
     const open = openProblems(st.checks, st.settled);
     if (!open.length) break;
     if (st.round >= SETTLE_ROUNDS) {
-      ctx.log(`specify: ${open.length} problem${open.length > 1 ? "s" : ""} still open after ${SETTLE_ROUNDS} rounds of questions; the estimate carries ${open.length > 1 ? "them" : "it"} as open risks`);
+      ctx.log(`specify: ${open.length} problem${open.length > 1 ? "s" : ""} still open after ${SETTLE_ROUNDS} rounds of questions; the ${ctx.state.info.mode === "estimate" ? "estimate" : "run"} carries ${open.length > 1 ? "them" : "it"} as open risks`);
       st = { ...st, settled: [...st.settled, ...open.map((p) => ({ kind: p.kind, problem: p.text, how: "open-risk" as const, decision: `Still open after ${SETTLE_ROUNDS} rounds of questions: carried as a risk` }))] };
       break;
     }
@@ -241,11 +242,11 @@ export function settledText(s: SettledProblem): string {
 /**
  * A run started before problems were settled by questions reaches design or breakdown with a spec gate E1 refuses: record
  * E1's verdict and go back, so the specify step settles that spec's problems (it runs again once E1 has refused it) instead of
- * the run drawing screens from it or parking. A run whose spec is seeded from another run (an approved design, a sibling
+ * the run drawing screens from it or parking. A run whose spec is seeded from another run (an approved design or estimate, a sibling
  * estimate) has no specify step to go back to: undefined, and the step goes on as before.
  */
 export async function backToSettle(ctx: StepContext, step: string, specStep = "specify"): Promise<StepOutcome | undefined> {
-  if (!SETTLE_MODES.has(ctx.state.info.mode ?? "") || ctx.state.info.designRef || ctx.state.info.parent?.kind === "sibling") return undefined;
+  if (!settles(ctx.state.info) || ctx.state.info.designRef || ctx.state.info.estimateRef || ctx.state.info.parent?.kind === "sibling") return undefined;
   const spec = readOutput<Found & { requirements: unknown[] }>(ctx.state, ctx.ledger, specStep);
   if (!unsettled(spec)) return undefined;
   const c = clarifications(readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify"), readOutput<ClarifyResult>(ctx.state, ctx.ledger, "clarify-2"));

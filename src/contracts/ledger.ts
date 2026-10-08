@@ -4,7 +4,7 @@ import { Failure, GitSha, Sha } from "./common.js";
 
 export const EventType = z.enum([
   "run.created", "run.resumed", "run.pause-requested", "run.paused", "run.parked",
-  "run.stop-requested", "run.stopped", "run.delivered", "run.closed",
+  "run.stop-requested", "run.stopped", "run.delivered", "run.finished", "run.closed",
   "step.started", "step.completed", "step.failed", "step.interrupted",
   "gate.result", "human.requested", "human.decided", "change.received",
   "sink.intent", "sink.done", "usage",
@@ -46,7 +46,7 @@ export const GateResult = z.object({
 export type GateResult = z.infer<typeof GateResult>;
 
 export const RunStatus = z.union([
-  z.enum(["created", "running", "waiting", "paused", "parked", "delivered"]),
+  z.enum(["created", "running", "waiting", "paused", "parked", "delivered", "finished"]),
   z.object({ closed: z.enum(["merged", "pr-closed", "not-reproduced", "stopped"]) }),
 ]);
 export type RunStatus = z.infer<typeof RunStatus>;

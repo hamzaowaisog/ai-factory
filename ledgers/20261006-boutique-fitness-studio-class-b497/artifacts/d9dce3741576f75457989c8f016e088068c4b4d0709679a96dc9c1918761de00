@@ -1,0 +1,340 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "My bookings",
+     "subtitle": "Your classes at Pulse Studio. Cancel or leave a waitlist in one tap.",
+     "tabs": [
+      "Upcoming",
+      "Past"
+     ],
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Alex Rivera",
+       "people": [
+        "Alex Rivera"
+       ],
+       "rows": [
+        {
+         "label": "Plan",
+         "value": "Unlimited Monthly",
+         "badge": true
+        },
+        {
+         "label": "Next class",
+         "value": "Today 18:30 · Power Spin 45"
+        }
+       ]
+      },
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Upcoming",
+         "value": "3",
+         "delta": "+2 on waitlists"
+        },
+        {
+         "label": "Classes this month",
+         "value": "5",
+         "delta": "+2 this week"
+        },
+        {
+         "label": "Current streak (weeks)",
+         "value": "6",
+         "delta": "Personal best 🔥"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Today · 18:30 Power Spin 45",
+         "meta": "Spin · Jordan Blake · Cycle Room",
+         "badge": "Booked"
+        },
+        {
+         "title": "Tomorrow · 07:00 Sunrise Vinyasa",
+         "meta": "Yoga · Maya Chen · Studio A",
+         "badge": "Booked"
+        },
+        {
+         "title": "Tomorrow · 12:15 Lunch HIIT Express",
+         "meta": "HIIT · Sam Okafor · Studio B",
+         "badge": "Waitlisted #2"
+        },
+        {
+         "title": "Thu 15 Oct · 19:00 Reformer Core",
+         "meta": "Pilates · Priya Nair · Reformer Room",
+         "badge": "Booked"
+        },
+        {
+         "title": "Sat 17 Oct · 10:00 Boxing Fundamentals",
+         "meta": "Boxing · Leo Martins · Studio B",
+         "badge": "Waitlisted #1"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Cancel Power Spin 45, Today 18:30"
+        },
+        {
+         "label": "Leave",
+         "variant": "secondary",
+         "hint": "Leave the Lunch HIIT Express waitlist"
+        },
+        {
+         "label": "Browse schedule",
+         "variant": "ghost",
+         "icon": "calendar"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Today · 18:30 Power Spin 45",
+       "to": "S-2"
+      },
+      {
+       "from": "Tomorrow · 07:00 Sunrise Vinyasa",
+       "to": "S-2"
+      },
+      {
+       "from": "Tomorrow · 12:15 Lunch HIIT Express",
+       "to": "S-2"
+      },
+      {
+       "from": "Thu 15 Oct · 19:00 Reformer Core",
+       "to": "S-2"
+      },
+      {
+       "from": "Sat 17 Oct · 10:00 Boxing Fundamentals",
+       "to": "S-2"
+      },
+      {
+       "from": "Browse schedule",
+       "to": "S-1"
+      }
+     ],
+     "overlays": [
+      {
+       "kind": "confirm",
+       "trigger": "Cancel",
+       "title": "Cancel Power Spin 45?",
+       "text": "Today 18:30 · Cycle Room with Jordan Blake. Your spot goes to the next person on the waitlist.",
+       "blocks": [
+        {
+         "type": "alert",
+         "tone": "warn",
+         "title": "Starts in under 2 hours",
+         "text": "Late cancellation — this counts as a missed class."
+        }
+       ],
+       "actions": [
+        {
+         "label": "Cancel booking",
+         "variant": "danger"
+        },
+        {
+         "label": "Keep my spot",
+         "variant": "ghost"
+        }
+       ]
+      },
+      {
+       "kind": "confirm",
+       "trigger": "Leave",
+       "title": "Leave the waitlist?",
+       "text": "You're #2 for Lunch HIIT Express, Wed 14 Oct 12:15. Leaving removes you from the queue.",
+       "actions": [
+        {
+         "label": "Leave waitlist",
+         "variant": "danger"
+        },
+        {
+         "label": "Stay on waitlist",
+         "variant": "ghost"
+        }
+       ]
+      }
+     ],
+     "toasts": [
+      {
+       "after": "Cancel booking",
+       "text": "Booking cancelled · Power Spin 45, Today 18:30",
+       "tone": "ok"
+      },
+      {
+       "after": "Leave waitlist",
+       "text": "Left waitlist · Lunch HIIT Express, Wed 14 Oct 12:15",
+       "tone": "ok"
+      },
+      {
+       "after": "Keep my spot",
+       "text": "We couldn't cancel just now — your booking is unchanged. Try again.",
+       "tone": "bad"
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No upcoming classes",
+      "emptyHint": "Pick a class on the schedule and grab your spot. Your class history will appear here.",
+      "error": "We couldn't load your bookings. Check your connection and tap Retry.",
+      "success": "Booking cancelled — your spot has gone to the next person in line."
+     }
+    },
+    "mockFull": {
+     "title": "My bookings",
+     "subtitle": "Your classes at Pulse Studio. Cancel or leave a waitlist in one tap.",
+     "tabs": [
+      "Upcoming",
+      "Past"
+     ],
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Alex Rivera",
+       "people": [
+        "Alex Rivera"
+       ],
+       "rows": [
+        {
+         "label": "Plan",
+         "value": "Unlimited Monthly",
+         "badge": true
+        },
+        {
+         "label": "Next class",
+         "value": "Today 18:30 · Power Spin 45"
+        },
+        {
+         "label": "Renews",
+         "value": "Sun 1 Nov"
+        }
+       ]
+      },
+      {
+       "type": "stats",
+       "items": [
+        {
+         "label": "Upcoming",
+         "value": "7",
+         "delta": "+3 on waitlists"
+        },
+        {
+         "label": "Classes this month",
+         "value": "9",
+         "delta": "+4 this week"
+        },
+        {
+         "label": "Current streak (weeks)",
+         "value": "11",
+         "delta": "Personal best 🔥"
+        }
+       ]
+      },
+      {
+       "type": "list",
+       "items": [
+        {
+         "title": "Today · 18:30 Power Spin 45",
+         "meta": "Spin · Jordan Blake · Cycle Room",
+         "badge": "Booked"
+        },
+        {
+         "title": "Tomorrow · 07:00 Sunrise Vinyasa",
+         "meta": "Yoga · Maya Chen · Studio A",
+         "badge": "Booked"
+        },
+        {
+         "title": "Tomorrow · 12:15 Lunch HIIT Express",
+         "meta": "HIIT · Sam Okafor · Studio B",
+         "badge": "Waitlisted #2"
+        },
+        {
+         "title": "Thu 15 Oct · 19:00 Reformer Core",
+         "meta": "Pilates · Priya Nair · Reformer Room",
+         "badge": "Booked"
+        },
+        {
+         "title": "Fri 16 Oct · 06:45 Rise & Ride",
+         "meta": "Spin · Jordan Blake · Cycle Room",
+         "badge": "Booked"
+        },
+        {
+         "title": "Fri 16 Oct · 17:30 Yin & Restore",
+         "meta": "Yoga · Hannah Lowe · Studio A",
+         "badge": "Waitlisted #4"
+        },
+        {
+         "title": "Sat 17 Oct · 10:00 Boxing Fundamentals",
+         "meta": "Boxing · Leo Martins · Studio B",
+         "badge": "Waitlisted #1"
+        },
+        {
+         "title": "Sat 17 Oct · 11:15 Mat Pilates Flow",
+         "meta": "Pilates · Priya Nair · Studio A",
+         "badge": "Booked"
+        },
+        {
+         "title": "Sun 18 Oct · 09:30 Slow Flow Yoga",
+         "meta": "Yoga · Maya Chen · Studio A",
+         "badge": "Booked"
+        },
+        {
+         "title": "Mon 19 Oct · 18:00 Fight Club Boxing",
+         "meta": "Boxing · Leo Martins · Studio B",
+         "badge": "Booked"
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Cancel",
+         "variant": "danger",
+         "icon": "trash",
+         "hint": "Cancel Power Spin 45, Today 18:30"
+        },
+        {
+         "label": "Leave",
+         "variant": "secondary",
+         "hint": "Leave the Lunch HIIT Express waitlist"
+        },
+        {
+         "label": "Browse schedule",
+         "variant": "ghost",
+         "icon": "calendar"
+        }
+       ]
+      }
+     ],
+     "copy": {
+      "emptyTitle": "No upcoming classes",
+      "emptyHint": "Pick a class on the schedule and grab your spot. Your class history will appear here.",
+      "error": "We couldn't load your bookings. Check your connection and tap Retry.",
+      "success": "Booking cancelled — your spot has gone to the next person in line."
+     }
+    }
+   },
+   "ms": 10,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

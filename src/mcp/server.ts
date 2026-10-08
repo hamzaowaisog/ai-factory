@@ -10,7 +10,8 @@ import { z } from "zod";
 import { verifyEvidence } from "../gates/engine.js";
 import "../gates/predicates.js";
 import { Ledger } from "../ledger/ledger.js";
-import { replay, statusLabel } from "../ledger/state.js";
+import { replay } from "../ledger/state.js";
+import { shownStatus, statusHint } from "../stages/run-status.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
 import { factoryHome } from "../util/paths.js";
@@ -28,9 +29,10 @@ function summary(id: string): string {
   const s = replay(Ledger.open(id).events());
   const steps = [...s.steps.values()];
   const current = s.inFlight?.step ?? steps[steps.length - 1]?.step ?? "-";
-  return `${id}: ${statusLabel(s.status)}, step ${current}, cost $${s.costUsd.toFixed(2)}`
+  const shown = shownStatus(s);
+  return `${id}: ${shown}, step ${current}, cost $${s.costUsd.toFixed(2)}`
     + (s.openCard ? `, waiting on a ${s.openCard.kind} card (the user decides in their terminal)` : "")
-    + (s.parkedReason ? `, parked: ${s.parkedReason}` : "");
+    + (s.parkedReason ? `, parked: ${s.parkedReason}` : "") + (statusHint(shown, id) ? ` (${statusHint(shown, id)})` : "");
 }
 
 export async function startMcpServer(): Promise<void> {

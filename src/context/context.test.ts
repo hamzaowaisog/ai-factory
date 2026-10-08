@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { SectionSpec } from "../contracts/index.js";
-import { buildPack, PackBuildError, PackOverBudgetError, type ResolvedSection } from "./pack.js";
+import { buildPack, FILE_INLINE_MAX, PackBuildError, PackOverBudgetError, type ResolvedSection } from "./pack.js";
+import { S } from "../stages/think.js";
 import { extractSymbols } from "./repomap.js";
 import { Redactor, scanText } from "./secrets.js";
 import { createSnapshot } from "./snapshot.js";
@@ -162,5 +163,32 @@ describe("buildPack", () => {
       stage: "plan", cls: "read-large", budgetTokens: 10, model: "m", recipeVersion: "1", tools: [], redactor: new Redactor(),
       sections: [sec("spec", "artifact", "derived", "user", "y".repeat(1000))],
     })).toThrow(PackOverBudgetError);
+  });
+
+  it("names the biggest files instead of pasting them when the briefing is over, and loses nothing else", () => {
+    const files = [{ path: "src/Small.cs", content: "class Small {}" }, { path: "src/Big.cs", content: "line\n".repeat(400) }, { path: "src/Mid.cs", content: "line\n".repeat(100) }];
+    const build = (budgetTokens: number, fs = files) => buildPack({
+      stage: "author-tests", cls: "agent", budgetTokens, model: "m", recipeVersion: "1", tools: [], redactor: new Redactor(),
+      sections: [sec("tpl", "template", "trusted", "system", "t"), S.files("stubs", "stubs", fs)],
+    });
+    // it fits: every file pasted, nothing marked
+    const whole = build(10_000);
+    expect(whole.user).toContain("class Small {}");
+    expect(whole.manifest.sections.find((x) => x.id === "stubs")?.trimmed).toBe(false);
+    // over: the biggest goes first, and only as many as it takes
+    const one = build(whole.manifest.packTokens - 100);
+    expect(one.user).toContain("(not pasted: 401 lines; open src/Big.cs in the checkout)");
+    expect(one.user).toContain("line\\nline");
+    expect(one.user).toContain("class Small {}");
+    expect(one.manifest.sections.find((x) => x.id === "stubs")?.trimmed).toBe(true);
+    const two = build(120);
+    expect(two.user).toContain("open src/Mid.cs in the checkout");
+    expect(two.user).not.toContain("line\\nline");
+    // nothing left to name: it fails with the reason, as before
+    expect(() => build(20)).toThrow(PackOverBudgetError);
+    // a file over the inline size is named from the start, whatever the budget
+    const huge = build(100_000, [{ path: "contracts/openapi.yaml", content: "x".repeat(FILE_INLINE_MAX + 1) }]);
+    expect(huge.user).toContain("open contracts/openapi.yaml in the checkout");
+    expect(huge.manifest.packTokens).toBeLessThan(200);
   });
 });

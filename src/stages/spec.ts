@@ -1,22 +1,28 @@
 // Spec side of the brownfield slice: intake → ground → specify (+lint, critic) → plan → approval card.
 import { z } from "zod";
 import {
-  CurrentBehaviourBody, IntentBody, maxRisk, PlanBody, type Risk, SpecDraft, type Complexity, type Failure,
+  CurrentBehaviourBody, IntentBody, maxRisk, PlanBody, type Risk, SpecDraft, type Complexity, type Failure, type SettledProblem,
 } from "../contracts/index.js";
 import { checkEvidence } from "../context/tools.js";
 import { buildRepoMap } from "../context/repomap.js";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { contractProblems, contractReadProblem, contractSummary, readContract } from "../gates/contract.js";
 import { failure } from "../gates/engine.js";
 import { anchorsResolve, planChecks } from "../gates/predicates.js";
 import { isConfigIntegrityPath } from "../gates/protected.js";
 import { runGate, type GateDef } from "../gates/engine.js";
 import { hashJson } from "../util/hash.js";
 import { approvedDesignFor } from "./design-inputs.js";
-import { header, outputOf, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
-import { acOwners } from "./build.js";
+import { header, lastFailureData, outputOf, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { acOwners, slicesProblem } from "./build.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
+import { gateNotes } from "./gate-questions.js";
+import { settledText } from "./settle.js";
 import { CriticOut } from "./specpipe.js";
 import { describeSources } from "../sources/request.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
+import { applyPlanPatch, PATCH_RULES, PlanPatch } from "./plan-patch.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { uiSizeForCard } from "../design/card.js";
 import { complexityOf, LANE, lightSpec } from "./lane.js";
@@ -37,6 +43,8 @@ type PlanT = z.infer<typeof PlanBody>;
 
 // ---------- risk rules (intake: risk = max(rules, model)) ----------
 /** Build gates a lead may waive at the plan: B1 (scope lock) and B6 (screens planned). B2 goes through a change request. */
+/** patches in a row before the planner is asked for a whole plan again */
+const MAX_PLAN_PATCHES = 2;
 const WAIVABLE_AT_PLAN = new Set(["build.b1-scope-lock", "build.b6-screens-planned", "build.b7-screen-scope", "build.b1-design-scope", "build.b6-design-screens"]);
 
 const RISK_RULES: { tag: string; re: RegExp; risk: Risk }[] = [
@@ -89,7 +97,9 @@ ${UNTRUSTED_NOTE}
     const intent = {
       ...r.output, source: jira ? ("ticket" as const) : ("cli" as const), ...(jira ? { sourceRef: jira.url } : {}),
       risk: maxRisk(r.output.risk, rules.risk), riskTags: [...new Set([...r.output.riskTags, ...rules.tags])],
-      touchesUi: r.output.touchesUi || ruleUi(request(ctx)),
+      // the API side of a full-stack product (a .NET project held to a contract) has no screens of its own, whatever the
+      // product's request says about them: its web app is designed and built in its own repo
+      touchesUi: ctx.project.stack === "dotnet" && !!ctx.project.contract?.built ? false : r.output.touchesUi || ruleUi(request(ctx)),
     };
     const sha = ctx.ledger.putJson({ header: header(ctx.runId, "intent", "intake", "", r.model), ...intent });
     return { kind: "done", outputs: { intent: sha }, data: { changeClass: intent.changeClass, risk: intent.risk, touchesUi: intent.touchesUi } };
@@ -130,6 +140,14 @@ If nothing exists yet for a span (new behaviour), list it under notFound with wh
 
 // ---------- plan ----------
 
+/** What the plan is asked for when it writes the product's API contract. */
+const contractRules = (file: string): string => `API CONTRACT. This product has a web app and an API in two repos, and both are built against one contract.
+- Give one more stub: path "${file}", content the full OpenAPI 3.0.3 document (YAML) of every operation the approved screens and requirements need. It is outside every task's fileScope: nobody implements it, both sides follow it.
+- Every operation has an operationId (camelCase), its request body where it takes one, and every status code it answers with.
+- Schemas go under components/schemas with "required" lists. Take the field names and types from the approved screens' sample data; an id is an integer.
+- Every JSON response carries an "example" with believable data (the approved screens' sample rows): the web app's tests run against these examples.
+- The web app calls the API only through the client generated from this file (lib/api); do not plan a hand-written client.`;
+
 export const planStep: StepDef = {
   key: "plan", stage: "plan", templateVersion: "2",
   // a design approved in this run counts; with none the key is dropped, so the hash is what it always was
@@ -157,45 +175,79 @@ export const planStep: StepDef = {
     // a design built with a kit: the scaffold's files are known now, so the design-system task comes first and each screen task
     // fills in its container (docs/estimates-design.md, "Kit and scaffold"); a change request plans only the changed screens
     const scaf = approvedDesign ? scaffoldOfRun(ctx, "store") : undefined;
+    // a full-stack product's API contract (the project's `contract`): the repo's own when it has one (locked: the plan follows it),
+    // otherwise this plan writes it, a person approves it on the card and it is locked with the tests
+    const cfile = ctx.project.contract?.file;
+    const lockedContract = cfile && snap.files.includes(cfile) ? readFileSync(join(snap.root, cfile), "utf8") : undefined;
     const approvedTasks = ref ? ctx.ledger.getJson<Breakdown>(ref.breakdownSha).tasks : [];
     const map = buildRepoMap(snap.root, snap.files, { budgetTokens: 4000, focus: cb.claims.flatMap((c) => c.anchors.map((a) => a.path)) }).map;
     const impact = readImpact(ctx.state, ctx.ledger);
     const impactNote = impact ? planNote(impact) : "";
-    const r = await think(ctx, {
-      stage: "plan", route: "plan", cls: "read-large", budgetTokens: 30000, tools: ["read_file", "search", "repo_map"],
-      repoTools: toolsFor(ctx), schema: PlanBody, maxTurns: 12,
-      sections: [
-        S.template("tpl", `${planIntro(ctx.project.stack)}
+    const sections = [
+      S.template("tpl", `${planIntro(ctx.project.stack)}
 - Give at least 2 options (one marked simplest), choose one, and write a decision record of at most 5 lines (adr).
 - Split into tasks TASK-1.. in dependency order. Each task: the requirements it delivers, fileScope (exact repo paths or narrow globs it may change, no overlap between tasks), 1-2 exemplar files to imitate, plannedLoc, approach (short instructions for the implementer).
+- Build in working slices, not layers. A criterion checked through the API or a screen passes only once that route or screen is wired, so the first task that adds a route or screen also wires the app's entry (the startup file, the router, the layout), and each later task adds its logic together with its own endpoint or screen. Code a slice needs (an entity, a helper) goes into the first slice that uses it, not into a task of its own. File scopes may not overlap, so have that first task register routes by convention (file-based routes, or every class of one kind found at startup): later tasks then add only their own files.
+- List a requirement on the task after which its criteria can pass. Do not leave the wiring to a last task that then holds every criterion checked through the app: each earlier task is then checked only there, in the longest and dearest task of the run. Only where the repo's structure forces layers, give the wiring task a dependsOn on every layer it serves.
+- dependsOn: only the tasks whose code this task really needs.
 - Test projects, test files and CI config are not in any file scope: tests are written separately.
 - stubs: for every NEW public type/method/endpoint the tests will call, give a compilable stub file (full file content) whose bodies ${stubRule(ctx.project.stack)}, so tests compile before implementation. Existing APIs need no stubs. Stub paths must be inside a task's fileScope.
 - protectedPathsDeclared: list any migration, CI, build-config or package-feed file you must change (a human will see it).
 - newDependencies: any ${dependencyKind(ctx.project.stack)} package to add (name, version, registry). Prefer none.`),
-        S.profile("repomap", `Repository map:\n${map}`),
-        S.artifact("spec", "spec", spec),
-        S.artifact("cb", "current-behaviour", cb),
-        S.artifact("critic", "critic", critic),
-        ...(approvedDesign ? [S.artifact("approved-design", "approved-design", approvedDesign)] : []),
-        ...(impactNote ? [S.template("impact", impactNote)] : []),
-        ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task, and that plan task's fileScope must include the approved screen's file." : "") + (newLook ? " The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them." : ""))] : []),
-        // a direct build whose approved design is a new look (a restyle to the client's reference) puts the tokens in once too
-        ...(dref ? [S.template("design-scope-lock", "This plan builds an APPROVED DESIGN. Every task delivers requirements of the approved spec (its reqs), and nothing else: anything more is a change to the design, not part of this plan." + (approvedDesign ? " Every approved screen must be delivered by a task that serves its requirements, and that task's fileScope must include the approved screen's file." : ""))] : []),
-        ...(!ref && newLook ? [S.template("new-look", "The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them.")] : []),
-        ...(scaf?.layout ? [S.artifact("scaffold", "ui-scaffold", scaffoldForPlan(scaf)), S.template("scaffold-rules", `${scaf.layout.fresh ? `The approved design is built in ${scaf.target}: before any task starts, the factory writes the component kit, the theme, the frame and navigation, and every approved page (its blocks, states, layers and text, with the approved sample data) into the repo.` : `The approved design is built in the existing ${scaf.target} app: before any task starts, the factory writes only its genuinely new pages (with the kit and theme they need, when there are any) into the repo; the app keeps its own layout and navigation, and its existing pages are changed in place.`} Those generated files are not in any task's scope.
+      S.profile("repomap", `Repository map:\n${map}`),
+      S.artifact("spec", "spec", spec),
+      S.artifact("cb", "current-behaviour", cb),
+      S.artifact("critic", "critic", critic),
+      ...(approvedDesign ? [S.artifact("approved-design", "approved-design", approvedDesign)] : []),
+      ...(impactNote ? [S.template("impact", impactNote)] : []),
+      ...(lockedContract ? [S.template("contract-locked", `API CONTRACT (locked, ${cfile}). The API and the web app are both held to this OpenAPI document: plan exactly its operations, with its paths, status codes and field names. Do not change the file and do not give a stub for it; a needed change to it is a change request.\n\n${lockedContract}`)]
+        : cfile ? [S.template("contract-new", contractRules(cfile))] : []),
+      ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (cfile && ctx.project.stack === "node" ? " This app is the web side of a product whose API is built by its own run against the API contract: the backend estimate tasks are delivered there, so put the operations they need in the contract and plan no server code for them in this app." : "") + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task, and that plan task's fileScope must include the approved screen's file." : "") + (newLook ? " The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them." : ""))] : []),
+      // a direct build whose approved design is a new look (a restyle to the client's reference) puts the tokens in once too
+      ...(dref ? [S.template("design-scope-lock", "This plan builds an APPROVED DESIGN. Every task delivers requirements of the approved spec (its reqs), and nothing else: anything more is a change to the design, not part of this plan." + (approvedDesign ? " Every approved screen must be delivered by a task that serves its requirements, and that task's fileScope must include the approved screen's file." : ""))] : []),
+      ...(!ref && newLook ? [S.template("new-look", "The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them.")] : []),
+      ...(scaf?.layout ? [S.artifact("scaffold", "ui-scaffold", scaffoldForPlan(scaf)), S.template("scaffold-rules", `${scaf.layout.fresh ? `The approved design is built in ${scaf.target}: before any task starts, the factory writes the component kit, the theme, the frame and navigation, and every approved page (its blocks, states, layers and text, with the approved sample data) into the repo.` : `The approved design is built in the existing ${scaf.target} app: before any task starts, the factory writes only its genuinely new pages (with the kit and theme they need, when there are any) into the repo; the app keeps its own layout and navigation, and its existing pages are changed in place.`} Those generated files are not in any task's scope.
 ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: its fileScope is exactly the ui-scaffold's designSystemTask.fileScope (plus nothing else UI), and its approach is the designSystemTask.todo list." : "- There is no design-system task: nothing is generated, so no wiring is needed."}${scaf.layout.inPlace.length ? "\n- Each screen in ui-scaffold.changeInPlace is an existing page: one task changes its file in place to match the approved design (its fileScope includes that file), using the app's own components; no new page and no new frame." : ""}
 - Then one task per screen in ui-scaffold.screens: its fileScope includes that screen's container (and the API or service files the behaviour needs). The task gives the page real data, API calls, validation and the behaviour the requirements ask for, in the container; it does not restyle or rebuild the page.${scaf.changed ? " This is a change to an approved design: only the screens listed changed, so plan only those (and the removed screens' clean-up in the design-system task)." : ""}`)] : []),
-        ...(planRejections(ctx.state).length ? [{ spec: { id: "rejection", source: "feedback" as const, trust: "trusted" as const, placement: "user" as const }, content: `The human reviewer rejected the previous plan. Their reasons (latest last):\n${planRejections(ctx.state).map((x) => `- ${x}`).join("\n")}\nThe plan must address them.` }] : []),
-        S.task("Write the plan."),
-      ],
-    });
-    if (!r.ok) return r.outcome;
+      ...(planRejections(ctx.state).length ? [{ spec: { id: "rejection", source: "feedback" as const, trust: "trusted" as const, placement: "user" as const }, content: `The human reviewer rejected the previous plan. Their reasons (latest last):\n${planRejections(ctx.state).map((x) => `- ${x}`).join("\n")}\nThe plan must address them.` }] : []),
+    ];
+    const call = { stage: "plan" as const, route: "plan", cls: "read-large" as const, budgetTokens: 30000, tools: ["read_file", "search", "repo_map"] as ("read_file" | "search" | "repo_map")[], repoTools: toolsFor(ctx), maxTurns: 12 };
+    // a plan that failed its checks is fixed by a patch (src/stages/plan-patch.ts); a patch that cannot be read or applied, or a
+    // second patch that still fails, goes back to a whole plan
+    const before = lastFailureData(ctx.ledger, "plan") as { rejectedPlan?: string; patches?: number } | undefined;
+    const rejected = before?.rejectedPlan && (before.patches ?? 0) < MAX_PLAN_PATCHES && ctx.priorFailures.length ? PlanBody.safeParse(ctx.ledger.getJson(before.rejectedPlan)) : undefined;
+    let r: { ok: true; output: z.infer<typeof PlanBody>; model: string; forget?: () => void } | undefined;
+    if (rejected?.success) {
+      const pr = await think(ctx, { ...call, label: "plan (patch)", schema: PlanPatch, sections: [...sections, S.template("patch-rules", PATCH_RULES), S.artifact("previous-plan", "plan", rejected.data), S.task("Return the changes that fix the failures.")] });
+      if (!pr.ok && (pr.outcome.kind !== "fail" || pr.outcome.category === "rate-limit")) return pr.outcome;
+      const applied = pr.ok ? applyPlanPatch(rejected.data, pr.output) : undefined;
+      if (pr.ok && applied && "plan" in applied) r = { ok: true, output: applied.plan, model: pr.model };
+      else ctx.log(`plan: the patch ${applied && "problem" in applied ? `cannot be applied (${applied.problem})` : "was not returned"}, writing the whole plan again`);
+    }
+    const patched = !!r;
+    if (!r) {
+      const full = await think(ctx, { ...call, schema: PlanBody, sections: [...sections, S.task("Write the plan.")] });
+      if (!full.ok) return full.outcome;
+      r = full;
+    }
     const plan = { header: header(ctx.runId, "plan", "plan", "", r.model), ...r.output, complexity: complexityOf(r.output) };
     const fs: Failure[] = [];
     const waivable: BuildFailed[] = [];
     for (const m of scaf ? checkPlanScaffold(plan, scaf) : []) fs.push(failure("plan-scaffold", m));
-    for (const st of plan.stubs) if (!plan.tasks.some((t) => t.fileScope.some((g) => g === st.path || st.path.startsWith(g.replace(/\*.*$/, ""))))) fs.push(failure("plan-stub", `Stub ${st.path} is outside every task's file scope`));
+    const contractStub = cfile ? plan.stubs.find((st) => st.path === cfile) : undefined;
+    if (lockedContract && contractStub) fs.push(failure("plan-contract", `${cfile} is the locked API contract: the plan may not rewrite it. Drop its stub.`));
+    if (cfile && !lockedContract) {
+      const doc = contractStub ? readContract(contractStub.content) : undefined;
+      if (!contractStub) fs.push(failure("plan-contract", `No stub for the API contract. Give ${cfile} as a stub: the full OpenAPI 3.0 document of every operation the screens call.`));
+      else if (!doc) fs.push(failure("plan-contract", `${cfile} is not an OpenAPI document: ${contractReadProblem(contractStub.content) ?? 'it needs "openapi" and "paths"'}.`));
+      else fs.push(...contractProblems(doc).map((m) => failure("plan-contract", m)));
+    }
+    for (const st of plan.stubs) if (st.path !== cfile && !plan.tasks.some((t) => t.fileScope.some((g) => g === st.path || st.path.startsWith(g.replace(/\*.*$/, ""))))) fs.push(failure("plan-stub", `Stub ${st.path} is outside every task's file scope`));
     if (impact) fs.push(...planCoverageFailures(plan, impact));
+    // asked once: where the approved tasks or the repo force layers, the plan runs as it is
+    const asked = ctx.ledger.events().some((e) => e.type === "step.failed" && String(e.key).startsWith("plan/") && String((e.data as { signature?: string } | undefined)?.signature).includes("plan-slices"));
+    const slices = asked ? undefined : slicesProblem(plan, spec, ctx.project.stack);
+    if (slices) fs.push(failure("plan-slices", slices));
     const planSha = ctx.ledger.putJson(plan);
     const specSha = ctx.state.steps.get("specify")!.outputs[0]!;
     const g = await runGate(planChecks, ctx.ledger, ctx.writer, { plan: planSha, spec: specSha }, ctx.policy, { step: "plan" });
@@ -220,10 +272,12 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
     }
     // B1, B2, B6 and B7 for a build from an approved design: its spec, and its screens through the requirements they serve
     if (dref) {
-      const designSha = scaf?.layout ? ctx.ledger.putJson(designForScopeGate(ctx.ledger.getJson<{ screens: { id: string; file?: string }[] }>(dref.designSha), scaf)) : dref.designSha;
+      // a build's design reference always holds the design (only a resized estimate's may not)
+      const approvedSha = dref.designSha!;
+      const designSha = scaf?.layout ? ctx.ledger.putJson(designForScopeGate(ctx.ledger.getJson<{ screens: { id: string; file?: string }[] }>(approvedSha), scaf)) : approvedSha;
       const checks: [GateDef, Record<string, string>][] = [
         [designScopeLock, { plan: planSha, approvedSpec: dref.specSha }],
-        [changeRequest, { spec: specSha, approvedSpec: dref.specSha, approvedEstimateSha: dref.designSha }],
+        [changeRequest, { spec: specSha, approvedSpec: dref.specSha, approvedEstimateSha: approvedSha }],
         [designScreensPlanned, { plan: planSha, design: designSha }],
       ];
       for (const [def, inputs] of checks) {
@@ -245,7 +299,10 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
       else fs.push(...waivable.flatMap((x) => x.failures));
     }
     const all = [...(g.failures ?? []), ...fs];
-    if (all.length) return { kind: "fail", category: "other", failures: all, signature: `plan:${all.map((f) => f.check).sort().join(",")}` };
+    if (all.length) {
+      r.forget?.();
+      return { kind: "fail", category: "other", failures: all, signature: `plan:${all.map((f) => f.check).sort().join(",")}`, data: { rejectedPlan: ctx.ledger.putJson(r.output), patches: patched ? (before?.patches ?? 0) + 1 : 0 } };
+    }
     return { kind: "done", outputs: { plan: planSha }, data: { complexity: plan.complexity, taskCount: plan.tasks.length, tasks: plan.tasks.map((t) => t.id), ...(waivers.length ? { waivers } : {}), ...(scaf ? { uiTarget: scaf.target, ...(scaf.changed ? { changedScreens: scaf.changed } : {}) } : {}) } };
   },
 };
@@ -255,7 +312,7 @@ export function plannedFiles(plan: PlanT): string[] {
   return [...new Set(plan.tasks.flatMap((t) => t.fileScope))].sort();
 }
 
-export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; /** reworks the spec step made (the light lane allows 1) */ repairs?: number; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string; /** spec over the size budget: the human decides */ size?: string; /** ripple effects outside the plan (impact step) */ affects?: string[] }): string {
+export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; plan: PlanT & { complexity: Complexity }; critic: { findings: z.infer<typeof CriticOut>["findings"]; note?: string }; cb: CB; risk: Risk; clar: ReturnType<typeof clarifications>; open: string[]; /** reworks the spec step made (the light lane allows 1) */ repairs?: number; roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] }; /** design step: UI size line (absent when the plan touches no UI) */ uiSize?: string; /** spec over the size budget: the human decides */ size?: string; /** ripple effects outside the plan (impact step) */ affects?: string[]; /** spec problems and failing design checks settled by questions, and what was carried as an open risk */ settled?: string[] }): string {
   const grounded = new Set(a.cb.claims.flatMap((c) => c.anchors.map((x) => x.path)));
   const files = plannedFiles(a.plan);
   const notGrounded = files.filter((f) => !grounded.has(f));
@@ -298,12 +355,22 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
         return `- ${t.id} ${t.title} → ${t.reqs.join(", ")}${acs.length ? `; must pass ${acs.join(", ")}` : "; builds towards a later task (no criteria of its own)"}`;
       });
     })(),
-    ...(a.plan.stubs.length ? [``, `Stub commit (throws NotImplemented until implemented): ${a.plan.stubs.map((s) => s.path).join(", ")}`] : []),
+    ...(() => {
+      const cfile = ctx.project?.contract?.file;
+      const stubs = a.plan.stubs.filter((s) => s.path !== cfile);
+      const doc = cfile ? readContract(a.plan.stubs.find((s) => s.path === cfile)?.content ?? "") : undefined;
+      return [
+        ...(stubs.length ? [``, `Stub commit (throws NotImplemented until implemented): ${stubs.map((s) => s.path).join(", ")}`] : []),
+        // approving the plan approves the contract: from then on it is locked with the tests, for the API and the web app alike
+        ...(doc ? [``, `## API contract (${cfile}; locked with the tests once you approve)`, ...contractSummary(doc).map((l) => `- ${l}`)] : []),
+      ];
+    })(),
     ``,
     `## Critic findings (${a.critic.findings.length})`,
     ...a.critic.findings.map((f) => `- [${f.severity}] ${f.reqId ?? ""} ${f.finding}`),
     ...(a.critic.note ? [`_${a.critic.note}_`] : []),
     ...(a.open.length ? [``, `## Still open after ${a.repairs ?? 3} repair${a.repairs === 1 ? "" : "s"}`, ...a.open.map((o) => `- ${o}`)] : []),
+    ...(a.settled?.length ? [``, `## Settled by questions, and open risks`, ...a.settled.map((x) => `- ${x}`)] : []),
     ...(a.roundTrip && !a.roundTrip.droppedSpans.length && !a.roundTrip.inventedCapabilities.length ? [``, `Round trip: the spec restated back matches your request (nothing dropped, nothing added).`] : []),
     ...(a.size ? [``, `**${a.size}**`] : []),
     ``,
@@ -343,6 +410,7 @@ export const approveStep: StepDef = {
       roundTrip: requireOutput<{ roundTrip?: { droppedSpans: string[]; inventedCapabilities: string[] } }>(ctx.state, ctx.ledger, "specify").roundTrip,
       uiSize: uiSizeForCard(snapshotFor(ctx), plannedFiles(requireOutput<PlanT>(ctx.state, ctx.ledger, "plan"))),
       ...(impact ? { affects: affectsLines(impact, plannedFiles(requireOutput<PlanT>(ctx.state, ctx.ledger, "plan"))) } : {}),
+      settled: [...(requireOutput<{ settled?: SettledProblem[] }>(ctx.state, ctx.ledger, "specify").settled ?? []).map(settledText), ...gateNotes(ctx.ledger, ctx.state, "approve")],
     });
     const card = `${md}\n\nCard hash: ${bundleSha.slice(0, 8)}`;
     return { kind: "wait", card: { cardId: `approval-${bundleSha.slice(0, 8)}`, kind: "approval", artifactSha: bundleSha, markdown: card } };

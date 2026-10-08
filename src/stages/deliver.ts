@@ -24,10 +24,13 @@ import { S, think } from "./think.js";
 import { changeBase, ensureWorktree, toolsAt } from "./workspace.js";
 import { recordTestLesson } from "../context/lessons.js";
 import { followUpSection, readImpact } from "./impact.js";
+import { contractLockFiles } from "./contract.js";
 
 /** Only a delivered run teaches the next one where its tests go; never fails delivery. */
 function learnFrom(ctx: StepContext, wt: string, lockedFiles: string[]): void {
-  try { recordTestLesson(ctx.project.project, wt, lockedFiles); } catch (e) { ctx.log(`deliver: couldn't save the repo lesson: ${(e as Error).message}`); }
+  // (the locked API contract and its generated client are locked with the tests, but are not tests)
+  const notTests = contractLockFiles(ctx.project, wt);
+  try { recordTestLesson(ctx.project.project, wt, lockedFiles.filter((f) => !notTests.includes(f))); } catch (e) { ctx.log(`deliver: couldn't save the repo lesson: ${(e as Error).message}`); }
 }
 
 type Spec = z.infer<typeof SpecDraft>;
@@ -109,6 +112,15 @@ ${files.map((f) => `- ${f}`).join("\n")}`,
   };
 }
 
+/**
+ * How many times the usual turns, money and time a review gets. The usual limits fit about 35
+ * criteria; every criterion needs its own verdict, so a larger change that ran out before the last
+ * one would fail and pay for the whole review again.
+ */
+export function reviewRoom(criteria: number): number {
+  return Math.min(3, Math.max(1, Math.ceil(criteria / 35)));
+}
+
 export const reviewStep: StepDef = {
   // 3: repo tools over the commit under review, and a verdict per acceptance criterion. The bump
   // invalidates every review recorded under the old prompt, which is correct: those reviews never
@@ -138,8 +150,10 @@ export const reviewStep: StepDef = {
     const wt = await ensureWorktree(ctx, head);
     const full = (await git(wt, ["diff", "--no-color", "-U5", changeBase(ctx.state), head])).stdout;
     const { text: diff, truncated, files } = truncateDiff(full);
+    const room = reviewRoom(spec.requirements.reduce((n, q) => n + q.acceptance.length, 0));
     const r = await think(ctx, {
-      stage: "review", route: "review", cls: "read-large", budgetTokens: 80_000, schema: ReviewSubmit, maxTurns: 14,
+      stage: "review", route: "review", cls: "read-large", budgetTokens: 80_000, schema: ReviewSubmit,
+      maxTurns: 14 * room, maxUsd: 2 * room, timeoutSec: 900 * room,
       // the diff shows changed lines with five lines of context, which is not enough to judge a
       // change: the reviewer needs the method it sits in and the test meant to prove it. It reads
       // the commit under review, never the base — see toolsAt.

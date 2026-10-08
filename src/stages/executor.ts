@@ -7,9 +7,12 @@ import { basename, dirname, join } from "node:path";
 import type { Failure, LedgerEvent } from "../contracts/index.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY, mergePolicy, withPolicy, type Policy } from "../gates/policy.js";
+import { NO_CREDIT } from "../runners/claude-agent.js";
 import { DEFAULT_LADDER, failureSignature, nextOnFailure, type AttemptRecord, type LadderAction } from "../gates/ladder.js";
-import { checkCaps } from "../ledger/caps.js";
+import { checkCaps, checkStartBudget, type CapHit } from "../ledger/caps.js";
+import { PackOverBudgetError } from "../context/pack.js";
 import { ExecutionLock, LockBusyError } from "../ledger/exec-lock.js";
+import { pullBase } from "../forge/repos.js";
 import { resolveRef } from "../ledger/git.js";
 import { applyExpiredDeadline } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
@@ -22,8 +25,8 @@ import { REPO_ROOT } from "../runners/netinfra.js";
 import { setPrice } from "../runners/pricing.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { stepsFor } from "./modes.js";
-import { answersOf, asksGates, asksPerson, gateCard, gateRounds, GATE_ROUNDS, nextQuestionId, ROUND_ATTEMPTS, writeGateQuestions, type FiledRound, type GateRound } from "./gate-questions.js";
-import { greenfieldRefusal } from "../config/greenfield.js";
+import { answersOf, asksGates, asksPerson, gateCard, gateRounds, gateSubject, GATE_ROUNDS, nextQuestionId, ROUND_ATTEMPTS, writeGateQuestions, type FiledRound, type GateRound } from "./gate-questions.js";
+import { greenfieldRefusal, newProductRefusal, repoIsEmpty, type EstimateScope } from "../config/greenfield.js";
 import { availableRungs, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
 import type { RequestSource } from "../sources/request.js";
@@ -93,15 +96,28 @@ export async function createRun(request: string, projectName: string, operator: 
   if (!noRepo) {
     assertSupportedPath(project.repo);
     assertDeliverable(project);
+    // a repo the factory put on GitHub: each run starts from GitHub's main, so a request after a merged PR builds on it
+    if (project.forge?.pullBase) await pullBase(project);
   }
   // greenfield: an approved design with no repo, built into this project's empty repo (the callers check first; this is the guard)
+  // a plain start on a Node project whose repo is still empty is a new product too: the run draws its own design
+  // (and so is a build from an approved estimate made with no repo: it follows that estimate's spec and design)
+  const fromEstimate = opts.lineage?.kind === "build" ? opts.lineage.approved : undefined;
+  if (!opts.mode && !opts.fromDesign && (!opts.lineage || fromEstimate) && project.stack === "node" && repoIsEmpty(project.repo, project.baseBranch)) opts = { ...opts, mode: "greenfield" };
   if (opts.mode === "greenfield") {
-    if (!opts.fromDesign || opts.fromDesign.repo) throw new Error("A greenfield run builds an approved design for a new product (one designed with no repo).");
-    const why = greenfieldRefusal(opts.fromDesign.runId, project);
+    if (opts.fromDesign?.repo) throw new Error("A greenfield run builds an approved design for a new product (one designed with no repo).");
+    if (fromEstimate && !fromEstimate.settings.noRepo) throw new Error(`${fromEstimate.runId} estimated a change to an existing repo, so it is built into that repo, not into project ${project.project}'s empty one. A new product is built from an estimate made with no repo.`);
+    if (fromEstimate) {
+      const scope = { ...(fromEstimate.artifacts[fromEstimate.breakdownSha] as EstimateScope | undefined), stack: (fromEstimate.artifacts[fromEstimate.estimateSha] as EstimateScope | undefined)?.stack };
+      // a full-stack product's web side (its project holds the API contract) has the API run beside it
+      const tooMuch = newProductRefusal(fromEstimate.runId, scope, !!project.contract);
+      if (tooMuch) throw new Error(tooMuch);
+    }
+    const why = greenfieldRefusal(opts.fromDesign?.runId ?? fromEstimate?.runId ?? "This request", project);
     if (why) throw new Error(why);
   } else if (opts.fromDesign && !opts.fromDesign.repo && !readsRequirements(opts.mode)) throw new Error(`${opts.fromDesign.runId} is a new product (designed with no repo): build it as a greenfield run.`);
   // the Node lab builds only a new product for now; changing an existing Node app is not decided yet (PR #17 review, item 5)
-  if (project.stack === "node" && (opts.mode ?? "brownfield") === "brownfield") throw new Error(`Project ${project.project} is stack: node. The factory builds Node only for a new product (factory start --from-design <a design made with no repo>); changes to an existing Node app are not supported yet.`);
+  if (project.stack === "node" && (opts.mode ?? "brownfield") === "brownfield") throw new Error(`Project ${project.project} is stack: node. The factory builds Node only for a new product, into an empty repo; changes to an existing Node app are not supported yet.`);
   const baseCommit = noRepo ? undefined : await resolveRef(project.repo, project.baseBranch);
   const runId = newRunId(request);
   const ledger = Ledger.create(runId);
@@ -131,7 +147,9 @@ export async function createRun(request: string, projectName: string, operator: 
       ...(opts.fromDesign ? { designRef: opts.fromDesign.ref } : {}),
       ...(opts.designExport?.length ? { designExport: opts.designExport } : {}),
       ...(opts.uiTarget ? { uiTarget: opts.uiTarget } : {}),
-      ...(lin?.kind === "build" ? { estimateRef: { runId: lin.approved.runId, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}) } } : {}),
+      // a build that asks (src/estimate/settled.ts, settles): fixed here, so a paused run resumes with the steps it began with
+      ...(opts.mode === "greenfield" || ((opts.mode ?? "brownfield") === "brownfield" && project.brownfield?.questions) ? { asks: true } : {}),
+      ...(lin?.kind === "build" ? { estimateRef: { runId: lin.approved.runId, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}), ...(lin.approved.settings.drawDesign === false ? { noDesign: true as const } : {}) } } : {}),
     },
   }, HUMAN_WRITER);
   for (const a of opts.attachments ?? []) {
@@ -183,6 +201,35 @@ export function next(state: RunState, ledger: Ledger, project: ProjectConfig): N
   return { kind: "done" };
 }
 
+/** What each attempt of `step` since it last completed has cost (the start-budget check reads the dearest). */
+export function attemptSpend(events: LedgerEvent[], step: string): number[] {
+  const mine = events.filter((e) => e.key && splitKey(e.key).step === step);
+  const lastDone = Math.max(-1, ...mine.filter((e) => e.type === "step.completed").map((e) => e.seq));
+  const by = new Map<string, number>();
+  for (const e of mine) {
+    if (e.type !== "usage" || e.seq <= lastDone) continue;
+    const d = (e.data ?? {}) as Record<string, unknown>;
+    by.set(e.key!, (by.get(e.key!) ?? 0) + Number(d["gen_ai.usage.cost_usd"] ?? d.costUsd ?? 0));
+  }
+  return [...by.values()];
+}
+
+/**
+ * The least a coding step is started with. A first attempt has no spend of its own to go by, so it takes the dearest attempt
+ * of the earlier steps of its stage in this run: with less than that left it runs out part-way, and the next session pays
+ * to read everything again.
+ */
+export function startNeed(events: LedgerEvent[], step: Pick<StepDef, "key" | "stage" | "needsUsd">): number | undefined {
+  if (!step.needsUsd || attemptSpend(events, step.key).length) return step.needsUsd;
+  const by = new Map<string, number>();
+  for (const e of events) {
+    if (e.type !== "usage" || !e.key || !e.key.startsWith(`${step.stage}/`) || splitKey(e.key).step === step.key) continue;
+    const d = (e.data ?? {}) as Record<string, unknown>;
+    by.set(e.key, (by.get(e.key) ?? 0) + Number(d["gen_ai.usage.cost_usd"] ?? d.costUsd ?? 0));
+  }
+  return Math.max(step.needsUsd, ...by.values());
+}
+
 /** At most this many steps run side by side (a request splits into at most a few modules). */
 export const MAX_SIDE_BY_SIDE = 4;
 
@@ -213,8 +260,19 @@ function attemptHistory(ledger: Ledger, step: string): AttemptRecord[] {
   // a round of questions about the step's failing checks starts it fresh too (src/stages/gate-questions.ts)
   const lastRound = Math.max(-1, ...evs.filter((e) => e.type === "step.failed" && (e.data as { action?: string } | undefined)?.action === "questions").map((e) => e.seq));
   const since = Math.max(lastDone, lastRaise, lastRound);
-  return evs.filter((e) => e.type === "step.failed" && e.seq > since && !(e.data as { parked?: boolean })?.parked)
+  return evs.filter((e) => e.type === "step.failed" && e.seq > since && !(e.data as { parked?: boolean })?.parked && !outOfCredit(ledger, e))
     .map((e) => e.data as unknown as AttemptRecord);
+}
+
+/**
+ * A failure that was only the model account running out of credit: it says nothing about the work, so it is no attempt on the
+ * ladder and does not move the step to a dearer model. Read from the stored failure too, for runs from before this was a park
+ * (run 31fe lost three attempts and two rungs to it in five seconds).
+ */
+function outOfCredit(ledger: Ledger, e: LedgerEvent): boolean {
+  if ((e.data as { noCredit?: boolean } | undefined)?.noCredit) return true;
+  if (!e.outputs?.[0]) return false;
+  try { return (ledger.getJson<Failure[]>(e.outputs[0]) ?? []).some((f) => NO_CREDIT.test(f.message ?? "")); } catch { return false; }
 }
 
 /** A run that has ended never reuses a build again: free the disk its kept builds use. */
@@ -274,7 +332,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
     ctx.log(`? ${step.key}: ${reason}; round ${round} of ${GATE_ROUNDS}: ${q.asked.length} question${q.asked.length === 1 ? "" : "s"} about the failing checks${cardSha ? "" : q.asked.length ? " (hands-off: the recommended answers are assumed)" : ""}`);
     if (!cardSha) return undefined;
     const cardId = `check-questions-${round}-${cardSha.slice(0, 8)}`;
-    ledger.writeCard(cardId, gateCard(runId, step.key, round, q.asked, filed.failures, q.failureOf, cardSha));
+    ledger.writeCard(cardId, gateCard(runId, step.key, round, q.asked, filed.failures, q.failureOf, cardSha, gateSubject(state)));
     await ledger.append({ type: "human.requested", data: { cardId, kind: "question", artifactSha: cardSha, step: step.key, gateStep: step.key, roundSha } }, writer);
     return { status: "waiting", message: `The ${step.key} step's checks raised questions: factory show-card ${runId}` };
   }
@@ -284,10 +342,10 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
     const rec = state.steps.get(step.key);
     const attempt = (rec?.lastAttempt ?? 0) + 1;
     const history = attemptHistory(ledger, step.key);
-    const lastFail = [...ledger.events()].reverse().find((e) => e.type === "step.failed" && e.key && splitKey(e.key).step === step.key);
+    const lastFail = [...ledger.events()].reverse().find((e) => e.type === "step.failed" && e.key && splitKey(e.key).step === step.key && !outOfCredit(ledger, e));
     const asked = (lastFail?.data as { action?: string } | undefined)?.action === "questions" && lastFail!.seq > Math.max(-1, ...ledger.events().filter((e) => e.type === "step.completed" && e.key && splitKey(e.key).step === step.key).map((e) => e.seq));
     const rung = history.length || asked ? Number((lastFail?.data as { nextRung?: number } | undefined)?.nextRung ?? 0) : 0;
-    // the questions this step's failing checks raised, and whether their rounds are used up (an estimate or a design run)
+    // the questions this step's failing checks raised, and whether their rounds are used up (an estimate, a design or a greenfield run)
     const rounds = asksGates(state) ? gateRounds(ledger, state, step.key) : [];
     const gateAnswers = answersOf(rounds);
     const priorFailures: Failure[] = history.length && lastFail?.outputs?.[0] ? ledger.getJson<Failure[]>(lastFail.outputs[0]) : [];
@@ -316,7 +374,10 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
     } catch (e) {
       const msg = (e as Error).message;
       slog(`  error: ${msg}`);
-      outcome = { kind: "fail", category: /rate limit|overloaded|529|429/i.test(msg) ? "rate-limit" : "other", failures: [{ check: "exception", message: msg.slice(0, 1000), frames: [] }], signature: `exception:${msg.slice(0, 120)}` };
+      // a briefing still over its budget after everything that can shrink has: the same inputs give the same briefing, so
+      // another attempt cannot fit either (a real run tried three times, with an install each time)
+      if (e instanceof PackOverBudgetError) outcome = { kind: "park", reason: `${step.key}: the briefing does not fit (${e.packTokens} tokens, limit ${e.budget}; biggest section: ${e.biggest})` };
+      else outcome = { kind: "fail", category: /rate limit|overloaded|529|429/i.test(msg) ? "rate-limit" : "other", failures: [{ check: "exception", message: msg.slice(0, 1000), frames: [] }], signature: `exception:${msg.slice(0, 120)}` };
     }
 
     switch (outcome.kind) {
@@ -358,7 +419,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         break;
       }
       case "park":
-        await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true } }, writer);
+        await ledger.append({ type: "step.failed", key, data: { category: "other", signature: "park", rung, parked: true, ...(outcome.data ?? {}) } }, writer);
         await ledger.append({ type: "run.parked", data: { reason: outcome.reason, step: step.key } }, writer);
         return { status: "parked", message: outcome.reason };
       case "ask":
@@ -380,17 +441,21 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
           // policy.retryBudget (default 6; a trial project can say 2)
           ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, step.stage, policy.localOnly), backoffSpentMs: backoffSpent, a5Done: new Set(),
         });
-        // an estimate or a design run: a failing check, after the retry with the failures fed back, becomes questions instead of more attempts or a park
+        // an estimate, a design or a greenfield run: a failing check, after the retry with the failures fed back, becomes questions instead of more attempts or a park
         const counted = history.filter((h) => h.category !== "rate-limit").length + 1;
         if (outcome.gate && outcome.category === "other" && asksGates(state) && (action.action === "park" || counted >= ROUND_ATTEMPTS)) {
           return askRound(ctx, step, key, rounds, outcome.failures, rec2, action.action === "retry" ? action.rung : rung, action.action === "park" ? action.reason : `${outcome.failures.length} check${outcome.failures.length === 1 ? "" : "s"} still fail after the retry`, outcome.data);
         }
+        // the same locked test failed twice, but at a task that cannot reach it yet: the test waits for the later task, the run goes on.
+        // Once is enough when it fails exactly as it did before the task: the retry would be paid for and change nothing.
+        const defer = !!outcome.deferrable && (action.action === "a5-check" || (action.action === "retry" && !!outcome.deferNow));
         const failuresSha = ledger.putJson(outcome.failures.slice(0, 20));
         await ledger.append({
           type: "step.failed", key, outputs: [failuresSha],
-          data: { ...(outcome.data ?? {}), ...rec2, action: action.action, nextRung: action.action === "retry" ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason },
+          data: { ...(outcome.data ?? {}), ...rec2, action: defer ? "defer" : action.action, nextRung: action.action === "retry" && !defer ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason },
         }, writer);
-        slog(`✗ ${step.key}: ${outcome.failures.slice(0, 2).map((f) => f.message).join("; ").slice(0, 300)} → ${action.action}`);
+        slog(`✗ ${step.key}: ${outcome.failures.slice(0, 2).map((f) => f.message).join("; ").slice(0, 300)} → ${defer ? "defer" : action.action}`);
+        if (defer) { slog(`  ${step.key}: these tests need a task that comes later, so they are checked there`); break; }
         if (action.action === "park") { await ledger.append({ type: "run.parked", data: { reason: `${step.key}: ${action.reason}`, step: step.key } }, writer); return { status: "parked", message: `${step.key}: ${action.reason}. Last failure: ${outcome.failures[0]?.message ?? ""}` }; }
         if (action.action === "a5-check") {
           const reason = `Locked tests ${action.testIds.join(", ")} failed twice. Either the code or the test is wrong; the test-defect check and unlock card aren't built yet, so a human needs to look.`;
@@ -434,8 +499,8 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
       }
       const cap = checkCaps(state, policy.retryBudget);
       if (cap && !cap.waivable) { await ledger.append({ type: "run.parked", data: { reason: cap.reason } }, writer); return { status: "parked", message: cap.reason }; }
-      if (cap) {
-        // cost, time and attempts: a hash-bound card; a human decides on the terminal
+      // cost, time and attempts: a hash-bound card; a human decides on the terminal
+      const capCard = async (cap: CapHit): Promise<ExecuteResult> => {
         const artifactSha = hashJson({ kind: cap.kind, reason: cap.reason, seq: state.lastSeq });
         const cardId = `cap-${artifactSha.slice(0, 8)}`;
         const p = cap.proposal ?? {};
@@ -448,10 +513,15 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         ].join("\n"));
         await ledger.append({ type: "human.requested", data: { cardId, kind: "cap", artifactSha, proposal: p, reason: cap.reason } }, writer);
         return { status: "waiting", message: `${cap.reason}. Decide with: factory show-card ${runId}` };
-      }
+      };
+      if (cap) return await capCard(cap);
 
       const n = next(state, ledger, project);
-      if (n.kind === "done") return { status: String(state.status), message: "All steps done." };
+      if (n.kind === "done") {
+        // an estimate or a design has no deliver step: its last step done, the run is finished, not still running
+        if (state.status !== "finished") await ledger.append({ type: "run.finished", data: { mode: state.info.mode } }, writer);
+        return { status: "finished", message: "All steps done." };
+      }
       if (n.kind === "blocked") throw new Error(`Step ${n.step} isn't ready but nothing before it is pending (bug)`);
       let batch = n.step.parallel ? nextBatch(state, ledger, project) : [{ step: n.step, hash: n.hash }];
       if (opts.until) {
@@ -460,6 +530,9 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         if (keys.indexOf(n.step.key) > keys.indexOf(opts.until)) return { status: "until", message: `Stopped before ${n.step.key}: ${opts.until} is done.` };
         batch = batch.filter((b) => keys.indexOf(b.step.key) <= keys.indexOf(opts.until!));
       }
+      // enough left for these steps to get anywhere? If not, the limit card comes before the attempt, not after its spend is lost
+      const short = checkStartBudget(state, batch.map((b) => ({ key: b.step.key, needsUsd: startNeed(ledger.events(), b.step), attemptsUsd: attemptSpend(ledger.events(), b.step.key) })));
+      if (short) return await capCard(short);
       trace.setStep(batch.length > 1 ? undefined : batch[0]!.step.key);
       if (batch.length > 1) log(`side by side: ${batch.map((b) => b.step.key).join(", ")}`);
       // every step of the batch is recorded, whatever the others do; the first that ends the run's turn says how

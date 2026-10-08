@@ -5,7 +5,7 @@ import type { Failure, Usage } from "../contracts/index.js";
 import type { ProjectConfig } from "../config/project.js";
 import type { Policy } from "../gates/policy.js";
 import type { Ledger, Writer } from "../ledger/ledger.js";
-import type { RunState, StepKey } from "../ledger/state.js";
+import { splitKey, type RunState, type StepKey } from "../ledger/state.js";
 import type { FailureCategory } from "../gates/ladder.js";
 import type { Trace } from "../util/trace.js";
 import type { GateAnswer } from "./gate-questions.js";
@@ -19,8 +19,12 @@ export type StepOutcome =
   /** data: small metadata stored on step.failed (e.g. the commit judged, how the attempt started).
    *  gate: a check on the step's output failed (not the model's answer, the code or the environment); in an estimate or a design run,
    *  after the retry, the failures become questions instead of more attempts (src/stages/gate-questions.ts). */
-  | { kind: "fail"; category: FailureCategory; failures: Failure[]; signature?: string; diffSha?: string; lockedFailedIds?: string[]; data?: Record<string, unknown>; gate?: boolean }
-  | { kind: "park"; reason: string }
+  | { kind: "fail"; category: FailureCategory; failures: Failure[]; signature?: string; diffSha?: string; lockedFailedIds?: string[]; data?: Record<string, unknown>; gate?: boolean;
+      /** the locked tests that failed cannot pass at this task (a later task completes what they run): failing twice is not "test or code wrong" */
+      deferrable?: boolean;
+      /** and each of them fails exactly as it did before the task started: they move to the later task on this failure, not the second */
+      deferNow?: boolean }
+  | { kind: "park"; reason: string; /** recorded on the step's failure event (an out-of-credit stop keeps its commit there) */ data?: Record<string, unknown> }
   /** A check failed that another attempt cannot fix (gate E1 on the spec, a breakdown the factory could not settle): questions now,
    *  in an estimate or a design run; elsewhere, and once the rounds of questions are used up, the run parks with the reason. */
   | { kind: "ask"; reason: string; failures: Failure[] }
@@ -64,6 +68,8 @@ export interface StepDef {
   model?(ctx: Pick<StepContext, "project" | "rung">): string | undefined;
   templateVersion: string;
   coding?: boolean;
+  /** the least left under the run's cost limit that this step is worth starting with (a coding agent); less, and the limit card comes first */
+  needsUsd?: number;
   /** may run side by side with the other parallel steps next to it in the run (one module's spec chain beside another's) */
   parallel?: boolean;
   run(ctx: StepContext): Promise<StepOutcome>;
@@ -90,6 +96,16 @@ export function requireOutput<T>(state: RunState, ledger: Ledger, step: StepKey,
 
 export function header(runId: string, kind: string, stage: string, inputsHash: string, model?: string) {
   return { kind, schemaVersion: 1 as const, runId, producedBy: { stage, model }, inputsHash, createdAt: new Date().toISOString() };
+}
+
+/**
+ * What this step's last attempt left for its retry (the `data` of its failure), or undefined when the step has not failed since
+ * it last completed. A step that failed its own checks stores the rejected answer here, so the retry fixes it and does not start over.
+ */
+export function lastFailureData(ledger: Ledger, step: StepKey): Record<string, unknown> | undefined {
+  const evs = ledger.events().filter((e) => e.key && splitKey(e.key).step === step);
+  const last = evs.filter((e) => e.type === "step.completed" || e.type === "step.failed" || e.type === "step.interrupted").at(-1);
+  return last?.type === "step.failed" ? (last.data ?? {}) as Record<string, unknown> : undefined;
 }
 
 /** Reasons a human gave when rejecting an approval card, oldest first (typed on a TTY: trusted). */

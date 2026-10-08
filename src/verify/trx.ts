@@ -26,6 +26,19 @@ export function classifyFailure(message: string, stack = ""): FailureKind {
   return "exception";
 }
 
+/**
+ * A .NET runner reports a thrown exception as "Namespace.Type : message" (MSTest: "threw exception").
+ * An assertion that carries its own message, `Assert.True(ok, "29 differences")`, is reported as that
+ * message alone, with nothing in it to say it was an assertion.
+ */
+const DOTNET_THROWN = /^(?:(?:[A-Za-z_][\w`+]*\.)+[A-Za-z_][\w`+]*|\w*(?:Exception|Error))\s*:|threw exception/;
+
+/** classifyFailure for a TRX result: a failure with a message that names no exception type is an assertion. */
+export function classifyTrxFailure(message: string, stack = ""): FailureKind {
+  const kind = classifyFailure(message, stack);
+  return kind === "exception" && message && !DOTNET_THROWN.test(message) ? "assertion" : kind;
+}
+
 /** Keep up to 5 frames from project code (not framework frames). */
 export function projectFrames(stack: string): string[] {
   return stack.split("\n")
@@ -74,7 +87,7 @@ export function parseTrx(xml: string, projectFallback = "tests"): TrxParsed {
     const base = { id, durationMs: durationMs(r.duration) };
     if (outcome === "Passed") results.push({ ...base, outcome: "passed" });
     else if (outcome === "Failed" || outcome === "Error" || outcome === "Aborted") {
-      results.push({ ...base, outcome: "failed", failureKind: classifyFailure(message, stack), message: message.slice(0, 2000), frames: projectFrames(stack) });
+      results.push({ ...base, outcome: "failed", failureKind: classifyTrxFailure(message, stack), message: message.slice(0, 2000), frames: projectFrames(stack) });
     } else if (outcome === "Timeout") results.push({ ...base, outcome: "failed", failureKind: "timeout", message: message || "Timed out" });
     else if (outcome === "NotExecuted" || outcome === "Inconclusive") results.push({ ...base, outcome: "skipped", message });
     else results.push({ ...base, outcome: "notRun", message: outcome });

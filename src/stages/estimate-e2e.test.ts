@@ -18,9 +18,10 @@ import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { createRun, execute } from "./executor.js";
+import { INTERRUPTED, shownStatus, statusHint } from "./run-status.js";
 import { previewFile, readPreview } from "../ui/preview.js";
-import { approvedEstimate } from "../estimate/lineage.js";
-import { setRecordsSource, setTaskRecordsSource } from "./estimate.js";
+import { approvedEstimate, estimateDesign } from "../estimate/lineage.js";
+import { NO_DESIGN_NOTE, setRecordsSource, setTaskRecordsSource } from "./estimate.js";
 import { setProviderFactory } from "./think.js";
 import { setTuneTrigger } from "../estimate/tune.js";
 
@@ -83,6 +84,9 @@ let dropReq2 = false;
 /** the failures each round of check questions was about */
 let gateAsks: string[] = [];
 const withScreens = (b: typeof breakdown) => ({ ...b, tasks: b.tasks.map((t) => (t.id === "EST-1" ? { ...t, track: "web", kind: "ui-form", screen: "S-1" } : t.id === "EST-2" ? { ...t, track: "web", kind: "ui-detail", screen: "S-2" } : t)) });
+/** an estimate with the design left out: the same UI tasks, with no approved screen to cite */
+let noScreens = false;
+const withoutScreens = (b: ReturnType<typeof withScreens>) => ({ ...b, tasks: b.tasks.map(({ screen: _s, ...t }) => t) });
 const MODULE_SPANS = ["ALPHA sign in flow", "BETA report export flow"];
 const bigBreakdown = () => ({
   features: [{ id: "F-1", title: "Alpha", reqs: ["REQ-1", "REQ-2"] }, { id: "F-2", title: "Beta", reqs: ["REQ-3", "REQ-4"] }],
@@ -129,7 +133,7 @@ function answerFor(system: string, user = ""): unknown {
   if (system.includes("Senior engineer writing a behaviour spec")) return draft;
   if (system.includes("Adversarial reviewer")) return { findings: fullRigor ? [{ rubric: 2, reqId: "REQ-1", severity: "high", finding: `missing lockout path (review ${++criticCalls})` }] : [] };
   if (system.includes("sizing the tasks")) return sizing;
-  if (system.includes("turning a finished spec")) return ui ? withScreens(breakdown) : breakdown;
+  if (system.includes("turning a finished spec")) return ui ? (noScreens ? withoutScreens(withScreens(breakdown)) : withScreens(breakdown)) : breakdown;
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
 }
 const provider: Provider = {
@@ -166,6 +170,7 @@ beforeEach(() => {
   modular = false;
   intakeCalls = 0;
   ui = false;
+  noScreens = false;
   uiDesign = UI_DESIGN;
   dropReq2 = false;
   gateAsks = [];
@@ -202,8 +207,21 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 6), by: "lead" });
 
     const r3 = await execute(runId);
-    expect(r3.status, r3.message).not.toBe("waiting");
+    expect(r3.status, r3.message).toBe("finished");
     const s = replay(ledger.events());
+    // the last step done, the run is finished, not still running; resuming it again adds nothing
+    expect(s.status).toBe("finished");
+    expect(shownStatus(s)).toBe("finished");
+    expect((await execute(runId)).status).toBe("finished");
+    expect(ledger.events().filter((e) => e.type === "run.finished")).toHaveLength(1);
+    // a run whose executor stopped: one that finished before runs recorded it reads finished, one stopped mid-export interrupted
+    const before = ledger.events().filter((e) => e.type !== "run.finished");
+    expect(shownStatus(replay(before), () => false)).toBe("finished");
+    const midExport = replay(before.filter((e) => !(e.type === "step.completed" && e.key?.startsWith("export"))));
+    expect(midExport.status).toBe("running");
+    expect(shownStatus(midExport, () => false)).toBe(INTERRUPTED);
+    expect(statusHint(INTERRUPTED, runId)).toContain(`factory resume ${runId}`);
+    expect(shownStatus(midExport, () => true)).toBe("running");
     for (const step of ["intake", "ground", "clarify", "clarify-2", "drafts", "merge", "specify", "design-baseline", "breakdown", "estimate", "approve-estimate", "export"]) {
       expect(s.steps.get(step)?.status, step).toBe("completed");
     }
@@ -459,6 +477,17 @@ describe("estimate mode end to end (requirements only, scripted model)", () => {
     return runId;
   }
 
+  it("stops on a limit card when the cost limit is reached, written before the executor lets go of the run", async () => {
+    const runId = await createRun("Build a client portal where users sign in and export reports.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true }, maxCostUsd: 0.000001 });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("waiting");
+    expect(r.message).toMatch(/Cost limit reached/);
+    const s = replay(Ledger.open(runId).events());
+    expect(s.openCard?.kind).toBe("cap");
+    // a second resume finds the card and waits; it does not fail
+    expect((await execute(runId)).status).toBe("waiting");
+  });
+
   it("refuses to build on an estimate that is not approved yet", async () => {
     const runId = await createRun("Build a client portal.", "demo", "sam", { mode: "estimate", estimate: { noRepo: true } });
     await execute(runId);
@@ -575,6 +604,46 @@ describe("estimate mode for a request with UI (scripted model)", () => {
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
     const bd = ledger.getJson<{ tasks: { id: string; screen?: string }[] }>(s.steps.get("breakdown")!.outputs[0]!);
     expect(bd.tasks.filter((t) => t.screen).map((t) => t.screen).sort()).toEqual(["S-1", "S-2"]);
+  });
+
+  it("with the design left out, draws nothing, asks for no design approval and goes from the spec straight to the breakdown", async () => {
+    ui = true;
+    noScreens = true;
+    const runId = await start(undefined, { estimate: { deliveryModel: "hitl", stackSource: "client", designInTotal: true, feedbackRounds: 2, noRepo: true, drawDesign: false } });
+    let card = "";
+    const cards = await drive(runId, (kind, md) => { if (kind === "estimate-approval") card = md; });
+    expect(cards).toEqual(["question", "estimate-approval"]);
+    expect(prompts.some((p) => /drawing the screen inventory/.test(p))).toBe(false);
+    const ledger = Ledger.open(runId);
+    const s = replay(ledger.events());
+    for (const step of ["design", "design-baseline", "design-export"]) expect(s.steps.has(step), step).toBe(false);
+    for (const step of ["breakdown", "estimate", "approve-estimate", "export"]) expect(s.steps.get(step)?.status, step).toBe("completed");
+    expect(s.gates.some((g) => g.gateId === "estimate.e1b-design-baseline")).toBe(false);
+    // the breakdown was told there are no screens to cite, and the estimate says so where a person reads it
+    const bd = ledger.getJson<{ tasks: { screen?: string; kind: string }[] }>(s.steps.get("breakdown")!.outputs[0]!);
+    expect(bd.tasks.some((t) => t.screen)).toBe(false);
+    expect(bd.tasks.some((t) => t.kind === "design-approval")).toBe(false);
+    const est = ledger.getJson<{ assumptions: string[] }>(s.steps.get("estimate")!.outputs[0]!);
+    expect(est.assumptions).toContain(NO_DESIGN_NOTE);
+    expect(card).toContain("No design was drawn for this estimate");
+    // a build from it is told to draw its own design
+    expect(approvedEstimate(runId, { build: true }).settings.drawDesign).toBe(false);
+  });
+
+  it("sizes an estimate that left the design out again (--resize), still with no design", async () => {
+    ui = true;
+    noScreens = true;
+    const first = await start(undefined, { estimate: { deliveryModel: "hitl", stackSource: "client", designInTotal: true, feedbackRounds: 2, noRepo: true, drawDesign: false } });
+    await drive(first);
+    const from = estimateDesign(first);
+    expect(from.ref.designSha).toBeUndefined();
+    const runId = await createRun(from.request, "demo", "sam", { mode: "estimate", estimate: from.settings, fromDesign: from });
+    prompts = [];
+    expect(await drive(runId)).toEqual(["estimate-approval"]);
+    expect(prompts.every((p) => /turning a finished spec|sizing the tasks/.test(p)), prompts.join(" | ")).toBe(true);
+    const s = replay(Ledger.open(runId).events());
+    expect(s.steps.has("design")).toBe(false);
+    expect(s.steps.get("export")?.status).toBe("completed");
   });
 
   it("refuses a breakdown whose screen nobody approved, feeding the failure back", async () => {

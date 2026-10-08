@@ -1,9 +1,11 @@
 // `factory ui`: a small local web app to start runs and watch them. node:http only, plain files.
-// It can NEVER approve a plan, waive, unlock, steer, pause or stop: those decisions are TTY-only
-// (ledger/human.ts), so no AI or script can approve its own plan. Three exceptions, each needing a typed name
-// and the card's hash: the lead's approve or reject of an estimate card, the same on a design card (E1b), and
-// the answers to a clarification question card (so a run never stops waiting for a second command). Resuming a parked run
-// (POST /api/runs/:id/resume) decides nothing: it is `factory resume`, and the run stops again at its next card. Exporting an
+// It can NEVER waive a gate, unlock, steer or pause: those decisions are TTY-only (ledger/human.ts). What it can decide, each with
+// a typed name and the card's hash (checked under the ledger lock, as the terminal does) and recorded as "<name> (via web)": an
+// estimate card (approve or reject, with sign-offs), a design card (E1b) and a plan card (the spec and plan, with a full-stack
+// product's API contract), approve or send back with a reason, the answers to a question card on any run, and a limit card (cost,
+// time or attempts, or an estimate's budget): raise it one step and continue, or stop the run there. A bigger raise is the terminal's. Resuming a parked run (POST /api/runs/:id/resume) decides nothing: it is `factory resume`, and the
+// run stops again at its next card. Starting a new product may make one empty project (git init and factory init), and a full-stack
+// product its two repos (factory fullstack start); its run files (POST /api/fullstack/:name/up) start nothing. Exporting an
 // approved design (POST /api/runs/:id/exports) only writes files under the run's own exports/ folder, and generating its
 // scaffold (POST /api/runs/:id/scaffold) only under the run's own scaffold/ folder.
 // Other cards are shown read-only with the terminal command to paste.
@@ -21,11 +23,13 @@ import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
-import { answerEstimateQuestions, checkRefs, decideEstimate, resumeRun, startRun, StartError, type StartDeps } from "./start.js";
+import { answerQuestions, checkRefs, decideCard, decideEstimate, raiseLimit, resumeRun, startRun, StartError, stopAtLimit, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
 import { figmaPluginZip } from "../design/figma.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
 import { fidelityPanel, fidelityShot } from "./fidelity.js";
+import { fullstackNext, fullstackUp, productsView, productView, startFullstack } from "./fullstack.js";
+import { productNames } from "../fullstack/product.js";
 import type { ExportFormat } from "../design/export.js";
 
 export const MAX_BODY_BYTES = 1_000_000;
@@ -49,7 +53,10 @@ interface RouteContext { previewKey: string; jobs: ExportJobs }
 const ok = (json: Json): Reply => ({ status: 200, json });
 const notFound = (what: string): Reply => ({ status: 404, json: { error: what } });
 
-/** Every API route. Read-only except starting a run; there is deliberately no decision route. */
+/**
+ * Every API route. Besides starting runs, the only decisions are the ones a person makes with a typed name and the card's hash:
+ * an estimate card, a design or plan card, and a question card's answers. Waivers, limits, unlocks, steering and pausing have no route.
+ */
 export const ROUTES: readonly Route[] = [
   { method: "GET", path: "/api/projects", what: "projects and whether Jira and Figma are set up", handle: async () => ok(await projectsView()) },
   { method: "GET", path: "/api/runs", what: "recent runs", handle: () => ok(runsView()) },
@@ -121,12 +128,12 @@ export const ROUTES: readonly Route[] = [
     },
   },
   {
-    method: "POST", path: "/api/runs/:id/estimate-answers", what: "the answers to an estimate run's clarification questions (question cards on estimate runs only; needs a typed name and the card hash)",
+    method: "POST", path: "/api/runs/:id/answers", what: "the answers to a run's question card (question cards only; needs a typed name and the card hash)",
     handle: async ({ id }, body, deps) => {
       const l = findRun(id!);
       if (!l) return notFound(`No run ${id}`);
       try {
-        return { status: 200, json: await answerEstimateQuestions(l, (body ?? {}) as Record<string, unknown>, deps) };
+        return { status: 200, json: await answerQuestions(l, (body ?? {}) as Record<string, unknown>, deps) };
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };
@@ -134,7 +141,46 @@ export const ROUTES: readonly Route[] = [
     },
   },
   {
-    method: "POST", path: "/api/runs/:id/resume", what: "resume a parked run in the background, like factory resume (parked runs only; a paused run is resumed in the terminal)",
+    method: "POST", path: "/api/runs/:id/decision", what: "approve or send back a design card or a plan card (those cards only; needs a typed name, the card hash and, to send back, a reason)",
+    handle: async ({ id }, body, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await decideCard(l, (body ?? {}) as Record<string, unknown>, deps) };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/limit", what: "raise a limit card one step and continue, like factory waive-cap or waive-budget (limit cards only; needs a typed name, the card hash and, for a budget, a reason)",
+    handle: async ({ id }, body, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await raiseLimit(l, (body ?? {}) as Record<string, unknown>, deps) };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/limit-stop", what: "stop a run waiting on a limit card, like factory stop (needs a typed name and the card hash)",
+    handle: async ({ id }, body, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await stopAtLimit(l, (body ?? {}) as Record<string, unknown>, deps) };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/resume", what: "resume a parked or interrupted run in the background, like factory resume (parked or interrupted runs only; a paused run is resumed in the terminal)",
     handle: async ({ id }, _b, deps) => {
       const l = findRun(id!);
       if (!l) return notFound(`No run ${id}`);
@@ -143,6 +189,37 @@ export const ROUTES: readonly Route[] = [
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  { method: "GET", path: "/api/fullstack", what: "full-stack products (factory fullstack): each one's web and API run", handle: () => ok(productsView()) },
+  {
+    method: "GET", path: "/api/fullstack/:name", what: "one full-stack product: both runs, the approved API contract, what to do next and the run files",
+    handle: ({ name }) => productNames().includes(name!) ? ok(productView(name!) as unknown as Json) : notFound(`No full-stack product ${name}`),
+  },
+  {
+    method: "POST", path: "/api/fullstack", what: "start a full-stack product like factory fullstack start: make both repos, then the web run in the background",
+    handle: async (_p, body, deps) => {
+      try { return { status: 201, json: await startFullstack((body ?? {}) as Record<string, unknown>, deps) }; } catch (e) {
+        return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/fullstack/:name/next", what: "hand the approved API contract to the API repo and start the API run in the background, like factory fullstack next",
+    handle: async ({ name }, body, deps) => {
+      if (!productNames().includes(name!)) return notFound(`No full-stack product ${name}`);
+      try { return { status: 201, json: await fullstackNext(name!, (body ?? {}) as Record<string, unknown>, deps) }; } catch (e) {
+        return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/fullstack/:name/up", what: "write the run files of two delivered runs (both branches side by side and a compose file), like factory fullstack up; starts nothing",
+    handle: ({ name }) => {
+      if (!productNames().includes(name!)) return notFound(`No full-stack product ${name}`);
+      try { return ok(fullstackUp(name!)); } catch (e) {
+        return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
       }
     },
   },
@@ -422,7 +499,7 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       if (!String(req.headers["content-type"] ?? "").startsWith("application/json")) return sendJson(res, 415, { error: "Send JSON." });
       // a cookie alone isn't enough without a same-site Origin (curl sends the key in a header)
       if (origin === undefined && !sameToken(headerToken, token)) return sendJson(res, 403, { error: "A POST needs the page's origin or the key header." });
-      const limit = route.path === "/api/runs" || route.path === "/api/check-refs" ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES;
+      const limit = route.path === "/api/runs" || route.path === "/api/check-refs" || route.path === "/api/fullstack" ? MAX_UPLOAD_BODY_BYTES : MAX_BODY_BYTES;
       const raw = await readBody(req, limit);
       if (raw === "too-big") return sendJson(res, 413, { error: `The request is over ${limit / 1_000_000} MB.` });
       try { body = raw ? JSON.parse(raw) : {}; } catch { return sendJson(res, 400, { error: "Bad JSON." }); }

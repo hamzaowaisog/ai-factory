@@ -1,8 +1,11 @@
 // A new product (greenfield follow-up to the PR #11 review): an approved design with no repo is built into an empty git repo.
 // "Empty" allows the few files a new repo is often created with (a README, a licence, git's own settings); anything else is code.
 import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { isAbsolute, join } from "node:path";
 import { hardenedEnv } from "../ledger/git.js";
-import type { ProjectConfig } from "./project.js";
+import { factoryHome } from "../util/paths.js";
+import { projectPath, type ProjectConfig } from "./project.js";
 
 const STARTER = /^(README|LICEN[CS]E|COPYING)(\.[A-Za-z]+)?$|^\.git(ignore|attributes)$|^\.editorconfig$/i;
 
@@ -66,8 +69,8 @@ export function seedEmptyRepo(repo: string): string {
 /** `factory init` on an empty repo: a Node project, built with the factory's kit from an approved design. */
 export function nodeProjectYaml(name: string, repo: string, baseBranch: string): string {
   return [
-    "# Written by `factory init` for a new product: the repo was empty. Build an approved design into it with",
-    `#   factory start --project ${name} --from-design <design run>`,
+    "# Written by `factory init` for a new product: the repo was empty. Build it with",
+    `#   factory start --project ${name} --file <requirements>      (or --from-design <design run> for an approved design)`,
     `project: ${name}`,
     `repo: ${repo}`,
     `baseBranch: ${baseBranch}`,
@@ -76,14 +79,71 @@ export function nodeProjectYaml(name: string, repo: string, baseBranch: string):
   ].join("\n");
 }
 
+/** A new product's name: it names the project and the repo folder, so lower-case letters, digits and dashes. */
+export const PRODUCT_NAME = /^[a-z][a-z0-9-]{1,30}$/;
+
+/** Why a new product cannot be made with this name in this folder, or undefined when it can. Reads only; writes nothing. */
+export function newProductProblem(name: string, repo: string): string | undefined {
+  if (!PRODUCT_NAME.test(name)) return `"${name}" is not a usable name: lower-case letters, digits and dashes, starting with a letter.`;
+  if (!isAbsolute(repo)) return `${repo} is not a full path to a folder.`;
+  if (existsSync(repo) && readdirSync(repo).length) return `${repo} already exists and is not empty.`;
+  if (existsSync(projectPath(name))) return `Project ${name} already exists (${projectPath(name)}).`;
+  return undefined;
+}
+
+/**
+ * A new product from nothing, as `git init` and `factory init` do by hand: the folder, a git repo on main with its empty base
+ * commit, and a Node project config. Refuses a name or a folder that is in use. Returns the base commit.
+ */
+export function makeNewProduct(name: string, repo: string): string {
+  const why = newProductProblem(name, repo);
+  if (why) throw new Error(why);
+  mkdirSync(repo, { recursive: true });
+  execFileSync("git", ["-c", "core.hooksPath=/dev/null", "-c", "safe.directory=*", "-C", repo, "init", "-q", "-b", "main"], { env: hardenedEnv(), stdio: ["ignore", "pipe", "pipe"] });
+  const base = seedEmptyRepo(repo);
+  mkdirSync(join(factoryHome(), "projects"), { recursive: true, mode: 0o700 });
+  writeFileSync(projectPath(name), nodeProjectYaml(name, repo, "main"));
+  return base;
+}
+
+/** An approved estimate's tasks and stack, as much of them as the check below reads. */
+export interface EstimateScope {
+  tasks?: { id: string; track: string; kind?: string; executor?: string }[];
+  stack?: { backend?: string; mobile?: string };
+}
+
+/**
+ * Why an approved estimate made with no repo is more than this new product builds, or undefined when it is not. A new product with
+ * its own API (`withApi`: Greenfield on the page, `factory fullstack`) builds the web app and a .NET API, so only a phone app
+ * (mobile tasks) is beyond it. A web app alone (Greenfield's "the client provides the backend", or a plain start into an empty
+ * Node project) builds no API either, so the
+ * estimate's backend `be-*` tasks the factory builds (executor factory or joint) would be dropped too: B1 only checks that each plan
+ * task maps to an estimate task, not that every estimate task is planned. Set-up (`ops-*`) and work people do don't count.
+ */
+export function newProductRefusal(runId: string, scope: EstimateScope, withApi: boolean): string | undefined {
+  const built = (scope.tasks ?? []).filter((t) => t.executor !== "human");
+  const mobile = built.filter((t) => t.track === "mobile");
+  const backend = withApi ? [] : built.filter((t) => t.track === "backend" && t.kind?.startsWith("be-"));
+  if (!mobile.length && !backend.length) return undefined;
+  const ids = (ts: { id: string }[]) => `${ts.slice(0, 4).map((t) => t.id).join(", ")}${ts.length > 4 ? ", …" : ""}`;
+  const parts = [
+    ...(backend.length ? [`${backend.length} backend task${backend.length > 1 ? "s" : ""} (${ids(backend)}${scope.stack?.backend ? `; priced as ${scope.stack.backend}` : ""})`] : []),
+    ...(mobile.length ? [`${mobile.length} mobile task${mobile.length > 1 ? "s" : ""} (${ids(mobile)}${scope.stack?.mobile ? `; priced as ${scope.stack.mobile}` : ""})`] : []),
+  ];
+  if (withApi) return `${runId} prices a phone app: ${parts.join(" and ")}. A new product is a web app and its API; a phone app is not built yet, so those tasks would not be built. Estimate again without the phone app.`;
+  return `${runId} prices more than a web app: ${parts.join(" and ")}. A web app alone is one Next.js app on a backend it does not build, so those tasks would not be built. ` +
+    `${backend.length ? `Build it with its API instead (Greenfield on the page, or factory fullstack start --from-estimate ${runId}); or, when the client provides the backend, estimate again without the backend work.` : "A phone app is not built yet: estimate again without it."}`;
+}
+
 /**
  * Why an approved design with no repo cannot be built into this project, or undefined when it can: the project must be a Node
  * project whose repo is still empty (a design for a new product is a whole app; it is not merged into existing code).
  */
+/** `runId`: the approved design or estimate (made with no repo) being built, or "This request" for a plain start. */
 export function greenfieldRefusal(designRunId: string, project: Pick<ProjectConfig, "project" | "repo" | "baseBranch" | "stack">): string | undefined {
   const init = `Create an empty git repo (git init) and run: factory init <folder>, then build into that project.`;
-  if (project.repo === "-") return `${designRunId} is a new product (designed with no repo); pick a project with an empty repo to build it into. ${init}`;
-  if (!repoIsEmpty(project.repo, project.baseBranch)) return `${designRunId} is a new product (designed with no repo), and project ${project.project}'s repo already has code. A new product is built into an empty repo. ${init}`;
+  if (project.repo === "-") return `${designRunId} is a new product (made with no repo); pick a project with an empty repo to build it into. ${init}`;
+  if (!repoIsEmpty(project.repo, project.baseBranch)) return `${designRunId} is a new product (made with no repo), and project ${project.project}'s repo already has code. A new product is built into an empty repo. ${init}`;
   if (project.stack !== "node") return `Project ${project.project} has an empty repo but is set up as stack: ${project.stack}. A new product is a Node app: run factory init <folder> --force again, or set stack: node in its config.`;
   return undefined;
 }

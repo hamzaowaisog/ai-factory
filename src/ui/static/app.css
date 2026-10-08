@@ -189,6 +189,8 @@ main { max-width: 1320px; margin: 0 auto; padding: 1.8rem 2rem 5rem; }
 .field { margin-bottom: 1.3rem; }
 .field > label, .label { display: block; font-weight: 650; margin-bottom: 0.45rem; }
 .hint { font-size: 0.85rem; color: var(--muted); margin-top: 0.4rem; }
+.hint.warn-text { color: var(--wait); display: flex; gap: 0.35rem; align-items: flex-start; }
+.hint.warn-text svg { flex: none; width: 15px; height: 15px; margin-top: 0.15rem; }
 input[type=text], input[type=url], input[type=number], select, textarea {
   width: 100%; padding: 0.7rem 0.85rem; border-radius: 10px; border: 1px solid var(--edge); background: var(--code); transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -215,9 +217,6 @@ a.mode:hover::after { opacity: 1; }
 .mode h2 { margin: 0; font-size: 1.35rem; }
 .mode p { margin: 0; color: var(--muted); }
 .mode .go { margin-top: auto; display: flex; align-items: center; gap: 0.4rem; color: var(--accent-2); font-weight: 650; }
-.mode.off { opacity: 0.5; filter: saturate(0.3); cursor: not-allowed; }
-.mode.off .ico { background: var(--panel-2); color: var(--faint); }
-.ribbon { position: absolute; top: 24px; right: -48px; width: 190px; transform: rotate(40deg); text-align: center; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.32rem 0; background: var(--panel-3); color: var(--text); }
 
 /* ---------- new run: request ---------- */
 .form { max-width: 840px; }
@@ -659,3 +658,6 @@ textarea[aria-label="Rejection reason"] { width: 100%; font: inherit; padding: 0
 .fid-shots .slot { padding: 2rem 1rem; text-align: center; border: 1px dashed var(--edge); border-radius: 8px; }
 #fidelity-panel select { max-width: 100%; }
 #fidelity-panel input[type=text] { flex: 1 1 200px; min-width: 0; }
+
+/* a full-stack product's approved API contract */
+pre.contract { background: var(--code); padding: 0.6rem 0.8rem; border-radius: 8px; overflow: auto; max-height: 28rem; margin: 0.5rem 0 0; }

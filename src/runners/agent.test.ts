@@ -80,6 +80,20 @@ describe("ClaudeAgentRunner (fake runtime)", () => {
     expect(r.error).toMatch(/instruction files/);
   });
 
+  it("reads a session that filled the context window as unfinished, not as an error or a bad request", async () => {
+    for (const res of [
+      { status: "error", error: "Claude Code returned an error result: Prompt is too long" },
+      { status: "config-error", apiErrorStatus: 400, error: "API error 400: Prompt is too long" },
+    ]) {
+      const rt = new FakeRt({ ...res, instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 5, output_tokens: 7 }, costUsd: 1.5, turns: 62 });
+      const r = await new ClaudeAgentRunner(rt, { runId: "r", key: "k", fileScope: [], lockedFiles: [], extraProtected: [], agentEnv: {} })
+        .run({ step: "implement", model: "m", pack, schema: Out, limits: { maxTurns: 80, maxUsd: 4, timeoutSec: 60 }, workdir: worktree() });
+      expect(r.status).toBe("timeout");
+      expect(r.error).toMatch(/context window/);
+      expect(r.usage.estUsd).toBe(1.5);
+    }
+  });
+
   it("maps a missing result to an error", async () => {
     const r = await new ClaudeAgentRunner(new FakeRt(undefined), { runId: "r", key: "k", fileScope: [], lockedFiles: [], extraProtected: [], agentEnv: {} })
       .run({ step: "implement", model: "m", pack, schema: Out, limits: { maxTurns: 1, maxUsd: 1, timeoutSec: 60 }, workdir: worktree() });

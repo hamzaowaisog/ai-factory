@@ -12,14 +12,16 @@ import { LEVEL_NAMES, LEVELS, plannedChanges, sizeChange, type SizeResult } from
 import { uiSizeCardLine } from "../design/card.js";
 import { gitSource } from "../design/source.js";
 import { verifyEvidence } from "../gates/engine.js";
-import { currentCostCap } from "../ledger/caps.js";
+import { currentCostCap, wallClockCapMs } from "../ledger/caps.js";
 import { readLockInfo, isLockFree } from "../ledger/exec-lock.js";
 import { Ledger } from "../ledger/ledger.js";
-import { replay, splitKey, statusLabel, type RunState } from "../ledger/state.js";
+import { MAX_BUDGET_CEILING, replay, splitKey, type RunState } from "../ledger/state.js";
+import { shownStatus } from "../stages/run-status.js";
 import { outcomes, scoreRun, stageStats, stageOf, type RunScore } from "../report.js";
 import { jiraConfigured } from "../sources/jira.js";
 import { figmaConfigured } from "../sources/figma.js";
 import { designRunView } from "../design/runs.js";
+import { loadProduct, productNames } from "../fullstack/product.js";
 import type { VisualCheck } from "../design/visual-check.js";
 import { exportWorkbooks } from "../estimate/export.js";
 import { humanReview } from "../estimate/settings.js";
@@ -33,7 +35,8 @@ import { Redactor } from "../context/secrets.js";
 import { readPreview } from "./preview.js";
 import { factoryAssumed } from "../stages/gate-questions.js";
 import { loadProject, STANDALONE_PROJECT } from "../config/project.js";
-import { repoIsEmpty } from "../config/greenfield.js";
+import { githubConfigured, NO_GITHUB_TOKEN } from "../forge/repos.js";
+import { newProductRefusal, repoIsEmpty, type EstimateScope } from "../config/greenfield.js";
 
 // ---------- helpers ----------
 
@@ -73,17 +76,31 @@ export async function busyRun(project: string): Promise<{ runId: string } | unde
   return { runId: info?.runId ?? "" };
 }
 
-export interface ApprovedEstimateRow { runId: string; project: string; request: string; createdAt: string; deliveryModel: string }
+/**
+ * `repo`: false for an estimate made with no repo, the kind a new product (Greenfield: a web app and its API) is built from.
+ * `cannotBuild`: for such an estimate, why a new product (web app + API) would not build all of it (it prices a phone app);
+ * `cannotBuildWebOnly`: why a web app alone, on a backend the client provides, would not (it prices backend work too).
+ */
+export interface ApprovedEstimateRow { runId: string; project: string; request: string; createdAt: string; deliveryModel: string; repo: boolean; cannotBuild?: string; cannotBuildWebOnly?: string }
 
 /** Estimate runs that are approved and exported: the ones a build can start from (factory start --from-estimate). */
 export function approvedEstimatesView(): ApprovedEstimateRow[] {
   const rows: ApprovedEstimateRow[] = [];
   for (const id of Ledger.listRuns()) {
     try {
-      const s = replay(Ledger.open(id).events());
+      const ledger = Ledger.open(id);
+      const s = replay(ledger.events());
       if (s.info.mode !== "estimate") continue;
       if (!["estimate", "approve-estimate", "export"].every((k) => s.steps.get(k)?.status === "completed")) continue;
-      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt, deliveryModel: s.info.estimate?.deliveryModel ?? "hitl" });
+      const repo = s.info.estimate?.noRepo !== true;
+      let cannotBuild: string | undefined, cannotBuildWebOnly: string | undefined;
+      if (!repo) {
+        const out = (k: string) => { const sha = s.steps.get(k)?.outputs[0]; return sha ? ledger.getJson<EstimateScope>(sha) : undefined; };
+        const scope = { ...out("breakdown"), stack: out("estimate")?.stack };
+        cannotBuild = newProductRefusal(id, scope, true);
+        cannotBuildWebOnly = newProductRefusal(id, scope, false);
+      }
+      rows.push({ runId: id, project: s.info.project, request: shortRequest(s.info.request), createdAt: s.info.createdAt, deliveryModel: s.info.estimate?.deliveryModel ?? "hitl", repo, ...(cannotBuild ? { cannotBuild } : {}), ...(cannotBuildWebOnly ? { cannotBuildWebOnly } : {}) });
     } catch { /* a broken ledger doesn't hide the others */ }
   }
   return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
@@ -106,7 +123,7 @@ export function approvedDesignsView(): ApprovedDesignRow[] {
   return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
 }
 
-export async function projectsView(): Promise<{ projects: ProjectRow[]; estimates: ApprovedEstimateRow[]; designs: ApprovedDesignRow[]; jira: { configured: boolean; why?: string }; figma: { configured: boolean; why?: string } }> {
+export async function projectsView(): Promise<{ projects: ProjectRow[]; estimates: ApprovedEstimateRow[]; designs: ApprovedDesignRow[]; jira: { configured: boolean; why?: string }; figma: { configured: boolean; why?: string }; github: { configured: boolean; why?: string } }> {
   const projects: ProjectRow[] = [];
   for (const name of projectNames()) {
     const busy = await busyRun(name);
@@ -120,6 +137,7 @@ export async function projectsView(): Promise<{ projects: ProjectRow[]; estimate
     estimates: approvedEstimatesView(),
     designs: approvedDesignsView(),
     jira: configured ? { configured } : { configured, why: "Jira isn't set up. Add JIRA_BASE_URL, JIRA_EMAIL and JIRA_API_TOKEN to ~/.factory/.env (factory doctor checks it)." },
+    github: githubConfigured() ? { configured: true } : { configured: false, why: NO_GITHUB_TOKEN },
     figma: figmaConfigured() ? { configured: true } : { configured: false, why: "Figma links need FIGMA_TOKEN in ~/.factory/.env (a personal access token with read access to files). Until then, export the frames as PNG and attach them, or attach a Figma JSON export." },
   };
 }
@@ -137,7 +155,7 @@ export function runsView(limit = 50): RunRow[] {
     try {
       const s = replay(Ledger.open(id).events());
       rows.push({
-        runId: id, request: shortRequest(s.info.request), project: s.info.project, status: statusLabel(s.status), step: currentStep(s),
+        runId: id, request: shortRequest(s.info.request), project: s.info.project, status: shownStatus(s), step: currentStep(s),
         costUsd: s.costUsd, createdAt: s.info.createdAt,
         ...(s.openCard ? { openCard: s.openCard.kind } : {}), ...(s.parkedReason ? { parkedReason: s.parkedReason } : {}),
       });
@@ -221,7 +239,7 @@ export function gateChips(s: RunState): GateChip[] {
 export function cardCommands(markdown: string, runId: string, hash8: string): string[] {
   const out = [`factory show-card ${runId}`];
   for (const line of markdown.split("\n")) {
-    const m = /(?:^|\s|`)(factory (?:approve|reject|answer|waive-cap|stop)\s[^`]*?)`?\s*$/.exec(line);
+    const m = /(?:^|\s|`)(factory (?:approve|reject|answer|waive-cap|waive-budget|stop)\s[^`]*?)`?\s*$/.exec(line);
     if (m) out.push(m[1]!.replace(/\s+/g, " ").replace("<hash>", hash8).trim());
   }
   return [...new Set(out)];
@@ -248,6 +266,20 @@ function questionsOf(ledger: Ledger, sha: string) {
   };
 }
 
+/**
+ * A limit card's numbers for the run page's raise form: what is spent against the limit in force and the card's suggestion, the
+ * most the page raises it in one step (cap: cost, time or attempts; budget: the approved estimate's ceiling, as a multiple of its maximum).
+ */
+function limitOf(s: RunState) {
+  const card = s.openCard as (RunState["openCard"] & { proposal?: { costUsd?: number; wallMinutes?: number; extraAttempts?: number }; proposed?: number; reason?: string }) | undefined;
+  if (card?.kind === "cap") {
+    const wallMin = s.capOverrides.wallMinutes ?? wallClockCapMs(s.info.complexity) / 60_000;
+    return { limit: { kind: "cap" as const, reason: card.reason ?? "", spentUsd: s.costUsd, costCapUsd: currentCostCap(s), activeMin: s.activeMs / 60_000, wallMin, proposal: card.proposal ?? {} } };
+  }
+  if (card?.kind === "budget") return { limit: { kind: "budget" as const, reason: card.reason ?? "", ceiling: s.budgetCeiling, max: MAX_BUDGET_CEILING, ...(s.budgetCeiling < MAX_BUDGET_CEILING && card.proposed !== undefined ? { proposed: card.proposed } : {}) } };
+  return {};
+}
+
 export function runView(ledger: Ledger) {
   const s = replay(ledger.events());
   const card = s.openCard && existsSync(join(ledger.cardsDir, `${s.openCard.cardId}.md`)) ? ledger.readCard(s.openCard.cardId) : undefined;
@@ -267,7 +299,8 @@ export function runView(ledger: Ledger) {
     request: s.info.request ?? "",
     sources: s.info.sources ?? [],
     createdAt: s.info.createdAt,
-    status: statusLabel(s.status),
+    ...productOf(ledger.runId),
+    status: shownStatus(s),
     step: currentStep(s),
     parkedReason: s.parkedReason,
     cost: { usd: s.costUsd, capUsd: currentCostCap(s), ...(s.info.maxCostUsd !== undefined ? { maxCostUsd: s.info.maxCostUsd } : {}) },
@@ -275,7 +308,7 @@ export function runView(ledger: Ledger) {
     lastActivity: last ? { ts: last.ts, msg: last.msg, where: last.step ?? "run" } : undefined,
     timeline: timeline(ledger, s),
     gates: gateChips(s),
-    card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}) } : undefined,
+    card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}), ...limitOf(s) } : undefined,
     trace,
     delivered: done ? {
       branch: d.branch ?? s.workspace?.branch, head: d.head, prUrl: d.prUrl, local: d.local !== false,
@@ -283,6 +316,18 @@ export function runView(ledger: Ledger) {
       evidence: evidence(ledger, s.lastSeq),
     } : undefined,
   };
+}
+
+/** The full-stack product a run is one side of (factory fullstack), so its page links to the product. */
+function productOf(runId: string): { product?: { name: string; side: "web" | "api" } } {
+  for (const name of productNames()) {
+    try {
+      const p = loadProduct(name);
+      if (p.web.run === runId) return { product: { name, side: "web" } };
+      if (p.api.run === runId) return { product: { name, side: "api" } };
+    } catch { /* a broken product file is skipped */ }
+  }
+  return {};
 }
 
 // ---------- dashboard ----------
@@ -469,6 +514,8 @@ export function estimateView(ledger: Ledger) {
     suggested: est.suggested,
     assumptions: est.assumptions,
     ...(est.stack ? { stack: est.stack } : {}),
+    // made with no repo but prices an API or a phone app: a greenfield run (one web app) would not build all of it
+    ...(s.info.estimate?.noRepo === true && bd ? (() => { const w = newProductRefusal(ledger.runId, { tasks: bd.tasks, stack: est.stack }, true); return w ? { cannotBuild: w } : {}; })() : {}),
     ...(est.catalogue ? { catalogue: { ...est.catalogue, statusText: catalogueStatusText(est.catalogue) } } : {}),
     design: baseline === undefined ? { pending: true } : !design ? { ui: false } : {
       ui: true, flow: design.flow,

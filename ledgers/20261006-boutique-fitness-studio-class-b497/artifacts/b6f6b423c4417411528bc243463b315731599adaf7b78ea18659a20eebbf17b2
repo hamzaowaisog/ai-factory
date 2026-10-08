@@ -1,0 +1,1 @@
+[{"check":"plan-coverage","frames":[],"message":"REQ-55 isn't covered by any task"},{"check":"plan-coverage","frames":[],"message":"REQ-61 isn't covered by any task"},{"check":"plan-contract","frames":[],"message":"contracts/openapi.yaml is not an OpenAPI document (it needs \"openapi\" and \"paths\")."}]

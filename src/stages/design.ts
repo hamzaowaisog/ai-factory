@@ -18,7 +18,7 @@ import type { Ledger } from "../ledger/ledger.js";
 import { restyleChosen, type ClarifyResult } from "./clarify.js";
 import { btnLabels, DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
-import { header, outputOf, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
+import { header, lastFailureData, outputOf, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { lightUi } from "./lane.js";
 import { lookFromRefs, lookRefs, matchFamilies, refBrief as clientRefBrief, refFit, refLayoutFixes, refLayoutGaps, refNotes, REF_RULES, type RefLayoutGap, type RefUse } from "../design/ref-checks.js";
 import type { DesignRefsArt } from "./design-refs.js";
@@ -80,11 +80,11 @@ const RULES = `You are a principal UI/UX engineer with fifteen years shipping co
 - ART DIRECTION. Start with the PRODUCT READING, before any colour or frame: from the requirements alone, work out who uses the product, where and when (at a desk all day, on a phone in a queue, once a year at tax time), on what device, the tone it must take with them, the one moment that matters most (the hero moment: a balance seen, a gate found, a dose confirmed) and two to four traits that make this product unlike its competitors. Return it as theme "reading": users, context, device ("web", "phone" or "both"), tone, hero, traits. Every later choice (frame, type, corners, surfaces, colour, charts, pictures) must follow from this reading, so two products in the same field still look like themselves. Code rejects a theme with no reading, and a phone product drawn as a sidebar tool.
   Then it is proof-driven design, not invention: compare the product with the real market: the "design-references" section lists the top products of this field (or, when the field is not listed, the nearest kind of product) with their brand colours, bar, corners and traits. Study what they share, and build the look from that.
   Return "theme" with:
-  basis: two to four of those real products and what you took from each ("Delta: navy headings, red only on the primary action", "Emirates: filled brand bar, large photography"). The references are guardrails, not a template: take what the field has learned (what its users trust, what they expect to find where), never a competitor's whole look. Code rejects a theme that cites fewer than two briefed products, one that is a competitor's exact shade, and one whose brand colour is far (over 40 degrees of hue) from every reference colour of the field unless "departure" says, in one sentence, what in the product reading makes this product leave the field's colours (a bank for teenagers, a clinic app that must feel like a spa). A neon brand in a field people trust with money, health or duties also needs a departure.
+  basis: two to four of those real products and what you took from each ("Delta: navy headings, red only on the primary action", "Emirates: filled brand bar, large photography"), each "took" under 120 characters. The references are guardrails, not a template: take what the field has learned (what its users trust, what they expect to find where), never a competitor's whole look. Code rejects a theme that cites fewer than two briefed products, one that is a competitor's exact shade, and one whose brand colour is far (over 40 degrees of hue) from every reference colour of the field unless "departure" says, in one sentence, what in the product reading makes this product leave the field's colours (a bank for teenagers, a clinic app that must feel like a spa). A neon brand in a field people trust with money, health or duties also needs a departure.
   If a "recent-looks" section is given, those are the looks of the factory's latest other projects: this product must not look like any of them. Let the reading choose where it differs.
   How real products are coloured: a mostly neutral page (white or near-white, or a deliberate dark), near-black text, ONE brand colour used for the app bar, the primary action and selection, and status colours only where they carry meaning (green done, red wrong, amber attention). Colour is information, not decoration.
   The result must look current and expensive, the kind of product shipped this year: confident type scale, generous spacing, depth from soft layered surfaces, and motion everywhere it helps (entrances, hover lift, counting numbers, drawing charts, skeleton shimmer, state transitions). It must not look machine-made. Avoid purple-to-blue gradients with no source in the field, neon glows on a business tool, glass panels everywhere, several accent colours, rainbow icons, one huge radius on everything, and centred "three cards" layouts.
-  mood: two or three words for the feeling (for example "calm clinical", "precise financial", "warm retail"). Invent the one that fits.
+  mood: two or three words for the feeling, at most 40 characters (for example "calm clinical", "precise financial", "warm retail"). Invent the one that fits. It is a label, not the reasons: the reading holds those.
   mode: "light" for most products, "dark" only when the audience works in it for hours (developer, trading, media, creative tools), "auto" for both, following the viewer's setting (whenever the requirements ask for a dark mode, a theme switch or the system's appearance; the demo then has a light/dark switch and every page is shown in both).
   brand: the one brand colour (#rrggbb), in the family of the references, as a competitor in the field would choose it. accent: optional second colour for a sparing highlight, only when the field has one (for example a gold on navy, or the red beside navy).
   neutral: "cool" (technical, finance, health), "warm" (food, hospitality, craft, education) or "pure" (editorial, minimal).
@@ -540,6 +540,65 @@ export function failuresFor(failures: Failure[], page?: string): Failure[] {
   return own.filter((f) => PLAN_CHECKS.has(f.check) || !/\bS-\d+\b/.test(f.message));
 }
 
+/**
+ * The pages a retry of a one-answer design draws again: those its failures name, when every failure names a page that was drawn
+ * and none is about the list or the look. Undefined when the whole design has to be drawn again.
+ */
+export function pagesToRedraw(ids: string[], failures: Failure[]): string[] | undefined {
+  if (!failures.length || failures.some((f) => f.check.startsWith("runner-") || PLAN_CHECKS.has(f.check))) return undefined;
+  const hit = new Set<string>();
+  for (const f of failures) {
+    const named = ids.filter((id) => names(id, f));
+    if (!named.length) return undefined;
+    for (const id of named) hit.add(id);
+  }
+  return ids.filter((id) => hit.has(id));
+}
+
+const REDRAW_RULES = `- "rejected-page" is this page as you drew it before. It failed the checks listed under the failures: return it with those fixed and everything else as it was.
+`;
+
+/**
+ * A small design (one answer) that failed checks naming its pages: only those pages are drawn again, each against the rejected
+ * design's list and look, and the rest are kept. On the 2026-10-06 web run one cut-off label had every page drawn again ($0.86).
+ */
+async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" | "reading" | "feedback">, rejected: z.infer<typeof DesignOut>, ids: string[]): Promise<{ ok: true; output: z.infer<typeof DesignOut>; model: string; risks: string[] } | { ok: false; outcome: StepOutcome }> {
+  const ears = new Map(b.spec.requirements.map((q) => [q.id, q.ears]));
+  const titleOf = (x: ScreenT) => x.mock?.title ?? x.id;
+  const design = {
+    flow: rejected.flow, ...(rejected.theme ? { theme: rejected.theme } : {}), ...(rejected.locale ? { locale: rejected.locale } : {}), ...(rejected.apps?.length ? { apps: rejected.apps } : {}),
+    pages: rejected.screens.map((x) => ({ id: x.id, title: titleOf(x), route: x.route, ...(x.app ? { app: x.app } : {}) })),
+  };
+  ctx.log(`design: drawing again only ${ids.join(", ")} (${rejected.screens.length - ids.length} of ${rejected.screens.length} pages kept)`);
+  let model = "";
+  const drawn = await inPool(rejected.screens.filter((x) => ids.includes(x.id)), PAGES_SIDE_BY_SIDE, async (old): Promise<{ screen: ScreenT } | { outcome: StepOutcome }> => {
+    const { mock: _m, mockFull: _f, ...entry } = old;
+    const cited = b.reading && entry.refs?.length ? { ...b.reading, refs: b.reading.refs.filter((r) => entry.refs!.includes(r.id)) } : undefined;
+    const r = await think({ ...ctx, priorFailures: failuresFor(ctx.priorFailures, old.id) }, {
+      stage: "design", label: `design ${old.id} "${titleOf(old)}"`, route: "design", cls: "read-large", budgetTokens: 30000, tools: [], schema: DesignPage, maxTurns: 3,
+      sections: [
+        S.template("tpl", PAGE_RULES + REDRAW_RULES + MOCK_RULES() + UNTRUSTED_NOTE),
+        ...(cited?.refs.length ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
+        S.artifact("design", "design-plan", design),
+        S.artifact("this-page", "design-plan", { ...entry, title: titleOf(old) }),
+        S.artifact("rejected-page", "design-plan", { mock: old.mock, ...(old.mockFull ? { mockFull: old.mockFull } : {}) }),
+        S.artifact("requirements", "spec", entry.reqs.map((id) => ({ id, ears: ears.get(id) ?? "" }))),
+        ...(b.inv ? [S.artifact("existing", "existing-ui", inventoryBrief(b.inv))] : []),
+        ...(cited?.refs.length ? referenceSections(ctx.state, cited) : []),
+        ...(b.feedback ? [S.reference("design-feedback", b.feedback)] : []),
+        S.task(`Fix page ${old.id}, "${titleOf(old)}".`),
+      ],
+    });
+    if (!r.ok) return { outcome: r.outcome };
+    model = r.model;
+    return { screen: { ...old, mock: r.output.mock, ...(r.output.mockFull ? { mockFull: r.output.mockFull } : {}) } };
+  });
+  const stopped = drawn.find((d): d is { outcome: StepOutcome } => "outcome" in d);
+  if (stopped) return { ok: false, outcome: stopped.outcome };
+  const fixed = new Map(drawn.map((d) => { const x = (d as { screen: ScreenT }).screen; return [x.id, x] as const; }));
+  return { ok: true, output: { ...rejected, screens: rejected.screens.map((x) => fixed.get(x.id) ?? x) }, model, risks: [] };
+}
+
 interface PartsBrief {
   spec: Spec; reqText: string; frames: string[];
   /** the mode's own rules (existing app, restyle, starter, references), as in the one-answer call */
@@ -918,7 +977,15 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         ...(feedback ? [S.reference("design-feedback", feedback)] : []),
       ];
       const earlierTheme = earlier && !earlier.skipped ? earlier.theme : undefined;
-      const r = spec.requirements.length > DRAW_IN_PARTS_AT
+      const inParts = spec.requirements.length > DRAW_IN_PARTS_AT;
+      // one answer that failed checks naming its pages: only those pages are drawn again (a design in parts gets the same from
+      // its stored page answers)
+      const before = inParts ? undefined : lastFailureData(ctx.ledger, "design") as { rejected?: string } | undefined;
+      const rejected = before?.rejected ? DesignOut.safeParse(ctx.ledger.getJson(before.rejected)) : undefined;
+      const failedPages = rejected?.success ? pagesToRedraw(rejected.data.screens.map((x) => x.id), ctx.priorFailures) : undefined;
+      const r = failedPages && rejected?.success
+        ? await redrawPages(ctx, { spec, inv, reading, feedback }, rejected.data, failedPages)
+        : inParts
         ? await drawInParts(ctx, {
           spec, reqText, frames: frames.map((f) => f.id), rules, context, existing, refs, recent, fromRefs, earlierTheme, inv, reading,
           earlierScreens: earlier && !earlier.skipped ? earlier.screens as ScreenT[] : [], feedback,
@@ -943,7 +1010,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       else if (bad.length) {
         // the one answer was rejected: a retry with these failures must not read it back
         (r as { forget?: () => void }).forget?.();
-        return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}`, gate: true };
+        return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}`, gate: true, ...(inParts ? {} : { data: { rejected: ctx.ledger.putJson(out) } }) };
       }
       // the drawn demo is measured in a browser: text past the frame, cut off or on top of other text, and (with layout references)
       // a screen that does not show its reference's navigation or regions, go back for one fix round together (after that round
@@ -958,7 +1025,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         if (!fixRound && (issues.length || refGaps.length)) {
           ctx.log(`design: ${issues.length} layout problem(s) and ${refGaps.length} reference layout gap(s) in the drawn demo, sent back for one fix`);
           const fixes = [...layoutFixes(issues), ...(reading ? refLayoutFixes(refGaps, reading) : [])].map((q) => failure(q.check, q.message));
-          return { kind: "fail", category: "other", failures: fixes, signature: `design:${[...new Set(fixes.map((f) => f.check))].sort().join(",")}` };
+          return { kind: "fail", category: "other", failures: fixes, signature: `design:${[...new Set(fixes.map((f) => f.check))].sort().join(",")}`, ...(inParts ? {} : { data: { rejected: ctx.ledger.putJson(out) } }) };
         }
         if (refGaps.length) ctx.log(`design: ${refGaps.length} reference layout gap(s) left after the fix round, kept on the design`);
       }

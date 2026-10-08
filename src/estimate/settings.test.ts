@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { humanReview, parseEstimateSettings, parseRates } from "./settings.js";
+import { drawsDesign, humanReview, parseEstimateSettings, parseRates } from "./settings.js";
 
 const base = { stackSource: "undecided", designInTotal: true, feedbackRounds: "2", repo: true };
 
@@ -11,6 +11,14 @@ describe("estimate settings from flags", () => {
     expect(parseEstimateSettings({ ...base, designInTotal: false, repo: false, rate: ["backend=55", "default=40.5"], client: "Acme", pm: "A. Lead" })).toEqual({
       deliveryModel: "agentic", stackSource: "undecided", designInTotal: false, feedbackRounds: 2, rates: { backend: 55, default: 40.5 }, noRepo: true, client: "Acme", pm: "A. Lead", humanReview: true,
     });
+  });
+  it("draws the design unless it was left out, and records only the leaving out", () => {
+    expect(parseEstimateSettings({ ...base, design: true })).not.toHaveProperty("drawDesign");
+    expect(parseEstimateSettings({ ...base, design: false }).drawDesign).toBe(false);
+    expect(drawsDesign({ estimate: { drawDesign: false } })).toBe(false);
+    // a run started before the choice existed draws its design
+    expect(drawsDesign({ estimate: {} })).toBe(true);
+    expect(drawsDesign({})).toBe(true);
   });
   it("records the human review choice; only an estimate run goes hands-off, and older runs keep their reviews", () => {
     expect(parseEstimateSettings({ ...base, review: true }).humanReview).toBe(true);

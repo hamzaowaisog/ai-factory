@@ -1,0 +1,35 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Api/Program.cs"
+   },
+   "ms": 1,
+   "resultChars": 848,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Api/Program.cs&quot;}\">\nApp.Api/Program.cs lines 1-16\n1\tusing App.Api;\n2\tusing Microsoft.EntityFrameworkCore;\n3\t\n4\tvar builder = WebApplication.CreateBuilder(args);\n5\tbuilder.Services.AddOpenApi();\n6\t// a local file database; nothing touches it at startup (the build runs this file to write the API's OpenAPI document)\n7\tbuilder.Services.AddDbContext<AppDb>(o => o.UseSqlite(builder.Configuration.GetConnectionString(\"App\") ?? \"Data Source=app.db\"));\n8\tbuilder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(\"http://localhost:3000\").AllowAnyHeader().AllowAnyMethod()));\n9\tvar app = builder.Build();\n10\tapp.UseCors();\n11\tapp.MapGet(\"/\", () => \"API is up\").ExcludeFromDescription();\n12\t\n13\tapp.Run();\n14\t\n15\tpublic partial class Program { }\n16\t\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Api/AppDb.cs"
+   },
+   "ms": 0,
+   "resultChars": 293,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Api/AppDb.cs&quot;}\">\nApp.Api/AppDb.cs lines 1-8\n1\tusing Microsoft.EntityFrameworkCore;\n2\t\n3\tnamespace App.Api;\n4\t\n5\tpublic class AppDb(DbContextOptions<AppDb> options) : DbContext(options)\n6\t{\n7\t}\n8\t\n</untrusted_document>"
+  },
+  {
+   "name": "search",
+   "input": {
+    "pattern": "openapi|paths:"
+   },
+   "ms": 3,
+   "resultChars": 871,
+   "result": "<untrusted_document id=\"search\" source=\"{&quot;pattern&quot;:&quot;openapi|paths:&quot;}\">\n.gitignore:3: openapi/\nApp.Api/App.Api.csproj:6: <!-- the build writes the API's OpenAPI document here; the factory compares it with contracts/openapi.yaml -->\nApp.Api/App.Api.csproj:7: <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/openapi</OpenApiDocumentsDirectory>\nApp.Api/App.Api.csproj:8: <OpenApiGenerateDocumentsOptions>--file-name built</OpenApiGenerateDocumentsOptions>\nApp.Api/App.Api.csproj:11: <PackageReference Include=\"Microsoft.AspNetCore.OpenApi\" Version=\"9.0.0\" />\nApp.Api/Program.cs:5: builder.Services.AddOpenApi();\nApp.Api/Program.cs:6: // a local file database; nothing touches it at startup (the build runs this file to write the API's OpenAPI document)\ncontracts/openapi.yaml:1: openapi: 3.0.3\ncontracts/openapi.yaml:16: paths:\n</untrusted_document>"
+  }
+ ]
+}

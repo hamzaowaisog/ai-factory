@@ -1,0 +1,193 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-6",
+      "category": "errors",
+      "text": "When the demo hook promotes Alex from the waitlist but the promotion would break the overlap rule or the 10-booking limit, what happens?",
+      "options": [
+       "Alex stays waitlisted at #1 and the next member is promoted instead; Alex sees why",
+       "Alex is promoted anyway, ignoring overlap and limit",
+       "Alex is removed from the waitlist, with a message saying why"
+      ],
+      "recommended": "Alex stays waitlisted at #1 and the next member is promoted instead; Alex sees why",
+      "reason": "This keeps the overlap and limit rules intact without throwing away Alex's place in the queue.",
+      "spans": [
+       "I-4"
+      ],
+      "impact": 3,
+      "impactReason": "Decides whether a booking gets written and changes the counts."
+     },
+     {
+      "id": "Q-7",
+      "category": "existing-data",
+      "text": "Nobody on staff can mark attendance, so what happens to a Booked class once it has finished?",
+      "options": [
+       "It moves to Past and is shown and counted as Attended automatically",
+       "It moves to Past still marked Booked and does not count towards the stats",
+       "Only the seeded past bookings are Attended; new bookings never become Attended"
+      ],
+      "recommended": "It moves to Past and is shown and counted as Attended automatically",
+      "reason": "This is the simplest way to keep the Past tab, 'Classes this month' and the streak working.",
+      "spans": [
+       "I-5",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Changes stored booking status and the stats Alex sees."
+     },
+     {
+      "id": "Q-8",
+      "category": "data-model",
+      "text": "Are the seed dates fixed calendar dates, or worked out from today's date when the app first loads?",
+      "options": [
+       "Worked out from today (Europe/London) on first load, then stored",
+       "Fixed calendar dates written into the seed",
+       "Worked out from today on every load, with stored bookings matched up again"
+      ],
+      "recommended": "Worked out from today (Europe/London) on first load, then stored",
+      "reason": "Covers the current and next week whenever the demo runs, and bookings still survive a reload.",
+      "spans": [
+       "I-5",
+       "I-6"
+      ],
+      "impact": 3,
+      "impactReason": "Decides which sessions exist and whether stored bookings stay valid."
+     },
+     {
+      "id": "Q-9",
+      "category": "external",
+      "text": "Which persistence should be used?",
+      "options": [
+       "Browser local storage, with no backend",
+       "A small backend API with a database",
+       "Local storage plus a 'Reset demo data' action"
+      ],
+      "recommended": "Browser local storage, with no backend",
+      "reason": "This is the smallest option that meets the 'survives reload' requirement, and the request allows it.",
+      "spans": [
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "Shapes how failure and error states happen and how data is stored."
+     },
+     {
+      "id": "Q-10",
+      "category": "scope",
+      "text": "Can people see the waitlist promotion demo hook in the app?",
+      "options": [
+       "Tests only, with no UI",
+       "A hidden developer control, such as a URL parameter or keyboard shortcut",
+       "A visible 'Simulate cancellation' control on Class Detail"
+      ],
+      "recommended": "Tests only, with no UI",
+      "reason": "This is the smallest option, and the request lists no extra controls on the 3 screens.",
+      "spans": [
+       "I-2",
+       "I-3"
+      ],
+      "impact": 2,
+      "impactReason": "Adds a visible control or leaves one out."
+     },
+     {
+      "id": "Q-11",
+      "category": "scope",
+      "text": "Do joining a waitlist, cancelling and leaving a waitlist also show a toast with Undo, or only booking?",
+      "options": [
+       "Only inline booking shows a toast with Undo; the others show a plain confirmation toast",
+       "Every booking, waitlist and cancellation action shows a toast with Undo",
+       "Booking and waitlist joins show Undo; cancellations are already confirmed in a dialog"
+      ],
+      "recommended": "Only inline booking shows a toast with Undo; the others show a plain confirmation toast",
+      "reason": "The request only describes Undo for booking.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 2,
+      "impactReason": "Visible flow, and Undo reverses data that has been written."
+     },
+     {
+      "id": "Q-12",
+      "category": "data-model",
+      "text": "Do two classes that touch end to start (one ends at 18:45, the next starts at 18:45) count as overlapping?",
+      "options": [
+       "No. Only real time overlap is rejected",
+       "Yes. Touching times count as a conflict"
+      ],
+      "recommended": "No. Only real time overlap is rejected",
+      "reason": "This is the usual reading of 'overlap in time'.",
+      "spans": [
+       "I-4"
+      ],
+      "impact": 2,
+      "impactReason": "Changes whether a booking is accepted."
+     },
+     {
+      "id": "Q-13",
+      "category": "existing-data",
+      "text": "If the studio cancels a class that Alex has booked or is waitlisted for, how does My Bookings show it?",
+      "options": [
+       "It moves to Past with the status 'Cancelled by studio'",
+       "It stays in Upcoming, struck through and with no action",
+       "Alex's booking is dropped quietly"
+      ],
+      "recommended": "It moves to Past with the status 'Cancelled by studio'",
+      "reason": "Alex can see what happened, and the existing Past list is reused.",
+      "spans": [
+       "I-4",
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "Visible booking status and list placement."
+     },
+     {
+      "id": "Q-14",
+      "category": "data-model",
+      "text": "How far can the day strip go back and forward with the week arrows, and which day does a week start on?",
+      "options": [
+       "Monday to Sunday weeks, limited to the current and next week",
+       "Monday to Sunday weeks, with no limit (weeks without seed data are empty)",
+       "A rolling 7 days starting today"
+      ],
+      "recommended": "Monday to Sunday weeks, limited to the current and next week",
+      "reason": "Matches the seed data range and the 'Mon 12' example.",
+      "spans": [
+       "I-2",
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "Visible navigation."
+     },
+     {
+      "id": "Q-15",
+      "category": "data-model",
+      "text": "Is a late cancellation ('counts as a missed class') stored differently and shown in Past or the stats?",
+      "options": [
+       "It is stored as Cancelled with a late flag and shown in Past as 'Late cancel'; stats are unaffected",
+       "Only a warning is shown; it is stored as a plain Cancelled",
+       "It is stored as a missed class, which breaks the streak"
+      ],
+      "recommended": "It is stored as Cancelled with a late flag and shown in Past as 'Late cancel'; stats are unaffected",
+      "reason": "Keeps the warning meaningful without adding penalties.",
+      "spans": [
+       "I-4"
+      ],
+      "impact": 3,
+      "impactReason": "Changes stored data and the stats Alex sees."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

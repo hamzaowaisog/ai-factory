@@ -1,0 +1,1 @@
+{"allowedAgents":["api","claude-agent","codex","jcode"],"allowedModels":["*"],"escapeHatchAllowlist":[],"localOnly":false,"maxDiffLines":1500,"minDiffCoverage":0,"protectedPaths":[],"registryAllowlist":["https://api.nuget.org/","https://registry.npmjs.org/"],"retryBudget":6,"reviewConfidence":0.7,"riskAutoProceed":"low","waiverCap":3}

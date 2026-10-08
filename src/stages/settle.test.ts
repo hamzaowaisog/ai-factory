@@ -15,7 +15,8 @@ import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { NO_TRACE } from "../util/trace.js";
 import type { StepContext } from "./framework.js";
-import { settle, settledText, type SettleIo } from "./settle.js";
+import { backToSettle, settle, settledText, type SettleIo } from "./settle.js";
+import { specifyStep } from "./specpipe.js";
 import { setProviderFactory } from "./think.js";
 
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
@@ -90,6 +91,33 @@ describe("the problems a question settles", () => {
     await gate(found({ critic: [{ finding: "gap", severity: "high" }] }), false);
     await gate({ ...found({ critic: [{ finding: "gap", severity: "high" }] }), settled: [{ kind: "critic", problem: "gap", how: "assumed", decision: "x" }] }, true);
     expect(specRefused(replay(ctx.ledger.events()), ctx.ledger)).toBe(true);
+  });
+});
+
+describe("a build paused before builds asked", () => {
+  it("resumes as it began: no going back to the spec step, and the spec step's inputs (and so its hash) do not change", async () => {
+    for (const mode of ["brownfield", "greenfield"]) {
+      for (const asks of [false, true]) {
+        const ledger = Ledger.create(`20261006-paused-${mode}-${asks}-${Math.random().toString(16).slice(2, 6)}`);
+        await ledger.append({ type: "run.created", data: { mode, project: "demo", request: REQUEST, ...(asks ? { asks: true } : {}) } }, HUMAN_WRITER);
+        // the spec it wrote (an open high finding, no settled list) and E1 refusing it, then merge and specify completed
+        const written = ledger.putJson({ ...spec, ...found({ critic: [{ finding: "gap", severity: "high" }] }) });
+        await ledger.append({ type: "gate.result", data: { gateId: "estimate.e1-readiness", passed: false, inputs: { spec: written }, details: "" } }, HUMAN_WRITER);
+        await ledger.append({ type: "step.completed", key: "merge/1", inputsHash: "a".repeat(64), outputs: [ledger.putJson({ spec })] }, HUMAN_WRITER);
+        await ledger.append({ type: "step.completed", key: "specify/1", inputsHash: "b".repeat(64), outputs: [written] }, HUMAN_WRITER);
+        const state = replay(ledger.events());
+        const inputs = specifyStep.inputs(state, ledger) as Record<string, unknown>;
+        if (!asks) {
+          // before builds asked: the spec step's inputs are what they were, so its completed record still counts
+          expect(inputs.refused, mode).toBeUndefined();
+          const ctx = { ...(await ctxFor()), ledger, state, runId: state.info.runId };
+          expect(await backToSettle(ctx, "design"), mode).toBeUndefined();
+        } else {
+          // a build that asks settles that spec instead (the guard the paused run is kept out of)
+          expect(inputs.refused, mode).toBe(true);
+        }
+      }
+    }
   });
 });
 

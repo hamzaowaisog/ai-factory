@@ -95,3 +95,50 @@ describe("briefing budget", () => {
     expect(budgetFor(state("estimate"), undefined, [doc], "claude-opus-5-5")).toBeUndefined();
   });
 });
+
+describe("stored answers in a build run", () => {
+  let asked = 0;
+  const counting: Provider = {
+    start() {
+      return {
+        async next() { asked++; return { calls: [{ id: "1", name: "submit_result", input: { seen: asked } }], text: "", stop: "tool_use", usage: { inputTokens: 10, outputTokens: 5, cacheRead: 0, cacheWrite: 0 } }; },
+        toolResults() {}, say() {},
+      };
+    },
+  };
+  async function buildCtx(runId: string): Promise<StepContext> {
+    const ledger = Ledger.create(runId);
+    await ledger.append({ type: "run.created", data: { mode: "greenfield", project: "demo", changeClass: "feature", request: "r" } }, HUMAN_WRITER);
+    return {
+      runId, ledger, writer: HUMAN_WRITER, state: replay(ledger.events()), project: ProjectConfig.parse({ project: "demo", repo: "/x", stack: "dotnet" }),
+      policy: DEFAULT_POLICY, attempt: 1, rung: 0, priorFailures: [], log: () => undefined, trace: NO_TRACE, usage: async () => undefined,
+    };
+  }
+  const ask = (ctx: StepContext) => think(ctx, { stage: "design", route: "design", cls: "read-large", tools: [], schema: Out, sections: [S.template("rules", "Count."), S.task("Answer.")] });
+  beforeEach(() => { asked = 0; process.env.FACTORY_NO_CACHE = "0"; setProviderFactory(() => counting); });
+
+  it("the same briefing in the same run reads the stored answer: a retry or a resume does not pay for it again", async () => {
+    const ctx = await buildCtx("build-cache-1");
+    expect((await ask(ctx) as { output: unknown }).output).toEqual({ seen: 1 });
+    expect((await ask(ctx) as { output: unknown }).output).toEqual({ seen: 1 });
+    expect(asked).toBe(1);
+    // another build run asks the model itself: only estimates and designs share answers between runs
+    await ask(await buildCtx("build-cache-2"));
+    expect(asked).toBe(2);
+  });
+
+  it("an answer written against failures is never stored, so a retry rejected for the same reasons asks again", async () => {
+    const ctx = { ...(await buildCtx("build-cache-3")), priorFailures: [{ check: "plan-coverage", message: "REQ-3 isn't covered by any task", frames: [] }] };
+    await ask(ctx);
+    await ask(ctx);
+    expect(asked).toBe(2);
+  });
+
+  it("a rejected answer is forgotten", async () => {
+    const ctx = await buildCtx("build-cache-4");
+    const r = await ask(ctx);
+    if (r.ok) r.forget?.();
+    await ask(ctx);
+    expect(asked).toBe(2);
+  });
+});

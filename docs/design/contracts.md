@@ -398,6 +398,7 @@ Config check: every stage must resolve to a runner with a usable credential rout
 
 ```ts
 type RunStatus = "created" | "running" | "waiting" | "paused" | "parked" | "delivered"
+  | "finished"   // an estimate or design run whose last step is done (2026-10-06)
   | { closed: "merged" | "pr-closed" | "not-reproduced" | "stopped" };
 interface LedgerEvent {
   seq: number; ts: string; runId: string; epoch: number;   // epoch = execution-lock fencing token
@@ -406,7 +407,7 @@ interface LedgerEvent {
 }
 type EventType =
   | "run.created" | "run.resumed" | "run.pause-requested" | "run.paused" | "run.parked"
-  | "run.stop-requested" | "run.stopped" | "run.delivered" | "run.closed"
+  | "run.stop-requested" | "run.stopped" | "run.delivered" | "run.finished" | "run.closed"
   | "step.started" | "step.completed" | "step.failed" | "step.interrupted"
   | "gate.result" | "human.requested" | "human.decided" | "change.received"
   | "sink.intent" | "sink.done" | "usage"
@@ -415,6 +416,7 @@ type EventType =
 // inputsHash = hash(input artifact shas, stage def, prompt template version, model [, taskStartSha for coding steps])
 // Versions are recorded in run.created, not hashed. Usage events carry OTel gen_ai.* field names.
 ```
+`interrupted` is not a RunStatus: it is a shown status, for a `running` run that no live executor holds (`shownStatus` in `src/stages/run-status.ts`). See run-manager.md §2.2.
 RunState is derived by replaying `~/.factory/ledger/<runId>/events.jsonl`; it is never stored.
 
 ## 9. Context builder (2026-09-26, context-builder.md v2; supersedes §3 contextPack/contextFiles wording)

@@ -14,7 +14,7 @@ export const SectionSpec = z.object({
   ref: z.string().optional(),
   trust: Trust,
   placement: z.enum(["system", "user"]),
-  trimmable: z.enum(["pointers-tail", "map-depth"]).optional(),
+  trimmable: z.enum(["pointers-tail", "map-depth", "files-largest"]).optional(),
 });
 export type SectionSpec = z.infer<typeof SectionSpec>;
 
@@ -58,6 +58,7 @@ export type ContextPack = z.infer<typeof ContextPack>;
 export const BUDGETS: Record<PackClass, number> = {
   "read-small": 15_000,
   "read-large": 30_000,
-  agent: 40_000,
+  // 60k since 2026-10-07: a web app's stubs took a real run's test-writer briefing to 40,228 against 40,000
+  agent: 60_000,
 };
 export const LOCAL_PACK_CAP = 16_000;

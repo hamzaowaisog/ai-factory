@@ -119,11 +119,10 @@ export function taskDurations(
 }
 
 /**
- * The factory's own hours on a task, shown beside the human hours (docs/estimates-design.md, "Agent hours"). The work of a
- * solely agentic delivery is the factory's, so every factory and joint task has agent hours: a factory task takes its class's
- * measured duration when this factory's runs have enough of them (the estimate's duration basis), else its sized hours, which
- * are a reference size and not a measurement (cold-start); a joint task takes its sized hours, as on the critical path. A
- * human task has none.
+ * The factory's own hours on a task (docs/estimates-design.md, "Delivery hours"). A factory task takes its class's measured
+ * duration when this factory's runs have enough of them (the estimate's duration basis), else its sized hours, which are a
+ * reference size and not a measurement (cold-start); a joint task takes its sized hours, as on the critical path. A human
+ * task has none.
  */
 export function agentHours(
   s: Pick<Estimate["tasks"][number], "executor" | "hours">, task: { track: string; complexity?: string }, basis?: Pick<DurationBasis, "byClass">,
@@ -131,4 +130,14 @@ export function agentHours(
   if (s.executor === "human") return { min: 0, max: 0 };
   const m = s.executor === "factory" ? basis?.byClass.find((c) => c.taskClass === classOf(task))?.minutes : undefined;
   return m ? { min: round(m.min / 60), max: round(m.max / 60) } : s.hours;
+}
+
+/**
+ * The hours a task takes to deliver, as both workbooks show them, with its executor beside them: the factory's hours on a
+ * factory or joint task (`agentHours`), a person's hours on a human task. No task delivers in zero hours.
+ */
+export function deliveryHours(
+  s: Pick<Estimate["tasks"][number], "executor" | "hours">, task: { track: string; complexity?: string }, basis?: Pick<DurationBasis, "byClass">,
+): Range {
+  return s.executor === "human" ? s.hours : agentHours(s, task, basis);
 }
