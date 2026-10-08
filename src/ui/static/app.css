@@ -644,6 +644,8 @@ textarea[aria-label="Rejection reason"] { width: 100%; font: inherit; padding: 0
   .rule { justify-content: flex-start; padding: 0.45rem 1rem; }
   main { padding: 1.2rem 1rem 4rem; }
   .subnav .seg { max-width: 100%; overflow-x: auto; }
+  .panel-head { flex-wrap: wrap; gap: 0.3rem 1rem; }
+  .panel-head h2 { white-space: normal; }
   .tabs-in { overflow-x: auto; }
   .tabs-in .tab { padding: 0.55rem 0.5rem; gap: 0.35rem; font-size: 0.9rem; white-space: nowrap; }
 }
