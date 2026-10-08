@@ -1,8 +1,12 @@
 // .NET stack pack producer (verify-runner §2.2): copy → restore → build (no network)
 // → test in the Postgres container's namespace → stop everything → read results.
+import { DATA_MODEL_FILE } from "../gates/data-model.js";
+import { POSTGRES_SCHEMA_SQL, postgresModel } from "../gates/postgres-schema.js";
+import { isSqliteFile, sqliteModel } from "../gates/sqlite-schema.js";
+import type { DataModel } from "../contracts/index.js";
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { BuildRun, LintRun, TestResult, TestRun, VerifyStage } from "../contracts/index.js";
 import { fillTemplate, type ProjectConfig } from "../config/project.js";
@@ -49,6 +53,10 @@ export interface ProduceInput {
   buildCache?: string;
   /** Test IDs not to run on a full-suite run: the repo's known failures, which can never block anything. */
   skipTests?: string[];
+  /** Read what the built app's database has even when the commit has no approved data model (the untouched repo, before a plan). */
+  readSchema?: boolean;
+  /** Stop once the database was read: no accept, no tests. For a baseline whose tests are already on record. */
+  schemaOnly?: boolean;
   /** Only restore packages into packagesDir (for the coding container); no build or tests. */
   restoreOnly?: boolean;
   /** Accept: boot the app in the db's namespace and send these probes before the tests run. */
@@ -76,6 +84,8 @@ export interface ProduceOutput {
   reports: { name: string; content: string }[];
   logs: { restore: string; build: string; test: string };
   accept?: AcceptResult;
+  /** What the built app's database has, when this lab run read it (a commit with an approved data model, or `readSchema`). */
+  schema?: BuiltSchema;
 }
 
 /** Repo-relative paths of files matching `want`; the lab copy has no .git, so walk the folders. */
@@ -264,6 +274,7 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
     const phase = (name: string, msg: string, data?: Record<string, unknown>) => inp.onPhase?.(name, msg, data);
     const secs = (from: number) => `${((Date.now() - from) / 1000).toFixed(0)}s`;
     const toolVersions: Record<string, string> = { sdkImage: await rt.imageDigest(project.dotnet.sdkImage) };
+    const noTests = () => buildTestRun({ treeSha: inp.commit, stage: inp.stage, toolVersions, exp: inp.exp, raw: { reports: [], results: [], discovered: [], exitCode: 0 }, probeOk: () => true });
     // an earlier lab run in this run already built this exact commit: start from a copy of that build
     const cached = !inp.restoreOnly && inp.buildCache ? buildCachePath(inp.buildCache, inp.commit, project) : undefined;
     const reuse = !!cached && existsSync(cached);
@@ -277,6 +288,9 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
     let build: BuildRun = { kind: "build", ok: reuse, errors: [] };
     // only set when a build log was actually produced: a cache hit has no log to read
     let lint: LintRun | undefined;
+    let schema: BuiltSchema | undefined;
+    const wantsSchema = () => !!inp.readSchema || existsSync(join(src, DATA_MODEL_FILE));
+    if (reuse && existsSync(join(src, BUILT_SCHEMA_FILE))) { try { schema = JSON.parse(readFileSync(join(src, BUILT_SCHEMA_FILE), "utf8")) as BuiltSchema; } catch { /* read again below where it can be */ } }
     if (!reuse) {
       copyTree(inp.repo, inp.commit, src);
       const target = findBuildTarget(src, project.dotnet.solution);
@@ -294,6 +308,18 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
       phase("restore", `lab: restore ${rCode === 0 ? "ok" : `FAILED (exit ${rCode ?? "timeout"})`} (${secs(tRestore)})`, rCode === 0 ? undefined : { logTail: (await rt.logs(r)).split("\n").slice(-40).join("\n") });
       logs.restore = await rt.logs(r);
       await finish(r);
+      // a backend with EF Core migrations: fetch the tool that runs them, once per packages folder, for the schema read below
+      const ef = rCode === 0 && !inp.restoreOnly && wantsSchema() && !migrateConfigured(project) ? efMigrations(src) : undefined;
+      if (ef && !existsSync(join(nuget, EF_TOOLS, "dotnet-ef"))) {
+        const t = await launch({
+          role: "restore", image: project.dotnet.sdkImage, network: FEEDS_NET, workdir: "/src",
+          env: { ...BASE_ENV, HTTPS_PROXY: FEED_PROXY_URL, HTTP_PROXY: FEED_PROXY_URL, NUGET_CERT_REVOCATION_MODE: "offline" },
+          mounts: [{ src, dst: "/src" }, { src: nuget, dst: "/nuget" }], cmd: ["dotnet", "tool", "install", "dotnet-ef", "--tool-path", `/nuget/${EF_TOOLS}`, "--version", `${ef.major}.*`],
+        });
+        const code = await rt.wait(t, project.dotnet.buildTimeoutSec * 1000);
+        phase("ef-tool", `lab: the migrations tool (dotnet-ef ${ef.major}) ${code === 0 ? "is ready" : `could not be fetched (exit ${code ?? "timeout"}); the database is read from startup only`}`, code === 0 ? undefined : { logTail: (await rt.logs(t)).split("\n").slice(-20).join("\n") });
+        await finish(t);
+      }
       if (inp.restoreOnly) {
         const build: BuildRun = { kind: "build", ok: rCode === 0, errors: rCode === 0 ? [] : [{ file: "", line: 0, code: "RESTORE", msg: `dotnet restore failed (exit ${rCode ?? "timeout"})` }] };
         const testRun = buildTestRun({ treeSha: inp.commit, stage: inp.stage, toolVersions, exp: inp.exp, raw: { reports: [], results: [], discovered: [], exitCode: rCode ?? 124, buildFailed: rCode !== 0 }, probeOk: () => true });
@@ -315,6 +341,15 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
         await finish(b);
         build = { kind: "build", ok: bCode === 0, errors: parseBuildErrors(logs.build) };
         lint = { kind: "lint", tool: "dotnet-build", version: toolVersions["dotnet"] ?? "unknown", findings: parseBuildWarnings(logs.build) };
+        // a backend with an approved data model: start the app once so it creates its database, and keep what the database has
+        // (a backend on PostgreSQL is read further down, once its database server is up)
+        if (build.ok && !project.database && wantsSchema()) {
+          const tSchema = Date.now();
+          const built = schema = await readBuiltSchema(inp, src, nuget, launch, finish);
+          mkdirSync(join(src, BUILT_SCHEMA_FILE, ".."), { recursive: true });
+          writeFileSync(join(src, BUILT_SCHEMA_FILE), JSON.stringify(built));
+          phase("schema", `lab: ${built.model ? `read the database the app created (${built.file}): ${built.model.tables.length} table(s)` : `no database schema read: ${built.note}`} (${secs(tSchema)})`);
+        }
         // keep the build as it was before any test ran, for later lab runs on this commit
         if (build.ok && inp.buildCache) saveBuild(src, inp.buildCache, buildCachePath(inp.buildCache, inp.commit, project));
       } else {
@@ -329,6 +364,8 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
       });
       return { testRun, build, lint, reports: [], logs };
     }
+    // nothing more to read for a backend on SQLite: skip the database server and the tests
+    if (inp.schemaOnly && !project.database) return { testRun: noTests(), build, lint, reports: [], logs, schema };
 
     // db: loopback only
     let dbId: string | undefined;
@@ -358,6 +395,19 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
       if (r.code !== 0) throw new Error(`Couldn't create the test database login: ${r.stderr.split(dbVars.DB_PASSWORD).join("«SECRET»").slice(0, 300)}`);
     }
     const dbEnv = project.database ? fillTemplate(project.database.producerEnv, dbVars) : {};
+    // a backend on PostgreSQL with an approved data model: start the app once on a database of its own, keep what it created
+    // there with the build (once per commit: a reused build brings it along), and drop that database before any test runs
+    if (dbId && wantsSchema() && !existsSync(join(src, BUILT_SCHEMA_FILE))) {
+      const tSchema = Date.now();
+      const built = schema = await readPostgresSchema(inp, src, nuget, dbId, dbVars, launch, finish);
+      for (const at of [src, ...(cached && existsSync(cached) ? [cached] : [])]) {
+        mkdirSync(join(at, BUILT_SCHEMA_FILE, ".."), { recursive: true });
+        writeFileSync(join(at, BUILT_SCHEMA_FILE), JSON.stringify(built));
+      }
+      phase("schema", `lab: ${built.model ? `read the database the app created (${built.file}): ${built.model.tables.length} table(s)` : `no database schema read: ${built.note}`} (${secs(tSchema)})`);
+    }
+
+    if (inp.schemaOnly) return { testRun: noTests(), build, lint, reports: [], logs, schema };
 
     const runTests = async (filter: string | undefined, resultsDir: string) => {
       const started = Date.now();
@@ -437,10 +487,158 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
       probeOk: () => probe,
     });
     if (skipped.length) testRun.skippedKnownFailures = skipped;
-    return { testRun, build, lint, reports: first.reports.map((r) => ({ name: r.name, content: r.content })), logs, accept };
+    return { testRun, build, lint, reports: first.reports.map((r) => ({ name: r.name, content: r.content })), logs, accept, schema };
   } finally {
     for (const id of live) await stopAndRemove(rt, id).catch(() => undefined);
     rmSync(work, { recursive: true, force: true });
+  }
+}
+
+/** Where the lab keeps what the built app's database has, inside the build of a commit (under obj/, which no check reads). */
+export const BUILT_SCHEMA_FILE = "obj/factory-built-schema.json";
+export interface BuiltSchema { /** how the database was made: by the app starting, or by running its migrations */ by?: "startup" | "migrations"; model?: DataModel; /** the database file, repo-relative */ file?: string; /** why there is no model */ note?: string; /** the app made its database, with no table in it */ empty?: boolean }
+
+const SQLITE_NAME = /\.(db|sqlite|sqlite3)$/i;
+
+/** Where the lab keeps the EF Core command-line tool, inside the packages folder (fetched with the restore). */
+const EF_TOOLS = ".factory-tools";
+const migrateConfigured = (project: ProjectConfig): string[] | undefined => project.migrate ?? project.database?.migrate;
+
+/** A repo with EF Core migrations: the project holding the model snapshot, and the EF major version it was written with. */
+export function efMigrations(src: string): { project: string; major: string } | undefined {
+  const snap = findFiles(src, (n) => /ModelSnapshot\.cs$/.test(n))[0];
+  if (!snap) return undefined;
+  let dir = snap.split("/").slice(0, -1);
+  while (dir.length && !readdirSync(join(src, ...dir)).some((f) => f.endsWith(".csproj"))) dir = dir.slice(0, -1);
+  const csproj = readdirSync(join(src, ...dir)).find((f) => f.endsWith(".csproj"));
+  if (!csproj) return undefined;
+  const major = /"ProductVersion",\s*"(\d+)\./.exec(readFileSync(join(src, snap), "utf8"))?.[1] ?? "8";
+  return { project: [...dir, csproj].join("/"), major };
+}
+
+/**
+ * Bring an empty database to the backend's tables when starting the app did not: the project's own `migrate` command, or
+ * `dotnet ef database update` for a repo with EF Core migrations. Undefined when the repo has neither.
+ */
+async function runMigrations(
+  inp: ProduceInput, src: string, nuget: string, web: string, network: string, env: Record<string, string>, launch: Launch, finish: (id: string) => Promise<void>,
+): Promise<{ ok: boolean; what: string; logTail: string } | undefined> {
+  const { rt, project } = inp;
+  const own = migrateConfigured(project);
+  const ef = own ? undefined : efMigrations(src);
+  if (!own && !(ef && existsSync(join(nuget, EF_TOOLS, "dotnet-ef")))) return undefined;
+  const cmd = own ?? [`/nuget/${EF_TOOLS}/dotnet-ef`, "database", "update", "--no-build", "--project", ef!.project, "--startup-project", web];
+  const m = await launch({
+    role: "producer", image: project.dotnet.sdkImage, network, workdir: "/src",
+    env: { ...BASE_ENV, ...env, ASPNETCORE_ENVIRONMENT: "Development", DOTNET_ENVIRONMENT: "Development", ...project.accept.env },
+    mounts: [{ src, dst: "/src" }, { src: nuget, dst: "/nuget", ro: true }], cmd,
+  });
+  const code = await rt.wait(m, project.dotnet.buildTimeoutSec * 1000);
+  await rt.stop(m);
+  const logTail = (await rt.logs(m)).split("\n").slice(-60).join("\n");
+  await finish(m);
+  return { ok: code === 0, what: own ? "the project's migrate command" : "its EF Core migrations", logTail };
+}
+
+type Launch = (spec: Omit<ContainerSpec, "labels" | "user"> & { user?: string }) => Promise<string>;
+
+/** Start the built app until it answers (or gives up) and stop it again: long enough for it to create its database. */
+async function bootOnce(
+  inp: ProduceInput, src: string, nuget: string, web: string, network: string, env: Record<string, string>, launch: Launch, finish: (id: string) => Promise<void>,
+): Promise<{ answered: boolean; logTail: string }> {
+  const { rt, project } = inp;
+  const cfg = project.accept;
+  const base = `http://127.0.0.1:${cfg.port}`;
+  const app = await launch({
+    role: "app", image: project.dotnet.sdkImage, network, workdir: "/src",
+    env: { ...BASE_ENV, ...env, ASPNETCORE_ENVIRONMENT: "Development", ASPNETCORE_URLS: base, DOTNET_ENVIRONMENT: "Development", ...cfg.env },
+    mounts: [{ src, dst: "/src" }, { src: nuget, dst: "/nuget", ro: true }],
+    cmd: ["dotnet", "run", "--no-build", "--no-launch-profile", "--project", web, "--urls", base],
+  });
+  const until = Date.now() + Math.min(cfg.readyTimeoutSec, 60) * 1000;
+  let answered = false;
+  while (Date.now() < until && !answered && await rt.isRunning(app)) {
+    answered = (Number((await rt.exec(app, ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", `${base}${cfg.readyPath}`])).stdout.trim()) || 0) > 0;
+    if (!answered) await new Promise((res) => setTimeout(res, 1000));
+  }
+  await rt.stop(app);
+  const logTail = (await rt.logs(app)).split("\n").slice(-60).join("\n");
+  await finish(app);
+  return { answered, logTail };
+}
+
+/** The database the schema read gives the app on PostgreSQL: its own, so the tests' database stays as the tests expect it. */
+const SCHEMA_DB = "factory_schema";
+
+/**
+ * A backend on PostgreSQL: make an empty database beside the tests' one, start the built app on it until it answers, stop it,
+ * read the tables and keys it created there (one catalogue query, src/gates/postgres-schema.ts), and drop that database.
+ */
+async function readPostgresSchema(
+  inp: ProduceInput, src: string, nuget: string, dbId: string, dbVars: Record<string, string>, launch: Launch, finish: (id: string) => Promise<void>,
+): Promise<BuiltSchema> {
+  const { rt, project } = inp;
+  if (!project.accept.bootApp) return { note: "booting the app is turned off for this project" };
+  const web = findWebProject(src, project.accept.project);
+  if (!web) return { note: "no web project found (no csproj uses Sdk.Web)" };
+  const admin = (...sql: string[]) => rt.exec(dbId, ["psql", "-v", "ON_ERROR_STOP=1", "-U", "factory_admin", "-d", "postgres", ...sql.flatMap((q) => ["-c", q])]);
+  const made = await admin(`CREATE DATABASE "${SCHEMA_DB}" OWNER "${dbVars.DB_USER!.replace(/"/g, "")}"`);
+  if (made.code !== 0) return { note: `the database for the schema read could not be made: ${made.stderr.split("\n")[0]}` };
+  try {
+    const { answered, logTail } = await bootOnce(inp, src, nuget, web, `container:${dbId}`, fillTemplate(project.database!.producerEnv, { ...dbVars, DB_NAME: SCHEMA_DB }), launch, finish);
+    const r = await rt.exec(dbId, ["psql", "-v", "ON_ERROR_STOP=1", "-U", "factory_admin", "-d", SCHEMA_DB, "-At", "-c", POSTGRES_SCHEMA_SQL]);
+    if (r.code !== 0) return { note: `the database the app created could not be read: ${r.stderr.split("\n")[0]}` };
+    const model = postgresModel(r.stdout.trim());
+    if (model.tables.length) return { by: "startup", model, file: `PostgreSQL database ${SCHEMA_DB}` };
+    // starting the app made no table: run the backend's migrations on that database and read it again
+    const mig = await runMigrations(inp, src, nuget, web, `container:${dbId}`, fillTemplate(project.database!.producerEnv, { ...dbVars, DB_NAME: SCHEMA_DB }), launch, finish);
+    if (mig) {
+      if (!mig.ok) return { note: `starting the app created no tables, and ${mig.what} failed: ${firstError(mig.logTail)}` };
+      const again = await rt.exec(dbId, ["psql", "-v", "ON_ERROR_STOP=1", "-U", "factory_admin", "-d", SCHEMA_DB, "-At", "-c", POSTGRES_SCHEMA_SQL]);
+      const migrated = again.code === 0 ? postgresModel(again.stdout.trim()) : { tables: [] };
+      if (migrated.tables.length) return { by: "migrations", model: migrated, file: `PostgreSQL database ${SCHEMA_DB}, made by ${mig.what}` };
+      return { note: `${mig.what} ran but created no tables`, empty: true };
+    }
+    return answered ? { note: "the app started but created no tables in its PostgreSQL database on startup", empty: true } : { note: `the app did not start: ${firstError(logTail)}` };
+  } catch (e) {
+    return { note: `the database the app created could not be read: ${(e as Error).message.split("\n")[0]}` };
+  } finally {
+    await admin(`DROP DATABASE IF EXISTS "${SCHEMA_DB}" WITH (FORCE)`);
+  }
+}
+
+/**
+ * Start the built app with no network until it answers (or gives up), stop it, and read the SQLite database it created on
+ * startup. The database files are removed again, so the tests that follow start as they would have. A project on PostgreSQL
+ * (the project's `database`) is read by `readPostgresSchema`.
+ */
+async function readBuiltSchema(inp: ProduceInput, src: string, nuget: string, launch: Launch, finish: (id: string) => Promise<void>): Promise<BuiltSchema> {
+  const { project } = inp;
+  const cfg = project.accept;
+  if (!cfg.bootApp) return { note: "booting the app is turned off for this project" };
+  const web = findWebProject(src, cfg.project);
+  if (!web) return { note: "no web project found (no csproj uses Sdk.Web)" };
+  const before = new Set(findFiles(src, (n) => SQLITE_NAME.test(n)));
+  const { answered, logTail } = await bootOnce(inp, src, nuget, web, "none", {}, launch, finish);
+  const fresh = () => findFiles(src, (n) => SQLITE_NAME.test(n)).filter((f) => !before.has(f) && isSqliteFile(join(src, f)));
+  try {
+    const made = fresh();
+    const started = made[0] ? sqliteModel(join(src, made[0])) : undefined;
+    if (started?.tables.length) return { by: "startup", model: started, file: made[0]! };
+    // starting the app made no table: run the backend's migrations and look for the database file again
+    const mig = await runMigrations(inp, src, nuget, web, "none", {}, launch, finish);
+    if (mig) {
+      if (!mig.ok) return { note: `starting the app created no tables, and ${mig.what} failed: ${firstError(mig.logTail)}` };
+      const file = fresh().find((f) => sqliteModel(join(src, f)).tables.length);
+      if (file) return { by: "migrations", model: sqliteModel(join(src, file)), file: `${file}, made by ${mig.what}` };
+      return { note: `${mig.what} ran but created no SQLite database with tables in it`, empty: true };
+    }
+    if (!made.length) return { note: answered ? "the app started but created no SQLite database file on startup" : `the app did not start: ${firstError(logTail)}` };
+    return { note: `the app created ${made[0]} with no tables in it on startup`, empty: true };
+  } catch (e) {
+    return { note: `the database the app created could not be read: ${(e as Error).message.split("\n")[0]}` };
+  } finally {
+    for (const f of findFiles(src, (n) => /\.(db|sqlite|sqlite3)(-wal|-shm|-journal)?$/i.test(n))) if (!before.has(f)) rmSync(join(src, f), { force: true });
   }
 }
 

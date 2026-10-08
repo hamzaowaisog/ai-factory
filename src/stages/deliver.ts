@@ -1,5 +1,6 @@
 // review (L, other family) and deliver (D): per-commit secret scan, evidence manifest,
 // gated SHA + one manifest-only commit, PR via the forge sink (look up before create).
+import { DATA_MODEL_FILE, erdMermaid, nearModel } from "../gates/data-model.js";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { userInfo } from "node:os";
@@ -231,6 +232,11 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
     `## Tasks`,
     ...a.plan.tasks.map((t) => `- ${t.id} ${t.title} (${t.reqs.join(", ")})`),
     ``,
+    ...(a.plan.dataModel?.tables.length ? [
+      `## Data model`,
+      `${a.plan.dataModel.tables.length} table${a.plan.dataModel.tables.length === 1 ? "" : "s"}, approved with the plan and kept in \`${DATA_MODEL_FILE}\`.${nearModel(a.plan.dataModel).others ? ` The diagram shows the tables this change adds or changes and the tables joined to them; ${nearModel(a.plan.dataModel).others} other${nearModel(a.plan.dataModel).others === 1 ? " is" : "s are"} unchanged.` : ""}`,
+      ``, "```mermaid", erdMermaid(nearModel(a.plan.dataModel).model), "```", ``,
+    ] : []),
     `## Checks the factory ran itself`,
     `- ${a.run.results.length} tests in a sealed container; ${a.run.results.filter((r) => r.outcome === "passed").length} passed; no new failures vs the base branch`,
     `- Acceptance tests were written first, failed on the old code twice, then locked`,

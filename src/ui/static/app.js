@@ -699,7 +699,8 @@ function runHeader(r, tab) {
       h("span", { class: "sep" }),
       r.mode === "estimate" ? h("a", { href: `#/runs/${id}/estimate`, class: tab === "estimate" ? "on" : undefined }, icon("ruler"), "Estimate") : null,
       h("a", { href: `#/runs/${id}/design`, class: tab === "design" ? "on" : undefined }, icon("browser"), "Design"),
-      h("a", { href: `#/runs/${id}/preview`, class: tab === "preview" ? "on" : undefined }, icon("image"), "Preview")),
+      h("a", { href: `#/runs/${id}/preview`, class: tab === "preview" ? "on" : undefined }, icon("image"), "Preview"),
+      h("a", { href: `#/runs/${id}/data-model`, class: tab === "data-model" ? "on" : undefined }, icon("grid"), "Data model")),
   ];
 }
 
@@ -963,6 +964,9 @@ function planPanel(r) {
         approved: "Approved. The run is continuing…", rejected: "Rejected. The spec and plan are being revised…",
       }),
       r.product ? h("p", { class: "small" }, h("a", { href: `#/fullstack/${encodeURIComponent(r.product.name)}` }, icon("layers"), ` Product ${r.product.name}`)) : null,
+      // a new product's web plan: the database its API will be built on, said before anything of the API is built
+      r.product?.side === "web" && r.product.database ? h("p", { class: "small" }, h("strong", {}, `The API's database: ${r.product.database.name}. `), r.product.database.reason,
+        r.product.database.canSwitch ? [" ", h("a", { href: `#/fullstack/${encodeURIComponent(r.product.name)}` }, "Switch it on the product page"), " before the API run starts."] : null) : null,
       h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal"), h("div", { class: "cmds" }, c.commands.map((cmd) => cmdRow(cmd)))),
       md(c.markdown)));
 }
@@ -1459,6 +1463,69 @@ async function previewScreen(id) {
     if (live && p.preview?.draft && live(p)) return;
     live = renderPreview(r, p, first);
   });
+}
+
+/**
+ * The run's data model as a diagram: tables with their keys, a line per foreign key. It shows the plan's model as soon as
+ * the plan is written, so there is no waiting for the approval or the build; the server works out where each table sits.
+ */
+function dataModelScreen(id) {
+  skeleton("grid");
+  let lastJson = "";
+  poll(4000, async (first) => {
+    const [r, d] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/data-model`)]);
+    const json = JSON.stringify(d);
+    if (json === lastJson) return;
+    lastJson = json;
+    if (d.none) return mount([...runHeader(r, "data-model"), h("div", { class: "slot big-empty rise" }, icon("grid"), h("strong", {}, "No data model for this run"), h("span", {}, d.none))], first);
+    mount([...runHeader(r, "data-model"), h("div", { class: "stack" },
+      h("section", { class: "panel rise" },
+        h("div", { class: "panel-head" }, h("h2", {}, icon("grid"), "Data model"),
+          h("span", { class: `pill t-${d.source === "plan" && !d.approved ? "wait" : "ok"}` }, h("span", { class: "d" }), d.source !== "plan" ? "Current" : d.approved ? "Approved" : "Planned, not approved yet")),
+        h("p", { class: "small muted" }, `${d.tables} table${d.tables === 1 ? "" : "s"}, ${d.relations} relation${d.relations === 1 ? "" : "s"}. ${d.note}`),
+        d.built ? h("p", { class: "small" }, h("span", { class: `pill t-${d.built.matches ? "ok" : "bad"}` }, h("span", { class: "d" }), d.built.matches ? "Built database matches" : "Built database differs"),
+          " ", h("span", { class: "muted" }, `Checked at ${d.built.step}. ${d.built.details}`)) : null,
+        h("div", { class: "erd-wrap" }, erdDiagram(d.layout, !!d.existing)),
+        h("p", { class: "small faint erd-key" }, h("b", {}, "PK"), " primary key ", h("b", {}, "FK"), " foreign key ", h("b", {}, "UK"), " unique ", h("b", {}, "?"), " may be empty. A line runs from a foreign key to the row it points at; the forked end is the many side.")),
+      h("section", { class: "panel rise" },
+        h("div", { class: "panel-head" }, h("h2", {}, icon("file"), "In words"), h("span", { class: "row" }, d.source === "database" ? null : h("code", {}, d.file), copyButton(d.mermaid, "Copy as Mermaid"))),
+        md(d.summary.map((l) => `- ${l}`).join("\n"), "md")))], first);
+  });
+}
+
+/** One table of the diagram and the lines between them, from the server's layout. */
+function erdDiagram(l, existing) {
+  const line = (e) => {
+    // a curve that leaves each box straight out of its edge; both ends on the right edge loop round outside
+    const out = (p) => (p.side === "left" ? -1 : 1);
+    const bend = e.a.side === e.b.side ? 46 + Math.min(40, Math.abs(e.a.y - e.b.y) / 6) : Math.max(40, Math.abs(e.a.x - e.b.x) / 2);
+    const many = e.kind !== "one-to-one";
+    const ax = e.a.x + out(e.a) * 12, bx = e.b.x + out(e.b) * 12;
+    return sv("g", { class: `erd-rel${e.required ? "" : " opt"}` },
+      sv("title", {}, `${e.from}.${e.column} → ${e.to}.${e.toColumn}: ${many ? `many ${e.from} to one ${e.to}` : "one to one"}${e.required ? "" : ", may be empty"}${e.onDelete ? `, on delete ${e.onDelete}` : ""}`),
+      sv("path", { d: e.via
+        ? `M${ax} ${e.a.y} C${ax - 50} ${e.a.y} ${e.via.x2 + 50} ${e.via.y} ${e.via.x2} ${e.via.y} H${e.via.x1} C${e.via.x1 - 50} ${e.via.y} ${bx + 50} ${e.b.y} ${bx} ${e.b.y}`
+        : `M${ax} ${e.a.y} C${ax + out(e.a) * bend} ${e.a.y} ${bx + out(e.b) * bend} ${e.b.y} ${bx} ${e.b.y}` }),
+      // the foreign key's end: a fork for many, a bar for one
+      many ? sv("path", { d: `M${ax} ${e.a.y} L${e.a.x} ${e.a.y - 6} M${ax} ${e.a.y} L${e.a.x} ${e.a.y} M${ax} ${e.a.y} L${e.a.x} ${e.a.y + 6}` })
+        : sv("path", { d: `M${ax} ${e.a.y} L${e.a.x} ${e.a.y} M${e.a.x + out(e.a) * 6} ${e.a.y - 6} v12` }),
+      // the end it points at: one row, or none when the key may be empty (a ring)
+      sv("path", { d: `M${bx} ${e.b.y} L${e.b.x} ${e.b.y} M${e.b.x + out(e.b) * 5} ${e.b.y - 6} v12` }),
+      e.required ? null : sv("circle", { cx: e.b.x + out(e.b) * 11, cy: e.b.y, r: 3.5 }));
+  };
+  const box = (b) => sv("g", { class: `erd-table c-${b.change}` },
+    b.purpose ? sv("title", {}, b.purpose) : null,
+    sv("rect", { class: "body", x: b.x, y: b.y, width: b.w, height: b.h, rx: 8 }),
+    sv("path", { class: "head", d: `M${b.x} ${b.y + 34} v-26 a8 8 0 0 1 8 -8 h${b.w - 16} a8 8 0 0 1 8 8 v26 z` }),
+    sv("text", { class: "name", x: b.x + 12, y: b.y + 22 }, b.name),
+    b.change === (existing ? "unchanged" : "new") ? null : sv("text", { class: "chg", x: b.x + b.w - 12, y: b.y + 22, "text-anchor": "end" }, b.change),
+    b.rows.map((c) => [
+      sv("text", { class: `col${c.keys.includes("PK") ? " pk" : ""}`, x: b.x + 12, y: c.y + 4 }, c.note ? sv("title", {}, c.note) : null, `${c.name}${c.optional ? "?" : ""}`),
+      sv("text", { class: "type", x: b.x + b.w - 12 - c.keys.length * 26, y: c.y + 4, "text-anchor": "end" }, c.type),
+      c.keys.map((k, i) => sv("text", { class: `key k-${k.toLowerCase()}`, x: b.x + b.w - 12 - (c.keys.length - 1 - i) * 26, y: c.y + 4, "text-anchor": "end" }, k)),
+    ]));
+  return sv("svg", { class: "erd", viewBox: `0 0 ${l.width} ${l.height}`, width: l.width, height: l.height, role: "img", "aria-label": `Entity-relationship diagram: ${l.boxes.map((b) => b.name).join(", ")}` },
+    l.edges.map(line), l.boxes.map(box));
 }
 
 function draftText(d) {
@@ -2117,6 +2184,8 @@ async function greenfieldScreen(preset = []) {
   const backend = h("select", { id: "fs-backend" }, h("option", { value: "api" }, "Build its API too: a web app and a .NET API"), h("option", { value: "client" }, "The client provides it: the web app only"));
   const webOnly = () => backend.value === "client";
   const backendHint = h("div", { class: "hint" });
+  // what the API keeps its data in: the factory's proposal from the request (shown with its reason on the product page), or a person's pick
+  const database = h("select", { id: "fs-database" }, h("option", { value: "auto" }, "Let the factory propose one from the request"), h("option", { value: "sqlite" }, "SQLite: a database file beside the API"), h("option", { value: "postgres" }, "PostgreSQL: a database server"));
   const repos = h("div", { class: "hint" });
   // GitHub: private repos under the token's account, main pushed; each run then pushes its own branch and opens a PR into main
   const gh = meta.github ?? { configured: false };
@@ -2124,11 +2193,11 @@ async function greenfieldScreen(preset = []) {
   const ghText = h("span", { class: "hint" });
   const syncRepos = () => {
     const n = name.value.trim() || "<name>", d = dir.value.trim() || "…";
-    repos.textContent = webOnly() ? `The repo: ${d}/${n} (empty, for the web run). The project is ${n}.` : `The repos: ${d}/${n}-web (empty, for the web run) and ${d}/${n}-api (a .NET 9 API skeleton with SQLite).`;
+    repos.textContent = webOnly() ? `The repo: ${d}/${n} (empty, for the web run). The project is ${n}.` : `The repos: ${d}/${n}-web (empty, for the web run) and ${d}/${n}-api (a .NET 9 API skeleton on ${{ auto: "SQLite or PostgreSQL", sqlite: "SQLite", postgres: "PostgreSQL" }[database.value]}).`;
     ghText.textContent = !gh.configured ? gh.why
       : `${webOnly() ? `A private repo ${n}` : `Private repos ${n}-web and ${n}-api`} under the GitHub account of the factory's token, with main pushed. Each run pushes its own branch and opens a PR into main. Off: the branches stay on this machine.`;
   };
-  name.addEventListener("input", syncRepos); dir.addEventListener("input", syncRepos);
+  name.addEventListener("input", syncRepos); dir.addEventListener("input", syncRepos); database.addEventListener("change", syncRepos);
   // only what was made with no repo is a new product; an estimate it would not build all of is listed but can't be picked: it says why
   const estimates = (meta.estimates ?? []).filter((e) => !e.repo), designs = (meta.designs ?? []).filter((d) => !d.repo);
   const why = (e) => (webOnly() ? e.cannotBuildWebOnly : e.cannotBuild);
@@ -2170,7 +2239,9 @@ async function greenfieldScreen(preset = []) {
         : "Its request, spec, design and tasks carry over: the web run is held to the estimate's scope and budget, and the backend tasks go to the API run, which builds the approved contract (it is not held to the estimate).")
       : "The web run asks its questions and draws the design for you to approve. No estimate is made.";
   };
+  const dbField = fld("fs-database", "Database of the API", database, "The factory's proposal comes with its reason on the product page and on the web plan's card. You can switch it there until the API run starts.");
   const syncBackend = () => {
+    dbField.hidden = webOnly();
     backendHint.textContent = webOnly()
       ? "One repo and one run: a Next.js app on the factory's kit. It builds no API: the app is written against the client's backend as the requirements describe it."
       : "Two repos and two runs: the web run writes the API contract with its plan; once you approve it, start the API run from the product page. Then both start together.";
@@ -2187,6 +2258,7 @@ async function greenfieldScreen(preset = []) {
   syncBackend();
   const form = h("form", { class: "form", novalidate: true }, err,
     fld("fs-backend", "Backend", backend, backendHint),
+    dbField,
     fld("fs-name", "Product name", name, "Lower-case letters, digits and dashes. It names the project (with the API: <name>-web and <name>-api)."),
     fld("fs-dir", "Folder for the repos", dir, repos),
     h("div", { class: "field" }, h("label", { class: "opt", for: "fs-github" }, onGithub, h("span", {}, h("strong", {}, "Put it on GitHub"), ghText))),
@@ -2209,7 +2281,7 @@ async function greenfieldScreen(preset = []) {
           body: JSON.stringify({ mode: "greenfield", project: "", newProject: { name: n, dir: d ? `${d}/${n}` : "" }, github: onGithub.checked, maxCost: maxCost.value, ...from }) });
         location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
       } else {
-        const r = await api("/api/fullstack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: n, dir: d, github: onGithub.checked, maxCost: maxCost.value, ...from }) });
+        const r = await api("/api/fullstack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: n, dir: d, github: onGithub.checked, database: database.value, maxCost: maxCost.value, ...from }) });
         location.hash = `#/fullstack/${encodeURIComponent(r.name)}`;
       }
     } catch (e) {
@@ -2268,6 +2340,7 @@ function productScreen(name) {
         s.github ? [h("dt", {}, "GitHub"), h("dd", {}, h("a", { href: s.github, target: "_blank", rel: "noopener" }, s.github.replace(/^https?:\/\/[^/]+\//, "")))] : null,
         s.prUrl ? [h("dt", {}, "PR"), h("dd", {}, h("a", { href: s.prUrl, target: "_blank", rel: "noopener" }, s.prUrl.replace(/^.*\/pull\//, "#")))] : null,
         s.run ? [h("dt", {}, "Run"), h("dd", {}, h("a", { href: `#/runs/${encodeURIComponent(s.run.runId)}` }, s.run.runId)),
+          title === "API run" ? [h("dt", {}, "Data model"), h("dd", {}, h("a", { href: `#/runs/${encodeURIComponent(s.run.runId)}/data-model` }, "Tables, keys and relations"))] : null,
           h("dt", {}, "Step"), h("dd", {}, s.run.step || "-"),
           h("dt", {}, "Cost"), h("dd", {}, money(s.run.costUsd)),
           s.run.openCard ? [h("dt", {}, "Waiting on"), h("dd", {}, h("a", { href: `#/runs/${encodeURIComponent(s.run.runId)}` }, `${s.run.openCard} card`))] : null] : null));
@@ -2290,6 +2363,20 @@ function productScreen(name) {
       } catch (e) { msg.textContent = e.message; }
       writeFiles.disabled = false;
     });
+    const db = p.database;
+    const switchDb = db.switchTo ? h("button", { class: "btn", type: "button" }, icon("loop"), `Use ${db.switchTo.name} instead`) : null;
+    switchDb?.addEventListener("click", async () => {
+      switchDb.disabled = true; msg.textContent = "";
+      try {
+        await api(`/api/fullstack/${encodeURIComponent(name)}/database`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ database: db.switchTo.kind }) });
+        lastJson = "";
+      } catch (e) { msg.textContent = e.message; switchDb.disabled = false; }
+    });
+    const dbPanel = h("section", { class: "panel rise" }, h("div", { class: "panel-head" }, h("h2", {}, icon("layers"), "Database"),
+        h("span", { class: "pill t-ok" }, h("span", { class: "dot" }), db.name)),
+      h("p", { class: "small" }, db.by === "proposal" ? "Proposed by the factory. " : db.by === "request" ? "From the request. " : "Chosen by a person. ", db.reason),
+      switchDb ? h("div", { class: "row" }, switchDb, h("span", { class: "hint" }, "Until the API run starts. The API repo's skeleton and its project are rewritten for it; nothing else changes."))
+        : h("p", { class: "small muted" }, "The API run has started, so the database is set."));
     mount([
       h("div", { class: "page-head" }, h("div", {}, h("div", { class: "crumbs" }, h("a", { href: "#/new/greenfield" }, "Greenfield"), "/", "Product"), h("h1", {}, p.name),
         p.request ? h("p", { class: "sub" }, p.request.length > 240 ? `${p.request.slice(0, 239)}…` : p.request) : null,
@@ -2301,6 +2388,7 @@ function productScreen(name) {
           !p.api.run ? h("div", { class: "row" }, h("div", { class: "money-in" }, h("span", {}, "$"), apiCap), h("span", { class: "hint" }, "API run's max cost (optional)"), startApi) : null,
           h("div", { class: "row" }, writeFiles, h("span", { class: "hint" }, "Once both runs are delivered: both branches side by side and a compose file. Starts nothing.")),
           files, msg),
+        dbPanel,
         h("div", { class: "grid-2" }, side("Web run", "browser", p.web), side("API run", "layers", p.api)),
         p.contract ? h("section", { class: "panel rise" }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "API contract (approved)"), h("code", { class: "small muted" }, p.contract.file)),
           p.contract.operations.length ? h("div", { class: "tags" }, p.contract.operations.map((o) => h("span", { class: "tag mono" }, o))) : null,
@@ -2337,6 +2425,7 @@ async function route() {
     else if (top === "new") modeScreen();
     else if (top === "runs" && parts[1] && parts[2] === "design") await designScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "preview") await previewScreen(parts[1]);
+    else if (top === "runs" && parts[1] && parts[2] === "data-model") dataModelScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "charts") chartsScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "stats") statsScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "log") logScreen(parts[1]);

@@ -785,3 +785,26 @@ a.proto .go { display: flex; align-items: center; gap: 0.4rem; color: var(--acce
 .pipe-go.r { right: -1.15rem; }
 .tags.tight .tag { cursor: help; }
 .device-wrap { padding: 0; background: none; }
+
+/* ---------- data model: the entity-relationship diagram ---------- */
+.erd-wrap { overflow: auto; max-height: 72vh; padding: 0.5rem; border-radius: var(--radius); background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--edge); }
+.erd { display: block; max-width: none; }
+.erd text { font-family: var(--mono); font-size: 12px; fill: var(--text); }
+.erd-table .body { fill: var(--panel); stroke: var(--edge-hi); }
+.erd-table .head { fill: color-mix(in srgb, var(--accent) 16%, var(--panel)); }
+.erd-table.c-changed .head { fill: color-mix(in srgb, var(--wait) 22%, var(--panel)); }
+.erd-table.c-unchanged .head { fill: var(--panel-2); }
+.erd-table.c-unchanged text { fill: var(--muted); }
+.erd-table .name { font-weight: 700; font-size: 13px; }
+.erd-table .chg { font-size: 10px; fill: var(--muted); }
+.erd-table .pk { font-weight: 700; }
+.erd-table .type { fill: var(--muted); }
+.erd-table .key { font-size: 10px; font-weight: 700; fill: var(--muted); }
+.erd-table .key.k-pk { fill: var(--accent); }
+.erd-table .key.k-fk { fill: var(--wait); }
+.erd-rel path, .erd-rel circle { fill: none; stroke: var(--muted); stroke-width: 1.4; }
+.erd-rel circle { fill: var(--panel-2); }
+.erd-rel.opt > path:first-of-type { stroke-dasharray: 5 4; }
+.erd-rel:hover path, .erd-rel:hover circle { stroke: var(--accent); stroke-width: 2; }
+.erd-key b { font-family: var(--mono); color: var(--muted); margin-left: 0.5rem; }
+.erd-key b:first-child { margin-left: 0; }

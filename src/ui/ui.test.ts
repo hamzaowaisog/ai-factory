@@ -218,7 +218,7 @@ describe("factory ui: what the web can decide", () => {
     expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual([
       "POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/answers", "POST /api/runs/:id/decision",
       "POST /api/runs/:id/limit", "POST /api/runs/:id/limit-stop", "POST /api/runs/:id/resume",
-      "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/up", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
+      "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/database", "POST /api/fullstack/:name/up", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
     ]);
   });
 
@@ -543,9 +543,18 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     expect((await send("/api/fullstack", { name: "orders", dir, prompt: "Again" })).json().error).toMatch(/already exists/);
     expect((await call("/api/fullstack")).json()).toEqual([expect.objectContaining({ name: "orders", web: expect.objectContaining({ project: "orders-web" }) })]);
     // the web run's page links to its product
-    expect((await call(`/api/runs/${webRun}`)).json().product).toEqual({ name: "orders", side: "web" });
+    // and says what the API will keep its data in: proposed from the request's words, with the reason, and still open to a switch
+    expect((await call(`/api/runs/${webRun}`)).json().product).toEqual({ name: "orders", side: "web", database: { name: "PostgreSQL", reason: expect.stringMatching(/several people change the same records at once \("orders"\)/), canSwitch: true } });
 
     let v = (await call("/api/fullstack/orders")).json();
+    expect(v.database).toMatchObject({ kind: "postgres", name: "PostgreSQL", by: "proposal", switchTo: { kind: "sqlite", name: "SQLite" } });
+    expect(readFileSync(join(dir, "orders-api", "App.Api/App.Api.csproj"), "utf8")).toMatch(/Npgsql/);
+    // a person switches it on the product page, and back: the API repo and its project follow
+    expect((await send("/api/fullstack/orders/database", { database: "mysql" })).json().error).toMatch(/use sqlite, postgres, or auto/);
+    expect((await send("/api/fullstack/orders/database", { database: "sqlite" })).json()).toMatchObject({ kind: "sqlite", by: "option", switchTo: { kind: "postgres" } });
+    expect(readFileSync(join(dir, "orders-api", "App.Api/App.Api.csproj"), "utf8")).toMatch(/Sqlite/);
+    expect((await send("/api/fullstack/orders/database", { database: "postgres" })).status).toBe(200);
+    v = (await call("/api/fullstack/orders")).json();
     expect(v.web.run).toMatchObject({ runId: webRun, delivered: false });
     expect(v.api.run).toBeUndefined();
     expect(v.contract).toBeUndefined();
@@ -567,7 +576,11 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     expect(replay(Ledger.open(apiRun).events()).info).toMatchObject({ project: "orders-api", maxCostUsd: 6 });
     expect(readFileSync(join(dir, "orders-api", "contracts/openapi.yaml"), "utf8")).toBe(CONTRACT);
     expect((await send("/api/fullstack/orders/next", {})).json().error).toMatch(/started already/);
-    expect((await call(`/api/runs/${apiRun}`)).json().product).toEqual({ name: "orders", side: "api" });
+    expect((await call(`/api/runs/${apiRun}`)).json().product).toMatchObject({ name: "orders", side: "api", database: { name: "PostgreSQL", canSwitch: false } });
+    // the API run is told its database, and the database is set from here on
+    expect(replay(Ledger.open(apiRun).events()).info.request).toMatch(/PostgreSQL database \(the connection string named App/);
+    expect((await call("/api/fullstack/orders")).json().database.switchTo).toBeUndefined();
+    expect((await send("/api/fullstack/orders/database", { database: "sqlite" })).status).toBe(409);
     // the run files wait for both deliveries
     const up = await send("/api/fullstack/orders/up", {});
     expect(up.status).toBe(409);
@@ -1660,5 +1673,80 @@ describe("factory ui: on a phone", () => {
     } finally {
       await browser.close();
     }
+  });
+});
+
+describe("factory ui: data model", () => {
+  const MODEL = { tables: [
+    { name: "Customers", purpose: "who orders", columns: [{ name: "Id", type: "uuid", required: true, pk: true }, { name: "Email", type: "string", required: true, unique: true }] },
+    { name: "Orders", purpose: "one order", columns: [{ name: "Id", type: "uuid", required: true, pk: true }, { name: "CustomerId", type: "uuid", required: true, references: { table: "Customers", column: "Id", onDelete: "cascade" } }, { name: "Status", type: "enum", required: true, values: ["open", "paid"] }] },
+    { name: "OrderNotes", purpose: "a note on an order", columns: [{ name: "Id", type: "uuid", required: true, pk: true }, { name: "OrderId", type: "uuid", required: false, references: { table: "Orders", column: "Id" } }, { name: "ReplyTo", type: "uuid", required: false, references: { table: "OrderNotes", column: "Id" } }] },
+  ] };
+  const view = async (run: string) => (await call(`/api/runs/${run}/data-model`)).json();
+
+  it("a web run has none, and says where the model is", async () => {
+    writeFileSync(join(home, "projects", "site.yaml"), stringify({ project: "site", repo: makeRepo({ "README.md": "# site\n" }), stack: "node" }));
+    expect((await view(await createRun("Rename the heading", "site", "tester"))).none).toMatch(/web app.*API run/);
+    // a backend run whose plan touches no stored data
+    expect((await view(ids.delivered)).none).toMatch(/touches no stored data/);
+  });
+
+  it("shows the plan's model before the approval, laid out with foreign keys pointing left, then as approved", async () => {
+    const run = await createRun("Keep orders per customer", "api", "tester");
+    expect((await view(run)).none).toMatch(/as soon as the plan is written, before you approve it/);
+    const l = Ledger.open(run);
+    await addEvents(run, [
+      ...["discover", "intake", "ground", "clarify", "specify"].flatMap((k) => step(k)),
+      ...step("plan", 1, { tasks: ["TASK-1"] }, [l.putJson({ tasks: [{ id: "TASK-1", fileScope: [] }], dataModel: MODEL })]),
+    ]);
+    const v = await view(run);
+    expect(v).toMatchObject({ source: "plan", approved: false, tables: 3, relations: 3, file: "contracts/data-model.yaml" });
+    expect(v.note).toMatch(/not approved yet/);
+    expect(v.mermaid).toMatch(/^erDiagram/);
+    const box = (n: string) => v.layout.boxes.find((b: { name: string }) => b.name === n);
+    expect(box("Customers").x).toBeLessThan(box("Orders").x);
+    expect(box("Orders").x).toBeLessThan(box("OrderNotes").x);
+    expect(box("Orders").rows.map((r: { name: string; keys: string[] }) => `${r.name}:${r.keys.join("+")}`)).toEqual(["Id:PK", "CustomerId:FK", "Status:"]);
+    // every box is inside the drawing, and no two overlap
+    for (const b of v.layout.boxes) expect(b.x >= 0 && b.y >= 0 && b.x + b.w <= v.layout.width && b.y + b.h <= v.layout.height).toBe(true);
+    const fk = v.layout.edges.find((e: { column: string }) => e.column === "CustomerId");
+    expect(fk).toMatchObject({ kind: "many-to-one", required: true, a: { side: "left", x: box("Orders").x }, b: { side: "right", x: box("Customers").x + box("Customers").w } });
+    // a line that skips a column of tables runs level through a gap, clear of every table there
+    const far = (await (async () => { const r2 = await createRun("Notes per customer", "api", "tester"); const l2 = Ledger.open(r2);
+      const tables = [...MODEL.tables, { name: "Audit", purpose: "who did what", columns: [{ name: "Id", type: "uuid", required: true, pk: true }, { name: "CustomerId", type: "uuid", required: true, references: { table: "Customers", column: "Id" } }, { name: "NoteId", type: "uuid", required: true, references: { table: "OrderNotes", column: "Id" } }] }];
+      await addEvents(r2, step("plan", 1, {}, [l2.putJson({ tasks: [], dataModel: { tables } })])); return view(r2); })()).layout;
+    const skip = far.edges.find((e: { from: string; to: string }) => e.from === "Audit" && e.to === "Customers");
+    expect(skip.via).toBeDefined();
+    for (const b of far.boxes.filter((b: { x: number }) => b.x >= skip.via.x1 && b.x < skip.via.x2)) expect(skip.via.y < b.y || skip.via.y > b.y + b.h).toBe(true);
+    expect(skip.via.y).toBeGreaterThan(0);
+    expect(skip.via.y).toBeLessThan(far.height);
+    // a table pointing at itself loops round its right edge
+    expect(v.layout.edges.find((e: { column: string }) => e.column === "ReplyTo")).toMatchObject({ required: false, a: { side: "right" }, b: { side: "right" } });
+    await addEvents(run, step("approve", 0));
+    expect(await view(run)).toMatchObject({ source: "plan", approved: true });
+    // once a build was checked, the page says whether the built database has what the model has
+    expect((await view(run)).built).toBeUndefined();
+    await addEvents(run, [{ type: "gate.result", data: { gateId: "data-model.matches", passed: false, step: "implement/TASK-1", details: "The database does not match the approved data model: Table Audit is in the database but not in the model" } },
+      { type: "gate.result", data: { gateId: "data-model.matches", passed: true, step: "integrate", details: "The database (App.Api/app.db) matches the approved data model" } }]);
+    expect((await view(run)).built).toEqual({ matches: true, step: "integrate", details: "The database (App.Api/app.db) matches the approved data model" });
+  });
+
+  it("before the plan exists, shows the model the repo already has", async () => {
+    const repo = loadProject("api").repo;
+    mkdirSync(join(repo, "contracts"), { recursive: true });
+    writeFileSync(join(repo, "contracts", "data-model.yaml"), stringify(MODEL));
+    execFileSync("git", ["add", "-A"], { cwd: repo, env: gitEnv });
+    execFileSync("git", ["commit", "-q", "-m", "model"], { cwd: repo, env: gitEnv });
+    const run = await createRun("Add a note to an order", "api", "tester");
+    const v = await view(run);
+    expect(v).toMatchObject({ source: "repo", tables: 3 });
+    expect(v.note).toMatch(/plan is not written yet/);
+  });
+
+  it("the page has the tab and draws the diagram itself, with no script from elsewhere", () => {
+    const js = readFileSync(join(staticDir(), "app.js"), "utf8");
+    expect(js).toContain("/data-model`, class: tab === \"data-model\"");
+    expect(js).toContain("function erdDiagram(");
+    expect(js).not.toMatch(/mermaid(\.min)?\.js|cdn\./);
   });
 });

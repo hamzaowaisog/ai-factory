@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { contractDiff, contractGap, contractMatches, contractProblems, contractReadProblem, contractSummary, readContract } from "./contract.js";
+import { contractDiff, contractGap, contractMatches, dataModelMatches, contractProblems, contractReadProblem, contractSummary, readContract } from "./contract.js";
 import { DEFAULT_POLICY } from "./policy.js";
 
 // the document a .NET 9 minimal API wrote at build time, with no network (the spike of 2026-10-05)
@@ -123,5 +123,33 @@ describe("why a text is not an OpenAPI document", () => {
     expect(contractGap(want, undefined)).toBeUndefined();
     // the real .NET 9 document against its contract: still no difference the gate would miss being reported as noise
     expect(contractGap(CONTRACT, builtText)!.filter((d) => !/operationId|nullable/.test(d))).toEqual(contractDiff(contract, built()));
+  });
+});
+
+describe("the built database against the approved data model: what an existing backend already had", () => {
+  const t = (name: string, change = "new") => ({ name, purpose: "", change, columns: [{ name: "Id", type: "int", required: true, pk: true }], uniques: [] });
+  const text = (tables: unknown[]) => JSON.stringify({ tables });
+  const gate = (model: unknown[], built: Record<string, unknown>) => dataModelMatches.predicate({ model: { text: text(model) }, built }, DEFAULT_POLICY);
+  const db = (...names: string[]) => ({ tables: names.map((n) => t(n)) });
+
+  it("fails on a table this run made that the model does not name, and not on one that was there before the run", () => {
+    // a new product: nothing was there before, so any other table is this run's
+    expect(gate([t("Orders")], { model: db("Orders", "Audit"), before: [] }).details).toMatch(/Table Audit is in the database but not in the model/);
+    // an existing backend: Users and Audit were there already, Scratch is this run's
+    const r = gate([t("Orders")], { model: db("Orders", "users", "Audit", "Scratch"), before: ["Users", "Audit"] });
+    expect(r.failures).toHaveLength(1);
+    expect(r.details).toMatch(/Table Scratch is in the database but not in the model/);
+  });
+
+  it("when what was there before is not known, holds only a model of all-new tables to no other table", () => {
+    expect(gate([t("Orders")], { model: db("Orders", "Audit") }).passed).toBe(false);
+    expect(gate([t("Orders"), t("Users", "unchanged")], { model: db("Orders", "Users", "Audit") }).passed).toBe(true);
+  });
+
+  it("does not hold a backend to creating its database on startup when it never did", () => {
+    expect(gate([t("Orders")], { note: "the app started but created no SQLite database file on startup" }).passed).toBe(false);
+    const r = gate([t("Orders")], { note: "the app started but created no SQLite database file on startup", noDatabaseBefore: true });
+    expect(r.passed).toBe(true);
+    expect(r.details).toMatch(/Not compared: the code before this run created no database on startup either/);
   });
 });

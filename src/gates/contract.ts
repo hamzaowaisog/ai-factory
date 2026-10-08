@@ -1,5 +1,7 @@
 // The locked API contract (an OpenAPI document written at plan time and approved on the plan card): what it says, and whether
 // the document a built API produces says the same. Pure code: no model, no network.
+import { DataModel } from "../contracts/index.js";
+import { DATA_MODEL_FILE, dataModelDiff } from "./data-model.js";
 import { parse } from "yaml";
 import { defineGate, failure, verdict } from "./engine.js";
 
@@ -129,3 +131,38 @@ export function contractGap(contractText: string, builtText: string | undefined)
   const want = readContract(contractText), have = builtText ? readContract(builtText) : undefined;
   return want && have ? contractDiff(want, have, true) : undefined;
 }
+
+/** A difference a single task cannot be blamed for: something the model has that the database lacks may be another task's to build. */
+const EXTRA_TABLE = /^Table (.+) is in the database but not in the model$/;
+const NOT_BUILT_YET = /is in the model but not in the database$|the database has no foreign key there$|, the database does not$/;
+
+/**
+ * The database the built app creates has the tables, keys and relations of the approved data model. A column the model does
+ * not name is allowed (code may keep its own bookkeeping); a task checks only that what exists so far is not wrong.
+ */
+export const dataModelMatches = defineGate<{ model: { text: string }; built: { model?: unknown; file?: string; note?: string; partial?: boolean; before?: string[]; noDatabaseBefore?: boolean; /** no approved model: `model` is the database as it was before the run */ asBefore?: boolean } }>({
+  id: "data-model.matches", after: "implement", safety: false, waiver: "none",
+  predicate: ({ model, built }) => {
+    let want: ReturnType<typeof DataModel.safeParse>;
+    try { want = DataModel.safeParse(parse(model.text)); } catch { return verdict([failure("data-model", `${DATA_MODEL_FILE} is not a data model`)], ""); }
+    if (!want.success) return verdict([failure("data-model", `${DATA_MODEL_FILE} is not a data model`)], "");
+    const have = DataModel.safeParse(built.model);
+    if (!have.success) {
+      if (built.partial) return verdict([], `No database to compare yet (${built.note ?? "none read"})`);
+      // an existing backend that never made its database on startup (migrations run some other way): nothing to compare, and not this run's to change
+      if (built.noDatabaseBefore) return verdict([], `Not compared: the code before this run created no database on startup either (${built.note ?? "none read"})`);
+      return verdict([failure("data-model", `The database could not be compared with ${built.asBefore ? "what it was before this run" : "the approved data model"}: ${built.note ?? "no schema was read"}. The database must come from the code: created when the app starts (for example EnsureCreated or Migrate in startup) or by the repo's EF Core migrations, in the project's own database (a SQLite file, or the PostgreSQL connection it is given).`)], "");
+    }
+    // a table the model does not name fails only when this run made it: one that was there before the run is the backend's own.
+    // When what was there before is not known, only a model of all-new tables (a new product) is held to "no other table".
+    const before = built.before?.map((t) => t.toLowerCase());
+    const allNew = want.data.tables.every((t) => t.change === "new");
+    const own = (d: string) => { const t = EXTRA_TABLE.exec(d)?.[1]?.toLowerCase(); return t !== undefined && (before ? before.includes(t) : !allNew); };
+    const diff = dataModelDiff(want.data, have.data).differences.filter((d) => !own(d) && (!built.partial || !NOT_BUILT_YET.test(d)));
+    if (built.asBefore) {
+      const said = (d: string) => d.replace(/\bthe model\b/g, "the database before this run").replace(/\bin the model\b/g, "in the database before this run").replace(/\bthe database\b(?! before)/g, "the database now");
+      return verdict(diff.slice(0, 20).map((d) => failure("data-model", `This plan has no data model, so the database must stay as it was, and it did not: ${said(d)}. A change to stored data needs a plan that says so (its data model is approved with it).`)), `The database (${built.file ?? "built"}) has the tables, keys and relations it had before this run`);
+    }
+    return verdict(diff.slice(0, 20).map((d) => failure("data-model", `The database does not match the approved data model: ${d}`)), `The database (${built.file ?? "built"}) matches the approved data model`);
+  },
+});

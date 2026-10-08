@@ -22,10 +22,13 @@ import { sha256 } from "../util/hash.js";
 import type { Ledger } from "../ledger/ledger.js";
 import { parseTrx } from "../verify/trx.js";
 import { factoryHome } from "../util/paths.js";
-import { buildCachePath, produceDotnetTests, skippableKnownFailures, type Probe, type ProduceOutput } from "../verify/dotnet.js";
+import { BUILT_SCHEMA_FILE, buildCachePath, produceDotnetTests, skippableKnownFailures, type BuiltSchema, type Probe, type ProduceOutput } from "../verify/dotnet.js";
 import type { ProjectConfig } from "../config/project.js";
 import { installIsCurrent, installNodeModules, labFor, markInstalled, runNodeOffline } from "../verify/lab.js";
-import { contractGap, contractMatches } from "../gates/contract.js";
+import { contractGap, contractMatches, dataModelMatches } from "../gates/contract.js";
+import { DATA_MODEL_FILE, dataModelDiff, dataModelYaml } from "../gates/data-model.js";
+import { parse } from "yaml";
+import { DataModel } from "../contracts/index.js";
 import { CLIENT_CMD, CLIENT_DIR, contractLockFiles, prepareClient } from "./contract.js";
 import { authorIntro, implementIntro, notFoundHint } from "./stack-text.js";
 import type { Expectations } from "../verify/validate.js";
@@ -94,7 +97,7 @@ const packagesDir = (runId: string, stack: ProjectConfig["stack"] = "dotnet") =>
   return d;
 };
 
-async function produce(ctx: StepContext, key: string, commit: string, stage: TestRun["stage"], exp: Expectations, onlyTests?: string[], filterExpr?: string, accept?: { probes: Probe[] }, resolveExp?: (results: TestResult[]) => Expectations): Promise<ProduceOutput> {
+async function produce(ctx: StepContext, key: string, commit: string, stage: TestRun["stage"], exp: Expectations, onlyTests?: string[], filterExpr?: string, accept?: { probes: Probe[] }, resolveExp?: (results: TestResult[]) => Expectations, schema?: { readSchema?: boolean; schemaOnly?: boolean }): Promise<ProduceOutput> {
   const rt = runtime();
   await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
   // full-suite runs (task, integrate) leave out tests that already fail on the base branch
@@ -105,7 +108,9 @@ async function produce(ctx: StepContext, key: string, commit: string, stage: Tes
     packagesDir: packagesDir(ctx.runId, ctx.project.stack),
     // later lab runs on a commit reuse its build; the baseline's commit is never built again
     buildCache: stage === "baseline" ? undefined : join(factoryHome(), "tmp", ctx.runId, "builds"),
-    skipTests,
+    skipTests, ...schema,
+    // an existing backend whose database was read before the run: every build's database is read too, model file or not
+    ...(stage !== "baseline" && databaseBefore(ctx) ? { readSchema: true } : {}),
     onContainer: async (id, role) => { await ctx.ledger.append({ type: "container.started", key, data: { id, role } }, ctx.writer); },
     onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key, data: { id } }, ctx.writer); },
     onPhase: phaseTracer(ctx),
@@ -242,7 +247,13 @@ export const discoverStep: StepDef = {
     // baseline: cached per repo + commit
     const cacheFile = join(factoryHome(), "repos", ctx.project.project, `baseline-${ctx.state.info.baseCommit}.json`);
     let baseline: TestRun;
-    if (usesEmptyBaseline(ctx.state.info.mode, () => repoIsEmpty(repo, ctx.state.info.baseCommit!))) {
+    // a backend's database as the untouched code creates it (tables, columns, keys), read once per commit beside the baseline:
+    // the plan starts its data model from it, and the Data model page shows it before there is a plan
+    const readsSchema = ctx.project.stack === "dotnet";
+    const schemaFile = join(factoryHome(), "repos", ctx.project.project, `schema-${ctx.state.info.baseCommit}.json`);
+    let existing = readsSchema ? readSchema(schemaFile) : undefined;
+    const emptyRepo = usesEmptyBaseline(ctx.state.info.mode, () => repoIsEmpty(repo, ctx.state.info.baseCommit!));
+    if (emptyRepo) {
       // an empty repo (a new product): nothing to build or test yet; the scaffold commit writes the app. Greenfield runs only:
       // anything else is built and tested as it is (PR #17 review, item 4)
       baseline = { kind: "test", treeSha: ctx.state.info.baseCommit!, stage: "baseline", runner: ctx.project.stack === "node" ? "vitest" : "vstest", toolVersions: {}, expectPass: [], expectFail: [], compareToBaseline: [], discovered: [], results: [], exitCode: 0, reportShas: [], valid: true, classification: "ok" };
@@ -252,18 +263,29 @@ export const discoverStep: StepDef = {
       ctx.log("baseline: reusing the recorded run for this commit");
     } else {
       ctx.log("baseline: building and testing the untouched repo (first time is slow)");
-      const out = await produce(ctx, "discover", ctx.state.info.baseCommit!, "baseline", { expectPass: [], expectFail: [], compareToBaseline: [] });
+      const out = await produce(ctx, "discover", ctx.state.info.baseCommit!, "baseline", { expectPass: [], expectFail: [], compareToBaseline: [] }, undefined, undefined, undefined, undefined, { readSchema: readsSchema });
       if (!out.build.ok) return { kind: "park", reason: `The untouched repo doesn't build in the test lab: ${out.build.errors.slice(0, 3).map((e) => `${e.file ? `${e.file}:${e.line} ` : ""}${e.code === "RESTORE" ? "" : `${e.code} `}${e.msg}`).join("; ") || "see restore/build log"}` };
       baseline = out.testRun;
       mkdirSync(dirname(cacheFile), { recursive: true });
       writeFileSync(cacheFile, JSON.stringify(baseline));
+      if (readsSchema && out.schema) { existing = out.schema; writeFileSync(schemaFile, JSON.stringify(existing)); }
     }
+    // the baseline was on record from before the database was read with it: start the untouched app once more, with no tests.
+    // Never stops discover: a database that cannot be read leaves the plan to work as it did without one.
+    if (readsSchema && !existing && !emptyRepo) {
+      try {
+        ctx.log("database: starting the untouched app once to read the tables it creates");
+        const out = await produce(ctx, "discover", ctx.state.info.baseCommit!, "baseline", { expectPass: [], expectFail: [], compareToBaseline: [] }, undefined, undefined, undefined, undefined, { readSchema: true, schemaOnly: true });
+        if (out.schema) { existing = out.schema; mkdirSync(dirname(schemaFile), { recursive: true }); writeFileSync(schemaFile, JSON.stringify(existing)); }
+      } catch (e) { ctx.log(`database: not read (${e instanceof Error ? e.message.split("\n")[0] : String(e)})`); }
+    }
+    if (existing) ctx.log(existing.model ? `database: the untouched code creates ${existing.model.tables.length} table(s) (${existing.file}): ${existing.model.tables.map((t) => t.name).slice(0, 20).join(", ")}${existing.model.tables.length > 20 ? ", …" : ""}` : `database: no tables read from the untouched code (${existing.note})`);
     const failed = baseline.results.filter((r) => r.outcome === "failed").length;
     const sha = ctx.ledger.putJson(baseline);
     ctx.log(`baseline: ${baseline.results.length} tests, ${failed} failing before any change`);
     // A repo with a React or Next.js front end also gets its design inventory, as a second named output. The
     // snapshot excludes noGo paths, so a front end under one is left out. Best effort: it never stops discover.
-    const outputs: Record<string, string> = { baseline: sha };
+    const outputs: Record<string, string> = { baseline: sha, ...(existing ? { schema: ctx.ledger.putJson(existing) } : {}) };
     const data: Record<string, unknown> = { tests: baseline.results.length, knownFailures: failed, status: failed ? "green-with-known-failures" : "green" };
     try {
       const src = dirSource(snap.root);
@@ -362,7 +384,12 @@ export const stubCommitStep: StepDef = {
       mkdirSync(dirname(join(wt, s.path)), { recursive: true });
       writeFileSync(join(wt, s.path), s.content);
     }
-    const commit = plan.stubs.length ? await commitAll(wt, `factory: interface stubs for ${ctx.runId}`) : await headSha(wt);
+    // the approved data model goes in beside the contract: the factory's file, locked with the tests
+    if (plan.dataModel) {
+      mkdirSync(dirname(join(wt, DATA_MODEL_FILE)), { recursive: true });
+      writeFileSync(join(wt, DATA_MODEL_FILE), dataModelYaml(plan.dataModel));
+    }
+    const commit = plan.stubs.length || plan.dataModel ? await commitAll(wt, `factory: interface stubs for ${ctx.runId}`) : await headSha(wt);
     const design = pkg ? { line: pkg.manifest.line, version: pkg.manifest.version, designSha: pkg.manifest.designSha, ...(commitPackage ? { dir: `${REPO_DESIGN_DIR}/${pkg.manifest.line}/v${pkg.manifest.version}` } : {}) } : undefined;
     const scaffoldSha = scaffoldRec ? ctx.ledger.putJson(scaffoldRec) : undefined;
     return {
@@ -606,6 +633,7 @@ Return the list of tests you wrote (acId, file, method name) and the probes.`),
         // the stubs are in the checkout (the stub commit): a big one is named, not pasted, and so are the biggest when the briefing is over
         S.files("stubs", "stubs", plan.stubs.filter((s) => s.path !== contractFile).map((s) => ({ path: s.path, content: s.content }))),
         ...contractNote(ctx.project, wt, "tests"),
+        ...dataModelNote(ctx.project, wt, "tests", !!databaseBefore(ctx)),
         ...(keptFiles.length ? [S.artifact("previous-tests", "previous-tests", { files: keptFiles, ...(prevOut ? { tests: prevOut.tests, characterisation: prevOut.characterisation, probes: prevOut.probes } : {}) })] : []),
         ...(priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "Your previous attempt was rejected:\n" + priorFailures.slice(0, 20).map((f) => `- [${f.check}] ${f.message}`).join("\n") }] : []),
         S.task(`Write the acceptance and characterisation tests now.${keptFiles.length
@@ -693,6 +721,7 @@ Before you return, check your list against the criteria: each of these needs at 
     ctx.log("author-tests: finding the new tests and running them on the old code (1 of 2)");
     const found = await produce(ctx, "author-tests/base-1", commit, "author-tests-on-base", none, undefined,
       labFor(ctx.project).nameFilter(names), undefined, fromResults);
+    keepSchemaBefore(ctx, commit);
     if (!found.build.ok || missing.length) {
       const why = !found.build.ok
         ? found.build.errors.slice(0, 10).map((e) => failure("tests-compile", `${e.file}:${e.line} ${e.code} ${e.msg}`))
@@ -1097,6 +1126,7 @@ export function implementStep(taskId: string): StepDef {
           ...(sharesBuiltDir.length ? [S.template("built-doc-folder", `The build writes the API document to ${builtDoc[0]}. On this machine folder names that differ only in case are one folder, so that is also the folder of ${sharesBuiltDir.join(", ")}. Never delete or empty that folder: to get a fresh document, delete only ${builtDoc[0]}.`)] : []),
           ...(taken.from.length ? [S.template("taken-over", `The locked tests below include those of ${taken.from.join(", ")}: their requirements (${taken.reqs.join(", ")}) are tested through the running app, and this is the task that completes it. Those tasks are done and their code is in the repo. Make these tests pass too. Where one fails because that earlier code is wrong, fix it there: their files are in your file scope.`)] : []),
           ...contractNote(ctx.project, wt, "code"),
+          ...dataModelNote(ctx.project, wt, "code", !!databaseBefore(ctx)),
           S.artifact("tests", "locked-tests", myTests),
           S.pointers([...task.fileScope.map((p) => ({ path: p, reason: "you may change this" })), ...taken.fileScope.map((p) => ({ path: p, reason: "an earlier task's file; change it only to fix a failing test" })), ...task.exemplars.map((p) => ({ path: p, reason: "follow this style" })), ...myTests.map((t) => ({ path: t.file, reason: `locked test for ${t.acId}; read, don't edit` }))]),
           ...(prevChange !== undefined ? [{ spec: { id: "previous-change", source: "artifact" as const, trust: "derived" as const, placement: "user" as const }, artifactKind: "diff",
@@ -1188,7 +1218,7 @@ export function implementStep(taskId: string): StepDef {
       });
       const run = storeRun(ctx, produced);
       // a failed build marks every expected test "Build failed": that's the build, not a regression
-      const gated = await gateAll(ctx, key, commit, [[testExpectations, { run: run.testRun, baseline: baselineSha }], ...(produced.build.ok ? contractGate(ctx, wt, commit, true) : [])], produced.build.ok ? earlier : undefined);
+      const gated = await gateAll(ctx, key, commit, [[testExpectations, { run: run.testRun, baseline: baselineSha }], ...(produced.build.ok ? [...contractGate(ctx, wt, commit, true), ...dataModelGate(ctx, wt, commit, true)] : [])], produced.build.ok ? earlier : undefined);
       if (gated) {
         if (!produced.build.ok) {
           gated.failures.unshift(...produced.build.errors.slice(0, 10).map((e) => failure("build", `${e.file}:${e.line} ${e.code} ${e.msg}`)));
@@ -1205,6 +1235,17 @@ export function implementStep(taskId: string): StepDef {
 
 // ---------- the locked API contract ----------
 /** What an agent is told about the contract: the API side follows it, the web side calls it through the generated client. */
+/** The approved data model for whoever writes backend code or its tests: the tables, columns and keys the database must have. */
+function dataModelNote(project: ProjectConfig, wt: string, who: "tests" | "code", keepsDatabase = false): ReturnType<typeof S.template>[] {
+  // a plan with no data model on an existing backend: nothing to paste, one line on what is checked
+  if (project.stack !== "node" && !existsSync(join(wt, DATA_MODEL_FILE)) && keepsDatabase && who === "code") return [S.template("data-model", "STORED DATA. This plan changes no stored data. After the build the factory starts the app and compares the database it creates with the one the code created before this run: do not add, drop or rename a table, and do not change a primary key, foreign key, unique key or whether a column may be empty.")];
+  if (project.stack === "node" || !existsSync(join(wt, DATA_MODEL_FILE))) return [];
+  const doc = readFileSync(join(wt, DATA_MODEL_FILE), "utf8");
+  return [S.template("data-model", `DATA MODEL (approved and locked: ${DATA_MODEL_FILE}). ${who === "code"
+    ? `The database the code creates must have exactly these tables, primary keys, foreign keys and unique keys, with these table and column names; it is compared with this file after the build. Do not rename a table or column, drop a key, or add a table. A column of your own for bookkeeping is allowed. ${project.database ? "The factory starts the app on an empty PostgreSQL database and reads the tables it creates there" : "The factory starts the app with no network and reads the SQLite file it creates"}, so the database must come whole from the code: created when the app starts (EnsureCreated or Migrate in startup), or, where the repo keeps EF Core migrations, by a migration added for every change (the factory runs them when starting the app creates nothing).`
+    : "The stored data has these tables and keys. Do not test the database's shape (the factory checks it); use the model to set up data for a test."} Never edit the file.\n\n${doc}`)];
+}
+
 function contractNote(project: ProjectConfig, wt: string, who: "tests" | "code"): ReturnType<typeof S.template>[] {
   const c = project.contract;
   if (!c || !existsSync(join(wt, c.file))) return [];
@@ -1230,6 +1271,53 @@ function contractGate(ctx: StepContext, wt: string, commit: string, partial: boo
   if (!file) return [];
   const c = ctx.project.contract!;
   return [[contractMatches, { contract: ctx.ledger.putJson({ text: readFileSync(join(wt, c.file), "utf8") }), built: ctx.ledger.putJson({ path: c.built, ...(partial ? { partial } : {}), ...(existsSync(file) ? { text: readFileSync(file, "utf8") } : {}) }) }]];
+}
+
+/**
+ * The data model gate: what the database of this commit's build has (the lab starts the app once and reads it), against the
+ * approved model. A task checks that what exists so far is not wrong; integrate checks the whole model. Columns the model does
+ * not name pass and are logged.
+ */
+const builtSchemaFile = (ctx: StepContext, commit: string) => join(buildCachePath(join(factoryHome(), "tmp", ctx.runId, "builds"), commit, ctx.project), BUILT_SCHEMA_FILE);
+const schemaBeforeFile = (ctx: StepContext) => join(factoryHome(), "tmp", ctx.runId, "schema-before.json");
+const readSchema = (file: string): BuiltSchema | undefined => { try { return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) as BuiltSchema : undefined; } catch { return undefined; } };
+
+/**
+ * The first lab run of the tests commit starts the code as it was before this run (plus the stubs): what its database has is
+ * what the backend had already. Kept for the data model gate, which then holds the run only to tables the run itself made.
+ */
+function keepSchemaBefore(ctx: StepContext, commit: string): void {
+  const kept = readSchema(builtSchemaFile(ctx, commit));
+  if (kept) writeFileSync(schemaBeforeFile(ctx), JSON.stringify(kept));
+}
+
+/** The database the untouched code creates, as discover read it: set for an existing backend whose database could be read. */
+function databaseBefore(ctx: StepContext): DataModel | undefined {
+  if (ctx.project.stack !== "dotnet") return undefined;
+  const m = DataModel.safeParse(readOutput<BuiltSchema>(ctx.state, ctx.ledger, "discover", "schema")?.model);
+  return m.success ? m.data : undefined;
+}
+
+function dataModelGate(ctx: StepContext, wt: string, commit: string, partial: boolean): [GateDef, Record<string, string>][] {
+  if (ctx.project.stack !== "dotnet") return [];
+  // no approved model (the plan changes no stored data, and the repo never had one): the database is held to what it was before the run
+  const kept = existsSync(join(wt, DATA_MODEL_FILE)) ? undefined : databaseBefore(ctx);
+  if (!existsSync(join(wt, DATA_MODEL_FILE)) && !kept) return [];
+  const built: BuiltSchema & { before?: string[]; noDatabaseBefore?: boolean; asBefore?: boolean } = readSchema(builtSchemaFile(ctx, commit)) ?? { note: "the lab kept no schema for this build" };
+  // what was there before the run: the untouched code's database as discover read it, else the first tests-commit build's
+  const was = readOutput<BuiltSchema>(ctx.state, ctx.ledger, "discover", "schema") ?? readSchema(schemaBeforeFile(ctx));
+  if (was?.model) built.before = was.model.tables.map((t) => t.name);
+  else if (was?.empty) built.before = [];
+  else if (was) built.noDatabaseBefore = true;
+  const text = kept ? dataModelYaml(kept) : readFileSync(join(wt, DATA_MODEL_FILE), "utf8");
+  if (kept) built.asBefore = true;
+  if (built.model && !kept) {
+    try {
+      const extra = dataModelDiff(DataModel.parse(parse(text)), DataModel.parse(built.model)).extra;
+      if (extra.length) ctx.log(`data model: ${extra.length} column(s) the model does not name (allowed): ${extra.slice(0, 8).join("; ")}`);
+    } catch { /* the gate reports a model that does not parse */ }
+  }
+  return [[dataModelMatches, { model: ctx.ledger.putJson({ text }), built: ctx.ledger.putJson({ ...built, ...(partial ? { partial } : {}) }) }]];
 }
 
 // ---------- integrate (D) ----------
@@ -1296,6 +1384,8 @@ export const integrateStep: StepDef = {
       [lockSetUnchanged, { diff: diffSha, tests: ctx.state.steps.get("author-tests")!.outputs[0]! }],
       // the whole API says what the locked contract says
       ...contractGate(ctx, wt, head, false),
+      // the database the app creates has the approved tables, keys and relations
+      ...dataModelGate(ctx, wt, head, false),
       // design.size-cap: the UI change may not be bigger than the approved design allows (a skipped design allows none)
       ...(uiActual
         ? [[designSizeCap, {

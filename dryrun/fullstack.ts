@@ -17,7 +17,7 @@ import type { Conversation, Provider, Turn } from "../src/runners/api.js";
 import { setAgentScript } from "../src/runners/claude-agent.js";
 import { createRun, execute } from "../src/stages/executor.js";
 import { setProviderFactory } from "../src/stages/think.js";
-import { apiAgent, apiAnswer } from "./api-script.js";
+import { apiAgent, apiAnswer, DRYRUN_DB } from "./api-script.js";
 import { webAgent, webAnswer } from "./web-script.js";
 
 const root = join(homedir(), ".factory", "tmp", "greenfield-dryrun");
@@ -62,7 +62,7 @@ async function drive(runId: string, which: "web" | "api", untilPlanApproved = fa
 const t0 = Date.now();
 const request = readFileSync(process.argv[2]!, "utf8");
 // --- factory fullstack start ---
-const p = setUpProduct("clinic", join(home, "code"));
+const p = setUpProduct("clinic", join(home, "code"), DRYRUN_DB);
 p.request = request;
 p.web.run = await createRun(request, p.web.project, "dryrun", { maxCostUsd: 8 });
 saveProduct(p);
@@ -72,7 +72,7 @@ console.log(`web: ${await drive(p.web.run, "web", true)}`);
 const contract = approvedContract(p);
 if (!contract) throw new Error("no approved contract after the web plan was approved");
 handOverContract(p, contract);
-p.api.run = await createRun(apiRequest(request), p.api.project, "dryrun", { maxCostUsd: 6 });
+p.api.run = await createRun(apiRequest(request, DRYRUN_DB), p.api.project, "dryrun", { maxCostUsd: 6 });
 saveProduct(p);
 console.log(`contract handed over; API run ${p.api.run}`);
 console.log(`web: ${await drive(p.web.run, "web")}`);

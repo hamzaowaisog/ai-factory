@@ -75,6 +75,12 @@ export const ProjectConfig = z.object({
     producerEnv: z.record(z.string(), z.string()).default({}),
     migrate: z.array(z.string()).optional(),
   }).optional(),
+  /**
+   * For a backend that does not create its database when it starts: the command that brings an empty database to the
+   * backend's tables, run in the SDK container at the repo root after the build (no network but the test database). Not
+   * needed for EF Core migrations: the lab finds those and runs `dotnet ef database update` itself.
+   */
+  migrate: z.array(z.string()).optional(),
   /** Accept: boot the app next to the test database and send the locked HTTP probes. */
   accept: z.object({
     bootApp: z.boolean().default(true),

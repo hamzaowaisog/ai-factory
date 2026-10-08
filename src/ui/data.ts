@@ -21,7 +21,8 @@ import { outcomes, scoreRun, stageStats, stageOf, type RunScore } from "../repor
 import { jiraConfigured } from "../sources/jira.js";
 import { figmaConfigured } from "../sources/figma.js";
 import { designRunView } from "../design/runs.js";
-import { loadProduct, productNames } from "../fullstack/product.js";
+import { DATABASE_NAME } from "../fullstack/database.js";
+import { databaseOf, loadProduct, productNames } from "../fullstack/product.js";
 import type { VisualCheck } from "../design/visual-check.js";
 import { exportWorkbooks } from "../estimate/export.js";
 import { humanReview } from "../estimate/settings.js";
@@ -320,12 +321,13 @@ export function runView(ledger: Ledger) {
 }
 
 /** The full-stack product a run is one side of (factory fullstack), so its page links to the product. */
-function productOf(runId: string): { product?: { name: string; side: "web" | "api" } } {
+function productOf(runId: string): { product?: { name: string; side: "web" | "api"; database: { name: string; reason: string; canSwitch: boolean } } } {
   for (const name of productNames()) {
     try {
       const p = loadProduct(name);
-      if (p.web.run === runId) return { product: { name, side: "web" } };
-      if (p.api.run === runId) return { product: { name, side: "api" } };
+      const database = { name: DATABASE_NAME[databaseOf(p)], reason: p.database?.reason ?? "", canSwitch: !p.api.run };
+      if (p.web.run === runId) return { product: { name, side: "web", database } };
+      if (p.api.run === runId) return { product: { name, side: "api", database } };
     } catch { /* a broken product file is skipped */ }
   }
   return {};

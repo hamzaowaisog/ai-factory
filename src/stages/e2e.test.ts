@@ -1,4 +1,5 @@
 // End to end: the brownfield slice with a scripted model and a fake container runtime.
+import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -29,6 +30,10 @@ public class Greeter
 `;
 const AC_ID = "Api.Tests::Api.Tests.GreetTests.AC_1_1_GreetsWithHello";
 const CHAR_ID = "Api.Tests::Api.Tests.ExistingTests.CHAR_Works";
+
+const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite") as { DatabaseSync: new (path: string) => { exec(sql: string): void; close(): void } };
+/** the scripted plan's one table as Entity Framework creates it, with a column of the code's own */
+const GREETINGS_DB = `CREATE TABLE "Greetings" ("Id" INTEGER NOT NULL CONSTRAINT "PK_Greetings" PRIMARY KEY AUTOINCREMENT, "Text" TEXT NOT NULL, "CreatedAt" TEXT NOT NULL);`;
 
 function makeRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "factory-e2e-repo-"));
@@ -114,6 +119,8 @@ function answerFor(system: string, allowMulti = true, user = ""): unknown {
     tasks: [{ id: "TASK-1", title: "Say Hello", reqs: ["REQ-1"], fileScope: ["src/Api/Greeter.cs"], exemplars: [], conventions: [], dependsOn: [], plannedLoc: 3, approach: "change the literal" }],
     options: [{ id: "O-1", summary: "change the literal", simplest: true, tradeoffs: "none" }, { id: "O-2", summary: "make it configurable", simplest: false, tradeoffs: "more code" }],
     chosen: "O-1", adr: "Change the literal; configuration isn't asked for.", protectedPathsDeclared: [], newDependencies: [], stubs: [],
+    // a backend that must give its data model (a new product's API) gets one
+    ...(!planGivesNoModel && (system.includes("DATA MODEL. Give") || system.includes("The database as it is now")) ? { dataModel: { tables: [{ name: "Greetings", purpose: "the greeting text", columns: [{ name: "Id", type: "int", required: true, pk: true }, { name: "Text", type: "string", required: true }] }] } } : {}),
   };
   if (system.includes("review a finished change")) return scriptedReview(user, reviewFindings);
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
@@ -121,6 +128,8 @@ function answerFor(system: string, allowMulti = true, user = ""): unknown {
 const modelCalls: string[] = [];
 /** the planner's whole prompt, as last sent */
 let planPrompt = "";
+/** the plan changes no stored data: it gives no data model even where it is shown a database */
+let planGivesNoModel = false;
 const provider: Provider = {
   start(model, _e, system, user): Conversation {
     modelCalls.push(model);
@@ -142,6 +151,11 @@ class Lab implements ContainerRuntime {
   crashOnImplement = false;
   /** the OpenAPI document the API's build writes (a project with a locked contract), from the checkout being built */
   builtDoc?: (src: string) => string;
+  /** the schema the app creates in its SQLite file when it starts (a backend with an approved data model), as SQL */
+  builtDb?: string;
+  /** the schema the untouched code creates on startup (an existing backend), as SQL; without it the first start makes an empty database */
+  existingDb?: string;
+  appStarted = false;
   /** the repo has a test that fails on its main branch too (a known failure) */
   knownBroken = false;
   /** multi: per file scope, the files each implement attempt writes (the last entry repeats) */
@@ -157,7 +171,17 @@ class Lab implements ContainerRuntime {
   jobs: { model: string; maxTurns: number; maxUsd: number; fileScope: string[]; system: string }[] = [];
   async version() { return "fake"; }
   async create(s: ContainerSpec) { const id = `c${++this.n}`; this.specs.set(id, s); return id; }
-  async start() {}
+  async start(id: string) {
+    const s = this.specs.get(id);
+    // the first start is the code before the run (the tests commit): a new product, so its database is there with no table yet
+    const first = s?.role === "app" && !this.appStarted;
+    if (s?.role === "app") this.appStarted = true;
+    if (s?.role === "app" && (this.builtDb || first)) {
+      const db = new DatabaseSync(join(s.mounts.find((m) => m.dst === "/src")!.src, "src/Api/app.db"));
+      db.exec(first ? this.existingDb ?? "PRAGMA user_version = 1" : this.builtDb!);
+      db.close();
+    }
+  }
   async wait(id: string) {
     const s = this.specs.get(id)!;
     const mount = (dst: string) => s.mounts.find((m) => m.dst === dst)?.src;
@@ -270,6 +294,7 @@ async function toApproval(runId: string) {
 
 let lab: Lab;
 beforeEach(() => {
+  planGivesNoModel = false;
   const home = mkdtempSync(join(tmpdir(), "factory-e2e-"));
   process.env.FACTORY_HOME = home;
   writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\n", { mode: 0o600 });
@@ -525,6 +550,7 @@ describe("a .NET API held to a locked API contract (fakes)", () => {
 
   it("delivers when the document the build wrote says what the contract says; the contract is locked with the tests", async () => {
     lab.builtDoc = () => doc;
+    lab.builtDb = GREETINGS_DB;
     const { runId, ledger } = await start();
     const r = await execute(runId);
     expect(r.status, r.message).toBe("delivered");
@@ -535,6 +561,124 @@ describe("a .NET API held to a locked API contract (fakes)", () => {
     // the planner and both agents were given the locked contract
     expect(planPrompt).toContain("API CONTRACT (locked, contracts/openapi.yaml)");
     expect(lab.jobs.every((j) => j.system.includes("API CONTRACT (locked: contracts/openapi.yaml)"))).toBe(true);
+    // a new product's backend: the plan gives the data model, the card shows it as a diagram, and its file is locked with the tests
+    expect(planPrompt).toContain("DATA MODEL. Give");
+    const card = ledger.events().map((e) => (e.data as { cardId?: string; kind?: string } | undefined)).filter((d) => d?.cardId && d.kind === "approval").map((d) => ledger.readCard(d!.cardId!)).find((t) => t.includes("## Data model"));
+    expect(card).toContain("## Data model (contracts/data-model.yaml; 1 table");
+    expect(card).toContain("- **Greetings**: Id int [PK], Text string");
+    expect(card).toContain("```mermaid\nerDiagram\n  Greetings {\n    int Id PK");
+    expect(ledger.getJson<{ lock: { file: string }[] }>(s.steps.get("author-tests")!.outputs[0]!).lock.map((l) => l.file)).toContain("contracts/data-model.yaml");
+    expect(lab.jobs.every((j) => j.system.includes("DATA MODEL (approved and locked: contracts/data-model.yaml)"))).toBe(true);
+    // the lab started the built app, read the database it created, and it has what the approved model has; the app's own column passes
+    expect(s.gates.filter((g) => g.gateId === "data-model.matches").map((g) => g.passed)).toEqual(expect.arrayContaining([true]));
+    expect(s.gates.some((g) => g.gateId === "data-model.matches" && !g.passed)).toBe(false);
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/read the database the app created \(src\/Api\/app\.db\): 1 table\(s\)[\s\S]*1 column\(s\) the model does not name \(allowed\): Greetings\.CreatedAt/);
+    // the pull request text carries the diagram too
+    expect(ledger.readCard(`pr-${ledger.runId}`)).toMatch(/## Data model\n1 table, approved with the plan[^\n]*\n\n```mermaid\nerDiagram\n\s+Greetings \{/);
+  });
+
+  it("an existing backend: the plan starts from the database the untouched code creates, and the whole database is the model", async () => {
+    const USERS_DB = `CREATE TABLE "Users" ("Id" INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT, "Email" TEXT NOT NULL); CREATE UNIQUE INDEX "IX_Users_Email" ON "Users" ("Email");
+      CREATE TABLE "Logins" ("Id" INTEGER NOT NULL CONSTRAINT "PK_Logins" PRIMARY KEY AUTOINCREMENT, "UserId" INTEGER NOT NULL, CONSTRAINT "FK_Logins_Users" FOREIGN KEY ("UserId") REFERENCES "Users" ("Id") ON DELETE CASCADE);`;
+    lab.builtDoc = () => doc;
+    lab.existingDb = USERS_DB;
+    lab.builtDb = `${USERS_DB} ${GREETINGS_DB}`;
+    const { runId, ledger } = await start();
+    // the planner is shown the database as it is, and asked only for what it adds or changes
+    expect(planPrompt).toContain("The database as it is now (2 tables");
+    // the impact step found no stored data touched here, so each table is one short line (in full when it did)
+    expect(planPrompt).toContain("- Users: key Id (2 columns; read its entity for the rest)");
+    expect(planPrompt).toContain("- Logins: key Id; points at Users (2 columns; read its entity for the rest)");
+    expect(planPrompt).toContain("Give a table only when this plan adds it");
+    let s = replay(ledger.events());
+    // the plan gave one table; the model kept is the whole database, each table marked by comparing, not by the plan's word
+    const model = ledger.getJson<{ dataModel: { tables: { name: string; change: string }[] } }>(s.steps.get("plan")!.outputs[0]!).dataModel;
+    expect(model.tables.map((t) => `${t.name} ${t.change}`)).toEqual(["Users unchanged", "Logins unchanged", "Greetings new"]);
+    // nothing joins the new table to the old ones, so the card shows it alone and says how many stay as they are
+    const card = ledger.events().map((e) => (e.data as { cardId?: string; kind?: string } | undefined)).filter((d) => d?.cardId && d.kind === "approval").map((d) => ledger.readCard(d!.cardId!)).find((t) => t.includes("## Data model"))!;
+    expect(card).toContain("## Data model (contracts/data-model.yaml; 3 tables");
+    expect(card).toContain("2 other tables stay as they are; the whole database is on the run's Data model page.");
+    expect(card).not.toContain("**Users**");
+    // the page shows every table
+    const { dataModelView } = await import("../ui/erd.js");
+    const view = dataModelView(ledger);
+    expect("none" in view ? [] : view.layout.boxes.map((b) => `${b.name} ${b.change}`)).toEqual(expect.arrayContaining(["Users unchanged", "Logins unchanged", "Greetings new"]));
+    expect("none" in view ? undefined : view.existing).toEqual({ added: 1, changed: 0, unchanged: 2 });
+    const r = await execute(runId);
+    expect(r.status).toBe("delivered");
+    s = replay(ledger.events());
+    expect(s.gates.some((g) => g.gateId === "data-model.matches" && !g.passed)).toBe(false);
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/database: the untouched code creates 2 table\(s\) \(src\/Api\/app\.db\): Users, Logins[\s\S]*read the database the app created \(src\/Api\/app\.db\): 3 table\(s\)/);
+  });
+
+  it("an existing backend: a build that loses one of the old tables is caught, though the plan never named it", async () => {
+    const USERS_DB = `CREATE TABLE "Users" ("Id" INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT, "Email" TEXT NOT NULL);`;
+    lab.builtDoc = () => doc;
+    lab.existingDb = USERS_DB;
+    lab.builtDb = GREETINGS_DB;
+    const { runId, ledger } = await start();
+    const r = await execute(runId);
+    expect(r.status).not.toBe("delivered");
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/The database does not match the approved data model: Table Users is in the model but not in the database/);
+  });
+
+  it("an existing backend, a fix that changes no stored data: no model is written, and the database is still held to what it was", async () => {
+    const USERS_DB = `CREATE TABLE "Users" ("Id" INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT, "Email" TEXT NOT NULL);`;
+    lab.builtDoc = () => doc;
+    lab.existingDb = USERS_DB;
+    lab.builtDb = USERS_DB;
+    planGivesNoModel = true;
+    const { runId, ledger, repo } = await start();
+    const r = await execute(runId);
+    expect(r.status).toBe("delivered");
+    const s = replay(ledger.events());
+    expect(ledger.getJson<{ dataModel?: unknown }>(s.steps.get("plan")!.outputs[0]!).dataModel).toBeUndefined();
+    // nothing about a data model on the card or in the repo, and the model is not pasted to the agents: one line instead
+    expect(ledger.events().map((e) => (e.data as { cardId?: string; kind?: string } | undefined)).filter((d) => d?.cardId && d.kind === "approval").map((d) => ledger.readCard(d!.cardId!)).some((t) => t.includes("## Data model"))).toBe(false);
+    expect(execFileSync("git", ["-C", repo, "ls-tree", "-r", "--name-only", s.info.branch ?? "HEAD"], { encoding: "utf8" })).not.toContain("contracts/data-model.yaml");
+    expect(lab.jobs.some((j) => j.system.includes("STORED DATA. This plan changes no stored data"))).toBe(true);
+    expect(lab.jobs.some((j) => j.system.includes("DATA MODEL (approved and locked"))).toBe(false);
+    // the check ran all the same, against the database as it was
+    const checks = s.gates.filter((g) => g.gateId === "data-model.matches");
+    expect(checks.length).toBeGreaterThan(0);
+    expect(checks.every((g) => g.passed)).toBe(true);
+    // the Data model page shows the database as it is, with the result of that check
+    const view = (await import("../ui/erd.js")).dataModelView(ledger);
+    expect("none" in view ? undefined : [view.source, view.built?.matches, view.built?.details]).toEqual(["database", true, "The database (src/Api/app.db) has the tables, keys and relations it had before this run"]);
+  });
+
+  it("an existing backend, a fix that changes no stored data: a table lost or added by accident is caught", async () => {
+    const USERS_DB = `CREATE TABLE "Users" ("Id" INTEGER NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT, "Email" TEXT NOT NULL);`;
+    lab.builtDoc = () => doc;
+    lab.existingDb = USERS_DB;
+    lab.builtDb = `${USERS_DB.replace('"Email" TEXT NOT NULL', '"Email" TEXT')} CREATE TABLE "Audit" ("Id" INTEGER NOT NULL CONSTRAINT "PK_Audit" PRIMARY KEY);`;
+    planGivesNoModel = true;
+    const { runId, ledger } = await start();
+    const r = await execute(runId);
+    expect(r.status).not.toBe("delivered");
+    const said = JSON.stringify(ledger.events());
+    expect(said).toContain("This plan has no data model, so the database must stay as it was, and it did not: Users.Email: the database before this run has it required, the database now optional.");
+    expect(said).toContain("Table Audit is in the database now but not in the database before this run");
+  });
+
+  it("a database with a table the approved data model does not have is caught, with the difference as the failure", async () => {
+    lab.builtDoc = () => doc;
+    lab.builtDb = `${GREETINGS_DB} CREATE TABLE "Audit" ("Id" INTEGER NOT NULL CONSTRAINT "PK_Audit" PRIMARY KEY);`;
+    const { runId, ledger } = await start();
+    const r = await execute(runId);
+    expect(r.status).not.toBe("delivered");
+    const s = replay(ledger.events());
+    expect(s.gates.some((g) => g.gateId === "data-model.matches" && !g.passed)).toBe(true);
+    expect(s.steps.get("implement/TASK-1")?.status).not.toBe("completed");
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/The database does not match the approved data model: Table Audit is in the database but not in the model/);
+  });
+
+  it("an app that creates no database on startup is not delivered: the model cannot be checked", async () => {
+    lab.builtDoc = () => doc;
+    const { runId, ledger } = await start();
+    const r = await execute(runId);
+    expect(r.status).not.toBe("delivered");
+    expect(readFileSync(join(ledger.dir, "run.log"), "utf8")).toMatch(/could not be compared with the approved data model: the app started but created no SQLite database file on startup/);
   });
 
   it("an API that renames a response field is caught by the contract gate, with the difference as the failure", async () => {

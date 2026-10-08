@@ -23,12 +23,13 @@ import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
+import { dataModelView } from "./erd.js";
 import { answerQuestions, checkRefs, decideCard, decideEstimate, raiseLimit, resumeRun, startRun, StartError, stopAtLimit, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
 import { figmaPluginZip } from "../design/figma.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
 import { fidelityPanel, fidelityShot } from "./fidelity.js";
-import { fullstackNext, fullstackUp, productsView, productView, startFullstack } from "./fullstack.js";
+import { fullstackDatabase, fullstackNext, fullstackUp, productsView, productView, startFullstack } from "./fullstack.js";
 import { productNames } from "../fullstack/product.js";
 import type { ExportFormat } from "../design/export.js";
 
@@ -90,6 +91,10 @@ export const ROUTES: readonly Route[] = [
       const l = findRun(id!);
       return l ? ok({ ...previewView(l), base: `/preview/${ctx.previewKey}/${encodeURIComponent(l.runId)}/` }) : notFound(`No run ${id}`);
     },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/data-model", what: "the run's data model as a laid-out diagram (from the plan as soon as it exists), or why there is none",
+    handle: ({ id }) => { const l = findRun(id!); return l ? ok(dataModelView(l)) : notFound(`No run ${id}`); },
   },
   { method: "GET", path: "/api/dashboard", what: "outcomes, the per-stage table and recent runs", handle: () => ok(dashboardView()) },
   {
@@ -210,6 +215,15 @@ export const ROUTES: readonly Route[] = [
     handle: async ({ name }, body, deps) => {
       if (!productNames().includes(name!)) return notFound(`No full-stack product ${name}`);
       try { return { status: 201, json: await fullstackNext(name!, (body ?? {}) as Record<string, unknown>, deps) }; } catch (e) {
+        return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/fullstack/:name/database", what: "switch a product's database (sqlite or postgres) while its API run has not started, like factory fullstack database",
+    handle: ({ name }, body) => {
+      if (!productNames().includes(name!)) return notFound(`No full-stack product ${name}`);
+      try { return ok(fullstackDatabase(name!, (body ?? {}) as Record<string, unknown>) as unknown as Json); } catch (e) {
         return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
       }
     },

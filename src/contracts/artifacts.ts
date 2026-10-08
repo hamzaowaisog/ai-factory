@@ -554,6 +554,33 @@ export type PlanTask = z.infer<typeof PlanTask>;
 export const InterfaceStub = z.object({
   path: z.string(), content: z.string(), reason: z.string(),
 });
+/**
+ * The stored data a backend plan sets up or changes: its tables, their columns and keys. A relation is a column's `references`
+ * (a foreign key); its kind follows from the keys (unique = one to one, a table of two foreign keys = many to many). Approved on
+ * the plan card as a diagram and locked with the contract; the built database is compared with it (src/gates/data-model.ts).
+ */
+export const ColumnType = z.enum(["string", "text", "int", "long", "decimal", "bool", "date", "datetime", "time", "uuid", "json", "enum"]);
+export const DataColumn = z.object({
+  name: z.string().min(1), type: ColumnType,
+  /** false = the column may be empty (NULL) */ required: z.boolean(),
+  /** part of the table's primary key */ pk: z.boolean().optional(),
+  /** no two rows share this value */ unique: z.boolean().optional(),
+  /** the allowed values of an enum column */ values: z.array(z.string()).optional(),
+  /** a foreign key: the table and column this one points at */
+  references: z.object({ table: z.string().min(1), column: z.string().min(1), onDelete: z.enum(["cascade", "restrict", "set-null"]).optional() }).optional(),
+});
+export const DataTable = z.object({
+  name: z.string().min(1), purpose: z.string(),
+  /** in an existing backend: whether this plan adds the table, changes it, or only reads it. A new product's tables are all new. */
+  change: z.enum(["new", "changed", "unchanged"]).default("new"),
+  columns: z.array(DataColumn).min(1),
+  /** keys over several columns together, each a list of column names */ uniques: z.array(z.array(z.string()).min(2)).default([]),
+});
+export const DataModel = z.object({ tables: z.array(DataTable).min(1) });
+export type DataModel = z.infer<typeof DataModel>;
+export type DataTable = z.infer<typeof DataTable>;
+export type DataColumn = z.infer<typeof DataColumn>;
+
 export const PlanBody = z.object({
   tasks: z.array(PlanTask).min(1),
   options: z.array(z.object({
@@ -564,6 +591,8 @@ export const PlanBody = z.object({
   protectedPathsDeclared: z.array(z.string()),
   newDependencies: z.array(z.object({ name: z.string(), version: z.string(), registry: z.string() })).default([]),
   stubs: z.array(InterfaceStub).default([]),
+  /** a backend plan's tables, columns and keys (required where the plan sets up or changes stored data) */
+  dataModel: DataModel.optional(),
 });
 export const Plan = withHeader({ ...PlanBody.shape, complexity: Complexity });
 export type Plan = z.infer<typeof Plan>;
