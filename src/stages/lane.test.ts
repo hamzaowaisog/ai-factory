@@ -4,6 +4,7 @@ import type { RunState } from "../ledger/state.js";
 import { timeSplit } from "../report.js";
 import { complexityOf, LANE, lightBuild, lightSpec, specLane, testWriterTurns } from "./lane.js";
 import { downgradeUi } from "./specpipe.js";
+import { authorIntro, testsScreens } from "./stack-text.js";
 
 describe("light lane", () => {
   it("small low-risk work, and bug fixes that aren't high risk, take it", () => {
@@ -49,6 +50,28 @@ describe("ui criteria become manual checks", () => {
     expect(d.downgraded).toEqual(["AC-1.2"]);
     expect(d.spec.requirements[0]!.acceptance.map((a) => a.level)).toEqual(["unit", "manual", "api"]);
     expect(downgradeUi(d.spec).downgraded).toEqual([]);
+  });
+
+  it("leaves them alone where the lab tests screens: the test writer gives each a screen test", () => {
+    const ac = (id: string, level: "unit" | "ui" | "manual") => ({ id, given: "g", when: "w", then: "the value is shown", level });
+    const spec = { requirements: [{ id: "REQ-1", ears: "e", op: "ADDED" as const, sources: ["I-1"], acceptance: [ac("AC-1.1", "ui"), ac("AC-1.2", "manual")] }], nfrs: [], outOfScope: [], assumptions: [] };
+    const d = downgradeUi(spec as never, testsScreens("node"));
+    expect(d.downgraded).toEqual([]);
+    expect(d.spec).toBe(spec);
+    expect(testsScreens("dotnet")).toBe(false);
+  });
+
+  it("gives the test writer the longer turn limit for a screen test, and its rules only when the checkout can run one", () => {
+    expect(testWriterTurns(true, ["unit", "ui"])).toBe(LANE.light.testWriterTurnsApi);
+    expect(testWriterTurns(true, ["unit"])).toBe(LANE.light.testWriterTurns);
+    const ready = authorIntro("node", true), not = authorIntro("node");
+    // split so vitest does not read the marker in THIS file and look for jsdom here
+    expect(ready).toContain(`"// @vitest-${"environment"} jsdom"`);
+    expect(ready).toContain("./support/screen");
+    expect(ready).not.toContain("don't render components");
+    expect(not).toContain("don't render components");
+    expect(not).toContain('"unit" and "ui" criteria call the module directly');
+    expect(authorIntro("dotnet", true)).toBe(authorIntro("dotnet"));
   });
 });
 

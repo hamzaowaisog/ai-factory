@@ -700,7 +700,8 @@ function runHeader(r, tab) {
       r.mode === "estimate" ? h("a", { href: `#/runs/${id}/estimate`, class: tab === "estimate" ? "on" : undefined }, icon("ruler"), "Estimate") : null,
       h("a", { href: `#/runs/${id}/design`, class: tab === "design" ? "on" : undefined }, icon("browser"), "Design"),
       h("a", { href: `#/runs/${id}/preview`, class: tab === "preview" ? "on" : undefined }, icon("image"), "Preview"),
-      h("a", { href: `#/runs/${id}/data-model`, class: tab === "data-model" ? "on" : undefined }, icon("grid"), "Data model")),
+      h("a", { href: `#/runs/${id}/data-model`, class: tab === "data-model" ? "on" : undefined }, icon("grid"), "Data model"),
+      h("a", { href: `#/runs/${id}/tests`, class: tab === "tests" ? "on" : undefined }, icon("check"), "Tests")),
   ];
 }
 
@@ -727,6 +728,7 @@ function pipeline(r) {
     if (r.card?.kind === "design-approval") return h("div", { class: "pipe-note wait" }, icon("image"), h("div", {}, h("strong", {}, "The design needs your approval"), h("p", {}, "Walk the clickable demo, then approve it or send it back in the panel below (or in the terminal); the run carries on right after.")));
     if (r.card?.kind === "approval") return h("div", { class: "pipe-note wait" }, icon("shield"), h("div", {}, h("strong", {}, "The spec and plan need your approval"), h("p", {}, "Read the card, then approve or reject it in the panel below (or in the terminal); the run carries on right after.")));
     if (r.card?.limit) return h("div", { class: "pipe-note wait" }, icon("dollar"), h("div", {}, h("strong", {}, r.card.limit.kind === "budget" ? "The approved budget is reached" : "A limit is reached"), h("p", {}, "Raise it and continue, or stop the run, in the panel below (or in the terminal); the run carries on right after a raise.")));
+    if (r.card?.kind === "manual-check") return h("div", { class: "pipe-note wait" }, icon("check"), h("div", {}, h("strong", {}, "Some criteria need a check by hand"), h("p", {}, "They have no automated test. Try each one, then record the result on the Tests tab (or in the terminal); the run delivers right after.")));
     if (r.card) return h("div", { class: "pipe-note wait" }, icon("terminal"), h("div", {}, h("strong", {}, `Waiting for you in the terminal: ${r.card.kind} card`), h("p", {}, "Gate waivers and unlocks are decided in your terminal only. The card and the command to paste are below.")));
     if (r.delivered) return h("div", { class: "pipe-note ok" }, icon("check"), h("div", {}, h("strong", {}, "Delivered"), h("p", {}, r.delivered.branch ? `Branch ${r.delivered.branch}` : "")));
     if (r.status === "running" && r.lastActivity) return h("div", { class: "pipe-note live" }, icon("activity"), h("div", {}, h("strong", {}, `Working on ${r.step}`), h("p", {}, r.lastActivity.msg, h("span", { class: "muted" }, ` · ${ago(r.lastActivity.ts)}`))));
@@ -1066,6 +1068,13 @@ function cardPanel(r) {
   if (c.kind === "design-approval") return designPanel(r);
   if (c.kind === "approval") return planPanel(r);
   if (c.limit) return limitPanel(r);
+  if (c.kind === "manual-check") return h("section", { class: "card-box" },
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Check these by hand"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    h("div", { class: "body stack" },
+      h("p", { class: "small muted" }, "These criteria have no automated test. Try each one on the built change, then record pass or fail with your name."),
+      h("div", { class: "row" }, h("a", { class: "btn primary", href: `#/runs/${encodeURIComponent(r.runId)}/tests` }, icon("check"), "Sign off on the Tests tab")),
+      h("details", {}, h("summary", { class: "small muted" }, "Or record it in your terminal"), h("div", { class: "cmds" }, c.commands.map((cmd) => cmdRow(cmd)))),
+      md(c.markdown)));
   return h("section", { class: "card-box" },
     h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Waiting for you in the terminal"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body" },
@@ -1490,6 +1499,125 @@ function dataModelScreen(id) {
         h("div", { class: "panel-head" }, h("h2", {}, icon("file"), "In words"), h("span", { class: "row" }, d.source === "database" ? null : h("code", {}, d.file), copyButton(d.mermaid, "Copy as Mermaid"))),
         md(d.summary.map((l) => `- ${l}`).join("\n"), "md")))], first);
   });
+}
+
+/** How a criterion stands, as a pill: [tone, label]. */
+const TEST_STATE = {
+  proven: ["ok", "Proven"], weak: ["bad", "Weak test"], "no-test": ["bad", "No test"],
+  passing: ["ok", "Passing"], failing: ["bad", "Failing"], flaky: ["wait", "Flaky"],
+  locked: ["wait", "Locked, not run yet"], "not-written": ["idle", "No test yet"],
+  "by-hand": ["wait", "Needs a check by hand"], signed: ["ok", "Signed off"], "failed-by-hand": ["bad", "Failed by hand"],
+};
+const TEST_LEVEL = { unit: "unit test", api: "HTTP test", job: "job test", ui: "screen test", manual: "by hand" };
+/** What a person has picked on the sign-off form, kept across the Tests page's re-renders (by run and card hash). */
+const testsDrafts = new Map();
+
+/**
+ * The run's tests against what was asked: each requirement, its acceptance criteria, the locked test meant to prove each one, how
+ * it ran and what the reviewer said about it, with the counts on top. Criteria with no automated test are signed off here.
+ */
+function testsScreen(id) {
+  skeleton("check");
+  let lastJson = "";
+  poll(4000, async (first) => {
+    const [r, d] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/tests`)]);
+    const json = JSON.stringify(d);
+    if (json === lastJson) return;
+    lastJson = json;
+    if (d.none) return mount([...runHeader(r, "tests"), h("div", { class: "slot big-empty rise" }, icon("check"), h("strong", {}, "No tests for this run yet"), h("span", {}, d.none))], first);
+    const m = d.metrics;
+    const reviewed = d.stage === "reviewed";
+    const ran = d.stage === "run" || reviewed;
+    const stat = (k, v, tone, hint) => h("div", { class: `stat${tone ? ` s-${tone}` : ""}`, title: hint }, h("div", { class: "k" }, k), h("div", { class: "v" }, v));
+    const pillOf = (st) => { const [tone, label] = TEST_STATE[st] ?? ["idle", st]; return h("span", { class: `pill t-${tone}` }, h("span", { class: "d" }), label); };
+    const criterion = (c) => h("li", { class: `tc tc-${(TEST_STATE[c.state] ?? ["idle"])[0]}` },
+      h("div", { class: "tc-head" }, h("code", {}, c.id), h("span", { class: "small muted" }, TEST_LEVEL[c.level] ?? c.level), pillOf(c.state)),
+      h("p", { class: "tc-gwt" }, h("b", {}, "Given "), c.given, h("b", {}, " When "), c.when, h("b", {}, " Then "), c.then),
+      c.tests.map((t) => h("p", { class: "tc-test small" }, icon("check"), h("code", { title: t.file }, t.name || t.testId),
+        t.outcome ? h("span", { class: t.outcome === "passed" && !t.flaky ? "muted" : "bad" }, t.flaky ? " passed only on a re-run" : ` ${t.outcome}`) : h("span", { class: "muted" }, " not run on the new code yet"),
+        t.message ? h("span", { class: "muted" }, `: ${t.message}`) : null)),
+      c.probes.map((p) => h("p", { class: "tc-test small" }, icon("browser"), h("code", {}, `${p.method} ${p.path}`), h("span", { class: p.status === p.expectStatus ? "muted" : "bad" }, ` answered ${p.status}, expected ${p.expectStatus}`))),
+      c.review ? h("p", { class: "tc-why small" }, h("b", {}, "Reviewer: "), c.review.why) : null,
+      c.manual ? h("p", { class: "tc-why small" }, h("b", {}, `${c.manual.by}: `), c.manual.result === "pass" ? "tried it and it holds." : "tried it and it does not hold.", c.manual.note ? ` ${c.manual.note}` : "") : null);
+    mount([...runHeader(r, "tests"), h("div", { class: "stack" },
+      d.signOff ? signOffPanel(r, d) : null,
+      h("section", { class: "panel rise" },
+        h("div", { class: "panel-head" }, h("h2", {}, icon("check"), "Tests"),
+          d.proof ? h("span", { class: `pill t-${d.proof.passed ? "ok" : d.proof.waivedBy ? "wait" : "bad"}` }, h("span", { class: "d" }), d.proof.passed ? "Every test proves its criterion" : d.proof.waivedBy ? "Accepted by a person" : "Stopped: a test does not prove its criterion") : null),
+        h("p", { class: "small muted" }, d.note, d.commit ? ` Results are for commit ${d.commit.slice(0, 10)}.` : ""),
+        d.proof && !d.proof.passed ? h("p", { class: "small" }, d.proof.waivedBy
+          ? `${d.proof.waivedBy} accepted the tests as they stand: ${d.proof.reason || "no reason recorded"}.`
+          : "The run waits for a person: accept the tests as they stand with the waiver card on the run page, or stop the run.") : null,
+        h("div", { class: "tests-stats" },
+          stat("Criteria", m.criteria, "", `${m.requirements} requirement${m.requirements === 1 ? "" : "s"}`),
+          stat("With a locked test", `${m.withTest}/${m.automated}`, m.lockedTests && m.withTest < m.automated ? "bad" : "", "Automated criteria that have a test, written before the code and locked"),
+          stat("Proven", reviewed ? `${m.proven}/${m.automated}` : "-", reviewed && m.proven < m.automated ? "bad" : "", "Criteria whose test the reviewer read and found to assert what was asked"),
+          stat("Weak or no test", reviewed ? m.weak + m.noTest : "-", m.weak + m.noTest ? "bad" : "", "Criteria whose test passes without proving them, or that have none"),
+          stat("Locked tests passing", ran ? `${m.passing}/${m.lockedTests}` : "-", ran && m.failing ? "bad" : "", "On the new code, in a sealed container"),
+          stat("Flaky", ran ? m.flaky : "-", m.flaky ? "wait" : "", "Passed only on a re-run"),
+          stat("HTTP probes", m.probes.sent ? `${m.probes.ok}/${m.probes.sent}` : "-", m.probes.ok < m.probes.sent ? "bad" : "", "Requests sent to the running app that got the expected status. Endpoints behind a login are not probed yet"),
+          stat("Signed off by hand", m.byHand ? `${m.signedOff}/${m.byHand}` : "-", m.failedByHand ? "bad" : m.byHand && m.signedOff < m.byHand ? "wait" : "", "Criteria with no automated test, tried by a person on this commit"),
+          stat("Test writer attempts", m.writerAttempts || "-", "", "Times the test writer ran before its tests were accepted and locked"))),
+      d.requirements.map((q) => h("section", { class: "panel rise" },
+        h("div", { class: "panel-head" }, h("h2", {}, icon("file"), q.id), h("span", { class: "small muted" }, `${q.criteria.length} ${q.criteria.length === 1 ? "criterion" : "criteria"}`)),
+        h("p", { class: "tests-req" }, q.text),
+        h("ul", { class: "tcs" }, q.criteria.map(criterion)))),
+      d.characterisation.length ? h("section", { class: "panel rise" },
+        h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Behaviour kept as it was"), h("span", { class: "small muted" }, `${d.characterisation.length} test${d.characterisation.length === 1 ? "" : "s"}`)),
+        h("p", { class: "small muted" }, "Tests of what already worked near this change. They passed on the old code and must still pass."),
+        h("ul", { class: "tcs" }, d.characterisation.map((c) => h("li", { class: "tc" }, h("div", { class: "tc-head" }, h("code", { title: c.file }, c.testId), c.outcome ? h("span", { class: `pill t-${c.outcome === "passed" ? "ok" : "bad"}` }, h("span", { class: "d" }), c.outcome) : null), h("p", { class: "tc-gwt" }, c.target))))) : null,
+      d.nfrs.length ? h("section", { class: "panel rise" },
+        h("div", { class: "panel-head" }, h("h2", {}, icon("alert"), "Not tested"), h("span", { class: "small muted" }, `${d.nfrs.length} non-functional requirement${d.nfrs.length === 1 ? "" : "s"}`)),
+        h("p", { class: "small muted" }, "The factory writes no test for these yet, so nothing on this page proves them."),
+        h("ul", { class: "tcs" }, d.nfrs.map((n) => h("li", { class: "tc" }, h("div", { class: "tc-head" }, h("code", {}, n.id), h("span", { class: "small muted" }, n.metric)), h("p", { class: "tc-gwt" }, n.text))))) : null)], first);
+  });
+}
+
+/** The sign-off of the criteria on the open manual-check card: pass or fail for each, a note for a fail, and a typed name. */
+function signOffPanel(r, d) {
+  const key = `${r.runId}:${d.signOff.hash}`;
+  if (!testsDrafts.has(key)) testsDrafts.set(key, { picks: {}, notes: {}, sent: false, msg: "" });
+  const draft = testsDrafts.get(key);
+  const rows = d.requirements.flatMap((q) => q.criteria).filter((c) => d.signOff.criteria.includes(c.id));
+  const who = nameInput();
+  who.id = "so-who";
+  const msg = h("p", { class: "small", role: "status" }, draft.msg);
+  const send = h("button", { class: "btn primary", type: "button" }, icon("check"), "Record the sign-off");
+  send.disabled = draft.sent;
+  const field = (c) => {
+    const note = h("input", { type: "text", maxlength: "1000", placeholder: "What you saw (needed for a fail)", "aria-label": `Note for ${c.id}`, value: draft.notes[c.id] ?? "" });
+    note.addEventListener("input", () => { draft.notes[c.id] = note.value; });
+    const radio = (v, label) => {
+      const el = h("input", { type: "radio", name: `so-${c.id}`, value: v });
+      el.checked = draft.picks[c.id] === v;
+      el.addEventListener("change", () => { draft.picks[c.id] = v; });
+      return h("label", { class: "so-pick" }, el, label);
+    };
+    return h("li", { class: "tc" },
+      h("div", { class: "tc-head" }, h("code", {}, c.id), radio("pass", "It holds"), radio("fail", "It does not hold")),
+      h("p", { class: "tc-gwt" }, h("b", {}, "Given "), c.given, h("b", {}, " When "), c.when, h("b", {}, " Then "), c.then),
+      note);
+  };
+  send.addEventListener("click", async () => {
+    const missing = rows.find((c) => !draft.picks[c.id]);
+    if (missing) { msg.textContent = draft.msg = `Say whether ${missing.id} holds: every criterion needs an answer.`; return; }
+    send.disabled = true;
+    msg.textContent = "";
+    try {
+      await api(`/api/runs/${encodeURIComponent(r.runId)}/manual-checks`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hash: d.signOff.hash, by: who.value, checks: Object.fromEntries(rows.map((c) => [c.id, { result: draft.picks[c.id], note: draft.notes[c.id] ?? "" }])) }) });
+      draft.sent = true;
+      msg.textContent = draft.msg = "Recorded. The run is continuing…";
+    } catch (err) { msg.textContent = draft.msg = err.message; send.disabled = false; }
+  });
+  return h("section", { class: "card-box rise" },
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Check these by hand"), h("span", { class: "mono small" }, `manual-check card · ${d.signOff.hash}`)),
+    h("div", { class: "body stack" },
+      h("p", { class: "small muted" }, `No automated test covers ${rows.length === 1 ? "this criterion" : "these criteria"}. Try ${rows.length === 1 ? "it" : "each one"} on the built change${d.commit ? ` (commit ${d.commit.slice(0, 10)})` : ""}, then record what you saw. A fail parks the run; nothing is delivered.`),
+      h("ul", { class: "tcs" }, rows.map(field)),
+      h("div", { class: "fld" }, h("label", { for: "so-who" }, "Your name"), who, h("div", { class: "hint" }, `Recorded with each result as "your name (via web)", with card ${d.signOff.hash}.`)),
+      h("div", { class: "row" }, send),
+      msg));
 }
 
 /** One table of the diagram and the lines between them, from the server's layout. */
@@ -2411,6 +2539,7 @@ async function route() {
     else if (top === "runs" && parts[1] && parts[2] === "design") await designScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "preview") await previewScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "data-model") dataModelScreen(parts[1]);
+    else if (top === "runs" && parts[1] && parts[2] === "tests") testsScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "charts") chartsScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "stats") statsScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "log") logScreen(parts[1]);

@@ -241,7 +241,7 @@ export function gateChips(s: RunState): GateChip[] {
 export function cardCommands(markdown: string, runId: string, hash8: string): string[] {
   const out = [`factory show-card ${runId}`];
   for (const line of markdown.split("\n")) {
-    const m = /(?:^|\s|`)(factory (?:approve|reject|answer|waive-cap|waive-budget|stop)\s[^`]*?)`?\s*$/.exec(line);
+    const m = /(?:^|\s|`)(factory (?:approve|reject|answer|sign-off|waive-cap|waive-budget|stop)\s[^`]*?)`?\s*$/.exec(line);
     if (m) out.push(m[1]!.replace(/\s+/g, " ").replace("<hash>", hash8).trim());
   }
   return [...new Set(out)];

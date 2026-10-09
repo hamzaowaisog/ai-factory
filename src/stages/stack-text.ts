@@ -20,18 +20,29 @@ export function dependencyKind(stack: Stack): string {
   return stack === "node" ? "npm" : "NuGet";
 }
 
-export function authorIntro(stack: Stack): string {
+/** The stacks whose lab can run a test of a screen: a "ui" criterion stays one there, and is a person's check elsewhere. */
+export const testsScreens = (stack: Stack): boolean => stack === "node";
+
+const SCREEN_TEST_RULES = `- A "ui" criterion gets a screen test: a tests/*.test.tsx file whose FIRST line is "// @vitest-environment jsdom". Render the screen's container (components/screens/<s-id>/container.tsx, the page with its data and behaviour) with render() from "@testing-library/react", and act as a person does with userEvent from "@testing-library/user-event".
+- Assert what a person sees and can do: find things by role and name (screen.getByRole("button", { name: "Save" })), by label (getByLabelText) or by the words on the page, never by class name, test id or component internals. Use findBy... for what appears after data loads.
+- There is no router, no server and no network in a screen test. Navigation is recorded: import { nav, at } from "./support/screen" (from tests/), call at("/orders/7", { tab: "paid" }) before render() to set the address, and assert where the page went with nav.went (e.g. expect(nav.went).toContain("/orders/7")).
+- Stand in for the API with vi.stubGlobal("fetch", ...) or by mocking the generated client module (vi.mock), and answer with data in the shape the contract gives. Give each test its own answers; undo them in afterEach (vi.unstubAllGlobals(), vi.restoreAllMocks()).
+- A screen test proves behaviour on the screen: what is shown for which data, what a click or a typed value does, which message appears. It cannot judge looks (colour, spacing, a width): don't assert styles or class names.
+- Don't edit tests/support/ or the vitest config; the factory owns them. Don't use snapshots.`;
+
+/** `screens`: the checkout can run screen tests (src/design/kit/screen-tests.ts); without them a ui criterion is tested on the screen's logic. */
+export function authorIntro(stack: Stack, screens = false): string {
   if (stack === "node") {
     return `You write black-box acceptance tests for a TypeScript web app (React, with the factory's component kit), one test per acceptance criterion, before the feature exists.
 Rules:
-- Put the tests in tests/ at the repo root, as *.test.ts files, with vitest (import { describe, it, expect } from "vitest"). The "@/" import alias points at the app's source root.
-- Test through public surfaces only: exported functions and modules, route handlers, the data and action logic a screen uses. There is no browser: don't render components (the design's own Playwright tests check the pages).
+- Put the tests in tests/ at the repo root, as *.test.ts files${screens ? " (*.test.tsx for a screen test)" : ""}, with vitest (import { describe, it, expect } from "vitest"). The "@/" import alias points at the app's source root.
+- Test through public surfaces only: exported functions and modules, route handlers, ${screens ? "and a screen as a person uses it" : "the data and action logic a screen uses. There is no browser: don't render components (the design's own Playwright tests check the pages)"}.
 - Name each acceptance test exactly AC_<req>_<n>_<Words> (the it() title) for acceptance criterion AC-<req>.<n>, e.g. it("AC_1_2_ReturnsNotFoundWhenOrderMissing", ...). Name characterisation tests CHAR_<Words>. The factory finds tests by these titles.
 - New APIs exist as stubs that throw new Error("not implemented"); tests must import them and fail for now.
 - Also write characterisation tests for existing behaviour next to the change that must NOT change; those must pass today. A new app has little of its own: write none when there is nothing to keep.
 - Don't change production code, package.json, tsconfig or the vitest config.
 - You may run "npx tsc --noEmit" to check the tests compile. Don't run the tests: the factory runs them itself in its test lab.
-- Test each criterion at its level: "unit" and "ui" criteria call the module directly; "api" criteria call the route handler (for example GET or POST exported from app/api/.../route.ts, with a Request). Skip "manual" criteria: a person checks those.`;
+- Test each criterion at its level: ${screens ? `"unit" criteria` : `"unit" and "ui" criteria`} call the module directly; "api" criteria call the route handler (for example GET or POST exported from app/api/.../route.ts, with a Request). Skip "manual" criteria: a person checks those.${screens ? `\n${SCREEN_TEST_RULES}` : ""}`;
   }
   return `You write black-box acceptance tests for a .NET service, one test per acceptance criterion, before the feature exists.
 Rules:
@@ -47,7 +58,7 @@ Rules:
 
 /** Why a named test may not have run. */
 export function notFoundHint(stack: Stack): string {
-  return stack === "node" ? "Is it an it()/test() with exactly that title, in a *.test.ts file under tests/?" : "Is it public, in a test project, and marked [Fact]/[Theory]?";
+  return stack === "node" ? "Is it an it()/test() with exactly that title, in a *.test.ts or *.test.tsx file under tests/?" : "Is it public, in a test project, and marked [Fact]/[Theory]?";
 }
 
 export function implementIntro(stack: Stack): string {

@@ -50,6 +50,7 @@ import type { WaiverRow } from "../estimate/log.js";
 import { designFidelityLint, designSizeCap } from "../design/gates.js";
 import { screenBrief, screenFacts, screenFor, screensBrief, screensForTask, type ApprovedDesign } from "../design/design-link.js";
 import { scaffoldSummary, writeScaffold } from "../design/kit/index.js";
+import { screenTestsReady } from "../design/kit/screen-tests.js";
 import { scaffoldOfRun, type ScaffoldRecord } from "./scaffold-run.js";
 import { repoIsEmpty } from "../config/greenfield.js";
 import { actualSize, approvedLevel, designOptions, fidelityLint, hasReactApp, touchesUiFiles } from "../design/build-checks.js";
@@ -619,7 +620,7 @@ export const authorTestsStep: StepDef = {
     const pack = buildPack({
       stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
       sections: [
-        S.template("tpl", authorIntro(ctx.project.stack)),
+        S.template("tpl", authorIntro(ctx.project.stack, screenTestsReady(wt))),
         ...(light ? [S.template("light", `This is a small, low-risk change. Keep the tests small:
 - Write the fewest tests that prove each criterion: usually one test method per criterion, in one new test file next to the existing tests for the class.
 - At most ${LANE.light.maxCharacterisation} characterisation tests, as small unit tests of the same class. They must pass on today's code without any external service or seeded data. Skip them if the criteria already cover the unchanged behaviour.

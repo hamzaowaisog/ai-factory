@@ -126,7 +126,7 @@ export type Questions = z.infer<typeof Questions>;
 
 export const AcceptanceCriterion = z.object({
   id: Id, given: z.string(), when: z.string(), then: z.string(),
-  /** unit: a public class method called directly · api: an HTTP call · job: a job run · ui: a screen (checked by a person until browser tests exist) · manual */
+  /** unit: a public class method called directly · api: an HTTP call · job: a job run · ui: a screen (a rendered test on a Node app, a person's check elsewhere) · manual */
   level: z.enum(["unit", "api", "job", "ui", "manual"]),
 });
 export const Requirement = z.object({

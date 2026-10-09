@@ -24,7 +24,8 @@ import { REPO_ROOT } from "../runners/netinfra.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
 import { dataModelView } from "./erd.js";
-import { answerQuestions, checkRefs, decideCard, decideEstimate, raiseLimit, resumeRun, startRun, StartError, stopAtLimit, type StartDeps } from "./start.js";
+import { testsView } from "./tests.js";
+import { answerQuestions, checkRefs, decideCard, decideEstimate, raiseLimit, resumeRun, signOffManual, startRun, StartError, stopAtLimit, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
 import { figmaPluginZip } from "../design/figma.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
@@ -96,6 +97,10 @@ export const ROUTES: readonly Route[] = [
     method: "GET", path: "/api/runs/:id/data-model", what: "the run's data model as a laid-out diagram (from the plan as soon as it exists), or why there is none",
     handle: ({ id }) => { const l = findRun(id!); return l ? ok(dataModelView(l)) : notFound(`No run ${id}`); },
   },
+  {
+    method: "GET", path: "/api/runs/:id/tests", what: "the run's requirements, each acceptance criterion with its locked test, how the test ran, the reviewer's verdict and the manual sign-off, with counts",
+    handle: ({ id }) => { const l = findRun(id!); return l ? ok(testsView(l) as unknown as Json) : notFound(`No run ${id}`); },
+  },
   { method: "GET", path: "/api/dashboard", what: "outcomes, the per-stage table and recent runs", handle: () => ok(dashboardView()) },
   {
     method: "POST", path: "/api/runs", what: "start a run (same checks as factory start), executed in the background",
@@ -152,6 +157,19 @@ export const ROUTES: readonly Route[] = [
       if (!l) return notFound(`No run ${id}`);
       try {
         return { status: 200, json: await decideCard(l, (body ?? {}) as Record<string, unknown>, deps) };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/manual-checks", what: "a person's check of the criteria that have no automated test, like factory sign-off (manual-check cards only; needs a typed name, the card hash and pass or fail for every criterion on the card)",
+    handle: async ({ id }, body, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await signOffManual(l, (body ?? {}) as Record<string, unknown>, deps) };
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };

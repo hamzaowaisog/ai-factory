@@ -1,4 +1,5 @@
 // End to end: the brownfield slice with a scripted model and a fake container runtime.
+import { testsView } from "../ui/tests.js";
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -88,10 +89,16 @@ function multiAnswer(system: string): unknown {
 }
 /** the clarifier's last instructions, as the model received them */
 let clarifierPrompt = "";
+/** what the scripted reviewer says about every locked test, and how many reviews were paid for */
+let reviewVerdict: "proves-it" | "weak" | "no-test" = "proves-it";
+let reviewCalls = 0;
+/** the spec also carries a criterion only a person can check */
+let manualCriterion = false;
 /** A scripted review must now account for every acceptance criterion, as a real one must. */
 function scriptedReview(user: string, findings: unknown[] = []) {
+  reviewCalls += 1;
   const acIds = [...new Set([...user.matchAll(/"id":\s*"(AC-[\w.-]+)"/g)].map((m) => m[1]!))];
-  return { findings, coverage: acIds.map((acId) => ({ acId, testId: "", verdict: "proves-it" as const, why: "scripted" })) };
+  return { findings, coverage: acIds.map((acId) => ({ acId, testId: "", verdict: reviewVerdict, why: "scripted" })) };
 }
 
 function answerFor(system: string, allowMulti = true, user = ""): unknown {
@@ -111,7 +118,8 @@ function answerFor(system: string, allowMulti = true, user = ""): unknown {
   if (system.includes("Senior engineer writing a behaviour spec")) return {
     requirements: [{ id: "REQ-1", ears: "When a name is given, the Greeter shall return a greeting that starts with Hello.", op: "MODIFIED", sources: ["I-1"],
       anchors: [{ path: "src/Api/Greeter.cs", lineStart: 4, lineEnd: 4, quote: 'public string Greet(string name) => "Hi " + name;' }],
-      acceptance: [{ id: "AC-1.1", given: "a name Ann", when: "Greet is called", then: "the returned value is Hello Ann", level: "api" }] }],
+      acceptance: [{ id: "AC-1.1", given: "a name Ann", when: "Greet is called", then: "the returned value is Hello Ann", level: "api" },
+        ...(manualCriterion ? [{ id: "AC-1.2", given: "the greeting on the home page", when: "a person reads it", then: "it shows Hello Ann in the heading", level: "manual" }] : [])] }],
     nfrs: [], outOfScope: ["other greetings"], assumptions: [], suggestions: [],
   };
   if (system.includes("Adversarial reviewer")) return { findings: criticFindings };
@@ -311,6 +319,9 @@ beforeEach(() => {
   planMisses = 0;
   intakeRisk = "low";
   reviewFindings = [];
+  reviewVerdict = "proves-it";
+  reviewCalls = 0;
+  manualCriterion = false;
   criticFindings = [];
   repairSpec = undefined;
   repairCalls = 0;
@@ -423,6 +434,67 @@ describe("brownfield slice end to end (fakes)", () => {
     await decide(ledger, { decision: "waive", hashPrefix: card.artifactSha.slice(0, 6), by: "lead", data: { reason: "one feature, reviewed as a whole" } });
     expect((await execute(runId)).status).toBe("delivered");
     expect(replay(ledger.events()).steps.get("integrate")!.data!.waivers).toMatchObject([{ gateIds: ["integrate.diff-size"], human: "lead" }]);
+  });
+
+  it("a locked test the reviewer calls weak stops the run for a person, who accepts it by name without paying for a second review", async () => {
+    reviewVerdict = "weak";
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("waiting");
+    const card = replay(ledger.events()).openCard!;
+    expect(card.kind).toBe("waiver");
+    expect(readFileSync(join(ledger.dir, "cards", `${card.cardId}.md`), "utf8")).toMatch(/review\.tests-prove-criteria: AC-1\.1: its locked test passes but does not prove the criterion \(scripted\)/);
+    expect(replay(ledger.events()).gates.filter((g) => g.gateId === "review.tests-prove-criteria").map((g) => g.passed)).toEqual([false]);
+    // the Tests page shows the verdict while the person decides, from the review the card is holding
+    expect(testsView(ledger)).toMatchObject({ stage: "reviewed", proof: { passed: false }, metrics: { weak: 1, proven: 0, lockedTests: 1, passing: 1 } });
+    await decide(ledger, { decision: "waive", hashPrefix: card.artifactSha.slice(0, 6), by: "lead", data: { reason: "the probe covers it" } });
+    expect((await execute(runId)).status).toBe("delivered");
+    expect(reviewCalls).toBe(1);
+    const s = replay(ledger.events());
+    expect(s.steps.get("review")!.data!.waivers).toMatchObject([{ gateIds: ["review.tests-prove-criteria"], human: "lead", reason: "the probe covers it" }]);
+    expect(ledger.readCard(`pr-${runId}`)).toContain("Waived by lead: review.tests-prove-criteria (the probe covers it)");
+    expect(testsView(ledger).proof).toMatchObject({ passed: false, waivedBy: "lead", reason: "the probe covers it" });
+  });
+
+  it("a criterion with no automated test waits for a person's sign-off after the review, and the pull request names who checked it", async () => {
+    manualCriterion = true;
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("waiting");
+    const card = replay(ledger.events()).openCard!;
+    expect(card.kind).toBe("manual-check");
+    const md = ledger.readCard(card.cardId);
+    expect(md).toContain("## AC-1.2 (REQ-1)");
+    expect(md).toContain(`factory sign-off ${runId} ${card.artifactSha.slice(0, 8)} --pass AC-1.2`);
+    expect(testsView(ledger)).toMatchObject({ signOff: { hash: card.artifactSha.slice(0, 8), criteria: ["AC-1.2"] }, metrics: { byHand: 1, signedOff: 0, automated: 1, proven: 1 } });
+    await decide(ledger, { decision: "sign-off", hashPrefix: card.artifactSha.slice(0, 8), by: "sara", data: { checks: { "AC-1.2": { result: "pass", note: "" } } } });
+    expect((await execute(runId)).status).toBe("delivered");
+    expect(reviewCalls).toBe(1);
+    expect(replay(ledger.events()).steps.get("review")!.data!.manualChecks).toEqual({ by: "sara", criteria: ["AC-1.2"] });
+    expect(ledger.readCard(`pr-${runId}`)).toContain("AC-1.2: checked by hand and signed off by sara (no automated test)");
+    const v = testsView(ledger);
+    expect(v.metrics).toMatchObject({ byHand: 1, signedOff: 1, failedByHand: 0 });
+    expect(v.requirements![0]!.criteria.map((c) => [c.id, c.state])).toEqual([["AC-1.1", "proven"], ["AC-1.2", "signed"]]);
+  });
+
+  it("a criterion a person tries and fails parks the run: nothing is delivered", async () => {
+    manualCriterion = true;
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    await execute(runId);
+    const card = replay(ledger.events()).openCard!;
+    await decide(ledger, { decision: "sign-off", hashPrefix: card.artifactSha.slice(0, 8), by: "sara", data: { checks: { "AC-1.2": { result: "fail", note: "the heading still says Hi" } } } });
+    const r = await execute(runId);
+    expect(r.status).toBe("parked");
+    expect(r.message).toBe("sara checked by hand and this criterion does not hold: AC-1.2 (the heading still says Hi)");
+    expect(replay(ledger.events()).steps.get("deliver")?.status).not.toBe("completed");
+    expect(reviewCalls).toBe(1);
+    expect(testsView(ledger).requirements![0]!.criteria[1]).toMatchObject({ state: "failed-by-hand", manual: { by: "sara", result: "fail", note: "the heading still says Hi" } });
   });
 
   it("resumes after a crash mid-implement without redoing finished steps", async () => {

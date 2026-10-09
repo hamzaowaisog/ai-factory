@@ -374,7 +374,7 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
     ``,
     ...(() => {
       const manual = a.spec.requirements.flatMap((r) => r.acceptance.filter((c) => c.level === "manual").map((c) => c.id));
-      return manual.length ? [`Checked by a person, not by a test: ${manual.join(", ")} (screens and manual checks aren't automated yet)`, ``] : [];
+      return manual.length ? [`Checked by a person, not by a test: ${manual.join(", ")} (each needs a person's sign-off before delivery)`, ``] : [];
     })(),
     `Not changing: ${a.spec.outOfScope.join("; ") || "(none listed)"}`,
     ``,
