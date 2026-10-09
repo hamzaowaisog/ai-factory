@@ -10,7 +10,8 @@ import { designRoute, ladderAt } from "../config/design-route.js";
 import { designMdFaults, DesignMdOut, loadTasteSkill, TASTE_OVERRIDES, type StitchTheme } from "../design/stitch-taste.js";
 import { stitchThemeToDesign } from "../design/stitch-theme.js";
 import { stitchFacts, type StitchFacts } from "../design/stitch-facts.js";
-import { stitchClient, type StitchClient } from "../design/stitch.js";
+import { stitchClient, type StitchClient, type StitchDevice } from "../design/stitch.js";
+import { checkStitchA11y } from "../design/stitch-a11y.js";
 import { stateKind } from "../design/demo.js";
 import { failure } from "../gates/engine.js";
 import { inPool } from "../util/pool.js";
@@ -129,7 +130,7 @@ const failed = (failures: Failure[], tag: string): StepOutcome => ({ kind: "fail
 
 /** What the design step knows besides the spec: the lead's send-back reasons, the existing app's look, the client's references. */
 /** A Stitch design as the design step stored it (with the rework rounds a send-back added). */
-export type StitchDesign = ReturnType<typeof stitchArtifact> & { revision?: number; rework?: ReworkRound[] };
+export type StitchDesign = ReturnType<typeof stitchArtifact> & { revision?: number; rework?: ReworkRound[]; stitch: { a11y?: A11yOpen[] } };
 interface ReworkRound { round: number; mode: "patch" | "redraw" | "none"; patched: string[]; lines: string[]; kept: string[]; notDesign: { quote: string; why: string }[]; fine: string[] }
 
 /** What the design step knows besides the spec: the lead's send-back reasons, the existing app's look, the client's references, and the design sent back. */
@@ -168,6 +169,7 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
   const framesDir = join(ctx.ledger.dir, "attachments", "frames");
   const c = stitchClient();
   let edited: StitchAsset[];
+  let open: A11yOpen[] = [];
   try {
     mkdirSync(framesDir, { recursive: true });
     ctx.log(`design: Stitch edits ${named.map((n) => n.id).join(", ")}; ${plan.screens.length - named.length} screen(s) kept as approved`);
@@ -181,6 +183,10 @@ Change: ${n.change}` }], allowed).filter((j) => j.state !== "normal");
       const drawn = await inPool(states, STITCH_SIDE_BY_SIDE, async (j) => saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(prev.stitch.projectId, j.prompt, device)));
       return [page, ...drawn];
     })).flat();
+    // only the edited screens are checked: an approved screen is never changed for accessibility on a send-back
+    const fixed = await fixA11y(ctx, c, framesDir, prev.stitch.projectId, device, edited, named.map((n) => n.id));
+    edited = fixed.assets;
+    open = [...(prev.stitch.a11y ?? []).filter((x) => !named.some((n) => n.id === x.screen)), ...fixed.open];
   } catch (e) {
     return { kind: "park", reason: `Stitch failed: ${(e as Error).message}. Check the Stitch service, its quota and STITCH_API_KEY, then resume.` };
   } finally {
@@ -189,8 +195,9 @@ Change: ${n.change}` }], allowed).filter((j) => j.state !== "normal");
   const reqIds = plan.screens.flatMap((s) => s.reqs).concat(plan.noScreen.map((n) => n.req));
   const theme = prev.stitch.theme as StitchTheme | undefined;
   const round = (prev.revision ?? 0) + 1;
+  const drawn = stitchArtifact(plan, [...kept, ...edited], { projectId: prev.stitch.projectId, model: prev.stitch.model, designMd: prev.stitch.designMd, ...(theme ? { theme, mood: prev.flow } : {}) }, [...new Set(reqIds)]);
   const design = {
-    ...stitchArtifact(plan, [...kept, ...edited], { projectId: prev.stitch.projectId, model: prev.stitch.model, designMd: prev.stitch.designMd, ...(theme ? { theme, mood: prev.flow } : {}) }, [...new Set(reqIds)]),
+    ...drawn, stitch: { ...drawn.stitch, ...(open.length ? { a11y: open } : {}) },
     revision: round,
     rework: [...(prev.rework ?? []), { round, mode: "patch" as const, patched: named.map((n) => n.id), lines: named.map((n) => `${n.id}: ${n.change}`), kept: plan.screens.filter((s) => !named.some((n) => n.id === s.id)).map((s) => s.id), notDesign: [], fine: [] }],
     header: header(ctx.runId, "design", "design", "", t.model),
@@ -243,6 +250,7 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
   const c = stitchClient();
   let projectId: string;
   let assets: StitchAsset[];
+  let open: A11yOpen[] = [];
   try {
     projectId = await c.createProject(title);
     await c.createDesignSystem(projectId, title, { ...m.output.theme, designMd: md });
@@ -251,13 +259,15 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     const jobs = stitchJobs(plan.screens, allowed);
     if (jobs.length > plan.screens.length) ctx.log(`design: ${jobs.length - plan.screens.length} extra state(s) drawn too (${allowed.join(", ")})`);
     assets = await inPool(jobs, STITCH_SIDE_BY_SIDE, async (j) => saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(projectId, j.prompt, device)));
+    ({ assets, open } = await fixA11y(ctx, c, framesDir, projectId, device, assets, assets.map((x) => x.id)));
   } catch (e) {
     // a Stitch fault is not the model's: park for a person instead of climbing to a dearer tier and paying for every call again
     return { kind: "park", reason: `Stitch failed: ${(e as Error).message}. Check the Stitch service, its quota and STITCH_API_KEY, then resume.` };
   } finally {
     await c.close().catch(() => undefined);
   }
-  const design = { ...stitchArtifact(plan, assets, { projectId, model: STITCH_MODEL, designMd: mdSha, theme: m.output.theme, mood: plan.flow }, reqIds), header: header(ctx.runId, "design", "design", "", at.model) };
+  const drawn = stitchArtifact(plan, assets, { projectId, model: STITCH_MODEL, designMd: mdSha, theme: m.output.theme, mood: plan.flow }, reqIds);
+  const design = { ...drawn, stitch: { ...drawn.stitch, ...(open.length ? { a11y: open } : {}) }, header: header(ctx.runId, "design", "design", "", at.model) };
   return { kind: "done", outputs: { design: ctx.ledger.putJson(design) }, data: { screens: plan.screens.length, engine: "stitch" } };
 }
 
@@ -270,4 +280,35 @@ export function stitchPackageFiles(design: { engine?: string; stitch?: { designM
       path: `screens/${f.screen}${!f.state || f.state === "normal" ? "" : `-${f.state}`}.html`, content: getArtifact(f.html),
     })),
   ];
+}
+
+/** An accessibility problem Stitch could not fix on a screen: the axe rules still failing. */
+export interface A11yOpen { screen: string; rules: string[] }
+
+let a11yCheck: typeof checkStitchA11y = checkStitchA11y;
+/** Tests replace the browser check; undefined goes back to axe-core in headless Chromium. */
+export function setA11yCheck(f: typeof checkStitchA11y | undefined): void { a11yCheck = f ?? checkStitchA11y; }
+
+/**
+ * Checks the normal pages of the given screens, gives each one that fails a single Stitch fix (edit_screens with the rules and
+ * elements axe named), and checks the fixed ones again. Returns the assets with the fixed pages in place and what is still open.
+ */
+async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, projectId: string, device: StitchDevice, assets: StitchAsset[], ids: string[]): Promise<{ assets: StitchAsset[]; open: A11yOpen[] }> {
+  const normals = assets.filter((a) => a.state === "normal" && ids.includes(a.id));
+  const read = (a: StitchAsset) => ({ id: a.id, html: ctx.ledger.getArtifact(a.html).toString("utf8") });
+  const first = await a11yCheck(normals.map(read));
+  if (!first) { ctx.log("design: the Stitch screens' accessibility was not checked (no Chromium or axe-core here)"); return { assets, open: [] }; }
+  const bad = first.filter((x) => x.violations.length);
+  if (!bad.length) return { assets, open: [] };
+  ctx.log(`design: accessibility problems on ${bad.map((b) => b.id).join(", ")}; one Stitch fix each`);
+  const fixed = await inPool(bad, STITCH_SIDE_BY_SIDE, async (b) => {
+    const a = normals.find((x) => x.id === b.id)!;
+    const prompt = `Fix these accessibility problems and change nothing else: ${b.violations.map((v) => `${v.id} (${(v.targets ?? []).slice(0, 3).join("; ")})`).join(", ")}.`;
+    return saveAsset(ctx, c, framesDir, a.id, "normal", await c.edit(projectId, a.screenId, prompt, device));
+  });
+  const again = (await a11yCheck(fixed.map(read))) ?? [];
+  return {
+    assets: assets.map((a) => (a.state === "normal" ? fixed.find((f) => f.id === a.id) ?? a : a)),
+    open: again.filter((x) => x.violations.length).map((x) => ({ screen: x.id, rules: [...new Set(x.violations.map((v) => v.id))] })),
+  };
 }

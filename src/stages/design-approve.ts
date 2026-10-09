@@ -20,6 +20,7 @@ import { ensurePackage } from "./design-export.js";
 import { gate } from "./estimate.js";
 import { listedFrames, MAX_DESIGN_REVISIONS } from "./design.js";
 import { stitchFrames } from "./design-stitch.js";
+import { stitchA11yLines } from "../design/stitch-a11y.js";
 import type { ProjectConfig } from "../config/project.js";
 import { currentPictures } from "../design/current-pages.js";
 import { ESTIMATE_SOURCES, intentOf, specOf, type DesignSources, repoInventory } from "./design-inputs.js";
@@ -120,6 +121,7 @@ export function designCard(runId: string, design: DesignT, hash: string, extra: 
     ...layoutLines(extra.shots?.issues ?? []),
     ...(extra.diff ? [`## Change from the approved design`, ...(extra.compare ? compareLines(extra.compare) : []), ...(extra.diff.length ? extra.diff.map((l) => `- ${l}`) : ["- no screen changed"]), ``] : []),
     ...reworkCardLines(design as never),
+    ...stitchA11yLines((design as { stitch?: { a11y?: { screen: string; rules: string[] }[] } }).stitch?.a11y),
     ...currentLines(extra.current ?? [], extra.look, extra.currentShots),
     `Screens (${design.screens.length}):`,
     ...design.screens.map((s) => { const x = s as typeof s & { states?: string[]; size?: string; mock?: { title: string } }; const title = x.mock?.title ? `${x.mock.title}: ` : ""; return `- ${title}${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}${x.size ? `; ${x.size}` : ""}${x.states?.length ? `; states: ${x.states.join(", ")}` : ""}${(s as { refs?: string[] }).refs?.length ? `; from ${(s as { refs?: string[] }).refs!.join(", ")}` : ""}${uiLine(screenUi(s as never))}`; }), ``,

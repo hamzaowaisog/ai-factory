@@ -14,7 +14,7 @@ import { NO_TRACE } from "../util/trace.js";
 import { setStitchFactory, type StitchClient } from "../design/stitch.js";
 import type { StepContext } from "./framework.js";
 import { setProviderFactory } from "./think.js";
-import { drawWithStitch, stitchArtifact, stitchFrames } from "./design-stitch.js";
+import { drawWithStitch, setA11yCheck, stitchArtifact, stitchFrames } from "./design-stitch.js";
 
 const U = { inputTokens: 1000, outputTokens: 200, cacheRead: 0, cacheWrite: 0 };
 const reqs = [{ id: "REQ-1", ears: "The system shall list payees." }, { id: "REQ-2", ears: "The system shall add a payee." }];
@@ -82,8 +82,9 @@ beforeEach(() => {
   made = { projects: [], systems: [], generated: [], edits: [], closed: 0 };
   setProviderFactory(() => provider);
   setStitchFactory(() => fakeStitch());
+  setA11yCheck(async (pages) => pages.map((p) => ({ id: p.id, violations: [] })));
 });
-afterEach(() => { setStitchFactory(undefined); delete process.env.FACTORY_NO_CACHE; });
+afterEach(() => { setStitchFactory(undefined); setA11yCheck(undefined); delete process.env.FACTORY_NO_CACHE; });
 
 describe("the stitch design artifact", () => {
   it("points each screen at its frames, the normal page first, and keeps routes and requirements", () => {
@@ -281,5 +282,46 @@ describe("Stitch files for the design package", () => {
     expect(files.map((f) => f.path)).toEqual(["screens/DESIGN.md", "screens/S-1.html", "screens/S-1-empty.html", "screens/S-2.html"]);
     expect(files[2]!.content.toString()).toBe("<p>1e</p>");
     expect(stitchPackageFiles({ screens: [] } as never, () => Buffer.alloc(0))).toEqual([]);
+  });
+});
+
+describe("accessibility of Stitch screens", () => {
+  type D = { stitch: { a11y?: { screen: string; rules: string[] }[] } };
+  it("gives a failing screen one Stitch fix and records nothing open when the fix works", async () => {
+    let round = 0;
+    setA11yCheck(async (pages) => { round++; return pages.map((p) => ({ id: p.id, violations: round === 1 && p.id === "S-1" ? [{ id: "button-name", targets: ["button.icon"] }] : [] })); });
+    const ledger = memoryLedger();
+    answers = [plan(), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(ledger), spec);
+    expect(made.edits).toHaveLength(1);
+    expect(made.edits[0]!.prompt).toMatch(/button-name/);
+    expect(ledger.getJson<D>((out as { outputs: { design: string } }).outputs.design).stitch.a11y).toBeUndefined();
+  });
+
+  it("records what still fails after the fix", async () => {
+    setA11yCheck(async (pages) => pages.map((p) => ({ id: p.id, violations: p.id === "S-2" ? [{ id: "label", targets: ["input"] }] : [] })));
+    const ledger = memoryLedger();
+    answers = [plan(), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(ledger), spec);
+    expect(made.edits).toHaveLength(1);
+    expect(ledger.getJson<D>((out as { outputs: { design: string } }).outputs.design).stitch.a11y).toEqual([{ screen: "S-2", rules: ["label"] }]);
+  });
+
+  it("goes on with a note when no browser can check", async () => {
+    setA11yCheck(async () => undefined);
+    answers = [plan(), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(memoryLedger()), spec);
+    expect(out.kind).toBe("done");
+    expect(made.edits).toEqual([]);
+  });
+});
+
+describe("the approval card", () => {
+  it("lists the accessibility problems Stitch could not fix", async () => {
+    const { designCard } = await import("./design-approve.js");
+    const design = { flow: "f", screens: [{ id: "S-1", route: "/", file: "x", reqs: ["REQ-1"], states: [], frames: [] }], mapping: { unmappedReqs: [], orphanScreens: [] }, stitch: { a11y: [{ screen: "S-1", rules: ["button-name"] }] } };
+    const card = designCard("r1", design as never, "a".repeat(64));
+    expect(card).toContain("Accessibility, still open (Stitch could not fix these):");
+    expect(card).toContain("- S-1: button-name");
   });
 });
