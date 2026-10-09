@@ -46,6 +46,13 @@ agentEnv:                          # dummy values so the app compiles where the 
 #   sourceRoot: "src/"               # "" is the repo root
 #   uiDir: "src/components/ui"       # the building-block folder
 #   brandFonts: ["Acme Sans"]        # fonts the design brief may name besides Google Fonts
+#   engine: claude                   # who draws: claude | openai | stitch (stitch needs allowStitch: true)
+#   tier: standard                   # light | standard | heavy; two failed attempts on a tier step up to the next.
+#                                    # unset: heavy (Opus 5.5, no step-up), as before
+#   tiers:                           # model per tier and engine, over the defaults (standard: claude-sonnet-5, heavy: claude-opus-5-5)
+#     light:    { openai: gpt-6-luna }
+#     standard: { openai: gpt-6-sol }   # every model here needs a price under prices:
+#   allowStitch: false               # Stitch sends the requirements to Google; off by default
 #   navRaises: false                 # true: a navigation change counts as a new screen
 #   uiTarget: next-shadcn            # what the approved design is built in: next-shadcn, vite-shadcn, or repo (its own components);
 #                                    # unset: --ui-target, then detection from the repo (factory design target <repo>)
