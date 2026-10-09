@@ -147,6 +147,12 @@ export interface Expected { blocks: { type: string; words: string[] }[]; page: s
 /** What a screen must show in a state: the page's title and tabs, then its blocks, its state's message, its open layer or toast. */
 export function expectedFor(s: DScreen, stateSlug: string, phone = false): Expected {
   const m = s.mock;
+  // a Stitch screen has no design JSON: its title and the words read from its HTML (buttons, fields, columns) are what it showed
+  if (!m && s.facts) {
+    const f = s.facts;
+    const kind0 = stateKindOf((screenStates(s)[stateSlug] ?? { name: "default" }).name);
+    if (kind0 === "normal") return { page: f.title ? [f.title] : [], blocks: [{ type: "stitch", words: [...f.buttons, ...f.fields, ...f.columns] }] };
+  }
   const st = screenStates(s)[stateSlug] ?? { name: "default" };
   const page = [m?.title ?? "", ...(m?.tabs ?? [])].filter(Boolean);
   const kind = stateKindOf(st.name);
@@ -188,7 +194,8 @@ export function structureFindings(exp: Expected, got: ReadBlock[], pageWords: st
   for (const b of exp.blocks) {
     const n = seen.get(b.type) ?? 0;
     seen.set(b.type, n + 1);
-    const match = got.filter((x) => x.type === b.type)[n];
+    // a Stitch screen's words are held to the whole page: the built page has no blocks typed like the design JSON's
+    const match = b.type === "stitch" ? { words: pageWords } : got.filter((x) => x.type === b.type)[n];
     const name = b.type.startsWith("overlay:") ? `the layer opened by "${b.type.slice(8)}"` : b.type.startsWith("state:") ? `the ${b.type.slice(6)} message` : `${b.type} block${n ? ` ${n + 1}` : ""}`;
     if (!match) { out.push(`${name} is missing`); continue; }
     const words = norm(match.words);

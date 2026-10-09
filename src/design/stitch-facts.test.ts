@@ -76,3 +76,17 @@ describe("the Stitch HTML a coding task reads", () => {
     expect(stitchHtmlFor({ screens: [] }, screens, () => "")).toEqual([]);
   });
 });
+
+describe("fidelity for a Stitch screen", () => {
+  const facts = { title: "Payees", buttons: ["Add payee"], fields: ["IBAN"], columns: ["Name"], headings: [] };
+  it("expects the Stitch screen's title and words", async () => {
+    const { expectedFor } = await import("./fidelity-app.js");
+    expect(expectedFor({ id: "S-1", route: "/a", file: "x", reqs: [], states: [], facts } as never, "default")).toEqual({ page: ["Payees"], blocks: [{ type: "stitch", words: ["Add payee", "IBAN", "Name"] }] });
+  });
+  it("checks those words against the whole built page", async () => {
+    const { structureFindings } = await import("./fidelity-app.js");
+    const exp = { page: ["Payees"], blocks: [{ type: "stitch", words: ["Add payee", "IBAN", "Name"] }] };
+    expect(structureFindings(exp, [], "Payees Name IBAN Add payee", "")).toEqual([]);
+    expect(structureFindings(exp, [], "Payees Name", "").join(" ")).toMatch(/does not show "Add payee", "IBAN"/);
+  });
+});
