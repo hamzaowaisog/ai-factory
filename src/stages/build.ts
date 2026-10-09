@@ -45,7 +45,7 @@ import { sizeCap } from "../estimate/gates.js";
 import { buildWaiver } from "../estimate/build-waiver.js";
 import type { WaiverRow } from "../estimate/log.js";
 import { designFidelityLint, designSizeCap } from "../design/gates.js";
-import { screenBrief, screenFacts, screenFor, screensBrief, screensForTask, type ApprovedDesign } from "../design/design-link.js";
+import { screenBrief, screenFacts, screenFor, screensBrief, screensForTask, stitchHtmlFor, type ApprovedDesign } from "../design/design-link.js";
 import { scaffoldSummary, writeScaffold } from "../design/kit/index.js";
 import { scaffoldOfRun, type ScaffoldRecord } from "./scaffold-run.js";
 import { repoIsEmpty } from "../config/greenfield.js";
@@ -1036,6 +1036,9 @@ export function implementStep(taskId: string): StepDef {
           S.artifact("task", "plan-task", { ...task, approach: task.approach }),
           // the approved screen this task builds (route, states, sample content, and the look to follow)
           ...(approvedScreen ? [S.artifact("approved-screen", "approved-screen", approvedScreen)] : []),
+          // an approved Stitch screen: its HTML, cleaned (no scripts, links, comments) and capped. Like the approved design JSON it is
+          // model-written and approved by a person, so it is a derived artifact; a writing stage takes no untrusted sections or images
+          ...(approvedDesign ? stitchHtmlFor(approvedDesign as never, briefScreens, (sha) => ctx.ledger.getArtifact(sha).toString("utf8")).map((x) => S.artifact(`stitch-html-${x.id}`, "approved-stitch-html", { screen: x.id, note: "The approved Stitch screen as HTML: rebuild it, do not paste it.", html: x.html })) : []),
           ...(scaf ? [S.profile("scaffold", `The approved design is already code in this repo (${scaf.target}, kit ${scaf.kit.id} ${scaf.kit.version}):\n${scaf.summary}`)] : []),
           ...(scaffoldScreen ? [S.template("behaviour-only", `This task fills in ${scaffoldScreen.id}'s container, ${scaffoldScreen.container}. The page itself is ${scaffoldScreen.screen}: the approved blocks, states, layers and text, generated from the approved design and not editable. Its sample data is ${scaffoldScreen.fixtures}, which is the shape the real data must take.
 - Write behaviour only: load the real data in the fixtures' shape and pass it as \`data\`, handle the page's actions in \`onAction(label, at)\`, and pass \`state\` for loading, empty, error, success and validation (the states the design drew: ${Object.keys(scaffoldScreen.states).join(", ")}).

@@ -64,6 +64,37 @@ export function approvedTokens(design: ApprovedDesign): ReturnType<typeof design
   try { return designTokens(design.theme as DesignTheme); } catch { return undefined; }
 }
 
+/** How the implementer uses an approved Stitch screen (its HTML follows in an untrusted section of the brief). */
+export const STITCH_NOTE = "This screen was drawn by Google Stitch and approved as drawn. Rebuild it in this app's own stack, components and design tokens to look like the Stitch HTML that follows (layout, sections, order, words); do not paste its markup, Tailwind CDN script or inline styles into the app.";
+
+/**
+ * A Stitch screen's HTML as the coding brief shows it: no scripts, stylesheets links or metas, inline data cut to `data:…`,
+ * whitespace collapsed, and at most `maxBytes` (the rest named in a closing comment), so the brief stays within its budget.
+ */
+export function stitchBriefHtml(html: string, maxBytes = 30_000): string {
+  const clean = html
+    .replace(/<script\b[\s\S]*?<\/script\s*>/gi, "")
+    // comments are words no one approved on the card: hidden text never reaches the coding agent
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<(link|meta)\b[^>]*>/gi, "")
+    .replace(/(["'])data:[^"']*\1/gi, '"data:…"')
+    .replace(/\s+/g, " ")
+    .trim();
+  return clean.length <= maxBytes ? clean : `${clean.slice(0, maxBytes)}<!-- cut: ${clean.length - maxBytes} more bytes -->`;
+}
+
+/** Brief screens whose Stitch HTML a coding task reads (each is up to 30 KB of the briefing). */
+const MAX_STITCH_HTML = 3;
+
+/** The cleaned Stitch HTML of each brief screen's normal page, for at most three screens; none for a JSON design. */
+export function stitchHtmlFor(design: { stitch?: { frames: Record<string, { screen?: string; state?: string; html: string }> } }, screens: Pick<ApprovedScreen, "id">[], read: (sha: string) => string): { id: string; html: string }[] {
+  const frames = Object.values(design.stitch?.frames ?? {});
+  return screens.flatMap((s) => {
+    const f = frames.find((x) => x.screen === s.id && (x.state ?? "normal") === "normal");
+    return f ? [{ id: s.id, html: stitchBriefHtml(read(f.html)) }] : [];
+  }).slice(0, MAX_STITCH_HTML);
+}
+
 /** What the implementer is told about the screen it builds. The look is the existing app's when the design says so. */
 export function screenBrief(design: ApprovedDesign, s: ApprovedScreen): Record<string, unknown> {
   const tokens = approvedTokens(design);
@@ -74,6 +105,7 @@ export function screenBrief(design: ApprovedDesign, s: ApprovedScreen): Record<s
       : design.theme,
     ...(tokens ? { tokens, tokensNote: TOKENS_NOTE } : {}),
     ...(s.mock ? { sampleContent: s.mock } : {}),
+    ...(!s.mock && s.facts ? { stitch: { facts: s.facts, note: STITCH_NOTE } } : {}),
     ...(s.change ? { change: s.change, changeNote: "The approved design note for this page: make exactly this change in the existing page, nothing more." } : {}),
     ...(design.locale && typeof design.locale === "object" ? { languages: localeBrief(design.locale as DesignLocale) } : {}),
   };
