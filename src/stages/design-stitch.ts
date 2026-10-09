@@ -32,6 +32,9 @@ const STITCH_PLAN_RULES = `You list the screens of a product for Google Stitch t
 - "states" lists the page's extra states besides its normal page (empty, loading, error, success, validation) only where the requirements need them.
 - "brand" lists the client's colours (hex) and fonts only when the requirements or references name them; otherwise leave it empty.`;
 
+/** What the artifact records as the Stitch model: Stitch's own default (no model id is sent). */
+const STITCH_MODEL = "stitch-default";
+
 /** Concurrent Stitch generations: each takes a while, and the account's quota is unknown. */
 const STITCH_SIDE_BY_SIDE = 3;
 
@@ -115,11 +118,11 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
   let assets: StitchAsset[];
   try {
     projectId = await c.createProject(title);
-    await c.createDesignSystem(projectId, title, md);
-    ctx.log(`design: Stitch project ${projectId}, drawing ${plan.screens.length} screens with ${at.stitch}, ${STITCH_SIDE_BY_SIDE} at a time`);
+    await c.createDesignSystem(projectId, title, { ...m.output.theme, designMd: md });
+    ctx.log(`design: Stitch project ${projectId}, drawing ${plan.screens.length} screens with Stitch's default model, ${STITCH_SIDE_BY_SIDE} at a time`);
     mkdirSync(framesDir, { recursive: true });
     assets = await inPool(plan.screens, STITCH_SIDE_BY_SIDE, async (s) => {
-      const g = await c.generate(projectId, `${s.prompt}\nFollow the project's design system exactly.`, device, at.stitch!);
+      const g = await c.generate(projectId, `${s.prompt}\nFollow the project's design system exactly.`, device);
       const [html, png] = await Promise.all([c.download(g.htmlUrl), c.download(g.imageUrl)]);
       writeFileSync(join(framesDir, `stitch-${s.id}.png`), png);
       return { id: s.id, screenId: g.screenId, html: ctx.ledger.putArtifact(html), image: ctx.ledger.putArtifact(png) };
@@ -130,6 +133,6 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
   } finally {
     await c.close().catch(() => undefined);
   }
-  const design = { ...stitchArtifact(plan, assets, { projectId, model: at.stitch!, designMd: mdSha }, reqIds), header: header(ctx.runId, "design", "design", "", at.model) };
+  const design = { ...stitchArtifact(plan, assets, { projectId, model: STITCH_MODEL, designMd: mdSha }, reqIds), header: header(ctx.runId, "design", "design", "", at.model) };
   return { kind: "done", outputs: { design: ctx.ledger.putJson(design) }, data: { screens: plan.screens.length, engine: "stitch" } };
 }

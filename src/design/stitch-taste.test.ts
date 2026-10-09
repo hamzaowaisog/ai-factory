@@ -43,3 +43,15 @@ describe("review fixes", () => {
     expect(designMdFaults(`${good}\n- **Ink** (#000) — text`, { colours: ["#000"], fonts: [] })).toEqual([]);
   });
 });
+
+describe("the Stitch theme", () => {
+  it("needs Stitch's required theme fields, with fonts from Stitch's own list", async () => {
+    const { DesignMdOut } = await import("./stitch-taste.js");
+    const designMd = "x".repeat(220);
+    const theme = { colorMode: "LIGHT", headlineFont: "GEIST", bodyFont: "DM_SANS", roundness: "ROUND_EIGHT", customColor: "#0F766E" };
+    expect(DesignMdOut.safeParse({ designMd, theme }).success).toBe(true);
+    expect(DesignMdOut.safeParse({ designMd }).success).toBe(false);
+    expect(DesignMdOut.safeParse({ designMd, theme: { ...theme, bodyFont: "SATOSHI" } }).success).toBe(false);
+    expect(DesignMdOut.safeParse({ designMd, theme: { ...theme, customColor: "teal" } }).success).toBe(false);
+  });
+});

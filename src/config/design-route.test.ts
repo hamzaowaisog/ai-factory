@@ -55,11 +55,8 @@ describe("design route", () => {
     expect(designRoute(cfg({ engine: "claude" }), { tier: "light" }).ladder[0]).toEqual({ tier: "standard", model: "claude-sonnet-5" });
   });
 
-  it("keeps the light Stitch model on the light tier, planned by the next Claude model up", () => {
-    const r = designRoute(cfg({ engine: "stitch", allowStitch: true, tier: "light" }));
-    expect(r.ladder.map((x) => [x.tier, x.model, x.stitch])).toEqual([
-      ["light", "claude-sonnet-5", "GEMINI_3_FLASH"], ["standard", "claude-sonnet-5", "GEMINI_3_PRO"], ["heavy", "claude-opus-5-5", "GEMINI_3_1_PRO"],
-    ]);
+  it("refuses a pinned stitch tier with no Claude planner, like the claude engine", () => {
+    expect(() => designRoute(cfg({ engine: "stitch", allowStitch: true, tier: "light" }))).toThrow(/tier light.*design.tiers.light.claude/);
   });
 
   it("climbs the openai tiers and steps to Claude's heavy model at the top", () => {
@@ -81,14 +78,11 @@ describe("design route", () => {
     expect(() => designRoute(cfg({ engine: "stitch" }))).toThrow(/allowStitch/);
   });
 
-  it("plans stitch with the Claude ladder and draws with the tier's Stitch model", () => {
+  it("plans stitch with the Claude ladder of its tier; Stitch draws with its default model", () => {
     const r = designRoute(cfg({ engine: "stitch", allowStitch: true, tier: "standard" }));
-    expect(r.ladder).toEqual([
-      { tier: "standard", model: "claude-sonnet-5", stitch: "GEMINI_3_PRO" },
-      { tier: "heavy", model: "claude-opus-5-5", stitch: "GEMINI_3_1_PRO" },
-    ]);
+    expect(r.ladder).toEqual([{ tier: "standard", model: "claude-sonnet-5" }, { tier: "heavy", model: "claude-opus-5-5" }]);
     expect(r.route.model).toBe("claude-sonnet-5");
-    expect([0, 1, 2, 5].map((n) => ladderAt(r, n).stitch)).toEqual(["GEMINI_3_PRO", "GEMINI_3_PRO", "GEMINI_3_1_PRO", "GEMINI_3_1_PRO"]);
+    expect([0, 1, 2, 5].map((n) => ladderAt(r, n).model)).toEqual(["claude-sonnet-5", "claude-sonnet-5", "claude-opus-5-5", "claude-opus-5-5"]);
   });
 
   it("puts a pin over the hook and the hook over the default", () => {

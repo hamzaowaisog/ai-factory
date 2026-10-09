@@ -32,18 +32,21 @@ const md = (brand = "#0F766E") => `# Design System: Payees\n## 1. Visual Theme &
 let answers: unknown[] = [];
 let systems: string[] = [];
 let users: string[] = [];
+let models: string[] = [];
 const provider: Provider = {
-  start(_m, _e, system, user): Conversation {
+  start(m, _e, system, user): Conversation {
+    models.push(m);
     return { async next(): Promise<Turn> { systems.push(system); users.push(user); const a = answers.shift(); if (!a) throw new Error("no scripted answer"); return { calls: [{ id: "s", name: "submit_result", input: a }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
 
-interface Made { projects: string[]; systems: { name: string; guidelines: string }[]; generated: { prompt: string; device: string; model: string }[]; closed: number }
+const theme = { colorMode: "LIGHT", headlineFont: "GEIST", bodyFont: "GEIST", roundness: "ROUND_EIGHT", customColor: "#0F766E" };
+interface Made { projects: string[]; systems: { name: string; theme: Record<string, unknown> }[]; generated: { prompt: string; device: string }[]; closed: number }
 let made: Made;
 const fakeStitch = (fail = false): StitchClient => ({
   async createProject(title) { made.projects.push(title); return "proj-1"; },
-  async createDesignSystem(_p, name, guidelines) { made.systems.push({ name, guidelines }); },
-  async generate(_p, prompt, device, model) { if (fail) throw new Error("Stitch is down"); made.generated.push({ prompt, device, model }); const n = made.generated.length; return { screenId: `scr-${n}`, htmlUrl: `html-${n}`, imageUrl: `img-${n}` }; },
+  async createDesignSystem(_p, name, t) { made.systems.push({ name, theme: t }); },
+  async generate(_p, prompt, device) { if (fail) throw new Error("Stitch is down"); made.generated.push({ prompt, device }); const n = made.generated.length; return { screenId: `scr-${n}`, htmlUrl: `html-${n}`, imageUrl: `img-${n}` }; },
   async download(url) { return new TextEncoder().encode(url.startsWith("html") ? `<html>${url}</html>` : `PNG-${url}`); },
   async close() { made.closed++; },
 });
@@ -74,7 +77,7 @@ beforeEach(() => {
   process.env.ANTHROPIC_API_KEY = "sk-ant-test-not-real";
   process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "stitch-home-"));
   _resetEnvCache();
-  answers = []; systems = []; users = [];
+  answers = []; systems = []; users = []; models = [];
   made = { projects: [], systems: [], generated: [], closed: 0 };
   setProviderFactory(() => provider);
   setStitchFactory(() => fakeStitch());
@@ -86,7 +89,7 @@ describe("the stitch design artifact", () => {
     const a = stitchArtifact(plan() as never, [
       { id: "S-1", screenId: "scr-1", html: "h1", image: "i1" },
       { id: "S-2", screenId: "scr-2", html: "h2", image: "i2" },
-    ], { projectId: "proj-1", model: "GEMINI_3_PRO", designMd: "m" }, ["REQ-1", "REQ-2"]);
+    ], { projectId: "proj-1", model: "stitch-default", designMd: "m" }, ["REQ-1", "REQ-2"]);
     expect(a.engine).toBe("stitch");
     expect(a.screens.map((s) => [s.id, s.route, s.reqs, s.frames])).toEqual([["S-1", "/payees", ["REQ-1"], ["ST-1"]], ["S-2", "/payees/new", ["REQ-2"], ["ST-2"]]]);
     expect(a.mapping).toEqual({ unmappedReqs: [], orphanScreens: [] });
@@ -102,26 +105,27 @@ describe("the stitch design artifact", () => {
 describe("drawing with stitch", () => {
   it("writes DESIGN.md with the taste skill, makes one project and design system, and draws each screen with the tier's model", async () => {
     const ledger = memoryLedger();
-    answers = [plan(), { designMd: md() }];
+    answers = [plan(), { designMd: md(), theme }];
     const out = await drawWithStitch(ctxFor(ledger), spec);
     expect(out.kind).toBe("done");
     expect(systems[1]).toContain("Stitch Design Taste");
     expect(systems[1]).toContain("win over the skill's taste rules");
     expect(made.projects).toHaveLength(1);
-    expect(made.systems).toEqual([{ name: expect.any(String), guidelines: md() }]);
-    expect(made.generated.map((g) => [g.device, g.model])).toEqual([["DESKTOP", "GEMINI_3_PRO"], ["DESKTOP", "GEMINI_3_PRO"]]);
+    expect(made.systems).toEqual([{ name: expect.any(String), theme: { ...theme, designMd: md() } }]);
+    expect(made.generated.map((g) => g.device)).toEqual(["DESKTOP", "DESKTOP"]);
+    expect(models).toEqual(["claude-sonnet-5", "claude-sonnet-5"]);
     expect(made.closed).toBe(1);
     expect(existsSync(join(ledger.dir, "attachments", "frames", "stitch-S-1.png"))).toBe(true);
     const d = ledger.getJson<{ engine: string; screens: { frames: string[] }[]; stitch: { model: string } }>((out as { outputs: { design: string } }).outputs.design);
     expect(d.engine).toBe("stitch");
-    expect(d.stitch.model).toBe("GEMINI_3_PRO");
+    expect(d.stitch.model).toBe("stitch-default");
     expect(d.screens.map((s) => s.frames)).toEqual([["ST-1"], ["ST-2"]]);
   });
 
-  it("draws with the next tier's Stitch model after a step up", async () => {
-    answers = [plan(), { designMd: md() }];
+  it("plans with the next tier's Claude model after a step up", async () => {
+    answers = [plan(), { designMd: md(), theme }];
     await drawWithStitch(ctxFor(memoryLedger(), 2), spec);
-    expect(made.generated[0]!.model).toBe("GEMINI_3_1_PRO");
+    expect(models).toEqual(["claude-opus-5-5", "claude-opus-5-5"]);
   });
 
   it("fails a screen list that leaves a requirement out, before any Stitch call", async () => {
@@ -132,7 +136,7 @@ describe("drawing with stitch", () => {
   });
 
   it("fails a DESIGN.md that drops the brand colour, before any Stitch call", async () => {
-    answers = [plan(), { designMd: md("#2563EB") }];
+    answers = [plan(), { designMd: md("#2563EB"), theme }];
     const out = await drawWithStitch(ctxFor(memoryLedger()), spec);
     expect(out).toMatchObject({ kind: "fail", failures: [expect.objectContaining({ check: "stitch-designmd-brand" })] });
     expect(made.projects).toEqual([]);
@@ -140,21 +144,21 @@ describe("drawing with stitch", () => {
 
   it("parks on a Stitch error instead of climbing to a stronger model, and still closes the client", async () => {
     setStitchFactory(() => fakeStitch(true));
-    answers = [plan(), { designMd: md() }];
+    answers = [plan(), { designMd: md(), theme }];
     const out = await drawWithStitch(ctxFor(memoryLedger()), spec);
     expect(out).toMatchObject({ kind: "park", reason: expect.stringMatching(/Stitch failed: Stitch is down/) });
     expect(made.closed).toBe(1);
   });
 
   it("gives both calls the lead's send-back reasons, the existing look and the references", async () => {
-    answers = [plan(), { designMd: md() }];
+    answers = [plan(), { designMd: md(), theme }];
     await drawWithStitch(ctxFor(memoryLedger()), spec, { feedback: ["make the header teal"], look: { brand: "#0F766E", font: "Lato" }, refs: { refs: [{ id: "R-1", took: "card layout" }] } });
     for (const u of users) { expect(u).toContain("make the header teal"); expect(u).toContain("Lato"); expect(u).toContain("card layout"); }
     expect(users).toHaveLength(2);
   });
 
   it("holds DESIGN.md to the project's brand fonts", async () => {
-    answers = [plan(), { designMd: md() }];
+    answers = [plan(), { designMd: md(), theme }];
     const out = await drawWithStitch(ctxFor(memoryLedger(), 0, { brandFonts: ["Lato"] }), spec);
     expect(out).toMatchObject({ kind: "fail", failures: [expect.objectContaining({ check: "stitch-designmd-brand", message: expect.stringContaining("Lato") })] });
   });

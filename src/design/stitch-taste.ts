@@ -17,14 +17,28 @@ export function loadTasteSkill(path = TASTE_SKILL_PATH): string {
   return readFileSync(path, "utf8").replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "").trim();
 }
 
+/** The fonts Stitch's design system accepts (create_design_system, SDK 0.3.5). */
+export const STITCH_FONTS = ["BE_VIETNAM_PRO", "EPILOGUE", "INTER", "LEXEND", "MANROPE", "NEWSREADER", "NOTO_SERIF", "PLUS_JAKARTA_SANS", "PUBLIC_SANS", "SPACE_GROTESK", "SPLINE_SANS", "WORK_SANS", "DOMINE", "LIBRE_CASLON_TEXT", "EB_GARAMOND", "LITERATA", "SOURCE_SERIF_FOUR", "MONTSERRAT", "METROPOLIS", "SOURCE_SANS_THREE", "NUNITO_SANS", "ARIMO", "HANKEN_GROTESK", "RUBIK", "GEIST", "DM_SANS", "IBM_PLEX_SANS", "SORA"] as const;
+/** Stitch's required theme fields; the DESIGN.md travels beside them as theme.designMd. */
+export const StitchTheme = z.object({
+  colorMode: z.enum(["LIGHT", "DARK"]),
+  headlineFont: z.enum(STITCH_FONTS),
+  bodyFont: z.enum(STITCH_FONTS),
+  roundness: z.enum(["ROUND_FOUR", "ROUND_EIGHT", "ROUND_TWELVE", "ROUND_FULL"]),
+  customColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+});
+export type StitchTheme = z.infer<typeof StitchTheme>;
+
+const STITCH_FONTS_TEXT = STITCH_FONTS.join(", ");
+
 export const TASTE_OVERRIDES = `You write the DESIGN.md for this product by following the skill above, with these rules first:
 - The client's brand colours and fonts, and an existing app's look, win over the skill's taste rules and bans. Keep every brand hex and font named in "brand" exactly.
 - Use the skill's output structure (sections 1 to 7). Every colour has a descriptive name, its hex code and its role.
 - Choose the dials from the product: software screens and dashboards are Density 5 to 7 and Variance 3 to 5; a marketing site may go higher.
 - Describe the screens' shared look only. Never list screens, invent features, or describe content the requirements do not ask for.
-Return the whole file as "designMd".`;
+Return the whole file as "designMd", and "theme" for Stitch: colorMode (LIGHT or DARK), headlineFont and bodyFont from Stitch's list (${STITCH_FONTS_TEXT}; the closest to the DESIGN.md's fonts), roundness (ROUND_FOUR, ROUND_EIGHT, ROUND_TWELVE or ROUND_FULL) and customColor, the one accent as a 6-digit hex (the client's brand colour when there is one).`;
 
-export const DesignMdOut = z.object({ designMd: z.string().min(200) });
+export const DesignMdOut = z.object({ designMd: z.string().min(200), theme: StitchTheme });
 
 const SECTIONS = [/^##\s*1\.\s/m, /^##\s*2\.\s/m, /^##\s*3\.\s/m, /^##\s*4\.\s/m, /^##\s*5\.\s/m, /anti-patterns/i];
 

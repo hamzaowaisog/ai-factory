@@ -19,12 +19,9 @@ export const DEFAULT_TIERS: TierTable = {
 const DEFAULT_ENGINE: DesignEngine = "claude";
 const DEFAULT_TIER: DesignTier = "heavy";
 
-/** The Stitch model per tier (SDK 0.3.5 model ids). */
-export const STITCH_MODELS = { light: "GEMINI_3_FLASH", standard: "GEMINI_3_PRO", heavy: "GEMINI_3_1_PRO" } as const satisfies Record<DesignTier, string>;
-
 export interface DesignPick { engine: DesignEngine; tier: DesignTier; source: { engine: RouteSource; tier: RouteSource }; dropped?: string }
-/** `stitch` is the Stitch model of the entry's tier, on the stitch engine; its `model` is the Claude planner. */
-export interface DesignRoute extends DesignPick { ladder: { tier: DesignTier; model: string; stitch?: string }[]; route: StepRoute }
+/** On the stitch engine each entry's `model` is the Claude planner; Stitch draws with its own default model (it refused every documented model id on 9 Oct 2026). */
+export interface DesignRoute extends DesignPick { ladder: { tier: DesignTier; model: string }[]; route: StepRoute }
 type Design = ProjectConfig["design"];
 type Hook = { engine?: DesignEngine; tier?: DesignTier };
 
@@ -60,22 +57,14 @@ export function designRoute(project: Pick<ProjectConfig, "design">, hook?: Hook)
   }
   const tiers: TierTable = {};
   for (const t of DESIGN_TIERS) tiers[t] = { ...DEFAULT_TIERS[t], ...d?.tiers?.[t] };
-  let ladder: DesignRoute["ladder"];
-  if (pick.engine === "stitch") {
-    // Stitch draws on every tier from the start with that tier's model; Claude plans on that tier, or the next one up that has a Claude model
-    ladder = DESIGN_TIERS.slice(DESIGN_TIERS.indexOf(pick.tier)).flatMap((t) => {
-      const planner = tierModels("claude", t, tiers)[0]?.model;
-      return planner ? [{ tier: t, model: planner, stitch: STITCH_MODELS[t] }] : [];
-    });
-    if (!ladder.length) throw new Error(`No claude model to plan the stitch design at tier ${pick.tier} or above; add one under design.tiers`);
-  } else {
-    ladder = tierModels(pick.engine, pick.tier, tiers);
-    // the engine needs a model of its own on the ladder; a ladder of only the cross-vendor heavy step would swap vendors silently
-    if (!ladder.some((x) => tiers[x.tier]?.[pick.engine] === x.model)) throw new Error(`No ${pick.engine} model for the design step at tier ${pick.tier} or above; add one under design.tiers`);
-    // a tier a person pinned is the tier that runs: no silent start one tier up (a suggested tier may start higher)
-    if (pick.source.tier === "project-pin" && ladder[0]!.tier !== pick.tier) {
-      throw new Error(`No ${pick.engine} model for the design step at tier ${pick.tier}; add one under design.tiers.${pick.tier}.${pick.engine}, or pin tier ${ladder[0]!.tier}`);
-    }
+  // Stitch draws; Claude plans the screens and writes the DESIGN.md on the tier's Claude model
+  const planner = pick.engine === "stitch" ? "claude" : pick.engine;
+  const ladder = tierModels(planner, pick.tier, tiers);
+  // the engine needs a model of its own on the ladder; a ladder of only the cross-vendor heavy step would swap vendors silently
+  if (!ladder.some((x) => tiers[x.tier]?.[planner] === x.model)) throw new Error(`No ${planner} model for the design step at tier ${pick.tier} or above; add one under design.tiers`);
+  // a tier a person pinned is the tier that runs: no silent start one tier up (a suggested tier may start higher)
+  if (pick.source.tier === "project-pin" && ladder[0]!.tier !== pick.tier) {
+    throw new Error(`No ${planner} model for the design step at tier ${pick.tier}; add one under design.tiers.${pick.tier}.${planner}, or pin tier ${ladder[0]!.tier}`);
   }
   return {
     ...pick, ladder,

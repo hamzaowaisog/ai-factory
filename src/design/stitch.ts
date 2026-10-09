@@ -2,26 +2,31 @@
 // No MCP server is set up; the SDK talks to Stitch's hosted endpoint with STITCH_API_KEY.
 import { Stitch, StitchToolClient } from "@google/stitch-sdk";
 import { secret } from "../config/env.js";
+import type { StitchTheme } from "./stitch-taste.js";
 
 export type StitchDevice = "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC";
 export interface StitchClient {
   createProject(title: string): Promise<string>;
-  createDesignSystem(projectId: string, name: string, styleGuidelines: string): Promise<void>;
-  generate(projectId: string, prompt: string, device: StitchDevice, model: string): Promise<{ screenId: string; htmlUrl: string; imageUrl: string }>;
+  /** Creates the project's design system and applies it (Stitch asks for update_design_system right after create_design_system). */
+  createDesignSystem(projectId: string, name: string, theme: StitchTheme & { designMd: string }): Promise<void>;
+  /** Stitch's default model: the service refused every documented model id (GEMINI_3_FLASH, GEMINI_3_PRO, GEMINI_3_1_PRO) on 9 Oct 2026. */
+  generate(projectId: string, prompt: string, device: StitchDevice): Promise<{ screenId: string; htmlUrl: string; imageUrl: string }>;
   download(url: string): Promise<Uint8Array>;
   close(): Promise<void>;
 }
 
-type StitchModel = Parameters<ReturnType<Stitch["project"]>["generate"]>[2];
 
 function sdkClient(apiKey: string): StitchClient {
   const tools = new StitchToolClient({ apiKey });
   const stitch = new Stitch(tools);
   return {
     async createProject(title) { return (await stitch.createProject(title)).id; },
-    async createDesignSystem(projectId, name, styleGuidelines) { await stitch.project(projectId).createDesignSystem({ displayName: name, styleGuidelines }); },
-    async generate(projectId, prompt, device, model) {
-      const screen = await stitch.project(projectId).generate(prompt, device, model as StitchModel);
+    async createDesignSystem(projectId, name, theme) {
+      const ds = await stitch.project(projectId).createDesignSystem({ displayName: name, theme });
+      await ds.update({ displayName: name, theme });
+    },
+    async generate(projectId, prompt, device) {
+      const screen = await stitch.project(projectId).generate(prompt, device);
       return { screenId: screen.id, htmlUrl: await screen.getHtml(), imageUrl: await screen.getImage() };
     },
     async download(url) {
