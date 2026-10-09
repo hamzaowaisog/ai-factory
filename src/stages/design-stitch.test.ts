@@ -47,7 +47,7 @@ const fakeStitch = (fail = false): StitchClient => ({
   async createProject(title) { made.projects.push(title); return "proj-1"; },
   async createDesignSystem(_p, name, t) { made.systems.push({ name, theme: t }); },
   async generate(_p, prompt, device) { if (fail) throw new Error("Stitch is down"); made.generated.push({ prompt, device }); const n = made.generated.length; return { screenId: `scr-${n}`, htmlUrl: `html-${n}`, imageUrl: `img-${n}` }; },
-  async download(url) { return new TextEncoder().encode(url.startsWith("html") ? `<html><body><h1>Page ${url}</h1><button>Save ${url}</button></body></html>` : `PNG-${url}`); },
+  async download(url) { return new TextEncoder().encode(url.startsWith("html") ? `<html><body><h1>Page ${url}</h1><button>Save payee</button></body></html>` : `PNG-${url}`); },
   async edit(_p, screenId, prompt) { made.edits.push({ screenId, prompt }); const n = made.generated.length + made.edits.length; return { screenId: `edited-${n}`, htmlUrl: `html-e${n}`, imageUrl: `img-e${n}` }; },
   async close() { made.closed++; },
 });
@@ -127,7 +127,7 @@ describe("drawing with stitch", () => {
     const d = ledger.getJson<{ engine: string; theme: unknown; themeSource: string; screens: { frames: string[]; facts?: { title?: string; buttons: string[] } }[]; stitch: { model: string; theme: unknown } }>((out as { outputs: { design: string } }).outputs.design);
     expect(d.theme).toMatchObject({ brand: "#0F766E", mode: "light" });
     expect(d.themeSource).toBe("new");
-    expect(d.screens[0]!.facts).toMatchObject({ title: "Page html-1", buttons: ["Save html-1"] });
+    expect(d.screens[0]!.facts).toMatchObject({ title: "Page html-1", buttons: ["Save payee"] });
     expect(d.stitch.theme).toEqual(theme);
     expect(d.engine).toBe("stitch");
     expect(d.stitch.model).toBe("stitch-default");

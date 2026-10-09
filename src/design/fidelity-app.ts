@@ -142,6 +142,9 @@ export function blockWords(b: Block, phone = false): string[] {
   return out;
 }
 
+/** The share of an approved Stitch screen's words a built page must show. */
+const STITCH_SHARE = 0.7;
+
 export interface Expected { blocks: { type: string; words: string[] }[]; page: string[]; toast?: string; busy?: boolean }
 
 /** What a screen must show in a state: the page's title and tabs, then its blocks, its state's message, its open layer or toast. */
@@ -152,6 +155,8 @@ export function expectedFor(s: DScreen, stateSlug: string, phone = false): Expec
     const f = s.facts;
     const kind0 = stateKindOf((screenStates(s)[stateSlug] ?? { name: "default" }).name);
     if (kind0 === "normal") return { page: f.title ? [f.title] : [], blocks: [{ type: "stitch", words: [...f.buttons, ...f.fields, ...f.columns] }] };
+    // an extra state Stitch drew has its own words, which no design JSON names: its structure is not held to anything here
+    return { page: [], blocks: [] };
   }
   const st = screenStates(s)[stateSlug] ?? { name: "default" };
   const page = [m?.title ?? "", ...(m?.tabs ?? [])].filter(Boolean);
@@ -200,6 +205,12 @@ export function structureFindings(exp: Expected, got: ReadBlock[], pageWords: st
     if (!match) { out.push(`${name} is missing`); continue; }
     const words = norm(match.words);
     const missing = b.words.filter((w) => !words.includes(norm(w)));
+    // a Stitch screen's words were read from its HTML, some of them sample data: most of them on the built page is a match
+    if (b.type === "stitch") {
+      const shown = b.words.length - missing.length;
+      if (b.words.length && shown / b.words.length < STITCH_SHARE) out.push(`the approved Stitch screen's words: the page shows ${shown} of the ${b.words.length} words (missing ${missing.slice(0, 6).map((w) => `"${w}"`).join(", ")}${missing.length > 6 ? ` and ${missing.length - 6} more` : ""})`);
+      continue;
+    }
     if (missing.length) out.push(`${name} does not show ${missing.slice(0, 6).map((w) => `"${w}"`).join(", ")}${missing.length > 6 ? ` and ${missing.length - 6} more` : ""}`);
   }
   if (exp.toast && !norm(toasts).includes(norm(exp.toast))) out.push(`the message "${exp.toast}" is not shown`);

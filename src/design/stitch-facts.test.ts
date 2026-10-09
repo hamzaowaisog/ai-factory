@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { stitchFacts } from "./stitch-facts.js";
 import { screenFacts } from "./design-link.js";
 
@@ -87,7 +88,7 @@ describe("fidelity for a Stitch screen", () => {
     const { structureFindings } = await import("./fidelity-app.js");
     const exp = { page: ["Payees"], blocks: [{ type: "stitch", words: ["Add payee", "IBAN", "Name"] }] };
     expect(structureFindings(exp, [], "Payees Name IBAN Add payee", "")).toEqual([]);
-    expect(structureFindings(exp, [], "Payees Name", "").join(" ")).toMatch(/does not show "Add payee", "IBAN"/);
+    expect(structureFindings(exp, [], "Payees Name", "").join(" ")).toMatch(/shows 1 of the 3 words \(missing "Add payee", "IBAN"\)/);
   });
 });
 
@@ -122,5 +123,33 @@ describe("hidden text and the brief budget (review I5, I6)", () => {
     expect(got).toHaveLength(3);
     expect(got.reduce((n, x) => n + x.html.length, 0)).toBeLessThanOrEqual(24_000 + 3 * 40);
     expect(stitchHtmlFor({ screens: [], stitch: { frames } }, screens, big, 0)).toEqual([]);
+  });
+});
+
+describe("facts from real Stitch HTML (review I7, I8)", () => {
+  const html = readFileSync(new URL("./fixtures/stitch-book-appointment.html", import.meta.url), "utf8");
+
+  it("reads the page's own title and words: no navigation, data or card text", () => {
+    const f = stitchFacts(html);
+    expect(f.title).toBe("Schedule Dental Appointment");
+    for (const w of [...f.buttons, ...f.fields, ...f.columns]) {
+      expect(w, w).not.toMatch(/\d/);
+      expect(w.length, w).toBeLessThanOrEqual(40);
+    }
+    expect(f.buttons).toContain("Cancel");
+    expect(f.fields).toContain("Full Name *");
+  });
+
+  it("holds the built page to most of the Stitch words, not every one", async () => {
+    const { structureFindings } = await import("./fidelity-app.js");
+    const exp = { page: ["Payees"], blocks: [{ type: "stitch", words: ["Add payee", "IBAN", "Name", "Bank", "Status", "Nickname", "Cancel", "Save", "Search", "Export"] }] };
+    expect(structureFindings(exp, [], "Payees Add payee IBAN Name Bank Status Nickname Cancel", "")).toEqual([]);
+    expect(structureFindings(exp, [], "Payees Add payee IBAN", "").join(" ")).toMatch(/shows 2 of the 10 words/);
+  });
+
+  it("does not hold a Stitch screen's extra states to copy nobody approved", async () => {
+    const { expectedFor } = await import("./fidelity-app.js");
+    const s = { id: "S-1", route: "/a", file: "x", reqs: [], states: ["empty", "error"], facts: { title: "Payees", buttons: ["Add payee"], fields: [], columns: [], headings: [] } };
+    for (const slug of ["empty", "error"]) expect(expectedFor(s as never, slug)).toEqual({ page: [], blocks: [] });
   });
 });
