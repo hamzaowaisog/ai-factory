@@ -1,6 +1,6 @@
 // The GitHub client. No network: every call takes `fetch`, and the tests script it.
 import { describe, expect, it, vi } from "vitest";
-import { factoryLogin, findReviewBody, getPr, listChecks, listOpenPrs, upsertCheckRun, upsertReviewComment } from "./github.js";
+import { factoryLogin, findReviewBody, getPr, listChecks, listOpenPrs, setCommitStatus, upsertReviewComment } from "./github.js";
 
 const gh = { root: "https://api.github.com", api: "https://api.github.com/repos/acme/shop", headers: {} };
 const json = (body: unknown) =>
@@ -50,26 +50,35 @@ describe("listChecks", () => {
   });
 });
 
-describe("upsertCheckRun", () => {
-  it("patches the existing check rather than adding another", async () => {
-    const f = vi.fn().mockResolvedValueOnce(json({ check_runs: [{ id: 5 }] })).mockResolvedValueOnce(json({ id: 5 }));
-    expect(await upsertCheckRun(gh, { name: "factory/merge-gate", headSha: SHA, conclusion: "success", title: "t", summary: "s" }, f as never))
-      .toBe("updated");
-    expect(f.mock.calls[1]![0]).toMatch(/check-runs\/5$/);
-    expect(f.mock.calls[1]![1]).toMatchObject({ method: "PATCH" });
+describe("setCommitStatus", () => {
+  const body = (f: ReturnType<typeof vi.fn>) => JSON.parse(String((f.mock.calls[0]![1] as RequestInit).body));
+
+  it("posts one status to the commit under the gate's context: a PAT can, a check run needs an App", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ id: 1 }));
+    await setCommitStatus(gh, { context: "factory/merge-gate", sha: SHA, conclusion: "failure", description: "2 blocking" }, f as never);
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(f.mock.calls[0]![0]).toBe(`${gh.api}/statuses/${SHA}`);
+    expect(f.mock.calls[0]![1]).toMatchObject({ method: "POST" });
+    expect(body(f)).toEqual({ state: "failure", context: "factory/merge-gate", description: "2 blocking" });
   });
 
-  it("creates one when none exists", async () => {
-    const f = vi.fn().mockResolvedValueOnce(json({ check_runs: [] })).mockResolvedValueOnce(json({ id: 9 }));
-    expect(await upsertCheckRun(gh, { name: "factory/merge-gate", headSha: SHA, conclusion: "failure", title: "t", summary: "s" }, f as never))
-      .toBe("created");
-    expect(f.mock.calls[1]![1]).toMatchObject({ method: "POST" });
+  it("writes neutral as success, which is how a required check treats a neutral check run", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ id: 1 }));
+    await setCommitStatus(gh, { context: "factory/merge-gate", sha: SHA, conclusion: "neutral", description: "d" }, f as never);
+    expect(body(f).state).toBe("success");
   });
 
-  it("cites the commit it judged", async () => {
-    const f = vi.fn().mockResolvedValueOnce(json({ check_runs: [] })).mockResolvedValueOnce(json({ id: 9 }));
-    await upsertCheckRun(gh, { name: "factory/merge-gate", headSha: SHA, conclusion: "neutral", title: "t", summary: "s" }, f as never);
-    expect(JSON.parse(String((f.mock.calls[1]![1] as RequestInit).body))).toMatchObject({ head_sha: SHA, conclusion: "neutral" });
+  it("cuts a description to GitHub's 140 characters instead of being refused", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ id: 1 }));
+    await setCommitStatus(gh, { context: "factory/merge-gate", sha: SHA, conclusion: "success", description: "x".repeat(300) }, f as never);
+    expect(body(f).description).toHaveLength(140);
+    expect(body(f).description.endsWith("…")).toBe(true);
+  });
+
+  it("throws when GitHub refuses", async () => {
+    const f = vi.fn().mockResolvedValueOnce(bad(403));
+    await expect(setCommitStatus(gh, { context: "factory/merge-gate", sha: SHA, conclusion: "success", description: "d" }, f as never))
+      .rejects.toThrow(/commit status failed: 403/);
   });
 });
 

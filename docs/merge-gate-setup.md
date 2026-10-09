@@ -79,7 +79,7 @@ check counts as failed.
 Require a merge queue on the base branch | Settings → Branches → branch protection | Nothing else verifies the *combination* of pull requests about to land |
 Add `factory/merge-gate` as a required status check | same page | Without it, nothing stops a pull request merging ungated |
 Merge method: **merge commit**, not squash | same page | A squash rewrites the commit the factory gated, so what lands is not what the evidence describes |
-Token scopes: `checks:write`, `pull_requests:write`, `contents:write` | the token in `~/.factory/.env` | Writing the check run, the comment, and repair commits |
+Token permissions: **Commit statuses: write**, **Pull requests: write**, **Contents: write** (fine-grained), or `repo` (classic) | the token in `~/.factory/.env` | Writing the `factory/merge-gate` status, the comment, and repair commits. A check run can only be created by a GitHub App, so the verdict is a commit status, which branch protection accepts as a required check |
 
 **Order matters.** Approve the guidelines (step 2) *before* making the check required, or every pull
 request goes red until you do.
@@ -190,7 +190,7 @@ Delegate on the host, unapproved guidelines, or a squash merge method.
 10 | Compare every gate's recorded inputs hash against the current one | free |
 11 | *Only if a review's own inputs moved:* `review-2` reads the code | tokens |
 12 | Run the gates, in order | free |
-13 | Write back one check run and one comment; Slack only on failure | 2 API calls |
+13 | Write back one commit status and one comment; Slack only on failure | 2 API calls |
 
 A pull request whose tree has not moved reaches step 13 having spent **nothing**: every gate verdict
 is replayed because its inputs hash is unchanged, which means the answer cannot have changed either.
@@ -262,9 +262,9 @@ So exercise it in this order, under WSL2, before pointing a trigger at it:
 3. `factory conventions approve --project <p> <hash>`.
 4. `factory review-pr <n> --project <p> --repository <owner/name>` against a **real but
    unimportant** pull request. This is the first time `live.ts` runs end to end: the ledger is
-   opened, a worktree is merged, a container starts, the reviewer is called and a check run is
+   opened, a worktree is merged, a container starts, the reviewer is called and a commit status is
    written. Expect to fix things here.
 5. Only then add the Harness triggers.
 
-Nothing in that list can damage `main`: every path either writes a check run or refuses. The failure
+Nothing in that list can damage `main`: every path either writes a commit status or refuses. The failure
 you are looking for is the opposite one — a step that quietly does nothing and reports green.

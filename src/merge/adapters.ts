@@ -7,7 +7,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
 import { OWN_CHECK_NAME } from "../contracts/checks.js";
 import { secret } from "../config/env.js";
-import { factoryLogin, findReviewBody, getPr, type Gh, listChecks, upsertCheckRun, upsertReviewComment } from "../forge/github.js";
+import { factoryLogin, findReviewBody, getPr, type Gh, listChecks, setCommitStatus, upsertReviewComment } from "../forge/github.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { fetchForGate, git, gitOut } from "../ledger/git.js";
@@ -119,7 +119,8 @@ export function forgeAdapter(o: ForgeAdapterOpts): Pick<ReviewPrDeps, "getPr" | 
     },
     findReviewBody: ownReviewBody(o.gh),
     async writeCheck(a) {
-      await upsertCheckRun(o.gh, { ...a, name: OWN_CHECK_NAME });
+      // the detail is in the pull request comment; a status carries the one-line verdict
+      await setCommitStatus(o.gh, { context: OWN_CHECK_NAME, sha: a.headSha, conclusion: a.conclusion, description: a.title });
     },
     async writeComment(a) {
       await upsertReviewComment(o.gh, a.pr, a.runId, a.body);

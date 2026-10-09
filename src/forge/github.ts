@@ -85,26 +85,23 @@ export async function listChecks(gh: Gh, sha: string, required: string[], f: typ
   };
 }
 
-/** One check, updated in place: a pull request accumulating one check per webhook is unusable. */
-export async function upsertCheckRun(
+/**
+ * The verdict as a commit status. A personal access token can write one; a check run can only be
+ * created by a GitHub App. Statuses are keyed by context, so posting again replaces the last one.
+ */
+export async function setCommitStatus(
   gh: Gh,
-  a: { name: string; headSha: string; conclusion: "success" | "failure" | "neutral"; title: string; summary: string },
+  a: { context: string; sha: string; conclusion: "success" | "failure" | "neutral"; description: string },
   f: typeof fetch = fetch,
-): Promise<"created" | "updated"> {
-  const existing = (await ok(
-    await f(`${gh.api}/commits/${a.headSha}/check-runs?check_name=${encodeURIComponent(a.name)}`, { headers: gh.headers }),
-    "check-run lookup",
-  )) as { check_runs: { id: number }[] };
-  const body = JSON.stringify({
-    name: a.name, head_sha: a.headSha, status: "completed", conclusion: a.conclusion,
-    output: { title: a.title, summary: a.summary },
-  });
-  const id = existing.check_runs[0]?.id;
+): Promise<void> {
+  // a status has no neutral; a required check counts a neutral check run as passing, so this keeps that
+  const state = a.conclusion === "failure" ? "failure" : "success";
+  // GitHub refuses a description over 140 characters
+  const description = a.description.length > 140 ? `${a.description.slice(0, 139)}…` : a.description;
   await ok(
-    await f(id ? `${gh.api}/check-runs/${id}` : `${gh.api}/check-runs`, { method: id ? "PATCH" : "POST", headers: gh.headers, body }),
-    "check-run write",
+    await f(`${gh.api}/statuses/${a.sha}`, { method: "POST", headers: gh.headers, body: JSON.stringify({ state, context: a.context, description }) }),
+    "commit status",
   );
-  return id ? "updated" : "created";
 }
 
 /** Update the factory's own comment, never append another. */
