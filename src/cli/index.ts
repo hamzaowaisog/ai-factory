@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // factory CLI (run-manager §2.8). Decisions (approve/reject/...) work only on a terminal.
+import { MANUAL_CARD, SIGN_OFF, readChecks, type ManualBundle } from "../stages/manual-check.js";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { userInfo } from "node:os";
 import { join } from "node:path";
@@ -254,7 +255,7 @@ for (const d of ["approve", "reject"] as const) {
 
 program.command("waive").argument("<run>").argument("<hash>", "first characters of the waiver card's hash")
   .requiredOption("--reason <text>", "why the failing gate is acceptable (recorded with your name)")
-  .description("waive the estimate gate(s) on the open waiver card (terminal only; estimate gates E3, E4, E5 and build gates B1, B3, B4, B6)")
+  .description("waive the gate(s) on the open waiver card (terminal only; estimate gates E3, E4, E5, build gates B1, B3, B4, B6 and a locked test the review says does not prove its criterion)")
   .action(async (run: string, hash: string, o: { reason: string }) => {
     assertTty();
     const l = openRun(run);
@@ -262,6 +263,26 @@ program.command("waive").argument("<run>").argument("<hash>", "first characters 
     const r = await decide(l, { decision: "waive", hashPrefix: hash, data: { reason: o.reason } });
     if (r.kind === "repeat") return log("Already recorded.");
     log("Waived, and recorded with your name.");
+    await runAndReport(l.runId);
+  });
+
+program.command("sign-off").argument("<run>").argument("<hash>", "first characters of the manual-check card's hash")
+  .option("--pass <ids>", "the criteria you tried and that hold, comma-separated")
+  .option("--fail <ids>", "the criteria that do not hold, comma-separated (needs --note)")
+  .option("--note <text>", "what you saw; recorded with every criterion you fail")
+  .description("record your check of the criteria that have no automated test, before delivery (also on the run page's Tests tab)")
+  .action(async (run: string, hash: string, o: { pass?: string; fail?: string; note?: string }) => {
+    assertTty();
+    const l = openRun(run);
+    const card = replay(l.events()).openCard;
+    if (card?.kind !== MANUAL_CARD) throw new DecisionError("The open card is not a manual-check card.");
+    const ids = (v?: string) => (v ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+    const sent = Object.fromEntries([...ids(o.pass).map((id) => [id, { result: "pass", note: "" }]), ...ids(o.fail).map((id) => [id, { result: "fail", note: o.note ?? "" }])]);
+    const read = readChecks(sent, l.getJson<ManualBundle>(card.artifactSha).criteria);
+    if ("error" in read) throw new DecisionError(read.error);
+    const r = await decide(l, { decision: SIGN_OFF, hashPrefix: hash, data: { checks: read.checks } });
+    if (r.kind === "repeat") return log("Already recorded.");
+    log("Recorded with your name.");
     await runAndReport(l.runId);
   });
 
@@ -444,10 +465,17 @@ program.command("logs").argument("<run>")
 
 program.command("report").argument("[run]")
   .option("--all", "compare steps across all runs, with outcome numbers on top")
-  .option("--json", "with --all: print {outcomes, stages} as JSON")
+  .option("--json", "with --all: print {outcomes, stages} as JSON; with --cost: the cost report as JSON")
+  .option("--cost", "one run: where the money and tokens went, what failed attempts cost, and what filled the coding agent's context")
   .description("step scorecard: first-time pass, retries and why, cost, time, tokens, gates, what you changed")
-  .action(async (run: string | undefined, o: { all?: boolean; json?: boolean }) => {
+  .action(async (run: string | undefined, o: { all?: boolean; json?: boolean; cost?: boolean }) => {
     const { formatAll, formatOutcomes, formatRun, outcomes, scoreRun, stageStats } = await import("../report.js");
+    if (o.cost) {
+      if (!run) return log("Name a run: factory report <run> --cost");
+      const { costReportFor, formatCost } = await import("../cost-report.js");
+      const c = costReportFor(openRun(run));
+      return log(o.json ? JSON.stringify(c, null, 2) : formatCost(c));
+    }
     if (o.all || !run) {
       const runs = Ledger.listRuns().map((id) => { try { return scoreRun(Ledger.open(id)); } catch { return undefined; } }).filter((r): r is NonNullable<typeof r> => !!r);
       if (o.json) return log(JSON.stringify({ outcomes: outcomes(runs), stages: stageStats(runs) }, null, 2));

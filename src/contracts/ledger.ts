@@ -51,5 +51,5 @@ export const RunStatus = z.union([
 ]);
 export type RunStatus = z.infer<typeof RunStatus>;
 
-export const HumanDecision = z.enum(["approve", "reject", "answer", "waive", "unlock", "waive-cap", "waive-budget", "edit"]);
+export const HumanDecision = z.enum(["approve", "reject", "answer", "waive", "unlock", "waive-cap", "waive-budget", "edit", "sign-off"]);
 export type HumanDecision = z.infer<typeof HumanDecision>;

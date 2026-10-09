@@ -51,6 +51,20 @@ export function sizeTasks(anchors: AnchorIn[], ratios: RatioIn[], a: Assumptions
 }
 
 /**
+ * The anchors as a reader sees them: each at its task's final hours, so the list agrees with the task rows. The stored
+ * anchor keeps the lead estimator's reading, which the ratios multiply; when the median of the estimators moved the task
+ * off that reading, `lead` carries it and `note` says so.
+ */
+export function shownAnchors<A extends { taskId: string; hours: Range; reason: string }>(e: { anchors: A[]; tasks: Pick<TaskSizing, "taskId" | "hours">[] }): (A & { lead?: Range; note?: string })[] {
+  const final = new Map(e.tasks.map((t) => [t.taskId, t.hours]));
+  return e.anchors.map((x) => {
+    const f = final.get(x.taskId);
+    if (!f || (f.min === x.hours.min && f.max === x.hours.max)) return x;
+    return { ...x, hours: f, lead: x.hours, note: `median of the estimators; the lead estimator read ${x.hours.min}-${x.hours.max} h, and the ratios multiply that reading` };
+  });
+}
+
+/**
  * Human effort a task contributes to the delivery estimate. Human and joint tasks carry their hours;
  * a factory task's hours are a relative size (used for cost and duration) and add no human effort:
  * its only human time is the gate time, counted separately.

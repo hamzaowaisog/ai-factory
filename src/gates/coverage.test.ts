@@ -1,6 +1,6 @@
 // A review that skipped an acceptance criterion did not review the change.
 import { describe, expect, it } from "vitest";
-import { reviewCoversCriteria } from "./coverage.js";
+import { reviewCoversCriteria, testsProveCriteria } from "./coverage.js";
 import { DEFAULT_POLICY } from "./policy.js";
 import type { Requirement, ReviewCoverage } from "../contracts/index.js";
 
@@ -66,5 +66,33 @@ describe("review.covers-every-criterion", () => {
   it("cannot be waived: a review that skipped a requirement did not review the change", () => {
     expect(reviewCoversCriteria.safety).toBe(true);
     expect(reviewCoversCriteria.waiver).toBe("none");
+  });
+});
+
+describe("review.tests-prove-criteria", () => {
+  const manual: Requirement = { id: "R-3", ears: "The page shall look right", op: "ADDED", sources: ["S-1"], acceptance: [{ id: "AC-4", given: "g", when: "w", then: "t", level: "manual" }] };
+
+  it("passes when the reviewer found every locked test to prove its criterion", () => {
+    const v = testsProveCriteria.predicate({ review: { coverage: [cov("AC-1"), cov("AC-2"), cov("AC-3")] }, spec }, DEFAULT_POLICY);
+    expect(v.passed).toBe(true);
+    expect(v.details).toBe("3 automated criteria are each proven by a locked test");
+  });
+
+  it("fails on a weak test and on a missing one, naming the criterion, the test and the reviewer's reason", () => {
+    const v = testsProveCriteria.predicate({ review: { coverage: [cov("AC-1", "weak"), cov("AC-2", "no-test"), cov("AC-3")] }, spec }, DEFAULT_POLICY);
+    expect(v.passed).toBe(false);
+    expect(v.failures!.map((f) => f.message)).toEqual([
+      "AC-1: its locked test Orders.Tests::X.Y passes but does not prove the criterion (because)",
+      "AC-2: no locked test covers it (because)",
+    ]);
+  });
+
+  it("does not fail a criterion a person checks by hand: it has no test by design", () => {
+    const v = testsProveCriteria.predicate({ review: { coverage: [cov("AC-1"), cov("AC-2"), cov("AC-3"), cov("AC-4", "no-test")] }, spec: { requirements: [...spec.requirements, manual] } }, DEFAULT_POLICY);
+    expect(v.passed).toBe(true);
+  });
+
+  it("can be waived by a person, and is not a safety gate: the verdict is a model's judgement", () => {
+    expect(testsProveCriteria).toMatchObject({ safety: false, waiver: "human", after: "review" });
   });
 });

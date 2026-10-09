@@ -12,7 +12,9 @@ import { gatherRequest } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
 import { shownStatus } from "../stages/run-status.js";
 import { API_PORT } from "../fullstack/skeleton.js";
-import { approvedContract, CONTRACT_FILE, delivered, loadProduct, productNames, productSeed, startApiRun, startProduct, writeRunFiles, type Product, type ProductSeed } from "../fullstack/product.js";
+import { DATABASE_NAME, type DatabaseKind } from "../fullstack/database.js";
+import { approvedContract, CONTRACT_FILE, databaseOf, delivered, loadProduct, productNames, productSeed, startApiRun, startProduct, writeRunFiles, type Product, type ProductSeed } from "../fullstack/product.js";
+import { appsStatus, startApps, stopApps, type AppsDeps, type AppsStatus } from "../fullstack/apps.js";
 import { factoryHome } from "../util/paths.js";
 import { currentStep } from "./data.js";
 import { folderOf, maxCostOf, StartError, str, uploadedFile, type StartDeps } from "./start.js";
@@ -28,12 +30,21 @@ export interface ProductView {
   name: string; dir: string; request?: string; web: SideView; api: SideView;
   /** the approved design or estimate the product started from */
   from?: Product["from"];
+  /** what the API keeps its data in, why, who decided, and (until the API run starts) the other one a person may switch to */
+  database: DatabaseView;
   /** once the web plan is approved: the contract handed to the API run, and its operations ("GET /orders") */
   contract?: { file: string; text: string; operations: string[] };
   /** what to do next, in words, and whether the page's buttons apply */
   next: { say: string; canStartApi: boolean; canWriteRunFiles: boolean };
   /** the folder the run files go to, and the command that starts both apps */
   runFiles: { dir: string; command: string; open: string };
+}
+
+export interface DatabaseView { kind: DatabaseKind; name: string; reason: string }
+
+export function databaseView(p: Product): DatabaseView {
+  const kind = databaseOf(p);
+  return { kind, name: DATABASE_NAME[kind], reason: p.database?.reason ?? "Started before every new product's API was built on PostgreSQL." };
 }
 
 function sideView(side: Product["web"]): SideView {
@@ -68,10 +79,10 @@ export function productView(name: string): ProductView {
     : !contract && !p.api.run ? "The web run asks its questions, draws the design, then writes the plan with the API contract. Approve the plan on the web run's page; then start the API run here."
     : !p.api.run ? "The web plan and its API contract are approved. Start the API run: it builds every operation of the contract. The web run goes on by itself."
     : !both ? "Both runs are going. Each stops at its own cards on its run page; when both are delivered, write the run files here."
-    : "Both runs are delivered. Write the run files, then start both apps together.";
+    : "Both runs are delivered. Start the product here to try it on this machine, or write the run files and start it yourself.";
   const out = join(p.dir, `${p.name}-run`);
   return {
-    name: p.name, dir: p.dir, ...(p.request ? { request: p.request } : {}), ...(p.from ? { from: p.from } : {}), web, api, ...(contract ? { contract } : {}),
+    name: p.name, dir: p.dir, ...(p.request ? { request: p.request } : {}), ...(p.from ? { from: p.from } : {}), database: databaseView(p), web, api, ...(contract ? { contract } : {}),
     next: { say, canStartApi: !p.api.run && !!contract, canWriteRunFiles: both },
     runFiles: { dir: out, command: `docker compose -f ${out}/docker-compose.yml up`, open: `http://localhost:3000 (the API answers on http://localhost:${API_PORT})` },
   };
@@ -144,4 +155,23 @@ export function fullstackUp(name: string): { dir: string; command: string } {
   if (!delivered(p.web.run) || !delivered(p.api.run)) throw new StartError("Both runs must be delivered first.", 409);
   const dir = writeRunFiles(p);
   return { dir, command: `docker compose -f ${dir}/docker-compose.yml up` };
+}
+
+/** Start a delivered product on this machine (src/fullstack/apps.ts): the run files, then the database, the API and the web app, in the background. */
+export async function fullstackStart(name: string, deps: AppsDeps = {}): Promise<{ dir: string }> {
+  const p = loadProduct(name);
+  try { return { dir: (await startApps(p, deps)).dir }; } catch (e) { throw new StartError((e as Error).message, 409); }
+}
+
+/** Stop a started product. Its database keeps its rows. */
+export async function fullstackStop(name: string, deps: AppsDeps = {}): Promise<{ stopped: true }> {
+  try { await stopApps(loadProduct(name), deps); } catch (e) { throw new StartError((e as Error).message, 409); }
+  return { stopped: true };
+}
+
+/** Where a started product is. A product whose runs are not both delivered has nothing to look at, so the container runtime is not asked. */
+export async function fullstackApps(name: string, deps: AppsDeps = {}): Promise<AppsStatus | { state: "none" }> {
+  const p = loadProduct(name);
+  if (!delivered(p.web.run) || !delivered(p.api.run)) return { state: "none" };
+  return appsStatus(p, deps);
 }

@@ -18,6 +18,7 @@ import { demoStates, overlayLabel, toastLabel, FULL_DATA } from "../demo.js";
 import type { FileSource } from "../source.js";
 import { shadcnThemeCss } from "./theme.js";
 import { E2E_CONFIG, E2E_DIR, PLAYWRIGHT_VERSION, UNIT_TEST_DIR, VITEST_CONFIG, VITEST_VERSION, e2eFiles } from "./e2e.js";
+import { SCREEN_HELPER, SCREEN_SETUP, SCREEN_TEST_PACKAGES, screenHelperFile, screenSetupFile } from "./screen-tests.js";
 import { kitFiles, kitTarget, type Kit, type KitTarget } from "./kit.js";
 
 /** The first line of every file the factory owns: a later scaffold may write it again; anything without it is the repo's. */
@@ -357,6 +358,10 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
   // the design's tests: a file per screen written, and their config
   for (const f of e2eFiles({ design: o.design, screens: out, write: (id) => !changed || changed.has(id.toLowerCase()), tag: o.tag, next })) add(f.path, f.text, f.owner, f.regenerate);
 
+  // screen tests ("ui" criteria): the navigation stand-in and the setup every test file runs after (factory-owned)
+  add(SCREEN_HELPER, screenHelperFile(o.tag), "glue", true);
+  add(SCREEN_SETUP, screenSetupFile(o.tag), "glue", true);
+
   // a fresh app's skeleton, or what the design-system task must wire in an existing one
   const kitDeps = { ...o.kit.manifest.dependencies, ...o.kit.manifest.targetDependencies[o.target] };
   const devDeps = o.kit.manifest.devDependencies[o.target] ?? {};
@@ -370,14 +375,16 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     add("package.json", lit({
       name, version: "0.1.0", private: true, type: "module",
       scripts: { ...(next ? { dev: "next dev", build: "next build", start: "next start" } : { dev: "vite", build: "tsc -b && vite build", preview: "vite preview" }), test: "vitest run", "test:design": `playwright test -c ${E2E_CONFIG}` },
-      dependencies: sorted(kitDeps), devDependencies: sorted({ ...devDeps, "@playwright/test": PLAYWRIGHT_VERSION, vitest: VITEST_VERSION }),
+      dependencies: sorted(kitDeps), devDependencies: sorted({ ...devDeps, ...SCREEN_TEST_PACKAGES, "@playwright/test": PLAYWRIGHT_VERSION, vitest: VITEST_VERSION }),
     }) + "\n", "app", false);
     // the factory's acceptance tests (a build of a new product writes them in tests/): vitest runs those, never the design's Playwright tests
+    // a screen test is a .tsx file: JSX is compiled here whatever tsconfig says (Next keeps it "preserve"), and the setup file runs first
     add(VITEST_CONFIG, [
       `import { fileURLToPath, URL } from "node:url";`, `import { defineConfig } from "vitest/config";`, ``,
       `export default defineConfig({`,
       `  resolve: { alias: { "@": fileURLToPath(new URL(${q(`./${root}`)}, import.meta.url)) } },`,
-      `  test: { include: [${q(`${UNIT_TEST_DIR}/**/*.test.ts`)}, ${q(`${UNIT_TEST_DIR}/**/*.test.tsx`)}], exclude: ["node_modules/**", ${q(`${E2E_DIR}/**`)}], passWithNoTests: true },`,
+      `  oxc: { jsx: { runtime: "automatic" } },`,
+      `  test: { include: [${q(`${UNIT_TEST_DIR}/**/*.test.ts`)}, ${q(`${UNIT_TEST_DIR}/**/*.test.tsx`)}], exclude: ["node_modules/**", ${q(`${E2E_DIR}/**`)}], setupFiles: [${q(SCREEN_SETUP)}], passWithNoTests: true },`,
       `});`, ``,
     ].join("\n"), "app", false);
     add(stylesheet, css, "app", false);
@@ -442,6 +449,8 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     const have = { ...(pkg?.dependencies ?? {}), ...(pkg?.devDependencies ?? {}) };
     const missing = Object.entries({ ...kitDeps, ...devDeps }).filter(([k]) => !(k in have) && !(next ? ["@tailwindcss/vite", "vite", "@vitejs/plugin-react"] : ["@tailwindcss/postcss"]).includes(k));
     if (missing.length) todo.push(`add the kit's packages to package.json: ${missing.map(([k, v]) => `${k}@${v}`).join(", ")}`);
+    const noScreenTests = Object.entries(SCREEN_TEST_PACKAGES).filter(([k]) => !(k in have));
+    if (noScreenTests.length) todo.push(`add the screen-test packages to the devDependencies: ${noScreenTests.map(([k, v]) => `${k}@${v}`).join(", ")}, and in the vitest config set setupFiles: ["${SCREEN_SETUP}"] and compile JSX (oxc: { jsx: { runtime: "automatic" } }), so a criterion about a screen gets a test`);
     if (out.length && !("@playwright/test" in have)) todo.push(`add @playwright/test@${PLAYWRIGHT_VERSION} to the devDependencies and a script \"test:design\": \"playwright test -c ${E2E_CONFIG}\" (the design's tests in ${E2E_DIR})`);
     const sheet = o.src!.list().find((f) => /(^|\/)(globals|index|app|main)\.css$/.test(f) && f.startsWith(root)) ?? stylesheet;
     dsFiles.push("package.json", sheet);

@@ -185,7 +185,7 @@ Repo code therefore never executes on the host. LFS repos are refused in the POC
 **Worktree:**
 - Created with `git worktree add ~/.factory/wt/<shortId> -b factory/<runId> <base>` (a short path because of long-path limits) and `git worktree lock --reason "factory run <id>"`.
 - The core creates it, not the agent's own worktree feature, so the path and cleanup are ours.
-- Apply the project's **agent env template** (dummy values; never real secrets). Real test settings go only to container B via the producer env template (context-builder §2.6, amended 2026-09-26).
+- Apply the project's **agent env template** (dummy values; never real secrets). Real test settings go only to container B via the producer env template (context-builder §2.6, amended 2026-09-26). A coding step on a PostgreSQL backend also gets the settings of a throwaway database of its own (amended 2026-10-09).
 - Repos with submodules are refused; the git docs call support incomplete. [docs, research §4]
 - **Container A gets the worktree files only, never git metadata:** the `.git` link file is masked, the shared `.git` is not mounted, and the agent has no git. The core does all commits.
 

@@ -1,7 +1,8 @@
 // ClaudeAgentRunner (adapters.md; context-builder §2.9): the Claude Agent SDK inside container A.
 // Container A gets the worktree files only (the .git link file is masked), agent instruction
 // files masked, restored packages read-only, the agent env template (dummy values), and a network
-// that reaches only the factory's API proxy.
+// that reaches only the factory's API proxy. A step may ask for a database of its own (AgentDatabase): an empty
+// PostgreSQL that lives as long as the session, so the agent can run the tests that need one.
 import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
@@ -11,12 +12,14 @@ import { AGENT_FILE_GLOBS, CONFIG_INTEGRITY_GLOBS, isSecretPath, LOCK_SET_GLOBS 
 import { listFiles } from "../context/snapshot.js";
 import { matchesAny } from "../util/glob.js";
 import { factoryHome } from "../util/paths.js";
+import { fillTemplate, type ProjectConfig } from "../config/project.js";
 import type { ContainerRuntime, Mount } from "../verify/runtime.js";
+import { createTestLogin, PG_CAPS, pgAdminEnv, waitForPg } from "../verify/test-db.js";
 import { stopAndRemove } from "../verify/runtime.js";
 import type { Usage } from "../contracts/index.js";
 import { supportsEffort } from "./api.js";
-import { AGENT_IMAGE, AGENT_NET, API_BASE_URL } from "./netinfra.js";
-import { costUsd } from "./pricing.js";
+import { AGENT_IMAGE, AGENT_NET, API_BASE_URL, issueProxyToken, revokeProxyToken } from "./netinfra.js";
+import { costUsd, priceOf } from "./pricing.js";
 import { configErrorText, emptyUsage, type Job, type Result, type Runner } from "./types.js";
 
 export interface AgentJobExtras {
@@ -32,15 +35,31 @@ export interface AgentJobExtras {
   /** per-run restored NuGet folder, mounted read-only */
   packagesDir?: string;
   agentEnv: Record<string, string>;
+  /** an empty PostgreSQL for this session alone, reached on the container's own loopback */
+  database?: AgentDatabase;
   /** project no-go globs: hidden from the agent (folder globs "dir/**" become empty folders) */
   noGo?: string[];
-  onContainer?: (id: string) => Promise<void>;
+  onContainer?: (id: string, role: "agent" | "db") => Promise<void>;
   onRemoved?: (id: string) => Promise<void>;
   /** for the run trace: each progress line the agent writes (tool use, turn, end) */
   onProgress?: (p: AgentProgress) => void;
 }
 
-export interface AgentProgress { ts: number; kind: "start" | "tool" | "turn" | "end"; tool?: string; target?: string; id?: string; in?: number; out?: number; cacheRead?: number; cacheWrite?: number; text?: string; status?: string; turns?: number; costUsd?: number; model?: string }
+/** `env` is the project's producer env template: the same settings the lab's tests get, filled for this session's server. */
+export interface AgentDatabase { image: string; name: string; user: string; env: Record<string, string> }
+
+/**
+ * The database a coding session gets, or none. None when the tests hardcode a password kept in ~/.factory/.env (that
+ * value stays with the lab, and a random one would fail those tests here), and none when no setting names the database.
+ */
+export function agentDatabase(project: Pick<ProjectConfig, "stack" | "database">): AgentDatabase | undefined {
+  const db = project.database;
+  if (!db || project.stack === "node" || db.passwordEnv || !Object.keys(db.producerEnv).length) return undefined;
+  return { image: db.image, name: db.name, user: db.user, env: db.producerEnv };
+}
+
+/** `result`: what a tool call returned, in characters. `compact`: the session's context was summarised (`pre` = tokens before). */
+export interface AgentProgress { ts: number; kind: "start" | "tool" | "result" | "compact" | "turn" | "end"; tool?: string; target?: string; id?: string; in?: number; out?: number; cacheRead?: number; cacheWrite?: number; text?: string; status?: string; turns?: number; costUsd?: number; model?: string; chars?: number; pre?: number; trigger?: string }
 
 /**
  * Spend from the per-turn lines when the agent left no SDK total (timeout, crash): tokens summed,
@@ -74,6 +93,34 @@ export function readProgress(file: string, offset: number): { lines: AgentProgre
   const lines = chunk.slice(0, end).split("\n").filter(Boolean).flatMap((l) => { try { return [JSON.parse(l) as AgentProgress]; } catch { return []; } });
   return { lines, offset: offset + Buffer.byteLength(chunk.slice(0, end + 1)) };
 }
+
+/**
+ * What keeps a coding session's context small: every later turn pays to read it again.
+ *  - a command's output past this many characters goes to a file, and the agent gets a preview and the path (the SDK's default
+ *    is 30,000). 20,000 since the session has a database and runs the locked tests: a failing run's output has to fit.
+ *  - one file read returns at most this many tokens; a bigger file is read in parts (the SDK's default is 25,000)
+ *  - the context is summarised at this many tokens, or at the model's own window when that is smaller (context-builder §2.10).
+ *    Set from run 31fe: no session that passed went above 104K, and the ones that failed peaked at 145K to 175K, so this
+ *    leaves a passing session alone and summarises a long one earlier than the 200K window did.
+ */
+export const AGENT_CONTEXT = { bashOutputChars: 20_000, readTokens: 12_000, compactWindow: 150_000 };
+
+/**
+ * A session that goes this many turns in a row without changing a file is stopped, and what it wrote is kept
+ * like any unfinished work. A backstop, set above every past session: across the 24 sessions of run 31fe the
+ * longest such stretch was 32 turns in one that finished (reading before its first edit) and 40 in one that failed.
+ */
+export const AGENT_IDLE_TURNS = 45;
+
+/**
+ * The key proxy counts what a step's token spends and refuses it past this. The agent SDK enforces the step's
+ * own budget between turns, so this sits above it: it is for calls made around the SDK, or a budget that failed.
+ */
+export function proxyCapUsd(maxUsd: number): number {
+  return maxUsd * 1.5 + 1;
+}
+/** The proxy's refusal of a token past its cap (proxy.mjs CAP_TEXT). */
+const PROXY_CAP = /factory proxy: this step's spending cap is reached/i;
 
 /** The API's refusal of a request that no longer fits the model's context window. */
 const SESSION_FULL = /prompt is too long/i;
@@ -159,6 +206,7 @@ export class ClaudeAgentRunner implements Runner {
       fileScope: x.fileScope,
       protectedGlobs: [...(x.protectedGlobs ?? [...LOCK_SET_GLOBS, ...CONFIG_INTEGRITY_GLOBS]), ...x.lockedFiles, ...x.extraProtected],
       script: agentScript?.(job.step),
+      context: { ...AGENT_CONTEXT, idleTurns: AGENT_IDLE_TURNS },
     }));
 
     const mounts: Mount[] = [
@@ -180,25 +228,45 @@ export class ClaudeAgentRunner implements Runner {
     for (const d of masks.dirs) mounts.push({ src: emptyDir, dst: `/work/${d}`, ro: true });
     if (x.packagesDir) mounts.push({ src: x.packagesDir, dst: "/nuget", ro: true });
 
-    let id: string | undefined;
+    // this step's own pass through the key proxy: gone when the step ends
+    const token = issueProxyToken({ run: x.runId, key: x.key, model: job.model, capUsd: proxyCapUsd(job.limits.maxUsd), usdPerMTok: priceOf(job.model) });
+    let id: string | undefined, dbId: string | undefined;
     try {
+      let dbEnv: Record<string, string> = {};
+      if (x.database) {
+        // The server sits on the agent network (the coding container shares its network space, and needs the key proxy)
+        // but listens on loopback only: no other session on that network can reach it. Not the lab's database, and
+        // gone with the session.
+        const vars = { DB_HOST: "127.0.0.1", DB_PORT: "5432", DB_NAME: x.database.name, DB_USER: x.database.user, DB_PASSWORD: randomBytes(12).toString("hex") };
+        dbId = await this.rt.create({
+          image: x.database.image, role: "db", labels: { run: x.runId, key: x.key }, network: AGENT_NET, user: "",
+          env: pgAdminEnv(), capAdd: PG_CAPS, mounts: [], cmd: ["postgres", "-c", "listen_addresses=127.0.0.1"],
+        });
+        await x.onContainer?.(dbId, "db");
+        await this.rt.start(dbId);
+        await waitForPg(this.rt, dbId);
+        await createTestLogin(this.rt, dbId, vars);
+        dbEnv = fillTemplate(x.database.env, vars);
+      }
       id = await this.rt.create({
-        image: AGENT_IMAGE, role: "agent", labels: { run: x.runId, key: x.key }, network: AGENT_NET,
+        image: AGENT_IMAGE, role: "agent", labels: { run: x.runId, key: x.key }, network: dbId ? `container:${dbId}` : AGENT_NET,
         user: `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`, workdir: "/work", mounts,
         env: {
           ...x.agentEnv,
+          ...dbEnv,
           ANTHROPIC_BASE_URL: API_BASE_URL,
-          ANTHROPIC_API_KEY: "added-by-factory-proxy",
+          ANTHROPIC_API_KEY: token, // not a key: the proxy swaps it for the real one
           HOME: "/tmp/home", CLAUDE_CONFIG_DIR: "/tmp/claude",
         },
         cmd: [], tmpfs: ["/tmp:exec,size=2g"],
       });
-      await x.onContainer?.(id);
+      await x.onContainer?.(id, "agent");
       await this.rt.start(id);
       // forward the agent's progress to the trace while it works
       const progressFile = join(outDir, "progress.jsonl");
       let offset = 0;
-      const pump = () => { const r = readProgress(progressFile, offset); offset = r.offset; for (const p of r.lines) x.onProgress?.(p); };
+      let ended = false;
+      const pump = () => { const r = readProgress(progressFile, offset); offset = r.offset; for (const p of r.lines) { if (p.kind === "end") ended = true; x.onProgress?.(p); } };
       const timer = x.onProgress ? setInterval(pump, 3000) : undefined;
       let code: number | undefined;
       try {
@@ -211,6 +279,8 @@ export class ClaudeAgentRunner implements Runner {
       const resultPath = join(outDir, "result.json");
       // no SDK total (timeout, crash): count the spend from the per-turn lines before the folder goes
       const fromProgress = (): Usage => ({ ...usageFromProgress(progressFile, job.model), wallMs: Date.now() - started });
+      // a session that was cut off wrote no end line: the trace gets one, so its time and totals are counted like any other
+      if (!ended && existsSync(progressFile)) { const u = fromProgress(); x.onProgress?.({ ts: Date.now(), kind: "end", status: code === undefined ? "timeout" : "cut off", turns: u.turns, costUsd: u.estUsd }); }
       if (code === undefined) return { status: "timeout", usage: fromProgress() };
       if (!existsSync(resultPath)) return { status: "error", error: `Agent exited ${code} without a result`, usage: fromProgress() };
       const out = JSON.parse(readFileSync(resultPath, "utf8")) as AgentOut;
@@ -229,12 +299,13 @@ export class ClaudeAgentRunner implements Runner {
         // compaction is on (context-builder §2.10), but one huge output can still fill the model's window: unfinished work, like running out of turns
         if (SESSION_FULL.test(out.error ?? "")) return { status: "timeout", error: "The session filled the model's context window before it finished", usage: u, sessionId: out.sessionId };
         if (NO_CREDIT.test(out.error ?? "")) return { status: "config-error", error: NO_CREDIT_TEXT, usage: u, sessionId: out.sessionId };
+        if (PROXY_CAP.test(out.error ?? "")) return { status: "over-budget", error: "The key proxy stopped this step: its calls cost more than the step's budget allows", usage: u, sessionId: out.sessionId };
         if (out.status === "config-error") {
           return { status: "config-error", error: out.apiErrorStatus === 403
             ? "The coding agent's API calls were refused by the factory's key proxy or the API (403). Run factory doctor."
             : configErrorText(out.apiErrorStatus, out.error ?? "", job.model), usage: u, sessionId: out.sessionId };
         }
-        const status = out.status === "over-budget" ? "over-budget" : out.status === "bad-output" ? "bad-output" : out.status === "max-turns" ? "timeout" : "error";
+        const status = out.status === "over-budget" ? "over-budget" : out.status === "bad-output" ? "bad-output" : out.status === "max-turns" || out.status === "no-progress" ? "timeout" : "error";
         return { status, error: out.error, usage: u, sessionId: out.sessionId };
       }
       const parsed = job.schema.safeParse(out.output);
@@ -245,6 +316,11 @@ export class ClaudeAgentRunner implements Runner {
         await stopAndRemove(this.rt, id).catch(() => undefined);
         await x.onRemoved?.(id);
       }
+      if (dbId) {
+        await stopAndRemove(this.rt, dbId).catch(() => undefined);
+        await x.onRemoved?.(dbId);
+      }
+      revokeProxyToken(token);
       rmSync(jobDir, { recursive: true, force: true });
     }
   }

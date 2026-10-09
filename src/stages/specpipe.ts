@@ -15,6 +15,7 @@ import { settles, specRefused, unsettled, type Found } from "../estimate/settled
 import { settle, settleKey, type Answer, type Decided } from "./settle.js";
 import { hashJson } from "../util/hash.js";
 import { repoIsEmpty } from "../config/greenfield.js";
+import { testsScreens } from "./stack-text.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -46,10 +47,12 @@ export const RtAlignOut = z.object({ mapping: z.array(z.object({ n: z.number().i
 export const MAX_REPAIRS = LANE.full.maxRepairs;
 
 /**
- * The test lab can't test screens yet, so a ui criterion can't get a locked test: it becomes a
- * manual check by a person (no model call), and the approval card says so.
+ * Where the test lab can't test screens (a .NET service), a ui criterion can't get a locked test: it becomes a
+ * manual check by a person (no model call), and the approval card says so. A web app keeps its ui criteria: the
+ * test writer gives each a screen test (src/design/kit/screen-tests.ts), so `screens` leaves the spec as it is.
  */
-export function downgradeUi<T extends Spec>(spec: T): { spec: T; downgraded: string[] } {
+export function downgradeUi<T extends Spec>(spec: T, screens = false): { spec: T; downgraded: string[] } {
+  if (screens) return { spec, downgraded: [] };
   const downgraded: string[] = [];
   const requirements = spec.requirements.map((r) => ({
     ...r,
@@ -171,13 +174,15 @@ function inputsOf(ctx: StepContext) {
   return { intent, cb, ...c };
 }
 
-const DRAFT_RULES = `Senior engineer writing a behaviour spec a test author can turn into black-box tests.
+const draftRules = (screens: boolean): string => `Senior engineer writing a behaviour spec a test author can turn into black-box tests.
 Format rules (checked by code):
 - Each requirement is one EARS sentence with exactly one "shall": "The <system> shall ...", "When <trigger>, the <system> shall ...", "While <state>, the <system> shall ...", "Where <feature>, the <system> shall ...", "If <condition>, then the <system> shall ...". IDs REQ-1, REQ-2...
 - op = ADDED | MODIFIED | REMOVED. MODIFIED and REMOVED copy their anchors exactly from the current-behaviour claims.
 - Each requirement has ≥1 acceptance criterion AC-<req>.<n> in Given/When/Then, observable at a public surface: a public class method called directly, an HTTP call, a job run, an outbound call to a named system, a DB row, or a screen. level: unit | api | job | ui | manual.
 - ${OBSERVABLE_RULE} (manual criteria are exempt.)
-- Pick the LOWEST level that proves the behaviour: unit when the logic lives in one class (call its public method directly), api for an endpoint, job only when the behaviour exists only in a job run. The factory can't test screens yet: a ui criterion becomes a manual check by a person, so use it only for behaviour that exists only on a screen.
+- Pick the LOWEST level that proves the behaviour: unit when the logic lives in one class (call its public method directly), api for an endpoint, job only when the behaviour exists only in a job run. ${screens
+    ? "ui for behaviour that exists only on a screen (what is shown for which data, what a click or a typed value does, which message appears): the factory renders the screen in a test and checks it. manual only for what no test can judge, such as how a page looks (colour, spacing, a width) or a check on a real device: a person must sign each one off before delivery, so keep them few."
+    : "The factory can't test screens here: a ui criterion becomes a manual check by a person, so use it only for behaviour that exists only on a screen."}
 - Change only what the request asks. Other places that might need the same change go in suggestions, not requirements.
 - sources: intent span IDs, answer IDs (Q-n) or assumption IDs (ASM-n).
 - NFRs need a metric with a number. List out-of-scope items. Every intent span is covered by a requirement.
@@ -189,7 +194,7 @@ ${UNTRUSTED_NOTE}`;
 
 function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
   return [
-    S.template("tpl", DRAFT_RULES),
+    S.template("tpl", draftRules(testsScreens(ctx.project.stack))),
     S.artifact("intent", "intent", i.intent),
     S.artifact("answers", "answers", i.answers),
     S.artifact("assumptions", "assumptions", i.assumptions),
@@ -373,7 +378,7 @@ export const specifyStep: StepDef = {
     }
     let before: string[] | undefined;
     for (;;) {
-      const d = downgradeUi(spec);
+      const d = downgradeUi(spec, testsScreens(ctx.project.stack));
       spec = d.spec;
       for (const id of d.downgraded) manualUi.add(id);
       const c = await checkSpec(ctx, spec, i, lane.criticEffort);
@@ -430,7 +435,7 @@ Answer with the changes only, not the whole spec: "requirements" holds each requ
             if (!r.ok) return r;
             const stab = Object.fromEntries(before.requirements.map((q) => [q.id, q.stability]));
             const draft = applyRepair(before, r.output);
-            const d = downgradeUi({ ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) });
+            const d = downgradeUi({ ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) }, testsScreens(ctx.project.stack));
             for (const id of d.downgraded) manualUi.add(id);
             return { ok: true, spec: d.spec };
           },

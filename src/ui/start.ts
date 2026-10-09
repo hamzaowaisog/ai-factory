@@ -2,6 +2,8 @@
 // gatherRequest, createRun), then the executor runs in the background like the MCP start.
 // An uploaded file is written to a private temp folder under its own name and read by
 // gatherRequest like `--file`; a Jira key goes through gatherRequest like `--jira`.
+import type { AppsDeps } from "../fullstack/apps.js";
+import { MANUAL_CARD, SIGN_OFF, readChecks, type ManualBundle } from "../stages/manual-check.js";
 import { INTERRUPTED, shownStatus } from "../stages/run-status.js";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
@@ -80,6 +82,8 @@ export interface StartDeps {
   gatherRefs?: typeof gatherReferences;
   /** exports a run's already-approved design at once (a build from an estimate); the server runs it as an export job */
   exportNow?: (runId: string, formats: ExportFormat[]) => void;
+  /** starts and looks at a delivered product's containers (tests pass fakes) */
+  apps?: AppsDeps;
 }
 
 /** All reference files of one start together (the page checks the same): the request body stays well under its limit. */
@@ -449,6 +453,23 @@ export async function decideCard(ledger: Ledger, input: CardDecisionInput, deps:
     data = { note };
   }
   return record(ledger, { decision, hashPrefix: hash, by: `${name} (via web)`, data }, deps);
+}
+
+export interface ManualChecksInput { hash?: unknown; by?: unknown; checks?: unknown }
+
+/**
+ * A person's check of the criteria that have no automated test, from the run's Tests tab, as `factory sign-off` records it: a typed
+ * name, the card's hash (checked under the ledger lock), and pass or fail for every criterion on the card, with a note for each fail.
+ */
+export async function signOffManual(ledger: Ledger, input: ManualChecksInput, deps: StartDeps = {}): Promise<{ recorded: boolean }> {
+  const open = replay(ledger.events()).openCard;
+  if (open?.kind !== MANUAL_CARD) throw new StartError("This run has no criteria waiting for a check by hand.", 409);
+  const hash = str(input.hash)?.trim() ?? "";
+  if (hash.length < 8) throw new StartError("Send the card's hash from this page.");
+  const name = typedName(input.by, "Type your name to sign off; it is recorded with each result.");
+  const read = readChecks(input.checks, ledger.getJson<ManualBundle>(open.artifactSha).criteria);
+  if ("error" in read) throw new StartError(read.error);
+  return record(ledger, { decision: SIGN_OFF, hashPrefix: hash, by: `${name} (via web)`, data: { checks: read.checks } }, deps);
 }
 
 /** The limit cards the run page decides: a cost, time or attempts limit (cap) and an estimate's approved budget (B5, budget). */

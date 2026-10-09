@@ -3,6 +3,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
+import { DATA_MODEL_FILE } from "../gates/data-model.js";
 
 /** Where the generated client lives in the web app: factory-owned, locked with the contract. */
 export const CLIENT_DIR = "lib/api";
@@ -14,10 +15,12 @@ export const CLIENT_CMD = ["npx", "--no-install", "orval", "--config", CLIENT_CO
 /** The contract and everything generated from it that is in this checkout: locked like the tests, never an agent's to change. */
 export function contractLockFiles(project: Pick<ProjectConfig, "contract">, wt: string): string[] {
   const c = project.contract;
-  if (!c || !existsSync(join(wt, c.file))) return [];
+  // the approved data model is locked the same way, with or without an API contract
+  const model = existsSync(join(wt, DATA_MODEL_FILE)) ? [DATA_MODEL_FILE] : [];
+  if (!c || !existsSync(join(wt, c.file))) return model;
   const dir = join(wt, CLIENT_DIR);
   const generated = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".ts")).sort().map((f) => `${CLIENT_DIR}/${f}`) : [];
-  return [c.file, ...generated, ...(existsSync(join(wt, CLIENT_CONFIG)) ? [CLIENT_CONFIG] : [])];
+  return [c.file, ...generated, ...(existsSync(join(wt, CLIENT_CONFIG)) ? [CLIENT_CONFIG] : []), ...model];
 }
 
 /** The generator's settings: the client in one file, the test handlers (MSW) beside it, answering with the contract's examples. */

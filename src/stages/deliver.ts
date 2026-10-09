@@ -1,5 +1,6 @@
 // review (L, other family) and deliver (D): per-commit secret scan, evidence manifest,
 // gated SHA + one manifest-only commit, PR via the forge sink (look up before create).
+import { DATA_MODEL_FILE, erdMermaid, nearModel } from "../gates/data-model.js";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { userInfo } from "node:os";
@@ -13,7 +14,8 @@ import { unrequestedBehaviour } from "../estimate/gates.js";
 import { buildWaiver } from "../estimate/build-waiver.js";
 import type { WaiverRow } from "../estimate/log.js";
 import { noSecrets, reviewBlocking, shaBinding } from "../gates/predicates.js";
-import { reviewCoversCriteria } from "../gates/coverage.js";
+import { reviewCoversCriteria, testsProveCriteria } from "../gates/coverage.js";
+import { MANUAL_CARD, manualBundle, manualCard, manualCriteria, signOffFor } from "./manual-check.js";
 import { changedFiles, commitAll, git, gitOut, resetHard } from "../ledger/git.js";
 import { runSink } from "../ledger/sinks.js";
 import { family } from "../runners/types.js";
@@ -143,43 +145,23 @@ export const reviewStep: StepDef = {
   },
   async run(ctx) {
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
-    const intent = requireOutput<{ spans: { id: string; text: string }[] }>(ctx.state, ctx.ledger, "intake");
-    const run = requireOutput<TestRun>(ctx.state, ctx.ledger, "integrate");
-    const lock = requireOutput<{ tests: { acId: string; file: string; name: string; testId: string; failsOnBase: boolean }[] }>(ctx.state, ctx.ledger, "author-tests");
     const head = gatedSha(ctx);
-    const wt = await ensureWorktree(ctx, head);
-    const full = (await git(wt, ["diff", "--no-color", "-U5", changeBase(ctx.state), head])).stdout;
-    const { text: diff, truncated, files } = truncateDiff(full);
-    const room = reviewRoom(spec.requirements.reduce((n, q) => n + q.acceptance.length, 0));
-    const r = await think(ctx, {
-      stage: "review", route: "review", cls: "read-large", budgetTokens: 80_000, schema: ReviewSubmit,
-      maxTurns: 14 * room, maxUsd: 2 * room, timeoutSec: 900 * room,
-      // the diff shows changed lines with five lines of context, which is not enough to judge a
-      // change: the reviewer needs the method it sits in and the test meant to prove it. It reads
-      // the commit under review, never the base — see toolsAt.
-      tools: ["read_file", "search"], repoTools: toolsAt(ctx, head), toolsAt: "under-review",
-      sections: [
-        S.template("tpl", REVIEW_TEMPLATE),
-        S.artifact("intent", "intent", intent.spans),
-        S.artifact("acs", "acceptance-criteria", spec.requirements),
-        S.artifact("verification", "verification", verificationProjection(run)),
-        // which locked test is meant to prove which criterion. Computed for the PR body since the
-        // pipeline was written, and never once shown to a reviewer until now.
-        S.artifact("ac-tests", "acceptance-tests", lock.tests),
-        S.reference("changed-files", `Files this change touches:\n${files.map((f) => `- ${f}`).join("\n")}`),
-        { spec: { id: "diff", source: "artifact", trust: "derived", placement: "user" }, content: diff, artifactKind: "diff" },
-        S.task("Review this change. Open the files you need."),
-      ],
-    });
-    if (!r.ok) return r.outcome;
-    const reviewSha = ctx.ledger.putJson({ header: header(ctx.runId, "review", "review", "", r.model), ...r.output, note: r.note });
-    const implementer = modelFor(ctx.project, "implement", 0).model;
-    const fam = ctx.ledger.putJson({ implementer: family(implementer), reviewer: family(r.model) });
+    // the review already written for this commit, when the step stopped on a card after it: read again, not paid for again
+    const kept = keptReview(ctx, head);
+    if (kept) ctx.log("review: using the review already written for this commit (no model call)");
+    const w0 = kept ?? await writeReview(ctx, spec, head);
+    if ("outcome" in w0) return w0.outcome;
+    const { reviewSha, familiesSha: fam, diffTruncated: truncated } = w0;
+    const review = ctx.ledger.getJson<{ findings: unknown[]; coverage: unknown[]; note?: string }>(reviewSha);
+    /** a card raised from here on carries the review, so answering it does not buy a second one */
+    const hold = (o: StepOutcome): StepOutcome => (o.kind === "wait"
+      ? { ...o, card: { ...o.card, extra: { ...(o.card.extra ?? {}), reviewFor: head, reviewSha, familiesSha: fam, diffTruncated: truncated } } } : o);
+    const specSha = ctx.state.steps.get("specify")!.outputs[0]!;
     // completeness first: a review that skipped a criterion has not reviewed the change, so there
     // is nothing yet to judge. A fail, not a park — the ladder retries, raises effort, or uses a
     // stronger model, rather than asking a person to fix what the model should simply redo.
     const cg = await runGate(reviewCoversCriteria, ctx.ledger, ctx.writer,
-      { review: reviewSha, spec: ctx.state.steps.get("specify")!.outputs[0]! }, ctx.policy, { step: "review", treeSha: head });
+      { review: reviewSha, spec: specSha }, ctx.policy, { step: "review", treeSha: head });
     if (!cg.passed) {
       return {
         kind: "fail", category: "other",
@@ -187,7 +169,7 @@ export const reviewStep: StepDef = {
         // a stable signature, not a count: the ladder uses it to notice the SAME failure repeating,
         // and a count that moved between attempts would read as a fresh problem each time
         signature: "review:coverage",
-        data: { commit: head, reported: r.output.coverage.length },
+        data: { commit: head, reported: review.coverage.length },
       };
     }
     const g = await runGate(reviewBlocking, ctx.ledger, ctx.writer, { review: reviewSha, families: fam }, ctx.policy, { step: "review", treeSha: head });
@@ -202,14 +184,82 @@ export const reviewStep: StepDef = {
         const w = buildWaiver(ctx, "review", [{ def: unrequestedBehaviour, failures: b4.failures ?? [failure(unrequestedBehaviour.id, b4.details)] }], head,
           ref ? `To add it properly instead: a change request (factory estimate --revises ${ref.runId}); or remove it and stop this run with factory stop ${ctx.runId}.`
             : `To add it properly instead: change the design approved in ${dref!.runId} (a new design run) and build from that; or remove it and stop this run with factory stop ${ctx.runId}.`);
-        if (w.kind === "ask") return w.outcome;
+        if (w.kind === "ask") return hold(w.outcome);
         waivers = w.waivers;
       }
     }
     if (!g.passed) return { kind: "park", reason: `Review found blocking problems: ${(g.failures ?? []).slice(0, 3).map((f) => f.message).join(" | ")}` };
-    return { kind: "done", outputs: { review: reviewSha }, data: { findings: r.output.findings.length, note: r.note, diffTruncated: truncated, ...(waivers.length ? { waivers } : {}) } };
+    // what the reviewer said about each locked test counts: a test that passes without proving its criterion stops the run
+    // here. The tests are locked, so no retry can change them: a person accepts the test as it stands, by name, or stops.
+    const proof = await runGate(testsProveCriteria, ctx.ledger, ctx.writer, { review: reviewSha, spec: specSha }, ctx.policy, { step: "review", treeSha: head });
+    if (!proof.passed) {
+      const w = buildWaiver(ctx, "review", [{ def: testsProveCriteria, failures: proof.failures ?? [failure(testsProveCriteria.id, proof.details)] }], head,
+        `The tests are locked, so another attempt cannot change them. The run's Tests tab shows each criterion, its test and the reviewer's reason. To stop instead: factory stop ${ctx.runId}`);
+      if (w.kind === "ask") return hold(w.outcome);
+      waivers = [...waivers, ...w.waivers];
+    }
+    // last, the criteria no test can check: a person tries each one on this commit and signs it off
+    const manual = manualCriteria(spec.requirements);
+    let manualChecks: { by: string; criteria: string[] } | undefined;
+    if (manual.length) {
+      const bundle = manualBundle(head, manual);
+      const bundleSha = ctx.ledger.putJson(bundle);
+      const signed = signOffFor(ctx.state.decisions, bundleSha);
+      if (!signed) return hold({ kind: "wait", card: { cardId: `manual-${bundleSha.slice(0, 8)}`, kind: MANUAL_CARD, artifactSha: bundleSha, markdown: manualCard(ctx.runId, bundleSha, bundle) } });
+      const failed = manual.filter((c) => signed.checks[c.id]?.result !== "pass");
+      if (failed.length) {
+        return { kind: "park", reason: `${signed.by} checked by hand and ${failed.length === 1 ? "this criterion does" : "these criteria do"} not hold: ${failed.map((c) => `${c.id} (${signed.checks[c.id]?.note || "no result recorded"})`).join(" | ")}` };
+      }
+      manualChecks = { by: signed.by, criteria: manual.map((c) => c.id) };
+    }
+    return { kind: "done", outputs: { review: reviewSha }, data: { findings: review.findings.length, note: review.note, diffTruncated: truncated, ...(waivers.length ? { waivers } : {}), ...(manualChecks ? { manualChecks } : {}) } };
   },
 };
+
+interface WrittenReview { reviewSha: string; familiesSha: string; diffTruncated: boolean }
+
+/** The review a card of this step carries for this commit (see `hold` in reviewStep): the same commit gets the same review. */
+function keptReview(ctx: Pick<StepContext, "ledger">, head: string): WrittenReview | undefined {
+  const ev = [...ctx.ledger.events()].reverse().find((e) => e.type === "human.requested" && (e.data as { step?: string }).step === "review");
+  const d = ev?.data as { reviewFor?: string; reviewSha?: string; familiesSha?: string; diffTruncated?: boolean } | undefined;
+  return d?.reviewFor === head && d.reviewSha && d.familiesSha ? { reviewSha: d.reviewSha, familiesSha: d.familiesSha, diffTruncated: !!d.diffTruncated } : undefined;
+}
+
+/** The model's review of the commit, stored with the model families that wrote the code and the review. */
+async function writeReview(ctx: StepContext, spec: Spec, head: string): Promise<WrittenReview | { outcome: StepOutcome }> {
+  const intent = requireOutput<{ spans: { id: string; text: string }[] }>(ctx.state, ctx.ledger, "intake");
+  const run = requireOutput<TestRun>(ctx.state, ctx.ledger, "integrate");
+  const lock = requireOutput<{ tests: { acId: string; file: string; name: string; testId: string; failsOnBase: boolean }[] }>(ctx.state, ctx.ledger, "author-tests");
+  const wt = await ensureWorktree(ctx, head);
+  const full = (await git(wt, ["diff", "--no-color", "-U5", changeBase(ctx.state), head])).stdout;
+  const { text: diff, truncated, files } = truncateDiff(full);
+  const room = reviewRoom(spec.requirements.reduce((n, q) => n + q.acceptance.length, 0));
+  const r = await think(ctx, {
+    stage: "review", route: "review", cls: "read-large", budgetTokens: 80_000, schema: ReviewSubmit,
+    maxTurns: 14 * room, maxUsd: 2 * room, timeoutSec: 900 * room,
+    // the diff shows changed lines with five lines of context, which is not enough to judge a
+    // change: the reviewer needs the method it sits in and the test meant to prove it. It reads
+    // the commit under review, never the base — see toolsAt.
+    tools: ["read_file", "search"], repoTools: toolsAt(ctx, head), toolsAt: "under-review",
+    sections: [
+      S.template("tpl", REVIEW_TEMPLATE),
+      S.artifact("intent", "intent", intent.spans),
+      S.artifact("acs", "acceptance-criteria", spec.requirements),
+      S.artifact("verification", "verification", verificationProjection(run)),
+      // which locked test is meant to prove which criterion. Computed for the PR body since the
+      // pipeline was written, and never once shown to a reviewer until now.
+      S.artifact("ac-tests", "acceptance-tests", lock.tests),
+      S.reference("changed-files", `Files this change touches:\n${files.map((f) => `- ${f}`).join("\n")}`),
+      { spec: { id: "diff", source: "artifact", trust: "derived", placement: "user" }, content: diff, artifactKind: "diff" },
+      S.task("Review this change. Open the files you need."),
+    ],
+  });
+  if (!r.ok) return { outcome: r.outcome };
+  const reviewSha = ctx.ledger.putJson({ header: header(ctx.runId, "review", "review", "", r.model), ...r.output, note: r.note });
+  const implementer = modelFor(ctx.project, "implement", 0).model;
+  const familiesSha = ctx.ledger.putJson({ implementer: family(implementer), reviewer: family(r.model) });
+  return { reviewSha, familiesSha, diffTruncated: truncated };
+}
 
 // ---------- deliver ----------
 /** How a criterion's locked test proves it, in the PR text. */
@@ -217,6 +267,9 @@ const PROOF: Record<string, string> = { unit: "unit test", api: "HTTP test + pro
 export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spec; plan: Plan; lock: { tests: { acId: string; testId: string }[]; familyNote?: string }; run: TestRun; review: { findings: { id: string; severity: string; text: string; category?: string; owasp?: string; file?: string; line?: number }[]; note?: string }; manifestHash: string; commits: string[] }): string {
   const flaky = a.run.results.filter((r) => r.flaky).map((r) => r.id);
   const security = a.review.findings.filter((f) => f.category === "security");
+  // what a person decided at the review: the criteria tried by hand, and any check accepted as it stands
+  const reviewed = ctx.state.steps.get("review")?.data as { manualChecks?: { by: string; criteria: string[] }; waivers?: { gateIds: string[]; human: string; reason: string }[] } | undefined;
+  const byHand = new Set(reviewed?.manualChecks?.criteria ?? []);
   return [
     `## What was asked`,
     ...((ctx.state.info.sources ?? []).length ? [`From: ${(ctx.state.info.sources ?? []).map((x) => (x.kind === "jira" ? `[${x.key}](${x.url})` : x.kind === "file" ? x.name : "typed prompt")).join(" + ")}`, ``] : []),
@@ -225,17 +278,24 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
     `## Requirements → tests`,
     ...a.spec.requirements.map((r) => `- **${r.id}** ${r.ears}\n${r.acceptance.map((c) => {
       const test = a.lock.tests.find((t) => t.acId === c.id)?.testId;
-      return test ? `  - ${c.id} (${PROOF[c.level] ?? c.level}): \`${test}\`` : `  - ${c.id}: checked by a person (no automated test)`;
+      return test ? `  - ${c.id} (${PROOF[c.level] ?? c.level}): \`${test}\``
+        : byHand.has(c.id) ? `  - ${c.id}: checked by hand and signed off by ${reviewed!.manualChecks!.by} (no automated test)` : `  - ${c.id}: checked by a person (no automated test)`;
     }).join("\n")}`),
     ``,
     `## Tasks`,
     ...a.plan.tasks.map((t) => `- ${t.id} ${t.title} (${t.reqs.join(", ")})`),
     ``,
+    ...(a.plan.dataModel?.tables.length ? [
+      `## Data model`,
+      `${a.plan.dataModel.tables.length} table${a.plan.dataModel.tables.length === 1 ? "" : "s"}, approved with the plan and kept in \`${DATA_MODEL_FILE}\`.${nearModel(a.plan.dataModel).others ? ` The diagram shows the tables this change adds or changes and the tables joined to them; ${nearModel(a.plan.dataModel).others} other${nearModel(a.plan.dataModel).others === 1 ? " is" : "s are"} unchanged.` : ""}`,
+      ``, "```mermaid", erdMermaid(nearModel(a.plan.dataModel).model), "```", ``,
+    ] : []),
     `## Checks the factory ran itself`,
     `- ${a.run.results.length} tests in a sealed container; ${a.run.results.filter((r) => r.outcome === "passed").length} passed; no new failures vs the base branch`,
     `- Acceptance tests were written first, failed on the old code twice, then locked`,
     ...(a.lock.familyNote ? [`- ⚠ ${a.lock.familyNote}`] : []),
     ...(flaky.length ? [`- ⚠ Flaky (passed only on re-run): ${flaky.join(", ")}`] : []),
+    ...(reviewed?.waivers ?? []).map((w) => `- ⚠ Waived by ${w.human}: ${w.gateIds.join(", ")} (${w.reason})`),
     `- Review: ${a.review.findings.length} non-blocking findings${a.review.note ? ` (${a.review.note})` : ""}`,
     ...a.review.findings.map((f) => `  - ${f.id} [${f.severity}] ${f.text}`),
     `- Security review (OWASP Top 10): ${security.length ? `${security.length} finding${security.length > 1 ? "s" : ""}` : "nothing found"}`,

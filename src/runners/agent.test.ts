@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import http from "node:http";
@@ -6,8 +6,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { ContainerRuntime, ContainerSpec } from "../verify/runtime.js";
 import { DEFAULT_POLICY, withPolicy } from "../gates/policy.js";
-import { agentFileMasks, ClaudeAgentRunner } from "./claude-agent.js";
-import { AGENT_NET, API_BASE_URL, apiProxyEnv } from "./netinfra.js";
+import { AGENT_IDLE_TURNS, agentDatabase, agentFileMasks, ClaudeAgentRunner, proxyCapUsd } from "./claude-agent.js";
+import { AGENT_NET, API_BASE_URL, apiProxyEnv, issueProxyToken, proxyDir, revokeProxyToken } from "./netinfra.js";
 
 beforeEach(() => {
   process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "factory-agent-"));
@@ -41,11 +41,11 @@ class FakeRt implements ContainerRuntime {
     if (this.result) writeFileSync(join(out.src, "result.json"), JSON.stringify(this.result));
     return 0;
   }
-  async exec() { return { code: 0, stdout: "", stderr: "" }; }
+  async exec(_id?: string, _cmd?: string[]) { return { code: 0, stdout: "", stderr: "" }; }
   async isRunning() { return true; }
   async logs() { return ""; }
   async stop() {}
-  async remove() { this.removed = true; }
+  async remove(_id?: string) { this.removed = true; }
   async listByLabel() { return []; }
   async imageDigest(i: string) { return i; }
 }
@@ -70,6 +70,41 @@ describe("ClaudeAgentRunner (fake runtime)", () => {
     expect(masked).toEqual(["/job/in.json", "/work/.claude", "/work/.git", "/work/.mcp.json", "/work/CLAUDE.md", "/work/src/Api/AGENTS.md", "/work/src/appsettings.Development.json"]);
     expect(rt.removed).toBe(true);
     delete process.env.ANTHROPIC_API_KEY;
+  });
+
+  it("gives a session its own database: started first, on loopback only, and removed with the session", async () => {
+    const specs: ContainerSpec[] = [], order: string[] = [], execs: string[][] = [];
+    class DbRt extends FakeRt {
+      override async create(s: ContainerSpec) { specs.push(s); if (s.role === "agent") this.spec = s; order.push(`create ${s.role}`); return s.role === "db" ? "d1" : "a1"; }
+      override async exec(_id?: string, cmd: string[] = []) { execs.push(cmd); return { code: 0, stdout: "", stderr: "" }; }
+      override async remove(id?: string) { order.push(`remove ${id}`); this.removed = true; }
+    }
+    const rt = new DbRt({ status: "ok", output: { done: true, notes: "ok" }, instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 1, output_tokens: 1 }, costUsd: 0.01, turns: 1 });
+    const started: string[] = [];
+    const database = agentDatabase({ stack: "dotnet", database: { image: "postgres:16-alpine", name: "app_test", user: "factory", producerEnv: { ConnectionStrings__App: "Host={{DB_HOST}};Database={{DB_NAME}};Username={{DB_USER}};Password={{DB_PASSWORD}}" } } })!;
+    const r = await new ClaudeAgentRunner(rt, { runId: "r", key: "implement/TASK-1/1", fileScope: [], lockedFiles: [], extraProtected: [], agentEnv: { ConnectionStrings__App: "Host=dummy" }, database, onContainer: async (id, role) => { started.push(`${role} ${id}`); } })
+      .run({ step: "implement", model: "claude-sonnet-5", pack, schema: Out, limits: { maxTurns: 30, maxUsd: 2, timeoutSec: 60 }, workdir: worktree() });
+    expect(r.status).toBe("ok");
+    const [db, agent] = specs as [ContainerSpec, ContainerSpec];
+    expect(order).toEqual(["create db", "create agent", "remove a1", "remove d1"]);
+    expect(started).toEqual(["db d1", "agent a1"]);
+    expect(db.network).toBe(AGENT_NET);
+    expect(db.cmd).toEqual(["postgres", "-c", "listen_addresses=127.0.0.1"]);
+    expect(agent.network).toBe("container:d1");
+    // the session's own login, not the dummy value and not the server's superuser
+    const conn = agent.env.ConnectionStrings__App!;
+    expect(conn).toMatch(/^Host=127\.0\.0\.1;Database=app_test;Username=factory;Password=[0-9a-f]{24}$/);
+    expect(conn).not.toContain(db.env.POSTGRES_PASSWORD!);
+    expect(execs.some((c) => c[0] === "psql" && c.join(" ").includes('CREATE ROLE "factory" LOGIN CREATEDB NOSUPERUSER'))).toBe(true);
+  });
+
+  it("gives no database when the tests' password is a kept secret, no setting names it, or the stack has none", () => {
+    const db = { image: "postgres:16-alpine", name: "app_test", user: "factory", producerEnv: { ConnectionStrings__App: "Host={{DB_HOST}}" } };
+    expect(agentDatabase({ stack: "dotnet", database: db })).toBeDefined();
+    expect(agentDatabase({ stack: "dotnet", database: { ...db, passwordEnv: "TEST_DB_PASSWORD" } })).toBeUndefined();
+    expect(agentDatabase({ stack: "dotnet", database: { ...db, producerEnv: {} } })).toBeUndefined();
+    expect(agentDatabase({ stack: "node", database: db })).toBeUndefined();
+    expect(agentDatabase({ stack: "dotnet" })).toBeUndefined();
   });
 
   it("fails the step if any instruction file was loaded", async () => {
@@ -147,6 +182,38 @@ describe("ClaudeAgentRunner (fake runtime)", () => {
     expect(m.dirs.sort()).toEqual([".claude", "web"]);
     expect(m.secrets).toEqual(["src/appsettings.Development.json"]);
   });
+
+  it("gives the container a step token the key proxy knows, and takes it back when the step ends", async () => {
+    const rt = new FakeRt({ status: "ok", output: { done: true, notes: "" }, instructionsLoaded: [], deniedEdits: [], usage: {}, costUsd: 0, turns: 1 });
+    const tokens = join(proxyDir(), "tokens");
+    let during: Record<string, unknown>[] = [];
+    let idle: unknown;
+    const orig = rt.wait.bind(rt);
+    rt.wait = async () => {
+      during = readdirSync(tokens).map((f) => JSON.parse(readFileSync(join(tokens, f), "utf8")));
+      idle = JSON.parse(readFileSync(rt.spec!.mounts.find((m) => m.dst === "/job/in.json")!.src, "utf8")).context.idleTurns;
+      return orig();
+    };
+    await new ClaudeAgentRunner(rt, { runId: "r", key: "implement/TASK-1/1", fileScope: [], lockedFiles: [], extraProtected: [], agentEnv: {} })
+      .run({ step: "implement", model: "claude-sonnet-5", pack, schema: Out, limits: { maxTurns: 5, maxUsd: 2, timeoutSec: 60 }, workdir: worktree() });
+    expect(during).toHaveLength(1);
+    expect(during[0]).toMatchObject({ run: "r", key: "implement/TASK-1/1", model: "claude-sonnet-5", capUsd: proxyCapUsd(2), usdPerMTok: { input: 2, output: 10 } });
+    // the file is named by the token's hash and holds no token
+    expect(JSON.stringify(during)).not.toContain(rt.spec!.env.ANTHROPIC_API_KEY);
+    expect(rt.spec!.env.ANTHROPIC_API_KEY).toMatch(/^factory-[0-9a-f]{48}$/);
+    expect(readdirSync(tokens)).toEqual([]);
+    expect(idle).toBe(AGENT_IDLE_TURNS);
+  });
+
+  it("a session stopped for changing no file is unfinished work, and one stopped at the proxy's cap is over budget", async () => {
+    const run = (result: object) => new ClaudeAgentRunner(new FakeRt(result), { runId: "r", key: "k", fileScope: [], lockedFiles: [], extraProtected: [], agentEnv: {} })
+      .run({ step: "implement", model: "claude-sonnet-5", pack, schema: Out, limits: { maxTurns: 1, maxUsd: 1, timeoutSec: 60 }, workdir: worktree() });
+    const idle = await run({ status: "no-progress", error: "Stopped: no file was changed in 45 turns in a row", instructionsLoaded: [], deniedEdits: [], usage: {}, costUsd: 0, turns: 0 });
+    expect(idle.status).toBe("timeout");
+    expect(idle.error).toMatch(/no file was changed/);
+    const capped = await run({ status: "config-error", apiErrorStatus: 400, error: 'API error 400: {"type":"error","error":{"type":"invalid_request_error","message":"factory proxy: this step\'s spending cap is reached"}}', instructionsLoaded: [], deniedEdits: [], usage: {}, costUsd: 0, turns: 0 });
+    expect(capped.status).toBe("over-budget");
+  });
 });
 
 describe("egress proxy", () => {
@@ -174,6 +241,84 @@ describe("egress proxy", () => {
     expect(status).toBe(403);
   });
 
+  it("the key proxy holds no key in its settings", () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-should-never-appear-0000000000";
+    try { expect(JSON.stringify(apiProxyEnv())).not.toContain("sk-ant"); } finally { delete process.env.ANTHROPIC_API_KEY; }
+  });
+
+  it("the key proxy passes only a model call with a step token and that step's model, and stops a token at its cap", async () => {
+    const proxy = await import("../../docker/proxy/proxy.mjs" as string);
+    expect(proxy.callAllowed("POST", "/v1/messages?beta=true")).toBe(true);
+    expect(proxy.callAllowed("POST", "/v1/messages/count_tokens")).toBe(true);
+    expect(proxy.callAllowed("GET", "/v1/messages")).toBe(false);
+    expect(proxy.callAllowed("POST", "/v1/messages/batches")).toBe(false);
+    expect(proxy.callAllowed("POST", "/v1/files")).toBe(false);
+    expect(proxy.modelAllowed("claude-sonnet-5-20260301", ["claude-sonnet-5"])).toBe(true);
+    expect(proxy.modelAllowed("claude-sonnet-5-5", ["claude-sonnet-5"])).toBe(false);
+    expect(proxy.modelAllowed("claude-haiku-4-5", ["claude-sonnet-5", "claude-haiku-*"])).toBe(true);
+    expect(proxy.modelAllowed(undefined, ["claude-sonnet-5"])).toBe(false);
+
+    // a stand-in for the API: records what reached it, answers a stream with token counts
+    const seen: { url?: string; key?: string; body: string }[] = [];
+    const api = http.createServer((req, res) => {
+      let body = "";
+      req.on("data", (c) => { body += c; });
+      req.on("end", () => {
+        seen.push({ url: req.url, key: String(req.headers["x-api-key"]), body });
+        if (JSON.parse(body).hang) return; // never answers
+        res.writeHead(200, { "content-type": "text/event-stream" });
+        res.write('event: message_start\ndata: {"type":"message_start","message":{"usage":{"input_tokens":1000000,"output_tokens":1}}}\n\n');
+        res.end('event: message_delta\ndata: {"type":"message_delta","usage":{"output_tokens":100000}}\n\n');
+      });
+    });
+    await new Promise<void>((r) => api.listen(0, "127.0.0.1", r));
+    const apiPort = (api.address() as { port: number }).port;
+    // 1M input at $2 and 100K output at $10 per million = $3 a call; the cap lets one call through
+    const token = issueProxyToken({ run: "r", key: "k", model: "claude-sonnet-5", capUsd: 2.5, usdPerMTok: { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 } });
+    const server: http.Server = proxy.apiServer({
+      upstreams: { anthropic: { host: "127.0.0.1", port: apiPort, tls: false, keyHeader: "x-api-key", key: () => "the-real-key" } },
+      tokenDir: join(proxyDir(), "tokens"), allowModels: ["claude-haiku-*"], timeoutMs: 300,
+    });
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+    const port = (server.address() as { port: number }).port;
+    const call = (o: { method?: string; path?: string; key?: string; body?: object }) => new Promise<{ status: number; text: string }>((resolve) => {
+      const req = http.request({ host: "127.0.0.1", port, method: o.method ?? "POST", path: o.path ?? "/anthropic/v1/messages?beta=true", headers: { "content-type": "application/json", ...(o.key ? { "x-api-key": o.key } : {}) } }, (res) => {
+        let text = "";
+        res.on("data", (c) => { text += c; });
+        res.on("end", () => resolve({ status: res.statusCode ?? 0, text }));
+      });
+      req.on("error", () => resolve({ status: -1, text: "" }));
+      req.end(o.method === "GET" ? undefined : JSON.stringify(o.body ?? { model: "claude-sonnet-5", messages: [] }));
+    });
+    try {
+      expect((await call({})).status).toBe(401);
+      expect((await call({ key: "factory-not-a-registered-token" })).status).toBe(401);
+      expect((await call({ key: token, method: "GET", path: "/anthropic/v1/models" })).status).toBe(403);
+      expect((await call({ key: token, path: "/anthropic/v1/messages/batches" })).status).toBe(403);
+      expect((await call({ key: token, body: { model: "claude-opus-5-5", messages: [] } })).status).toBe(403);
+      expect(seen).toHaveLength(0);
+      // an API that never answers ends in an error, not a call left open
+      expect((await call({ key: token, body: { model: "claude-haiku-4-5", hang: true } })).status).toBe(504);
+      const ok = await call({ key: token });
+      expect(ok.status).toBe(200);
+      expect(ok.text).toContain("message_delta");
+      expect(seen.at(-1)).toMatchObject({ url: "/v1/messages?beta=true", key: "the-real-key" });
+      expect(JSON.stringify(seen)).not.toContain(token);
+      const capped = await call({ key: token });
+      expect(capped.status).toBe(400);
+      expect(capped.text).toContain(proxy.CAP_TEXT);
+      expect(seen).toHaveLength(2);
+      // the step ended: its token is worth nothing
+      revokeProxyToken(token);
+      expect((await call({ key: token })).status).toBe(401);
+      expect(existsSync(join(proxyDir(), "tokens"))).toBe(true);
+    } finally {
+      server.close();
+      api.closeAllConnections();
+      api.close();
+    }
+  });
+
   it("feed proxy refuses CONNECT to other hosts", async () => {
     const proxy = await import("../../docker/proxy/proxy.mjs" as string);
     const server: http.Server = proxy.feedServer();
@@ -197,7 +342,10 @@ describe("the coding agent's output schema", () => {
     const orig = rt.wait.bind(rt);
     rt.wait = async () => {
       const inJson = rt.spec!.mounts.find((m) => m.dst === "/job/in.json")!.src;
-      sent = JSON.parse((await import("node:fs")).readFileSync(inJson, "utf8")).schema;
+      const job = JSON.parse((await import("node:fs")).readFileSync(inJson, "utf8"));
+      sent = job.schema;
+      // the session's context limits go with the job: output cap, read cap, and when it is summarised
+      expect(job.context).toEqual({ bashOutputChars: 20_000, readTokens: 12_000, compactWindow: 150_000, idleTurns: 45 });
       return orig();
     };
     await new ClaudeAgentRunner(rt, { runId: "r", key: "k", fileScope: [], lockedFiles: [], extraProtected: [], agentEnv: {} })

@@ -5,7 +5,8 @@
 // product's API contract), approve or send back with a reason, the answers to a question card on any run, and a limit card (cost,
 // time or attempts, or an estimate's budget): raise it one step and continue, or stop the run there. A bigger raise is the terminal's. Resuming a parked run (POST /api/runs/:id/resume) decides nothing: it is `factory resume`, and the
 // run stops again at its next card. Starting a new product may make one empty project (git init and factory init), and a full-stack
-// product its two repos (factory fullstack start); its run files (POST /api/fullstack/:name/up) start nothing. Exporting an
+// product its two repos (factory fullstack start); its run files (POST /api/fullstack/:name/up) start nothing, and starting a delivered product
+// (POST /api/fullstack/:name/apps/start) runs its two apps and its database in containers on this machine, with no model. Exporting an
 // approved design (POST /api/runs/:id/exports) only writes files under the run's own exports/ folder, and generating its
 // scaffold (POST /api/runs/:id/scaffold) only under the run's own scaffold/ folder.
 // Other cards are shown read-only with the terminal command to paste.
@@ -23,12 +24,14 @@ import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
-import { answerQuestions, checkRefs, decideCard, decideEstimate, raiseLimit, resumeRun, startRun, StartError, stopAtLimit, type StartDeps } from "./start.js";
+import { dataModelView } from "./erd.js";
+import { testsView } from "./tests.js";
+import { answerQuestions, checkRefs, decideCard, decideEstimate, raiseLimit, resumeRun, signOffManual, startRun, StartError, stopAtLimit, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
 import { figmaPluginZip } from "../design/figma.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
 import { fidelityPanel, fidelityShot } from "./fidelity.js";
-import { fullstackNext, fullstackUp, productsView, productView, startFullstack } from "./fullstack.js";
+import { fullstackApps, fullstackNext, fullstackStart, fullstackStop, fullstackUp, productsView, productView, startFullstack } from "./fullstack.js";
 import { productNames } from "../fullstack/product.js";
 import type { ExportFormat } from "../design/export.js";
 
@@ -91,6 +94,14 @@ export const ROUTES: readonly Route[] = [
       return l ? ok({ ...previewView(l), base: `/preview/${ctx.previewKey}/${encodeURIComponent(l.runId)}/` }) : notFound(`No run ${id}`);
     },
   },
+  {
+    method: "GET", path: "/api/runs/:id/data-model", what: "the run's data model as a laid-out diagram (from the plan as soon as it exists), or why there is none",
+    handle: ({ id }) => { const l = findRun(id!); return l ? ok(dataModelView(l)) : notFound(`No run ${id}`); },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/tests", what: "the run's requirements, each acceptance criterion with its locked test, how the test ran, the reviewer's verdict and the manual sign-off, with counts",
+    handle: ({ id }) => { const l = findRun(id!); return l ? ok(testsView(l) as unknown as Json) : notFound(`No run ${id}`); },
+  },
   { method: "GET", path: "/api/dashboard", what: "outcomes, the per-stage table and recent runs", handle: () => ok(dashboardView()) },
   {
     method: "POST", path: "/api/runs", what: "start a run (same checks as factory start), executed in the background",
@@ -147,6 +158,19 @@ export const ROUTES: readonly Route[] = [
       if (!l) return notFound(`No run ${id}`);
       try {
         return { status: 200, json: await decideCard(l, (body ?? {}) as Record<string, unknown>, deps) };
+      } catch (e) {
+        if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
+        return { status: 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/manual-checks", what: "a person's check of the criteria that have no automated test, like factory sign-off (manual-check cards only; needs a typed name, the card hash and pass or fail for every criterion on the card)",
+    handle: async ({ id }, body, deps) => {
+      const l = findRun(id!);
+      if (!l) return notFound(`No run ${id}`);
+      try {
+        return { status: 200, json: await signOffManual(l, (body ?? {}) as Record<string, unknown>, deps) };
       } catch (e) {
         if (e instanceof StartError) return { status: e.status, json: { error: e.message } };
         return { status: 400, json: { error: (e as Error).message } };
@@ -219,6 +243,28 @@ export const ROUTES: readonly Route[] = [
     handle: ({ name }) => {
       if (!productNames().includes(name!)) return notFound(`No full-stack product ${name}`);
       try { return ok(fullstackUp(name!)); } catch (e) {
+        return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "GET", path: "/api/fullstack/:name/apps", what: "a delivered product started on this machine: its containers, whether the web app and the API answer, and the rows each list returns",
+    handle: async ({ name }, _b, deps) => productNames().includes(name!) ? ok(await fullstackApps(name!, deps.apps) as unknown as Json) : notFound(`No full-stack product ${name}`),
+  },
+  {
+    method: "POST", path: "/api/fullstack/:name/apps/start", what: "start a delivered product on this machine: write the run files, then start its database, API (with its sample rows) and web app in containers; no model, no cost",
+    handle: async ({ name }, _b, deps) => {
+      if (!productNames().includes(name!)) return notFound(`No full-stack product ${name}`);
+      try { return ok(await fullstackStart(name!, deps.apps)); } catch (e) {
+        return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/fullstack/:name/apps/down", what: "remove a started product's containers; its database keeps its rows",
+    handle: async ({ name }, _b, deps) => {
+      if (!productNames().includes(name!)) return notFound(`No full-stack product ${name}`);
+      try { return ok(await fullstackStop(name!, deps.apps)); } catch (e) {
         return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
       }
     },
@@ -370,7 +416,11 @@ async function readBody(req: IncomingMessage, limit = MAX_BODY_BYTES): Promise<s
 
 const LOCKED_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>AI Factory</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/app.css"></head>
-<body><main class="locked"><h1>AI Factory</h1><p>Open the link that <code>factory ui</code> printed in your terminal. It carries the key for this session.</p></main></body></html>`;
+<body><main class="locked"><h1>AI Factory</h1><p>Open the link that <code>factory ui</code> printed in your terminal. It carries the key for this session.</p>
+<p class="small muted">Paste the link into the address bar: a link followed from another site is refused.</p></main></body></html>`;
+
+/** Added to a demo page shown inside the screens' own frame: the demo's side list repeats the screens' list beside it, so it is hidden there. */
+const FRAME_STYLE = "<style>html{scroll-padding-top:14px}aside{display:none!important}main{padding:14px 18px 28px!important}.screen>.file{display:none!important}</style>";
 
 export function createUiServer(opts: UiServerOptions = {}): UiServer {
   const token = opts.token ?? randomBytes(24).toString("base64url");
@@ -392,10 +442,14 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
     // a page on another site (or a rebound DNS name) can't talk to this server
     if (!allowedHosts.includes(String(req.headers.host ?? ""))) return send(res, 403, "Wrong host.", "text/plain; charset=utf-8");
     const early = new URL(req.url ?? "/", `http://${req.headers.host}`).pathname;
-    if (early.startsWith("/preview/")) return servePreview(req, res, early);
+    if (early.startsWith("/preview/")) return servePreview(req, res, early, new URL(req.url ?? "/", `http://${req.headers.host}`).searchParams.get("frame") === "1");
     const origin = req.headers.origin;
     if (origin !== undefined && !allowedHosts.map((h) => `http://${h}`).includes(origin)) return sendJson(res, 403, { error: "Cross-origin requests are refused." });
-    if (req.headers["sec-fetch-site"] === "cross-site") return sendJson(res, 403, { error: "Cross-site requests are refused." });
+    if (req.headers["sec-fetch-site"] === "cross-site") {
+      // a person who followed a link from another site gets a page that says what to do, not a line of JSON; still refused
+      if (req.method === "GET" && req.headers["sec-fetch-mode"] === "navigate") return send(res, 403, LOCKED_PAGE, "text/html; charset=utf-8");
+      return sendJson(res, 403, { error: "Cross-site requests are refused." });
+    }
 
     const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
     const path = url.pathname;
@@ -509,7 +563,7 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
   }
 
   /** GET /preview/<previewKey>/<run>/<file>: read-only, the preview key instead of the session key. */
-  function servePreview(req: IncomingMessage, res: ServerResponse, path: string): void {
+  function servePreview(req: IncomingMessage, res: ServerResponse, path: string, framed = false): void {
     const plain = (status: number, text: string) => { res.writeHead(status, { ...PREVIEW_HEADERS, "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" }); res.end(text); };
     if (req.method !== "GET" && req.method !== "HEAD") return plain(405, "Read-only.");
     // raw (still encoded) segments: the file part is decoded and checked once, in previewFile
@@ -521,7 +575,8 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
     const f = l && rest.length ? previewFile(l, rest.join("/")) : undefined;
     if (!f) return plain(404, "Not found.");
     res.writeHead(200, { ...PREVIEW_HEADERS, "Content-Type": f.type, "Cache-Control": "no-store" });
-    res.end(req.method === "HEAD" ? undefined : f.body);
+    const body = framed && f.type.startsWith("text/html") ? Buffer.concat([f.body, Buffer.from(FRAME_STYLE)]) : f.body;
+    res.end(req.method === "HEAD" ? undefined : body);
   }
 
   return { server, token, previewKey, exportJobs: jobs };

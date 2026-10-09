@@ -53,7 +53,7 @@ export function specLane(intent: Intent, mode: string | undefined): { drafts: nu
  */
 export function testWriterTurns(light: boolean, levels: string[]): number {
   const lane = light ? LANE.light : LANE.full;
-  return levels.some((l) => l === "api" || l === "job") ? lane.testWriterTurnsApi : lane.testWriterTurns;
+  return levels.some((l) => l === "api" || l === "job" || l === "ui") ? lane.testWriterTurnsApi : lane.testWriterTurns;
 }
 
 /**

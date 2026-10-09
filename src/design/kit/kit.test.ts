@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join, posix } from "node:path";
@@ -11,6 +11,7 @@ import {
 } from "./index.js";
 import { sampleDesign } from "./sample.js";
 import { PLAYWRIGHT_VERSION } from "./e2e.js";
+import { SCREEN_HELPER, SCREEN_SETUP, SCREEN_TEST_PACKAGES, screenTestsReady } from "./screen-tests.js";
 
 type Ts = typeof import("typescript");
 const ts = createRequire(import.meta.url)("typescript") as Ts;
@@ -170,6 +171,33 @@ describe("the scaffold", () => {
     expect(routes).toContain(`{ path: "/invoices/:id", element: <Fixture id="S-2" page={(f) => <InvoiceContainer fixture={f} />} /> }`);
     expect(l.files.some((f) => f.path === "src/lib/nav.tsx" && f.text.includes("react-router"))).toBe(true);
     expect(l.files.map((f) => f.path)).toEqual(expect.arrayContaining(["index.html", "vite.config.ts", "src/main.tsx", "src/index.css", "src/design-theme.css"]));
+  });
+
+  it("screen tests: a fresh app gets the packages, the setup file and a vitest config that runs it; the files are the factory's", () => {
+    for (const target of ["next-shadcn", "vite-shadcn"] as const) {
+      const l = scaffold({ ...base, target });
+      const file = (p: string) => l.files.find((f) => f.path === p)!;
+      const dev = (JSON.parse(file("package.json").text) as { devDependencies: Record<string, string> }).devDependencies;
+      expect(dev).toMatchObject(SCREEN_TEST_PACKAGES);
+      expect(file("vitest.config.ts").text).toContain(`setupFiles: ["tests/support/setup.ts"]`);
+      expect(file("vitest.config.ts").text).toContain(`oxc: { jsx: { runtime: "automatic" } }`);
+      expect(file(SCREEN_SETUP).text).toContain(`vi.mock("@/lib/nav"`);
+      expect(file(SCREEN_HELPER).text).toContain("export const nav");
+      expect(l.protected).toEqual(expect.arrayContaining([SCREEN_SETUP, SCREEN_HELPER]));
+    }
+  });
+
+  it("screen tests are ready only when the checkout has the packages and the setup file", () => {
+    const dir = mkdtempSync(join(tmpdir(), "screens-"));
+    try {
+      expect(screenTestsReady(dir)).toBe(false);
+      writeFileSync(join(dir, "package.json"), JSON.stringify({ devDependencies: SCREEN_TEST_PACKAGES }));
+      expect(screenTestsReady(dir)).toBe(false);
+      writeScaffold(scaffold({ ...base, target: "next-shadcn" }), dir);
+      expect(screenTestsReady(dir)).toBe(true);
+      writeFileSync(join(dir, "package.json"), JSON.stringify({ devDependencies: { vitest: "5.0.3" } }));
+      expect(screenTestsReady(dir)).toBe(false);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 
   it("an existing repo: nothing of its own is written over; what the kit needs becomes the design-system task's work", () => {
