@@ -113,3 +113,25 @@ Cost and safety first:
 6. **Items 10, 11, 13:** close off push targets and write paths.
 7. **Items 9, 12, 14:** host ownership, path writes, pagination. Fix each one or document it as a limit.
 8. **End-to-end run** on a real repository before the check is made required.
+
+## 6. Second review (at `8b3a2be`)
+
+The second pass found that all of the items above are resolved. It then asked what would stop the first real run, and found five blockers. These are fixed, each one test-first. The plan is [superpowers/plans/2026-10-09-merge-gate-review-2-fixes.md](superpowers/plans/2026-10-09-merge-gate-review-2-fixes.md).
+
+| # | Problem | Fix | Commit |
+|---|---|---|---|
+| 1 | A PAT cannot create a check run, and an App token cannot read `/user` | The verdict is now a **commit status** (`factory/merge-gate`). The deliver token can write it, and branch protection accepts it as a required check. The setup doc lists the permissions | `26e71db` |
+| 2 | The branch fallback wanted `run-…`, which is not the shape of a real run id | It matches `YYYYMMDD-<slug>-<hex4>`, with or without a Jira key. It is tested against `newRunId` itself | `0321d29` |
+| 3 | A throw after money was spent left no record, so the next pass paid again | The verdict is recorded before it is written. A throw records the attempt and carries the last verdict forward, so the cooldown and the budget hold and a moved base is still judged again | `2208fa1` |
+| 4 | Every second factory PR conflicts on `.factory/evidence-manifest.json`, and the repair may not write it | `mergeInto` keeps the PR's side with no model. If nothing else conflicts, the merge is gated and pushed like a repair | `35254f4` |
+| 5 | A merge result with failing tests could be green | The lab gets the locked tests as `expectPass` and the run's baseline as `compareToBaseline`. Any class that is not repaired fails when its tests fail, before review-2 runs | `2ac1ebf` |
+| 8 (tests) | Known failures on the base counted against every PR | Tests that failed in the run's `discover` baseline are not counted | `2ac1ebf` |
+
+**Still open from the second review:**
+- **6:** a PR reviewed before deliver finishes is failed until the base moves.
+- **7:** any `Factory-Repair` trailer is trusted. Recognise the factory's own push by `judgedHeadSha` instead.
+- **8 (lint):** the lint gate has no baseline on this path.
+- **9:** `ensureEgress` is not called before the lab.
+- **10:** a quiet pass still fetches per PR, and the `rv-…` worktrees and `tmp/reverify-<runId>` are never cleaned up.
+
+**The end-to-end run has still not happened.** Run `review-open-prs --once` on a repository with two factory PRs open, one of them merged. That run exercises items 1, 2, 4 and 5. Keep `factory/merge-gate` out of the required checks until it passes there.
