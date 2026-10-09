@@ -187,7 +187,7 @@ ok   Node v22.x
 ok   container runtime: /usr/bin/docker
 ok   ~/.factory/.env exists
 ok   ANTHROPIC_API_KEY set in ~/.factory/.env
-note OPENAI_API_KEY not set: critic and review will use Claude (single family)
+note OPENAI_API_KEY not set: a run will not start (the second spec draft and the pre-PR reviewer run on GPT-6)
 ```
 
 Skipped the key during setup? Add it any time: `nano ~/.factory/.env` → `ANTHROPIC_API_KEY=sk-ant-...`. Never paste keys into chat, tickets or the repo.
@@ -519,6 +519,8 @@ With a GitHub `forge:`, the pull request title and the branch carry the ticket k
 | `factory mcp` | Runs the MCP server for Claude Code (registered by setup). |
 | `factory baseline --project <p>` | Builds and tests the untouched repo in the test lab. No AI. |
 | `factory start "<request>" --project <p> [--max-cost <usd>]` | Creates a run and executes until a card, a park or delivery. `--max-cost` lowers this run's spend limit: at that amount the run stops and asks you. |
+| `factory start … --preset <name> --model <step=model>` | Chooses the model of each step, once, at the start. Also on `factory estimate`, `factory design start` and `factory fullstack start`. See [`docs/model-choice.md`](docs/model-choice.md). |
+| `factory models [--mode <m>] [--preset <name>] [--model <step=model>]` | Lists every model step, the model it would run on and why, and the models it can be given. Free. `--run <run>` reads a run's ledger instead: what each step was given, what was called and what it cost. |
 | `factory start --file request.md --project <p>` | Same, with the request from a Markdown or text file. |
 | `factory start --jira ABC-123 --project <p>` | Same, with the request from a Jira ticket (key or link): summary, description and latest comments (only from allowed people when the project has a `jira:` block). Needs Jira set up in `~/.factory/.env`. |
 
@@ -580,7 +582,7 @@ Setup registers an MCP server called **ai-factory** in Claude Code (if you have 
 | Tool | Does |
 |---|---|
 | `factory_projects` | Lists your projects. |
-| `factory_start` | Starts a run in the background. |
+| `factory_start` | Starts a run in the background. Optional `preset` and `models` choose the model of each step. |
 | `factory_status` | Shows a run (or recent runs). |
 | `factory_show_card` | Shows the open card or the PR text. |
 | `factory_verify_evidence` | Re-checks a run's decisions. |
@@ -704,6 +706,8 @@ npm run screens      # retake docs/screens/*.jpg, dark and light
 Start with [`docs/design/BUILD-BRIEF.md`](docs/design/BUILD-BRIEF.md), then [`docs/design/stages-aligned.md`](docs/design/stages-aligned.md) (the source of truth for stages). Component designs: run manager, gate engine, verify runner, context builder, adapters. The design step for UI changes is in [`docs/design-step.md`](docs/design-step.md), with its test results in [`docs/design-eval/results.md`](docs/design-eval/results.md). Test-lab speed-ups (each commit built once, Integrate reusing the task's run, known failures skipped), before and after: [`docs/design/test-lab-reuse.md`](docs/design/test-lab-reuse.md).
 
 A new product in one run and the full-stack API contract: [`docs/fullstack-contract.md`](docs/fullstack-contract.md); where that work stands: [`docs/handoff-greenfield-fullstack.md`](docs/handoff-greenfield-fullstack.md); free dry runs on real containers: [`dryrun/`](dryrun/README.md).
+
+Choosing the model for each step (the form, `--preset` and `--model`, the project file, the tier table, reading a run's models): [`docs/model-choice.md`](docs/model-choice.md).
 
 The estimates path: [`docs/estimates-overview.md`](docs/estimates-overview.md) (one page), then [`docs/estimates-design.md`](docs/estimates-design.md) (the design, and its build status at the end). Why estimates can vary and what repeats them: [`docs/estimate-consistency.md`](docs/estimate-consistency.md); a local sizing model (research only): [`docs/estimate-local-model.md`](docs/estimate-local-model.md). Benchmarks and pinned public data: [`bench/README.md`](bench/README.md), [`bench/external/README.md`](bench/external/README.md). First real runs: [`docs/runs/2026-09-30-first-real-runs.md`](docs/runs/2026-09-30-first-real-runs.md).
 

@@ -240,7 +240,7 @@ const writeProject = (design: Record<string, unknown>) => writeFileSync(join(hom
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "factory-gf-e2e-"));
   process.env.FACTORY_HOME = home;
-  writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\n", { mode: 0o600 });
+  writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\n", { mode: 0o600 });
   _resetEnvCache();
   repo = mkdtempSync(join(tmpdir(), "factory-gf-repo-"));
   execFileSync("git", ["init", "-q", "-b", "main"], { cwd: repo, env });

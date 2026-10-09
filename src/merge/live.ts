@@ -21,7 +21,7 @@ import { createSnapshot, snapshotDir } from "../context/snapshot.js";
 import { readApproved } from "../conventions/store.js";
 import { HUMAN_WRITER } from "../ledger/ledger.js";
 import { diffFiles } from "../stages/deliver.js";
-import { modelFor } from "../stages/routing.js";
+import { modelFor, projectForRun } from "../stages/routing.js";
 import type { Review2Inputs } from "../stages/review2.js";
 import { commitsWithTrailers, forgeAdapter, mergeInto, openRunFacts, recordedVerdicts, reverifyWorktree } from "./adapters.js";
 import { runMergeGates, type MergeEvidence } from "./gates-run.js";
@@ -116,6 +116,8 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
     async review2(a) {
       const ledger = Ledger.open(a.runId);
       const state = replay(ledger.events());
+      // the models the run was created with, not today's defaults
+      const routed = projectForRun(o.cfg, state.info.routes);
       const conv = readApproved(o.cfg.project);
       if ("unapproved" in conv) throw new Error(conv.unapproved);
 
@@ -140,10 +142,10 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
           verification: lastVerify?.verification,
           changedFiles: diffFiles(diff),
         },
-        model: modelFor(o.cfg, "review-2", 0).model,
-        stronger: modelFor(o.cfg, "review-2", 2).model,
-        implementerModel: modelFor(o.cfg, "implement", 0).model,
-        reviewerModel: modelFor(o.cfg, "review", 0).model,
+        model: modelFor(routed, "review-2", 0).model,
+        stronger: modelFor(routed, "review-2", 2).model,
+        implementerModel: modelFor(routed, "implement", 0).model,
+        reviewerModel: modelFor(routed, "review", 0).model,
       });
     },
 
@@ -167,6 +169,7 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       // the budget was already checked by mayRepair; what remains is the work and the binding
       const ledger = Ledger.open(a.runId);
       const state = replay(ledger.events());
+      const routed = projectForRun(o.cfg, state.info.routes);
       const lock = ledger.getJson<{ lock: { file: string }[] }>(state.steps.get("author-tests")!.outputs[0]!);
       const wt = reverifyWorktree(a.runId);
       const snap = createSnapshot(wt, "HEAD", snapshotDir(a.runId, `repair-${Date.now()}`), o.cfg.noGo);
@@ -174,8 +177,8 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       const proposal = await proposeRepair({
         snap, lockedFiles: lock.lock.map((x) => x.file), cls,
         subject: [], noGo: o.cfg.noGo, log: o.log,
-        model: modelFor(o.cfg, "implement", 0).model,
-        stronger: modelFor(o.cfg, "implement", 2).model,
+        model: modelFor(routed, "implement", 0).model,
+        stronger: modelFor(routed, "implement", 2).model,
       }, a.runId);
 
       if (repairIsEmpty(proposal)) {

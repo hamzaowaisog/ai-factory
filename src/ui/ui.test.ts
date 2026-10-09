@@ -145,7 +145,7 @@ const post = (body: unknown, headers: Record<string, string> = {}) =>
 beforeEach(async () => {
   home = mkdtempSync(join(tmpdir(), "factory-ui-"));
   process.env.FACTORY_HOME = home;
-  writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\n`, { mode: 0o600 });
+  writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\n`, { mode: 0o600 });
   _resetEnvCache();
   _resetStarting();
   mkdirSync(join(home, "projects"), { recursive: true });
@@ -451,7 +451,7 @@ describe("factory ui: a new product (greenfield)", () => {
     expect((await call("/api/projects")).json().github).toEqual({ configured: false, why: expect.stringMatching(/add GITHUB_TOKEN to ~\/\.factory\/\.env/) });
     const gh = await fakeGithub();
     try {
-      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nGITHUB_TOKEN=${gh.token}\nGITHUB_API_URL=${gh.url}\n`, { mode: 0o600 });
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\nGITHUB_TOKEN=${gh.token}\nGITHUB_API_URL=${gh.url}\n`, { mode: 0o600 });
       _resetEnvCache();
       expect((await call("/api/projects")).json().github).toEqual({ configured: true });
       makeNewProduct("old", newDir("old"));
@@ -521,6 +521,8 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
       [{ name: "orders", dir, prompt: "An orders app", maxCost: 25 }, /can only lower/],
       [{ name: "orders", dir, prompt: "An orders app", file: { name: "a.exe", text: "x" } }, /\.md\) or text/],
       [{ name: "orders", dir, fromDesign: "nope", fromEstimate: "nope" }, /one thing at a time/],
+      [{ name: "orders", dir, prompt: "An orders app", models: { picks: { critic: "gpt-6-sol" } } }, /critic always runs on Claude Opus 5\.5/],
+      [{ name: "orders", dir, prompt: "An orders app", models: { preset: "cheap" } }, /No preset "cheap"/],
     ];
     for (const [body, msg] of cases) {
       const r = await send("/api/fullstack", body);
@@ -531,6 +533,16 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     expect((await call("/api/fullstack/orders")).status).toBe(404);
     expect((await send("/api/fullstack/orders/next", {})).status).toBe(404);
     expect(started).toEqual([]);
+  });
+
+  it("the models chosen at the start are kept with the product, so the API run uses the same choice", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
+    const r = await send("/api/fullstack", { name: "orders", dir, prompt: "An orders app: staff list orders and mark one shipped.", models: { preset: "quality", picks: { implement: "claude-opus-5-5", plan: "" } } });
+    expect(r.status).toBe(201);
+    const info = replay(Ledger.open(r.json().webRun).events()).info;
+    expect(info.models).toEqual({ preset: "quality", picks: { implement: "claude-opus-5-5" } });
+    expect(info.routes!.implement).toMatchObject({ model: "claude-opus-5-5", source: "pick" });
+    expect(JSON.parse(readFileSync(join(process.env.FACTORY_HOME!, "fullstack", "orders.json"), "utf8")).models).toEqual({ preset: "quality", picks: { implement: "claude-opus-5-5" } });
   });
 
   it("start, then the API run once the web plan is approved, then the run files once both are delivered", async () => {
@@ -593,7 +605,7 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
   it("puts both repos on GitHub when asked: each a private repo with main pushed; the contract goes to the API repo's main", async () => {
     const gh = await fakeGithub();
     try {
-      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nGITHUB_TOKEN=${gh.token}\nGITHUB_API_URL=${gh.url}\n`, { mode: 0o600 });
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\nGITHUB_TOKEN=${gh.token}\nGITHUB_API_URL=${gh.url}\n`, { mode: 0o600 });
       _resetEnvCache();
       const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
       const r = await send("/api/fullstack", { name: "orders", dir, prompt: "An orders app: staff list orders and mark one shipped.", github: true });
@@ -622,7 +634,7 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
   it("when GitHub refuses a repo, keeps nothing on this machine and names any repo already made there", async () => {
     const gh = await fakeGithub();
     try {
-      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nGITHUB_TOKEN=${gh.token}\nGITHUB_API_URL=${gh.url}\n`, { mode: 0o600 });
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\nGITHUB_TOKEN=${gh.token}\nGITHUB_API_URL=${gh.url}\n`, { mode: 0o600 });
       _resetEnvCache();
       const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
       // the API repo is refused after the web repo was made
@@ -636,7 +648,7 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
       expect((await call("/api/fullstack")).json()).toEqual([]);
       expect(started).toEqual([]);
       // without a token it is refused before anything is made
-      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\n`, { mode: 0o600 });
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=${SECRET}\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\n`, { mode: 0o600 });
       _resetEnvCache();
       expect((await send("/api/fullstack", { name: "orders", dir, prompt: "An orders app", github: true })).json().error).toMatch(/add GITHUB_TOKEN/);
       expect(existsSync(join(dir, "orders-web"))).toBe(false);
@@ -1602,6 +1614,26 @@ describe("factory ui: design exports", () => {
     expect(replay(Ledger.open(b.json().runId).events()).info.uiTarget).toBe("vite-shadcn");
     expect((await post({ project: "web", prompt: "x", uiTarget: "angular" })).json().error).toMatch(/The UI target takes next-shadcn, vite-shadcn, repo/);
     expect((await post({ project: "web", mode: "estimate", prompt: "x", uiTarget: "repo" })).json().error).toMatch(/chosen for a build/);
+  });
+
+  it("a run started from the UI can choose its models, like --preset and --model; a model a step cannot run on is refused", async () => {
+    _resetStarting();
+    const b = await post({ project: "web", prompt: "Add an orders page", models: { preset: "economy", picks: { plan: "gpt-6-sol", ground: "" } } });
+    expect(b.status).toBe(201);
+    const info = replay(Ledger.open(b.json().runId).events()).info;
+    expect(info.models).toEqual({ preset: "economy", picks: { plan: "gpt-6-sol" } });
+    expect(info.routes!.plan).toMatchObject({ model: "gpt-6-sol", source: "pick" });
+    expect(info.routes!.ground).toMatchObject({ model: "claude-sonnet-5-5", source: "pick", preset: "economy" });
+    expect(info.routes!.critic).toMatchObject({ model: "claude-opus-5-5", source: "fixed" });
+    // the run page shows what each step was given, and where from
+    const m = (await call(`/api/runs/${b.json().runId}`)).json().models;
+    expect(m).toMatchObject({ saved: true, preset: "economy", calls: [], moved: [] });
+    expect(m.rows.find((x: { step: string }) => x.step === "plan")).toMatchObject({ model: "gpt-6-sol", name: "GPT-6 Sol", source: "pick" });
+    expect(m.rows.find((x: { step: string }) => x.step === "ground")).toMatchObject({ name: "Claude Sonnet 5.5", source: "pick", preset: "economy" });
+    expect(m.rows.find((x: { step: string }) => x.step === "critic")).toMatchObject({ name: "Claude Opus 5.5", source: "fixed" });
+    _resetStarting();
+    expect((await post({ project: "web", prompt: "x", models: { picks: { "specify-other": "claude-opus-5-5" } } })).json().error).toMatch(/specify-other: claude-opus-5-5 is not offered for this step/);
+    expect((await post({ project: "web", prompt: "x", models: { preset: "cheap" } })).json().error).toMatch(/No preset "cheap"/);
   });
 
   it("runs one export of a run at a time", async () => {

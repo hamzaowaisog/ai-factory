@@ -4,15 +4,60 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
+import { heldTier, nextUp, STEPS, TIER_TABLE } from "../stages/models.js";
 import { factoryHome } from "../util/paths.js";
 
+const EffortName = z.enum(["low", "medium", "high", "xhigh"]);
+const RunnerName = z.enum(["api", "claude-agent", "codex", "jcode"]);
+/** A step's route once it is worked out: the shape the pipeline reads. */
 const StepRoute = z.object({
-  runner: z.enum(["api", "claude-agent", "codex", "jcode"]),
+  runner: RunnerName,
   model: z.string(),
   escalate: z.array(z.string()).default([]),
-  effort: z.enum(["low", "medium", "high", "xhigh"]).optional(),
+  effort: EffortName.optional(),
 });
 export type StepRoute = z.infer<typeof StepRoute>;
+
+/**
+ * A step's route as the project file writes it: a model, or a tier (light, standard, heavy) read from the tier
+ * table in src/stages/models.ts. The runner and the model a retry moves up to are filled in for a step the
+ * factory knows; a step of its own names both.
+ */
+const StepRouteIn = z.object({
+  runner: RunnerName.optional(),
+  model: z.string().optional(),
+  tier: z.enum(["light", "standard", "heavy"]).optional(),
+  escalate: z.array(z.string()).optional(),
+  effort: EffortName.optional(),
+});
+
+function routesFromFile(steps: Record<string, z.infer<typeof StepRouteIn>>, ctx: z.RefinementCtx): Record<string, StepRoute> {
+  const out: Record<string, StepRoute> = {};
+  for (const [stage, r] of Object.entries(steps)) {
+    const spec = STEPS[stage];
+    const bad = (message: string) => { ctx.addIssue({ code: z.ZodIssueCode.custom, path: [stage], message }); };
+    if (r.model && r.tier) { bad("give a model or a tier, not both"); continue; }
+    if (!r.model && !r.tier) { bad("needs a model or a tier (light, standard, heavy)"); continue; }
+    if (r.tier && !spec) { bad("a tier needs a step the factory knows; name the model"); continue; }
+    const runner = r.runner ?? spec?.runner;
+    if (!runner) { bad("needs a runner"); continue; }
+    const tier = r.tier ? TIER_TABLE[spec!.vendor][heldTier(stage, r.tier)] : undefined;
+    const model = r.model ?? tier!.model;
+    const effort = r.effort ?? tier?.effort;
+    const next = nextUp(stage, model);
+    out[stage] = { runner, model, escalate: r.escalate ?? (next ? [next] : []), ...(effort ? { effort } : {}) };
+  }
+  return out;
+}
+
+/** How a run's routes were settled: written by the factory when it reads a run, never by a project file. */
+const RunRoutes = z.object({
+  /** the run was created before routes were saved with it: the routing table of that time, and a GPT step without an OpenAI key still runs on Claude Opus */
+  legacy: z.boolean().default(false),
+  /** per step: where its model came from, and its tier when it came from one */
+  steps: z.record(z.string(), z.object({ source: z.string(), tier: z.string().optional(), preset: z.string().optional() })).default({}),
+});
+export type RunRoutes = z.infer<typeof RunRoutes>;
 
 export const ProjectConfig = z.object({
   project: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
@@ -47,6 +92,9 @@ export const ProjectConfig = z.object({
     /** tickets whose description is shorter than this are skipped (not enough to go on) */
     minDescriptionChars: z.number().int().nonnegative().default(80),
     pollSeconds: z.number().int().min(30).default(60),
+    /** the models of every run the watcher starts, like --preset and --model: nobody is there to be asked */
+    preset: z.enum(["economy", "balanced", "quality"]).optional(),
+    models: z.record(z.string(), z.string()).default({}),
   }).optional(),
   /** Where the watcher posts updates. Webhook URLs live in ~/.factory/.env, named here. */
   notify: z.object({ slackWebhookEnv: z.string().optional() }).default({}),
@@ -213,7 +261,8 @@ export const ProjectConfig = z.object({
     input: z.number(), output: z.number(), cacheRead: z.number().default(0), cacheWrite: z.number().default(0),
   })).default({}),
   policy: z.record(z.string(), z.unknown()).default({}),
-  steps: z.record(z.string(), StepRoute).default({}),
+  steps: z.record(z.string(), StepRouteIn).default({}).transform(routesFromFile),
+  runRoutes: RunRoutes.optional(),
 });
 export type ProjectConfig = z.infer<typeof ProjectConfig>;
 

@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { dirname, join } from "node:path";
 import { parse, stringify } from "yaml";
 import { newProductRefusal, PRODUCT_NAME, seedEmptyRepo, type EstimateScope } from "../config/greenfield.js";
-import { loadProject, projectPath } from "../config/project.js";
+import { loadProject, projectPath, type ProjectConfig } from "../config/project.js";
 import { secret } from "../config/env.js";
 import { addForge, createGithubRepo, githubPreflight, pushBranch, type GithubAccount } from "../forge/repos.js";
 import { hardenedEnv } from "../ledger/git.js";
@@ -16,6 +16,7 @@ import { replay } from "../ledger/state.js";
 import { approvedDesign, approvedEstimate, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
 import type { RequestSource } from "../sources/request.js";
 import { createRun } from "../stages/executor.js";
+import { checkRoutes, type Choice } from "../stages/routing.js";
 import { factoryHome } from "../util/paths.js";
 import { newProductDatabase, type DatabaseChoice, type DatabaseKind } from "./database.js";
 import { API_BUILT_DOC, API_PORT, API_SDK_IMAGE, API_SKELETON, API_SOLUTION, POSTGRES_IMAGE, POSTGRES_LOCAL, postgresConnection, SEED_FILE, SEED_SETTING } from "./skeleton.js";
@@ -26,9 +27,10 @@ export const CONTRACT_FILE = "contracts/openapi.yaml";
  * `from`: the approved design (its design steps are skipped) or approved estimate (the web run is held to it) the product started from.
  * A side's `github`: the GitHub repo the factory made for it (its page), when the product was put on GitHub.
  * `database`: what the API keeps its data in (src/fullstack/database.ts): PostgreSQL. A product from before that was settled has none and is on SQLite.
+ * `models`: the models chosen when the product was started (like --preset and --model); the API run uses the same choice, so it is asked once.
  */
 export interface ProductSide { project: string; repo: string; run?: string; github?: string }
-export interface Product { name: string; dir: string; web: ProductSide; api: ProductSide; request?: string; from?: { kind: "design" | "estimate"; runId: string }; database?: DatabaseChoice }
+export interface Product { name: string; dir: string; web: ProductSide; api: ProductSide; request?: string; from?: { kind: "design" | "estimate"; runId: string }; database?: DatabaseChoice; models?: Choice }
 
 /** What a product may start from besides a request: an approved design or an approved estimate, each made with no repo. */
 export type ProductSeed = { design: ApprovedDesign } | { estimate: Approved };
@@ -133,18 +135,25 @@ async function putOnGithub(p: Product, acct: GithubAccount): Promise<void> {
  * From an approved design, the web run builds that design (its design steps are skipped); from an approved estimate, it follows the
  * estimate's spec and design and is held to it (gates B1-B6). Either brings its own request. With neither, the run draws its own design
  * and nothing is estimated. `github`: put both repos on GitHub first (`putOnGithub`); GitHub is asked before anything is made.
+ * `models`: the models for both runs, checked before anything is made and kept with the product for the API run.
  */
-export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[] } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed, github = false): Promise<Product> {
+export async function startProduct(name: string, dir: string, request: { text: string; sources?: RequestSource[] } | undefined, operator: string, maxCostUsd?: number, seed?: ProductSeed, github = false, models: Choice = {}): Promise<Product> {
   const from = seed && ("design" in seed ? seed.design : seed.estimate);
   const text = from?.request ?? request?.text;
   if (!text) throw new Error("Describe the product, or start it from an approved design or estimate.");
+  const chosen = !!(models.preset || Object.keys(models.picks ?? {}).length);
+  // a new product's projects set no models of their own, so the choice is judged on its own before a repo exists
+  const problems = chosen ? checkRoutes({ steps: {} } as unknown as ProjectConfig, undefined, models) : [];
+  if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
   const acct = github ? await githubPreflight([`${name}-web`, `${name}-api`]) : undefined;
   const p = setUpProduct(name, dir, text);
   if (acct) await putOnGithub(p, acct);
   p.request = text;
   if (seed) p.from = { kind: "design" in seed ? "design" : "estimate", runId: from!.runId };
+  if (chosen) p.models = models;
   p.web.run = await createRun(text, p.web.project, operator, {
     ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
+    ...(chosen ? { models } : {}),
     ...(from ? { sources: [{ kind: "prompt" as const }] } : request?.sources ? { sources: request.sources } : {}),
     ...(seed ? { mode: "greenfield" as const, ...("design" in seed ? { fromDesign: seed.design } : { lineage: { kind: "build" as const, approved: seed.estimate } }) } : {}),
   });
@@ -168,7 +177,7 @@ export async function startApiRun(p: Product, operator: string, maxCostUsd?: num
     if (!token) throw new Error(`${forge.tokenEnv} is missing in ~/.factory/.env, so the contract cannot be pushed to ${forge.repo}.`);
     await pushBranch(p.api.repo, forge.pushUrl ?? `https://github.com/${forge.repo}.git`, token, "main");
   }
-  p.api.run = await createRun(apiRequest(p.request ?? "", databaseOf(p)), p.api.project, operator, { ...(maxCostUsd !== undefined ? { maxCostUsd } : {}) });
+  p.api.run = await createRun(apiRequest(p.request ?? "", databaseOf(p)), p.api.project, operator, { ...(maxCostUsd !== undefined ? { maxCostUsd } : {}), ...(p.models ? { models: p.models } : {}) });
   saveProduct(p);
   return p.api.run;
 }

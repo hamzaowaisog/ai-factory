@@ -830,3 +830,20 @@ a.proto .go { display: flex; align-items: center; gap: 0.4rem; color: var(--acce
 .tc-test .bad { color: var(--bad); }
 .tc > input[type="text"] { width: 100%; margin-top: 0.55rem; }
 .so-pick { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; }
+
+/* the start form's model rows: one per step */
+table.models { width: 100%; border-collapse: collapse; margin-top: 0.7rem; }
+table.models td { padding: 0.3rem 0.6rem 0.3rem 0; border-top: 1px solid var(--edge); vertical-align: middle; }
+table.models { table-layout: fixed; }
+table.models td:first-child { width: 8.5rem; overflow-wrap: anywhere; }
+table.models td:nth-child(2) { width: 4.5rem; }
+table.models select { width: 100%; min-width: 0; }
+@media (max-width: 520px) { table.models td:nth-child(2) { display: none; } table.models td:first-child { width: 6.5rem; } }
+table.models .hint { margin: 0.2rem 0 0; }
+/* the run page: what each step ran on (five columns, read-only) */
+table.models.used th { text-align: left; font-weight: 500; font-size: 0.8rem; color: var(--muted); padding: 0 0.6rem 0.3rem 0; }
+table.models.used td:nth-child(2) { width: auto; }
+table.models.used td:nth-child(3) { width: 6.5rem; }
+table.models.used :is(td, th):nth-child(4) { width: 3rem; text-align: right; }
+table.models.used :is(td, th):nth-child(5) { width: 4.2rem; text-align: right; padding-right: 0; }
+@media (max-width: 520px) { table.models.used td:nth-child(2) { display: table-cell; } table.models.used :is(td, th):nth-child(3) { display: none; } }

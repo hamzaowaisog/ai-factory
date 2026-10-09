@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import "../gates/predicates.js";
 import "../design/gates.js";
 import { REPO_ROOT } from "../runners/netinfra.js";
+import { modelsView } from "../stages/routing.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
 import { dataModelView } from "./erd.js";
@@ -62,6 +63,7 @@ const notFound = (what: string): Reply => ({ status: 404, json: { error: what } 
  */
 export const ROUTES: readonly Route[] = [
   { method: "GET", path: "/api/projects", what: "projects and whether Jira and Figma are set up", handle: async () => ok(await projectsView()) },
+  { method: "GET", path: "/api/models/:mode", what: "the model steps of one kind of run (estimate, design, build): each one's default, the models it can be given, the presets and the prices", handle: ({ mode }) => ok(modelsView(mode)) },
   { method: "GET", path: "/api/runs", what: "recent runs", handle: () => ok(runsView()) },
   {
     method: "GET", path: "/api/runs/:id", what: "one run: timeline, cost, trace, open card (read-only), delivery",

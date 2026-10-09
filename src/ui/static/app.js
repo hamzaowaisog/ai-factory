@@ -337,6 +337,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const estimating = kind === "estimate" || designing;
   skeleton();
   const meta = await api("/api/projects");
+  const catalogue = await api(`/api/models/${designing ? "design" : estimating ? "estimate" : "build"}`);
   const err = h("div", { class: "error", hidden: true });
   const listed = meta.projects;
   const project = h("select", { id: "project" },
@@ -505,6 +506,10 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const uiTarget = h("select", { id: "uitarget" }, h("option", { value: "" }, "Detect from the repo"), Object.entries(TARGET_LABELS).map(([v, t]) => h("option", { value: v }, t)));
   const uiTargetBlock = !estimating ? h("div", { class: "field" }, h("label", { for: "uitarget" }, "UI target (optional)"), uiTarget,
     h("div", { class: "hint" }, "What the approved design is built in when the project's design.uiTarget sets nothing (like --ui-target). A kit target puts the kit, the theme and every approved page into the repo before the agents start; the agents write the behaviour. Detection picks the kit for a Next.js or Vite app and the repo's own components otherwise.")) : null;
+  const picker = modelPicker(catalogue, "modelpreset");
+  const modelPreset = picker.preset, modelsTable = picker.table, modelsHint = picker.hint, modelsPicked = picker.picked;
+  const modelsBlock = estimating ? sect(designing ? 7 : 8, "Models", "The model each step runs on.", h("div", { class: "fld" }, h("label", { for: "modelpreset" }, "Preset"), modelPreset), modelsTable, modelsHint)
+    : h("div", { class: "field" }, h("label", { for: "modelpreset" }, "Models"), modelPreset, modelsTable, modelsHint);
   const maxCost = h("input", { type: "number", id: "maxcost", min: "0.5", step: "0.5", placeholder: "normal limit" });
   // optional and rarely changed: folded, so the form reads as request, then start
   const moreOpts = h("details", { class: "more-opts" }, h("summary", {}, h("strong", {}, "More options"), h("span", { class: "hint" }, estimating ? "design references · export on approval" : "design references · export on approval · UI target")),
@@ -527,7 +532,8 @@ async function requestScreen(kind = "brownfield", preset = []) {
       h("div", { class: "hint" }, "Use one input or several: they are combined into one request, like factory start does.")),
     settings,
     moreOpts,
-    estimating ? sect(designing ? 7 : 8, "Cost", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
+    modelsBlock,
+    estimating ? sect(designing ? 8 : 9, "Cost", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
       h("div", { class: "opts" }, opt2("fresh", fresh, "Ask the model again", "Don't reuse answers stored from an identical earlier request (like --fresh). It costs more; use it when an answer should be redone.")))
       : h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
     h("div", { class: "row" }, start, h("span", { class: "hint" }, designing ? "Runs in the background. Questions and the design approval can be answered here on the run page or in your terminal." : "Runs in the background. Questions, the design and the plan can be decided here on the run page or in your terminal; waivers and cost limits stay in the terminal.")),
@@ -550,7 +556,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
       const bf = buildFrom();
       const from = !estimating ? (bf.kind === "e" ? { fromEstimate: bf.id } : bf.kind === "d" ? { fromDesign: bf.id } : {})
         : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises" }[startFrom.value]]: seedRun.value } : {};
-      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
+      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), ...modelsPicked(), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
         ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, ...(drawDesign.checked ? {} : { drawDesign: false }), noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(handsOff.checked ? { humanReview: false } : {}) } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
@@ -764,6 +770,30 @@ function costPanel(r) {
     h("div", { class: "meter-num" }, num, h("span", { class: "of" }, `of ${money(r.cost.capUsd)}`)),
     h("div", { class: `gauge ${share >= 0.9 ? "bad" : share >= 0.7 ? "warn" : ""}` }, fill, h("div", { class: "ticks" })),
     h("div", { class: "meter-foot" }, h("span", {}, `${r.activeMin.toFixed(1)} min of machine time`), h("span", {}, capNote(r.cost))));
+}
+
+/** The model each step was given when the run was created, what was called on each, and the retries that moved a step up. */
+function modelsPanel(r) {
+  const m = r.models;
+  if (!m || (!m.rows.length && !m.calls.length)) return null;
+  const spent = new Map();
+  for (const c of m.calls) { const a = spent.get(c.route) ?? { calls: 0, usd: 0 }; a.calls += c.calls; a.usd += c.usd; spent.set(c.route, a); }
+  const from = (x) => (x.preset ? `preset ${x.preset}` : x.source + (x.tier ? ` (${x.tier})` : ""));
+  const picked = m.rows.filter((x) => x.source === "pick" && !x.preset).length;
+  const head = !m.saved ? "before the picker" : [m.preset ? `preset ${m.preset}` : "", picked ? `${picked} chosen by hand` : ""].filter(Boolean).join(" · ") || "defaults";
+  const th = (...c) => h("thead", {}, h("tr", {}, c.map((x) => h("th", {}, x))));
+  return h("section", { class: "panel" },
+    h("div", { class: "panel-head" }, h("h2", {}, icon("gauge"), "Models"), h("span", { class: "small muted" }, head)),
+    m.saved ? h("table", { class: "models used" }, th("Step", "Model", "From", "Calls", "Cost"), h("tbody", {}, m.rows.map((x) => {
+      const a = spent.get(x.step);
+      return h("tr", {}, h("td", { class: "mono" }, x.step), h("td", {}, x.name, h("span", { class: "faint small" }, ` ${x.effort}`)), h("td", { class: "small" }, x.source === "pick" && !x.preset ? h("span", { class: "chip" }, "chosen") : from(x)),
+        h("td", { class: "num" }, a ? String(a.calls) : ""), h("td", { class: "num" }, a ? money(a.usd) : ""));
+    })))
+      : h("p", { class: "small muted" }, "This run began before the models were saved with a run: it uses the routing table of that time."),
+    m.moved.length ? h("div", { class: "hint" }, "Retries that moved a step to another model: ", m.moved.map((x) => `${x.step}: ${x.from} to ${x.to}`).join("; "), ".") : null,
+    m.calls.length ? h("details", { class: "gate-all" }, h("summary", {}, `Every model that answered (${m.calls.length})`),
+      h("table", { class: "models used" }, th(m.saved ? "Route" : "Step", "Model", "From", "Calls", "Cost"), h("tbody", {}, m.calls.map((c) =>
+        h("tr", {}, h("td", { class: "mono" }, c.route), h("td", {}, c.name), h("td", { class: "small" }, c.source), h("td", { class: "num" }, String(c.calls)), h("td", { class: "num" }, money(c.usd))))))) : null);
 }
 
 function gatesPanel(r) {
@@ -1212,7 +1242,7 @@ function runScreen(id) {
     if (r.delivered) right.push(deliveredPanel(r));
     right.push(tracePanel(r), terminalPanel(r));
     mount([...runHeader(r, "run"), h("div", { class: "stack" }, pipeline(r), h("div", { class: "grid-2" },
-      h("div", { class: "stack" }, costPanel(r), gatesPanel(r)),
+      h("div", { class: "stack" }, costPanel(r), modelsPanel(r), gatesPanel(r)),
       h("div", { class: "stack" }, right)))], first);
     view.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
     if (focused) { const again = document.getElementById(focused.id); if (again) { again.focus({ preventScroll: true }); if (caret) try { again.setSelectionRange(...caret); } catch { /* not a text field */ } } }
@@ -2295,6 +2325,45 @@ async function dashboardScreen() {
 // ---------- new product: greenfield ----------
 
 /**
+ * The model each step runs on, chosen once, at the start: a preset fills every row, and any row can be changed by hand.
+ * `catalogue` is GET /api/models/:mode. Returns the preset select, the table of steps, the hint, and `picked()`: what goes in the POST body.
+ */
+function modelPicker(catalogue, id, also = "") {
+  const mName = (m) => catalogue.models.find((x) => x.id === m)?.name ?? m;
+  const mPrice = (m) => { const x = catalogue.models.find((y) => y.id === m); return x ? `$${x.input} in / $${x.output} out per million tokens${x.unconfirmed ? " (not confirmed)" : ""}` : ""; };
+  const preset = h("select", { id }, h("option", { value: "" }, "Defaults"), catalogue.presets.map((p) => h("option", { value: p }, p[0].toUpperCase() + p.slice(1))));
+  const rows = catalogue.steps.map((s) => {
+    const auto = h("option", { value: "" });
+    const pick = s.fixed ? null : h("select", { "aria-label": `Model for ${s.step}` }, auto, s.offered.map((m) => h("option", { value: m, title: mPrice(m) }, mName(m))));
+    const tag = h("span", { class: "chip", hidden: true }, "changed");
+    const note = h("span", { class: "hint warn-text", hidden: true });
+    const row = h("tr", {}, h("td", { class: "mono" }, s.step), h("td", { class: "faint small" }, s.group),
+      h("td", {}, s.fixed ? h("span", {}, `${mName(s.model)} `, h("span", { class: "faint small" }, "always")) : pick, " ", tag, note));
+    const sync = () => {
+      if (!pick) return;
+      const base = preset.value ? s.presets[preset.value] : s.model;
+      auto.textContent = `${mName(base)} (${preset.value || "default"})`;
+      tag.hidden = !pick.value;
+      const on = pick.value || base;
+      note.hidden = !(s.warn && pick.value && on === s.warn.model);
+      if (!note.hidden) note.textContent = s.warn.why;
+    };
+    if (pick) pick.addEventListener("change", sync);
+    return { step: s.step, pick, sync, row };
+  });
+  const syncAll = () => rows.forEach((r) => r.sync());
+  preset.addEventListener("change", syncAll);
+  syncAll();
+  const picked = () => {
+    const picks = Object.fromEntries(rows.filter((r) => r.pick?.value).map((r) => [r.step, r.pick.value]));
+    return preset.value || Object.keys(picks).length ? { models: { ...(preset.value ? { preset: preset.value } : {}), ...(Object.keys(picks).length ? { picks } : {}) } } : {};
+  };
+  const hint = h("div", { class: "hint" }, `Chosen once, here: the run keeps these to the end. ${also}A preset fills every step from the tier table; change any step by hand and it is marked. A retry that keeps failing moves a step one model up. Like --preset and --model. `,
+    catalogue.models.map((m) => `${m.name} $${m.input}/$${m.output}${m.unconfirmed ? " (not confirmed)" : ""}`).join(" · "), " per million tokens in/out.");
+  return { preset, table: h("table", { class: "models" }, h("tbody", {}, rows.map((r) => r.row))), hint, picked };
+}
+
+/**
  * Greenfield: a new product is a web app and its API (factory fullstack start), in two new repos held to one API contract; or,
  * when the client provides the backend, the web app alone in one new repo (a greenfield run). It starts from a request, or from an
  * approved design (its design steps are skipped) or approved estimate (the web run is held to it), each made with no repo; then
@@ -2302,9 +2371,10 @@ async function dashboardScreen() {
  */
 async function greenfieldScreen(preset = []) {
   skeleton();
-  const [products, meta] = await Promise.all([api("/api/fullstack"), api("/api/projects")]);
+  const [products, meta, catalogue] = await Promise.all([api("/api/fullstack"), api("/api/projects"), api("/api/models/greenfield")]);
   const err = h("div", { class: "error", hidden: true });
   const fail = (m) => { err.replaceChildren(icon("alert"), h("span", {}, m)); err.hidden = false; };
+  const picker = modelPicker(catalogue, "fs-models", "With the API, the API run uses the same choice. ");
   const name = h("input", { type: "text", id: "fs-name", maxlength: "31", placeholder: "e.g. orders", autocomplete: "off" });
   const dir = h("input", { type: "text", id: "fs-dir", value: "~/projects", autocomplete: "off" });
   // the backend: built with the product (an API repo held to the contract the web plan writes), or the client's own
@@ -2388,6 +2458,7 @@ async function greenfieldScreen(preset = []) {
     h("div", { class: "field" }, h("label", { for: "fs-from" }, "Start from (optional)"), fromSel, fromHint, warns),
     reqBlock,
     fld("fs-max", "Max cost of the web run (optional)", h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), "It can only lower the normal limit, like --max-cost. With the API, the API run gets its own limit when you start it."),
+    h("details", { class: "more-opts" }, h("summary", {}, h("strong", {}, "Models"), h("span", { class: "hint" }, "the model each step runs on · defaults unless changed")), h("div", { class: "field" }, h("label", { for: "fs-models" }, "Preset"), picker.preset, picker.table, picker.hint)),
     h("div", { class: "row" }, start, h("span", { class: "hint" }, "Runs in the background. Decide the web run's cards on its run page.")));
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
@@ -2401,10 +2472,10 @@ async function greenfieldScreen(preset = []) {
       // the web app alone is a greenfield run into a new empty project, as factory init and factory start would make it
       if (webOnly()) {
         const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "greenfield", project: "", newProject: { name: n, dir: d ? `${d}/${n}` : "" }, github: onGithub.checked, maxCost: maxCost.value, ...from }) });
+          body: JSON.stringify({ mode: "greenfield", project: "", newProject: { name: n, dir: d ? `${d}/${n}` : "" }, github: onGithub.checked, maxCost: maxCost.value, ...picker.picked(), ...from }) });
         location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
       } else {
-        const r = await api("/api/fullstack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: n, dir: d, github: onGithub.checked, maxCost: maxCost.value, ...from }) });
+        const r = await api("/api/fullstack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: n, dir: d, github: onGithub.checked, maxCost: maxCost.value, ...picker.picked(), ...from }) });
         location.hash = `#/fullstack/${encodeURIComponent(r.name)}`;
       }
     } catch (e) {

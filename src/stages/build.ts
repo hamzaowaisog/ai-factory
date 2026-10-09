@@ -35,7 +35,7 @@ import { authorIntro, implementIntro, notFoundHint } from "./stack-text.js";
 import type { Expectations } from "../verify/validate.js";
 import { approvedDesignFor } from "./design-inputs.js";
 import { header, outputOf, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
-import { modelFor } from "./routing.js";
+import { lightLaneModel, modelFor } from "./routing.js";
 import { family } from "../runners/types.js";
 import { S, tracePack } from "./think.js";
 import { changeBase, ensureWorktree, runtime, snapshotFor, uiBase } from "./workspace.js";
@@ -61,7 +61,6 @@ import { dirSource } from "../design/source.js";
 type Plan = z.infer<typeof PlanBody> & { complexity: string };
 type Intent = z.infer<typeof IntentBody>;
 
-const LIGHT_TEST_WRITER = "claude-sonnet-5";
 /** A coding agent isn't started with less than this left under the cost limit: it reads the briefing and the repo before it writes anything. */
 const AGENT_START_USD = 1;
 
@@ -599,8 +598,8 @@ export const authorTestsStep: StepDef = {
     const prevOut = mode.mode === "keep" && prev?.out ? AuthorOut.safeParse(ctx.ledger.getJson(prev.out)).data : undefined;
     const retry = { retryMode: mode.mode, retryReason: mode.reason };
     const routed = modelFor(ctx.project, "author-tests", ctx.rung, undefined, ctx.priorFailures);
-    // light lane: Sonnet writes the few small tests; Opus stays for bigger work, on escalation, or when the project routes it
-    const model = light && !ctx.project.steps["author-tests"] && ctx.rung < 2 ? LIGHT_TEST_WRITER : routed.model;
+    // light lane: Sonnet writes the few small tests; Opus stays for bigger work, on escalation, or when the run or the project routes it
+    const model = (light ? lightLaneModel(ctx.project, "author-tests", ctx.rung) : undefined) ?? routed.model;
     const { effort } = routed;
     // what earlier runs on this repo learned about where tests go (only if those files still exist here)
     const lessons = usableLessons(readLessons(ctx.project.project), wt);

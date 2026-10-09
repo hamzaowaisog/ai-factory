@@ -16,6 +16,7 @@ import { settle, settleKey, type Answer, type Decided } from "./settle.js";
 import { hashJson } from "../util/hash.js";
 import { repoIsEmpty } from "../config/greenfield.js";
 import { testsScreens } from "./stack-text.js";
+import { lightLaneModel } from "./routing.js";
 
 type Intent = z.infer<typeof IntentBody>;
 type CB = z.infer<typeof CurrentBehaviourBody>;
@@ -215,7 +216,7 @@ export const draftsStep: StepDef = {
     const lowBugfix = i.intent.changeClass === "bugfix" && i.intent.risk === "low";
     const light = lightSpec(i.intent);
     const routes = (lowBugfix || light ? ["specify", "specify", "specify"] : ["specify", "specify", "specify-other"]).slice(0, specLane(i.intent, ctx.state.info.mode).drafts);
-    const models = lowBugfix || light ? routes.map(() => "claude-sonnet-5") : [undefined, undefined, undefined];
+    const models = lowBugfix || light ? routes.map(() => lightLaneModel(ctx.project, "specify", ctx.rung)) : [undefined, undefined, undefined];
     const rs = await Promise.all(routes.map((route, n) => think(ctx, {
       stage: "specify", route, model: models[n], cls: "read-large", budgetTokens: 30000, ...readTools(ctx), schema: DraftOut, maxTurns: 8,
       sections: [...draftSections(ctx, i), S.task(routes.length === 1 ? "Write the spec." : `Write the spec (independent draft ${n + 1}).`)],

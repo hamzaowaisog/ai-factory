@@ -142,7 +142,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
       shownAt = Date.now();
       ctx.trace.event("model.progress", `${spec.label ?? spec.stage}: answer arriving, about ${kTok(Math.round(p.chars / 4))} tokens so far (${Math.round(p.ms / 1000)}s)`, { chars: p.chars, ms: p.ms });
     },
-    onUsage: async (u) => ctx.usage({ model: u.model, inputTokens: u.inputTokens, outputTokens: u.outputTokens, cacheRead: u.cacheRead, cacheWrite: u.cacheWrite, turns: 1, wallMs: 0, estUsd: u.costUsd }),
+    onUsage: async (u) => ctx.usage({ model: u.model, inputTokens: u.inputTokens, outputTokens: u.outputTokens, cacheRead: u.cacheRead, cacheWrite: u.cacheWrite, turns: 1, wallMs: 0, estUsd: u.costUsd, route: spec.route }),
   });
   ctx.log(`${spec.label ?? spec.stage}: ${model} (effort ${effort}), pack ${pack.manifest.packTokens} tokens`);
   const r = await runner.run({

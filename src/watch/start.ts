@@ -5,18 +5,20 @@ import { jiraFetcherFor } from "../sources/jira.js";
 import { gatherRequest } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
-import { checkRoutes } from "../stages/routing.js";
+import { checkRoutes, choiceFrom } from "../stages/routing.js";
 import { JiraClient } from "./jira-client.js";
 import { notifiersFor } from "./notify.js";
 import { Watcher, type WatcherDeps } from "./watcher.js";
 
 export async function startFromJira(project: string, key: string, maxCostUsd: number, execute: (runId: string) => void = runDetached): Promise<string> {
   const cfg = loadProject(project);
-  const problems = checkRoutes(cfg);
+  // nobody is asked when a ticket starts a run: the project's jira block says the models, else the defaults
+  const models = choiceFrom({ preset: cfg.jira?.preset, picks: cfg.jira?.models });
+  const problems = checkRoutes(cfg, undefined, models);
   if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
   // only comments by allowed people go into the request: anyone can comment on a ticket
   const req = await gatherRequest({ jira: key }, { fetchJira: jiraFetcherFor(cfg.jira?.allowedReporters) });
-  const runId = await createRun(req.text, project, "factory watch", { maxCostUsd, sources: req.sources });
+  const runId = await createRun(req.text, project, "factory watch", { maxCostUsd, sources: req.sources, models });
   execute(runId);
   return runId;
 }

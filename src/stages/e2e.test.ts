@@ -225,7 +225,7 @@ class Lab implements ContainerRuntime {
       } else {
         if (this.crashOnImplement) { this.crashOnImplement = false; throw new Error("simulated crash"); }
         writeFileSync(join(out, "progress.jsonl"), [
-          { ts: 1, kind: "start", model: "claude-sonnet-5" },
+          { ts: 1, kind: "start", model: "claude-sonnet-5-5" },
           { ts: 2, kind: "tool", tool: "Edit", target: "src/Api/Greeter.cs" },
           { ts: 3, kind: "end", status: "ok", turns: 9, costUsd: 0.08 },
         ].map((x) => JSON.stringify(x)).join("\n") + "\n");
@@ -305,7 +305,7 @@ beforeEach(() => {
   planGivesNoModel = false;
   const home = mkdtempSync(join(tmpdir(), "factory-e2e-"));
   process.env.FACTORY_HOME = home;
-  writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\n", { mode: 0o600 });
+  writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\n", { mode: 0o600 });
   _resetEnvCache();
   const repo = makeRepo();
   mkdirSync(join(home, "projects"), { recursive: true });
@@ -388,11 +388,19 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
     // thinking steps used Opus 5.5 for ground/spec/plan
     expect(modelCalls).toContain("claude-opus-5-5");
+    // the ledger says which model each step was given and why: saved once with the run, then on every step and every call
+    const evs = ledger.events();
+    expect((evs[0]!.data!.routes as Record<string, unknown>).critic).toMatchObject({ model: "claude-opus-5-5", source: "fixed" });
+    expect((evs[0]!.data!.routes as Record<string, unknown>).implement).toMatchObject({ model: "claude-sonnet-5-5", source: "default", tier: "standard" });
+    expect(evs.find((e) => e.type === "step.started" && e.key?.startsWith("intake"))!.data!.route).toMatchObject({ model: "claude-haiku-5-5", effort: "low", source: "default", tier: "light" });
+    const criticCalls = evs.filter((e) => e.type === "usage" && e.data!["factory.route"] === "critic");
+    expect(criticCalls.length).toBeGreaterThan(0);
+    for (const e of criticCalls) expect(e.data).toMatchObject({ "gen_ai.request.model": "claude-opus-5-5", "factory.route.source": "fixed" });
     expect(ledger.readCard(`pr-${runId}`)).toContain("AC-1.1");
     expect(ledger.readCard(`pr-${runId}`)).toContain("Security review (OWASP Top 10): nothing found");
     // the trace shows every level: steps, model turns, lab phases, containers, gates, the coding agent's actions
     const trace = readFileSync(join(ledger.dir, "run.log"), "utf8");
-    for (const want of [/▶ intake/, /intake turn 1 claude-haiku-4-5 .*→ answered/, /lab: build ok/, /lab: tests ran/, /container producer started/,
+    for (const want of [/▶ intake/, /intake turn 1 claude-haiku-5-5 .*→ answered/, /lab: build ok/, /lab: tests ran/, /container producer started/,
       /gate author-tests.fails-on-base passed/, /implementer: Edit src\/Api\/Greeter.cs/, /implementer: agent finished: ok after 9 turns/, /lab: app started/, /lab: probe GET \/greet\/Ann → 200/]) {
       expect(trace, String(want)).toMatch(want);
     }
@@ -522,11 +530,11 @@ describe("brownfield slice end to end (fakes)", () => {
     const home = process.env.FACTORY_HOME!;
     const file = join(home, "projects", "demo.yaml");
     const { parse } = await import("yaml");
-    writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), policy: { allowedModels: ["claude-haiku-4-5", "claude-sonnet-5"] } }));
+    writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), policy: { allowedModels: ["claude-haiku-5-5", "claude-sonnet-5-5"] } }));
     const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
     const r = await execute(runId);
     expect(r.status).toBe("parked");
-    expect(r.message).toMatch(/needs claude-opus-5-5 but this run's policy allows only claude-haiku-4-5, claude-sonnet-5/);
+    expect(r.message).toMatch(/needs claude-opus-5-5 but this run's policy allows only claude-haiku-5-5, claude-sonnet-5-5/);
     expect(modelCalls.some((m) => /opus/.test(m))).toBe(false);
   });
 
@@ -982,13 +990,13 @@ describe("light and full lanes (fakes)", () => {
 
   it("a small low-risk change: one draft, no merge call, a Sonnet test writer with tight limits", async () => {
     const s = await deliver();
-    expect(s.steps.get("drafts")!.data!.models).toEqual(["claude-sonnet-5"]);
+    expect(s.steps.get("drafts")!.data!.models).toEqual(["claude-sonnet-5-5"]);
     expect(s.steps.get("merge")!.data!.singleDraft).toBe(true);
     expect(s.steps.get("specify")!.data!.lane).toBe("light");
     // one question round: what round 1 didn't settle is an assumption
     expect(s.steps.get("clarify-2")!.data).toMatchObject({ skipped: true, lightLane: true });
     // the fixture's criteria are api level: the test writer needs a test host, so 40 turns
-    expect(writer()).toMatchObject({ model: "claude-sonnet-5", maxTurns: 40 });
+    expect(writer()).toMatchObject({ model: "claude-sonnet-5-5", maxTurns: 40 });
     expect(writer().maxUsd).toBeLessThanOrEqual(4);
     expect(writer().system).toContain("At most 2 characterisation tests");
     expect(writer().system).toContain('Don\'t run "dotnet test"');
@@ -1182,7 +1190,7 @@ describe("from a Jira label to a reviewed pull request (fakes: models, container
       });
       const gitUrl = await new Promise<string>((ok) => gitHttp.listen(0, "127.0.0.1", () => ok(`http://127.0.0.1:${(gitHttp.address() as AddressInfo).port}/api.git`)));
       closers.push(() => gitHttp.close());
-      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nGITHUB_TOKEN=ghp_testtoken0000000000\nJIRA_BASE_URL=${jira.url}\nJIRA_EMAIL=bot@shop.test\nJIRA_API_TOKEN=tok-0123456789\nSLACK_WEBHOOK=${slack.url}/hook\n`, { mode: 0o600 });
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\nGITHUB_TOKEN=ghp_testtoken0000000000\nJIRA_BASE_URL=${jira.url}\nJIRA_EMAIL=bot@shop.test\nJIRA_API_TOKEN=tok-0123456789\nSLACK_WEBHOOK=${slack.url}/hook\n`, { mode: 0o600 });
       _resetEnvCache();
       const { parse } = await import("yaml");
       const cfg = parse(readFileSync(join(home, "projects", "demo.yaml"), "utf8"));

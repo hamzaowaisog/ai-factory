@@ -7,7 +7,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { stringify } from "yaml";
+import { parse, stringify } from "yaml";
 import { _resetEnvCache } from "../config/env.js";
 import { jiraFetcherFor } from "../sources/jira.js";
 import { loadProject } from "../config/project.js";
@@ -155,7 +155,7 @@ beforeEach(async () => {
   slack = fakeSlack();
   jiraUrl = `http://127.0.0.1:${await listen(jira.server)}`;
   slackUrl = `http://127.0.0.1:${await listen(slack.server)}`;
-  writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nJIRA_BASE_URL=${jiraUrl}\nJIRA_EMAIL=bot@shop.test\nJIRA_API_TOKEN=tok-0123456789\nSLACK_WEBHOOK=${slackUrl}/hook\n`, { mode: 0o600 });
+  writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\nJIRA_BASE_URL=${jiraUrl}\nJIRA_EMAIL=bot@shop.test\nJIRA_API_TOKEN=tok-0123456789\nSLACK_WEBHOOK=${slackUrl}/hook\n`, { mode: 0o600 });
   _resetEnvCache();
   mkdirSync(join(home, "projects"), { recursive: true });
   writeFileSync(join(home, "projects", "shop-api.yaml"), stringify({
@@ -397,6 +397,18 @@ describe("credit guards, checked before anything costs money", () => {
     expect(currentCostCap(s)).toBe(3);
     expect(s.info.request).toContain("Jira SHOP-1:");
     expect(executed).toEqual([runId]);
+  });
+
+  it("the project's jira block says the models of the runs a ticket starts; a pick a step does not take stops the start", async () => {
+    const file = join(process.env.FACTORY_HOME!, "projects", "shop-api.yaml");
+    const cfg = parse(readFileSync(file, "utf8"));
+    writeFileSync(file, stringify({ ...cfg, jira: { ...cfg.jira, preset: "economy", models: { plan: "gpt-6-sol" } } }));
+    ticket("SHOP-1");
+    const info = replay(Ledger.open(await startFromJira("shop-api", "SHOP-1", 3, () => undefined)).events()).info;
+    expect(info.models).toEqual({ preset: "economy", picks: { plan: "gpt-6-sol" } });
+    expect(info.routes!.plan).toMatchObject({ model: "gpt-6-sol", source: "pick" });
+    writeFileSync(file, stringify({ ...cfg, jira: { ...cfg.jira, models: { critic: "gpt-6-sol" } } }));
+    await expect(startFromJira("shop-api", "SHOP-1", 3, () => undefined)).rejects.toThrow(/critic always runs on Claude Opus 5\.5/);
   });
 
   it("epics, sub-tasks and short descriptions are skipped for free, with one comment each", async () => {

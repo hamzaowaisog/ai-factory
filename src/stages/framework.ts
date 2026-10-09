@@ -49,7 +49,7 @@ export interface StepContext {
   /** the run trace (model turns, tool calls, container phases); see src/util/trace.ts */
   trace: Trace;
   /** record model usage as it happens */
-  usage: (u: Usage & { model: string }) => Promise<void>;
+  usage: (u: Usage & { model: string; /** the route the call was made on, when it is not the step's own (the critic inside the spec step) */ route?: string }) => Promise<void>;
   /** steps running side by side, this one included; each gets its share of what's left of the run's cost limit */
   share?: number;
   /** answers to the questions this step's failing checks raised (src/stages/gate-questions.ts); every model call of the step reads them */
