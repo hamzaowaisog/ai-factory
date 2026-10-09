@@ -531,7 +531,9 @@ export const DesignBody = z.object({
     projectId: z.string(), model: z.string(), designMd: z.string(),
     /** the Stitch design system's own theme, as sent to Stitch (src/design/stitch-taste.ts StitchTheme) */
     theme: z.record(z.string(), z.unknown()).optional(),
-    frames: z.record(z.string(), z.object({ name: z.string(), screenId: z.string(), html: z.string(), image: z.string() })),
+    frames: z.record(z.string(), z.object({ screen: z.string().optional(), state: z.string().optional(), name: z.string(), screenId: z.string(), html: z.string(), image: z.string() })),
+    /** each screen's Stitch prompt, for a rework that redraws its extra states */
+    prompts: z.record(z.string(), z.string()).optional(),
   }).optional(),
 });
 export const Design = withHeader(DesignBody.shape);

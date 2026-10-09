@@ -41,13 +41,14 @@ const provider: Provider = {
 };
 
 const theme = { colorMode: "LIGHT", headlineFont: "GEIST", bodyFont: "GEIST", roundness: "ROUND_EIGHT", customColor: "#0F766E" };
-interface Made { projects: string[]; systems: { name: string; theme: Record<string, unknown> }[]; generated: { prompt: string; device: string }[]; closed: number }
+interface Made { projects: string[]; systems: { name: string; theme: Record<string, unknown> }[]; generated: { prompt: string; device: string }[]; edits: { screenId: string; prompt: string }[]; closed: number }
 let made: Made;
 const fakeStitch = (fail = false): StitchClient => ({
   async createProject(title) { made.projects.push(title); return "proj-1"; },
   async createDesignSystem(_p, name, t) { made.systems.push({ name, theme: t }); },
   async generate(_p, prompt, device) { if (fail) throw new Error("Stitch is down"); made.generated.push({ prompt, device }); const n = made.generated.length; return { screenId: `scr-${n}`, htmlUrl: `html-${n}`, imageUrl: `img-${n}` }; },
   async download(url) { return new TextEncoder().encode(url.startsWith("html") ? `<html><body><h1>Page ${url}</h1><button>Save ${url}</button></body></html>` : `PNG-${url}`); },
+  async edit(_p, screenId, prompt) { made.edits.push({ screenId, prompt }); const n = made.generated.length + made.edits.length; return { screenId: `edited-${n}`, htmlUrl: `html-e${n}`, imageUrl: `img-e${n}` }; },
   async close() { made.closed++; },
 });
 
@@ -78,7 +79,7 @@ beforeEach(() => {
   process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "stitch-home-"));
   _resetEnvCache();
   answers = []; systems = []; users = []; models = [];
-  made = { projects: [], systems: [], generated: [], closed: 0 };
+  made = { projects: [], systems: [], generated: [], edits: [], closed: 0 };
   setProviderFactory(() => provider);
   setStitchFactory(() => fakeStitch());
 });
@@ -214,5 +215,57 @@ describe("the approval preview's frames", () => {
     const frames = { "ST-1": { name: "stitch-S-1.png", dataUri: "data:image/png;base64,AA" }, "ST-2": { name: "stitch-S-2.png" }, "F-1": { name: "notes.pdf" }, "ST-4": { name: "stitch-S-4.png" } };
     const has = (n: string) => n !== "stitch-S-4.png";
     expect(previewFrames(screens, frames, has).map((x) => [x.screen.id, x.name])).toEqual([["S-1", "stitch-S-1.png"], ["S-2", "stitch-S-2.png"]]);
+  });
+});
+
+describe("rework of a Stitch design", () => {
+  type D = { screens: { id: string; frames: string[]; facts?: { title?: string } }[]; revision?: number; rework?: { patched: string[] }[]; stitch: { projectId: string; frames: Record<string, { screen: string; state: string; name: string; html: string }>; prompts: Record<string, string> } };
+  async function first(ledger: ReturnType<typeof memoryLedger>): Promise<D> {
+    answers = [plan(), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(ledger), spec);
+    const d = ledger.getJson<D>((out as { outputs: { design: string } }).outputs.design);
+    made = { projects: [], systems: [], generated: [], edits: [], closed: 0 };
+    return d;
+  }
+
+  it("edits only the screen the lead named and keeps the rest", async () => {
+    const ledger = memoryLedger();
+    const prev = await first(ledger);
+    expect(prev.stitch.prompts["S-2"]).toContain("form to add a payee");
+    answers = [{ redraw: false, screens: [{ id: "S-2", change: "The submit button says Save payee." }] }];
+    const out = await drawWithStitch(ctxFor(ledger), spec, { feedback: ["make the Add payee button say Save payee"], previous: prev as never });
+    expect(out.kind).toBe("done");
+    expect(made.edits).toHaveLength(1);
+    expect(made.edits[0]!.prompt).toContain("Save payee");
+    expect(made.generated).toEqual([]);
+    expect(made.projects).toEqual([]);
+    expect(made.systems).toEqual([]);
+    const d = ledger.getJson<D>((out as { outputs: { design: string } }).outputs.design);
+    const s1 = (x: D) => Object.values(x.stitch.frames).filter((f) => f.screen === "S-1");
+    expect(s1(d)).toEqual(s1(prev));
+    expect(d.stitch.projectId).toBe(prev.stitch.projectId);
+    expect(d.revision).toBe(1);
+    expect(d.rework?.[0]?.patched).toEqual(["S-2"]);
+  });
+
+  it("redraws the whole design when the triage says so", async () => {
+    const ledger = memoryLedger();
+    const prev = await first(ledger);
+    answers = [{ redraw: true, screens: [] }, plan(), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(ledger), spec, { feedback: ["make it darker"], previous: prev as never });
+    expect(out.kind).toBe("done");
+    expect(made.projects).toHaveLength(1);
+    expect(made.edits).toEqual([]);
+    expect(made.generated.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("redraws the whole design when the triage names no screen the design has", async () => {
+    const ledger = memoryLedger();
+    const prev = await first(ledger);
+    answers = [{ redraw: false, screens: [{ id: "S-9", change: "Use a two-column layout." }] }, plan(), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(ledger), spec, { feedback: ["change the settings page"], previous: prev as never });
+    expect(out).toMatchObject({ kind: "done" });
+    expect(made.projects).toHaveLength(1);
+    expect(made.edits).toEqual([]);
   });
 });

@@ -11,6 +11,8 @@ export interface StitchClient {
   createDesignSystem(projectId: string, name: string, theme: StitchTheme & { designMd: string }): Promise<void>;
   /** Stitch's default model: the service refused every documented model id (GEMINI_3_FLASH, GEMINI_3_PRO, GEMINI_3_1_PRO) on 9 Oct 2026. */
   generate(projectId: string, prompt: string, device: StitchDevice): Promise<{ screenId: string; htmlUrl: string; imageUrl: string }>;
+  /** Edits one screen with a text prompt (Stitch edit_screens) and returns the changed screen. */
+  edit(projectId: string, screenId: string, prompt: string, device: StitchDevice): Promise<{ screenId: string; htmlUrl: string; imageUrl: string }>;
   download(url: string): Promise<Uint8Array>;
   close(): Promise<void>;
 }
@@ -27,6 +29,10 @@ function sdkClient(apiKey: string): StitchClient {
     },
     async generate(projectId, prompt, device) {
       const screen = await stitch.project(projectId).generate(prompt, device);
+      return { screenId: screen.id, htmlUrl: await screen.getHtml(), imageUrl: await screen.getImage() };
+    },
+    async edit(projectId, screenId, prompt, device) {
+      const screen = await stitch.project(projectId).screen(screenId).edit(prompt, device);
       return { screenId: screen.id, htmlUrl: await screen.getHtml(), imageUrl: await screen.getImage() };
     },
     async download(url) {

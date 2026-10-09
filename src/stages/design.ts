@@ -19,7 +19,7 @@ import { restyleChosen, type ClarifyResult } from "./clarify.js";
 import { btnLabels, DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
 import { designRoute } from "../config/design-route.js";
-import { drawWithStitch } from "./design-stitch.js";
+import { drawWithStitch, type StitchDesign } from "./design-stitch.js";
 import { header, lastFailureData, outputOf, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { lightUi } from "./lane.js";
 import { lookFromRefs, lookRefs, matchFamilies, refBrief as clientRefBrief, refFit, refLayoutFixes, refLayoutGaps, refNotes, REF_RULES, type RefLayoutGap, type RefUse } from "../design/ref-checks.js";
@@ -929,7 +929,11 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       if (!ctx.project.steps.design && designRoute(ctx.project).engine === "stitch") {
         const refsSha = outputOf(ctx.state, "design-refs");
         const refRead = refsSha ? ctx.ledger.getJson<DesignRefsArt & { skipped?: boolean }>(refsSha) : undefined;
+        // the design this step drew before, when it was a Stitch design: a send-back edits only the screens it names
+        const prevSha = ctx.state.steps.get("design")?.outputs[0];
+        const prev = prevSha ? ctx.ledger.getJson<StitchDesign & { engine?: string }>(prevSha) : undefined;
         return drawWithStitch(ctx, spec, {
+          ...(prev?.engine === "stitch" ? { previous: prev } : {}),
           feedback: designRejections(ctx.state).slice(0, MAX_DESIGN_REVISIONS),
           ...(inv?.look ? { look: inv.look } : {}),
           ...(refRead && !refRead.skipped && refRead.refs.length ? { refs: refRead } : {}),
