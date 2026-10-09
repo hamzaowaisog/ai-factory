@@ -60,11 +60,23 @@ export function designRoute(project: Pick<ProjectConfig, "design">, hook?: Hook)
   }
   const tiers: TierTable = {};
   for (const t of DESIGN_TIERS) tiers[t] = { ...DEFAULT_TIERS[t], ...d?.tiers?.[t] };
-  // Stitch draws; Claude plans the screens and writes the DESIGN.md, on the same tier
-  const planner = pick.engine === "stitch" ? "claude" : pick.engine;
-  const ladder = tierModels(planner, pick.tier, tiers).map((x) => (pick.engine === "stitch" ? { ...x, stitch: STITCH_MODELS[x.tier] } : x));
-  // the engine needs a model of its own on the ladder; a ladder of only the cross-vendor heavy step would swap vendors silently
-  if (!ladder.some((x) => tiers[x.tier]?.[planner] === x.model)) throw new Error(`No ${pick.engine} model for the design step at tier ${pick.tier} or above; add one under design.tiers`);
+  let ladder: DesignRoute["ladder"];
+  if (pick.engine === "stitch") {
+    // Stitch draws on every tier from the start with that tier's model; Claude plans on that tier, or the next one up that has a Claude model
+    ladder = DESIGN_TIERS.slice(DESIGN_TIERS.indexOf(pick.tier)).flatMap((t) => {
+      const planner = tierModels("claude", t, tiers)[0]?.model;
+      return planner ? [{ tier: t, model: planner, stitch: STITCH_MODELS[t] }] : [];
+    });
+    if (!ladder.length) throw new Error(`No claude model to plan the stitch design at tier ${pick.tier} or above; add one under design.tiers`);
+  } else {
+    ladder = tierModels(pick.engine, pick.tier, tiers);
+    // the engine needs a model of its own on the ladder; a ladder of only the cross-vendor heavy step would swap vendors silently
+    if (!ladder.some((x) => tiers[x.tier]?.[pick.engine] === x.model)) throw new Error(`No ${pick.engine} model for the design step at tier ${pick.tier} or above; add one under design.tiers`);
+    // a tier a person pinned is the tier that runs: no silent start one tier up (a suggested tier may start higher)
+    if (pick.source.tier === "project-pin" && ladder[0]!.tier !== pick.tier) {
+      throw new Error(`No ${pick.engine} model for the design step at tier ${pick.tier}; add one under design.tiers.${pick.tier}.${pick.engine}, or pin tier ${ladder[0]!.tier}`);
+    }
+  }
   return {
     ...pick, ladder,
     route: { runner: "api", model: ladder[0]!.model, escalate: ladder.slice(1).map((x) => x.model), effort: "high", strict: true, ...(ladder.length > 1 ? { tiered: true } : {}) },

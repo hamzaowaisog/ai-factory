@@ -925,8 +925,16 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       if (back) return back;
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
       // the stitch engine: Claude plans and writes DESIGN.md (stitch-design-taste), Stitch draws; a sent-back Stitch design is redrawn whole
-      if (!ctx.project.steps.design && designRoute(ctx.project).engine === "stitch") return drawWithStitch(ctx, spec);
       const inv = repoInventory(ctx, src);
+      if (!ctx.project.steps.design && designRoute(ctx.project).engine === "stitch") {
+        const refsSha = outputOf(ctx.state, "design-refs");
+        const refRead = refsSha ? ctx.ledger.getJson<DesignRefsArt & { skipped?: boolean }>(refsSha) : undefined;
+        return drawWithStitch(ctx, spec, {
+          feedback: designRejections(ctx.state).slice(0, MAX_DESIGN_REVISIONS),
+          ...(inv?.look ? { look: inv.look } : {}),
+          ...(refRead && !refRead.skipped && refRead.refs.length ? { refs: refRead } : {}),
+        });
+      }
       const frames = listedFrames(ctx.state.info.request ?? "");
       const p = ctx.state.info.parent;
       const earlier = p?.kind === "change" && p.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: unknown[]; theme?: Theme; locale?: DesignLocale }>(p.designSha) : undefined;

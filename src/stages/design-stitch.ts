@@ -71,28 +71,38 @@ export function stitchFrames(design: { stitch?: { frames: Record<string, { name:
 
 const failed = (failures: Failure[], tag: string): StepOutcome => ({ kind: "fail", category: "other", failures, signature: `${tag}:${[...new Set(failures.map((f) => f.check))].sort().join(",")}`, gate: true });
 
-export async function drawWithStitch(ctx: StepContext, spec: Spec): Promise<StepOutcome> {
+/** What the design step knows besides the spec: the lead's send-back reasons, the existing app's look, the client's references. */
+export interface StitchInputs { feedback?: string[]; look?: unknown; refs?: unknown }
+
+export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: StitchInputs = {}): Promise<StepOutcome> {
   const at = ladderAt(designRoute(ctx.project), ctx.rung);
   const reqIds = spec.requirements.map((q) => q.id);
+  // both calls read these, so a sent-back design changes what the lead asked and the client's look and references come first
+  const context = [
+    ...(inputs.feedback?.length ? [S.artifact("sent-back", "lead-feedback", { note: "The lead sent the previous design back. Change what they asked; keep the rest.", reasons: inputs.feedback })] : []),
+    ...(inputs.look ? [S.artifact("existing-look", "existing-look", inputs.look)] : []),
+    ...(inputs.refs ? [S.artifact("references", "design-references", inputs.refs)] : []),
+  ];
 
   // 1. the screens, each with its Stitch prompt
   const p = await think(ctx, {
     stage: "design", label: "design screen list (stitch)", route: "design", cls: "read-large", budgetTokens: 60000, tools: [], schema: StitchPlan, maxTurns: 3,
-    sections: [S.template("tpl", STITCH_PLAN_RULES), S.artifact("reqs", "requirements", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))), S.task("List every screen and write one Stitch prompt for each.")],
+    sections: [S.template("tpl", STITCH_PLAN_RULES), S.artifact("reqs", "requirements", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))), ...context, S.task("List every screen and write one Stitch prompt for each.")],
   });
   if (!p.ok) return p.outcome;
   const plan = p.output;
   const listed = planFaults(reqIds, plan);
   if (listed.length) { p.forget?.(); return failed(listed, "stitch-plan"); }
 
-  // 2. the design system, by the stitch-design-taste skill; the client's brand wins over its taste rules
+  // 2. the design system, by the stitch-design-taste skill; the client's brand (and the project's brand fonts) win over its taste rules
+  const brand = { colours: plan.brand.colours, fonts: [...new Set([...plan.brand.fonts, ...(ctx.project.design?.brandFonts ?? [])])] };
   const m = await think(ctx, {
     stage: "design", label: "design system (stitch-design-taste)", route: "design", cls: "read-large", budgetTokens: 40000, tools: [], schema: DesignMdOut, maxTurns: 3,
-    sections: [S.template("taste", loadTasteSkill()), S.template("taste-rules", TASTE_OVERRIDES), S.artifact("brand", "brand", plan.brand), S.artifact("product", "product", { flow: plan.flow, screens: plan.screens.map((s) => s.title) }), S.task("Write DESIGN.md.")],
+    sections: [S.template("taste", loadTasteSkill()), S.template("taste-rules", TASTE_OVERRIDES), S.artifact("brand", "brand", brand), S.artifact("product", "product", { flow: plan.flow, screens: plan.screens.map((s) => s.title) }), ...context, S.task("Write DESIGN.md.")],
   });
   if (!m.ok) return m.outcome;
   const md = m.output.designMd;
-  const mdFaults = designMdFaults(md, plan.brand).map((f) => failure(f.check, f.message));
+  const mdFaults = designMdFaults(md, brand).map((f) => failure(f.check, f.message));
   if (mdFaults.length) { m.forget?.(); return failed(mdFaults, "stitch-designmd"); }
   const mdSha = ctx.ledger.putArtifact(md);
 
@@ -115,7 +125,8 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec): Promise<Step
       return { id: s.id, screenId: g.screenId, html: ctx.ledger.putArtifact(html), image: ctx.ledger.putArtifact(png) };
     });
   } catch (e) {
-    return { kind: "fail", category: "other", failures: [failure("stitch-call", `Stitch failed: ${(e as Error).message}`)], signature: "stitch-call" };
+    // a Stitch fault is not the model's: park for a person instead of climbing to a dearer tier and paying for every call again
+    return { kind: "park", reason: `Stitch failed: ${(e as Error).message}. Check the Stitch service, its quota and STITCH_API_KEY, then resume.` };
   } finally {
     await c.close().catch(() => undefined);
   }

@@ -4,6 +4,7 @@ import { hasSecret } from "../config/env.js";
 import { designRoute } from "../config/design-route.js";
 import type { Rung } from "../gates/ladder.js";
 import { hasPrice } from "../runners/pricing.js";
+import { tasteSkillProblem } from "../design/stitch-taste.js";
 import { blockedText, modelAllowed, type Policy } from "../gates/policy.js";
 import { family, type Effort } from "../runners/types.js";
 
@@ -136,7 +137,11 @@ export function checkRoutes(project: ProjectConfig, only?: readonly string[]): s
   for (const stage of only ?? Object.keys(DEFAULT_ROUTES)) {
     let r: StepRoute;
     try { r = routeFor(project, stage); } catch (e) { problems.push((e as Error).message); continue; }
-    if (stage === "design" && !project.steps.design && project.design?.engine === "stitch" && !hasSecret("STITCH_API_KEY")) problems.push("design.engine is stitch, but STITCH_API_KEY is missing from ~/.factory/.env");
+    if (stage === "design" && !project.steps.design && project.design?.engine === "stitch") {
+      if (!hasSecret("STITCH_API_KEY")) problems.push("design.engine is stitch, but STITCH_API_KEY is missing from ~/.factory/.env");
+      const skill = tasteSkillProblem();
+      if (skill) problems.push(skill);
+    }
     if (THINKING_STEPS.has(stage) && r.runner !== "api") problems.push(`${stage} is a thinking step and must use the api runner`);
     if (CODING_STEPS.has(stage) && r.runner === "api") problems.push(`${stage} is a coding step and needs an agent runner`);
     const { model, blocked } = modelFor(project, stage, 0);

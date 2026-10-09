@@ -31,9 +31,10 @@ const md = (brand = "#0F766E") => `# Design System: Payees\n## 1. Visual Theme &
 
 let answers: unknown[] = [];
 let systems: string[] = [];
+let users: string[] = [];
 const provider: Provider = {
-  start(_m, _e, system): Conversation {
-    return { async next(): Promise<Turn> { systems.push(system); const a = answers.shift(); if (!a) throw new Error("no scripted answer"); return { calls: [{ id: "s", name: "submit_result", input: a }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
+  start(_m, _e, system, user): Conversation {
+    return { async next(): Promise<Turn> { systems.push(system); users.push(user); const a = answers.shift(); if (!a) throw new Error("no scripted answer"); return { calls: [{ id: "s", name: "submit_result", input: a }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
 
@@ -61,10 +62,10 @@ function memoryLedger() {
 }
 
 const project = (design: Record<string, unknown> = {}) => ProjectConfig.parse({ project: "demo", repo: "-", stack: "dotnet", design: { engine: "stitch", allowStitch: true, tier: "standard", ...design } });
-function ctxFor(ledger: ReturnType<typeof memoryLedger>, rung = 0): StepContext {
+function ctxFor(ledger: ReturnType<typeof memoryLedger>, rung = 0, design: Record<string, unknown> = {}): StepContext {
   return {
     runId: "r1", ledger: ledger as never, writer: {} as never, state: replay([CREATED]),
-    project: project(), policy: DEFAULT_POLICY, attempt: 1, rung, priorFailures: [], log: () => undefined, trace: NO_TRACE, usage: async () => undefined,
+    project: project(design), policy: DEFAULT_POLICY, attempt: 1, rung, priorFailures: [], log: () => undefined, trace: NO_TRACE, usage: async () => undefined,
   };
 }
 
@@ -73,7 +74,7 @@ beforeEach(() => {
   process.env.ANTHROPIC_API_KEY = "sk-ant-test-not-real";
   process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "stitch-home-"));
   _resetEnvCache();
-  answers = []; systems = [];
+  answers = []; systems = []; users = [];
   made = { projects: [], systems: [], generated: [], closed: 0 };
   setProviderFactory(() => provider);
   setStitchFactory(() => fakeStitch());
@@ -137,12 +138,25 @@ describe("drawing with stitch", () => {
     expect(made.projects).toEqual([]);
   });
 
-  it("turns a Stitch error into a failed attempt and still closes the client", async () => {
+  it("parks on a Stitch error instead of climbing to a stronger model, and still closes the client", async () => {
     setStitchFactory(() => fakeStitch(true));
     answers = [plan(), { designMd: md() }];
     const out = await drawWithStitch(ctxFor(memoryLedger()), spec);
-    expect(out).toMatchObject({ kind: "fail", failures: [expect.objectContaining({ check: "stitch-call" })] });
+    expect(out).toMatchObject({ kind: "park", reason: expect.stringMatching(/Stitch failed: Stitch is down/) });
     expect(made.closed).toBe(1);
+  });
+
+  it("gives both calls the lead's send-back reasons, the existing look and the references", async () => {
+    answers = [plan(), { designMd: md() }];
+    await drawWithStitch(ctxFor(memoryLedger()), spec, { feedback: ["make the header teal"], look: { brand: "#0F766E", font: "Lato" }, refs: { refs: [{ id: "R-1", took: "card layout" }] } });
+    for (const u of users) { expect(u).toContain("make the header teal"); expect(u).toContain("Lato"); expect(u).toContain("card layout"); }
+    expect(users).toHaveLength(2);
+  });
+
+  it("holds DESIGN.md to the project's brand fonts", async () => {
+    answers = [plan(), { designMd: md() }];
+    const out = await drawWithStitch(ctxFor(memoryLedger(), 0, { brandFonts: ["Lato"] }), spec);
+    expect(out).toMatchObject({ kind: "fail", failures: [expect.objectContaining({ check: "stitch-designmd-brand", message: expect.stringContaining("Lato") })] });
   });
 });
 
@@ -167,5 +181,15 @@ describe("the approval step's frames", () => {
     const request = "a payees page";
     expect(framesFor(request, { stitch: { frames: { "ST-1": { name: "stitch-S-1.png" } } } })).toEqual([{ id: "ST-1", name: "stitch-S-1.png" }]);
     expect(framesFor(request, {})).toEqual([]);
+  });
+});
+
+describe("the approval preview's frames", () => {
+  it("lists an image frame too large to embed, but not a missing or non-image one", async () => {
+    const { previewFrames } = await import("./design-approve.js");
+    const screens = [{ id: "S-1", frames: ["ST-1"] }, { id: "S-2", frames: ["ST-2"] }, { id: "S-3", frames: ["F-1"] }, { id: "S-4", frames: ["ST-4"] }];
+    const frames = { "ST-1": { name: "stitch-S-1.png", dataUri: "data:image/png;base64,AA" }, "ST-2": { name: "stitch-S-2.png" }, "F-1": { name: "notes.pdf" }, "ST-4": { name: "stitch-S-4.png" } };
+    const has = (n: string) => n !== "stitch-S-4.png";
+    expect(previewFrames(screens, frames, has).map((x) => [x.screen.id, x.name])).toEqual([["S-1", "stitch-S-1.png"], ["S-2", "stitch-S-2.png"]]);
   });
 });

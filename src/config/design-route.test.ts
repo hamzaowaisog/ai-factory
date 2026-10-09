@@ -47,8 +47,19 @@ describe("design route", () => {
     expect(r.route).toMatchObject({ model: "claude-sonnet-5", escalate: ["claude-opus-5-5"], tiered: true });
   });
 
-  it("starts claude at standard when light has no claude model", () => {
-    expect(designRoute(cfg({ engine: "claude", tier: "light" })).ladder[0]).toEqual({ tier: "standard", model: "claude-sonnet-5" });
+  it("refuses a pinned tier the engine has no model for, instead of starting higher", () => {
+    expect(() => designRoute(cfg({ engine: "claude", tier: "light" }))).toThrow(/No claude model .*tier light.*design.tiers.light.claude/);
+  });
+
+  it("starts a suggested tier the engine lacks at the next tier up", () => {
+    expect(designRoute(cfg({ engine: "claude" }), { tier: "light" }).ladder[0]).toEqual({ tier: "standard", model: "claude-sonnet-5" });
+  });
+
+  it("keeps the light Stitch model on the light tier, planned by the next Claude model up", () => {
+    const r = designRoute(cfg({ engine: "stitch", allowStitch: true, tier: "light" }));
+    expect(r.ladder.map((x) => [x.tier, x.model, x.stitch])).toEqual([
+      ["light", "claude-sonnet-5", "GEMINI_3_FLASH"], ["standard", "claude-sonnet-5", "GEMINI_3_PRO"], ["heavy", "claude-opus-5-5", "GEMINI_3_1_PRO"],
+    ]);
   });
 
   it("climbs the openai tiers and steps to Claude's heavy model at the top", () => {

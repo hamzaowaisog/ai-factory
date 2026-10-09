@@ -29,3 +29,17 @@ describe("DESIGN.md checks", () => {
     expect(checks).toEqual(expect.arrayContaining(["stitch-designmd-section", "stitch-designmd-black", "stitch-designmd-brand"]));
   });
 });
+
+describe("review fixes", () => {
+  it("reports a missing taste skill as a start-up problem", async () => {
+    const { tasteSkillProblem } = await import("./stitch-taste.js");
+    expect(tasteSkillProblem("/nope/SKILL.md")).toMatch(/stitch-design-taste skill is missing at .*nope/);
+    const f = join(mkdtempSync(join(tmpdir(), "taste-")), "SKILL.md");
+    writeFileSync(f, "# skill");
+    expect(tasteSkillProblem(f)).toBeUndefined();
+  });
+  it("lets a black brand colour through the pure-black ban", () => {
+    expect(designMdFaults(`${good}\n- **Brand Black** (#000000) — the brand`, { colours: ["#000000"], fonts: [] })).toEqual([]);
+    expect(designMdFaults(`${good}\n- **Ink** (#000) — text`, { colours: ["#000"], fonts: [] })).toEqual([]);
+  });
+});

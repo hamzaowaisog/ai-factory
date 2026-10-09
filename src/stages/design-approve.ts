@@ -132,6 +132,17 @@ export function designCard(runId: string, design: DesignT, hash: string, extra: 
   ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
 }
 
+/**
+ * The frames the preview lists beside their screens: each one embedded in the demo, and each image frame whose file is there
+ * though too large to embed (a full-page Stitch screenshot can pass the demo's 2 MB / 8 MB limits), so no screen goes unseen.
+ */
+export function previewFrames<T extends { frames?: string[] }>(screens: T[], frames: Record<string, { name: string; dataUri?: string }>, has: (name: string) => boolean): { screen: T; name: string }[] {
+  return screens.flatMap((sc) => (sc.frames ?? []).flatMap((fid) => {
+    const f = frames[fid];
+    return f && (f.dataUri || (/\.(png|jpe?g|webp)$/i.test(f.name) && has(f.name))) ? [{ screen: sc, name: f.name }] : [];
+  }));
+}
+
 /** The frames the demo shows: those the request attached, then a Stitch design's screenshots (each saved under attachments/frames). */
 export function framesFor(request: string, design: { stitch?: { frames: Record<string, { name: string }> } }): { id: string; name: string }[] {
   return [...listedFrames(request), ...stitchFrames(design)];
@@ -244,11 +255,10 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
         writeFileSync(join(previewDir, "tokens.json"), JSON.stringify({ ...tk, css: undefined }, null, 2));
       }
       const images: { file: string; screen: string; req?: string; viewport: Viewport }[] = [];
-      for (const sc of d.screens) for (const fid of sc.frames ?? []) {
-        const f = frames[fid];
-        if (!f?.dataUri) continue;
-        copyFileSync(join(ctx.ledger.dir, "attachments", "frames", basename(f.name)), join(previewDir, "frames", basename(f.name)));
-        images.push({ file: `frames/${basename(f.name)}`, screen: label(sc), ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}), viewport: "desktop" });
+      const framesAt = join(ctx.ledger.dir, "attachments", "frames");
+      for (const { screen: sc, name } of previewFrames(d.screens, frames, (n) => existsSync(join(framesAt, basename(n))))) {
+        copyFileSync(join(framesAt, basename(name)), join(previewDir, "frames", basename(name)));
+        images.push({ file: `frames/${basename(name)}`, screen: label(sc), ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}), viewport: "desktop" });
       }
       const writePreview = (shots: ShotResult["shots"], before: Set<string> = new Set(), current: { file: string; screen: string; viewport: Viewport }[] = []) => writeFileSync(join(previewDir, "preview.json"), JSON.stringify({
         site: { entry: "index.html", screens: d.screens.map((sc) => ({ path: `index.html#${sc.id}`, title: label(sc), ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}) })) },
