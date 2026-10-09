@@ -146,24 +146,36 @@ const TRIAGE_RULES = `The lead sent a Google Stitch design back. Read their reas
  * A sent-back Stitch design: Stitch edits only the screens the lead named (and redraws their extra states); every other screen
  * keeps its frames, HTML and words. Undefined when the whole design has to be drawn again (the triage says so, or names no screen).
  */
-async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: string[]): Promise<StepOutcome | undefined> {
+async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: string[], spec: Spec): Promise<StepOutcome | undefined> {
+  // the reasons the design already answers (its revision) and the new ones; with no new one this is not a send-back to answer:
+  // the step ran again for another reason (a changed spec, new references) and draws again
+  const answered = Math.min(prev.revision ?? 0, feedback.length);
+  const fresh = feedback.slice(answered);
+  if (!fresh.length) return undefined;
+  const frames = Object.values(prev.stitch.frames);
+  // a design stored before frames named their screen and state, or before prompts were kept, can only be drawn again
+  if (!prev.stitch.prompts || frames.some((f) => !f.screen || !f.state)) { ctx.log("design: the earlier Stitch design predates per-screen frames; it is drawn again"); return undefined; }
+  const plan: Plan = {
+    flow: prev.flow, noScreen: prev.noScreen ?? [], brand: { colours: [], fonts: [] },
+    screens: prev.screens.map((s) => ({ id: s.id, title: s.facts?.title ?? s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states ?? [], prompt: prev.stitch.prompts![s.id] ?? s.facts?.title ?? s.id })),
+  };
+  // the spec may have changed since the design was drawn: screens that no longer cover it are drawn again
+  const specReqs = spec.requirements.map((q) => q.id);
+  if (planFaults(specReqs, plan).length) { ctx.log("design: the earlier Stitch screens no longer cover the spec; the design is drawn again"); return undefined; }
+
   const t = await think(ctx, {
     stage: "design", label: "design rework triage (stitch)", route: "design-triage", cls: "read-small", budgetTokens: 14000, tools: [], schema: StitchTriage, maxTurns: 2,
-    sections: [S.template("tpl", TRIAGE_RULES), S.artifact("sent-back", "lead-feedback", feedback), S.artifact("screens", "screens", prev.screens.map((x) => ({ id: x.id, route: x.route, title: x.facts?.title ?? x.id })))],
+    sections: [S.template("tpl", TRIAGE_RULES), S.artifact("sent-back", "lead-feedback", { reasons: fresh, alreadyAnswered: feedback.slice(0, answered) }), S.artifact("screens", "screens", prev.screens.map((x) => ({ id: x.id, route: x.route, title: x.facts?.title ?? x.id })))],
   });
   if (!t.ok) return t.outcome;
   const named = t.output.screens.filter((x) => prev.screens.some((s) => s.id === x.id));
-  if (t.output.redraw || !named.length) { ctx.log("design: the send-back needs the whole Stitch design drawn again"); return undefined; }
+  const unpaged = named.filter((n) => !frames.some((f) => f.screen === n.id && f.state === "normal"));
+  if (t.output.redraw || !named.length || unpaged.length) { ctx.log("design: the send-back needs the whole Stitch design drawn again"); return undefined; }
 
-  const frames = Object.values(prev.stitch.frames);
   const kept: StitchAsset[] = frames.filter((f) => !named.some((n) => n.id === f.screen)).map((f) => ({
     id: f.screen, state: f.state, name: f.name, screenId: f.screenId, html: f.html, image: f.image,
     ...(f.state === "normal" && prev.screens.find((s) => s.id === f.screen)?.facts ? { facts: prev.screens.find((s) => s.id === f.screen)!.facts! } : {}),
   }));
-  const plan: Plan = {
-    flow: prev.flow, noScreen: prev.noScreen ?? [], brand: { colours: [], fonts: [] },
-    screens: prev.screens.map((s) => ({ id: s.id, title: s.facts?.title ?? s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states ?? [], prompt: prev.stitch.prompts?.[s.id] ?? s.facts?.title ?? s.id })),
-  };
   const device = ctx.project.design?.stitch?.device ?? "DESKTOP";
   const allowed = ctx.project.design?.stitch?.states ?? DEFAULT_STITCH_STATES;
   const framesDir = join(ctx.ledger.dir, "attachments", "frames");
@@ -178,8 +190,7 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
       const page = await saveAsset(ctx, c, framesDir, n.id, "normal", await c.edit(prev.stitch.projectId, normal.screenId, `${n.change}${FOLLOW}`, device));
       // its extra states follow the change: drawn again from the screen's prompt with the change added
       const screen = plan.screens.find((s) => s.id === n.id)!;
-      const states = stitchJobs([{ ...screen, prompt: `${screen.prompt}
-Change: ${n.change}` }], allowed).filter((j) => j.state !== "normal");
+      const states = stitchJobs([{ ...screen, prompt: `${screen.prompt}\nChange: ${n.change}` }], allowed).filter((j) => j.state !== "normal");
       const drawn = await inPool(states, STITCH_SIDE_BY_SIDE, async (j) => saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(prev.stitch.projectId, j.prompt, device)));
       return [page, ...drawn];
     })).flat();
@@ -192,10 +203,10 @@ Change: ${n.change}` }], allowed).filter((j) => j.state !== "normal");
   } finally {
     await c.close().catch(() => undefined);
   }
-  const reqIds = plan.screens.flatMap((s) => s.reqs).concat(plan.noScreen.map((n) => n.req));
   const theme = prev.stitch.theme as StitchTheme | undefined;
-  const round = (prev.revision ?? 0) + 1;
-  const drawn = stitchArtifact(plan, [...kept, ...edited], { projectId: prev.stitch.projectId, model: prev.stitch.model, designMd: prev.stitch.designMd, ...(theme ? { theme, mood: prev.flow } : {}) }, [...new Set(reqIds)]);
+  // the revision counts the send-backs answered, as on the JSON track: a rerun with no new one does not rework again
+  const round = feedback.length;
+  const drawn = stitchArtifact(plan, [...kept, ...edited], { projectId: prev.stitch.projectId, model: prev.stitch.model, designMd: prev.stitch.designMd, ...(theme ? { theme, mood: prev.flow } : {}) }, specReqs);
   const design = {
     ...drawn, stitch: { ...drawn.stitch, ...(open.length ? { a11y: open } : {}) },
     revision: round,
@@ -210,7 +221,7 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
   const reqIds = spec.requirements.map((q) => q.id);
   // a sent-back Stitch design: fix only the screens the lead named when that is all they asked
   if (inputs.previous && inputs.feedback?.length) {
-    const r = await reworkStitch(ctx, inputs.previous, inputs.feedback);
+    const r = await reworkStitch(ctx, inputs.previous, inputs.feedback, spec);
     if (r) return r;
   }
   // both calls read these, so a sent-back design changes what the lead asked and the client's look and references come first
@@ -267,7 +278,9 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     await c.close().catch(() => undefined);
   }
   const drawn = stitchArtifact(plan, assets, { projectId, model: STITCH_MODEL, designMd: mdSha, theme: m.output.theme, mood: plan.flow }, reqIds);
-  const design = { ...drawn, stitch: { ...drawn.stitch, ...(open.length ? { a11y: open } : {}) }, header: header(ctx.runId, "design", "design", "", at.model) };
+  // a whole redraw answers every send-back so far too
+  const answered = inputs.feedback?.length ? { revision: inputs.feedback.length, ...(inputs.previous?.rework?.length ? { rework: inputs.previous.rework } : {}) } : {};
+  const design = { ...drawn, ...answered, stitch: { ...drawn.stitch, ...(open.length ? { a11y: open } : {}) }, header: header(ctx.runId, "design", "design", "", at.model) };
   return { kind: "done", outputs: { design: ctx.ledger.putJson(design) }, data: { screens: plan.screens.length, engine: "stitch" } };
 }
 

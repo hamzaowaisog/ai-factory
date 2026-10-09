@@ -325,3 +325,59 @@ describe("the approval card", () => {
     expect(card).toContain("- S-1: button-name");
   });
 });
+
+describe("rework guards (review C1, I1, I2)", () => {
+  type D = { revision?: number; mapping: { unmappedReqs: string[] }; stitch: { prompts?: Record<string, string>; frames: Record<string, Record<string, unknown>> } };
+  async function first(ledger: ReturnType<typeof memoryLedger>): Promise<D> {
+    answers = [plan(), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(ledger), spec);
+    made = { projects: [], systems: [], generated: [], edits: [], closed: 0 };
+    users = [];
+    return ledger.getJson<D>((out as { outputs: { design: string } }).outputs.design);
+  }
+  const designOf = (ledger: ReturnType<typeof memoryLedger>, out: unknown) => ledger.getJson<D>((out as { outputs: { design: string } }).outputs.design);
+
+  it("does not rework again when every send-back is already answered, and keeps the revision", async () => {
+    const ledger = memoryLedger();
+    const prev = { ...(await first(ledger)), revision: 1 };
+    answers = [plan(), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(ledger), spec, { feedback: ["rename the button"], previous: prev as never });
+    expect(made.edits).toEqual([]);
+    expect(made.projects).toHaveLength(1);
+    expect(designOf(ledger, out).revision).toBe(1);
+  });
+
+  it("redraws whole when the spec gained a requirement the earlier screens do not cover", async () => {
+    const ledger = memoryLedger();
+    const prev = await first(ledger);
+    const spec3 = { requirements: [...reqs, { id: "REQ-3", ears: "The system shall export payees." }] } as never;
+    const p3 = plan({ screens: [plan().screens[0], { ...plan().screens[1], reqs: ["REQ-2", "REQ-3"] }] });
+    answers = [p3, { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(ledger), spec3, { feedback: ["rename the button"], previous: prev as never });
+    expect(made.edits).toEqual([]);
+    expect(made.projects).toHaveLength(1);
+    expect(designOf(ledger, out).mapping.unmappedReqs).toEqual([]);
+    expect(designOf(ledger, out).revision).toBe(1);
+  });
+
+  it("gives the triage only the new reasons, the answered ones as reference", async () => {
+    const ledger = memoryLedger();
+    const prev = { ...(await first(ledger)), revision: 1 };
+    answers = [{ redraw: false, screens: [{ id: "S-2", change: "The submit button is teal." }] }];
+    await drawWithStitch(ctxFor(ledger), spec, { feedback: ["old: rename the button", "new: make the button teal"], previous: prev as never });
+    const triage = users[0]!;
+    expect(triage).toMatch(/"reasons":\s*\[\s*"new: make the button teal"/);
+    expect(triage).toMatch(/"alreadyAnswered":\s*\[\s*"old: rename the button"/);
+  });
+
+  it("redraws whole, without a crash, a Stitch design stored before frames named their screen", async () => {
+    const ledger = memoryLedger();
+    const prev = await first(ledger);
+    const legacy = { ...prev, stitch: { ...prev.stitch, prompts: undefined, frames: Object.fromEntries(Object.entries(prev.stitch.frames).map(([k, f]) => [k, { name: f.name, screenId: f.screenId, html: f.html, image: f.image }])) } };
+    answers = [plan(), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(ledger), spec, { feedback: ["rename the button"], previous: legacy as never });
+    expect(out.kind).toBe("done");
+    expect(made.edits).toEqual([]);
+    expect(made.projects).toHaveLength(1);
+  });
+});
