@@ -5,12 +5,17 @@ import { join } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
 import { factoryHome } from "../util/paths.js";
+import { DESIGN_ENGINES, DESIGN_TIERS } from "./design-route.js";
 
 const StepRoute = z.object({
   runner: z.enum(["api", "claude-agent", "codex", "jcode"]),
   model: z.string(),
   escalate: z.array(z.string()).default([]),
   effort: z.enum(["low", "medium", "high", "xhigh"]).optional(),
+  /** a tier ladder (the design step): each escalate model is its own rung, with no raise-effort rung before them */
+  tiered: z.boolean().optional(),
+  /** the vendor was chosen on purpose: a missing key parks the step instead of swapping in another vendor's model */
+  strict: z.boolean().optional(),
 });
 export type StepRoute = z.infer<typeof StepRoute>;
 
@@ -110,6 +115,14 @@ export const ProjectConfig = z.object({
     uiDir: z.string().optional(),
     /** brand fonts the design brief may name besides Google Fonts */
     brandFonts: z.array(z.string()).default([]),
+    /** who draws the design: claude or openai write the design JSON; stitch is not built yet */
+    engine: z.enum(DESIGN_ENGINES).optional(),
+    /** the starting tier; two failed attempts on a tier step up to the next */
+    tier: z.enum(DESIGN_TIERS).optional(),
+    /** model per tier and engine, over the defaults in src/config/design-route.ts (DEFAULT_TIERS) */
+    tiers: z.partialRecord(z.enum(DESIGN_TIERS), z.partialRecord(z.enum(DESIGN_ENGINES), z.string())).optional(),
+    /** Stitch sends the requirements to Google (training-data disclaimer): off unless a project says so */
+    allowStitch: z.boolean().default(false),
     /**
      * A small UI fix in an app of its own gets a text design note approved with the estimate, not a drawn demo and a card of its
      * own (docs/estimates-design.md, "Design note for a small fix"). false: every UI request gets the full design.
