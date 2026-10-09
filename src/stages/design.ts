@@ -19,6 +19,7 @@ import { restyleChosen, type ClarifyResult } from "./clarify.js";
 import { btnLabels, DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
 import { designRoute } from "../config/design-route.js";
+import { drawWithStitch } from "./design-stitch.js";
 import { header, lastFailureData, outputOf, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { lightUi } from "./lane.js";
 import { lookFromRefs, lookRefs, matchFamilies, refBrief as clientRefBrief, refFit, refLayoutFixes, refLayoutGaps, refNotes, REF_RULES, type RefLayoutGap, type RefUse } from "../design/ref-checks.js";
@@ -923,6 +924,8 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const back = await backToSettle(ctx, "design", src.spec);
       if (back) return back;
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
+      // the stitch engine: Claude plans and writes DESIGN.md (stitch-design-taste), Stitch draws; a sent-back Stitch design is redrawn whole
+      if (!ctx.project.steps.design && designRoute(ctx.project).engine === "stitch") return drawWithStitch(ctx, spec);
       const inv = repoInventory(ctx, src);
       const frames = listedFrames(ctx.state.info.request ?? "");
       const p = ctx.state.info.parent;

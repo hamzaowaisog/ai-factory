@@ -522,6 +522,13 @@ export const DesignBody = z.object({
   note: z.boolean().optional(),
   /** the existing app is restyled to its match references (chosen on the questions card): the theme is theirs, not the repo's */
   restyle: z.boolean().optional(),
+  /** who drew it: absent or "json" for the design JSON our code draws, "stitch" for Google Stitch screens shown as frames */
+  engine: z.enum(["json", "stitch"]).optional(),
+  /** a Stitch design: its project, model, DESIGN.md (sha) and each frame's screen, HTML and screenshot (shas) */
+  stitch: z.object({
+    projectId: z.string(), model: z.string(), designMd: z.string(),
+    frames: z.record(z.string(), z.object({ name: z.string(), screenId: z.string(), html: z.string(), image: z.string() })),
+  }).optional(),
 });
 export const Design = withHeader(DesignBody.shape);
 

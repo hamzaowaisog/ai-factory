@@ -123,6 +123,8 @@ export const ProjectConfig = z.object({
     tiers: z.partialRecord(z.enum(DESIGN_TIERS), z.partialRecord(z.enum(DESIGN_ENGINES), z.string())).optional(),
     /** Stitch sends the requirements to Google (training-data disclaimer): off unless a project says so */
     allowStitch: z.boolean().default(false),
+    /** the stitch engine's settings */
+    stitch: z.object({ device: z.enum(["MOBILE", "DESKTOP", "TABLET", "AGNOSTIC"]).default("DESKTOP") }).optional(),
     /**
      * A small UI fix in an app of its own gets a text design note approved with the estimate, not a drawn demo and a card of its
      * own (docs/estimates-design.md, "Design note for a small fix"). false: every UI request gets the full design.
