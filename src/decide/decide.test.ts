@@ -77,10 +77,10 @@ describe("the decision port", () => {
 
 describe("the llm adapter", () => {
   it("uses the model it is given, at low effort and with no failure text, even inside a step that is retrying", async () => {
-    const seen: { model: string; effort: string; user: string }[] = [];
+    const seen: { model: string; effort: string; system: string; user: string }[] = [];
     const provider: Provider = {
-      start(model, effort, _system, user) {
-        seen.push({ model, effort, user });
+      start(model, effort, system, user) {
+        seen.push({ model, effort, system, user });
         return {
           async next() { return { calls: [{ id: "1", name: "submit_result", input: { maturity: { pick: "partial spec", confidence: 0.7 }, genre: { pick: "niche or domain-heavy", confidence: 0.6 } } }], text: "", stop: "tool_use", usage: { inputTokens: 900, outputTokens: 40, cacheRead: 0, cacheWrite: 0 } }; },
           toolResults() {}, say() {},
@@ -95,6 +95,7 @@ describe("the llm adapter", () => {
     }
     expect(seen.map((s) => [s.model, s.effort])).toEqual([["claude-haiku-5-5", "low"], ["gpt-6-luna", "low"]]);
     expect(seen[0]!.user).toContain(SPAN);
+    expect(seen[0]!.system).toContain(`- "full spec": ${QUESTIONS[0]!.options["full spec"]}`);
     expect(seen[0]!.user).not.toContain("INTAKE FAILED BEFORE");
     // priced from the table, and counted on the record
     expect(used[0]).toEqual({ model: "claude-haiku-5-5", estUsd: (900 * 0.1 + 40 * 0.5) / 1_000_000 });
@@ -103,7 +104,7 @@ describe("the llm adapter", () => {
 });
 
 describe("the jev adapter", () => {
-  it("sends the signals and intake's labels but never the request's words, and records its usage", async () => {
+  it("sends the signals and intake's labels but never the request's words, is not asked what needs them, and records its usage", async () => {
     process.env.TYPESAFE_API_KEY = "ts-test-key";
     _resetEnvCache();
     const sent: { url: string; init: RequestInit }[] = [];
@@ -112,12 +113,14 @@ describe("the jev adapter", () => {
       return new Response(JSON.stringify({ answers: { maturity: { type: "choice", choice: "casual idea", confidence: 0.82 }, genre: { type: "choice", choice: "common product type", confidence: 0.91 } }, usage: { input_tokens: 400, output_tokens: 0 } }));
     });
     const r = await decide(await ctxFor(), "jev", state);
-    expect(r).toMatchObject({ adapter: "jev", answers: [{ id: "maturity", pick: "casual idea", confidence: 0.82 }, { id: "genre", pick: "common product type", confidence: 0.91 }] });
+    expect(r).toMatchObject({ adapter: "jev", answers: [{ id: "maturity", pick: "casual idea", confidence: 0.82 }], dropped: [] });
+    expect(r!.answers).toHaveLength(1);
     expect(sent[0]!.url).toBe("https://api.typesafe.ai/v1/systemone");
     expect((sent[0]!.init.headers as Record<string, string>).authorization).toBe("Bearer ts-test-key");
     const body = String(sent[0]!.init.body);
     expect(body).not.toContain(SPAN);
-    expect(JSON.parse(body)).toMatchObject({ model: "jev-1.13.0", state: { signals: state.signals, intent: state.intent }, questions: { maturity: { type: "choice", criteria: { "full spec": "full spec" } } } });
+    expect(JSON.parse(body)).toMatchObject({ model: "jev-1.13.0", state: { signals: state.signals, intent: state.intent }, questions: { maturity: { type: "choice", criteria: QUESTIONS[0]!.options } } });
+    expect(JSON.parse(body).questions.genre).toBeUndefined();
     expect(used).toEqual([{ model: "typesafe/jev-1.13.0", estUsd: (400 * 0.042) / 1_000_000 }]);
     expect(r!.costUsd).toBeCloseTo(0.0000168);
   });

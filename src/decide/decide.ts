@@ -8,7 +8,8 @@ import { costUsd } from "../runners/pricing.js";
 import type { StepContext } from "../stages/framework.js";
 import { S, think, UNTRUSTED_NOTE } from "../stages/think.js";
 
-export interface DecisionQuestion { id: string; question: string; options: readonly string[] }
+/** options: each pick and what it means (models and the people who label see the same lines). needsText: it cannot be answered from counts and labels alone. */
+export interface DecisionQuestion { id: string; question: string; options: Readonly<Record<string, string>>; needsText?: boolean }
 /** pick is always one of the question's options (the port drops any other) */
 export interface DecisionAnswer { id: string; pick: string; confidence: number }
 /** What a decision is made from. Only `spans` holds the request's own words. */
@@ -24,8 +25,15 @@ export interface DecisionAdapter {
 export interface DecisionRecord { adapter: string; model?: string; answers: DecisionAnswer[]; dropped: string[]; ms: number; costUsd: number; error?: string }
 
 export const QUESTIONS: readonly DecisionQuestion[] = [
-  { id: "maturity", question: "How complete is this request as a specification?", options: ["casual idea", "partial spec", "full spec"] },
-  { id: "genre", question: "What kind of product is it?", options: ["common product type", "niche or domain-heavy"] },
+  { id: "maturity", question: "How complete is this request as a specification?", options: {
+    "casual idea": "a goal in a sentence or two; no roles, screens or rules are named",
+    "partial spec": "names some roles, screens or rules, but leaves behaviour open",
+    "full spec": "names the roles, the screens, and testable rules or acceptance criteria",
+  } },
+  { id: "genre", question: "What kind of product is it?", needsText: true, options: {
+    "common product type": "a familiar kind of app (a shop, bookings, a to-do list, a CRM, a portal) that needs no special domain knowledge",
+    "niche or domain-heavy": "depends on the rules or vocabulary of one industry or regulation",
+  } },
 ];
 
 export interface Signals { words: number; acLines: number; screens: number; roles: number; numbers: number }
@@ -46,13 +54,13 @@ const llm: DecisionAdapter = {
   name: "llm",
   async decide(ctx, state, qs, model) {
     if (!model) throw new Error("the llm adapter needs a model (llm:<model id>)");
-    const schema = z.object(Object.fromEntries(qs.map((q) => [q.id, z.object({ pick: z.enum(q.options as [string, ...string[]]), confidence: z.number() })])));
+    const schema = z.object(Object.fromEntries(qs.map((q) => [q.id, z.object({ pick: z.enum(Object.keys(q.options) as [string, ...string[]]), confidence: z.number() })])));
     // a decision is never a retry of the step it sits in: no failure text, no raised effort, no stronger model
     const r = await think({ ...ctx, rung: 0, priorFailures: [], gateAnswers: undefined }, {
       stage: "intake", label: "decide", route: "intake", model, effort: "low", cls: "read-small", budgetTokens: 4000, tools: [], schema,
       maxTurns: 2, maxUsd: 0.05, timeoutSec: 30,
       sections: [
-        S.template("tpl", `You classify a software request. For each question pick exactly one option and give your confidence from 0 to 1.\n${UNTRUSTED_NOTE}\n${qs.map((q) => `- ${q.id}: ${q.question} Options: ${q.options.join(" | ")}`).join("\n")}`),
+        S.template("tpl", `You classify a software request. For each question pick exactly one option and give your confidence from 0 to 1.\n${UNTRUSTED_NOTE}\n${qs.map((q) => `${q.id}: ${q.question}\n${Object.entries(q.options).map(([o, means]) => `- "${o}": ${means}`).join("\n")}`).join("\n")}`),
         S.reference("measured", JSON.stringify({ signals: state.signals, intent: state.intent })),
         S.untrusted("spans", "cli", state.spans.join("\n")),
         S.task("Answer every question."),
@@ -64,10 +72,14 @@ const llm: DecisionAdapter = {
 };
 
 const JEV_URL = "https://api.typesafe.ai/v1/systemone";
-/** TypeSafe's Jev. It is hosted outside the factory's vendors, so it gets the measured signals and intake's labels, never the spans. */
+/**
+ * TypeSafe's Jev. It is hosted outside the factory's vendors, so it gets the measured signals and intake's labels, never the spans,
+ * and so it is asked only the questions those can answer.
+ */
 const jev: DecisionAdapter = {
   name: "jev",
   async decide(ctx, state, qs, model = "jev-1.13.0") {
+    qs = qs.filter((q) => !q.needsText);
     const key = secret("TYPESAFE_API_KEY");
     if (!key) throw new Error("TYPESAFE_API_KEY is missing from ~/.factory/.env");
     const res = await fetch(JEV_URL, {
@@ -75,7 +87,7 @@ const jev: DecisionAdapter = {
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
       body: JSON.stringify({
         model, state: { signals: state.signals, intent: state.intent },
-        questions: Object.fromEntries(qs.map((q) => [q.id, { type: "choice", instructions: q.question, criteria: Object.fromEntries(q.options.map((o) => [o, o])) }])),
+        questions: Object.fromEntries(qs.map((q) => [q.id, { type: "choice", instructions: q.question, criteria: q.options }])),
       }),
     });
     if (!res.ok) throw new Error(`Jev answered HTTP ${res.status}`);
@@ -93,7 +105,7 @@ const fake: DecisionAdapter = {
   name: "fake",
   decide: async (_ctx, state, qs) => qs.map((q) => ({
     id: q.id, confidence: 0.5,
-    pick: q.id === "maturity" ? q.options[state.signals.acLines >= 3 ? 2 : state.signals.words < 60 ? 0 : 1]! : q.options[0]!,
+    pick: Object.keys(q.options)[q.id === "maturity" ? (state.signals.acLines >= 3 ? 2 : state.signals.words < 60 ? 0 : 1) : 0]!,
   })),
 };
 
@@ -120,7 +132,7 @@ export async function decide(ctx: StepContext, pair: string, state: DecisionStat
     who = parsePair(pair);
     if (who.adapter === "off") return undefined;
     const raw = await ADAPTERS[who.adapter]!.decide({ ...ctx, usage: async (u) => { spent += u.estUsd; await ctx.usage(u); } }, state, qs, who.model);
-    const ok = (a: DecisionAnswer) => !!qs.find((q) => q.id === a.id)?.options.includes(a.pick) && a.confidence >= 0 && a.confidence <= 1;
+    const ok = (a: DecisionAnswer) => Object.hasOwn(qs.find((q) => q.id === a.id)?.options ?? {}, a.pick) && a.confidence >= 0 && a.confidence <= 1;
     return { ...who, answers: raw.filter(ok), dropped: raw.filter((a) => !ok(a)).map((a) => a.id), ms: Date.now() - started, costUsd: spent };
   } catch (e) {
     if (e instanceof FencedOutError) throw e;

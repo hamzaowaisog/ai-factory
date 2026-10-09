@@ -14,10 +14,16 @@ that compares them on stored intakes, so an adapter can be judged before any run
 | Labels | `bench/decide/labels.json` |
 
 ## The two questions
-| id | Options |
-|---|---|
-| `maturity` | casual idea, partial spec, full spec |
-| `genre` | common product type, niche or domain-heavy |
+The models are shown exactly these meanings. **Label with the same lines**, or the models and the labellers judge
+different things.
+
+| id | Option | Meaning |
+|---|---|---|
+| `maturity` | casual idea | a goal in a sentence or two; no roles, screens or rules are named |
+| `maturity` | partial spec | names some roles, screens or rules, but leaves behaviour open |
+| `maturity` | full spec | names the roles, the screens, and testable rules or acceptance criteria |
+| `genre` | common product type | a familiar kind of app (a shop, bookings, a to-do list, a CRM, a portal) that needs no special domain knowledge |
+| `genre` | niche or domain-heavy | depends on the rules or vocabulary of one industry or regulation |
 
 ## Adapters
 An adapter is named as a pair, `adapter[:model]`, for example `llm:claude-haiku-5-5` or `jev`.
@@ -25,7 +31,7 @@ An adapter is named as a pair, `adapter[:model]`, for example `llm:claude-haiku-
 | Adapter | What it does | What it is sent |
 |---|---|---|
 | `llm` | A structured-output call through `think()`. The vendor is the model id and nothing else: an OpenAI id goes to OpenAI, a Claude id to Anthropic. | Measured signals, intake's labels and intake's spans |
-| `jev` | TypeSafe's Jev over HTTPS. Needs `TYPESAFE_API_KEY` in `~/.factory/.env`. | Measured signals and intake's labels only. Never the request's words: Jev is hosted outside the factory's vendors. |
+| `jev` | TypeSafe's Jev over HTTPS. Needs `TYPESAFE_API_KEY` in `~/.factory/.env`. | Measured signals and intake's labels only. Never the request's words: Jev is hosted outside the factory's vendors. So it is asked only `maturity`; `genre` cannot be told from counts. |
 | `fake` | A fixed answer from the signals. No model, $0. | Nothing leaves the machine |
 | `off` | Asks nothing and returns no record. | Nothing |
 
@@ -72,6 +78,12 @@ for the 6 ledger cases. Two people label independently; their agreement is the c
 
 ## The bar for switching an adapter on
 Zero confident wrong "full spec" picks, and agreement with the two people on the rest.
+
+## Known limits
+- The Jev request and answer format is written from TypeSafe's docs and has not met the live API. Expect the first
+  real call to need adjusting.
+- The signals count each Given, When and Then line as its own acceptance line, so one scenario counts as three.
+  Tune this once labels exist.
 
 ## Not built yet
 - The hook after intake, and a `decisions:` block in the project config. When it comes, it must stay optional with
