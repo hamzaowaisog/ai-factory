@@ -124,7 +124,11 @@ export const ProjectConfig = z.object({
     /** Stitch sends the requirements to Google (training-data disclaimer): off unless a project says so */
     allowStitch: z.boolean().default(false),
     /** the stitch engine's settings */
-    stitch: z.object({ device: z.enum(["MOBILE", "DESKTOP", "TABLET", "AGNOSTIC"]).default("DESKTOP") }).optional(),
+    stitch: z.object({
+      device: z.enum(["MOBILE", "DESKTOP", "TABLET", "AGNOSTIC"]).default("DESKTOP"),
+      /** the extra states Stitch draws for a screen that lists them (each one more generation); default empty and error */
+      states: z.array(z.enum(["empty", "error", "loading", "success", "validation"])).optional(),
+    }).optional(),
     /**
      * A small UI fix in an app of its own gets a text design note approved with the estimate, not a drawn demo and a card of its
      * own (docs/estimates-design.md, "Design note for a small fix"). false: every UI request gets the full design.

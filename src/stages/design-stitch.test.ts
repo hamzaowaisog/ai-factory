@@ -1,7 +1,7 @@
 // The design step on the stitch engine: Claude lists the screens and writes a DESIGN.md by following the stitch-design-taste
 // skill; Stitch draws each screen. Runs with an in-memory ledger, a scripted model and a fake Stitch client.
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -85,15 +85,17 @@ beforeEach(() => {
 afterEach(() => { setStitchFactory(undefined); delete process.env.FACTORY_NO_CACHE; });
 
 describe("the stitch design artifact", () => {
-  it("points each screen at its Stitch frame and keeps routes and requirements", () => {
+  it("points each screen at its frames, the normal page first, and keeps routes and requirements", () => {
     const a = stitchArtifact(plan() as never, [
-      { id: "S-1", screenId: "scr-1", html: "h1", image: "i1" },
-      { id: "S-2", screenId: "scr-2", html: "h2", image: "i2" },
+      { id: "S-2", state: "normal", name: "stitch-S-2-normal-22222222.png", screenId: "scr-2", html: "h2", image: "i2" },
+      { id: "S-1", state: "empty", name: "stitch-S-1-empty-33333333.png", screenId: "scr-3", html: "h3", image: "i3" },
+      { id: "S-1", state: "normal", name: "stitch-S-1-normal-11111111.png", screenId: "scr-1", html: "h1", image: "i1" },
     ], { projectId: "proj-1", model: "stitch-default", designMd: "m" }, ["REQ-1", "REQ-2"]);
     expect(a.engine).toBe("stitch");
-    expect(a.screens.map((s) => [s.id, s.route, s.reqs, s.frames])).toEqual([["S-1", "/payees", ["REQ-1"], ["ST-1"]], ["S-2", "/payees/new", ["REQ-2"], ["ST-2"]]]);
+    expect(a.screens.map((s) => [s.id, s.route, s.reqs, s.frames])).toEqual([["S-1", "/payees", ["REQ-1"], ["ST-1", "ST-2"]], ["S-2", "/payees/new", ["REQ-2"], ["ST-3"]]]);
     expect(a.mapping).toEqual({ unmappedReqs: [], orphanScreens: [] });
-    expect(a.stitch.frames["ST-1"]).toEqual({ name: "stitch-S-1.png", screenId: "scr-1", html: "h1", image: "i1" });
+    expect(a.stitch.frames["ST-1"]).toEqual({ screen: "S-1", state: "normal", name: "stitch-S-1-normal-11111111.png", screenId: "scr-1", html: "h1", image: "i1" });
+    expect(a.stitch.frames["ST-2"]).toMatchObject({ screen: "S-1", state: "empty" });
   });
 
   it("lists the Stitch frames for the approval card, and none for a JSON design", () => {
@@ -112,10 +114,14 @@ describe("drawing with stitch", () => {
     expect(systems[1]).toContain("win over the skill's taste rules");
     expect(made.projects).toHaveLength(1);
     expect(made.systems).toEqual([{ name: expect.any(String), theme: { ...theme, designMd: md() } }]);
-    expect(made.generated.map((g) => g.device)).toEqual(["DESKTOP", "DESKTOP"]);
+    // S-1 lists an empty state, which the default design.stitch.states draws: three generations
+    expect(made.generated.map((g) => g.device)).toEqual(["DESKTOP", "DESKTOP", "DESKTOP"]);
+    expect(made.generated.filter((g) => /empty state/.test(g.prompt))).toHaveLength(1);
     expect(models).toEqual(["claude-sonnet-5", "claude-sonnet-5"]);
     expect(made.closed).toBe(1);
-    expect(existsSync(join(ledger.dir, "attachments", "frames", "stitch-S-1.png"))).toBe(true);
+    const files = readdirSync(join(ledger.dir, "attachments", "frames"));
+    expect(files).toHaveLength(3);
+    for (const f of files) expect(f).toMatch(/^stitch-S-\d+-(normal|empty)-[0-9a-f]{8}\.png$/);
     const d = ledger.getJson<{ engine: string; theme: unknown; themeSource: string; screens: { frames: string[]; facts?: { title?: string; buttons: string[] } }[]; stitch: { model: string; theme: unknown } }>((out as { outputs: { design: string } }).outputs.design);
     expect(d.theme).toMatchObject({ brand: "#0F766E", mode: "light" });
     expect(d.themeSource).toBe("new");
@@ -123,7 +129,7 @@ describe("drawing with stitch", () => {
     expect(d.stitch.theme).toEqual(theme);
     expect(d.engine).toBe("stitch");
     expect(d.stitch.model).toBe("stitch-default");
-    expect(d.screens.map((s) => s.frames)).toEqual([["ST-1"], ["ST-2"]]);
+    expect(d.screens.map((s) => s.frames)).toEqual([["ST-1", "ST-2"], ["ST-3"]]);
   });
 
   it("plans with the next tier's Claude model after a step up", async () => {
@@ -189,6 +195,15 @@ describe("the approval step's frames", () => {
     const request = "a payees page";
     expect(framesFor(request, { stitch: { frames: { "ST-1": { name: "stitch-S-1.png" } } } })).toEqual([{ id: "ST-1", name: "stitch-S-1.png" }]);
     expect(framesFor(request, {})).toEqual([]);
+  });
+});
+
+describe("extra states", () => {
+  it("draws only the states a screen lists and the project allows", async () => {
+    answers = [plan({ screens: [{ ...plan().screens[0], states: ["empty", "loading"] }, { ...plan().screens[1], states: ["validation"] }] }), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(memoryLedger(), 0, { stitch: { states: ["validation", "loading"] } }), spec);
+    expect(out.kind).toBe("done");
+    expect(made.generated.map((g) => /in its (\w+) state/.exec(g.prompt)?.[1] ?? "normal").sort()).toEqual(["loading", "normal", "normal", "validation"]);
   });
 });
 

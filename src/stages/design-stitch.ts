@@ -10,7 +10,8 @@ import { designRoute, ladderAt } from "../config/design-route.js";
 import { designMdFaults, DesignMdOut, loadTasteSkill, TASTE_OVERRIDES, type StitchTheme } from "../design/stitch-taste.js";
 import { stitchThemeToDesign } from "../design/stitch-theme.js";
 import { stitchFacts, type StitchFacts } from "../design/stitch-facts.js";
-import { stitchClient } from "../design/stitch.js";
+import { stitchClient, type StitchClient } from "../design/stitch.js";
+import { stateKind } from "../design/demo.js";
 import { failure } from "../gates/engine.js";
 import { inPool } from "../util/pool.js";
 import { header, type StepContext, type StepOutcome } from "./framework.js";
@@ -37,6 +38,37 @@ const STITCH_PLAN_RULES = `You list the screens of a product for Google Stitch t
 /** What the artifact records as the Stitch model: Stitch's own default (no model id is sent). */
 const STITCH_MODEL = "stitch-default";
 
+/** The extra states drawn when a project does not say (each one is one more Stitch generation). */
+export const DEFAULT_STITCH_STATES = ["empty", "error"] as const;
+const STATE_HINT: Record<string, string> = {
+  empty: "no records yet, with a short message and the one action that adds the first",
+  error: "the data failed to load, with an inline error message and a retry action",
+  loading: "skeleton placeholders where the data will appear",
+  success: "a confirmation that the action worked",
+  validation: "the form with its required fields flagged and their error messages",
+};
+const FOLLOW = "\nFollow the project's design system exactly.";
+
+/** What to draw: each screen's normal page, then each state it lists that the project allows (once per kind). */
+export function stitchJobs(screens: Plan["screens"], allowed: readonly string[]): { id: string; state: string; prompt: string }[] {
+  return screens.flatMap((s) => {
+    const kinds = [...new Set(s.states.map(stateKind))].filter((k) => k !== "normal" && allowed.includes(k));
+    return [
+      { id: s.id, state: "normal", prompt: `${s.prompt}${FOLLOW}` },
+      ...kinds.map((k) => ({ id: s.id, state: k, prompt: `${s.prompt}\nShow this same page in its ${k} state: ${STATE_HINT[k]}. Keep the layout, navigation and header identical to the normal page.${FOLLOW}` })),
+    ];
+  });
+}
+
+/** Downloads a generated screen, saves its picture as a frame named by version, and stores its HTML and picture in the ledger. */
+async function saveAsset(ctx: StepContext, c: StitchClient, framesDir: string, id: string, state: string, g: { screenId: string; htmlUrl: string; imageUrl: string }): Promise<StitchAsset> {
+  const [html, png] = await Promise.all([c.download(g.htmlUrl), c.download(g.imageUrl)]);
+  const image = ctx.ledger.putArtifact(png);
+  const name = `stitch-${id}-${state}-${image.slice(0, 8)}.png`;
+  writeFileSync(join(framesDir, name), png);
+  return { id, state, name, screenId: g.screenId, html: ctx.ledger.putArtifact(html), image, ...(state === "normal" ? { facts: stitchFacts(Buffer.from(html).toString("utf8")) } : {}) };
+}
+
 /** Concurrent Stitch generations: each takes a while, and the account's quota is unknown. */
 const STITCH_SIDE_BY_SIDE = 3;
 
@@ -52,23 +84,38 @@ function planFaults(reqIds: string[], p: Plan): Failure[] {
   ];
 }
 
-export interface StitchAsset { id: string; screenId: string; html: string; image: string; facts?: StitchFacts }
+/** One drawn Stitch screen: a page in its normal state or one of its extra states, with its saved frame file. */
+export interface StitchAsset { id: string; state: string; name: string; screenId: string; html: string; image: string; facts?: StitchFacts }
 /** `theme` is the Stitch design system's theme; with it the design gets our theme (tokens, the kit's look) and "new" as its look. */
 export interface StitchMeta { projectId: string; model: string; designMd: string; theme?: StitchTheme; mood?: string }
 
-/** The design artifact of a Stitch design: the JSON design's shape, with each screen drawn as a frame (ST-n) instead of a mock. */
+/**
+ * The design artifact of a Stitch design: the JSON design's shape, with each screen drawn as frames (ST-n) instead of a mock,
+ * its normal page first and then its extra states in the order the plan lists them.
+ */
 export function stitchArtifact(p: Plan, assets: StitchAsset[], meta: StitchMeta, reqIds: string[]) {
-  const frameOf = new Map(assets.map((a, i) => [a.id, `ST-${i + 1}`]));
-  const factsOf = new Map(assets.map((a) => [a.id, a.facts]));
+  const ordered = p.screens.flatMap((s) => {
+    const own = assets.filter((a) => a.id === s.id);
+    const rank = (a: StitchAsset) => (a.state === "normal" ? -1 : s.states.findIndex((x) => stateKind(x) === a.state));
+    return own.sort((x, y) => rank(x) - rank(y));
+  });
+  const fid = new Map(ordered.map((a, i) => [a, `ST-${i + 1}`]));
   const onScreen = new Set(p.screens.flatMap((s) => s.reqs));
   return {
     engine: "stitch" as const,
     ...(meta.theme ? { theme: stitchThemeToDesign(meta.theme, meta.mood ?? p.flow), themeSource: "new" as const } : {}),
     flow: p.flow,
-    screens: p.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: "new" as const, frames: frameOf.has(s.id) ? [frameOf.get(s.id)!] : [], ...(factsOf.get(s.id) ? { facts: factsOf.get(s.id)! } : {}) })),
+    screens: p.screens.map((s) => {
+      const own = ordered.filter((a) => a.id === s.id);
+      const facts = own.find((a) => a.state === "normal")?.facts;
+      return { id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: "new" as const, frames: own.map((a) => fid.get(a)!), ...(facts ? { facts } : {}) };
+    }),
     noScreen: p.noScreen,
     mapping: { unmappedReqs: reqIds.filter((r) => !onScreen.has(r) && !p.noScreen.some((n) => n.req === r)), orphanScreens: p.screens.filter((s) => !s.reqs.length).map((s) => s.id) },
-    stitch: { projectId: meta.projectId, model: meta.model, designMd: meta.designMd, ...(meta.theme ? { theme: meta.theme } : {}), frames: Object.fromEntries(assets.map((a) => [frameOf.get(a.id)!, { name: `stitch-${a.id}.png`, screenId: a.screenId, html: a.html, image: a.image }])) },
+    stitch: {
+      projectId: meta.projectId, model: meta.model, designMd: meta.designMd, ...(meta.theme ? { theme: meta.theme } : {}),
+      frames: Object.fromEntries(ordered.map((a) => [fid.get(a)!, { screen: a.id, state: a.state, name: a.name, screenId: a.screenId, html: a.html, image: a.image }])),
+    },
   };
 }
 
@@ -116,6 +163,7 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
 
   // 3. Stitch: one project, its design system, then each screen
   const device = ctx.project.design?.stitch?.device ?? "DESKTOP";
+  const allowed = ctx.project.design?.stitch?.states ?? DEFAULT_STITCH_STATES;
   const title = ctx.state.info.estimate?.projectName ?? ctx.runId;
   const framesDir = join(ctx.ledger.dir, "attachments", "frames");
   const c = stitchClient();
@@ -126,12 +174,9 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     await c.createDesignSystem(projectId, title, { ...m.output.theme, designMd: md });
     ctx.log(`design: Stitch project ${projectId}, drawing ${plan.screens.length} screens with Stitch's default model, ${STITCH_SIDE_BY_SIDE} at a time`);
     mkdirSync(framesDir, { recursive: true });
-    assets = await inPool(plan.screens, STITCH_SIDE_BY_SIDE, async (s) => {
-      const g = await c.generate(projectId, `${s.prompt}\nFollow the project's design system exactly.`, device);
-      const [html, png] = await Promise.all([c.download(g.htmlUrl), c.download(g.imageUrl)]);
-      writeFileSync(join(framesDir, `stitch-${s.id}.png`), png);
-      return { id: s.id, screenId: g.screenId, html: ctx.ledger.putArtifact(html), image: ctx.ledger.putArtifact(png), facts: stitchFacts(Buffer.from(html).toString("utf8")) };
-    });
+    const jobs = stitchJobs(plan.screens, allowed);
+    if (jobs.length > plan.screens.length) ctx.log(`design: ${jobs.length - plan.screens.length} extra state(s) drawn too (${allowed.join(", ")})`);
+    assets = await inPool(jobs, STITCH_SIDE_BY_SIDE, async (j) => saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(projectId, j.prompt, device)));
   } catch (e) {
     // a Stitch fault is not the model's: park for a person instead of climbing to a dearer tier and paying for every call again
     return { kind: "park", reason: `Stitch failed: ${(e as Error).message}. Check the Stitch service, its quota and STITCH_API_KEY, then resume.` };
