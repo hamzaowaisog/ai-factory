@@ -8,7 +8,8 @@ import { localeBrief } from "./locale.js";
 import { designTokens } from "./tokens.js";
 import { matchesAny } from "../util/glob.js";
 
-export interface ApprovedScreen { id: string; route: string; file: string; reqs: string[]; states?: string[]; size?: string; mock?: unknown; frames?: string[]; change?: string }
+import type { StitchFacts } from "./stitch-facts.js";
+export interface ApprovedScreen { id: string; route: string; file: string; reqs: string[]; states?: string[]; size?: string; mock?: unknown; frames?: string[]; change?: string; facts?: StitchFacts }
 export interface ApprovedDesign { skipped?: boolean; flow?: string; screens: ApprovedScreen[]; theme?: unknown; themeSource?: "new" | "repo"; locale?: unknown; note?: boolean }
 
 /** The approved screen an estimate task builds, if any. */
@@ -91,6 +92,11 @@ export function screenFacts(design: ApprovedDesign | undefined, reqIds: string[]
   if (!design || design.skipped) return [];
   const want = new Set(reqIds);
   return design.screens.filter((s) => s.reqs.some((r) => want.has(r))).map((s) => {
+    // a Stitch screen has no design JSON: its words are the ones read from its HTML
+    if (!s.mock && s.facts) {
+      const f = s.facts;
+      return { screen: s.id, route: s.route, reqs: s.reqs, states: s.states ?? [], ...(f.title ? { title: f.title } : {}), buttons: f.buttons, fields: f.fields, columns: f.columns, messages: {}, toasts: [] };
+    }
     const m = (s.mock ?? {}) as { title?: string; blocks?: Record<string, unknown>[]; copy?: Record<string, string>; toasts?: { text?: string }[]; overlays?: { actions?: unknown[] }[] };
     const blocks = m.blocks ?? [];
     const words = (xs: (string | undefined)[]) => [...new Set(xs.filter((x): x is string => !!x && x.trim() !== ""))].slice(0, 20);

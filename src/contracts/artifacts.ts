@@ -495,6 +495,8 @@ export const DesignBody = z.object({
     refs: z.array(z.string()).optional(),
     /** a design note's words for what changes on this page (no mock is drawn) */
     change: z.string().optional(),
+    /** a Stitch screen: the words read from its HTML (src/design/stitch-facts.ts), its stand-in for the design JSON in tests and checks */
+    facts: z.object({ title: z.string().optional(), buttons: z.array(z.string()), fields: z.array(z.string()), columns: z.array(z.string()), headings: z.array(z.string()) }).optional(),
   })),
   /** the product's apps when it has more than one (each with its own device and frame) */
   apps: z.array(DesignApp).optional(),

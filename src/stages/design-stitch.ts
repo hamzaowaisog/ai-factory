@@ -9,6 +9,7 @@ import type { Failure } from "../contracts/common.js";
 import { designRoute, ladderAt } from "../config/design-route.js";
 import { designMdFaults, DesignMdOut, loadTasteSkill, TASTE_OVERRIDES, type StitchTheme } from "../design/stitch-taste.js";
 import { stitchThemeToDesign } from "../design/stitch-theme.js";
+import { stitchFacts, type StitchFacts } from "../design/stitch-facts.js";
 import { stitchClient } from "../design/stitch.js";
 import { failure } from "../gates/engine.js";
 import { inPool } from "../util/pool.js";
@@ -51,19 +52,20 @@ function planFaults(reqIds: string[], p: Plan): Failure[] {
   ];
 }
 
-export interface StitchAsset { id: string; screenId: string; html: string; image: string }
+export interface StitchAsset { id: string; screenId: string; html: string; image: string; facts?: StitchFacts }
 /** `theme` is the Stitch design system's theme; with it the design gets our theme (tokens, the kit's look) and "new" as its look. */
 export interface StitchMeta { projectId: string; model: string; designMd: string; theme?: StitchTheme; mood?: string }
 
 /** The design artifact of a Stitch design: the JSON design's shape, with each screen drawn as a frame (ST-n) instead of a mock. */
 export function stitchArtifact(p: Plan, assets: StitchAsset[], meta: StitchMeta, reqIds: string[]) {
   const frameOf = new Map(assets.map((a, i) => [a.id, `ST-${i + 1}`]));
+  const factsOf = new Map(assets.map((a) => [a.id, a.facts]));
   const onScreen = new Set(p.screens.flatMap((s) => s.reqs));
   return {
     engine: "stitch" as const,
     ...(meta.theme ? { theme: stitchThemeToDesign(meta.theme, meta.mood ?? p.flow), themeSource: "new" as const } : {}),
     flow: p.flow,
-    screens: p.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: "new" as const, frames: frameOf.has(s.id) ? [frameOf.get(s.id)!] : [] })),
+    screens: p.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: "new" as const, frames: frameOf.has(s.id) ? [frameOf.get(s.id)!] : [], ...(factsOf.get(s.id) ? { facts: factsOf.get(s.id)! } : {}) })),
     noScreen: p.noScreen,
     mapping: { unmappedReqs: reqIds.filter((r) => !onScreen.has(r) && !p.noScreen.some((n) => n.req === r)), orphanScreens: p.screens.filter((s) => !s.reqs.length).map((s) => s.id) },
     stitch: { projectId: meta.projectId, model: meta.model, designMd: meta.designMd, ...(meta.theme ? { theme: meta.theme } : {}), frames: Object.fromEntries(assets.map((a) => [frameOf.get(a.id)!, { name: `stitch-${a.id}.png`, screenId: a.screenId, html: a.html, image: a.image }])) },
@@ -128,7 +130,7 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
       const g = await c.generate(projectId, `${s.prompt}\nFollow the project's design system exactly.`, device);
       const [html, png] = await Promise.all([c.download(g.htmlUrl), c.download(g.imageUrl)]);
       writeFileSync(join(framesDir, `stitch-${s.id}.png`), png);
-      return { id: s.id, screenId: g.screenId, html: ctx.ledger.putArtifact(html), image: ctx.ledger.putArtifact(png) };
+      return { id: s.id, screenId: g.screenId, html: ctx.ledger.putArtifact(html), image: ctx.ledger.putArtifact(png), facts: stitchFacts(Buffer.from(html).toString("utf8")) };
     });
   } catch (e) {
     // a Stitch fault is not the model's: park for a person instead of climbing to a dearer tier and paying for every call again
