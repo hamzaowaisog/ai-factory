@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ProjectConfig } from "./project.js";
-import { DEFAULT_TIERS, DESIGN_ENGINES, DESIGN_TIERS, designRoute, mergeDesignRoute, tierModels } from "./design-route.js";
+import { DEFAULT_TIERS, DESIGN_ENGINES, DESIGN_TIERS, designRoute, ladderAt, mergeDesignRoute, tierModels } from "./design-route.js";
 
 const base = { project: "p", repo: "-", stack: "dotnet" };
 
@@ -66,9 +66,18 @@ describe("design route", () => {
     expect(tierModels("openai", "light", {})).toEqual([]);
   });
 
-  it("refuses stitch while allowStitch is off, and as not built when it is on", () => {
+  it("refuses stitch while allowStitch is off", () => {
     expect(() => designRoute(cfg({ engine: "stitch" }))).toThrow(/allowStitch/);
-    expect(() => designRoute(cfg({ engine: "stitch", allowStitch: true }))).toThrow(/not built yet/);
+  });
+
+  it("plans stitch with the Claude ladder and draws with the tier's Stitch model", () => {
+    const r = designRoute(cfg({ engine: "stitch", allowStitch: true, tier: "standard" }));
+    expect(r.ladder).toEqual([
+      { tier: "standard", model: "claude-sonnet-5", stitch: "GEMINI_3_PRO" },
+      { tier: "heavy", model: "claude-opus-5-5", stitch: "GEMINI_3_1_PRO" },
+    ]);
+    expect(r.route.model).toBe("claude-sonnet-5");
+    expect([0, 1, 2, 5].map((n) => ladderAt(r, n).stitch)).toEqual(["GEMINI_3_PRO", "GEMINI_3_PRO", "GEMINI_3_1_PRO", "GEMINI_3_1_PRO"]);
   });
 
   it("puts a pin over the hook and the hook over the default", () => {

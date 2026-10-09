@@ -146,9 +146,12 @@ describe("design tier routes", () => {
     expect(checkRoutes(cfg({ ...openai, ...prices }), ["design"])).toEqual([]);
   });
 
-  it("reports stitch at start-up instead of crashing", () => {
+  it("reports stitch without allowStitch or without its key at start-up", () => {
     expect(checkRoutes(cfg({ design: { engine: "stitch" } }), ["design"]).join("\n")).toMatch(/allowStitch/);
-    expect(checkRoutes(cfg({ design: { engine: "stitch", allowStitch: true } }), ["design"]).join("\n")).toMatch(/not built yet/);
+    expect(checkRoutes(cfg({ design: { engine: "stitch", allowStitch: true } }), ["design"]).join("\n")).toMatch(/STITCH_API_KEY/);
+    process.env.STITCH_API_KEY = "st"; _resetEnvCache();
+    expect(checkRoutes(cfg({ design: { engine: "stitch", allowStitch: true } }), ["design"])).toEqual([]);
+    delete process.env.STITCH_API_KEY; _resetEnvCache();
   });
 
   it("keeps a design route the project set by hand", () => {

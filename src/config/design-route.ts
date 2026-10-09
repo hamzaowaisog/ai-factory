@@ -19,8 +19,12 @@ export const DEFAULT_TIERS: TierTable = {
 const DEFAULT_ENGINE: DesignEngine = "claude";
 const DEFAULT_TIER: DesignTier = "heavy";
 
+/** The Stitch model per tier (SDK 0.3.5 model ids). */
+export const STITCH_MODELS = { light: "GEMINI_3_FLASH", standard: "GEMINI_3_PRO", heavy: "GEMINI_3_1_PRO" } as const satisfies Record<DesignTier, string>;
+
 export interface DesignPick { engine: DesignEngine; tier: DesignTier; source: { engine: RouteSource; tier: RouteSource }; dropped?: string }
-export interface DesignRoute extends DesignPick { ladder: { tier: DesignTier; model: string }[]; route: StepRoute }
+/** `stitch` is the Stitch model of the entry's tier, on the stitch engine; its `model` is the Claude planner. */
+export interface DesignRoute extends DesignPick { ladder: { tier: DesignTier; model: string; stitch?: string }[]; route: StepRoute }
 type Design = ProjectConfig["design"];
 type Hook = { engine?: DesignEngine; tier?: DesignTier };
 
@@ -51,17 +55,23 @@ export function tierModels(engine: DesignEngine, tier: DesignTier, tiers: TierTa
 export function designRoute(project: Pick<ProjectConfig, "design">, hook?: Hook): DesignRoute {
   const d = project.design;
   const pick = mergeDesignRoute(d, hook);
-  if (pick.engine === "stitch") {
-    throw new Error(d?.allowStitch ? "design.engine is stitch, and the Stitch engine is not built yet; set design.engine to claude or openai"
-      : "design.engine is stitch, but design.allowStitch is off; Stitch sends the requirements to Google, so a project must allow it");
+  if (pick.engine === "stitch" && !d?.allowStitch) {
+    throw new Error("design.engine is stitch, but design.allowStitch is off; Stitch sends the requirements to Google, so a project must allow it");
   }
   const tiers: TierTable = {};
   for (const t of DESIGN_TIERS) tiers[t] = { ...DEFAULT_TIERS[t], ...d?.tiers?.[t] };
-  const ladder = tierModels(pick.engine, pick.tier, tiers);
+  // Stitch draws; Claude plans the screens and writes the DESIGN.md, on the same tier
+  const planner = pick.engine === "stitch" ? "claude" : pick.engine;
+  const ladder = tierModels(planner, pick.tier, tiers).map((x) => (pick.engine === "stitch" ? { ...x, stitch: STITCH_MODELS[x.tier] } : x));
   // the engine needs a model of its own on the ladder; a ladder of only the cross-vendor heavy step would swap vendors silently
-  if (!ladder.some((x) => tiers[x.tier]?.[pick.engine] === x.model)) throw new Error(`No ${pick.engine} model for the design step at tier ${pick.tier} or above; add one under design.tiers`);
+  if (!ladder.some((x) => tiers[x.tier]?.[planner] === x.model)) throw new Error(`No ${pick.engine} model for the design step at tier ${pick.tier} or above; add one under design.tiers`);
   return {
     ...pick, ladder,
     route: { runner: "api", model: ladder[0]!.model, escalate: ladder.slice(1).map((x) => x.model), effort: "high", strict: true, ...(ladder.length > 1 ? { tiered: true } : {}) },
   };
+}
+
+/** The ladder entry a rung runs: rungs 0 and 1 the first, then one per stronger-model rung, the last one kept. */
+export function ladderAt(dr: Pick<DesignRoute, "ladder">, rung: number): DesignRoute["ladder"][number] {
+  return dr.ladder[Math.min(Math.max(0, rung - 1), dr.ladder.length - 1)]!;
 }

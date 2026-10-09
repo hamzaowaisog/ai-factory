@@ -136,6 +136,7 @@ export function checkRoutes(project: ProjectConfig, only?: readonly string[]): s
   for (const stage of only ?? Object.keys(DEFAULT_ROUTES)) {
     let r: StepRoute;
     try { r = routeFor(project, stage); } catch (e) { problems.push((e as Error).message); continue; }
+    if (stage === "design" && !project.steps.design && project.design?.engine === "stitch" && !hasSecret("STITCH_API_KEY")) problems.push("design.engine is stitch, but STITCH_API_KEY is missing from ~/.factory/.env");
     if (THINKING_STEPS.has(stage) && r.runner !== "api") problems.push(`${stage} is a thinking step and must use the api runner`);
     if (CODING_STEPS.has(stage) && r.runner === "api") problems.push(`${stage} is a coding step and needs an agent runner`);
     const { model, blocked } = modelFor(project, stage, 0);
