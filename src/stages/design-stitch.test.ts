@@ -145,3 +145,27 @@ describe("drawing with stitch", () => {
     expect(made.closed).toBe(1);
   });
 });
+
+describe("Stitch screens on the approval demo", () => {
+  it("shows a Stitch screenshot in place of a drawn page", async () => {
+    const { buildDemo, frameDataUri } = await import("../design/demo.js");
+    const png = Buffer.from("89504e470d0a1a0a0000000d49484452", "hex");
+    const dataUri = frameDataUri("stitch-S-1.png", png, 0)!;
+    const html = buildDemo({
+      title: "Payees", flow: "Payees", requirements: { "REQ-1": "The system shall list payees." }, noScreen: [],
+      screens: [{ id: "S-1", route: "/payees", file: "app/payees/page.tsx", reqs: ["REQ-1"], states: [], size: "new", frames: ["ST-1"] }],
+      frames: { "ST-1": { name: "stitch-S-1.png", dataUri } },
+    });
+    expect(dataUri.startsWith("data:image/png;base64,")).toBe(true);
+    expect(html).toContain(dataUri);
+  });
+});
+
+describe("the approval step's frames", () => {
+  it("adds the design's Stitch frames to the frames the request attached", async () => {
+    const { framesFor } = await import("./design-approve.js");
+    const request = "a payees page";
+    expect(framesFor(request, { stitch: { frames: { "ST-1": { name: "stitch-S-1.png" } } } })).toEqual([{ id: "ST-1", name: "stitch-S-1.png" }]);
+    expect(framesFor(request, {})).toEqual([]);
+  });
+});

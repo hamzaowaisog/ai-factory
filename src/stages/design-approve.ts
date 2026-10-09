@@ -19,6 +19,7 @@ import { demoShotList, findPackage, nextVersion, type DesignPackage } from "../d
 import { ensurePackage } from "./design-export.js";
 import { gate } from "./estimate.js";
 import { listedFrames, MAX_DESIGN_REVISIONS } from "./design.js";
+import { stitchFrames } from "./design-stitch.js";
 import type { ProjectConfig } from "../config/project.js";
 import { currentPictures } from "../design/current-pages.js";
 import { ESTIMATE_SOURCES, intentOf, specOf, type DesignSources, repoInventory } from "./design-inputs.js";
@@ -131,6 +132,11 @@ export function designCard(runId: string, design: DesignT, hash: string, extra: 
   ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
 }
 
+/** The frames the demo shows: those the request attached, then a Stitch design's screenshots (each saved under attachments/frames). */
+export function framesFor(request: string, design: { stitch?: { frames: Record<string, { name: string }> } }): { id: string; name: string }[] {
+  return [...listedFrames(request), ...stitchFrames(design)];
+}
+
 /**
  * The design approval for any mode (E1b in the estimate). `src` names the steps it reads and `purpose`
  * picks the card's wording; the key, version and inputs are the same for every mode.
@@ -198,7 +204,7 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
       }
       // the demo is drawn from the design, the requirement text and the attached frames; the approval is tied to that exact page
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
-      const listed = listedFrames(ctx.state.info.request ?? "");
+      const listed = framesFor(ctx.state.info.request ?? "", design);
       const frames: Record<string, { name: string; dataUri?: string }> = {};
       let embedded = 0;
       for (const f of listed) {
