@@ -179,9 +179,33 @@ docker compose -f ~/code/clinic-run/docker-compose.yml up
 
 | Command | What it does | Code |
 |---|---|---|
-| `start` | Makes `<name>-web` (empty) and `<name>-api` (the skeleton in `src/fullstack/skeleton.ts`: .NET 9, PostgreSQL (§2c), one test, CORS for `localhost:3000`), writes both project configs, starts the web run. From an approved design made with no repo, the web run builds that design and skips its design steps; from an approved estimate made with no repo, it is held to the estimate (gates B1-B6). Either brings its own request, and is checked before anything is made. With neither, the web run draws its own design and nothing is estimated. | `productSeed`, `setUpProduct`, `startProduct` |
+| `start` | Makes `<name>-web` (empty) and `<name>-api` (the skeleton in `src/fullstack/skeleton.ts`: .NET 9, PostgreSQL (§2c), one test, CORS for `localhost:3000`, an empty `SeedData.cs`), writes both project configs, starts the web run. From an approved design made with no repo, the web run builds that design and skips its design steps; from an approved estimate made with no repo, it is held to the estimate (gates B1-B6). Either brings its own request, and is checked before anything is made. With neither, the web run draws its own design and nothing is estimated. | `productSeed`, `setUpProduct`, `startProduct` |
 | `next` | Copies the contract approved with the web plan into the API repo's base branch (and pushes it to GitHub's main, for a product on GitHub) and starts the API run. Before the plan is approved it only says so. Later it reports where each run is. | `approvedContract`, `handOverContract`, `apiRequest` |
 | `up` | Checks out the two delivered branches side by side and writes a compose file: the API on port 5080, the web app on 3000, and the product's PostgreSQL server. | `writeRunFiles` |
+
+### Sample data
+The API skeleton has `App.Api/SeedData.cs` (empty at first) and `Program.cs` runs it after the tables exist, only when the
+setting `Seed:Demo` is true. The API run's request tells the run to write its sample rows there (a few per table, from the
+contract's examples, added only to an empty table). The run files and the page's start set `Seed__Demo=true`; the tests and
+the lab never do, so they start on an empty database. Nothing in a run checks that the file was filled: the page shows it
+after a start, as the rows each of the contract's lists returns. A product delivered before this has no such file and
+starts as its run left it. Code: `apiSeed`, `SEED_SETTING` in `src/fullstack/skeleton.ts`, `apiRequest`.
+
+### Starting it on this machine
+On a product's page, once both runs are delivered, **Start the product** writes the run files and starts three containers
+with the container CLI itself (the factory's setup has no compose): the database, the API with its sample rows, and the web
+app. No model and no cost. The first start builds both apps, which takes minutes; the page shows the step, then each app's
+address, the containers and the rows each list returns. **Stop it** removes the containers; the database keeps its rows in
+a volume. Code: `src/fullstack/apps.ts`; routes `GET /api/fullstack/:name/apps`, `POST .../apps/start`, `POST .../apps/down`.
+
+- Ports are published on 127.0.0.1 only. The web app runs in the API's network, so `localhost:5080` reaches the API from
+  the web app's server as well as from the browser (the compose file does not do this).
+- **Port 3000 taken:** the web app goes on the next free port (3001 to 3009) and the API is told its address
+  (`Cors__Origin`, read by the skeleton's `Program.cs`). An API delivered before that setting lets in only 3000, so its
+  start is refused with the reason.
+- **Port 5080 taken:** refused. The web app's generated client has `http://localhost:5080` written into it, a locked file.
+- One product at a time: every product's API is on 5080.
+- It is a page button only; `factory fullstack up` is unchanged.
 
 State is kept in `~/.factory/fullstack/<name>.json`. Both project configs name the same SDK image, so the two runs
 share one coding image (`factory-agent:dotnet8`, rebuilt from the project's SDK image) and may overlap.
@@ -210,7 +234,7 @@ from (nothing, an approved no-repo design or an approved no-repo estimate), the 
 a dropped `.md`) and the web run's max cost. "The client provides it" on the same form starts a web app alone in one
 new repo instead (a greenfield run, no API run). Products lists each product; its page shows both runs side by side, the
 contract once the web plan is approved (with its operations, `GET /orders`), a Start API run button (`next`, with its
-own max cost) and, once both runs are delivered, Write run files (`up`: it writes the compose file and shows the
+own max cost) and, once both runs are delivered, Start the product (below) and Write run files (`up`: it writes the compose file and shows the
 command; it starts nothing). Each run's cards are decided on its own run page: questions, the design card and the
 plan card, each with a typed name and the card's hash, recorded as "<name> (via web)". Approving the web run's plan
 there approves the contract, as `factory approve` does. A limit card is raised one step (or the run stopped) on the run page; gate waivers stay in the terminal. Code:

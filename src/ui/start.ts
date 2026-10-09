@@ -2,6 +2,7 @@
 // gatherRequest, createRun), then the executor runs in the background like the MCP start.
 // An uploaded file is written to a private temp folder under its own name and read by
 // gatherRequest like `--file`; a Jira key goes through gatherRequest like `--jira`.
+import type { AppsDeps } from "../fullstack/apps.js";
 import { MANUAL_CARD, SIGN_OFF, readChecks, type ManualBundle } from "../stages/manual-check.js";
 import { INTERRUPTED, shownStatus } from "../stages/run-status.js";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -81,6 +82,8 @@ export interface StartDeps {
   gatherRefs?: typeof gatherReferences;
   /** exports a run's already-approved design at once (a build from an estimate); the server runs it as an export job */
   exportNow?: (runId: string, formats: ExportFormat[]) => void;
+  /** starts and looks at a delivered product's containers (tests pass fakes) */
+  apps?: AppsDeps;
 }
 
 /** All reference files of one start together (the page checks the same): the request body stays well under its limit. */

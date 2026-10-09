@@ -13,6 +13,27 @@ const connection = (host: string) => `Host=${host};Port=${POSTGRES_LOCAL.port};D
 /** The connection string the app reads as ConnectionStrings__App, for a database on `host`. */
 export const postgresConnection = connection;
 
+/**
+ * Sample rows for a person trying the product: the API run fills SEED_FILE, and the app runs it at startup only when SEED_SETTING
+ * is true. The run files set it (src/fullstack/apps.ts); the tests and the lab never do, so they start on an empty database.
+ */
+export const SEED_FILE = "App.Api/SeedData.cs";
+export const SEED_SETTING = "Seed__Demo";
+/** The web app's address the API lets in, when it is not the usual one: read by the skeleton's Program.cs as Cors:Origin. */
+export const CORS_SETTING = "Cors__Origin";
+export const CORS_KEY = "Cors:Origin";
+export const apiSeed = (body: string) => `namespace App.Api;
+
+// Sample rows for a person trying the product. The app calls Run at startup, after the tables exist, only when the setting
+// Seed:Demo is true (the factory's run files set it; tests never do). Add rows to a table only when that table is empty.
+public static class SeedData
+{
+    public static void Run(AppDb db)
+    {
+${body}    }
+}
+`;
+
 export const HEALTH_LINE = 'app.MapGet("/", () => "API is up").ExcludeFromDescription();';
 export const apiProgram = (routes: string) => `using App.Api;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +42,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 // PostgreSQL: the connection comes from ConnectionStrings__App; the fallback is a local server for development
 builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("App") ?? "${connection("localhost")}"));
-builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
+// the web app's address: 3000 unless the setting Cors:Origin names another (the factory sets it when it starts the web app on another port)
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(builder.Configuration["Cors:Origin"] ?? "http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
 var app = builder.Build();
 // Create the database with every table when the app starts. The build also runs this file, to write the API's OpenAPI
 // document, and must not touch the database then. Keep this: the factory starts the app and reads the database it creates.
@@ -31,7 +53,10 @@ if (System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name != "GetDocumen
     lock (typeof(AppDb))
     {
         using var scope = app.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<AppDb>().Database.EnsureCreated();
+        var db = scope.ServiceProvider.GetRequiredService<AppDb>();
+        db.Database.EnsureCreated();
+        // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database
+        if (app.Configuration.GetValue<bool>("Seed:Demo")) SeedData.Run(db);
     }
 }
 app.UseCors();
@@ -90,6 +115,7 @@ EndGlobal
 `,
   "App.Api/Program.cs": apiProgram(""),
   "App.Api/AppDb.cs": apiDb(""),
+  [SEED_FILE]: apiSeed(""),
   "App.Tests/App.Tests.csproj": `<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>

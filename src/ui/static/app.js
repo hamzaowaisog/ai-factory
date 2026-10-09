@@ -2452,8 +2452,8 @@ function productScreen(name) {
   const msg = h("p", { class: "small", role: "status" });
   const apiCap = h("input", { type: "number", id: "fs-apimax", min: "0.5", step: "0.5", placeholder: "normal limit" });
   poll(3000, async (first) => {
-    const p = await api(`/api/fullstack/${encodeURIComponent(name)}`);
-    const json = JSON.stringify(p);
+    const [p, apps] = await Promise.all([api(`/api/fullstack/${encodeURIComponent(name)}`), api(`/api/fullstack/${encodeURIComponent(name)}/apps`)]);
+    const json = JSON.stringify([p, apps]);
     if (json === lastJson) return;
     lastJson = json;
     const side = (title, ico, s) => h("section", { class: "panel rise" }, h("div", { class: "panel-head" }, h("h2", {}, icon(ico), title), s.run ? pill(s.run.status) : h("span", { class: "faint small" }, "not started")),
@@ -2486,6 +2486,38 @@ function productScreen(name) {
       } catch (e) { msg.textContent = e.message; }
       writeFiles.disabled = false;
     });
+    // the delivered product started on this machine: its database, its API with the sample rows, its web app
+    const live = apps.state === "starting" || apps.state === "running";
+    const startApps = h("button", { class: "btn primary", type: "button", disabled: !p.next.canWriteRunFiles || live }, icon("play"), apps.state === "failed" ? "Start it again" : "Start the product");
+    const stopApps = h("button", { class: "btn", type: "button" }, "Stop it");
+    const act = (button, path, said) => button.addEventListener("click", async () => {
+      button.disabled = true; msg.textContent = "";
+      try {
+        await api(`/api/fullstack/${encodeURIComponent(name)}/apps/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        msg.textContent = said;
+        lastJson = "";
+      } catch (e) { msg.textContent = e.message; button.disabled = false; }
+    });
+    act(startApps, "start", "Starting. The first start builds both apps, which takes a few minutes.");
+    act(stopApps, "down", "Stopped. The database keeps its rows for the next start.");
+    if (apps.state === "running" && msg.textContent.startsWith("Starting")) msg.textContent = "";
+    const serviceName = { db: "Database", api: "API", web: "Web app" };
+    const moved = apps.web && !apps.web.url.endsWith(":3000");
+    const withRows = apps.lists ? apps.lists.filter((l) => l.rows > 0).length : 0;
+    const appsPanel = apps.state === "none" || apps.state === "stopped" && !apps.error ? null : h("section", { class: "panel rise" },
+      h("div", { class: "panel-head" }, h("h2", {}, icon("browser"), "Running on this machine"),
+        pill(apps.state === "running" ? "running" : apps.state === "starting" ? "waiting" : apps.state === "failed" ? "failed" : "pending", apps.state === "starting" ? "starting" : apps.state === "stopped" ? "not started" : apps.state)),
+      apps.error ? h("p", { class: "small" }, apps.error) : null,
+      apps.step ? h("p", { class: "small muted" }, `${apps.step}…`) : null,
+      moved && apps.services.length ? h("p", { class: "small muted" }, `Port 3000 is taken on this machine, so the web app is on ${apps.web.url.replace(/^.*:/, "")}. The API was told its address.`) : null,
+      apps.services.length ? h("dl", { class: "facts" },
+        h("dt", {}, "Web app"), h("dd", {}, apps.web.status ? h("a", { href: apps.web.url, target: "_blank", rel: "noopener" }, apps.web.url) : h("code", {}, apps.web.url), h("span", { class: "faint small" }, apps.web.status ? `answers (HTTP ${apps.web.status})` : "no answer yet")),
+        h("dt", {}, "API"), h("dd", {}, apps.api.status ? h("a", { href: apps.api.url, target: "_blank", rel: "noopener" }, apps.api.url) : h("code", {}, apps.api.url), h("span", { class: "faint small" }, apps.api.status ? `answers (HTTP ${apps.api.status})` : "no answer yet")),
+        h("dt", {}, "Containers"), h("dd", {}, h("div", { class: "tags" }, apps.services.map((sv) => h("span", { class: "tag" }, serviceName[sv.name], h("span", { class: "n" }, sv.detail || sv.state))))),
+        apps.lists.length ? [h("dt", {}, "Sample data"), h("dd", {}, h("span", { class: "small" }, `${withRows} of ${apps.lists.length} list${apps.lists.length === 1 ? " returns" : "s return"} rows`),
+          h("div", { class: "tags" }, apps.lists.map((l) => h("a", { class: "tag mono", href: `${apps.api.url}${l.operation.slice(4)}`, target: "_blank", rel: "noopener" }, l.operation, h("span", { class: "n" }, l.rows !== undefined ? `${l.rows} row${l.rows === 1 ? "" : "s"}` : l.status ? `HTTP ${l.status}` : "no answer")))))] : null) : null,
+      apps.services.filter((sv) => sv.log).map((sv) => h("details", { open: true }, h("summary", { class: "small muted" }, `${serviceName[sv.name]}: its last lines`), h("pre", { class: "contract mono small" }, sv.log))),
+      apps.services.length ? h("div", { class: "row" }, stopApps, h("span", { class: "hint" }, "Removes the three containers. The database keeps its rows.")) : null);
     const db = p.database;
     const dbPanel = h("section", { class: "panel rise" }, h("div", { class: "panel-head" }, h("h2", {}, icon("layers"), "Database"),
         h("span", { class: "pill t-ok" }, h("span", { class: "dot" }), db.name)),
@@ -2499,8 +2531,10 @@ function productScreen(name) {
         h("section", { class: "panel rise next-panel" }, h("div", { class: "panel-head" }, h("h2", {}, icon("arrow"), "Next")),
           h("p", { class: "small muted" }, p.next.say),
           !p.api.run ? h("div", { class: "row" }, h("div", { class: "money-in" }, h("span", {}, "$"), apiCap), h("span", { class: "hint" }, "API run's max cost (optional)"), startApi) : null,
-          h("div", { class: "row" }, writeFiles, h("span", { class: "hint" }, "Once both runs are delivered: both branches side by side and a compose file. Starts nothing.")),
+          h("div", { class: "row" }, startApps, h("span", { class: "hint" }, "Once both runs are delivered: the web app, the API with its sample rows and the database, in containers on this machine. No model, no cost.")),
+          h("div", { class: "row" }, writeFiles, h("span", { class: "hint" }, "Only the files: both branches side by side and a compose file. Starts nothing.")),
           files, msg),
+        appsPanel,
         dbPanel,
         h("div", { class: "grid-2" }, side("Web run", "browser", p.web), side("API run", "layers", p.api)),
         p.contract ? h("section", { class: "panel rise" }, h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "API contract (approved)"), h("code", { class: "small muted" }, p.contract.file)),

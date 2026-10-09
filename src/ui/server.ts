@@ -5,7 +5,8 @@
 // product's API contract), approve or send back with a reason, the answers to a question card on any run, and a limit card (cost,
 // time or attempts, or an estimate's budget): raise it one step and continue, or stop the run there. A bigger raise is the terminal's. Resuming a parked run (POST /api/runs/:id/resume) decides nothing: it is `factory resume`, and the
 // run stops again at its next card. Starting a new product may make one empty project (git init and factory init), and a full-stack
-// product its two repos (factory fullstack start); its run files (POST /api/fullstack/:name/up) start nothing. Exporting an
+// product its two repos (factory fullstack start); its run files (POST /api/fullstack/:name/up) start nothing, and starting a delivered product
+// (POST /api/fullstack/:name/apps/start) runs its two apps and its database in containers on this machine, with no model. Exporting an
 // approved design (POST /api/runs/:id/exports) only writes files under the run's own exports/ folder, and generating its
 // scaffold (POST /api/runs/:id/scaffold) only under the run's own scaffold/ folder.
 // Other cards are shown read-only with the terminal command to paste.
@@ -30,7 +31,7 @@ import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./
 import { figmaPluginZip } from "../design/figma.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
 import { fidelityPanel, fidelityShot } from "./fidelity.js";
-import { fullstackNext, fullstackUp, productsView, productView, startFullstack } from "./fullstack.js";
+import { fullstackApps, fullstackNext, fullstackStart, fullstackStop, fullstackUp, productsView, productView, startFullstack } from "./fullstack.js";
 import { productNames } from "../fullstack/product.js";
 import type { ExportFormat } from "../design/export.js";
 
@@ -242,6 +243,28 @@ export const ROUTES: readonly Route[] = [
     handle: ({ name }) => {
       if (!productNames().includes(name!)) return notFound(`No full-stack product ${name}`);
       try { return ok(fullstackUp(name!)); } catch (e) {
+        return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "GET", path: "/api/fullstack/:name/apps", what: "a delivered product started on this machine: its containers, whether the web app and the API answer, and the rows each list returns",
+    handle: async ({ name }, _b, deps) => productNames().includes(name!) ? ok(await fullstackApps(name!, deps.apps) as unknown as Json) : notFound(`No full-stack product ${name}`),
+  },
+  {
+    method: "POST", path: "/api/fullstack/:name/apps/start", what: "start a delivered product on this machine: write the run files, then start its database, API (with its sample rows) and web app in containers; no model, no cost",
+    handle: async ({ name }, _b, deps) => {
+      if (!productNames().includes(name!)) return notFound(`No full-stack product ${name}`);
+      try { return ok(await fullstackStart(name!, deps.apps)); } catch (e) {
+        return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
+      }
+    },
+  },
+  {
+    method: "POST", path: "/api/fullstack/:name/apps/down", what: "remove a started product's containers; its database keeps its rows",
+    handle: async ({ name }, _b, deps) => {
+      if (!productNames().includes(name!)) return notFound(`No full-stack product ${name}`);
+      try { return ok(await fullstackStop(name!, deps.apps)); } catch (e) {
         return { status: e instanceof StartError ? e.status : 400, json: { error: (e as Error).message } };
       }
     },

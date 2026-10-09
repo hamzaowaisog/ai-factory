@@ -218,7 +218,7 @@ describe("factory ui: what the web can decide", () => {
     expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual([
       "POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/answers", "POST /api/runs/:id/decision",
       "POST /api/runs/:id/manual-checks", "POST /api/runs/:id/limit", "POST /api/runs/:id/limit-stop", "POST /api/runs/:id/resume",
-      "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/up", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
+      "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/up", "POST /api/fullstack/:name/apps/start", "POST /api/fullstack/:name/apps/down", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
     ]);
   });
 
@@ -581,6 +581,13 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     expect(up.status).toBe(409);
     expect(up.json().error).toMatch(/Both runs must be delivered/);
     expect((await call("/api/fullstack/orders")).json().next).toMatchObject({ canStartApi: false, canWriteRunFiles: false });
+    // and so does starting the product on this machine: nothing to look at, nothing started
+    expect((await call("/api/fullstack/orders/apps")).json()).toEqual({ state: "none" });
+    const start = await send("/api/fullstack/orders/apps/start", {});
+    expect(start.status).toBe(409);
+    expect(start.json().error).toMatch(/Both runs must be delivered/);
+    expect((await call("/api/fullstack/nope/apps")).status).toBe(404);
+    expect((await send("/api/fullstack/nope/apps/down", {})).status).toBe(404);
   });
 
   it("puts both repos on GitHub when asked: each a private repo with main pushed; the contract goes to the API repo's main", async () => {

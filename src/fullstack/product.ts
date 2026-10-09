@@ -18,7 +18,7 @@ import type { RequestSource } from "../sources/request.js";
 import { createRun } from "../stages/executor.js";
 import { factoryHome } from "../util/paths.js";
 import { newProductDatabase, type DatabaseChoice, type DatabaseKind } from "./database.js";
-import { API_BUILT_DOC, API_PORT, API_SDK_IMAGE, API_SKELETON, API_SOLUTION, POSTGRES_IMAGE, POSTGRES_LOCAL, postgresConnection } from "./skeleton.js";
+import { API_BUILT_DOC, API_PORT, API_SDK_IMAGE, API_SKELETON, API_SOLUTION, POSTGRES_IMAGE, POSTGRES_LOCAL, postgresConnection, SEED_FILE, SEED_SETTING } from "./skeleton.js";
 
 export const CONTRACT_FILE = "contracts/openapi.yaml";
 
@@ -201,7 +201,7 @@ export function handOverContract(p: Product, contract: string): void {
 
 /** The API run's request: the product's own words, and what this side is. Only a product from before PostgreSQL was settled is on SQLite. */
 export const apiRequest = (request: string, database: DatabaseKind = "postgres"): string =>
-  `${request.trim()}\n\nThis run builds the API side of the product above, in an existing .NET API project. Build every operation of the locked API contract in ${CONTRACT_FILE}, exactly as it is written there. Keep the data in ${database === "postgres" ? "the project's PostgreSQL database (the connection string named App, which the project already reads)" : "the project's local SQLite database"}, with a few rows of sample data so each list has something to show. The web app is built in its own repo; do not build screens here.`;
+  `${request.trim()}\n\nThis run builds the API side of the product above, in an existing .NET API project. Build every operation of the locked API contract in ${CONTRACT_FILE}, exactly as it is written there. Keep the data in ${database === "postgres" ? "the project's PostgreSQL database (the connection string named App, which the project already reads)" : "the project's local SQLite database"}, and write its sample data in ${SEED_FILE}: a few believable rows for each table, taken from the contract's examples, so each list has something to show. The app runs that file only when the setting Seed:Demo is true, so no test may count on those rows. The web app is built in its own repo; do not build screens here.`;
 
 /**
  * Check out the two delivered branches side by side and write a compose file that starts them: the API (with a PostgreSQL server of
@@ -221,7 +221,7 @@ export function writeRunFiles(p: Product): string {
         image: POSTGRES_IMAGE, environment: { POSTGRES_USER: POSTGRES_LOCAL.user, POSTGRES_PASSWORD: POSTGRES_LOCAL.password, POSTGRES_DB: POSTGRES_LOCAL.name }, volumes: ["db-data:/var/lib/postgresql/data"],
         healthcheck: { test: ["CMD-SHELL", `pg_isready -U ${POSTGRES_LOCAL.user} -d ${POSTGRES_LOCAL.name}`], interval: "2s", timeout: "3s", retries: 30 },
       } } : {}),
-      api: { image: API_SDK_IMAGE, working_dir: "/src", volumes: ["./api:/src"], environment: { DOTNET_CLI_TELEMETRY_OPTOUT: "1", ...(pg ? { ConnectionStrings__App: postgresConnection("db") } : {}) }, ...(pg ? { depends_on: { db: { condition: "service_healthy" } } } : {}), command: `dotnet run --project ${API_SOLUTION.replace(/\.sln$/, ".Api")} --urls http://0.0.0.0:${API_PORT}`, ports: [`${API_PORT}:${API_PORT}`] },
+      api: { image: API_SDK_IMAGE, working_dir: "/src", volumes: ["./api:/src"], environment: { DOTNET_CLI_TELEMETRY_OPTOUT: "1", [SEED_SETTING]: "true", ...(pg ? { ConnectionStrings__App: postgresConnection("db") } : {}) }, ...(pg ? { depends_on: { db: { condition: "service_healthy" } } } : {}), command: `dotnet run --project ${API_SOLUTION.replace(/\.sln$/, ".Api")} --urls http://0.0.0.0:${API_PORT}`, ports: [`${API_PORT}:${API_PORT}`] },
       web: { image: "node:22-bookworm", working_dir: "/app", volumes: ["./web:/app"], environment: { NEXT_TELEMETRY_DISABLED: "1" }, command: `sh -c "npm ci --no-audit --no-fund && npm run build && npm start"`, ports: ["3000:3000"], depends_on: ["api"] },
     },
     ...(pg ? { volumes: { "db-data": {} } } : {}),
