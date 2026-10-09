@@ -58,7 +58,7 @@ const llm: DecisionAdapter = {
     // a decision is never a retry of the step it sits in: no failure text, no raised effort, no stronger model
     const r = await think({ ...ctx, rung: 0, priorFailures: [], gateAnswers: undefined }, {
       stage: "intake", label: "decide", route: "intake", model, effort: "low", cls: "read-small", budgetTokens: 4000, tools: [], schema,
-      maxTurns: 2, maxUsd: 0.05, timeoutSec: 30,
+      maxTurns: 2, maxUsd: 0.05, timeoutSec: 30, hardTimeout: true,
       sections: [
         S.template("tpl", `You classify a software request. For each question pick exactly one option and give your confidence from 0 to 1.\n${UNTRUSTED_NOTE}\n${qs.map((q) => `${q.id}: ${q.question}\n${Object.entries(q.options).map(([o, means]) => `- "${o}": ${means}`).join("\n")}`).join("\n")}`),
         S.reference("measured", JSON.stringify({ signals: state.signals, intent: state.intent })),

@@ -103,6 +103,24 @@ describe("the llm adapter", () => {
   });
 });
 
+describe("the llm adapter's time limit", () => {
+  afterEach(() => { vi.useRealTimers(); });
+  it("gives up on a model that never answers after about 30 seconds, with the error on the record", async () => {
+    let signal: AbortSignal | undefined;
+    setProviderFactory(() => ({ start: () => ({ next: (_p, s) => { signal = s; return new Promise<never>(() => undefined); }, toolResults() {}, say() {} }) }));
+    const ctx = await ctxFor();
+    vi.useFakeTimers();
+    let r: Awaited<ReturnType<typeof decide>> | "pending" = "pending";
+    void decide(ctx, "llm:claude-haiku-5-5", state).then((x) => { r = x; });
+    await vi.advanceTimersByTimeAsync(29_000);
+    expect(r).toBe("pending");
+    await vi.advanceTimersByTimeAsync(1_500);
+    expect(r).toMatchObject({ adapter: "llm", answers: [], error: "No answer within 30 seconds" });
+    expect(signal?.aborted).toBe(true);
+    expect(used).toEqual([]);
+  });
+});
+
 describe("the jev adapter", () => {
   it("sends the signals and intake's labels but never the request's words, is not asked what needs them, and records its usage", async () => {
     process.env.TYPESAFE_API_KEY = "ts-test-key";

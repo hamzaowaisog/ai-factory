@@ -31,7 +31,8 @@ export interface Turn {
 }
 export interface Conversation {
   /** `progress` gets the characters of answer streamed so far (text, tool input and thinking), where the provider streams */
-  next(progress?: (chars: number) => void): Promise<Turn>;
+  /** `signal` aborts the request in flight (a job with a hard timeout) */
+  next(progress?: (chars: number) => void, signal?: AbortSignal): Promise<Turn>;
   toolResults(results: { id: string; content: string; isError?: boolean }[]): void;
   /** Plain user nudge (when the model answered without calling a tool). */
   say(text: string): void;
@@ -139,7 +140,7 @@ export class AnthropicProvider implements Provider {
       name: t.name, description: t.description, input_schema: t.schema as Anthropic.Tool.InputSchema,
     }));
     return {
-      async next(progress?: (chars: number) => void): Promise<Turn> {
+      async next(progress?: (chars: number) => void, signal?: AbortSignal): Promise<Turn> {
         let msg: Anthropic.Message;
         try {
           const stream = client.messages.stream({
@@ -153,7 +154,7 @@ export class AnthropicProvider implements Provider {
             // cache the conversation as it grows, so each tool turn re-reads it at the cached price
             ...(cachesConversation(tools, messages.length) ? { cache_control: { type: "ephemeral" } } : {}),
             messages,
-          } as Anthropic.MessageStreamParams);
+          } as Anthropic.MessageStreamParams, signal ? { signal } : undefined);
           if (progress) {
             let chars = 0;
             stream.on("streamEvent", (e) => {
@@ -223,14 +224,14 @@ export class OpenAIProvider implements Provider {
     const toolParams: OpenAI.Responses.FunctionTool[] = tools.map((t) => ({ type: "function", name: t.name, description: t.description, parameters: t.schema, strict: false }));
     const rethrow = (e: unknown) => this.rethrow(e);
     return {
-      async next(): Promise<Turn> {
+      async next(_progress?: (chars: number) => void, signal?: AbortSignal): Promise<Turn> {
         let res: OpenAI.Responses.Response;
         try {
           res = await client.responses.create({
             model, instructions: system, input, tools: toolParams, tool_choice: "auto",
             ...(effort ? { reasoning: { effort } } : {}),
             store: false, include: ["reasoning.encrypted_content"],
-          });
+          }, signal ? { signal } : undefined);
         } catch (e) {
           rethrow(e);
         }
@@ -272,10 +273,10 @@ export class OpenAIProvider implements Provider {
     const rethrow = (e: unknown) => this.rethrow(e);
     void effort; // local models: no reasoning-effort setting
     return {
-      async next(): Promise<Turn> {
+      async next(_progress?: (chars: number) => void, signal?: AbortSignal): Promise<Turn> {
         let res: OpenAI.Chat.ChatCompletion;
         try {
-          res = await client.chat.completions.create({ model: model.replace(/^ollama\//, ""), messages, tools: toolParams, tool_choice: "auto" });
+          res = await client.chat.completions.create({ model: model.replace(/^ollama\//, ""), messages, tools: toolParams, tool_choice: "auto" }, signal ? { signal } : undefined);
         } catch (e) {
           rethrow(e);
         }
@@ -427,13 +428,22 @@ export class ApiRunner implements Runner {
       if (Date.now() > deadline) return done("timeout");
       let t: Turn;
       const turnStart = Date.now();
+      // a job with a hard timeout aborts the request in flight when its time is up; any other job lets a turn it has started
+      // finish (a long design answer is paid for by then, and is kept)
+      const hard = job.limits.hardTimeout ? new AbortController() : undefined;
+      const timer = hard && setTimeout(() => hard.abort(), Math.max(0, deadline - Date.now()));
       try {
         const onProgress = this.deps.onProgress;
-        t = await convo.next(onProgress ? (chars) => onProgress({ chars, ms: Date.now() - turnStart }) : undefined);
+        const next = convo.next(onProgress ? (chars) => onProgress({ chars, ms: Date.now() - turnStart }) : undefined, hard?.signal);
+        // the race covers a provider that does not watch the signal
+        t = await (hard ? Promise.race([next, new Promise<never>((_, no) => hard.signal.addEventListener("abort", () => no(new Error("aborted"))))]) : next);
       } catch (e) {
+        if (hard?.signal.aborted) return done("timeout", { error: `No answer within ${job.limits.timeoutSec} seconds` });
         if (e instanceof RateLimitedError) return done("rate-limited", { error: e.message });
         if (e instanceof ConfigError) return done("config-error", { error: configErrorText(e.status, e.message, job.model) });
         return done("error", { error: (e as Error).message });
+      } finally {
+        clearTimeout(timer);
       }
       const cost = costUsd(job.model, t.usage);
       usage = addUsage(usage, { ...t.usage, turns: 1, estUsd: cost });

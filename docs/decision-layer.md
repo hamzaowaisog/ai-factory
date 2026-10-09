@@ -42,7 +42,8 @@ and numbers named. "Intake's labels" are `changeClass`, `risk` and `touchesUi`.
 - A pick that is not one of the question's options, or a confidence outside 0-1, is dropped and named on the record.
 - A failed call never throws: the record carries `error`. The one exception is a lost lease, which is thrown.
 - An `llm` call is capped at 2 turns, $0.05 and 30 seconds, and never inherits a retry's failure text, raised effort
-  or stronger model. A `jev` call times out after 30 seconds.
+  or stronger model. A request still in flight at 30 seconds is aborted (`limits.hardTimeout`; only this adapter sets
+  it, so every other step still lets a started turn finish). A `jev` call times out after 30 seconds.
 
 ## Running the bench
 ```
