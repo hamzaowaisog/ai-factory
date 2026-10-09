@@ -174,6 +174,7 @@ ask_key() { # name, description
 }
 ask_key ANTHROPIC_API_KEY "required: console.anthropic.com → API Keys"
 ask_key OPENAI_API_KEY "optional: a second model family for the critic and review"
+ask_key STITCH_API_KEY "optional: Google Stitch, for projects with design.engine: stitch"
 
 # ---------- 6. images ----------
 bold "6/7 Container images (first time: several GB, takes a few minutes)"
