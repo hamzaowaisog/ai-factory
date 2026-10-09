@@ -6,7 +6,9 @@ export type DriftClass =
   | "conflict" | "broken-merge" | "base-moved-clean" | "unchanged";
 
 const MARKER = /<\!--\s*factory-review:([A-Za-z0-9._-]+)\s*-->/;
-const BRANCH = /(run-[A-Za-z0-9._-]+)$/;
+// newRunId's shape, `YYYYMMDD-<slug>-<hex4>`, at the end of `factory/<runId>` or `factory/<JIRA>-<runId>`.
+// The date is matched leftmost, so a slug that happens to hold eight digits cannot shift the start.
+const BRANCH = /(?:^|[/-])(20\d{6}-[a-z0-9]+(?:-[a-z0-9]+)*-[0-9a-f]{4})$/;
 
 /** The trailer every factory repair commit carries, so the next webhook recognises it as ours. */
 export function repairTrailer(reverifyRunId: string): string {

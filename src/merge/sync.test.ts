@@ -1,26 +1,40 @@
 // Resolving a pull request to its run, and classifying what moved since it was gated.
 import { describe, expect, it } from "vitest";
 import { classify, isRepairable, repairTrailer, resolveRunId } from "./sync.js";
+import { newRunId } from "../stages/executor.js";
 
 describe("resolveRunId", () => {
+  // the shape newRunId makes and the branches workspace.ts names: an invented "run-…" id passed here
+  // while every real branch was an anomaly
+  const RUN = "20261006-return-404-not-found-3f9a";
+
   it("prefers the marker in the review body", () => {
-    expect(resolveRunId({ reviewBody: "text\n<!-- factory-review:run-20261005-abc -->", headRef: "factory/run-other" }))
-      .toEqual({ runId: "run-20261005-abc", via: "marker" });
+    expect(resolveRunId({ reviewBody: `text
+<!-- factory-review:${RUN} -->`, headRef: "factory/20261001-other-0000" }))
+      .toEqual({ runId: RUN, via: "marker" });
   });
 
   it("falls back to the branch name: a body can be edited, a branch cannot", () => {
-    expect(resolveRunId({ reviewBody: "someone deleted the marker", headRef: "factory/run-20261005-abc" }))
-      .toEqual({ runId: "run-20261005-abc", via: "branch" });
+    expect(resolveRunId({ reviewBody: "someone deleted the marker", headRef: `factory/${RUN}` }))
+      .toEqual({ runId: RUN, via: "branch" });
   });
 
   it("reads a branch that carries a Jira key as well as the run id", () => {
-    expect(resolveRunId({ headRef: "factory/SHOP-42-run-20261005-abc" }))
-      .toEqual({ runId: "run-20261005-abc", via: "branch" });
+    expect(resolveRunId({ headRef: `factory/SHOP-42-${RUN}` })).toEqual({ runId: RUN, via: "branch" });
+  });
+
+  it("reads every branch the factory names, whatever the request was", () => {
+    for (const request of ["Return 404 when not found", "x", "!!!", "fix 12345678 in the 2026 report"]) {
+      const runId = newRunId(request);
+      expect(resolveRunId({ headRef: `factory/${runId}` })).toEqual({ runId, via: "branch" });
+      expect(resolveRunId({ headRef: `factory/SHOP-12345-${runId}` })).toEqual({ runId, via: "branch" });
+    }
   });
 
   it("is an anomaly when neither resolves — never neutral, never ignored", () => {
-    expect(resolveRunId({ headRef: "feature/hand-written" }))
-      .toEqual({ anomaly: expect.stringMatching(/cannot be attributed/) });
+    for (const headRef of ["feature/hand-written", "factory/run-20261005-abc", "main"]) {
+      expect(resolveRunId({ headRef })).toEqual({ anomaly: expect.stringMatching(/cannot be attributed/) });
+    }
   });
 });
 
