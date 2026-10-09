@@ -222,8 +222,8 @@ First reading, run `31fe` ($32.40): 72% went on attempts that did not pass. Of t
 
 Both are settings of the coding agent's session, sent with each job (`AGENT_CONTEXT` in `src/runners/claude-agent.ts`). Not through a paid run yet; section 6's report shows their effect.
 
-42. **A tool result is capped.** A command's output past 10,000 characters (about 2,500 tokens) is saved to a file, and the agent gets a preview and the path; before, up to 30,000 characters went into the context. One file read returns at most 12,000 tokens and a bigger file is read in parts; before, 25,000. Nothing is lost: the agent can search the saved output or read the next part.
-43. **The compaction window is set to 400,000 tokens.** The SDK summarises at the smaller of this number and the model's own window. The sessions in `31fe` ran on a 200K window ("Prompt is too long" came at about 175K), so there this changes nothing: the context is summarised where it was before. It takes effect only on a model with a window above 400K. To summarise earlier and cut the re-read cost on a 200K model, the number has to be below the window; the SDK accepts 100,000 to 1,000,000.
+42. **A tool result is capped.** A command's output past 10,000 characters (about 2,500 tokens) is saved to a file, and the agent gets a preview and the path; before, up to 30,000 characters went into the context. One file read returns at most 12,000 tokens and a bigger file is read in parts; before, 25,000. Nothing is lost: the agent can search the saved output or read the next part. *Changed on 2026-10-09 to 20,000 characters (about 5,000 tokens), with fix 48: the agent now runs the locked tests, and a failing run's output has to fit.*
+43. **The compaction window is set to 400,000 tokens.** The SDK summarises at the smaller of this number and the model's own window. The sessions in `31fe` ran on a 200K window ("Prompt is too long" came at about 175K), so there this changes nothing: the context is summarised where it was before. It takes effect only on a model with a window above 400K. To summarise earlier and cut the re-read cost on a 200K model, the number has to be below the window; the SDK accepts 100,000 to 1,000,000. *Changed on 2026-10-09 to 150,000: see `docs/design/context-builder.md` §2.10 for why that number.*
 
 ## 8. From the stop of run 31fe (2026-10-08)
 
@@ -235,3 +235,13 @@ Run `31fe` was stopped by decision at $40 with TASK-8 one failing test short. Th
 47. **The agent is told its limits.** Turns, minutes and whole dollars of the session go in the task text of the coding agent and the test writer (`limitsNote`), with the advice to run the tests early. Before, the agent could not know them (attempt 7 of TASK-8 was cut off at $5 with 105 of 106 tests passing).
 
 Unproven in a paid run: 44 to 47. Checked on a dry run only.
+
+## 9. The coding agent can run the tests that need a database (2026-10-09)
+
+48. **A coding session on a PostgreSQL backend gets a database of its own.** Before, the coding container had no database and the agent was told to run only the tests that need none. Run `31fe` was on SQLite, which needs no server, so its agent could run all the locked tests; a new product is on PostgreSQL, where 100 of that run's 106 tests (the ones through HTTP) could not have started. Each attempt would have been handed in unchecked, and a failed attempt cost about $2.50 in `31fe`. Now an empty `postgres:16-alpine` starts before the coding container, with a random login made for that session, and is removed with it (`AgentDatabase` in `src/runners/claude-agent.ts`). The agent's briefing says it is there and which setting points at it (`implementIntro`). The lab is unchanged and still judges the commit on its own database.
+    - The server sits on the agent network and listens on loopback only; the coding container shares its network space. Checked with real containers: the session reaches it on 127.0.0.1, another container on the agent network is refused, and the key proxy's name still resolves. It was ready in about 4 seconds.
+    - Not given when the tests hardcode a password kept in `~/.factory/.env` (that value stays with the lab), when the project config names no setting for the database, or on the Node stack. The test writer gets none: its tests must fail at that point.
+    - Rows stay between the agent's test runs in one session, and the lab starts empty. The briefing says so and how to get a clean database.
+    - This changes one rule of the safety model: the coding container no longer gets dummy settings only (`docs/design/context-builder.md` §2.6).
+
+Unproven in a paid run: 48, and the two settings changed with it (compaction at 150,000, command output at 20,000).

@@ -16,6 +16,7 @@ import { sha256 } from "../util/hash.js";
 import { factoryHome } from "../util/paths.js";
 import { FEED_PROXY_URL, FEEDS_NET } from "../runners/netinfra.js";
 import { type ContainerRuntime, type ContainerSpec, stopAndRemove } from "./runtime.js";
+import { createTestLogin, PG_CAPS, pgAdminEnv, waitForPg } from "./test-db.js";
 import { parseTrx } from "./trx.js";
 import { parseBuildWarnings } from "./warnings.js";
 import { buildTestRun, type Expectations, markFlaky, needsProbe, rerunCandidates } from "./validate.js";
@@ -378,21 +379,11 @@ export async function produceDotnetTests(inp: ProduceInput): Promise<ProduceOutp
     if (db) {
       toolVersions.dbImage = await rt.imageDigest(db.image);
       // The image's superuser gets a random password nobody sees; tests log in as a CREATEDB role.
-      dbId = await launch({
-        role: "db", image: db.image, network: "none", user: "",
-        env: { POSTGRES_USER: "factory_admin", POSTGRES_PASSWORD: randomBytes(16).toString("hex"), POSTGRES_DB: "postgres" },
-        capAdd: ["CHOWN", "SETUID", "SETGID", "FOWNER", "DAC_OVERRIDE"], mounts: [], cmd: [],
-      });
+      dbId = await launch({ role: "db", image: db.image, network: "none", user: "", env: pgAdminEnv(), capAdd: PG_CAPS, mounts: [], cmd: [] });
       const tDb = Date.now();
       await waitForPg(rt, dbId);
       phase("db", `lab: test Postgres ready (${secs(tDb)})`);
-      const ident = dbVars.DB_USER.replace(/"/g, "");
-      const pw = dbVars.DB_PASSWORD.replace(/'/g, "''");
-      // separate -c flags: CREATE DATABASE can't run inside the single transaction one -c makes
-      const r = await rt.exec(dbId, ["psql", "-v", "ON_ERROR_STOP=1", "-U", "factory_admin", "-d", "postgres",
-        "-c", `CREATE ROLE "${ident}" LOGIN CREATEDB NOSUPERUSER PASSWORD '${pw}'`,
-        "-c", `CREATE DATABASE "${dbVars.DB_NAME.replace(/"/g, "")}" OWNER "${ident}"`]);
-      if (r.code !== 0) throw new Error(`Couldn't create the test database login: ${r.stderr.split(dbVars.DB_PASSWORD).join("«SECRET»").slice(0, 300)}`);
+      await createTestLogin(rt, dbId, dbVars);
     }
     const dbEnv = project.database ? fillTemplate(project.database.producerEnv, dbVars) : {};
     // a backend on PostgreSQL with an approved data model: start the app once on a database of its own, keep what it created
@@ -705,13 +696,4 @@ async function bootAndProbe(
 export function firstError(log: string): string {
   const line = log.split("\n").find((l) => /(Exception|Error)[^a-z]*[:(]/.test(l) && !/^\s+at /.test(l));
   return (line ?? log.split("\n").filter(Boolean).slice(-1)[0] ?? "").trim().slice(0, 300);
-}
-
-async function waitForPg(rt: ContainerRuntime, id: string, timeoutMs = 60_000): Promise<void> {
-  const until = Date.now() + timeoutMs;
-  while (Date.now() < until) {
-    if ((await rt.exec(id, ["pg_isready", "-h", "127.0.0.1"])).code === 0) return;
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  throw new Error("Postgres didn't become ready in 60 s");
 }

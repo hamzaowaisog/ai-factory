@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 import type { ContainerRuntime, ContainerSpec } from "../verify/runtime.js";
 import { DEFAULT_POLICY, withPolicy } from "../gates/policy.js";
-import { AGENT_IDLE_TURNS, agentFileMasks, ClaudeAgentRunner, proxyCapUsd } from "./claude-agent.js";
+import { AGENT_IDLE_TURNS, agentDatabase, agentFileMasks, ClaudeAgentRunner, proxyCapUsd } from "./claude-agent.js";
 import { AGENT_NET, API_BASE_URL, apiProxyEnv, issueProxyToken, proxyDir, revokeProxyToken } from "./netinfra.js";
 
 beforeEach(() => {
@@ -41,11 +41,11 @@ class FakeRt implements ContainerRuntime {
     if (this.result) writeFileSync(join(out.src, "result.json"), JSON.stringify(this.result));
     return 0;
   }
-  async exec() { return { code: 0, stdout: "", stderr: "" }; }
+  async exec(_id?: string, _cmd?: string[]) { return { code: 0, stdout: "", stderr: "" }; }
   async isRunning() { return true; }
   async logs() { return ""; }
   async stop() {}
-  async remove() { this.removed = true; }
+  async remove(_id?: string) { this.removed = true; }
   async listByLabel() { return []; }
   async imageDigest(i: string) { return i; }
 }
@@ -70,6 +70,41 @@ describe("ClaudeAgentRunner (fake runtime)", () => {
     expect(masked).toEqual(["/job/in.json", "/work/.claude", "/work/.git", "/work/.mcp.json", "/work/CLAUDE.md", "/work/src/Api/AGENTS.md", "/work/src/appsettings.Development.json"]);
     expect(rt.removed).toBe(true);
     delete process.env.ANTHROPIC_API_KEY;
+  });
+
+  it("gives a session its own database: started first, on loopback only, and removed with the session", async () => {
+    const specs: ContainerSpec[] = [], order: string[] = [], execs: string[][] = [];
+    class DbRt extends FakeRt {
+      override async create(s: ContainerSpec) { specs.push(s); if (s.role === "agent") this.spec = s; order.push(`create ${s.role}`); return s.role === "db" ? "d1" : "a1"; }
+      override async exec(_id?: string, cmd: string[] = []) { execs.push(cmd); return { code: 0, stdout: "", stderr: "" }; }
+      override async remove(id?: string) { order.push(`remove ${id}`); this.removed = true; }
+    }
+    const rt = new DbRt({ status: "ok", output: { done: true, notes: "ok" }, instructionsLoaded: [], deniedEdits: [], usage: { input_tokens: 1, output_tokens: 1 }, costUsd: 0.01, turns: 1 });
+    const started: string[] = [];
+    const database = agentDatabase({ stack: "dotnet", database: { image: "postgres:16-alpine", name: "app_test", user: "factory", producerEnv: { ConnectionStrings__App: "Host={{DB_HOST}};Database={{DB_NAME}};Username={{DB_USER}};Password={{DB_PASSWORD}}" } } })!;
+    const r = await new ClaudeAgentRunner(rt, { runId: "r", key: "implement/TASK-1/1", fileScope: [], lockedFiles: [], extraProtected: [], agentEnv: { ConnectionStrings__App: "Host=dummy" }, database, onContainer: async (id, role) => { started.push(`${role} ${id}`); } })
+      .run({ step: "implement", model: "claude-sonnet-5", pack, schema: Out, limits: { maxTurns: 30, maxUsd: 2, timeoutSec: 60 }, workdir: worktree() });
+    expect(r.status).toBe("ok");
+    const [db, agent] = specs as [ContainerSpec, ContainerSpec];
+    expect(order).toEqual(["create db", "create agent", "remove a1", "remove d1"]);
+    expect(started).toEqual(["db d1", "agent a1"]);
+    expect(db.network).toBe(AGENT_NET);
+    expect(db.cmd).toEqual(["postgres", "-c", "listen_addresses=127.0.0.1"]);
+    expect(agent.network).toBe("container:d1");
+    // the session's own login, not the dummy value and not the server's superuser
+    const conn = agent.env.ConnectionStrings__App!;
+    expect(conn).toMatch(/^Host=127\.0\.0\.1;Database=app_test;Username=factory;Password=[0-9a-f]{24}$/);
+    expect(conn).not.toContain(db.env.POSTGRES_PASSWORD!);
+    expect(execs.some((c) => c[0] === "psql" && c.join(" ").includes('CREATE ROLE "factory" LOGIN CREATEDB NOSUPERUSER'))).toBe(true);
+  });
+
+  it("gives no database when the tests' password is a kept secret, no setting names it, or the stack has none", () => {
+    const db = { image: "postgres:16-alpine", name: "app_test", user: "factory", producerEnv: { ConnectionStrings__App: "Host={{DB_HOST}}" } };
+    expect(agentDatabase({ stack: "dotnet", database: db })).toBeDefined();
+    expect(agentDatabase({ stack: "dotnet", database: { ...db, passwordEnv: "TEST_DB_PASSWORD" } })).toBeUndefined();
+    expect(agentDatabase({ stack: "dotnet", database: { ...db, producerEnv: {} } })).toBeUndefined();
+    expect(agentDatabase({ stack: "node", database: db })).toBeUndefined();
+    expect(agentDatabase({ stack: "dotnet" })).toBeUndefined();
   });
 
   it("fails the step if any instruction file was loaded", async () => {
@@ -310,7 +345,7 @@ describe("the coding agent's output schema", () => {
       const job = JSON.parse((await import("node:fs")).readFileSync(inJson, "utf8"));
       sent = job.schema;
       // the session's context limits go with the job: output cap, read cap, and when it is summarised
-      expect(job.context).toEqual({ bashOutputChars: 10_000, readTokens: 12_000, compactWindow: 400_000, idleTurns: 45 });
+      expect(job.context).toEqual({ bashOutputChars: 20_000, readTokens: 12_000, compactWindow: 150_000, idleTurns: 45 });
       return orig();
     };
     await new ClaudeAgentRunner(rt, { runId: "r", key: "k", fileScope: [], lockedFiles: [], extraProtected: [], agentEnv: {} })

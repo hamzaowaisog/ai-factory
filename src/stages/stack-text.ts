@@ -61,7 +61,8 @@ export function notFoundHint(stack: Stack): string {
   return stack === "node" ? "Is it an it()/test() with exactly that title, in a *.test.ts or *.test.tsx file under tests/?" : "Is it public, in a test project, and marked [Fact]/[Theory]?";
 }
 
-export function implementIntro(stack: Stack): string {
+/** `database`: the session has a PostgreSQL of its own, and these are the settings that point the app at it. */
+export function implementIntro(stack: Stack, database?: { settings: string[] }): string {
   if (stack === "node") {
     return `You implement one task of an approved plan in a TypeScript web app (React, with the factory's component kit).
 - Change only files in the task's file scope. Edits elsewhere are blocked.
@@ -76,6 +77,8 @@ export function implementIntro(stack: Stack): string {
 - Tests are locked: don't edit or delete them, don't skip them, don't add #pragma or suppressions.
 - No new packages unless the plan lists them. No git (the factory commits).
 - Follow the exemplar files' style. Keep the change small.
-- You may run "dotnet build" and unit tests that need no database. The factory runs the full checks after you finish.
+- ${database
+    ? `You may run "dotnet build" and "dotnet test". This session has a PostgreSQL server of its own on 127.0.0.1, empty when the session starts, and ${database.settings.join(", ")} already point${database.settings.length === 1 ? "s" : ""} the app at it. Rows stay between your test runs, and the factory's test lab starts from an empty database: if a test fails only on rows an earlier run left, run it again with another database name in that setting (the login may create databases). The factory runs the full checks after you finish.`
+    : `You may run "dotnet build" and unit tests that need no database. The factory runs the full checks after you finish.`}
 - This session has no memory beyond its context window, and everything a command prints or a file read returns stays in it. Print only what you need (pipe long output through tail or grep), read part of a large file instead of all of it, and change a file with Edit instead of writing it again.`;
 }

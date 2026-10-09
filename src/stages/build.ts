@@ -14,7 +14,7 @@ import { CONFIG_INTEGRITY_GLOBS } from "../gates/protected.js";
 import { matchesAny } from "../util/glob.js";
 import { failureSignature } from "../gates/ladder.js";
 import { changedFiles, commitAll, diffIncludingUntracked, git, headSha, repoRefusals, resetHard, trackIgnored } from "../ledger/git.js";
-import { ClaudeAgentRunner, NO_CREDIT_TEXT, type AgentProgress } from "../runners/claude-agent.js";
+import { agentDatabase, ClaudeAgentRunner, NO_CREDIT_TEXT, type AgentProgress } from "../runners/claude-agent.js";
 import { ensureAgentImage, ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
 import { buildPack, FILE_INLINE_MAX } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
@@ -1110,10 +1110,12 @@ export function implementStep(taskId: string): StepDef {
       // a task that also holds earlier tasks' tests has their work to prove as well as its own: twice the turns, budget and time
       const room = taken.from.length ? 2 : 1;
       const limits = { maxTurns: 80 * room, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4 * room), timeoutSec: 45 * 60 * room };
+      // a backend on PostgreSQL: the session gets an empty database of its own, so the agent can run the locked tests
+      const sessionDb = agentDatabase(ctx.project);
       const pack = buildPack({
         stage: "implement", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
         sections: [
-          S.template("tpl", implementIntro(ctx.project.stack)),
+          S.template("tpl", implementIntro(ctx.project.stack, sessionDb && { settings: Object.keys(sessionDb.env) })),
           S.artifact("task", "plan-task", { ...task, approach: task.approach }),
           // the approved screen this task builds (route, states, sample content, and the look to follow)
           ...(approvedScreen ? [S.artifact("approved-screen", "approved-screen", approvedScreen)] : []),
@@ -1160,8 +1162,8 @@ export function implementStep(taskId: string): StepDef {
         // time of one task, so it is not cut off and started again part-way (each new session pays to read everything again)
         const r = await new ClaudeAgentRunner(rt, {
           runId: ctx.runId, key: `${key}/${ctx.attempt}`, fileScope, lockedFiles: lock.lock.map((l) => l.file), onProgress: agentTracer(ctx, "implementer"),
-          extraProtected: scaf?.protected ?? [], ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
-          onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key, data: { id, role: "agent" } }, ctx.writer); },
+          extraProtected: scaf?.protected ?? [], ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo, ...(sessionDb ? { database: sessionDb } : {}),
+          onContainer: async (id, role) => { await ctx.ledger.append({ type: "container.started", key, data: { id, role } }, ctx.writer); },
           onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key, data: { id } }, ctx.writer); },
         }).run({ step: "implement", model, effort, pack, schema: ImplementOut, limits, workdir: wt });
         await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });

@@ -1,7 +1,8 @@
 // ClaudeAgentRunner (adapters.md; context-builder §2.9): the Claude Agent SDK inside container A.
 // Container A gets the worktree files only (the .git link file is masked), agent instruction
 // files masked, restored packages read-only, the agent env template (dummy values), and a network
-// that reaches only the factory's API proxy.
+// that reaches only the factory's API proxy. A step may ask for a database of its own (AgentDatabase): an empty
+// PostgreSQL that lives as long as the session, so the agent can run the tests that need one.
 import { existsSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
@@ -11,7 +12,9 @@ import { AGENT_FILE_GLOBS, CONFIG_INTEGRITY_GLOBS, isSecretPath, LOCK_SET_GLOBS 
 import { listFiles } from "../context/snapshot.js";
 import { matchesAny } from "../util/glob.js";
 import { factoryHome } from "../util/paths.js";
+import { fillTemplate, type ProjectConfig } from "../config/project.js";
 import type { ContainerRuntime, Mount } from "../verify/runtime.js";
+import { createTestLogin, PG_CAPS, pgAdminEnv, waitForPg } from "../verify/test-db.js";
 import { stopAndRemove } from "../verify/runtime.js";
 import type { Usage } from "../contracts/index.js";
 import { supportsEffort } from "./api.js";
@@ -32,12 +35,27 @@ export interface AgentJobExtras {
   /** per-run restored NuGet folder, mounted read-only */
   packagesDir?: string;
   agentEnv: Record<string, string>;
+  /** an empty PostgreSQL for this session alone, reached on the container's own loopback */
+  database?: AgentDatabase;
   /** project no-go globs: hidden from the agent (folder globs "dir/**" become empty folders) */
   noGo?: string[];
-  onContainer?: (id: string) => Promise<void>;
+  onContainer?: (id: string, role: "agent" | "db") => Promise<void>;
   onRemoved?: (id: string) => Promise<void>;
   /** for the run trace: each progress line the agent writes (tool use, turn, end) */
   onProgress?: (p: AgentProgress) => void;
+}
+
+/** `env` is the project's producer env template: the same settings the lab's tests get, filled for this session's server. */
+export interface AgentDatabase { image: string; name: string; user: string; env: Record<string, string> }
+
+/**
+ * The database a coding session gets, or none. None when the tests hardcode a password kept in ~/.factory/.env (that
+ * value stays with the lab, and a random one would fail those tests here), and none when no setting names the database.
+ */
+export function agentDatabase(project: Pick<ProjectConfig, "stack" | "database">): AgentDatabase | undefined {
+  const db = project.database;
+  if (!db || project.stack === "node" || db.passwordEnv || !Object.keys(db.producerEnv).length) return undefined;
+  return { image: db.image, name: db.name, user: db.user, env: db.producerEnv };
 }
 
 /** `result`: what a tool call returned, in characters. `compact`: the session's context was summarised (`pre` = tokens before). */
@@ -78,11 +96,14 @@ export function readProgress(file: string, offset: number): { lines: AgentProgre
 
 /**
  * What keeps a coding session's context small: every later turn pays to read it again.
- *  - a command's output past this many characters goes to a file, and the agent gets a preview and the path (the SDK's default is 30,000)
+ *  - a command's output past this many characters goes to a file, and the agent gets a preview and the path (the SDK's default
+ *    is 30,000). 20,000 since the session has a database and runs the locked tests: a failing run's output has to fit.
  *  - one file read returns at most this many tokens; a bigger file is read in parts (the SDK's default is 25,000)
- *  - the context is summarised at this many tokens, or at the model's own window when that is smaller (context-builder §2.10)
+ *  - the context is summarised at this many tokens, or at the model's own window when that is smaller (context-builder §2.10).
+ *    Set from run 31fe: no session that passed went above 104K, and the ones that failed peaked at 145K to 175K, so this
+ *    leaves a passing session alone and summarises a long one earlier than the 200K window did.
  */
-export const AGENT_CONTEXT = { bashOutputChars: 10_000, readTokens: 12_000, compactWindow: 400_000 };
+export const AGENT_CONTEXT = { bashOutputChars: 20_000, readTokens: 12_000, compactWindow: 150_000 };
 
 /**
  * A session that goes this many turns in a row without changing a file is stopped, and what it wrote is kept
@@ -209,20 +230,37 @@ export class ClaudeAgentRunner implements Runner {
 
     // this step's own pass through the key proxy: gone when the step ends
     const token = issueProxyToken({ run: x.runId, key: x.key, model: job.model, capUsd: proxyCapUsd(job.limits.maxUsd), usdPerMTok: priceOf(job.model) });
-    let id: string | undefined;
+    let id: string | undefined, dbId: string | undefined;
     try {
+      let dbEnv: Record<string, string> = {};
+      if (x.database) {
+        // The server sits on the agent network (the coding container shares its network space, and needs the key proxy)
+        // but listens on loopback only: no other session on that network can reach it. Not the lab's database, and
+        // gone with the session.
+        const vars = { DB_HOST: "127.0.0.1", DB_PORT: "5432", DB_NAME: x.database.name, DB_USER: x.database.user, DB_PASSWORD: randomBytes(12).toString("hex") };
+        dbId = await this.rt.create({
+          image: x.database.image, role: "db", labels: { run: x.runId, key: x.key }, network: AGENT_NET, user: "",
+          env: pgAdminEnv(), capAdd: PG_CAPS, mounts: [], cmd: ["postgres", "-c", "listen_addresses=127.0.0.1"],
+        });
+        await x.onContainer?.(dbId, "db");
+        await this.rt.start(dbId);
+        await waitForPg(this.rt, dbId);
+        await createTestLogin(this.rt, dbId, vars);
+        dbEnv = fillTemplate(x.database.env, vars);
+      }
       id = await this.rt.create({
-        image: AGENT_IMAGE, role: "agent", labels: { run: x.runId, key: x.key }, network: AGENT_NET,
+        image: AGENT_IMAGE, role: "agent", labels: { run: x.runId, key: x.key }, network: dbId ? `container:${dbId}` : AGENT_NET,
         user: `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`, workdir: "/work", mounts,
         env: {
           ...x.agentEnv,
+          ...dbEnv,
           ANTHROPIC_BASE_URL: API_BASE_URL,
           ANTHROPIC_API_KEY: token, // not a key: the proxy swaps it for the real one
           HOME: "/tmp/home", CLAUDE_CONFIG_DIR: "/tmp/claude",
         },
         cmd: [], tmpfs: ["/tmp:exec,size=2g"],
       });
-      await x.onContainer?.(id);
+      await x.onContainer?.(id, "agent");
       await this.rt.start(id);
       // forward the agent's progress to the trace while it works
       const progressFile = join(outDir, "progress.jsonl");
@@ -277,6 +315,10 @@ export class ClaudeAgentRunner implements Runner {
       if (id) {
         await stopAndRemove(this.rt, id).catch(() => undefined);
         await x.onRemoved?.(id);
+      }
+      if (dbId) {
+        await stopAndRemove(this.rt, dbId).catch(() => undefined);
+        await x.onRemoved?.(dbId);
       }
       revokeProxyToken(token);
       rmSync(jobDir, { recursive: true, force: true });
