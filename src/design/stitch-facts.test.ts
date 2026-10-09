@@ -90,3 +90,14 @@ describe("fidelity for a Stitch screen", () => {
     expect(structureFindings(exp, [], "Payees Name", "").join(" ")).toMatch(/does not show "Add payee", "IBAN"/);
   });
 });
+
+describe("the greenfield brief for a Stitch page", () => {
+  it("names the container, the fixture address and each state, and says not to paste the markup", async () => {
+    const { stitchScaffoldBrief } = await import("./design-link.js");
+    const text = stitchScaffoldBrief({ id: "S-9", container: "components/screens/s-9/container.tsx" }, ["default", "empty"]);
+    expect(text).toContain("components/screens/s-9/container.tsx");
+    expect(text).toContain("?fixture=S-9:<state>");
+    expect(text).toContain("default, empty");
+    expect(text).toMatch(/do not paste the Stitch markup/);
+  });
+});

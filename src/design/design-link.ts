@@ -83,6 +83,13 @@ export function stitchBriefHtml(html: string, maxBytes = 30_000): string {
   return clean.length <= maxBytes ? clean : `${clean.slice(0, maxBytes)}<!-- cut: ${clean.length - maxBytes} more bytes -->`;
 }
 
+/** A greenfield coding task's brief for a scaffolded Stitch screen: build the approved page in its container, keep fixture mode. */
+export function stitchScaffoldBrief(s: { id: string; container: string }, states: string[]): string {
+  return `This task builds ${s.id}'s page in ${s.container}: the approved Stitch screen. Rebuild it with the kit's components (components/ui, components/blocks) and the approved theme so it matches the Stitch HTML (layout, sections, order, words); do not paste the Stitch markup or its Tailwind CDN script.
+- Load the real data, handle the page's actions, and keep fixture mode: ?fixture=${s.id}:<state> shows the approved sample content in that state with no backend, for ${states.join(", ") || "default"}.
+- Server code, API clients and validation go in the other files of your scope.`;
+}
+
 /** Brief screens whose Stitch HTML a coding task reads (each is up to 30 KB of the briefing). */
 const MAX_STITCH_HTML = 3;
 
