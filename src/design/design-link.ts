@@ -7,6 +7,7 @@ import type { DesignLocale, DesignTheme } from "../contracts/artifacts.js";
 import { localeBrief } from "./locale.js";
 import { designTokens } from "./tokens.js";
 import { matchesAny } from "../util/glob.js";
+import { load } from "cheerio";
 
 import type { StitchFacts } from "./stitch-facts.js";
 export interface ApprovedScreen { id: string; route: string; file: string; reqs: string[]; states?: string[]; size?: string; mock?: unknown; frames?: string[]; change?: string; facts?: StitchFacts }
@@ -67,20 +68,29 @@ export function approvedTokens(design: ApprovedDesign): ReturnType<typeof design
 /** How the implementer uses an approved Stitch screen (its HTML follows in an untrusted section of the brief). */
 export const STITCH_NOTE = "This screen was drawn by Google Stitch and approved as drawn. Rebuild it in this app's own stack, components and design tokens to look like the Stitch HTML that follows (layout, sections, order, words); do not paste its markup, Tailwind CDN script or inline styles into the app.";
 
+/** Elements whose content the lead never saw on the card, or that only carry code, styling or metadata. */
+const NOT_SHOWN = "script, style, noscript, template, iframe, object, embed, meta, link, base, title, svg title, svg desc, [hidden], [aria-hidden=true], .sr-only, .hidden, .invisible, [style*='display:none'], [style*='display: none'], [style*='visibility:hidden']";
+/** The attributes the coding agent needs to rebuild the page (its layout classes, roles, input types, links). */
+const KEPT_ATTRS = new Set(["class", "role", "type", "href"]);
+
 /**
- * A Stitch screen's HTML as the coding brief shows it: no scripts, stylesheets links or metas, inline data cut to `data:…`,
- * whitespace collapsed, and at most `maxBytes` (the rest named in a closing comment), so the brief stays within its budget.
+ * A Stitch screen's HTML as the coding brief shows it: only what the lead could see (no scripts, styles, comments, hidden or
+ * screen-reader-only text, and no attributes but class, role, type and a plain href), whitespace collapsed, and at most
+ * `maxChars` (the rest named in a closing comment), so the brief stays within its budget.
  */
-export function stitchBriefHtml(html: string, maxBytes = 30_000): string {
-  const clean = html
-    .replace(/<script\b[\s\S]*?<\/script\s*>/gi, "")
-    // comments are words no one approved on the card: hidden text never reaches the coding agent
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<(link|meta)\b[^>]*>/gi, "")
-    .replace(/(["'])data:[^"']*\1/gi, '"data:…"')
-    .replace(/\s+/g, " ")
-    .trim();
-  return clean.length <= maxBytes ? clean : `${clean.slice(0, maxBytes)}<!-- cut: ${clean.length - maxBytes} more bytes -->`;
+export function stitchBriefHtml(html: string, maxChars = 30_000): string {
+  const $ = load(html);
+  $(NOT_SHOWN).remove();
+  // comments are words no one approved on the card
+  $("*").contents().filter((_, n) => n.type === "comment").remove();
+  $("*").each((_, el) => {
+    const attribs = (el as { attribs?: Record<string, string> }).attribs ?? {};
+    for (const [name, value] of Object.entries(attribs)) {
+      if (!KEPT_ATTRS.has(name.toLowerCase()) || (name.toLowerCase() === "href" && /^\s*(javascript|vbscript|data):/i.test(value))) $(el).removeAttr(name);
+    }
+  });
+  const clean = ($("body").html() ?? "").replace(/\s+/g, " ").trim();
+  return clean.length <= maxChars ? clean : `${clean.slice(0, maxChars)}<!-- cut: ${clean.length - maxChars} more characters -->`;
 }
 
 /** A greenfield coding task's brief for a scaffolded Stitch screen: build the approved page in its container, keep fixture mode. */
@@ -90,16 +100,21 @@ export function stitchScaffoldBrief(s: { id: string; container: string }, states
 - Server code, API clients and validation go in the other files of your scope.`;
 }
 
-/** Brief screens whose Stitch HTML a coding task reads (each is up to 30 KB of the briefing). */
+/** Brief screens whose Stitch HTML a coding task reads, and the characters of HTML the whole brief may hold (about 6k tokens). */
 const MAX_STITCH_HTML = 3;
+export const STITCH_HTML_BUDGET = 24_000;
 
 /** The cleaned Stitch HTML of each brief screen's normal page, for at most three screens; none for a JSON design. */
-export function stitchHtmlFor(design: { stitch?: { frames: Record<string, { screen?: string; state?: string; html: string }> } }, screens: Pick<ApprovedScreen, "id">[], read: (sha: string) => string): { id: string; html: string }[] {
+export function stitchHtmlFor(design: { stitch?: { frames: Record<string, { screen?: string; state?: string; html: string }> } }, screens: Pick<ApprovedScreen, "id">[], read: (sha: string) => string, budget = STITCH_HTML_BUDGET): { id: string; html: string }[] {
+  if (budget <= 0) return [];
   const frames = Object.values(design.stitch?.frames ?? {});
-  return screens.flatMap((s) => {
+  const picked = screens.flatMap((s) => {
     const f = frames.find((x) => x.screen === s.id && (x.state ?? "normal") === "normal");
-    return f ? [{ id: s.id, html: stitchBriefHtml(read(f.html)) }] : [];
+    return f ? [{ id: s.id, sha: f.html }] : [];
   }).slice(0, MAX_STITCH_HTML);
+  // one budget for the whole brief, shared by its screens
+  const each = Math.floor(budget / Math.max(1, picked.length));
+  return picked.map((x) => ({ id: x.id, html: stitchBriefHtml(read(x.sha), each) }));
 }
 
 /** What the implementer is told about the screen it builds. The look is the existing app's when the design says so. */
