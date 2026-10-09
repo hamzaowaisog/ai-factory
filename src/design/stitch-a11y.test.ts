@@ -38,3 +38,14 @@ describe("theme contrast and the card", () => {
     expect(stitchA11yLines(undefined)).toEqual([]);
   });
 });
+
+describe("the sanitizer (review I4)", () => {
+  it("closes the bypasses: split script tags, slash-separated handlers, javascript and srcdoc frames", () => {
+    const out = a11yHtml(`<div><scr<script>x</script>ipt>alert(1)</script><img/onerror=alert(1) src=x><iframe src="javascript:alert(1)"></iframe><iframe srcdoc="<script>alert(1)</script>"></iframe>
+      <object data="x.swf"></object><embed src="x"><base href="https://evil.example/"><meta http-equiv="refresh" content="0;url=https://evil.example">
+      <a href="javascript:alert(1)">Go</a><a href="/ok">Ok</a><button formaction="javascript:alert(1)">B</button></div>`);
+    expect(out).not.toMatch(/<script|<iframe|<object|<embed|<base|<meta|onerror|javascript:|srcdoc/i);
+    expect(out).toContain(`<a href="/ok">Ok</a>`);
+    expect(out).toContain(`>Go</a>`);
+  });
+});
