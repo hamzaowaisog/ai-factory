@@ -1,7 +1,9 @@
 // Model routing per step (adapters.md config; stages-aligned §2; WD §4 tiers).
 import type { ProjectConfig, StepRoute } from "../config/project.js";
 import { hasSecret } from "../config/env.js";
+import { designRoute } from "../config/design-route.js";
 import type { Rung } from "../gates/ladder.js";
+import { hasPrice } from "../runners/pricing.js";
 import { blockedText, modelAllowed, type Policy } from "../gates/policy.js";
 import { family, type Effort } from "../runners/types.js";
 
@@ -51,6 +53,8 @@ export const DESIGN_ROUTES = ESTIMATE_ROUTES.filter((r) => r !== "breakdown" && 
 export const CODING_STEPS = new Set(["author-tests", "implement", "conflict-resolve"]);
 
 export function routeFor(project: ProjectConfig, stage: string): StepRoute {
+  // the design step climbs its engine's tiers, unless the project routes it by hand
+  if (stage === "design" && !project.steps.design) return designRoute(project).route;
   const r = project.steps[stage] ?? DEFAULT_ROUTES[stage];
   if (!r) throw new Error(`No model route for step ${stage}`);
   return r;
@@ -75,13 +79,21 @@ export const mechanical = (failures: { check: string }[]): boolean =>
  * escalation is checked too; otherwise `blocked` says why (the caller parks, never swaps silently).
  * No policy or "*": the old behaviour (the Opus fallback still noted).
  */
+/** The model a rung runs: the route's own on rungs 0 and 1, then one escalate model per stronger-model rung (the last one stays). */
+function wanted(r: StepRoute, rung: number): string {
+  return rung >= 2 && r.escalate.length ? r.escalate[Math.min(rung - 2, r.escalate.length - 1)]! : r.model;
+}
+
 export function modelFor(project: ProjectConfig, stage: string, rung: number, policy?: Pick<Policy, "allowedModels">, prior: { check: string }[] = []): { model: string; effort: Effort; singleFamilyNote?: string; blocked?: string } {
   const r = routeFor(project, stage);
   const effort: Effort = rung >= 1 && !mechanical(prior) ? "xhigh" : (r.effort ?? "high");
+  const want = wanted(r, rung);
+  const noOpenAi = /^gpt|^o\d/.test(want) && !hasSecret("OPENAI_API_KEY");
+  // a vendor chosen on purpose (a design engine) parks rather than run another vendor's model
+  if (noOpenAi && r.strict) return { model: want, effort, blocked: `${stage} needs ${want} but OPENAI_API_KEY is missing; add the key or choose another design engine` };
   if (policy && !policy.allowedModels.includes("*")) {
-    const want = rung >= 2 && r.escalate[0] ? r.escalate[0] : r.model;
     let model = want, note: string | undefined;
-    if (/^gpt|^o\d/.test(want) && !hasSecret("OPENAI_API_KEY")) {
+    if (noOpenAi) {
       if (!modelAllowed(policy, OPUS)) return { model: want, effort, blocked: `${stage} needs ${want} but OPENAI_API_KEY is missing; add the key or allow ${OPUS} for this step` };
       model = OPUS;
       note = `No OpenAI key: ${stage} ran on ${OPUS} (same family as the implementer)`;
@@ -89,26 +101,32 @@ export function modelFor(project: ProjectConfig, stage: string, rung: number, po
     if (!modelAllowed(policy, model)) return { model, effort, blocked: blockedText(stage, model, policy) };
     return { model, effort, singleFamilyNote: note };
   }
-  let model = r.model;
-  let note: string | undefined;
-  if (/^gpt|^o\d/.test(model) && !hasSecret("OPENAI_API_KEY")) {
-    model = OPUS;
-    note = `No OpenAI key: ${stage} ran on ${OPUS} (same family as the implementer)`;
-  }
-  if (rung >= 2 && r.escalate[0]) model = r.escalate[0];
-  return { model, effort, singleFamilyNote: note };
+  if (noOpenAi) return { model: OPUS, effort, singleFamilyNote: `No OpenAI key: ${stage} ran on ${OPUS} (same family as the implementer)` };
+  return { model: want, effort };
+}
+
+/** The step's route, or undefined for a deterministic step or a route that cannot be resolved (checkRoutes reports that). */
+function routeOrNone(project: ProjectConfig, stage: string): StepRoute | undefined {
+  try { return routeFor(project, stage); } catch { return undefined; }
 }
 
 /** Rungs this step can use. Other-vendor needs the Codex runner, which isn't built yet. */
 export function availableRungs(project: ProjectConfig, stage: string, localOnly: boolean): Set<Rung> {
-  const r = project.steps[stage] ?? DEFAULT_ROUTES[stage];
+  const r = routeOrNone(project, stage);
   // deterministic steps (discover, stub-commit, integrate, accept, deliver, cards) have no model: retry only
   if (!r) return new Set<Rung>(["retry"]);
-  const s = new Set<Rung>(["retry", "raise-effort"]);
+  // a tier ladder steps up after two failures on a tier: no raise-effort rung in between
+  const s = new Set<Rung>(r.tiered ? ["retry"] : ["retry", "raise-effort"]);
   // localOnly: no escalation to a hosted model
   if (r.escalate.length && (!localOnly || family(r.escalate[0]!) === "local")) s.add("stronger-model");
   // "other-vendor" is added once the Codex runner exists, and never under localOnly.
   return s;
+}
+
+/** Stronger-model rungs the step has (LadderOptions.modelSteps): one per model above the first on a tier ladder, else one. */
+export function modelSteps(project: ProjectConfig, stage: string): number {
+  const r = routeOrNone(project, stage);
+  return r?.tiered ? Math.max(1, r.escalate.length) : 1;
 }
 
 /** Start-up checks (adapters.md): thinking steps use api only, coding steps an agent runner, every model has a credential. */
@@ -116,11 +134,15 @@ export function checkRoutes(project: ProjectConfig, only?: readonly string[]): s
   const problems: string[] = [];
   const noKey: string[] = [];
   for (const stage of only ?? Object.keys(DEFAULT_ROUTES)) {
-    const r = routeFor(project, stage);
+    let r: StepRoute;
+    try { r = routeFor(project, stage); } catch (e) { problems.push((e as Error).message); continue; }
     if (THINKING_STEPS.has(stage) && r.runner !== "api") problems.push(`${stage} is a thinking step and must use the api runner`);
     if (CODING_STEPS.has(stage) && r.runner === "api") problems.push(`${stage} is a coding step and needs an agent runner`);
-    const { model } = modelFor(project, stage, 0);
+    const { model, blocked } = modelFor(project, stage, 0);
+    if (blocked) problems.push(blocked);
     if (model.startsWith("claude-") && !hasSecret("ANTHROPIC_API_KEY")) noKey.push(stage);
+    // every model on a tier ladder is costed, so the caps never fall back to the unknown-model rate
+    if (r.tiered || r.strict) for (const m of [r.model, ...r.escalate]) if (!hasPrice(m) && !project.prices[m]) problems.push(`${stage}: ${m} has no price; add it under prices so the cost caps hold`);
     if ((r.runner === "codex" || r.runner === "jcode")) problems.push(`${stage}: the ${r.runner} runner isn't built yet`);
   }
   // one line for a missing key, not one per step

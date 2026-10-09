@@ -27,7 +27,7 @@ import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { stepsFor } from "./modes.js";
 import { answersOf, asksGates, asksPerson, gateCard, gateRounds, gateSubject, GATE_ROUNDS, nextQuestionId, ROUND_ATTEMPTS, writeGateQuestions, type FiledRound, type GateRound } from "./gate-questions.js";
 import { greenfieldRefusal, newProductRefusal, repoIsEmpty, type EstimateScope } from "../config/greenfield.js";
-import { availableRungs, routeFor } from "./routing.js";
+import { availableRungs, modelSteps, routeFor } from "./routing.js";
 import { runtime } from "./workspace.js";
 import type { RequestSource } from "../sources/request.js";
 import { storeReferences, type GatheredRef } from "../sources/refs.js";
@@ -439,7 +439,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         const backoffSpent = history.reduce((n2, h) => n2 + Number((h as { waitMs?: number }).waitMs ?? 0), 0);
         const action: LadderAction = nextOnFailure([...history, rec2], {
           // policy.retryBudget (default 6; a trial project can say 2)
-          ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, step.stage, policy.localOnly), backoffSpentMs: backoffSpent, a5Done: new Set(),
+          ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, step.stage, policy.localOnly), modelSteps: modelSteps(project, step.stage), backoffSpentMs: backoffSpent, a5Done: new Set(),
         });
         // an estimate, a design or a greenfield run: a failing check, after the retry with the failures fed back, becomes questions instead of more attempts or a park
         const counted = history.filter((h) => h.category !== "rate-limit").length + 1;
