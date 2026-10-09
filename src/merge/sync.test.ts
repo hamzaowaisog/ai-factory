@@ -24,7 +24,7 @@ describe("resolveRunId", () => {
   });
 
   it("reads every branch the factory names, whatever the request was", () => {
-    for (const request of ["Return 404 when not found", "x", "!!!", "fix 12345678 in the 2026 report"]) {
+    for (const request of ["Return 404 when not found", "x", "!!!", "fix 12345678 in the 2026 report", "Implement authentication flow for admins"]) {
       const runId = newRunId(request);
       expect(resolveRunId({ headRef: `factory/${runId}` })).toEqual({ runId, via: "branch" });
       expect(resolveRunId({ headRef: `factory/SHOP-12345-${runId}` })).toEqual({ runId, via: "branch" });

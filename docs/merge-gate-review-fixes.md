@@ -127,6 +127,13 @@ The second pass found that all of the items above are resolved. It then asked wh
 | 5 | A merge result with failing tests could be green | The lab gets the locked tests as `expectPass` and the run's baseline as `compareToBaseline`. Any class that is not repaired fails when its tests fail, before review-2 runs | `2ac1ebf` |
 | 8 (tests) | Known failures on the base counted against every PR | Tests that failed in the run's `discover` baseline are not counted | `2ac1ebf` |
 
+**Found by the branch review afterwards, also fixed:**
+- **Run ids with `--`.** The slug is cut at 30 characters and can end in a dash, which leaves `--` in the run id. The branch match now accepts it.
+- **Failure reasons.** A failure now writes its reason to the PR comment. A commit status holds only a one-line title.
+- **Writes are independent.** The status, the comment and the Slack alert are each attempted even when another fails.
+- **Stale review-2 verdicts.** What review-2 read is remembered only once a gate has judged it, so an older review-2 verdict is never replayed as this one's.
+- **Repeated errors.** After 3 attempts in a row throw, the PR is parked with one notification until its head or base moves, or until someone runs `review-pr --force`.
+
 **Still open from the second review:**
 - **6:** a PR reviewed before deliver finishes is failed until the base moves.
 - **7:** any `Factory-Repair` trailer is trusted. Recognise the factory's own push by `judgedHeadSha` instead.

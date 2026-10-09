@@ -79,6 +79,7 @@ export function openRunFacts(runId: string): RunFacts | undefined {
     lastReverifyAt: typeof rv?.at === "number" ? rv.at : undefined,
     judgedHeadSha: typeof rv?.headSha === "string" ? rv.headSha : undefined,
     reviewed: new Map(Object.entries((rv?.reviewed ?? {}) as Record<string, string>)),
+    errorsInARow: typeof rv?.errors === "number" ? rv.errors : 0,
   };
 }
 

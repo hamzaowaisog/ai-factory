@@ -29,6 +29,8 @@ export interface RunFacts {
   judgedHeadSha?: string;
   /** model gate id → the hash of what review-2 last read, so the same diff is never reviewed twice */
   reviewed?: Map<string, string>;
+  /** attempts in a row that threw before reaching a verdict; a verdict resets it */
+  errorsInARow?: number;
 }
 
 /**
@@ -47,7 +49,12 @@ export interface ReverifyRecord {
   at: number;
   reviewed: Record<string, string>;
   error?: string;
+  /** with `error`: how many attempts in a row have now thrown */
+  errors?: number;
 }
+
+/** Attempts in a row that may throw before the pull request is parked instead of paid for again. */
+export const MAX_ERRORS_IN_A_ROW = 3;
 
 export interface MergeResult {
   mergesClean: boolean;
@@ -170,6 +177,7 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
   // what this pass ends up judging, written back so the next pass knows it has already been judged
   let attempted = false;
   let recorded = false;
+  let gated = false;
   const reviewed: Record<string, string> = {};
   const record = async (conclusion: Conclusion, cls: string, headSha = pr.headSha) => {
     if (!run) return;
@@ -180,12 +188,23 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     });
     recorded = true;
   };
+  // every write is attempted even when one fails: the next pass rewrites the status from the record,
+  // but nothing would send the comment or the Slack alert a refused status had swallowed
+  const deliver = async (...writes: (() => Promise<void>)[]) => {
+    const errors: unknown[] = [];
+    for (const w of writes) await w().catch((e: unknown) => { errors.push(e); });
+    if (errors.length) throw errors[0];
+  };
   // the verdict is recorded before it is written: a forge write that fails then costs the next pass
   // one cheap write from the record, not another container and another review
   const fail = async (cls: ReviewPrResult["cls"], title: string, why: string, note: string = `${runId}: ${why}`) => {
     await record("failure", cls);
-    await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: pr.headSha, conclusion: "failure", title, summary: why });
-    await deps.notify(note);
+    // the reason goes in the comment: a commit status carries only the one-line title
+    await deliver(
+      () => deps.writeCheck({ name: OWN_CHECK_NAME, headSha: pr.headSha, conclusion: "failure", title, summary: why }),
+      () => deps.writeComment({ pr: a.pr, runId, body: `**Merge gate — ${cls}: ${title}**\n\n${why}` }),
+      () => deps.notify(note),
+    );
     return done("failure", cls, why);
   };
 
@@ -237,6 +256,12 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
   // from here money can be spent: a container, review-2, a repair. Whatever throws, the next pass
   // must see this attempt, or it pays again every pass with no cooldown and no budget
   try {
+    // an error that keeps coming back (the provider down, Docker gone) is parked rather than paid
+    // for every cooldown: the failure verdict holds until the head or base moves, or a person forces it
+    if (moved && !force && (run?.errorsInARow ?? 0) >= MAX_ERRORS_IN_A_ROW) {
+      return await fail(cheap.cls, "Parked after repeated errors",
+        `The last ${run!.errorsInARow} attempts to gate this pull request failed before reaching a verdict, so it is parked instead of being paid for again. Fix the cause, then run review-pr with --force.`);
+    }
     // now the tree, if anything moved
     const m = moved || force ? await probe() : undefined;
     const cls = m
@@ -305,6 +330,7 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
       for (const id of modelRerun) reviewed[id] = current.get(id)!;
     }
     const outcomes = await deps.runGates({ ids: [...current.keys()], replay, evidence: merge?.evidence });
+    gated = true;
 
     const failed = outcomes.filter((o) => !o.passed);
     let conclusion: Conclusion = failed.length ? "failure" : "success";
@@ -328,18 +354,22 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     }
 
     await record(conclusion, cls, checkSha);
-    await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: checkSha, conclusion, title: `${cls}: ${failed.length ? `${failed.length} blocking` : "clear"}`, summary });
-    await deps.writeComment({ pr: a.pr, runId, body: `**Merge gate — ${cls}**\n\n${summary}${repaired ? "\n\n_Repaired automatically after this pull request was last reported on; re-read the diff._" : ""}` });
-    if (failed.length) await deps.notify(`${runId}: merge gate failed — ${failed.map((f) => f.id).join(", ")}`);
+    await deliver(
+      () => deps.writeCheck({ name: OWN_CHECK_NAME, headSha: checkSha, conclusion, title: `${cls}: ${failed.length ? `${failed.length} blocking` : "clear"}`, summary }),
+      () => deps.writeComment({ pr: a.pr, runId, body: `**Merge gate — ${cls}**\n\n${summary}${repaired ? "\n\n_Repaired automatically after this pull request was last reported on; re-read the diff._" : ""}` }),
+      async () => { if (failed.length) await deps.notify(`${runId}: merge gate failed — ${failed.map((f) => f.id).join(", ")}`); },
+    );
 
     return done(conclusion, cls, summary, repaired);
   } catch (e) {
     if (run && !recorded) {
       await deps.recordReverify({
-        runId, cls: "error", error: (e as Error).message.slice(0, 300),
+        runId, cls: "error", error: (e as Error).message.slice(0, 300), errors: (run.errorsInARow ?? 0) + 1,
         headSha: run.judgedHeadSha, baseSha: run.recordedBaseSha, conclusion: run.priorConclusion,
         attemptsThisPr: run.attemptsThisPr + (attempted ? 1 : 0), at: deps.now(),
-        reviewed: { ...Object.fromEntries(run.reviewed ?? []), ...reviewed },
+        // what review-2 read counts only once a gate judged it: otherwise the next pass would replay
+        // the review gate's older verdict, of a different diff, as if it were this review's
+        reviewed: { ...Object.fromEntries(run.reviewed ?? []), ...(gated ? reviewed : {}) },
       }).catch(() => undefined);
     }
     throw e;

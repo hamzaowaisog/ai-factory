@@ -614,3 +614,82 @@ describe("reviewPr: a merge settled without a model", () => {
     expect(calls.push).toBe(0);
   });
 });
+
+describe("reviewPr: what a failure tells the pull request", () => {
+  const movedPr = async () => ({ headSha: SHA, headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false });
+
+  it("puts the reason in the comment: a commit status carries only a one-line title", async () => {
+    const bodies: string[] = [];
+    const { d, calls } = deps({
+      getPr: async () => ({ headSha: "theirs", headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false }),
+      commitsSince: async () => [{ sha: "x1", trailers: [] }],
+      writeComment: async (x) => { bodies.push(x.body); },
+    });
+    d.mergeVerify = async () => { calls.mergeVerify++; return mergeResult({ testsPass: false, failedTests: ["Shop.Tests::Checkout_Totals"] }); };
+    await reviewPr(d, { pr: 42 });
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0]).toMatch(/Checkout_Totals/);
+  });
+
+  it("still comments and notifies when GitHub refuses the status", async () => {
+    const { d, calls } = deps({
+      getPr: movedPr,
+      runGates: async (x) => x.ids.map((id) => ({ id, passed: id !== "build.clean", details: "x" })),
+      writeCheck: async () => { throw new Error("GitHub commit status failed: 502"); },
+    });
+    await expect(reviewPr(d, { pr: 42 })).rejects.toThrow(/502/);
+    expect(calls.comments).toBe(1);
+    expect(calls.notify).toHaveLength(1);
+  });
+
+  it("still notifies a park when GitHub refuses the status", async () => {
+    const { d, calls } = deps({
+      getPr: movedPr,
+      mergeVerify: async () => { calls.mergeVerify++; return mergeResult({ mergesClean: false, conflicts: ["a.cs"] }); },
+      writeCheck: async () => { throw new Error("GitHub commit status failed: 502"); },
+    }, runFacts({ attemptsThisPr: 99 }));
+    await expect(reviewPr(d, { pr: 42 })).rejects.toThrow(/502/);
+    expect(calls.notify).toHaveLength(1);
+  });
+});
+
+describe("reviewPr: a review that never reached a gate is not remembered", () => {
+  it("drops what review-2 read when the gates threw, so its verdict is never replayed from an older review", async () => {
+    const { d, calls } = deps({
+      getPr: async () => ({ headSha: SHA, headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false }),
+      mergeVerify: async () => { calls.mergeVerify++; return mergeResult({ current: hashes({ "review.covers-every-criterion": "h3-new" }) }); },
+      runGates: async () => { throw new Error("ledger append failed"); },
+    }, runFacts({ reviewed: new Map([["review.covers-every-criterion", "h3-old"]]) }));
+    await expect(reviewPr(d, { pr: 42 })).rejects.toThrow(/ledger append/);
+    expect(calls.review2).toBe(1);
+    expect(calls.records[0]!.reviewed).toEqual({ "review.covers-every-criterion": "h3-old" });
+  });
+});
+
+describe("reviewPr: an error that keeps coming back stops costing money", () => {
+  const movedPr = async () => ({ headSha: SHA, headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false });
+
+  it("counts the errors in a row in its record", async () => {
+    const { d, calls } = deps({ getPr: movedPr, mergeVerify: async () => { throw new Error("Cannot connect to the Docker daemon"); } },
+      runFacts({ errorsInARow: 1 }));
+    await expect(reviewPr(d, { pr: 42 })).rejects.toThrow(/Docker/);
+    expect(calls.records[0]!.errors).toBe(2);
+  });
+
+  it("parks after three, with one notification and no container, until the head or base moves", async () => {
+    const { d, calls } = deps({ getPr: movedPr }, runFacts({ errorsInARow: 3 }));
+    const got = await reviewPr(d, { pr: 42 });
+    expect(got.conclusion).toBe("failure");
+    expect(calls.mergeVerify).toBe(0);
+    expect(calls.review2).toBe(0);
+    expect(calls.notify).toHaveLength(1);
+    expect(calls.records[0]).toMatchObject({ conclusion: "failure", headSha: SHA, baseSha: "base2" });
+    expect(calls.records[0]!.errors).toBeUndefined();
+  });
+
+  it("a verdict resets the count", async () => {
+    const { d, calls } = deps({ getPr: movedPr }, runFacts({ errorsInARow: 2 }));
+    await reviewPr(d, { pr: 42 });
+    expect(calls.records[0]!.errors).toBeUndefined();
+  });
+});
