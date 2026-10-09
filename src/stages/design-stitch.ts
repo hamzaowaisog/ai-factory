@@ -260,3 +260,14 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
   const design = { ...stitchArtifact(plan, assets, { projectId, model: STITCH_MODEL, designMd: mdSha, theme: m.output.theme, mood: plan.flow }, reqIds), header: header(ctx.runId, "design", "design", "", at.model) };
   return { kind: "done", outputs: { design: ctx.ledger.putJson(design) }, data: { screens: plan.screens.length, engine: "stitch" } };
 }
+
+/** The design package's Stitch files: the DESIGN.md and each frame's HTML (screens/<id>.html, screens/<id>-<state>.html); none for a JSON design. */
+export function stitchPackageFiles(design: { engine?: string; stitch?: { designMd: string; frames: Record<string, { screen?: string; state?: string; html: string }> } }, getArtifact: (sha: string) => Buffer): { path: string; content: Buffer }[] {
+  if (design.engine !== "stitch" || !design.stitch) return [];
+  return [
+    { path: "screens/DESIGN.md", content: getArtifact(design.stitch.designMd) },
+    ...Object.values(design.stitch.frames).filter((f) => f.screen).map((f) => ({
+      path: `screens/${f.screen}${!f.state || f.state === "normal" ? "" : `-${f.state}`}.html`, content: getArtifact(f.html),
+    })),
+  ];
+}

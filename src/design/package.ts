@@ -272,6 +272,8 @@ export interface PackageInput {
   previous?: DesignManifest["previous"];
   changes?: string[];
   log?: (msg: string) => void;
+  /** more files for the package (a Stitch design's HTML per screen and its DESIGN.md), at paths inside it */
+  extraFiles?: { path: string; content: string | Uint8Array }[];
 }
 
 /**
@@ -299,6 +301,11 @@ export async function writePackage(p: PackageInput): Promise<DesignPackage> {
   writeFileSync(join(tmp, "demo", "index.html"), p.demoHtml);
   const shots = await captureDemo(join(tmp, "demo", "index.html"), demoShotList(p.design.screens), join(tmp, "shots"), { reproducible: true, max: MAX_PACKAGE_SHOTS });
   if (shots.note) p.log?.(`design package: ${shots.note}`);
+  for (const x of p.extraFiles ?? []) {
+    if (/^[/\\]|(^|[/\\])\.\.([/\\]|$)/.test(x.path)) throw new Error(`A package file must stay inside the package: ${x.path}`);
+    mkdirSync(join(tmp, x.path, ".."), { recursive: true });
+    writeFileSync(join(tmp, x.path), x.content);
+  }
   const files: PackageFile[] = [];
   const walk = (d: string) => {
     for (const e of readdirSync(d, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {

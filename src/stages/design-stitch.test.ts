@@ -269,3 +269,17 @@ describe("rework of a Stitch design", () => {
     expect(made.edits).toEqual([]);
   });
 });
+
+describe("Stitch files for the design package", () => {
+  it("lists the DESIGN.md and each frame's HTML, by screen and state", async () => {
+    const { stitchPackageFiles } = await import("./design-stitch.js");
+    const store = new Map<string, Buffer>([["md", Buffer.from("# DS")], ["h1", Buffer.from("<p>1</p>")], ["h1e", Buffer.from("<p>1e</p>")], ["h2", Buffer.from("<p>2</p>")]]);
+    const design = { engine: "stitch", stitch: { designMd: "md", frames: {
+      "ST-1": { screen: "S-1", state: "normal", html: "h1" }, "ST-2": { screen: "S-1", state: "empty", html: "h1e" }, "ST-3": { screen: "S-2", state: "normal", html: "h2" },
+    } } };
+    const files = stitchPackageFiles(design as never, (sha) => store.get(sha)!);
+    expect(files.map((f) => f.path)).toEqual(["screens/DESIGN.md", "screens/S-1.html", "screens/S-1-empty.html", "screens/S-2.html"]);
+    expect(files[2]!.content.toString()).toBe("<p>1e</p>");
+    expect(stitchPackageFiles({ screens: [] } as never, () => Buffer.alloc(0))).toEqual([]);
+  });
+});
