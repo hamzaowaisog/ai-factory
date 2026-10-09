@@ -56,6 +56,8 @@ export interface MergeResult {
   conflicts?: string[];
   /** Ids of the locked tests that failed, when `testsPass` is false. Same reason. */
   failedTests?: string[];
+  /** Conflicted paths settled without a model (deliver's evidence manifest): the merge exists only here. */
+  settled?: string[];
   /** gate id → recomputed inputs hash for this tree */
   current: Map<string, string>;
   diffSha: string;
@@ -282,6 +284,10 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     if (judged && !repairPending && !judged.testsPass) {
       return fail(cls, "Tests fail on the merge result", `Failing on the merge with ${pr.baseSha.slice(0, 8)}: ${(judged.failedTests ?? []).join(", ") || "the locked tests"}. ${cls} is not repaired automatically.`);
     }
+    // a conflict settled without a model left a merge only this host has: once gated it is pushed
+    // like a repair, so GitHub stops reporting the conflict. Never over commits the factory did not write.
+    const settled = repairPending ? [] : (judged?.settled ?? []);
+    if (settled.length && cls !== "unexpected-commits") repairPending = true;
 
     // When nothing moved, the recorded hashes ARE the current hashes — that is what "unchanged" means.
     // Starting a container to recompute them would defeat the entire staleness model, which is the one
@@ -316,6 +322,9 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
       repaired = true;
     } else if (repairPending) {
       summary += "\n\nThe repair was not pushed, because the repaired tree did not pass these gates.";
+    }
+    if (settled.length && !repaired) {
+      summary += `\n\nGitHub still reports a conflict on ${settled.join(", ")}: it was settled here only to judge the merge.`;
     }
 
     await record(conclusion, cls, checkSha);

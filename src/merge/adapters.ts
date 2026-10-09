@@ -172,6 +172,9 @@ export function worktreeExists(runId: string): boolean {
   return existsSync(reverifyWorktree(runId));
 }
 
+/** Deliver writes this at one fixed path on every branch, so any two open factory PRs conflict on it. */
+export const EVIDENCE_MANIFEST = ".factory/evidence-manifest.json";
+
 /** The subject of the merge commit `mergeInto` makes, which is how `commitRepair` recognises it. */
 const VERIFY_MERGE = "factory: verify the merge of";
 
@@ -187,7 +190,7 @@ export async function merging(wt: string): Promise<boolean> {
  * HEAD at the PR head, so the base's changes were never built or tested. A conflicting merge is left
  * in progress, markers and both sides in place: that is what the repair has to read and resolve.
  */
-export async function mergeInto(wt: string, baseSha: string): Promise<{ clean: boolean; conflicts: string[] }> {
+export async function mergeInto(wt: string, baseSha: string, trailer?: string): Promise<{ clean: boolean; conflicts: string[]; settled?: string[] }> {
   try {
     await git(wt, ["merge", "--no-commit", "--no-ff", baseSha]);
   } catch (e) {
@@ -197,7 +200,22 @@ export async function mergeInto(wt: string, baseSha: string): Promise<{ clean: b
     // no conflicted path means the merge failed for another reason (a file in the way, unrelated
     // histories): not something a repair can be given, and not worth paying a model to guess at
     if (!conflicts.length) throw e;
-    return { clean: false, conflicts };
+    // the manifest binds THIS pull request's evidence to its branch, so its side is the right one;
+    // and a repair may not write .factory/**, so a model asked to resolve it could only fail
+    const settled: string[] = conflicts.filter((p) => p === EVIDENCE_MANIFEST);
+    for (const p of settled) {
+      await git(wt, ["checkout", "--ours", "--", p]).then(
+        () => git(wt, ["add", "--", p]),
+        // the pull request deleted it: there is no side of ours to check out
+        () => git(wt, ["rm", "-q", "-f", "--ignore-unmatch", "--", p]),
+      );
+    }
+    const left = conflicts.filter((p) => !settled.includes(p));
+    if (left.length) return { clean: false, conflicts: left, ...(settled.length ? { settled } : {}) };
+    // nothing left for a model: the merge is concluded here, carrying the trailer so the push that
+    // follows a green gate is recognised as the factory's own on the next pass
+    await git(wt, ["commit", "--no-edit", "-m", `${VERIFY_MERGE} ${baseSha.slice(0, 8)}${trailer ? `\n\n${trailer}` : ""}`]);
+    return { clean: true, conflicts: [], settled };
   }
   // "Already up to date" starts no merge: HEAD already contains the base, and is the result
   if (await merging(wt)) await git(wt, ["commit", "--no-edit", "-m", `${VERIFY_MERGE} ${baseSha.slice(0, 8)}`]);

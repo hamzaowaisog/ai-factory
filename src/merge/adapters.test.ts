@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { commitRepair, commitsWithTrailers, failingTests, insideWorktree, isFork, mergeExpectations, mergeInto, merging, workingTreeCommit } from "./adapters.js";
+import { commitRepair, commitsWithTrailers, EVIDENCE_MANIFEST, failingTests, insideWorktree, isFork, mergeExpectations, mergeInto, merging, workingTreeCommit } from "./adapters.js";
 import type { TestRun } from "../contracts/index.js";
 
 const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
@@ -192,5 +192,56 @@ describe("judging the merge result against the run's own tests", () => {
 
   it("counts every failure when there is no baseline to excuse one", () => {
     expect(failingTests([row("T::B", "failed"), row("T::A", "failed")], undefined)).toEqual(["T::A", "T::B"]);
+  });
+});
+
+describe("the evidence manifest every factory branch writes", () => {
+  // one side's file content, or null to delete it
+  type Side = { manifest?: string | null; a?: string };
+  function repoWith(init: Side, pr: Side, base: Side) {
+    const repo = mkdtempSync(join(tmpdir(), "factory-mf-"));
+    const apply = (x: Side, msg: string) => {
+      if (x.manifest === null) g(repo, "rm", "-q", EVIDENCE_MANIFEST);
+      else if (x.manifest !== undefined) { mkdirSync(join(repo, ".factory"), { recursive: true }); writeFileSync(join(repo, EVIDENCE_MANIFEST), x.manifest); }
+      if (x.a !== undefined) writeFileSync(join(repo, "a.txt"), x.a);
+      g(repo, "add", "-A"); g(repo, "commit", "-q", "--allow-empty", "-m", msg);
+    };
+    g(repo, "init", "-q", "-b", "main");
+    apply({ a: "one\n", ...init }, "init");
+    g(repo, "checkout", "-q", "-b", "pr"); apply(pr, "pr");
+    const head = g(repo, "rev-parse", "HEAD");
+    g(repo, "checkout", "-q", "main"); apply(base, "base");
+    const baseSha = g(repo, "rev-parse", "HEAD");
+    g(repo, "checkout", "-q", "pr");
+    return { repo, base: baseSha, head };
+  }
+
+  it("settles a manifest conflict on the pull request's side with no model, and marks the merge as a repair", async () => {
+    const { repo, base, head } = repoWith({}, { manifest: '{"run":"pr"}' }, { manifest: '{"run":"base"}' });
+    expect(await mergeInto(repo, base, "Factory-Repair: rv")).toEqual({ clean: true, conflicts: [], settled: [EVIDENCE_MANIFEST] });
+    expect(readFileSync(join(repo, EVIDENCE_MANIFEST), "utf8")).toBe('{"run":"pr"}');
+    expect(g(repo, "rev-list", "--parents", "-n", "1", "HEAD").split(" ").slice(1)).toEqual([head, base]);
+    expect(g(repo, "log", "-1", "--format=%B")).toMatch(/Factory-Repair: rv/);
+    expect(await merging(repo)).toBe(false);
+  });
+
+  it("settles the manifest and hands the repair only the conflicts that are left", async () => {
+    const { repo, base } = repoWith({}, { manifest: '{"run":"pr"}', a: "pr side\n" }, { manifest: '{"run":"base"}', a: "base side\n" });
+    expect(await mergeInto(repo, base, "Factory-Repair: rv")).toEqual({ clean: false, conflicts: ["a.txt"], settled: [EVIDENCE_MANIFEST] });
+    writeFileSync(join(repo, "a.txt"), "resolved\n");
+    expect(await commitRepair(repo, "factory: repair conflict\n\nFactory-Repair: rv", ["a.txt"])).toEqual({ ok: true });
+    expect(g(repo, "show", `HEAD:${EVIDENCE_MANIFEST}`)).toBe('{"run":"pr"}');
+  });
+
+  it("keeps the pull request's manifest when the base deleted it", async () => {
+    const { repo, base } = repoWith({ manifest: "v0" }, { manifest: "pr" }, { manifest: null });
+    expect((await mergeInto(repo, base)).settled).toEqual([EVIDENCE_MANIFEST]);
+    expect(g(repo, "show", `HEAD:${EVIDENCE_MANIFEST}`)).toBe("pr");
+  });
+
+  it("deletes it when the pull request deleted it", async () => {
+    const { repo, base } = repoWith({ manifest: "v0" }, { manifest: null }, { manifest: "base" });
+    expect((await mergeInto(repo, base)).clean).toBe(true);
+    expect(existsSync(join(repo, EVIDENCE_MANIFEST))).toBe(false);
   });
 });

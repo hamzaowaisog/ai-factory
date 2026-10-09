@@ -572,3 +572,45 @@ describe("reviewPr: an attempt that throws is still remembered", () => {
     await expect(reviewPr(d, { pr: 42 })).rejects.toThrow(/Docker daemon/);
   });
 });
+
+describe("reviewPr: a merge settled without a model", () => {
+  const settledMerge = (calls: { mergeVerify: number }) => async () => {
+    calls.mergeVerify++;
+    return mergeResult({ settled: [".factory/evidence-manifest.json"] });
+  };
+
+  it("pushes it once the gates pass, with no model call, so GitHub stops reporting the conflict", async () => {
+    const { d, calls } = deps({ getPr: async () => ({ headSha: SHA, headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false }) });
+    d.mergeVerify = settledMerge(calls);
+    const got = await reviewPr(d, { pr: 42 });
+    expect(got.conclusion).toBe("success");
+    expect(got.repaired).toBe(true);
+    expect(calls.repair).toBe(0);
+    expect(calls.push).toBe(1);
+    expect(calls.checks.at(-1)!.headSha).toBe("pushed1");
+    expect(calls.records.at(-1)).toMatchObject({ headSha: "pushed1", attemptsThisPr: 0 });
+  });
+
+  it("never pushes it over commits the factory did not write, and says the conflict remains", async () => {
+    const { d, calls } = deps({
+      getPr: async () => ({ headSha: "theirs", headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false }),
+      commitsSince: async () => [{ sha: "x1", trailers: [] }],
+    });
+    d.mergeVerify = settledMerge(calls);
+    const got = await reviewPr(d, { pr: 42 });
+    expect(got.cls).toBe("unexpected-commits");
+    expect(calls.push).toBe(0);
+    expect(got.why).toMatch(/still reports a conflict on \.factory\/evidence-manifest\.json/);
+  });
+
+  it("never pushes it when a gate blocks", async () => {
+    const { d, calls } = deps({
+      getPr: async () => ({ headSha: SHA, headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false }),
+      runGates: async (x) => x.ids.map((id) => ({ id, passed: id !== "build.clean", details: "x" })),
+    });
+    d.mergeVerify = settledMerge(calls);
+    const got = await reviewPr(d, { pr: 42 });
+    expect(got.conclusion).toBe("failure");
+    expect(calls.push).toBe(0);
+  });
+});

@@ -32,7 +32,7 @@ import { runMergeReview } from "./review-run.js";
 import type { MergeResult, ReviewPrDeps } from "./orchestrate.js";
 import type { TestRun } from "../contracts/index.js";
 import type { GroupDeps } from "./group-run.js";
-import { resolveRunId } from "./sync.js";
+import { repairTrailer, resolveRunId } from "./sync.js";
 
 export interface LiveOpts { cfg: ProjectConfig; gh: Gh; log: (s: string) => void; policy?: typeof DEFAULT_POLICY }
 
@@ -51,7 +51,8 @@ async function mergedWorktree(o: LiveOpts, runId: string, headSha: string, baseS
     return { wt, merged: { clean: true, conflicts: [] } };
   }
   await freshWorktree(o.cfg.repo, wt, `factory/reverify-${runId.slice(-8)}`, headSha, runId);
-  const merged = await mergeInto(wt, baseSha);
+  // the trailer marks a merge settled without a model as the factory's own, should it be pushed
+  const merged = await mergeInto(wt, baseSha, repairTrailer(runId));
   return { wt, merged };
 }
 
@@ -74,7 +75,7 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       if (!merged.clean) {
         o.log(`conflict in ${merged.conflicts.length} file(s): ${merged.conflicts.slice(0, 5).join(", ")}`);
         // the paths travel with the result: the repair is given them, not asked to guess
-        return { mergesClean: false, testsPass: false, conflicts: merged.conflicts, current: new Map(), diffSha: "", mergeSha: "" };
+        return { mergesClean: false, testsPass: false, conflicts: merged.conflicts, settled: merged.settled, current: new Map(), diffSha: "", mergeSha: "" };
       }
       // the merge result is committed (mergeInto, or the repair), so HEAD is what the lab builds
       const mergeSha = (await gitOut(wt, ["rev-parse", "HEAD"])).trim();
@@ -127,7 +128,7 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
         mergesClean: true,
         testsPass: lastVerify.verification.failed.length === 0,
         failedTests: lastVerify.verification.failed,
-        current, diffSha, mergeSha,
+        current, diffSha, mergeSha, settled: merged.settled,
         evidence: { ledger, evidence, treeSha: mergeSha },
       };
     },
