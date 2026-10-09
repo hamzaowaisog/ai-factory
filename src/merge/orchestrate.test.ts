@@ -492,3 +492,38 @@ describe("reviewPr: final review fixes", () => {
     expect(calls.repair).toBe(0);
   });
 });
+
+describe("reviewPr: a merge result whose tests fail is never green", () => {
+  const failing = (calls: { mergeVerify: number }) => async () => {
+    calls.mergeVerify++;
+    return mergeResult({ testsPass: false, failedTests: ["Shop.Tests::Checkout_Totals"] });
+  };
+
+  it("fails unexpected commits whose merge breaks a test, before review-2 or a gate is paid for", async () => {
+    const { d, calls } = deps({
+      getPr: async () => ({ headSha: "theirs", headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false }),
+      commitsSince: async () => [{ sha: "x1", trailers: [] }],
+    });
+    d.mergeVerify = failing(calls);
+    const got = await reviewPr(d, { pr: 42 });
+    expect(got.cls).toBe("unexpected-commits");
+    expect(got.conclusion).toBe("failure");
+    expect(got.why).toMatch(/Checkout_Totals/);
+    expect(calls.review2).toBe(0);
+    expect(calls.gates).toBe(0);
+    expect(calls.push).toBe(0);
+    expect(calls.checks.at(-1)!.conclusion).toBe("failure");
+  });
+
+  it("fails a self-push after a base move when the merge breaks a test", async () => {
+    const { d, calls } = deps({
+      getPr: async () => ({ headSha: "newhead", headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false }),
+      commitsSince: async () => [{ sha: "r1", trailers: ["Factory-Repair: rv-1"] }],
+    }, runFacts({ priorConclusion: "success" }));
+    d.mergeVerify = failing(calls);
+    const got = await reviewPr(d, { pr: 42 });
+    expect(got.cls).toBe("self-push");
+    expect(got.conclusion).toBe("failure");
+    expect(calls.repair).toBe(0);
+  });
+});

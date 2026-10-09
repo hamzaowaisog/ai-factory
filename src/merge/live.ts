@@ -22,7 +22,7 @@ import { HUMAN_WRITER } from "../ledger/ledger.js";
 import { diffFiles } from "../stages/deliver.js";
 import { modelFor } from "../stages/routing.js";
 import type { Review2Inputs } from "../stages/review2.js";
-import { commitRepair, commitsWithTrailers, forgeAdapter, forgeRemote, insideWorktree, mergeInto, merging, openRunFacts, ownReviewBody, recordedVerdicts, reverifyWorktree, workingTreeCommit, worktreeExists } from "./adapters.js";
+import { commitRepair, commitsWithTrailers, failingTests, forgeAdapter, mergeExpectations, forgeRemote, insideWorktree, mergeInto, merging, openRunFacts, ownReviewBody, recordedVerdicts, reverifyWorktree, workingTreeCommit, worktreeExists } from "./adapters.js";
 import { plannedInputHashes, reviewEvidence, runMergeGates, type MergeEvidence } from "./gates-run.js";
 import { gateInputsHash } from "../gates/engine.js";
 import { scanText } from "../context/secrets.js";
@@ -30,6 +30,7 @@ import { DEFAULT_POLICY } from "../gates/policy.js";
 import { proposeRepair, repairIsEmpty } from "./repair-run.js";
 import { runMergeReview } from "./review-run.js";
 import type { MergeResult, ReviewPrDeps } from "./orchestrate.js";
+import type { TestRun } from "../contracts/index.js";
 import type { GroupDeps } from "./group-run.js";
 import { resolveRunId } from "./sync.js";
 
@@ -83,12 +84,19 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       const ledger = Ledger.open(a.runId);
       const diffSha = ledger.putArtifact(diff);
       const policy = o.policy ?? DEFAULT_POLICY;
+      // the run's own tests: what was locked must pass, and the rest is held to the run's baseline,
+      // so a test that already failed on the base is not this pull request's to fix
+      const state = replay(ledger.events());
+      const lock = ledger.getJson<{ tests: { testId: string }[]; characterisation?: { testId: string }[] }>(state.steps.get("author-tests")!.outputs[0]!);
+      const baselineSha = state.steps.get("discover")?.outputs[0];
+      const baseline = baselineSha ? ledger.getJson<TestRun>(baselineSha) : undefined;
 
       const pk = join(factoryHome(), "tmp", `reverify-${a.runId}`, o.cfg.stack === "node" ? "npm-cache" : "nuget");
       mkdirSync(pk, { recursive: true });
       const out = await labFor(o.cfg).produce({
         runId: a.runId, key: "merge-verify", repo: wt, commit: mergeSha, stage: "integrate",
-        exp: { expectPass: [], expectFail: [], compareToBaseline: [] },
+        exp: mergeExpectations(lock, baseline),
+        knownFailures: new Set(failingTests(baseline?.results ?? [], undefined)),
         project: o.cfg, rt, packagesDir: pk,
         onContainer: async (id, role) => o.log(`  container ${role} ${id.slice(0, 12)}`),
       });
@@ -96,12 +104,12 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       lastVerify = {
         lint: { findings: out.lint?.findings ?? [] },
         verification: {
-          failed: out.testRun.results.filter((r) => r.outcome === "failed").map((r) => r.id).sort(),
+          failed: failingTests(out.testRun.results, baseline),
           flaky: out.testRun.results.filter((r) => r.flaky).map((r) => r.id).sort(),
         },
       };
       const evidence: MergeEvidence = {
-        build: out.build, testRun: out.testRun, lint: out.lint, lintBaseline: [],
+        build: out.build, testRun: out.testRun, baseline, lint: out.lint, lintBaseline: [],
         // the lines this tree adds, scanned for real: a repair is pushed with the forge token
         secretScan: { kind: "secrets", commit: mergeSha, hits: secretHits(diff) },
         diff: { files: diffFiles(diff).map((path) => ({ path, added: [], removed: [] })) },

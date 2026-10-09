@@ -14,6 +14,8 @@ import { fetchForGate, git, gitOut } from "../ledger/git.js";
 import { notifiersFor } from "../watch/notify.js";
 import { paths } from "../util/paths.js";
 import type { Conclusion, GateOutcome, PrFacts, ReviewPrDeps, RunFacts } from "./orchestrate.js";
+import type { TestResult, TestRun } from "../contracts/index.js";
+import type { Expectations } from "../verify/validate.js";
 
 /** Every gate decision this run recorded, by gate id, with the inputs hash it was computed from. */
 export function recordedGateHashes(events: { type: string; data?: Record<string, unknown>; inputsHash?: string }[]): Map<string, string> {
@@ -77,6 +79,27 @@ export function openRunFacts(runId: string): RunFacts | undefined {
     judgedHeadSha: typeof rv?.headSha === "string" ? rv.headSha : undefined,
     reviewed: new Map(Object.entries((rv?.reviewed ?? {}) as Record<string, string>)),
   };
+}
+
+/**
+ * What the merge result is tested against: the run's locked and characterisation tests must pass, as
+ * at integrate, and every other test is held to the run's baseline. With empty expectations a
+ * plain failing test passed the gate.
+ */
+export function mergeExpectations(
+  lock: { tests: { testId: string }[]; characterisation?: { testId: string }[] }, baseline: TestRun | undefined,
+): Expectations {
+  return {
+    expectPass: [...lock.tests.map((t) => t.testId), ...(lock.characterisation ?? []).map((c) => c.testId)],
+    expectFail: [],
+    compareToBaseline: baseline?.results.map((r) => r.id) ?? [],
+  };
+}
+
+/** The tests that fail on the merge result and did not already fail on the run's base, sorted. */
+export function failingTests(results: TestResult[], baseline: TestRun | undefined): string[] {
+  const known = new Set(baseline?.results.filter((r) => r.outcome === "failed").map((r) => r.id) ?? []);
+  return results.filter((r) => r.outcome === "failed" && !known.has(r.id)).map((r) => r.id).sort();
 }
 
 /** Where the forge repository is fetched from and pushed to: one URL for both, with the same token. */

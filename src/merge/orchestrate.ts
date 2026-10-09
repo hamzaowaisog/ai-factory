@@ -264,6 +264,11 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
   if (judged && !judged.mergesClean) {
     return fail(cls, "Does not merge cleanly", `The branch does not merge cleanly with ${pr.baseSha.slice(0, 8)} (${(judged.conflicts ?? []).join(", ") || "no paths reported"}), and ${cls} is not repaired automatically.`);
   }
+  // tests that fail on the merge result are never green, whatever the class: only conflict and
+  // broken-merge are repaired, so every other class is reported here, before review-2 is paid for
+  if (judged && !repairPending && !judged.testsPass) {
+    return fail(cls, "Tests fail on the merge result", `Failing on the merge with ${pr.baseSha.slice(0, 8)}: ${(judged.failedTests ?? []).join(", ") || "the locked tests"}. ${cls} is not repaired automatically.`);
+  }
 
   // When nothing moved, the recorded hashes ARE the current hashes — that is what "unchanged" means.
   // Starting a container to recompute them would defeat the entire staleness model, which is the one
