@@ -1,0 +1,5 @@
+{
+  "id": "written-full-spec-leave-requests",
+  "request": "Leave requests for a 40-person company.\nRoles: staff, manager, admin.\nScreens: request form, my requests page, approvals dashboard.\n- A staff member must be able to request leave for 1 to 30 days.\n- A manager must approve or reject each request within the approvals dashboard.\n- A request cannot overlap an approved request of the same person.\n- An admin must be able to set each person's yearly allowance (default 25 days).\nGiven a request that exceeds the remaining allowance\nWhen the staff member submits it\nThen the form shows how many days are left and does not save.",
+  "intent": { "changeClass": "feature", "risk": "low", "touchesUi": true }
+}
