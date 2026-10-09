@@ -72,7 +72,8 @@ export function openRunFacts(runId: string): RunFacts | undefined {
     recorded: recordedGateHashes(events as never),
     // the manifest commit is what binds the evidence to the branch; without it nothing reconciles
     evidenceReconciles: deliver?.status === "completed" && !!deliver.data?.manifestHash,
-    priorReverifyConcluded: !!rv,
+    // an attempt that threw concluded nothing
+    priorReverifyConcluded: !!rv?.conclusion,
     priorConclusion: rv?.conclusion as Conclusion | undefined,
     attemptsThisPr: Number(rv?.attemptsThisPr ?? 0),
     lastReverifyAt: typeof rv?.at === "number" ? rv.at : undefined,

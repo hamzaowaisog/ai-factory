@@ -31,16 +31,22 @@ export interface RunFacts {
   reviewed?: Map<string, string>;
 }
 
-/** What a reverify writes to the run's ledger when it reaches a verdict: its memory for the next pass. */
+/**
+ * What a reverify writes to the run's ledger: its memory for the next pass. A verdict sets the head,
+ * base and conclusion it judged. An attempt that threw (`error`) carries the last verdict's forward
+ * unchanged and adds only the time, the attempts and what review-2 read, so the cooldown and the
+ * budget hold while a moved base is still judged again.
+ */
 export interface ReverifyRecord {
   runId: string;
-  conclusion: Conclusion;
+  conclusion?: Conclusion;
   cls: string;
-  headSha: string;
+  headSha?: string;
   baseSha: string;
   attemptsThisPr: number;
   at: number;
   reviewed: Record<string, string>;
+  error?: string;
 }
 
 export interface MergeResult {
@@ -161,6 +167,7 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
 
   // what this pass ends up judging, written back so the next pass knows it has already been judged
   let attempted = false;
+  let recorded = false;
   const reviewed: Record<string, string> = {};
   const record = async (conclusion: Conclusion, cls: string, headSha = pr.headSha) => {
     if (!run) return;
@@ -169,11 +176,14 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
       attemptsThisPr: run.attemptsThisPr + (attempted ? 1 : 0), at: deps.now(),
       reviewed: { ...Object.fromEntries(run.reviewed ?? []), ...reviewed },
     });
+    recorded = true;
   };
+  // the verdict is recorded before it is written: a forge write that fails then costs the next pass
+  // one cheap write from the record, not another container and another review
   const fail = async (cls: ReviewPrResult["cls"], title: string, why: string, note: string = `${runId}: ${why}`) => {
+    await record("failure", cls);
     await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: pr.headSha, conclusion: "failure", title, summary: why });
     await deps.notify(note);
-    await record("failure", cls);
     return done("failure", cls, why);
   };
 
@@ -222,93 +232,107 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     return done("neutral", "deferred", `Cooldown: this pull request was last judged ${Math.round((deps.now() - run.lastReverifyAt) / 1000)}s ago; it is judged again once ${COOLDOWN_MS / 1000}s have passed.`);
   }
 
-  // now the tree, if anything moved
-  const m = moved || force ? await probe() : undefined;
-  const cls = m
-    ? classify({
-        ledgerPresent: true, evidenceReconciles: run!.evidenceReconciles,
-        headSha: pr.headSha, gatedSha: anchor,
-        baseSha: pr.baseSha, recordedBaseSha: run!.recordedBaseSha,
-        newCommits: commits, mergesClean: m.mergesClean, mergeTestsPass: m.testsPass,
-        priorReverifyConcluded: run!.priorReverifyConcluded,
-      }).cls
-    : cheap.cls;
+  // from here money can be spent: a container, review-2, a repair. Whatever throws, the next pass
+  // must see this attempt, or it pays again every pass with no cooldown and no budget
+  try {
+    // now the tree, if anything moved
+    const m = moved || force ? await probe() : undefined;
+    const cls = m
+      ? classify({
+          ledgerPresent: true, evidenceReconciles: run!.evidenceReconciles,
+          headSha: pr.headSha, gatedSha: anchor,
+          baseSha: pr.baseSha, recordedBaseSha: run!.recordedBaseSha,
+          newCommits: commits, mergesClean: m.mergesClean, mergeTestsPass: m.testsPass,
+          priorReverifyConcluded: run!.priorReverifyConcluded,
+        }).cls
+      : cheap.cls;
 
-  // repair, once, before gating: a repaired tree is the one that should be judged. It is committed
-  // locally only; it reaches the pull request after the gates pass on it, never before.
-  let repairPending = false;
-  if (isRepairable(cls)) {
-    const budget: RepairBudget = {
-      path: "A", attemptsThisRun: 0, attemptsThisPr: run!.attemptsThisPr,
-      lastRunAt: force ? undefined : run!.lastReverifyAt, now: deps.now(),
-    };
-    const may = mayRepair(budget);
-    if (!may.ok) return fail(cls, `Parked: ${cls}`, may.why, `${runId}: parked after ${cls} — ${may.why}`);
-    // the subject comes from the probe that classified the tree: the only place that knows it
-    const subject = cls === "conflict" ? (m?.conflicts ?? []) : (m?.failedTests ?? []);
-    attempted = true;
-    const r = await deps.repair(cls as "conflict" | "broken-merge", { runId, subject });
-    if (!r.made) return fail(cls, `Could not repair ${cls}`, r.why);
-    // the repaired tree is a different tree; verify it rather than the one we classified
-    merge = undefined;
-    const v = await probe(true);
-    if (!v.mergesClean || !v.testsPass) {
-      const still = !v.mergesClean ? "still does not merge cleanly" : `still fails ${(v.failedTests ?? []).join(", ") || "its locked tests"}`;
-      return fail(cls, "Repair did not verify", `The repair was made, but the repaired tree ${still}. Nothing was pushed.`);
+    // repair, once, before gating: a repaired tree is the one that should be judged. It is committed
+    // locally only; it reaches the pull request after the gates pass on it, never before.
+    let repairPending = false;
+    if (isRepairable(cls)) {
+      const budget: RepairBudget = {
+        path: "A", attemptsThisRun: 0, attemptsThisPr: run!.attemptsThisPr,
+        lastRunAt: force ? undefined : run!.lastReverifyAt, now: deps.now(),
+      };
+      const may = mayRepair(budget);
+      if (!may.ok) return fail(cls, `Parked: ${cls}`, may.why, `${runId}: parked after ${cls} — ${may.why}`);
+      // the subject comes from the probe that classified the tree: the only place that knows it
+      const subject = cls === "conflict" ? (m?.conflicts ?? []) : (m?.failedTests ?? []);
+      attempted = true;
+      const r = await deps.repair(cls as "conflict" | "broken-merge", { runId, subject });
+      if (!r.made) return fail(cls, `Could not repair ${cls}`, r.why);
+      // the repaired tree is a different tree; verify it rather than the one we classified
+      merge = undefined;
+      const v = await probe(true);
+      if (!v.mergesClean || !v.testsPass) {
+        const still = !v.mergesClean ? "still does not merge cleanly" : `still fails ${(v.failedTests ?? []).join(", ") || "its locked tests"}`;
+        return fail(cls, "Repair did not verify", `The repair was made, but the repaired tree ${still}. Nothing was pushed.`);
+      }
+      repairPending = true;
     }
-    repairPending = true;
+
+    // a tree that does not merge has nothing to gate, and an empty gate list must never read as green
+    const judged = merge as MergeResult | undefined;
+    if (judged && !judged.mergesClean) {
+      return fail(cls, "Does not merge cleanly", `The branch does not merge cleanly with ${pr.baseSha.slice(0, 8)} (${(judged.conflicts ?? []).join(", ") || "no paths reported"}), and ${cls} is not repaired automatically.`);
+    }
+    // tests that fail on the merge result are never green, whatever the class: only conflict and
+    // broken-merge are repaired, so every other class is reported here, before review-2 is paid for
+    if (judged && !repairPending && !judged.testsPass) {
+      return fail(cls, "Tests fail on the merge result", `Failing on the merge with ${pr.baseSha.slice(0, 8)}: ${(judged.failedTests ?? []).join(", ") || "the locked tests"}. ${cls} is not repaired automatically.`);
+    }
+
+    // When nothing moved, the recorded hashes ARE the current hashes — that is what "unchanged" means.
+    // Starting a container to recompute them would defeat the entire staleness model, which is the one
+    // property this design is built on.
+    const current = merge?.current ?? run!.recorded;
+    const known = new Map([...run!.recorded, ...(run!.reviewed ?? [])]);
+    const { replay, rerun } = plan(known, current, force);
+
+    // the model review comes after the deterministic picture is in hand, so a tree that does not
+    // compile costs no tokens
+    const modelRerun = rerun.filter((id) => MODEL_GATES.has(id));
+    if (modelRerun.length) {
+      const tree = merge ?? (await probe());
+      await deps.review2({ runId, mergeSha: tree.mergeSha, diffSha: tree.diffSha });
+      for (const id of modelRerun) reviewed[id] = current.get(id)!;
+    }
+    const outcomes = await deps.runGates({ ids: [...current.keys()], replay, evidence: merge?.evidence });
+
+    const failed = outcomes.filter((o) => !o.passed);
+    let conclusion: Conclusion = failed.length ? "failure" : "success";
+    let summary = failed.length
+      ? failed.map((f) => `- ${f.id}: ${f.details}`).join("\n")
+      : `${outcomes.length} gates passed (${replay.length} replayed, ${rerun.length} re-run).`;
+
+    // only a gated tree is pushed, and the check belongs to the head the pull request now has
+    let checkSha = pr.headSha;
+    let repaired = false;
+    if (repairPending && conclusion === "success") {
+      const p = await deps.pushRepair({ runId, headRef: pr.headRef });
+      if (!p.pushed) return fail(cls, `Could not push the ${cls} repair`, p.why);
+      checkSha = p.sha ?? merge!.mergeSha;
+      repaired = true;
+    } else if (repairPending) {
+      summary += "\n\nThe repair was not pushed, because the repaired tree did not pass these gates.";
+    }
+
+    await record(conclusion, cls, checkSha);
+    await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: checkSha, conclusion, title: `${cls}: ${failed.length ? `${failed.length} blocking` : "clear"}`, summary });
+    await deps.writeComment({ pr: a.pr, runId, body: `**Merge gate — ${cls}**\n\n${summary}${repaired ? "\n\n_Repaired automatically after this pull request was last reported on; re-read the diff._" : ""}` });
+    if (failed.length) await deps.notify(`${runId}: merge gate failed — ${failed.map((f) => f.id).join(", ")}`);
+
+    return done(conclusion, cls, summary, repaired);
+  } catch (e) {
+    if (run && !recorded) {
+      await deps.recordReverify({
+        runId, cls: "error", error: (e as Error).message.slice(0, 300),
+        headSha: run.judgedHeadSha, baseSha: run.recordedBaseSha, conclusion: run.priorConclusion,
+        attemptsThisPr: run.attemptsThisPr + (attempted ? 1 : 0), at: deps.now(),
+        reviewed: { ...Object.fromEntries(run.reviewed ?? []), ...reviewed },
+      }).catch(() => undefined);
+    }
+    throw e;
   }
-
-  // a tree that does not merge has nothing to gate, and an empty gate list must never read as green
-  const judged = merge as MergeResult | undefined;
-  if (judged && !judged.mergesClean) {
-    return fail(cls, "Does not merge cleanly", `The branch does not merge cleanly with ${pr.baseSha.slice(0, 8)} (${(judged.conflicts ?? []).join(", ") || "no paths reported"}), and ${cls} is not repaired automatically.`);
-  }
-  // tests that fail on the merge result are never green, whatever the class: only conflict and
-  // broken-merge are repaired, so every other class is reported here, before review-2 is paid for
-  if (judged && !repairPending && !judged.testsPass) {
-    return fail(cls, "Tests fail on the merge result", `Failing on the merge with ${pr.baseSha.slice(0, 8)}: ${(judged.failedTests ?? []).join(", ") || "the locked tests"}. ${cls} is not repaired automatically.`);
-  }
-
-  // When nothing moved, the recorded hashes ARE the current hashes — that is what "unchanged" means.
-  // Starting a container to recompute them would defeat the entire staleness model, which is the one
-  // property this design is built on.
-  const current = merge?.current ?? run!.recorded;
-  const known = new Map([...run!.recorded, ...(run!.reviewed ?? [])]);
-  const { replay, rerun } = plan(known, current, force);
-
-  // the model review comes after the deterministic picture is in hand, so a tree that does not
-  // compile costs no tokens
-  const modelRerun = rerun.filter((id) => MODEL_GATES.has(id));
-  if (modelRerun.length) {
-    const tree = merge ?? (await probe());
-    await deps.review2({ runId, mergeSha: tree.mergeSha, diffSha: tree.diffSha });
-    for (const id of modelRerun) reviewed[id] = current.get(id)!;
-  }
-  const outcomes = await deps.runGates({ ids: [...current.keys()], replay, evidence: merge?.evidence });
-
-  const failed = outcomes.filter((o) => !o.passed);
-  let conclusion: Conclusion = failed.length ? "failure" : "success";
-  let summary = failed.length
-    ? failed.map((f) => `- ${f.id}: ${f.details}`).join("\n")
-    : `${outcomes.length} gates passed (${replay.length} replayed, ${rerun.length} re-run).`;
-
-  // only a gated tree is pushed, and the check belongs to the head the pull request now has
-  let checkSha = pr.headSha;
-  let repaired = false;
-  if (repairPending && conclusion === "success") {
-    const p = await deps.pushRepair({ runId, headRef: pr.headRef });
-    if (!p.pushed) return fail(cls, `Could not push the ${cls} repair`, p.why);
-    checkSha = p.sha ?? merge!.mergeSha;
-    repaired = true;
-  } else if (repairPending) {
-    summary += "\n\nThe repair was not pushed, because the repaired tree did not pass these gates.";
-  }
-
-  await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: checkSha, conclusion, title: `${cls}: ${failed.length ? `${failed.length} blocking` : "clear"}`, summary });
-  await deps.writeComment({ pr: a.pr, runId, body: `**Merge gate — ${cls}**\n\n${summary}${repaired ? "\n\n_Repaired automatically after this pull request was last reported on; re-read the diff._" : ""}` });
-  if (failed.length) await deps.notify(`${runId}: merge gate failed — ${failed.map((f) => f.id).join(", ")}`);
-  await record(conclusion, cls, checkSha);
-
-  return done(conclusion, cls, summary, repaired);
 }

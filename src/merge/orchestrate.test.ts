@@ -527,3 +527,48 @@ describe("reviewPr: a merge result whose tests fail is never green", () => {
     expect(calls.repair).toBe(0);
   });
 });
+
+describe("reviewPr: an attempt that throws is still remembered", () => {
+  const movedPr = async () => ({ headSha: SHA, headRef: "factory/run-1", baseRef: "main", baseSha: "base2", state: "open", merged: false });
+
+  it("records the verdict before writing it, so a forge failure costs no second build", async () => {
+    const { d, calls } = deps({ getPr: movedPr, writeCheck: async () => { throw new Error("GitHub check-run write failed: 403"); } });
+    await expect(reviewPr(d, { pr: 42 })).rejects.toThrow(/403/);
+    expect(calls.records).toHaveLength(1);
+    expect(calls.records[0]).toMatchObject({ conclusion: "success", headSha: SHA, baseSha: "base2" });
+  });
+
+  it("counts a repair that threw against the budget, and keeps the base it last judged", async () => {
+    const { d, calls } = deps({
+      getPr: movedPr,
+      mergeVerify: async () => { calls.mergeVerify++; return mergeResult({ mergesClean: false, conflicts: ["a.cs"] }); },
+      repair: async () => { throw new Error("The repair did not finish after 2 attempts"); },
+    });
+    await expect(reviewPr(d, { pr: 42 })).rejects.toThrow(/did not finish/);
+    expect(calls.records).toHaveLength(1);
+    const r = calls.records[0]!;
+    expect(r).toMatchObject({ attemptsThisPr: 1, baseSha: "base1", error: expect.stringMatching(/did not finish/) });
+    expect(r.conclusion).toBeUndefined();
+    expect(r.headSha).toBeUndefined();
+    expect(r.at).toBe(d.now());
+  });
+
+  it("carries the last verdict forward unchanged, so a moved base is never read as judged", async () => {
+    const { d, calls } = deps({
+      getPr: movedPr,
+      mergeVerify: async () => { calls.mergeVerify++; return mergeResult({ current: hashes({ "review.covers-every-criterion": "h3-new" }) }); },
+      review2: async () => { throw new Error("The merge review did not finish"); },
+    }, runFacts({ judgedHeadSha: SHA, priorConclusion: "success", attemptsThisPr: 2 }));
+    await expect(reviewPr(d, { pr: 42 })).rejects.toThrow(/merge review/);
+    expect(calls.records[0]).toMatchObject({ headSha: SHA, baseSha: "base1", conclusion: "success", attemptsThisPr: 2 });
+  });
+
+  it("rethrows the original error even when the record itself cannot be written", async () => {
+    const { d } = deps({
+      getPr: movedPr,
+      mergeVerify: async () => { throw new Error("Cannot connect to the Docker daemon"); },
+      recordReverify: async () => { throw new Error("ledger is locked"); },
+    });
+    await expect(reviewPr(d, { pr: 42 })).rejects.toThrow(/Docker daemon/);
+  });
+});
