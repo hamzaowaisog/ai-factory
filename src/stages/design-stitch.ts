@@ -309,19 +309,28 @@ export function setA11yCheck(f: typeof checkStitchA11y | undefined): void { a11y
 async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, projectId: string, device: StitchDevice, assets: StitchAsset[], ids: string[]): Promise<{ assets: StitchAsset[]; open: A11yOpen[] }> {
   const normals = assets.filter((a) => a.state === "normal" && ids.includes(a.id));
   const read = (a: StitchAsset) => ({ id: a.id, html: ctx.ledger.getArtifact(a.html).toString("utf8") });
-  const first = await a11yCheck(normals.map(read));
+  // a check that cannot run is a note, never a failure: the screens Stitch drew are kept
+  const check = async (pages: StitchAsset[]) => {
+    try { return await a11yCheck(pages.map(read)); } catch (e) { ctx.log(`design: the accessibility check could not run (${(e as Error).message})`); return undefined; }
+  };
+  const first = await check(normals);
   if (!first) { ctx.log("design: the Stitch screens' accessibility was not checked (no Chromium or axe-core here)"); return { assets, open: [] }; }
   const bad = first.filter((x) => x.violations.length);
   if (!bad.length) return { assets, open: [] };
   ctx.log(`design: accessibility problems on ${bad.map((b) => b.id).join(", ")}; one Stitch fix each`);
-  const fixed = await inPool(bad, STITCH_SIDE_BY_SIDE, async (b) => {
+  const rulesOf = (x: { violations: { id: string }[] }) => [...new Set(x.violations.map((v) => v.id))];
+  // a fix Stitch cannot make keeps the page as drawn and leaves its rules open
+  const tried = await inPool(bad, STITCH_SIDE_BY_SIDE, async (b) => {
     const a = normals.find((x) => x.id === b.id)!;
     const prompt = `Fix these accessibility problems and change nothing else: ${b.violations.map((v) => `${v.id} (${(v.targets ?? []).slice(0, 3).join("; ")})`).join(", ")}.`;
-    return saveAsset(ctx, c, framesDir, a.id, "normal", await c.edit(projectId, a.screenId, prompt, device));
+    try { return { b, page: await saveAsset(ctx, c, framesDir, a.id, "normal", await c.edit(projectId, a.screenId, prompt, device)) }; }
+    catch (e) { ctx.log(`design: Stitch could not fix ${b.id}'s accessibility (${(e as Error).message}); kept as drawn`); return { b, page: undefined }; }
   });
-  const again = (await a11yCheck(fixed.map(read))) ?? [];
+  const fixed = tried.flatMap((x) => (x.page ? [x.page] : []));
+  const notFixed = tried.filter((x) => !x.page).map((x) => ({ screen: x.b.id, rules: rulesOf(x.b) }));
+  const again = fixed.length ? (await check(fixed)) ?? [] : [];
   return {
     assets: assets.map((a) => (a.state === "normal" ? fixed.find((f) => f.id === a.id) ?? a : a)),
-    open: again.filter((x) => x.violations.length).map((x) => ({ screen: x.id, rules: [...new Set(x.violations.map((v) => v.id))] })),
+    open: [...notFixed, ...again.filter((x) => x.violations.length).map((x) => ({ screen: x.id, rules: rulesOf(x) }))],
   };
 }

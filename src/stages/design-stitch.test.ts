@@ -381,3 +381,25 @@ describe("rework guards (review C1, I1, I2)", () => {
     expect(made.projects).toHaveLength(1);
   });
 });
+
+describe("accessibility faults never cost the drawn screens (review I3)", () => {
+  it("goes on when the browser check throws", async () => {
+    setA11yCheck(async () => { throw new Error("chromium: missing libnss3"); });
+    answers = [plan(), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(memoryLedger()), spec);
+    expect(out.kind).toBe("done");
+    expect(made.edits).toEqual([]);
+  });
+
+  it("keeps the page and records the rules open when the Stitch fix fails", async () => {
+    setA11yCheck(async (pages) => pages.map((p) => ({ id: p.id, violations: p.id === "S-1" ? [{ id: "button-name", targets: ["button"] }] : [] })));
+    setStitchFactory(() => ({ ...fakeStitch(), async edit() { throw new Error("edit_screens failed"); } }));
+    const ledger = memoryLedger();
+    answers = [plan(), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(ledger), spec);
+    expect(out.kind).toBe("done");
+    const d = ledger.getJson<{ screens: { frames: string[] }[]; stitch: { a11y?: unknown } }>((out as { outputs: { design: string } }).outputs.design);
+    expect(d.stitch.a11y).toEqual([{ screen: "S-1", rules: ["button-name"] }]);
+    expect(d.screens[0]!.frames.length).toBeGreaterThan(0);
+  });
+});
