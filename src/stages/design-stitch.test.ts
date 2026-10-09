@@ -116,7 +116,10 @@ describe("drawing with stitch", () => {
     expect(models).toEqual(["claude-sonnet-5", "claude-sonnet-5"]);
     expect(made.closed).toBe(1);
     expect(existsSync(join(ledger.dir, "attachments", "frames", "stitch-S-1.png"))).toBe(true);
-    const d = ledger.getJson<{ engine: string; screens: { frames: string[] }[]; stitch: { model: string } }>((out as { outputs: { design: string } }).outputs.design);
+    const d = ledger.getJson<{ engine: string; theme: unknown; themeSource: string; screens: { frames: string[] }[]; stitch: { model: string; theme: unknown } }>((out as { outputs: { design: string } }).outputs.design);
+    expect(d.theme).toMatchObject({ brand: "#0F766E", mode: "light" });
+    expect(d.themeSource).toBe("new");
+    expect(d.stitch.theme).toEqual(theme);
     expect(d.engine).toBe("stitch");
     expect(d.stitch.model).toBe("stitch-default");
     expect(d.screens.map((s) => s.frames)).toEqual([["ST-1"], ["ST-2"]]);

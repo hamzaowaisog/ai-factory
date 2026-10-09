@@ -527,6 +527,8 @@ export const DesignBody = z.object({
   /** a Stitch design: its project, model, DESIGN.md (sha) and each frame's screen, HTML and screenshot (shas) */
   stitch: z.object({
     projectId: z.string(), model: z.string(), designMd: z.string(),
+    /** the Stitch design system's own theme, as sent to Stitch (src/design/stitch-taste.ts StitchTheme) */
+    theme: z.record(z.string(), z.unknown()).optional(),
     frames: z.record(z.string(), z.object({ name: z.string(), screenId: z.string(), html: z.string(), image: z.string() })),
   }).optional(),
 });
