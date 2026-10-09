@@ -245,3 +245,11 @@ Unproven in a paid run: 44 to 47. Checked on a dry run only.
     - This changes one rule of the safety model: the coding container no longer gets dummy settings only (`docs/design/context-builder.md` §2.6).
 
 Unproven in a paid run: 48, and the two settings changed with it (compaction at 150,000, command output at 20,000).
+
+## 10. Security: packages and the skeleton's database login (2026-10-10)
+
+49. **A task's commit is checked for packages the plan does not list.** The plan's `newDependencies` was shown at approval and never enforced: a hook refused `dotnet add` and `npm install` in the session, but a package written straight into a project file went through, and the lab's restore then fetched it. A safety gate (`task.packages-planned`, `src/gates/packages.ts`) now fails the commit when a project file gains a package, or changes a version, that the plan does not list. The failure names the file and the package, so the next attempt can take it out. See `docs/design/gate-engine.md`.
+50. **The API skeleton has no built-in database login.** `Program.cs` fell back to a connection string with the password `app` when none was configured, so a product deployed without its setting would run on a password written in its code. It now stops with a message naming `ConnectionStrings__App` when it first needs the database. The lab, the factory's run files and the generated `docker-compose.yml` all set that setting themselves. The build's OpenAPI step never opens the database, so it is not affected. A product started before this keeps its old `Program.cs`.
+
+Not built: a vulnerability audit of dependencies (it needs a decision on whether it blocks a run or only reports). Unproven in a paid run: 49 and 50.
+

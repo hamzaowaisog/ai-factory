@@ -40,8 +40,10 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
-// PostgreSQL: the connection comes from ConnectionStrings__App; the fallback is a local server for development
-builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("App") ?? "${connection("localhost")}"));
+// PostgreSQL: the connection comes from ConnectionStrings__App and nowhere else. There is no built-in login: an app that is
+// not given one stops when it first needs the database, so it can never run on a password that is written in the code.
+builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("App")
+    ?? throw new InvalidOperationException("No database connection is configured. Set ConnectionStrings__App (for example Host=...;Port=5432;Database=...;Username=...;Password=...).")));
 // the web app's address: 3000 unless the setting Cors:Origin names another (the factory sets it when it starts the web app on another port)
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(builder.Configuration["Cors:Origin"] ?? "http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
 var app = builder.Build();

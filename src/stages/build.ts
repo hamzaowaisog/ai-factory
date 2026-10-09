@@ -26,6 +26,7 @@ import { BUILT_SCHEMA_FILE, buildCachePath, produceDotnetTests, skippableKnownFa
 import type { ProjectConfig } from "../config/project.js";
 import { installIsCurrent, installNodeModules, labFor, markInstalled, runNodeOffline } from "../verify/lab.js";
 import { contractGap, contractMatches, dataModelMatches } from "../gates/contract.js";
+import { changedPackages, isPackageManifest, packagesPlanned, type PackageChange, type PackageChanges } from "../gates/packages.js";
 import { DATA_MODEL_FILE, dataModelDiff, dataModelYaml } from "../gates/data-model.js";
 import { parse } from "yaml";
 import { DataModel } from "../contracts/index.js";
@@ -779,6 +780,14 @@ async function isAncestor(wt: string, a: string, b: string): Promise<boolean> {
   try { await git(wt, ["merge-base", "--is-ancestor", a, b]); return true; } catch { return false; }
 }
 
+/** The packages the commit's project files add or change since `diff.from`, read from the files at both commits. */
+async function packageChangesOf(wt: string, diff: DiffSummary): Promise<PackageChanges> {
+  const at = async (commit: string, path: string) => { try { return (await git(wt, ["show", `${commit}:${path}`])).stdout; } catch { return undefined; } };
+  const changes: PackageChange[] = [];
+  for (const f of diff.files) if (isPackageManifest(f.path)) changes.push(...changedPackages(f.path, await at(diff.from, f.path), await at(diff.to, f.path)));
+  return { kind: "packages", from: diff.from, to: diff.to, changes };
+}
+
 function secretScanOf(diff: DiffSummary, commit: string) {
   return { kind: "secrets" as const, commit, hits: diff.files.flatMap((f) => scanText(f.path, f.added.join("\n"))) };
 }
@@ -1117,6 +1126,8 @@ export function implementStep(taskId: string): StepDef {
         sections: [
           S.template("tpl", implementIntro(ctx.project.stack, sessionDb && { settings: Object.keys(sessionDb.env) })),
           S.artifact("task", "plan-task", { ...task, approach: task.approach }),
+          // the plan's packages: the only ones a project file may gain (task.packages-planned checks the commit)
+          ...(plan.newDependencies.length ? [S.template("planned-packages", `The approved plan lists these packages: ${plan.newDependencies.map((d) => `${d.name} ${d.version}`).join(", ")}. A project file may gain these and no other, and no other package's version may change: the commit is checked.`)] : []),
           // the approved screen this task builds (route, states, sample content, and the look to follow)
           ...(approvedScreen ? [S.artifact("approved-screen", "approved-screen", approvedScreen)] : []),
           ...(scaf ? [S.profile("scaffold", `The approved design is already code in this repo (${scaf.target}, kit ${scaf.kit.id} ${scaf.kit.version}):\n${scaf.summary}`)] : []),
@@ -1205,6 +1216,7 @@ export function implementStep(taskId: string): StepDef {
       const diffGated = await gateAll(ctx, key, commit, [
         [lockSetUnchanged, { diff: diffSha, tests: ctx.state.steps.get("author-tests")!.outputs[0]! }],
         [configIntegrity, { diff: diffSha, plan: ctx.state.steps.get("plan")!.outputs[0]! }],
+        [packagesPlanned, { packages: ctx.ledger.putJson(await packageChangesOf(wt, diff)), plan: ctx.state.steps.get("plan")!.outputs[0]! }],
         [noSecrets, { scan: ctx.ledger.putJson(secretScanOf(diff, commit)) }],
         [diffInScope, { diff: diffSha, task: ctx.ledger.putJson({ fileScope }) }],
         [noEscapeHatches, { diff: diffSha }],
