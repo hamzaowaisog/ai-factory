@@ -1,6 +1,6 @@
 // Step 9: repair proposes edits, and can never touch a locked test.
 import { describe, expect, it } from "vitest";
-import { BROKEN_MERGE_TEMPLATE, CONFLICT_TEMPLATE, proposeRepair, RepairEdits, repairIsEmpty, safeEditPath, type RepairRunOpts } from "./repair-run.js";
+import { BROKEN_MERGE_TEMPLATE, CONFLICT_TEMPLATE, isRepairLockedTest, proposeRepair, RepairEdits, repairIsEmpty, safeEditPath, type RepairRunOpts } from "./repair-run.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 
 const U = { inputTokens: 100, outputTokens: 10, cacheRead: 0, cacheWrite: 0 };
@@ -181,6 +181,24 @@ describe("proposeRepair", () => {
     const got = await proposeRepair(opts({ provider }), "rv-1");
     expect(got.edits).toEqual([codeEdit]);
     expect(got.rejected.filter((r) => r.why === "path is outside the repository")).toHaveLength(3);
+  });
+
+  it("counts a web app's browser tests as tests, in their own folder or by name", () => {
+    for (const p of ["e2e/checkout.ts", "web/e2e/helpers/login.ts", "cypress/support/commands.js", "playwright/cart.ts",
+      "src/app/cart.e2e.ts", "src/app/cart.cy.tsx", "src/app/cart.test.tsx", "src/__tests__/cart.ts"]) {
+      expect(isRepairLockedTest(p), p).toBe(true);
+    }
+    for (const p of ["src/app/cart/page.tsx", "src/lib/e2e-client.ts", "playwright.config.ts", "src/Orders/Cart.cs"]) {
+      expect(isRepairLockedTest(p), p).toBe(false);
+    }
+  });
+
+  it("DROPS an edit to a browser test, as it drops one to any other test", async () => {
+    const e2e = { path: "e2e/checkout.spec-helpers.ts", content: "// emptied", why: "the flow changed" };
+    const { provider } = scripted({ "*": [submit({ summary: "fixed", edits: [codeEdit, e2e] })] });
+    const got = await proposeRepair(opts({ provider }), "rv-1");
+    expect(got.edits).toEqual([codeEdit]);
+    expect(got.rejected.map((r) => r.path)).toEqual([e2e.path]);
   });
 
   it("safeEditPath keeps ordinary paths and refuses the ways out", () => {

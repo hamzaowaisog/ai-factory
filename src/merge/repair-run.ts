@@ -114,6 +114,17 @@ export function safeEditPath(raw: string): string | undefined {
  */
 const PUSH_PROTECTED = [".github/**", ".factory/**"];
 
+/**
+ * Browser tests, which the general test rule does not know: a web app keeps them in a folder of
+ * their own (e2e/, cypress/, playwright/) or names them *.e2e.ts or *.cy.ts.
+ */
+const BROWSER_TEST = /(^|\/)(e2e|cypress|playwright)\/|\.(e2e|cy)\.[tj]sx?$/i;
+
+/** A test file of any stack: a repair makes the code pass the tests, never the other way round. */
+export function isRepairLockedTest(path: string): boolean {
+  return isTestPath(path) || BROWSER_TEST.test(path);
+}
+
 export function isPushProtected(path: string, noGo: readonly string[] = []): boolean {
   return matchesAny(path, PUSH_PROTECTED) || isSecretPath(path, noGo);
 }
@@ -161,7 +172,7 @@ export async function proposeRepair(o: RepairRunOpts, reverifyRunId: string): Pr
         if (locked.has(p)) { rejected.push({ path: p, why: e.why }); continue; }
         // any test, not only the locked ones: the merge result is no longer compared with a baseline
         // test list, so a repair that deleted or skipped the failing test would otherwise go green
-        if (isTestPath(p)) { rejected.push({ path: p, why: "a repair may not change a test: it must make the code pass the tests, not the other way round" }); continue; }
+        if (isRepairLockedTest(p)) { rejected.push({ path: p, why: "a repair may not change a test: it must make the code pass the tests, not the other way round" }); continue; }
         if (isPushProtected(p, o.noGo ?? [])) { rejected.push({ path: p, why: "a repair may not write workflows, the evidence manifest or a no-go path" }); continue; }
         // the normalised path, which is the one that was checked: on Linux a backslash is part of the file name
         edits.push({ ...e, path: p });

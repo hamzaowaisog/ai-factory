@@ -11,6 +11,33 @@ The factory runs **inside WSL2 on Windows**, never as a native Windows process: 
 locking are unreliable on a Windows drive, and the ledger depends on both. `factory doctor` checks
 this. Everything below assumes an Ubuntu shell with the repository in the Linux filesystem.
 
+## Which stacks it works on
+
+The review agent is not tied to one stack. It builds and tests a pull request in the same lab the
+build used, chosen by the project's `stack`:
+
+| `stack` | Lab | Skill with its best practices |
+|---|---|---|
+| `dotnet` | restore, offline build, tests beside a throwaway Postgres | `dotnet-best-practices` |
+| `node` (a Next.js or other TypeScript app) | install from the npm registry through the feed proxy, build, tests with no network | `next-best-practices` |
+
+Everything else is the same for both: the repair, the second review, the gates, the trigger. The
+examples below use a .NET project called `shop`; for a Next.js project only the project name and
+the skill change.
+
+For a `stack: node` project, know these before you switch it on:
+
+- **`package.json` must be at the repository root.** The lab reports a build failure otherwise.
+- **No test database.** The Node lab refuses a project with `database:` set, so a Next.js app that
+  needs its own database for its tests cannot be verified yet. The build has the same limit.
+- **A full-stack product is two projects**, the API and the web app, each with its own repository
+  and its own runs. Run one `factory review-open-prs --project <name>` for each.
+- **A repair may not change a test of any kind.** Besides `*.test.ts(x)`, `*.spec.ts(x)` and
+  `__tests__/`, that covers browser tests: the `e2e/`, `cypress/` and `playwright/` folders, and
+  `*.e2e.ts` and `*.cy.ts` files.
+
+Neither stack has been run end to end through the review agent yet (see "Before you switch it on").
+
 ---
 
 ## Step 1 — Build the coding guidelines
@@ -47,9 +74,17 @@ is judged by — the same reason `protected.ts` already guards `.editorconfig`.
 | `~/.factory/skills/<name>/SKILL.md` | every project on this host picks it up |
 | `<repo>/.claude/skills/<name>/SKILL.md` | only that repository does, and it **replaces** a shared skill of the same name |
 
-Shared is usually what you want: install `dotnet-best-practices` once and every .NET project gets it.
-Use the project layer when one repository genuinely disagrees — a Node service has no use for the
-.NET rules.
+Shared is usually what you want: install `dotnet-best-practices` once and every .NET project gets it,
+and `next-best-practices` once for every Next.js project. Each skill says which files its rules apply
+to (`**/*.cs`, or `**/*.ts` and `**/*.tsx`), so having both installed does not put .NET rules in front
+of a Next.js review. Use the project layer when one repository genuinely disagrees.
+
+The factory's own copies are in this repository under `.agents/skills/`. To install them on a host:
+
+```bash
+mkdir -p ~/.factory/skills
+cp -R .agents/skills/dotnet-best-practices .agents/skills/next-best-practices .agents/skills/code-review ~/.factory/skills/
+```
 
 If neither directory has anything, the build says so and section 3 comes out empty. It does not fail:
 external best practices are advisory and can never block a merge.
