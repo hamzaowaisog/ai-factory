@@ -51,6 +51,7 @@ import { LANE, lightBuild, testWriterTurns } from "./lane.js";
 import { lessonPointers, readLessons, usableLessons } from "../context/lessons.js";
 import { sizeCap } from "../estimate/gates.js";
 import { buildWaiver } from "../estimate/build-waiver.js";
+import { testsCoverCriteria } from "../gates/coverage.js";
 import type { WaiverRow } from "../estimate/log.js";
 import { designFidelityLint, designSizeCap } from "../design/gates.js";
 import { screenBrief, screenFacts, screenFor, screensBrief, screensForTask, type ApprovedDesign } from "../design/design-link.js";
@@ -603,6 +604,9 @@ export const authorTestsStep: StepDef = {
     const light = lightBuild(intent, plan.complexity);
     const start = String(ctx.state.steps.get("stub-commit")!.data!.commit);
     const wt = await ensureWorktree(ctx, start);
+    // the tests a card of this step is holding, once a person accepted them: locked as they are, not written and paid for again
+    const held = await heldTests(ctx, wt);
+    if (held) return held;
     // keep the previous attempt's tests when a retry can fix them, or start again from the stub commit
     const prev = previousAttempt(ctx.ledger.events(), "author-tests", ctx.priorFailures.map(checkOf));
     let mode = testRetryMode(prev);
@@ -788,9 +792,33 @@ Before you return, check your list against the criteria: each of these needs at 
       if (sent < PROOF_REWRITES && rewriteHasRoom(ctx)) return { kind: "fail", category: "other", failures: weak.failures, signature: PROOF_SIGNATURE, data: keep };
       ctx.log(`author-tests: ${weak.failures.length} test(s) still read as weak after ${sent} rewrite${sent === 1 ? "" : "s"}; locking them as they are and naming them on the pull request`);
     }
-    return { kind: "done", outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, ...retry, locked: lock.lock.length, familyNote, ...(weak.weak.length ? { weakTests: weak.weak } : {}), ...(lessons.length ? { lessonsUsed: lessons.map((l) => l.csproj) } : {}) } };
+    const done = { outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, ...retry, locked: lock.lock.length, familyNote, ...(weak.weak.length ? { weakTests: weak.weak } : {}), ...(lessons.length ? { lessonsUsed: lessons.map((l) => l.csproj) } : {}) } };
+    // a criterion nothing tests, after every rewrite: the run stops here, before any code is paid for, and a person accepts it or stops
+    const untested = weak.weak.filter((w) => w.verdict === "no-test").map((w) => w.acId);
+    if (!untested.length) return { kind: "done", ...done };
+    const cover = await runGate(testsCoverCriteria, ctx.ledger, ctx.writer, { check: ctx.ledger.putJson({ coverage: weak.weak }) }, ctx.policy, { step: "author-tests", treeSha: commit });
+    const w = buildWaiver(ctx, "author-tests", [{ def: testsCoverCriteria, failures: cover.failures ?? [failure(testsCoverCriteria.id, cover.details)] }], commit,
+      `The test writer was sent back and still wrote no test for ${untested.length === 1 ? "this criterion" : "these criteria"}. Accepting locks the tests as they are and the build goes on; the pull request names the criteria. To stop instead: factory stop ${ctx.runId}`);
+    const accepted = { ...done, data: { ...done.data, acceptedUntested: untested } };
+    if (w.kind === "waived") return { kind: "done", ...accepted, data: { ...accepted.data, waivers: w.waivers } };
+    return w.outcome.kind === "wait" ? { ...w.outcome, card: { ...w.outcome.card, extra: { ...(w.outcome.card.extra ?? {}), testsFor: commit, held: accepted } } } : w.outcome;
   },
 };
+
+/**
+ * The step's result a waiver card is holding (see the end of authorTestsStep), when a person accepted the card and the
+ * worktree still has those tests: the same commit gets the same lock, with the person's name on it.
+ */
+async function heldTests(ctx: StepContext, wt: string): Promise<StepOutcome | undefined> {
+  const ev = [...ctx.ledger.events()].reverse().find((e) => e.type === "human.requested" && (e.data as { step?: string }).step === "author-tests");
+  const d = ev?.data as { artifactSha?: string; gateIds?: string[]; testsFor?: string; held?: { outputs: Record<string, string>; treeSha: string; data: Record<string, unknown> } } | undefined;
+  if (!d?.held || !d.testsFor || !d.artifactSha) return undefined;
+  const given = ctx.state.decisions.find((x) => x.artifactSha === d.artifactSha && x.decision === "waive");
+  if (!given || (await headSha(wt)) !== d.testsFor) return undefined;
+  ctx.log("author-tests: locking the tests the card was holding, as accepted (no model call)");
+  const reason = String((given as unknown as { reason?: string }).reason ?? "").trim();
+  return { kind: "done", outputs: d.held.outputs, treeSha: d.held.treeSha, data: { ...d.held.data, waivers: [{ gateIds: d.gateIds ?? [testsCoverCriteria.id], human: given.by, reason, boundTo: d.artifactSha }] } };
+}
 
 const PROOF_SIGNATURE = "author-tests:proof";
 /** How many times the test writer is sent back for tests that do not prove their criteria, before they are locked as they are. */

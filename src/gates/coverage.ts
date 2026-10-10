@@ -80,15 +80,30 @@ export const testsProveCriteria = defineGate<{
 export const criteriaHaveTests = defineGate<{
   review: { coverage: ReviewCoverage[] };
   spec: { requirements: Requirement[] };
+  accepted?: { acIds: string[] };
 }>({
   id: "review.criteria-have-tests", after: "review", safety: false, waiver: "human",
-  predicate: ({ review, spec }) => {
+  predicate: ({ review, spec, accepted }) => {
     const all = unprovenCriteria(review.coverage, spec.requirements);
-    const bad = all.filter((b) => b.verdict === "no-test");
+    // a criterion a person already accepted without a test, before the tests were locked, is not asked about twice
+    const bad = all.filter((b) => b.verdict === "no-test" && !accepted?.acIds.includes(b.acId));
     const automated = spec.requirements.flatMap((r) => r.acceptance).filter((a) => a.level !== "manual").length;
     const weak = all.length - bad.length;
     return verdict(
       bad.map((b) => failure("test-proof", `${b.acId}: no locked test covers it (${b.why})`)),
       `${automated} automated ${automated === 1 ? "criterion has" : "criteria each have"} a locked test that covers ${automated === 1 ? "it" : "them"}${weak ? `; ${weak} of the tests ${weak === 1 ? "is" : "are"} called weak, which does not stop the run` : ""}`);
+  },
+});
+
+/**
+ * The same question, asked before the tests are locked and before any code is paid for: the check that reads each new test
+ * against its criterion (weakTests in build.ts) still finds nothing testing a criterion, after the test writer was sent
+ * back as often as the ladder allows. The run stops here, where stopping is cheap; a person accepts it by name or stops.
+ */
+export const testsCoverCriteria = defineGate<{ check: { coverage: { acId: string; verdict: string; why: string }[] } }>({
+  id: "tests.cover-every-criterion", after: "author-tests", safety: false, waiver: "human",
+  predicate: ({ check }) => {
+    const bad = check.coverage.filter((c) => c.verdict === "no-test");
+    return verdict(bad.map((c) => failure("test-proof", `${c.acId}: no test covers it (${c.why})`)), "every criterion has a test that covers it");
   },
 });

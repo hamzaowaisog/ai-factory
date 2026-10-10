@@ -93,7 +93,7 @@ let clarifierPrompt = "";
 let reviewVerdict: "proves-it" | "weak" | "no-test" = "proves-it";
 let reviewCalls = 0;
 /** what the scripted check before the lock says about every new test (unscripted when unset), and how often it was asked */
-let proofVerdict: "proves-it" | "weak" | undefined;
+let proofVerdict: "proves-it" | "weak" | "no-test" | undefined;
 let proofCalls = 0;
 /** the spec also carries a criterion only a person can check */
 let manualCriterion = false;
@@ -511,6 +511,33 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(sent.every((e) => (e.data as { action?: string }).action === "retry")).toBe(true);
     expect(proofCalls).toBe(sent.length + 1);
     expect(replay(ledger.events()).steps.get("author-tests")!.data!.weakTests).toEqual([{ acId: "AC-1.1", verdict: "weak", testId: "", why: "scripted check" }]);
+  });
+
+  it("a criterion nothing tests stops the run before the build, and once a person accepts it nobody is asked again", async () => {
+    proofVerdict = "no-test";
+    // the final review reads it the same way: the person's answer before the lock covers it
+    reviewVerdict = "no-test";
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("waiting");
+    const waiting = replay(ledger.events());
+    const card = waiting.openCard!;
+    expect(card.kind).toBe("waiver");
+    expect(readFileSync(join(ledger.dir, "cards", `${card.cardId}.md`), "utf8")).toMatch(/tests\.cover-every-criterion: AC-1\.1: no test covers it \(scripted check\)/);
+    // it stopped before any code was written
+    expect([...waiting.steps.keys()].some((k) => k.startsWith("implement"))).toBe(false);
+    const asked = proofCalls;
+    await decide(ledger, { decision: "waive", hashPrefix: card.artifactSha.slice(0, 6), by: "lead", data: { reason: "checked by hand at release" } });
+    const r2 = await execute(runId);
+    expect(r2.status, r2.message).toBe("delivered");
+    // the tests the card held were locked as they were: not written or checked again
+    expect(proofCalls).toBe(asked);
+    const s = replay(ledger.events());
+    expect(s.steps.get("author-tests")!.data).toMatchObject({ acceptedUntested: ["AC-1.1"], waivers: [{ gateIds: ["tests.cover-every-criterion"], human: "lead", reason: "checked by hand at release" }] });
+    expect(s.gates.filter((g) => g.gateId === "review.criteria-have-tests").map((g) => g.passed)).toEqual([true]);
+    expect(ledger.readCard(`pr-${runId}`)).toContain("Waived by lead: tests.cover-every-criterion (checked by hand at release). No test covers AC-1.1");
   });
 
   it("a criterion with no automated test waits for a person's sign-off after the review, and the pull request names who checked it", async () => {

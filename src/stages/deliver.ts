@@ -191,7 +191,9 @@ export const reviewStep: StepDef = {
     if (!g.passed) return { kind: "park", reason: `Review found blocking problems: ${(g.failures ?? []).slice(0, 3).map((f) => f.message).join(" | ")}` };
     // a criterion the reviewer found no test for at all stops the run here: nothing proves it, and the tests are locked, so
     // a person accepts that by name or stops
-    const proof = await runGate(criteriaHaveTests, ctx.ledger, ctx.writer, { review: reviewSha, spec: specSha }, ctx.policy, { step: "review", treeSha: head });
+    // (one a person accepted before the tests were locked is not asked about again)
+    const acceptedUntested = (ctx.state.steps.get("author-tests")?.data as { acceptedUntested?: string[] } | undefined)?.acceptedUntested ?? [];
+    const proof = await runGate(criteriaHaveTests, ctx.ledger, ctx.writer, { review: reviewSha, spec: specSha, ...(acceptedUntested.length ? { accepted: ctx.ledger.putJson({ acIds: acceptedUntested }) } : {}) }, ctx.policy, { step: "review", treeSha: head });
     if (!proof.passed) {
       const w = buildWaiver(ctx, "review", [{ def: criteriaHaveTests, failures: proof.failures ?? [failure(criteriaHaveTests.id, proof.details)] }], head,
         `The tests are locked, so another attempt cannot change them. The run's Tests tab shows each criterion, its test and the reviewer's reason. To stop instead: factory stop ${ctx.runId}`);
@@ -274,6 +276,8 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
   // what a person decided at the review: the criteria tried by hand, and any check accepted as it stands
   const reviewed = ctx.state.steps.get("review")?.data as { manualChecks?: { by: string; criteria: string[] }; waivers?: { gateIds: string[]; human: string; reason: string }[]; weakTests?: { acId: string; why: string }[] } | undefined;
   const weak = reviewed?.weakTests ?? [];
+  // a criterion accepted with no test before the tests were locked
+  const written = ctx.state.steps.get("author-tests")?.data as { waivers?: { gateIds: string[]; human: string; reason: string }[]; acceptedUntested?: string[] } | undefined;
   const byHand = new Set(reviewed?.manualChecks?.criteria ?? []);
   return [
     `## What was asked`,
@@ -300,6 +304,7 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
     `- Acceptance tests were written first, failed on the old code twice, then locked`,
     ...(a.lock.familyNote ? [`- ⚠ ${a.lock.familyNote}`] : []),
     ...(flaky.length ? [`- ⚠ Flaky (passed only on re-run): ${flaky.join(", ")}`] : []),
+    ...(written?.waivers ?? []).map((w) => `- ⚠ Waived by ${w.human}: ${w.gateIds.join(", ")} (${w.reason})${written?.acceptedUntested?.length ? `. No test covers ${written.acceptedUntested.join(", ")}` : ""}`),
     ...(reviewed?.waivers ?? []).map((w) => `- ⚠ Waived by ${w.human}: ${w.gateIds.join(", ")} (${w.reason})`),
     ...(weak.length ? [`- ⚠ ${weak.length} locked test${weak.length === 1 ? "" : "s"} the review judged not to prove ${weak.length === 1 ? "its criterion" : "their criteria"}. ${weak.length === 1 ? "It passes" : "They pass"}, and the run did not stop for ${weak.length === 1 ? "it" : "them"}:`, ...weak.map((w) => `  - ${w.acId}: the test is too weak (${w.why})`)] : []),
     `- Review: ${a.review.findings.length} non-blocking findings${a.review.note ? ` (${a.review.note})` : ""}`,
