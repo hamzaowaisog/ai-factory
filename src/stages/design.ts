@@ -26,6 +26,7 @@ import { lookFromRefs, lookRefs, matchFamilies, refBrief as clientRefBrief, refF
 import type { DesignRefsArt } from "./design-refs.js";
 import { ESTIMATE_SOURCES, intentOf, inventoryNamed, repoInventory, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
 import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
+import { uiuxSection } from "../design/uiux-skill.js";
 import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
 import { ensureMeasured } from "../design/refs/measure.js";
 import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } from "../design/looks.js";
@@ -982,6 +983,9 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const field = fieldOf(reqText);
       // (a client's brand may repeat an earlier project's: no recent-looks check when every look reference is matched)
       const recent = existing || restyle || (earlier && !earlier.skipped) || matchOnly ? [] : recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), undefined, field);
+      // a new look gets the ui-ux-pro-max skill's design system for the field, from the skill's own search (no model)
+      const uiux = await uiuxSection(reqText, ctx.state.info.estimate?.projectName ?? "", !existing && !restyle && !fromRefs && !(earlier && !earlier.skipped));
+      if (uiux.note) ctx.log(uiux.note);
       const feedback = sentBack.length
         ? `The lead rejected the previous design ${sentBack.length === 1 ? "once" : `${sentBack.length} times`}. Their reasons, oldest first:\n${sentBack.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nRedraw it so each reason is met: keep what they did not criticise, change what they did, and do not repeat the earlier screens, theme or sample data where they objected.${again?.fine.length && prev ? ` The lead said these pages are fine, so keep them as they are: ${prev.screens.filter((x) => again!.fine.includes(x.id)).map(screenName).join(", ")}.` : ""}`
         : "";
@@ -995,6 +999,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
         ...(starter ? [S.artifact("starter", "starter-components", starter)] : []),
         ...(fromRefs ? [] : [S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`)]),
+        ...(uiux.section ? [uiux.section] : []),
         ...(reading ? referenceSections(ctx.state, reading) : []),
         ...(recent.length ? [S.reference("recent-looks", lookBrief(recent, field))] : []),
         ...(feedback ? [S.reference("design-feedback", feedback)] : []),

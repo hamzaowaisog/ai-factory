@@ -5,6 +5,7 @@ import { designRoute } from "../config/design-route.js";
 import type { Rung } from "../gates/ladder.js";
 import { hasPrice } from "../runners/pricing.js";
 import { tasteSkillProblem } from "../design/stitch-taste.js";
+import { uiuxProblem } from "../design/uiux-skill.js";
 import { blockedText, modelAllowed, type Policy } from "../gates/policy.js";
 import { family, type Effort } from "../runners/types.js";
 
@@ -141,6 +142,11 @@ export function checkRoutes(project: ProjectConfig, only?: readonly string[]): s
       if (!hasSecret("STITCH_API_KEY")) problems.push("design.engine is stitch, but STITCH_API_KEY is missing from ~/.factory/.env");
       const skill = tasteSkillProblem();
       if (skill) problems.push(skill);
+    }
+    // the JSON track runs the ui-ux-pro-max skill's search: only the reviewed copy
+    if (stage === "design" && project.design?.engine !== "stitch") {
+      const ux = uiuxProblem();
+      if (ux) problems.push(`design: ${ux}`);
     }
     if (THINKING_STEPS.has(stage) && r.runner !== "api") problems.push(`${stage} is a thinking step and must use the api runner`);
     if (CODING_STEPS.has(stage) && r.runner === "api") problems.push(`${stage} is a coding step and needs an agent runner`);
