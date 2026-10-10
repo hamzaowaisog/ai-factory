@@ -3,7 +3,8 @@ import { userInfo } from "node:os";
 import { resolve } from "node:path";
 import type { Command } from "commander";
 import { gatherRequest } from "../sources/request.js";
-import { delivered, loadProduct, productSeed, startApiRun, startProduct, writeRunFiles } from "./product.js";
+import { DATABASE_NAME } from "./database.js";
+import { databaseOf, delivered, loadProduct, productSeed, startApiRun, startProduct, writeRunFiles } from "./product.js";
 
 export function registerFullstackCommands(program: Command, d: { log: (m: string) => void; runAndReport: (runId: string) => Promise<void> }): void {
   const { log } = d;
@@ -24,6 +25,7 @@ export function registerFullstackCommands(program: Command, d: { log: (m: string
       if (seed && (prompt || o.file)) throw new Error("An approved design or estimate brings its own request: give no prompt and no --file.");
       const req = seed ? undefined : await gatherRequest({ prompt, file: o.file }, {});
       const p = await startProduct(o.name, resolve(o.dir), req, userInfo().username, o.maxCost !== undefined ? Number(o.maxCost) : undefined, seed, !!o.github);
+      log(`database of the API: ${DATABASE_NAME[databaseOf(p)]}. ${p.database?.reason ?? ""}`);
       log(`web repo ${p.web.repo} (project ${p.web.project}); API repo ${p.api.repo} (project ${p.api.project})`);
       if (p.web.github) log(`on GitHub: ${p.web.github} and ${p.api.github}`);
       if (p.from) log(p.from.kind === "design" ? `started from approved design ${p.from.runId}: its design steps are skipped` : `started from approved estimate ${p.from.runId}: the web run is held to it`);
@@ -37,6 +39,7 @@ export function registerFullstackCommands(program: Command, d: { log: (m: string
     .action(async (name: string, o: { maxCost?: string }) => {
       const p = loadProduct(name);
       if (!p.api.run) {
+        log(`database of the API: ${DATABASE_NAME[databaseOf(p)]}. ${p.database?.reason ?? ""}`);
         const api = await startApiRun(p, userInfo().username, o.maxCost !== undefined ? Number(o.maxCost) : undefined);
         if (!api) return log(`The web run's plan is not approved yet, so there is no contract to hand over. See: factory status ${p.web.run}`);
         log(`contract handed to ${p.api.repo}`);

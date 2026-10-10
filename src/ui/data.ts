@@ -21,11 +21,13 @@ import { outcomes, scoreRun, stageStats, stageOf, type RunScore } from "../repor
 import { jiraConfigured } from "../sources/jira.js";
 import { figmaConfigured } from "../sources/figma.js";
 import { designRunView } from "../design/runs.js";
-import { loadProduct, productNames } from "../fullstack/product.js";
+import { DATABASE_NAME } from "../fullstack/database.js";
+import { databaseOf, loadProduct, productNames } from "../fullstack/product.js";
 import type { VisualCheck } from "../design/visual-check.js";
 import { exportWorkbooks } from "../estimate/export.js";
 import { humanReview } from "../estimate/settings.js";
 import { catalogueStatusText } from "../estimate/catalogue-status.js";
+import { deliveryTotals } from "../estimate/totals.js";
 import { exportInputFor } from "../stages/estimate-approve.js";
 import { stepsFor } from "../stages/modes.js";
 import { factoryHome } from "../util/paths.js";
@@ -239,7 +241,7 @@ export function gateChips(s: RunState): GateChip[] {
 export function cardCommands(markdown: string, runId: string, hash8: string): string[] {
   const out = [`factory show-card ${runId}`];
   for (const line of markdown.split("\n")) {
-    const m = /(?:^|\s|`)(factory (?:approve|reject|answer|waive-cap|waive-budget|stop)\s[^`]*?)`?\s*$/.exec(line);
+    const m = /(?:^|\s|`)(factory (?:approve|reject|answer|sign-off|waive-cap|waive-budget|stop)\s[^`]*?)`?\s*$/.exec(line);
     if (m) out.push(m[1]!.replace(/\s+/g, " ").replace("<hash>", hash8).trim());
   }
   return [...new Set(out)];
@@ -319,12 +321,13 @@ export function runView(ledger: Ledger) {
 }
 
 /** The full-stack product a run is one side of (factory fullstack), so its page links to the product. */
-function productOf(runId: string): { product?: { name: string; side: "web" | "api" } } {
+function productOf(runId: string): { product?: { name: string; side: "web" | "api"; database: { name: string; reason: string } } } {
   for (const name of productNames()) {
     try {
       const p = loadProduct(name);
-      if (p.web.run === runId) return { product: { name, side: "web" } };
-      if (p.api.run === runId) return { product: { name, side: "api" } };
+      const database = { name: DATABASE_NAME[databaseOf(p)], reason: p.database?.reason ?? "" };
+      if (p.web.run === runId) return { product: { name, side: "web", database } };
+      if (p.api.run === runId) return { product: { name, side: "api", database } };
     } catch { /* a broken product file is skipped */ }
   }
   return {};
@@ -502,7 +505,7 @@ export function estimateView(ledger: Ledger) {
     runId: ledger.runId,
     settings: s.info.estimate ?? {},
     deliveryModel: est.deliveryModel, band: est.band, uncertainty: est.uncertainty, complexity: est.complexity,
-    totals: est.totals, apiCost: est.apiCost, elapsed: est.elapsed,
+    totals: est.totals, ...(bd ? { delivery: deliveryTotals(est, bd) } : {}), apiCost: est.apiCost, elapsed: est.elapsed,
     tasks: est.tasks.map((t) => {
       const b = titles.get(t.taskId);
       return { id: t.taskId, title: b?.title ?? t.taskId, track: b?.track, kind: b?.kind, size: t.size, executor: t.executor, hours: t.hours, ...(t.apiUsd ? { apiUsd: t.apiUsd } : {}), anchor: t.anchorId, ratio: t.ratio, reason: t.reason, flagged: t.flagged, splitAdvised: t.splitAdvised, references: t.references, screen: b?.screen, reqs: b?.reqs ?? [], overhead: b?.overhead };

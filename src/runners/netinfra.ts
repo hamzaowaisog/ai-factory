@@ -2,12 +2,13 @@
 //   factory-agent-net  (internal): agent containers + api proxy → only the model API, key added by the proxy
 //   factory-feeds-net  (internal): restore containers + feed proxy → only allowlisted package hosts
 import { execFile } from "node:child_process";
-import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
+import { chmodSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { secret } from "../config/env.js";
+import { factoryHome } from "../util/paths.js";
 import type { ContainerRuntime } from "../verify/runtime.js";
 
 const exec = promisify(execFile);
@@ -52,9 +53,21 @@ export function setSkipInfra(v: boolean): void {
   skipInfra = v;
 }
 
-/** Only agent containers reach this proxy and they only need Anthropic; host-side OpenAI calls go direct. */
+/**
+ * What the key proxy reads, mounted into it read-only: the real key (a file, so it is in no container's
+ * environment and not in `docker inspect`) and one small file per running agent step (its token).
+ */
+export function proxyDir(): string {
+  return join(factoryHome(), "proxy");
+}
+const KEY_FILE = "anthropic-key";
+const TOKENS = "tokens";
+const PROXY_MOUNT = "/factory";
+
+/** Only agent containers reach this proxy and they only need Anthropic; host-side OpenAI calls go direct. No key in here. */
 export function apiProxyEnv(): Record<string, string | undefined> {
-  return { MODE: "api", ANTHROPIC_API_KEY: secret("ANTHROPIC_API_KEY") };
+  // besides its own model a step may call a Haiku model: the agent SDK uses one for its small background calls
+  return { MODE: "api", KEY_FILE: `${PROXY_MOUNT}/${KEY_FILE}`, TOKEN_DIR: `${PROXY_MOUNT}/${TOKENS}`, ALLOW_MODELS: "claude-haiku-*" };
 }
 
 /** A short hash of the proxy's settings and code: stored as a label, never the keys themselves. */
@@ -62,6 +75,47 @@ export function proxyFingerprint(env: Record<string, string | undefined>, code: 
   const keys = Object.keys(env).sort();
   return createHash("sha256").update(JSON.stringify(keys.map((k) => [k, env[k] ?? ""])) + "\0" + code).digest("hex").slice(0, 16);
 }
+
+/** The key proxy's label: its settings, its code, and the key it was started for (hashed with them, never stored). */
+function apiProxyPrint(): string {
+  return proxyFingerprint({ ...apiProxyEnv(), ANTHROPIC_API_KEY: secret("ANTHROPIC_API_KEY") }, readFileSync(join(REPO_ROOT, "docker", "proxy", "proxy.mjs"), "utf8"));
+}
+
+/** Today's key, in the file the proxy reads (owner-only); no key removes the file and the proxy refuses every call. */
+function writeProxyKey(): void {
+  const dir = proxyDir();
+  mkdirSync(join(dir, TOKENS), { recursive: true, mode: 0o700 });
+  const file = join(dir, KEY_FILE);
+  const key = secret("ANTHROPIC_API_KEY");
+  if (!key) { rmSync(file, { force: true }); return; }
+  writeFileSync(file, key, { mode: 0o600 });
+  chmodSync(file, 0o600);
+  // tokens of steps that died without cleaning up (no step runs for two days)
+  for (const f of readdirSync(join(dir, TOKENS))) {
+    try { if (Date.now() - statSync(join(dir, TOKENS, f)).mtimeMs > 2 * 24 * 3600_000) rmSync(join(dir, TOKENS, f), { force: true }); } catch { /* gone already */ }
+  }
+}
+
+/** What one agent step may do through the key proxy. `usdPerMTok` are the step model's prices; past `capUsd` the proxy refuses. */
+export interface ProxyGrant { run: string; key: string; model: string; capUsd: number; usdPerMTok: { input: number; output: number; cacheRead: number; cacheWrite: number } }
+
+/**
+ * A random token for one agent step. The container gets it in place of an API key; the proxy accepts a call
+ * only with a token whose file exists, so another container on the network, or a step that has ended, gets nothing.
+ */
+export function issueProxyToken(grant: ProxyGrant): string {
+  const token = `factory-${randomBytes(24).toString("hex")}`;
+  const dir = join(proxyDir(), TOKENS);
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  writeFileSync(join(dir, `${tokenId(token)}.json`), JSON.stringify({ ...grant, created: new Date().toISOString() }), { mode: 0o600 });
+  return token;
+}
+
+export function revokeProxyToken(token: string): void {
+  rmSync(join(proxyDir(), TOKENS, `${tokenId(token)}.json`), { force: true });
+}
+
+const tokenId = (token: string): string => createHash("sha256").update(token).digest("hex");
 
 async function label(rt: ContainerRuntime, name: string, key: string): Promise<string | undefined> {
   try {
@@ -74,8 +128,7 @@ async function label(rt: ContainerRuntime, name: string, key: string): Promise<s
 /** For doctor: is the running key proxy using today's keys? */
 export async function apiProxyState(rt: ContainerRuntime): Promise<"current" | "outdated" | "not-running"> {
   if (!(await running(rt, API_PROXY))) return "not-running";
-  const fp = proxyFingerprint(apiProxyEnv(), readFileSync(join(REPO_ROOT, "docker", "proxy", "proxy.mjs"), "utf8"));
-  return (await label(rt, API_PROXY, "factory.config")) === fp ? "current" : "outdated";
+  return (await label(rt, API_PROXY, "factory.config")) === apiProxyPrint() ? "current" : "outdated";
 }
 
 /** Idempotent: create networks, then (re)start both proxies. */
@@ -85,23 +138,27 @@ export async function ensureEgress(rt: ContainerRuntime, feedHosts: string[]): P
     if (!(await exists(rt, "network", net))) await cli(rt, ["network", "create", "--internal", net]);
   }
   const proxyFile = join(REPO_ROOT, "docker", "proxy", "proxy.mjs");
-  const start = async (name: string, net: string, env: Record<string, string | undefined>) => {
+  const start = async (name: string, net: string, env: Record<string, string | undefined>, fp: string, extra: string[]) => {
     // recreate when the keys, the allowlist or the proxy code changed (e.g. a key was added later)
-    const fp = proxyFingerprint(env, readFileSync(proxyFile, "utf8"));
     if ((await running(rt, name)) && (await label(rt, name, "factory.config")) === fp) return;
     await cli(rt, ["rm", "-f", name]).catch(() => undefined);
     const envArgs = Object.entries(env).filter(([, v]) => v).flatMap(([k, v]) => ["--env", `${k}=${v}`]);
     // start on the default bridge (for upstream access), then join the internal network
     await cli(rt, [
       "run", "-d", "--name", name, "--restart", "unless-stopped", "--label", "factory.role=proxy", "--label", `factory.config=${fp}`,
-      "--cap-drop=ALL", "--security-opt", "no-new-privileges", "--read-only", "--user", "node",
+      "--cap-drop=ALL", "--security-opt", "no-new-privileges", "--read-only", ...extra,
       "--mount", `type=bind,src=${proxyFile},dst=/proxy.mjs,readonly`, ...envArgs,
       PROXY_IMAGE, "node", "/proxy.mjs",
     ]);
     await cli(rt, ["network", "connect", net, name]);
   };
-  await start(API_PROXY, AGENT_NET, apiProxyEnv());
-  await start(FEED_PROXY, FEEDS_NET, { MODE: "feeds", ALLOW_HOSTS: feedHosts.join(",") });
+  // the key proxy runs as this user, the owner of the key and token files (owner-only), which it gets as a read-only folder
+  writeProxyKey();
+  await start(API_PROXY, AGENT_NET, apiProxyEnv(), apiProxyPrint(), [
+    "--user", `${process.getuid?.() ?? 1000}:${process.getgid?.() ?? 1000}`, "--mount", `type=bind,src=${proxyDir()},dst=${PROXY_MOUNT},readonly`,
+  ]);
+  const feedEnv = { MODE: "feeds", ALLOW_HOSTS: feedHosts.join(",") };
+  await start(FEED_PROXY, FEEDS_NET, feedEnv, proxyFingerprint(feedEnv, readFileSync(proxyFile, "utf8")), ["--user", "node"]);
 }
 
 /** Build container A's image once (docker/agent). */

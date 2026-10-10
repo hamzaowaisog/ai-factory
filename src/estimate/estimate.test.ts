@@ -6,7 +6,7 @@ import { DEFAULT_POLICY } from "../gates/policy.js";
 import { DEFAULT_ASSUMPTIONS } from "./assumptions.js";
 import { apiCostByTask, confidenceFor, estimateApiCost, quantile, type BenchmarkRecord } from "./cost.js";
 import { gateHours, prCount } from "./gate-hours.js";
-import { effortHours, mergeEstimators, scale, sizeTasks } from "./hours.js";
+import { effortHours, mergeEstimators, scale, shownAnchors, sizeTasks } from "./hours.js";
 import { estimateWorkbookLint, lintEstimate } from "./lint.js";
 import { bandFor, baseBand, uncertaintyFor, type Units } from "./size.js";
 import { computeTotals, criticalPath, elapsedDays, weeks } from "./totals.js";
@@ -55,6 +55,15 @@ describe("anchors and ratios", () => {
     expect(out[1]!.hours).toEqual({ min: 2, max: 4 });
     expect(() => sizeTasks(anchors, [{ taskId: "EST-2", anchorId: "EST-9", ratio: 1, reason: "x", executor: "human" }])).toThrow(/not an anchor/);
     expect(() => sizeTasks(anchors, [{ taskId: "EST-1", anchorId: "EST-1", ratio: 2, reason: "x", executor: "human" }])).toThrow(/ratio 1/);
+  });
+
+  it("shows an anchor at its task's final hours, and names the lead's reading when the median moved it", () => {
+    const anchors = [{ taskId: "EST-4", hours: { min: 3.51, max: 7.02 }, reason: "typical" }, { taskId: "EST-2", hours: { min: 2, max: 4 }, reason: "small" }];
+    const tasks = [{ taskId: "EST-4", hours: { min: 3.9, max: 7.8 } }, { taskId: "EST-2", hours: { min: 2, max: 4 } }];
+    const [moved, same] = shownAnchors({ anchors, tasks });
+    expect(moved).toMatchObject({ hours: { min: 3.9, max: 7.8 }, lead: { min: 3.51, max: 7.02 } });
+    expect(moved!.note).toMatch(/lead estimator read 3\.51-7\.02 h/);
+    expect(same).toBe(anchors[1]);
   });
 
   it("merges estimators by median and flags disagreement", () => {

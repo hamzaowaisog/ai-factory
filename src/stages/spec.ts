@@ -1,13 +1,15 @@
 // Spec side of the brownfield slice: intake → ground → specify (+lint, critic) → plan → approval card.
 import { z } from "zod";
+import { parse } from "yaml";
 import {
-  CurrentBehaviourBody, IntentBody, maxRisk, PlanBody, type Risk, SpecDraft, type Complexity, type Failure, type SettledProblem,
+  DataModel, CurrentBehaviourBody, IntentBody, maxRisk, PlanBody, type Risk, SpecDraft, type Complexity, type Failure, type SettledProblem,
 } from "../contracts/index.js";
 import { checkEvidence } from "../context/tools.js";
 import { buildRepoMap } from "../context/repomap.js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { contractProblems, contractReadProblem, contractSummary, readContract } from "../gates/contract.js";
+import { DATA_MODEL_FILE, dataModelBrief, dataModelProblems, dataModelSummary, erdMermaid, mergeDataModel, nearModel, withKnown } from "../gates/data-model.js";
 import { failure } from "../gates/engine.js";
 import { anchorsResolve, planChecks } from "../gates/predicates.js";
 import { isConfigIntegrityPath } from "../gates/protected.js";
@@ -141,6 +143,24 @@ If nothing exists yet for a span (new behaviour), list it under notFound with wh
 // ---------- plan ----------
 
 /** What the plan is asked for when it writes the product's API contract. */
+/**
+ * Whether the plan must give a data model: the first build of a new product's backend (its API has a contract and the repo
+ * has no model yet), or a change to a backend that touches stored data. Any other backend plan may give one; a web app never does.
+ */
+export function needsDataModel(project: { stack?: string; contract?: unknown }, impact: { entities?: string[] } | undefined, hasModel: boolean): boolean {
+  return project.stack !== "node" && ((!!project.contract && !hasModel) || !!impact?.entities?.length);
+}
+
+const dataModelRules = (required: boolean, touched: string[], existing = false): string => `DATA MODEL${required ? "" : " (only when this plan adds or changes stored data)"}. Give "dataModel": ${existing ? "only the tables this plan adds or changes" : "the tables this plan sets up or changes"}, as the database will hold them. A person approves it as a diagram with the plan, the factory keeps it in ${DATA_MODEL_FILE}, and after every build the database the code creates is compared with it: a missing table, a different key or a different relation fails the task.
+- Each table: name, purpose (one line), and every column with its type (string, text, int, long, decimal, bool, date, datetime, time, uuid, json, enum), required (false when it may be empty), pk on the primary-key column(s), unique where no two rows may share the value, values for an enum.
+- A relation is a foreign key: "references" on the column that holds it, naming the table and column it points at (a primary key or a unique column of the same type), and onDelete where it matters. A many-to-many relation is its own table with a foreign key to each side. A key over several columns together goes in the table's "uniques".
+- Every table has a primary key. Use the names the code will use for the tables and columns.
+- Model what is stored, not what the API returns: a field worked out on each request has no column.${existing ? `
+- This is an existing backend and its database is shown below, read from the tables the untouched code creates. Give a table only when this plan adds it, or adds, alters or removes a column or key of it (then list all its columns, as they will be). Leave every other table out: the factory adds them from the database and works out itself which tables are new, changed or unchanged. Point a foreign key at an existing table by the table and column names shown.${touched.length ? ` The stored data this change touches: ${touched.join(", ")}.` : ""}
+- When the plan changes no stored data, give no dataModel.` : touched.length ? `
+- This is an existing backend. Mark each table "change": "new" (this plan adds it), "changed" (this plan adds or alters columns or keys; list all its columns, as they will be) or "unchanged" (only pointed at by a foreign key; its key columns are enough). The stored data this change touches: ${touched.join(", ")}.` : ""}
+- No task writes ${DATA_MODEL_FILE}: it is the factory's file. Put the entities, the database setup and any migration in the fileScope of the first task that uses each table.`;
+
 const contractRules = (file: string): string => `API CONTRACT. This product has a web app and an API in two repos, and both are built against one contract.
 - Give one more stub: path "${file}", content the full OpenAPI 3.0.3 document (YAML) of every operation the approved screens and requirements need. It is outside every task's fileScope: nobody implements it, both sides follow it.
 - Every operation has an operationId (camelCase), its request body where it takes one, and every status code it answers with.
@@ -183,6 +203,14 @@ export const planStep: StepDef = {
     const map = buildRepoMap(snap.root, snap.files, { budgetTokens: 4000, focus: cb.claims.flatMap((c) => c.anchors.map((a) => a.path)) }).map;
     const impact = readImpact(ctx.state, ctx.ledger);
     const impactNote = impact ? planNote(impact) : "";
+    // a backend's data model: required where the plan sets up or changes stored data, and the repo's current one is shown
+    const currentModel = snap.files.includes(DATA_MODEL_FILE) ? readFileSync(join(snap.root, DATA_MODEL_FILE), "utf8") : undefined;
+    // an existing backend's database as discover read it (the tables the untouched code creates), with what the repo's approved
+    // model knows better; the plan states its changes and the factory lays them over this
+    const read = ctx.project.stack !== "node" ? readOutput<{ model?: DataModel }>(ctx.state, ctx.ledger, "discover", "schema")?.model : undefined;
+    const known = (() => { try { const m = currentModel ? DataModel.safeParse(parse(currentModel)) : undefined; return m?.success ? m.data : undefined; } catch { return undefined; } })();
+    const existingModel = read?.tables.length ? withKnown(read, known) : undefined;
+    const modelRequired = needsDataModel(ctx.project, impact, !!currentModel || !!existingModel);
     const sections = [
       S.template("tpl", `${planIntro(ctx.project.stack)}
 - Give at least 2 options (one marked simplest), choose one, and write a decision record of at most 5 lines (adr).
@@ -202,6 +230,10 @@ export const planStep: StepDef = {
       ...(impactNote ? [S.template("impact", impactNote)] : []),
       ...(lockedContract ? [S.template("contract-locked", `API CONTRACT (locked, ${cfile}). The API and the web app are both held to this OpenAPI document: plan exactly its operations, with its paths, status codes and field names. Do not change the file and do not give a stub for it; a needed change to it is a change request.\n\n${lockedContract}`)]
         : cfile ? [S.template("contract-new", contractRules(cfile))] : []),
+      ...(ctx.project.stack !== "node" ? [S.template("data-model", dataModelRules(modelRequired, impact?.entities ?? [], !!existingModel))] : []),
+      // a change the impact step found to touch no stored data (a fix in logic, say) gets the tables by name and key only
+      ...(existingModel ? [S.template("data-model-existing", `The database as it is now (${existingModel.tables.length} table${existingModel.tables.length === 1 ? "" : "s"}; "?" may be empty, "→" is a foreign key). Column types are as the database stores them, so read an entity where the exact type matters:\n\n${dataModelBrief(existingModel, impact?.entities ?? [], impact && !impact.entities.length ? 0 : undefined).map((l) => `- ${l}`).join("\n")}`)]
+        : currentModel ? [S.template("data-model-current", `The data model approved so far (${DATA_MODEL_FILE}); your dataModel replaces it, so carry over the tables you point at:\n\n${currentModel}`)] : []),
       ...(ref ? [S.artifact("estimate-tasks", "approved-estimate-tasks", approvedTasks.map((t) => ({ id: t.id, title: t.title, reqs: t.reqs, track: t.track, executor: t.executor, items: t.items }))), S.template("scope-lock", "This plan delivers an APPROVED ESTIMATE. Set estimateTaskId on every task to the approved estimate task (EST-n) it delivers; one estimate task may be delivered by several plan tasks. Do not plan work that no approved estimate task covers: anything else is a change request, not part of this plan. Tasks whose executor is human are not built by the factory and need no plan task." + (cfile && ctx.project.stack === "node" ? " This app is the web side of a product whose API is built by its own run against the API contract: the backend estimate tasks are delivered there, so put the operations they need in the contract and plan no server code for them in this app." : "") + (approvedDesign ? " The approved design lists the screens; every screen built by a factory estimate task must be delivered by a plan task that carries that estimate task, and that plan task's fileScope must include the approved screen's file." : "") + (newLook ? " The approved design is a new look: its implementers get design tokens (colours, type, corners, spacing as CSS variables). Put the app's global stylesheet or theme file in the fileScope of the first task that builds a screen, so the tokens are added once and the other screens use them." : ""))] : []),
       // a direct build whose approved design is a new look (a restyle to the client's reference) puts the tokens in once too
       ...(dref ? [S.template("design-scope-lock", "This plan builds an APPROVED DESIGN. Every task delivers requirements of the approved spec (its reqs), and nothing else: anything more is a change to the design, not part of this plan." + (approvedDesign ? " Every approved screen must be delivered by a task that serves its requirements, and that task's fileScope must include the approved screen's file." : ""))] : []),
@@ -230,7 +262,9 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
       if (!full.ok) return full.outcome;
       r = full;
     }
-    const plan = { header: header(ctx.runId, "plan", "plan", "", r.model), ...r.output, complexity: complexityOf(r.output) };
+    // an existing backend: the model kept is the whole database, the plan's tables laid over the ones read from it
+    const dataModel = existingModel && r.output.dataModel ? mergeDataModel(existingModel, r.output.dataModel) : r.output.dataModel;
+    const plan = { header: header(ctx.runId, "plan", "plan", "", r.model), ...r.output, ...(dataModel ? { dataModel } : {}), complexity: complexityOf(r.output) };
     const fs: Failure[] = [];
     const waivable: BuildFailed[] = [];
     for (const m of scaf ? checkPlanScaffold(plan, scaf) : []) fs.push(failure("plan-scaffold", m));
@@ -242,7 +276,12 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
       else if (!doc) fs.push(failure("plan-contract", `${cfile} is not an OpenAPI document: ${contractReadProblem(contractStub.content) ?? 'it needs "openapi" and "paths"'}.`));
       else fs.push(...contractProblems(doc).map((m) => failure("plan-contract", m)));
     }
-    for (const st of plan.stubs) if (st.path !== cfile && !plan.tasks.some((t) => t.fileScope.some((g) => g === st.path || st.path.startsWith(g.replace(/\*.*$/, ""))))) fs.push(failure("plan-stub", `Stub ${st.path} is outside every task's file scope`));
+    if (ctx.project.stack === "node" && plan.dataModel) fs.push(failure("plan-data-model", "A web app has no data model of its own: its data comes from the API. Drop dataModel."));
+    else if (modelRequired && !plan.dataModel) fs.push(failure("plan-data-model", `No data model. Give dataModel: every table this plan sets up or changes, with its columns, primary key and foreign keys${impact?.entities?.length ? ` (the change touches ${impact.entities.join(", ")})` : ""}.`));
+    else if (plan.dataModel) fs.push(...dataModelProblems(plan.dataModel).map((m) => failure("plan-data-model", m)));
+    for (const t of plan.tasks) if (t.fileScope.includes(DATA_MODEL_FILE)) fs.push(failure("plan-data-model", `${t.id} has ${DATA_MODEL_FILE} in its fileScope: the factory writes that file from dataModel. Take it out.`));
+    for (const st of plan.stubs) if (st.path === DATA_MODEL_FILE) fs.push(failure("plan-data-model", `${DATA_MODEL_FILE} is the factory's file: give the model as dataModel and drop the stub.`));
+    for (const st of plan.stubs) if (st.path !== cfile && st.path !== DATA_MODEL_FILE && !plan.tasks.some((t) => t.fileScope.some((g) => g === st.path || st.path.startsWith(g.replace(/\*.*$/, ""))))) fs.push(failure("plan-stub", `Stub ${st.path} is outside every task's file scope`));
     if (impact) fs.push(...planCoverageFailures(plan, impact));
     // asked once: where the approved tasks or the repo force layers, the plan runs as it is
     const asked = ctx.ledger.events().some((e) => e.type === "step.failed" && String(e.key).startsWith("plan/") && String((e.data as { signature?: string } | undefined)?.signature).includes("plan-slices"));
@@ -335,7 +374,7 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
     ``,
     ...(() => {
       const manual = a.spec.requirements.flatMap((r) => r.acceptance.filter((c) => c.level === "manual").map((c) => c.id));
-      return manual.length ? [`Checked by a person, not by a test: ${manual.join(", ")} (screens and manual checks aren't automated yet)`, ``] : [];
+      return manual.length ? [`Checked by a person, not by a test: ${manual.join(", ")} (each needs a person's sign-off before delivery)`, ``] : [];
     })(),
     `Not changing: ${a.spec.outOfScope.join("; ") || "(none listed)"}`,
     ``,
@@ -363,6 +402,14 @@ export function approvalCard(ctx: StepContext, a: { intent: Intent; spec: Spec; 
         ...(stubs.length ? [``, `Stub commit (throws NotImplemented until implemented): ${stubs.map((s) => s.path).join(", ")}`] : []),
         // approving the plan approves the contract: from then on it is locked with the tests, for the API and the web app alike
         ...(doc ? [``, `## API contract (${cfile}; locked with the tests once you approve)`, ...contractSummary(doc).map((l) => `- ${l}`)] : []),
+        // approving the plan approves the data model too: the built database is compared with it after every build
+        ...(a.plan.dataModel ? (() => {
+          // an existing backend: the tables this plan adds or changes and the ones joined to them; the whole database is on the Data model page
+          const near = nearModel(a.plan.dataModel);
+          return [``, `## Data model (${DATA_MODEL_FILE}; ${a.plan.dataModel.tables.length} table${a.plan.dataModel.tables.length === 1 ? "" : "s"}, locked with the tests once you approve)`,
+            ...(near.others ? [`Shown: the tables this plan adds or changes and the tables joined to them. ${near.others} other table${near.others === 1 ? " stays" : "s stay"} as ${near.others === 1 ? "it is" : "they are"}; the whole database is on the run's Data model page.`, ``] : []),
+            ...dataModelSummary(near.model).map((l) => `- ${l}`), ``, "```mermaid", erdMermaid(near.model), "```"];
+        })() : []),
       ];
     })(),
     ``,

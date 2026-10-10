@@ -19,7 +19,7 @@ last lines of the output give the steps, the cards, the contract gate's results 
 After `fullstack.ts`, start both apps and check them:
 ```
 cd <RUNDIR printed at the end> && docker compose up -d
-curl http://localhost:5080/api/appointments/today        # rows from the SQLite file
+curl http://localhost:5080/api/appointments/today        # rows from the PostgreSQL database
 curl -X POST -H 'content-type: application/json' -d '{"email":"a@b.co"}' http://localhost:5080/api/sign-in
 curl -o /dev/null -w '%{http_code}\n' http://localhost:3000/login
 docker compose down

@@ -76,10 +76,16 @@ export const ProjectConfig = z.object({
     user: z.string().default("factory"),
     /** Env var in ~/.factory/.env holding that login's test password (when the tests hardcode one). */
     passwordEnv: z.string().optional(),
-    /** Producer env template: only container B gets these. {{DB_*}} are filled by the core. */
+    /** Producer env template, {{DB_*}} filled by the core: container B gets these for the lab's database, and a coding session for its own throwaway one. */
     producerEnv: z.record(z.string(), z.string()).default({}),
     migrate: z.array(z.string()).optional(),
   }).optional(),
+  /**
+   * For a backend that does not create its database when it starts: the command that brings an empty database to the
+   * backend's tables, run in the SDK container at the repo root after the build (no network but the test database). Not
+   * needed for EF Core migrations: the lab finds those and runs `dotnet ef database update` itself.
+   */
+  migrate: z.array(z.string()).optional(),
   /** Accept: boot the app next to the test database and send the locked HTTP probes. */
   accept: z.object({
     bootApp: z.boolean().default(true),

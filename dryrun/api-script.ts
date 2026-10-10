@@ -112,10 +112,13 @@ export function apiAnswer(system: string, user = ""): unknown {
     return {
       tasks: [
         { id: "TASK-1", title: "Sign in", reqs: ["REQ-1"], fileScope: ["App.Api/Program.cs", "App.Api/SignInRoutes.cs"], exemplars: [], conventions: [], dependsOn: [], plannedLoc: 15, approach: "map POST /api/sign-in as the contract says" },
-        { id: "TASK-2", title: "Today's appointments", reqs: ["REQ-2"], fileScope: ["App.Api/AppointmentRoutes.cs", "App.Api/AppDb.cs"], exemplars: [], conventions: [], dependsOn: ["TASK-1"], plannedLoc: 30, approach: "store appointments in SQLite, map GET /api/appointments/today as the contract says" },
+        { id: "TASK-2", title: "Today's appointments", reqs: ["REQ-2"], fileScope: ["App.Api/AppointmentRoutes.cs", "App.Api/AppDb.cs"], exemplars: [], conventions: [], dependsOn: ["TASK-1"], plannedLoc: 30, approach: "store appointments in PostgreSQL, map GET /api/appointments/today as the contract says" },
       ],
       options: [{ id: "O-1", summary: "one routes file per feature", simplest: true, tradeoffs: "none" }, { id: "O-2", summary: "controllers", simplest: false, tradeoffs: "more code" }],
-      chosen: "O-1", adr: "Minimal API routes in one file per feature; SQLite through the existing DbContext.", protectedPathsDeclared: [], newDependencies: [],
+      chosen: "O-1", adr: "Minimal API routes in one file per feature; PostgreSQL through the existing DbContext.", protectedPathsDeclared: [], newDependencies: [],
+      dataModel: { tables: [{ name: "Appointments", purpose: "today's appointments at the front desk", columns: [
+        { name: "Id", type: "int", required: true, pk: true }, { name: "Patient", type: "string", required: true },
+        { name: "Time", type: "string", required: true }, { name: "Status", type: "string", required: true }] }] },
       stubs: [
         { path: "App.Api/Program.cs", content: apiProgram(ROUTES), reason: "calls the two route groups" },
         { path: "App.Api/SignInRoutes.cs", content: signInRoutes(""), reason: "compiles before TASK-1" },

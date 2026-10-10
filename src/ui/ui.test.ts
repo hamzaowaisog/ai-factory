@@ -209,16 +209,16 @@ describe("factory ui: who can talk to it", () => {
 });
 
 describe("factory ui: what the web can decide", () => {
-  it("the decision routes are the estimate, design, plan, question and limit cards only; no gate waiver, unlock, steer or pause", () => {
+  it("the decision routes are the estimate, design, plan, question, limit and manual-check cards only; no gate waiver, unlock, steer or pause", () => {
     const decision = /approve|reject|answer|waive|unlock|steer|pause|stop|resume|decide|decision|cap|note|limit/i;
     for (const r of ROUTES.filter((r) => !/\/(estimate-decision|answers|decision|limit|limit-stop|resume)$/.test(r.path))) expect(`${r.method} ${r.path}`).not.toMatch(decision);
     // decisions, each with a typed name and the card hash: an estimate card, a design or plan card, a question card's answers, a limit
-    // card (raise one step, or stop the run there). Resuming a parked run decides nothing; exports and the scaffold write only under the
+    // card (raise one step, or stop the run there), and a person's check of the criteria that have no automated test. Resuming a parked run decides nothing; exports and the scaffold write only under the
     // run's own folders; the full-stack routes are factory fullstack
     expect(ROUTES.filter((r) => r.method !== "GET").map((r) => `${r.method} ${r.path}`)).toEqual([
       "POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/answers", "POST /api/runs/:id/decision",
-      "POST /api/runs/:id/limit", "POST /api/runs/:id/limit-stop", "POST /api/runs/:id/resume",
-      "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/up", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
+      "POST /api/runs/:id/manual-checks", "POST /api/runs/:id/limit", "POST /api/runs/:id/limit-stop", "POST /api/runs/:id/resume",
+      "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/up", "POST /api/fullstack/:name/apps/start", "POST /api/fullstack/:name/apps/down", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
     ]);
   });
 
@@ -258,7 +258,7 @@ describe("factory ui: what the web can decide", () => {
 
   it("the page says so, and posts no gate waiver, steer or pause", () => {
     const html = readFileSync(join(staticDir(), "index.html"), "utf8");
-    expect(html).toContain("Questions, designs, plans, estimates and limits can be decided here, each with your typed name and the card's hash. Gate waivers and unlocks are decided in your terminal only.");
+    expect(html).toContain("Questions, designs, plans, estimates, limits and checks by hand can be decided here, each with your typed name and the card's hash. Gate waivers and unlocks are decided in your terminal only.");
     const js = readFileSync(join(staticDir(), "app.js"), "utf8");
     expect(js).not.toMatch(/\/api\/runs\/\$\{[^}]+\}\/(approve|reject|waive|unlock|steer|stop|pause|cap)/);
     expect(js).toContain("/decision`, { method: \"POST\"");
@@ -543,9 +543,15 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     expect((await send("/api/fullstack", { name: "orders", dir, prompt: "Again" })).json().error).toMatch(/already exists/);
     expect((await call("/api/fullstack")).json()).toEqual([expect.objectContaining({ name: "orders", web: expect.objectContaining({ project: "orders-web" }) })]);
     // the web run's page links to its product
-    expect((await call(`/api/runs/${webRun}`)).json().product).toEqual({ name: "orders", side: "web" });
+    // and says what the API will keep its data in
+    expect((await call(`/api/runs/${webRun}`)).json().product).toEqual({ name: "orders", side: "web", database: { name: "PostgreSQL", reason: "Every new product's API is built on PostgreSQL." } });
 
     let v = (await call("/api/fullstack/orders")).json();
+    expect(v.database).toEqual({ kind: "postgres", name: "PostgreSQL", reason: "Every new product's API is built on PostgreSQL." });
+    expect(readFileSync(join(dir, "orders-api", "App.Api/App.Api.csproj"), "utf8")).toMatch(/Npgsql/);
+    // the database is not a choice: no option on the start, and nothing switches it
+    expect((await send("/api/fullstack/orders/database", { database: "sqlite" })).status).toBe(404);
+    v = (await call("/api/fullstack/orders")).json();
     expect(v.web.run).toMatchObject({ runId: webRun, delivered: false });
     expect(v.api.run).toBeUndefined();
     expect(v.contract).toBeUndefined();
@@ -567,12 +573,21 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     expect(replay(Ledger.open(apiRun).events()).info).toMatchObject({ project: "orders-api", maxCostUsd: 6 });
     expect(readFileSync(join(dir, "orders-api", "contracts/openapi.yaml"), "utf8")).toBe(CONTRACT);
     expect((await send("/api/fullstack/orders/next", {})).json().error).toMatch(/started already/);
-    expect((await call(`/api/runs/${apiRun}`)).json().product).toEqual({ name: "orders", side: "api" });
+    expect((await call(`/api/runs/${apiRun}`)).json().product).toMatchObject({ name: "orders", side: "api", database: { name: "PostgreSQL" } });
+    // the API run is told its database
+    expect(replay(Ledger.open(apiRun).events()).info.request).toMatch(/PostgreSQL database \(the connection string named App/);
     // the run files wait for both deliveries
     const up = await send("/api/fullstack/orders/up", {});
     expect(up.status).toBe(409);
     expect(up.json().error).toMatch(/Both runs must be delivered/);
     expect((await call("/api/fullstack/orders")).json().next).toMatchObject({ canStartApi: false, canWriteRunFiles: false });
+    // and so does starting the product on this machine: nothing to look at, nothing started
+    expect((await call("/api/fullstack/orders/apps")).json()).toEqual({ state: "none" });
+    const start = await send("/api/fullstack/orders/apps/start", {});
+    expect(start.status).toBe(409);
+    expect(start.json().error).toMatch(/Both runs must be delivered/);
+    expect((await call("/api/fullstack/nope/apps")).status).toBe(404);
+    expect((await send("/api/fullstack/nope/apps/down", {})).status).toBe(404);
   });
 
   it("puts both repos on GitHub when asked: each a private repo with main pushed; the contract goes to the API repo's main", async () => {
@@ -1660,5 +1675,182 @@ describe("factory ui: on a phone", () => {
     } finally {
       await browser.close();
     }
+  });
+});
+
+describe("factory ui: data model", () => {
+  const MODEL = { tables: [
+    { name: "Customers", purpose: "who orders", columns: [{ name: "Id", type: "uuid", required: true, pk: true }, { name: "Email", type: "string", required: true, unique: true }] },
+    { name: "Orders", purpose: "one order", columns: [{ name: "Id", type: "uuid", required: true, pk: true }, { name: "CustomerId", type: "uuid", required: true, references: { table: "Customers", column: "Id", onDelete: "cascade" } }, { name: "Status", type: "enum", required: true, values: ["open", "paid"] }] },
+    { name: "OrderNotes", purpose: "a note on an order", columns: [{ name: "Id", type: "uuid", required: true, pk: true }, { name: "OrderId", type: "uuid", required: false, references: { table: "Orders", column: "Id" } }, { name: "ReplyTo", type: "uuid", required: false, references: { table: "OrderNotes", column: "Id" } }] },
+  ] };
+  const view = async (run: string) => (await call(`/api/runs/${run}/data-model`)).json();
+
+  it("a web run has none, and says where the model is", async () => {
+    writeFileSync(join(home, "projects", "site.yaml"), stringify({ project: "site", repo: makeRepo({ "README.md": "# site\n" }), stack: "node" }));
+    expect((await view(await createRun("Rename the heading", "site", "tester"))).none).toMatch(/web app.*API run/);
+    // a backend run whose plan touches no stored data
+    expect((await view(ids.delivered)).none).toMatch(/touches no stored data/);
+  });
+
+  it("shows the plan's model before the approval, laid out with foreign keys pointing left, then as approved", async () => {
+    const run = await createRun("Keep orders per customer", "api", "tester");
+    expect((await view(run)).none).toMatch(/as soon as the plan is written, before you approve it/);
+    const l = Ledger.open(run);
+    await addEvents(run, [
+      ...["discover", "intake", "ground", "clarify", "specify"].flatMap((k) => step(k)),
+      ...step("plan", 1, { tasks: ["TASK-1"] }, [l.putJson({ tasks: [{ id: "TASK-1", fileScope: [] }], dataModel: MODEL })]),
+    ]);
+    const v = await view(run);
+    expect(v).toMatchObject({ source: "plan", approved: false, tables: 3, relations: 3, file: "contracts/data-model.yaml" });
+    expect(v.note).toMatch(/not approved yet/);
+    expect(v.mermaid).toMatch(/^erDiagram/);
+    const box = (n: string) => v.layout.boxes.find((b: { name: string }) => b.name === n);
+    expect(box("Customers").x).toBeLessThan(box("Orders").x);
+    expect(box("Orders").x).toBeLessThan(box("OrderNotes").x);
+    expect(box("Orders").rows.map((r: { name: string; keys: string[] }) => `${r.name}:${r.keys.join("+")}`)).toEqual(["Id:PK", "CustomerId:FK", "Status:"]);
+    // every box is inside the drawing, and no two overlap
+    for (const b of v.layout.boxes) expect(b.x >= 0 && b.y >= 0 && b.x + b.w <= v.layout.width && b.y + b.h <= v.layout.height).toBe(true);
+    const fk = v.layout.edges.find((e: { column: string }) => e.column === "CustomerId");
+    expect(fk).toMatchObject({ kind: "many-to-one", required: true, a: { side: "left", x: box("Orders").x }, b: { side: "right", x: box("Customers").x + box("Customers").w } });
+    // a line that skips a column of tables runs level through a gap, clear of every table there
+    const far = (await (async () => { const r2 = await createRun("Notes per customer", "api", "tester"); const l2 = Ledger.open(r2);
+      const tables = [...MODEL.tables, { name: "Audit", purpose: "who did what", columns: [{ name: "Id", type: "uuid", required: true, pk: true }, { name: "CustomerId", type: "uuid", required: true, references: { table: "Customers", column: "Id" } }, { name: "NoteId", type: "uuid", required: true, references: { table: "OrderNotes", column: "Id" } }] }];
+      await addEvents(r2, step("plan", 1, {}, [l2.putJson({ tasks: [], dataModel: { tables } })])); return view(r2); })()).layout;
+    const skip = far.edges.find((e: { from: string; to: string }) => e.from === "Audit" && e.to === "Customers");
+    expect(skip.via).toBeDefined();
+    for (const b of far.boxes.filter((b: { x: number }) => b.x >= skip.via.x1 && b.x < skip.via.x2)) expect(skip.via.y < b.y || skip.via.y > b.y + b.h).toBe(true);
+    expect(skip.via.y).toBeGreaterThan(0);
+    expect(skip.via.y).toBeLessThan(far.height);
+    // a table pointing at itself loops round its right edge
+    expect(v.layout.edges.find((e: { column: string }) => e.column === "ReplyTo")).toMatchObject({ required: false, a: { side: "right" }, b: { side: "right" } });
+    await addEvents(run, step("approve", 0));
+    expect(await view(run)).toMatchObject({ source: "plan", approved: true });
+    // once a build was checked, the page says whether the built database has what the model has
+    expect((await view(run)).built).toBeUndefined();
+    await addEvents(run, [{ type: "gate.result", data: { gateId: "data-model.matches", passed: false, step: "implement/TASK-1", details: "The database does not match the approved data model: Table Audit is in the database but not in the model" } },
+      { type: "gate.result", data: { gateId: "data-model.matches", passed: true, step: "integrate", details: "The database (App.Api/app.db) matches the approved data model" } }]);
+    expect((await view(run)).built).toEqual({ matches: true, step: "integrate", details: "The database (App.Api/app.db) matches the approved data model" });
+  });
+
+  it("before the plan exists, shows the model the repo already has", async () => {
+    const repo = loadProject("api").repo;
+    mkdirSync(join(repo, "contracts"), { recursive: true });
+    writeFileSync(join(repo, "contracts", "data-model.yaml"), stringify(MODEL));
+    execFileSync("git", ["add", "-A"], { cwd: repo, env: gitEnv });
+    execFileSync("git", ["commit", "-q", "-m", "model"], { cwd: repo, env: gitEnv });
+    const run = await createRun("Add a note to an order", "api", "tester");
+    const v = await view(run);
+    expect(v).toMatchObject({ source: "repo", tables: 3 });
+    expect(v.note).toMatch(/plan is not written yet/);
+  });
+
+  it("the page has the tab and draws the diagram itself, with no script from elsewhere", () => {
+    const js = readFileSync(join(staticDir(), "app.js"), "utf8");
+    expect(js).toContain("/data-model`, class: tab === \"data-model\"");
+    expect(js).toContain("function erdDiagram(");
+    expect(js).not.toMatch(/mermaid(\.min)?\.js|cdn\./);
+  });
+});
+
+describe("factory ui: tests", () => {
+  const SPEC = { requirements: [
+    { id: "REQ-1", ears: "When an order is placed, the system shall store it.", op: "ADDED", sources: ["I-1"], acceptance: [
+      { id: "AC-1.1", given: "a cart", when: "the order is posted", then: "201 is returned", level: "api" },
+      { id: "AC-1.2", given: "an empty cart", when: "the order is posted", then: "400 is returned", level: "api" }] },
+    { id: "REQ-2", ears: "The orders page shall show the total.", op: "ADDED", sources: ["I-1"], acceptance: [
+      { id: "AC-2.1", given: "an order", when: "the page opens", then: "the total is in bold", level: "manual" }] },
+  ], nfrs: [{ id: "NFR-1", text: "The orders page shall answer quickly.", metric: "p95 under 300 ms" }] };
+  const T1 = "Api.Tests::OrderTests.AC_1_1_StoresTheOrder", T2 = "Api.Tests::OrderTests.AC_1_2_RefusesAnEmptyCart", CH = "Api.Tests::CartTests.CHAR_KeepsItems";
+  const HEAD = "c".repeat(40);
+  const view = async (run: string) => (await call(`/api/runs/${run}/tests`)).json();
+  const sign = (run: string, body: unknown) =>
+    call(`/api/runs/${run}/manual-checks`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: JSON.stringify(body) });
+  const result = (id: string, outcome = "passed", extra: Record<string, unknown> = {}) => ({ id, outcome, durationMs: 5, ...extra });
+
+  /** A run that has locked its tests, built, passed acceptance and stopped on the manual-check card after its review. */
+  async function reviewed(coverage: { acId: string; verdict: string }[]) {
+    const run = await createRun("Store orders and show the total", "api", "tester");
+    const l = Ledger.open(run);
+    const lock = l.putJson({ tests: [{ acId: "AC-1.1", file: "tests/OrderTests.cs", name: "AC_1_1_StoresTheOrder", testId: T1, failsOnBase: true }, { acId: "AC-1.2", file: "tests/OrderTests.cs", name: "AC_1_2_RefusesAnEmptyCart", testId: T2, failsOnBase: true }],
+      characterisation: [{ target: "the cart keeps its items", file: "tests/CartTests.cs", testId: CH, passesOnBase: true }], lock: [] });
+    const testRun = l.putJson({ results: [result(T1), result(T2, "passed", { flaky: true }), result(CH)] });
+    const evidence = l.putJson({ items: [{ ac: "AC-1.1", http: [{ method: "POST", path: "/orders", status: 201, expectStatus: 201, bodySha: "x" }] }, { ac: "AC-1.2", http: [] }, { ac: "AC-2.1", http: [] }] });
+    const review = l.putJson({ findings: [], coverage: coverage.map((c) => ({ testId: "", why: `why ${c.acId}`, ...c })) });
+    const bundle = l.putJson({ kind: "manual-check", commit: HEAD, criteria: [{ id: "AC-2.1", req: "REQ-2", given: "an order", when: "the page opens", then: "the total is in bold" }] });
+    l.writeCard(`manual-${bundle.slice(0, 8)}`, "# Check by hand before delivery (1 criterion)\n\n  factory sign-off RUN " + bundle.slice(0, 8) + " --pass AC-2.1");
+    await addEvents(run, [
+      ...["discover", "intake", "ground", "clarify"].flatMap((k) => step(k)),
+      ...step("specify", 1, {}, [l.putJson(SPEC)]),
+      ...step("author-tests", 1, {}, [lock]),
+      ...step("integrate", 1, { commit: HEAD }, [testRun]),
+      ...step("accept", 0, { named: { evidence, testRun } }, [evidence, testRun]),
+      { type: "gate.result", data: { gateId: "review.tests-prove-criteria", passed: coverage.every((c) => c.verdict === "proves-it" || c.acId === "AC-2.1"), step: "review", details: "from the test" } },
+      { type: "step.started", key: "review/1", data: { rung: 0 } },
+      { type: "step.interrupted", key: "review/1", data: { reason: "waiting" } },
+      { type: "human.requested", data: { cardId: `manual-${bundle.slice(0, 8)}`, kind: "manual-check", artifactSha: bundle, step: "review", reviewFor: HEAD, reviewSha: review } },
+    ]);
+    return { run, hash: bundle.slice(0, 8), l };
+  }
+
+  it("before the spec there is nothing; from the spec on, every criterion is listed with what it still lacks", async () => {
+    const run = await createRun("Store orders and show the total", "api", "tester");
+    expect((await view(run)).none).toMatch(/as soon as the spec is written/);
+    const l = Ledger.open(run);
+    await addEvents(run, [...["discover", "intake", "ground", "clarify"].flatMap((k) => step(k)), ...step("specify", 1, {}, [l.putJson(SPEC)])]);
+    const v = await view(run);
+    expect(v).toMatchObject({ stage: "spec", metrics: { requirements: 2, criteria: 3, automated: 2, byHand: 1, withTest: 0, lockedTests: 0, nfrs: 1 } });
+    expect(v.requirements.flatMap((q: { criteria: { id: string; state: string }[] }) => q.criteria.map((c) => [c.id, c.state]))).toEqual([["AC-1.1", "not-written"], ["AC-1.2", "not-written"], ["AC-2.1", "by-hand"]]);
+    // nothing tests a non-functional requirement yet, and the page says so by listing it apart
+    expect(v.nfrs).toEqual(SPEC.nfrs);
+    expect(v.proof).toBeUndefined();
+  });
+
+  it("after the review: each criterion with its test, how it ran, its probe and the reviewer's verdict, and the counts", async () => {
+    const { run, hash } = await reviewed([{ acId: "AC-1.1", verdict: "proves-it" }, { acId: "AC-1.2", verdict: "weak" }, { acId: "AC-2.1", verdict: "no-test" }]);
+    const v = await view(run);
+    expect(v).toMatchObject({ stage: "reviewed", commit: HEAD, proof: { passed: false, details: "from the test" }, signOff: { hash, criteria: ["AC-2.1"] } });
+    expect(v.metrics).toEqual({ requirements: 2, criteria: 3, automated: 2, byHand: 1, withTest: 2, proven: 1, weak: 1, noTest: 0, lockedTests: 2, passing: 1, failing: 0, flaky: 1,
+      characterisation: 1, probes: { sent: 1, ok: 1 }, signedOff: 0, failedByHand: 0, writerAttempts: 1, nfrs: 1 });
+    const [a, b] = v.requirements[0].criteria;
+    expect(a).toMatchObject({ id: "AC-1.1", state: "proven", tests: [{ testId: T1, name: "AC_1_1_StoresTheOrder", outcome: "passed" }], probes: [{ method: "POST", path: "/orders", status: 201, expectStatus: 201 }], review: { verdict: "proves-it", why: "why AC-1.1" } });
+    expect(b).toMatchObject({ id: "AC-1.2", state: "weak", tests: [{ testId: T2, flaky: true }], review: { verdict: "weak" } });
+    // a criterion a person checks is not "no test": it waits for the sign-off
+    expect(v.requirements[1].criteria[0]).toMatchObject({ id: "AC-2.1", state: "by-hand", tests: [] });
+    expect(v.characterisation).toEqual([{ target: "the cart keeps its items", testId: CH, file: "tests/CartTests.cs", outcome: "passed" }]);
+  });
+
+  it("a person signs off on the page with a typed name and the card's hash; every criterion needs an answer and a fail needs a note", async () => {
+    const { run, hash, l } = await reviewed([{ acId: "AC-1.1", verdict: "proves-it" }, { acId: "AC-1.2", verdict: "proves-it" }, { acId: "AC-2.1", verdict: "no-test" }]);
+    const ok = { "AC-2.1": { result: "pass" } };
+    expect((await sign(run, { hash, checks: ok })).json().error).toMatch(/Type your name to sign off/);
+    expect((await sign(run, { hash: "00000000", by: "Sara", checks: ok })).status).toBe(409);
+    expect((await sign(run, { hash, by: "Sara", checks: {} })).json().error).toMatch(/Say whether AC-2\.1 passes or fails/);
+    expect((await sign(run, { hash, by: "Sara", checks: { "AC-2.1": { result: "fail" } } })).json().error).toMatch(/a failed check needs a note/);
+    expect((await sign(run, { hash, by: "Sara", checks: { ...ok, "AC-1.1": { result: "pass" } } })).json().error).toBe("AC-1.1 is not on this card.");
+    expect(started).toEqual([]);
+    const r = await sign(run, { hash, by: "Sara", checks: ok });
+    expect(r.status).toBe(200);
+    expect(r.json()).toEqual({ recorded: true });
+    expect(started).toEqual([run]);
+    const d = replay(l.events()).decisions.at(-1)!;
+    expect(d).toMatchObject({ decision: "sign-off", by: "Sara (via web)", checks: { "AC-2.1": { result: "pass", note: "" } } });
+    const v = await view(run);
+    expect(v.signOff).toBeUndefined();
+    expect(v.requirements[1].criteria[0]).toMatchObject({ state: "signed", manual: { result: "pass", by: "Sara (via web)" } });
+    // the card is answered: a second sign-off has nothing to answer
+    expect((await sign(run, { hash, by: "Sara", checks: ok })).status).toBe(409);
+  });
+
+  it("only a manual-check card is signed off here: a plan card is not", async () => {
+    expect((await sign(ids.waiting, { hash: "12345678", by: "Sara", checks: {} })).status).toBe(409);
+  });
+
+  it("the page has the tab, the sign-off form and the card's link to it", () => {
+    const js = readFileSync(join(staticDir(), "app.js"), "utf8");
+    expect(js).toContain("/tests`, class: tab === \"tests\"");
+    expect(js).toContain("function testsScreen(");
+    expect(js).toContain("/manual-checks`, { method: \"POST\"");
+    expect(js).toContain("Sign off on the Tests tab");
   });
 });

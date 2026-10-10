@@ -14,7 +14,7 @@ import { DEFAULT_ASSUMPTIONS, type Assumptions, type Range } from "./assumptions
 import type { Consideration, ConsiderationKey } from "./considerations.js";
 import { PER_TASK } from "./cost.js";
 import { deliveryHours } from "./durations.js";
-import { ZERO } from "./hours.js";
+import { shownAnchors, ZERO } from "./hours.js";
 import { evalFormula, type CellValue } from "./xl-formula.js";
 import { catalogueStatusText } from "./catalogue-status.js";
 
@@ -695,7 +695,7 @@ export function buildWorkbook(input: ExportInput, audience: Audience): ExcelJS.W
     head(A, 2, { B: "Task", C: "Title", D: "Min (h)", E: "Max (h)", F: "Why a fair reference" });
     const title = new Map(b.tasks.map((t) => [t.id, t.title]));
     let ar = 3;
-    for (const x of e.anchors) { A.getCell(`B${ar}`).value = x.taskId; A.getCell(`C${ar}`).value = title.get(x.taskId) ?? ""; n(A, `D${ar}`, x.hours.min); n(A, `E${ar}`, x.hours.max); A.getCell(`F${ar}`).value = x.reason; ar++; }
+    for (const x of shownAnchors(e)) { A.getCell(`B${ar}`).value = x.taskId; A.getCell(`C${ar}`).value = title.get(x.taskId) ?? ""; n(A, `D${ar}`, x.hours.min); n(A, `E${ar}`, x.hours.max); A.getCell(`F${ar}`).value = x.note ? `${x.reason} (${x.note[0]!.toUpperCase()}${x.note.slice(1)}.)` : x.reason; ar++; }
     ar += 2;
     head(A, ar, { B: "Task", C: "Title", D: "Anchor", E: "Ratio", F: "Reason", G: "Min (h)", H: "Max (h)", I: "Executor", J: "Flagged" }); ar++;
     for (const t of e.tasks) {
