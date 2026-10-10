@@ -11,7 +11,8 @@ export interface Job<T = unknown> {
   pack: ContextPack;
   /** zod schema the result must satisfy (the single schema source). */
   schema: z.ZodType<T>;
-  limits: { maxTurns: number; maxUsd: number; timeoutSec: number };
+  /** hardTimeout (api runner only): abort a model request still in flight when timeoutSec is up, instead of letting the turn finish */
+  limits: { maxTurns: number; maxUsd: number; timeoutSec: number; hardTimeout?: boolean };
   /** agent runners only: the run's worktree */
   workdir?: string;
 }
