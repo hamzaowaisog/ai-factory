@@ -602,6 +602,7 @@ By design it **can't approve plans**, and an MCP client can't answer questions. 
 | No live secrets where the AI works | Secret files are hidden from AI steps; the coding container gets dummy settings; packs are secret-scanned and redacted. |
 | Client agent files don't steer the AI | `CLAUDE.md`, `AGENTS.md`, `.claude/`, `.mcp.json`… are masked in the coding container; loading one fails the step. |
 | Tests can't be weakened | Locked by fingerprint; test projects and runner config are protected; every expected test must actually run. |
+| Tests are read before they are locked | A reviewer model reads each new test against its criterion. A test that does not prove it goes back to the test writer, up to three times, the last on a stronger model where the step has one. A test still called weak, then or at the final review, does not stop the run: it is named on the pull request and the Tests tab. A criterion the final review finds no test for at all still stops the run until a person accepts it (`factory waive`). |
 | Nothing unverified ships | Pushed code = the exact commit the gates judged + one manifest-only commit. |
 | Test database is disposable | A fresh Postgres per check, reachable only from the test container, with a non-superuser login. |
 

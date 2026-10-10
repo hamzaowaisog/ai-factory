@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { failure } from "../gates/engine.js";
 import type { LedgerEvent } from "../contracts/index.js";
-import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, checkOf, limitsNote, TEST_SCOPE, testRetryMode, testWriterTampering, labelRejectionLifted } from "./build.js";
+import { coversIntegrate, usesEmptyBaseline, keepPassingTests, earlierTests, labelRegressions, previousAttempt, patchLines, retryMode, checkOf, limitsNote, TEST_SCOPE, testRetryMode, testWriterTampering, labelRejectionLifted, rewriteHasRoom } from "./build.js";
+import { ProjectConfig } from "../config/project.js";
+import { DEFAULT_POLICY } from "../gates/policy.js";
 import { attemptSpend, startNeed } from "./executor.js";
 import { matchesAny } from "../util/glob.js";
 
@@ -269,5 +271,29 @@ describe("the empty baseline is greenfield only (PR #17 follow-up)", () => {
     asked = 0;
     for (const mode of ["brownfield", "estimate", "design", undefined]) expect(usesEmptyBaseline(mode, empty)).toBe(false);
     expect(asked).toBe(0);
+  });
+});
+
+describe("a weak test goes back to its writer only while the ladder has somewhere to go", () => {
+  const ctx = (o: { steps?: Record<string, unknown>; rung: number; attempt: number; extra?: number }) => ({
+    project: ProjectConfig.parse({ project: "p", repo: "-", stack: "dotnet", ...(o.steps ? { steps: o.steps } : {}) }),
+    policy: DEFAULT_POLICY, rung: o.rung, attempt: o.attempt, state: { capOverrides: { extraAttempts: o.extra ?? 0 } },
+  }) as never;
+
+  it("moves up a rung each time, and stops asking at the top: a failure there would park the run for a person", () => {
+    // the first rungs always have more effort above them
+    expect(rewriteHasRoom(ctx({ rung: 0, attempt: 1 }))).toBe(true);
+    // a writer on the lighter model has a stronger one to move to; at that model there is nothing above
+    const light = { "author-tests": { tier: "light" } };
+    expect(rewriteHasRoom(ctx({ steps: light, rung: 1, attempt: 3 }))).toBe(true);
+    expect(rewriteHasRoom(ctx({ steps: light, rung: 2, attempt: 4 }))).toBe(false);
+    // a writer already on the strongest model stops one rung earlier
+    expect(rewriteHasRoom(ctx({ steps: { "author-tests": { model: "claude-opus-5-5" } }, rung: 1, attempt: 3 }))).toBe(false);
+  });
+
+  it("never spends the step's last attempt on it", () => {
+    expect(rewriteHasRoom(ctx({ rung: 0, attempt: DEFAULT_POLICY.retryBudget - 1 }))).toBe(true);
+    expect(rewriteHasRoom(ctx({ rung: 0, attempt: DEFAULT_POLICY.retryBudget }))).toBe(false);
+    expect(rewriteHasRoom(ctx({ rung: 0, attempt: DEFAULT_POLICY.retryBudget, extra: 2 }))).toBe(true);
   });
 });

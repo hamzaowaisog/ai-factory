@@ -12,7 +12,7 @@ import {
 } from "../gates/predicates.js";
 import { CONFIG_INTEGRITY_GLOBS } from "../gates/protected.js";
 import { matchesAny } from "../util/glob.js";
-import { failureSignature } from "../gates/ladder.js";
+import { failureSignature, RUNGS } from "../gates/ladder.js";
 import { changedFiles, commitAll, diffIncludingUntracked, git, headSha, repoRefusals, resetHard, trackIgnored } from "../ledger/git.js";
 import { agentDatabase, NO_CREDIT_TEXT, type AgentProgress } from "../runners/claude-agent.js";
 import { codingRunner } from "../runners/codex.js";
@@ -39,7 +39,7 @@ import { readApproved } from "../conventions/store.js";
 import { guidelinesBrief } from "../conventions/brief.js";
 import { approvedDesignFor } from "./design-inputs.js";
 import { header, outputOf, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
-import { lightLaneModel, modelFor } from "./routing.js";
+import { availableRungs, lightLaneModel, modelFor } from "./routing.js";
 import { family } from "../runners/types.js";
 import { S, think, tracePack } from "./think.js";
 import { changeBase, ensureWorktree, runtime, snapshotFor, toolsAt, uiBase } from "./workspace.js";
@@ -779,22 +779,35 @@ Before you return, check your list against the criteria: each of these needs at 
     const lockSha = ctx.ledger.putJson({ ...lock, unlocks: [], families, familyNote, rules: { productionExceptionOk: true }, header: header(ctx.runId, "acceptance-tests", "author-tests", "", model) });
     const g = await runGate(failsOnBase, ctx.ledger, ctx.writer, { run1: run1.testRun, run2: run2.testRun, tests: lockSha }, ctx.policy, { step: "author-tests", treeSha: commit });
     if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [], signature: failureSignature((g.failures ?? []).map((f) => f.message)), data: keep };
-    // each test is read against its criterion now, while the writer can still tighten it: after the lock only a person can accept a weak one
+    // each test is read against its criterion now, while the writer can still tighten it: this is where a weak test is settled,
+    // since after the lock nothing in the run can change it
     const weak = await weakTests(ctx, commit, needTest, tests);
     if ("outcome" in weak) return weak.outcome;
     if (weak.failures.length) {
       const sent = ctx.ledger.events().filter((e) => e.type === "step.failed" && String(e.key).startsWith("author-tests/") && (e.data as { signature?: string } | undefined)?.signature === PROOF_SIGNATURE).length;
-      if (sent < PROOF_REWRITES) return { kind: "fail", category: "other", failures: weak.failures, signature: PROOF_SIGNATURE, data: keep };
-      ctx.log(`author-tests: ${weak.failures.length} test(s) still read as weak after ${PROOF_REWRITES} rewrites; locking them as they are (the review will ask a person)`);
+      if (sent < PROOF_REWRITES && rewriteHasRoom(ctx)) return { kind: "fail", category: "other", failures: weak.failures, signature: PROOF_SIGNATURE, data: keep };
+      ctx.log(`author-tests: ${weak.failures.length} test(s) still read as weak after ${sent} rewrite${sent === 1 ? "" : "s"}; locking them as they are and naming them on the pull request`);
     }
-    return { kind: "done", outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, ...retry, locked: lock.lock.length, familyNote, ...(lessons.length ? { lessonsUsed: lessons.map((l) => l.csproj) } : {}) } };
+    return { kind: "done", outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, ...retry, locked: lock.lock.length, familyNote, ...(weak.weak.length ? { weakTests: weak.weak } : {}), ...(lessons.length ? { lessonsUsed: lessons.map((l) => l.csproj) } : {}) } };
   },
 };
 
 const PROOF_SIGNATURE = "author-tests:proof";
 /** How many times the test writer is sent back for tests that do not prove their criteria, before they are locked as they are. */
-const PROOF_REWRITES = 2;
+const PROOF_REWRITES = 3;
+
+/**
+ * Whether the ladder gives the test writer another attempt after a failure now. The same failure twice moves it up a rung
+ * (more effort, then a stronger model where the step has one); with no rung left, or no attempt left, it parks the run for
+ * a person. A weak test is not worth that: the tests are locked as they are instead.
+ */
+export function rewriteHasRoom(ctx: Pick<StepContext, "project" | "policy" | "rung" | "attempt" | "state">): boolean {
+  const rungs = availableRungs(ctx.project, "author-tests", ctx.policy.localOnly);
+  return ctx.attempt < ctx.policy.retryBudget + ctx.state.capOverrides.extraAttempts && RUNGS.slice(ctx.rung + 1).some((r) => rungs.has(r));
+}
 const ProofOut = z.object({ coverage: z.array(ReviewCoverage) });
+/** A criterion whose test a reader judged not to prove it, and why. */
+export interface WeakTest { acId: string; verdict: "weak" | "no-test"; testId: string; why: string }
 const PROOF_TEMPLATE = `You check acceptance tests before they are locked. The code they test is not written yet, so every test fails today: do not judge whether a test passes.
 For each criterion in "acs", open its tests ("ac-tests" gives the file and the test name; a criterion can have several, judge them together) and decide whether they prove the criterion.
 - "proves-it": code that broke any part of the criterion would fail these tests. They assert the values, messages, status codes and stored data the criterion names, for every case it names.
@@ -805,10 +818,10 @@ Report one verdict per criterion in "coverage", with testId "" unless one test i
 /**
  * Read each new test against its criterion before the lock (run e1b5: five tests passed at the end and proved too little, and by
  * then they were locked, so the run could only ask a person to waive). The reviewer's model reads them, not the writer's route.
- * A criterion the check leaves out counts as proven: the review at the end is still there.
+ * A criterion the check leaves out counts as proven: the review at the end reads every test again and names what it finds weak.
  */
-async function weakTests(ctx: StepContext, commit: string, needTest: { id: string }[], tests: { acId: string; file: string; name: string; testId: string }[]): Promise<{ failures: Failure[] } | { outcome: StepOutcome }> {
-  if (!needTest.length) return { failures: [] };
+async function weakTests(ctx: StepContext, commit: string, needTest: { id: string }[], tests: { acId: string; file: string; name: string; testId: string }[]): Promise<{ failures: Failure[]; weak: WeakTest[] } | { outcome: StepOutcome }> {
+  if (!needTest.length) return { failures: [], weak: [] };
   const room = Math.max(1, Math.ceil(needTest.length / 12));
   const r = await think({ ...ctx, priorFailures: [], gateAnswers: [] }, {
     stage: "author-tests", label: "test check", route: "review", cls: "read-large", budgetTokens: 60_000, schema: ProofOut,
@@ -821,12 +834,15 @@ async function weakTests(ctx: StepContext, commit: string, needTest: { id: strin
       S.task("Check these tests against their criteria. Open the test files."),
     ],
   });
-  if (!r.ok) return r.outcome.kind === "park" ? { outcome: r.outcome } : { failures: [] };
+  if (!r.ok) return r.outcome.kind === "park" ? { outcome: r.outcome } : { failures: [], weak: [] };
   const ids = new Set(needTest.map((a) => a.id));
   const seen = new Set<string>();
   const bad = r.output.coverage.filter((c) => c.verdict !== "proves-it" && ids.has(c.acId) && !seen.has(c.acId) && !!seen.add(c.acId));
   ctx.log(`author-tests: test check: ${bad.length ? `${bad.length} of ${needTest.length} criteria not proven by their tests` : `every criterion is proven by its tests`}`);
-  return { failures: bad.map((c) => failure("test-proof", `${c.acId}: ${c.verdict === "no-test" ? "no test covers it" : `its test${c.testId ? ` ${c.testId}` : ""} does not prove the criterion`} (${c.why}). Tighten the test so it asserts what the criterion says.`)) };
+  return {
+    weak: bad.map((c) => ({ acId: c.acId, verdict: c.verdict as WeakTest["verdict"], testId: c.testId, why: c.why })),
+    failures: bad.map((c) => failure("test-proof", `${c.acId}: ${c.verdict === "no-test" ? "no test covers it" : `its test${c.testId ? ` ${c.testId}` : ""} does not prove the criterion`} (${c.why}). Tighten the test so it asserts what the criterion says.`)),
+  };
 }
 
 // ---------- implement per task (A) ⟲ task verify (D) ----------

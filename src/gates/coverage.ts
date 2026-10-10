@@ -1,5 +1,6 @@
 // review.covers-every-criterion: the reviewer accounted for every acceptance criterion.
-// review.tests-prove-criteria: and what it said about each locked test counts.
+// review.criteria-have-tests: and a criterion it found no test for stops the run.
+// review.tests-prove-criteria: the older gate, which also stopped on a weak test. Kept for the runs that recorded it.
 import type { Requirement, ReviewCoverage } from "../contracts/index.js";
 import { defineGate, failure, verdict } from "./engine.js";
 
@@ -48,6 +49,11 @@ export function unprovenCriteria(coverage: ReviewCoverage[], requirements: Requi
  *
  * Waivable, and not a safety gate: the verdict is a model's judgement, and the tests are locked, so no retry can change
  * them. A person reads the reason and either accepts the test as it stands, with their name, or stops the run.
+ *
+ * No run evaluates this gate any more: a weak test is settled before the lock, where the writer can still tighten it, and
+ * what the review still calls weak is named on the pull request (reviewStep). `review.criteria-have-tests` below took over
+ * the part that still stops a run. This one stays defined for the runs that recorded it: `factory verify-evidence` re-runs
+ * every recorded gate, and the merge gate replays its verdict and its waiver.
  */
 export const testsProveCriteria = defineGate<{
   review: { coverage: ReviewCoverage[] };
@@ -62,5 +68,27 @@ export const testsProveCriteria = defineGate<{
         ? `${b.acId}: its locked test${b.testId ? ` ${b.testId}` : ""} passes but does not prove the criterion (${b.why})`
         : `${b.acId}: no locked test covers it (${b.why})`)),
       `${automated} automated ${automated === 1 ? "criterion is" : "criteria are"} each proven by a locked test`);
+  },
+});
+
+/**
+ * A criterion the reviewer found no test for at all. Every automated criterion has a locked test by name (the test writer's
+ * step checks that), so this verdict says the test filed under the criterion is about something else: nothing was proven,
+ * which is more than a test that asserts too little. It stops the run for a person, who accepts it by name or stops.
+ * A "weak" verdict does not fail this gate: it is named on the pull request.
+ */
+export const criteriaHaveTests = defineGate<{
+  review: { coverage: ReviewCoverage[] };
+  spec: { requirements: Requirement[] };
+}>({
+  id: "review.criteria-have-tests", after: "review", safety: false, waiver: "human",
+  predicate: ({ review, spec }) => {
+    const all = unprovenCriteria(review.coverage, spec.requirements);
+    const bad = all.filter((b) => b.verdict === "no-test");
+    const automated = spec.requirements.flatMap((r) => r.acceptance).filter((a) => a.level !== "manual").length;
+    const weak = all.length - bad.length;
+    return verdict(
+      bad.map((b) => failure("test-proof", `${b.acId}: no locked test covers it (${b.why})`)),
+      `${automated} automated ${automated === 1 ? "criterion has" : "criteria each have"} a locked test that covers ${automated === 1 ? "it" : "them"}${weak ? `; ${weak} of the tests ${weak === 1 ? "is" : "are"} called weak, which does not stop the run` : ""}`);
   },
 });

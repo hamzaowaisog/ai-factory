@@ -92,6 +92,9 @@ let clarifierPrompt = "";
 /** what the scripted reviewer says about every locked test, and how many reviews were paid for */
 let reviewVerdict: "proves-it" | "weak" | "no-test" = "proves-it";
 let reviewCalls = 0;
+/** what the scripted check before the lock says about every new test (unscripted when unset), and how often it was asked */
+let proofVerdict: "proves-it" | "weak" | undefined;
+let proofCalls = 0;
 /** the spec also carries a criterion only a person can check */
 let manualCriterion = false;
 /** A scripted review must now account for every acceptance criterion, as a real one must. */
@@ -131,6 +134,10 @@ function answerFor(system: string, allowMulti = true, user = ""): unknown {
     ...(!planGivesNoModel && (system.includes("DATA MODEL. Give") || system.includes("The database as it is now")) ? { dataModel: { tables: [{ name: "Greetings", purpose: "the greeting text", columns: [{ name: "Id", type: "int", required: true, pk: true }, { name: "Text", type: "string", required: true }] }] } } : {}),
   };
   if (system.includes("review a finished change")) return scriptedReview(user, reviewFindings);
+  if (proofVerdict && system.includes("check acceptance tests before they are locked")) {
+    proofCalls += 1;
+    return { coverage: [...new Set([...user.matchAll(/"id":\s*"(AC-[\w.-]+)"/g)].map((m) => m[1]!))].map((acId) => ({ acId, testId: "", verdict: proofVerdict, why: "scripted check" })) };
+  }
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
 }
 const modelCalls: string[] = [];
@@ -321,6 +328,8 @@ beforeEach(() => {
   reviewFindings = [];
   reviewVerdict = "proves-it";
   reviewCalls = 0;
+  proofVerdict = undefined;
+  proofCalls = 0;
   manualCriterion = false;
   criticFindings = [];
   repairSpec = undefined;
@@ -444,8 +453,28 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(replay(ledger.events()).steps.get("integrate")!.data!.waivers).toMatchObject([{ gateIds: ["integrate.diff-size"], human: "lead" }]);
   });
 
-  it("a locked test the reviewer calls weak stops the run for a person, who accepts it by name without paying for a second review", async () => {
+  it("a locked test the reviewer calls weak does not stop the run: it is named on the pull request and the Tests page", async () => {
     reviewVerdict = "weak";
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    expect(reviewCalls).toBe(1);
+    const s = replay(ledger.events());
+    // the gate that stops a run passed, so the merge gate has no failed gate to replay
+    expect(s.gates.filter((g) => g.gateId === "review.tests-prove-criteria")).toEqual([]);
+    expect(s.gates.filter((g) => g.gateId === "review.criteria-have-tests").map((g) => g.passed)).toEqual([true]);
+    expect(s.steps.get("review")!.data!.weakTests).toEqual([{ acId: "AC-1.1", verdict: "weak", testId: "", why: "scripted" }]);
+    expect(s.steps.get("review")!.data!.waivers).toBeUndefined();
+    const pr = ledger.readCard(`pr-${runId}`);
+    expect(pr).toContain("1 locked test the review judged not to prove its criterion. It passes, and the run did not stop for it:");
+    expect(pr).toContain("  - AC-1.1: the test is too weak (scripted)");
+    expect(testsView(ledger)).toMatchObject({ stage: "reviewed", proof: { passed: false, flagged: 1 }, metrics: { weak: 1, proven: 0, lockedTests: 1, passing: 1 } });
+  });
+
+  it("a criterion the reviewer finds no test for stops the run for a person, who accepts it by name without paying for a second review", async () => {
+    reviewVerdict = "no-test";
     const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
     const ledger = await toApproval(runId);
     await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
@@ -453,17 +482,35 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(r.status, r.message).toBe("waiting");
     const card = replay(ledger.events()).openCard!;
     expect(card.kind).toBe("waiver");
-    expect(readFileSync(join(ledger.dir, "cards", `${card.cardId}.md`), "utf8")).toMatch(/review\.tests-prove-criteria: AC-1\.1: its locked test passes but does not prove the criterion \(scripted\)/);
-    expect(replay(ledger.events()).gates.filter((g) => g.gateId === "review.tests-prove-criteria").map((g) => g.passed)).toEqual([false]);
+    expect(readFileSync(join(ledger.dir, "cards", `${card.cardId}.md`), "utf8")).toMatch(/review\.criteria-have-tests: AC-1\.1: no locked test covers it \(scripted\)/);
+    expect(replay(ledger.events()).gates.filter((g) => g.gateId === "review.criteria-have-tests").map((g) => g.passed)).toEqual([false]);
     // the Tests page shows the verdict while the person decides, from the review the card is holding
-    expect(testsView(ledger)).toMatchObject({ stage: "reviewed", proof: { passed: false }, metrics: { weak: 1, proven: 0, lockedTests: 1, passing: 1 } });
+    expect(testsView(ledger)).toMatchObject({ stage: "reviewed", proof: { passed: false }, metrics: { noTest: 1, proven: 0, lockedTests: 1, passing: 1 } });
+    expect(testsView(ledger).proof!.flagged).toBeUndefined();
     await decide(ledger, { decision: "waive", hashPrefix: card.artifactSha.slice(0, 6), by: "lead", data: { reason: "the probe covers it" } });
     expect((await execute(runId)).status).toBe("delivered");
     expect(reviewCalls).toBe(1);
     const s = replay(ledger.events());
-    expect(s.steps.get("review")!.data!.waivers).toMatchObject([{ gateIds: ["review.tests-prove-criteria"], human: "lead", reason: "the probe covers it" }]);
-    expect(ledger.readCard(`pr-${runId}`)).toContain("Waived by lead: review.tests-prove-criteria (the probe covers it)");
+    expect(s.steps.get("review")!.data!.waivers).toMatchObject([{ gateIds: ["review.criteria-have-tests"], human: "lead", reason: "the probe covers it" }]);
+    expect(s.steps.get("review")!.data!.weakTests).toBeUndefined();
+    expect(ledger.readCard(`pr-${runId}`)).toContain("Waived by lead: review.criteria-have-tests (the probe covers it)");
     expect(testsView(ledger).proof).toMatchObject({ passed: false, waivedBy: "lead", reason: "the probe covers it" });
+  });
+
+  it("tests the check before the lock calls weak go back to the writer, then are locked as they are: the run never waits for a person", async () => {
+    proofVerdict = "weak";
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    const sent = ledger.events().filter((e) => e.type === "step.failed" && String(e.key).startsWith("author-tests/") && (e.data as { signature?: string }).signature === "author-tests:proof");
+    // sent back at least once, never more than three times, and each time the ladder had somewhere to go
+    expect(sent.length).toBeGreaterThanOrEqual(1);
+    expect(sent.length).toBeLessThanOrEqual(3);
+    expect(sent.every((e) => (e.data as { action?: string }).action === "retry")).toBe(true);
+    expect(proofCalls).toBe(sent.length + 1);
+    expect(replay(ledger.events()).steps.get("author-tests")!.data!.weakTests).toEqual([{ acId: "AC-1.1", verdict: "weak", testId: "", why: "scripted check" }]);
   });
 
   it("a criterion with no automated test waits for a person's sign-off after the review, and the pull request names who checked it", async () => {

@@ -1585,10 +1585,11 @@ function testsScreen(id) {
       d.signOff ? signOffPanel(r, d) : null,
       h("section", { class: "panel rise" },
         h("div", { class: "panel-head" }, h("h2", {}, icon("check"), "Tests"),
-          d.proof ? h("span", { class: `pill t-${d.proof.passed ? "ok" : d.proof.waivedBy ? "wait" : "bad"}` }, h("span", { class: "d" }), d.proof.passed ? "Every test proves its criterion" : d.proof.waivedBy ? "Accepted by a person" : "Stopped: a test does not prove its criterion") : null),
+          d.proof ? h("span", { class: `pill t-${d.proof.passed ? "ok" : d.proof.waivedBy || d.proof.flagged ? "wait" : "bad"}` }, h("span", { class: "d" }), d.proof.passed ? "Every test proves its criterion" : d.proof.waivedBy ? "Accepted by a person" : d.proof.flagged ? `${d.proof.flagged} weak test${d.proof.flagged === 1 ? "" : "s"}, named on the pull request` : "Stopped: a test does not prove its criterion") : null),
         h("p", { class: "small muted" }, d.note, d.commit ? ` Results are for commit ${d.commit.slice(0, 10)}.` : ""),
         d.proof && !d.proof.passed ? h("p", { class: "small" }, d.proof.waivedBy
           ? `${d.proof.waivedBy} accepted the tests as they stand: ${d.proof.reason || "no reason recorded"}.`
+          : d.proof.flagged ? "The tests were checked before they were locked and the writer was sent back to tighten them. These are what the review still calls weak; the run does not stop for them."
           : "The run waits for a person: accept the tests as they stand with the waiver card on the run page, or stop the run.") : null,
         h("div", { class: "tests-stats" },
           stat("Criteria", m.criteria, "", `${m.requirements} requirement${m.requirements === 1 ? "" : "s"}`),
