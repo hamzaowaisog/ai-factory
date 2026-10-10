@@ -1,6 +1,6 @@
 // A Stitch design in the approval demo and the exports made from it: each state shows only its own Stitch screenshot, with no
 // app frame of ours around it (the screenshot already has the app's own).
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -52,4 +52,35 @@ describe("Stitch frames for the approval step", () => {
     expect(list({ stitch: { frames: { "ST-1": { name: "a.png", state: "normal" }, "ST-2": { name: "b.png", state: "empty" } } } } as never))
       .toEqual([{ id: "ST-1", name: "a.png", state: "normal" }, { id: "ST-2", name: "b.png", state: "empty" }]);
   });
+});
+
+describe("the Figma export of a Stitch design", () => {
+  it.skipIf(!findChromium())("gives one frame per screen and state, each with its own Stitch picture", async () => {
+    const { chromium } = await import("playwright-core");
+    const browser = await chromium.launch({ executablePath: findChromium()!, args: ["--no-sandbox"] });
+    const shot = async (colour: string) => {
+      const p = await browser.newPage({ viewport: { width: 320, height: 480 } });
+      await p.setContent(`<body style="margin:0"><div style="width:320px;height:480px;background:${colour}"></div></body>`);
+      const b = await p.screenshot();
+      await p.close();
+      return `data:image/png;base64,${b.toString("base64")}`;
+    };
+    const frames = { "ST-1": { name: "stitch-S-1-normal-aaaaaaaa.png", dataUri: await shot("#0f766e"), state: "normal" }, "ST-2": { name: "stitch-S-1-empty-bbbbbbbb.png", dataUri: await shot("#f59e0b"), state: "empty" } };
+    await browser.close();
+    const dir = mkdtempSync(join(tmpdir(), "stitch-pkg-"));
+    mkdirSync(join(dir, "demo"));
+    writeFileSync(join(dir, "demo", "index.html"), demo([stitchScreen], frames));
+    writeFileSync(join(dir, "design.json"), JSON.stringify({ schemaVersion: 1, flow: "f", screens: [{ id: "S-1", route: "/appointments" }] }));
+    const manifest = { line: "clinic", version: 1, product: { name: "Clinic" }, run: { id: "r1", mode: "design", project: "p" }, screens: [{ id: "S-1", title: "Appointments", route: "/appointments", reqs: ["REQ-1"], states: ["default", "empty"] }], shots: [], files: [] };
+    const { figmaDoc } = await import("./figma.js");
+    const shots = ["default", "empty"].map((stateBase) => ({ id: "S-1", screen: "S-1 Appointments", stateBase, viewport: "desktop" as const, modeName: "light" as const, langCode: "en", file: `s-1-${stateBase}-desktop.png` }));
+    const saved = process.env.FACTORY_NO_SCREENSHOTS;
+    delete process.env.FACTORY_NO_SCREENSHOTS;
+    let r: Awaited<ReturnType<typeof figmaDoc>>;
+    try { r = await figmaDoc({ manifest, dir } as never, shots, "test"); } finally { if (saved !== undefined) process.env.FACTORY_NO_SCREENSHOTS = saved; }
+    expect(r.why).toBeUndefined();
+    expect(r.doc!.frames.map((f) => f.state)).toEqual(["default", "empty"]);
+    for (const f of r.doc!.frames) { expect(f.picture).toBeTruthy(); expect(f.nodes).toBeGreaterThan(0); }
+    expect(r.doc!.frames[0]!.picture).not.toEqual(r.doc!.frames[1]!.picture);
+  }, 120_000);
 });
