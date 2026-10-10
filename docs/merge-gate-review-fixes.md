@@ -158,4 +158,8 @@ The third pass found items 1 to 5 of the second review resolved, and three new p
 
 **Accepted limit (B, second half):** a test that `main` added, and that already fails on `main`, still counts as a new failure on the merge result. It can trigger a broken-merge repair for a test the PR never touched. Removing this would mean building and testing the current base. That was left out to keep the cost down.
 
-**Still open:** C (review-2 runs again when only the manifest moves), parking by count rather than by cause, and items 6, 7 and 10 from the second review.
+**Then, after `aba56a7`:**
+- **C:** the diff the gate hashes, secret-scans and shows review-2 is built by `gateDiff`, which leaves out `.factory/`. A base move caused only by another pull request's manifest no longer pays for a second review.
+- **6 (doc only):** the Harness and GitHub Actions pull-request triggers are out of the setup doc, which now points to `review-open-prs`. The code fix is still open: do not conclude from a recorded `evidence-mismatch`, and have `review-pr` leave a draft alone.
+
+**Still open:** parking by count rather than by cause; item 6 in code; items 7 and 10 from the second review. Fix 7 before `factory/merge-gate` is made a required check.

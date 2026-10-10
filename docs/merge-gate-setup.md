@@ -90,19 +90,21 @@ Install a Delegate on the factory host — the machine where `~/.factory`, your 
 Docker already are. Harness Cloud cannot reach that host, and the design requires that no credential
 leaves it.
 
-Two triggers, both passing their webhook inputs straight through:
+One trigger, passing its webhook inputs straight through:
 
 ```yaml
-# pull_request: opened, synchronize, reopened
-factory review-pr <+trigger.pr.number> \
-  --project shop --repository <+trigger.repo.name> --json
-
 # merge_group
 factory verify-merge-group <+trigger.ref> \
   --project shop --repository <+trigger.repo.name> --json
 ```
 
-Pass them unvalidated. The factory validates them itself: `--repository` must equal the configured
+**No pull-request trigger yet.** A `review-pr` trigger on `opened` or `ready_for_review` fires
+before deliver has finished its step: deliver opens the draft, posts its review and marks it ready,
+and only then completes. A review in that window reads the evidence as not reconciled, fails the pull
+request, and that failure holds until the base moves. Until that is fixed, gate pull requests with
+`review-open-prs` (below), which leaves drafts alone.
+
+Pass the inputs unvalidated. The factory validates them itself: `--repository` must equal the configured
 `forge.repo` **exactly** — no case-folding, no substring matching — and the pull request number must
 be a positive integer. Without that, a crafted webhook payload would aim the factory, holding your
 forge credential, at a repository nobody configured.
@@ -145,19 +147,9 @@ The trade against Harness or a webhook is latency and uptime: a pull request wai
 seconds, and nothing is gated while the machine is asleep. With `factory/merge-gate` required, a
 missed pass means a pull request cannot merge, which is the safe direction.
 
-**On a self-hosted GitHub Actions runner.** This also works, and is genuinely event-driven:
-
-```yaml
-on:
-  pull_request: { types: [opened, synchronize, reopened, ready_for_review] }
-  merge_group:
-jobs:
-  gate:
-    runs-on: self-hosted            # must be the factory host
-    steps:
-      - run: factory review-pr ${{ github.event.pull_request.number }}
-               --project shop --repository ${{ github.repository }} --json
-```
+**On a self-hosted GitHub Actions runner.** Not for pull requests yet, for the same reason as the
+Harness pull-request trigger above: a `pull_request` event fires before deliver has finished, and the
+failure it writes holds until the base moves. Use `review-open-prs` on the factory host instead.
 
 ⚠ **Not on a public repository.** A self-hosted runner on a public repo lets anyone who opens a pull
 request run code on this machine — the machine holding your forge token and API keys. Use
