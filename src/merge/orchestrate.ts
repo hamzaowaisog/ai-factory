@@ -63,6 +63,8 @@ export interface MergeResult {
   conflicts?: string[];
   /** Ids of the locked tests that failed, when `testsPass` is false. Same reason. */
   failedTests?: string[];
+  /** Of `failedTests`, the ones the run never knew (not locked, not in its baseline): no repair is paid for these. */
+  unknownFailures?: string[];
   /** Conflicted paths settled without a model (deliver's evidence manifest): the merge exists only here. */
   settled?: string[];
   /** gate id → recomputed inputs hash for this tree */
@@ -287,6 +289,12 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     // repair, once, before gating: a repaired tree is the one that should be judged. It is committed
     // locally only; it reaches the pull request after the gates pass on it, never before.
     let repairPending = false;
+    // a test the run never knew is most likely new on the base and failing there: repairing it would be
+    // paid by every open pull request, for a test none of them touched, and the repair may not edit tests
+    if (cls === "broken-merge" && m?.unknownFailures?.length) {
+      return await fail(cls, "Tests fail that this run never knew",
+        `Failing on the merge with ${pr.baseSha.slice(0, 8)}: ${m.unknownFailures.join(", ")}. These tests are neither locked nor in the run's baseline, so they most likely came with the base and already fail there. No repair was paid for; fix them on ${pr.baseRef}, and this pull request is judged again when the base moves.`);
+    }
     if (isRepairable(cls)) {
       const budget: RepairBudget = {
         path: "A", attemptsThisRun: 0, attemptsThisPr: run!.attemptsThisPr,

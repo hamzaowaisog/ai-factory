@@ -163,6 +163,27 @@ describe("reviewPr: when the base has moved", () => {
     expect(subject).toEqual(["Orders.Tests::Rejects"]);
   });
 
+  it("pays for no repair when a failing test is one the run never knew: that is what a red main looks like", async () => {
+    const { d, calls } = deps({
+      getPr: movedPr,
+      mergeVerify: async () => { calls.mergeVerify++; return mergeResult({ testsPass: false, failedTests: ["Orders.Tests::Rejects", "Shop.Tests::NewOnMain"], unknownFailures: ["Shop.Tests::NewOnMain"] }); },
+    });
+    const got = await reviewPr(d, { pr: 42 });
+    expect(calls.repair).toBe(0);
+    expect(calls.review2).toBe(0);
+    expect(got.conclusion).toBe("failure");
+    expect(got.why).toMatch(/NewOnMain/);
+  });
+
+  it("still repairs a broken merge whose failures the run knew", async () => {
+    const { d, calls } = deps({
+      getPr: movedPr,
+      mergeVerify: async () => { calls.mergeVerify++; return mergeResult({ testsPass: calls.mergeVerify > 1, failedTests: ["Orders.Tests::Rejects"], unknownFailures: [] }); },
+    });
+    await reviewPr(d, { pr: 42 });
+    expect(calls.repair).toBe(1);
+  });
+
   it("tells the repair which branch to push to", async () => {
     // without this the repair commits locally and the pull request never receives it
     let got: { headRef: string } | undefined;

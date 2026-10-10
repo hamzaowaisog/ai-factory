@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFil
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { commitRepair, commitsWithTrailers, EVIDENCE_MANIFEST, failingTests, gateDiff, insideWorktree, isFork, mergeExpectations, mergeInto, merging, workingTreeCommit } from "./adapters.js";
+import { commitRepair, commitsWithTrailers, EVIDENCE_MANIFEST, failingTests, gateDiff, unknownFailures, insideWorktree, isFork, mergeExpectations, mergeInto, merging, workingTreeCommit } from "./adapters.js";
 import type { TestRun } from "../contracts/index.js";
 
 const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
@@ -190,6 +190,14 @@ describe("judging the merge result against the run's own tests", () => {
 
   it("does not count a test that already failed on the base: the pull request did not break it", () => {
     expect(failingTests([row("T::Known", "failed"), row("T::Old", "failed"), row("T::Locked", "passed")], baseline)).toEqual(["T::Old"]);
+  });
+
+  it("names the failures the run never knew: neither locked nor in its baseline", () => {
+    expect(unknownFailures(["T::NewOnMain", "T::Old", "T::Locked"], ["T::Locked", "T::Char"], baseline)).toEqual(["T::NewOnMain"]);
+  });
+
+  it("knows no test but the locked ones when the run has no baseline", () => {
+    expect(unknownFailures(["T::B", "T::Locked", "T::A"], ["T::Locked"], undefined)).toEqual(["T::A", "T::B"]);
   });
 
   it("counts every failure when there is no baseline to excuse one", () => {

@@ -23,7 +23,7 @@ import { HUMAN_WRITER } from "../ledger/ledger.js";
 import { diffFiles } from "../stages/deliver.js";
 import { modelFor } from "../stages/routing.js";
 import type { Review2Inputs } from "../stages/review2.js";
-import { commitRepair, commitsWithTrailers, failingTests, forgeAdapter, gateDiff, mergeExpectations, forgeRemote, insideWorktree, mergeInto, merging, openRunFacts, ownReviewBody, recordedVerdicts, reverifyWorktree, workingTreeCommit, worktreeExists } from "./adapters.js";
+import { commitRepair, commitsWithTrailers, failingTests, forgeAdapter, gateDiff, unknownFailures, mergeExpectations, forgeRemote, insideWorktree, mergeInto, merging, openRunFacts, ownReviewBody, recordedVerdicts, reverifyWorktree, workingTreeCommit, worktreeExists } from "./adapters.js";
 import { plannedInputHashes, reviewEvidence, runMergeGates, type MergeEvidence } from "./gates-run.js";
 import { gateInputsHash } from "../gates/engine.js";
 import { scanText } from "../context/secrets.js";
@@ -134,6 +134,7 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
         mergesClean: true,
         testsPass: lastVerify.verification.failed.length === 0,
         failedTests: lastVerify.verification.failed,
+        unknownFailures: unknownFailures(lastVerify.verification.failed, mergeExpectations(lock).expectPass, baseline),
         current, diffSha, mergeSha, settled: merged.settled,
         evidence: { ledger, evidence, treeSha: mergeSha },
       };

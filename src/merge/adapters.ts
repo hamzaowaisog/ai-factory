@@ -103,6 +103,16 @@ export function failingTests(results: TestResult[], baseline: TestRun | undefine
   return results.filter((r) => r.outcome === "failed" && !known.has(r.id)).map((r) => r.id).sort();
 }
 
+/**
+ * Failing tests this run never knew: neither locked nor in its baseline. A test the base added since
+ * the run started is one of these, and when main itself is red it fails on every merge result, so a
+ * repair paid for here would be paid by every open pull request for a test none of them touched.
+ */
+export function unknownFailures(failed: string[], lockedIds: string[], baseline: TestRun | undefined): string[] {
+  const known = new Set([...lockedIds, ...(baseline?.results.map((r) => r.id) ?? [])]);
+  return failed.filter((id) => !known.has(id)).sort();
+}
+
 /** Where the forge repository is fetched from and pushed to: one URL for both, with the same token. */
 export function forgeRemote(cfg: ProjectConfig): { url: string; token?: string } | undefined {
   const forge = cfg.forge;
