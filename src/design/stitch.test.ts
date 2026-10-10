@@ -20,3 +20,12 @@ describe("stitch client", () => {
     expect(await stitchClient().createProject("t")).toBe("p1");
   });
 });
+
+describe("loading the Stitch SDK (PR #32 review)", () => {
+  it("only when a Stitch run starts: no static import, so other runs never need the package", async () => {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(new URL("./stitch.ts", import.meta.url), "utf8");
+    expect(src).not.toMatch(/^import\s+(?!type\b)[^;]*from\s+"@google\/stitch-sdk"/m);
+    expect(src).toMatch(/import\("@google\/stitch-sdk"\)/);
+  });
+});

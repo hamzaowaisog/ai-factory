@@ -69,7 +69,7 @@ export function approvedTokens(design: ApprovedDesign): ReturnType<typeof design
 export const STITCH_NOTE = "This screen was drawn by Google Stitch and approved as drawn. Rebuild it in this app's own stack, components and design tokens to look like the Stitch HTML that follows (layout, sections, order, words); do not paste its markup, Tailwind CDN script or inline styles into the app.";
 
 /** Elements whose content the lead never saw on the card, or that only carry code, styling or metadata. */
-const NOT_SHOWN = "script, style, noscript, template, iframe, object, embed, meta, link, base, title, svg title, svg desc, [hidden], [aria-hidden=true], .sr-only, .hidden, .invisible, [style*='display:none'], [style*='display: none'], [style*='visibility:hidden']";
+const NOT_SHOWN = "script, style, noscript, template, iframe, object, embed, meta, link, base, title, svg title, svg desc, [hidden], [aria-hidden=true], .sr-only, .hidden, .invisible, .opacity-0, [style*='display:none'], [style*='display: none'], [style*='visibility:hidden'], [style*='visibility: hidden'], [style*='opacity:0;'], [style*='opacity: 0;'], [style$='opacity:0'], [style$='opacity: 0']";
 /** The attributes the coding agent needs to rebuild the page (its layout classes, roles, input types, links). */
 const KEPT_ATTRS = new Set(["class", "role", "type", "href"]);
 

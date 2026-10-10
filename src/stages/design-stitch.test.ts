@@ -213,7 +213,7 @@ describe("the approval preview's frames", () => {
   it("lists an image frame too large to embed, but not a missing or non-image one", async () => {
     const { previewFrames } = await import("./design-approve.js");
     const screens = [{ id: "S-1", frames: ["ST-1"] }, { id: "S-2", frames: ["ST-2"] }, { id: "S-3", frames: ["F-1"] }, { id: "S-4", frames: ["ST-4"] }];
-    const frames = { "ST-1": { name: "stitch-S-1.png", dataUri: "data:image/png;base64,AA" }, "ST-2": { name: "stitch-S-2.png" }, "F-1": { name: "notes.pdf" }, "ST-4": { name: "stitch-S-4.png" } };
+    const frames = { "ST-1": { name: "stitch-S-1.png", dataUri: "data:image/png;base64,AA", state: "normal" }, "ST-2": { name: "stitch-S-2.png", state: "normal" }, "F-1": { name: "notes.pdf" }, "ST-4": { name: "stitch-S-4.png", state: "normal" } };
     const has = (n: string) => n !== "stitch-S-4.png";
     expect(previewFrames(screens, frames, has).map((x) => [x.screen.id, x.name])).toEqual([["S-1", "stitch-S-1.png"], ["S-2", "stitch-S-2.png"]]);
   });
@@ -531,5 +531,23 @@ describe("a finished Stitch draw (PR review)", () => {
     expect((await drawWithStitch(ctxFor(ledger), spec)).kind).toBe("done");
     expect(made.projects).toHaveLength(2);
     expect(made.generated).toHaveLength(6);
+  });
+});
+
+describe("Stitch on an existing app (PR #32 review)", () => {
+  it("is refused with the reason: Stitch draws a new product's screens", async () => {
+    const { stitchOnExistingApp } = await import("./design-stitch.js");
+    expect(stitchOnExistingApp(undefined)).toBeUndefined();
+    expect(stitchOnExistingApp({ pages: [], verdict: "none" } as never)).toBeUndefined();
+    expect(stitchOnExistingApp({ pages: [{ route: "/" }], verdict: "kit" } as never)).toMatch(/existing app.*engine claude or openai/);
+  });
+});
+
+describe("the approval preview's frames for a JSON design (PR #32 review)", () => {
+  it("lists a too-large frame only for Stitch: a request's own attached frame is listed only when it is shown", async () => {
+    const { previewFrames } = await import("./design-approve.js");
+    const screens = [{ id: "S-1", frames: ["F-1"] }, { id: "S-2", frames: ["ST-1"] }];
+    const frames = { "F-1": { name: "mock.png" }, "ST-1": { name: "stitch-S-2-normal-aaaaaaaa.png", state: "normal" } };
+    expect(previewFrames(screens, frames, () => true).map((x) => x.name)).toEqual(["stitch-S-2-normal-aaaaaaaa.png"]);
   });
 });

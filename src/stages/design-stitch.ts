@@ -13,6 +13,7 @@ import { stitchFacts, type StitchFacts } from "../design/stitch-facts.js";
 import { stitchClient, type StitchClient, type StitchDevice } from "../design/stitch.js";
 import { checkStitchA11y } from "../design/stitch-a11y.js";
 import { stateKind } from "../design/demo.js";
+import { hasExistingLook, type DesignInventory } from "../design/inventory.js";
 import { failure } from "../gates/engine.js";
 import { currentCostCap } from "../ledger/caps.js";
 import { hashJson } from "../util/hash.js";
@@ -79,6 +80,17 @@ async function picture(c: StitchClient, url: string): Promise<Uint8Array> {
     if (isImage(big) && big.length <= MAX_PICTURE) return big;
   } catch { /* the link takes no size: the picture as Stitch made it */ }
   return c.download(url);
+}
+
+/**
+ * Why Stitch may not draw this design, if it may not: an app with a look of its own. Stitch draws a new product's screens in a
+ * look of its own, and its design is sized, scaffolded and built as new screens; a change to an existing app is drawn on the
+ * JSON track, which keeps the app's look and sizes each screen by what changes.
+ */
+export function stitchOnExistingApp(inv: DesignInventory | undefined): string | undefined {
+  return hasExistingLook(inv)
+    ? `The stitch design engine draws a new product's screens, but this is an existing app with its own look (${inv.pages.length} page(s) found). Use design.engine claude or openai for changes to an existing app.`
+    : undefined;
 }
 
 /** Every Stitch call is one usage row under this model name: no tokens, the project's price per call. */

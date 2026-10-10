@@ -1,6 +1,6 @@
 // Google Stitch through its SDK (@google/stitch-sdk): one small interface, so the design step can be tested with a fake.
 // No MCP server is set up; the SDK talks to Stitch's hosted endpoint with STITCH_API_KEY.
-import { Stitch, StitchToolClient } from "@google/stitch-sdk";
+// The SDK is loaded when a Stitch run first calls Stitch, never at start-up: other runs do not need the package.
 import { secret } from "../config/env.js";
 import type { StitchTheme } from "./stitch-taste.js";
 
@@ -19,20 +19,23 @@ export interface StitchClient {
 
 
 function sdkClient(apiKey: string): StitchClient {
-  const tools = new StitchToolClient({ apiKey });
-  const stitch = new Stitch(tools);
+  let made: Promise<{ tools: { close(): Promise<void> }; stitch: import("@google/stitch-sdk").Stitch }> | undefined;
+  const sdk = () => (made ??= import("@google/stitch-sdk").then(({ Stitch, StitchToolClient }) => {
+    const tools = new StitchToolClient({ apiKey });
+    return { tools, stitch: new Stitch(tools) };
+  }));
   return {
-    async createProject(title) { return (await stitch.createProject(title)).id; },
+    async createProject(title) { return (await (await sdk()).stitch.createProject(title)).id; },
     async createDesignSystem(projectId, name, theme) {
-      const ds = await stitch.project(projectId).createDesignSystem({ displayName: name, theme });
+      const ds = await (await sdk()).stitch.project(projectId).createDesignSystem({ displayName: name, theme });
       await ds.update({ displayName: name, theme });
     },
     async generate(projectId, prompt, device) {
-      const screen = await stitch.project(projectId).generate(prompt, device);
+      const screen = await (await sdk()).stitch.project(projectId).generate(prompt, device);
       return { screenId: screen.id, htmlUrl: await screen.getHtml(), imageUrl: await screen.getImage() };
     },
     async edit(projectId, screenId, prompt, device) {
-      const screen = await stitch.project(projectId).screen(screenId).edit(prompt, device);
+      const screen = await (await sdk()).stitch.project(projectId).screen(screenId).edit(prompt, device);
       return { screenId: screen.id, htmlUrl: await screen.getHtml(), imageUrl: await screen.getImage() };
     },
     async download(url) {
@@ -44,7 +47,8 @@ function sdkClient(apiKey: string): StitchClient {
       if (body.length > MAX_DOWNLOAD) throw new Error(`Stitch download too large: ${url}`);
       return body;
     },
-    close: () => tools.close(),
+    // nothing to close when no call loaded the SDK
+    close: async () => { if (made) await (await made).tools.close(); },
   };
 }
 

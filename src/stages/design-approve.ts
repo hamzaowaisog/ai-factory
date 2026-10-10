@@ -138,10 +138,12 @@ export function designCard(runId: string, design: DesignT, hash: string, extra: 
  * The frames the preview lists beside their screens: each one embedded in the demo, and each image frame whose file is there
  * though too large to embed (a full-page Stitch screenshot can pass the demo's 2 MB / 8 MB limits), so no screen goes unseen.
  */
-export function previewFrames<T extends { frames?: string[] }>(screens: T[], frames: Record<string, { name: string; dataUri?: string }>, has: (name: string) => boolean): { screen: T; name: string }[] {
+export function previewFrames<T extends { frames?: string[] }>(screens: T[], frames: Record<string, { name: string; dataUri?: string; state?: string }>, has: (name: string) => boolean): { screen: T; name: string }[] {
   return screens.flatMap((sc) => (sc.frames ?? []).flatMap((fid) => {
     const f = frames[fid];
-    return f && (f.dataUri || (/\.(png|jpe?g|webp)$/i.test(f.name) && has(f.name))) ? [{ screen: sc, name: f.name }] : [];
+    // a Stitch screenshot (it carries its state) is the design itself, so it is listed even when too large to embed;
+    // a request's own attached frame is listed only when the demo shows it, as before
+    return f && (f.dataUri || (!!f.state && /\.(png|jpe?g|webp)$/i.test(f.name) && has(f.name))) ? [{ screen: sc, name: f.name }] : [];
   }));
 }
 
