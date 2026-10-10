@@ -14,7 +14,8 @@ import { CONFIG_INTEGRITY_GLOBS } from "../gates/protected.js";
 import { matchesAny } from "../util/glob.js";
 import { failureSignature } from "../gates/ladder.js";
 import { changedFiles, commitAll, diffIncludingUntracked, git, headSha, repoRefusals, resetHard, trackIgnored } from "../ledger/git.js";
-import { agentDatabase, ClaudeAgentRunner, NO_CREDIT_TEXT, type AgentProgress } from "../runners/claude-agent.js";
+import { agentDatabase, NO_CREDIT_TEXT, type AgentProgress } from "../runners/claude-agent.js";
+import { codingRunner } from "../runners/codex.js";
 import { ensureAgentImage, ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
 import { buildPack, FILE_INLINE_MAX } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
@@ -34,6 +35,8 @@ import { DataModel, ReviewCoverage } from "../contracts/index.js";
 import { CLIENT_CMD, CLIENT_DIR, contractLockFiles, prepareClient } from "./contract.js";
 import { authorIntro, implementIntro, notFoundHint } from "./stack-text.js";
 import type { Expectations } from "../verify/validate.js";
+import { readApproved } from "../conventions/store.js";
+import { guidelinesBrief } from "../conventions/brief.js";
 import { approvedDesignFor } from "./design-inputs.js";
 import { header, outputOf, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { lightLaneModel, modelFor } from "./routing.js";
@@ -684,12 +687,12 @@ Before you return, check your list against the criteria: each of these needs at 
       ctx.log(`author-tests: the previous attempt's ${ctx.priorFailures.length} rejected test${ctx.priorFailures.length === 1 ? "" : "s"} fail for an accepted reason when its reports are read again; checking its tests again without the test writer`);
       out = prevOut!;
     } else {
-      const r = await new ClaudeAgentRunner(rt, {
+      const r = await codingRunner(rt, {
         runId: ctx.runId, key: `author-tests/${ctx.attempt}`, fileScope: TEST_SCOPE, lockedFiles: [], extraProtected: contractLockFiles(ctx.project, wt), onProgress: agentTracer(ctx, "test writer"),
         protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
         onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "author-tests", data: { id, role: "agent" } }, ctx.writer); },
         onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "author-tests", data: { id } }, ctx.writer); },
-      }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits, workdir: wt });
+      }, model).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits, workdir: wt });
       await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
       if (r.status === "config-error" && r.error === NO_CREDIT_TEXT) {
         // the tests so far are paid for: committed, and the next attempt carries on from them (run b497 lost $1.91 of tests this way)
@@ -1202,6 +1205,12 @@ export function implementStep(taskId: string): StepDef {
       const limits = { maxTurns: 80 * room, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4 * room), timeoutSec: 45 * 60 * room };
       // a backend on PostgreSQL: the session gets an empty database of its own, so the agent can run the locked tests
       const sessionDb = agentDatabase(ctx.project);
+      // the approved guidelines' rules for this task's files, so the code is written to the rules the reviewer judges it by.
+      // Not part of the step's inputs: guidelines approved or rebuilt during a run must not build finished tasks again.
+      const conv = readApproved(ctx.state.info.project);
+      const rules = "unapproved" in conv ? undefined : guidelinesBrief(conv, fileScope);
+      if (rules) ctx.log(`implement ${taskId}: shown ${rules.shown} coding guideline${rules.shown === 1 ? "" : "s"} for its files (guidelines ${"sha" in conv ? conv.sha.slice(0, 8) : ""}${rules.cut ? `; ${rules.cut} outside best practices left out, over the limit` : ""})`);
+      else if ("unapproved" in conv) ctx.log(`implement ${taskId}: no approved coding guidelines, so none are shown`);
       const pack = buildPack({
         stage: "implement", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
         sections: [
@@ -1223,6 +1232,7 @@ export function implementStep(taskId: string): StepDef {
           ...(freed.length ? [S.template("unlocked", `A person unlocked ${freed.join(", ")} for this run: you may change ${freed.length === 1 ? "it" : "them"}, whatever a rule below says about ${freed.length === 1 ? "its" : "their"} folder. Every other locked file stays as it is.`)] : []),
           ...contractNote(ctx.project, wt, "code"),
           ...dataModelNote(ctx.project, wt, "code", !!databaseBefore(ctx)),
+          ...(rules ? [S.reference("guidelines", rules.text)] : []),
           S.artifact("tests", "locked-tests", myTests),
           S.pointers([...task.fileScope.map((p) => ({ path: p, reason: "you may change this" })), ...taken.fileScope.map((p) => ({ path: p, reason: "an earlier task's file; change it only to fix a failing test" })), ...task.exemplars.map((p) => ({ path: p, reason: "follow this style" })), ...myTests.map((t) => ({ path: t.file, reason: `locked test for ${t.acId}; read, don't edit` }))]),
           ...(prevChange !== undefined ? [{ spec: { id: "previous-change", source: "artifact" as const, trust: "derived" as const, placement: "user" as const }, artifactKind: "diff",
@@ -1253,12 +1263,12 @@ export function implementStep(taskId: string): StepDef {
       else {
         // a task that also holds earlier tasks' tests has their work to prove as well as its own: twice the turns, budget and
         // time of one task, so it is not cut off and started again part-way (each new session pays to read everything again)
-        const r = await new ClaudeAgentRunner(rt, {
+        const r = await codingRunner(rt, {
           runId: ctx.runId, key: `${key}/${ctx.attempt}`, fileScope, lockedFiles: lock.lock.map((l) => l.file), onProgress: agentTracer(ctx, "implementer"),
           extraProtected: scaf?.protected ?? [], ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo, ...(sessionDb ? { database: sessionDb } : {}),
           onContainer: async (id, role) => { await ctx.ledger.append({ type: "container.started", key, data: { id, role } }, ctx.writer); },
           onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key, data: { id } }, ctx.writer); },
-        }).run({ step: "implement", model, effort, pack, schema: ImplementOut, limits, workdir: wt });
+        }, model).run({ step: "implement", model, effort, pack, schema: ImplementOut, limits, workdir: wt });
         await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
         if (r.status === "config-error" && r.error === NO_CREDIT_TEXT) {
           // the code so far is paid for: committed, and the next attempt carries on from it at the same rung

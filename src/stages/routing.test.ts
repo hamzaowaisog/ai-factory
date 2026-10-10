@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _resetEnvCache } from "../config/env.js";
 import { ProjectConfig } from "../config/project.js";
-import { availableRungs, checkRoutes, DEFAULT_ROUTES, ESTIMATE_ROUTES, lightLaneModel, mechanical, modelFor, projectForRun, resolveRoute, resolveRun, routeFor, routeRecord, routeSource, routeWarnings, usageRoute } from "./routing.js";
+import { availableRungs, checkRoutes, DEFAULT_ROUTES, ESTIMATE_ROUTES, lightLaneModel, mechanical, modelFor, modelsView, projectForRun, resolveRoute, resolveRun, routeFor, routeRecord, routeSource, routeWarnings, usageRoute } from "./routing.js";
 
 const KEYS = ["FACTORY_HOME", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"] as const;
 function cleanEnv(set: Partial<Record<(typeof KEYS)[number], string>> = {}): void {
@@ -85,9 +85,30 @@ describe("which model a step runs on", () => {
     expect(checkRoutes(withFile).join("\n")).toMatch(/critic always runs on Claude Opus 5.5; remove its entry \(gpt-6-sol\)/);
   });
 
+  it("a GPT model picked for a coding step runs in the Codex agent, and a retry that moves up to Claude runs in the Claude one", () => {
+    const picks = { implement: "gpt-6-sol", "author-tests": "gpt-6-sol" };
+    expect(checkRoutes(project, undefined, { picks })).toEqual([]);
+    expect(resolveRoute(project, "implement", { picks })).toMatchObject({ runner: "codex", model: "gpt-6-sol", effort: "high", escalate: ["claude-opus-5-5"], source: "pick" });
+    // the test writer's own ladder is Claude's: on GPT-6 Sol it has no stronger model to move to
+    expect(resolveRoute(project, "author-tests", { picks })).toMatchObject({ runner: "codex", model: "gpt-6-sol", escalate: [] });
+    // GPT-6 Luna moves up to GPT-6 Sol, still in the Codex agent
+    expect(resolveRoute(project, "implement", { picks: { implement: "gpt-6-luna" } })).toMatchObject({ runner: "codex", model: "gpt-6-luna", escalate: ["gpt-6-sol"] });
+    expect(resolveRoute(project, "author-tests", { picks: { "author-tests": "gpt-6-luna" } })).toMatchObject({ runner: "codex", model: "gpt-6-luna", escalate: [] });
+    // the defaults and the presets keep coding on Claude
+    for (const preset of [undefined, "economy", "balanced", "quality"] as const) for (const step of ["implement", "author-tests"]) expect(resolveRoute(project, step, preset ? { preset } : {}).runner).toBe("claude-agent");
+    const run = projectForRun(project, resolveRun(project, { picks }));
+    expect(routeFor(run, "implement")).toMatchObject({ runner: "codex", model: "gpt-6-sol" });
+    expect(modelFor(run, "implement", 0).model).toBe("gpt-6-sol");
+    expect(modelFor(run, "implement", 2).model).toBe("claude-opus-5-5");
+    // a project file that names a GPT model for a coding step gets the Codex runner without naming it
+    expect(ProjectConfig.parse({ project: "p", repo: "-", steps: { implement: { model: "gpt-6-sol" } } }).steps.implement).toMatchObject({ runner: "codex", model: "gpt-6-sol" });
+    expect(checkRoutes({ ...project, steps: { plan: { runner: "codex", model: "gpt-6-sol", escalate: [] } } } as ProjectConfig).join("\n")).toMatch(/plan: the codex runner is for coding steps/);
+    expect(modelsView(undefined).steps.find((s) => s.step === "implement")!.offered).toEqual(["gpt-6-luna", "gpt-6-sol", "claude-opus-5-5", "claude-sonnet-5-5"]);
+  });
+
   it("refuses a pick the step cannot run on, and warns about a spec written by the critic's own model", () => {
     expect(checkRoutes(project, undefined, { picks: { "specify-other": "claude-opus-5-5" } })[0]).toMatch(/specify-other: claude-opus-5-5 is not offered for this step \(choose gpt-6-luna, gpt-6-sol\)/);
-    expect(checkRoutes(project, undefined, { picks: { implement: "gpt-6-sol" } })[0]).toMatch(/implement: gpt-6-sol is not offered for this step \(choose claude-opus-5-5, claude-sonnet-5-5\)/);
+    expect(checkRoutes(project, undefined, { picks: { implement: "claude-haiku-5-5" } })[0]).toMatch(/implement: claude-haiku-5-5 is not offered for this step \(choose gpt-6-luna, gpt-6-sol, claude-opus-5-5, claude-sonnet-5-5\)/);
     expect(checkRoutes(project, undefined, { picks: { plan: "claude-haiku-5-5" } })[0]).toMatch(/not offered/);
     expect(checkRoutes(project, undefined, { picks: { nope: "gpt-6-sol" } })[0]).toMatch(/nope is not a step that takes a model/);
     expect(checkRoutes(project, undefined, { picks: { specify: "gpt-6-sol", implement: "claude-opus-5-5" } })).toEqual([]);

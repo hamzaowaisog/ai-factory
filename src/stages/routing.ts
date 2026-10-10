@@ -5,7 +5,7 @@ import type { Rung } from "../gates/ladder.js";
 import { blockedText, modelAllowed, type Policy } from "../gates/policy.js";
 import { family, type Effort } from "../runners/types.js";
 import { priceOf, UNCONFIRMED_PRICES } from "../runners/pricing.js";
-import { heldTier, modelInfo, modelName, nextUp, offeredFor, OPUS, PRESETS, presetTier, STEPS, TIER_TABLE, type Preset, type RouteSource, type StepSpec, type Tier, type Vendor } from "./models.js";
+import { heldTier, modelInfo, modelName, nextUp, offeredFor, OPUS, PRESETS, presetTier, runnerFor, STEPS, TIER_TABLE, type Preset, type RouteSource, type StepSpec, type Tier, type Vendor } from "./models.js";
 
 const OLD_OPUS = "claude-opus-5-5";
 const OLD_SONNET = "claude-sonnet-5";
@@ -53,7 +53,7 @@ function fromTier(stage: string, spec: StepSpec, tier: Tier): Pick<Resolved, "ru
   const t = TIER_TABLE[spec.vendor][tier];
   // on its own tier a step keeps the effort it was tuned for; moved to another, it takes that tier's
   const effort = tier === spec.tier ? spec.effort ?? t.effort : t.effort ?? spec.effort;
-  return { runner: spec.runner, model: t.model, escalate: esc(stage, t.model), effort: effort ?? "high", tier };
+  return { runner: runnerFor(stage, t.model), model: t.model, escalate: esc(stage, t.model), effort: effort ?? "high", tier };
 }
 
 /**
@@ -69,7 +69,7 @@ export function resolveRoute(project: ProjectConfig, stage: string, choice: Choi
   }
   if (spec.fixed) return { runner: spec.runner, model: spec.fixed, escalate: [], effort: spec.effort ?? "high", source: "fixed" };
   const pick = choice.picks?.[stage];
-  if (pick) return { runner: spec.runner, model: pick, escalate: esc(stage, pick), effort: spec.effort ?? "high", source: "pick" };
+  if (pick) return { runner: runnerFor(stage, pick), model: pick, escalate: esc(stage, pick), effort: spec.effort ?? "high", source: "pick" };
   const preset = choice.preset ? presetTier(stage, choice.preset) : undefined;
   if (preset) return { ...fromTier(stage, spec, preset), source: "pick", preset: choice.preset };
   if (own) return { ...own, source: "config" };
@@ -216,7 +216,7 @@ export function routeRecord(project: ProjectConfig, stage: string, rung: number,
   return { model, effort, ...routeSource(project, stage), ...(rung >= 2 && model !== routeFor(project, stage).model ? { movedUpFrom: routeFor(project, stage).model } : {}) };
 }
 
-/** Rungs this step can use. Other-vendor needs the Codex runner, which isn't built yet. */
+/** Rungs this step can use. */
 export function availableRungs(project: ProjectConfig, stage: string, localOnly: boolean): Set<Rung> {
   let r: StepRoute | undefined;
   try { r = routeFor(project, stage); } catch { r = undefined; }
@@ -225,7 +225,7 @@ export function availableRungs(project: ProjectConfig, stage: string, localOnly:
   const s = new Set<Rung>(["retry", "raise-effort"]);
   // localOnly: no escalation to a hosted model
   if (r.escalate.length && (!localOnly || family(r.escalate[0]!) === "local")) s.add("stronger-model");
-  // "other-vendor" is added once the Codex runner exists, and never under localOnly.
+  // "other-vendor" is not a rung yet: a person picks the other vendor's model at the start of a run.
   return s;
 }
 
@@ -239,7 +239,7 @@ function refusal(stage: string, model: string, by: "pick" | "config"): string | 
   const vendor = info?.vendor ?? (family(model) === "local" ? undefined : family(model));
   if (spec.only && vendor && !spec.only.includes(vendor as Vendor)) {
     return stage === "specify-other" ? `specify-other is the spec draft from another vendor than the critic (${modelName(OPUS)}); it needs a GPT-6 model, not ${model}`
-      : `${stage}: ${model} cannot run this step (${spec.runner === "claude-agent" ? "the coding agent runs Claude models only" : `it needs a model from ${spec.only.join(" or ")}`})`;
+      : `${stage}: ${model} cannot run this step (it needs a model from ${spec.only.join(" or ")})`;
   }
   return undefined;
 }
@@ -280,7 +280,8 @@ export function checkRoutes(project: ProjectConfig, only?: readonly string[], ch
     if (CODING_STEPS.has(stage) && r.runner === "api") problems.push(`${stage} is a coding step and needs an agent runner`);
     if (r.model.startsWith("claude-") && !hasSecret("ANTHROPIC_API_KEY")) noKey.ANTHROPIC_API_KEY.push(stage);
     if (openAi(r.model) && !hasSecret("OPENAI_API_KEY")) noKey.OPENAI_API_KEY.push(stage);
-    if ((r.runner === "codex" || r.runner === "jcode")) problems.push(`${stage}: the ${r.runner} runner isn't built yet`);
+    if (r.runner === "jcode") problems.push(`${stage}: the jcode runner isn't built yet`);
+    if (r.runner === "codex" && !CODING_STEPS.has(stage)) problems.push(`${stage}: the codex runner is for coding steps`);
   }
   // one line for a missing key, not one per step
   for (const key of ["OPENAI_API_KEY", "ANTHROPIC_API_KEY"] as const) if (noKey[key].length) problems.unshift(`${key} is missing from ~/.factory/.env (needed by ${noKey[key].join(", ")})`);

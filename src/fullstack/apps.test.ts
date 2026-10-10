@@ -102,6 +102,12 @@ describe("a delivered product, started on this machine", () => {
     expect(api).toContain("-e ConnectionStrings__App=Host=db;");
     expect(api).toContain(`-v ${join(out, "api")}:/src`);
     expect(api).toMatch(/dotnet run --project App\.Api --urls http:\/\/0\.0\.0\.0:5080$/);
+    // the web app's packages are kept off this machine's folder, and installed again only when the lock file changed
+    expect(web).toContain("-v clinic-run-web-modules:/app/node_modules -v factory-npm-cache:/root/.npm");
+    expect(web).toMatch(/if \[ "\$\(cat node_modules\/\.factory-lock 2>\/dev\/null\)" != "\$lock" \]; then npm ci /);
+    const compose = parse(readFileSync(join(out, "docker-compose.yml"), "utf8"));
+    expect(compose.services.web.volumes).toEqual(["./web:/app", "web-modules:/app/node_modules", "factory-npm-cache:/root/.npm"]);
+    expect(compose.services.web.command[2]).toContain("lock=$$(sha256sum package-lock.json");
     expect(web).toContain("--network container:clinic-run-api");
     expect(web).not.toContain("-p ");
     // the database answers before the API starts

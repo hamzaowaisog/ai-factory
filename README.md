@@ -101,7 +101,7 @@ When something keeps failing, the factory climbs a fixed ladder (retry with the 
 | Images sent to thinking steps (untrusted, never to steps that write code) | Design references in any form, `--ref` and in the UI (`docs/estimates-design.md`, "Design references"; not yet run against a live model) |
 | Clarify, 3-draft spec, merge, lint, critic, round trip | Accept that boots the app and records HTTP/DB evidence (today: "the locked test passed") |
 | Plan + approval card, stub commit, locked tests | Applying `steer` changes mid-run (recorded, not applied) |
-| Claude coding agent in a sealed container | Codex and jcode runners; Next.js/Node repos |
+| Claude coding agent in a sealed container; Codex agent for a coding step picked onto GPT-6 Luna or Sol (built, not yet proven in a paid run) | jcode runner; Next.js/Node repos |
 | Test lab: restore → offline build → tests next to a throwaway Postgres | Review repair loop (blocking findings park the run); unlock card for a wrong test |
 | Ledger, crash-resume, failure ladder, cost caps, verify-evidence | URL-prefix package filter (today: allowlist by host name) |
 | GitHub PR delivery (optional) | Bitbucket PR delivery (today: branch ready locally) |

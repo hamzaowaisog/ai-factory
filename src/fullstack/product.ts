@@ -212,6 +212,17 @@ export function handOverContract(p: Product, contract: string): void {
 export const apiRequest = (request: string, database: DatabaseKind = "postgres"): string =>
   `${request.trim()}\n\nThis run builds the API side of the product above, in an existing .NET API project. Build every operation of the locked API contract in ${CONTRACT_FILE}, exactly as it is written there. Keep the data in ${database === "postgres" ? "the project's PostgreSQL database (the connection string named App, which the project already reads)" : "the project's local SQLite database"}, and write its sample data in ${SEED_FILE}: a few believable rows for each table, taken from the contract's examples, so each list has something to show. The app runs that file only when the setting Seed:Demo is true, so no test may count on those rows. The web app is built in its own repo; do not build screens here.`;
 
+/** every product's downloaded packages, kept between starts */
+export const NPM_CACHE_VOLUME = "factory-npm-cache";
+/**
+ * What the web app's container runs. Its packages live in a volume of their own, not in the product's folder on this machine
+ * (writing them through the machine's mount is slow and can stall), and the install is skipped while package-lock.json is the
+ * one they were installed from.
+ */
+export const WEB_COMMAND = 'set -e; lock=$(sha256sum package-lock.json | cut -d" " -f1); '
+  + 'if [ "$(cat node_modules/.factory-lock 2>/dev/null)" != "$lock" ]; then npm ci --no-audit --no-fund; echo "$lock" > node_modules/.factory-lock; fi; '
+  + "npm run build; exec npm start";
+
 /**
  * Check out the two delivered branches side by side and write a compose file that starts them: the API (with a PostgreSQL server of
  * its own that keeps its data in a volume; an older product has its SQLite file instead) on the port the web client calls, the web app on 3000. Returns the folder.
@@ -231,9 +242,10 @@ export function writeRunFiles(p: Product): string {
         healthcheck: { test: ["CMD-SHELL", `pg_isready -U ${POSTGRES_LOCAL.user} -d ${POSTGRES_LOCAL.name}`], interval: "2s", timeout: "3s", retries: 30 },
       } } : {}),
       api: { image: API_SDK_IMAGE, working_dir: "/src", volumes: ["./api:/src"], environment: { DOTNET_CLI_TELEMETRY_OPTOUT: "1", [SEED_SETTING]: "true", ...(pg ? { ConnectionStrings__App: postgresConnection("db") } : {}) }, ...(pg ? { depends_on: { db: { condition: "service_healthy" } } } : {}), command: `dotnet run --project ${API_SOLUTION.replace(/\.sln$/, ".Api")} --urls http://0.0.0.0:${API_PORT}`, ports: [`${API_PORT}:${API_PORT}`] },
-      web: { image: "node:22-bookworm", working_dir: "/app", volumes: ["./web:/app"], environment: { NEXT_TELEMETRY_DISABLED: "1" }, command: `sh -c "npm ci --no-audit --no-fund && npm run build && npm start"`, ports: ["3000:3000"], depends_on: ["api"] },
+      // compose reads $ itself, so the command's own are doubled
+      web: { image: "node:22-bookworm", working_dir: "/app", volumes: ["./web:/app", "web-modules:/app/node_modules", `${NPM_CACHE_VOLUME}:/root/.npm`], environment: { NEXT_TELEMETRY_DISABLED: "1" }, command: ["sh", "-c", WEB_COMMAND.replace(/\$/g, "$$$$")], ports: ["3000:3000"], depends_on: ["api"] },
     },
-    ...(pg ? { volumes: { "db-data": {} } } : {}),
+    volumes: { ...(pg ? { "db-data": {} } : {}), "web-modules": {}, [NPM_CACHE_VOLUME]: { name: NPM_CACHE_VOLUME } },
   }));
   return out;
 }

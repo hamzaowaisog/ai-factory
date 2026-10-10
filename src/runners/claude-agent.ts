@@ -122,10 +122,10 @@ export function proxyCapUsd(maxUsd: number): number {
 /** The proxy's refusal of a token past its cap (proxy.mjs CAP_TEXT). */
 const PROXY_CAP = /factory proxy: this step's spending cap is reached/i;
 
-/** The API's refusal of a request that no longer fits the model's context window. */
-const SESSION_FULL = /prompt is too long/i;
-/** The API account has no credit left: no retry, model or effort can fix it, only a person adding credit. */
-export const NO_CREDIT = /credit balance is too low/i;
+/** The API's refusal of a request that no longer fits the model's context window (Anthropic's words, then OpenAI's). */
+const SESSION_FULL = /prompt is too long|context_length_exceeded|exceeds the context window/i;
+/** The API account has no credit left: no retry, model or effort can fix it, only a person adding credit (Anthropic's words, then OpenAI's). */
+export const NO_CREDIT = /credit balance is too low|insufficient_quota|exceeded your current quota/i;
 export const NO_CREDIT_TEXT = "The model account is out of credit (the API said: Credit balance is too low). Add credit, then resume the run.";
 
 export interface AgentOut {
@@ -175,8 +175,19 @@ export function setAgentScript(f: typeof agentScript): void {
 }
 
 export class ClaudeAgentRunner implements Runner {
-  readonly kind = "claude-agent" as const;
-  constructor(private readonly rt: ContainerRuntime, private readonly extras: AgentJobExtras) {}
+  readonly kind: Runner["kind"] = "claude-agent";
+  constructor(private readonly rt: ContainerRuntime, protected readonly extras: AgentJobExtras) {}
+
+  // What a runner for another agent in the same container changes (codex.ts): the job file, where its model calls go,
+  // what is done to the checkout once the session has ended, the price of what it used, and how its answer is read.
+  protected jobFields<T>(_job: Job<T>, _protectedGlobs: string[]): Record<string, unknown> { return {}; }
+  protected modelEnv(token: string): Record<string, string> {
+    // not a key: the proxy swaps it for the real one
+    return { ANTHROPIC_BASE_URL: API_BASE_URL, ANTHROPIC_API_KEY: token, HOME: "/tmp/home", CLAUDE_CONFIG_DIR: "/tmp/claude" };
+  }
+  protected async sessionGuard(_workdir: string, _protectedGlobs: string[]): Promise<(progressFile: string) => Promise<void>> { return async () => undefined; }
+  protected spent(_model: string, _u: Usage, sdkUsd: number): number { return sdkUsd; }
+  protected parse<T>(job: Job<T>, output: unknown): { success: true; data: T } | { success: false; error: { message: string } } { return job.schema.safeParse(output); }
 
   async run<T>(job: Job<T>): Promise<Result<T>> {
     if (!job.workdir) throw new Error("ClaudeAgentRunner needs the worktree");
@@ -194,6 +205,7 @@ export class ClaudeAgentRunner implements Runner {
     writeFileSync(emptyFile, "");
     // agent steps write code: images are untrusted and never reach them (the pack refuses them too)
     if (job.pack.images.length) throw new Error(`${job.step} is an agent step and can't take images`);
+    const protectedGlobs = [...(x.protectedGlobs ?? [...LOCK_SET_GLOBS, ...CONFIG_INTEGRITY_GLOBS]), ...x.lockedFiles, ...x.extraProtected];
     writeFileSync(join(jobDir, "in.json"), JSON.stringify({
       model: job.model,
       // Haiku 4.5 and older models reject an effort setting
@@ -204,9 +216,10 @@ export class ClaudeAgentRunner implements Runner {
       task: job.pack.user,
       schema: toAgentJsonSchema(job.schema), // draft-07: what Claude Code's checker accepts
       fileScope: x.fileScope,
-      protectedGlobs: [...(x.protectedGlobs ?? [...LOCK_SET_GLOBS, ...CONFIG_INTEGRITY_GLOBS]), ...x.lockedFiles, ...x.extraProtected],
+      protectedGlobs,
       script: agentScript?.(job.step),
       context: { ...AGENT_CONTEXT, idleTurns: AGENT_IDLE_TURNS },
+      ...this.jobFields(job, protectedGlobs),
     }));
 
     const mounts: Mount[] = [
@@ -254,13 +267,12 @@ export class ClaudeAgentRunner implements Runner {
         env: {
           ...x.agentEnv,
           ...dbEnv,
-          ANTHROPIC_BASE_URL: API_BASE_URL,
-          ANTHROPIC_API_KEY: token, // not a key: the proxy swaps it for the real one
-          HOME: "/tmp/home", CLAUDE_CONFIG_DIR: "/tmp/claude",
+          ...this.modelEnv(token),
         },
         cmd: [], tmpfs: ["/tmp:exec,size=2g"],
       });
       await x.onContainer?.(id, "agent");
+      const settle = await this.sessionGuard(job.workdir, protectedGlobs);
       await this.rt.start(id);
       // forward the agent's progress to the trace while it works
       const progressFile = join(outDir, "progress.jsonl");
@@ -276,6 +288,7 @@ export class ClaudeAgentRunner implements Runner {
         pump();
       }
       await this.rt.stop(id, 5); // kills leftover processes before the core commits
+      await settle(progressFile);
       const resultPath = join(outDir, "result.json");
       // no SDK total (timeout, crash): count the spend from the per-turn lines before the folder goes
       const fromProgress = (): Usage => ({ ...usageFromProgress(progressFile, job.model), wallMs: Date.now() - started });
@@ -291,6 +304,7 @@ export class ClaudeAgentRunner implements Runner {
         cacheRead: out.usage.cache_read_input_tokens ?? 0, cacheWrite: out.usage.cache_creation_input_tokens ?? 0,
         turns: out.turns, wallMs: Date.now() - started, estUsd: out.costUsd,
       };
+      if (!noTotal) u.estUsd = this.spent(job.model, u, out.costUsd);
       // hard check: any instruction file not from the factory fails the step (context-builder §2.9)
       if (out.instructionsLoaded.length) {
         return { status: "error", error: `Agent loaded instruction files: ${out.instructionsLoaded.join(", ")}`, usage: u, sessionId: out.sessionId };
@@ -305,10 +319,11 @@ export class ClaudeAgentRunner implements Runner {
             ? "The coding agent's API calls were refused by the factory's key proxy or the API (403). Run factory doctor."
             : configErrorText(out.apiErrorStatus, out.error ?? "", job.model), usage: u, sessionId: out.sessionId };
         }
-        const status = out.status === "over-budget" ? "over-budget" : out.status === "bad-output" ? "bad-output" : out.status === "max-turns" || out.status === "no-progress" ? "timeout" : "error";
+        const status = out.status === "over-budget" ? "over-budget" : out.status === "bad-output" ? "bad-output" : out.status === "max-turns" || out.status === "no-progress" ? "timeout"
+          : this.kind === "codex" && out.apiErrorStatus === 429 ? "rate-limited" : "error";
         return { status, error: out.error, usage: u, sessionId: out.sessionId };
       }
-      const parsed = job.schema.safeParse(out.output);
+      const parsed = this.parse(job, out.output);
       if (!parsed.success) return { status: "bad-output", error: parsed.error.message.slice(0, 500), usage: u, sessionId: out.sessionId };
       return { status: "ok", output: parsed.data, usage: u, sessionId: out.sessionId };
     } finally {

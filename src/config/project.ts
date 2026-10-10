@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { z } from "zod";
-import { heldTier, nextUp, STEPS, TIER_TABLE } from "../stages/models.js";
+import { heldTier, nextUp, runnerFor, STEPS, TIER_TABLE } from "../stages/models.js";
 import { factoryHome } from "../util/paths.js";
 
 const EffortName = z.enum(["low", "medium", "high", "xhigh"]);
@@ -39,10 +39,10 @@ function routesFromFile(steps: Record<string, z.infer<typeof StepRouteIn>>, ctx:
     if (r.model && r.tier) { bad("give a model or a tier, not both"); continue; }
     if (!r.model && !r.tier) { bad("needs a model or a tier (light, standard, heavy)"); continue; }
     if (r.tier && !spec) { bad("a tier needs a step the factory knows; name the model"); continue; }
-    const runner = r.runner ?? spec?.runner;
-    if (!runner) { bad("needs a runner"); continue; }
     const tier = r.tier ? TIER_TABLE[spec!.vendor][heldTier(stage, r.tier)] : undefined;
     const model = r.model ?? tier!.model;
+    const runner = r.runner ?? (spec ? runnerFor(stage, model) : undefined);
+    if (!runner) { bad("needs a runner"); continue; }
     const effort = r.effort ?? tier?.effort;
     const next = nextUp(stage, model);
     out[stage] = { runner, model, escalate: r.escalate ?? (next ? [next] : []), ...(effort ? { effort } : {}) };

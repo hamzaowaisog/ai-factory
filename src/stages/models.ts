@@ -25,8 +25,8 @@ export const LUNA = "gpt-6-luna";
 export const SOL = "gpt-6-sol";
 
 export const MODELS: readonly ModelInfo[] = [
-  { id: LUNA, name: "GPT-6 Luna", vendor: "openai", offered: ["thinking", "design", "review"] },
-  { id: SOL, name: "GPT-6 Sol", vendor: "openai", offered: ["thinking", "design", "review"] },
+  { id: LUNA, name: "GPT-6 Luna", vendor: "openai", offered: ["thinking", "design", "review", "coding"] },
+  { id: SOL, name: "GPT-6 Sol", vendor: "openai", offered: ["thinking", "design", "review", "coding"] },
   { id: OPUS, name: "Claude Opus 5.5", vendor: "anthropic", offered: ["thinking", "design", "review", "coding"] },
   { id: SONNET, name: "Claude Sonnet 5.5", vendor: "anthropic", offered: ["coding"] },
   { id: HAIKU, name: "Claude Haiku 5.5", vendor: "anthropic", offered: [] },
@@ -45,6 +45,7 @@ export const TIER_TABLE: Record<Vendor, Record<Tier, TierEntry>> = {
 };
 
 export interface StepSpec {
+  /** a coding step names the Claude agent; on a GPT model it runs in the Codex one (runnerFor) */
   runner: "api" | "claude-agent";
   group: StepGroup;
   /** the vendor its default and its presets are read from */
@@ -89,12 +90,18 @@ export const STEPS: Record<string, StepSpec> = {
   "design-read": { runner: "api", group: "design", vendor: "anthropic", tier: "standard", effort: "medium" },
   plan: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "high" },
   // the test writer sets what "done" means for the code: never the light tier
-  "author-tests": { runner: "claude-agent", group: "coding", vendor: "anthropic", tier: "heavy", effort: "high", floor: "standard", only: ["anthropic"], ladder: [SONNET, OPUS] },
-  implement: { runner: "claude-agent", group: "coding", vendor: "anthropic", tier: "standard", effort: "high", only: ["anthropic"] },
+  "author-tests": { runner: "claude-agent", group: "coding", vendor: "anthropic", tier: "heavy", effort: "high", floor: "standard", ladder: [SONNET, OPUS] },
+  implement: { runner: "claude-agent", group: "coding", vendor: "anthropic", tier: "standard", effort: "high" },
   review: { runner: "api", group: "review", vendor: "openai", tier: "heavy", effort: "high", ladder: [LUNA, SOL] },
   "review-2": { runner: "api", group: "review", vendor: "anthropic", tier: "heavy", effort: "high" },
   "impact-lens": { runner: "api", group: "thinking", vendor: "anthropic", tier: "standard", effort: "medium" },
 };
+
+/** The runner a step uses on this model: a coding step given a GPT model runs in the Codex agent, any other in the Claude one. */
+export function runnerFor(stage: string, model: string): "api" | "claude-agent" | "codex" {
+  const runner = STEPS[stage]?.runner ?? "api";
+  return runner === "claude-agent" && (modelInfo(model)?.vendor === "openai" || /^gpt|^o\d/.test(model)) ? "codex" : runner;
+}
 
 /** The models a retry climbs from `model` on this step, weakest first. A GPT-6 step may end on Claude Opus 5.5. */
 export function ladderOf(stage: string, model: string): readonly string[] {

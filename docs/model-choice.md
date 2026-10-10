@@ -14,7 +14,7 @@ This works the same for all four kinds of run: estimate, design, brownfield and 
 - **Every step is listed**, helper steps included. The one exception is `critic`: it always runs on Claude Opus 5.5 and cannot be changed, from the form, the command line or the project file.
 - **Effort is not a choice.** Each step keeps its own effort.
 - **An OpenAI key is needed.** `specify-other` and `review` run on GPT-6 by default. Without `OPENAI_API_KEY` in `~/.factory/.env`, a new run does not start. It never falls back to Claude silently.
-- **Coding steps stay on Claude.** `author-tests` and `implement` take Claude Sonnet 5.5 or Claude Opus 5.5 only.
+- **Coding steps default to Claude.** `author-tests` and `implement` take Claude Sonnet 5.5, Claude Opus 5.5, GPT-6 Luna or GPT-6 Sol. The defaults and the presets keep them on Claude; a GPT-6 model is a pick. On a GPT-6 model a coding step runs in OpenAI's Codex agent, not the Claude one (see "Coding on GPT-6").
 - **`specify-other` must be a GPT-6 model.** It is the second spec draft, and it has to differ from the critic. A Claude pick is refused.
 - **Claude Opus 5.5 on `specify` or `merge` is allowed, with a warning.** The critic is the same model, so it would read a spec its own model wrote.
 
@@ -45,7 +45,7 @@ What a person can pick at the start:
 | Step group | Models offered |
 |---|---|
 | thinking, design, review | GPT-6 Luna, GPT-6 Sol, Claude Opus 5.5 |
-| coding | Claude Sonnet 5.5, Claude Opus 5.5 |
+| coding | GPT-6 Luna, GPT-6 Sol, Claude Sonnet 5.5, Claude Opus 5.5 |
 
 Claude Haiku 5.5 is not offered by name. A step reaches it through its tier or a preset.
 
@@ -228,6 +228,22 @@ Optional fields:
 A new step must not show its own choice screen mid-run. A choice it needs goes on the start form.
 
 A new model needs a line in `MODELS` (with the step groups that offer it) and a price in `src/runners/pricing.ts`.
+
+## Coding on GPT-6
+
+A coding step picked onto GPT-6 Luna or GPT-6 Sol runs in the Codex agent (`src/runners/codex.ts`, `docker/agent/run-codex.mjs`). The runner is chosen by the model, at each attempt: a retry that moves `implement` up from GPT-6 Sol to Claude Opus 5.5 runs in the Claude agent.
+
+What is the same as a Claude session: the sealed container and its image, the hidden agent files and secrets, the session's own database, the step token and the key proxy (the real OpenAI key never enters the container), the proxy's spending cap, the step's budget, its turn limit and the stop after 45 model calls with no file changed.
+
+What differs:
+
+- **File rules are checked after the session, not before each edit.** Codex has no hook that runs before an edit. The rules (file scope, locked and protected files) are in its briefing, and when the session ends the factory puts back every file Codex edited that the rules do not allow. The run trace names each one ("Undone (file rules)"). Files a command wrote are left for the gates, as in a Claude session.
+- **Spend while it works comes from the key proxy.** Codex reports tokens only when it finishes, so the session asks the proxy what its token has spent. A turn in the trace is one model call.
+- **The proxy passes one OpenAI call only:** `POST /v1/responses`, on the step's own model.
+- **Retries.** `implement` moves up from GPT-6 Luna to GPT-6 Sol, then to Claude Opus 5.5. `author-tests` on a GPT-6 model has no stronger model to move to: its retries raise the effort only.
+- **GPT-6 Luna is the light tier.** No preset or suggestion puts `author-tests` on a light model, but a person's pick of GPT-6 Luna is taken as given.
+
+Not proven yet: no paid run has used the Codex runner. It was checked against the real Codex program with a stand-in for the OpenAI API. The GPT-6 prices are unconfirmed, and OpenAI's count of tokens written to its cache is priced as normal input.
 
 ## Not built yet
 
