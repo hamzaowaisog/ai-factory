@@ -42,11 +42,26 @@ Neither stack has been run end to end through the review agent yet (see "Before 
 
 ## Step 1 — Build the coding guidelines
 
-Once per project, by hand. Nothing triggers it, and no review ever rebuilds it.
+**You do not have to run anything.** A project with no guidelines file gets one by itself: when a run
+starts, and before each review pass, the factory builds the file and approves it as `factory`.
+
+| The project has | What the factory does |
+|---|---|
+| no guidelines file | builds it and approves it |
+| its own file, built while the base branch had no code (a new product before its first merge) | builds it once more when the base branch has code to read, and approves that |
+| a file you built, approved or edited | nothing: it is yours to approve (Step 2) |
+
+A new product's first file holds only the skill files' rules, which never block. If the build fails
+(no model key, say) the run or pass goes on, and `conventions.followed` says what is missing. To keep
+both steps by hand on a host, set `FACTORY_NO_AUTO_GUIDELINES=1`.
+
+To build the file again yourself, for example after the code's habits have changed:
 
 ```bash
 factory conventions build --project shop
 ```
+
+A file built by this command is yours: it is not used until you approve it (Step 2).
 
 It reads a bounded sample of your code with a model — the most-changed files plus a spread across
 your main folders, capped at 40 — and writes one Markdown file:
@@ -91,6 +106,8 @@ external best practices are advisory and can never block a merge.
 
 ## Step 2 — Read it, then approve it
 
+Only for a file you built or edited yourself. The factory's own file is already approved.
+
 ```bash
 factory conventions show --project shop        # or just open the file
 factory conventions approve --project shop 7f3a9c2b
@@ -115,6 +132,36 @@ Require a merge queue on the base branch | Settings → Branches → branch prot
 Add `factory/merge-gate` as a required status check | same page | Without it, nothing stops a pull request merging ungated |
 Merge method: **merge commit**, not squash | same page | A squash rewrites the commit the factory gated, so what lands is not what the evidence describes |
 Token permissions: **Commit statuses: write**, **Pull requests: write**, **Contents: write** (fine-grained), or `repo` (classic) | the token in `~/.factory/.env` | Writing the `factory/merge-gate` status, the comment, and repair commits. A check run can only be created by a GitHub App, so the verdict is a commit status, which branch protection accepts as a required check |
+
+### Or let the review agent merge: `forge.autoMerge`
+
+GitHub's queue and branch protection need a paid plan on a private repository. Without them, a
+passing pull request just sits there. A project can ask the review agent to merge it instead:
+
+```yaml
+forge:
+  kind: github
+  repo: acme/shop
+  autoMerge: true
+```
+
+| | |
+|---|---|
+| When | at the end of any pass that concludes success, including one that only repeats a passing verdict |
+| What is merged | the exact commit that carries the passing `factory/merge-gate` status; a head that moved since is refused by GitHub |
+| How | a merge commit, never a squash or a rebase |
+| If GitHub refuses | the verdict stands, the reason is shown beside it, and the next pass tries again |
+| Never | a pull request that failed, a fork's, or one whose ledger is not on this host |
+
+**Nobody has to start the pass either.** On a project with `autoMerge: true`, a run that delivers its
+pull request runs one review pass straight away, so the pull request is judged and, if it passes,
+merged as the run ends. If that pass fails for any reason the run is still delivered, and the Review
+tab or `factory review-open-prs` can run it again. Later changes (the base moved, someone pushed)
+still need the poller or the button.
+
+It is off unless the project file says so. A product the factory creates and puts on GitHub gets
+`autoMerge: true`. The two sides of a full-stack product merge on their own, each when it passes.
+The token needs **Contents: write** and **Pull requests: write**, which the repairs already need.
 
 **Order matters.** Approve the guidelines (step 2) *before* making the check required, or every pull
 request goes red until you do.
@@ -181,6 +228,30 @@ logged and the rest still run. One bad pull request does not stop the others.
 The trade against Harness or a webhook is latency and uptime: a pull request waits up to `--every`
 seconds, and nothing is gated while the machine is asleep. With `factory/merge-gate` required, a
 missed pass means a pull request cannot merge, which is the safe direction.
+
+### From the run page: the Review tab
+
+`factory ui` shows the review agent on each delivered run, under **Review** on the run page:
+
+- the last verdict, what moved, and the head and base it judged
+- every gate's latest verdict, saying whether it is the build's or one the review agent judged again
+- each recorded pass, newest first, with the reason written to the pull request
+- the repair attempts used, out of 6
+- anything in the set-up that would fail every pass, such as unapproved guidelines
+
+**Review now** runs one pass for that run's pull request. It is the same pass `review-open-prs --once`
+makes, so it can start a container, call a model, push a repair commit, and write a status and a
+comment to the pull request. It is never forced: `--force` stays in the terminal. The page does not
+replace the poller; nothing is judged unless someone presses the button or the poller is running.
+
+A gate a person accepted during the build (`factory waive`) is shown as "Failed, accepted", with who
+accepted it and why. The review agent keeps that acceptance when it replays the gate, which it does
+only while what the gate read is unchanged. A gate judged again on new inputs has a verdict nobody
+accepted, and a safety gate can never be accepted.
+
+A pull request that has not moved since its last verdict is normally not judged again: the pass
+repeats that verdict. The one exception is a failed verdict whose every failing gate has since been
+accepted. That pass judges again from the record (no container, no model) and writes the new verdict.
 
 **On a self-hosted GitHub Actions runner.** Not for pull requests yet, for the same reason as the
 Harness pull-request trigger above: a `pull_request` event fires before deliver has finished, and the
@@ -285,8 +356,9 @@ So exercise it in this order, under WSL2, before pointing a trigger at it:
 
 1. `factory doctor --project <p>` — the setup itself.
 2. `factory conventions build --project <p>` — this makes the one model call in the setup path, and
-   is the cheapest way to prove the provider, the key and the snapshot all work.
-3. `factory conventions approve --project <p> <hash>`.
+   is the cheapest way to prove the provider, the key and the snapshot all work. (Left alone, the
+   factory builds and approves this file itself at the first run or review pass.)
+3. `factory conventions approve --project <p> <hash>`, for the file you just built by hand.
 4. `factory review-pr <n> --project <p> --repository <owner/name>` against a **real but
    unimportant** pull request. This is the first time `live.ts` runs end to end: the ledger is
    opened, a worktree is merged, a container starts, the reviewer is called and a commit status is

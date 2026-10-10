@@ -8,7 +8,9 @@
 // product its two repos (factory fullstack start); its run files (POST /api/fullstack/:name/up) start nothing, and starting a delivered product
 // (POST /api/fullstack/:name/apps/start) runs its two apps and its database in containers on this machine, with no model. Exporting an
 // approved design (POST /api/runs/:id/exports) only writes files under the run's own exports/ folder, and generating its
-// scaffold (POST /api/runs/:id/scaffold) only under the run's own scaffold/ folder.
+// scaffold (POST /api/runs/:id/scaffold) only under the run's own scaffold/ folder. Reviewing a delivered run's pull request
+// (POST /api/runs/:id/review) is one pass of `factory review-open-prs` for that pull request: it may start a container, call a
+// model, push a repair commit and write a status and a comment to the pull request. It is never forced and waives nothing.
 // Other cards are shown read-only with the terminal command to paste.
 // Safety: bound to 127.0.0.1; a random token per start (in the printed link, then an HttpOnly
 // cookie) on every API call; Host and Origin checked so another website can't drive it; JSON-only
@@ -32,6 +34,7 @@ import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./
 import { figmaPluginZip } from "../design/figma.js";
 import { generateScaffold, scaffoldDownload, scaffoldPanel } from "./scaffold.js";
 import { fidelityPanel, fidelityShot } from "./fidelity.js";
+import { ReviewJobs, reviewView, startReview } from "./review.js";
 import { fullstackApps, fullstackNext, fullstackStart, fullstackStop, fullstackUp, productsView, productView, startFullstack } from "./fullstack.js";
 import { productNames } from "../fullstack/product.js";
 import type { ExportFormat } from "../design/export.js";
@@ -52,7 +55,7 @@ interface Route {
 }
 
 /** Per-server values a route may need: the key in preview file URLs, and the design export jobs. */
-interface RouteContext { previewKey: string; jobs: ExportJobs }
+interface RouteContext { previewKey: string; jobs: ExportJobs; reviews: ReviewJobs }
 
 const ok = (json: Json): Reply => ({ status: 200, json });
 const notFound = (what: string): Reply => ({ status: 404, json: { error: what } });
@@ -314,6 +317,14 @@ export const ROUTES: readonly Route[] = [
     method: "GET", path: "/api/runs/:id/fidelity", what: "the build's check of the app against the approved design: levels, findings, each page's built, approved and accepted pictures",
     handle: ({ id }) => { const l = findRun(id!); return l ? ok(fidelityPanel(l) as unknown as Json) : notFound(`No run ${id}`); },
   },
+  {
+    method: "GET", path: "/api/runs/:id/review", what: "the review agent on the run's pull request: its last verdict, what moved, each pass, every gate's latest verdict, the repair attempts used, and the pass running now",
+    handle: ({ id }, _b, _d, ctx) => { const l = findRun(id!); return l ? ok(reviewView(l, ctx.reviews.list()) as unknown as Json) : notFound(`No run ${id}`); },
+  },
+  {
+    method: "POST", path: "/api/runs/:id/review", what: "run the review agent once on the run's pull request, as a job, like factory review-open-prs --once for that pull request (delivered runs with a pull request only; never forced)",
+    handle: ({ id }, _b, _d, ctx) => { const l = findRun(id!); return l ? startReview(l, ctx.reviews) : notFound(`No run ${id}`); },
+  },
 ];
 
 function match(route: Route, method: string, path: string): Record<string, string> | undefined {
@@ -379,9 +390,11 @@ export interface UiServerOptions {
   deps?: StartDeps;
   /** the design export jobs (tests pass their own) */
   exportJobs?: ExportJobs;
+  /** the review passes (tests pass their own) */
+  reviewJobs?: ReviewJobs;
 }
 
-export interface UiServer { server: Server; token: string; previewKey: string; exportJobs: ExportJobs }
+export interface UiServer { server: Server; token: string; previewKey: string; exportJobs: ExportJobs; reviewJobs: ReviewJobs }
 
 function sameToken(a: string | undefined, b: string): boolean {
   if (!a) return false;
@@ -430,6 +443,7 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
   const previewKey = opts.previewKey ?? randomBytes(18).toString("base64url");
   const deps = opts.deps ?? {};
   const jobs = opts.exportJobs ?? new ExportJobs();
+  const reviews = opts.reviewJobs ?? new ReviewJobs();
 
   const server = createServer((req, res) => {
     handle(req, res).catch((e: Error) => {
@@ -560,7 +574,7 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
       if (raw === "too-big") return sendJson(res, 413, { error: `The request is over ${limit / 1_000_000} MB.` });
       try { body = raw ? JSON.parse(raw) : {}; } catch { return sendJson(res, 400, { error: "Bad JSON." }); }
     }
-    const r = await route.handle(params!, body, deps, { previewKey, jobs });
+    const r = await route.handle(params!, body, deps, { previewKey, jobs, reviews });
     return sendJson(res, r.status, r.json);
   }
 
@@ -581,7 +595,7 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
     res.end(req.method === "HEAD" ? undefined : body);
   }
 
-  return { server, token, previewKey, exportJobs: jobs };
+  return { server, token, previewKey, exportJobs: jobs, reviewJobs: reviews };
 }
 
 /** Listen on 127.0.0.1 only. Tries the next ports when the default one is taken. */

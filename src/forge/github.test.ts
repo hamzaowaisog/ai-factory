@@ -1,6 +1,6 @@
 // The GitHub client. No network: every call takes `fetch`, and the tests script it.
 import { describe, expect, it, vi } from "vitest";
-import { commitStatus, factoryLogin, findReviewBody, getPr, listChecks, listOpenPrs, setCommitStatus, upsertReviewComment } from "./github.js";
+import { commitStatus, factoryLogin, findReviewBody, getPr, listChecks, listOpenPrs, mergePullRequest, setCommitStatus, upsertReviewComment } from "./github.js";
 
 const gh = { root: "https://api.github.com", api: "https://api.github.com/repos/acme/shop", headers: {} };
 const json = (body: unknown) =>
@@ -198,5 +198,21 @@ describe("listOpenPrs", () => {
     const got = await listOpenPrs(gh, f as never);
     expect(got.map((p) => p.number)).toEqual([2, 1]);
     expect(String(f.mock.calls[1]![0])).toBe("https://api.github.com/repos/acme/shop/pulls?page=2");
+  });
+});
+
+describe("mergePullRequest", () => {
+  it("merges with a merge commit, and only the commit that was judged", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ merged: true }));
+    expect(await mergePullRequest(gh, { pr: 7, sha: SHA }, f as never)).toEqual({ merged: true, why: "merged" });
+    expect(f.mock.calls[0]![0]).toBe(`${gh.api}/pulls/7/merge`);
+    expect(f.mock.calls[0]![1]).toMatchObject({ method: "PUT" });
+    expect(JSON.parse(String((f.mock.calls[0]![1] as RequestInit).body))).toEqual({ sha: SHA, merge_method: "merge" });
+  });
+
+  it("a refusal is an answer with GitHub's reason, never a thrown error", async () => {
+    const refused = { ok: false, status: 409, json: async () => ({ message: "Head branch was modified. Review and try the merge again." }), text: async () => "" } as Response;
+    expect(await mergePullRequest(gh, { pr: 7, sha: SHA }, vi.fn().mockResolvedValueOnce(refused) as never))
+      .toEqual({ merged: false, why: "GitHub answered 409: Head branch was modified. Review and try the merge again." });
   });
 });

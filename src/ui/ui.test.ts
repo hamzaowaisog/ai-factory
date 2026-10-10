@@ -219,6 +219,8 @@ describe("factory ui: what the web can decide", () => {
       "POST /api/runs", "POST /api/check-refs", "POST /api/runs/:id/estimate-decision", "POST /api/runs/:id/answers", "POST /api/runs/:id/decision",
       "POST /api/runs/:id/manual-checks", "POST /api/runs/:id/limit", "POST /api/runs/:id/limit-stop", "POST /api/runs/:id/resume",
       "POST /api/fullstack", "POST /api/fullstack/:name/next", "POST /api/fullstack/:name/up", "POST /api/fullstack/:name/apps/start", "POST /api/fullstack/:name/apps/down", "POST /api/runs/:id/exports", "POST /api/runs/:id/scaffold",
+      // one pass of the review agent on the run's pull request: factory review-open-prs for that one, never forced
+      "POST /api/runs/:id/review",
     ]);
   });
 
@@ -1884,5 +1886,140 @@ describe("factory ui: tests", () => {
     expect(js).toContain("function testsScreen(");
     expect(js).toContain("/manual-checks`, { method: \"POST\"");
     expect(js).toContain("Sign off on the Tests tab");
+  });
+});
+
+describe("factory ui: the Review tab", () => {
+  const HEAD = "d".repeat(40), BASE1 = "1".repeat(40), BASE2 = "2".repeat(40);
+  const view = async (run: string) => (await call(`/api/runs/${run}/review`)).json();
+  const review = (run: string) => call(`/api/runs/${run}/review`, { method: "POST", headers: { "Content-Type": "application/json", Origin: `http://127.0.0.1:${port}` }, body: "{}" });
+
+  /** A run delivered as pull request #7 of a project with a forge, with the build's gate verdicts. */
+  async function deliveredPr(tokenEnv = "FACTORY_TEST_FORGE_TOKEN") {
+    writeFileSync(join(home, "projects", "shop.yaml"), stringify({ project: "shop", repo: makeRepo({ "src/Api/Greeter.cs": "namespace Api;\n" }), stack: "dotnet", forge: { kind: "github", repo: "acme/shop", tokenEnv } }));
+    const run = await createRun("Add a filter to the orders list", "shop", "tester");
+    await addEvents(run, [
+      ...["discover", "intake", "ground", "clarify", "specify", "plan", "approve", "integrate"].flatMap((k) => step(k, 0)),
+      { type: "gate.result", data: { gateId: "integrate.diff-size", passed: true, step: "integrate", details: "Diff has 120 changed lines" } },
+      { type: "gate.result", data: { gateId: "integrate.no-secrets", passed: true, safety: true, step: "integrate", details: "No secrets in the diff" } },
+      ...step("deliver", 0, { local: false, branch: `factory/${run}`, head: HEAD, prUrl: "https://github.com/acme/shop/pull/7", manifestHash: "m" }),
+      { type: "run.delivered", data: { local: false, branch: `factory/${run}`, head: HEAD, prUrl: "https://github.com/acme/shop/pull/7" } },
+    ]);
+    return run;
+  }
+  const withJobs = async (run: ConstructorParameters<typeof import("./review.js").ReviewJobs>[0]) => {
+    await new Promise((r) => ui.server.close(r));
+    const { ReviewJobs } = await import("./review.js");
+    ui = createUiServer({ token: TOKEN, previewKey: PKEY, reviewJobs: new ReviewJobs(run) });
+    port = await listen(ui, 0);
+  };
+  beforeEach(() => { process.env.FACTORY_TEST_FORGE_TOKEN = "ghp_test_not_real_0000000000"; });
+  afterEach(() => { delete process.env.FACTORY_TEST_FORGE_TOKEN; });
+
+  it("says why there is nothing to review: no run, not delivered, or delivered to a local branch", async () => {
+    expect((await call("/api/runs/nope/review")).status).toBe(404);
+    expect((await view(ids.waiting)).none).toMatch(/has not delivered one yet/);
+    expect((await view(ids.delivered)).none).toMatch(/local branch, with no pull request/);
+    expect([(await review("nope")).status, (await review(ids.delivered)).status]).toEqual([404, 409]);
+    expect(ui.reviewJobs.list()).toEqual([]);
+  });
+
+  it("before any pass: the pull request, the build's gate verdicts and the set-up that would fail every pass", async () => {
+    const v = await view(await deliveredPr());
+    expect(v.pr).toMatchObject({ number: 7, url: "https://github.com/acme/shop/pull/7", head: HEAD });
+    expect(v).toMatchObject({ stack: "dotnet", repository: "acme/shop", autoMerge: false, passes: [], repairs: { used: 0, max: 6 } });
+    expect(v.verdict).toBeUndefined();
+    expect(v.blocked).toBeUndefined();
+    expect(v.warnings).toHaveLength(1);
+    expect(v.warnings[0]).toMatch(/No coding guidelines for shop.*conventions\.followed gate fails every pass/);
+    expect(v.gates.map((g: any) => [g.id, g.passed, g.byReview, g.step])).toEqual([["integrate.diff-size", true, false, "integrate"], ["integrate.no-secrets", true, false, "integrate"]]);
+  });
+
+  it("a failed gate a person accepted during the build is shown as failed and accepted, with who accepted it", async () => {
+    const run = await deliveredPr();
+    const card = "c".repeat(64);
+    await addEvents(run, [
+      { type: "gate.result", inputsHash: "a".repeat(64), data: { gateId: "review.tests-prove-criteria", passed: false, step: "review", details: "AC-3.2: its test does not prove the criterion" } },
+      { type: "step.completed", key: "review/2", outputs: [], data: { waivers: [{ gateIds: ["review.tests-prove-criteria"], human: "Sara", reason: "covered by the HTTP probe", boundTo: card }] } },
+    ]);
+    const g = (await view(run)).gates[0];
+    expect(g).toMatchObject({ id: "review.tests-prove-criteria", passed: false, waived: { by: "Sara", reason: "covered by the HTTP probe" } });
+  });
+
+  it("shows the last verdict, what moved, each pass newest first, and the gates the review agent judged again", async () => {
+    const run = await deliveredPr();
+    const at = Date.now() - 60 * 60 * 1000;
+    await addEvents(run, [
+      { type: "step.completed", key: "reverify", outputs: [], data: { conclusion: "success", cls: "base-moved-clean", headSha: HEAD, baseSha: BASE1, attemptsThisPr: 0, at, reviewed: {}, title: "base-moved-clean: clear", why: "9 gates passed (7 replayed, 2 re-run)." } },
+      { type: "step.completed", key: "reverify", outputs: [], data: { cls: "error", error: "Docker is not running", errors: 1, conclusion: "success", headSha: HEAD, baseSha: BASE1, attemptsThisPr: 0, at: at + 1000, reviewed: {} } },
+      { type: "gate.result", data: { gateId: "integrate.diff-size", passed: false, step: "reverify", details: "Diff has 1700 changed lines (limit 1500)" } },
+      { type: "step.completed", key: "reverify", outputs: [], data: { conclusion: "failure", cls: "broken-merge", headSha: HEAD, baseSha: BASE2, attemptsThisPr: 1, at: at + 2000, reviewed: {}, title: "broken-merge: 1 blocking", why: "- integrate.diff-size: Diff has 1700 changed lines (limit 1500)" } },
+    ]);
+    const v = await view(run);
+    expect(v.verdict).toMatchObject({ conclusion: "failure", cls: "broken-merge", headSha: HEAD, baseSha: BASE2, title: "broken-merge: 1 blocking" });
+    expect(v.verdict.why).toContain("integrate.diff-size");
+    expect(v.passes.map((p: any) => [p.cls, p.conclusion])).toEqual([["broken-merge", "failure"], ["error", undefined], ["base-moved-clean", "success"]]);
+    expect(v.passes[1].error).toBe("Docker is not running");
+    expect(v.lastError).toBeUndefined();
+    expect(v.repairs).toEqual({ used: 1, max: 6 });
+    expect(v.nextAt).toBeUndefined(); // judged an hour ago: the 5 minute wait is over
+    // failing first, then the ones the review agent judged again
+    expect(v.gates.map((g: any) => [g.id, g.passed, g.byReview])).toEqual([["integrate.diff-size", false, true], ["integrate.no-secrets", true, false]]);
+  });
+
+  it("a pass that threw last is shown as the last error, over the verdict that still holds; a fresh verdict names when it is judged again", async () => {
+    const run = await deliveredPr();
+    await addEvents(run, [
+      { type: "step.completed", key: "reverify", outputs: [], data: { conclusion: "success", cls: "base-moved-clean", headSha: HEAD, baseSha: BASE1, attemptsThisPr: 0, at: Date.now() - 2000, reviewed: {} } },
+      { type: "step.completed", key: "reverify", outputs: [], data: { cls: "error", error: "Docker is not running", errors: 2, conclusion: "success", headSha: HEAD, baseSha: BASE1, attemptsThisPr: 0, at: Date.now() - 1000, reviewed: {} } },
+    ]);
+    const v = await view(run);
+    expect(v.verdict).toMatchObject({ conclusion: "success", cls: "base-moved-clean" });
+    expect(v.lastError).toMatchObject({ error: "Docker is not running", inARow: 2 });
+    expect(Date.parse(v.nextAt)).toBeGreaterThan(Date.now());
+  });
+
+  it("Review now runs one pass for the run's own pull request, one at a time, and keeps its outcome", async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => { release = r; });
+    const seen: [string, number][] = [];
+    await withJobs(async (project, pr, log) => { seen.push([project, pr]); log("  container tests 0123456789ab\n"); await gate; return { conclusion: "success", cls: "unchanged", why: "Nothing moved since the last verdict: concluding from it.", repaired: false }; });
+    const run = await deliveredPr();
+    const first = await review(run);
+    expect(first.status).toBe(202);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(seen).toEqual([["shop", 7]]);
+    expect((await view(run)).job).toMatchObject({ status: "running", pr: 7, lines: ["container tests 0123456789ab"] });
+    const again = await review(run);
+    expect([again.status, again.json().error]).toEqual([409, "A review of this pull request is already running."]);
+    release();
+    await new Promise((r) => setTimeout(r, 10));
+    expect((await view(run)).job).toMatchObject({ status: "done", result: { conclusion: "success", cls: "unchanged", repaired: false } });
+    expect(seen).toHaveLength(1);
+    // a pass that cannot finish says why, without the rest of the stack
+    await withJobs(async () => { throw new Error("Docker is not running\n    at somewhere"); });
+    expect((await review(run)).status).toBe(202);
+    await new Promise((r) => setTimeout(r, 10));
+    expect((await view(run)).job).toMatchObject({ status: "failed", error: "Docker is not running" });
+  });
+
+  it("no pass starts without the forge token: the pull request could be neither read nor written to", async () => {
+    let ran = 0;
+    await withJobs(async () => { ran++; return { conclusion: "success", cls: "unchanged", why: "", repaired: false }; });
+    const run = await deliveredPr("FACTORY_TEST_TOKEN_NOT_SET");
+    expect((await view(run)).blocked).toMatch(/FACTORY_TEST_TOKEN_NOT_SET is missing/);
+    const r = await review(run);
+    expect([r.status, r.json().error]).toEqual([409, (await view(run)).blocked]);
+    expect(ran).toBe(0);
+    // and never from another site
+    expect((await call(`/api/runs/${run}/review`, { method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example" }, body: "{}" })).status).toBe(403);
+  });
+
+  it("the page has the tab, the screen and the button", () => {
+    const js = readFileSync(join(staticDir(), "app.js"), "utf8");
+    expect(js).toContain("/review`, class: tab === \"review\"");
+    expect(js).toContain("function reviewScreen(");
+    expect(js).toContain("/review`, { method: \"POST\"");
+    expect(js).toContain("Review now");
   });
 });

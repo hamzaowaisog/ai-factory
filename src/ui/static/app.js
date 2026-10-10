@@ -707,7 +707,8 @@ function runHeader(r, tab) {
       h("a", { href: `#/runs/${id}/design`, class: tab === "design" ? "on" : undefined }, icon("browser"), "Design"),
       h("a", { href: `#/runs/${id}/preview`, class: tab === "preview" ? "on" : undefined }, icon("image"), "Preview"),
       h("a", { href: `#/runs/${id}/data-model`, class: tab === "data-model" ? "on" : undefined }, icon("grid"), "Data model"),
-      h("a", { href: `#/runs/${id}/tests`, class: tab === "tests" ? "on" : undefined }, icon("check"), "Tests")),
+      h("a", { href: `#/runs/${id}/tests`, class: tab === "tests" ? "on" : undefined }, icon("check"), "Tests"),
+      h("a", { href: `#/runs/${id}/review`, class: tab === "review" ? "on" : undefined }, icon("shield"), "Review")),
   ];
 }
 
@@ -1611,6 +1612,99 @@ function testsScreen(id) {
         h("div", { class: "panel-head" }, h("h2", {}, icon("alert"), "Not tested"), h("span", { class: "small muted" }, `${d.nfrs.length} non-functional requirement${d.nfrs.length === 1 ? "" : "s"}`)),
         h("p", { class: "small muted" }, "The factory writes no test for these yet, so nothing on this page proves them."),
         h("ul", { class: "tcs" }, d.nfrs.map((n) => h("li", { class: "tc" }, h("div", { class: "tc-head" }, h("code", {}, n.id), h("span", { class: "small muted" }, n.metric)), h("p", { class: "tc-gwt" }, n.text))))) : null)], first);
+  });
+}
+
+/** What the review agent found had moved since it last judged the pull request, in words. */
+const REVIEW_MOVED = {
+  unchanged: "Nothing moved", "base-moved-clean": "The base moved; it still merges and passes", conflict: "The branch conflicts with the base",
+  "broken-merge": "It merges, but locked tests fail on the result", "unexpected-commits": "Commits the factory did not write",
+  "self-push": "Only the factory's own repair commits", "evidence-mismatch": "The run's evidence does not reconcile",
+  error: "The pass failed before a verdict", deferred: "Judged a moment ago; waiting", "not-here": "Not this machine's to judge",
+  abandoned: "The pull request is closed or merged", anomaly: "It cannot be tied to a run",
+};
+const REVIEW_VERDICT = { success: ["ok", "Passed"], failure: ["bad", "Failed"], neutral: ["idle", "No verdict"] };
+
+/**
+ * The review agent on the run's pull request: its last verdict and what moved, every gate's latest verdict, each pass it made,
+ * and a button that runs one pass now. A pass can cost a container and model calls and can push a repair to the pull request.
+ */
+function reviewScreen(id) {
+  skeleton("check");
+  let lastJson = "";
+  let note = "";
+  poll(2500, async (first) => {
+    const [r, d] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/review`)]);
+    const json = JSON.stringify(d) + note;
+    if (json === lastJson) return;
+    lastJson = json;
+    if (d.none) return mount([...runHeader(r, "review"), h("div", { class: "slot big-empty rise" }, icon("shield"), h("strong", {}, "Nothing to review yet"), h("span", {}, d.none))], first);
+    const v = d.verdict;
+    const running = d.job?.status === "running";
+    const sha = (x) => (x ? h("code", { title: x }, x.slice(0, 8)) : "-");
+    const stat = (k, val, tone, hint) => h("div", { class: `stat${tone ? ` s-${tone}` : ""}`, title: hint }, h("div", { class: "k" }, k), h("div", { class: "v" }, val));
+    const verdictPill = (c) => { const [tone, label] = REVIEW_VERDICT[c] ?? ["idle", "No verdict"]; return h("span", { class: `pill t-${tone}` }, h("span", { class: "d" }), label); };
+    const failing = d.gates.filter((g) => !g.passed && !g.waived).length;
+    const accepted = d.gates.filter((g) => !g.passed && g.waived).length;
+
+    const go = h("button", { class: "btn primary", type: "button" }, icon("play"), running ? "Reviewing…" : "Review now");
+    go.disabled = running || !!d.blocked;
+    go.addEventListener("click", async () => {
+      go.disabled = true;
+      try {
+        await api(`/api/runs/${encodeURIComponent(id)}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        note = "";
+      } catch (err) { note = err.message; }
+      lastJson = "";
+    });
+    const j = d.job;
+    const jobLine = running ? h("p", { class: "small", role: "status" }, h("span", { class: "pulse" }), ` Reviewing pull request #${d.pr.number}… ${j.lines.at(-1) ?? ""}`)
+      : j?.status === "failed" ? h("p", { class: "small bad", role: "status" }, icon("alert"), ` The pass started ${ago(j.startedAt)} could not finish: ${j.error}`)
+      : j?.result ? h("p", { class: "small", role: "status" }, verdictPill(j.result.conclusion), ` The pass started ${ago(j.startedAt)}: ${REVIEW_MOVED[j.result.cls] ?? j.result.cls}.${j.result.repaired ? " It pushed a repair." : ""}`)
+      : null;
+
+    mount([...runHeader(r, "review"), h("div", { class: "stack" },
+      h("section", { class: "panel rise" },
+        h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Review agent"),
+          running ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "Reviewing") : v ? verdictPill(v.conclusion) : h("span", { class: "pill t-idle" }, h("span", { class: "d" }), "Not judged yet")),
+        h("p", { class: "small muted" }, "Pull request ", h("a", { href: d.pr.url, target: "_blank", rel: "noreferrer" }, `#${d.pr.number}`), d.repository ? ` on ${d.repository}` : "", d.pr.branch ? [", branch ", h("code", {}, d.pr.branch)] : null,
+          d.stack ? `. Built and tested in the ${d.stack === "node" ? "Node" : ".NET"} lab.` : "."),
+        d.blocked ? h("p", { class: "small bad" }, icon("alert"), ` ${d.blocked}`) : null,
+        d.warnings.map((w) => h("p", { class: "small" }, h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "Set-up"), " ", w)),
+        h("div", { class: "row review-go" }, go,
+          h("span", { class: "small muted" }, "One pass, like factory review-open-prs --once for this pull request. If the head or base moved it starts a container and may call a model; it can push a repair commit, and it writes a status and a comment to the pull request. Nothing moved costs nothing.")),
+        note ? h("p", { class: "small bad", role: "alert" }, note) : null,
+        jobLine,
+        d.nextAt && !running ? h("p", { class: "small muted" }, `Judged less than 5 minutes ago: a head or base that moves is judged again after ${new Date(d.nextAt).toLocaleTimeString()}.`) : null,
+        h("div", { class: "tests-stats" },
+          stat("Verdict", v ? (REVIEW_VERDICT[v.conclusion] ?? ["", v.conclusion])[1] : "-", v?.conclusion === "failure" ? "bad" : "", "What the factory/merge-gate status on the pull request says"),
+          stat("Judged", v ? ago(v.at) : "-", "", v ? new Date(v.at).toLocaleString() : "No pass has reached a verdict"),
+          stat("Head", v ? sha(v.headSha) : sha(d.pr.head), "", "The pull request commit the verdict is about"),
+          stat("Base", v ? sha(v.baseSha) : "-", "", "The base branch commit it was judged against"),
+          stat("Gates failing", d.gates.length ? `${failing}/${d.gates.length}` : "-", failing ? "bad" : "", "Gates whose latest verdict is a failure nobody accepted"),
+          stat("Repairs used", `${d.repairs.used}/${d.repairs.max}`, d.repairs.used >= d.repairs.max ? "bad" : "", "Repair attempts on this pull request across all passes; past the limit it waits for a person"),
+          stat("When it passes", d.autoMerge ? "Merged" : "Left open", "", d.autoMerge ? "The review agent merges a pull request that passes, with a merge commit (forge.autoMerge in the project file)" : "A passing pull request waits for a person or for GitHub to merge it. Set forge.autoMerge: true in the project file to have the review agent merge it")),
+        v ? h("div", { class: "review-why" }, h("p", { class: "small" }, h("b", {}, "What moved: "), REVIEW_MOVED[v.cls] ?? v.cls, v.repaired ? ". This pass pushed a repair; read the diff again." : "."),
+          v.why ? md(v.why, "md small") : null) : h("p", { class: "small muted" }, "No pass has judged this pull request yet. Review now, or leave factory review-open-prs running."),
+        d.lastError ? h("p", { class: "small bad" }, icon("alert"), ` The last pass (${ago(d.lastError.at)}) failed before a verdict${d.lastError.inARow > 1 ? `, ${d.lastError.inARow} in a row` : ""}: ${d.lastError.error}`) : null),
+      d.gates.length ? h("section", { class: "panel rise" },
+        h("div", { class: "panel-head" }, h("h2", {}, icon("check"), "Gates"), h("span", { class: "small muted" }, `${d.gates.length - failing - accepted} passed, ${failing} failed${accepted ? `, ${accepted} accepted by a person` : ""}`)),
+        h("p", { class: "small muted" }, "Each gate's latest verdict. A gate whose inputs did not move keeps the verdict the build gave it; the review agent judges again only the ones that moved."),
+        h("ul", { class: "tcs" }, d.gates.map((g) => h("li", { class: `tc${g.passed ? "" : g.waived ? " tc-wait" : " tc-bad"}` },
+          h("div", { class: "tc-head" }, h("code", {}, g.id), h("span", { class: "small muted" }, g.byReview ? `judged again by the review agent, ${ago(g.at)}` : `from the build${g.step ? ` (${g.step})` : ""}`),
+            g.safety ? h("span", { class: "small muted" }, "safety") : null,
+            h("span", { class: `pill t-${g.passed ? "ok" : g.waived ? "wait" : "bad"}` }, h("span", { class: "d" }), g.passed ? "Passed" : g.waived ? "Failed, accepted" : "Failed")),
+          g.details ? h("p", { class: "tc-why small" }, g.details) : null,
+          g.waived ? h("p", { class: "tc-why small" }, h("b", {}, `${g.waived.by || "A person"} accepted this during the build`), g.waived.reason ? `: ${g.waived.reason}. ` : ". ", "The review agent keeps that while what this gate read is unchanged.") : null)))) : null,
+      h("section", { class: "panel rise" },
+        h("div", { class: "panel-head" }, h("h2", {}, icon("clock"), "Passes"), h("span", { class: "small muted" }, d.passes.length ? `${d.passes.length} recorded, newest first` : "none recorded")),
+        h("p", { class: "small muted" }, "A pass that finds neither the head nor the base moved concludes from the last verdict and records nothing new."),
+        h("ul", { class: "tcs" }, d.passes.map((p) => h("li", { class: `tc${p.cls === "error" || p.conclusion === "failure" ? " tc-bad" : ""}` },
+          h("div", { class: "tc-head" }, h("span", {}, new Date(p.at).toLocaleString()), h("span", { class: "small muted" }, REVIEW_MOVED[p.cls] ?? p.cls),
+            p.repaired ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "Repair pushed") : null,
+            p.cls === "error" ? h("span", { class: "pill t-bad" }, h("span", { class: "d" }), "Error") : verdictPill(p.conclusion)),
+          p.headSha || p.baseSha ? h("p", { class: "tc-test small muted" }, "head ", sha(p.headSha), " on base ", sha(p.baseSha)) : null,
+          p.error ? h("p", { class: "tc-why small" }, p.error) : p.title ? h("p", { class: "tc-why small" }, p.title) : null)))))], first);
   });
 }
 
@@ -2656,6 +2750,7 @@ async function route() {
     else if (top === "runs" && parts[1] && parts[2] === "preview") await previewScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "data-model") dataModelScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "tests") testsScreen(parts[1]);
+    else if (top === "runs" && parts[1] && parts[2] === "review") reviewScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "charts") chartsScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "stats") statsScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "log") logScreen(parts[1]);

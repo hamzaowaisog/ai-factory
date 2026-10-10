@@ -23,6 +23,8 @@ export interface RunFacts {
   evidenceReconciles: boolean;
   priorReverifyConcluded: boolean;
   priorConclusion?: Conclusion;
+  /** the last verdict came from the gates, not from a merge that conflicted, failed its tests or could not be repaired */
+  priorGated?: boolean;
   attemptsThisPr: number;
   lastReverifyAt?: number;
   /** the head the last reverify judged; `recordedBaseSha` is then the base it judged */
@@ -51,6 +53,13 @@ export interface ReverifyRecord {
   error?: string;
   /** with `error`: how many attempts in a row have now thrown */
   errors?: number;
+  /** the one-line title and the reason written to the pull request, for a person reading the run later */
+  title?: string;
+  why?: string;
+  /** this pass pushed a repair to the pull request */
+  repaired?: boolean;
+  /** the verdict is the gates' own: every gate was judged or replayed, and these decided it */
+  gated?: boolean;
 }
 
 /** Attempts in a row that may throw before the pull request is parked instead of paid for again. */
@@ -107,6 +116,11 @@ export interface ReviewPrDeps {
   readCheck(a: { name: string; headSha: string }): Promise<"success" | "failure" | undefined>;
   writeComment(a: { pr: number; runId: string; body: string }): Promise<void>;
   notify(msg: string): Promise<void>;
+  /**
+   * Merges the pull request, only while its head is still `headSha`. Present only on a project that lets the
+   * review agent merge what passes (`forge.autoMerge`). A refusal is `merged: false` with the forge's reason.
+   */
+  mergePr?(a: { pr: number; headSha: string }): Promise<{ merged: boolean; why: string }>;
   now(): number;
 }
 
@@ -117,6 +131,8 @@ export interface ReviewPrResult {
   why: string;
   forced: boolean;
   repaired: boolean;
+  /** the pass merged the pull request into its base (`forge.autoMerge`) */
+  merged?: boolean;
 }
 
 /** Gate ids whose verdict is a model judgement, and so can differ on an identical tree. */
@@ -144,6 +160,13 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
   const done = (conclusion: Conclusion, cls: ReviewPrResult["cls"], why: string, repaired = false): ReviewPrResult =>
     ({ conclusion, cls, why, forced: force, repaired });
   const notHere = (why: string) => done("neutral", "not-here", why);
+  // A pull request that passed is merged, on a project that asks for it: the head that carries the passing status and
+  // no other. The verdict stands whatever the forge answers; a refused merge is said beside it, and tried again next pass.
+  const land = async (r: ReviewPrResult, headSha: string): Promise<ReviewPrResult> => {
+    if (r.conclusion !== "success" || !deps.mergePr) return r;
+    const m = await deps.mergePr({ pr: a.pr, headSha }).catch((e: Error) => ({ merged: false, why: e.message.split("\n")[0]!.slice(0, 200) }));
+    return m.merged ? { ...r, merged: true, why: `${r.why}\n\nMerged into ${pr.baseRef}.` } : { ...r, why: `${r.why}\n\nNot merged into ${pr.baseRef}: ${m.why}` };
+  };
 
   // a PR closed or merged while we were queued: write nothing to it
   if (pr.merged || pr.state === "closed") {
@@ -183,12 +206,13 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
   let recorded = false;
   let gated = false;
   const reviewed: Record<string, string> = {};
-  const record = async (conclusion: Conclusion, cls: string, headSha = pr.headSha) => {
+  const record = async (conclusion: Conclusion, cls: string, headSha = pr.headSha, said: { title?: string; why?: string; repaired?: boolean; gated?: boolean } = {}) => {
     if (!run) return;
     await deps.recordReverify({
       runId, conclusion, cls, headSha, baseSha: pr.baseSha,
       attemptsThisPr: run.attemptsThisPr + (attempted ? 1 : 0), at: deps.now(),
       reviewed: { ...Object.fromEntries(run.reviewed ?? []), ...reviewed },
+      ...(said.title ? { title: said.title } : {}), ...(said.why ? { why: said.why.slice(0, 4000) } : {}), ...(said.repaired ? { repaired: true } : {}), ...(said.gated ? { gated: true } : {}),
     });
     recorded = true;
   };
@@ -202,7 +226,7 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
   // the verdict is recorded before it is written: a forge write that fails then costs the next pass
   // one cheap write from the record, not another container and another review
   const fail = async (cls: ReviewPrResult["cls"], title: string, why: string, note: string = `${runId}: ${why}`) => {
-    await record("failure", cls);
+    await record("failure", cls, pr.headSha, { title, why });
     // the reason goes in the comment: a commit status carries only the one-line title
     await deliver(
       () => deps.writeCheck({ name: OWN_CHECK_NAME, headSha: pr.headSha, conclusion: "failure", title, summary: why }),
@@ -244,19 +268,24 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
   if (cheap.cls === "evidence-mismatch") {
     await writeIfChanged({ headSha: pr.headSha, conclusion: "failure", title: "Evidence does not reconcile", summary: cheap.why });
     if (!(sameAsJudged && run!.priorConclusion === "failure")) await deps.notify(`${runId}: ${cheap.why}`);
-    await record("failure", cheap.cls);
+    await record("failure", cheap.cls, pr.headSha, { title: "Evidence does not reconcile", why: cheap.why });
     return done("failure", cheap.cls, cheap.why);
   }
-  if (sameAsJudged && !force) {
+  // One thing changes a verdict while nothing moves: a person accepting a failed gate (`factory waive`), which replays
+  // as passed. When that clears every gate the last verdict failed on, the pass goes on and judges again from the record.
+  const ids = run ? [...run.recorded.keys()] : [];
+  const cleared = sameAsJudged && !force && run!.priorConclusion === "failure" && run!.priorGated === true
+    && (await deps.runGates({ ids, replay: ids })).every((o) => o.passed);
+  if (sameAsJudged && !force && !cleared) {
     const prior = run!.priorConclusion!;
     await writeIfChanged({ headSha: pr.headSha, conclusion: prior, title: "Concluded from the last verdict", summary: "Neither the head nor the base moved since this pull request was last judged." });
-    return done(prior, "unchanged", "Nothing moved since the last verdict: concluding from it.");
+    return land(done(prior, "unchanged", "Nothing moved since the last verdict: concluding from it."), pr.headSha);
   }
   // only while the base is the one last judged: after a base move the merge must be verified again
   if (cheap.cls === "self-push" && run?.priorConclusion && pr.baseSha === run.recordedBaseSha) {
     await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: pr.headSha, conclusion: run.priorConclusion, title: "Concluded from the previous run", summary: cheap.why });
-    await record(run.priorConclusion, cheap.cls);
-    return done(run.priorConclusion, cheap.cls, cheap.why);
+    await record(run.priorConclusion, cheap.cls, pr.headSha, { title: "Concluded from the previous run", why: cheap.why });
+    return land(done(run.priorConclusion, cheap.cls, cheap.why), pr.headSha);
   }
 
   // guard 4: a burst of pushes collapses into one run. Nothing is written, so the next pass after the
@@ -371,14 +400,15 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
       summary += `\n\nGitHub still reports a conflict on ${settled.join(", ")}: it was settled here only to judge the merge.`;
     }
 
-    await record(conclusion, cls, checkSha);
+    const title = `${cls}: ${failed.length ? `${failed.length} blocking` : "clear"}`;
+    await record(conclusion, cls, checkSha, { title, why: summary, repaired, gated: true });
     await deliver(
-      () => deps.writeCheck({ name: OWN_CHECK_NAME, headSha: checkSha, conclusion, title: `${cls}: ${failed.length ? `${failed.length} blocking` : "clear"}`, summary }),
+      () => deps.writeCheck({ name: OWN_CHECK_NAME, headSha: checkSha, conclusion, title, summary }),
       () => deps.writeComment({ pr: a.pr, runId, body: `**Merge gate — ${cls}**\n\n${summary}${repaired ? "\n\n_Repaired automatically after this pull request was last reported on; re-read the diff._" : ""}` }),
       async () => { if (failed.length) await deps.notify(`${runId}: merge gate failed — ${failed.map((f) => f.id).join(", ")}`); },
     );
 
-    return done(conclusion, cls, summary, repaired);
+    return await land(done(conclusion, cls, summary, repaired), checkSha);
   } catch (e) {
     if (run && !recorded) {
       await deps.recordReverify({

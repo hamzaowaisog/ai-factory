@@ -5,6 +5,8 @@ import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import type { Failure, LedgerEvent } from "../contracts/index.js";
+import { ensureGuidelines } from "../conventions/auto.js";
+import { reviewDelivered } from "../merge/once.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY, mergePolicy, withPolicy, type Policy } from "../gates/policy.js";
 import { NO_CREDIT } from "../runners/claude-agent.js";
@@ -313,8 +315,12 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
     throw e;
   }
   const writer = lock;
+  // a project with no coding guidelines gets them now, so the code is written to the rules it is later judged by
+  if (state.info.mode !== "estimate" && state.info.mode !== "design") await ensureGuidelines(project, log);
   const warned = new Set<string>();
   let completed = 0;
+  /** the pull request this turn delivered, if it did */
+  let deliveredPr: string | undefined;
   /** steps that went back to an earlier one since a step last completed */
   const wentBack = new Set<string>();
   /**
@@ -406,6 +412,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
           await ledger.append({ type: "run.delivered", data: outcome.data ?? {} }, writer);
           dropBuildCache(runId);
           const d = outcome.data as { local?: boolean; branch?: string; prUrl?: string };
+          deliveredPr = d.local ? undefined : d.prUrl;
           return { status: "delivered", message: d.local ? `Ready locally on branch ${d.branch}. PR text: factory show-card ${runId} --pr` : `PR opened: ${d.prUrl}` };
         }
         break;
@@ -559,6 +566,8 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
       const s = replay(ledger.events());
       if (completed && (s.steps.get("estimate")?.status === "completed" || s.info.estimateRef)) triggerTune();
     } catch { /* tuning never breaks a run */ }
+    // a project that merges what passes: the pull request is judged now, not when somebody remembers to
+    if (deliveredPr) await reviewDelivered(project, deliveredPr, log);
     trace.event("run", "executor stopped");
     trace.stopHeartbeat();
     ledger.onAppend = undefined;

@@ -33,6 +33,10 @@ written and typechecked but has never been executed even once.
 
 **Command:** `factory conventions build --project shop`
 
+**Or nothing at all:** a project with no guidelines file gets one built and approved by the factory
+when a run or a review pass starts ([auto.ts](../src/conventions/auto.ts)). The command is for
+building the file again by hand.
+
 **What it does, in detail.** Resolves the base branch to a commit and takes a snapshot of the
 repository at it. Surveys that snapshot — languages, frameworks named by dependencies, top-level
 areas, and from git history the files that change most. From the survey it picks a **bounded sample**:
@@ -82,13 +86,16 @@ none.
 
 **Command:** `factory conventions approve --project shop <hash>`
 
+Needed only for a file a person built or edited. A file the factory built itself is approved as
+`factory`, and any edit to it unapproves it like any other.
+
 **What it does, in detail.** Hashes the current file, refuses unless the hash you typed is a prefix
 of it, then parses the file to prove the gate will be able to read it, and only then records the
 approval — the hash, your OS username and the time — beside the file.
 
-Because the approval is bound to the **hash**, any later edit unapproves it automatically. There is
-no way to approve a file you have not seen, and no script or agent can do it: it is a person typing
-in a terminal.
+Because the approval is bound to the **hash**, any later edit unapproves it automatically. This command
+cannot approve a file you have not seen. The one approval made without a person is the factory's, of
+a file it has just built itself for a project that had none.
 
 Four different states are distinguished, each with its own sentence naming the command that fixes
 it: missing, never approved, changed since approval, and approved-but-unparseable. **None of them
@@ -337,7 +344,7 @@ never read as a review that found nothing, so nothing is recorded and there is n
 `tests.expectations` | no new failures against the baseline | yes | **never** |
 `secrets.none` | no keys or tokens in the merge result | yes | **never** |
 `deliver.sha-binding` | what was pushed is the exact gated commit | yes | **never** |
-`integrate.diff-size` | the change-size cap | yes | per policy |
+`integrate.diff-size` | the change-size cap; a new product's first pull request is counted from its scaffold commit, as the build counts it | yes | per policy |
 `lint.no-new-findings` | no new analyzer findings in the changed files | yes | by a person |
 `conventions.followed` | no confirmed convention broken | yes | by a person |
 `review.covers-every-criterion` | the reviewer accounted for every criterion | yes | **never** |

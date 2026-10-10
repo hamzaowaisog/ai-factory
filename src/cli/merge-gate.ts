@@ -2,6 +2,7 @@
 // Both are invoked by a Harness Delegate on this host, with inputs that are NOT trusted.
 import type { Command } from "commander";
 import { loadProject } from "../config/project.js";
+import { ensureGuidelines } from "../conventions/auto.js";
 import { OWN_CHECK_NAME } from "../contracts/checks.js";
 import { githubApi } from "../forge/github.js";
 import { parseMergeGroupRef } from "../merge/group.js";
@@ -28,6 +29,7 @@ export function registerMergeGate(program: Command, log: (s: string) => void): v
 
       const { reviewPr } = await import("../merge/orchestrate.js");
       const { liveDeps } = await import("../merge/live.js");
+      await ensureGuidelines(cfg, log);
       const deps = await liveDeps({ cfg, gh: githubApi(cfg), log });
       const r = await reviewPr(deps, { pr: n, force: o.force });
 
@@ -81,7 +83,9 @@ export function registerMergeGate(program: Command, log: (s: string) => void): v
         // onlyLocal: a pull request whose ledger is not on this host (another machine's run, a person's
         // branch, a fork) is left alone, instead of failing it and notifying about it every pass
         review: async (pr: number) => {
+          await ensureGuidelines(cfg, log);
           const r = await reviewPr(await liveDeps({ cfg, gh, log }), { pr, onlyLocal: true });
+          if (r.merged) log(`#${pr}: passed and merged`);
           return { conclusion: r.conclusion, cls: r.cls };
         },
         log,

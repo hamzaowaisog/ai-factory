@@ -21,9 +21,10 @@ import { createSnapshot, snapshotDir } from "../context/snapshot.js";
 import { readApproved } from "../conventions/store.js";
 import { HUMAN_WRITER } from "../ledger/ledger.js";
 import { diffFiles } from "../stages/deliver.js";
+import { changeBase } from "../stages/workspace.js";
 import { modelFor, projectForRun } from "../stages/routing.js";
 import type { Review2Inputs } from "../stages/review2.js";
-import { commitRepair, commitsWithTrailers, failingTests, forgeAdapter, gateDiff, unknownFailures, mergeExpectations, forgeRemote, insideWorktree, mergeInto, merging, openRunFacts, ownReviewBody, recordedVerdicts, reverifyWorktree, workingTreeCommit, worktreeExists } from "./adapters.js";
+import { sizedDiff, commitRepair, commitsWithTrailers, failingTests, forgeAdapter, gateDiff, unknownFailures, mergeExpectations, forgeRemote, insideWorktree, mergeInto, merging, openRunFacts, ownReviewBody, recordedVerdicts, reverifyWorktree, workingTreeCommit, worktreeExists } from "./adapters.js";
 import { plannedInputHashes, reviewEvidence, runMergeGates, type MergeEvidence } from "./gates-run.js";
 import { gateInputsHash } from "../gates/engine.js";
 import { scanText } from "../context/secrets.js";
@@ -131,7 +132,8 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
         // the lines this tree adds, scanned for real: a repair is pushed with the forge token
         secretScan: { kind: "secrets", commit: mergeSha, hits: secretHits(diff) },
         // with its lines: a list of names alone made the size gate count 0 and pass any diff
-        diff: { files: diffSummary(diff) },
+        // a new product's change is counted from its scaffold commit, as the build counted it
+        diff: { files: diffSummary(await sizedDiff(wt, a.baseSha, diff, state.info.mode === "greenfield" ? changeBase(state) : undefined)) },
         guidelines: readApproved(o.cfg.project),
         violations: [],
         spec: { requirements: [] },

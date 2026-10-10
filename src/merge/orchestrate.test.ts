@@ -398,6 +398,9 @@ describe("reviewPr: it remembers what it judged, so nothing loops", () => {
     await reviewPr(d, { pr: 42 });
     expect(calls.records).toHaveLength(1);
     expect(calls.records[0]).toMatchObject({ runId: "run-1", headSha: SHA, baseSha: "base2", conclusion: "success", cls: "base-moved-clean", attemptsThisPr: 0 });
+    // the title and the reason written to the pull request are kept too, for the run page's Review tab
+    expect(calls.records[0]).toMatchObject({ title: "base-moved-clean: clear" });
+    expect(calls.records[0]!.why).toMatch(/gates passed/);
   });
 
   it("counts a failed repair against the per-PR budget", async () => {
@@ -750,5 +753,75 @@ describe("reviewPr: an error that keeps coming back stops costing money", () => 
     const { d, calls } = deps({ getPr: movedPr }, runFacts({ errorsInARow: 2 }));
     await reviewPr(d, { pr: 42 });
     expect(calls.records[0]!.errors).toBeUndefined();
+  });
+
+  describe("a failed gate accepted after the last verdict", () => {
+    const judged = (over: Partial<RunFacts> = {}) => runFacts({ priorConclusion: "failure", priorGated: true, judgedHeadSha: SHA, ...over });
+
+    it("is judged again from the record, with nothing moved, and the verdict turns clear", async () => {
+      const { d, calls } = deps({}, judged());
+      expect(await reviewPr(d, { pr: 42 })).toMatchObject({ conclusion: "success", cls: "unchanged" });
+      expect(calls.mergeVerify).toBe(0);
+      expect(calls.review2).toBe(0);
+      expect(calls.records.at(-1)).toMatchObject({ conclusion: "success", gated: true, title: "unchanged: clear" });
+    });
+
+    it("keeps the last verdict while a gate still fails, and when the gates did not give it", async () => {
+      const failing = deps({ runGates: async (x) => x.ids.map((id) => ({ id, passed: id !== "build.clean", details: "x" })) }, judged());
+      expect(await reviewPr(failing.d, { pr: 42 })).toMatchObject({ conclusion: "failure", why: expect.stringMatching(/Nothing moved since the last verdict/) });
+      expect(failing.calls.records.length).toBe(0);
+      // tests that failed on the merge result: no gate was accepted out of that
+      const other = deps({}, judged({ priorGated: false }));
+      expect(await reviewPr(other.d, { pr: 42 })).toMatchObject({ conclusion: "failure", why: expect.stringMatching(/Nothing moved since the last verdict/) });
+      expect(other.calls.gates).toBe(0);
+    });
+  });
+
+  describe("a project that lets the review agent merge what passes", () => {
+    const merging = (over: Partial<ReviewPrDeps> = {}, run: RunFacts = runFacts()) => {
+      const asked: { pr: number; headSha: string }[] = [];
+      const x = deps({ mergePr: async (a) => { asked.push(a); return { merged: true, why: "merged" }; }, ...over }, run);
+      return { ...x, asked };
+    };
+
+    it("merges the head that carries the passing status, after the status is written", async () => {
+      const { d, calls, asked } = merging();
+      const r = await reviewPr(d, { pr: 42 });
+      expect(r).toMatchObject({ conclusion: "success", merged: true, why: expect.stringMatching(/Merged into main\.$/) });
+      expect(asked).toEqual([{ pr: 42, headSha: SHA }]);
+      expect(calls.checks.at(-1)).toMatchObject({ conclusion: "success", headSha: SHA });
+    });
+
+    it("merges the repaired head, not the one the pass started from", async () => {
+      const { d, asked } = merging({ mergeVerify: async (x) => mergeResult(x.afterRepair ? {} : { mergesClean: false, testsPass: false, conflicts: ["a.cs"] }) },
+        runFacts({ recordedBaseSha: "base0" }));
+      expect(await reviewPr(d, { pr: 42 })).toMatchObject({ conclusion: "success", repaired: true, merged: true });
+      expect(asked).toEqual([{ pr: 42, headSha: "pushed1" }]);
+    });
+
+    it("also on a pass that only repeats a passing verdict, so a refused merge is tried again", async () => {
+      const { d, asked } = merging({}, runFacts({ priorConclusion: "success", judgedHeadSha: SHA }));
+      expect(await reviewPr(d, { pr: 42 })).toMatchObject({ conclusion: "success", cls: "unchanged", merged: true });
+      expect(asked.length).toBe(1);
+    });
+
+    it("never merges a pull request that failed, and a refused merge leaves the verdict as it is", async () => {
+      const failing = merging({ runGates: async (x) => x.ids.map((id) => ({ id, passed: id !== "build.clean", details: "x" })) });
+      expect((await reviewPr(failing.d, { pr: 42 })).merged).toBeUndefined();
+      expect(failing.asked.length).toBe(0);
+
+      const refused = merging({ mergePr: async () => ({ merged: false, why: "GitHub answered 405: Required status check is expected" }) });
+      const r = await reviewPr(refused.d, { pr: 42 });
+      expect(r.conclusion).toBe("success");
+      expect(r.merged).toBeUndefined();
+      expect(r.why).toMatch(/Not merged into main: GitHub answered 405/);
+      const thrown = merging({ mergePr: async () => { throw new Error("socket hang up"); } });
+      expect(await reviewPr(thrown.d, { pr: 42 })).toMatchObject({ conclusion: "success", why: expect.stringMatching(/Not merged into main: socket hang up/) });
+    });
+
+    it("merges nothing on a project that has not asked for it", async () => {
+      const { d } = deps();
+      expect((await reviewPr(d, { pr: 42 })).merged).toBeUndefined();
+    });
   });
 });

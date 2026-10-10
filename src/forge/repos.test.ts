@@ -65,7 +65,7 @@ describe("a new product's repo on GitHub", () => {
     expect(gh.asked).toEqual([expect.objectContaining({ name: "shop", private: true, description: "shop: the web app, built by the AI factory" })]);
     expect(gh.head("acme/shop")).toBe(git(repo, "rev-parse", "main"));
     addForge("shop", acct, made);
-    expect(loadProject("shop").forge).toEqual({ kind: "github", repo: "acme/shop", tokenEnv: "GITHUB_TOKEN", apiUrl: gh.url, pushUrl: made.cloneUrl, pullBase: true });
+    expect(loadProject("shop").forge).toEqual({ kind: "github", repo: "acme/shop", tokenEnv: "GITHUB_TOKEN", apiUrl: gh.url, pushUrl: made.cloneUrl, pullBase: true, autoMerge: true });
     const yaml = readFileSync(projectPath("shop"), "utf8");
     expect(yaml).not.toContain(gh.token);
     // the config's own notes stay

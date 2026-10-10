@@ -72,6 +72,8 @@ export const ProjectConfig = z.object({
     pushUrl: z.string().optional(),
     /** before each run, bring the local base branch up to GitHub's (a fast-forward): set on the repos the factory put on GitHub */
     pullBase: z.boolean().default(false),
+    /** the review agent merges a pull request itself once it passes the merge gate (a merge commit): set on the repos the factory put on GitHub */
+    autoMerge: z.boolean().default(false),
   }).optional(),
   /**
    * `factory watch`: a Jira ticket labelled `label` by someone on `allowedReporters` starts a run.

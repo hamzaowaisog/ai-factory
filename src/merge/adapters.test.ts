@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFil
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { commitRepair, commitsWithTrailers, EVIDENCE_MANIFEST, failingTests, gateDiff, unknownFailures, insideWorktree, isFork, mergeExpectations, mergeInto, merging, workingTreeCommit } from "./adapters.js";
+import { commitRepair, commitsWithTrailers, EVIDENCE_MANIFEST, failingTests, gateDiff, sizedDiff, unknownFailures, insideWorktree, isFork, mergeExpectations, mergeInto, merging, recordedVerdicts, standingWaivers, workingTreeCommit } from "./adapters.js";
 import type { TestRun } from "../contracts/index.js";
 
 const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
@@ -248,6 +248,35 @@ describe("the diff the merge gate hashes and review-2 reads", () => {
     expect(d2).toBe(d1);
   });
 
+  it("sizes a new product's pull request from its scaffold commit, while the base holds nothing more", async () => {
+    const repo = mkdtempSync(join(tmpdir(), "factory-gd-"));
+    g(repo, "init", "-q", "-b", "main");
+    g(repo, "commit", "-q", "--allow-empty", "-m", "Start");
+    const base = g(repo, "rev-parse", "HEAD");
+    g(repo, "checkout", "-q", "-b", "pr");
+    writeFileSync(join(repo, "package-lock.json"), "{}\n".repeat(500));
+    writeFileSync(join(repo, "page.tsx"), "scaffold\n");
+    g(repo, "add", "."); g(repo, "commit", "-q", "-m", "scaffold");
+    const scaffold = g(repo, "rev-parse", "HEAD");
+    writeFileSync(join(repo, "page.tsx"), "the agents' page\n");
+    g(repo, "add", "."); g(repo, "commit", "-q", "-m", "implement");
+
+    const whole = await gateDiff(repo, base);
+    expect(whole).toMatch(/package-lock\.json/);
+    const sized = await sizedDiff(repo, base, whole, scaffold);
+    expect(sized).toMatch(/page\.tsx/);
+    expect(sized).not.toMatch(/package-lock\.json/);
+    // any other run has no scaffold to count from
+    expect(await sizedDiff(repo, base, whole)).toBe(whole);
+    // the base moved past the scaffold: the whole diff counts
+    g(repo, "checkout", "-q", "main");
+    writeFileSync(join(repo, "other.cs"), "1\n");
+    g(repo, "add", "."); g(repo, "commit", "-q", "-m", "someone else");
+    const moved = g(repo, "rev-parse", "HEAD");
+    g(repo, "checkout", "-q", "pr");
+    expect(await sizedDiff(repo, moved, whole, scaffold)).toBe(whole);
+  });
+
   it("leaves out only the manifest: anything else under .factory/ is still scanned and reviewed", async () => {
     const repo = mkdtempSync(join(tmpdir(), "factory-gd-"));
     g(repo, "init", "-q", "-b", "main");
@@ -320,5 +349,40 @@ describe("the evidence manifest every factory branch writes", () => {
     const { repo, base } = repoWith({ manifest: "v0" }, { manifest: null }, { manifest: "base" });
     expect((await mergeInto(repo, base)).clean).toBe(true);
     expect(existsSync(join(repo, EVIDENCE_MANIFEST))).toBe(false);
+  });
+});
+
+describe("a failed gate a person accepted during the build", () => {
+  const H1 = "a".repeat(64), H2 = "b".repeat(64), CARD = "c".repeat(64);
+  const gate = (gateId: string, passed: boolean, inputsHash: string, extra: Record<string, unknown> = {}) =>
+    ({ type: "gate.result", inputsHash, data: { gateId, passed, details: `${gateId} said so`, ...extra } });
+  /** the step the build completed with the person's acceptance on it */
+  const done = (gateIds: string[]) => ({ type: "step.completed", key: "review/2", data: { waivers: [{ gateIds, human: "Sara", reason: "tests are locked", boundTo: CARD }] } });
+  const verdicts = (events: unknown[]) => recordedVerdicts({ events: () => events } as never);
+
+  it("is replayed as accepted, saying who accepted it and what failed", () => {
+    // the step runs again after the waiver and completes with it, on whatever the gate read then
+    const events = [gate("review.tests-prove-criteria", false, H1), gate("review.tests-prove-criteria", false, H2), done(["review.tests-prove-criteria"]), gate("plan.checks", true, H2)];
+    expect([...standingWaivers(events)]).toEqual([["review.tests-prove-criteria", { by: "Sara", reason: "tests are locked" }]]);
+    const v = verdicts(events);
+    expect(v.get("review.tests-prove-criteria")).toEqual({ id: "review.tests-prove-criteria", passed: true, details: "Accepted by Sara during the build (tests are locked). It failed: review.tests-prove-criteria said so" });
+    expect(v.get("plan.checks")).toMatchObject({ passed: true, details: "plan.checks said so" });
+  });
+
+  it("does not stand once the gate is judged again on other inputs, which nobody accepted", () => {
+    const events = [gate("integrate.diff-size", false, H1), done(["integrate.diff-size"]), gate("integrate.diff-size", false, H2)];
+    expect(standingWaivers(events).size).toBe(0);
+    expect(verdicts(events).get("integrate.diff-size")).toMatchObject({ passed: false });
+    // judged again on the same inputs, it still stands
+    expect(standingWaivers([...events, gate("integrate.diff-size", false, H1)]).size).toBe(1);
+  });
+
+  it("never covers a safety gate, a waiver card no step completed with, or a gate the waiver did not name", () => {
+    expect(standingWaivers([gate("secrets.none", false, H1, { safety: true }), done(["secrets.none"])]).size).toBe(0);
+    const card = { type: "human.requested", data: { kind: "waiver", artifactSha: CARD, gateIds: ["review.no-blocking"] } };
+    expect(standingWaivers([gate("review.no-blocking", false, H1), card, { type: "human.decided", data: { decision: "stop", by: "Sara", artifactSha: CARD } }]).size).toBe(0);
+    expect(standingWaivers([gate("review.no-blocking", false, H1), gate("plan.checks", false, H1), done(["plan.checks"])]).has("review.no-blocking")).toBe(false);
+    // a failure that came after, of a gate that had passed when the step completed
+    expect(standingWaivers([gate("plan.checks", true, H1), done(["plan.checks"]), gate("plan.checks", false, H1)]).size).toBe(0);
   });
 });

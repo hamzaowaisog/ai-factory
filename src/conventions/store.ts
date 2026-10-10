@@ -26,10 +26,21 @@ export function currentSha(project: string): string | undefined {
   return existsSync(p) ? sha256(readFileSync(p)) : undefined;
 }
 
-export function recordApproval(project: string, sha: string, by: string): void {
+/** What the factory read when it built and approved the file itself: the base branch commit, and whether it held code. */
+export interface AutoBuilt { commit: string; scanned: boolean }
+export interface Approval { sha: string; by: string; at: string; auto?: AutoBuilt }
+
+export function recordApproval(project: string, sha: string, by: string, auto?: AutoBuilt): void {
   const p = approvalPath(project);
   mkdirSync(dirname(p), { recursive: true });
-  writeFileSync(p, JSON.stringify({ sha, by, at: new Date().toISOString() }, null, 2), { mode: 0o600 });
+  writeFileSync(p, JSON.stringify({ sha, by, at: new Date().toISOString(), ...(auto ? { auto } : {}) }, null, 2), { mode: 0o600 });
+}
+
+/** The approval on record, whether or not the file still matches it. */
+export function approvalOf(project: string): Approval | undefined {
+  const p = approvalPath(project);
+  if (!existsSync(p)) return undefined;
+  try { return JSON.parse(readFileSync(p, "utf8")) as Approval; } catch { return undefined; }
 }
 
 export type Approved = { conventions: Convention[]; markdown: string; sha: string };

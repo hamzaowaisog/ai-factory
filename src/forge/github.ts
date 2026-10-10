@@ -119,6 +119,19 @@ export async function setCommitStatus(
   );
 }
 
+/**
+ * Merge a pull request with a merge commit, and only while its head is still `sha`: the commit that was judged.
+ * A squash or a rebase would land a commit nobody gated. GitHub refusing (branch protection, a head that moved,
+ * a conflict, a draft) is an answer, not an error.
+ */
+export async function mergePullRequest(gh: Gh, a: { pr: number; sha: string }, f: typeof fetch = fetch): Promise<{ merged: boolean; why: string }> {
+  const res = await f(`${gh.api}/pulls/${a.pr}/merge`, { method: "PUT", headers: gh.headers, body: JSON.stringify({ sha: a.sha, merge_method: "merge" }) });
+  if (res.ok) return { merged: true, why: "merged" };
+  let message = "";
+  try { message = String(((await res.json()) as { message?: string }).message ?? ""); } catch { /* no body */ }
+  return { merged: false, why: `GitHub answered ${res.status}${message ? `: ${message.slice(0, 200)}` : ""}` };
+}
+
 /** Update the factory's own comment, never append another. */
 export async function upsertReviewComment(
   gh: Gh, prNumber: number, runId: string, body: string, f: typeof fetch = fetch,

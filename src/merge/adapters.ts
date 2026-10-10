@@ -7,7 +7,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
 import { OWN_CHECK_NAME } from "../contracts/checks.js";
 import { secret } from "../config/env.js";
-import { commitStatus, factoryLogin, findReviewBody, getPr, type Gh, listChecks, setCommitStatus, upsertReviewComment } from "../forge/github.js";
+import { commitStatus, factoryLogin, findReviewBody, getPr, type Gh, listChecks, mergePullRequest, setCommitStatus, upsertReviewComment } from "../forge/github.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { fetchForGate, git, gitOut } from "../ledger/git.js";
@@ -28,14 +28,59 @@ export function recordedGateHashes(events: { type: string; data?: Record<string,
   return out;
 }
 
-/** Every gate verdict this run recorded, by gate id, newest winning. */
+/** A person's acceptance of a gate's failed verdict during the build, still standing on the verdict the gate has now. */
+export interface StandingWaiver { by: string; reason: string }
+
+type GateEvent = { type: string; data?: Record<string, unknown>; inputsHash?: string };
+
+/**
+ * The failed gates a person accepted during the build (`factory waive`), by gate id. The build decides
+ * whether an acceptance applies, and says so on the step it then completes (`waivers`). It stands here
+ * only while the gate's newest verdict is of the inputs that step completed on: a gate judged again on
+ * anything else has a verdict nobody accepted. A safety gate can never be accepted.
+ */
+export function standingWaivers(events: GateEvent[]): Map<string, StandingWaiver> {
+  const newest = new Map<string, { hash?: string; passed: boolean; safety: boolean }>();
+  const accepted = new Map<string, StandingWaiver & { hash?: string }>();
+  for (const ev of events) {
+    const d = ev.data ?? {};
+    if (ev.type === "gate.result" && d.gateId) {
+      newest.set(String(d.gateId), { hash: ev.inputsHash, passed: d.passed === true, safety: d.safety === true });
+    } else if (ev.type === "step.completed" && Array.isArray(d.waivers)) {
+      for (const w of d.waivers as { gateIds?: unknown; human?: unknown; reason?: unknown }[]) {
+        for (const id of Array.isArray(w.gateIds) ? w.gateIds.map(String) : []) {
+          const g = newest.get(id);
+          if (g && !g.passed) accepted.set(id, { by: String(w.human ?? ""), reason: String(w.reason ?? "").trim(), hash: g.hash });
+        }
+      }
+    }
+  }
+  const out = new Map<string, StandingWaiver>();
+  for (const [id, w] of accepted) {
+    const g = newest.get(id)!;
+    if (!g.passed && !g.safety && !!w.hash && g.hash === w.hash) out.set(id, { by: w.by, reason: w.reason });
+  }
+  return out;
+}
+
+/**
+ * Every gate verdict this run recorded, by gate id, newest winning. A failed verdict a person accepted
+ * during the build is replayed as accepted: the merge gate replays a verdict only while the gate's
+ * inputs are unchanged, which is exactly what the person accepted. Without this a pull request with an
+ * accepted gate could never pass.
+ */
 export function recordedVerdicts(ledger: Ledger): Map<string, GateOutcome> {
   const out = new Map<string, GateOutcome>();
-  for (const ev of ledger.events()) {
+  const events = ledger.events();
+  for (const ev of events) {
     if (ev.type !== "gate.result") continue;
     const id = String(ev.data?.gateId ?? "");
     if (!id) continue;
     out.set(id, { id, passed: ev.data?.passed === true, details: String(ev.data?.details ?? "") });
+  }
+  for (const [id, w] of standingWaivers(events as never)) {
+    const g = out.get(id);
+    if (g && !g.passed) out.set(id, { id, passed: true, details: `Accepted by ${w.by || "a person"} during the build${w.reason ? ` (${w.reason})` : ""}. It failed: ${g.details}` });
   }
   return out;
 }
@@ -75,6 +120,8 @@ export function openRunFacts(runId: string): RunFacts | undefined {
     // an attempt that threw concluded nothing
     priorReverifyConcluded: !!rv?.conclusion,
     priorConclusion: rv?.conclusion as Conclusion | undefined,
+    // `gated` is on every verdict the gates gave; one written before it existed says so in its title
+    priorGated: rv?.gated === true || /: (\d+ blocking|clear)$/.test(String(rv?.title ?? "")),
     attemptsThisPr: Number(rv?.attemptsThisPr ?? 0),
     lastReverifyAt: typeof rv?.at === "number" ? rv.at : undefined,
     judgedHeadSha: typeof rv?.headSha === "string" ? rv.headSha : undefined,
@@ -136,8 +183,10 @@ export function ownReviewBody(gh: Gh): (n: number) => Promise<string | undefined
 export interface ForgeAdapterOpts { gh: Gh; cfg: ProjectConfig; requiredChecks: string[] }
 
 /** The GitHub half of the deps: everything that talks to the forge. */
-export function forgeAdapter(o: ForgeAdapterOpts): Pick<ReviewPrDeps, "getPr" | "findReviewBody" | "writeCheck" | "readCheck" | "writeComment" | "notify"> {
+export function forgeAdapter(o: ForgeAdapterOpts): Pick<ReviewPrDeps, "getPr" | "findReviewBody" | "writeCheck" | "readCheck" | "writeComment" | "notify" | "mergePr"> {
   return {
+    // only a project that says so: everywhere else a passing pull request waits for a person or for GitHub's own queue
+    ...(o.cfg.forge?.autoMerge ? { mergePr: (a: { pr: number; headSha: string }) => mergePullRequest(o.gh, { pr: a.pr, sha: a.headSha }) } : {}),
     async getPr(n): Promise<PrFacts> {
       const pr = await getPr(o.gh, n);
       // a head in any other repository is not the factory's: refused by reviewPr, and never fetched
@@ -194,6 +243,18 @@ export const EVIDENCE_MANIFEST = ".factory/evidence-manifest.json";
  */
 export async function gateDiff(wt: string, baseSha: string): Promise<string> {
   return (await git(wt, ["diff", "--no-color", "-U5", baseSha, "HEAD", "--", ".", `:(exclude)${EVIDENCE_MANIFEST}`])).stdout;
+}
+
+/**
+ * The diff the size gate counts. A new product's whole app is scaffold the factory generated, so the build counts
+ * the agents' change from the scaffold commit (changeBase), and so does the merge gate: against the product's empty
+ * base the same pull request is the entire app, and no first delivery would ever fit. Only while the base holds
+ * nothing the scaffold does not; once the base has moved past it, the whole diff is counted as for any other change.
+ */
+export async function sizedDiff(wt: string, baseSha: string, whole: string, scaffold?: string): Promise<string> {
+  if (!scaffold) return whole;
+  try { await git(wt, ["merge-base", "--is-ancestor", baseSha, scaffold]); } catch { return whole; }
+  return gateDiff(wt, scaffold);
 }
 
 /** The subject of the merge commit `mergeInto` makes, which is how `commitRepair` recognises it. */
