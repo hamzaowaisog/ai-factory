@@ -1,0 +1,44 @@
+{
+  "runId": "20261006-return-404-not-found-a15f",
+  "status": "parked",
+  "parkedReason": "discover: Every retry option is used up",
+  "request": "Return 404 Not Found when an order doesn't exist, instead of crashing with a 500.",
+  "costUsd": 0,
+  "activeMin": 0.0038833333333333333,
+  "firstTimePassRate": 0,
+  "topCost": [],
+  "steps": [
+    {
+      "step": "discover",
+      "stage": "discover",
+      "outcome": "failed",
+      "firstTimePass": false,
+      "attempts": 2,
+      "interruptions": 0,
+      "retryReasons": [
+        "Retrying with the failures",
+        "Every retry option is used up"
+      ],
+      "highestRung": 0,
+      "models": [],
+      "tokens": {
+        "input": 0,
+        "output": 0,
+        "cached": 0
+      },
+      "costUsd": 0,
+      "activeSec": 0.233,
+      "gates": {
+        "passed": 0,
+        "failed": 0,
+        "failedIds": []
+      },
+      "human": {
+        "cards": 0,
+        "decisions": []
+      }
+    }
+  ],
+  "createdAt": "2026-10-06T12:57:59.728Z",
+  "humanCards": []
+}

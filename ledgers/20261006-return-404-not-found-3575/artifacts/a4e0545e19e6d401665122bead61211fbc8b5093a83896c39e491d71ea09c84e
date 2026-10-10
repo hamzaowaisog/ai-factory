@@ -1,0 +1,49 @@
+{
+ "model": "claude-sonnet-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "When an order that does not exist is requested, the Shop API shall respond with 404 Not Found.",
+      "op": "MODIFIED",
+      "sources": [
+       "I-1"
+      ],
+      "anchors": [
+       {
+        "path": "Shop.Api/Program.cs",
+        "lineStart": 7,
+        "lineEnd": 7,
+        "quote": "app.MapGet(\"/orders/{id:int}\", (int id) => Results.Ok(new { id, item = orders[id] }));"
+       }
+      ],
+      "acceptance": [
+       {
+        "id": "AC-1.1",
+        "given": "no order with id 999",
+        "when": "GET /orders/999 is called",
+        "then": "the response status is 404",
+        "level": "api"
+       }
+      ]
+     }
+    ],
+    "nfrs": [],
+    "outOfScope": [
+     "other endpoints"
+    ],
+    "assumptions": [],
+    "suggestions": []
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

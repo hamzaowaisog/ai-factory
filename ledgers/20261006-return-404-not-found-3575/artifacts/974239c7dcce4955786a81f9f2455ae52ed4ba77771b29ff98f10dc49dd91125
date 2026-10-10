@@ -1,0 +1,52 @@
+{
+ "model": "claude-opus-5-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Return 404 for a missing order",
+      "reqs": [
+       "REQ-1"
+      ],
+      "fileScope": [
+       "Shop.Api/Program.cs"
+      ],
+      "exemplars": [],
+      "conventions": [],
+      "dependsOn": [],
+      "plannedLoc": 1,
+      "approach": "TryGetValue, NotFound when missing"
+     }
+    ],
+    "options": [
+     {
+      "id": "O-1",
+      "summary": "TryGetValue in the handler",
+      "simplest": true,
+      "tradeoffs": "none"
+     },
+     {
+      "id": "O-2",
+      "summary": "exception middleware mapping KeyNotFound to 404",
+      "simplest": false,
+      "tradeoffs": "hides other bugs"
+     }
+    ],
+    "chosen": "O-1",
+    "adr": "Check the dictionary in the handler; a global exception mapping isn't asked for.",
+    "protectedPathsDeclared": [],
+    "newDependencies": [],
+    "stubs": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

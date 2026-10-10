@@ -1,0 +1,1 @@
+Return 404 Not Found when an order doesn't exist, instead of crashing with a 500.
