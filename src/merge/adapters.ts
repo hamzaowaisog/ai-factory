@@ -7,7 +7,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
 import { OWN_CHECK_NAME } from "../contracts/checks.js";
 import { secret } from "../config/env.js";
-import { factoryLogin, findReviewBody, getPr, type Gh, listChecks, setCommitStatus, upsertReviewComment } from "../forge/github.js";
+import { commitStatus, factoryLogin, findReviewBody, getPr, type Gh, listChecks, setCommitStatus, upsertReviewComment } from "../forge/github.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { fetchForGate, git, gitOut } from "../ledger/git.js";
@@ -85,16 +85,15 @@ export function openRunFacts(runId: string): RunFacts | undefined {
 
 /**
  * What the merge result is tested against: the run's locked and characterisation tests must pass, as
- * at integrate, and every other test is held to the run's baseline. With empty expectations a
- * plain failing test passed the gate.
+ * at integrate. Nothing is compared with the run's baseline test list: that is the base as it was when
+ * the run started, so a test main has since removed or renamed would read as missing and fail every
+ * older pull request for good. A new failure among the other tests is caught by `failingTests`.
  */
-export function mergeExpectations(
-  lock: { tests: { testId: string }[]; characterisation?: { testId: string }[] }, baseline: TestRun | undefined,
-): Expectations {
+export function mergeExpectations(lock: { tests: { testId: string }[]; characterisation?: { testId: string }[] }): Expectations {
   return {
     expectPass: [...lock.tests.map((t) => t.testId), ...(lock.characterisation ?? []).map((c) => c.testId)],
     expectFail: [],
-    compareToBaseline: baseline?.results.map((r) => r.id) ?? [],
+    compareToBaseline: [],
   };
 }
 
@@ -127,7 +126,7 @@ export function ownReviewBody(gh: Gh): (n: number) => Promise<string | undefined
 export interface ForgeAdapterOpts { gh: Gh; cfg: ProjectConfig; requiredChecks: string[] }
 
 /** The GitHub half of the deps: everything that talks to the forge. */
-export function forgeAdapter(o: ForgeAdapterOpts): Pick<ReviewPrDeps, "getPr" | "findReviewBody" | "writeCheck" | "writeComment" | "notify"> {
+export function forgeAdapter(o: ForgeAdapterOpts): Pick<ReviewPrDeps, "getPr" | "findReviewBody" | "writeCheck" | "readCheck" | "writeComment" | "notify"> {
   return {
     async getPr(n): Promise<PrFacts> {
       const pr = await getPr(o.gh, n);
@@ -147,6 +146,7 @@ export function forgeAdapter(o: ForgeAdapterOpts): Pick<ReviewPrDeps, "getPr" | 
       // the detail is in the pull request comment; a status carries the one-line verdict
       await setCommitStatus(o.gh, { context: OWN_CHECK_NAME, sha: a.headSha, conclusion: a.conclusion, description: a.title });
     },
+    readCheck: (a) => commitStatus(o.gh, a.headSha, a.name),
     async writeComment(a) {
       await upsertReviewComment(o.gh, a.pr, a.runId, a.body);
     },

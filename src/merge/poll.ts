@@ -6,8 +6,8 @@
 // skip a pull request whose head is unchanged but whose BASE moved, which is the single case the
 // merge gate exists for. Re-gating every tick is safe and nearly free instead, because `reviewPr`
 // already decides that for itself: an unchanged tree replays its recorded verdicts, starts no
-// container and spends no tokens, and both the check run and the comment are upserts, so a tick that
-// changes nothing writes nothing new.
+// container and spends no tokens, and its status is posted only when the commit does not already
+// carry it, so a tick that changes nothing writes nothing new.
 
 export interface PollDeps {
   /** Open pull requests on the configured repository. */

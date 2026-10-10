@@ -101,6 +101,8 @@ export interface ReviewPrDeps {
   pushRepair(a: { runId: string; headRef: string }): Promise<{ pushed: boolean; why: string; sha?: string }>;
   recordReverify(r: ReverifyRecord): Promise<void>;
   writeCheck(a: { name: string; headSha: string; conclusion: Conclusion; title: string; summary: string }): Promise<void>;
+  /** The status the commit carries now under `name`, as written: a status has no neutral. */
+  readCheck(a: { name: string; headSha: string }): Promise<"success" | "failure" | undefined>;
   writeComment(a: { pr: number; runId: string; body: string }): Promise<void>;
   notify(msg: string): Promise<void>;
   now(): number;
@@ -208,6 +210,14 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     return done("failure", cls, why);
   };
 
+  // GitHub keeps every status posted, up to 1000 per commit and context, and then refuses the next.
+  // A verdict that is only being said again is posted only when the commit does not already carry it,
+  // so a pull request that sits still never fills its commit, and a refused write still heals.
+  const writeIfChanged = async (x: { headSha: string; conclusion: Conclusion; title: string; summary: string }) => {
+    const want = x.conclusion === "failure" ? "failure" : "success";
+    if ((await deps.readCheck({ name: OWN_CHECK_NAME, headSha: x.headSha })) !== want) await deps.writeCheck({ name: OWN_CHECK_NAME, ...x });
+  };
+
   // the same head and base as the last verdict: that verdict still holds, and saying it again to
   // Slack every pass would bury the one message that matters
   const sameAsJudged = !!run?.priorConclusion && run.judgedHeadSha === pr.headSha && run.recordedBaseSha === pr.baseSha;
@@ -230,14 +240,14 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     priorReverifyConcluded: run?.priorReverifyConcluded ?? false,
   });
   if (cheap.cls === "evidence-mismatch") {
-    await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: pr.headSha, conclusion: "failure", title: "Evidence does not reconcile", summary: cheap.why });
+    await writeIfChanged({ headSha: pr.headSha, conclusion: "failure", title: "Evidence does not reconcile", summary: cheap.why });
     if (!(sameAsJudged && run!.priorConclusion === "failure")) await deps.notify(`${runId}: ${cheap.why}`);
     await record("failure", cheap.cls);
     return done("failure", cheap.cls, cheap.why);
   }
   if (sameAsJudged && !force) {
     const prior = run!.priorConclusion!;
-    await deps.writeCheck({ name: OWN_CHECK_NAME, headSha: pr.headSha, conclusion: prior, title: "Concluded from the last verdict", summary: "Neither the head nor the base moved since this pull request was last judged." });
+    await writeIfChanged({ headSha: pr.headSha, conclusion: prior, title: "Concluded from the last verdict", summary: "Neither the head nor the base moved since this pull request was last judged." });
     return done(prior, "unchanged", "Nothing moved since the last verdict: concluding from it.");
   }
   // only while the base is the one last judged: after a base move the merge must be verified again
@@ -283,18 +293,18 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
         lastRunAt: force ? undefined : run!.lastReverifyAt, now: deps.now(),
       };
       const may = mayRepair(budget);
-      if (!may.ok) return fail(cls, `Parked: ${cls}`, may.why, `${runId}: parked after ${cls} — ${may.why}`);
+      if (!may.ok) return await fail(cls, `Parked: ${cls}`, may.why, `${runId}: parked after ${cls} — ${may.why}`);
       // the subject comes from the probe that classified the tree: the only place that knows it
       const subject = cls === "conflict" ? (m?.conflicts ?? []) : (m?.failedTests ?? []);
       attempted = true;
       const r = await deps.repair(cls as "conflict" | "broken-merge", { runId, subject });
-      if (!r.made) return fail(cls, `Could not repair ${cls}`, r.why);
+      if (!r.made) return await fail(cls, `Could not repair ${cls}`, r.why);
       // the repaired tree is a different tree; verify it rather than the one we classified
       merge = undefined;
       const v = await probe(true);
       if (!v.mergesClean || !v.testsPass) {
         const still = !v.mergesClean ? "still does not merge cleanly" : `still fails ${(v.failedTests ?? []).join(", ") || "its locked tests"}`;
-        return fail(cls, "Repair did not verify", `The repair was made, but the repaired tree ${still}. Nothing was pushed.`);
+        return await fail(cls, "Repair did not verify", `The repair was made, but the repaired tree ${still}. Nothing was pushed.`);
       }
       repairPending = true;
     }
@@ -302,12 +312,12 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     // a tree that does not merge has nothing to gate, and an empty gate list must never read as green
     const judged = merge as MergeResult | undefined;
     if (judged && !judged.mergesClean) {
-      return fail(cls, "Does not merge cleanly", `The branch does not merge cleanly with ${pr.baseSha.slice(0, 8)} (${(judged.conflicts ?? []).join(", ") || "no paths reported"}), and ${cls} is not repaired automatically.`);
+      return await fail(cls, "Does not merge cleanly", `The branch does not merge cleanly with ${pr.baseSha.slice(0, 8)} (${(judged.conflicts ?? []).join(", ") || "no paths reported"}), and ${cls} is not repaired automatically.`);
     }
     // tests that fail on the merge result are never green, whatever the class: only conflict and
     // broken-merge are repaired, so every other class is reported here, before review-2 is paid for
     if (judged && !repairPending && !judged.testsPass) {
-      return fail(cls, "Tests fail on the merge result", `Failing on the merge with ${pr.baseSha.slice(0, 8)}: ${(judged.failedTests ?? []).join(", ") || "the locked tests"}. ${cls} is not repaired automatically.`);
+      return await fail(cls, "Tests fail on the merge result", `Failing on the merge with ${pr.baseSha.slice(0, 8)}: ${(judged.failedTests ?? []).join(", ") || "the locked tests"}. ${cls} is not repaired automatically.`);
     }
     // a conflict settled without a model left a merge only this host has: once gated it is pushed
     // like a repair, so GitHub stops reporting the conflict. Never over commits the factory did not write.
@@ -343,7 +353,7 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
     let repaired = false;
     if (repairPending && conclusion === "success") {
       const p = await deps.pushRepair({ runId, headRef: pr.headRef });
-      if (!p.pushed) return fail(cls, `Could not push the ${cls} repair`, p.why);
+      if (!p.pushed) return await fail(cls, `Could not push the ${cls} repair`, p.why);
       checkSha = p.sha ?? merge!.mergeSha;
       repaired = true;
     } else if (repairPending) {

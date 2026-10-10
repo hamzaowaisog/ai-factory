@@ -16,6 +16,7 @@ import { replay } from "../ledger/state.js";
 import { factoryHome, paths } from "../util/paths.js";
 import { DockerCli } from "../verify/runtime.js";
 import { labFor } from "../verify/lab.js";
+import { ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
 import { createSnapshot, snapshotDir } from "../context/snapshot.js";
 import { readApproved } from "../conventions/store.js";
 import { HUMAN_WRITER } from "../ledger/ledger.js";
@@ -85,8 +86,8 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       const ledger = Ledger.open(a.runId);
       const diffSha = ledger.putArtifact(diff);
       const policy = o.policy ?? DEFAULT_POLICY;
-      // the run's own tests: what was locked must pass, and the rest is held to the run's baseline,
-      // so a test that already failed on the base is not this pull request's to fix
+      // the run's own tests: what was locked must pass, and a test that already failed on the run's
+      // base is not this pull request's to fix (failingTests)
       const state = replay(ledger.events());
       const lock = ledger.getJson<{ tests: { testId: string }[]; characterisation?: { testId: string }[] }>(state.steps.get("author-tests")!.outputs[0]!);
       const baselineSha = state.steps.get("discover")?.outputs[0];
@@ -94,9 +95,12 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
 
       const pk = join(factoryHome(), "tmp", `reverify-${a.runId}`, o.cfg.stack === "node" ? "npm-cache" : "nuget");
       mkdirSync(pk, { recursive: true });
+      // the restore container reaches the feeds only through the proxy on FEEDS_NET, which a reboot
+      // takes down: the build sets it up before every lab run, and so must this
+      await ensureEgress(rt, feedHostsFrom(policy.registryAllowlist));
       const out = await labFor(o.cfg).produce({
         runId: a.runId, key: "merge-verify", repo: wt, commit: mergeSha, stage: "integrate",
-        exp: mergeExpectations(lock, baseline),
+        exp: mergeExpectations(lock),
         knownFailures: new Set(failingTests(baseline?.results ?? [], undefined)),
         project: o.cfg, rt, packagesDir: pk,
         onContainer: async (id, role) => o.log(`  container ${role} ${id.slice(0, 12)}`),
@@ -110,7 +114,9 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
         },
       };
       const evidence: MergeEvidence = {
-        build: out.build, testRun: out.testRun, baseline, lint: out.lint, lintBaseline: [],
+        // no lint here: the run records no lint baseline, so every warning already in a touched file
+        // would count as new, and the build never ran this gate either. review-2 still reads the findings.
+        build: out.build, testRun: out.testRun, baseline, lintBaseline: [],
         // the lines this tree adds, scanned for real: a repair is pushed with the forge token
         secretScan: { kind: "secrets", commit: mergeSha, hits: secretHits(diff) },
         diff: { files: diffFiles(diff).map((path) => ({ path, added: [], removed: [] })) },

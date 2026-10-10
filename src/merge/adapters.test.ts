@@ -178,12 +178,14 @@ describe("judging the merge result against the run's own tests", () => {
   const baseline = { results: [row("T::Known", "failed"), row("T::Old", "passed")] } as TestRun;
   const lock = { tests: [{ testId: "T::Locked" }], characterisation: [{ testId: "T::Char" }] };
 
-  it("expects the locked and characterisation tests to pass, and compares the rest with the baseline", () => {
-    expect(mergeExpectations(lock, baseline)).toEqual({ expectPass: ["T::Locked", "T::Char"], expectFail: [], compareToBaseline: ["T::Known", "T::Old"] });
+  it("expects the locked and characterisation tests to pass", () => {
+    expect(mergeExpectations(lock).expectPass).toEqual(["T::Locked", "T::Char"]);
   });
 
-  it("compares nothing when the run has no baseline", () => {
-    expect(mergeExpectations({ tests: [{ testId: "T::Locked" }] }, undefined)).toEqual({ expectPass: ["T::Locked"], expectFail: [], compareToBaseline: [] });
+  it("never holds the merge result to the run's baseline test list: main may have removed or renamed a test since", () => {
+    // the run's baseline is the base when the run started, not the base being merged now; a test
+    // main dropped since would read as "missing vs baseline" and fail every older pull request
+    expect(mergeExpectations(lock)).toEqual({ expectPass: ["T::Locked", "T::Char"], expectFail: [], compareToBaseline: [] });
   });
 
   it("does not count a test that already failed on the base: the pull request did not break it", () => {

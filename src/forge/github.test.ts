@@ -1,6 +1,6 @@
 // The GitHub client. No network: every call takes `fetch`, and the tests script it.
 import { describe, expect, it, vi } from "vitest";
-import { factoryLogin, findReviewBody, getPr, listChecks, listOpenPrs, setCommitStatus, upsertReviewComment } from "./github.js";
+import { commitStatus, factoryLogin, findReviewBody, getPr, listChecks, listOpenPrs, setCommitStatus, upsertReviewComment } from "./github.js";
 
 const gh = { root: "https://api.github.com", api: "https://api.github.com/repos/acme/shop", headers: {} };
 const json = (body: unknown) =>
@@ -47,6 +47,27 @@ describe("listChecks", () => {
   it("throws with the status code when GitHub refuses", async () => {
     const f = vi.fn().mockResolvedValueOnce(bad(403));
     await expect(listChecks(gh, SHA, [], f as never)).rejects.toThrow(/403/);
+  });
+});
+
+describe("commitStatus", () => {
+  it("reads the latest state of one context from the combined status", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ statuses: [{ context: "ci/x", state: "failure" }, { context: "factory/merge-gate", state: "success" }] }));
+    expect(await commitStatus(gh, SHA, "factory/merge-gate", f as never)).toBe("success");
+    expect(f.mock.calls[0]![0]).toBe(`${gh.api}/commits/${SHA}/status`);
+  });
+
+  it("is undefined when the commit has no status under that context, or only a pending one", async () => {
+    const f = vi.fn()
+      .mockResolvedValueOnce(json({ statuses: [{ context: "ci/x", state: "success" }] }))
+      .mockResolvedValueOnce(json({ statuses: [{ context: "factory/merge-gate", state: "pending" }] }));
+    expect(await commitStatus(gh, SHA, "factory/merge-gate", f as never)).toBeUndefined();
+    expect(await commitStatus(gh, SHA, "factory/merge-gate", f as never)).toBeUndefined();
+  });
+
+  it("reads error as failure", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ statuses: [{ context: "factory/merge-gate", state: "error" }] }));
+    expect(await commitStatus(gh, SHA, "factory/merge-gate", f as never)).toBe("failure");
   });
 });
 

@@ -35,6 +35,7 @@ function deps(over: Partial<ReviewPrDeps> = {}, run: RunFacts | null = runFacts(
     pushRepair: async () => { calls.push++; return { pushed: true, why: "pushed", sha: "pushed1" }; },
     recordReverify: async (r) => { calls.records.push(r); },
     writeCheck: async (x) => { calls.checks.push({ conclusion: x.conclusion, title: x.title, headSha: x.headSha }); },
+    readCheck: async () => undefined,
     writeComment: async () => { calls.comments++; },
     notify: async (m) => { calls.notify.push(m); },
     now: () => Date.parse("2026-10-05T12:00:00Z"),
@@ -424,6 +425,43 @@ describe("reviewPr: it remembers what it judged, so nothing loops", () => {
     await reviewPr(d, { pr: 42 });
     expect(calls.notify).toEqual([]);
     expect(calls.checks[0]!.conclusion).toBe("failure");
+  });
+});
+
+describe("reviewPr: a quiet pass writes nothing new", () => {
+  // GitHub keeps every status posted (1000 per commit and context), so a pass that posts the same
+  // verdict again every 120 seconds fills the commit in about 33 hours, after which a real change
+  // of verdict can no longer be written to it
+  it("does not post the last verdict again when the commit already carries it", async () => {
+    const { d, calls } = deps({ readCheck: async () => "success" }, runFacts({ judgedHeadSha: SHA, priorConclusion: "success" }));
+    const got = await reviewPr(d, { pr: 42 });
+    expect(got.cls).toBe("unchanged");
+    expect(calls.checks).toHaveLength(0);
+  });
+
+  it("reads a neutral verdict as the success status it was written as", async () => {
+    const { d, calls } = deps({ readCheck: async () => "success" }, runFacts({ judgedHeadSha: SHA, priorConclusion: "neutral" }));
+    await reviewPr(d, { pr: 42 });
+    expect(calls.checks).toHaveLength(0);
+  });
+
+  it("writes the recorded verdict when the commit is missing it, which is how a refused write heals", async () => {
+    const { d, calls } = deps({ readCheck: async () => undefined }, runFacts({ judgedHeadSha: SHA, priorConclusion: "failure" }));
+    await reviewPr(d, { pr: 42 });
+    expect(calls.checks.map((c) => c.conclusion)).toEqual(["failure"]);
+  });
+
+  it("writes the recorded verdict when the commit carries a different one", async () => {
+    const { d, calls } = deps({ readCheck: async () => "success" }, runFacts({ judgedHeadSha: SHA, priorConclusion: "failure" }));
+    await reviewPr(d, { pr: 42 });
+    expect(calls.checks.map((c) => c.conclusion)).toEqual(["failure"]);
+  });
+
+  it("does not post an evidence mismatch again when the commit already carries the failure", async () => {
+    const { d, calls } = deps({ readCheck: async () => "failure" }, runFacts({ evidenceReconciles: false, judgedHeadSha: SHA, priorConclusion: "failure" }));
+    const got = await reviewPr(d, { pr: 42 });
+    expect(got.cls).toBe("evidence-mismatch");
+    expect(calls.checks).toHaveLength(0);
   });
 });
 

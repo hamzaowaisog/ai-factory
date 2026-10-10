@@ -137,8 +137,25 @@ The second pass found that all of the items above are resolved. It then asked wh
 **Still open from the second review:**
 - **6:** a PR reviewed before deliver finishes is failed until the base moves.
 - **7:** any `Factory-Repair` trailer is trusted. Recognise the factory's own push by `judgedHeadSha` instead.
-- **8 (lint):** the lint gate has no baseline on this path.
-- **9:** `ensureEgress` is not called before the lab.
+- **8 (lint):** fixed in the third pass, see section 7.
+- **9:** fixed in the third pass, see section 7.
 - **10:** a quiet pass still fetches per PR, and the `rv-…` worktrees and `tmp/reverify-<runId>` are never cleaned up.
 
 **The end-to-end run has still not happened.** Run `review-open-prs --once` on a repository with two factory PRs open, one of them merged. That run exercises items 1, 2, 4 and 5. Keep `factory/merge-gate` out of the required checks until it passes there.
+
+## 7. Third review (at `4de78ce`)
+
+The third pass found items 1 to 5 of the second review resolved, and three new problems from those fixes. The blockers before the first run were A, B, 9 and the lint half of 8. These are now fixed, each one test-first:
+
+| # | Problem | Fix |
+|---|---|---|
+| A | GitHub keeps every status posted (1000 per commit and context). A quiet pass posted one every 120 seconds, so a PR that was not moving filled its commit in about 33 hours, and a later change of verdict could not be written | When a verdict is only being said again (the `sameAsJudged` path and a repeated evidence mismatch), the gate first reads the commit's current status (`commitStatus`) and posts only when it differs. A refused write still heals on the next pass. The `poll.ts` header and the `setCommitStatus` comment now say this |
+| B | The merge result was held to the run's baseline test list, which is the base when the run started. A test that `main` removed or renamed since then failed every older PR for good | `compareToBaseline` is empty on path A. Locked tests must still pass, and a new failure among the other tests is still caught by `failingTests` |
+| 8 (lint) | `lintBaseline` was `[]`, so every existing warning in a touched file counted as new. The run records no lint baseline, and the build never ran this gate | `lint.no-new-findings` is left out of path A. review-2 still reads the lint findings |
+| 9 | `mergeVerify` called the lab without `ensureEgress`, so after a reboot the restore failed | `ensureEgress` runs before the lab, as it does in the build |
+
+**Also fixed:** every `fail(...)` inside the `try` is `return await`, so a rejection from one is caught and recorded.
+
+**Accepted limit (B, second half):** a test that `main` added, and that already fails on `main`, still counts as a new failure on the merge result. It can trigger a broken-merge repair for a test the PR never touched. Removing this would mean building and testing the current base. That was left out to keep the cost down.
+
+**Still open:** C (review-2 runs again when only the manifest moves), parking by count rather than by cause, and items 6, 7 and 10 from the second review.

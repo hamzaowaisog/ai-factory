@@ -86,8 +86,21 @@ export async function listChecks(gh: Gh, sha: string, required: string[], f: typ
 }
 
 /**
+ * The latest state of one context on a commit, read from the combined status. `undefined` when the
+ * commit has none, or only a pending one. `error` reads as failure, as a required check treats it.
+ */
+export async function commitStatus(gh: Gh, sha: string, context: string, f: typeof fetch = fetch): Promise<"success" | "failure" | undefined> {
+  const combined = (await ok(await f(`${gh.api}/commits/${sha}/status`, { headers: gh.headers }), "status")) as
+    { statuses: { context: string; state: keyof typeof STATE_TO_STATUS }[] };
+  const s = combined.statuses.find((x) => x.context === context);
+  if (!s || s.state === "pending") return undefined;
+  return s.state === "success" ? "success" : "failure";
+}
+
+/**
  * The verdict as a commit status. A personal access token can write one; a check run can only be
- * created by a GitHub App. Statuses are keyed by context, so posting again replaces the last one.
+ * created by a GitHub App. Posting again does NOT replace the last status: GitHub keeps every one,
+ * up to 1000 per commit and context, and refuses the next. Only the latest counts for the check.
  */
 export async function setCommitStatus(
   gh: Gh,
