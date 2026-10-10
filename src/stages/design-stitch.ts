@@ -63,8 +63,9 @@ export function stitchJobs(screens: Plan["screens"], allowed: readonly string[])
 
 /** Stitch's pictures come about 512 px wide; its image links may take a size (FIFE "=w1600"), which is tried first. */
 const LARGE = "=w1600";
-/** The largest picture the approval demo embeds (src/design/demo.ts MAX_FRAME_BYTES): a bigger one would not be shown. */
-const MAX_PICTURE = 2_000_000;
+/** The largest larger picture kept: the approval demo embeds at most 8 MB of pictures in all (src/design/demo.ts MAX_TOTAL_BYTES), so a
+ * screen and its states at this size leave room for the other screens; a bigger one falls back to the picture as Stitch made it. */
+const MAX_PICTURE = 600_000;
 const isImage = (b: Uint8Array) =>
   (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) || (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff)
   || (Buffer.from(b.subarray(0, 4)).toString() === "RIFF" && Buffer.from(b.subarray(8, 12)).toString() === "WEBP");
@@ -140,7 +141,9 @@ export function stitchArtifact(p: Plan, assets: StitchAsset[], meta: StitchMeta,
 
 /** The Stitch screenshots a design carries, as frames the approval step reads from attachments/frames. */
 export function stitchFrames(design: { stitch?: { frames: Record<string, { name: string; state?: string }> } }): { id: string; name: string; state?: string }[] {
-  return Object.entries(design.stitch?.frames ?? {}).map(([id, f]) => ({ id, name: f.name, ...(f.state ? { state: f.state } : {}) }));
+  // each screen's page first: the demo embeds pictures up to a total, and an extra state is the one to go without
+  const all = Object.entries(design.stitch?.frames ?? {}).map(([id, f]) => ({ id, name: f.name, ...(f.state ? { state: f.state } : {}) }));
+  return [...all.filter((f) => f.state === "normal"), ...all.filter((f) => f.state !== "normal")];
 }
 
 const failed = (failures: Failure[], tag: string): StepOutcome => ({ kind: "fail", category: "other", failures, signature: `${tag}:${[...new Set(failures.map((f) => f.check))].sort().join(",")}`, gate: true });

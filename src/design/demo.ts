@@ -1772,11 +1772,14 @@ export function buildDemo(d: DemoInput): string {
     const tools = `${lang}${mode}<button type="button" class="ib" aria-label="Notifications">${icon("bell")}<i class="dot"></i></button><span class="me">${ME}</span>`;
     const search = phone ? "" : `<button type="button" class="ib" aria-label="Search">${icon("search")}</button>`;
     // a Stitch screen: one picture per state, each in its own pane so the state tabs switch them (normal for the page itself)
-    const stitched = shown.length > 0 && shown.every((f) => !!f!.state);
+    // a state with no picture of its own (not drawn, or past the demo's picture budget) says so: it never borrows another state's
+    const listed = s.frames.map(frame).filter((f) => !!f);
+    const stitched = listed.length > 0 && listed.every((f) => !!f!.state);
     const statePane = (st: string, k: number): string => {
       const kind = k === 0 ? "normal" : stateKind(st);
-      const f = shown.find((x) => x!.state === kind) ?? shown[0]!;
-      return `<div class="pane" data-wf="${k}"${k === 0 ? "" : " hidden"}><img src="${f.dataUri}" alt="${esc(f.name)}"></div>`;
+      const f = shown.find((x) => x!.state === kind);
+      const body = f ? `<img src="${f.dataUri}" alt="${esc(f.name)}">` : `<p class="wire">No Stitch picture of the ${esc(k === 0 ? "page" : st)} state in this demo.</p>`;
+      return `<div class="pane" data-wf="${k}"${k === 0 ? "" : " hidden"}>${body}</div>`;
     };
     const content = stitched ? states.map(statePane).join("") : shown.length ? shown.map((f) => `<img src="${f!.dataUri}" alt="${esc(f!.name)}">`).join("") : states.map(pane).join("");
     const tabbar = shell === "minimal" || shell === "drawer" || nav.length < 2 ? "" : `<nav class="tabbar" aria-label="Tabs">${links(5)}</nav>`;

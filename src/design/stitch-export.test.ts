@@ -84,3 +84,22 @@ describe("the Figma export of a Stitch design", () => {
     expect(r.doc!.frames[0]!.picture).not.toEqual(r.doc!.frames[1]!.picture);
   }, 120_000);
 });
+
+describe("a Stitch state with no picture (review I1, M5)", () => {
+  it("never shows another state's picture under a state's tab", () => {
+    const html = demo([{ ...stitchScreen, states: ["empty", "success"] }], { "ST-1": { name: "stitch-S-1-normal-aaaaaaaa.png", state: "normal" }, "ST-2": stitchFrames["ST-2"] });
+    const section = html.slice(html.indexOf(`id="S-1"`), html.indexOf("</section>", html.indexOf(`id="S-1"`)));
+    const pane = (k: number) => section.slice(section.indexOf(`data-wf="${k}"`), section.indexOf("</div>", section.indexOf(`data-wf="${k}"`)));
+    const tab = (label: string) => Number(new RegExp(`data-state="(\\d+)"[^>]*>${label}`).exec(section)![1]);
+    expect(pane(0)).not.toContain("<img");
+    expect(pane(0)).toContain("No Stitch picture");
+    expect(pane(tab("empty"))).toContain(`alt="stitch-S-1-empty-bbbbbbbb.png"`);
+    expect(pane(tab("success"))).not.toContain("<img");
+    expect(section).not.toContain(`class="topbar`);
+  });
+  it("lists each screen's normal frame first, so the demo's picture budget runs out on extra states, not whole screens", async () => {
+    const { stitchFrames: list } = await import("../stages/design-stitch.js");
+    const frames = { "ST-1": { name: "a", state: "normal" }, "ST-2": { name: "b", state: "empty" }, "ST-3": { name: "c", state: "normal" }, "ST-4": { name: "d", state: "error" } };
+    expect(list({ stitch: { frames } } as never).map((f) => f.id)).toEqual(["ST-1", "ST-3", "ST-2", "ST-4"]);
+  });
+});

@@ -182,3 +182,24 @@ describe("the estimate's size of a Stitch screen", () => {
     expect(screenUi({ states: [], mock: { title: "T", blocks: [{ type: "table", columns: ["A"], rows: [["1"]] }] } } as never)).toMatchObject({ level: "simple", points: 2 });
   });
 });
+
+describe("the estimate's size of common Stitch patterns (review I2-I4)", () => {
+  const ui = (body: string) => stitchFacts(`<html><body><main><h1>Page</h1>${body}</main></body></html>`).ui;
+  const rows = Array.from({ length: 10 }, (_, i) => `<tr><td><input type="checkbox"></td><td>Row ${i}</td></tr>`).join("");
+  it("counts row checkboxes as the table's row selection, not as a form", () => {
+    expect(ui(`<table><thead><tr><th><input type="checkbox"></th><th>Name</th></tr></thead><tbody>${rows}</tbody></table>`)).toEqual([[3, "1 table with row selection"]]);
+  });
+  it("counts a group of checkboxes as one multi-choice field", () => {
+    expect(ui(`<form><label>Name <input type="text"></label><fieldset><label><input type="checkbox" name="d"> Mon</label><label><input type="checkbox" name="d"> Tue</label><label><input type="checkbox" name="d"> Wed</label></fieldset></form>`))
+      .toEqual([[3, "form of 2 fields (multi-choice)"]]);
+  });
+  it("counts one chart once, however many chart classes and paths it holds, and no icon or logo", () => {
+    const paths = "<path d='M0 0'/>".repeat(6);
+    expect(ui(`<div class="chart-card"><div class="chart-header">Visits</div><div class="chart-body"><svg viewBox="0 0 400 200">${paths}</svg></div></div>`)).toEqual([[2, "1 chart"]]);
+    expect(ui(`<div class="brand"><svg viewBox="0 0 24 24">${paths}${paths}</svg></div>`)).toEqual([]);
+  });
+  it("counts a search box as search, and a hidden file input only as the upload", () => {
+    expect(ui(`<div><span class="material-symbols-outlined">search</span><input type="text" placeholder="Search patients..."></div>`)).toEqual([[1, "search and filters"]]);
+    expect(ui(`<label class="dropzone">Drop files<input type="file" class="hidden"></label>`)).toEqual([[4, "file upload with progress and retry"]]);
+  });
+});

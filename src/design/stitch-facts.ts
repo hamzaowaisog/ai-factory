@@ -48,25 +48,56 @@ const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
  */
 function uiParts($: Doc): [number, string][] {
   const parts: [number, string][] = [];
-  const fields = $("input, select, textarea").filter((_, el) => !/^(hidden|submit|button|reset|image|search)$/i.test($(el).attr("type") ?? ""));
+  type El = Parameters<Doc>[0];
+  const attr = (el: El, a: string) => ($(el).attr(a) ?? "").toLowerCase();
+  const inTable = (el: El) => $(el).closest("table, [role=grid]").length > 0;
+  // what a person fills in: not hidden inputs, buttons or the file input (the upload is counted on its own)
+  const inputs = $("input, select, textarea").filter((_, el) => !/^(hidden|submit|button|reset|image|file)$/.test(attr(el, "type")) && $(el).attr("hidden") === undefined && attr(el, "aria-hidden") !== "true");
+  const choice = (el: El) => /^(checkbox|radio)$/.test(attr(el, "type"));
+  // a box that searches the page's data, as the design JSON's filters block, not a form
+  const search = (el: El) => attr(el, "type") === "search" || (!choice(el) && /search/.test(`${attr(el, "placeholder")} ${attr(el, "aria-label")} ${attr(el, "name")} ${attr(el, "id")}`));
+  const fields: El[] = [], groups = new Map<unknown, El>();
+  let searches = 0;
+  inputs.each((_, el) => {
+    if (inTable(el)) return; // a table's checkboxes are its row selection
+    if (search(el)) { searches++; return; }
+    if (!choice(el)) { fields.push(el); return; }
+    // a set of checkboxes or radios is one field, as the design JSON's checkbox field is
+    const key = $(el).attr("name") ? `name:${$(el).attr("name")}` : ($(el).closest("fieldset, [role=group], [role=radiogroup]").get(0) ?? $(el).parent().parent().get(0));
+    if (!groups.has(key)) { groups.set(key, el); fields.push(el); }
+  });
   if (fields.length) {
     const kinds = new Set<string>();
-    fields.each((_, el) => {
-      const t = ($(el).attr("type") ?? "").toLowerCase(), tag = (el as { tagName?: string }).tagName?.toLowerCase();
+    for (const el of fields) {
+      const t = attr(el, "type"), tag = (el as { tagName?: string }).tagName?.toLowerCase();
       if (tag === "select") kinds.add("dropdown");
       else if (t === "date" || t === "datetime-local" || t === "time") kinds.add("date or time picker");
       else if (t === "tel") kinds.add("phone");
       else if (t === "password") kinds.add("password");
-    });
-    const required = fields.filter((_, el) => $(el).attr("required") !== undefined).length > 0 || $("label").toArray().some((el) => /\*\s*$/.test($(el).text().trim()));
+      else if (t === "checkbox") kinds.add("multi-choice");
+    }
+    const required = fields.some((el) => $(el).attr("required") !== undefined) || $("label").toArray().some((el) => /\*\s*$/.test($(el).text().trim()));
     const rich = [...kinds, ...(required ? ["field validation"] : [])];
     parts.push([1 + Math.ceil(fields.length / 2) + rich.length, `form of ${fields.length} field${fields.length === 1 ? "" : "s"}${rich.length ? ` (${rich.join(", ")})` : ""}`]);
   }
-  const uploads = $("input[type=file]").length;
-  if (uploads) parts.push([4, "file upload with progress and retry"]);
-  const tables = $("table").length;
-  if (tables) parts.push([2 * tables, plural(tables, "table")]);
-  const charts = Math.min(3, $("canvas").length + $("svg").filter((_, el) => $(el).find("rect, path, circle").length >= 5).length + $("[class*=chart]").not("svg, canvas").length);
+  if (searches) parts.push([1, "search and filters"]);
+  if ($("input[type=file]").length) parts.push([4, "file upload with progress and retry"]);
+  const tables = $("table, [role=grid]").filter((_, el) => $(el).parents("table, [role=grid]").length === 0).toArray();
+  if (tables.length) {
+    const selecting = tables.filter((el) => $(el).find("input[type=checkbox]").length > 0).length;
+    parts.push([2 * tables.length + selecting, `${plural(tables.length, "table")}${selecting ? " with row selection" : ""}`]);
+  }
+  // a chart is its outermost chart element (its header, body and bars are the same chart), or a canvas, or a drawing bigger than an icon
+  const chartClass = (el: El) => /(^|\s)[\w-]*chart[\w-]*(\s|$)/i.test($(el).attr("class") ?? "");
+  const charted = $("[class*=chart]").filter((_, el) => chartClass(el) && !$(el).parents().toArray().some(chartClass)).toArray();
+  const inChart = (el: El) => $(el).parents().toArray().some((p) => charted.includes(p as never));
+  const iconSized = (el: El) => {
+    const w = Number(($(el).attr("viewBox") ?? $(el).attr("viewbox") ?? "").trim().split(/[\s,]+/)[2] ?? $(el).attr("width") ?? NaN);
+    return Number.isFinite(w) && w <= 48;
+  };
+  const drawings = $("canvas").filter((_, el) => !inChart(el)).length
+    + $("svg").filter((_, el) => !inChart(el) && !iconSized(el) && $(el).find("rect, path, circle, line, polyline").length >= 5).length;
+  const charts = Math.min(3, charted.length + drawings);
   if (charts) parts.push([2 * charts, plural(charts, "chart")]);
   const dialogs = $("dialog, [role=dialog]").toArray();
   if (dialogs.length) parts.push([dialogs.reduce((n, el) => n + ($(el).find("input, select, textarea").length ? 3 : 2), 0), plural(dialogs.length, "dialog")]);

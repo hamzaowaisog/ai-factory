@@ -425,5 +425,6 @@ describe("larger Stitch screenshots", () => {
     expect(await drawWith(async () => { throw new Error("403"); })).toEqual(["small", "small"]);
     expect(await drawWith(async () => new TextEncoder().encode("<html>no</html>"))).toEqual(["small", "small"]);
     expect(await drawWith(async () => PNG("large", 2_100_000))).toEqual(["small", "small"]);
+    expect(await drawWith(async () => PNG("large", 700_000))).toEqual(["small", "small"]);
   });
 });
