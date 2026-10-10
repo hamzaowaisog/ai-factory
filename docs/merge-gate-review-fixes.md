@@ -163,3 +163,20 @@ The third pass found items 1 to 5 of the second review resolved, and three new p
 - **6 (doc only):** the Harness and GitHub Actions pull-request triggers are out of the setup doc, which now points to `review-open-prs`. The code fix is still open: do not conclude from a recorded `evidence-mismatch`, and have `review-pr` leave a draft alone.
 
 **Still open:** parking by count rather than by cause; item 6 in code; items 7 and 10 from the second review. Fix 7 before `factory/merge-gate` is made a required check.
+
+## 8. Fourth review (at `db5b801`)
+
+The fourth pass found A, B, C, 9 and the lint half of 8 resolved. It found one blocker that came from the fix for B, and one cost risk:
+
+| # | Problem | Fix |
+|---|---|---|
+| 1 | With `compareToBaseline` empty, nothing notices a missing test. The repair was only kept off the locked files, so it could pass a broken merge by deleting or skipping the failing test | `proposeRepair` refuses an edit to any test path (`isTestPath`), not only the locked files. The prompt already said so |
+| 3 | A red `main`: a test `main` added that fails there counted as a new failure on every merge result, and each open pull request paid for a repair | A broken merge with any failing test the run never knew (neither locked nor in its baseline) is failed with no repair call (`unknownFailures`). Test results carry no file path, so "a test in a file the pull request touches" could not be checked; a test the run never knew is exactly a test that came with the base |
+| Smaller | The gate used `DEFAULT_POLICY`, so its feed allowlist differed from the build's | `liveDeps` merges the project's policy as the executor does |
+| Smaller | `gateDiff` left out all of `.factory/`, so `.factory/design/` escaped the secret scan, the size gate and review-2 | Only `.factory/evidence-manifest.json` is left out |
+
+**Not done here:**
+- **2:** the conflict with `Hamza/model-picker` is resolved when the second of the two lands. Keep `subject: a.subject` with `modelFor(routed, …)`, and both import lists in `src/ledger/git.test.ts`.
+- **The skills in `db5b801`:** kept at the author's request.
+
+**Still open:** parking by count rather than by cause; item 6 in code; items 7 and 10 from the second review. The end-to-end run has not happened yet.

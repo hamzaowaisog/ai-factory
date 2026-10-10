@@ -232,6 +232,18 @@ describe("the diff the merge gate hashes and review-2 reads", () => {
     expect(d2).toBe(d1);
   });
 
+  it("leaves out only the manifest: anything else under .factory/ is still scanned and reviewed", async () => {
+    const repo = mkdtempSync(join(tmpdir(), "factory-gd-"));
+    g(repo, "init", "-q", "-b", "main");
+    mkdirSync(join(repo, ".factory", "design"), { recursive: true });
+    writeFileSync(join(repo, ".factory", "design", "tokens.json"), "{}\n");
+    g(repo, "add", "."); g(repo, "commit", "-q", "-m", "init");
+    const base = g(repo, "rev-parse", "HEAD");
+    writeFileSync(join(repo, ".factory", "design", "tokens.json"), "{\"accent\":\"#0a7\"}\n");
+    g(repo, "add", "."); g(repo, "commit", "-q", "-m", "pr");
+    expect(await gateDiff(repo, base)).toMatch(/\.factory\/design\/tokens\.json/);
+  });
+
   it("leaves out only the .factory folder, not a file whose name merely starts with it", async () => {
     const repo = mkdtempSync(join(tmpdir(), "factory-gd-"));
     g(repo, "init", "-q", "-b", "main");

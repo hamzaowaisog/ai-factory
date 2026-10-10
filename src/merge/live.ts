@@ -27,7 +27,7 @@ import { commitRepair, commitsWithTrailers, failingTests, forgeAdapter, gateDiff
 import { plannedInputHashes, reviewEvidence, runMergeGates, type MergeEvidence } from "./gates-run.js";
 import { gateInputsHash } from "../gates/engine.js";
 import { scanText } from "../context/secrets.js";
-import { DEFAULT_POLICY } from "../gates/policy.js";
+import { DEFAULT_POLICY, mergePolicy, type Policy } from "../gates/policy.js";
 import { proposeRepair, repairIsEmpty } from "./repair-run.js";
 import { runMergeReview } from "./review-run.js";
 import type { MergeResult, ReviewPrDeps } from "./orchestrate.js";
@@ -36,6 +36,10 @@ import type { GroupDeps } from "./group-run.js";
 import { repairTrailer, resolveRunId } from "./sync.js";
 
 export interface LiveOpts { cfg: ProjectConfig; gh: Gh; log: (s: string) => void; policy?: typeof DEFAULT_POLICY }
+
+/** The project's policy, merged as the build merges it: the default alone would differ from the build's
+ *  feed allowlist, and the gate and a running build would each recreate the feed proxy under the other. */
+const policyOf = (o: LiveOpts): Policy => o.policy ?? mergePolicy(DEFAULT_POLICY, o.cfg.policy as Partial<Policy>);
 
 /**
  * A worktree at the PR head with the base merged in. Never pushed from here.
@@ -85,7 +89,7 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
 
       const ledger = Ledger.open(a.runId);
       const diffSha = ledger.putArtifact(diff);
-      const policy = o.policy ?? DEFAULT_POLICY;
+      const policy = policyOf(o);
       // the run's own tests: what was locked must pass, and a test that already failed on the run's
       // base is not this pull request's to fix (failingTests)
       const state = replay(ledger.events());
@@ -193,7 +197,7 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
         ? { ...evidence, ...reviewEvidence(ledger, { reviewSha: r2.outputs[0]!, familiesSha: r2.outputs[1]!, specSha: spec }) }
         : evidence;
       const replayed = new Map([...recordedVerdicts(ledger)].filter(([id]) => a.replay.includes(id)));
-      return runMergeGates(ledger, HUMAN_WRITER, o.policy ?? DEFAULT_POLICY, {
+      return runMergeGates(ledger, HUMAN_WRITER, policyOf(o), {
         evidence: judged, step: "reverify", treeSha, replay: replayed,
       });
     },

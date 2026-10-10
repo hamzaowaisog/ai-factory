@@ -188,11 +188,12 @@ export const EVIDENCE_MANIFEST = ".factory/evidence-manifest.json";
 
 /**
  * The diff the merge gate hashes, scans and shows review-2: what the pull request adds on top of the
- * base it now contains, without `.factory/`. Deliver writes its manifest there on every branch, so each
- * merge to main changed every other pull request's diff and paid review-2 again for the same code.
+ * base it now contains, without the evidence manifest. Deliver writes it on every branch, so each merge
+ * to main changed every other pull request's diff and paid review-2 again for the same code. Only that
+ * one file: the rest of `.factory/` (design files, for one) is still scanned, sized and reviewed.
  */
 export async function gateDiff(wt: string, baseSha: string): Promise<string> {
-  return (await git(wt, ["diff", "--no-color", "-U5", baseSha, "HEAD", "--", ".", ":(exclude).factory/"])).stdout;
+  return (await git(wt, ["diff", "--no-color", "-U5", baseSha, "HEAD", "--", ".", `:(exclude)${EVIDENCE_MANIFEST}`])).stdout;
 }
 
 /** The subject of the merge commit `mergeInto` makes, which is how `commitRepair` recognises it. */
