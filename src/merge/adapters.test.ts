@@ -122,6 +122,15 @@ describe("commitRepair", () => {
     await commitRepair(repo, "factory: repair\n\nFactory-Repair: run-1", ["c.txt"]);
     expect(g(repo, "rev-parse", "HEAD^")).toBe(before);
   });
+
+  it("commits on top of a verification merge that is already the pull request's head, rather than amend it", async () => {
+    const { repo, base } = forked(false);
+    await mergeInto(repo, base);
+    const pushed = g(repo, "rev-parse", "HEAD");   // the settled merge, pushed on an earlier pass
+    writeFileSync(join(repo, "c.txt"), "fixed\n");
+    expect((await commitRepair(repo, "factory: repair broken-merge\n\nFactory-Repair: run-1", ["c.txt"], pushed)).ok).toBe(true);
+    expect(g(repo, "rev-parse", "HEAD^")).toBe(pushed);
+  });
 });
 
 describe("final review fixes", () => {

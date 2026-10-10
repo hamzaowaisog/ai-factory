@@ -265,6 +265,7 @@ export async function workingTreeCommit(wt: string): Promise<string> {
  * Commits the repair's edits, already written into the worktree, as ONE merge commit carrying the
  * trailer. A conflicted merge is concluded; a broken merge's fix is folded into the verification
  * merge; with no merge commit to fold into (the base was already merged), a plain commit on top.
+ * `prHead` is the pull request's head on the forge: a commit that is already there is never amended.
  * Never commits a conflict marker or an unmerged path.
  *
  * `written` is the paths the repair wrote. Every path git left unmerged must be one of them: `add -A`
@@ -272,7 +273,7 @@ export async function workingTreeCommit(wt: string): Promise<string> {
  * worktree happens to hold. Markers are looked for in the unmerged paths only, so a file that merely
  * contains a line of "=======" elsewhere cannot block every repair.
  */
-export async function commitRepair(wt: string, message: string, written: string[]): Promise<{ ok: true } | { ok: false; why: string }> {
+export async function commitRepair(wt: string, message: string, written: string[], prHead?: string): Promise<{ ok: true } | { ok: false; why: string }> {
   const unmerged = (await gitOut(wt, ["diff", "--name-only", "--diff-filter=U"])).split("\n").filter(Boolean);
   const untouched = unmerged.filter((f) => !written.includes(f));
   if (untouched.length) return { ok: false, why: `the repair left a conflict unresolved in ${untouched.join(", ")}` };
@@ -280,8 +281,10 @@ export async function commitRepair(wt: string, message: string, written: string[
   if (marked.length) return { ok: false, why: `the repair left conflict markers in ${marked.join(", ")}` };
   await git(wt, ["add", "-A"]);
   // only the verification merge is folded into: amending anything else would rewrite the pull
-  // request's own history
-  const fold = !(await merging(wt)) && (await gitOut(wt, ["log", "-1", "--format=%s"])).startsWith(VERIFY_MERGE);
+  // request's own history. That includes a verification merge already pushed as the pull request's
+  // head (a settled conflict): amending it would make a commit the push is then refused for.
+  const fold = !(await merging(wt)) && (await gitOut(wt, ["log", "-1", "--format=%s"])).startsWith(VERIFY_MERGE)
+    && (await gitOut(wt, ["rev-parse", "HEAD"])) !== prHead;
   await git(wt, fold ? ["commit", "--amend", "-m", message] : ["commit", "-m", message]);
   return { ok: true };
 }

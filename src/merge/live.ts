@@ -72,6 +72,8 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
   // why the merge result failed: the compile errors, or each failing test's message. A repair has no
   // shell, so without this it is given test names and has to guess what broke.
   let lastFailure: string | undefined;
+  // the pull request's head on the forge, so a repair never amends a commit that is already pushed
+  let prHead: string | undefined;
 
   return {
     ...forge,
@@ -79,6 +81,7 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
     commitsSince: (gated, head) => commitsWithTrailers(o.cfg.repo, gated, head),
 
     async mergeVerify(a): Promise<MergeResult> {
+      prHead = a.headSha;
       const { wt, merged } = await mergedWorktree(o, a.runId, a.headSha, a.baseSha, a.afterRepair);
       if (!merged.clean) {
         o.log(`conflict in ${merged.conflicts.length} file(s): ${merged.conflicts.slice(0, 5).join(", ")}`);
@@ -127,7 +130,8 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
         build: out.build, testRun: out.testRun, baseline, lintBaseline: [],
         // the lines this tree adds, scanned for real: a repair is pushed with the forge token
         secretScan: { kind: "secrets", commit: mergeSha, hits: secretHits(diff) },
-        diff: { files: diffFiles(diff).map((path) => ({ path, added: [], removed: [] })) },
+        // with its lines: a list of names alone made the size gate count 0 and pass any diff
+        diff: { files: diffSummary(diff) },
         guidelines: readApproved(o.cfg.project),
         violations: [],
         spec: { requirements: [] },
@@ -262,7 +266,7 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
 
 ${proposal.summary}
 
-${proposal.trailer}`, proposal.edits.map((e) => e.path));
+${proposal.trailer}`, proposal.edits.map((e) => e.path), prHead);
       if (!c.ok) return { made: false, why: c.why };
       return { made: true, why: proposal.summary };
     },
@@ -293,6 +297,25 @@ ${proposal.trailer}`, proposal.edits.map((e) => e.path));
 
     now: () => Date.now(),
   };
+}
+
+/** Each file of a diff with the lines it adds and removes, which is what the size gate counts. */
+export function diffSummary(diff: string): { path: string; added: string[]; removed: string[] }[] {
+  const files: { path: string; added: string[]; removed: string[] }[] = [];
+  let file: (typeof files)[number] | undefined;
+  let inHunk = false;
+  for (const line of diff.split("\n")) {
+    if (line.startsWith("diff --git ")) { file = { path: "", added: [], removed: [] }; files.push(file); inHunk = false; }
+    else if (!file) continue;
+    else if (line.startsWith("@@")) inHunk = true;
+    // the headers name the file; a deleted file has only its old name
+    else if (!inHunk && line.startsWith("+++ b/")) file.path = line.slice(6).trim();
+    else if (!inHunk && line.startsWith("--- a/")) file.path ||= line.slice(6).trim();
+    else if (inHunk && line.startsWith("+")) file.added.push(line.slice(1));
+    else if (inHunk && line.startsWith("-")) file.removed.push(line.slice(1));
+  }
+  // a rename or a mode change with no content has no path header and no lines to count
+  return files.filter((f) => f.path).sort((x, y) => x.path.localeCompare(y.path));
 }
 
 /** Why the merge result failed, for the repair: compile errors first, since then no test ran at all. */
