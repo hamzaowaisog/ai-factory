@@ -4,7 +4,7 @@
 // writes its own header.
 import { z } from "zod";
 import {
-  ChangeClass, Complexity, Evidence, Failure, GitSha, Id, Risk, Sha, StageName,
+  ChangeClass, Complexity, ComplexityFlag, Evidence, Failure, GitSha, Id, Risk, Sha, StageName,
 } from "./common.js";
 
 export const ArtifactKind = z.enum([
@@ -546,6 +546,8 @@ export const PlanTask = z.object({
   newFileKind: z.boolean().optional(),
   /** The approved estimate task this plan task delivers (gate B1); set when the run follows an approved estimate. */
   estimateTaskId: z.string().regex(/^EST-\d+$/).optional(),
+  /** What makes the task harder than plain work. It classes the task's build time when the run follows no estimate; absent on plans made before it, which count as standard. */
+  complexity: ComplexityFlag.optional(),
   /** Short instructions for the implementer (never shown to the test author). */
   approach: z.string(),
 });

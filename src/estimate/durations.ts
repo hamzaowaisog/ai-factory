@@ -1,18 +1,26 @@
 // Factory task durations from the ledger (docs/estimates-design.md, "Duration harness"). Each finished implement
 // step that delivers an approved estimate task adds one record, grouped by the task's class (track and complexity).
+// A build that followed no estimate adds one record per plan task, classed from the files the task may change and the
+// complexity its plan gave it. Every build adds one QA record for the step that wrote its tests.
 // A class with enough records gives a measured p10..p90 duration; a class without falls back to the sized hours
 // (a relative size, labelled cold-start). Nothing here is a table of task hours: records are this factory's own runs.
-import type { Breakdown, Confidence, Estimate } from "../contracts/index.js";
+import type { Breakdown, Confidence, Estimate, Plan } from "../contracts/index.js";
+import { isUiPath } from "../design/size.js";
 import { Ledger } from "../ledger/ledger.js";
-import { replay, splitKey } from "../ledger/state.js";
+import { replay, splitKey, type RunState } from "../ledger/state.js";
 import { scoreRun } from "../report.js";
 import { DEFAULT_ASSUMPTIONS, type Assumptions, type Range } from "./assumptions.js";
 import { confidenceFor, quantile } from "./cost.js";
 
-/** One approved estimate task as the factory built it (steps that delivered it, summed). */
+/** One task as the factory built it: an approved estimate task (steps that delivered it, summed), or a plan task of a build that followed no estimate. */
 export interface TaskRecord {
   runId: string;
-  estimateTaskId: string;
+  /** the approved estimate task; absent when the build followed no estimate */
+  estimateTaskId?: string;
+  /** the plan task, for a build that followed no estimate */
+  planTaskId?: string;
+  /** the run step, for work no task carries (the tests, written once for the whole run) */
+  step?: string;
   /** "backend/standard": the approved task's track and complexity */
   taskClass: string;
   stack?: string;
@@ -32,17 +40,67 @@ export interface TaskRecord {
 
 export const classOf = (t: { track: string; complexity?: string }): string => `${t.track}/${t.complexity ?? "standard"}`;
 
-/** Records from one build run that followed an approved estimate; none for any other run. */
+const turnsByStep = (ledger: Ledger): Map<string, number> => {
+  const turns = new Map<string, number>();
+  for (const e of ledger.events()) if (e.type === "usage" && e.key) { const s = splitKey(e.key).step; turns.set(s, (turns.get(s) ?? 0) + 1); }
+  return turns;
+};
+
+type Score = ReturnType<typeof scoreRun>["steps"][number];
+const TEST_STEP = "author-tests";
+
+/**
+ * The run's tests as one QA record. They are written once for the whole run by their own step, not by a task, so no
+ * implement step carries them. A run whose tests cost nothing (a selftest or dry run) adds none.
+ */
+function testRecord(state: RunState, score: Map<string, Score>, turns: Map<string, number>): TaskRecord[] {
+  const r = state.steps.get(TEST_STEP);
+  const sc = score.get(TEST_STEP);
+  if (!r || !sc || !(sc.costUsd > 0)) return [];
+  return [{
+    runId: state.info.runId, step: TEST_STEP, taskClass: classOf({ track: "qa" }),
+    activeMin: sc.activeSec / 60, costUsd: sc.costUsd, turns: turns.get(TEST_STEP) ?? 0, attempts: sc.attempts,
+    outcome: r.status === "completed" ? "completed" : "partial",
+  }];
+}
+
+/**
+ * Records of a build that followed no estimate: one per plan task with an implement step, and one for its tests. A plan
+ * task has no track, so it is read from its file scope (a file a person sees makes it web, anything else backend); its
+ * complexity is the one its plan gave it, "standard" on a plan made before plans carried one. It has no predicted kind,
+ * size or hours. Selftests and dry runs, which cost nothing, add none.
+ */
+function planTaskRecords(ledger: Ledger, state: RunState): TaskRecord[] {
+  const plan = state.steps.get("plan");
+  if (plan?.status !== "completed" || !plan.outputs[0]) return [];
+  const turns = turnsByStep(ledger);
+  const score = new Map(scoreRun(ledger).steps.map((s) => [s.step, s]));
+  const out: TaskRecord[] = [];
+  for (const t of ledger.getJson<Pick<Plan, "tasks">>(plan.outputs[0]).tasks) {
+    const step = `implement/${t.id}`;
+    const r = state.steps.get(step);
+    const sc = score.get(step);
+    // a step no paid model worked on (a selftest or dry run) is not a build
+    if (!r || !sc || !(sc.costUsd > 0)) continue;
+    out.push({
+      runId: state.info.runId, planTaskId: t.id, taskClass: classOf({ track: t.fileScope.some(isUiPath) ? "web" : "backend", ...(t.complexity ? { complexity: t.complexity } : {}) }),
+      activeMin: sc.activeSec / 60, costUsd: sc.costUsd, turns: turns.get(step) ?? 0, attempts: sc.attempts,
+      outcome: r.status === "completed" ? "completed" : "partial",
+    });
+  }
+  return [...out, ...testRecord(state, score, turns)];
+}
+
+/** Records from one build run: per approved task when it followed an estimate, else per plan task, and one for its tests. None for a run that built nothing. */
 export function taskRecordsFromRun(ledger: Ledger): TaskRecord[] {
   const state = replay(ledger.events());
   const ref = state.info.estimateRef;
-  if (!ref) return [];
+  if (!ref) return planTaskRecords(ledger, state);
   const bd = Ledger.open(ref.runId).getJson<Pick<Breakdown, "tasks">>(ref.breakdownSha);
   const est = Ledger.open(ref.runId).getJson<Pick<Estimate, "band" | "tasks" | "catalogue">>(ref.estimateSha);
   const task = new Map(bd.tasks.map((t) => [t.id, t]));
   const sizing = new Map((est.tasks ?? []).map((t) => [t.taskId, t]));
-  const turns = new Map<string, number>();
-  for (const e of ledger.events()) if (e.type === "usage" && e.key) { const s = splitKey(e.key).step; turns.set(s, (turns.get(s) ?? 0) + 1); }
+  const turns = turnsByStep(ledger);
   const score = new Map(scoreRun(ledger).steps.map((s) => [s.step, s]));
   const by = new Map<string, TaskRecord>();
   for (const [step, r] of state.steps) {
@@ -61,7 +119,7 @@ export function taskRecordsFromRun(ledger: Ledger): TaskRecord[] {
       outcome: prev && prev.outcome !== "completed" ? prev.outcome : outcome,
     });
   }
-  return [...by.values()];
+  return [...by.values(), ...testRecord(state, score, turns)];
 }
 
 /** Records from every other run in the ledger home. An unreadable run adds nothing. */

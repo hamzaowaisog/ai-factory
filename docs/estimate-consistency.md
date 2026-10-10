@@ -230,7 +230,13 @@ Approved in chat on 2026-10-03. The goal is to collect the evidence needed to tr
   - `size` and sized `hours` (from the estimate);
   - `catalogue` version.
 
-  Records are still made only for build runs that followed an approved estimate (`estimateRef`).
+  These predicted fields exist only on records of build runs that followed an approved estimate (`estimateRef`).
+
+  2026-10-10: a build that followed no estimate also makes records, one per plan task (`planTaskId`), so its time feeds the class durations. A plan task has no track. It is read from its file scope (a file a person sees makes it `web`, anything else `backend`). It has no predicted kind, size or hours, so it pairs with no decision. A step with no model cost (a selftest or dry run) makes no record.
+
+  2026-10-10, later: two more sources.
+  - **Complexity on the plan task.** The planner now gives every plan task a `complexity` (the breakdown's list: `standard`, `rules-or-algorithm` and so on), and the record's class takes it. A plan made before this has none and counts as `standard`, so a class such as `backend/rules-or-algorithm` is measured only by builds planned from now on, or by builds that followed an estimate.
+  - **QA.** Tests are written once for the whole run by the `author-tests` step, not by a task, so no implement step carries them. Every build now adds one `qa/standard` record for that step (`step: "author-tests"`), whether or not it followed an estimate. An estimate's factory QA tasks each take that class's time, so two QA tasks count the test-writing time twice; this errs high.
 - **Pairs.** `decisionPairs()` joins each build's task records with the decision log of the estimate the build followed. It reads the log only when the estimate step's latest output is the approved estimate's sha. If the step ran again afterwards, that log no longer matches and pairs nothing.
 
   Two places show the pairs:
