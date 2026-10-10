@@ -1,0 +1,5 @@
+{
+  "id": "written-casual-todo-idea",
+  "request": "I want a simple app where my team can keep a shared to-do list. Nothing fancy.",
+  "intent": { "changeClass": "feature", "risk": "low", "touchesUi": true }
+}

@@ -6,7 +6,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { parse, stringify } from "yaml";
 import { _resetEnvCache } from "../config/env.js";
 import { jiraFetcherFor } from "../sources/jira.js";
@@ -453,6 +453,11 @@ describe("credit guards, checked before anything costs money", () => {
   });
 
   it("a ticket held back by the budget for more than 10 minutes still starts when the budget allows, and is told only once", async () => {
+    // the budget is per UTC day and this test lets half an hour pass on the same day: start at noon, or a run after 23:30 UTC
+    // crosses midnight, the budget resets and the tickets start
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date(`${new Date().toISOString().slice(0, 10)}T12:00:00Z`) });
+    onTestFinished(() => { vi.useRealTimers(); });
+    clock = new Date();
     ticket("SHOP-1");
     const first = await watcher().tick();
     await Ledger.open(first.started!).append({ type: "usage", key: "plan/1", data: { "gen_ai.usage.cost_usd": 10 } }, HUMAN_WRITER);

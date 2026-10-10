@@ -11,6 +11,7 @@ One entry point wraps the commands below (they stay where they are). A paid suit
 | `spec` | free or paid | spec quality on 14 cases: expected behaviour found, scope creep, gaps raised | about $0.50-1.00 per case run; `--fake` is free |
 | `ripple` | free | the impact code layer against files real commits changed (recall, precision) | - |
 | `e2e` | free or paid | a ticket to a delivered change, scored by hidden tests (5 cases); also a plain Claude Code baseline | about $2-3 per factory run, about $0.20 per baseline run; `validate` and `--fake` are free |
+| `decide` | free or paid | decision adapters (`llm`, `jev`) on stored intakes: pick, confidence, cost and latency, scored against `decide/labels.json` | under $0.01 per adapter over about 20 cases; `--dry` is free |
 | `runs` | free | one run's record from its ledger; compare runs and baselines; run-record tables | - |
 
 

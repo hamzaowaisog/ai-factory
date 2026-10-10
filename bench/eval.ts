@@ -14,6 +14,7 @@ export const SUITES: Suite[] = [
   { name: "spec", cost: "free or paid", measures: "spec quality on 14 cases: expected behaviour found, scope creep, gaps raised", estimate: "about $0.50-1.00 per case run (estimate); --fake is free", cmd: ["bench/spec/run.ts"], paidWith: "--spend" },
   { name: "ripple", cost: "free", measures: "the impact code layer against files real commits changed (recall, precision)", cmd: ["bench/ripple/replay.ts"] },
   { name: "e2e", cost: "free or paid", measures: "a ticket to a delivered change, scored by hidden tests (5 cases); also a plain Claude Code baseline", estimate: "about $2-3 per factory run, about $0.20 per baseline run (estimate); validate and --fake are free", cmd: ["bench/e2e/run.ts"], paidWith: "--spend" },
+  { name: "decide", cost: "free or paid", measures: "decision adapters (llm, jev) on stored intakes: pick, confidence, cost and latency, scored against labels", estimate: "under $0.01 per adapter over about 20 cases (estimate); --dry is free", cmd: ["bench/decide/run.ts"], paidWith: "--spend" },
   { name: "runs", cost: "free", measures: "one run's record from its ledger; compare runs and baselines; run-record tables", cmd: ["bench/runs/run.ts"] },
   { name: "publish", cost: "free", measures: "public runs and eval results, scrubbed, into evidence/ for the judges (client runs are refused)", cmd: ["bench/publish.ts"] },
 ];
