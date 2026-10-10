@@ -91,6 +91,55 @@ export async function removeWorktree(repo: string, wtPath: string): Promise<void
   await git(repo, ["worktree", "remove", "--force", wtPath]);
 }
 
+/**
+ * Like `addWorktree`, but survives a path that is already there. `worktree add -b` fails when
+ * either the path or the branch exists, and `removeWorktree` deliberately leaves the branch behind,
+ * so building the same worktree twice used to throw — which is what happened on every second
+ * reverify of a pull request, and on the verification that should have followed a repair.
+ */
+export async function freshWorktree(repo: string, wtPath: string, branch: string, base: string, runId: string): Promise<void> {
+  if (existsSync(wtPath)) await removeWorktree(repo, wtPath).catch(() => undefined);
+  // the administrative record outlives the directory; without this git still calls the path in use
+  await git(repo, ["worktree", "prune"]).catch(() => undefined);
+  await git(repo, ["branch", "-D", branch]).catch(() => undefined);
+  await addWorktree(repo, wtPath, branch, base, runId);
+}
+
+/**
+ * Update the remote-tracking refs the merge gate reads. Nothing else fetches, and the gate derives
+ * the base SHA from `origin/<base>` in this clone: without a fetch, a base that moved on the forge
+ * still reads as unchanged here, and the gate replays a green verdict for a tree that no longer
+ * exists. The head is fetched too, because `commitsSince` walks it locally.
+ *
+ * The base must be reachable afterwards, so a failure there is fatal. A head branch can legitimately
+ * be gone (deleted after a merge), and the caller handles the pull request's state itself. A fork's
+ * head is not on this remote at all, so the caller passes no `headRef` for one: fetching the base
+ * repository's branch of the same name would walk the wrong commits.
+ *
+ * `remote` is the forge's URL and token, the same ones the repair push uses. Hardened git reads no
+ * credential helper, so without them a private HTTPS repository refuses the fetch, and `origin` is
+ * not necessarily the forge repository anyway.
+ */
+export async function fetchForGate(repo: string, baseRef: string, headRef?: string, remote?: { url: string; token?: string }): Promise<void> {
+  const spec = (r: string) => `+refs/heads/${r}:refs/remotes/origin/${r}`;
+  const from = remote?.url ?? "origin";
+  const env = remote?.token ? authEnv(remote.token) : undefined;
+  const run = (r: string) => git(repo, ["fetch", "--quiet", from, spec(r)], { env }).catch((e: Error) => {
+    throw remote?.token ? new Error(e.message.replaceAll(remote.token, "«SECRET»")) : e;
+  });
+  await run(baseRef);
+  if (headRef) await run(headRef).catch(() => undefined);
+}
+
+/**
+ * The forge token as git configuration in the environment, never on a command line: a failed fetch
+ * or push prints its command into the error, and from there into the ledger.
+ */
+export function authEnv(token: string): Record<string, string> {
+  const auth = Buffer.from(`x-access-token:${token}`).toString("base64");
+  return { GIT_CONFIG_COUNT: "1", GIT_CONFIG_KEY_0: "http.extraHeader", GIT_CONFIG_VALUE_0: `Authorization: Basic ${auth}` };
+}
+
 /** Stage everything and commit (even when empty, so every attempt has a tree SHA). */
 export async function commitAll(wt: string, message: string): Promise<string> {
   await git(wt, ["add", "-A"]);

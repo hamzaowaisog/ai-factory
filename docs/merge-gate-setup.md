@@ -79,7 +79,7 @@ check counts as failed.
 Require a merge queue on the base branch | Settings → Branches → branch protection | Nothing else verifies the *combination* of pull requests about to land |
 Add `factory/merge-gate` as a required status check | same page | Without it, nothing stops a pull request merging ungated |
 Merge method: **merge commit**, not squash | same page | A squash rewrites the commit the factory gated, so what lands is not what the evidence describes |
-Token scopes: `checks:write`, `pull_requests:write`, `contents:write` | the token in `~/.factory/.env` | Writing the check run, the comment, and repair commits |
+Token permissions: **Commit statuses: write**, **Pull requests: write**, **Contents: write** (fine-grained), or `repo` (classic) | the token in `~/.factory/.env` | Writing the `factory/merge-gate` status, the comment, and repair commits. A check run can only be created by a GitHub App, so the verdict is a commit status, which branch protection accepts as a required check |
 
 **Order matters.** Approve the guidelines (step 2) *before* making the check required, or every pull
 request goes red until you do.
@@ -90,22 +90,70 @@ Install a Delegate on the factory host — the machine where `~/.factory`, your 
 Docker already are. Harness Cloud cannot reach that host, and the design requires that no credential
 leaves it.
 
-Two triggers, both passing their webhook inputs straight through:
+One trigger, passing its webhook inputs straight through:
 
 ```yaml
-# pull_request: opened, synchronize, reopened
-factory review-pr <+trigger.pr.number> \
-  --project shop --repository <+trigger.repo.name> --json
-
 # merge_group
 factory verify-merge-group <+trigger.ref> \
   --project shop --repository <+trigger.repo.name> --json
 ```
 
-Pass them unvalidated. The factory validates them itself: `--repository` must equal the configured
+**No pull-request trigger yet.** A `review-pr` trigger on `opened` or `ready_for_review` fires
+before deliver has finished its step: deliver opens the draft, posts its review and marks it ready,
+and only then completes. A review in that window reads the evidence as not reconciled, fails the pull
+request, and that failure holds until the base moves. Until that is fixed, gate pull requests with
+`review-open-prs` (below), which leaves drafts alone.
+
+Pass the inputs unvalidated. The factory validates them itself: `--repository` must equal the configured
 `forge.repo` **exactly** — no case-folding, no substring matching — and the pull request number must
 be a positive integer. Without that, a crafted webhook payload would aim the factory, holding your
 forge credential, at a repository nobody configured.
+
+### Without Harness: `factory review-open-prs`
+
+Harness is the intended trigger, not the only possible one. The requirement is only that *something
+on this host runs the command*, because the host is where `~/.factory`, the clones, Docker and the
+credentials are, and none of them may leave it.
+
+```bash
+factory review-open-prs --project shop --every 120     # Ctrl+C to stop
+factory review-open-prs --project shop --once          # one pass, for trying it
+```
+
+It asks GitHub which pull requests are open and gates each one, oldest first. Drafts are left alone:
+the factory opens its own pull request as a draft and marks it ready once it has posted its review,
+so a draft is one still being assembled.
+
+**The poller itself keeps no memory; the run's ledger does.** Each verdict writes a `reverify` step
+to the run's ledger, recording the head and base it judged, the conclusion, and the repair attempts.
+On the next pass, a pull request whose head and base are both unchanged is concluded from that
+record: no container, no tokens, and no repeat notification. A base that moved is judged again,
+which is the case this gate exists for. If the pull request was judged less than 5 minutes ago, it
+waits until the next pass after that, so a burst of pushes is judged once.
+
+**One host owns a repository.** The poller gates only pull requests whose ledger is on this host,
+from a branch in the configured repository. It leaves everything else alone and writes nothing to it:
+- a run from another machine
+- a branch a person opened
+- a fork
+
+Two hosts polling the same repository would overwrite each other's check, so run it on one.
+`review-pr`, the explicit trigger, still fails these pull requests loudly.
+
+A pull request that cannot be gated at all, for example because a container will not start, is
+logged and the rest still run. One bad pull request does not stop the others.
+
+The trade against Harness or a webhook is latency and uptime: a pull request waits up to `--every`
+seconds, and nothing is gated while the machine is asleep. With `factory/merge-gate` required, a
+missed pass means a pull request cannot merge, which is the safe direction.
+
+**On a self-hosted GitHub Actions runner.** Not for pull requests yet, for the same reason as the
+Harness pull-request trigger above: a `pull_request` event fires before deliver has finished, and the
+failure it writes holds until the base moves. Use `review-open-prs` on the factory host instead.
+
+⚠ **Not on a public repository.** A self-hosted runner on a public repo lets anyone who opens a pull
+request run code on this machine — the machine holding your forge token and API keys. Use
+`review-open-prs` there, which only ever makes outbound calls.
 
 ## Step 5 — Check the setup
 
@@ -134,7 +182,7 @@ Delegate on the host, unapproved guidelines, or a squash merge method.
 10 | Compare every gate's recorded inputs hash against the current one | free |
 11 | *Only if a review's own inputs moved:* `review-2` reads the code | tokens |
 12 | Run the gates, in order | free |
-13 | Write back one check run and one comment; Slack only on failure | 2 API calls |
+13 | Write back one commit status and one comment; Slack only on failure | 2 API calls |
 
 A pull request whose tree has not moved reaches step 13 having spent **nothing**: every gate verdict
 is replayed because its inputs hash is unchanged, which means the answer cannot have changed either.
@@ -165,6 +213,19 @@ Repair on the merge-queue path | **never** — pushing to a queued branch ejects
 
 Past any of those: park, red check, Slack, wait for a person. `main` is untouched throughout.
 
+A repair goes through these steps in order:
+1. The model reads the merged tree. For a conflict, that includes the markers and both sides.
+2. The repair is committed locally as one merge commit with a `Factory-Repair:` trailer.
+3. That commit is built and tested.
+4. Every gate is run on it.
+5. **Only then is it pushed**, and the check is written to the commit it pushed.
+
+A repair that does not verify, or that a gate blocks, is never pushed. A repair may not write:
+- locked tests
+- `.github/**`
+- `.factory/**`
+- secret or no-go paths
+
 ## Forcing a re-review
 
 ```bash
@@ -193,9 +254,9 @@ So exercise it in this order, under WSL2, before pointing a trigger at it:
 3. `factory conventions approve --project <p> <hash>`.
 4. `factory review-pr <n> --project <p> --repository <owner/name>` against a **real but
    unimportant** pull request. This is the first time `live.ts` runs end to end: the ledger is
-   opened, a worktree is merged, a container starts, the reviewer is called and a check run is
+   opened, a worktree is merged, a container starts, the reviewer is called and a commit status is
    written. Expect to fix things here.
 5. Only then add the Harness triggers.
 
-Nothing in that list can damage `main`: every path either writes a check run or refuses. The failure
+Nothing in that list can damage `main`: every path either writes a commit status or refuses. The failure
 you are looking for is the opposite one — a step that quietly does nothing and reports green.

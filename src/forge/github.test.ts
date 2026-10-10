@@ -1,6 +1,6 @@
 // The GitHub client. No network: every call takes `fetch`, and the tests script it.
 import { describe, expect, it, vi } from "vitest";
-import { findReviewBody, listChecks, upsertCheckRun, upsertReviewComment } from "./github.js";
+import { commitStatus, factoryLogin, findReviewBody, getPr, listChecks, listOpenPrs, setCommitStatus, upsertReviewComment } from "./github.js";
 
 const gh = { root: "https://api.github.com", api: "https://api.github.com/repos/acme/shop", headers: {} };
 const json = (body: unknown) =>
@@ -50,26 +50,56 @@ describe("listChecks", () => {
   });
 });
 
-describe("upsertCheckRun", () => {
-  it("patches the existing check rather than adding another", async () => {
-    const f = vi.fn().mockResolvedValueOnce(json({ check_runs: [{ id: 5 }] })).mockResolvedValueOnce(json({ id: 5 }));
-    expect(await upsertCheckRun(gh, { name: "factory/merge-gate", headSha: SHA, conclusion: "success", title: "t", summary: "s" }, f as never))
-      .toBe("updated");
-    expect(f.mock.calls[1]![0]).toMatch(/check-runs\/5$/);
-    expect(f.mock.calls[1]![1]).toMatchObject({ method: "PATCH" });
+describe("commitStatus", () => {
+  it("reads the latest state of one context from the combined status", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ statuses: [{ context: "ci/x", state: "failure" }, { context: "factory/merge-gate", state: "success" }] }));
+    expect(await commitStatus(gh, SHA, "factory/merge-gate", f as never)).toBe("success");
+    expect(f.mock.calls[0]![0]).toBe(`${gh.api}/commits/${SHA}/status`);
   });
 
-  it("creates one when none exists", async () => {
-    const f = vi.fn().mockResolvedValueOnce(json({ check_runs: [] })).mockResolvedValueOnce(json({ id: 9 }));
-    expect(await upsertCheckRun(gh, { name: "factory/merge-gate", headSha: SHA, conclusion: "failure", title: "t", summary: "s" }, f as never))
-      .toBe("created");
-    expect(f.mock.calls[1]![1]).toMatchObject({ method: "POST" });
+  it("is undefined when the commit has no status under that context, or only a pending one", async () => {
+    const f = vi.fn()
+      .mockResolvedValueOnce(json({ statuses: [{ context: "ci/x", state: "success" }] }))
+      .mockResolvedValueOnce(json({ statuses: [{ context: "factory/merge-gate", state: "pending" }] }));
+    expect(await commitStatus(gh, SHA, "factory/merge-gate", f as never)).toBeUndefined();
+    expect(await commitStatus(gh, SHA, "factory/merge-gate", f as never)).toBeUndefined();
   });
 
-  it("cites the commit it judged", async () => {
-    const f = vi.fn().mockResolvedValueOnce(json({ check_runs: [] })).mockResolvedValueOnce(json({ id: 9 }));
-    await upsertCheckRun(gh, { name: "factory/merge-gate", headSha: SHA, conclusion: "neutral", title: "t", summary: "s" }, f as never);
-    expect(JSON.parse(String((f.mock.calls[1]![1] as RequestInit).body))).toMatchObject({ head_sha: SHA, conclusion: "neutral" });
+  it("reads error as failure", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ statuses: [{ context: "factory/merge-gate", state: "error" }] }));
+    expect(await commitStatus(gh, SHA, "factory/merge-gate", f as never)).toBe("failure");
+  });
+});
+
+describe("setCommitStatus", () => {
+  const body = (f: ReturnType<typeof vi.fn>) => JSON.parse(String((f.mock.calls[0]![1] as RequestInit).body));
+
+  it("posts one status to the commit under the gate's context: a PAT can, a check run needs an App", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ id: 1 }));
+    await setCommitStatus(gh, { context: "factory/merge-gate", sha: SHA, conclusion: "failure", description: "2 blocking" }, f as never);
+    expect(f).toHaveBeenCalledTimes(1);
+    expect(f.mock.calls[0]![0]).toBe(`${gh.api}/statuses/${SHA}`);
+    expect(f.mock.calls[0]![1]).toMatchObject({ method: "POST" });
+    expect(body(f)).toEqual({ state: "failure", context: "factory/merge-gate", description: "2 blocking" });
+  });
+
+  it("writes neutral as success, which is how a required check treats a neutral check run", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ id: 1 }));
+    await setCommitStatus(gh, { context: "factory/merge-gate", sha: SHA, conclusion: "neutral", description: "d" }, f as never);
+    expect(body(f).state).toBe("success");
+  });
+
+  it("cuts a description to GitHub's 140 characters instead of being refused", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ id: 1 }));
+    await setCommitStatus(gh, { context: "factory/merge-gate", sha: SHA, conclusion: "success", description: "x".repeat(300) }, f as never);
+    expect(body(f).description).toHaveLength(140);
+    expect(body(f).description.endsWith("…")).toBe(true);
+  });
+
+  it("throws when GitHub refuses", async () => {
+    const f = vi.fn().mockResolvedValueOnce(bad(403));
+    await expect(setCommitStatus(gh, { context: "factory/merge-gate", sha: SHA, conclusion: "success", description: "d" }, f as never))
+      .rejects.toThrow(/commit status failed: 403/);
   });
 });
 
@@ -122,5 +152,51 @@ describe("findReviewBody", () => {
   it("survives a review with no body at all", async () => {
     const f = vi.fn().mockResolvedValueOnce(json([{ body: null }]));
     expect(await findReviewBody(gh, 42, f as never)).toBeUndefined();
+  });
+});
+
+describe("findReviewBody: only the factory's own account counts", () => {
+  it("ignores a marker written by anyone else", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json([{ body: "<!-- factory-review:run-evil -->", user: { login: "mallory" } }]));
+    expect(await findReviewBody(gh, 42, f as never, "factory-bot")).toBeUndefined();
+  });
+
+  it("takes the marker the factory's account wrote", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json([
+      { body: "<!-- factory-review:run-evil -->", user: { login: "mallory" } },
+      { body: "<!-- factory-review:run-7 -->", user: { login: "factory-bot" } },
+    ]));
+    expect(await findReviewBody(gh, 42, f as never, "factory-bot")).toMatch(/run-7/);
+  });
+
+  it("reads the token's own login", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ login: "factory-bot" }));
+    expect(await factoryLogin(gh, f as never)).toBe("factory-bot");
+    expect(String(f.mock.calls[0]![0])).toBe("https://api.github.com/user");
+  });
+});
+
+describe("getPr", () => {
+  it("names the head's repository, so a fork can be told apart", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ head: { sha: SHA, ref: "main", repo: { full_name: "someone/shop" } }, base: { ref: "main" }, state: "open", merged: false }));
+    expect(await getPr(gh, 7, f as never)).toMatchObject({ headRepo: "someone/shop", headRef: "main" });
+  });
+
+  it("reads a deleted head repository as no repository", async () => {
+    const f = vi.fn().mockResolvedValueOnce(json({ head: { sha: SHA, ref: "x", repo: null }, base: { ref: "main" }, state: "open", merged: false }));
+    expect((await getPr(gh, 7, f as never)).headRepo).toBe("");
+  });
+});
+
+describe("listOpenPrs", () => {
+  it("follows the next page instead of stopping at 100", async () => {
+    const page = (body: unknown, link?: string) =>
+      ({ ...json(body), headers: new Headers(link ? { link } : {}) }) as Response;
+    const f = vi.fn()
+      .mockResolvedValueOnce(page([{ number: 2, head: { sha: "b" } }], '<https://api.github.com/repos/acme/shop/pulls?page=2>; rel="next", <x>; rel="last"'))
+      .mockResolvedValueOnce(page([{ number: 1, draft: true, head: { sha: "a" } }]));
+    const got = await listOpenPrs(gh, f as never);
+    expect(got.map((p) => p.number)).toEqual([2, 1]);
+    expect(String(f.mock.calls[1]![0])).toBe("https://api.github.com/repos/acme/shop/pulls?page=2");
   });
 });
