@@ -11,6 +11,7 @@
 import { posix } from "node:path";
 import { z } from "zod";
 import { buildPack } from "../context/pack.js";
+import { isTestPath } from "../context/ripple.js";
 import { isSecretPath } from "../gates/protected.js";
 import { matchesAny } from "../util/glob.js";
 import { Redactor } from "../context/secrets.js";
@@ -158,6 +159,9 @@ export async function proposeRepair(o: RepairRunOpts, reverifyRunId: string): Pr
         const p = safeEditPath(e.path);
         if (!p) { rejected.push({ path: e.path, why: "path is outside the repository" }); continue; }
         if (locked.has(p)) { rejected.push({ path: p, why: e.why }); continue; }
+        // any test, not only the locked ones: the merge result is no longer compared with a baseline
+        // test list, so a repair that deleted or skipped the failing test would otherwise go green
+        if (isTestPath(p)) { rejected.push({ path: p, why: "a repair may not change a test: it must make the code pass the tests, not the other way round" }); continue; }
         if (isPushProtected(p, o.noGo ?? [])) { rejected.push({ path: p, why: "a repair may not write workflows, the evidence manifest or a no-go path" }); continue; }
         // the normalised path, which is the one that was checked: on Linux a backslash is part of the file name
         edits.push({ ...e, path: p });

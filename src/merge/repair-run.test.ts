@@ -70,6 +70,16 @@ describe("proposeRepair", () => {
     expect(got.rejected).toEqual([{ path: "tests/Orders.Tests/BookingTests.cs", why: "the test is wrong" }]);
   });
 
+  it("DROPS an edit to a test file that is not locked: deleting or skipping a failing test is not a repair", async () => {
+    const other = { path: "tests/Orders.Tests/RefundTests.cs", content: "// [Ignore]", why: "this test fails on the merge" };
+    const spec = { path: "web/src/cart.test.ts", content: "it.skip(...)", why: "flaky" };
+    const { provider } = scripted({ "*": [submit({ summary: "fixed", edits: [codeEdit, other, spec] })] });
+    const got = await proposeRepair(opts({ provider }), "rv-1");
+    expect(got.edits).toEqual([codeEdit]);
+    expect(got.rejected.map((r) => r.path)).toEqual([other.path, spec.path]);
+    expect(got.rejected[0]!.why).toMatch(/test/);
+  });
+
   it("drops a locked edit however the path is spelled", async () => {
     const { provider } = scripted({ "*": [submit({ summary: "x", edits: [
       { ...testEdit, path: "./tests/Orders.Tests/BookingTests.cs" },
