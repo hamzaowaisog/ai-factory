@@ -11,7 +11,7 @@ import { DEFAULT_POLICY } from "../gates/policy.js";
 import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { NO_TRACE } from "../util/trace.js";
-import { setStitchFactory, type StitchClient } from "../design/stitch.js";
+import { setStitchFactory, setStitchTimeouts, type StitchClient } from "../design/stitch.js";
 import type { StepContext } from "./framework.js";
 import { setProviderFactory } from "./think.js";
 import { drawWithStitch, setA11yCheck, stitchArtifact, stitchFrames } from "./design-stitch.js";
@@ -426,5 +426,110 @@ describe("larger Stitch screenshots", () => {
     expect(await drawWith(async () => new TextEncoder().encode("<html>no</html>"))).toEqual(["small", "small"]);
     expect(await drawWith(async () => PNG("large", 2_100_000))).toEqual(["small", "small"]);
     expect(await drawWith(async () => PNG("large", 700_000))).toEqual(["small", "small"]);
+  });
+});
+
+describe("Stitch calls: cost, limits, timeouts and resume (PR review)", () => {
+  let logged: { model: string; estUsd: number; inputTokens: number }[] = [];
+  const metered = (ledger: ReturnType<typeof memoryLedger>, design: Record<string, unknown> = {}) => {
+    const c = ctxFor(ledger, 0, design);
+    c.usage = async (u) => { logged.push(u); };
+    return c;
+  };
+  const script = () => { answers = [plan(), { designMd: md(), theme }]; };
+  beforeEach(() => { logged = []; });
+  afterEach(() => setStitchTimeouts(undefined));
+
+  it("logs each Stitch call as a usage row at the project's price per call", async () => {
+    script();
+    const out = await drawWithStitch(metered(memoryLedger(), { stitch: { usdPerCall: 0.05 } }), spec);
+    expect(out.kind).toBe("done");
+    const rows = logged.filter((u) => u.model === "stitch");
+    expect(rows).toHaveLength(3); // S-1, S-1 empty, S-2
+    expect(rows.every((u) => u.estUsd === 0.05 && u.inputTokens === 0)).toBe(true);
+  });
+
+  it("parks before drawing anything when the design needs more Stitch calls than the run allows", async () => {
+    script();
+    const out = await drawWithStitch(metered(memoryLedger(), { stitch: { maxCalls: 2 } }), spec);
+    expect(out).toMatchObject({ kind: "park", reason: expect.stringMatching(/3 Stitch calls.*limit of 2/) });
+    expect(made.projects).toEqual([]);
+    expect(made.generated).toEqual([]);
+  });
+
+  it("counts the Stitch calls earlier attempts of the run already made", async () => {
+    script();
+    const ledger = memoryLedger();
+    const used = { type: "usage", key: "design#1", data: { "gen_ai.request.model": "stitch", "gen_ai.usage.cost_usd": 0 } } as never;
+    ledger.events = () => [CREATED, used, used];
+    const out = await drawWithStitch(metered(ledger, { stitch: { maxCalls: 4 } }), spec);
+    expect(out).toMatchObject({ kind: "park", reason: expect.stringMatching(/2 already used/) });
+  });
+
+  it("parks before drawing when the calls would pass the run's cost limit", async () => {
+    script();
+    const out = await drawWithStitch(metered(memoryLedger(), { stitch: { usdPerCall: 50 } }), spec);
+    expect(out).toMatchObject({ kind: "park", reason: expect.stringMatching(/cost limit/) });
+    expect(made.generated).toEqual([]);
+  });
+
+  it("parks on a Stitch call that never answers instead of hanging the run", async () => {
+    script();
+    setStitchTimeouts({ callMs: 50, downloadMs: 50 });
+    setStitchFactory(() => ({ ...fakeStitch(), generate: () => new Promise(() => undefined) }));
+    const out = await drawWithStitch(metered(memoryLedger()), spec);
+    expect(out).toMatchObject({ kind: "park", reason: expect.stringMatching(/timed out/) });
+  });
+
+  it("parks on a download that never finishes", async () => {
+    script();
+    setStitchTimeouts({ callMs: 1000, downloadMs: 50 });
+    setStitchFactory(() => ({ ...fakeStitch(), download: () => new Promise(() => undefined) }));
+    const out = await drawWithStitch(metered(memoryLedger()), spec);
+    expect(out).toMatchObject({ kind: "park", reason: expect.stringMatching(/timed out/) });
+  });
+
+  it("resumes a parked draw in the same Stitch project, drawing only the screens still missing", async () => {
+    const ledger = memoryLedger();
+    let down = true;
+    setStitchFactory(() => {
+      const f = fakeStitch();
+      return { ...f, async generate(p, prompt, device) { if (down && prompt.includes("form to add a payee")) throw new Error("Stitch is down"); return f.generate(p, prompt, device); } };
+    });
+    script();
+    expect((await drawWithStitch(metered(ledger), spec)).kind).toBe("park");
+    expect(made.generated).toHaveLength(2); // S-1 and its empty state were drawn and paid for
+    down = false;
+    script();
+    const out = await drawWithStitch(metered(ledger), spec);
+    expect(out.kind).toBe("done");
+    expect(made.projects).toHaveLength(1);
+    expect(made.systems).toHaveLength(1);
+    expect(made.generated).toHaveLength(3); // only S-2 the second time
+    const design = ledger.getJson<{ screens: { id: string; frames: string[] }[] }>((out as { outputs: { design: string } }).outputs.design);
+    expect(design.screens.map((s) => [s.id, s.frames.length])).toEqual([["S-1", 2], ["S-2", 1]]);
+  });
+
+  it("starts a new Stitch project when the resumed plan is not the one drawn", async () => {
+    const ledger = memoryLedger();
+    setStitchFactory(() => { const f = fakeStitch(); return { ...f, async generate(p, prompt, device) { if (prompt.includes("form to add a payee")) throw new Error("down"); return f.generate(p, prompt, device); } }; });
+    script();
+    await drawWithStitch(metered(ledger), spec);
+    setStitchFactory(() => fakeStitch());
+    answers = [plan({ flow: "Another flow." }), { designMd: md(), theme }];
+    expect((await drawWithStitch(metered(ledger), spec)).kind).toBe("done");
+    expect(made.projects).toHaveLength(2);
+  });
+});
+
+describe("a finished Stitch draw (PR review)", () => {
+  it("is never reused: drawing the same plan again is a new drawing", async () => {
+    const ledger = memoryLedger();
+    answers = [plan(), { designMd: md(), theme }];
+    expect((await drawWithStitch(ctxFor(ledger), spec)).kind).toBe("done");
+    answers = [plan(), { designMd: md(), theme }];
+    expect((await drawWithStitch(ctxFor(ledger), spec)).kind).toBe("done");
+    expect(made.projects).toHaveLength(2);
+    expect(made.generated).toHaveLength(6);
   });
 });

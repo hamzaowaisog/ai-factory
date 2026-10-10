@@ -121,7 +121,7 @@ export const ProjectConfig = z.object({
     uiDir: z.string().optional(),
     /** brand fonts the design brief may name besides Google Fonts */
     brandFonts: z.array(z.string()).default([]),
-    /** who draws the design: claude or openai write the design JSON; stitch is not built yet */
+    /** who draws the design: claude or openai write the design JSON; stitch draws the screens in Google Stitch (needs allowStitch) */
     engine: z.enum(DESIGN_ENGINES).optional(),
     /** the starting tier; two failed attempts on a tier step up to the next */
     tier: z.enum(DESIGN_TIERS).optional(),
@@ -134,6 +134,10 @@ export const ProjectConfig = z.object({
       device: z.enum(["MOBILE", "DESKTOP", "TABLET", "AGNOSTIC"]).default("DESKTOP"),
       /** the extra states Stitch draws for a screen that lists them (each one more generation); default empty and error */
       states: z.array(z.enum(["empty", "error", "loading", "success", "validation"])).optional(),
+      /** USD per Stitch call (a screen drawn or edited), counted in the run's cost and its limit; Stitch is free within its quota today */
+      usdPerCall: z.number().nonnegative().optional(),
+      /** the most Stitch calls one run may make (draws, edits and fixes together), so a run cannot use up the account's quota */
+      maxCalls: z.number().int().positive().optional(),
     }).optional(),
     /**
      * A small UI fix in an app of its own gets a text design note approved with the estimate, not a drawn demo and a card of its

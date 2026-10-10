@@ -1,8 +1,8 @@
 // The design step on the stitch engine (docs/superpowers/plans/2026-10-09-design-tier-ladder.md, Tasks 9 and 10): Claude
 // lists the screens and writes a DESIGN.md by following the stitch-design-taste skill; Stitch draws each screen against it.
 // Each screenshot is saved as a frame, so the demo, the approval card and the package pictures show it like an attached frame.
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { z } from "zod";
 import type { Spec } from "../contracts/index.js";
 import type { Failure } from "../contracts/common.js";
@@ -14,6 +14,8 @@ import { stitchClient, type StitchClient, type StitchDevice } from "../design/st
 import { checkStitchA11y } from "../design/stitch-a11y.js";
 import { stateKind } from "../design/demo.js";
 import { failure } from "../gates/engine.js";
+import { currentCostCap } from "../ledger/caps.js";
+import { hashJson } from "../util/hash.js";
 import { inPool } from "../util/pool.js";
 import { header, type StepContext, type StepOutcome } from "./framework.js";
 import { S, think } from "./think.js";
@@ -77,6 +79,61 @@ async function picture(c: StitchClient, url: string): Promise<Uint8Array> {
     if (isImage(big) && big.length <= MAX_PICTURE) return big;
   } catch { /* the link takes no size: the picture as Stitch made it */ }
   return c.download(url);
+}
+
+/** Every Stitch call is one usage row under this model name: no tokens, the project's price per call. */
+export const STITCH_USAGE_MODEL = "stitch";
+/** The most Stitch calls one run makes unless the project says otherwise (a 10-screen design with two states each is 30). */
+export const DEFAULT_STITCH_MAX_CALLS = 40;
+
+/** The Stitch calls the run has made so far, from its usage rows (earlier steps and attempts included). */
+function stitchCallsSoFar(ctx: StepContext): number {
+  return ctx.ledger.events().filter((e) => e.type === "usage" && (e.data as Record<string, unknown> | undefined)?.["gen_ai.request.model"] === STITCH_USAGE_MODEL).length;
+}
+
+/** Why the run may not make `calls` more Stitch calls, if it may not: past its call limit, or past what is left of its cost limit. */
+function stitchBudgetProblem(ctx: StepContext, calls: number): string | undefined {
+  const max = ctx.project.design?.stitch?.maxCalls ?? DEFAULT_STITCH_MAX_CALLS, used = stitchCallsSoFar(ctx), usd = ctx.project.design?.stitch?.usdPerCall ?? 0;
+  if (used + calls > max) return `This design needs ${calls} Stitch calls (${used} already used this run), past the run's limit of ${max} (design.stitch.maxCalls). Raise the limit or draw fewer screens or states, then resume.`;
+  const left = currentCostCap(ctx.state) - ctx.state.costUsd;
+  if (usd * calls > left) return `This design's ${calls} Stitch calls cost ${(usd * calls).toFixed(2)}, more than the ${Math.max(0, left).toFixed(2)} left of the run's cost limit. Raise the limit, then resume.`;
+  return undefined;
+}
+
+/**
+ * The Stitch client with every draw and edit counted: a usage row each (so the cost report, the UI and the run's cost limit see
+ * Stitch), and the run's call limit held at each call, side-by-side calls included. A call that times out may still have run
+ * at Stitch, so it is counted too.
+ */
+function metered(ctx: StepContext, c: StitchClient): StitchClient {
+  const max = ctx.project.design?.stitch?.maxCalls ?? DEFAULT_STITCH_MAX_CALLS, usd = ctx.project.design?.stitch?.usdPerCall ?? 0;
+  let used = stitchCallsSoFar(ctx);
+  const call = async <T>(run: () => Promise<T>): Promise<T> => {
+    if (used >= max) throw new Error(`the run's limit of ${max} Stitch calls is reached (design.stitch.maxCalls)`);
+    used++;
+    const record = () => ctx.usage({ model: STITCH_USAGE_MODEL, inputTokens: 0, outputTokens: 0, cacheRead: 0, cacheWrite: 0, turns: 1, wallMs: 0, estUsd: usd });
+    try { const r = await run(); await record(); return r; } catch (e) {
+      if (/timed out/.test((e as Error).message)) await record(); else used--;
+      throw e;
+    }
+  };
+  return { ...c, generate: (p, prompt, device) => call(() => c.generate(p, prompt, device)), edit: (p, id, prompt, device) => call(() => c.edit(p, id, prompt, device)) };
+}
+
+/**
+ * A draw's Stitch progress in the run's folder, so a resume carries on in the same project: one file per run, replaced whole.
+ * A finished draw is marked done and never reused: drawing again after it (a send-back, a changed spec) is a new drawing.
+ */
+interface StitchProgress { key: string; projectId: string; system: boolean; assets: StitchAsset[]; a11y?: { assets: StitchAsset[]; open: A11yOpen[] }; done?: boolean }
+const progressFile = (ctx: StepContext) => join(ctx.ledger.dir, "attachments", "stitch-progress.json");
+function readProgress(ctx: StepContext, key: string): StitchProgress | undefined {
+  try { const p = JSON.parse(readFileSync(progressFile(ctx), "utf8")) as StitchProgress; return p.key === key && !p.done ? p : undefined; } catch { return undefined; }
+}
+function saveProgress(ctx: StepContext, p: StitchProgress): void {
+  const file = progressFile(ctx);
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(`${file}.tmp`, JSON.stringify(p));
+  renameSync(`${file}.tmp`, file);
 }
 
 /** Downloads a generated screen, saves its picture as a frame named by version, and stores its HTML and picture in the ledger. */
@@ -199,7 +256,11 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
   const device = ctx.project.design?.stitch?.device ?? "DESKTOP";
   const allowed = ctx.project.design?.stitch?.states ?? DEFAULT_STITCH_STATES;
   const framesDir = join(ctx.ledger.dir, "attachments", "frames");
-  const c = stitchClient();
+  // each named screen is one edit, and its extra states are drawn again
+  const calls = named.reduce((n, x) => n + stitchJobs([plan.screens.find((s) => s.id === x.id)!], allowed).length, 0);
+  const over = stitchBudgetProblem(ctx, calls);
+  if (over) return { kind: "park", reason: over };
+  const c = metered(ctx, stitchClient());
   let edited: StitchAsset[];
   let open: A11yOpen[] = [];
   try {
@@ -278,25 +339,52 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
   const allowed = ctx.project.design?.stitch?.states ?? DEFAULT_STITCH_STATES;
   const title = ctx.state.info.estimate?.projectName ?? ctx.runId;
   const framesDir = join(ctx.ledger.dir, "attachments", "frames");
-  const c = stitchClient();
-  let projectId: string;
+  const jobs = stitchJobs(plan.screens, allowed);
+  // a resumed run keeps the Stitch project and the screens it already drew, when the plan and design system are the same
+  const key = hashJson({ plan, designMd: mdSha, theme: m.output.theme, device, allowed });
+  const saved = readProgress(ctx, key);
+  const todo = jobs.filter((j) => !saved?.assets.some((a) => a.id === j.id && a.state === j.state));
+  const over = stitchBudgetProblem(ctx, todo.length);
+  if (over) return { kind: "park", reason: over };
+  const c = metered(ctx, stitchClient());
+  let progress: StitchProgress;
   let assets: StitchAsset[];
   let open: A11yOpen[] = [];
   try {
-    projectId = await c.createProject(title);
-    await c.createDesignSystem(projectId, title, { ...m.output.theme, designMd: md });
-    ctx.log(`design: Stitch project ${projectId}, drawing ${plan.screens.length} screens with Stitch's default model, ${STITCH_SIDE_BY_SIDE} at a time`);
+    progress = saved ?? { key, projectId: await c.createProject(title), system: false, assets: [] };
+    saveProgress(ctx, progress);
+    if (!progress.system) {
+      await c.createDesignSystem(progress.projectId, title, { ...m.output.theme, designMd: md });
+      progress.system = true;
+      saveProgress(ctx, progress);
+    }
+    if (saved) ctx.log(`design: resuming Stitch project ${progress.projectId}: ${saved.assets.length} drawn frame(s) kept, ${todo.length} to draw`);
+    else ctx.log(`design: Stitch project ${progress.projectId}, drawing ${plan.screens.length} screens with Stitch's default model, ${STITCH_SIDE_BY_SIDE} at a time`);
     mkdirSync(framesDir, { recursive: true });
-    const jobs = stitchJobs(plan.screens, allowed);
     if (jobs.length > plan.screens.length) ctx.log(`design: ${jobs.length - plan.screens.length} extra state(s) drawn too (${allowed.join(", ")})`);
-    assets = await inPool(jobs, STITCH_SIDE_BY_SIDE, async (j) => saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(projectId, j.prompt, device)));
-    ({ assets, open } = await fixA11y(ctx, c, framesDir, projectId, device, assets, assets.map((x) => x.id)));
+    // after a fault no new screen is started, and the ones under way are waited for and kept: they are paid for
+    const faults: Error[] = [];
+    await inPool(todo, STITCH_SIDE_BY_SIDE, async (j) => {
+      if (faults.length) return;
+      try {
+        progress.assets.push(await saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(progress.projectId, j.prompt, device)));
+        saveProgress(ctx, progress);
+      } catch (e) { faults.push(e as Error); }
+    });
+    if (faults.length) throw faults[0];
+    if (progress.a11y) ({ assets, open } = progress.a11y);
+    else {
+      ({ assets, open } = await fixA11y(ctx, c, framesDir, progress.projectId, device, progress.assets, progress.assets.map((x) => x.id)));
+      progress.a11y = { assets, open };
+    }
+    saveProgress(ctx, { ...progress, done: true });
   } catch (e) {
     // a Stitch fault is not the model's: park for a person instead of climbing to a dearer tier and paying for every call again
     return { kind: "park", reason: `Stitch failed: ${(e as Error).message}. Check the Stitch service, its quota and STITCH_API_KEY, then resume.` };
   } finally {
     await c.close().catch(() => undefined);
   }
+  const projectId = progress.projectId;
   const drawn = stitchArtifact(plan, assets, { projectId, model: STITCH_MODEL, designMd: mdSha, theme: m.output.theme, mood: plan.flow }, reqIds);
   // a whole redraw answers every send-back so far too
   const answered = inputs.feedback?.length ? { revision: inputs.feedback.length, ...(inputs.previous?.rework?.length ? { rework: inputs.previous.rework } : {}) } : {};

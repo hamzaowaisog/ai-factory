@@ -36,11 +36,44 @@ function sdkClient(apiKey: string): StitchClient {
       return { screenId: screen.id, htmlUrl: await screen.getHtml(), imageUrl: await screen.getImage() };
     },
     async download(url) {
-      const res = await fetch(url);
+      // the fetch itself is cut off at the time limit, not only abandoned
+      const res = await fetch(url, { signal: AbortSignal.timeout(timeouts.downloadMs) });
       if (!res.ok) throw new Error(`Stitch download failed: ${res.status} ${url}`);
-      return new Uint8Array(await res.arrayBuffer());
+      if (Number(res.headers.get("content-length") ?? 0) > MAX_DOWNLOAD) throw new Error(`Stitch download too large: ${url}`);
+      const body = new Uint8Array(await res.arrayBuffer());
+      if (body.length > MAX_DOWNLOAD) throw new Error(`Stitch download too large: ${url}`);
+      return body;
     },
     close: () => tools.close(),
+  };
+}
+
+/** A Stitch page or picture is far smaller than this; anything bigger is not one. */
+const MAX_DOWNLOAD = 25_000_000;
+/**
+ * How long one Stitch call and one download may take. A generation takes about 100 seconds; a call or download that never
+ * answers would otherwise hold the run (and its lock) for good.
+ */
+export const STITCH_TIMEOUTS = { callMs: 300_000, downloadMs: 60_000 } as const;
+let timeouts: { callMs: number; downloadMs: number } = { ...STITCH_TIMEOUTS };
+/** Tests shorten the limits; undefined goes back to STITCH_TIMEOUTS. */
+export function setStitchTimeouts(t: { callMs: number; downloadMs: number } | undefined): void { timeouts = { ...(t ?? STITCH_TIMEOUTS) }; }
+
+function within<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(`Stitch ${what} timed out after ${Math.round(ms / 1000)} s`)), ms); });
+  return Promise.race([p, late]).finally(() => clearTimeout(timer));
+}
+
+/** Every call and download with its time limit, whichever client is behind it. */
+function timed(c: StitchClient): StitchClient {
+  return {
+    createProject: (title) => within(c.createProject(title), timeouts.callMs, "create_project"),
+    createDesignSystem: (p, name, theme) => within(c.createDesignSystem(p, name, theme), timeouts.callMs, "create_design_system"),
+    generate: (p, prompt, device) => within(c.generate(p, prompt, device), timeouts.callMs, "generate_screen"),
+    edit: (p, id, prompt, device) => within(c.edit(p, id, prompt, device), timeouts.callMs, "edit_screens"),
+    download: (url) => within(c.download(url), timeouts.downloadMs, "download"),
+    close: () => within(c.close(), timeouts.downloadMs, "close"),
   };
 }
 
@@ -49,8 +82,8 @@ let factory: (() => StitchClient) | undefined;
 export function setStitchFactory(f: (() => StitchClient) | undefined): void { factory = f; }
 
 export function stitchClient(): StitchClient {
-  if (factory) return factory();
+  if (factory) return timed(factory());
   const key = secret("STITCH_API_KEY");
   if (!key) throw new Error("STITCH_API_KEY is missing from ~/.factory/.env; the stitch design engine needs it");
-  return sdkClient(key);
+  return timed(sdkClient(key));
 }

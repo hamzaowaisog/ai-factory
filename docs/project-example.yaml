@@ -53,6 +53,11 @@ agentEnv:                          # dummy values so the app compiles where the 
 #     light:    { openai: gpt-6-luna }
 #     standard: { openai: gpt-6-sol }   # every model here needs a price under prices:
 #   allowStitch: false               # Stitch sends the requirements to Google; off by default
+#   stitch:                          # the stitch engine (engine: stitch)
+#     device: DESKTOP                # MOBILE | DESKTOP | TABLET | AGNOSTIC
+#     states: [empty, error]         # extra states drawn per screen that lists them; each is one more call
+#     maxCalls: 40                   # most Stitch calls per run (draws, edits, fixes); the run parks before passing it
+#     usdPerCall: 0                  # USD per call, counted in the run's cost limit; Stitch is free within its quota today
 #   navRaises: false                 # true: a navigation change counts as a new screen
 #   uiTarget: next-shadcn            # what the approved design is built in: next-shadcn, vite-shadcn, or repo (its own components);
 #                                    # unset: --ui-target, then detection from the repo (factory design target <repo>)

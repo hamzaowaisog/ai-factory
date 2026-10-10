@@ -15,9 +15,8 @@ describe("stitch client", () => {
     process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "stitch-")); delete process.env.STITCH_API_KEY; _resetEnvCache();
     expect(() => stitchClient()).toThrow(/STITCH_API_KEY/);
   });
-  it("uses the factory a test sets", () => {
-    const fake = { createProject: async () => "p1" } as never;
-    setStitchFactory(() => fake);
-    expect(stitchClient()).toBe(fake);
+  it("uses the factory a test sets, behind the time limits", async () => {
+    setStitchFactory(() => ({ createProject: async () => "p1" }) as never);
+    expect(await stitchClient().createProject("t")).toBe("p1");
   });
 });
