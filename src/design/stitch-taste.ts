@@ -1,5 +1,6 @@
 // The Stitch design system (DESIGN.md), written by following the installed stitch-design-taste skill
 // (.agents/skills/stitch-design-taste/SKILL.md). The skill sets the taste; the client's brand and existing look come first.
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
@@ -7,13 +8,32 @@ import { z } from "zod";
 /** From src/design or dist/design, two levels up is the factory's root. */
 export const TASTE_SKILL_PATH = fileURLToPath(new URL("../../.agents/skills/stitch-design-taste/SKILL.md", import.meta.url));
 
-/** A start-up problem when the skill is not installed, so a stitch run fails before it pays for any model call. */
-export function tasteSkillProblem(path = TASTE_SKILL_PATH): string | undefined {
-  return existsSync(path) ? undefined : `design.engine is stitch, but the stitch-design-taste skill is missing at ${path}; install it (skills-lock.json) before using the stitch engine`;
+/**
+ * The SHA-256 of the reviewed SKILL.md (line endings as LF): Leonxlnx/taste-skill, skills/stitch-skill, MIT (LICENSE beside it),
+ * with this repository's EXTENDED RULES added (NOTICE.md).
+ * The skill is a third party's text that goes into every DESIGN.md briefing, so a copy that differs is refused until someone
+ * reviews the change and updates this pin.
+ */
+export const TASTE_SKILL_SHA256 = "103758ea353c3c64995a01e149ace7815f36207612b6c026642bb31d56423ae5";
+
+const digest = (text: string) => createHash("sha256").update(text.replace(/\r\n/g, "\n")).digest("hex");
+
+/** What is wrong with the installed skill, if anything: missing, or not the reviewed copy. The pin applies to the installed path. */
+function skillFault(path: string, pinned: string | undefined): string | undefined {
+  if (!existsSync(path)) return `the stitch-design-taste skill is missing at ${path}; install it (skills-lock.json) before using the stitch engine`;
+  const sha = pinned ? digest(readFileSync(path, "utf8")) : undefined;
+  return sha && sha !== pinned ? `the stitch-design-taste skill at ${path} is not the reviewed copy (sha256 ${sha.slice(0, 12)}, pinned ${pinned!.slice(0, 12)}); review the change and update TASTE_SKILL_SHA256 in src/design/stitch-taste.ts` : undefined;
 }
 
-export function loadTasteSkill(path = TASTE_SKILL_PATH): string {
-  if (!existsSync(path)) throw new Error(`The stitch-design-taste skill is missing at ${path}; install it (skills-lock.json) before using the stitch engine`);
+/** A start-up problem when the skill is missing or changed, so a stitch run fails before it pays for any model call. */
+export function tasteSkillProblem(path = TASTE_SKILL_PATH, pinned = path === TASTE_SKILL_PATH ? TASTE_SKILL_SHA256 : undefined): string | undefined {
+  const fault = skillFault(path, pinned);
+  return fault ? `design.engine is stitch, but ${fault}` : undefined;
+}
+
+export function loadTasteSkill(path = TASTE_SKILL_PATH, pinned = path === TASTE_SKILL_PATH ? TASTE_SKILL_SHA256 : undefined): string {
+  const fault = skillFault(path, pinned);
+  if (fault) throw new Error(fault.charAt(0).toUpperCase() + fault.slice(1));
   return readFileSync(path, "utf8").replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "").trim();
 }
 

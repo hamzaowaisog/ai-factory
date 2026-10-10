@@ -55,3 +55,31 @@ describe("the Stitch theme", () => {
     expect(DesignMdOut.safeParse({ designMd, theme: { ...theme, customColor: "teal" } }).success).toBe(false);
   });
 });
+
+describe("the committed skill (PR review)", () => {
+  it("is the reviewed copy: its hash matches the pin, whatever the line endings", async () => {
+    const { tasteSkillProblem, TASTE_SKILL_SHA256 } = await import("./stitch-taste.js");
+    expect(tasteSkillProblem()).toBeUndefined();
+    const dir = mkdtempSync(join(tmpdir(), "taste-"));
+    writeFileSync(join(dir, "lf.md"), "# skill\nrules\n");
+    writeFileSync(join(dir, "crlf.md"), "# skill\r\nrules\r\n");
+    const { createHash } = await import("node:crypto");
+    const pin = createHash("sha256").update("# skill\nrules\n").digest("hex");
+    expect(tasteSkillProblem(join(dir, "crlf.md"), pin)).toBeUndefined();
+    expect(TASTE_SKILL_SHA256).toMatch(/^[0-9a-f]{64}$/);
+  });
+  it("refuses a skill that was changed after review, at start-up and when loaded", async () => {
+    const { tasteSkillProblem } = await import("./stitch-taste.js");
+    const f = join(mkdtempSync(join(tmpdir(), "taste-")), "SKILL.md");
+    writeFileSync(f, "# a changed skill");
+    expect(tasteSkillProblem(f, "0".repeat(64))).toMatch(/not the reviewed copy/);
+    expect(() => loadTasteSkill(f, "0".repeat(64))).toThrow(/not the reviewed copy/);
+  });
+  it("carries the upstream MIT licence beside it", async () => {
+    const { existsSync, readFileSync } = await import("node:fs");
+    const { dirname } = await import("node:path");
+    const licence = join(dirname(TASTE_SKILL_PATH), "LICENSE");
+    expect(existsSync(licence)).toBe(true);
+    expect(readFileSync(licence, "utf8")).toMatch(/MIT License[\s\S]*Copyright \(c\) 2026 Leonxlnx/);
+  });
+});
