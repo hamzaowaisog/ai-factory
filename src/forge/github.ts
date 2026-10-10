@@ -60,7 +60,7 @@ export async function listOpenPrs(gh: Gh, f: typeof fetch = fetch): Promise<{ nu
 export async function listChecks(gh: Gh, sha: string, required: string[], f: typeof fetch = fetch): Promise<ExternalChecks> {
   const runs = (await ok(await f(`${gh.api}/commits/${sha}/check-runs?per_page=100`, { headers: gh.headers }), "check-runs")) as
     { check_runs: { name: string; status: string; conclusion?: string; details_url?: string; completed_at?: string }[] };
-  const statuses = (await ok(await f(`${gh.api}/commits/${sha}/status`, { headers: gh.headers }), "status")) as
+  const statuses = (await ok(await f(`${gh.api}/commits/${sha}/status?per_page=100`, { headers: gh.headers }), "status")) as
     { statuses: { context: string; state: keyof typeof STATE_TO_STATUS; target_url?: string }[] };
   return {
     headSha: sha,
@@ -88,9 +88,11 @@ export async function listChecks(gh: Gh, sha: string, required: string[], f: typ
 /**
  * The latest state of one context on a commit, read from the combined status. `undefined` when the
  * commit has none, or only a pending one. `error` reads as failure, as a required check treats it.
+ * 100 contexts are asked for: GitHub returns 30 by default, and a verdict past them would read as
+ * missing and be posted again on every pass.
  */
 export async function commitStatus(gh: Gh, sha: string, context: string, f: typeof fetch = fetch): Promise<"success" | "failure" | undefined> {
-  const combined = (await ok(await f(`${gh.api}/commits/${sha}/status`, { headers: gh.headers }), "status")) as
+  const combined = (await ok(await f(`${gh.api}/commits/${sha}/status?per_page=100`, { headers: gh.headers }), "status")) as
     { statuses: { context: string; state: keyof typeof STATE_TO_STATUS }[] };
   const s = combined.statuses.find((x) => x.context === context);
   if (!s || s.state === "pending") return undefined;

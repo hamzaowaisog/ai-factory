@@ -1,7 +1,7 @@
 // Hardened host git (run-manager §2.10): no hooks, no fsmonitor, no user/system config,
 // so no filter drivers (LFS etc.) and no repo code ever runs on the host.
 import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { matchesAny } from "../util/glob.js";
@@ -99,6 +99,9 @@ export async function removeWorktree(repo: string, wtPath: string): Promise<void
  */
 export async function freshWorktree(repo: string, wtPath: string, branch: string, base: string, runId: string): Promise<void> {
   if (existsSync(wtPath)) await removeWorktree(repo, wtPath).catch(() => undefined);
+  // a folder git no longer knows as a worktree (its record was pruned) is not removed by git, and
+  // `worktree add` refuses a path that is there and not empty
+  rmSync(wtPath, { recursive: true, force: true });
   // the administrative record outlives the directory; without this git still calls the path in use
   await git(repo, ["worktree", "prune"]).catch(() => undefined);
   await git(repo, ["branch", "-D", branch]).catch(() => undefined);

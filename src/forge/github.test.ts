@@ -54,7 +54,7 @@ describe("commitStatus", () => {
   it("reads the latest state of one context from the combined status", async () => {
     const f = vi.fn().mockResolvedValueOnce(json({ statuses: [{ context: "ci/x", state: "failure" }, { context: "factory/merge-gate", state: "success" }] }));
     expect(await commitStatus(gh, SHA, "factory/merge-gate", f as never)).toBe("success");
-    expect(f.mock.calls[0]![0]).toBe(`${gh.api}/commits/${SHA}/status`);
+    expect(f.mock.calls[0]![0]).toBe(`${gh.api}/commits/${SHA}/status?per_page=100`);
   });
 
   it("is undefined when the commit has no status under that context, or only a pending one", async () => {

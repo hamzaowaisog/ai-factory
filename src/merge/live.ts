@@ -31,7 +31,7 @@ import { DEFAULT_POLICY, mergePolicy, type Policy } from "../gates/policy.js";
 import { proposeRepair, repairIsEmpty } from "./repair-run.js";
 import { runMergeReview } from "./review-run.js";
 import type { MergeResult, ReviewPrDeps } from "./orchestrate.js";
-import type { TestRun } from "../contracts/index.js";
+import type { BuildRun, TestResult, TestRun } from "../contracts/index.js";
 import type { GroupDeps } from "./group-run.js";
 import { repairTrailer, resolveRunId } from "./sync.js";
 
@@ -69,6 +69,9 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
   // what the verify pass actually found. review-2 is shown these, and telling it the tests were
   // clean when they were not would make its judgement worthless.
   let lastVerify: { lint: { findings: unknown[] }; verification: { failed: string[]; flaky: string[] } } | undefined;
+  // why the merge result failed: the compile errors, or each failing test's message. A repair has no
+  // shell, so without this it is given test names and has to guess what broke.
+  let lastFailure: string | undefined;
 
   return {
     ...forge,
@@ -117,6 +120,7 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
           flaky: out.testRun.results.filter((r) => r.flaky).map((r) => r.id).sort(),
         },
       };
+      lastFailure = failureDetail(out.build, out.testRun.results, lastVerify.verification.failed);
       const evidence: MergeEvidence = {
         // no lint here: the run records no lint baseline, so every warning already in a touched file
         // would count as new, and the build never ran this gate either. review-2 still reads the findings.
@@ -151,6 +155,10 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       const routed = projectForRun(o.cfg, state.info.routes);
       const conv = readApproved(o.cfg.project);
       if ("unapproved" in conv) throw new Error(conv.unapproved);
+
+      // a step picked onto a GPT model with no OpenAI key: said plainly, not left to fail in the provider
+      const reviewer = modelFor(routed, "review-2", 0);
+      if (reviewer.blocked) throw new Error(reviewer.blocked);
 
       const diff = ledger.getArtifact(a.diffSha).toString("utf8");
       const lock = ledger.getJson<{ tests: Review2Inputs["acTests"]["tests"] }>(state.steps.get("author-tests")!.outputs[0]!);
@@ -214,6 +222,9 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       const ledger = Ledger.open(a.runId);
       const state = replay(ledger.events());
       const routed = projectForRun(o.cfg, state.info.routes);
+      // the repair runs on the run's coding model, which may be a GPT one: without its key nothing is paid for
+      const coder = modelFor(routed, "implement", 0);
+      if (coder.blocked) return { made: false, why: coder.blocked };
       const lock = ledger.getJson<{ lock: { file: string }[] }>(state.steps.get("author-tests")!.outputs[0]!);
       const wt = reverifyWorktree(a.runId);
       // the model reads the MERGED tree: for a conflict the working tree with its markers and both
@@ -225,7 +236,8 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       const proposal = await proposeRepair({
         snap, lockedFiles: lock.lock.map((x) => x.file), cls,
         subject: a.subject, noGo: o.cfg.noGo, log: o.log,
-        model: modelFor(routed, "implement", 0).model,
+        ...(cls === "broken-merge" && lastFailure ? { failureDetail: lastFailure } : {}),
+        model: coder.model,
         stronger: modelFor(routed, "implement", 2).model,
       }, a.runId);
 
@@ -281,6 +293,17 @@ ${proposal.trailer}`, proposal.edits.map((e) => e.path));
 
     now: () => Date.now(),
   };
+}
+
+/** Why the merge result failed, for the repair: compile errors first, since then no test ran at all. */
+export function failureDetail(build: BuildRun, results: TestResult[], failed: string[]): string | undefined {
+  if (!build.ok) {
+    const errors = build.errors.slice(0, 15).map((e) => `- ${e.file ? `${e.file}:${e.line} ` : ""}${e.code} ${e.msg}`);
+    return `The merge result does not build, so no test could run:\n${errors.join("\n") || "- see the build log"}`;
+  }
+  const said = results.filter((r) => failed.includes(r.id) && r.message)
+    .slice(0, 10).map((r) => `- ${r.id}: ${r.message!.slice(0, 600)}`);
+  return said.length ? `What the failing tests reported:\n${said.join("\n")}` : undefined;
 }
 
 /** Secret-scan hits in the lines a diff adds, file by file, the way deliver scans a branch. */

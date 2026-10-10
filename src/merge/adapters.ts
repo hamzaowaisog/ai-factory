@@ -1,7 +1,7 @@
 // The thin layer between `reviewPr`'s decisions and the real world. Everything here touches the
 // ledger, a worktree, Docker or GitHub — which is why it is kept separate from orchestrate.ts,
 // where the decisions live and can be tested without any of them.
-import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { existsSync, lstatSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
@@ -295,8 +295,12 @@ const CONFLICT_MARKER = /^(<{7}|>{7})(\s|$)/m;
 export function insideWorktree(wt: string, rel: string): boolean {
   const root = realpathSync(wt);
   let p = resolve(wt, rel);
+  // a link that points at nothing yet does not "exist", but a write to it creates its target
+  // wherever that is, so a link is refused as soon as its target cannot be resolved
+  const there = (x: string) => { try { return lstatSync(x); } catch { return undefined; } };
   // the deepest part of the path that exists is where the write would really land
-  while (!existsSync(p) && dirname(p) !== p) p = dirname(p);
+  while (!there(p) && dirname(p) !== p) p = dirname(p);
+  if (there(p)?.isSymbolicLink() && !existsSync(p)) return false;
   const real = realpathSync(p);
   return real === root || real.startsWith(root + sep);
 }

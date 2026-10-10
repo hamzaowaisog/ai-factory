@@ -171,6 +171,13 @@ describe("final review fixes", () => {
     expect(insideWorktree(wt, "docs/.env")).toBe(false);
     expect(insideWorktree(wt, "src/new/File.cs")).toBe(true);
   });
+
+  it("refuses a write to a link whose target does not exist yet, which the write would create outside", () => {
+    const wt = mkdtempSync(join(tmpdir(), "factory-wt-"));
+    const outside = mkdtempSync(join(tmpdir(), "factory-out-"));
+    try { symlinkSync(join(outside, "new.env"), join(wt, "notes.md")); } catch { return; }   // no symlink rights here
+    expect(insideWorktree(wt, "notes.md")).toBe(false);
+  });
 });
 
 describe("judging the merge result against the run's own tests", () => {

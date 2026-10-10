@@ -72,6 +72,18 @@ describe("hardened git", () => {
     expect(await headSha(wt)).toBe(base);
   });
 
+  it("builds over a folder that is in the way and is not a worktree", async () => {
+    const repo = makeRepo();
+    const base = await headSha(repo);
+    const wt = join(mkdtempSync(join(tmpdir(), "factory-wt-")), "w3");
+    mkdirSync(wt);
+    writeFileSync(join(wt, "stale.txt"), "left by a pass that was killed");
+
+    await freshWorktree(repo, wt, "factory/reverify-2", base, "run-2");
+    expect(existsSync(join(wt, "stale.txt"))).toBe(false);
+    expect(await headSha(wt)).toBe(base);
+  });
+
   it("refuses submodules", async () => {
     const repo = makeRepo();
     writeFileSync(join(repo, ".gitmodules"), "");
