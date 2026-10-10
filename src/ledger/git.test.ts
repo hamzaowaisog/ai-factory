@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { addWorktree, changedFiles, commitAll, diffIncludingUntracked, git, headSha, removeWorktree, repoRefusals, resetHard, trackIgnored } from "./git.js";
+import { addWorktree, changedFiles, commitAll, diffIncludingUntracked, excludeLocally, git, headSha, removeWorktree, repoRefusals, resetHard, trackIgnored } from "./git.js";
 
 function makeRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "factory-git-"));
@@ -59,6 +59,19 @@ describe("hardened git", () => {
     const repo = makeRepo();
     writeFileSync(join(repo, ".gitmodules"), "");
     expect((await repoRefusals(repo)).map((r) => r.code)).toContain("submodules");
+  });
+  it("keeps a file the build writes out of a commit when the repo's ignore rule misses it (run e1b5)", async () => {
+    const repo = makeRepo();
+    // anchored at the root, so it does not match App.Api/openapi/built.json
+    writeFileSync(join(repo, ".gitignore"), "openapi/*.json\n");
+    const start = await commitAll(repo, "ignore");
+    await excludeLocally(repo, ["App.Api/openapi/built.json"]);
+    await excludeLocally(repo, ["App.Api/openapi/built.json"]);
+    mkdirSync(join(repo, "App.Api", "openapi"), { recursive: true });
+    for (const f of ["App.Api/openapi/built.json", "App.Api/Program.cs"]) writeFileSync(join(repo, f), "x\n");
+    const commit = await commitAll(repo, "task");
+    expect((await changedFiles(repo, start, commit)).map((f) => f.path)).toEqual(["App.Api/Program.cs"]);
+    expect((await git(repo, ["status", "--porcelain"])).stdout).toBe("");
   });
   it("commits a file the plan names even when an ignore rule hides it, and keeps it through a clean", async () => {
     const repo = makeRepo();

@@ -35,6 +35,11 @@ ${body}    }
 `;
 
 export const HEALTH_LINE = 'app.MapGet("/", () => "API is up").ExcludeFromDescription();';
+/** The running API serves its own document and a page to read and try it. Neither is an operation, so the built document (and the contract check) is unchanged. */
+export const SWAGGER_PATH = "/swagger";
+export const SWAGGER_LINES = `// The API's own document (/openapi/v1.json) and a page to read and try it (${SWAGGER_PATH}). Keep both: the factory's product page links to the page.
+app.MapOpenApi();
+app.UseSwaggerUI(o => o.SwaggerEndpoint("/openapi/v1.json", "API"));`;
 export const apiProgram = (routes: string) => `using App.Api;
 using Microsoft.EntityFrameworkCore;
 
@@ -63,6 +68,7 @@ if (System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name != "GetDocumen
 }
 app.UseCors();
 ${HEALTH_LINE}
+${SWAGGER_LINES}
 ${routes}
 app.Run();
 
@@ -112,6 +118,7 @@ EndGlobal
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.3.2" />
   </ItemGroup>
 </Project>
 `,
@@ -155,7 +162,8 @@ public class HealthTests : IClassFixture<WebApplicationFactory<Program>>
     }
 }
 `,
-  // only the built document: `openapi/` alone also hides a source folder named OpenApi/ on a Mac
-  ".gitignore": "bin/\nobj/\nopenapi/*.json\n",
+  // only the built document, by its full path: `openapi/` alone also hides a source folder named OpenApi/ on a Mac, and
+  // `openapi/*.json` only matches a folder at the repo's root, so the document was committed with a task (run e1b5)
+  ".gitignore": `bin/\nobj/\n${API_BUILT_DOC.replace(/[^/]+$/, "*.json")}\n`,
 };
 

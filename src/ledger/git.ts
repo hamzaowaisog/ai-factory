@@ -1,8 +1,8 @@
 // Hardened host git (run-manager §2.10): no hooks, no fsmonitor, no user/system config,
 // so no filter drivers (LFS etc.) and no repo code ever runs on the host.
 import { execFile } from "node:child_process";
-import { existsSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { matchesAny } from "../util/glob.js";
 
@@ -96,6 +96,22 @@ export async function commitAll(wt: string, message: string): Promise<string> {
   await git(wt, ["add", "-A"]);
   await git(wt, ["commit", "--no-verify", "--allow-empty", "-m", message]);
   return headSha(wt);
+}
+
+/**
+ * Keep files the build writes out of every commit and diff of this repo's worktrees, whatever its own ignore rules say
+ * (in .git/info/exclude, which is never committed). The API document a build writes was committed with a task and failed
+ * its file scope three times, because the repo's rule `openapi/*.json` only matches at the repo's root (run e1b5).
+ */
+export async function excludeLocally(wt: string, files: string[]): Promise<void> {
+  if (!files.length) return;
+  const { stdout } = await git(wt, ["rev-parse", "--path-format=absolute", "--git-path", "info/exclude"]);
+  const file = stdout.trim();
+  const have = existsSync(file) ? readFileSync(file, "utf8") : "";
+  const lines = files.map((f) => `/${f}`).filter((l) => !have.split("\n").includes(l));
+  if (!lines.length) return;
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, `${have}${have && !have.endsWith("\n") ? "\n" : ""}${lines.join("\n")}\n`);
 }
 
 /**

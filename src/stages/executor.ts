@@ -267,7 +267,9 @@ function attemptHistory(ledger: Ledger, step: string): AttemptRecord[] {
   const lastRaise = Math.max(-1, ...all.filter((e) => e.type === "human.decided" && (e.data as { decision?: string; extraAttempts?: number })?.decision === "waive-cap" && typeof (e.data as { extraAttempts?: number }).extraAttempts === "number").map((e) => e.seq));
   // a round of questions about the step's failing checks starts it fresh too (src/stages/gate-questions.ts)
   const lastRound = Math.max(-1, ...evs.filter((e) => e.type === "step.failed" && (e.data as { action?: string } | undefined)?.action === "questions").map((e) => e.seq));
-  const since = Math.max(lastDone, lastRaise, lastRound);
+  // a person unlocking a file changes what the step can do: its failures before that say nothing about now
+  const lastUnlock = Math.max(-1, ...all.filter((e) => e.type === "human.decided" && (e.data as { decision?: string })?.decision === "unlock").map((e) => e.seq));
+  const since = Math.max(lastDone, lastRaise, lastRound, lastUnlock);
   return evs.filter((e) => e.type === "step.failed" && e.seq > since && !(e.data as { parked?: boolean })?.parked && !outOfCredit(ledger, e))
     .map((e) => e.data as unknown as AttemptRecord);
 }

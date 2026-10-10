@@ -124,7 +124,7 @@ const LABEL_ONLY = new Set(["items", "rows"]);
 
 /**
  * The words a block must show: its title and label, its columns, buttons, tabs and segments, its fields' and figures' labels. On a
- * phone a search's filters fold behind a Filters button, so their titles are not asked for there.
+ * phone a search's filters fold behind a Filters button and a toolbar's dropdowns and buttons into a menu, so those are not asked for there.
  */
 export function blockWords(b: Block, phone = false): string[] {
   const out: string[] = [];
@@ -133,6 +133,8 @@ export function blockWords(b: Block, phone = false): string[] {
     for (const [k, v] of Object.entries(o)) {
       if (only ? k === only : WORD_KEYS.has(k)) add(v);
       if (depth > 0 || !Array.isArray(v)) continue;
+      // the kit's toolbar folds its dropdowns and buttons into a "More" menu on a phone (kits/shadcn toolbar.tsx): closed, it shows none of them
+      if (phone && b.type === "toolbar" && (k === "buttons" || k === "selects")) continue;
       if (LIST_KEYS.has(k)) v.forEach((x) => typeof x === "string" && add(x));
       if (phone && k === "facets") continue;
       if (PART_KEYS.has(k) || LABEL_ONLY.has(k)) for (const x of v) if (x && typeof x === "object") walk(x as Record<string, unknown>, depth + 1, LABEL_ONLY.has(k) ? "label" : undefined);

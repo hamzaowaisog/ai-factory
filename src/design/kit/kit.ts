@@ -46,6 +46,8 @@ export const KitManifest = z.object({
   dependencies: z.record(z.string(), z.string()),
   targetDependencies: z.record(z.string(), z.record(z.string(), z.string())),
   devDependencies: z.record(z.string(), z.record(z.string(), z.string())),
+  /** npm overrides for a fresh app: a package pinned to the one version the kit's own packages use, so they share a single copy of it */
+  overrides: z.record(z.string(), z.string()).default({}),
   blocks: z.record(z.string(), Part), controls: z.record(z.string(), Part), overlays: z.record(z.string(), Part), parts: z.record(z.string(), Part),
   responsive: z.array(z.object({ block: z.string().optional(), part: z.string().optional(), shell: z.string().optional(), below: z.string(), becomes: z.string() })),
 });

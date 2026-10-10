@@ -16,7 +16,7 @@ import "../estimate/lint.js";
 import "../estimate/gates.js";
 import { registerDesignCommands } from "../design/cli.js";
 import { registerFullstackCommands } from "../fullstack/cli.js";
-import { assertTty, decide, DecisionError } from "../ledger/human.js";
+import { assertTty, decide, DecisionError, unlock } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { MAX_BUDGET_CEILING, replay } from "../ledger/state.js";
 import { shownStatus, statusHint } from "../stages/run-status.js";
@@ -350,6 +350,20 @@ program.command("waive-budget").argument("<run>").argument("<hash>", "first char
     if (r.kind === "repeat") return log("Already recorded.");
     log(`Limit raised to ${Math.round((ceiling as number) * 100)}% of the approved maximum, recorded with your name. Continuing…`);
     await runAndReport(l.runId);
+  });
+
+program.command("unlock").argument("<run>").argument("<files...>", "locked files that are not tests")
+  .requiredOption("--reason <text>", "why the file has to change")
+  .description("take a locked file that is not a test out of this run's locked set, so a task that has it in its file scope can change it (terminal only; then factory resume)")
+  .action(async (run: string, files: string[], o: { reason: string }) => {
+    assertTty();
+    const l = openRun(run);
+    const st = replay(l.events());
+    const sha = st.steps.get("author-tests")?.outputs[0];
+    if (!sha) throw new DecisionError("This run has no locked files yet.");
+    const lock = l.getJson<{ lock: { file: string }[]; tests: { file: string }[]; characterisation?: { file: string }[] }>(sha);
+    await unlock(l, { files, reason: o.reason, lockSha: sha, locked: lock.lock.map((x) => x.file), tests: [...lock.tests, ...(lock.characterisation ?? [])].map((x) => x.file) });
+    log(`Unlocked for this run: ${files.join(", ")}. Continue with: factory resume ${l.runId}`);
   });
 
 program.command("waive-cap").argument("<run>").argument("<hash>", "first characters of the limit card's hash")

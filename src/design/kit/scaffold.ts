@@ -376,6 +376,7 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
       name, version: "0.1.0", private: true, type: "module",
       scripts: { ...(next ? { dev: "next dev", build: "next build", start: "next start" } : { dev: "vite", build: "tsc -b && vite build", preview: "vite preview" }), test: "vitest run", "test:design": `playwright test -c ${E2E_CONFIG}` },
       dependencies: sorted(kitDeps), devDependencies: sorted({ ...devDeps, ...SCREEN_TEST_PACKAGES, "@playwright/test": PLAYWRIGHT_VERSION, vitest: VITEST_VERSION }),
+      ...(Object.keys(o.kit.manifest.overrides).length ? { overrides: sorted(o.kit.manifest.overrides) } : {}),
     }) + "\n", "app", false);
     // the factory's acceptance tests (a build of a new product writes them in tests/): vitest runs those, never the design's Playwright tests
     // a screen test is a .tsx file: JSX is compiled here whatever tsconfig says (Next keeps it "preserve"), and the setup file runs first

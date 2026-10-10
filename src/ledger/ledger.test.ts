@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ExecutionLock, LockBusyError } from "./exec-lock.js";
-import { decide, DecisionError, applyExpiredDeadline, markEvalHome } from "./human.js";
+import { decide, DecisionError, applyExpiredDeadline, markEvalHome, unlock, unlockedFiles } from "./human.js";
 import { FencedOutError, HUMAN_WRITER, Ledger, LedgerCorruptError } from "./ledger.js";
 import { runSink } from "./sinks.js";
 import { canSkip, eventKey, inputsHash, replay } from "./state.js";
@@ -133,6 +133,17 @@ describe("human decisions", () => {
     const r2 = await decide(l, { decision: "approve", hashPrefix: "abcd", by: "ahsan" });
     expect(r2.kind).toBe("repeat");
     expect(l.events().filter((e) => e.type === "human.decided")).toHaveLength(1);
+  });
+
+  it("unlocks a locked file that is not a test, for this run, with a reason (run 0f9d)", async () => {
+    const l = await newRun();
+    const base = { lockSha: "a".repeat(64), locked: ["tests/a.test.ts", "lib/api/index.ts"], tests: ["tests/a.test.ts"], by: "hamza" };
+    await expect(unlock(l, { ...base, files: ["lib/api/index.ts"], reason: " " })).rejects.toThrow(/needs a reason/);
+    await expect(unlock(l, { ...base, files: ["tests/a.test.ts"], reason: "x" })).rejects.toThrow(/is a locked test/);
+    await expect(unlock(l, { ...base, files: ["lib/other.ts"], reason: "x" })).rejects.toThrow(/not a locked file/);
+    expect(unlockedFiles(l.events())).toEqual([]);
+    await unlock(l, { ...base, files: ["lib/api/index.ts"], reason: "a planned stub, locked with the generated client" });
+    expect(unlockedFiles(l.events())).toEqual([{ file: "lib/api/index.ts", by: "hamza", reason: "a planned stub, locked with the generated client" }]);
   });
 
   it("refuses \"eval\" as the person deciding, except in the eval harness's own home", async () => {

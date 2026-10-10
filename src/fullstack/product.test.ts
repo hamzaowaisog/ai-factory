@@ -37,7 +37,7 @@ describe("a full-stack product: two repos, one contract", () => {
     expect(files).not.toContain(CONTRACT_FILE);
     // the build writes the document the contract gate reads, and it is not committed
     expect(readFileSync(join(p.api.repo, "App.Api/App.Api.csproj"), "utf8")).toMatch(/OpenApiDocumentsDirectory>\$\(MSBuildProjectDirectory\)\/openapi</);
-    expect(readFileSync(join(p.api.repo, ".gitignore"), "utf8")).toMatch(/^openapi\/\*\.json$/m);
+    expect(readFileSync(join(p.api.repo, ".gitignore"), "utf8")).toMatch(/^App\.Api\/openapi\/\*\.json$/m);
   });
 
   it("refuses a bad name, a product that exists and a folder that is in use", () => {
@@ -75,6 +75,9 @@ describe("a full-stack product: two repos, one contract", () => {
     expect(read("App.Api/App.Api.csproj")).toMatch(/Npgsql\.EntityFrameworkCore\.PostgreSQL/);
     expect(read("App.Api/App.Api.csproj")).not.toMatch(/Sqlite/);
     expect(read("App.Api/Program.cs")).toMatch(/UseNpgsql\(builder\.Configuration\.GetConnectionString\("App"\)/);
+    // the running API serves its document and a Swagger page; neither is an operation, so the built document stays the contract's
+    expect(read("App.Api/Program.cs")).toMatch(/app\.MapOpenApi\(\);\napp\.UseSwaggerUI\(/);
+    expect(read("App.Api/App.Api.csproj")).toMatch(/Swashbuckle\.AspNetCore\.SwaggerUI" Version="7\.3\.2"/);
     expect(git(p.api.repo, "log", "-1", "--format=%s").trim()).toBe("API skeleton (factory fullstack): .NET 9, PostgreSQL, one test");
     // the lab starts a PostgreSQL beside the tests and hands the app its connection
     expect(loadProject("clinic-api").database).toMatchObject({ image: "postgres:16-alpine", producerEnv: { ConnectionStrings__App: expect.stringContaining("Host={{DB_HOST}}") } });

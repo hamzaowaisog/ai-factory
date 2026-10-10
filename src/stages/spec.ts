@@ -21,6 +21,7 @@ import { acOwners, slicesProblem } from "./build.js";
 import { clarifications, type ClarifyResult } from "./clarify.js";
 import { gateNotes } from "./gate-questions.js";
 import { settledText } from "./settle.js";
+import { CLIENT_DIR } from "./contract.js";
 import { CriticOut } from "./specpipe.js";
 import { describeSources } from "../sources/request.js";
 import { S, think, UNTRUSTED_NOTE } from "./think.js";
@@ -168,6 +169,18 @@ const contractRules = (file: string): string => `API CONTRACT. This product has 
 - Every JSON response carries an "example" with believable data (the approved screens' sample rows): the web app's tests run against these examples.
 - The web app calls the API only through the client generated from this file (lib/api); do not plan a hand-written client.`;
 
+/**
+ * The generated client's folder is the factory's, locked with the contract: a stub there can never be filled in, and no task
+ * writes there (run 0f9d: a planned lib/api/index.ts was locked with the client, and twenty tests called it).
+ */
+export function clientFolderProblems(plan: { stubs: { path: string }[]; tasks: { id: string; fileScope: string[] }[] }, cfile: string): string[] {
+  const inClient = (p: string) => p === CLIENT_DIR || p.startsWith(`${CLIENT_DIR}/`);
+  return [
+    ...plan.stubs.filter((st) => inClient(st.path)).map((st) => `Stub ${st.path} is in ${CLIENT_DIR}, where the factory generates the API client from ${cfile}: nobody writes a file there. Drop the stub and call the generated client (${CLIENT_DIR}/client.ts).`),
+    ...plan.tasks.flatMap((t) => t.fileScope.filter(inClient).map((g) => `${t.id} has ${g} in its fileScope: ${CLIENT_DIR} holds the client the factory generates from ${cfile}, and no task changes it. Take it out.`)),
+  ];
+}
+
 export const planStep: StepDef = {
   key: "plan", stage: "plan", templateVersion: "2",
   // a design approved in this run counts; with none the key is dropped, so the hash is what it always was
@@ -276,6 +289,7 @@ ${scaf.layout.designSystem.files.length ? "- TASK-1 is the design-system task: i
       else if (!doc) fs.push(failure("plan-contract", `${cfile} is not an OpenAPI document: ${contractReadProblem(contractStub.content) ?? 'it needs "openapi" and "paths"'}.`));
       else fs.push(...contractProblems(doc).map((m) => failure("plan-contract", m)));
     }
+    if (cfile && ctx.project.stack === "node") for (const m of clientFolderProblems(plan, cfile)) fs.push(failure("plan-contract", m));
     if (ctx.project.stack === "node" && plan.dataModel) fs.push(failure("plan-data-model", "A web app has no data model of its own: its data comes from the API. Drop dataModel."));
     else if (modelRequired && !plan.dataModel) fs.push(failure("plan-data-model", `No data model. Give dataModel: every table this plan sets up or changes, with its columns, primary key and foreign keys${impact?.entities?.length ? ` (the change touches ${impact.entities.join(", ")})` : ""}.`));
     else if (plan.dataModel) fs.push(...dataModelProblems(plan.dataModel).map((m) => failure("plan-data-model", m)));

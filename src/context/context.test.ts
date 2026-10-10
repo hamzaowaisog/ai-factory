@@ -40,6 +40,15 @@ public class OrderSync
 `;
 
 describe("secrets", () => {
+  it("does not report the password of a database on this machine, and still reports any other (run e1b5)", () => {
+    expect(scanText("a.cs", "const string c = \"Host=127.0.0.1;Port=1;Database=x;Username=nobody;Password=nobody;Timeout=3\";")).toEqual([]);
+    expect(scanText("a.json", "\"App\": \"Server=localhost;Database=x;Password=postgres1\"")).toEqual([]);
+    expect(scanText("a.cs", "\"Host=db.example.com;Username=app;Password=hunter2222\"").map((h) => h.rule)).toEqual(["password-assignment"]);
+    expect(scanText("a.cs", "\"Host=127.0.0.10;Password=hunter2222\"").map((h) => h.rule)).toEqual(["password-assignment"]);
+    // another kind of secret on the same line is still reported
+    expect(scanText("a.cs", "Host=localhost;Password=nobody1; key AKIAABCDEFGHIJKLMNOP").map((h) => h.rule)).toEqual(["aws-access-key"]);
+  });
+
   it("redacts with stable placeholders and keeps keys", () => {
     const r = new Redactor();
     const a = r.redact('Password=hunter2secret; key sk-ant-abcdefghijklmnopqrstuvwxyz0123');
