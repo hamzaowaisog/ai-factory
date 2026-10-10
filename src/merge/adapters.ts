@@ -176,6 +176,15 @@ export function worktreeExists(runId: string): boolean {
 /** Deliver writes this at one fixed path on every branch, so any two open factory PRs conflict on it. */
 export const EVIDENCE_MANIFEST = ".factory/evidence-manifest.json";
 
+/**
+ * The diff the merge gate hashes, scans and shows review-2: what the pull request adds on top of the
+ * base it now contains, without `.factory/`. Deliver writes its manifest there on every branch, so each
+ * merge to main changed every other pull request's diff and paid review-2 again for the same code.
+ */
+export async function gateDiff(wt: string, baseSha: string): Promise<string> {
+  return (await git(wt, ["diff", "--no-color", "-U5", baseSha, "HEAD", "--", ".", ":(exclude).factory/"])).stdout;
+}
+
 /** The subject of the merge commit `mergeInto` makes, which is how `commitRepair` recognises it. */
 const VERIFY_MERGE = "factory: verify the merge of";
 

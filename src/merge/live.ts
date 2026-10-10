@@ -23,7 +23,7 @@ import { HUMAN_WRITER } from "../ledger/ledger.js";
 import { diffFiles } from "../stages/deliver.js";
 import { modelFor } from "../stages/routing.js";
 import type { Review2Inputs } from "../stages/review2.js";
-import { commitRepair, commitsWithTrailers, failingTests, forgeAdapter, mergeExpectations, forgeRemote, insideWorktree, mergeInto, merging, openRunFacts, ownReviewBody, recordedVerdicts, reverifyWorktree, workingTreeCommit, worktreeExists } from "./adapters.js";
+import { commitRepair, commitsWithTrailers, failingTests, forgeAdapter, gateDiff, mergeExpectations, forgeRemote, insideWorktree, mergeInto, merging, openRunFacts, ownReviewBody, recordedVerdicts, reverifyWorktree, workingTreeCommit, worktreeExists } from "./adapters.js";
 import { plannedInputHashes, reviewEvidence, runMergeGates, type MergeEvidence } from "./gates-run.js";
 import { gateInputsHash } from "../gates/engine.js";
 import { scanText } from "../context/secrets.js";
@@ -81,7 +81,7 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
       // the merge result is committed (mergeInto, or the repair), so HEAD is what the lab builds
       const mergeSha = (await gitOut(wt, ["rev-parse", "HEAD"])).trim();
       // what this pull request adds on top of the base it now contains
-      const diff = (await git(wt, ["diff", "--no-color", "-U5", a.baseSha, "HEAD"])).stdout;
+      const diff = await gateDiff(wt, a.baseSha);
 
       const ledger = Ledger.open(a.runId);
       const diffSha = ledger.putArtifact(diff);

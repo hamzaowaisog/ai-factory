@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFil
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { commitRepair, commitsWithTrailers, EVIDENCE_MANIFEST, failingTests, insideWorktree, isFork, mergeExpectations, mergeInto, merging, workingTreeCommit } from "./adapters.js";
+import { commitRepair, commitsWithTrailers, EVIDENCE_MANIFEST, failingTests, gateDiff, insideWorktree, isFork, mergeExpectations, mergeInto, merging, workingTreeCommit } from "./adapters.js";
 import type { TestRun } from "../contracts/index.js";
 
 const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
@@ -194,6 +194,45 @@ describe("judging the merge result against the run's own tests", () => {
 
   it("counts every failure when there is no baseline to excuse one", () => {
     expect(failingTests([row("T::B", "failed"), row("T::A", "failed")], undefined)).toEqual(["T::A", "T::B"]);
+  });
+});
+
+describe("the diff the merge gate hashes and review-2 reads", () => {
+  it("leaves out .factory/, so another pull request's manifest landing on main is not a new diff to pay for", async () => {
+    const repo = mkdtempSync(join(tmpdir(), "factory-gd-"));
+    g(repo, "init", "-q", "-b", "main");
+    mkdirSync(join(repo, ".factory"), { recursive: true });
+    writeFileSync(join(repo, "a.cs"), "1\n");
+    writeFileSync(join(repo, EVIDENCE_MANIFEST), "{}\n");
+    g(repo, "add", "."); g(repo, "commit", "-q", "-m", "init");
+    const base1 = g(repo, "rev-parse", "HEAD");
+    g(repo, "checkout", "-q", "-b", "pr");
+    writeFileSync(join(repo, "a.cs"), "2\n");
+    writeFileSync(join(repo, EVIDENCE_MANIFEST), "{\"run\":\"pr\"}\n");
+    g(repo, "add", "."); g(repo, "commit", "-q", "-m", "pr");
+    // main moves only by another pull request's manifest
+    g(repo, "checkout", "-q", "main");
+    writeFileSync(join(repo, EVIDENCE_MANIFEST), "{\"run\":\"other\"}\n");
+    g(repo, "add", "."); g(repo, "commit", "-q", "-m", "other pr merged");
+    const base2 = g(repo, "rev-parse", "HEAD");
+    g(repo, "checkout", "-q", "pr");
+
+    const d1 = await gateDiff(repo, base1);
+    const d2 = await gateDiff(repo, base2);
+    expect(d1).toMatch(/a\.cs/);
+    expect(d1).not.toMatch(/\.factory/);
+    expect(d2).toBe(d1);
+  });
+
+  it("leaves out only the .factory folder, not a file whose name merely starts with it", async () => {
+    const repo = mkdtempSync(join(tmpdir(), "factory-gd-"));
+    g(repo, "init", "-q", "-b", "main");
+    writeFileSync(join(repo, ".factoryrc"), "a\n");
+    g(repo, "add", "."); g(repo, "commit", "-q", "-m", "init");
+    const base = g(repo, "rev-parse", "HEAD");
+    writeFileSync(join(repo, ".factoryrc"), "b\n");
+    g(repo, "add", "."); g(repo, "commit", "-q", "-m", "pr");
+    expect(await gateDiff(repo, base)).toMatch(/\.factoryrc/);
   });
 });
 
