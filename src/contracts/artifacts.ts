@@ -496,7 +496,11 @@ export const DesignBody = z.object({
     /** a design note's words for what changes on this page (no mock is drawn) */
     change: z.string().optional(),
     /** a Stitch screen: the words read from its HTML (src/design/stitch-facts.ts), its stand-in for the design JSON in tests and checks */
-    facts: z.object({ title: z.string().optional(), buttons: z.array(z.string()), fields: z.array(z.string()), columns: z.array(z.string()), headings: z.array(z.string()) }).optional(),
+    facts: z.object({
+      title: z.string().optional(), buttons: z.array(z.string()), fields: z.array(z.string()), columns: z.array(z.string()), headings: z.array(z.string()),
+      /** the page's UI parts in the estimate's points (src/estimate/ui-complexity.ts) */
+      ui: z.array(z.tuple([z.number(), z.string()])).optional(),
+    }).optional(),
   })),
   /** the product's apps when it has more than one (each with its own device and frame) */
   apps: z.array(DesignApp).optional(),

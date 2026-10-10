@@ -13,11 +13,11 @@ describe("facts from Stitch HTML", () => {
   it("reads the title, buttons, fields, columns and headings, without icon words or scripts", () => {
     expect(stitchFacts(html)).toEqual({
       title: "Today's Appointments", buttons: ["Book appointment", "Check in", "Save"], fields: ["Patient name", "Phone"],
-      columns: ["Time", "Patient", "Status"], headings: ["Today's Appointments", "Next up"],
+      columns: ["Time", "Patient", "Status"], headings: ["Today's Appointments", "Next up"], ui: [[2, "1 table"]],
     });
   });
   it("is empty for empty HTML", () => {
-    expect(stitchFacts("")).toEqual({ buttons: [], fields: [], columns: [], headings: [] });
+    expect(stitchFacts("")).toEqual({ buttons: [], fields: [], columns: [], headings: [], ui: [] });
   });
 });
 
@@ -151,5 +151,34 @@ describe("facts from real Stitch HTML (review I7, I8)", () => {
     const { expectedFor } = await import("./fidelity-app.js");
     const s = { id: "S-1", route: "/a", file: "x", reqs: [], states: ["empty", "error"], facts: { title: "Payees", buttons: ["Add payee"], fields: [], columns: [], headings: [] } };
     for (const slug of ["empty", "error"]) expect(expectedFor(s as never, slug)).toEqual({ page: [], blocks: [] });
+  });
+});
+
+describe("the estimate's size of a Stitch screen", () => {
+  const html = readFileSync(new URL("./fixtures/stitch-book-appointment.html", import.meta.url), "utf8");
+
+  it("counts the real Stitch form as at least moderate, with a form driver", async () => {
+    const { screenUi } = await import("../estimate/ui-complexity.js");
+    const ui = screenUi({ states: [], facts: stitchFacts(html) } as never);
+    expect(ui.level === "moderate" || ui.level === "complex").toBe(true);
+    expect(ui.drivers.join(" ")).toMatch(/form of \d+ fields/);
+    expect(ui.drivers.join(" ")).not.toMatch(/no sample page/);
+  });
+
+  it("puts a form and a table above a single button", async () => {
+    const { screenUi } = await import("../estimate/ui-complexity.js");
+    const busy = stitchFacts(`<main><h1>Payees</h1><form>${Array.from({ length: 12 }, (_, i) => `<label>F${"x".repeat(i)}</label><input type="text" required>`).join("")}<select></select><input type="date"></form><table><tr><th>Name</th></tr></table><button>Save</button></main>`);
+    const plain = stitchFacts("<main><h1>Done</h1><button>Close</button></main>");
+    const a = screenUi({ states: [], facts: busy } as never), b = screenUi({ states: [], facts: plain } as never);
+    expect(a.points).toBeGreaterThan(b.points);
+    expect(b).toMatchObject({ level: "simple", points: 0 });
+    expect(a.drivers.join(" ")).toMatch(/table/);
+    expect(a.drivers.join(" ")).toMatch(/field validation/);
+  });
+
+  it("leaves a mock screen and a facts screen without counts as they were", async () => {
+    const { screenUi } = await import("../estimate/ui-complexity.js");
+    expect(screenUi({ states: [], facts: { buttons: [], fields: [], columns: [], headings: [] } } as never).drivers).toContain("no sample page: sized from its requirements");
+    expect(screenUi({ states: [], mock: { title: "T", blocks: [{ type: "table", columns: ["A"], rows: [["1"]] }] } } as never)).toMatchObject({ level: "simple", points: 2 });
   });
 });
