@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 9,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "read_file",
+   "input": {
+    "path": "components/screens/s-2/fixtures.ts",
+    "start": 1,
+    "end": 95
+   },
+   "ms": 0,
+   "resultChars": 2780,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;components/screens/s-2/fixtures.ts&quot;,&quot;start&quot;:1,&quot;end&quot;:95}\">\ncomponents/screens/s-2/fixtures.ts lines 1-95\n1\t// Written by ai-factory from ai-factory design 20261009-co-working-space-maintenance-0f9d v1 (a8c32e2da180), approved by Hamza (via web) on 2026-10-10.\n2\t// S-2 Request detail: the approved sample data. The container passes real data in the same shape.\n3\t\n4\timport type { Block, ActionsData, DetailData } from \"@/components/blocks/types\";\n5\t\n6\t/** Each block's data, as the lead approved it (b0 detail, b1 actions). */\n7\texport const fixture = {\n8\t  b0: {\n9\t    \"lead\": {\n10\t      \"label\": \"Request ID\",\n11\t      \"value\": \"HW-2408\"\n12\t    },\n13\t    \"rows\": [\n14\t      {\n15\t        \"label\": \"Area\",\n16\t        \"value\": \"North Wing · Room 3B\"\n17\t      },\n18\t      {\n19\t        \"badge\": true,\n20\t        \"label\": \"Priority\",\n21\t        \"value\": \"High · P1\"\n22\t      },\n23\t      {\n24\t        \"badge\": true,\n25\t        \"label\": \"Status\",\n26\t        \"value\": \"In progress\"\n27\t      },\n28\t      {\n29\t        \"label\": \"Created (UTC)\",\n30\t        \"value\": \"2026-03-05\"\n31\t      },\n32\t      {\n33\t        \"label\": \"Description\",\n34\t        \"value\": \"Image cuts out after a few minutes; inspect HDMI and mount.\"\n35\t      }\n36\t    ],\n37\t    \"style\": \"card\",\n38\t    \"title\": \"Repair meeting room projector\"\n39\t  } satisfies DetailData,\n40\t  b1: {\n41\t    \"buttons\": [\n42\t      {\n43\t        \"icon\": \"check\",\n44\t        \"label\": \"Mark done\",\n45\t        \"variant\": \"primary\"\n46\t      },\n47\t      {\n48\t        \"label\": \"Back to Requests\",\n49\t        \"variant\": \"link\"\n50\t      }\n51\t    ]\n52\t  } satisfies ActionsData,\n53\t};\n54\texport type ScreenData = typeof fixture;\n55\t\n56\t/** The dense sample data of the \"Full data\" state. */\n57\texport const full: Block[] = [\n58\t  {\n59\t    \"lead\": {\n60\t      \"label\": \"Request ID\",\n61\t      \"value\": \"HW-2408\"\n62\t    },\n63\t    \"rows\": [\n64\t      {\n65\t        \"label\": \"Area\",\n66\t        \"value\": \"North Wing · Room 3B\"\n67\t      },\n68\t      {\n69\t        \"badge\": true,\n70\t        \"label\": \"Priority\",\n71\t        \"value\": \"High · P1\"\n72\t      },\n73\t      {\n74\t        \"badge\": true,\n75\t        \"label\": \"Status\",\n76\t        \"value\": \"In progress\"\n77\t      },\n78\t      {\n79\t        \"label\": \"Created (UTC)\",\n80\t        \"value\": \"2026-03-05\"\n81\t      },\n82\t      {\n83\t        \"label\": \"Description\",\n84\t        \"value\": \"Image cuts out after a few minutes; inspect HDMI and mount.\"\n85\t      }\n86\t    ],\n87\t    \"style\": \"card\",\n88\t    \"title\": \"Repair meeting room projector\",\n89\t    \"type\": \"detail\"\n90\t  },\n91\t  {\n92\t    \"buttons\": [\n93\t      {\n94\t        \"icon\": \"check\",\n95\t        \"label\": \"Mark done\",\n… (109 lines total; ask for start=96)\n</untrusted_document>"
+  }
+ ]
+}

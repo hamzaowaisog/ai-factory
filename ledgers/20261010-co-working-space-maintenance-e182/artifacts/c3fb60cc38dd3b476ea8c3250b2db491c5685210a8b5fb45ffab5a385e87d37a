@@ -1,0 +1,114 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "taskId": "EST-1",
+      "size": "small",
+      "verify": "moderate",
+      "context": "complete",
+      "reason": "1 entity (Request) with migration, persistence and seed data; seed rows do not add entities: small."
+     },
+     {
+      "taskId": "EST-2",
+      "size": "typical",
+      "verify": "easy",
+      "context": "complete",
+      "reason": "One optional status filter plus newest-first ordering and status counts: typical. The filter makes this larger than the closest approved small endpoint, which had no filter."
+     },
+     {
+      "taskId": "EST-3",
+      "size": "small",
+      "verify": "easy",
+      "context": "complete",
+      "reason": "Plain get-by-ID read with a not-found case; no filters or joins: small, matching the approved small task."
+     },
+     {
+      "taskId": "EST-4",
+      "size": "large",
+      "verify": "moderate",
+      "context": "complete",
+      "reason": "11 distinct rules: 3 creation assignments, 4 field validations, field-specific errors, fixed fields, no deletion, and an operation allowlist: large, matching the approved large task."
+     },
+     {
+      "taskId": "EST-5",
+      "size": "typical",
+      "verify": "moderate",
+      "context": "complete",
+      "reason": "8 rules: 3 allowed transitions, rejection of other transitions, unknown-ID handling, missing-body handling, unrecognized-status handling, and no edit/delete operations: typical, matching the approved typical task."
+     },
+     {
+      "taskId": "EST-6",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "One browser layout with an explicit light theme and shared responsive/accessibility UI factors: typical. The closest approved shell was small; this scope includes the explicit theme and shared UI factors."
+     },
+     {
+      "taskId": "EST-7",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "One status filter on a newest-first list, with loading/empty/error states and filter-retention behavior: typical. Responsive presentation and shared UI factors are not counted again beyond the shell."
+     },
+     {
+      "taskId": "EST-8",
+      "size": "small",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "4 labeled fields with validation and submit/cancel behavior: small (up to 5 fields). Dialog error and retry states do not add fields."
+     },
+     {
+      "taskId": "EST-9",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "A detail view with one status-dependent action at a time, plus not-found and update-failure states: typical."
+     },
+     {
+      "taskId": "EST-10",
+      "size": "typical",
+      "verify": "easy",
+      "context": "complete",
+      "reason": "3 test flows: creation/validation, status transitions, and filtered listing/not-found behavior: typical."
+     },
+     {
+      "taskId": "EST-11",
+      "size": "typical",
+      "verify": "easy",
+      "context": "complete",
+      "reason": "One multi-step list-to-completion workflow spanning list, create, detail, status changes and the Done filter; broader than a short flow: typical, matching the approved typical task."
+     },
+     {
+      "taskId": "EST-12",
+      "size": "typical",
+      "reason": "One client acceptance and regression round: typical, matching the approved typical task."
+     },
+     {
+      "taskId": "EST-13",
+      "size": "typical",
+      "reason": "Client liaison, scope decisions and sign-offs across the project; assuming about a month of delivery: typical, matching the approved typical task."
+     }
+    ],
+    "stack": {
+     "backend": "ASP.NET Core Web API",
+     "web": "React + Vite",
+     "database": "PostgreSQL",
+     "hosting": "Azure App Service for the API and Azure Static Web Apps for the web client",
+     "architecture": "Client-server SPA with a modular-monolith API",
+     "basis": "assumed",
+     "notes": "No repository or stack choice was provided. Assumed this stack and a single-region deployment for pricing; no mobile work is in scope. UI context is partial because there is no approved screen demo/design."
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

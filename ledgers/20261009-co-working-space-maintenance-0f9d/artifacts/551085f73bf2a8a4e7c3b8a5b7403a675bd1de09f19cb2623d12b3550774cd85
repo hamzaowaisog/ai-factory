@@ -1,0 +1,182 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "behaviours": [
+       {
+        "text": "A signed-in demo user, Sam Carter (shown as initials “SC”), can use the Hive Works app without a sign-in flow or role-based restrictions.",
+        "kind": "happy"
+       },
+       {
+        "text": "The app presents two screens: a requests home screen and an individual request detail screen; selecting a request opens its detail, and the detail screen provides a way back to the requests screen.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "Each stored request has a system-assigned ID and creation date, a title, area, priority, optional description, and status. The area is one of Kitchen, Meeting room, Open desk, Washroom, or Reception; priority is Low, Normal, or Urgent; status is Open, In progress, or Done.",
+        "kind": "data"
+       },
+       {
+        "text": "A request title must contain 3–80 characters, an area and priority must be supplied and be among their allowed values, and a supplied description must be no more than 500 characters. Invalid values are rejected with a message naming the offending field.",
+        "kind": "error"
+       },
+       {
+        "text": "Creation time is stored in UTC and displayed as a date only, without time or timezone handling.",
+        "kind": "data"
+       },
+       {
+        "text": "On initial shipment, the database contains exactly 8 seeded requests: 4 Open (including one Urgent), 2 In progress, and 2 Done; collectively they use every allowed area at least once.",
+        "kind": "data"
+       },
+       {
+        "text": "Created requests and seeded requests remain available after a page reload and an application restart.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "The API exposes exactly four operations: list requests (optionally filtered by one status), create a request, get one request by ID, and change a request’s status; it exposes no other API operations.",
+        "kind": "data"
+       },
+       {
+        "text": "Listing returns all matching requests newest first; without a status filter it returns all requests, and with a status filter it returns only requests of that status.",
+        "kind": "happy"
+       },
+       {
+        "text": "Creating a request returns the created request; getting an existing ID returns that request, while getting an unknown ID reports not found.",
+        "kind": "error"
+       },
+       {
+        "text": "Changing status returns the updated request when allowed and rejects an unknown ID or a disallowed status change.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "Every new request is created with status Open, regardless of any status supplied by a caller.",
+        "kind": "data"
+       },
+       {
+        "text": "The API accepts only Open → In progress, In progress → Done, and Done → Open status changes; it rejects all other transitions and leaves the request’s status unchanged.",
+        "kind": "error"
+       },
+       {
+        "text": "After creation, title, area, priority, and description cannot be changed; attempts to change them are rejected and leave those values unchanged.",
+        "kind": "error"
+       },
+       {
+        "text": "Requests cannot be deleted; a deletion attempt is not an available operation and does not remove a request.",
+        "kind": "permission"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "The home screen shows the Hive Works wordmark, the user initials SC, a New request button, and a status filter with All, Open, In progress, and Done choices. All is initially selected; selecting a choice shows the corresponding requests, newest first.",
+        "kind": "happy"
+       },
+       {
+        "text": "Each request row shows its title, area, priority badge, status badge, and created date; selecting a row opens that request’s detail screen.",
+        "kind": "happy"
+       },
+       {
+        "text": "While requests are loading, the screen shows “Loading requests…”. If the selected filter has no matching requests, it shows “No requests here.” If loading fails, it shows “Could not load requests.” and a Retry button that retries loading.",
+        "kind": "error"
+       },
+       {
+        "text": "Selecting New request opens a dialog with labeled Title, Area, Priority, and Description fields; Area and Priority are selects, Priority defaults to Normal, and the dialog provides Create and Cancel buttons.",
+        "kind": "happy"
+       },
+       {
+        "text": "Submitting invalid request fields keeps the dialog open and shows the field-specific validation message under the failing field. On successful creation the dialog closes and the new Open request appears at the top of the list.",
+        "kind": "error"
+       },
+       {
+        "text": "While a create request is being sent, Create is disabled, so repeated clicks cannot submit the same request twice.",
+        "kind": "permission"
+       }
+      ]
+     },
+     {
+      "id": "I-6",
+      "behaviours": [
+       {
+        "text": "The detail screen shows a back link, title, area, priority badge, status badge, created date, and description; when description is absent it shows “No description.”",
+        "kind": "happy"
+       },
+       {
+        "text": "For an Open request, the screen offers Start work; for In progress, Mark done; for Done, Reopen. After a successful action, the displayed status badge and available action reflect the new status.",
+        "kind": "happy"
+       },
+       {
+        "text": "If a status change fails, the screen shows “Could not update the request.” and retains the status that was displayed before the attempt.",
+        "kind": "error"
+       },
+       {
+        "text": "Opening a detail address for an unknown ID shows “Request not found.” and a link back to the requests screen.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-7",
+      "behaviours": [
+       {
+        "text": "The interface uses a single light theme, one sans-serif font, a neutral background, near-black text, and one brand colour for primary buttons; it provides no dark-mode option.",
+        "kind": "data"
+       },
+       {
+        "text": "Open badges appear blue, In progress badges amber, Done badges green, Urgent priority badges red, and Low and Normal priority badges use neutral styling. Every badge includes its text so meaning is not conveyed by colour alone.",
+        "kind": "happy"
+       },
+       {
+        "text": "At 375 px wide, request rows stack as cards; at 1280 px wide, they appear as a table. The page has no horizontal scrolling at those widths.",
+        "kind": "happy"
+       },
+       {
+        "text": "Every field has a label, all controls are keyboard reachable, and text contrast meets WCAG AA.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-8",
+      "behaviours": [
+       {
+        "text": "Automated business-rule tests verify valid creation starts Open; reject a missing or too-short title, missing area, and description over 500 characters; verify each of the three allowed status transitions and rejection of an out-of-order transition; verify status-filtered results contain only matching requests in newest-first order; and verify an unknown ID is not found.",
+        "kind": "happy"
+       },
+       {
+        "text": "An automated end-to-end workflow opens the list, creates a request, sees it at the top, opens it, starts work, marks it done, selects the Done filter, and sees the request there.",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

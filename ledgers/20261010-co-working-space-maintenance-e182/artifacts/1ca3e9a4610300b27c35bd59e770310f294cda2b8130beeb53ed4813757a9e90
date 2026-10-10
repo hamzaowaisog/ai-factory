@@ -1,0 +1,118 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "taskId": "EST-1",
+      "size": "small",
+      "verify": "moderate",
+      "context": "partial",
+      "reason": "One persisted entity (Request); migrations, restart persistence, and an eight-record seed do not increase the entity count beyond the be-data small band. Approved comparator was also small."
+     },
+     {
+      "taskId": "EST-2",
+      "size": "large",
+      "verify": "easy",
+      "context": "partial",
+      "reason": "A newest-first list with one optional status filter plus a status-count aggregate; the aggregate puts this above a plain read/filter-only endpoint. The approved same-item-count comparator was small, but did not have this aggregate scope."
+     },
+     {
+      "taskId": "EST-3",
+      "size": "small",
+      "verify": "easy",
+      "context": "partial",
+      "reason": "One plain get-by-ID query with not-found handling; matches the be-endpoint small band and the approved same-item-count small comparator."
+     },
+     {
+      "taskId": "EST-4",
+      "size": "typical",
+      "verify": "moderate",
+      "context": "partial",
+      "reason": "Eight counted rule groups: generated defaults, title, area, priority, description, field-specific errors, immutable fields/no delete, and restricting the operation set. Eight is the upper typical boundary; this stays within the 4–8-rule band, unlike the approved large comparator."
+     },
+     {
+      "taskId": "EST-5",
+      "size": "typical",
+      "verify": "moderate",
+      "context": "partial",
+      "reason": "Three request states and rules for the three allowed transitions, other transitions, unknown IDs, and malformed or unrecognized status input; this is within the typical band of up to four states / 4–8 rules. Matches the approved typical comparator."
+     },
+     {
+      "taskId": "EST-6",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "One app layout with a light theme; the explicit light theme places the shell in the typical ui-shell band. Responsive and accessibility presentation also need visual review; the approved small comparator did not include this light-theme scope."
+     },
+     {
+      "taskId": "EST-7",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "One status filter, newest-first list, and loading/empty/error states; one filter moves this beyond a plain unfiltered list into typical. Responsive card/table layouts and keyboard/contrast requirements need human review; matches the approved typical comparator."
+     },
+     {
+      "taskId": "EST-8",
+      "size": "small",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "Four fields (Title, Area, Priority, Description), within the up-to-five-field small band. Validation, dialog errors, and keyboard accessibility require review but do not add fields; matches the approved small comparator."
+     },
+     {
+      "taskId": "EST-9",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "One detail view with several displayed fields and one state-dependent action at a time, plus not-found and update-failure states; this fits typical ui-detail. Badge colors, date display, keyboard access, and contrast need human review; matches the approved typical comparator."
+     },
+     {
+      "taskId": "EST-10",
+      "size": "typical",
+      "verify": "moderate",
+      "context": "partial",
+      "reason": "Three grouped test flows: creation and validation, allowed/disallowed status transitions, and filtered listing/not-found behavior. Three flows fit the 2–4-flow typical band; matches the approved typical comparator."
+     },
+     {
+      "taskId": "EST-11",
+      "size": "small",
+      "verify": "moderate",
+      "context": "partial",
+      "reason": "One happy-path list-to-completion workflow, with no error paths or additional platform; this is one short flow, so small. The approved comparator was typical and one item apart, but covered a broader flow set/error-path scope."
+     },
+     {
+      "taskId": "EST-12",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "One client acceptance/regression round, which is the qa-uat typical band; matches the approved typical comparator. Client judgment is required to verify acceptance."
+     },
+     {
+      "taskId": "EST-13",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "Client liaison, scope decisions, and sign-offs across an assumed roughly month-long delivery; typical, matching the approved typical comparator. Factory planning and coordination remain excluded."
+     }
+    ],
+    "stack": {
+     "backend": "ASP.NET Core Web API (assumed)",
+     "web": "React + Vite (assumed)",
+     "database": "SQLite (assumed)",
+     "hosting": "Local/container runtime assumed; production hosting and release are not priced because no ops/release tasks are listed",
+     "architecture": "Single-service modular monolith (assumed)",
+     "basis": "assumed",
+     "notes": "There is no repository and no selected stack. Framework, database, runtime, and architecture are assumptions for sizing; the requirements specify only a browser front end, HTTP API, and database. No mobile client is required."
+    }
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

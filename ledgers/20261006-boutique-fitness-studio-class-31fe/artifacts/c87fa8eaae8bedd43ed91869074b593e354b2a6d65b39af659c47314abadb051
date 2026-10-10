@@ -1,0 +1,345 @@
+diff --git a/App.Api/Contracts/Dtos.cs b/App.Api/Contracts/Dtos.cs
+index 9ddc368..5a4df27 100644
+--- a/App.Api/Contracts/Dtos.cs
++++ b/App.Api/Contracts/Dtos.cs
+@@ -8,17 +8,17 @@ public sealed record Instructor(int Id, string Name, string Bio, string AvatarUr
+ 
+ public sealed record WhatToBringItem(string Title, string Note);
+ 
+-public sealed record SkipReason(string Code, string Message);
++public sealed record SkipReason(SkipReasonCode Code, string Message);
+ 
+ public sealed record ActionState(
+     string Kind,
+     bool CanChange,
+-    int? SpotsLeft,
+-    int? Position,
+-    int? BookingId,
+-    string? Reason,
+-    SkipReason? SkipReason,
+-    bool? LateCancellation);
++    int? SpotsLeft = null,
++    int? Position = null,
++    int? BookingId = null,
++    string? Reason = null,
++    SkipReason? SkipReason = null,
++    bool? LateCancellation = null);
+ 
+ public sealed record Session(
+     int Id,
+@@ -106,4 +106,4 @@ public sealed record PromotionNotices(IReadOnlyList<PromotionNotice> Notices);
+ 
+ public sealed record SimulationResult(Session Session, Booking? Booking);
+ 
+-public sealed record Error(string Code, string Message, Session? Session);
++public sealed record Error(string Code, string Message, Session? Session = null);
+diff --git a/App.Api/Data/Enums.cs b/App.Api/Data/Enums.cs
+index 18a34be..9eaf4cb 100644
+--- a/App.Api/Data/Enums.cs
++++ b/App.Api/Data/Enums.cs
+@@ -19,6 +19,14 @@ public enum Room
+ [JsonConverter(typeof(JsonStringEnumConverter<TimeOfDay>))]
+ public enum TimeOfDay { Morning, Afternoon, Evening }
+ 
++[JsonConverter(typeof(JsonStringEnumConverter<SkipReasonCode>))]
++public enum SkipReasonCode
++{
++    [JsonStringEnumMemberName("overlap")] Overlap,
++    [JsonStringEnumMemberName("limit_reached")] LimitReached,
++    [JsonStringEnumMemberName("outside_booking_window")] OutsideBookingWindow
++}
++
+ [JsonConverter(typeof(JsonStringEnumConverter<SessionStatus>))]
+ public enum SessionStatus
+ {
+diff --git a/App.Api/Endpoints/StudioEndpoints.cs b/App.Api/Endpoints/StudioEndpoints.cs
+new file mode 100644
+index 0000000..5bb8e91
+--- /dev/null
++++ b/App.Api/Endpoints/StudioEndpoints.cs
+@@ -0,0 +1,70 @@
++using App.Api.Contracts;
++using App.Api.Services;
++
++namespace App.Api.Endpoints;
++
++/// <summary>Maps the 13 contract operations, mirroring their paths, methods and declared status codes.</summary>
++public static class StudioEndpoints
++{
++    public static void MapStudioEndpoints(this WebApplication app)
++    {
++        app.MapGet("/me", (StudioQueries queries) => queries.GetMember())
++            .WithName("getMember").WithTags("member")
++            .Produces<Member>(200).Produces<Error>(500);
++
++        app.MapGet("/schedule", async (StudioQueries queries, DateOnly? date, ClassType[]? type, Intensity[]? intensity, TimeOfDay[]? timeOfDay) =>
++                await queries.GetSchedule(date, type, intensity, timeOfDay))
++            .WithName("getSchedule").WithTags("schedule")
++            .Produces<Schedule>(200).Produces<Error>(400).Produces<Error>(500);
++
++        app.MapGet("/sessions/{sessionId:int}", async (StudioQueries queries, int sessionId) => await queries.GetSession(sessionId))
++            .WithName("getSession").WithTags("schedule")
++            .Produces<Session>(200).Produces<Error>(404).Produces<Error>(500);
++
++        app.MapPost("/bookings", async (BookingCommands commands, SessionRequest body) =>
++                Results.Created((string?)null, await commands.Create(body.SessionId)))
++            .WithName("createBooking").WithTags("bookings")
++            .Produces<BookingChange>(201).Produces<Error>(400).Produces<Error>(404).Produces<Error>(409).Produces<Error>(500);
++
++        app.MapPost("/bookings/{bookingId:int}/undo", async (BookingCommands commands, int bookingId) => await commands.Undo(bookingId))
++            .WithName("undoBooking").WithTags("bookings")
++            .Produces<UndoResult>(200).Produces<Error>(404).Produces<Error>(409).Produces<Error>(500);
++
++        app.MapPost("/bookings/{bookingId:int}/cancel", async (BookingCommands commands, int bookingId) => await commands.Cancel(bookingId))
++            .WithName("cancelBooking").WithTags("bookings")
++            .Produces<BookingChange>(200).Produces<Error>(404).Produces<Error>(409).Produces<Error>(500);
++
++        app.MapPost("/waitlist", async (BookingCommands commands, SessionRequest body) =>
++                Results.Created((string?)null, await commands.JoinWaitlist(body.SessionId)))
++            .WithName("joinWaitlist").WithTags("bookings")
++            .Produces<BookingChange>(201).Produces<Error>(400).Produces<Error>(404).Produces<Error>(409).Produces<Error>(500);
++
++        app.MapPost("/bookings/{bookingId:int}/leave-waitlist", async (BookingCommands commands, int bookingId) => await commands.LeaveWaitlist(bookingId))
++            .WithName("leaveWaitlist").WithTags("bookings")
++            .Produces<BookingChange>(200).Produces<Error>(404).Produces<Error>(409).Produces<Error>(500);
++
++        app.MapGet("/me/bookings", async (StudioQueries queries) => await queries.GetMyBookings())
++            .WithName("getMyBookings").WithTags("bookings")
++            .Produces<MyBookings>(200).Produces<Error>(500);
++
++        app.MapGet("/me/stats", async (StudioQueries queries) => await queries.GetStats())
++            .WithName("getStats").WithTags("bookings")
++            .Produces<Stats>(200).Produces<Error>(500);
++
++        app.MapGet("/me/promotion-notices", async (StudioQueries queries) => await queries.ListNotices())
++            .WithName("listPromotionNotices").WithTags("bookings")
++            .Produces<PromotionNotices>(200).Produces<Error>(500);
++
++        app.MapPost("/me/promotion-notices/acknowledge", async (BookingCommands commands) =>
++            {
++                await commands.Acknowledge();
++                return Results.NoContent();
++            })
++            .WithName("acknowledgePromotionNotices").WithTags("bookings")
++            .Produces(204).Produces<Error>(500);
++
++        app.MapPost("/test/sessions/{sessionId:int}/simulate-other-member-cancellation", async (BookingCommands commands, int sessionId) => await commands.Simulate(sessionId))
++            .WithName("simulateOtherMemberCancellation").WithTags("test-only")
++            .Produces<SimulationResult>(200).Produces<Error>(404).Produces<Error>(500);
++    }
++}
+diff --git a/App.Api/Infrastructure/ErrorHandling.cs b/App.Api/Infrastructure/ErrorHandling.cs
+new file mode 100644
+index 0000000..6fe423a
+--- /dev/null
++++ b/App.Api/Infrastructure/ErrorHandling.cs
+@@ -0,0 +1,50 @@
++using System.Text.Json;
++using App.Api.Contracts;
++using Microsoft.AspNetCore.Diagnostics;
++
++namespace App.Api.Infrastructure;
++
++/// <summary>Turns exceptions and bare error status codes into the contract's Error JSON, without leaking exception details.</summary>
++public static class ErrorHandling
++{
++    public static void UseContractErrorHandling(this WebApplication app)
++    {
++        app.UseExceptionHandler(branch => branch.Run(async context =>
++        {
++            var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
++
++            var (status, error) = exception switch
++            {
++                ApiException api => (api.Status, new Error(api.Code, api.Message, api.Session)),
++                BadHttpRequestException or { InnerException: JsonException } =>
++                    (StatusCodes.Status400BadRequest, new Error("invalid_request", "Something about that request wasn't right. Please try again.", null)),
++                _ => (StatusCodes.Status500InternalServerError, new Error("storage_failure", "We couldn't save your changes just now. Please try again.", null)),
++            };
++
++            if (status == StatusCodes.Status500InternalServerError)
++                app.Logger.LogError(exception, "Unhandled exception while processing {Path}", context.Request.Path);
++
++            context.Response.StatusCode = status;
++            await context.Response.WriteAsJsonAsync(error);
++        }));
++
++        app.UseStatusCodePages(async statusCodeContext =>
++        {
++            var response = statusCodeContext.HttpContext.Response;
++            var code = response.StatusCode switch
++            {
++                StatusCodes.Status404NotFound => "not_found",
++                >= 400 and < 500 => "invalid_request",
++                _ => "storage_failure",
++            };
++            var message = code switch
++            {
++                "not_found" => "We couldn't find that class.",
++                "invalid_request" => "Something about that request wasn't right. Please try again.",
++                _ => "We couldn't save your changes just now. Please try again.",
++            };
++            response.ContentType = "application/json";
++            await response.WriteAsJsonAsync(new Error(code, message, null));
++        });
++    }
++}
+diff --git a/App.Api/Program.cs b/App.Api/Program.cs
+index 533c764..08df28c 100644
+--- a/App.Api/Program.cs
++++ b/App.Api/Program.cs
+@@ -1,15 +1,152 @@
+ using App.Api;
++using App.Api.Data;
++using App.Api.Endpoints;
++using App.Api.Infrastructure;
++using App.Api.Services;
+ using Microsoft.EntityFrameworkCore;
++using Microsoft.Extensions.DependencyInjection.Extensions;
++using Microsoft.OpenApi.Any;
++using Microsoft.OpenApi.Models;
+ 
+ var builder = WebApplication.CreateBuilder(args);
+-builder.Services.AddOpenApi();
+-// a local file database; nothing touches it at startup (the build runs this file to write the API's OpenAPI document)
++builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, context, cancellationToken) =>
++{
++    document.Servers = [new OpenApiServer { Url = "/api" }];
++    FixGeneratedSchemas(document);
++    return Task.CompletedTask;
++}));
++// the database is initialised at startup (see InitializeDatabase), except under document generation
+ builder.Services.AddDbContext<AppDb>(o => o.UseSqlite(builder.Configuration.GetConnectionString("App") ?? "Data Source=app.db"));
+ builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
++builder.Services.TryAddSingleton(TimeProvider.System);
++builder.Services.AddScoped<SessionProjection>();
++builder.Services.AddScoped<StudioQueries>();
++builder.Services.AddScoped<BookingCommands>();
++builder.Services.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = true);
++
+ var app = builder.Build();
++app.UsePathBase("/api");
++app.UseContractErrorHandling();
+ app.UseCors();
+ app.MapGet("/", () => "API is up").ExcludeFromDescription();
++app.MapStudioEndpoints();
++app.InitializeDatabase();
+ 
+ app.Run();
+ 
++static void FixGeneratedSchemas(OpenApiDocument document)
++{
++    var schemas = document.Components!.Schemas;
++
++    if (!schemas.ContainsKey("TimeOfDay"))
++    {
++        schemas["TimeOfDay"] = new OpenApiSchema
++        {
++            Type = "string",
++            Enum = [new OpenApiString("Morning"), new OpenApiString("Afternoon"), new OpenApiString("Evening")],
++        };
++    }
++    foreach (var scheduleParam in document.Paths["/schedule"].Operations[OperationType.Get].Parameters)
++        if (scheduleParam.Name == "timeOfDay")
++            scheduleParam.Schema.Items = new OpenApiSchema { Reference = new OpenApiReference { Type = ReferenceType.Schema, Id = "TimeOfDay" } };
++
++    foreach (var schema in schemas.Values)
++        if (schema.Enum is { Count: > 0 } && schema.Type is null)
++            schema.Type = "string";
++
++    bool ContentEquals(OpenApiSchema a, OpenApiSchema b)
++    {
++        if (a.Reference?.Id != b.Reference?.Id) return false;
++        if (a.Reference != null) return true;
++        if (a.Type != b.Type || a.Format != b.Format) return false;
++        if (!(a.Required ?? new HashSet<string>()).SetEquals(b.Required ?? new HashSet<string>())) return false;
++        var aProps = a.Properties ?? new Dictionary<string, OpenApiSchema>();
++        var bProps = b.Properties ?? new Dictionary<string, OpenApiSchema>();
++        if (aProps.Count != bProps.Count) return false;
++        foreach (var (key, value) in aProps)
++            if (!bProps.TryGetValue(key, out var other) || !ContentEquals(value, other)) return false;
++        if ((a.Items == null) != (b.Items == null)) return false;
++        return a.Items == null || ContentEquals(a.Items, b.Items!);
++    }
++
++    var renameMap = new Dictionary<string, string>();
++    var wrapIds = new HashSet<string>();
++    var keys = schemas.Keys.ToList();
++    for (var i = 0; i < keys.Count; i++)
++    {
++        var a = keys[i];
++        if (renameMap.ContainsKey(a) || !schemas.ContainsKey(a)) continue;
++        for (var j = i + 1; j < keys.Count; j++)
++        {
++            var b = keys[j];
++            if (renameMap.ContainsKey(b) || !schemas.ContainsKey(b)) continue;
++            if (!ContentEquals(schemas[a], schemas[b])) continue;
++
++            var canonical = b == a + "2" ? a : a == b + "2" ? b : a;
++            var other = canonical == a ? b : a;
++
++            if (schemas[canonical].Nullable && !schemas[other].Nullable)
++            {
++                wrapIds.Add(canonical);
++                schemas[canonical] = schemas[other];
++            }
++            else if (!schemas[canonical].Nullable && schemas[other].Nullable)
++            {
++                wrapIds.Add(other);
++            }
++            renameMap[other] = canonical;
++            schemas.Remove(other);
++            break;
++        }
++    }
++    foreach (var (key, schema) in schemas)
++        if (schema.Nullable && !wrapIds.Contains(key))
++        {
++            schema.Nullable = false;
++            wrapIds.Add(key);
++        }
++
++    OpenApiSchema Visit(OpenApiSchema schema)
++    {
++        if (schema.Reference is { Type: ReferenceType.Schema } r)
++        {
++            var id = renameMap.TryGetValue(r.Id, out var canonical) ? canonical : r.Id;
++            if (wrapIds.Contains(r.Id))
++                return new OpenApiSchema { Nullable = true, AllOf = [new OpenApiSchema { Reference = new OpenApiReference { Type = ReferenceType.Schema, Id = id } }] };
++            return id != r.Id ? new OpenApiSchema { Reference = new OpenApiReference { Type = ReferenceType.Schema, Id = id } } : schema;
++        }
++        if (schema.Properties is { Count: > 0 })
++            foreach (var key in schema.Properties.Keys.ToList())
++                schema.Properties[key] = Visit(schema.Properties[key]);
++        if (schema.Items != null) schema.Items = Visit(schema.Items);
++        if (schema.AdditionalProperties != null) schema.AdditionalProperties = Visit(schema.AdditionalProperties);
++        if (schema.AllOf != null) for (var k = 0; k < schema.AllOf.Count; k++) schema.AllOf[k] = Visit(schema.AllOf[k]);
++        if (schema.OneOf != null) for (var k = 0; k < schema.OneOf.Count; k++) schema.OneOf[k] = Visit(schema.OneOf[k]);
++        if (schema.AnyOf != null) for (var k = 0; k < schema.AnyOf.Count; k++) schema.AnyOf[k] = Visit(schema.AnyOf[k]);
++        return schema;
++    }
++
++    foreach (var key in schemas.Keys.ToList())
++        schemas[key] = Visit(schemas[key]);
++
++    foreach (var pathItem in document.Paths.Values)
++    foreach (var op in pathItem.Operations.Values)
++    {
++        foreach (var param in op.Parameters ?? [])
++            param.Schema = Visit(param.Schema);
++        if (op.RequestBody != null)
++            foreach (var media in op.RequestBody.Content.Values)
++                media.Schema = Visit(media.Schema);
++        foreach (var response in op.Responses.Values)
++            foreach (var media in response.Content.Values)
++                media.Schema = Visit(media.Schema);
++    }
++
++    if (schemas.TryGetValue("Session", out var sessionSchema) && sessionSchema.Properties.TryGetValue("durationMin", out var durationMin))
++        durationMin.Enum = [new OpenApiInteger(30), new OpenApiInteger(45), new OpenApiInteger(60), new OpenApiInteger(75)];
++
++    if (schemas.TryGetValue("MyBookings", out var myBookings) && myBookings.Properties.TryGetValue("past", out var past))
++        past.Items = new OpenApiSchema { Reference = new OpenApiReference { Type = ReferenceType.Schema, Id = "BookingRow" } };
++}
++
+ public partial class Program { }

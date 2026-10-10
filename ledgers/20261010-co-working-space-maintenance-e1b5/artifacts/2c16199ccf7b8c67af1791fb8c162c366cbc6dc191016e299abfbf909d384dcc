@@ -1,0 +1,65 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "repo_map",
+   "input": {
+    "focus": [
+     "App.Api",
+     "App.Tests"
+    ]
+   },
+   "ms": 1,
+   "resultChars": 319,
+   "result": "<untrusted_document id=\"repo_map\" source=\"{&quot;focus&quot;:[&quot;App.Api&quot;,&quot;App.Tests&quot;]}\">\nApp.Api/AppDb.cs\n  class AppDb\nApp.Api/Program.cs\n  class Program\nApp.Api/SeedData.cs\n  class SeedData\n    void Run(AppDb db)\nApp.Tests/HealthTests.cs\n  class HealthTests\n    Task ApiIsUp()\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Api/Program.cs"
+   },
+   "ms": 0,
+   "resultChars": 2227,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Api/Program.cs&quot;}\">\nApp.Api/Program.cs lines 1-33\n1\tusing App.Api;\n2\tusing Microsoft.EntityFrameworkCore;\n3\t\n4\tvar builder = WebApplication.CreateBuilder(args);\n5\tbuilder.Services.AddOpenApi();\n6\t// PostgreSQL: the connection comes from ConnectionStrings__App and nowhere else. There is no built-in login: an app that is\n7\t// not given one stops when it first needs the database, so it can never run on a password that is written in the code.\n8\tbuilder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString(\"App\")\n9\t    ?? throw new InvalidOperationException(\"No database connection is configured. Set ConnectionStrings__App (for example Host=...;Port=5432;Database=...;Username=...;Password=«SECRET_1»")));\n10\t// the web app's address: 3000 unless the setting Cors:Origin names another (the factory sets it when it starts the web app on another port)\n11\tbuilder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(builder.Configuration[\"Cors:Origin\"] ?? \"http://localhost:3000\").AllowAnyHeader().AllowAnyMethod()));\n12\tvar app = builder.Build();\n13\t// Create the database with every table when the app starts. The build also runs this file, to write the API's OpenAPI\n14\t// document, and must not touch the database then. Keep this: the factory starts the app and reads the database it creates.\n15\tif (System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name != \"GetDocument.Insider\")\n16\t{\n17\t    // one at a time: the tests start several copies of the app in one process, and two creating the tables at once collide\n18\t    lock (typeof(AppDb))\n19\t    {\n20\t        using var scope = app.Services.CreateScope();\n21\t        var db = scope.ServiceProvider.GetRequiredService<AppDb>();\n22\t        db.Database.EnsureCreated();\n23\t        // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\n24\t        if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);\n25\t    }\n26\t}\n27\tapp.UseCors();\n28\tapp.MapGet(\"/\", () => \"API is up\").ExcludeFromDescription();\n29\t\n30\tapp.Run();\n31\t\n32\tpublic partial class Program { }\n33\t\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Api/AppDb.cs"
+   },
+   "ms": 0,
+   "resultChars": 293,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Api/AppDb.cs&quot;}\">\nApp.Api/AppDb.cs lines 1-8\n1\tusing Microsoft.EntityFrameworkCore;\n2\t\n3\tnamespace App.Api;\n4\t\n5\tpublic class AppDb(DbContextOptions<AppDb> options) : DbContext(options)\n6\t{\n7\t}\n8\t\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Api/SeedData.cs"
+   },
+   "ms": 0,
+   "resultChars": 521,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Api/SeedData.cs&quot;}\">\nApp.Api/SeedData.cs lines 1-11\n1\tnamespace App.Api;\n2\t\n3\t// Sample rows for a person trying the product. The app calls Run at startup, after the tables exist, only when the setting\n4\t// Seed:Demo is true (the factory's run files set it; tests never do). Add rows to a table only when that table is empty.\n5\tpublic static class SeedData\n6\t{\n7\t    public static void Run(AppDb db)\n8\t    {\n9\t    }\n10\t}\n11\t\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Api/App.Api.csproj"
+   },
+   "ms": 0,
+   "resultChars": 1061,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Api/App.Api.csproj&quot;}\">\nApp.Api/App.Api.csproj lines 1-18\n1\t<Project Sdk=\"Microsoft.NET.Sdk.Web\">\n2\t  <PropertyGroup>\n3\t    <TargetFramework>net9.0</TargetFramework>\n4\t    <Nullable>enable</Nullable>\n5\t    <ImplicitUsings>enable</ImplicitUsings>\n6\t    <!-- the build writes the API's OpenAPI document here; the factory compares it with contracts/openapi.yaml -->\n7\t    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/openapi</OpenApiDocumentsDirectory>\n8\t    <OpenApiGenerateDocumentsOptions>--file-name built</OpenApiGenerateDocumentsOptions>\n9\t  </PropertyGroup>\n10\t  <ItemGroup>\n11\t    <PackageReference Include=\"Microsoft.AspNetCore.OpenApi\" Version=\"9.0.0\" />\n12\t    <PackageReference Include=\"Microsoft.Extensions.ApiDescription.Server\" Version=\"9.0.0\">\n13\t      <PrivateAssets>all</PrivateAssets>\n14\t    </PackageReference>\n15\t    <PackageReference Include=\"Npgsql.EntityFrameworkCore.PostgreSQL\" Version=\"9.0.2\" />\n16\t  </ItemGroup>\n17\t</Project>\n18\t\n</untrusted_document>"
+  },
+  {
+   "name": "read_file",
+   "input": {
+    "path": "App.Tests/HealthTests.cs"
+   },
+   "ms": 0,
+   "resultChars": 702,
+   "result": "<untrusted_document id=\"read_file\" source=\"{&quot;path&quot;:&quot;App.Tests/HealthTests.cs&quot;}\">\nApp.Tests/HealthTests.cs lines 1-19\n1\tusing System.Net;\n2\tusing Microsoft.AspNetCore.Mvc.Testing;\n3\tusing Xunit;\n4\t\n5\tnamespace App.Tests;\n6\t\n7\tpublic class HealthTests : IClassFixture<WebApplicationFactory<Program>>\n8\t{\n9\t    private readonly WebApplicationFactory<Program> _factory;\n10\t    public HealthTests(WebApplicationFactory<Program> factory) => _factory = factory;\n11\t\n12\t    [Fact]\n13\t    public async Task ApiIsUp()\n14\t    {\n15\t        var res = await _factory.CreateClient().GetAsync(\"/\");\n16\t        Assert.Equal(HttpStatusCode.OK, res.StatusCode);\n17\t    }\n18\t}\n19\t\n</untrusted_document>"
+  }
+ ]
+}

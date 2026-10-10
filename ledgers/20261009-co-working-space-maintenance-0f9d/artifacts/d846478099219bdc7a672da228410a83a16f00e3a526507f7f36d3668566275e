@@ -1,0 +1,1 @@
+{"errors":[{"code":"RESTORE","file":"package.json","line":0,"msg":"npm install failed (exit 1)"}],"kind":"build","ok":false}

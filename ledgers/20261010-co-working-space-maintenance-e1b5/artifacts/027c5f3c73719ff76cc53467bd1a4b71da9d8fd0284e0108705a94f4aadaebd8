@@ -1,0 +1,269 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 3,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "id": "TASK-1",
+      "title": "Persist requests and wire the list operation",
+      "reqs": [
+       "REQ-1: Implement GET /api/requests with optional exact status filtering, newest-first ordering, contract ErrorResponse handling, and the specified 400/500 responses.",
+       "REQ-10: Keep PostgreSQL as the sole store and fail startup if it is unavailable.",
+       "REQ-11: Preserve GET / with HTTP 200 and body \"API is up\".",
+       "REQ-12: Keep this API delivery free of maintenance-request screens.",
+       "REQ-13: Keep screen-flow implementation outside this repository.",
+       "Foundation for REQ-6: create the request schema additively; REQ-6 is complete only after TASK-3 also wires retrieval of a created record. "
+      ],
+      "fileScope": [
+       "App.Api/Program.cs",
+       "App.Api/AppDb.cs",
+       "App.Api/EndpointRegistration.cs",
+       "App.Api/MaintenanceRequest.cs",
+       "App.Api/MaintenanceRequestResource.cs",
+       "App.Api/Endpoints/ListRequestsEndpoint.cs",
+       "App.Api/Migrations/20261010000000_CreateMaintenanceRequests.cs",
+       "App.Api/Migrations/AppDbModelSnapshot.cs"
+      ],
+      "exemplars": [
+       "App.Api/Program.cs",
+       "App.Api/SeedData.cs"
+      ],
+      "conventions": [
+       "Use the existing ASP.NET Core minimal API and EF Core/Npgsql setup.",
+       "Do not edit contracts/openapi.yaml; expose the contract operations under the /api route group and give them their contract operation IDs and response shapes.",
+       "Keep new endpoint registrars discoverable by the convention established in this task; later route tasks must not edit Program.cs or the registrar.",
+       "Serialize only the MaintenanceRequest fields, omitting a null description; keep the internal demo marker out of responses."
+      ],
+      "dependsOn": [],
+      "plannedLoc": 250,
+      "approach": "Add the MaintenanceRequests entity/DbSet, response projection, model configuration, migration and snapshot. Replace EnsureCreated with Database.Migrate in the existing startup block so the request table and migration history are added without dropping unrelated tables; retain the existing connection-string failure, startup lock, conditional seed call, CORS and health route. Establish convention-based registrar discovery and wire the first endpoint, GET /api/requests, including supported single-status validation, descending CreatedAt ordering, and contract 400/500 errors.",
+      "stubs": [
+       {
+        "path": "App.Api/AppDb.cs",
+        "content": "using Microsoft.EntityFrameworkCore;\n\nnamespace App.Api;\n\npublic class AppDb(DbContextOptions<AppDb> options) : DbContext(options)\n{\n    public DbSet<MaintenanceRequest> MaintenanceRequests => throw new NotImplementedException();\n}\n",
+        "reason": "The new public DbSet may be used by API-operation tests to arrange and inspect persisted request rows."
+       },
+       {
+        "path": "App.Api/MaintenanceRequest.cs",
+        "content": "namespace App.Api;\n\npublic class MaintenanceRequest\n{\n    public long Id { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }\n    public DateTime CreatedAt { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }\n    public string Title { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }\n    public string Area { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }\n    public string Priority { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }\n    public string Status { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }\n    public string? Description { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }\n    public bool IsDemo { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }\n}\n",
+        "reason": "The new public entity may be used by tests that arrange request records through EF Core."
+       },
+       {
+        "path": "App.Api/Endpoints/ListRequestsEndpoint.cs",
+        "content": "using Microsoft.AspNetCore.Routing;\n\nnamespace App.Api;\n\ninternal sealed class ListRequestsEndpoint : IEndpointDefinition\n{\n    public void Map(IEndpointRouteBuilder endpoints) => throw new NotImplementedException();\n}\n",
+        "reason": "Provides a compilable placeholder for the new GET /api/requests operation while tests are prepared."
+       }
+      ]
+     },
+     {
+      "id": "TASK-2",
+      "title": "Create and validate maintenance requests",
+      "reqs": [
+       "REQ-2: Implement POST /api/requests with trimming, system-assigned ID/time/Open status, ignored valid caller-supplied system fields, optional description omission, and the specified 201/500 responses.",
+       "REQ-3: Reject malformed JSON, wrong types, missing or invalid values, and undeclared properties with HTTP 400 and no created row, using CreateRequest constraints and ErrorResponse."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/CreateRequestEndpoint.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/ListRequestsEndpoint.cs",
+       "App.Api/MaintenanceRequestResource.cs"
+      ],
+      "conventions": [
+       "Register the operation through the endpoint-discovery convention from TASK-1; do not change shared wiring.",
+       "Keep the request-body parsing and validation local to this slice unless a helper is first needed here.",
+       "Accept only the declared CreateRequest properties, including the optional id, createdAt and status inputs; validate their declared types/values but never use their values for system-controlled fields.",
+       "Return only contract response fields and map database failures to the contract 500 response without exposing exception details."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 180,
+      "approach": "Add the POST /api/requests registrar and its parsing/validation logic in this endpoint file. Trim title and description before validating; create an Open request with a positive database-generated ID and UTC timestamp, omit blank descriptions, and return the contract's 201, 400 and 500 shapes. Ensure invalid input is rejected before persistence.",
+      "stubs": [
+       {
+        "path": "App.Api/Endpoints/CreateRequestEndpoint.cs",
+        "content": "using Microsoft.AspNetCore.Routing;\n\nnamespace App.Api;\n\ninternal sealed class CreateRequestEndpoint : IEndpointDefinition\n{\n    public void Map(IEndpointRouteBuilder endpoints) => throw new NotImplementedException();\n}\n",
+        "reason": "Provides a compilable placeholder for the new POST /api/requests operation while tests are prepared."
+       }
+      ]
+     },
+     {
+      "id": "TASK-3",
+      "title": "Retrieve a request and verify persistence across restarts",
+      "reqs": [
+       "REQ-4: Implement GET /api/requests/{id} with the contract resource shape and 404/500 ErrorResponse messages.",
+       "REQ-6: Persist requests in the configured PostgreSQL database, provision the schema on new and previously EnsureCreated-initialized databases lacking the request table, preserve unrelated tables, and retrieve the same record after restart."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/GetRequestEndpoint.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/ListRequestsEndpoint.cs",
+       "App.Api/MaintenanceRequestResource.cs"
+      ],
+      "conventions": [
+       "Register only this route through the TASK-1 convention; do not edit Program.cs or shared files.",
+       "Use the shared entity and response projection from TASK-1 and the database configured under ConnectionStrings:App.",
+       "Do not turn malformed, non-integer, zero or negative IDs into an undocumented response code; return the contract's not-found shape for IDs that cannot identify a valid stored request.",
+       "Distinguish not-found from other database failures and do not expose exception details."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 70,
+      "approach": "Add GET /api/requests/{id}, including ID parsing, positive-ID lookup, the 200 resource response, and the contract 404 and 500 responses. With TASK-1's migration and TASK-2's create route, the full create/restart/get persistence criterion can then pass without changing unrelated database objects.",
+      "stubs": [
+       {
+        "path": "App.Api/Endpoints/GetRequestEndpoint.cs",
+        "content": "using Microsoft.AspNetCore.Routing;\n\nnamespace App.Api;\n\ninternal sealed class GetRequestEndpoint : IEndpointDefinition\n{\n    public void Map(IEndpointRouteBuilder endpoints) => throw new NotImplementedException();\n}\n",
+        "reason": "Provides a compilable placeholder for the new GET /api/requests/{id} operation while tests are prepared."
+       }
+      ]
+     },
+     {
+      "id": "TASK-4",
+      "title": "Change request status through allowed transitions",
+      "reqs": [
+       "REQ-5: Implement PATCH /api/requests/{id}/status; accept only a status property, enforce the three allowed transitions, and return the contract's 200, 400, 404, 409 and 500 responses."
+      ],
+      "fileScope": [
+       "App.Api/Endpoints/ChangeRequestStatusEndpoint.cs"
+      ],
+      "exemplars": [
+       "App.Api/Endpoints/ListRequestsEndpoint.cs",
+       "App.Api/Endpoints/GetRequestEndpoint.cs"
+      ],
+      "conventions": [
+       "Register this endpoint through the TASK-1 discovery convention; do not modify shared startup or files owned by another task.",
+       "Reject immutable and extra properties and unsupported or missing status values as contract validation errors; do not modify the record on validation failure.",
+       "Use an update conditioned on the previously observed status so concurrent requests cannot both apply a transition based on stale state.",
+       "Return the unchanged stored fields with the updated status; map missing records and persistence failures to their contract responses."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 150,
+      "approach": "Add PATCH /api/requests/{id}/status in its own registrar. Parse the body strictly, validate the only permitted property, check the transition graph Open→In progress→Done→Open, and perform a conditional status update. Return 409 for a disallowed transition and the locked contract's response shapes for other outcomes.",
+      "stubs": [
+       {
+        "path": "App.Api/Endpoints/ChangeRequestStatusEndpoint.cs",
+        "content": "using Microsoft.AspNetCore.Routing;\n\nnamespace App.Api;\n\ninternal sealed class ChangeRequestStatusEndpoint : IEndpointDefinition\n{\n    public void Map(IEndpointRouteBuilder endpoints) => throw new NotImplementedException();\n}\n",
+        "reason": "Provides a compilable placeholder for the new PATCH /api/requests/{id}/status operation while tests are prepared."
+       }
+      ]
+     },
+     {
+      "id": "TASK-5",
+      "title": "Seed contract examples idempotently when demo seeding is enabled",
+      "reqs": [
+       "REQ-7: Seed at least the three specified contract-example requests with positive database-generated IDs and UTC creation times.",
+       "REQ-8: Make repeated SeedData.Run calls idempotent without using request title alone to identify seed rows or changing user-created rows.",
+       "REQ-9: Preserve the startup rule that SeedData.Run is called if and only if Seed:Demo is true; no demo rows are added when false or unset."
+      ],
+      "fileScope": [
+       "App.Api/SeedData.cs"
+      ],
+      "exemplars": [
+       "App.Api/SeedData.cs",
+       "contracts/openapi.yaml"
+      ],
+      "conventions": [
+       "Keep the existing public SeedData.Run(AppDb) signature; it already exists, so it needs no test stub.",
+       "Mark seeded rows with the internal IsDemo column introduced with the table, and match seed identity by that marker plus the selected example title, not title alone.",
+       "Add missing examples without deleting, merging or altering other rows; use the contract example timestamps as UTC values and let PostgreSQL generate IDs.",
+       "Do not change Program.cs: its existing conditional startup invocation is retained in TASK-1."
+      ],
+      "dependsOn": [
+       "TASK-1"
+      ],
+      "plannedLoc": 65,
+      "approach": "Implement Run to add the Kitchen tap, projector and wobbly desk examples when their marked demo rows are absent, then save changes. Use the exact example creation timestamps as UTC, leave existing non-demo requests untouched, and verify the existing Seed:Demo gate still provides empty data when disabled and samples when enabled.",
+      "newFileKind": false
+     }
+    ],
+    "options": [
+     {
+      "id": "OPT-1",
+      "summary": "Simplest: use an additive CREATE TABLE IF NOT EXISTS initializer and convention-discovered endpoint registrars.",
+      "simplest": true,
+      "tradeoffs": "Small startup change and no EF migration history are needed, and an unrelated existing table is left alone. The SQL schema and EF model can drift, however, and future schema evolution needs custom DDL handling."
+     },
+     {
+      "id": "OPT-2",
+      "summary": "Use an EF Core migration with Database.Migrate and convention-discovered endpoint registrars.",
+      "simplest": false,
+      "tradeoffs": "Uses the existing EF Core/Npgsql infrastructure, gives a versioned schema and adds the request table alongside unrelated existing tables, including databases initialized by the old EnsureCreated path. Requires checked-in migration and snapshot files."
+     }
+    ],
+    "chosen": "OPT-2",
+    "adr": "Choose EF Core migrations and replace EnsureCreated with Migrate to provision the request table additively while preserving unrelated tables.\nUse a convention-discovered endpoint registrar: TASK-1 wires discovery and the list route; each later API slice adds its own route file.\nExpose only the locked API operations and existing health route; do not edit the contract or implement screens/authentication.",
+    "protectedPathsDeclared": [
+     "App.Api/Migrations/20261010000000_CreateMaintenanceRequests.cs",
+     "App.Api/Migrations/AppDbModelSnapshot.cs"
+    ],
+    "newDependencies": [],
+    "dataModel": {
+     "tables": [
+      {
+       "name": "MaintenanceRequests",
+       "purpose": "Stores maintenance requests and an internal marker distinguishing demo seed rows from user-created rows.",
+       "change": "new",
+       "columns": [
+        {
+         "name": "Id",
+         "type": "long",
+         "required": true,
+         "pk": true
+        },
+        {
+         "name": "CreatedAt",
+         "type": "datetime",
+         "required": true
+        },
+        {
+         "name": "Title",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Area",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Priority",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Status",
+         "type": "string",
+         "required": true
+        },
+        {
+         "name": "Description",
+         "type": "text",
+         "required": false
+        },
+        {
+         "name": "IsDemo",
+         "type": "bool",
+         "required": true
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}
