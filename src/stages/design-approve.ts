@@ -146,7 +146,7 @@ export function previewFrames<T extends { frames?: string[] }>(screens: T[], fra
 }
 
 /** The frames the demo shows: those the request attached, then a Stitch design's screenshots (each saved under attachments/frames). */
-export function framesFor(request: string, design: { stitch?: { frames: Record<string, { name: string }> } }): { id: string; name: string }[] {
+export function framesFor(request: string, design: { stitch?: { frames: Record<string, { name: string; state?: string }> } }): { id: string; name: string; state?: string }[] {
   return [...listedFrames(request), ...stitchFrames(design)];
 }
 
@@ -218,14 +218,14 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
       // the demo is drawn from the design, the requirement text and the attached frames; the approval is tied to that exact page
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
       const listed = framesFor(ctx.state.info.request ?? "", design);
-      const frames: Record<string, { name: string; dataUri?: string }> = {};
+      const frames: Record<string, { name: string; dataUri?: string; state?: string }> = {};
       let embedded = 0;
       for (const f of listed) {
         const file = join(ctx.ledger.dir, "attachments", "frames", basename(f.name));
         const bytes = existsSync(file) ? readFileSync(file) : undefined;
         const dataUri = bytes ? frameDataUri(f.name, bytes, embedded) : undefined;
         if (dataUri && bytes) embedded += bytes.length;
-        frames[f.id] = { name: f.name, ...(dataUri ? { dataUri } : {}) };
+        frames[f.id] = { name: f.name, ...(dataUri ? { dataUri } : {}), ...("state" in f && f.state ? { state: f.state } : {}) };
       }
       const d = design;
       // an existing app: each page the design changes beside the proposed screen, and the look its demo is drawn in

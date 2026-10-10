@@ -122,8 +122,8 @@ export function stitchArtifact(p: Plan, assets: StitchAsset[], meta: StitchMeta,
 }
 
 /** The Stitch screenshots a design carries, as frames the approval step reads from attachments/frames. */
-export function stitchFrames(design: { stitch?: { frames: Record<string, { name: string }> } }): { id: string; name: string }[] {
-  return Object.entries(design.stitch?.frames ?? {}).map(([id, f]) => ({ id, name: f.name }));
+export function stitchFrames(design: { stitch?: { frames: Record<string, { name: string; state?: string }> } }): { id: string; name: string; state?: string }[] {
+  return Object.entries(design.stitch?.frames ?? {}).map(([id, f]) => ({ id, name: f.name, ...(f.state ? { state: f.state } : {}) }));
 }
 
 const failed = (failures: Failure[], tag: string): StepOutcome => ({ kind: "fail", category: "other", failures, signature: `${tag}:${[...new Set(failures.map((f) => f.check))].sort().join(",")}`, gate: true });

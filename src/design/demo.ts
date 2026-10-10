@@ -25,7 +25,7 @@ export interface DemoInput {
   requirements: Record<string, string>;
   noScreen: { req: string; reason: string }[];
   /** frame id (F-1) -> the image as a data: URI; frames without one are listed by name only */
-  frames?: Record<string, { name: string; dataUri?: string }>;
+  frames?: Record<string, { name: string; dataUri?: string; state?: string }>;
   /** the look the design step chose; absent, a clean blue light theme */
   theme?: DesignTheme;
   /** the product's apps when it has more than one (a customer phone app, an admin portal); screens name theirs */
@@ -1771,7 +1771,14 @@ export function buildDemo(d: DemoInput): string {
     const switcher = sw ? `<span class="sw"><button type="button" class="swb" data-sw aria-haspopup="menu" aria-expanded="false" aria-label="Switch ${esc(sw.kind)}"><span class="swa">${esc(initials(sw.current) || "•")}</span><span class="swt"><b>${esc(sw.current)}</b>${sw.meta ? `<small>${esc(sw.meta)}</small>` : ""}</span>${icon("chevd")}</button><span class="swm" role="menu" hidden><small>Switch ${esc(sw.kind)}</small>${[sw.current, ...sw.others].map((o, k) => `<button type="button" role="menuitemradio" aria-checked="${k === 0}"${k === 0 ? ' class="on"' : ""}><span class="swa">${esc(initials(o) || "•")}</span><span>${esc(o)}</span>${k === 0 ? icon("check") : ""}</button>`).join("")}</span></span>` : "";
     const tools = `${lang}${mode}<button type="button" class="ib" aria-label="Notifications">${icon("bell")}<i class="dot"></i></button><span class="me">${ME}</span>`;
     const search = phone ? "" : `<button type="button" class="ib" aria-label="Search">${icon("search")}</button>`;
-    const content = shown.length ? shown.map((f) => `<img src="${f!.dataUri}" alt="${esc(f!.name)}">`).join("") : states.map(pane).join("");
+    // a Stitch screen: one picture per state, each in its own pane so the state tabs switch them (normal for the page itself)
+    const stitched = shown.length > 0 && shown.every((f) => !!f!.state);
+    const statePane = (st: string, k: number): string => {
+      const kind = k === 0 ? "normal" : stateKind(st);
+      const f = shown.find((x) => x!.state === kind) ?? shown[0]!;
+      return `<div class="pane" data-wf="${k}"${k === 0 ? "" : " hidden"}><img src="${f.dataUri}" alt="${esc(f.name)}"></div>`;
+    };
+    const content = stitched ? states.map(statePane).join("") : shown.length ? shown.map((f) => `<img src="${f!.dataUri}" alt="${esc(f!.name)}">`).join("") : states.map(pane).join("");
     const tabbar = shell === "minimal" || shell === "drawer" || nav.length < 2 ? "" : `<nav class="tabbar" aria-label="Tabs">${links(5)}</nav>`;
     const foot = `<div class="rf"><a href="#${esc(s.id)}">${icon("settings")}<span>Settings</span></a><a href="#${esc(s.id)}">${icon("help")}<span>Help</span></a></div>`;
     const drawer = shell === "drawer" ? `<div class="drawer"><span class="scrim"></span><div class="dp" role="dialog" aria-label="Menu"><div class="row">${bm}<button type="button" class="ib" data-drawer aria-label="Close menu">${icon("close")}</button></div><nav aria-label="Main">${groups.some(Boolean) ? menu : links()}</nav>${foot}</div></div>` : "";
@@ -1791,7 +1798,7 @@ export function buildDemo(d: DemoInput): string {
 <div class="top"><h2>${esc(s.mock?.title ?? s.route)} <code>${esc(s.route)}</code> <span class="sid">${esc(s.id)}</span></h2><span class="tag">${esc(s.size)}</span></div>
 <p class="file">${esc(s.file)}</p>
 <div class="states" role="tablist">${states.map((st, k) => `<button role="tab" data-state="${k}"${k === 0 ? ' class="on"' : ""}>${esc(st)}</button>`).join("")}</div>
-<div class="canvas sh-${shell}${phone ? " phone" : ""}"${canvasLang}>${device}${app$}</div>
+<div class="canvas sh-${shell}${phone ? " phone" : ""}"${canvasLang}>${device}${stitched ? `<div class="stage">${content}</div>` : app$}</div>
 <details class="serves"><summary>Serves ${s.reqs.length} requirement${s.reqs.length === 1 ? "" : "s"}</summary><ul>${reqs || "<li>no requirement</li>"}</ul></details>
 <p class="nav">${sibs.filter((o) => o.id !== s.id).map((o) => `<a href="#${esc(o.id)}">${esc(label(o))} →</a>`).join(" ")}</p>
 </section>`;
