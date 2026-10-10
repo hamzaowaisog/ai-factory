@@ -61,9 +61,26 @@ export function stitchJobs(screens: Plan["screens"], allowed: readonly string[])
   });
 }
 
+/** Stitch's pictures come about 512 px wide; its image links may take a size (FIFE "=w1600"), which is tried first. */
+const LARGE = "=w1600";
+/** The largest picture the approval demo embeds (src/design/demo.ts MAX_FRAME_BYTES): a bigger one would not be shown. */
+const MAX_PICTURE = 2_000_000;
+const isImage = (b: Uint8Array) =>
+  (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) || (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff)
+  || (Buffer.from(b.subarray(0, 4)).toString() === "RIFF" && Buffer.from(b.subarray(8, 12)).toString() === "WEBP");
+
+/** The screen's picture, larger when Stitch gives a larger image the demo can still show; otherwise the picture as Stitch made it. */
+async function picture(c: StitchClient, url: string): Promise<Uint8Array> {
+  try {
+    const big = await c.download(`${url}${LARGE}`);
+    if (isImage(big) && big.length <= MAX_PICTURE) return big;
+  } catch { /* the link takes no size: the picture as Stitch made it */ }
+  return c.download(url);
+}
+
 /** Downloads a generated screen, saves its picture as a frame named by version, and stores its HTML and picture in the ledger. */
 async function saveAsset(ctx: StepContext, c: StitchClient, framesDir: string, id: string, state: string, g: { screenId: string; htmlUrl: string; imageUrl: string }): Promise<StitchAsset> {
-  const [html, png] = await Promise.all([c.download(g.htmlUrl), c.download(g.imageUrl)]);
+  const [html, png] = await Promise.all([c.download(g.htmlUrl), picture(c, g.imageUrl)]);
   const image = ctx.ledger.putArtifact(png);
   const name = `stitch-${id}-${state}-${image.slice(0, 8)}.png`;
   writeFileSync(join(framesDir, name), png);

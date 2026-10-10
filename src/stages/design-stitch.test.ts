@@ -1,7 +1,7 @@
 // The design step on the stitch engine: Claude lists the screens and writes a DESIGN.md by following the stitch-design-taste
 // skill; Stitch draws each screen. Runs with an in-memory ledger, a scripted model and a fake Stitch client.
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readdirSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -401,5 +401,29 @@ describe("accessibility faults never cost the drawn screens (review I3)", () => 
     const d = ledger.getJson<{ screens: { frames: string[] }[]; stitch: { a11y?: unknown } }>((out as { outputs: { design: string } }).outputs.design);
     expect(d.stitch.a11y).toEqual([{ screen: "S-1", rules: ["button-name"] }]);
     expect(d.screens[0]!.frames.length).toBeGreaterThan(0);
+  });
+});
+
+describe("larger Stitch screenshots", () => {
+  const PNG = (tag: string, size = 64) => { const b = Buffer.alloc(size, 0); Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(b); b.write(tag, 8); return new Uint8Array(b); };
+  async function drawWith(large: (url: string) => Promise<Uint8Array>) {
+    setStitchFactory(() => ({ ...fakeStitch(), async download(url: string) {
+      if (url.startsWith("html")) return new TextEncoder().encode("<html><body><h1>Page</h1></body></html>");
+      return url.endsWith("=w1600") ? large(url) : PNG("small");
+    } }));
+    const ledger = memoryLedger();
+    answers = [plan({ screens: [{ ...plan().screens[0], states: [] }, plan().screens[1]] }), { designMd: md(), theme }];
+    const out = await drawWithStitch(ctxFor(ledger), spec);
+    expect(out.kind).toBe("done");
+    const dir = join(ledger.dir, "attachments", "frames");
+    return readdirSync(dir).map((n) => readFileSync(join(dir, n)).subarray(8, 13).toString());
+  }
+  it("keeps the larger picture when Stitch gives one", async () => {
+    expect(await drawWith(async () => PNG("large"))).toEqual(["large", "large"]);
+  });
+  it("falls back to the normal picture when the larger one fails, is not an image, or is too big to show", async () => {
+    expect(await drawWith(async () => { throw new Error("403"); })).toEqual(["small", "small"]);
+    expect(await drawWith(async () => new TextEncoder().encode("<html>no</html>"))).toEqual(["small", "small"]);
+    expect(await drawWith(async () => PNG("large", 2_100_000))).toEqual(["small", "small"]);
   });
 });
