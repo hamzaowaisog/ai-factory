@@ -730,7 +730,7 @@ function pipeline(r) {
   const note = (() => {
     const parked = r.timeline.find((t) => t.status === "parked");
     if (r.status === "parked") return h("div", { class: "pipe-note bad" }, icon("alert"), h("div", {}, h("strong", {}, parked ? `Parked at ${parked.step}` : "Parked"), h("p", {}, r.parkedReason ?? "")));
-    if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Pick an option for each in the panel below (or answer in the terminal); the run carries on right after.")));
+    if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Pick an option for each in the panel below, or type your own answer (or answer in the terminal); the run carries on right after.")));
     if (r.card?.kind === "design-approval") return h("div", { class: "pipe-note wait" }, icon("image"), h("div", {}, h("strong", {}, "The design needs your approval"), h("p", {}, "Walk the clickable demo, then approve it or send it back in the panel below (or in the terminal); the run carries on right after.")));
     if (r.card?.kind === "approval") return h("div", { class: "pipe-note wait" }, icon("shield"), h("div", {}, h("strong", {}, "The spec and plan need your approval"), h("p", {}, "Read the card, then approve or reject it in the panel below (or in the terminal); the run carries on right after.")));
     if (r.card?.limit) return h("div", { class: "pipe-note wait" }, icon("dollar"), h("div", {}, h("strong", {}, r.card.limit.kind === "budget" ? "The approved budget is reached" : "A limit is reached"), h("p", {}, "Raise it and continue, or stop the run, in the panel below (or in the terminal); the run carries on right after a raise.")));
@@ -840,7 +840,7 @@ function nameInput() {
 
 /**
  * A question card, on any run (the clarify questions, the spec's questions, or a failing check's), one question at a time: pick an
- * option and it moves on; the chosen options are the answers. Picks are kept while the page redraws.
+ * option and it moves on, or type an answer in your own words; the chosen options and typed words are the answers. Picks are kept while the page redraws.
  */
 function questionPanel(r) {
   const c = r.card;
@@ -855,6 +855,16 @@ function questionPanel(r) {
   let at = draft.at, sent = draft.sent;
   const go = (n) => { at = draft.at = n; draw(); };
   const letter = (i) => String.fromCharCode(65 + i);
+  // an answer in the person's own words, when no option fits: what is typed is the answer, and emptying the box goes back to the recommended option
+  const own = (q) => {
+    const box = h("textarea", { id: "q-own", class: "q-own", rows: "2", maxlength: "2000", placeholder: "None of these fit? Type your answer here." });
+    if (!q.options.includes(picks[q.id])) box.value = picks[q.id];
+    box.addEventListener("input", () => {
+      picks[q.id] = box.value.trim() || q.recommended;
+      body.querySelectorAll(".q-opt").forEach((b, i) => { const on = picks[q.id] === q.options[i]; b.classList.toggle("picked", on); b.setAttribute("aria-checked", String(on)); });
+    });
+    return h("div", { class: "fld" }, h("label", { for: "q-own", class: "small" }, "Or answer in your own words"), box);
+  };
   const draw = () => {
     body.replaceChildren();
     if (at < qs.length) {
@@ -870,6 +880,7 @@ function questionPanel(r) {
           b.addEventListener("click", () => { picks[q.id] = o; draw(); setTimeout(() => { if (at === qs.indexOf(q)) go(at + 1); }, 220); });
           return b;
         })),
+        own(q),
         h("p", { class: "small muted" }, `Why it matters: ${q.why}`),
         h("div", { class: "row" },
           at > 0 ? (() => { const bk = h("button", { class: "btn ghost", type: "button" }, "Back"); bk.addEventListener("click", () => go(at - 1)); return bk; })() : null,
