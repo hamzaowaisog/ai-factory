@@ -122,6 +122,9 @@ export function lostCoverage(before: Spec, after: Spec, spans: string[]): string
 /** A repair applied to the spec it repaired: changed items replace theirs in place, new ones go last, removed ones go. */
 export function applyRepair(spec: Spec, p: z.infer<typeof RepairOut>): Spec {
   const gone = new Set(p.removed ?? []);
+  // "a requirement you change" is not op MODIFIED: an existing requirement keeps its op unless the repair anchors the new one to code
+  const prev = new Map(spec.requirements.map((r) => [r.id, r.op]));
+  const requirements = p.requirements.map((r) => (prev.has(r.id) && !r.anchors?.length ? { ...r, op: prev.get(r.id)! } : r));
   const patch = <T extends { id: string }>(old: T[], changed: T[]): T[] => {
     const by = new Map(changed.map((x) => [x.id, x]));
     const kept = old.filter((x) => !gone.has(x.id) || by.has(x.id)).map((x) => by.get(x.id) ?? x);
@@ -129,11 +132,16 @@ export function applyRepair(spec: Spec, p: z.infer<typeof RepairOut>): Spec {
     return [...kept, ...changed.filter((x) => !had.has(x.id))];
   };
   return {
-    requirements: patch(spec.requirements, p.requirements),
+    requirements: patch(spec.requirements, requirements),
     nfrs: patch(spec.nfrs, p.nfrs ?? []),
     outOfScope: p.outOfScope ?? spec.outOfScope,
     assumptions: p.assumptions ?? spec.assumptions,
   };
+}
+
+/** With no existing code every requirement is new work: nothing can be MODIFIED or REMOVED, and there is nothing to anchor to. */
+export function allAdded(spec: Spec): Spec {
+  return spec.requirements.every((r) => r.op === "ADDED") ? spec : { ...spec, requirements: spec.requirements.map((r) => (r.op === "ADDED" ? r : { ...r, op: "ADDED" as const })) };
 }
 
 /** Critic instructions; a run with no repo is new work, so existing-code rubric items (5, 6) don't apply. */
@@ -154,6 +162,8 @@ const hasRepo = (ctx: Pick<StepContext, "state">) => !!ctx.state.info.repoPath &
 const nothingToRead = (ctx: Pick<StepContext, "state">): boolean => {
   try { return repoIsEmpty(ctx.state.info.repoPath!, ctx.state.info.baseCommit!); } catch { return false; }
 };
+/** No repo, or a new product's empty one: there is no existing code to modify, remove or anchor to. */
+const newWork = (ctx: Pick<StepContext, "state">): boolean => !hasRepo(ctx) || nothingToRead(ctx);
 /**
  * Drafters read the repo; with no repo, or an empty one, there is nothing to read, so no tools. Tools also make the briefing
  * a cached conversation, written at 1.25x for a later turn to read back: on the web run of 2026-10-06 (an empty repo) seven
@@ -175,10 +185,12 @@ function inputsOf(ctx: StepContext) {
   return { intent, cb, ...c };
 }
 
-const draftRules = (screens: boolean): string => `Senior engineer writing a behaviour spec a test author can turn into black-box tests.
+const draftRules = (screens: boolean, newWork = false): string => `Senior engineer writing a behaviour spec a test author can turn into black-box tests.
 Format rules (checked by code):
 - Each requirement is one EARS sentence with exactly one "shall": "The <system> shall ...", "When <trigger>, the <system> shall ...", "While <state>, the <system> shall ...", "Where <feature>, the <system> shall ...", "If <condition>, then the <system> shall ...". IDs REQ-1, REQ-2...
-- op = ADDED | MODIFIED | REMOVED. MODIFIED and REMOVED copy their anchors exactly from the current-behaviour claims.
+- ${newWork
+    ? "op is always ADDED: there is no existing code, so nothing is MODIFIED or REMOVED and no requirement has anchors. A requirement you reword or repair is still ADDED."
+    : "op = ADDED | MODIFIED | REMOVED, the change to the existing code, not to this spec. MODIFIED and REMOVED copy their anchors exactly from the current-behaviour claims."}
 - Each requirement has ≥1 acceptance criterion AC-<req>.<n> in Given/When/Then, observable at a public surface: a public class method called directly, an HTTP call, a job run, an outbound call to a named system, a DB row, or a screen. level: unit | api | job | ui | manual.
 - ${OBSERVABLE_RULE} (manual criteria are exempt.)
 - Pick the LOWEST level that proves the behaviour: unit when the logic lives in one class (call its public method directly), api for an endpoint, job only when the behaviour exists only in a job run. ${screens
@@ -195,7 +207,7 @@ ${UNTRUSTED_NOTE}`;
 
 function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
   return [
-    S.template("tpl", draftRules(testsScreens(ctx.project.stack))),
+    S.template("tpl", draftRules(testsScreens(ctx.project.stack), newWork(ctx))),
     S.artifact("intent", "intent", i.intent),
     S.artifact("answers", "answers", i.answers),
     S.artifact("assumptions", "assumptions", i.assumptions),
@@ -208,7 +220,7 @@ function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
 
 /** Three independent drafts: 2 × Opus + 1 × other family (Sonnet for a low-risk bugfix). The light and requirements lanes write one. */
 export const draftsStep: StepDef = {
-  key: "drafts", stage: "specify", templateVersion: "5",
+  key: "drafts", stage: "specify", templateVersion: "6",
   inputs: (s) => (s.steps.get("clarify-2")?.status === "completed"
     ? { intent: s.steps.get("intake")!.outputs[0], cb: s.steps.get("ground")!.outputs[0], c1: s.steps.get("clarify")!.outputs[0], c2: s.steps.get("clarify-2")!.outputs[0] } : undefined),
   async run(ctx) {
@@ -320,7 +332,7 @@ export function problems(c: Checks): string[] {
 
 /** Final spec: check, repair (one drafter, merged spec + findings) up to 3 times (once on the light and requirements lanes). */
 export const specifyStep: StepDef = {
-  key: "specify", stage: "specify", templateVersion: "7",
+  key: "specify", stage: "specify", templateVersion: "8",
   // refused: gate E1 refused a spec written before problems were settled by questions, so this step runs again to settle them
   inputs: (s, l) => (s.steps.get("merge")?.status === "completed"
     ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s), ...(settles(s.info) && specRefused(s, l) ? { refused: true } : {}) }
@@ -377,9 +389,10 @@ export const specifyStep: StepDef = {
       const stab = Object.fromEntries(spec.requirements.map((q) => [q.id, q.stability]));
       spec = { ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) };
     }
+    const fresh = newWork(ctx);
     let before: string[] | undefined;
     for (;;) {
-      const d = downgradeUi(spec, testsScreens(ctx.project.stack));
+      const d = downgradeUi(fresh ? allAdded(spec) : spec, testsScreens(ctx.project.stack));
       spec = d.spec;
       for (const id of d.downgraded) manualUi.add(id);
       const c = await checkSpec(ctx, spec, i, lane.criticEffort);
@@ -435,7 +448,7 @@ Answer with the changes only, not the whole spec: "requirements" holds each requ
             });
             if (!r.ok) return r;
             const stab = Object.fromEntries(before.requirements.map((q) => [q.id, q.stability]));
-            const draft = applyRepair(before, r.output);
+            const draft = newWork(ctx) ? allAdded(applyRepair(before, r.output)) : applyRepair(before, r.output);
             const d = downgradeUi({ ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) }, testsScreens(ctx.project.stack));
             for (const id of d.downgraded) manualUi.add(id);
             return { ok: true, spec: d.spec };

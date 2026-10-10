@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { keptSketches, resolveAnswer, scoreQuestions, selectQuestions, verifyDifferences, type ClarifierQuestion, type Sketch } from "./clarify.js";
 import { Defaults, loadDefaults, topicsText } from "../estimate/defaults.js";
-import { applyRepair, checkMerge, criticBlocks, criticTemplate, lostCoverage, problems, roundTripCheck, sameProblems } from "./specpipe.js";
+import { allAdded, applyRepair, checkMerge, criticBlocks, criticTemplate, lostCoverage, problems, roundTripCheck, sameProblems } from "./specpipe.js";
 import { lintSpec, mentions, requestExcluded, sizeNote } from "./speclint.js";
 
 const sketch = (texts: string[]): Sketch => ({ spans: [{ id: "I-1", behaviours: texts.map((t) => ({ text: t, kind: "happy" as const })) }] });
@@ -197,6 +197,15 @@ describe("only people put scope out of scope", () => {
     expect(after.nfrs).toEqual([]);
     expect(after.outOfScope).toEqual(["later"]);
     expect(applyRepair(before, { requirements: [], outOfScope: [] }).outOfScope).toEqual([]);
+  });
+
+  it("a repair that rewords a requirement can't turn it into MODIFIED; with no existing code every op is ADDED", () => {
+    const before = spec([], [req("REQ-1"), req("REQ-2")]);
+    const anchors = [{ path: "a", lineStart: 1, lineEnd: 1, quote: "x" }];
+    const after = applyRepair(before, { requirements: [{ ...req("REQ-1"), op: "MODIFIED" as const }, { ...req("REQ-2"), op: "MODIFIED" as const, anchors }, { ...req("REQ-3"), op: "MODIFIED" as const }] } as never);
+    expect(after.requirements.map((r) => r.op)).toEqual(["ADDED", "MODIFIED", "MODIFIED"]);
+    expect(allAdded(after).requirements.map((r) => r.op)).toEqual(["ADDED", "ADDED", "ADDED"]);
+    expect(allAdded(before)).toBe(before);
   });
 
   it("a repair that drops a covered span is caught; identical problems stop repairs", () => {
