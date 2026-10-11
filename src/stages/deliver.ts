@@ -305,7 +305,7 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
     `- Acceptance tests were written first, failed on the old code twice, then locked`,
     ...(a.lock.familyNote ? [`- ⚠ ${a.lock.familyNote}`] : []),
     // a locked test the test-or-code check found wrong and rewrote during the build (test-defect.ts): a person should read it
-    ...(a.rewritten ?? []).map((j) => `- ⚠ Locked test rewritten during the build: \`${j.file}\` (${j.testId}, ${j.acId}). It failed twice at ${j.step.replace(/^implement\//, "")} and a check judged the test wrong: ${j.why} The rewrite failed again on the code before that task, was read against its criterion, and was locked again.`),
+    ...(a.rewritten ?? []).map((j) => `- ⚠ Locked test rewritten during the build: \`${j.file}\` (${j.testId}, ${j.acId}). It failed twice at ${j.step.replace(/^implement\//, "")} and a check judged the test wrong: ${j.why} The rewrite failed again on the code before that task, was read against its criterion, and was locked again. The factory does not merge this pull request itself: read the rewrite, then merge.`),
     ...(flaky.length ? [`- ⚠ Flaky (passed only on re-run): ${flaky.join(", ")}`] : []),
     ...(written?.waivers ?? []).map((w) => `- ⚠ Waived by ${w.human}: ${w.gateIds.join(", ")} (${w.reason})${written?.acceptedUntested?.length ? `. No test covers ${written.acceptedUntested.join(", ")}` : ""}`),
     ...(reviewed?.waivers ?? []).map((w) => `- ⚠ Waived by ${w.human}: ${w.gateIds.join(", ")} (${w.reason})`),
