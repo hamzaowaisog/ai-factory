@@ -24,8 +24,11 @@ export interface DemoInput {
   /** requirement id -> its EARS text */
   requirements: Record<string, string>;
   noScreen: { req: string; reason: string }[];
-  /** frame id (F-1) -> the image as a data: URI; frames without one are listed by name only */
-  frames?: Record<string, { name: string; dataUri?: string; state?: string }>;
+  /**
+   * frame id (F-1) -> the image as a data: URI; frames without one are listed by name only. `live` is a Stitch frame's own page
+   * (a path beside the demo, src/design/stitch-live.ts): the demo shows it in a sandboxed frame, with the picture one click away.
+   */
+  frames?: Record<string, { name: string; dataUri?: string; state?: string; live?: string }>;
   /** the look the design step chose; absent, a clean blue light theme */
   theme?: DesignTheme;
   /** the product's apps when it has more than one (a customer phone app, an admin portal); screens name theirs */
@@ -949,7 +952,9 @@ kbd{font:500 11px var(--font);border:1px solid var(--edge2);border-bottom-width:
 .ptabs button.on:after{content:"";position:absolute;inset-inline-start:10px;inset-inline-end:10px;bottom:-1px;height:2px;border-radius:2px;background:var(--br);animation:grow-x .35s var(--e) both}
 .hero .crumbs,.hero .crumbs .c,.hero .crumbs [aria-current],.hero .crumbs .back{color:color-mix(in srgb,var(--on) 82%,transparent)}.hero .ptabs{border-color:color-mix(in srgb,var(--on) 22%,transparent)}.hero .ptabs button{color:color-mix(in srgb,var(--on) 70%,transparent)}.hero .ptabs button.on{color:var(--on)}.hero .ptabs button.on:after{background:var(--on)}
 .pane{--px:clamp(14px,2.4vw,32px);padding:26px var(--px) 32px;flex:1}.pane[hidden]{display:none}.pane:not([hidden]){animation:fadein .3s ease backwards}@keyframes fadein{from{opacity:0}}
-.canvas img{max-width:100%;display:block;margin:18px auto}.wire{background:#fff;border-radius:var(--r);padding:10px;margin:14px}.wire svg{display:block;width:auto;height:auto;max-width:640px;margin:0 auto;stroke-width:inherit}
+.canvas img{max-width:100%;display:block;margin:18px auto}
+.pane.lv{padding:0}.canvas iframe.live{display:block;width:100%;height:min(860px,84vh);border:0;background:#fff}.canvas.phone iframe.live{height:760px}
+.states.views{margin-inline-start:8px}.screen:not(.pic) .pane.lv>:not(iframe){display:none}.screen.pic .pane.lv>iframe{display:none}.wire{background:#fff;border-radius:var(--r);padding:10px;margin:14px}.wire svg{display:block;width:auto;height:auto;max-width:640px;margin:0 auto;stroke-width:inherit}
 /* the page */
 .ph{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 20px;flex-wrap:wrap}.ph h3{margin:0;font-size:clamp(21px,2.3vw,26px);letter-spacing:var(--hls);font-weight:var(--hw);line-height:1.2}.pa .row{gap:8px}
 .sub{margin:.3rem 0 0;color:var(--mut);font-size:14px}.body{display:grid;gap:16px;margin-top:22px}
@@ -1597,6 +1602,11 @@ const JS = `
     if(!t.closest("[data-cbx]"))$("[data-cbx] .lb").forEach(function(l){l.hidden=true;var i=l.parentNode.querySelector("input");if(i)i.setAttribute("aria-expanded","false")})});
   document.addEventListener("keydown",function(e){if(e.key==="Escape"){$(".swm,.ddm,.lb").forEach(function(m){m.hidden=true});$(".canvas.dopen").forEach(function(c){c.classList.remove("dopen")});$(".ovl.open").forEach(function(o){o.classList.remove("open")})}});
   if(I)setLang(0);
+  // a Stitch screen: its live page or its picture, and a click inside the live page that names another screen opens it
+  $("[data-view]").forEach(function(b){b.addEventListener("click",function(){var s=b.closest(".screen"),pic=b.getAttribute("data-view")==="pic";
+    s.classList.toggle("pic",pic);$("[data-view]",s).forEach(function(x){var on=x===b;x.className=on?"on":"";x.setAttribute("aria-pressed",String(on))})})});
+  window.addEventListener("message",function(e){var d=e.data;if(!d||typeof d.factoryGo!=="string")return;
+    if($("iframe.live").some(function(f){return f.contentWindow===e.source})&&secs.some(function(s){return s.id===d.factoryGo}))go(d.factoryGo)});
   window.addEventListener("hashchange",show);show();
 })();
 `;
@@ -1777,10 +1787,15 @@ export function buildDemo(d: DemoInput): string {
     const stitched = listed.length > 0 && listed.every((f) => !!f!.state);
     const statePane = (st: string, k: number): string => {
       const kind = k === 0 ? "normal" : stateKind(st);
-      const f = shown.find((x) => x!.state === kind);
-      const body = f ? `<img src="${f.dataUri}" alt="${esc(f.name)}">` : `<p class="wire">No Stitch picture of the ${esc(k === 0 ? "page" : st)} state in this demo.</p>`;
-      return `<div class="pane" data-wf="${k}"${k === 0 ? "" : " hidden"}>${body}</div>`;
+      const f = listed.find((x) => x!.state === kind && (x!.dataUri || x!.live));
+      const pic = f?.dataUri ? `<img src="${f.dataUri}" alt="${esc(f.name)}">` : "";
+      // the page itself, live: sandboxed (no access to the demo or whoever serves it), and what it may load is its own policy's
+      const page = f?.live ? `<iframe class="live" sandbox="allow-scripts" src="${esc(f.live)}" title="${esc(`${s.route} ${k === 0 ? "" : st}`.trim())}" loading="lazy" referrerpolicy="no-referrer"></iframe>${pic || `<p class="wire pic">No Stitch picture of the ${esc(k === 0 ? "page" : st)} state in this demo.</p>`}` : "";
+      const body = page || pic || `<p class="wire">No Stitch picture of the ${esc(k === 0 ? "page" : st)} state in this demo.</p>`;
+      return `<div class="pane${page ? " lv" : ""}" data-wf="${k}"${k === 0 ? "" : " hidden"}>${body}</div>`;
     };
+    const liveOn = stitched && listed.some((f) => f!.live);
+    const views = liveOn ? `<div class="states views" role="group" aria-label="View"><button type="button" data-view="live" class="on" aria-pressed="true">Live</button><button type="button" data-view="pic" aria-pressed="false">Picture</button></div>` : "";
     const content = stitched ? states.map(statePane).join("") : shown.length ? shown.map((f) => `<img src="${f!.dataUri}" alt="${esc(f!.name)}">`).join("") : states.map(pane).join("");
     const tabbar = shell === "minimal" || shell === "drawer" || nav.length < 2 ? "" : `<nav class="tabbar" aria-label="Tabs">${links(5)}</nav>`;
     const foot = `<div class="rf"><a href="#${esc(s.id)}">${icon("settings")}<span>Settings</span></a><a href="#${esc(s.id)}">${icon("help")}<span>Help</span></a></div>`;
@@ -1800,7 +1815,7 @@ export function buildDemo(d: DemoInput): string {
     return `<section class="screen" id="${esc(s.id)}" data-i="${i}" hidden>
 <div class="top"><h2>${esc(s.mock?.title ?? s.route)} <code>${esc(s.route)}</code> <span class="sid">${esc(s.id)}</span></h2><span class="tag">${esc(s.size)}</span></div>
 <p class="file">${esc(s.file)}</p>
-<div class="states" role="tablist">${states.map((st, k) => `<button role="tab" data-state="${k}"${k === 0 ? ' class="on"' : ""}>${esc(st)}</button>`).join("")}</div>
+<div class="states" role="tablist">${states.map((st, k) => `<button role="tab" data-state="${k}"${k === 0 ? ' class="on"' : ""}>${esc(st)}</button>`).join("")}</div>${views}
 <div class="canvas sh-${shell}${phone ? " phone" : ""}"${canvasLang}>${device}${stitched ? `<div class="stage">${content}</div>` : app$}</div>
 <details class="serves"><summary>Serves ${s.reqs.length} requirement${s.reqs.length === 1 ? "" : "s"}</summary><ul>${reqs || "<li>no requirement</li>"}</ul></details>
 <p class="nav">${sibs.filter((o) => o.id !== s.id).map((o) => `<a href="#${esc(o.id)}">${esc(label(o))} →</a>`).join(" ")}</p>
@@ -1822,7 +1837,7 @@ export function buildDemo(d: DemoInput): string {
   const none = d.noScreen.map((n) => `<li><b>${esc(n.req)}</b> ${esc(d.requirements[n.req] ?? "")} <i>(no screen: ${esc(n.reason)})</i></li>`).join("");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:${Object.values(d.frames ?? {}).some((f) => f.live) ? "; frame-src 'self'" : ""}">
 <title>${esc(d.title)} - design demo</title>
 <meta name="color-scheme" content="${d.theme?.mode === "dark" ? "dark" : d.theme?.mode === "auto" ? "light dark" : "light"}">
 <style>${themeCss(d.theme)}${CSS}</style></head><body class="fx-${esc(look.fx)} sh-${apps[0]!.shell} ch-${look.charts} r-${look.radius}">

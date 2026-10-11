@@ -1,7 +1,7 @@
 // Model routing per step (adapters.md config; stages-aligned §2; WD §4 tiers).
 import type { ProjectConfig, RunRoutes, StepRoute } from "../config/project.js";
 import { hasSecret } from "../config/env.js";
-import { designRoute } from "../config/design-route.js";
+import { designRoute, type DesignEngine } from "../config/design-route.js";
 import type { Rung } from "../gates/ladder.js";
 import { hasPrice } from "../runners/pricing.js";
 import { tasteSkillProblem } from "../design/stitch-taste.js";
@@ -9,7 +9,7 @@ import { uiuxProblem } from "../design/uiux-skill.js";
 import { blockedText, modelAllowed, type Policy } from "../gates/policy.js";
 import { family, type Effort } from "../runners/types.js";
 import { priceOf, UNCONFIRMED_PRICES } from "../runners/pricing.js";
-import { heldTier, modelInfo, modelName, nextUp, offeredFor, OPUS, PRESETS, presetTier, runnerFor, STEPS, TIER_TABLE, type Preset, type RouteSource, type StepSpec, type Tier, type Vendor } from "./models.js";
+import { enginesFor, heldTier, modelInfo, modelName, nextUp, offeredFor, OPUS, PRESETS, presetTier, runnerFor, STEPS, STITCH, STITCH_NAME, TIER_TABLE, type Preset, type RouteSource, type StepSpec, type Tier, type Vendor } from "./models.js";
 
 const OLD_OPUS = "claude-opus-5-5";
 const OLD_SONNET = "claude-sonnet-5";
@@ -49,7 +49,7 @@ export interface Choice { picks?: Record<string, string>; preset?: Preset }
 /** A tier put forward for a step by something other than a person (the plan's task size, a rule, a recommendation). */
 export interface Suggestion { tier: Tier; source: Extract<RouteSource, "recommended" | "plan size" | "rule"> }
 /** A step's route with where it came from. */
-export interface Resolved extends StepRoute { source: RouteSource; tier?: Tier; preset?: Preset }
+export interface Resolved extends StepRoute { source: RouteSource; tier?: Tier; preset?: Preset; /** the design engine a person picked for the run (Google Stitch) */ engine?: DesignEngine }
 
 const esc = (stage: string, model: string): string[] => { const n = nextUp(stage, model); return n ? [n] : []; };
 
@@ -73,6 +73,11 @@ export function resolveRoute(project: ProjectConfig, stage: string, choice: Choi
   }
   if (spec.fixed) return { runner: spec.runner, model: spec.fixed, escalate: [], effort: spec.effort ?? "high", source: "fixed" };
   const pick = choice.picks?.[stage];
+  // Google Stitch picked for the design step: the project's design tiers plan the screens, and the run keeps the engine
+  if (pick === STITCH && stage === "design") {
+    if (!project.design?.allowStitch) throw new Error(`design: ${STITCH_NAME} was picked, but this project does not allow it; Stitch sends the requirements to Google, so set design.allowStitch: true in the project file first`);
+    return { ...designRoute({ design: { ...project.design, engine: STITCH } }).route, source: "design engine", engine: STITCH };
+  }
   if (pick) return { runner: runnerFor(stage, pick), model: pick, escalate: esc(stage, pick), effort: spec.effort ?? "high", source: "pick" };
   // a design engine or tier the project pinned is not undone by a preset: only a pick for the step itself changes it
   if (stage === "design" && !own && (project.design?.engine || project.design?.tier)) return { ...designRoute(project).route, source: "design engine" };
@@ -112,7 +117,9 @@ export function projectForRun(project: ProjectConfig, saved: Record<string, Reso
   }
   // a step added to the project file after the run began: read as the file has it
   for (const [stage, r] of Object.entries(project.steps)) if (!steps[stage] && !STEPS[stage]) { steps[stage] = r; how[stage] = { source: "config" }; }
-  return { ...project, steps, runRoutes: { legacy: false, steps: how } };
+  // a design engine picked at the start is the run's own: the design step reads it as the project's
+  const engine = saved.design?.engine;
+  return { ...project, ...(engine && project.design ? { design: { ...project.design, engine } } : {}), steps, runRoutes: { legacy: false, steps: how } };
 }
 
 /**
@@ -160,12 +167,13 @@ export function stepsOf(mode: string | undefined): string[] {
 }
 
 /** What the start form shows: every step with its default, the models it can be given, and what each preset puts it on. */
-export function modelsView(mode: string | undefined): { steps: { step: string; group: string; model: string; effort: string; fixed: boolean; offered: string[]; presets: Record<Preset, string>; warn?: { model: string; why: string } }[]; presets: readonly Preset[]; models: { id: string; name: string; input: number; output: number; unconfirmed: boolean }[] } {
+export function modelsView(mode: string | undefined): { steps: { step: string; group: string; model: string; effort: string; fixed: boolean; offered: string[]; engines?: { id: string; name: string; note: string }[]; presets: Record<Preset, string>; warn?: { model: string; why: string } }[]; presets: readonly Preset[]; models: { id: string; name: string; input: number; output: number; unconfirmed: boolean }[] } {
   const none = { steps: {} } as unknown as ProjectConfig;
   const steps = stepsOf(mode).map((step) => {
     const spec = STEPS[step]!, r = resolveRoute(none, step);
     return {
       step, group: spec.group, model: r.model, effort: r.effort ?? "high", fixed: !!spec.fixed, offered: offeredFor(step).map((m) => m.id),
+      ...(enginesFor(step).length ? { engines: enginesFor(step) } : {}),
       presets: Object.fromEntries(PRESETS.map((p) => [p, resolveRoute(none, step, { preset: p }).model])) as Record<Preset, string>,
       ...(spec.warn ? { warn: { model: OPUS, why: spec.warn.why } } : {}),
     };
@@ -270,8 +278,9 @@ function refusal(stage: string, model: string, by: "pick" | "config"): string | 
   const spec = STEPS[stage];
   if (!spec) return by === "pick" ? `${stage} is not a step that takes a model (see factory models)` : undefined;
   if (spec.fixed) return by === "pick" ? `${stage} always runs on ${modelName(spec.fixed)}; it cannot be changed` : undefined;
+  if (by === "pick" && enginesFor(stage).some((e) => e.id === model)) return undefined;
   const info = modelInfo(model);
-  if (by === "pick" && !offeredFor(stage).some((m) => m.id === model)) return `${stage}: ${model} is not offered for this step (choose ${offeredFor(stage).map((m) => m.id).join(", ")})`;
+  if (by === "pick" && !offeredFor(stage).some((m) => m.id === model)) return `${stage}: ${model} is not offered for this step (choose ${[...offeredFor(stage), ...enginesFor(stage)].map((m) => m.id).join(", ")})`;
   const vendor = info?.vendor ?? (family(model) === "local" ? undefined : family(model));
   if (spec.only && vendor && !spec.only.includes(vendor as Vendor)) {
     return stage === "specify-other" ? `specify-other is the spec draft from another vendor than the critic (${modelName(OPUS)}); it needs a GPT-6 model, not ${model}`
@@ -312,8 +321,8 @@ export function checkRoutes(project: ProjectConfig, only?: readonly string[], ch
       const why = refusal(stage, r.model, "config");
       if (why) problems.push(`${why} (set in the project file)`);
     }
-    if (stage === "design" && r.source === "design engine" && project.design?.engine === "stitch") {
-      if (!hasSecret("STITCH_API_KEY")) problems.push("design.engine is stitch, but STITCH_API_KEY is missing from ~/.factory/.env");
+    if (stage === "design" && r.source === "design engine" && (r.engine ?? project.design?.engine) === "stitch") {
+      if (!hasSecret("STITCH_API_KEY")) problems.push(`${r.engine ? `${STITCH_NAME} was picked for the design step` : "design.engine is stitch"}, but STITCH_API_KEY is missing from ~/.factory/.env`);
       const skill = tasteSkillProblem();
       if (skill) problems.push(skill);
     } else if (stage === "design") {
@@ -360,7 +369,7 @@ export function runModels(events: { type: string; key?: string; data?: Record<st
   const info = (events[0]?.data ?? {}) as { routes?: Record<string, Resolved>; models?: Choice; mode?: string };
   const rows = info.routes ? stepsOf(info.mode).filter((s) => info.routes![s]).map((s) => {
     const r = info.routes![s]!;
-    return { step: s, model: r.model, name: modelName(r.model), effort: r.effort ?? "high", source: r.source, ...(r.tier ? { tier: r.tier } : {}), ...(r.preset ? { preset: r.preset } : {}), ...(r.escalate[0] ? { next: r.escalate[0] } : {}) };
+    return { step: s, model: r.model, name: r.engine === STITCH ? `${STITCH_NAME}, planned by ${modelName(r.model)}` : modelName(r.model), effort: r.effort ?? "high", source: r.source, ...(r.tier ? { tier: r.tier } : {}), ...(r.preset ? { preset: r.preset } : {}), ...(r.escalate[0] ? { next: r.escalate[0] } : {}) };
   }) : [];
   const by = new Map<string, RunModels["calls"][number]>();
   for (const e of events) {

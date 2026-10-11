@@ -278,6 +278,24 @@ describe("design tier routes", () => {
     delete process.env.STITCH_API_KEY; _resetEnvCache();
   });
 
+  it("Google Stitch can be picked for the design step of a project that allows it, and the run keeps it", () => {
+    expect(modelsView("greenfield").steps.find((s) => s.step === "design")?.engines?.map((e) => e.id)).toEqual(["stitch"]);
+    expect(modelsView("greenfield").steps.find((s) => s.step === "plan")?.engines ?? []).toEqual([]);
+    const pick = { picks: { design: "stitch" } };
+    // the pick never opens the project's own gate: the requirements go to Google only when the project file says so
+    expect(checkRoutes(cfg(), ["design"], pick).join("\n")).toMatch(/Google Stitch was picked, but this project does not allow it.*allowStitch: true/);
+    expect(checkRoutes(cfg(), ["plan"], { picks: { plan: "stitch" } })[0]).toMatch(/not offered/);
+    const allowed = cfg({ design: { allowStitch: true } });
+    expect(checkRoutes(allowed, ["design"], pick).join("\n")).toMatch(/STITCH_API_KEY/);
+    process.env.STITCH_API_KEY = "st"; _resetEnvCache();
+    expect(checkRoutes(allowed, ["design"], pick)).toEqual([]);
+    delete process.env.STITCH_API_KEY; _resetEnvCache();
+    expect(resolveRoute(allowed, "design", pick)).toMatchObject({ source: "design engine", engine: "stitch" });
+    const run = projectForRun(allowed, resolveRun(allowed, pick));
+    expect(run.design?.engine).toBe("stitch");
+    expect(projectForRun(allowed, resolveRun(allowed)).design?.engine).not.toBe("stitch");
+  });
+
   it("keeps a design route the project set by hand", () => {
     const p = cfg({ design: { engine: "claude", tier: "standard" }, steps: { design: { runner: "api", model: "claude-sonnet-5", escalate: [] } } });
     expect(routeFor(p, "design")).toMatchObject({ model: "claude-sonnet-5", escalate: [] });

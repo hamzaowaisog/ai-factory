@@ -27,6 +27,7 @@ import { REPO_ROOT } from "../runners/netinfra.js";
 import { modelsView } from "../stages/routing.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
+import { LIVE_CSP, LIVE_DIR } from "../design/stitch-live.js";
 import { dataModelView } from "./erd.js";
 import { testsView } from "./tests.js";
 import { answerQuestions, checkRefs, decideCard, decideEstimate, raiseLimit, resumeRun, signOffManual, startRun, StartError, stopAtLimit, type StartDeps } from "./start.js";
@@ -380,6 +381,18 @@ const PREVIEW_HEADERS = {
   "Cross-Origin-Resource-Policy": "cross-origin",
 };
 
+/**
+ * A Stitch screen's live page (preview/stitch/): Stitch's own HTML inside the demo, which is itself sandboxed. It may load
+ * Tailwind's browser build, Google's fonts and Stitch's pictures, and nothing else (src/design/stitch-live.ts). The demo that
+ * frames it has an opaque origin, which no frame-ancestors value names, so the preview key in its address is what guards it.
+ */
+const LIVE_HEADERS = {
+  "Content-Security-Policy": `${LIVE_CSP}; sandbox allow-scripts`,
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  "Cross-Origin-Resource-Policy": "cross-origin",
+};
+
 // ---------- server ----------
 
 export interface UiServerOptions {
@@ -590,7 +603,8 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
     const l = findRun(runId);
     const f = l && rest.length ? previewFile(l, rest.join("/")) : undefined;
     if (!f) return plain(404, "Not found.");
-    res.writeHead(200, { ...PREVIEW_HEADERS, "Content-Type": f.type, "Cache-Control": "no-store" });
+    const liveHtml = rest[0] === LIVE_DIR && f.type.startsWith("text/html");
+    res.writeHead(200, { ...(liveHtml ? LIVE_HEADERS : PREVIEW_HEADERS), "Content-Type": f.type, "Cache-Control": "no-store" });
     const body = framed && f.type.startsWith("text/html") ? Buffer.concat([f.body, Buffer.from(FRAME_STYLE)]) : f.body;
     res.end(req.method === "HEAD" ? undefined : body);
   }

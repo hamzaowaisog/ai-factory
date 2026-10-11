@@ -189,7 +189,10 @@ ok   ~/.factory/.env exists
 ok   ANTHROPIC_API_KEY set in ~/.factory/.env
 note OPENAI_API_KEY not set: a run will not start (the second spec draft and the pre-PR reviewer run on GPT-6)
 note STITCH_API_KEY not set (optional): needed only for design.engine: stitch
+ok   Python 3 (python3): the design step uses the ui-ux-pro-max skill
 ```
+
+Python 3 is needed by the design step's ui-ux-pro-max skill (its search is a Python script, with no packages to install). Without it a design is still drawn, but not from the skill. `scripts/setup.sh` installs it.
 
 Keys are read from `~/.factory/.env` first, then from the environment, so `export STITCH_API_KEY=...` (like `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`) works too.
 
@@ -214,7 +217,7 @@ FIGMA_TOKEN=...           # Figma → Settings → Security → Personal access 
 
 | Step | macOS | Windows / Ubuntu |
 |---|---|---|
-| Base | Apple command line tools, Homebrew | WSL + Ubuntu with systemd (Windows), git, curl |
+| Base | Apple command line tools, Homebrew, Python 3 (if missing) | WSL + Ubuntu with systemd (Windows), git, curl, Python 3 |
 | Node 22 | nvm | nvm |
 | Containers | `brew install colima docker`, `colima start --cpu 4 --memory 8` | Docker Engine CE from Docker's apt repo, your user added to the `docker` group |
 | Factory | `npm ci && npm run build && npm link` | same |

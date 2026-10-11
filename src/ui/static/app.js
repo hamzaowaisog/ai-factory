@@ -2440,7 +2440,9 @@ function modelPicker(catalogue, id, also = "") {
   const preset = h("select", { id }, h("option", { value: "" }, "Defaults"), catalogue.presets.map((p) => h("option", { value: p }, p[0].toUpperCase() + p.slice(1))));
   const rows = catalogue.steps.map((s) => {
     const auto = h("option", { value: "" });
-    const pick = s.fixed ? null : h("select", { "aria-label": `Model for ${s.step}` }, auto, s.offered.map((m) => h("option", { value: m, title: mPrice(m) }, mName(m))));
+    const pick = s.fixed ? null : h("select", { "aria-label": `Model for ${s.step}` }, auto, s.offered.map((m) => h("option", { value: m, title: mPrice(m) }, mName(m))),
+      // a design engine beside the models: Google Stitch draws the screens
+      (s.engines ?? []).map((e) => h("option", { value: e.id, title: e.note }, e.name)));
     const tag = h("span", { class: "chip", hidden: true }, "changed");
     const note = h("span", { class: "hint warn-text", hidden: true });
     const row = h("tr", {}, h("td", { class: "mono" }, s.step), h("td", { class: "faint small" }, s.group),
@@ -2451,8 +2453,9 @@ function modelPicker(catalogue, id, also = "") {
       auto.textContent = `${mName(base)} (${preset.value || "default"})`;
       tag.hidden = !pick.value;
       const on = pick.value || base;
-      note.hidden = !(s.warn && pick.value && on === s.warn.model);
-      if (!note.hidden) note.textContent = s.warn.why;
+      const engine = (s.engines ?? []).find((e) => e.id === pick.value);
+      note.hidden = !engine && !(s.warn && pick.value && on === s.warn.model);
+      if (!note.hidden) note.textContent = engine ? engine.note : s.warn.why;
     };
     if (pick) pick.addEventListener("change", sync);
     return { step: s.step, pick, sync, row };

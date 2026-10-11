@@ -118,6 +118,7 @@ factory start "Add an orders page" --project shop --preset economy --model plan=
 - `--preset economy|balanced|quality` sets every step.
 - `--model step=model` sets one step, and wins over the preset. Repeat it for more steps.
 - A group name sets every step of that group: `--model coding=claude-opus-5-5`. The groups are `thinking`, `design`, `coding` and `review`. A step's own name wins over a group of the same name (`design` is the step).
+- The `design` step can also be given **Google Stitch** (`--model design=stitch`, or "Google Stitch" in the form's design row): Stitch draws the screens and Claude plans them. It sends the requirements to Google, so the project file must allow it (`design.allowStitch: true`) and `STITCH_API_KEY` must be set; otherwise the start is refused with the reason. The run keeps the engine it started with.
 
 To see what a run would use before starting it, at no cost:
 

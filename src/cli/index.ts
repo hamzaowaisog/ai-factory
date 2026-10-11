@@ -721,6 +721,10 @@ program.command("doctor").description("check this machine and the setup").action
   ok(hasSecret("ANTHROPIC_API_KEY"), "ANTHROPIC_API_KEY set in ~/.factory/.env");
   log(`${hasSecret("OPENAI_API_KEY") ? "ok  " : "note"} OPENAI_API_KEY ${hasSecret("OPENAI_API_KEY") ? "set" : "not set: a run will not start (the second spec draft and the pre-PR reviewer run on GPT-6)"}`);
   log(hasSecret("STITCH_API_KEY") ? "ok   STITCH_API_KEY set: projects with design.engine: stitch can draw with Google Stitch" : "note STITCH_API_KEY not set (optional): needed only for design.engine: stitch");
+  // the design step runs the ui-ux-pro-max skill's search with Python 3; without it a design is drawn, but not from the skill
+  const { findPython, UIUX_SKILL_DIR } = await import("../design/uiux-skill.js");
+  const py = findPython();
+  if (existsSync(join(UIUX_SKILL_DIR, "SKILL.md"))) ok(!!py, py ? `Python 3 (${py.cmd}): the design step uses the ui-ux-pro-max skill` : "Python 3: the design step draws without the ui-ux-pro-max skill", "install Python 3 (macOS: brew install python; Ubuntu: sudo apt-get install -y python3), or run scripts/setup.sh again");
   const { jiraConfigured } = await import("../sources/jira.js");
   log(jiraConfigured() ? "ok   Jira set up (factory start --jira ABC-123)" : "note Jira not set up (optional): add JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN to ~/.factory/.env to use --jira");
   log(hasSecret("GITHUB_TOKEN") ? "ok   GITHUB_TOKEN set: a new product can be put on GitHub (Greenfield's \"Put it on GitHub\", factory fullstack start --github)"

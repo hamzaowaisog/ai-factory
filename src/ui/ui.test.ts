@@ -788,6 +788,18 @@ describe("factory ui: preview", () => {
     expect((await call(`/preview/${PKEY}/${ids.delivered}/index.html`, { method: "POST", token: null, headers: { "Content-Type": "application/json" }, body: "{}" })).status).toBe(405);
   });
 
+  it("a live Stitch page may load Tailwind and Google's fonts, still sandboxed and with no connection out", async () => {
+    withPreview();
+    const dir = join(Ledger.open(ids.delivered).dir, "preview", "stitch");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "ST-1.html"), "<!doctype html><title>x</title>");
+    const live = await file("stitch/ST-1.html");
+    expect(live.status).toBe(200);
+    const csp = String(live.headers["content-security-policy"]);
+    expect(csp).toMatch(/script-src 'unsafe-inline' https:\/\/cdn\.tailwindcss\.com;.*connect-src 'none'.*sandbox allow-scripts$/);
+    expect(String((await file("index.html")).headers["content-security-policy"])).not.toContain("tailwindcss");
+  });
+
   it("needs the preview key, not the session key", async () => {
     withPreview();
     expect((await file("index.html", "wrong-key-0123456789abcdef")).status).toBe(401);
