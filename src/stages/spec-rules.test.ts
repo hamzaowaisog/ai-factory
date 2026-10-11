@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { keptSketches, resolveAnswer, scoreQuestions, selectQuestions, verifyDifferences, type ClarifierQuestion, type Sketch } from "./clarify.js";
 import { Defaults, loadDefaults, topicsText } from "../estimate/defaults.js";
-import { allAdded, applyRepair, checkMerge, criticBlocks, criticTemplate, lostCoverage, problems, roundTripCheck, sameProblems } from "./specpipe.js";
+import { allAdded, API_SIDE, applyRepair, checkMerge, criticBlocks, criticTemplate, lostCoverage, problems, roundTripCheck, sameProblems, webSideOnly } from "./specpipe.js";
 import { lintSpec, mentions, requestExcluded, sizeNote } from "./speclint.js";
 
 const sketch = (texts: string[]): Sketch => ({ spans: [{ id: "I-1", behaviours: texts.map((t) => ({ text: t, kind: "happy" as const })) }] });
@@ -392,5 +392,46 @@ describe("clientBaseUrl", () => {
     expect(clientBaseUrl("http://localhost:5080", doc("servers:\n  - url: /api\n"))).toBe("http://localhost:5080/api");
     expect(clientBaseUrl("http://localhost:5080/api/", doc("servers:\n  - url: /api\n"))).toBe("http://localhost:5080/api");
     expect(clientBaseUrl("http://localhost:5080", doc(""))).toBe("http://localhost:5080");
+  });
+});
+
+describe("webSideOnly", () => {
+  const ac = (id: string, level: "unit" | "api" | "job" | "ui" | "manual") => ({ id, given: "g", when: "w", then: "the screen shows x", level });
+  const req = (n: number, sources: string[], levels: ("unit" | "api" | "job" | "ui" | "manual")[]) =>
+    ({ id: `REQ-${n}`, ears: `The system shall do thing ${n}.`, op: "ADDED" as const, sources, acceptance: levels.map((l, k) => ac(`AC-${n}.${k + 1}`, l)) });
+  const spec = { requirements: [req(1, ["I-1"], ["ui", "api"]), req(2, ["I-2", "I-1"], ["api", "job"]), req(3, ["I-3"], ["unit"])], nfrs: [], outOfScope: ["payments"], assumptions: [] };
+  const spans = ["I-1", "I-2", "I-3"];
+
+  it("takes server criteria out and lists a requirement left with none as the API side's", () => {
+    const w = webSideOnly(spec, spans);
+    expect(w.spec.requirements.map((r) => r.id)).toEqual(["REQ-1", "REQ-3"]);
+    expect(w.spec.requirements[0]!.acceptance.map((a) => a.id)).toEqual(["AC-1.1"]);
+    expect(w.moved).toEqual(["AC-1.2", "REQ-2"]);
+    // I-1 is still covered by REQ-1, so only I-2 is named as the span that moved
+    expect(w.spec.outOfScope).toEqual(["payments", `I-2: REQ-2 is the API's own behaviour, built and tested by the API side of this product and not in this web app (${API_SIDE}): The system shall do thing 2.`]);
+  });
+
+  it("leaves a spec that passes the span check only when API-SIDE counts as a decision", () => {
+    const w = webSideOnly(spec, spans).spec;
+    const trace = (decisions: string[]) => lintSpec(w, { spans, changeClass: "feature", anchorOk: () => true, decisions }).find((l) => l.check === "L10 trace")!;
+    expect(trace([API_SIDE]).passed).toBe(true);
+    expect(trace([]).passed).toBe(false);
+    expect(roundTripCheck(spans, [API_SIDE], w, [], []).droppedSpans).toEqual(["I-1", "I-3"]);
+  });
+
+  it("changes nothing a second time, and nothing in a spec with no server criteria", () => {
+    const once = webSideOnly(spec, spans).spec;
+    expect(webSideOnly(once, spans)).toEqual({ spec: once, moved: [] });
+    const web = { ...spec, requirements: [req(3, ["I-3"], ["unit", "ui", "manual"])] };
+    expect(webSideOnly(web, spans).spec).toBe(web);
+  });
+
+  it("tells the critic and the test writer what the web side is", async () => {
+    const { authorIntro } = await import("./stack-text.js");
+    expect(criticTemplate(false, true)).toContain(API_SIDE);
+    expect(criticTemplate(false)).not.toContain(API_SIDE);
+    expect(authorIntro("node", true, true)).toContain("has no API of its own");
+    expect(authorIntro("node", true, true)).not.toContain("call the route handler");
+    expect(authorIntro("node", true)).toContain("call the route handler");
   });
 });

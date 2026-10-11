@@ -44,11 +44,17 @@ export function markInstalled(dir: string): void {
   writeFileSync(join(dir, INSTALL_MARK), installKey(dir));
 }
 
-export async function installNodeModules(rt: ContainerRuntime, o: { runId: string; key: string; dir: string; cache: string; image: string; timeoutSec: number; onContainer?: (id: string) => Promise<void>; onRemoved?: (id: string) => Promise<void> }): Promise<{ ok: boolean; log: string }> {
+/**
+ * Bring the lockfile up to package.json without installing anything. A task that adds a planned package edits package.json only
+ * (it has no network), and `npm ci` refuses a lockfile that is behind (run 0f9d: the lab's install failed, then the next attempt's).
+ */
+export const LOCK_SYNC_CMD = ["npm", "install", "--package-lock-only", "--ignore-scripts", "--no-audit", "--no-fund"];
+
+export async function installNodeModules(rt: ContainerRuntime, o: { runId: string; key: string; dir: string; cache: string; image: string; timeoutSec: number; onContainer?: (id: string) => Promise<void>; onRemoved?: (id: string) => Promise<void>; cmd?: string[] }): Promise<{ ok: boolean; log: string }> {
   const id = await rt.create({
     role: "restore", image: o.image, network: FEEDS_NET, workdir: "/src", user: hostUser(), labels: { run: o.runId, key: o.key },
     env: { ...NODE_ENV, HTTPS_PROXY: FEED_PROXY_URL, HTTP_PROXY: FEED_PROXY_URL },
-    mounts: [{ src: o.dir, dst: "/src" }, { src: o.cache, dst: "/npm-cache" }], cmd: INSTALL_CMD,
+    mounts: [{ src: o.dir, dst: "/src" }, { src: o.cache, dst: "/npm-cache" }], cmd: o.cmd ?? INSTALL_CMD,
   });
   await o.onContainer?.(id);
   try {

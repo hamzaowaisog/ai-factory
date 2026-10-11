@@ -4,6 +4,7 @@ import type {
 } from "../contracts/index.js";
 import { matchesAny } from "../util/glob.js";
 import { isLoadError } from "../verify/vitest.js";
+import { testsDidNotRun } from "../verify/validate.js";
 import { defineGate, failure, verdict } from "./engine.js";
 import type { Policy } from "./policy.js";
 import { isConfigIntegrityPath, isLockSetPath } from "./protected.js";
@@ -175,7 +176,8 @@ export const failsOnBase = defineGate<{ run1: TestRun; run2: TestRun; tests: Acc
     const fs: Failure[] = [];
     const ok = new Set(["assertion", "not-implemented"]);
     for (const run of [run1, run2]) {
-      if (!run.valid) { fs.push(failure("evidence", `Test evidence invalid: ${run.invalidReason}`)); continue; }
+      // tests that did not run are the writer's to fix in the files it wrote (kept on the retry); any other invalid run is not
+      if (!run.valid) { fs.push(failure(testsDidNotRun(run.invalidReason) ? "tests-not-run" : "evidence", `Test evidence invalid: ${run.invalidReason}`)); continue; }
       const byId = new Map(run.results.map((r) => [r.id, r]));
       for (const t of tests.tests) {
         const r = byId.get(t.testId);

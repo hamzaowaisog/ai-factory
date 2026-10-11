@@ -253,3 +253,14 @@ Unproven in a paid run: 48, and the two settings changed with it (compaction at 
 
 Not built: a vulnerability audit of dependencies (it needs a decision on whether it blocks a run or only reports). Unproven in a paid run: 49 and 50.
 
+## 11. From Ahsan's reading of the ledgers of `0f9d` and `e182` (2026-10-11)
+
+51. **A spec that is carried over is treated as new work too.** In a run with no existing code every requirement is new work (ADDED). That was applied to a fresh draft only; a spec carried from a failed attempt, resumed, or kept after a refused repair skipped it, and the lint rule about changed requirements then failed on every repair (run `e182` looped at specify). It is applied on all of those paths now (`allAdded` in `src/stages/specpipe.ts`).
+52. **The factory updates the lockfile when a task changes `package.json`.** The coding agent has no network, so it could not, and the install then failed (`0f9d`, TASK-1). The factory now syncs `package-lock.json` in the lab, retries the install, and lets the lockfile into that task's commit (`syncLockfile`, `ensurePackages` in `src/stages/build.ts`; `LOCK_SYNC_CMD` in `src/verify/lab.ts`).
+53. **Server rules stay in the API repo.** On the web side of a full-stack product the spec also carried the API's own behaviour, and the web run wrote tests for rules only the API can enforce. See `docs/fullstack-contract.md`, "What happens on the web side".
+54. **A test-writer failure says what went wrong.** Two faults in `0f9d`:
+    - "only N of M discovered tests executed" did not name the tests, was filed as an evidence failure, and the writer's files were thrown away. It now names the tests that did not run and the file that did not load, is its own check (`tests-not-run`), and the files are kept for the retry (`notRun`, `testsDidNotRun` in `src/verify/validate.ts`).
+    - A screen query that found nothing (Testing Library) was read as a crash, so a test failing for the right reason was rejected. It is read as a failed assertion (`classifyVitestFailure` in `src/verify/vitest.ts`).
+55. **A locked test that fails twice is checked, and rewritten when it is the test that is wrong.** See `docs/design/implement-loop.md`, "the test-or-code check".
+
+Not built: carrying every failure across retries of the spec step (the lint failure it was for cannot occur on new work after 51). Unproven in a paid run: 51 to 55.

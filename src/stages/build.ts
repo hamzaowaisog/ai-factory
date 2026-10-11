@@ -13,7 +13,7 @@ import {
 import { CONFIG_INTEGRITY_GLOBS } from "../gates/protected.js";
 import { matchesAny } from "../util/glob.js";
 import { failureSignature, RUNGS } from "../gates/ladder.js";
-import { changedFiles, commitAll, diffIncludingUntracked, git, headSha, repoRefusals, resetHard, trackIgnored } from "../ledger/git.js";
+import { changedFiles, commitAll, commitWith, diffIncludingUntracked, git, headSha, pathChangedSince, repoRefusals, resetHard, trackIgnored } from "../ledger/git.js";
 import { agentDatabase, NO_CREDIT_TEXT, type AgentProgress } from "../runners/claude-agent.js";
 import { codingRunner } from "../runners/codex.js";
 import { ensureAgentImage, ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
@@ -26,13 +26,13 @@ import { parseTrx } from "../verify/trx.js";
 import { factoryHome } from "../util/paths.js";
 import { BUILT_SCHEMA_FILE, buildCachePath, produceDotnetTests, skippableKnownFailures, type BuiltSchema, type Probe, type ProduceOutput } from "../verify/dotnet.js";
 import type { ProjectConfig } from "../config/project.js";
-import { installIsCurrent, installNodeModules, labFor, markInstalled, runNodeOffline } from "../verify/lab.js";
+import { installIsCurrent, installNodeModules, labFor, LOCK_SYNC_CMD, markInstalled, runNodeOffline } from "../verify/lab.js";
 import { contractGap, contractMatches, dataModelMatches } from "../gates/contract.js";
 import { changedPackages, isPackageManifest, packagesPlanned, type PackageChange, type PackageChanges } from "../gates/packages.js";
 import { DATA_MODEL_FILE, dataModelDiff, dataModelYaml } from "../gates/data-model.js";
 import { parse } from "yaml";
 import { DataModel, ReviewCoverage } from "../contracts/index.js";
-import { CLIENT_CMD, CLIENT_DIR, contractLockFiles, prepareClient } from "./contract.js";
+import { apiElsewhere, CLIENT_CMD, CLIENT_DIR, contractLockFiles, prepareClient } from "./contract.js";
 import { authorIntro, implementIntro, notFoundHint } from "./stack-text.js";
 import type { Expectations } from "../verify/validate.js";
 import { readApproved } from "../conventions/store.js";
@@ -44,6 +44,7 @@ import { family } from "../runners/types.js";
 import { S, think, tracePack } from "./think.js";
 import { changeBase, ensureWorktree, runtime, snapshotFor, toolsAt, uiBase } from "./workspace.js";
 import { replay, splitKey, type RunState } from "../ledger/state.js";
+import { JUDGE_TEMPLATE, JudgeOut, judgedTests, parkReason, relocked, REWRITE_RULES, rewrittenTests, testsToJudge, verdictNote, type Judged } from "./test-defect.js";
 import { REPO_DESIGN_DIR, repoFiles, type DesignPackage } from "../design/package.js";
 import { exportRunPackage } from "./design-export.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
@@ -96,11 +97,12 @@ type Spec = z.infer<typeof SpecDraft>;
  */
 export function lockOf(state: RunState, ledger: Ledger): { lock: Lock; sha: string } {
   const sha = state.steps.get("author-tests")!.outputs[0]!;
-  const lock = ledger.getJson<Lock>(sha);
+  const written = ledger.getJson<Lock>(sha);
   const freed = unlockedFiles(ledger.events());
-  if (!freed.length) return { lock, sha };
-  const cut = { ...lock, lock: lock.lock.filter((l) => !freed.some((u) => u.file === l.file)), unlocks: freed.map((u) => ({ what: u.file, human: u.by, reason: u.reason, boundTo: sha })) };
-  return { lock: cut, sha: ledger.putJson(cut) };
+  const cut = freed.length ? { ...written, lock: written.lock.filter((l) => !freed.some((u) => u.file === l.file)), unlocks: freed.map((u) => ({ what: u.file, human: u.by, reason: u.reason, boundTo: sha })) } : written;
+  // a test the test-or-code check rewrote is locked at its new content (test-defect.ts)
+  const lock = relocked(cut, ledger.events(), sha);
+  return lock === written ? { lock, sha } : { lock, sha: ledger.putJson(lock) };
 }
 
 interface Lock {
@@ -108,6 +110,7 @@ interface Lock {
   characterisation: { target: string; file: string; testId: string }[];
   lock: { file: string; sha: string }[];
   probes?: Probe[];
+  unlocks?: unknown[];
 }
 
 // .NET: the restored NuGet packages (mounted into the coding container); Node: the npm cache the installs share
@@ -198,6 +201,22 @@ function installedPackages(wt: string): number {
 const keptOnReset = (project: Pick<ProjectConfig, "stack">) => (project.stack === "node" ? ["node_modules"] : []);
 
 /**
+ * True when package.json changed since `since` and the lockfile was brought up to it (LOCK_SYNC_CMD). A failed update is left for
+ * the lab's install to report, with npm's own message.
+ */
+async function syncLockfile(ctx: StepContext, wt: string, since: string): Promise<boolean> {
+  if (!existsSync(join(wt, "package-lock.json")) || !(await pathChangedSince(wt, since, "package.json"))) return false;
+  ctx.log("package.json changed: updating package-lock.json to match");
+  const r = await installNodeModules(runtime(), {
+    runId: ctx.runId, key: "restore", dir: wt, cache: packagesDir(ctx.runId, "node"), image: ctx.project.node.image, timeoutSec: ctx.project.node.buildTimeoutSec, cmd: LOCK_SYNC_CMD,
+    onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "restore", data: { id, role: "restore" } }, ctx.writer); },
+    onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "restore", data: { id } }, ctx.writer); },
+  });
+  if (!r.ok) ctx.log(`package-lock.json was not updated: ${r.log.split("\n").filter(Boolean).slice(-3).join(" ")}`);
+  return r.ok;
+}
+
+/**
  * The coding container reads restored packages from the run's package folder (read-only, no network).
  * If discover reused a cached baseline, nothing restored them yet for this run: do it now.
  */
@@ -210,11 +229,19 @@ async function ensurePackages(ctx: StepContext, commit: string, wt: string): Pro
     // npm prints nothing until it ends: say how far it is, so a long first install doesn't look stuck (4 min of silence on a real run)
     const began = Date.now();
     const tick = setInterval(() => ctx.log(`still installing: ${installedPackages(wt)} packages so far (${Math.round((Date.now() - began) / 1000)}s)`), 30_000);
-    const r = await installNodeModules(runtime(), {
-      runId: ctx.runId, key: "restore", dir: wt, cache: packagesDir(ctx.runId, "node"), image: ctx.project.node.image, timeoutSec: ctx.project.node.buildTimeoutSec,
+    const install = (cmd?: string[]) => installNodeModules(runtime(), {
+      runId: ctx.runId, key: "restore", dir: wt, cache: packagesDir(ctx.runId, "node"), image: ctx.project.node.image, timeoutSec: ctx.project.node.buildTimeoutSec, ...(cmd ? { cmd } : {}),
       onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "restore", data: { id, role: "restore" } }, ctx.writer); },
       onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "restore", data: { id } }, ctx.writer); },
-    }).finally(() => clearInterval(tick));
+    });
+    let r = await install().catch((e) => { clearInterval(tick); throw e; });
+    // a kept attempt may have changed package.json and left the lockfile behind: bring it up to date and install once more
+    if (!r.ok && existsSync(join(wt, "package-lock.json"))) {
+      ctx.log("the install failed; updating package-lock.json from package.json and installing again");
+      const synced = await install(LOCK_SYNC_CMD).catch((e) => { clearInterval(tick); throw e; });
+      if (synced.ok) r = await install().catch((e) => { clearInterval(tick); throw e; });
+    }
+    clearInterval(tick);
     if (!r.ok) throw new Error(`npm install failed: ${r.log.split("\n").filter(Boolean).slice(-5).join(" ")}`);
     markInstalled(wt);
     return;
@@ -509,7 +536,7 @@ export function testWriterTampering(files: { status: string; path: string; added
  * lab did not find or that fails for the wrong reason, or an agent that ran out of budget or turns. The files stay and the retry
  * is told what is missing. (A real run wrote 14 test files for $2.84, missed two criteria, and wrote all of them again.)
  */
-const TESTS_KEEPABLE = new Set(["ac-coverage", "tests-compile", "test-not-found", "agent-over-budget", "agent-timeout", "not-executed", "keep-passing", "passes-on-base", "wrong-failure-kind", "characterisation", "test-proof"]);
+const TESTS_KEEPABLE = new Set(["ac-coverage", "tests-compile", "test-not-found", "agent-over-budget", "agent-timeout", "not-executed", "keep-passing", "passes-on-base", "wrong-failure-kind", "characterisation", "test-proof", "tests-not-run"]);
 
 /** Keep the previous attempt's tests for this retry, or start from the stub commit. Any rung: the tests are edited, not trusted. */
 export function testRetryMode(prev: PrevAttempt | undefined): { mode: "keep" | "reset"; reason: string } {
@@ -652,7 +679,7 @@ export const authorTestsStep: StepDef = {
     const pack = buildPack({
       stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
       sections: [
-        S.template("tpl", authorIntro(ctx.project.stack, screenTestsReady(wt))),
+        S.template("tpl", authorIntro(ctx.project.stack, screenTestsReady(wt), apiElsewhere(ctx.project))),
         ...(light ? [S.template("light", `This is a small, low-risk change. Keep the tests small:
 - Write the fewest tests that prove each criterion: usually one test method per criterion, in one new test file next to the existing tests for the class.
 - At most ${LANE.light.maxCharacterisation} characterisation tests, as small unit tests of the same class. They must pass on today's code without any external service or seeded data. Skip them if the criteria already cover the unchanged behaviour.
@@ -1156,10 +1183,155 @@ export function previousAttempt(events: LedgerEvent[], step: string, checks: str
 
 const PREV_CHANGE_CAP = 40_000;
 
+/** A test rewritten in this run that the checkout does not hold (a reset to a commit from before the rewrite): written back from the ledger. */
+async function restoreRewritten(ctx: StepContext, wt: string): Promise<void> {
+  for (const j of rewrittenTests(ctx.ledger.events())) {
+    const p = join(wt, j.file);
+    if (existsSync(p) && sha256(readFileSync(p)) === j.rewritten.sha) continue;
+    mkdirSync(dirname(p), { recursive: true });
+    writeFileSync(p, ctx.ledger.getArtifact(j.rewritten.sha));
+    ctx.log(`${j.step}: put back the rewritten test ${j.file}`);
+  }
+}
+
+/** The files in the checkout that differ from HEAD, each with the hash of its content (a deleted one: ""). */
+async function dirtyHashes(wt: string): Promise<Map<string, string>> {
+  return new Map((await dirtyPaths(wt)).map((f) => [f, existsSync(join(wt, f)) ? sha256(readFileSync(join(wt, f))) : ""]));
+}
+
+const RewriteOut = z.object({ done: z.boolean(), notes: z.string() });
+type LockTest = Lock["tests"][number];
+
+/**
+ * The test-or-code check for the locked tests the ladder sent back (test-defect.ts). Every test asked about gets one
+ * `test.judged` event, so it is asked about once. Returns the tests rewritten and locked again, or the outcome that stops the step.
+ */
+async function settleTests(ctx: StepContext, a: {
+  key: string; taskId: string; wt: string; start: string; asked: string[]; own: LockTest[]; lock: Lock; fileScope: string[];
+  lastCommit?: string; lastChange?: string; acs: { id: string; req: string }[];
+  /** how every test stood when this task started */ before?: Pick<TestRun, "results">;
+}): Promise<{ fixed: string[] } | { outcome: StepOutcome }> {
+  const record = async (j: Judged) => { await ctx.ledger.append({ type: "test.judged", key: a.key, data: j as unknown as Record<string, unknown> }, ctx.writer); return j; };
+  const mine = a.own.filter((t) => a.asked.includes(t.testId));
+  // a test of an earlier task, or one that pins today's behaviour, passed before this task's change: the change broke it
+  for (const id of a.asked.filter((x) => !mine.some((t) => t.testId === x))) {
+    const t = a.lock.tests.find((x) => x.testId === id);
+    await record({ step: a.key, testId: id, acId: t?.acId ?? "", file: t?.file ?? a.lock.characterisation.find((c) => c.testId === id)?.file ?? "", verdict: "code", why: "this test passed before this task's change, so the change broke it" });
+  }
+  if (!mine.length) return { fixed: [] };
+  ctx.log(`implement ${a.taskId}: ${mine.length === 1 ? "a locked test" : `${mine.length} locked tests`} failed twice; checking whether the test or the code is wrong (${mine.map((t) => t.testId).join(", ")})`);
+  const change = a.lastChange ?? (a.lastCommit ? (await git(a.wt, ["diff", "--no-color", a.start, a.lastCommit])).stdout : "");
+  const r = await think({ ...ctx, priorFailures: [], gateAnswers: [] }, {
+    stage: "implement", label: "test or code", route: "review", cls: "read-large", budgetTokens: 60_000, schema: JudgeOut,
+    maxTurns: 14, maxUsd: 1, timeoutSec: 600,
+    tools: ["read_file", "search"], repoTools: toolsAt(ctx, a.lastCommit ?? a.start), toolsAt: "under-review",
+    sections: [
+      S.template("tpl", JUDGE_TEMPLATE),
+      S.artifact("acs", "acceptance-criteria", a.acs.filter((c) => mine.some((t) => t.acId === c.id))),
+      S.artifact("tests", "locked-tests", mine.map((t) => ({ testId: t.testId, acId: t.acId, file: t.file, name: t.name }))),
+      S.artifact("file-scope", "task-files", { mayChange: a.fileScope, locked: a.lock.lock.map((l) => l.file) }),
+      { spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: "How the tests failed on the last attempt:\n" + (ctx.priorFailures.filter((f) => mine.some((t) => t.testId === f.testId)).map((f) => `- ${f.testId}: ${f.message}${f.frames.length ? `\n    ${f.frames.join("\n    ")}` : ""}`).join("\n") || "(not recorded: run nothing, read the test and the code)") },
+      { spec: { id: "last-change", source: "artifact" as const, trust: "derived" as const, placement: "user" as const }, artifactKind: "diff", content: "The last attempt's change (the code you can read is the code after it):\n" + (change.length > PREV_CHANGE_CAP ? change.slice(0, PREV_CHANGE_CAP) + "\n… (cut; read the files for the rest)" : change || "(no change recorded)") },
+      S.task("Decide for each test whether the test or the code is wrong. Open the test files and the code they call."),
+    ],
+  });
+  if (!r.ok) return { outcome: r.outcome.kind === "park" ? r.outcome : { kind: "park", reason: `The test-or-code check for ${mine.map((t) => t.testId).join(", ")} did not finish. Resume the run to try it again.` } };
+  const judged: Judged[] = mine.map((t) => {
+    const v = r.output.verdicts.find((x) => x.testId === t.testId);
+    return { step: a.key, testId: t.testId, acId: t.acId, file: t.file, verdict: v?.verdict ?? "unclear", why: v?.why ?? "" };
+  });
+  ctx.log(`implement ${a.taskId}: test-or-code check: ${judged.map((j) => `${j.testId} → ${j.verdict}`).join(", ")}`);
+  const wrong = judged.filter((j) => j.verdict === "test"), open = judged.filter((j) => j.verdict === "unclear");
+  for (const j of judged.filter((x) => x.verdict !== "test")) await record(j);
+  if (!wrong.length) return open.length ? { outcome: { kind: "park", reason: parkReason(open) } } : { fixed: [] };
+
+  // "test": the test writer rewrites those tests and nothing else, and they must fail again on the code before this task
+  const files = [...new Set(wrong.map((j) => j.file))];
+  const was = new Map(files.map((f) => [f, sha256(readFileSync(join(a.wt, f)))]));
+  const rejectAll = async (why: string): Promise<{ outcome: StepOutcome }> => {
+    await git(a.wt, ["checkout", a.start, "--", ...files]);
+    await git(a.wt, ["reset", "-q", "--", ...files]);
+    for (const j of wrong) await record({ ...j, rejected: why });
+    return { outcome: { kind: "park", reason: parkReason([...wrong.map((j) => ({ ...j, rejected: why })), ...open]) } };
+  };
+  const { model, effort } = modelFor(ctx.project, "author-tests", 0);
+  const limits = { maxTurns: 30, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 2), timeoutSec: 20 * 60 };
+  const pack = buildPack({
+    stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
+    sections: [
+      S.template("tpl", authorIntro(ctx.project.stack, screenTestsReady(a.wt), apiElsewhere(ctx.project))),
+      S.template("rewrite", REWRITE_RULES),
+      S.artifact("acs", "acceptance-criteria", a.acs.filter((c) => wrong.some((j) => j.acId === c.id))),
+      S.artifact("tests-to-fix", "locked-tests", wrong.map((j) => ({ testId: j.testId, acId: j.acId, file: j.file, name: a.own.find((t) => t.testId === j.testId)?.name, why: j.why }))),
+      ...contractNote(ctx.project, a.wt, "tests"),
+      S.pointers(files.map((f) => ({ path: f, reason: "the test file to fix" }))),
+      S.task(`Rewrite the tests named in tests-to-fix, in ${files.join(", ")}, and nothing else.${limitsNote(limits, "Return done=true as soon as the tests are fixed.")}`),
+      S.recap(["only the named tests", "keep each test's name", "no other file", "assert what the criterion says"]),
+    ],
+  });
+  tracePack(ctx.trace, `test rewrite ${a.taskId}`, pack);
+  const rt = runtime();
+  await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
+  await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
+  if (ctx.project.stack === "node") await ensurePackages(ctx, a.start, a.wt);
+  const before = await dirtyHashes(a.wt);
+  const run = await codingRunner(rt, {
+    runId: ctx.runId, key: `${a.key}/${ctx.attempt}/test-rewrite`, fileScope: files, lockedFiles: a.lock.lock.map((l) => l.file).filter((f) => !files.includes(f)), extraProtected: [], onProgress: agentTracer(ctx, "test writer"),
+    protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
+    onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: a.key, data: { id, role: "agent" } }, ctx.writer); },
+    onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: a.key, data: { id } }, ctx.writer); },
+  }, model).run({ step: "author-tests", model, effort, pack, schema: RewriteOut, limits, workdir: a.wt });
+  await ctx.usage({ model, inputTokens: run.usage.inputTokens, outputTokens: run.usage.outputTokens, cacheRead: run.usage.cacheRead, cacheWrite: run.usage.cacheWrite, turns: run.usage.turns, wallMs: run.usage.wallMs, estUsd: run.usage.estUsd });
+  if (run.status === "config-error") {
+    // nothing is judged yet, so the check is asked again when the run goes on
+    await git(a.wt, ["checkout", a.start, "--", ...files]);
+    await git(a.wt, ["reset", "-q", "--", ...files]);
+    return { outcome: { kind: "park", reason: run.error ?? "The API rejected the test writer's request", ...(run.error === NO_CREDIT_TEXT ? { data: { noCredit: true, rung: ctx.rung } } : {}) } };
+  }
+  if (run.status !== "ok") return rejectAll(`the test writer did not finish (${run.error ?? run.status})`);
+  // only the named files may differ from before the rewrite
+  const after = await dirtyHashes(a.wt);
+  const strayed = [...new Set([...before.keys(), ...after.keys()])].filter((f) => !files.includes(f) && before.get(f) !== after.get(f));
+  if (strayed.length) return rejectAll(`it also changed ${strayed.slice(0, 5).join(", ")}; those changes are still in the checkout`);
+  const same = files.filter((f) => !existsSync(join(a.wt, f)) || sha256(readFileSync(join(a.wt, f))) === was.get(f));
+  if (same.length) return rejectAll(`${same.join(", ")} was not changed`);
+  // a rewrite changes lines, so only a skip marker counts as tampering here; the other tests in the file are held to their results below
+  const tampered = testWriterTampering(await Promise.all(files.map(async (f) => ({ status: "M", path: f, ...patchLines((await git(a.wt, ["diff", "--no-color", "-U0", a.start, "--", f])).stdout) })))).filter((f) => f.check === "author-tests-skip");
+  if (tampered.length) return rejectAll(tampered.map((f) => f.message).join("; "));
+  // one lab run on the code before this task, with the rewritten tests: each must fail there for the right reason
+  const at = await commitWith(a.wt, a.start, files, `factory: ${a.taskId} tests rewritten after the test-or-code check`);
+  const ids = wrong.map((j) => j.testId);
+  ctx.log(`implement ${a.taskId}: running the rewritten test${ids.length === 1 ? "" : "s"} on the code before this task`);
+  // the other locked tests in those files run too: each must still be there and end as it did before this task
+  const others = [...a.lock.tests, ...a.lock.characterisation].filter((t) => files.includes(t.file) && !ids.includes(t.testId)).map((t) => t.testId);
+  const lab = await produce(ctx, `${a.key}/${ctx.attempt}/test-check`, at, "author-tests-on-base", { expectPass: [], expectFail: ids.map((id) => ({ id, kinds: ["assertion", "not-implemented", "exception"] })), compareToBaseline: [] }, [...ids, ...others]);
+  if (!lab.build.ok) return rejectAll(`the rewritten test does not build: ${lab.build.errors.slice(0, 3).map((e) => `${e.file}:${e.line} ${e.msg}`).join("; ")}`);
+  const stored = storeRun(ctx, lab);
+  const rewrote = a.own.filter((t) => ids.includes(t.testId)).map((t) => ({ ...t, failsOnBase: true }));
+  const proof = ctx.ledger.putJson({ tests: rewrote, characterisation: [], lock: [], rules: { productionExceptionOk: true } });
+  const g = await runGate(failsOnBase, ctx.ledger, ctx.writer, { run1: stored.testRun, run2: stored.testRun, tests: proof }, ctx.policy, { step: a.key, treeSha: at });
+  if (!g.passed) return rejectAll(`on the code before this task: ${[...new Set((g.failures ?? []).map((f) => f.message))].slice(0, 5).join("; ")}`);
+  const moved = others.filter((id) => {
+    const now = lab.testRun.results.find((x) => x.id === id)?.outcome, then = a.before?.results.find((x) => x.id === id)?.outcome;
+    return now === undefined || now === "notRun" || now === "skipped" || (then !== undefined && (now === "passed") !== (then === "passed"));
+  });
+  if (moved.length) return rejectAll(`it changed, removed or skipped other tests in the file: ${moved.slice(0, 5).join(", ")}`);
+  // and each must still prove its criterion: a rewrite that asserts less is not accepted
+  const weak = await weakTests(ctx, at, a.acs.filter((c) => wrong.some((j) => j.acId === c.id)), a.own.filter((t) => wrong.some((j) => j.acId === t.acId)));
+  if ("outcome" in weak) return rejectAll("the check that the rewritten test proves its criterion did not finish");
+  if (weak.failures.length) return rejectAll(weak.failures.map((f) => f.message).join("; "));
+  for (const j of wrong) {
+    const sha = ctx.ledger.putArtifact(readFileSync(join(a.wt, j.file)));
+    await record({ ...j, rewritten: { sha, was: was.get(j.file)!, commit: at, run: stored.testRun } });
+  }
+  ctx.log(`implement ${a.taskId}: rewrote and locked again ${files.join(", ")} (${ids.join(", ")})`);
+  return open.length ? { outcome: { kind: "park", reason: parkReason(open) } } : { fixed: ids };
+}
+
 export function implementStep(taskId: string): StepDef {
   const key = `implement/${taskId}`;
   return {
-    key, stage: "implement", templateVersion: "2", coding: true, needsUsd: AGENT_START_USD,
+    key, stage: "implement", templateVersion: "2", coding: true, needsUsd: AGENT_START_USD, judgesTests: true,
     inputs: (s) => {
       if (s.steps.get("author-tests")?.status !== "completed") return undefined;
       const plan = s.steps.get("plan")!.outputs[0];
@@ -1175,7 +1347,7 @@ export function implementStep(taskId: string): StepDef {
     async run(ctx) {
       const plan = requireOutput<Plan>(ctx.state, ctx.ledger, "plan");
       const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
-      const { lock, sha: lockSha } = lockOf(ctx.state, ctx.ledger);
+      let { lock, sha: lockSha } = lockOf(ctx.state, ctx.ledger);
       const baselineSha = ctx.state.steps.get("discover")!.outputs[0]!;
       const task = plan.tasks.find((t) => t.id === taskId)!;
       const inputs = implementStep(taskId).inputs(ctx.state, ctx.ledger)!;
@@ -1226,6 +1398,22 @@ export function implementStep(taskId: string): StepDef {
       const fileScope = [...task.fileScope, ...taken.fileScope];
       // a file a person unlocked for this run that this task may write: the agent is told, since the folder's rule still says hands off
       const freed = unlockedFiles(ctx.ledger.events()).map((u) => u.file).filter((f) => matchesAny(f, fileScope));
+      // the same locked test failed twice: is the test wrong, or the code? (test-defect.ts) Settled before the coding agent is paid again
+      await restoreRewritten(ctx, wt);
+      const asked = testsToJudge(ctx.ledger.events(), key);
+      let retest = false;
+      if (asked.length) {
+        const stoodSha = (inputs.prevDone as string[]).length ? outputOf(ctx.state, (inputs.prevDone as string[]).at(-1)!, "testRun") : outputOf(ctx.state, "author-tests", "run2");
+        const settled = await settleTests(ctx, { key, taskId, wt, start, asked, own: myTests, lock, fileScope, lastCommit: prev?.commit, lastChange: prevChange, before: stoodSha ? ctx.ledger.getJson<TestRun>(stoodSha) : undefined,
+          acs: spec.requirements.flatMap((r) => r.acceptance.map((a) => ({ req: r.id, ...a }))) });
+        if ("outcome" in settled) return settled.outcome;
+        ({ lock, sha: lockSha } = lockOf(ctx.state, ctx.ledger));
+        // every failure was a test that has now been rewritten: the kept code is judged against the new tests as it is
+        retest = prevChange !== undefined && ctx.priorFailures.length > 0 && ctx.priorFailures.every((f) => LOCKED_CHECKS.has(f.check) && !!f.testId && settled.fixed.includes(f.testId));
+      }
+      const checked = verdictNote(judgedTests(ctx.ledger.events()).filter((j) => j.step === key));
+      // a test rewritten at this task is part of its commit
+      const rewrittenHere = rewrittenTests(ctx.ledger.events()).filter((j) => j.step === key).map((j) => j.file);
       const sharesBuiltDir = sharesFolder(fileScope, builtDoc[0]);
       // what the last build's API document still lacks against the contract, so the agent starts from the list instead of finding it by hand
       const gap = writesEntry(fileScope, ctx.project.stack) || fileScope.some((f) => builtDoc.includes(f)) ? contractGapAt(ctx, wt, [prev?.commit, start]) : undefined;
@@ -1288,6 +1476,7 @@ export function implementStep(taskId: string): StepDef {
             content: "Your previous change (diff from the task start; it is already in the files):\n" + (prevChange.length > PREV_CHANGE_CAP ? prevChange.slice(0, PREV_CHANGE_CAP) + `\n… (diff cut at ${PREV_CHANGE_CAP / 1000} KB; read the files for the rest)` : prevChange) }] : []),
           ...(gap?.length ? [{ spec: { id: "contract-gap", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: gapNote(gap) }] : []),
           ...(ctx.priorFailures.length ? [{ spec: { id: "failures", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: ctx.priorFailures.slice(0, 20).map((f) => `- [${f.check}] ${f.message}${f.frames.length ? `\n    ${f.frames.join("\n    ")}` : ""}`).join("\n") }] : []),
+          ...(checked ? [{ spec: { id: "test-check", source: "feedback" as const, trust: "derived" as const, placement: "user" as const }, content: checked }] : []),
           S.task(`Implement ${task.id}: ${task.title}.${unfinishedBefore
             ? " The previous attempt stopped before it finished (above). Its code is still in the files: read it, keep what is right and finish the task."
             : prevChange !== undefined
@@ -1307,8 +1496,10 @@ export function implementStep(taskId: string): StepDef {
       if (ctx.project.stack === "node") await ensurePackages(ctx, start, wt);
       // rejected only for locked tests this task is no longer held to (they belong to a later task now): its code is judged again as it is
       const held = new Set([...myTests.map((t) => t.testId), ...earlier.keys(), ...lock.characterisation.map((c) => c.testId)]);
-      const recheck = prevChange !== undefined && ctx.priorFailures.length > 0 && (ctx.priorFailures.length < 20 || !!prev?.untouched) && ctx.priorFailures.every((f) => LOCKED_CHECKS.has(f.check) && !!f.testId && !held.has(f.testId));
-      if (recheck) ctx.log(`implement ${taskId}: the previous attempt failed only on tests this task is no longer held to; checking its code again without the implementer`);
+      const dropped = prevChange !== undefined && ctx.priorFailures.length > 0 && (ctx.priorFailures.length < 20 || !!prev?.untouched) && ctx.priorFailures.every((f) => LOCKED_CHECKS.has(f.check) && !!f.testId && !held.has(f.testId));
+      const recheck = dropped || retest;
+      if (retest) ctx.log(`implement ${taskId}: the previous attempt failed only on tests that were rewritten; checking its code against them without the implementer`);
+      else if (recheck) ctx.log(`implement ${taskId}: the previous attempt failed only on tests this task is no longer held to; checking its code again without the implementer`);
       else {
         // a task that also holds earlier tasks' tests has their work to prove as well as its own: twice the turns, budget and
         // time of one task, so it is not cut off and started again part-way (each new session pays to read everything again)
@@ -1334,6 +1525,8 @@ export function implementStep(taskId: string): StepDef {
         }
       }
 
+      // a task that changed package.json has no network to update the lockfile: the factory does, and commits it with the task
+      const lockSynced = ctx.project.stack === "node" && await syncLockfile(ctx, wt, start);
       // core commits (the agent has no git), then the producer judges that exact commit
       const hidden = await trackIgnored(wt, fileScope, builtDoc);
       if (hidden.length) ctx.log(`implement ${taskId}: ${hidden.join(", ")} ${hidden.length > 1 ? "match" : "matches"} an ignore rule; committed anyway, because the plan names ${hidden.length > 1 ? "them" : "it"}`);
@@ -1359,7 +1552,7 @@ export function implementStep(taskId: string): StepDef {
         [configIntegrity, { diff: diffSha, plan: ctx.state.steps.get("plan")!.outputs[0]! }],
         [packagesPlanned, { packages: ctx.ledger.putJson(await packageChangesOf(wt, diff)), plan: ctx.state.steps.get("plan")!.outputs[0]! }],
         [noSecrets, { scan: ctx.ledger.putJson(secretScanOf(diff, commit)) }],
-        [diffInScope, { diff: diffSha, task: ctx.ledger.putJson({ fileScope }) }],
+        [diffInScope, { diff: diffSha, task: ctx.ledger.putJson({ fileScope: [...fileScope, ...rewrittenHere, ...(lockSynced ? ["package-lock.json"] : [])] }) }],
         [noEscapeHatches, { diff: diffSha }],
         // a task that changes UI files also passes the token and component lint (design.fidelity-lint),
         // but only in a project that set up its front end (a `design` block): elsewhere the lint has nothing reliable to check against
@@ -1578,7 +1771,7 @@ export const integrateStep: StepDef = {
  * A web app that is the client of a contract serves none of the contract's endpoints: the API does. A probe sent to it can
  * only answer 404 (run 0f9d parked at accept on five of them, with every locked test passing).
  */
-export const apiElsewhere = (project: { stack: string; contract?: unknown }): boolean => project.stack === "node" && !!project.contract;
+export { apiElsewhere };
 
 // ---------- accept (D, no model) ----------
 // Boot the app next to the test Postgres, send the locked HTTP probes, re-run the locked criteria tests;

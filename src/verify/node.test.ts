@@ -11,7 +11,7 @@ import { DEFAULT_POLICY } from "../gates/policy.js";
 import { nodeNameFilter, parseNodeBuildErrors, produceNodeTests, startCommand } from "./node.js";
 import { produceDotnetTests } from "./dotnet.js";
 import type { ContainerRuntime, ContainerSpec } from "./runtime.js";
-import { isLoadError, loadFailures, parseVitestJson, titleOf, titlePattern, vitestId } from "./vitest.js";
+import { classifyVitestFailure, isLoadError, loadFailures, parseVitestJson, titleOf, titlePattern, vitestId } from "./vitest.js";
 
 beforeEach(() => {
   process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "factory-node-"));
@@ -269,5 +269,15 @@ describe("the coding container's node_modules (PR #17 review, item 7)", () => {
     markInstalled(dir);
     writeFileSync(join(dir, "package-lock.json"), `{"lockfileVersion":3}`);
     expect(installIsCurrent(dir)).toBe(false);
+  });
+});
+
+describe("classifyVitestFailure", () => {
+  it("reads a screen query that finds nothing as the test's assertion, and a real crash as a crash", () => {
+    expect(classifyVitestFailure("Error: Unable to find an element with the text: Title must be 3 to 80 characters.")).toBe("assertion");
+    expect(classifyVitestFailure("TestingLibraryElementError: Unable to find an accessible element with the role \"button\" and name \"Save\"")).toBe("assertion");
+    expect(classifyVitestFailure("TestingLibraryElementError: Found multiple elements with the text: Open")).toBe("assertion");
+    expect(classifyVitestFailure("TypeError: Cannot read properties of undefined (reading 'map')")).toBe("exception");
+    expect(classifyVitestFailure("Error: not implemented")).toBe("not-implemented");
   });
 });

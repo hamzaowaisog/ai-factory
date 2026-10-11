@@ -317,7 +317,7 @@ These override earlier sections where they conflict.
 
 **A5. Escalation for a defective test.**
 - When the same locked test fails on 2 attempts, a fresh reviewer compares the test against its AC and returns "test wrong" or "code wrong".
-- "Test wrong" raises a human unlock card showing the AC and the test side by side.
+- "Test wrong" raises a human unlock card showing the AC and the test side by side. *As built (2026-10-11): the test is rewritten and locked again without a card when the rewrite passes its checks; see `implement-loop.md`, "the test-or-code check".*
 - The approval card shows the test names under each AC.
 
 **E. New stage: accept (UAT evidence).** Runs after integrate.

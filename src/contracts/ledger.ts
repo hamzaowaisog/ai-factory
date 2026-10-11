@@ -12,6 +12,8 @@ export const EventType = z.enum([
   "ledger.repaired", "version.changed",
   // a copy of the run's scaffold taken out of the factory (design scaffold --out, the UI's generate and zip download)
   "scaffold.copied",
+  // a locked test that failed twice, read against its criterion: the code is wrong, the test is wrong (and rewritten), or unclear
+  "test.judged",
 ]);
 export type EventType = z.infer<typeof EventType>;
 

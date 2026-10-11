@@ -68,6 +68,8 @@ export interface StepDef {
   model?(ctx: Pick<StepContext, "project" | "rung">): string | undefined;
   templateVersion: string;
   coding?: boolean;
+  /** the same locked test failing twice does not park the run: the step's next attempt reads the test against its criterion itself (src/stages/test-defect.ts) */
+  judgesTests?: boolean;
   /** the least left under the run's cost limit that this step is worth starting with (a coding agent); less, and the limit card comes first */
   needsUsd?: number;
   /** may run side by side with the other parallel steps next to it in the run (one module's spec chain beside another's) */

@@ -15,6 +15,21 @@ export interface RawRun {
   buildFailed?: boolean;
 }
 
+/** How many names a reason carries: enough to act on, short enough to read. */
+const NAMED = 5;
+/**
+ * Which tests did not run, and why when the runner said: a test file that did not load takes all its tests with it.
+ * (Run 0f9d: "only 33 of 45 discovered tests executed" named none of the 12, and the writer started again.)
+ */
+function notRun(raw: RawRun): string {
+  const ran = new Set(raw.results.filter((r) => r.outcome === "passed" || r.outcome === "failed").map((r) => r.id));
+  const missing = raw.discovered.filter((id) => !ran.has(id));
+  const loads = raw.results.filter((r) => r.outcome === "failed" && r.failureKind === "compile" && r.message).map((r) => r.message!.replace(/\s+/g, " ").slice(0, 300));
+  return `${missing.length ? `; did not run: ${missing.slice(0, NAMED).join(", ")}${missing.length > NAMED ? ` (+${missing.length - NAMED} more)` : ""}` : ""}${loads.length ? `; ${loads.slice(0, 2).join("; ")}` : ""}`;
+}
+/** The run is not evidence because tests the factory looked for did not run: the tests can be put right, nothing is wrong with the lab. */
+export const testsDidNotRun = (reason: string | undefined): boolean => /discovered tests executed|expected tests missing from the report/.test(reason ?? "");
+
 /** A report is valid only if all of §2.4's four conditions hold. */
 export function validate(raw: RawRun, exp: Expectations): { valid: boolean; reason?: string } {
   if (raw.buildFailed) return { valid: true }; // a failed build is valid evidence of failure
@@ -24,7 +39,7 @@ export function validate(raw: RawRun, exp: Expectations): { valid: boolean; reas
   const ids = new Set(raw.results.map((r) => r.id));
   const executed = raw.results.filter((r) => r.outcome === "passed" || r.outcome === "failed").length;
   const inScope = raw.discovered.length;
-  if (executed < inScope) return { valid: false, reason: `only ${executed} of ${inScope} discovered tests executed` };
+  if (executed < inScope) return { valid: false, reason: `only ${executed} of ${inScope} discovered tests executed${notRun(raw)}` };
   const missing = [...exp.expectPass, ...exp.expectFail.map((e) => e.id)].filter((id) => !ids.has(id));
   if (missing.length) return { valid: false, reason: `expected tests missing from the report: ${missing.slice(0, 5).join(", ")}` };
   // a flaky test failed in the first run (that run's exit code is the one kept) and passed when re-run

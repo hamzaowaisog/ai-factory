@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { addWorktree, authEnv, changedFiles, commitAll, diffIncludingUntracked, excludeLocally, fetchForGate, freshWorktree, git, headSha, removeWorktree, repoRefusals, resetHard, trackIgnored } from "./git.js";
+import { addWorktree, authEnv, changedFiles, commitAll, commitWith, diffIncludingUntracked, excludeLocally, fetchForGate, freshWorktree, git, headSha, pathChangedSince, removeWorktree, repoRefusals, resetHard, trackIgnored } from "./git.js";
 
 function makeRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "factory-git-"));
@@ -25,6 +25,35 @@ describe("hardened git", () => {
     writeFileSync(join(repo, "b.txt"), "two\n");
     await commitAll(repo, "b");
     expect(existsSync(marker)).toBe(false);
+  });
+
+  it("says whether one file changed since a commit, committed or not", async () => {
+    const repo = makeRepo();
+    const base = await headSha(repo);
+    expect(await pathChangedSince(repo, base, "a.txt")).toBe(false);
+    writeFileSync(join(repo, "a.txt"), "two\n");
+    expect(await pathChangedSince(repo, base, "a.txt")).toBe(true);
+    await commitAll(repo, "change");
+    expect(await pathChangedSince(repo, base, "a.txt")).toBe(true);
+    expect(await pathChangedSince(repo, await headSha(repo), "a.txt")).toBe(false);
+  });
+
+  it("commits named files on top of a commit without moving the checkout", async () => {
+    const repo = makeRepo();
+    const base = await headSha(repo);
+    mkdirSync(join(repo, "tests"));
+    writeFileSync(join(repo, "tests", "a.test.ts"), "old\n");
+    const start = await commitAll(repo, "tests");
+    // the task's unfinished code and a rewritten test, both uncommitted
+    writeFileSync(join(repo, "a.txt"), "task code\n");
+    writeFileSync(join(repo, "tests", "a.test.ts"), "new\n");
+    const at = await commitWith(repo, start, ["tests/a.test.ts"], "rewritten");
+    expect(await changedFiles(repo, start, at)).toEqual([{ status: "M", path: "tests/a.test.ts" }]);
+    expect((await git(repo, ["show", `${at}:tests/a.test.ts`])).stdout).toBe("new\n");
+    expect((await git(repo, ["show", `${at}:a.txt`])).stdout).toBe("one\n");
+    expect(await headSha(repo)).toBe(start);
+    expect((await git(repo, ["status", "--porcelain"])).stdout).toBe(" M a.txt\n M tests/a.test.ts\n");
+    expect(base).not.toBe(at);
   });
 
   it("creates a worktree, commits, diffs, resets and removes it", async () => {

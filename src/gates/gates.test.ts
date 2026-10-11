@@ -126,6 +126,10 @@ describe("test gates", () => {
     expect(failsOnBase.predicate({ run1: good, run2: compile, tests: tests() }, DEFAULT_POLICY).passed).toBe(false);
     const passes = run([{ id: "T::A", outcome: "passed", durationMs: 1 }]);
     expect(failsOnBase.predicate({ run1: passes, run2: passes, tests: tests() }, DEFAULT_POLICY).details).toMatch(/already passes/);
+    // tests that did not run are the writer's to fix (its files are kept); a run with no report is not
+    const check = (invalidReason: string) => failsOnBase.predicate({ run1: { ...good, valid: false, invalidReason }, run2: good, tests: tests() }, DEFAULT_POLICY).failures![0]!.check;
+    expect(check("only 1 of 3 discovered tests executed; did not run: T::B, T::C")).toBe("tests-not-run");
+    expect(check("no test report was written")).toBe("evidence");
   });
 
   it("a crash bug: an exception thrown by the code under test is the right failure, only under the new rule", () => {

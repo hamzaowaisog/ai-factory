@@ -345,7 +345,7 @@ factory verify-evidence <run>  # re-check every recorded decision
 
 The branch `factory/<run>` holds the stub commit (if any), the locked tests, one commit per task and one evidence-manifest commit.
 
-**If a run parks**, `factory status <run>` says why (cap hit, a check failed twice, a locked test keeps failing…). Fix the cause and run `factory resume <run>`, or start a new run. A run that reaches its cost, time or attempts limit (or an estimate's approved budget) waits on a limit card instead: raise it with `factory waive-cap` (`factory waive-budget`), or one step at a time on the run page in `factory ui`.
+**If a run parks**, `factory status <run>` says why (cap hit, a check failed twice, a locked test keeps failing and the test-or-code check could not settle it…). Fix the cause and run `factory resume <run>`, or start a new run. A run that reaches its cost, time or attempts limit (or an estimate's approved budget) waits on a limit card instead: raise it with `factory waive-cap` (`factory waive-budget`), or one step at a time on the run page in `factory ui`.
 
 **If a run shows `interrupted`**, the executor stopped mid-step (a closed terminal, a crash) and nothing is working on it. `factory resume <run>` runs that step again. An estimate or design run ends as **`finished`** once its last step (export) is done; a build ends as `delivered` with its PR.
 

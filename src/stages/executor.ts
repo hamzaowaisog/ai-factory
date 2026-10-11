@@ -1,6 +1,7 @@
 // The executor (run-manager §2.3, §2.5, §2.9): replay → next step → run → record → repeat,
 // until a human card, a park, delivery, or a stop/pause request. One executor per repo.
 import { execFileSync } from "node:child_process";
+import { judgedTests } from "./test-defect.js";
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
@@ -456,10 +457,20 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
       case "fail": {
         const rec2: AttemptRecord = { category: outcome.category, signature: outcome.signature ?? sha256(JSON.stringify(outcome.failures)).slice(0, 16), diffSha: outcome.diffSha, rung, lockedFailedIds: outcome.lockedFailedIds };
         const backoffSpent = history.reduce((n2, h) => n2 + Number((h as { waitMs?: number }).waitMs ?? 0), 0);
-        const action: LadderAction = nextOnFailure([...history, rec2], {
+        // a locked test is read against its criterion once in a run: after that the ladder climbs as for any other failure
+        const judged = new Set(judgedTests(ledger.events()).map((j) => j.testId));
+        const ladder = (a5Done: Set<string>): LadderAction => nextOnFailure([...history, rec2], {
           // policy.retryBudget (default 6; a trial project can say 2)
-          ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, step.stage, policy.localOnly), modelSteps: modelSteps(project, step.stage), backoffSpentMs: backoffSpent, a5Done: new Set(),
+          ...DEFAULT_LADDER, maxAttempts: policy.retryBudget + state.capOverrides.extraAttempts, availableRungs: availableRungs(project, step.stage, policy.localOnly), modelSteps: modelSteps(project, step.stage), backoffSpentMs: backoffSpent, a5Done,
         });
+        const first = ladder(judged);
+        // the same locked test failed twice at a step that can judge it: its next attempt opens with the test-or-code check
+        // instead of the run stopping for a person (a test that only waits for a later task is deferred below, not judged)
+        const testCheck = first.action === "a5-check" && step.judgesTests && !outcome.deferrable ? first.testIds : undefined;
+        const after = testCheck ? ladder(new Set([...judged, ...testCheck])) : first;
+        const attemptsLeft = history.filter((h) => h.category !== "rate-limit").length + 1 < policy.retryBudget + state.capOverrides.extraAttempts;
+        // no rung left to climb to is no reason to skip the check: it runs at this rung
+        const action: LadderAction = testCheck && after.action === "park" && attemptsLeft ? { action: "retry", rung, reason: "The same locked test failed twice; checking whether the test or the code is wrong" } : after;
         // an estimate, a design or a greenfield run: a failing check, after the retry with the failures fed back, becomes questions instead of more attempts or a park
         const counted = history.filter((h) => h.category !== "rate-limit").length + 1;
         if (outcome.gate && outcome.category === "other" && asksGates(state) && (action.action === "park" || counted >= ROUND_ATTEMPTS)) {
@@ -471,13 +482,13 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         const failuresSha = ledger.putJson(outcome.failures.slice(0, 20));
         await ledger.append({
           type: "step.failed", key, outputs: [failuresSha],
-          data: { ...(outcome.data ?? {}), ...rec2, action: defer ? "defer" : action.action, nextRung: action.action === "retry" && !defer ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason },
+          data: { ...(outcome.data ?? {}), ...rec2, ...(testCheck && action.action === "retry" ? { testCheck } : {}), action: defer ? "defer" : action.action, nextRung: action.action === "retry" && !defer ? action.rung : rung, waitMs: action.action === "backoff" ? action.waitMs : 0, reason: action.reason },
         }, writer);
-        slog(`✗ ${step.key}: ${outcome.failures.slice(0, 2).map((f) => f.message).join("; ").slice(0, 300)} → ${defer ? "defer" : action.action}`);
+        slog(`✗ ${step.key}: ${outcome.failures.slice(0, 2).map((f) => f.message).join("; ").slice(0, 300)} → ${defer ? "defer" : testCheck && action.action === "retry" ? "test-or-code check" : action.action}`);
         if (defer) { slog(`  ${step.key}: these tests need a task that comes later, so they are checked there`); break; }
         if (action.action === "park") { await ledger.append({ type: "run.parked", data: { reason: `${step.key}: ${action.reason}`, step: step.key } }, writer); return { status: "parked", message: `${step.key}: ${action.reason}. Last failure: ${outcome.failures[0]?.message ?? ""}` }; }
         if (action.action === "a5-check") {
-          const reason = `Locked tests ${action.testIds.join(", ")} failed twice. Either the code or the test is wrong; the test-defect check and unlock card aren't built yet, so a human needs to look.`;
+          const reason = `Locked tests ${action.testIds.join(", ")} failed twice. Either the code or the test is wrong, and this step has no automatic check for that (a coding task has one), so a human needs to look.`;
           await ledger.append({ type: "run.parked", data: { reason, step: step.key } }, writer);
           return { status: "parked", message: reason };
         }

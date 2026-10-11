@@ -60,10 +60,11 @@ contract:
 ### What happens on the web side (a repo with no contract file yet)
 | Step | What the contract adds | Code |
 |---|---|---|
+| specify | The API's own behaviour stays out of the web spec. Criteria at level `api` or `job` are dropped; a requirement left with none moves to out-of-scope, marked "(API-SIDE)", so the spec checks still see the request covered. The draft and the critic are told the same. Not applied to a spec taken unchanged from an approved estimate or design (later gates compare it with the approved one); there only the test writer is told. | `webSideOnly`, `API_SIDE` in `src/stages/specpipe.ts`; `apiElsewhere` in `src/stages/contract.ts` |
 | plan | The plan must give `contracts/openapi.yaml` as a stub: OpenAPI 3.0, an `operationId` per operation, an `example` per JSON response. A missing or incomplete contract sends the plan back (`plan-contract`). | `src/stages/spec.ts`, `contractProblems` in `src/gates/contract.ts` |
 | approve | The approval card lists the contract's operations. Approving the plan approves the contract. | `approvalCard` in `src/stages/spec.ts` |
 | stub-commit | Pinned Orval, MSW and faker join the dev packages; Orval generates `lib/api/client.ts`, `client.schemas.ts` and `client.msw.ts` (test handlers that answer with the contract's examples), offline in the Node lab. All of it is part of the scaffold commit. | `stubCommitStep` in `src/stages/build.ts`, `src/stages/contract.ts` |
-| author-tests | The contract, the generated files and `orval.config.cjs` join the test lock. Both agents are told to call the API only through the generated client. | `contractLockFiles`, `contractNote` |
+| author-tests | The contract, the generated files and `orval.config.cjs` join the test lock. Both agents are told to call the API only through the generated client. The test writer is told to write no test for behaviour only the API can enforce. | `contractLockFiles`, `contractNote` |
 | implement, integrate | The existing `task.lock-set-unchanged` gate (a safety gate) fails if any locked file changed. | `src/gates/predicates.ts` |
 
 ### What happens on the API side (the contract file is already in the repo)

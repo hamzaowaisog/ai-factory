@@ -7,7 +7,7 @@ import { ProjectConfig } from "../config/project.js";
 import { buildCachePath, filterFor, findBuildTarget, KEEP_BUILDS, MAX_SKIP_FILTER, parseBuildErrors, produceDotnetTests, saveBuild, skipFilterFor, skippableKnownFailures } from "./dotnet.js";
 import type { ContainerRuntime, ContainerSpec } from "./runtime.js";
 import { classifyFailure, classifyTrxFailure, parseTrx } from "./trx.js";
-import { buildTestRun, classify, rerunCandidates, validate } from "./validate.js";
+import { buildTestRun, classify, rerunCandidates, validate, testsDidNotRun } from "./validate.js";
 import { trx } from "./testutil.js";
 
 beforeEach(() => {
@@ -62,6 +62,12 @@ describe("validity", () => {
     expect(validate({ ...ok, reports: [] }, exp).reason).toMatch(/no test report/);
     expect(validate({ ...ok, reports: [{ sha: "s", parsed: true, writtenAfterStart: false }] }, exp).reason).toMatch(/older/);
     expect(validate({ ...ok, results: [] }, exp).valid).toBe(false);
+    // the tests that did not run are named, with the file that did not load (run 0f9d named none of 12)
+    const load = { id: "tests/a.test.ts::(the file did not load)", outcome: "failed" as const, failureKind: "compile" as const, durationMs: 0, message: "tests/a.test.ts did not load: Cannot find module '@/lib/x'" };
+    const two = validate({ ...ok, discovered: ["P::A", "P::B", "P::C"], results: [load] }, exp).reason!;
+    expect(two).toBe("only 1 of 3 discovered tests executed; did not run: P::A, P::B, P::C; tests/a.test.ts did not load: Cannot find module '@/lib/x'");
+    expect(testsDidNotRun(two)).toBe(true);
+    expect(testsDidNotRun("no test report was written")).toBe(false);
     expect(validate({ ...ok, exitCode: 1 }, exp).reason).toMatch(/exited 1/);
     expect(validate({ ...ok, results: [{ id: "P::A", outcome: "failed", durationMs: 1 }] }, exp).reason).toMatch(/exited 0/);
     // the first run failed (exit 1) on a test that passed when re-run: flaky, the evidence is valid

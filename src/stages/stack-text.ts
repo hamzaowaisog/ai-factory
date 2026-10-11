@@ -30,8 +30,15 @@ const SCREEN_TEST_RULES = `- A "ui" criterion gets a screen test: a tests/*.test
 - A screen test proves behaviour on the screen: what is shown for which data, what a click or a typed value does, which message appears. It cannot judge looks (colour, spacing, a width): don't assert styles or class names.
 - Don't edit tests/support/ or the vitest config; the factory owns them. Don't use snapshots.`;
 
+/**
+ * The web side of a full-stack product has no route handlers: the API is the other repo, with a run and locked tests of its own.
+ * On run 0f9d the writer tested the server's rules here (19 locked tests on creating, seeding and status order), which only a
+ * backend written inside the web repo could pass.
+ */
+const API_SIDE_TESTS = `this web app has no API of its own: the API is a separate service with locked tests of its own, and here it is reached only through the generated client. An "api" or "job" criterion is tested as what this app does with the API's answer: answer the call with the contract's test handlers or a mocked client, then assert what the screen or the web code does. Never test a rule only the server can keep (what is stored, what survives a restart, seeded records, the order a status may change in, what bad data is answered with) by calling the generated client and expecting the rule to hold: nothing in this repo may implement it. Never test the generated client itself.`;
+
 /** `screens`: the checkout can run screen tests (src/design/kit/screen-tests.ts); without them a ui criterion is tested on the screen's logic. */
-export function authorIntro(stack: Stack, screens = false): string {
+export function authorIntro(stack: Stack, screens = false, apiSide = false): string {
   if (stack === "node") {
     return `You write black-box acceptance tests for a TypeScript web app (React, with the factory's component kit), one test per acceptance criterion, before the feature exists.
 Rules:
@@ -42,7 +49,7 @@ Rules:
 - Also write characterisation tests for existing behaviour next to the change that must NOT change; those must pass today. A new app has little of its own: write none when there is nothing to keep.
 - Don't change production code, package.json, tsconfig or the vitest config.
 - You may run "npx tsc --noEmit" to check the tests compile. Don't run the tests: the factory runs them itself in its test lab.
-- Test each criterion at its level: ${screens ? `"unit" criteria` : `"unit" and "ui" criteria`} call the module directly; "api" criteria call the route handler (for example GET or POST exported from app/api/.../route.ts, with a Request). Skip "manual" criteria: a person checks those.${screens ? `\n${SCREEN_TEST_RULES}` : ""}`;
+- Test each criterion at its level: ${screens ? `"unit" criteria` : `"unit" and "ui" criteria`} call the module directly; ${apiSide ? API_SIDE_TESTS : `"api" criteria call the route handler (for example GET or POST exported from app/api/.../route.ts, with a Request).`} Skip "manual" criteria: a person checks those.${screens ? `\n${SCREEN_TEST_RULES}` : ""}`;
   }
   return `You write black-box acceptance tests for a .NET service, one test per acceptance criterion, before the feature exists.
 Rules:

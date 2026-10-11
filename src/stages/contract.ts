@@ -7,6 +7,8 @@ import { DATA_MODEL_FILE } from "../gates/data-model.js";
 import { basePath, readContract } from "../gates/contract.js";
 
 /** Where the generated client lives in the web app: factory-owned, locked with the contract. */
+/** The web side of a full-stack product: its API is the other repo, held to the same contract, so nothing here answers an HTTP call. */
+export const apiElsewhere = (project: { stack: string; contract?: unknown }): boolean => project.stack === "node" && !!project.contract;
 export const CLIENT_DIR = "lib/api";
 export const CLIENT_CONFIG = "orval.config.cjs";
 /** Pinned: the generated code is part of the locked files, so the same contract must always give the same client. */
