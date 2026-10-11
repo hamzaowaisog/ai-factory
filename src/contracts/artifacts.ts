@@ -495,6 +495,12 @@ export const DesignBody = z.object({
     refs: z.array(z.string()).optional(),
     /** a design note's words for what changes on this page (no mock is drawn) */
     change: z.string().optional(),
+    /** a Stitch screen: the words read from its HTML (src/design/stitch-facts.ts), its stand-in for the design JSON in tests and checks */
+    facts: z.object({
+      title: z.string().optional(), buttons: z.array(z.string()), fields: z.array(z.string()), columns: z.array(z.string()), headings: z.array(z.string()),
+      /** the page's UI parts in the estimate's points (src/estimate/ui-complexity.ts) */
+      ui: z.array(z.tuple([z.number(), z.string()])).optional(),
+    }).optional(),
   })),
   /** the product's apps when it has more than one (each with its own device and frame) */
   apps: z.array(DesignApp).optional(),
@@ -522,6 +528,19 @@ export const DesignBody = z.object({
   note: z.boolean().optional(),
   /** the existing app is restyled to its match references (chosen on the questions card): the theme is theirs, not the repo's */
   restyle: z.boolean().optional(),
+  /** who drew it: absent or "json" for the design JSON our code draws, "stitch" for Google Stitch screens shown as frames */
+  engine: z.enum(["json", "stitch"]).optional(),
+  /** a Stitch design: its project, model, DESIGN.md (sha) and each frame's screen, HTML and screenshot (shas) */
+  stitch: z.object({
+    projectId: z.string(), model: z.string(), designMd: z.string(),
+    /** the Stitch design system's own theme, as sent to Stitch (src/design/stitch-taste.ts StitchTheme) */
+    theme: z.record(z.string(), z.unknown()).optional(),
+    frames: z.record(z.string(), z.object({ screen: z.string().optional(), state: z.string().optional(), name: z.string(), screenId: z.string(), html: z.string(), image: z.string() })),
+    /** accessibility problems Stitch could not fix in one round: per screen, the axe rules still failing (shown on the approval card) */
+    a11y: z.array(z.object({ screen: z.string(), rules: z.array(z.string()) })).optional(),
+    /** each screen's Stitch prompt, for a rework that redraws its extra states */
+    prompts: z.record(z.string(), z.string()).optional(),
+  }).optional(),
 });
 export const Design = withHeader(DesignBody.shape);
 

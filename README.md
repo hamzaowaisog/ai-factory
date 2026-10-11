@@ -188,7 +188,10 @@ ok   container runtime: /usr/bin/docker
 ok   ~/.factory/.env exists
 ok   ANTHROPIC_API_KEY set in ~/.factory/.env
 note OPENAI_API_KEY not set: critic and review will use Claude (single family)
+note STITCH_API_KEY not set (optional): needed only for design.engine: stitch
 ```
+
+Keys are read from `~/.factory/.env` first, then from the environment, so `export STITCH_API_KEY=...` (like `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`) works too.
 
 Skipped the key during setup? Add it any time: `nano ~/.factory/.env` → `ANTHROPIC_API_KEY=sk-ant-...`. Never paste keys into chat, tickets or the repo.
 

@@ -25,14 +25,23 @@ export interface LadderOptions {
   backoffSpentMs: number;
   backoffCapMs: number;             // 15 min
   a5Done: Set<string>;              // locked tests already judged "code wrong"
+  /** stronger-model rungs in a row: a design tier ladder has one per tier above its start; default 1 */
+  modelSteps?: number;
 }
 
 export const DEFAULT_LADDER: Omit<LadderOptions, "availableRungs" | "backoffSpentMs" | "a5Done"> = {
   maxAttempts: 6, attemptsPerRung: 2, backoffCapMs: 15 * 60_000,
 };
 
-function nextAvailable(from: number, avail: Set<Rung>): number | undefined {
-  for (let r = from; r < RUNGS.length; r++) if (avail.has(RUNGS[r]!)) return r;
+/** What rung `n` is: 0 retry, 1 raise effort, then `modelSteps` stronger-model rungs, then other vendor; past that, none. */
+export function rungKind(n: number, modelSteps = 1): Rung | undefined {
+  if (n < 2) return RUNGS[n];
+  if (n < 2 + modelSteps) return "stronger-model";
+  return n === 2 + modelSteps ? "other-vendor" : undefined;
+}
+
+function nextAvailable(from: number, avail: Set<Rung>, modelSteps = 1): number | undefined {
+  for (let r = from; rungKind(r, modelSteps); r++) if (avail.has(rungKind(r, modelSteps)!)) return r;
   return undefined;
 }
 
@@ -68,7 +77,7 @@ export function nextOnFailure(history: AttemptRecord[], o: LadderOptions): Ladde
   const stuck = !!prev && (prev.signature === last.signature || (!!last.diffSha && prev.diffSha === last.diffSha));
   const atRung = counted.filter((h) => h.rung === last.rung).length;
   const move = stuck || atRung >= o.attemptsPerRung;
-  const target = nextAvailable(move ? last.rung + 1 : last.rung, o.availableRungs);
+  const target = nextAvailable(move ? last.rung + 1 : last.rung, o.availableRungs, o.modelSteps);
   if (target === undefined) return { action: "park", reason: "Every retry option is used up" };
   return {
     action: "retry", rung: target,

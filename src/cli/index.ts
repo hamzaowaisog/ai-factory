@@ -699,6 +699,7 @@ program.command("doctor").description("check this machine and the setup").action
   ok(existsSync(join(factoryHome(), ".env")), "~/.factory/.env exists", "create it yourself with your API keys (never paste keys into chat)");
   ok(hasSecret("ANTHROPIC_API_KEY"), "ANTHROPIC_API_KEY set in ~/.factory/.env");
   log(`${hasSecret("OPENAI_API_KEY") ? "ok  " : "note"} OPENAI_API_KEY ${hasSecret("OPENAI_API_KEY") ? "set" : "not set: critic and review will use Claude (single family)"}`);
+  log(hasSecret("STITCH_API_KEY") ? "ok   STITCH_API_KEY set: projects with design.engine: stitch can draw with Google Stitch" : "note STITCH_API_KEY not set (optional): needed only for design.engine: stitch");
   const { jiraConfigured } = await import("../sources/jira.js");
   log(jiraConfigured() ? "ok   Jira set up (factory start --jira ABC-123)" : "note Jira not set up (optional): add JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN to ~/.factory/.env to use --jira");
   log(hasSecret("GITHUB_TOKEN") ? "ok   GITHUB_TOKEN set: a new product can be put on GitHub (Greenfield's \"Put it on GitHub\", factory fullstack start --github)"
