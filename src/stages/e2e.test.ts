@@ -411,12 +411,12 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(modelCalls).toContain("claude-opus-5-5");
     // the ledger says which model each step was given and why: saved once with the run, then on every step and every call
     const evs = ledger.events();
-    expect((evs[0]!.data!.routes as Record<string, unknown>).critic).toMatchObject({ model: "claude-opus-5-5", source: "fixed" });
+    expect((evs[0]!.data!.routes as Record<string, unknown>).critic).toMatchObject({ model: "claude-opus-5-5", source: "default", tier: "heavy" });
     expect((evs[0]!.data!.routes as Record<string, unknown>).implement).toMatchObject({ model: "claude-sonnet-5-5", source: "default", tier: "standard" });
     expect(evs.find((e) => e.type === "step.started" && e.key?.startsWith("intake"))!.data!.route).toMatchObject({ model: "claude-haiku-5-5", effort: "low", source: "default", tier: "light" });
     const criticCalls = evs.filter((e) => e.type === "usage" && e.data!["factory.route"] === "critic");
     expect(criticCalls.length).toBeGreaterThan(0);
-    for (const e of criticCalls) expect(e.data).toMatchObject({ "gen_ai.request.model": "claude-opus-5-5", "factory.route.source": "fixed" });
+    for (const e of criticCalls) expect(e.data).toMatchObject({ "gen_ai.request.model": "claude-opus-5-5", "factory.route.source": "default" });
     expect(ledger.readCard(`pr-${runId}`)).toContain("AC-1.1");
     expect(ledger.readCard(`pr-${runId}`)).toContain("Security review (OWASP Top 10): nothing found");
     // the trace shows every level: steps, model turns, lab phases, containers, gates, the coding agent's actions

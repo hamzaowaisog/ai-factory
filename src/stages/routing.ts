@@ -9,7 +9,7 @@ import { uiuxProblem } from "../design/uiux-skill.js";
 import { blockedText, modelAllowed, type Policy } from "../gates/policy.js";
 import { family, type Effort } from "../runners/types.js";
 import { priceOf, UNCONFIRMED_PRICES } from "../runners/pricing.js";
-import { enginesFor, heldTier, modelInfo, modelName, nextUp, offeredFor, OPUS, PRESETS, presetTier, runnerFor, STEPS, STITCH, STITCH_NAME, TIER_TABLE, type Preset, type RouteSource, type StepSpec, type Tier, type Vendor } from "./models.js";
+import { enginesFor, heldTier, modelInfo, modelName, nextUp, offeredFor, PRESETS, presetTier, runnerFor, sameAsCritic, STEPS, STITCH, STITCH_NAME, TIER_TABLE, type Preset, type RouteSource, type StepSpec, type Tier, type Vendor } from "./models.js";
 
 const OLD_OPUS = "claude-opus-5-5";
 const OLD_SONNET = "claude-sonnet-5";
@@ -167,7 +167,7 @@ export function stepsOf(mode: string | undefined): string[] {
 }
 
 /** What the start form shows: every step with its default, the models it can be given, and what each preset puts it on. */
-export function modelsView(mode: string | undefined): { steps: { step: string; group: string; model: string; effort: string; fixed: boolean; offered: string[]; engines?: { id: string; name: string; note: string }[]; presets: Record<Preset, string>; warn?: { model: string; why: string } }[]; presets: readonly Preset[]; models: { id: string; name: string; input: number; output: number; unconfirmed: boolean }[] } {
+export function modelsView(mode: string | undefined): { steps: { step: string; group: string; model: string; effort: string; fixed: boolean; offered: string[]; engines?: { id: string; name: string; note: string }[]; presets: Record<Preset, string>; /** the step whose model it is warned about sharing */ apart?: string }[]; presets: readonly Preset[]; models: { id: string; name: string; input: number; output: number; unconfirmed: boolean }[] } {
   const none = { steps: {} } as unknown as ProjectConfig;
   const steps = stepsOf(mode).map((step) => {
     const spec = STEPS[step]!, r = resolveRoute(none, step);
@@ -175,7 +175,7 @@ export function modelsView(mode: string | undefined): { steps: { step: string; g
       step, group: spec.group, model: r.model, effort: r.effort ?? "high", fixed: !!spec.fixed, offered: offeredFor(step).map((m) => m.id),
       ...(enginesFor(step).length ? { engines: enginesFor(step) } : {}),
       presets: Object.fromEntries(PRESETS.map((p) => [p, resolveRoute(none, step, { preset: p }).model])) as Record<Preset, string>,
-      ...(spec.warn ? { warn: { model: OPUS, why: spec.warn.why } } : {}),
+      ...(spec.apart ? { apart: spec.apart } : {}),
     };
   });
   const ids = [...new Set(steps.flatMap((s) => [s.model, ...s.offered, ...Object.values(s.presets)]))];
@@ -283,20 +283,23 @@ function refusal(stage: string, model: string, by: "pick" | "config"): string | 
   if (by === "pick" && !offeredFor(stage).some((m) => m.id === model)) return `${stage}: ${model} is not offered for this step (choose ${[...offeredFor(stage), ...enginesFor(stage)].map((m) => m.id).join(", ")})`;
   const vendor = info?.vendor ?? (family(model) === "local" ? undefined : family(model));
   if (spec.only && vendor && !spec.only.includes(vendor as Vendor)) {
-    return stage === "specify-other" ? `specify-other is the spec draft from another vendor than the critic (${modelName(OPUS)}); it needs a GPT-6 model, not ${model}`
+    return stage === "specify-other" ? `specify-other is the second spec draft, written by another vendor than the first; it needs a GPT-6 model, not ${model}`
       : `${stage}: ${model} cannot run this step (it needs a model from ${spec.only.join(" or ")})`;
   }
   return undefined;
 }
 
-/** What a choice is allowed but warned about: a spec written by the same model that criticises it. */
+/**
+ * What a choice is allowed but warned about: a spec written by the same model that criticises it. The defaults are left
+ * alone; the warning is for a run where the spec step or the critic was moved (a pick, a preset, the project file).
+ */
 export function routeWarnings(project: ProjectConfig, choice: Choice = {}, only?: readonly string[]): string[] {
   const out: string[] = [];
   for (const stage of only ?? Object.keys(STEPS)) {
-    const w = STEPS[stage]?.warn;
-    if (!w) continue;
-    const r = resolveRoute(project, stage, choice);
-    if (r.source !== "default" && r.model === OPUS && w.vendor === "anthropic") out.push(`${stage} on ${modelName(r.model)}: ${w.why}`);
+    const other = STEPS[stage]?.apart;
+    if (!other || (only && !only.includes(other))) continue;
+    const r = resolveRoute(project, stage, choice), o = resolveRoute(project, other, choice);
+    if (r.model === o.model && (r.source !== "default" || o.source !== "default")) out.push(`${stage} on ${modelName(r.model)}: ${sameAsCritic(o.model)}`);
   }
   return out;
 }

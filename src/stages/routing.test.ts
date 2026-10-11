@@ -75,14 +75,17 @@ describe("which model a step runs on", () => {
     expect(resolveRoute(project, "author-tests", { preset: "economy" })).toMatchObject({ model: "claude-sonnet-5-5", tier: "standard" });
     expect(resolveRoute(project, "specify-other", { preset: "economy" })).toMatchObject({ model: "gpt-6-sol", effort: "medium" });
     // balanced is the defaults
-    for (const stage of Object.keys(DEFAULT_ROUTES).filter((s) => s !== "critic")) expect(resolveRoute(project, stage, { preset: "balanced" })).toMatchObject(DEFAULT_ROUTES[stage]!);
+    for (const stage of Object.keys(DEFAULT_ROUTES)) expect(resolveRoute(project, stage, { preset: "balanced" })).toMatchObject(DEFAULT_ROUTES[stage]!);
   });
 
-  it("the critic is Claude Opus 5.5 whatever the person, the preset or the project file says", () => {
-    for (const c of [{}, { preset: "economy" as const }, { picks: { critic: "gpt-6-sol" } }]) expect(resolveRoute(withFile, "critic", c)).toMatchObject({ model: "claude-opus-5-5", effort: "high", source: "fixed" });
-    expect(routeFor(withFile, "critic").model).toBe("claude-opus-5-5");
-    expect(checkRoutes(project, undefined, { picks: { critic: "gpt-6-sol" } })).toEqual(["critic always runs on Claude Opus 5.5; it cannot be changed"]);
-    expect(checkRoutes(withFile).join("\n")).toMatch(/critic always runs on Claude Opus 5.5; remove its entry \(gpt-6-sol\)/);
+  it("the critic takes a pick or a project file entry like any step, and a preset keeps it on the heavy tier", () => {
+    expect(resolveRoute(project, "critic")).toMatchObject({ model: "claude-opus-5-5", effort: "high", source: "default", escalate: [] });
+    for (const preset of ["economy", "balanced", "quality"] as const) expect(resolveRoute(project, "critic", { preset })).toMatchObject({ model: "claude-opus-5-5", effort: "high", tier: "heavy" });
+    expect(resolveRoute(project, "critic", { preset: "economy", picks: { critic: "gpt-6-sol" } })).toMatchObject({ model: "gpt-6-sol", effort: "high", source: "pick", escalate: ["claude-opus-5-5"] });
+    expect(resolveRoute(withFile, "critic")).toMatchObject({ model: "gpt-6-sol", source: "config" });
+    expect(routeFor(withFile, "critic").model).toBe("gpt-6-sol");
+    expect(checkRoutes(project, undefined, { picks: { critic: "gpt-6-sol" } })).toEqual([]);
+    expect(checkRoutes(project, undefined, { picks: { critic: "claude-sonnet-5-5" } })[0]).toMatch(/critic: claude-sonnet-5-5 is not offered for this step \(choose gpt-6-luna, gpt-6-sol, claude-opus-5-5\)/);
   });
 
   it("a GPT model picked for a coding step runs in the Codex agent, and a retry that moves up to Claude runs in the Claude one", () => {
@@ -115,7 +118,10 @@ describe("which model a step runs on", () => {
     expect(routeWarnings(project)).toEqual([]);
     expect(routeWarnings(project, { picks: { specify: "claude-opus-5-5" } })).toEqual(["specify on Claude Opus 5.5: the critic is Claude Opus 5.5 too, so it reads a spec its own model wrote"]);
     const claudeDraft = ProjectConfig.parse({ project: "p", repo: "-", stack: "dotnet", steps: { "specify-other": { model: "claude-opus-5-5" } } });
-    expect(checkRoutes(claudeDraft).join("\n")).toMatch(/specify-other is the spec draft from another vendor than the critic .* \(set in the project file\)/);
+    expect(checkRoutes(claudeDraft).join("\n")).toMatch(/specify-other is the second spec draft, written by another vendor than the first; .* \(set in the project file\)/);
+    // the warning follows the critic's own model: moved to GPT-6 Sol it is the second draft that shares it
+    expect(routeWarnings(project, { picks: { critic: "gpt-6-sol" } })).toEqual(["specify-other on GPT-6 Sol: the critic is GPT-6 Sol too, so it reads a spec its own model wrote"]);
+    expect(routeWarnings(project, { picks: { critic: "gpt-6-sol", "specify-other": "gpt-6-luna", specify: "claude-opus-5-5" } })).toEqual([]);
   });
 
   it("the project file names a model or a tier, never both, and a tier only for a step the factory knows", () => {
@@ -134,7 +140,7 @@ describe("which model a step runs on", () => {
     // the project file changed after the run began: the run does not move
     expect(routeFor(run, "design").model).toBe("claude-opus-5-5");
     expect(routeRecord(run, "plan", 2)).toMatchObject({ model: "claude-opus-5-5", source: "pick", movedUpFrom: "gpt-6-sol" });
-    expect(usageRoute(run, "critic")).toEqual({ "factory.route": "critic", "factory.route.source": "fixed" });
+    expect(usageRoute(run, "critic")).toEqual({ "factory.route": "critic", "factory.route.source": "default", "factory.route.tier": "heavy" });
     expect(routeFor(old, "intake").model).toBe("claude-haiku-4-5");
     expect(routeFor(old, "critic").model).toBe("gpt-5.5");
     expect(routeSource(old, "critic").source).toBe("before the picker");

@@ -2454,20 +2454,25 @@ function modelPicker(catalogue, id, also = "") {
     const note = h("span", { class: "hint warn-text", hidden: true });
     const row = h("tr", {}, h("td", { class: "mono" }, s.step), h("td", { class: "faint small" }, s.group),
       h("td", {}, s.fixed ? h("span", {}, `${mName(s.model)} `, h("span", { class: "faint small" }, "always")) : pick, " ", tag, note));
+    // the model the row would run on, and whether a person moved it off its default (a pick, or a preset)
+    const on = () => (pick && pick.value) || (preset.value ? s.presets[preset.value] : s.model);
+    const moved = () => !!((pick && pick.value) || preset.value);
     const sync = () => {
       if (!pick) return;
-      const base = preset.value ? s.presets[preset.value] : s.model;
-      auto.textContent = `${mName(base)} (${preset.value || "default"})`;
+      auto.textContent = `${mName(preset.value ? s.presets[preset.value] : s.model)} (${preset.value || "default"})`;
       tag.hidden = !pick.value;
-      const on = pick.value || base;
       const engine = (s.engines ?? []).find((e) => e.id === pick.value);
-      note.hidden = !engine && !(s.warn && pick.value && on === s.warn.model);
-      if (!note.hidden) note.textContent = engine ? engine.note : s.warn.why;
+      // a spec step on the model its critic runs on: allowed, and said here as the start check says it
+      const other = s.apart ? rows.find((r) => r.step === s.apart) : undefined;
+      const same = !!other && on() === other.on() && (moved() || other.moved());
+      note.hidden = !engine && !same;
+      if (!note.hidden) note.textContent = engine ? engine.note : `the ${other.step} is ${mName(on())} too, so it reads a spec its own model wrote`;
     };
-    if (pick) pick.addEventListener("change", sync);
-    return { step: s.step, pick, sync, row };
+    // one row's model can change another row's note (the critic's): every row is read again
+    if (pick) pick.addEventListener("change", () => syncAll());
+    return { step: s.step, pick, sync, row, on, moved };
   });
-  const syncAll = () => rows.forEach((r) => r.sync());
+  function syncAll() { rows.forEach((r) => r.sync()); }
   preset.addEventListener("change", syncAll);
   syncAll();
   const picked = () => {

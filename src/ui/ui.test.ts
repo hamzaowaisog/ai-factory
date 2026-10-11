@@ -544,7 +544,7 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
       [{ name: "orders", dir, prompt: "An orders app", maxCost: 25 }, /can only lower/],
       [{ name: "orders", dir, prompt: "An orders app", file: { name: "a.exe", text: "x" } }, /\.md\), text/],
       [{ name: "orders", dir, fromDesign: "nope", fromEstimate: "nope" }, /one thing at a time/],
-      [{ name: "orders", dir, prompt: "An orders app", models: { picks: { critic: "gpt-6-sol" } } }, /critic always runs on Claude Opus 5\.5/],
+      [{ name: "orders", dir, prompt: "An orders app", models: { picks: { critic: "claude-sonnet-5-5" } } }, /critic: claude-sonnet-5-5 is not offered for this step/],
       [{ name: "orders", dir, prompt: "An orders app", models: { preset: "cheap" } }, /No preset "cheap"/],
     ];
     for (const [body, msg] of cases) {
@@ -1659,13 +1659,13 @@ describe("factory ui: design exports", () => {
     expect(info.models).toEqual({ preset: "economy", picks: { plan: "gpt-6-sol" } });
     expect(info.routes!.plan).toMatchObject({ model: "gpt-6-sol", source: "pick" });
     expect(info.routes!.ground).toMatchObject({ model: "claude-sonnet-5-5", source: "pick", preset: "economy" });
-    expect(info.routes!.critic).toMatchObject({ model: "claude-opus-5-5", source: "fixed" });
+    expect(info.routes!.critic).toMatchObject({ model: "claude-opus-5-5", source: "pick", preset: "economy" });
     // the run page shows what each step was given, and where from
     const m = (await call(`/api/runs/${b.json().runId}`)).json().models;
     expect(m).toMatchObject({ saved: true, preset: "economy", calls: [], moved: [] });
     expect(m.rows.find((x: { step: string }) => x.step === "plan")).toMatchObject({ model: "gpt-6-sol", name: "GPT-6 Sol", source: "pick" });
     expect(m.rows.find((x: { step: string }) => x.step === "ground")).toMatchObject({ name: "Claude Sonnet 5.5", source: "pick", preset: "economy" });
-    expect(m.rows.find((x: { step: string }) => x.step === "critic")).toMatchObject({ name: "Claude Opus 5.5", source: "fixed" });
+    expect(m.rows.find((x: { step: string }) => x.step === "critic")).toMatchObject({ name: "Claude Opus 5.5", source: "pick", preset: "economy" });
     _resetStarting();
     expect((await post({ project: "web", prompt: "x", models: { picks: { "specify-other": "claude-opus-5-5" } } })).json().error).toMatch(/specify-other: claude-opus-5-5 is not offered for this step/);
     expect((await post({ project: "web", prompt: "x", models: { preset: "cheap" } })).json().error).toMatch(/No preset "cheap"/);

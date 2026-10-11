@@ -59,17 +59,18 @@ export interface StepSpec {
   fixed?: string;
   /** only these vendors may run it; a pick from another is refused */
   only?: readonly Vendor[];
-  /** a pick from this vendor is allowed but warned about at the start */
-  warn?: { vendor: Vendor; why: string };
+  /** a step it is better kept apart from: running on that step's model is allowed but warned about at the start */
+  apart?: string;
   /** the models a retry climbs, weakest first, when it differs from the vendor's own */
   ladder?: readonly string[];
 }
 
-const SAME_AS_CRITIC = "the critic is Claude Opus 5.5 too, so it reads a spec its own model wrote";
+/** Why a spec step on the critic's own model is warned about. */
+export const sameAsCritic = (model: string): string => `the critic is ${modelName(model)} too, so it reads a spec its own model wrote`;
 
 /**
  * Every model step. Thinking steps stay on Claude until the paid GPT-6 proving run; the second spec draft and the
- * pre-PR reviewer are on GPT-6 so they differ from the critic and from the implementer.
+ * pre-PR reviewer are on GPT-6 so they differ from the critic's default and from the implementer.
  */
 export const STEPS: Record<string, StepSpec> = {
   intake: { runner: "api", group: "thinking", vendor: "anthropic", tier: "light", effort: "low" },
@@ -77,12 +78,13 @@ export const STEPS: Record<string, StepSpec> = {
   sketches: { runner: "api", group: "thinking", vendor: "anthropic", tier: "standard", effort: "medium" },
   "sketch-align": { runner: "api", group: "thinking", vendor: "anthropic", tier: "light", effort: "low" },
   clarifier: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "medium" },
-  specify: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "high", warn: { vendor: "anthropic", why: SAME_AS_CRITIC } },
-  "specify-other": { runner: "api", group: "thinking", vendor: "openai", tier: "heavy", effort: "high", only: ["openai"], ladder: [LUNA, SOL] },
-  merge: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "medium", warn: { vendor: "anthropic", why: SAME_AS_CRITIC } },
+  specify: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "high", apart: "critic" },
+  "specify-other": { runner: "api", group: "thinking", vendor: "openai", tier: "heavy", effort: "high", only: ["openai"], apart: "critic", ladder: [LUNA, SOL] },
+  merge: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "medium", apart: "critic" },
   restater: { runner: "api", group: "thinking", vendor: "anthropic", tier: "standard", effort: "low" },
   "rt-align": { runner: "api", group: "thinking", vendor: "anthropic", tier: "light", effort: "low" },
-  critic: { runner: "api", group: "review", vendor: "anthropic", tier: "heavy", effort: "high", fixed: OPUS, ladder: [OPUS] },
+  // the critic is the spec's last check before a person reads it: a preset never moves it off the heavy tier, a pick may
+  critic: { runner: "api", group: "review", vendor: "anthropic", tier: "heavy", effort: "high", floor: "heavy" },
   breakdown: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "high" },
   estimate: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "high" },
   design: { runner: "api", group: "design", vendor: "anthropic", tier: "heavy", effort: "high" },
