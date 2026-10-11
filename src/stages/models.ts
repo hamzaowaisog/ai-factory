@@ -131,7 +131,7 @@ export const STITCH = "stitch";
 export const STITCH_NAME = "Google Stitch";
 /** The design engines a person may pick for this step at the start of a run, beside its models. */
 export function enginesFor(stage: string): { id: string; name: string; note: string }[] {
-  return stage === "design" ? [{ id: STITCH, name: STITCH_NAME, note: "Stitch draws the screens and Claude plans them. It sends the requirements to Google, so the project must allow it (design.allowStitch: true), and it needs STITCH_API_KEY." }] : [];
+  return stage === "design" ? [{ id: STITCH, name: STITCH_NAME, note: "Stitch draws the screens and Claude plans them. It sends the requirements to Google: picking it here allows that for this run. It needs STITCH_API_KEY." }] : [];
 }
 
 export type Preset = "economy" | "balanced" | "quality";

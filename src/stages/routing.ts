@@ -1,5 +1,5 @@
 // Model routing per step (adapters.md config; stages-aligned §2; WD §4 tiers).
-import type { ProjectConfig, RunRoutes, StepRoute } from "../config/project.js";
+import { ProjectConfig, type RunRoutes, type StepRoute } from "../config/project.js";
 import { hasSecret } from "../config/env.js";
 import { designRoute, type DesignEngine } from "../config/design-route.js";
 import type { Rung } from "../gates/ladder.js";
@@ -51,6 +51,9 @@ export interface Suggestion { tier: Tier; source: Extract<RouteSource, "recommen
 /** A step's route with where it came from. */
 export interface Resolved extends StepRoute { source: RouteSource; tier?: Tier; preset?: Preset; /** the design engine a person picked for the run (Google Stitch) */ engine?: DesignEngine }
 
+/** The project's design block with Stitch picked for the run: the pick is the allowance, and a project with no design block gets the defaults. */
+const stitchDesign = (d: ProjectConfig["design"]): NonNullable<ProjectConfig["design"]> => ({ ...(d ?? ProjectConfig.shape.design.unwrap().parse({})), engine: STITCH, allowStitch: true });
+
 const esc = (stage: string, model: string): string[] => { const n = nextUp(stage, model); return n ? [n] : []; };
 
 function fromTier(stage: string, spec: StepSpec, tier: Tier): Pick<Resolved, "runner" | "model" | "escalate" | "effort" | "tier"> {
@@ -74,9 +77,9 @@ export function resolveRoute(project: ProjectConfig, stage: string, choice: Choi
   if (spec.fixed) return { runner: spec.runner, model: spec.fixed, escalate: [], effort: spec.effort ?? "high", source: "fixed" };
   const pick = choice.picks?.[stage];
   // Google Stitch picked for the design step: the project's design tiers plan the screens, and the run keeps the engine
+  // the pick is the allowance: a person who chose Stitch for the run has agreed to send it the requirements
   if (pick === STITCH && stage === "design") {
-    if (!project.design?.allowStitch) throw new Error(`design: ${STITCH_NAME} was picked, but this project does not allow it; Stitch sends the requirements to Google, so set design.allowStitch: true in the project file first`);
-    return { ...designRoute({ design: { ...project.design, engine: STITCH } }).route, source: "design engine", engine: STITCH };
+    return { ...designRoute({ design: stitchDesign(project.design) }).route, source: "design engine", engine: STITCH };
   }
   if (pick) return { runner: runnerFor(stage, pick), model: pick, escalate: esc(stage, pick), effort: spec.effort ?? "high", source: "pick" };
   // a design engine or tier the project pinned is not undone by a preset: only a pick for the step itself changes it
@@ -117,9 +120,9 @@ export function projectForRun(project: ProjectConfig, saved: Record<string, Reso
   }
   // a step added to the project file after the run began: read as the file has it
   for (const [stage, r] of Object.entries(project.steps)) if (!steps[stage] && !STEPS[stage]) { steps[stage] = r; how[stage] = { source: "config" }; }
-  // a design engine picked at the start is the run's own: the design step reads it as the project's
+  // a design engine picked at the start is the run's own: the design step reads it as the project's, allowed by the pick
   const engine = saved.design?.engine;
-  return { ...project, ...(engine && project.design ? { design: { ...project.design, engine } } : {}), steps, runRoutes: { legacy: false, steps: how } };
+  return { ...project, ...(engine === STITCH ? { design: stitchDesign(project.design) } : engine && project.design ? { design: { ...project.design, engine } } : {}), steps, runRoutes: { legacy: false, steps: how } };
 }
 
 /**
