@@ -19,6 +19,8 @@ import { demoShotList, findPackage, nextVersion, type DesignPackage } from "../d
 import { ensurePackage } from "./design-export.js";
 import { gate } from "./estimate.js";
 import { listedFrames, MAX_DESIGN_REVISIONS } from "./design.js";
+import { stitchFrames } from "./design-stitch.js";
+import { stitchA11yLines } from "../design/stitch-a11y.js";
 import type { ProjectConfig } from "../config/project.js";
 import { currentPictures } from "../design/current-pages.js";
 import { ESTIMATE_SOURCES, intentOf, specOf, type DesignSources, repoInventory } from "./design-inputs.js";
@@ -119,6 +121,7 @@ export function designCard(runId: string, design: DesignT, hash: string, extra: 
     ...layoutLines(extra.shots?.issues ?? []),
     ...(extra.diff ? [`## Change from the approved design`, ...(extra.compare ? compareLines(extra.compare) : []), ...(extra.diff.length ? extra.diff.map((l) => `- ${l}`) : ["- no screen changed"]), ``] : []),
     ...reworkCardLines(design as never),
+    ...stitchA11yLines((design as { stitch?: { a11y?: { screen: string; rules: string[] }[] } }).stitch?.a11y),
     ...currentLines(extra.current ?? [], extra.look, extra.currentShots),
     `Screens (${design.screens.length}):`,
     ...design.screens.map((s) => { const x = s as typeof s & { states?: string[]; size?: string; mock?: { title: string } }; const title = x.mock?.title ? `${x.mock.title}: ` : ""; return `- ${title}${s.id} ${s.route} (${s.file}) -> ${s.reqs.join(", ") || "NO REQUIREMENT"}${x.size ? `; ${x.size}` : ""}${x.states?.length ? `; states: ${x.states.join(", ")}` : ""}${(s as { refs?: string[] }).refs?.length ? `; from ${(s as { refs?: string[] }).refs!.join(", ")}` : ""}${uiLine(screenUi(s as never))}`; }), ``,
@@ -129,6 +132,24 @@ export function designCard(runId: string, design: DesignT, hash: string, extra: 
     `Approve: factory approve ${runId} ${hash.slice(0, 8)}`,
     `Reject:  factory reject ${runId} ${hash.slice(0, 8)} --reason "why"   (only the parts you point at are fixed, or the whole design is redrawn if that is what it needs; you get a new card and the run does not stop)`, ``, `Card hash: ${hash.slice(0, 8)}`,
   ].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
+}
+
+/**
+ * The frames the preview lists beside their screens: each one embedded in the demo, and each image frame whose file is there
+ * though too large to embed (a full-page Stitch screenshot can pass the demo's 2 MB / 8 MB limits), so no screen goes unseen.
+ */
+export function previewFrames<T extends { frames?: string[] }>(screens: T[], frames: Record<string, { name: string; dataUri?: string; state?: string }>, has: (name: string) => boolean): { screen: T; name: string }[] {
+  return screens.flatMap((sc) => (sc.frames ?? []).flatMap((fid) => {
+    const f = frames[fid];
+    // a Stitch screenshot (it carries its state) is the design itself, so it is listed even when too large to embed;
+    // a request's own attached frame is listed only when the demo shows it, as before
+    return f && (f.dataUri || (!!f.state && /\.(png|jpe?g|webp)$/i.test(f.name) && has(f.name))) ? [{ screen: sc, name: f.name }] : [];
+  }));
+}
+
+/** The frames the demo shows: those the request attached, then a Stitch design's screenshots (each saved under attachments/frames). */
+export function framesFor(request: string, design: { stitch?: { frames: Record<string, { name: string; state?: string }> } }): { id: string; name: string; state?: string }[] {
+  return [...listedFrames(request), ...stitchFrames(design)];
 }
 
 /**
@@ -198,15 +219,15 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
       }
       // the demo is drawn from the design, the requirement text and the attached frames; the approval is tied to that exact page
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
-      const listed = listedFrames(ctx.state.info.request ?? "");
-      const frames: Record<string, { name: string; dataUri?: string }> = {};
+      const listed = framesFor(ctx.state.info.request ?? "", design);
+      const frames: Record<string, { name: string; dataUri?: string; state?: string }> = {};
       let embedded = 0;
       for (const f of listed) {
         const file = join(ctx.ledger.dir, "attachments", "frames", basename(f.name));
         const bytes = existsSync(file) ? readFileSync(file) : undefined;
         const dataUri = bytes ? frameDataUri(f.name, bytes, embedded) : undefined;
         if (dataUri && bytes) embedded += bytes.length;
-        frames[f.id] = { name: f.name, ...(dataUri ? { dataUri } : {}) };
+        frames[f.id] = { name: f.name, ...(dataUri ? { dataUri } : {}), ...("state" in f && f.state ? { state: f.state } : {}) };
       }
       const d = design;
       // an existing app: each page the design changes beside the proposed screen, and the look its demo is drawn in
@@ -238,11 +259,10 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
         writeFileSync(join(previewDir, "tokens.json"), JSON.stringify({ ...tk, css: undefined }, null, 2));
       }
       const images: { file: string; screen: string; req?: string; viewport: Viewport }[] = [];
-      for (const sc of d.screens) for (const fid of sc.frames ?? []) {
-        const f = frames[fid];
-        if (!f?.dataUri) continue;
-        copyFileSync(join(ctx.ledger.dir, "attachments", "frames", basename(f.name)), join(previewDir, "frames", basename(f.name)));
-        images.push({ file: `frames/${basename(f.name)}`, screen: label(sc), ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}), viewport: "desktop" });
+      const framesAt = join(ctx.ledger.dir, "attachments", "frames");
+      for (const { screen: sc, name } of previewFrames(d.screens, frames, (n) => existsSync(join(framesAt, basename(n))))) {
+        copyFileSync(join(framesAt, basename(name)), join(previewDir, "frames", basename(name)));
+        images.push({ file: `frames/${basename(name)}`, screen: label(sc), ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}), viewport: "desktop" });
       }
       const writePreview = (shots: ShotResult["shots"], before: Set<string> = new Set(), current: { file: string; screen: string; viewport: Viewport }[] = []) => writeFileSync(join(previewDir, "preview.json"), JSON.stringify({
         site: { entry: "index.html", screens: d.screens.map((sc) => ({ path: `index.html#${sc.id}`, title: label(sc), ...(sc.reqs[0] ? { req: sc.reqs[0] } : {}) })) },

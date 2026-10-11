@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-background" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Smile Clinic Desk - Schedule Dental Appointment</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Fonts: Geist & Public Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&amp;family=Public+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary": "#005c55",
+            "on-secondary-container": "#4a6864",
+            "on-error": "#ffffff",
+            "inverse-primary": "#80d5cb",
+            "on-secondary-fixed": "#00201d",
+            "on-tertiary-fixed-variant": "#72361b",
+            "on-tertiary-fixed": "#370e00",
+            "on-surface-variant": "#3e4947",
+            "surface-container-highest": "#e0e3e1",
+            "primary-fixed-dim": "#80d5cb",
+            "error": "#ba1a1a",
+            "surface-container-low": "#f1f4f3",
+            "on-primary-fixed-variant": "#00504a",
+            "surface": "#f7faf8",
+            "tertiary-container": "#9c573a",
+            "on-primary": "#ffffff",
+            "tertiary-fixed-dim": "#ffb598",
+            "on-primary-fixed": "#00201d",
+            "tertiary": "#7f4025",
+            "outline-variant": "#bdc9c6",
+            "inverse-on-surface": "#eef1f0",
+            "on-secondary-fixed-variant": "#2e4c48",
+            "surface-container-high": "#e5e9e7",
+            "secondary-container": "#c5e6e1",
+            "on-background": "#181c1c",
+            "error-container": "#ffdad6",
+            "primary-fixed": "#9cf2e8",
+            "tertiary-fixed": "#ffdbce",
+            "surface-dim": "#d7dbd9",
+            "secondary": "#466460",
+            "on-tertiary": "#ffffff",
+            "background": "#f7faf8",
+            "surface-variant": "#e0e3e1",
+            "secondary-fixed-dim": "#accdc8",
+            "on-surface": "#181c1c",
+            "surface-container": "#ebefed",
+            "outline": "#6e7977",
+            "surface-tint": "#006a63",
+            "surface-bright": "#f7faf8",
+            "on-tertiary-container": "#ffe5db",
+            "inverse-surface": "#2d3130",
+            "secondary-fixed": "#c8e9e4",
+            "on-error-container": "#93000a",
+            "on-secondary": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "primary-container": "#0f766e",
+            "on-primary-container": "#a3faef"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Geist", "sans-serif"],
+            "display": ["Geist", "sans-serif"],
+            "body": ["Geist", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      font-family: 'Geist', sans-serif;
+    }
+  </style>
+</head>
+<body class="h-full text-on-surface antialiased bg-background">
+<!-- Side Navigation Bar (Anchored from JSON) -->
+<aside class="fixed inset-y-0 left-0 w-64 flex flex-col justify-between py-6 px-4 z-40 bg-surface-container-lowest border-r border-outline-variant">
+<!-- Top Branding & Navigation Items -->
+<div class="flex flex-col gap-6">
+<!-- Clinic Brand Header -->
+<div class="flex items-center gap-3 px-2">
+<div class="w-10 h-10 rounded-lg bg-primary-container text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[24px]" data-icon="dentistry" style="font-variation-settings: 'FILL' 1;">dentistry</span>
+</div>
+<div class="flex flex-col">
+<span class="font-display font-bold text-lg text-on-surface tracking-tight">Smile Clinic</span>
+<span class="text-xs font-normal text-on-surface-variant">Front Desk Suite</span>
+</div>
+</div>
+<!-- Quick Action / CTA button from JSON -->
+<div class="px-1">
+<button class="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-container text-on-primary font-medium text-sm py-2.5 px-4 rounded-lg shadow-sm transition-colors duration-150" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+<span>Book appointment</span>
+</button>
+</div>
+<!-- Navigation Tabs (Appointments is Active as determined by hierarchy) -->
+<nav class="flex flex-col gap-1">
+<!-- 1. Appointments (Active) -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-surface-container-high text-primary font-medium transition-colors duration-150" href="#appointments">
+<span class="material-symbols-outlined text-[20px]" data-icon="calendar_today" style="font-variation-settings: 'FILL' 1;">calendar_today</span>
+<span class="text-sm">Appointments</span>
+</a>
+<!-- 2. Patients -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150" href="#patients">
+<span class="material-symbols-outlined text-[20px]" data-icon="groups">groups</span>
+<span class="text-sm">Patients</span>
+</a>
+<!-- 3. Doctors -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150" href="#doctors">
+<span class="material-symbols-outlined text-[20px]" data-icon="stethoscope">stethoscope</span>
+<span class="text-sm">Doctors</span>
+</a>
+<!-- 4. Treatments -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150" href="#treatments">
+<span class="material-symbols-outlined text-[20px]" data-icon="medical_services">medical_services</span>
+<span class="text-sm">Treatments</span>
+</a>
+<!-- 5. Billing -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant font-normal hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150" href="#billing">
+<span class="material-symbols-outlined text-[20px]" data-icon="receipt_long">receipt_long</span>
+<span class="text-sm">Billing</span>
+</a>
+</nav>
+</div>
+<!-- Footer Navigation Tabs -->
+<div class="flex flex-col gap-1 border-t border-outline-variant pt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150" href="#settings">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+<span class="text-sm font-normal">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150" href="#support">
+<span class="material-symbols-outlined text-[20px]" data-icon="help">help</span>
+<span class="text-sm font-normal">Support</span>
+</a>
+</div>
+</aside>
+<!-- Top Navigation Bar (Anchored from JSON) -->
+<header class="fixed top-0 left-64 right-0 h-16 bg-surface-container-lowest border-b border-outline-variant z-30 flex justify-between items-center px-8">
+<!-- Left: Search Bar -->
+<div class="flex items-center w-80">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]" data-icon="search">search</span>
+<input class="w-full bg-surface text-sm text-on-surface placeholder-outline pl-9 pr-4 py-1.5 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors" placeholder="Search patient ID, name or phone..." type="text"/>
+</div>
+</div>
+<!-- Right: Utility Actions & Staff Profile -->
+<div class="flex items-center gap-5">
+<div class="flex items-center gap-2">
+<button aria-label="Notifications" class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors duration-150 relative" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+<span class="w-2 h-2 rounded-full bg-error absolute top-2 right-2"></span>
+</button>
+<button aria-label="Help" class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors duration-150" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="help">help</span>
+</button>
+</div>
+<div class="h-6 w-px bg-outline-variant"></div>
+<!-- Staff Profile Pill -->
+<div class="flex items-center gap-3">
+<img alt="Receptionist Staff Avatar" class="w-8 h-8 rounded-full object-cover ring-1 ring-outline-variant" data-alt="A polished professional headshot of a female dental clinic receptionist in modern navy medical scrubs with warm soft indoor studio lighting and minimal contemporary clinic background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRunqFtIbYJ6Kv39_vIlpHHFMI71RLc1NTFhRWYguBsr4wAaEsopofAuzmfe4o7CwBmwcbSHa_7eWpQlGUCe4WoPt8zT83Z7fRpHNtZWoBKsZKxapUPXSrzlehKnBtyY9Vt-D86TBsibTiKQYok9H0wqlJpTGc0ytNQYVyzMbE-GjVC3pHh3ZDiyIpiWWikMB-CcRTMpiCPjTssrUmCnuxDGcBcqtDPNa__7qb0KBT91xHZ02PwKJH1JR7Hkj_oeHsOCTTlCiGDUP8"/>
+<div class="flex flex-col">
+<span class="text-xs font-semibold text-on-surface leading-tight">Maria Vance</span>
+<span class="text-[11px] text-on-surface-variant leading-none">Front Desk Lead</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Layout (Desktop) -->
+<main class="ml-64 pt-20 pb-16 px-8 min-h-screen bg-background">
+<div class="max-w-[1240px] mx-auto">
+<!-- Breadcrumbs & Header Section -->
+<div class="mb-6">
+<div class="flex items-center gap-2 text-xs text-on-surface-variant mb-2">
+<a class="hover:text-primary transition-colors" href="#appointments">Appointments</a>
+<span class="text-outline text-xs">/</span>
+<span class="text-on-surface font-medium">New Booking</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+<div>
+<h1 class="font-headline text-2xl font-bold tracking-tight text-on-surface">Schedule Dental Appointment</h1>
+<p class="text-sm text-on-surface-variant mt-0.5">Enter patient information and assign a dentist and treatment slot.</p>
+</div>
+<div class="flex items-center gap-2 text-xs font-medium text-secondary bg-surface-container px-3 py-1.5 rounded-lg border border-outline-variant">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+            Operatory Suites 1 &amp; 2 Available
+          </div>
+</div>
+</div>
+<!-- Primary Form & Summary Grid Layout -->
+<form class="grid grid-cols-12 gap-8 items-start" id="booking-form">
+<!-- Left Column: Data Entry Modules (8 cols) -->
+<div class="col-span-12 lg:col-span-8 space-y-6">
+<!-- Section 1: Patient Information Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm">
+<div class="flex items-center justify-between pb-4 mb-5 border-b border-outline-variant">
+<div class="flex items-center gap-2.5">
+<span class="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="person">person</span>
+</span>
+<h2 class="font-headline text-base font-semibold text-on-surface">1. Patient Information</h2>
+</div>
+<span class="text-xs text-on-surface-variant font-normal">Primary verification required</span>
+</div>
+<!-- Patient Type Toggle (New vs Existing) -->
+<div class="mb-5">
+<label class="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Patient Classification</label>
+<div class="inline-flex p-1 bg-surface-container rounded-lg border border-outline-variant" role="group">
+<button class="px-4 py-1.5 rounded-md text-xs font-medium bg-surface-container-lowest text-primary shadow-sm transition-all duration-150" id="tab-new" type="button">
+                  New Patient
+                </button>
+<button class="px-4 py-1.5 rounded-md text-xs font-medium text-on-surface-variant hover:text-on-surface transition-all duration-150" id="tab-existing" type="button">
+                  Existing Patient
+                </button>
+</div>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+<!-- Full Name -->
+<div>
+<label class="block text-xs font-medium text-on-surface mb-1.5" for="fullName">
+                  Full Name <span class="text-error">*</span>
+</label>
+<div class="relative">
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3.5 py-2 text-sm text-on-surface placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary transition-all" id="fullName" name="fullName" placeholder="e.g. Ayesha Khan" required="" type="text"/>
+</div>
+<span class="text-[11px] text-on-surface-variant mt-1 block">Full legal name for dental insurance records</span>
+</div>
+<!-- Phone Number with Country Code -->
+<div>
+<label class="block text-xs font-medium text-on-surface mb-1.5" for="phoneNumber">
+                  Phone Number <span class="text-error">*</span>
+</label>
+<div class="flex rounded-lg border border-outline-variant focus-within:border-primary focus-within:ring-1 focus-within:ring-primary overflow-hidden">
+<div class="bg-surface-container-low px-3 flex items-center border-r border-outline-variant text-xs text-on-surface font-medium select-none">
+<span>PK (+92)</span>
+</div>
+<input class="w-full bg-surface-container-lowest border-0 px-3.5 py-2 text-sm text-on-surface placeholder:text-outline focus:ring-0" id="phoneNumber" name="phoneNumber" placeholder="300 1234567" required="" type="tel"/>
+</div>
+<span class="text-[11px] text-on-surface-variant mt-1 block">SMS confirmation and appointment reminder</span>
+</div>
+</div>
+<!-- Optional Patient ID or Guardian Details -->
+<div class="mt-4 pt-4 border-t border-outline-variant grid grid-cols-1 sm:grid-cols-2 gap-5">
+<div>
+<label class="block text-xs font-medium text-on-surface mb-1.5" for="patientId">Patient ID (Auto-generated)</label>
+<input class="w-full bg-surface-container text-on-surface-variant text-sm px-3.5 py-2 rounded-lg border border-outline-variant cursor-not-allowed" id="patientId" name="patientId" readonly="" type="text" value="SC-2024-8841"/>
+</div>
+<div>
+<label class="block text-xs font-medium text-on-surface mb-1.5" for="emailAddr">Email Address (Optional)</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3.5 py-2 text-sm text-on-surface placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary transition-all" id="emailAddr" name="emailAddr" placeholder="ayesha.khan@example.com" type="email"/>
+</div>
+</div>
+</div>
+<!-- Section 2: Appointment & Clinical Details -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm">
+<div class="flex items-center justify-between pb-4 mb-5 border-b border-outline-variant">
+<div class="flex items-center gap-2.5">
+<span class="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="stethoscope">stethoscope</span>
+</span>
+<h2 class="font-headline text-base font-semibold text-on-surface">2. Appointment &amp; Clinical Details</h2>
+</div>
+<span class="text-xs text-on-surface-variant font-normal">Provider selection</span>
+</div>
+<!-- Dentist Visual Card Selector -->
+<div class="mb-6">
+<label class="block text-xs font-medium text-on-surface mb-2" for="preferredDate">
+                Select Attending Dentist <span class="text-error">*</span>
+</label>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+<!-- Dr. Sana Iqbal -->
+<label class="relative flex items-start gap-3.5 p-3.5 rounded-lg border-2 border-primary bg-surface cursor-pointer hover:border-primary transition-all">
+<input checked="" class="mt-1 text-primary focus:ring-primary" name="dentist" type="radio" value="sana_iqbal"/>
+<div class="w-11 h-11 rounded-full ring-2 ring-primary/20 overflow-hidden flex-shrink-0 bg-surface-container">
+<img alt="Dr. Sana Iqbal" class="w-full h-full object-cover" data-alt="A portrait of a senior female orthodontist Dr Sana Iqbal with a friendly confident smile wearing modern clinical teal lab coat in an ultra-modern dental examination clinic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTBUk8nqv-7zcDAGzFg-hkyoXJckYw15dUgZYTxYaVL2xSbANfBC730Ve0lAjD0qJuVvT3RlC3frB11cWWoAyDPuH7Sm4IoKcK92FhD3tCC9ArKaR6q-ZiOTKHkAQ7KCeFeShbcIDIPfX5HrYpV10KldsPtvGqMBNMbLEV_8bvORu1YmDuB2RerUfTldhuEaM4KeP7mDg0VWJXaiSfngEnpgqHDyNXdjUAdRsyxNECUKeYrFYke02gLc1N02krPI03B6oE28yZVMvV"/>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="text-sm font-semibold text-on-surface">Dr. Sana Iqbal</span>
+<span class="inline-block text-[10px] font-medium bg-secondary-container text-on-secondary-container px-1.5 py-0.5 rounded">Suite 101</span>
+</div>
+<span class="text-xs text-on-surface-variant font-normal leading-snug">Lead Orthodontist &amp; Cosmetic Specialist</span>
+<span class="text-[11px] text-primary font-medium mt-1">Available today (4 slots)</span>
+</div>
+</label>
+<!-- Dr. Omar Farooq -->
+<label class="relative flex items-start gap-3.5 p-3.5 rounded-lg border border-outline-variant bg-surface-container-lowest cursor-pointer hover:border-outline hover:bg-surface transition-all">
+<input class="mt-1 text-primary focus:ring-primary" name="dentist" type="radio" value="omar_farooq"/>
+<div class="w-11 h-11 rounded-full ring-1 ring-outline-variant overflow-hidden flex-shrink-0 bg-surface-container">
+<img alt="Dr. Omar Farooq" class="w-full h-full object-cover" data-alt="A professional male oral surgeon Dr Omar Farooq in modern surgical attire with clean high-key background in a high-tech modern dental surgery suite." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRUm7XyzrTx67V7lBIrNg33Ja1BrCdnMylpymrvYRJVjXtdOjDCWnjfwUhb-vfKl0X8gqECRcf9lKvRNJbWTAf5GkcHJeCea90ddnFsz26EaqFIsKrOuTFncvKjihlfZiYKcNs4RbHHk7ytu6qbLkFbzBJ2X-xzUHSuZBo46mbB4-yIWoBYqXAPpgV4ODaewC6tuwwyzMTaRBEI7iI5kG1ssRBytuzBNlwlRcRDEK_Zkt7cW1xTDDiKTrNL61mZBhbkSKyRTJH8kxa"/>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="text-sm font-semibold text-on-surface">Dr. Omar Farooq</span>
+<span class="inline-block text-[10px] font-medium bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded">Suite 104</span>
+</div>
+<span class="text-xs text-on-surface-variant font-normal leading-snug">Senior Endodontist &amp; Oral Surgeon</span>
+<span class="text-[11px] text-on-surface-variant font-medium mt-1">Available today (2 slots)</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Treatment Category Dropdown -->
+<div class="mb-6">
+<label class="block text-xs font-medium text-on-surface mb-1.5" for="treatment">
+                Treatment Procedure <span class="text-error">*</span>
+</label>
+<div class="relative">
+<select aria-label="Treatment Procedure" class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3.5 py-2.5 text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary appearance-none cursor-pointer" id="treatment" name="treatment">
+<option selected="" value="routine_checkup">Routine Checkup &amp; Cleaning (Est. 30 mins)</option>
+<option value="teeth_whitening">Teeth Whitening (Est. 45 mins)</option>
+<option value="orthodontic_consult">Orthodontic Consultation (Est. 45 mins)</option>
+<option value="root_canal">Root Canal Treatment (Est. 60 mins)</option>
+<option value="dental_implants">Dental Implants (Est. 90 mins)</option>
+<option value="crown_bridge">Dental Crown &amp; Bridge (Est. 60 mins)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[20px]" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Date Selector with Shortcuts -->
+<div class="mb-6">
+<div class="flex items-center justify-between mb-2">
+<label class="text-xs font-medium text-on-surface" for="preferredDate">Preferred Date <span class="text-error">*</span></label>
+<div class="flex items-center gap-1.5">
+<button class="text-[11px] px-2.5 py-1 rounded bg-secondary-container text-on-secondary-container font-medium hover:bg-opacity-80 transition-colors" type="button">Today</button>
+<button class="text-[11px] px-2.5 py-1 rounded bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors" type="button">Tomorrow</button>
+<button class="text-[11px] px-2.5 py-1 rounded bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors" type="button">This Saturday</button>
+</div>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[18px]" data-icon="calendar_month">calendar_month</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg pl-10 pr-3.5 py-2 text-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary" id="preferredDate" type="date" value="2024-10-24"/>
+</div>
+</div>
+<!-- Time Slot Chips: Morning & Afternoon -->
+<div>
+<div class="flex items-center justify-between mb-2">
+<label class="text-xs font-medium text-on-surface">Available Time Slots <span class="text-error">*</span></label>
+<span class="text-[11px] text-on-surface-variant">Operatory 101 Timetable</span>
+</div>
+<!-- Morning Slots -->
+<div class="mb-3">
+<span class="text-[11px] font-medium text-on-surface-variant uppercase tracking-wider block mb-1.5">Morning</span>
+<div class="flex flex-wrap gap-2">
+<button class="px-3 py-1.5 text-xs font-medium rounded-lg border border-outline-variant bg-surface hover:bg-surface-container transition-colors text-on-surface" type="button">
+                    09:00 AM
+                  </button>
+<button class="px-3 py-1.5 text-xs font-medium rounded-lg border-2 border-primary bg-primary text-on-primary shadow-xs transition-colors flex items-center gap-1" type="button">
+<span class="material-symbols-outlined text-[14px]" data-icon="check">check</span>
+                    10:00 AM
+                  </button>
+<button class="px-3 py-1.5 text-xs font-medium rounded-lg border border-outline-variant bg-surface hover:bg-surface-container transition-colors text-on-surface" type="button">
+                    11:30 AM
+                  </button>
+</div>
+</div>
+<!-- Afternoon Slots -->
+<div>
+<span class="text-[11px] font-medium text-on-surface-variant uppercase tracking-wider block mb-1.5">Afternoon</span>
+<div class="flex flex-wrap gap-2">
+<button class="px-3 py-1.5 text-xs font-medium rounded-lg border border-outline-variant bg-surface hover:bg-surface-container transition-colors text-on-surface" type="button">
+                    02:00 PM
+                  </button>
+<button class="px-3 py-1.5 text-xs font-medium rounded-lg border border-outline-variant bg-surface hover:bg-surface-container transition-colors text-on-surface" type="button">
+                    03:30 PM
+                  </button>
+<button class="px-3 py-1.5 text-xs font-medium rounded-lg border border-outline-variant bg-surface-container text-outline cursor-not-allowed line-through" disabled="" type="button">
+                    04:30 PM (Booked)
+                  </button>
+<button class="px-3 py-1.5 text-xs font-medium rounded-lg border border-outline-variant bg-surface hover:bg-surface-container transition-colors text-on-surface" type="button">
+                    05:30 PM
+                  </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 3: Clinical & Patient Notes -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm">
+<div class="flex items-center gap-2.5 pb-4 mb-4 border-b border-outline-variant">
+<span class="w-7 h-7 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]" data-icon="clinical_notes">clinical_notes</span>
+</span>
+<h2 class="font-headline text-base font-semibold text-on-surface">3. Clinical &amp; Front Desk Notes</h2>
+</div>
+<div>
+<label class="block text-xs font-medium text-on-surface mb-1.5" for="clinicalNotes">Symptoms, Patient Allergies, or Special Requests</label>
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-3 text-sm text-on-surface placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary leading-relaxed" id="clinicalNotes" name="clinicalNotes" placeholder="e.g. Mild sensitivity in lower left quadrant. Patient prefers topical anesthesia prior to scaling. Penicillin allergy recorded." rows="3"></textarea>
+<div class="flex items-center justify-between mt-1 text-[11px] text-on-surface-variant">
+<span>Notes will be appended to the dentist's daily chart.</span>
+<span>Max 500 characters</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Appointment Summary & Action Panel (4 cols) -->
+<div class="col-span-12 lg:col-span-4 space-y-6">
+<!-- Summary Ticket Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm sticky top-24">
+<!-- Card Header Badge -->
+<div class="bg-primary px-5 py-4 text-on-primary">
+<div class="flex items-center justify-between">
+<span class="text-xs uppercase font-semibold tracking-wider text-on-primary-container">Reservation Summary</span>
+<span class="inline-flex items-center gap-1 text-[11px] bg-white/20 px-2 py-0.5 rounded-full font-medium">
+<span class="material-symbols-outlined text-[12px]" data-icon="lock">lock</span>
+                  Front Desk Hold
+                </span>
+</div>
+<h3 class="text-lg font-bold font-headline mt-1">Dental Operatory 101</h3>
+<p class="text-xs text-on-primary/80">Thursday, Oct 24 • 10:00 AM</p>
+</div>
+<!-- Details Content -->
+<div class="p-5 space-y-4">
+<!-- Assigned Provider -->
+<div class="flex items-start justify-between py-2 border-b border-outline-variant">
+<div class="flex flex-col">
+<span class="text-[11px] uppercase tracking-wider text-on-surface-variant">Doctor</span>
+<span class="text-sm font-semibold text-on-surface">Dr. Sana Iqbal</span>
+<span class="text-xs text-on-surface-variant">Cosmetic &amp; Orthodontics</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container overflow-hidden">
+<img alt="Dr. Sana Iqbal" class="w-full h-full object-cover" data-alt="Close up portrait thumbnail of Dr Sana Iqbal in pristine surgical clinic environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhe_IaqfwpTmay-deLkreOX1JMXtflBMJPYNaoVHKEPnkUNN6QcBNfhfMmR28iTJvvpgHcsK1t_-7yqEY-uKj6s7oxbylu9sPq70WZxcOGQ9DUSsz6bFnZff4e6xPKnw9WPfTDVvq8bhTBGtPpEiAD0Jq4Fi0HYq9iDaKJQslHj3jY3XdIaPlL_o3ZfCL7pbFyLpq6P7SAZNTW8_f45xxISBf8xiD0VYWT0wgAq_DabSsY4Exnfd9-GHD_XaOlDXT2PMIyHFEPs37Y"/>
+</div>
+</div>
+<!-- Treatment & Duration -->
+<div class="flex items-start justify-between py-2 border-b border-outline-variant">
+<div>
+<span class="text-[11px] uppercase tracking-wider text-on-surface-variant">Procedure</span>
+<span class="text-sm font-semibold text-on-surface block">Routine Checkup &amp; Cleaning</span>
+<span class="text-xs text-on-surface-variant flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[14px]" data-icon="schedule">schedule</span>
+                    Estimated Duration: 45 mins
+                  </span>
+</div>
+</div>
+<!-- Patient Overview -->
+<div class="py-2 border-b border-outline-variant">
+<span class="text-[11px] uppercase tracking-wider text-on-surface-variant">Patient</span>
+<div class="flex items-center justify-between mt-0.5">
+<span class="text-sm font-medium text-on-surface">Ayesha Khan (New)</span>
+<span class="text-xs text-primary font-medium">SC-2024-8841</span>
+</div>
+</div>
+<!-- Fee Breakdown Preview -->
+<div class="space-y-2 pt-1">
+<div class="flex items-center justify-between text-xs text-on-surface-variant">
+<span>Consultation Fee</span>
+<span>PKR 3,500</span>
+</div>
+<div class="flex items-center justify-between text-xs text-on-surface-variant">
+<span>Scaling &amp; Prophylaxis</span>
+<span>PKR 4,500</span>
+</div>
+<div class="flex items-center justify-between text-xs text-on-surface-variant">
+<span>Standard Tray Disinfection</span>
+<span class="text-primary font-medium">Included</span>
+</div>
+<div class="pt-2 border-t border-outline-variant flex items-center justify-between">
+<span class="text-sm font-bold text-on-surface">Est. Total Fee</span>
+<span class="text-base font-bold text-primary">PKR 8,000</span>
+</div>
+<span class="text-[10px] text-on-surface-variant block italic leading-tight">Payable at clinic desk post-consultation or via insurance claim.</span>
+</div>
+<!-- Action Buttons -->
+<div class="pt-3 space-y-2.5">
+<button class="w-full py-3 px-4 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-semibold text-sm transition-colors duration-150 flex items-center justify-center gap-2 shadow-sm" type="submit"><span class="material-symbols-outlined text-[18px]" data-icon="event_available">event_available</span>
+<span>Confirm booking</span></button>
+<button class="w-full py-2.5 px-4 rounded-lg border border-outline-variant bg-surface-container-lowest hover:bg-surface-container text-on-surface font-medium text-sm transition-colors duration-150" type="button">
+                  Cancel
+                </button>
+</div>
+<!-- Front Desk Notice -->
+<div class="p-3 bg-surface-container rounded-lg flex items-start gap-2 text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-primary text-[16px] mt-0.5" data-icon="info">info</span>
+<span class="leading-relaxed">An automated SMS reminder with directions will be dispatched to the patient immediately upon creation.</span>
+</div>
+</div>
+</div>
+</div>
+</form>
+</div>
+</main>
+<script>
+    // Micro-interaction: Toggle patient classification buttons
+    const tabNew = document.getElementById('tab-new');
+    const tabExisting = document.getElementById('tab-existing');
+
+    if (tabNew && tabExisting) {
+      tabNew.addEventListener('click', () => {
+        tabNew.className = "px-4 py-1.5 rounded-md text-xs font-medium bg-surface-container-lowest text-primary shadow-sm transition-all duration-150";
+        tabExisting.className = "px-4 py-1.5 rounded-md text-xs font-medium text-on-surface-variant hover:text-on-surface transition-all duration-150";
+      });
+
+      tabExisting.addEventListener('click', () => {
+        tabExisting.className = "px-4 py-1.5 rounded-md text-xs font-medium bg-surface-container-lowest text-primary shadow-sm transition-all duration-150";
+        tabNew.className = "px-4 py-1.5 rounded-md text-xs font-medium text-on-surface-variant hover:text-on-surface transition-all duration-150";
+      });
+    }
+
+    // Micro-interaction: Intercept form submit for desk feedback
+    const form = document.getElementById('booking-form');
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        alert('Dental appointment successfully scheduled for Ayesha Khan with Dr. Sana Iqbal on Oct 24 at 10:00 AM.');
+      });
+    }
+  </script>
+</body></html>

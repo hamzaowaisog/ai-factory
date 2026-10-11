@@ -39,6 +39,8 @@ export interface ScaffoldScreen {
   page: string;
   /** the state names in the address (fixture mode), slug to the demo's name */
   states: Record<string, string>;
+  /** drawn by Stitch: no screen.tsx or fixtures.ts ("" for both); the coding task builds the page in its container */
+  stitch?: true;
 }
 /** A screen an existing app already has (tweak, reuse, design-system): changed in its own page file, not generated. */
 export interface InPlaceScreen { id: string; title: string; route: string; size: string; file?: string }
@@ -141,13 +143,16 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
   const allApps = o.design.apps?.length ? o.design.apps : [{ id: "", name: o.product, device: "web" as const, shell: o.design.theme?.shell ?? "auto", switcher: o.design.switcher }];
   const kitApps = allApps.filter((a) => a.device !== "phone" && (!o.apps || o.apps.includes(a.id)));
   const inApp = (s: DesignBody["screens"][number], a: { id: string }) => allApps.length < 2 || s.app === a.id || ((!s.app || !allApps.some((x) => x.id === s.app)) && a.id === allApps[0]!.id);
-  const drawn = o.design.screens.filter((s) => s.mock && kitApps.some((a) => inApp(s, a)));
+  // a screen drawn as design JSON, or drawn by Stitch (its words read from its HTML): the coding task builds a Stitch page
+  const drawn = o.design.screens.filter((s) => (s.mock || s.facts) && kitApps.some((a) => inApp(s, a)));
   // an existing app: a screen it already has (tweak, reuse, a design-system change) is changed in its own page file, as designed;
   // only a new screen is generated with the kit
-  const inPlace: InPlaceScreen[] = fresh ? [] : drawn.filter((s) => s.size && s.size !== "new").map((s) => ({ id: s.id, title: s.mock!.title, route: s.route, size: s.size!, ...(s.file ? { file: s.file } : {}) }));
+  const inPlace: InPlaceScreen[] = fresh ? [] : drawn.filter((s) => s.size && s.size !== "new").map((s) => ({ id: s.id, title: s.mock?.title ?? s.facts?.title ?? s.id, route: s.route, size: s.size!, ...(s.file ? { file: s.file } : {}) }));
   const screens = drawn.filter((s) => !inPlace.some((x) => x.id === s.id));
   const skipped = o.design.screens.filter((s) => !drawn.includes(s));
   if (skipped.length) notes.push(`not scaffolded (no page drawn, or a phone app): ${skipped.map((s) => s.id).join(", ")}`);
+  const byStitch = drawn.filter((s) => !s.mock);
+  if (byStitch.length) notes.push(`drawn by Stitch, built by its coding task: ${byStitch.map((s) => s.id).join(", ")}`);
   if (inPlace.length) notes.push(`changed in the app's own pages, not generated: ${inPlace.map((x) => `${x.id} (${x.size}${x.file ? `, ${x.file}` : ""})`).join(", ")}`);
   if (!fresh && !screens.length) {
     notes.push("no new screens: nothing is generated, the kit and theme are not added");
@@ -158,8 +163,63 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
   const routes = new Set<string>();
   const out: ScaffoldScreen[] = [];
   const changed = o.changed ? new Set(o.changed.map((x) => x.toLowerCase())) : undefined;
+  /**
+   * A Stitch screen: its route, its navigation entry and a starting container.tsx the coding task owns and fills by rebuilding the
+   * approved Stitch page with the kit. No screen.tsx or fixtures.ts (there is no design JSON to generate them from), so nothing of
+   * it is protected; fixture mode is the coding task's to keep.
+   */
+  const stitchScreen = (s: DesignBody["screens"][number]) => {
+    const title = s.facts?.title ?? s.id;
+    let base = pascal(title);
+    if (names.has(base)) base += pascal(s.id);
+    names.add(base);
+    const containerPath = `${at(`components/screens/${s.id.toLowerCase()}`)}/container.tsx`;
+    const routeDir = next ? nextRouteDir(s.route) : routerPath(s.route);
+    let page = next ? at(`app/${routeDir ? `${routeDir}/` : ""}page.tsx`) : at("design-routes.tsx");
+    const key = next ? routeDir : routerPath(s.route);
+    if (key === undefined || routes.has(key)) {
+      notes.push(`${s.id}: route ${s.route} ${key === undefined ? "is not a path the app can serve" : "is another page's"}; its page is not routed (the design-system task routes it)`);
+      page = "";
+    } else routes.add(key);
+    const states = screenStates(s);
+    const cont = `${base}Container`;
+    out.push({ id: s.id, title, route: s.route, ...(s.app ? { app: s.app } : {}), component: cont, container: containerPath, containerName: cont, screen: "", fixtures: "", page, states: Object.fromEntries(Object.entries(states).map(([k, v]) => [k, v.name])), stitch: true });
+    if (changed && !changed.has(s.id.toLowerCase())) return;
+    const jsx = title.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&apos;").replace(/"/g, "&quot;").replace(/[{}]/g, (c) => `{"${c}"}`);
+    add(containerPath, [
+      `${use}// ${s.id} ${title} (${s.route}): the approved Stitch page, built by the coding task in this file.`,
+      `// Rebuild the approved Stitch screen here with the kit's components (components/ui, components/blocks) and the theme;`,
+      `// match its layout, sections and words. Fixture mode (?fixture=${s.id}:<state>) must show the approved sample content in`,
+      `// that state with no backend; the states the design drew: ${Object.values(states).map((v) => v.name).join(", ") || "default"}.`,
+      `export function ${cont}({ fixture }: { fixture?: string }) {`,
+      `  return (`,
+      `    <main data-screen=${q(s.id)} data-state={fixture ?? "default"}>`,
+      `      <h1>${jsx}</h1>`,
+      `    </main>`,
+      `  );`,
+      `}`,
+      ``,
+    ].join("\n"), "app", false);
+    if (next && page) {
+      add(page, [
+        `// ${s.id} ${title}: the route. The page itself is the container.`,
+        `import { ${cont} } from "${imp(`components/screens/${s.id.toLowerCase()}/container`, page)}";`,
+        `import { fixtureState } from "${imp("lib/fixture", page)}";`,
+        ``,
+        `export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {`,
+        `  const { fixture } = await searchParams;`,
+        `  return <${cont} fixture={fixtureState(typeof fixture === "string" ? fixture : undefined, ${q(s.id)})} />;`,
+        `}`,
+        ``,
+      ].join("\n"), "app", false);
+    }
+  };
   for (const s of screens) {
-    const m = s.mock!;
+    if (!s.mock) {
+      stitchScreen(s);
+      continue;
+    }
+    const m = s.mock;
     let base = pascal(m.title);
     if (names.has(base)) base += pascal(s.id);
     names.add(base);
@@ -487,7 +547,7 @@ export function scaffold(o: ScaffoldInput): ScaffoldLayout {
     target: o.target, kit: { id: o.kit.manifest.id, version: o.kit.manifest.version }, root, fresh, inPlace,
     files: final, kept, screens: out, removed: o.removed ?? [],
     designSystem: { files: [...new Set(dsFiles)], todo },
-    protected: [...new Set([...files.filter((f) => f.owner !== "app").map((f) => f.path), ...out.flatMap((x) => [x.screen, x.fixtures])])].filter((p) => !kept.includes(p)).sort(),
+    protected: [...new Set([...files.filter((f) => f.owner !== "app").map((f) => f.path), ...out.flatMap((x) => [x.screen, x.fixtures])])].filter((p) => p && !kept.includes(p)).sort(),
     notes,
   };
 }

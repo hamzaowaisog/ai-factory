@@ -18,12 +18,16 @@ import type { Ledger } from "../ledger/ledger.js";
 import { restyleChosen, type ClarifyResult } from "./clarify.js";
 import { btnLabels, DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
+import { designRoute } from "../config/design-route.js";
+import { usesDesignEngine } from "./routing.js";
+import { drawWithStitch, stitchOnExistingApp, type StitchDesign } from "./design-stitch.js";
 import { header, lastFailureData, outputOf, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { lightUi } from "./lane.js";
 import { lookFromRefs, lookRefs, matchFamilies, refBrief as clientRefBrief, refFit, refLayoutFixes, refLayoutGaps, refNotes, REF_RULES, type RefLayoutGap, type RefUse } from "../design/ref-checks.js";
 import type { DesignRefsArt } from "./design-refs.js";
 import { ESTIMATE_SOURCES, intentOf, inventoryNamed, repoInventory, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
 import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
+import { uiuxSection } from "../design/uiux-skill.js";
 import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
 import { ensureMeasured } from "../design/refs/measure.js";
 import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } from "../design/looks.js";
@@ -911,11 +915,34 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const intent = intentOf<Intent>(ctx.state, ctx.ledger, src);
       // no UI: nothing to draw; E1b passes on the intent alone
       if (!intent.touchesUi) return { kind: "done", outputs: { design: ctx.ledger.putJson({ header: header(ctx.runId, "design", "design", ""), skipped: true, reason: "no UI in this request" }) }, data: { skipped: true } };
+      // route-source logging: which engine and tier draw this design, and where each came from
+      if (usesDesignEngine(ctx.project)) {
+        const dr = designRoute(ctx.project);
+        const line = `design: engine ${dr.engine} (${dr.source.engine}), tier ${dr.tier} (${dr.source.tier}): ${dr.ladder.map((x) => `${x.tier} ${x.model}`).join(" → ")}${dr.dropped ? `; ${dr.dropped}` : ""}`;
+        ctx.log(line);
+        ctx.trace.event("route.design", line, { engine: dr.engine, tier: dr.tier, source: dr.source, ladder: dr.ladder });
+      }
       // a spec from before problems were settled by questions, which the breakdown would refuse: settle it before drawing from it
       const back = await backToSettle(ctx, "design", src.spec);
       if (back) return back;
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
+      // the stitch engine: Claude plans and writes DESIGN.md (stitch-design-taste), Stitch draws; a sent-back Stitch design is redrawn whole
       const inv = repoInventory(ctx, src);
+      if (usesDesignEngine(ctx.project) && designRoute(ctx.project).engine === "stitch") {
+        const refused = stitchOnExistingApp(inv);
+        if (refused) return { kind: "park", reason: refused };
+        const refsSha = outputOf(ctx.state, "design-refs");
+        const refRead = refsSha ? ctx.ledger.getJson<DesignRefsArt & { skipped?: boolean }>(refsSha) : undefined;
+        // the design this step drew before, when it was a Stitch design: a send-back edits only the screens it names
+        const prevSha = ctx.state.steps.get("design")?.outputs[0];
+        const prev = prevSha ? ctx.ledger.getJson<StitchDesign & { engine?: string }>(prevSha) : undefined;
+        return drawWithStitch(ctx, spec, {
+          ...(prev?.engine === "stitch" ? { previous: prev } : {}),
+          feedback: designRejections(ctx.state).slice(0, MAX_DESIGN_REVISIONS),
+          ...(inv?.look ? { look: inv.look } : {}),
+          ...(refRead && !refRead.skipped && refRead.refs.length ? { refs: refRead } : {}),
+        });
+      }
       const frames = listedFrames(ctx.state.info.request ?? "");
       const p = ctx.state.info.parent;
       const earlier = p?.kind === "change" && p.designSha ? ctx.ledger.getJson<{ skipped?: boolean; flow: string; screens: unknown[]; theme?: Theme; locale?: DesignLocale }>(p.designSha) : undefined;
@@ -959,6 +986,9 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const field = fieldOf(reqText);
       // (a client's brand may repeat an earlier project's: no recent-looks check when every look reference is matched)
       const recent = existing || restyle || (earlier && !earlier.skipped) || matchOnly ? [] : recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), undefined, field);
+      // a new look gets the ui-ux-pro-max skill's design system for the field, from the skill's own search (no model)
+      const uiux = await uiuxSection(reqText, ctx.state.info.estimate?.projectName ?? "", !existing && !restyle && !fromRefs && !(earlier && !earlier.skipped));
+      if (uiux.note) ctx.log(uiux.note);
       const feedback = sentBack.length
         ? `The lead rejected the previous design ${sentBack.length === 1 ? "once" : `${sentBack.length} times`}. Their reasons, oldest first:\n${sentBack.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nRedraw it so each reason is met: keep what they did not criticise, change what they did, and do not repeat the earlier screens, theme or sample data where they objected.${again?.fine.length && prev ? ` The lead said these pages are fine, so keep them as they are: ${prev.screens.filter((x) => again!.fine.includes(x.id)).map(screenName).join(", ")}.` : ""}`
         : "";
@@ -972,6 +1002,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         ...(inv ? [S.artifact("existing", "existing-ui", inventoryBrief(inv))] : []),
         ...(starter ? [S.artifact("starter", "starter-components", starter)] : []),
         ...(fromRefs ? [] : [S.reference("design-references", `Design references (how real products in this field look):\n${refBrief}`)]),
+        ...(uiux.section ? [uiux.section] : []),
         ...(reading ? referenceSections(ctx.state, reading) : []),
         ...(recent.length ? [S.reference("recent-looks", lookBrief(recent, field))] : []),
         ...(feedback ? [S.reference("design-feedback", feedback)] : []),

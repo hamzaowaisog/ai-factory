@@ -7,8 +7,10 @@ import type { DesignLocale, DesignTheme } from "../contracts/artifacts.js";
 import { localeBrief } from "./locale.js";
 import { designTokens } from "./tokens.js";
 import { matchesAny } from "../util/glob.js";
+import { load } from "cheerio";
 
-export interface ApprovedScreen { id: string; route: string; file: string; reqs: string[]; states?: string[]; size?: string; mock?: unknown; frames?: string[]; change?: string }
+import type { StitchFacts } from "./stitch-facts.js";
+export interface ApprovedScreen { id: string; route: string; file: string; reqs: string[]; states?: string[]; size?: string; mock?: unknown; frames?: string[]; change?: string; facts?: StitchFacts }
 export interface ApprovedDesign { skipped?: boolean; flow?: string; screens: ApprovedScreen[]; theme?: unknown; themeSource?: "new" | "repo"; locale?: unknown; note?: boolean }
 
 /** The approved screen an estimate task builds, if any. */
@@ -63,6 +65,58 @@ export function approvedTokens(design: ApprovedDesign): ReturnType<typeof design
   try { return designTokens(design.theme as DesignTheme); } catch { return undefined; }
 }
 
+/** How the implementer uses an approved Stitch screen (its HTML follows in an untrusted section of the brief). */
+export const STITCH_NOTE = "This screen was drawn by Google Stitch and approved as drawn. Rebuild it in this app's own stack, components and design tokens to look like the Stitch HTML that follows (layout, sections, order, words); do not paste its markup, Tailwind CDN script or inline styles into the app.";
+
+/** Elements whose content the lead never saw on the card, or that only carry code, styling or metadata. */
+const NOT_SHOWN = "script, style, noscript, template, iframe, object, embed, meta, link, base, title, svg title, svg desc, [hidden], [aria-hidden=true], .sr-only, .hidden, .invisible, .opacity-0, [style*='display:none'], [style*='display: none'], [style*='visibility:hidden'], [style*='visibility: hidden'], [style*='opacity:0;'], [style*='opacity: 0;'], [style$='opacity:0'], [style$='opacity: 0']";
+/** The attributes the coding agent needs to rebuild the page (its layout classes, roles, input types, links). */
+const KEPT_ATTRS = new Set(["class", "role", "type", "href"]);
+
+/**
+ * A Stitch screen's HTML as the coding brief shows it: only what the lead could see (no scripts, styles, comments, hidden or
+ * screen-reader-only text, and no attributes but class, role, type and a plain href), whitespace collapsed, and at most
+ * `maxChars` (the rest named in a closing comment), so the brief stays within its budget.
+ */
+export function stitchBriefHtml(html: string, maxChars = 30_000): string {
+  const $ = load(html);
+  $(NOT_SHOWN).remove();
+  // comments are words no one approved on the card
+  $("*").contents().filter((_, n) => n.type === "comment").remove();
+  $("*").each((_, el) => {
+    const attribs = (el as { attribs?: Record<string, string> }).attribs ?? {};
+    for (const [name, value] of Object.entries(attribs)) {
+      if (!KEPT_ATTRS.has(name.toLowerCase()) || (name.toLowerCase() === "href" && /^\s*(javascript|vbscript|data):/i.test(value))) $(el).removeAttr(name);
+    }
+  });
+  const clean = ($("body").html() ?? "").replace(/\s+/g, " ").trim();
+  return clean.length <= maxChars ? clean : `${clean.slice(0, maxChars)}<!-- cut: ${clean.length - maxChars} more characters -->`;
+}
+
+/** A greenfield coding task's brief for a scaffolded Stitch screen: build the approved page in its container, keep fixture mode. */
+export function stitchScaffoldBrief(s: { id: string; container: string }, states: string[]): string {
+  return `This task builds ${s.id}'s page in ${s.container}: the approved Stitch screen. Rebuild it with the kit's components (components/ui, components/blocks) and the approved theme so it matches the Stitch HTML (layout, sections, order, words); do not paste the Stitch markup or its Tailwind CDN script.
+- Load the real data, handle the page's actions, and keep fixture mode: ?fixture=${s.id}:<state> shows the approved sample content in that state with no backend, for ${states.join(", ") || "default"}.
+- Server code, API clients and validation go in the other files of your scope.`;
+}
+
+/** Brief screens whose Stitch HTML a coding task reads, and the characters of HTML the whole brief may hold (about 6k tokens). */
+const MAX_STITCH_HTML = 3;
+export const STITCH_HTML_BUDGET = 24_000;
+
+/** The cleaned Stitch HTML of each brief screen's normal page, for at most three screens; none for a JSON design. */
+export function stitchHtmlFor(design: { stitch?: { frames: Record<string, { screen?: string; state?: string; html: string }> } }, screens: Pick<ApprovedScreen, "id">[], read: (sha: string) => string, budget = STITCH_HTML_BUDGET): { id: string; html: string }[] {
+  if (budget <= 0) return [];
+  const frames = Object.values(design.stitch?.frames ?? {});
+  const picked = screens.flatMap((s) => {
+    const f = frames.find((x) => x.screen === s.id && (x.state ?? "normal") === "normal");
+    return f ? [{ id: s.id, sha: f.html }] : [];
+  }).slice(0, MAX_STITCH_HTML);
+  // one budget for the whole brief, shared by its screens
+  const each = Math.floor(budget / Math.max(1, picked.length));
+  return picked.map((x) => ({ id: x.id, html: stitchBriefHtml(read(x.sha), each) }));
+}
+
 /** What the implementer is told about the screen it builds. The look is the existing app's when the design says so. */
 export function screenBrief(design: ApprovedDesign, s: ApprovedScreen): Record<string, unknown> {
   const tokens = approvedTokens(design);
@@ -73,6 +127,7 @@ export function screenBrief(design: ApprovedDesign, s: ApprovedScreen): Record<s
       : design.theme,
     ...(tokens ? { tokens, tokensNote: TOKENS_NOTE } : {}),
     ...(s.mock ? { sampleContent: s.mock } : {}),
+    ...(!s.mock && s.facts ? { stitch: { facts: s.facts, note: STITCH_NOTE } } : {}),
     ...(s.change ? { change: s.change, changeNote: "The approved design note for this page: make exactly this change in the existing page, nothing more." } : {}),
     ...(design.locale && typeof design.locale === "object" ? { languages: localeBrief(design.locale as DesignLocale) } : {}),
   };
@@ -91,6 +146,11 @@ export function screenFacts(design: ApprovedDesign | undefined, reqIds: string[]
   if (!design || design.skipped) return [];
   const want = new Set(reqIds);
   return design.screens.filter((s) => s.reqs.some((r) => want.has(r))).map((s) => {
+    // a Stitch screen has no design JSON: its words are the ones read from its HTML
+    if (!s.mock && s.facts) {
+      const f = s.facts;
+      return { screen: s.id, route: s.route, reqs: s.reqs, states: s.states ?? [], ...(f.title ? { title: f.title } : {}), buttons: f.buttons, fields: f.fields, columns: f.columns, messages: {}, toasts: [] };
+    }
     const m = (s.mock ?? {}) as { title?: string; blocks?: Record<string, unknown>[]; copy?: Record<string, string>; toasts?: { text?: string }[]; overlays?: { actions?: unknown[] }[] };
     const blocks = m.blocks ?? [];
     const words = (xs: (string | undefined)[]) => [...new Set(xs.filter((x): x is string => !!x && x.trim() !== ""))].slice(0, 20);

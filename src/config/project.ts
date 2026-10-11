@@ -6,6 +6,7 @@ import { parse } from "yaml";
 import { z } from "zod";
 import { heldTier, nextUp, runnerFor, STEPS, TIER_TABLE } from "../stages/models.js";
 import { factoryHome } from "../util/paths.js";
+import { DESIGN_ENGINES, DESIGN_TIERS } from "./design-route.js";
 
 const EffortName = z.enum(["low", "medium", "high", "xhigh"]);
 const RunnerName = z.enum(["api", "claude-agent", "codex", "jcode"]);
@@ -15,6 +16,10 @@ const StepRoute = z.object({
   model: z.string(),
   escalate: z.array(z.string()).default([]),
   effort: EffortName.optional(),
+  /** a tier ladder (the design step): each escalate model is its own rung, with no raise-effort rung before them */
+  tiered: z.boolean().optional(),
+  /** the vendor was chosen on purpose: a missing key parks the step instead of swapping in another vendor's model */
+  strict: z.boolean().optional(),
 });
 export type StepRoute = z.infer<typeof StepRoute>;
 
@@ -166,6 +171,24 @@ export const ProjectConfig = z.object({
     uiDir: z.string().optional(),
     /** brand fonts the design brief may name besides Google Fonts */
     brandFonts: z.array(z.string()).default([]),
+    /** who draws the design: claude or openai write the design JSON; stitch draws the screens in Google Stitch (needs allowStitch) */
+    engine: z.enum(DESIGN_ENGINES).optional(),
+    /** the starting tier; two failed attempts on a tier step up to the next */
+    tier: z.enum(DESIGN_TIERS).optional(),
+    /** model per tier and engine, over the defaults in src/config/design-route.ts (DEFAULT_TIERS) */
+    tiers: z.partialRecord(z.enum(DESIGN_TIERS), z.partialRecord(z.enum(DESIGN_ENGINES), z.string())).optional(),
+    /** Stitch sends the requirements to Google (training-data disclaimer): off unless a project says so */
+    allowStitch: z.boolean().default(false),
+    /** the stitch engine's settings */
+    stitch: z.object({
+      device: z.enum(["MOBILE", "DESKTOP", "TABLET", "AGNOSTIC"]).default("DESKTOP"),
+      /** the extra states Stitch draws for a screen that lists them (each one more generation); default empty and error */
+      states: z.array(z.enum(["empty", "error", "loading", "success", "validation"])).optional(),
+      /** USD per Stitch call (a screen drawn or edited), counted in the run's cost and its limit; Stitch is free within its quota today */
+      usdPerCall: z.number().nonnegative().optional(),
+      /** the most Stitch calls one run may make (draws, edits and fixes together), so a run cannot use up the account's quota */
+      maxCalls: z.number().int().positive().optional(),
+    }).optional(),
     /**
      * A small UI fix in an app of its own gets a text design note approved with the estimate, not a drawn demo and a card of its
      * own (docs/estimates-design.md, "Design note for a small fix"). false: every UI request gets the full design.

@@ -53,6 +53,18 @@ agentEnv:                          # dummy values so the app compiles where the 
 #   sourceRoot: "src/"               # "" is the repo root
 #   uiDir: "src/components/ui"       # the building-block folder
 #   brandFonts: ["Acme Sans"]        # fonts the design brief may name besides Google Fonts
+#   engine: claude                   # who draws: claude | openai | stitch (stitch needs allowStitch: true)
+#   tier: standard                   # light | standard | heavy; two failed attempts on a tier step up to the next.
+#                                    # unset: heavy (Opus 5.5, no step-up), as before
+#   tiers:                           # model per tier and engine, over the defaults (standard: claude-sonnet-5, heavy: claude-opus-5-5)
+#     light:    { openai: gpt-6-luna }
+#     standard: { openai: gpt-6-sol }   # every model here needs a price under prices:
+#   allowStitch: false               # Stitch sends the requirements to Google; off by default
+#   stitch:                          # the stitch engine (engine: stitch)
+#     device: DESKTOP                # MOBILE | DESKTOP | TABLET | AGNOSTIC
+#     states: [empty, error]         # extra states drawn per screen that lists them; each is one more call
+#     maxCalls: 40                   # most Stitch calls per run (draws, edits, fixes); the run parks before passing it
+#     usdPerCall: 0                  # USD per call, counted in the run's cost limit; Stitch is free within its quota today
 #   navRaises: false                 # true: a navigation change counts as a new screen
 #   uiTarget: next-shadcn            # what the approved design is built in: next-shadcn, vite-shadcn, or repo (its own components);
 #                                    # unset: --ui-target, then detection from the repo (factory design target <repo>)

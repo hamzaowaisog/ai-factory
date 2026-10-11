@@ -7,7 +7,7 @@ export type Vendor = "anthropic" | "openai";
 export type Tier = "light" | "standard" | "heavy";
 export const TIERS: readonly Tier[] = ["light", "standard", "heavy"];
 /** Where a step's model came from, as written to the ledger. */
-export type RouteSource = "pick" | "config" | "recommended" | "plan size" | "rule" | "default" | "fixed" | "before the picker";
+export type RouteSource = "pick" | "config" | "recommended" | "plan size" | "rule" | "default" | "fixed" | "before the picker" | "design engine";
 export type StepGroup = "thinking" | "design" | "coding" | "review";
 
 export interface ModelInfo {

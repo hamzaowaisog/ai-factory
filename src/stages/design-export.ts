@@ -10,6 +10,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { DESIGN_TEMPLATE_VERSION } from "./design.js";
 import { outputOf, readOutput, type StepDef } from "./framework.js";
+import { stitchPackageFiles } from "./design-stitch.js";
 
 type Log = (msg: string) => void;
 type Baseline = { ui?: boolean; design?: string; by?: string };
@@ -76,6 +77,7 @@ export async function exportRunPackage(state: RunState, ledger: Ledger, log: Log
     approved: { by: approval.by, at: approval.at }, templateVersion: DESIGN_TEMPLATE_VERSION,
     references: (state.info.references ?? []).map((r) => ({ id: r.id, role: r.role, source: r.source })),
     ...(previous ? { previous } : {}), ...(changes ? { changes } : {}), log,
+    extraFiles: stitchPackageFiles(design as never, (sha) => ledger.getArtifact(sha)),
   });
 }
 

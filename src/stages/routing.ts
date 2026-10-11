@@ -1,7 +1,11 @@
 // Model routing per step (adapters.md config; stages-aligned §2; WD §4 tiers).
 import type { ProjectConfig, RunRoutes, StepRoute } from "../config/project.js";
 import { hasSecret } from "../config/env.js";
+import { designRoute } from "../config/design-route.js";
 import type { Rung } from "../gates/ladder.js";
+import { hasPrice } from "../runners/pricing.js";
+import { tasteSkillProblem } from "../design/stitch-taste.js";
+import { uiuxProblem } from "../design/uiux-skill.js";
 import { blockedText, modelAllowed, type Policy } from "../gates/policy.js";
 import { family, type Effort } from "../runners/types.js";
 import { priceOf, UNCONFIRMED_PRICES } from "../runners/pricing.js";
@@ -70,9 +74,13 @@ export function resolveRoute(project: ProjectConfig, stage: string, choice: Choi
   if (spec.fixed) return { runner: spec.runner, model: spec.fixed, escalate: [], effort: spec.effort ?? "high", source: "fixed" };
   const pick = choice.picks?.[stage];
   if (pick) return { runner: runnerFor(stage, pick), model: pick, escalate: esc(stage, pick), effort: spec.effort ?? "high", source: "pick" };
+  // a design engine or tier the project pinned is not undone by a preset: only a pick for the step itself changes it
+  if (stage === "design" && !own && (project.design?.engine || project.design?.tier)) return { ...designRoute(project).route, source: "design engine" };
   const preset = choice.preset ? presetTier(stage, choice.preset) : undefined;
   if (preset) return { ...fromTier(stage, spec, preset), source: "pick", preset: choice.preset };
   if (own) return { ...own, source: "config" };
+  // the design step nobody routed by hand climbs its design engine's tiers (src/config/design-route.ts)
+  if (stage === "design") return { ...designRoute(project).route, source: "design engine" };
   if (suggest) return { ...fromTier(stage, spec, heldTier(stage, suggest.tier)), source: suggest.source };
   return { ...fromTier(stage, spec, spec.tier), source: "default" };
 }
@@ -99,12 +107,21 @@ export function projectForRun(project: ProjectConfig, saved: Record<string, Reso
   }
   const steps: Record<string, StepRoute> = {}, how: RunRoutes["steps"] = {};
   for (const [stage, r] of Object.entries(saved)) {
-    steps[stage] = { runner: r.runner, model: r.model, escalate: r.escalate, ...(r.effort ? { effort: r.effort } : {}) };
+    steps[stage] = { runner: r.runner, model: r.model, escalate: r.escalate, ...(r.effort ? { effort: r.effort } : {}), ...(r.tiered ? { tiered: true } : {}), ...(r.strict ? { strict: true } : {}) };
     how[stage] = { source: r.source, ...(r.tier ? { tier: r.tier } : {}), ...(r.preset ? { preset: r.preset } : {}) };
   }
   // a step added to the project file after the run began: read as the file has it
   for (const [stage, r] of Object.entries(project.steps)) if (!steps[stage] && !STEPS[stage]) { steps[stage] = r; how[stage] = { source: "config" }; }
   return { ...project, steps, runRoutes: { legacy: false, steps: how } };
+}
+
+/**
+ * Whether the design step draws with its design engine (design.engine, design.tier): not when a person picked its model, a
+ * preset or the project's steps routed it, or the run began before the picker.
+ */
+export function usesDesignEngine(project: ProjectConfig): boolean {
+  if (!project.runRoutes) return !project.steps.design;
+  return !project.runRoutes.legacy && project.runRoutes.steps.design?.source === "design engine";
 }
 
 /** Where a step's model came from, for the ledger and the run page. */
@@ -159,6 +176,8 @@ export function modelsView(mode: string | undefined): { steps: { step: string; g
 
 export function routeFor(project: ProjectConfig, stage: string): StepRoute {
   // a fixed step is not the project file's to change (a run from before the picker keeps what it had)
+  // a design step outside a run (no saved routes) climbs its design engine's tiers, as resolveRoute would give it
+  if (stage === "design" && !project.steps.design && !project.runRoutes) return designRoute(project).route;
   const r = (STEPS[stage]?.fixed && !project.runRoutes ? undefined : project.steps[stage]) ?? DEFAULT_ROUTES[stage];
   if (!r) throw new Error(`No model route for step ${stage}`);
   return r;
@@ -184,15 +203,21 @@ const openAi = (model: string): boolean => /^gpt|^o\d/.test(model);
  * (the caller parks, never swaps silently), and so is a model a listed policy does not hold.
  * A run from before the picker keeps the behaviour it began with: its GPT steps run on Claude Opus when the key is missing, and say so.
  */
+/** The model a rung runs: the route's own on rungs 0 and 1, then one escalate model per stronger-model rung (the last one stays). */
+function wanted(r: StepRoute, rung: number): string {
+  return rung >= 2 && r.escalate.length ? r.escalate[Math.min(rung - 2, r.escalate.length - 1)]! : r.model;
+}
+
 export function modelFor(project: ProjectConfig, stage: string, rung: number, policy?: Pick<Policy, "allowedModels">, prior: { check: string }[] = []): { model: string; effort: Effort; singleFamilyNote?: string; blocked?: string } {
   const r = routeFor(project, stage);
   const effort: Effort = rung >= 1 && !mechanical(prior) ? "xhigh" : (r.effort ?? "high");
   const listed = policy && !policy.allowedModels.includes("*") ? policy : undefined;
   const legacy = project.runRoutes?.legacy === true;
-  const want = rung >= 2 && r.escalate[0] && (listed || !legacy) ? r.escalate[0] : r.model;
+  const want = rung >= 2 && r.escalate[0] && (listed || !legacy) ? wanted(r, rung) : r.model;
   let model = want, note: string | undefined;
   if (openAi(want) && !hasSecret("OPENAI_API_KEY")) {
-    if (!legacy) return { model: want, effort, blocked: `${stage} needs ${want} but OPENAI_API_KEY is missing from ~/.factory/.env` };
+    // a vendor chosen on purpose (a design engine) parks rather than run another vendor's model
+    if (!legacy || r.strict) return { model: want, effort, blocked: `${stage} needs ${want} but OPENAI_API_KEY is missing from ~/.factory/.env` };
     if (listed && !modelAllowed(listed, OLD_OPUS)) return { model: want, effort, blocked: `${stage} needs ${want} but OPENAI_API_KEY is missing; add the key or allow ${OLD_OPUS} for this step` };
     model = OLD_OPUS;
     note = `No OpenAI key: ${stage} ran on ${OLD_OPUS} (same family as the implementer)`;
@@ -200,6 +225,11 @@ export function modelFor(project: ProjectConfig, stage: string, rung: number, po
   if (legacy && !listed && rung >= 2 && r.escalate[0]) model = r.escalate[0];
   if (listed && !modelAllowed(listed, model)) return { model, effort, blocked: blockedText(stage, model, listed) };
   return { model, effort, singleFamilyNote: note };
+}
+
+/** The step's route, or undefined for a deterministic step or a route that cannot be resolved (checkRoutes reports that). */
+function routeOrNone(project: ProjectConfig, stage: string): StepRoute | undefined {
+  try { return routeFor(project, stage); } catch { return undefined; }
 }
 
 /** The route a model call was made on and where that route came from, as fields of a usage event. */
@@ -218,15 +248,21 @@ export function routeRecord(project: ProjectConfig, stage: string, rung: number,
 
 /** Rungs this step can use. */
 export function availableRungs(project: ProjectConfig, stage: string, localOnly: boolean): Set<Rung> {
-  let r: StepRoute | undefined;
-  try { r = routeFor(project, stage); } catch { r = undefined; }
+  const r = routeOrNone(project, stage);
   // deterministic steps (discover, stub-commit, integrate, accept, deliver, cards) have no model: retry only
   if (!r) return new Set<Rung>(["retry"]);
-  const s = new Set<Rung>(["retry", "raise-effort"]);
+  // a tier ladder steps up after two failures on a tier: no raise-effort rung in between
+  const s = new Set<Rung>(r.tiered ? ["retry"] : ["retry", "raise-effort"]);
   // localOnly: no escalation to a hosted model
   if (r.escalate.length && (!localOnly || family(r.escalate[0]!) === "local")) s.add("stronger-model");
   // "other-vendor" is not a rung yet: a person picks the other vendor's model at the start of a run.
   return s;
+}
+
+/** Stronger-model rungs the step has (LadderOptions.modelSteps): one per model above the first on a tier ladder, else one. */
+export function modelSteps(project: ProjectConfig, stage: string): number {
+  const r = routeOrNone(project, stage);
+  return r?.tiered ? Math.max(1, r.escalate.length) : 1;
 }
 
 /** A model named by a person or a project file for a step the factory knows: why it cannot run there, if it cannot. */
@@ -270,16 +306,28 @@ export function checkRoutes(project: ProjectConfig, only?: readonly string[], ch
   }
   if (problems.length) return problems;
   for (const stage of only ?? Object.keys(DEFAULT_ROUTES)) {
-    const r = resolveRoute(project, stage, choice);
+    let r: Resolved;
+    try { r = resolveRoute(project, stage, choice); } catch (e) { problems.push((e as Error).message); continue; }
     if (r.source === "config") {
       const why = refusal(stage, r.model, "config");
       if (why) problems.push(`${why} (set in the project file)`);
+    }
+    if (stage === "design" && r.source === "design engine" && project.design?.engine === "stitch") {
+      if (!hasSecret("STITCH_API_KEY")) problems.push("design.engine is stitch, but STITCH_API_KEY is missing from ~/.factory/.env");
+      const skill = tasteSkillProblem();
+      if (skill) problems.push(skill);
+    } else if (stage === "design") {
+      // the JSON track runs the ui-ux-pro-max skill's search: only the reviewed copy
+      const ux = uiuxProblem();
+      if (ux) problems.push(`design: ${ux}`);
     }
     if (STEPS[stage]?.fixed && project.steps[stage] && project.steps[stage]!.model !== r.model) problems.push(`${stage} always runs on ${modelName(r.model)}; remove its entry (${project.steps[stage]!.model}) from the project file's steps`);
     if (THINKING_STEPS.has(stage) && r.runner !== "api") problems.push(`${stage} is a thinking step and must use the api runner`);
     if (CODING_STEPS.has(stage) && r.runner === "api") problems.push(`${stage} is a coding step and needs an agent runner`);
     if (r.model.startsWith("claude-") && !hasSecret("ANTHROPIC_API_KEY")) noKey.ANTHROPIC_API_KEY.push(stage);
     if (openAi(r.model) && !hasSecret("OPENAI_API_KEY")) noKey.OPENAI_API_KEY.push(stage);
+    // every model on a tier ladder is costed, so the caps never fall back to the unknown-model rate
+    if (r.tiered || r.strict) for (const m of [r.model, ...r.escalate]) if (!hasPrice(m) && !project.prices[m]) problems.push(`${stage}: ${m} has no price; add it under prices so the cost caps hold`);
     if (r.runner === "jcode") problems.push(`${stage}: the jcode runner isn't built yet`);
     if (r.runner === "codex" && !CODING_STEPS.has(stage)) problems.push(`${stage}: the codex runner is for coding steps`);
   }

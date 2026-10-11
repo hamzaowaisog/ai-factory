@@ -74,10 +74,13 @@ const and = (xs: string[]): string => xs.length < 2 ? xs.join("") : `${xs.slice(
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** The screen's UI, counted from its sample page and listed states. A screen with no sample page has no level. */
-export function screenUi(s: { states?: string[]; size?: string; mock?: ScreenMock }): ScreenUi {
+export function screenUi(s: { states?: string[]; size?: string; mock?: ScreenMock; facts?: { ui?: [number, string][] } }): ScreenUi {
   const m = s.mock, states = (s.states ?? []).filter((x) => !/^(default|normal)$/i.test(x.trim()));
   const parts: Part[] = [];
   if (states.length) parts.push([states.length, `${plural(states.length, "state")} (${states.join(", ")})`]);
+  // a Stitch screen: no design JSON, but its HTML was counted in the same points when it was drawn
+  const counted = !m && s.facts?.ui ? s.facts.ui : undefined;
+  if (counted) parts.push(...counted);
   if (m) {
     for (const b of m.blocks) parts.push(...blockParts(b));
     const ov = (m.overlays ?? []).map(overlayParts);
@@ -91,7 +94,7 @@ export function screenUi(s: { states?: string[]; size?: string; mock?: ScreenMoc
   const plain = m ? m.blocks.filter((b) => blockParts(b).some((x) => x[0] && !x[1])).length : 0;
   if (plain) drivers.push(`${plural(plain, "simple block")}`);
   if (s.size && s.size !== "new") drivers.unshift(s.size === "reuse" ? "reuses an existing page" : s.size === "tweak" ? "a change to an existing page" : "built from the design system");
-  if (!m) return { points, drivers: [...drivers, "no sample page: sized from its requirements"] };
+  if (!m && !counted) return { points, drivers: [...drivers, "no sample page: sized from its requirements"] };
   return { level: points >= UI_LEVELS.complex ? "complex" : points >= UI_LEVELS.moderate ? "moderate" : "simple", points, drivers };
 }
 
