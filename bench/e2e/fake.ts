@@ -48,7 +48,8 @@ export function e2eAnswer(c: E2ECase, patch: string, system: string): unknown {
       chosen: "O-1", adr: "Scripted (e2e dry run).", protectedPathsDeclared: [], newDependencies: [], stubs: [],
     };
   }
-  if (system.includes("review a finished change")) return { findings: [] };
+  // a verdict per criterion: each one has its locked copy of a hidden test
+  if (system.includes("review a finished change")) return { findings: [], coverage: lockedCopies(c).tests.map((t) => ({ acId: t.acId, testId: t.name, verdict: "proves-it", why: "the locked test asserts what the criterion asks" })) };
   return specFake({ ...c, gaps: [], expect: [], forbid: [] } as unknown as EvalCase, system);
 }
 

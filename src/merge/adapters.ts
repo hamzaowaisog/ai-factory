@@ -10,6 +10,7 @@ import { secret } from "../config/env.js";
 import { commitStatus, factoryLogin, findReviewBody, getPr, type Gh, listChecks, mergePullRequest, setCommitStatus, upsertReviewComment } from "../forge/github.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
+import { rewrittenTests } from "../stages/test-defect.js";
 import { fetchForGate, git, gitOut } from "../ledger/git.js";
 import { notifiersFor } from "../watch/notify.js";
 import { paths } from "../util/paths.js";
@@ -127,6 +128,7 @@ export function openRunFacts(runId: string): RunFacts | undefined {
     judgedHeadSha: typeof rv?.headSha === "string" ? rv.headSha : undefined,
     reviewed: new Map(Object.entries((rv?.reviewed ?? {}) as Record<string, string>)),
     errorsInARow: typeof rv?.errors === "number" ? rv.errors : 0,
+    rewrittenTests: rewrittenTests(events).map((j) => j.file),
   };
 }
 

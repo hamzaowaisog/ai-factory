@@ -819,6 +819,19 @@ describe("reviewPr: an error that keeps coming back stops costing money", () => 
       expect(await reviewPr(thrown.d, { pr: 42 })).toMatchObject({ conclusion: "success", why: expect.stringMatching(/Not merged into main: socket hang up/) });
     });
 
+    it("leaves a passing pull request open when the run rewrote a locked test, on every pass", async () => {
+      const first = merging({}, runFacts({ rewrittenTests: ["tests/cart.test.ts"] }));
+      const r = await reviewPr(first.d, { pr: 42 });
+      expect(r).toMatchObject({ conclusion: "success", why: expect.stringMatching(/Not merged into main: the run rewrote a locked test \(tests\/cart\.test\.ts\)\. Left open for a person/) });
+      expect(r.merged).toBeUndefined();
+      expect(first.asked.length).toBe(0);
+      expect(first.calls.checks.at(-1)).toMatchObject({ conclusion: "success" });
+
+      const again = merging({}, runFacts({ priorConclusion: "success", judgedHeadSha: SHA, rewrittenTests: ["tests/cart.test.ts"] }));
+      expect((await reviewPr(again.d, { pr: 42 })).merged).toBeUndefined();
+      expect(again.asked.length).toBe(0);
+    });
+
     it("merges nothing on a project that has not asked for it", async () => {
       const { d } = deps();
       expect((await reviewPr(d, { pr: 42 })).merged).toBeUndefined();

@@ -102,7 +102,7 @@ The integrate gate also checks **every expected locked test ID actually executed
 ### 2.6 One failure ladder (replaces per-gate routing)
 Checked in this order; the first match wins:
 1. **Safety gate failed** (lock, secret, protected path, SHA mismatch) → the change is rejected; retry the step once with the failure; a second time → **park**.
-2. **Locked test fails on 2 attempts** → test-defect check (A5). "Test wrong" → human unlock card. "Code wrong" → continue the ladder (counts toward 4).
+2. **Locked test fails on 2 attempts** → test-defect check (A5). "Test wrong" → human unlock card. "Code wrong" → continue the ladder (counts toward 4). *As built (2026-10-11): "test wrong" has the test writer rewrite that test, which must fail again before the task's code and prove its criterion before it is locked again; a person is asked only when the verdict is unclear or the rewrite is rejected. See `implement-loop.md`, "the test-or-code check".*
 3. **Rate limit / outage** → back off, max 15 min total, not counted; then park.
 4. **Anything else** → retry with failures.json (fresh process) → higher effort → stronger model → other vendor (only if in `allowedAgents` and not `localOnly`) → **park**.
 

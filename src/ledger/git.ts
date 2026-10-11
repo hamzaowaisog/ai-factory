@@ -1,7 +1,8 @@
 // Hardened host git (run-manager §2.10): no hooks, no fsmonitor, no user/system config,
 // so no filter drivers (LFS etc.) and no repo code ever runs on the host.
 import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { matchesAny } from "../util/glob.js";
@@ -61,6 +62,11 @@ export async function gitOut(cwd: string, args: string[]): Promise<string> {
 
 export async function headSha(cwd: string): Promise<string> {
   return gitOut(cwd, ["rev-parse", "HEAD"]);
+}
+
+/** True when a tracked file in the checkout differs from what `since` holds. */
+export async function pathChangedSince(cwd: string, since: string, path: string): Promise<boolean> {
+  return (await gitOut(cwd, ["diff", "--name-only", since, "--", path])).trim() !== "";
 }
 
 export async function resolveRef(cwd: string, ref: string): Promise<string> {
@@ -189,6 +195,24 @@ export async function trackIgnored(wt: string, scope: string[], except: string[]
 }
 
 /** `keep`: untracked paths the clean leaves alone (a Node checkout's node_modules, so a retry doesn't install again). */
+/**
+ * A commit of `base` with these files as the checkout has them now, made without moving the checkout, its HEAD or its index.
+ * The test lab runs a rewritten test on the code before a task this way, while the task's unfinished code stays in the checkout.
+ */
+export async function commitWith(wt: string, base: string, files: string[], message: string): Promise<string> {
+  const dir = mkdtempSync(join(tmpdir(), "factory-index-"));
+  try {
+    const env = { GIT_INDEX_FILE: join(dir, "index") };
+    await git(wt, ["read-tree", base], { env });
+    for (const f of files) {
+      const blob = (await git(wt, ["hash-object", "-w", "--", f])).stdout.trim();
+      await git(wt, ["update-index", "--add", "--cacheinfo", `100644,${blob},${f}`], { env });
+    }
+    const tree = (await git(wt, ["write-tree"], { env })).stdout.trim();
+    return (await git(wt, ["commit-tree", tree, "-p", base, "-m", message])).stdout.trim();
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
 export async function resetHard(wt: string, sha: string, keep: string[] = []): Promise<void> {
   await git(wt, ["reset", "--hard", sha]);
   await git(wt, ["clean", "-fdx", ...keep.flatMap((k) => ["-e", k])]);

@@ -24,7 +24,7 @@ const root = join(homedir(), ".factory", "tmp", "greenfield-dryrun");
 mkdirSync(root, { recursive: true });
 const home = mkdtempSync(join(root, "fs-home-"));
 process.env.FACTORY_HOME = home;
-writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-fake-greenfield-0000000000\n", { mode: 0o600 });
+writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-fake-greenfield-0000000000\nOPENAI_API_KEY=sk-fake-greenfield-0000000000\n", { mode: 0o600 });
 _resetEnvCache();
 
 // which run is being executed: the scripted answers differ per side

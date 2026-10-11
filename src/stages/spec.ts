@@ -167,7 +167,8 @@ const contractRules = (file: string): string => `API CONTRACT. This product has 
 - Every operation has an operationId (camelCase), its request body where it takes one, and every status code it answers with.
 - Schemas go under components/schemas with "required" lists. Take the field names and types from the approved screens' sample data; an id is an integer.
 - Every JSON response carries an "example" with believable data (the approved screens' sample rows): the web app's tests run against these examples.
-- The web app calls the API only through the client generated from this file (lib/api); do not plan a hand-written client.`;
+- The web app calls the API only through the client generated from this file (lib/api); do not plan a hand-written client.
+- What the spec lists as not changing with "(API-SIDE)" is behaviour the API side builds and tests: no task here builds it, and the contract still gives its operations and every status code they answer with.`;
 
 /**
  * The generated client's folder is the factory's, locked with the contract: a stub there can never be filled in, and no task

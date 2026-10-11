@@ -33,6 +33,8 @@ export interface RunFacts {
   reviewed?: Map<string, string>;
   /** attempts in a row that threw before reaching a verdict; a verdict resets it */
   errorsInARow?: number;
+  /** locked test files the run rewrote after its test-or-code check: such a pull request is never merged by the factory */
+  rewrittenTests?: string[];
 }
 
 /**
@@ -164,6 +166,10 @@ export async function reviewPr(deps: ReviewPrDeps, a: { pr: number; force?: bool
   // no other. The verdict stands whatever the forge answers; a refused merge is said beside it, and tried again next pass.
   const land = async (r: ReviewPrResult, headSha: string): Promise<ReviewPrResult> => {
     if (r.conclusion !== "success" || !deps.mergePr) return r;
+    // a locked test the run rewrote is named on the pull request, and that only helps when a person reads it before the merge
+    if (run?.rewrittenTests?.length) {
+      return { ...r, why: `${r.why}\n\nNot merged into ${pr.baseRef}: the run rewrote ${run.rewrittenTests.length === 1 ? "a locked test" : `${run.rewrittenTests.length} locked tests`} (${run.rewrittenTests.join(", ")}). Left open for a person to read the rewrite and merge.` };
+    }
     const m = await deps.mergePr({ pr: a.pr, headSha }).catch((e: Error) => ({ merged: false, why: e.message.split("\n")[0]!.slice(0, 200) }));
     return m.merged ? { ...r, merged: true, why: `${r.why}\n\nMerged into ${pr.baseRef}.` } : { ...r, why: `${r.why}\n\nNot merged into ${pr.baseRef}: ${m.why}` };
   };

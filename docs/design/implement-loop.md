@@ -82,3 +82,45 @@ Found on the first run to reach coding (`31fe`). The full list with the other fi
 
 **Limits of the file check.** It reads file names, so a plan that names its routes differently is not caught there and falls to the first-failure rule. In an existing app, a logic task followed by a task that adds a new route and depends on it has its tests checked one task later than they could be.
 
+## Added on 2026-10-11: the test-or-code check
+
+From Ahsan's reading of the ledgers of runs `0f9d` and `e182`. The other fixes from that reading are in `docs/cost-and-failure-fixes.md`, section 11.
+
+**The problem.** The tests are written and locked before any code exists, so the test writer can get a detail wrong: a label, a status code, an import, a field name. The coding task then fails the same locked test on every attempt. The ladder had a rule for this ("the same locked test failed twice") but nothing behind it: the run parked for a person, or climbed and paid a stronger model for something no code could pass.
+
+**What happens now** (`src/stages/test-defect.ts`, `settleTests` in `src/stages/build.ts`, the ladder hand-off in `src/stages/executor.ts`)
+
+1. The same locked test fails twice at a coding task. The executor records the failure with `testCheck: [test ids]` and retries instead of parking (`judgesTests` on the step). A test that only waits for a later task is still deferred, not judged.
+2. The next attempt opens with the check, before the coding agent is paid again. The reviewer's model reads the criterion, the test, how it failed, the last attempt's change and the files the task may change, and answers per test:
+   - **code**: the test asks for what the criterion says. The task goes on, with the reason in its briefing ("TEST CHECK"). The test stays locked.
+   - **test**: the test is wrong. It is told to choose this only when it can quote the line at fault.
+   - **unclear**: the run stops for a person, with the reason.
+3. On **test**, the test writer rewrites that one test and nothing else. The coding agent never touches it. The rewrite is kept only when all of these hold:
+   - no other file changed, and the file did change;
+   - no skip marker was added;
+   - it fails on the code before this task, for an accepted reason (one lab run on a commit of the task's start plus the rewritten file, `commitWith` in `src/ledger/git.ts`, judged by the `author-tests.fails-on-base` gate);
+   - the other locked tests in the file still run and end as they did before the task;
+   - the reviewer's model reads it against its criterion and still finds it proves it (`weakTests`).
+4. A kept rewrite is locked again: `lockOf` gives every later step the lock with the file's new hash and names the rewrite as an unlock by the factory. The file is part of the task's commit and allowed in its diff. If every failure of the last attempt was a rewritten test, the kept code is judged against the new tests without a coding session.
+5. A rewrite that fails any check is thrown away, the old test is put back, and the run stops for a person with the reason.
+
+**Rules**
+
+- Each locked test is judged once in a run. Every verdict is a `test.judged` event (step, test, criterion, file, verdict, why, and for a rewrite its hash, the old hash, the commit and the lab run). After that the ladder climbs as for any other failure.
+- Only the task's own tests go to the model. A failing test of an earlier task, or a characterisation test, is recorded as **code** with no model call: it passed before this task's change.
+- A checkout reset to a commit from before a rewrite gets the rewritten file back from the ledger (`restoreRewritten`).
+- The pull request lists every rewritten test with the reason (`prBody` in `src/stages/deliver.ts`).
+
+**Limits**
+
+- The rewritten test runs once on the code before the task, not twice as at the first lock.
+- With no attempt left on the ladder, the run parks without the check.
+- A rejected rewrite parks at once; the test writer gets no second try.
+- The verdict and the "still proves its criterion" read are a model's judgement. A wrong "test" verdict whose rewrite passes every check would change what the test asserts; the pull request line is there so a person reads it.
+- Unproven in a paid run.
+
+**Tests**
+
+- `src/stages/test-defect.test.ts`: which tests are asked about, the lock after a rewrite, the briefing note, the park reason, and the ladder asking once.
+- `src/ledger/git.test.ts`: `commitWith` leaves the checkout, HEAD and index as they were.
+- `src/stages/e2e.test.ts`, "implement loop across tasks": a test judged right (the task goes on, nobody is asked); a test judged wrong (rewritten, fails before the task, locked again, kept code checked without a coding session, evidence verifies); a rewrite that passes before the task (thrown away, run parks, on resume the old test stays and is not asked about again).

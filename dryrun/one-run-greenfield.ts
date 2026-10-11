@@ -88,7 +88,7 @@ const home = resume ? arg("--resume")! : mkdtempSync(join((mkdirSync(join(homedi
 process.env.FACTORY_HOME = home;
 let runId = resume ? arg("--resume", 2)! : "";
 if (!resume) {
-  writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-fake-greenfield-0000000000\n", { mode: 0o600 });
+  writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-fake-greenfield-0000000000\nOPENAI_API_KEY=sk-fake-greenfield-0000000000\n", { mode: 0o600 });
   const repo = join(home, "repo");
   mkdirSync(repo);
   execFileSync("git", ["init", "-q", "-b", "main"], { cwd: repo, env });

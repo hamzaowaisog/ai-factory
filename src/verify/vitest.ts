@@ -23,6 +23,17 @@ export function nodeFrames(stack: string): string[] {
 }
 
 /**
+ * A screen test's query that finds nothing (getByText, findByRole) throws a plain Error, and that is the test's assertion: the
+ * screen does not show the thing yet. Read as a crash, it had the test writer's screen tests rejected for failing "with
+ * exception" before the screen existed (run 0f9d, author-tests attempt 2).
+ */
+const SCREEN_QUERY = /TestingLibraryElementError|Unable to find (?:an? |the )?(?:accessible )?(?:element|role|label)|Found multiple elements/;
+export function classifyVitestFailure(message: string, stack = ""): TestResult["failureKind"] {
+  const kind = classifyFailure(message, stack);
+  return kind === "exception" && SCREEN_QUERY.test(message) ? "assertion" : kind;
+}
+
+/**
  * The results of a `vitest run --reporter=json` report. `root` is the folder the tests ran in, taken off each file's path.
  * A file that failed to load (an import that does not exist yet) has no tests in the report; its message is returned in `fileErrors`.
  */
@@ -43,7 +54,7 @@ export function parseVitestJson(json: string, root = "/src"): { results: TestRes
       else if (a.status === "failed") {
         const text = (a.failureMessages ?? []).join("\n");
         const [message = "", ...rest] = text.split("\n");
-        results.push({ id, outcome: "failed", durationMs, failureKind: classifyFailure(message, rest.join("\n")), message: text.slice(0, 2000), frames: nodeFrames(text) });
+        results.push({ id, outcome: "failed", durationMs, failureKind: classifyVitestFailure(message, rest.join("\n")), message: text.slice(0, 2000), frames: nodeFrames(text) });
       } else if (a.status === "skipped" || a.status === "pending" || a.status === "todo" || a.status === "disabled") results.push({ id, outcome: "skipped", durationMs });
       else results.push({ id, outcome: "notRun", durationMs, message: String(a.status ?? "") });
     }

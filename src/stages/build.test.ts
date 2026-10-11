@@ -143,7 +143,7 @@ describe("retry: keep the previous attempt's code or reset", () => {
   });
 
   it("the test writer keeps its tests after a fixable failure, at any rung, and starts again after a safety one", () => {
-    for (const c of ["ac-coverage", "tests-compile", "test-not-found", "agent-over-budget", "agent-timeout", "passes-on-base", "wrong-failure-kind", "characterisation", "not-executed", "keep-passing"]) {
+    for (const c of ["ac-coverage", "tests-compile", "test-not-found", "agent-over-budget", "agent-timeout", "passes-on-base", "wrong-failure-kind", "characterisation", "not-executed", "keep-passing", "tests-not-run"]) {
       expect(testRetryMode(prev([c], { rung: 1 })).mode, c).toBe("keep");
     }
     expect(testRetryMode(prev(["ac-coverage", "ac-coverage"])).reason).toBe("the previous attempt failed only on ac-coverage");

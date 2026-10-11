@@ -16,6 +16,7 @@ import { settle, settleKey, type Answer, type Decided } from "./settle.js";
 import { hashJson } from "../util/hash.js";
 import { repoIsEmpty } from "../config/greenfield.js";
 import { testsScreens } from "./stack-text.js";
+import { apiElsewhere } from "./contract.js";
 import { lightLaneModel } from "./routing.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -144,15 +145,44 @@ export function allAdded(spec: Spec): Spec {
   return spec.requirements.every((r) => r.op === "ADDED") ? spec : { ...spec, requirements: spec.requirements.map((r) => (r.op === "ADDED" ? r : { ...r, op: "ADDED" as const })) };
 }
 
+/** What an out-of-scope entry cites when the API side of a full-stack product owns the behaviour: the product's shape decided it, not the drafter. */
+export const API_SIDE = "API-SIDE";
+
+/**
+ * The web side of a full-stack product proves what the web app does; the API run proves the server's rules from the same
+ * request. An api or job criterion here would get a locked test in the web repo that only a backend written into the web
+ * app could pass (run 0f9d: 19 such tests, and a JSON-file backend in the generated client's folder). So those criteria
+ * leave this spec, and a requirement left with none is listed out of scope, citing API-SIDE, with the spans only it covered.
+ */
+export function webSideOnly<T extends Spec>(spec: T, spans: string[]): { spec: T; moved: string[] } {
+  const server = (a: { level: string }) => a.level === "api" || a.level === "job";
+  if (!spec.requirements.some((r) => r.acceptance.some(server))) return { spec, moved: [] };
+  const moved: string[] = [];
+  const gone: Spec["requirements"] = [];
+  const requirements = spec.requirements.flatMap((r) => {
+    const kept = r.acceptance.filter((a) => !server(a));
+    if (kept.length === r.acceptance.length) return [r];
+    if (!kept.length) { gone.push(r); moved.push(r.id); return []; }
+    moved.push(...r.acceptance.filter(server).map((a) => a.id));
+    return [{ ...r, acceptance: kept }];
+  });
+  const covered = new Set(requirements.flatMap((r) => r.sources));
+  const entries = gone.map((r) => {
+    const only = r.sources.filter((s) => spans.includes(s) && !covered.has(s));
+    return `${only.length ? `${only.join(", ")}: ` : ""}${r.id} is the API's own behaviour, built and tested by the API side of this product and not in this web app (${API_SIDE}): ${r.ears}`;
+  });
+  return { spec: { ...spec, requirements, outOfScope: [...spec.outOfScope, ...entries.filter((e) => !spec.outOfScope.includes(e))] }, moved };
+}
+
 /** Critic instructions; a run with no repo is new work, so existing-code rubric items (5, 6) don't apply. */
-export function criticTemplate(repo: boolean): string {
+export function criticTemplate(repo: boolean, apiSide = false): string {
   const rubric = ["1 conflicts between requirements", "2 missing error, empty and permission paths", "3 ACs not observable at a public surface", "4 scope creep beyond the intent",
     ...(repo ? ["5 claims about existing behaviour without anchors", "6 state transitions and existing data"] : []),
     "7 behaviour changes outside the requested scope (blast radius)", "8 hardcoded identifiers that should be configuration"];
   return `Adversarial reviewer. Find defects in this spec; don't praise; don't rewrite it.
 Rubric: ${rubric.join(" ")}.
 Each finding: rubric number, reqId, severity (critical|high|medium|low), one-sentence evidence in "finding". Empty list if none.
-The human answered questions and accepted assumptions (below). Scope they decided is not a defect: don't flag it.${repo ? "" : "\nThere is no existing codebase: this is new work. Don't flag missing anchors, unknown existing data or missing repository."}`;
+The human answered questions and accepted assumptions (below). Scope they decided is not a defect: don't flag it.${repo ? "" : "\nThere is no existing codebase: this is new work. Don't flag missing anchors, unknown existing data or missing repository."}${apiSide ? `\nThis spec is for the web side of a product whose API is a separate service, built and tested from the same request in a run of its own. Behaviour listed out of scope citing ${API_SIDE} is that run's work: don't flag it as missing, and don't flag a criterion for checking a server rule only through what the screen shows.` : ""}`;
 }
 
 // ---------- helpers ----------
@@ -164,6 +194,13 @@ const nothingToRead = (ctx: Pick<StepContext, "state">): boolean => {
 };
 /** No repo, or a new product's empty one: there is no existing code to modify, remove or anchor to. */
 const newWork = (ctx: Pick<StepContext, "state">): boolean => !hasRepo(ctx) || nothingToRead(ctx);
+/** The web side of a full-stack product writing its own spec. An estimate prices the whole request, so its spec keeps every criterion. */
+const webSide = (ctx: Pick<StepContext, "state" | "project">): boolean => ctx.state.info.mode !== "estimate" && apiElsewhere(ctx.project);
+/** Spans a repair dropped; one the API side took over (webSideOnly) is not dropped. */
+const lostHere = (before: Spec, after: Spec, spans: string[]): string[] => {
+  const apis = outOfScopeSpans(after.outOfScope, spans, [API_SIDE]);
+  return lostCoverage(before, after, spans).filter((s) => !apis.has(s));
+};
 /**
  * Drafters read the repo; with no repo, or an empty one, there is nothing to read, so no tools. Tools also make the briefing
  * a cached conversation, written at 1.25x for a later turn to read back: on the web run of 2026-10-06 (an empty repo) seven
@@ -185,7 +222,7 @@ function inputsOf(ctx: StepContext) {
   return { intent, cb, ...c };
 }
 
-const draftRules = (screens: boolean, newWork = false): string => `Senior engineer writing a behaviour spec a test author can turn into black-box tests.
+const draftRules = (screens: boolean, newWork = false, apiSide = false): string => `Senior engineer writing a behaviour spec a test author can turn into black-box tests.
 Format rules (checked by code):
 - Each requirement is one EARS sentence with exactly one "shall": "The <system> shall ...", "When <trigger>, the <system> shall ...", "While <state>, the <system> shall ...", "Where <feature>, the <system> shall ...", "If <condition>, then the <system> shall ...". IDs REQ-1, REQ-2...
 - ${newWork
@@ -196,7 +233,7 @@ Format rules (checked by code):
 - Pick the LOWEST level that proves the behaviour: unit when the logic lives in one class (call its public method directly), api for an endpoint, job only when the behaviour exists only in a job run. ${screens
     ? "ui for behaviour that exists only on a screen (what is shown for which data, what a click or a typed value does, which message appears): the factory renders the screen in a test and checks it. manual only for what no test can judge, such as how a page looks (colour, spacing, a width) or a check on a real device: a person must sign each one off before delivery, so keep them few."
     : "The factory can't test screens here: a ui criterion becomes a manual check by a person, so use it only for behaviour that exists only on a screen."}
-- Change only what the request asks. Other places that might need the same change go in suggestions, not requirements.
+${apiSide ? `- This repo is the WEB side of a product whose API is a separate service, built and tested from this same request in a run of its own. Write every criterion for what this web app does: what a screen shows, sends and does with the API's answer (ui), or logic in the web code (unit). Don't use level api or job. A rule only the server can keep (what is stored, what survives a restart, seeded records, the order a status may change in, what bad data is answered with) is the API run's to prove: write the criterion for what the screen does when the API answers that way, such as the message shown when the API refuses a change. The factory takes api and job criteria out of this spec and lists a requirement left with none as out of scope, citing ${API_SIDE}; leave those entries as they are and don't write them yourself.\n` : ""}- Change only what the request asks. Other places that might need the same change go in suggestions, not requirements.
 - sources: intent span IDs, answer IDs (Q-n) or assumption IDs (ASM-n).
 - NFRs need a metric with a number. List out-of-scope items. Every intent span is covered by a requirement.
 - Never move requested behaviour out of scope on your own, and never shrink a spec by deferring requested behaviour to a later run. An out-of-scope entry that names an intent span must cite the answer or assumption id that excluded it, e.g. "I-3 SMS reminders (Q-2)"; without one, cover the span.
@@ -207,7 +244,7 @@ ${UNTRUSTED_NOTE}`;
 
 function draftSections(ctx: StepContext, i: ReturnType<typeof inputsOf>) {
   return [
-    S.template("tpl", draftRules(testsScreens(ctx.project.stack), newWork(ctx))),
+    S.template("tpl", draftRules(testsScreens(ctx.project.stack), newWork(ctx), webSide(ctx))),
     S.artifact("intent", "intent", i.intent),
     S.artifact("answers", "answers", i.answers),
     S.artifact("assumptions", "assumptions", i.assumptions),
@@ -277,15 +314,17 @@ export interface Checks { lint: LintResult[]; critic: z.infer<typeof CriticOut>[
 async function checkSpec(ctx: StepContext, spec: Spec, i: ReturnType<typeof inputsOf>, criticEffort?: "low" | "medium" | "high"): Promise<{ ok: true; checks: Checks } | { ok: false; outcome: StepOutcome }> {
   const snap = snapshotFor(ctx);
   const excluded = requestExcluded(i.intent.spans);
+  // the API side's work is out of scope here by the product's shape, as an answer would put it
+  const decisions = webSide(ctx) ? [...decisionsOf(i), API_SIDE] : decisionsOf(i);
   const lint = lintSpec(spec, {
-    spans: i.intent.spans.map((s) => s.id), changeClass: i.intent.changeClass, decisions: decisionsOf(i), excluded, estimate: ctx.state.info.mode === "estimate",
+    spans: i.intent.spans.map((s) => s.id), changeClass: i.intent.changeClass, decisions, excluded, estimate: ctx.state.info.mode === "estimate",
     anchorOk: (id) => (spec.requirements.find((q) => q.id === id)?.anchors ?? []).every((a) => checkEvidence(snap, a).ok),
   });
   const [critic, restate] = await Promise.all([
     think(ctx, {
       stage: "critic", route: "critic", cls: "read-large", budgetTokens: 30000, tools: [], schema: CriticOut, effort: criticEffort,
       sections: [
-        S.template("tpl", criticTemplate(hasRepo(ctx))),
+        S.template("tpl", criticTemplate(hasRepo(ctx), webSide(ctx))),
         S.artifact("intent", "intent", i.intent),
         S.artifact("answers", "answers", i.answers),
         S.artifact("assumptions", "assumptions", i.assumptions),
@@ -316,7 +355,7 @@ async function checkSpec(ctx: StepContext, spec: Spec, i: ReturnType<typeof inpu
     ],
   });
   if (!align.ok) return { ok: false, outcome: align.outcome };
-  const roundTrip = roundTripCheck(i.intent.spans.map((s) => s.id), decisionsOf(i), spec, restate.output.sentences, align.output.mapping, excluded);
+  const roundTrip = roundTripCheck(i.intent.spans.map((s) => s.id), decisions, spec, restate.output.sentences, align.output.mapping, excluded);
   return { ok: true, checks: { lint, critic: critic.output.findings, roundTrip, criticNote: critic.note } };
 }
 
@@ -355,12 +394,22 @@ export const specifyStep: StepDef = {
       repaired = true;
       ctx.log("specify: going on from the last attempt's repaired spec");
     }
+    // new work has nothing to modify: a carried or resumed spec skips the repair loop below, so it is put right here too (run e182)
+    if (newWork(ctx)) spec = allAdded(spec);
     let checks: Checks | undefined;
     let repairs = 0;
     const failed = (o: StepOutcome): StepOutcome =>
       (o.kind === "fail" && repaired ? { ...o, data: { ...(o.data ?? {}), repairedSpec: ctx.ledger.putJson(spec), repairedFrom: mergedSha } } : o);
     const manualUi = new Set<string>();
     const spanIds = i.intent.spans.map((s) => s.id);
+    // the web side of a full-stack product: server-only criteria are the API run's (webSideOnly)
+    const apiSide = new Set<string>();
+    const here = <T extends Spec>(s: T): T => {
+      if (!webSide(ctx)) return s;
+      const w = webSideOnly(s, spanIds);
+      for (const id of w.moved) apiSide.add(id);
+      return w.spec;
+    };
     let rejectedRepair: string[] | undefined;
     // estimate and design runs, and a build that asks: what the repairs leave open is settled by questions (src/stages/settle.ts)
     const settling = settles(ctx.state.info);
@@ -393,7 +442,7 @@ export const specifyStep: StepDef = {
     let before: string[] | undefined;
     for (;;) {
       const d = downgradeUi(fresh ? allAdded(spec) : spec, testsScreens(ctx.project.stack));
-      spec = d.spec;
+      spec = here(d.spec);
       for (const id of d.downgraded) manualUi.add(id);
       const c = await checkSpec(ctx, spec, i, lane.criticEffort);
       if (!c.ok) return failed(c.outcome);
@@ -420,7 +469,7 @@ Answer with the changes only, not the whole spec: "requirements" holds each requ
       const draft = applyRepair(spec, r.output);
       const next = { ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) };
       // a repair may not drop requested behaviour: keep the previous spec (and its checks) and stop
-      const lost = lostCoverage(spec, next, spanIds);
+      const lost = lostHere(spec, here(next), spanIds);
       if (lost.length) { rejectedRepair = lost; ctx.log(`specify: repair ${repairs} dropped intent span${lost.length > 1 ? "s" : ""} ${lost.join(", ")}; kept the previous spec`); break; }
       spec = next;
       repaired = true;
@@ -432,7 +481,7 @@ Answer with the changes only, not the whole spec: "requirements" holds each requ
       const s = await settle<Checks>(ctx, {
         key, request: request(ctx), firstId: nextQuestion(i.answers),
         start: () => (refused
-          ? { spec: specOf(refused), checks: { lint: refused.lint.map((l) => ({ ...l, blocking: false, fails: [] })), critic: refused.critic as Checks["critic"], roundTrip: refused.roundTrip as Checks["roundTrip"] } }
+          ? { spec: here(newWork(ctx) ? allAdded(specOf(refused)) : specOf(refused)), checks: { lint: refused.lint.map((l) => ({ ...l, blocking: false, fails: [] })), critic: refused.critic as Checks["critic"], roundTrip: refused.roundTrip as Checks["roundTrip"] } }
           : { spec, checks: checks! }),
         io: {
           repair: async (before, answers, decided) => {
@@ -451,10 +500,10 @@ Answer with the changes only, not the whole spec: "requirements" holds each requ
             const draft = newWork(ctx) ? allAdded(applyRepair(before, r.output)) : applyRepair(before, r.output);
             const d = downgradeUi({ ...draft, requirements: draft.requirements.map((q) => ({ ...q, stability: stable(stab, q.id) })) }, testsScreens(ctx.project.stack));
             for (const id of d.downgraded) manualUi.add(id);
-            return { ok: true, spec: d.spec };
+            return { ok: true, spec: here(d.spec) };
           },
           recheck: (next, answers) => checkSpec(ctx, next, withAnswers(answers), lane.criticEffort),
-          lost: (before, after) => lostCoverage(before, after, spanIds),
+          lost: (before, after) => lostHere(before, after, spanIds),
         },
       });
       if (!s.ok) return failed(s.outcome);
@@ -472,7 +521,7 @@ Answer with the changes only, not the whole spec: "requirements" holds each requ
     return {
       kind: "done", outputs: { spec: specSha, critic: criticSha },
       data: { repairs, openFindings: problems(checks!), conflicts: merged.conflicts, ...(rejectedRepair ? { rejectedRepair } : {}), ...(settled?.length ? { settled: settled.length } : {}),
-        ...(ctx.state.info.mode !== "estimate" && sizeNote(spec, i.intent.changeClass) ? { sizeNote: sizeNote(spec, i.intent.changeClass) } : {}), manualUi: [...manualUi], lane: lane.name },
+        ...(ctx.state.info.mode !== "estimate" && sizeNote(spec, i.intent.changeClass) ? { sizeNote: sizeNote(spec, i.intent.changeClass) } : {}), manualUi: [...manualUi], ...(apiSide.size ? { apiSide: [...apiSide] } : {}), lane: lane.name },
     };
   },
 };

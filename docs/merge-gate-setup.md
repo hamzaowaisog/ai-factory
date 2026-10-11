@@ -152,6 +152,7 @@ forge:
 | How | a merge commit, never a squash or a rebase |
 | If GitHub refuses | the verdict stands, the reason is shown beside it, and the next pass tries again |
 | Never | a pull request that failed, a fork's, or one whose ledger is not on this host |
+| Left open for a person | a pull request whose run rewrote a locked test (the test-or-code check). It still gets its passing status; the pull request names the rewrite, and a person reads it and merges |
 
 **Nobody has to start the pass either.** On a project with `autoMerge: true`, a run that delivers its
 pull request runs one review pass straight away, so the pull request is judged and, if it passes,
