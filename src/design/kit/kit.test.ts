@@ -24,7 +24,7 @@ const exportsOf = (text: string) => [...text.matchAll(/export\s+(?:async\s+)?(?:
 describe("the shadcn kit", () => {
   it("pins every package exactly and carries shadcn/ui's licence with its components (PR #11 review, item 19)", () => {
     const m = kit.manifest;
-    const all = { ...m.dependencies, ...Object.assign({}, ...Object.values(m.targetDependencies)), ...Object.assign({}, ...Object.values(m.devDependencies)) } as Record<string, string>;
+    const all = { ...m.dependencies, ...Object.assign({}, ...Object.values(m.targetDependencies)), ...Object.assign({}, ...Object.values(m.devDependencies)), ...m.overrides } as Record<string, string>;
     for (const [n, v] of Object.entries(all)) expect(v, n).toMatch(/^\d+\.\d+\.\d+$/);
     expect(PLAYWRIGHT_VERSION).toMatch(/^\d+\.\d+\.\d+$/);
     expect(existsSync(join(kit.dir, "NOTICE"))).toBe(true);
@@ -156,6 +156,8 @@ describe("the scaffold", () => {
     expect(file("app/page.tsx")).toContain(`fixtureState(typeof fixture === "string" ? fixture : undefined, "S-1")`);
     expect(file("lib/messages.ts")).toContain(`"Dashboard": "ڈیش بورڈ"`);
     expect(JSON.parse(file("package.json")).dependencies.next).toBeDefined();
+    // one copy of Radix's focus trap: with two, a select inside a dialog loops in a screen test
+    expect(JSON.parse(file("package.json")).overrides).toEqual({ "@radix-ui/react-dialog": "1.1.23" });
     // everything but the app's own files is protected from the implement tasks
     expect(l.protected).toContain(s1.screen);
     expect(l.protected).toContain("app/design-theme.css");

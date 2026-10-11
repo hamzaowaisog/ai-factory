@@ -4,41 +4,61 @@
 // native Windows host (src/util/paths.ts refuses, and fsync is unreliable on /mnt). The decisions
 // these feed — orchestrate.ts and group-run.ts — are covered by 31 tests against fakes; this
 // assembly is not, and must be exercised under WSL2 before it is trusted.
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
 import { OWN_CHECK_NAME } from "../contracts/checks.js";
+import { secret } from "../config/env.js";
 import type { Gh } from "../forge/github.js";
-import { addWorktree, git, gitOut, resolveRef } from "../ledger/git.js";
+import { addWorktree, authEnv, freshWorktree, git, gitOut, resolveRef } from "../ledger/git.js";
 import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { factoryHome, paths } from "../util/paths.js";
-import { hashJson } from "../util/hash.js";
 import { DockerCli } from "../verify/runtime.js";
 import { labFor } from "../verify/lab.js";
-import { writeFileSync } from "node:fs";
+import { ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
 import { createSnapshot, snapshotDir } from "../context/snapshot.js";
 import { readApproved } from "../conventions/store.js";
 import { HUMAN_WRITER } from "../ledger/ledger.js";
 import { diffFiles } from "../stages/deliver.js";
-import { modelFor } from "../stages/routing.js";
+import { changeBase } from "../stages/workspace.js";
+import { modelFor, projectForRun } from "../stages/routing.js";
 import type { Review2Inputs } from "../stages/review2.js";
-import { commitsWithTrailers, forgeAdapter, mergeInto, openRunFacts, recordedVerdicts, reverifyWorktree } from "./adapters.js";
-import { runMergeGates, type MergeEvidence } from "./gates-run.js";
-import { DEFAULT_POLICY } from "../gates/policy.js";
+import { sizedDiff, commitRepair, commitsWithTrailers, failingTests, forgeAdapter, gateDiff, unknownFailures, mergeExpectations, forgeRemote, insideWorktree, mergeInto, merging, openRunFacts, ownReviewBody, recordedVerdicts, reverifyWorktree, workingTreeCommit, worktreeExists } from "./adapters.js";
+import { plannedInputHashes, reviewEvidence, runMergeGates, type MergeEvidence } from "./gates-run.js";
+import { gateInputsHash } from "../gates/engine.js";
+import { scanText } from "../context/secrets.js";
+import { DEFAULT_POLICY, mergePolicy, type Policy } from "../gates/policy.js";
 import { proposeRepair, repairIsEmpty } from "./repair-run.js";
 import { runMergeReview } from "./review-run.js";
 import type { MergeResult, ReviewPrDeps } from "./orchestrate.js";
+import type { BuildRun, TestResult, TestRun } from "../contracts/index.js";
 import type { GroupDeps } from "./group-run.js";
-import { resolveRunId } from "./sync.js";
+import { repairTrailer, resolveRunId } from "./sync.js";
 
 export interface LiveOpts { cfg: ProjectConfig; gh: Gh; log: (s: string) => void; policy?: typeof DEFAULT_POLICY }
 
-/** A worktree at the PR head with the base merged in. Never pushed from here. */
-async function mergedWorktree(o: LiveOpts, runId: string, headSha: string, baseSha: string) {
+/** The project's policy, merged as the build merges it: the default alone would differ from the build's
+ *  feed allowlist, and the gate and a running build would each recreate the feed proxy under the other. */
+const policyOf = (o: LiveOpts): Policy => o.policy ?? mergePolicy(DEFAULT_POLICY, o.cfg.policy as Partial<Policy>);
+
+/**
+ * A worktree at the PR head with the base merged in. Never pushed from here.
+ *
+ * `afterRepair` is the case that used to be impossible: the repair committed into this worktree, so
+ * rebuilding it from the PR head would throw away the repair and verify the broken tree. Then the
+ * rebuild itself threw anyway, because the path and the branch both already existed.
+ */
+async function mergedWorktree(o: LiveOpts, runId: string, headSha: string, baseSha: string, afterRepair = false) {
   const wt = reverifyWorktree(runId);
-  await addWorktree(o.cfg.repo, wt, `factory/reverify-${runId.slice(-8)}`, headSha, runId);
-  const merged = await mergeInto(wt, baseSha);
+  if (afterRepair) {
+    if (!worktreeExists(runId)) throw new Error(`No reverify worktree for ${runId}: nothing to verify after the repair.`);
+    // already at the merge result plus the repair commit, and already merged: do not touch it
+    return { wt, merged: { clean: true, conflicts: [] } };
+  }
+  await freshWorktree(o.cfg.repo, wt, `factory/reverify-${runId.slice(-8)}`, headSha, runId);
+  // the trailer marks a merge settled without a model as the factory's own, should it be pushed
+  const merged = await mergeInto(wt, baseSha, repairTrailer(runId));
   return { wt, merged };
 }
 
@@ -50,6 +70,11 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
   // what the verify pass actually found. review-2 is shown these, and telling it the tests were
   // clean when they were not would make its judgement worthless.
   let lastVerify: { lint: { findings: unknown[] }; verification: { failed: string[]; flaky: string[] } } | undefined;
+  // why the merge result failed: the compile errors, or each failing test's message. A repair has no
+  // shell, so without this it is given test names and has to guess what broke.
+  let lastFailure: string | undefined;
+  // the pull request's head on the forge, so a repair never amends a commit that is already pushed
+  let prHead: string | undefined;
 
   return {
     ...forge,
@@ -57,58 +82,74 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
     commitsSince: (gated, head) => commitsWithTrailers(o.cfg.repo, gated, head),
 
     async mergeVerify(a): Promise<MergeResult> {
-      const { wt, merged } = await mergedWorktree(o, a.runId, a.headSha, a.baseSha);
+      prHead = a.headSha;
+      const { wt, merged } = await mergedWorktree(o, a.runId, a.headSha, a.baseSha, a.afterRepair);
       if (!merged.clean) {
         o.log(`conflict in ${merged.conflicts.length} file(s): ${merged.conflicts.slice(0, 5).join(", ")}`);
-        return { mergesClean: false, testsPass: false, current: new Map(), diffSha: "", mergeSha: "" };
+        // the paths travel with the result: the repair is given them, not asked to guess
+        return { mergesClean: false, testsPass: false, conflicts: merged.conflicts, settled: merged.settled, current: new Map(), diffSha: "", mergeSha: "" };
       }
+      // the merge result is committed (mergeInto, or the repair), so HEAD is what the lab builds
       const mergeSha = (await gitOut(wt, ["rev-parse", "HEAD"])).trim();
-      const base = (await gitOut(wt, ["merge-base", "HEAD", a.baseSha])).trim();
-      const diff = (await git(wt, ["diff", "--no-color", "-U5", base, "HEAD"])).stdout;
+      // what this pull request adds on top of the base it now contains
+      const diff = await gateDiff(wt, a.baseSha);
 
       const ledger = Ledger.open(a.runId);
       const diffSha = ledger.putArtifact(diff);
+      const policy = policyOf(o);
+      // the run's own tests: what was locked must pass, and a test that already failed on the run's
+      // base is not this pull request's to fix (failingTests)
+      const state = replay(ledger.events());
+      const lock = ledger.getJson<{ tests: { testId: string }[]; characterisation?: { testId: string }[] }>(state.steps.get("author-tests")!.outputs[0]!);
+      const baselineSha = state.steps.get("discover")?.outputs[0];
+      const baseline = baselineSha ? ledger.getJson<TestRun>(baselineSha) : undefined;
 
       const pk = join(factoryHome(), "tmp", `reverify-${a.runId}`, o.cfg.stack === "node" ? "npm-cache" : "nuget");
       mkdirSync(pk, { recursive: true });
+      // the restore container reaches the feeds only through the proxy on FEEDS_NET, which a reboot
+      // takes down: the build sets it up before every lab run, and so must this
+      await ensureEgress(rt, feedHostsFrom(policy.registryAllowlist));
       const out = await labFor(o.cfg).produce({
         runId: a.runId, key: "merge-verify", repo: wt, commit: mergeSha, stage: "integrate",
-        exp: { expectPass: [], expectFail: [], compareToBaseline: [] },
+        exp: mergeExpectations(lock),
+        knownFailures: new Set(failingTests(baseline?.results ?? [], undefined)),
         project: o.cfg, rt, packagesDir: pk,
         onContainer: async (id, role) => o.log(`  container ${role} ${id.slice(0, 12)}`),
       });
 
-      // what each gate depends on, for the replay decision. Tree-derived gates move with the merge
-      // result; the review gates move with what the reviewer reads.
-      const current = new Map<string, string>([
-        ["build.clean", hashJson({ build: out.build })],
-        ["tests.expectations", hashJson({ run: out.testRun })],
-        ["lint.no-new-findings", hashJson({ lint: out.lint?.findings ?? [], files: diff.length })],
-        ["conventions.followed", hashJson({ diffSha })],
-        ["review.covers-every-criterion", hashJson({ diffSha })],
-        ["review-2.no-blocking", hashJson({ diffSha })],
-      ]);
       lastVerify = {
         lint: { findings: out.lint?.findings ?? [] },
         verification: {
-          failed: out.testRun.results.filter((r) => r.outcome === "failed").map((r) => r.id).sort(),
+          failed: failingTests(out.testRun.results, baseline),
           flaky: out.testRun.results.filter((r) => r.flaky).map((r) => r.id).sort(),
         },
       };
+      lastFailure = failureDetail(out.build, out.testRun.results, lastVerify.verification.failed);
       const evidence: MergeEvidence = {
-        build: out.build, testRun: out.testRun, lint: out.lint, lintBaseline: [],
-        secretScan: { kind: "secrets", commit: mergeSha, hits: [] },
-        diff: { files: diffFiles(diff).map((path) => ({ path, added: [], removed: [] })) },
+        // no lint here: the run records no lint baseline, so every warning already in a touched file
+        // would count as new, and the build never ran this gate either. review-2 still reads the findings.
+        build: out.build, testRun: out.testRun, baseline, lintBaseline: [],
+        // the lines this tree adds, scanned for real: a repair is pushed with the forge token
+        secretScan: { kind: "secrets", commit: mergeSha, hits: secretHits(diff) },
+        // with its lines: a list of names alone made the size gate count 0 and pass any diff
+        // a new product's change is counted from its scaffold commit, as the build counted it
+        diff: { files: diffSummary(await sizedDiff(wt, a.baseSha, diff, state.info.mode === "greenfield" ? changeBase(state) : undefined)) },
         guidelines: readApproved(o.cfg.project),
         violations: [],
         spec: { requirements: [] },
         head: { sha: a.headSha },
         gatedSha: mergeSha,
       };
+      // what each gate depends on, for the replay decision, hashed exactly as the engine records it
+      // so an unchanged gate can ever match. The review gates move with what the reviewer reads.
+      const current = plannedInputHashes(ledger, policy, evidence);
+      for (const id of ["review.covers-every-criterion", "review-2.no-blocking"]) current.set(id, gateInputsHash(id, { diff: diffSha }, policy));
       return {
         mergesClean: true,
-        testsPass: out.testRun.results.every((r) => r.outcome !== "failed"),
-        current, diffSha, mergeSha,
+        testsPass: lastVerify.verification.failed.length === 0,
+        failedTests: lastVerify.verification.failed,
+        unknownFailures: unknownFailures(lastVerify.verification.failed, mergeExpectations(lock).expectPass, baseline),
+        current, diffSha, mergeSha, settled: merged.settled,
         evidence: { ledger, evidence, treeSha: mergeSha },
       };
     },
@@ -116,8 +157,14 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
     async review2(a) {
       const ledger = Ledger.open(a.runId);
       const state = replay(ledger.events());
+      // the models the run was created with, not today's defaults
+      const routed = projectForRun(o.cfg, state.info.routes);
       const conv = readApproved(o.cfg.project);
       if ("unapproved" in conv) throw new Error(conv.unapproved);
+
+      // a step picked onto a GPT model with no OpenAI key: said plainly, not left to fail in the provider
+      const reviewer = modelFor(routed, "review-2", 0);
+      if (reviewer.blocked) throw new Error(reviewer.blocked);
 
       const diff = ledger.getArtifact(a.diffSha).toString("utf8");
       const lock = ledger.getJson<{ tests: Review2Inputs["acTests"]["tests"] }>(state.steps.get("author-tests")!.outputs[0]!);
@@ -140,10 +187,10 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
           verification: lastVerify?.verification,
           changedFiles: diffFiles(diff),
         },
-        model: modelFor(o.cfg, "review-2", 0).model,
-        stronger: modelFor(o.cfg, "review-2", 2).model,
-        implementerModel: modelFor(o.cfg, "implement", 0).model,
-        reviewerModel: modelFor(o.cfg, "review", 0).model,
+        model: modelFor(routed, "review-2", 0).model,
+        stronger: modelFor(routed, "review-2", 2).model,
+        implementerModel: modelFor(routed, "implement", 0).model,
+        reviewerModel: modelFor(routed, "review", 0).model,
       });
     },
 
@@ -157,51 +204,148 @@ export async function liveDeps(o: LiveOpts): Promise<ReviewPrDeps> {
         return a.ids.map((id) => recorded.get(id) ?? { id, passed: false, details: `no recorded verdict for ${id}` });
       }
       const { ledger, evidence, treeSha } = a.evidence as { ledger: Ledger; evidence: MergeEvidence; treeSha: string };
-      const replay = new Map([...recordedVerdicts(ledger)].filter(([id]) => a.replay.includes(id)));
-      return runMergeGates(ledger, HUMAN_WRITER, o.policy ?? DEFAULT_POLICY, {
-        evidence, step: "reverify", treeSha, replay,
+      // review-2's latest output gates too: it is of this diff, either written by this pass or
+      // replayed because the diff it read is unchanged
+      const state = replay(ledger.events());
+      const r2 = state.steps.get("review-2");
+      const spec = state.steps.get("specify")?.outputs[0];
+      const judged = r2?.status === "completed" && r2.outputs.length >= 2 && spec
+        ? { ...evidence, ...reviewEvidence(ledger, { reviewSha: r2.outputs[0]!, familiesSha: r2.outputs[1]!, specSha: spec }) }
+        : evidence;
+      const replayed = new Map([...recordedVerdicts(ledger)].filter(([id]) => a.replay.includes(id)));
+      return runMergeGates(ledger, HUMAN_WRITER, policyOf(o), {
+        evidence: judged, step: "reverify", treeSha, replay: replayed,
       });
     },
 
     async repair(cls, a) {
-      // the budget was already checked by mayRepair; what remains is the work and the binding
+      // the budget was already checked by mayRepair; what remains is the work and the binding.
+      // The token is checked FIRST: a repair that cannot be delivered is not worth paying a model for.
+      const forge = o.cfg.forge;
+      if (!forge) return { made: false, why: "no forge is configured, so a repair cannot be delivered to the pull request" };
+      if (!secret(forge.tokenEnv)) return { made: false, why: `${forge.tokenEnv} is missing in ~/.factory/.env, so a repair cannot be pushed` };
+
       const ledger = Ledger.open(a.runId);
       const state = replay(ledger.events());
+      const routed = projectForRun(o.cfg, state.info.routes);
+      // the repair runs on the run's coding model, which may be a GPT one: without its key nothing is paid for
+      const coder = modelFor(routed, "implement", 0);
+      if (coder.blocked) return { made: false, why: coder.blocked };
       const lock = ledger.getJson<{ lock: { file: string }[] }>(state.steps.get("author-tests")!.outputs[0]!);
       const wt = reverifyWorktree(a.runId);
-      const snap = createSnapshot(wt, "HEAD", snapshotDir(a.runId, `repair-${Date.now()}`), o.cfg.noGo);
+      // the model reads the MERGED tree: for a conflict the working tree with its markers and both
+      // sides (HEAD has neither), for a broken merge the committed merge result. Reading the PR head
+      // instead made its whole-file edits silently drop whatever the base changed in those files.
+      const reads = (await merging(wt)) ? await workingTreeCommit(wt) : (await gitOut(wt, ["rev-parse", "HEAD"])).trim();
+      const snap = createSnapshot(wt, reads, snapshotDir(a.runId, `repair-${reads.slice(0, 12)}`), o.cfg.noGo);
 
       const proposal = await proposeRepair({
         snap, lockedFiles: lock.lock.map((x) => x.file), cls,
-        subject: [], noGo: o.cfg.noGo, log: o.log,
-        model: modelFor(o.cfg, "implement", 0).model,
-        stronger: modelFor(o.cfg, "implement", 2).model,
+        subject: a.subject, noGo: o.cfg.noGo, log: o.log,
+        ...(cls === "broken-merge" && lastFailure ? { failureDetail: lastFailure } : {}),
+        model: coder.model,
+        stronger: modelFor(routed, "implement", 2).model,
       }, a.runId);
 
       if (repairIsEmpty(proposal)) {
         const why = proposal.rejected.length
-          ? `the repair only proposed edits to locked test files (${proposal.rejected.map((r) => r.path).join(", ")}), which are not allowed`
-          : "the repair proposed no changes";
-        return { pushed: false, why };
+          ? `the repair only proposed edits it may not make (${proposal.rejected.map((r) => `${r.path}: ${r.why}`).join("; ")})`
+          // case 4 of the conflict policy: declining to guess is a correct outcome, and the model's
+          // reason is the most useful thing a person can be handed here
+          : `the repair declined to resolve this automatically: ${proposal.summary}`;
+        return { made: false, why };
       }
-      for (const e of proposal.edits) writeFileSync(join(wt, e.path), e.content);
-      await git(wt, ["add", "-A"]);
-      // the trailer is what the NEXT webhook reads to recognise this push as ours
-      await git(wt, ["commit", "-m", `factory: repair ${cls}
+      // paths are already normalised and checked by proposeRepair; a symlink in the merged tree must
+      // still not carry a write out of the worktree, so every target is checked before any is written
+      const escapes = proposal.edits.filter((e) => !insideWorktree(wt, e.path)).map((e) => e.path);
+      if (escapes.length) return { made: false, why: `the repair would write outside the worktree through a link: ${escapes.join(", ")}` };
+      for (const e of proposal.edits) {
+        mkdirSync(dirname(join(wt, e.path)), { recursive: true });
+        writeFileSync(join(wt, e.path), e.content);
+      }
+      // ONE merge commit, carrying the trailer the next pass reads to recognise this push as ours
+      const c = await commitRepair(wt, `factory: repair ${cls}
 
 ${proposal.summary}
 
-${proposal.trailer}`]);
-      return { pushed: true, why: proposal.summary };
+${proposal.trailer}`, proposal.edits.map((e) => e.path), prHead);
+      if (!c.ok) return { made: false, why: c.why };
+      return { made: true, why: proposal.summary };
+    },
+
+    async pushRepair(a) {
+      // reached only once the repaired tree has been verified and every gate passed on it: deliver's
+      // rule, that only a gated tree is pushed, holds here too
+      const remote = forgeRemote(o.cfg);
+      if (!remote?.token) return { pushed: false, why: "no forge token is configured, so the repair cannot be pushed" };
+      const wt = reverifyWorktree(a.runId);
+      const sha = (await gitOut(wt, ["rev-parse", "HEAD"])).trim();
+      try {
+        await git(wt, ["push", remote.url, `HEAD:refs/heads/${a.headRef}`], { env: authEnv(remote.token) });
+      } catch (e) {
+        // the edits are committed locally but the pull request has not moved, so this is NOT a repair
+        const why = (e as Error).message.replaceAll(remote.token, "«SECRET»").slice(0, 300);
+        return { pushed: false, why: `the repair passed but could not be pushed to ${a.headRef}: ${why}` };
+      }
+      o.log(`pushed the repair to ${a.headRef}`);
+      return { pushed: true, why: "pushed", sha };
+    },
+
+    async recordReverify(r) {
+      // the next pass reads this back through openRunFacts: without it nothing ever stopped the loop
+      const { runId, ...data } = r;
+      await Ledger.open(runId).append({ type: "step.completed", key: "reverify", outputs: [], data }, HUMAN_WRITER);
     },
 
     now: () => Date.now(),
   };
 }
 
+/** Each file of a diff with the lines it adds and removes, which is what the size gate counts. */
+export function diffSummary(diff: string): { path: string; added: string[]; removed: string[] }[] {
+  const files: { path: string; added: string[]; removed: string[] }[] = [];
+  let file: (typeof files)[number] | undefined;
+  let inHunk = false;
+  for (const line of diff.split("\n")) {
+    if (line.startsWith("diff --git ")) { file = { path: "", added: [], removed: [] }; files.push(file); inHunk = false; }
+    else if (!file) continue;
+    else if (line.startsWith("@@")) inHunk = true;
+    // the headers name the file; a deleted file has only its old name
+    else if (!inHunk && line.startsWith("+++ b/")) file.path = line.slice(6).trim();
+    else if (!inHunk && line.startsWith("--- a/")) file.path ||= line.slice(6).trim();
+    else if (inHunk && line.startsWith("+")) file.added.push(line.slice(1));
+    else if (inHunk && line.startsWith("-")) file.removed.push(line.slice(1));
+  }
+  // a rename or a mode change with no content has no path header and no lines to count
+  return files.filter((f) => f.path).sort((x, y) => x.path.localeCompare(y.path));
+}
+
+/** Why the merge result failed, for the repair: compile errors first, since then no test ran at all. */
+export function failureDetail(build: BuildRun, results: TestResult[], failed: string[]): string | undefined {
+  if (!build.ok) {
+    const errors = build.errors.slice(0, 15).map((e) => `- ${e.file ? `${e.file}:${e.line} ` : ""}${e.code} ${e.msg}`);
+    return `The merge result does not build, so no test could run:\n${errors.join("\n") || "- see the build log"}`;
+  }
+  const said = results.filter((r) => failed.includes(r.id) && r.message)
+    .slice(0, 10).map((r) => `- ${r.id}: ${r.message!.slice(0, 600)}`);
+  return said.length ? `What the failing tests reported:\n${said.join("\n")}` : undefined;
+}
+
+/** Secret-scan hits in the lines a diff adds, file by file, the way deliver scans a branch. */
+function secretHits(diff: string): { file: string; line: number; rule: string }[] {
+  const hits: { file: string; line: number; rule: string }[] = [];
+  let file = "";
+  for (const line of diff.split("\n")) {
+    if (line.startsWith("+++ b/")) file = line.slice(6);
+    else if (line.startsWith("+") && !line.startsWith("+++")) hits.push(...scanText(file, line.slice(1)).map((h) => ({ ...h, line: 0 })));
+  }
+  return hits;
+}
+
 export async function liveGroupDeps(o: LiveOpts): Promise<GroupDeps> {
   const rt = new DockerCli();
   const forge = forgeAdapter({ gh: o.gh, cfg: o.cfg, requiredChecks: [] });
+  const reviewBody = ownReviewBody(o.gh);
 
   return {
     async membersOf(ref) {
@@ -212,9 +356,9 @@ export async function liveGroupDeps(o: LiveOpts): Promise<GroupDeps> {
       const prs = [...body.matchAll(/#(\d+)/g)].map((m) => Number(m[1]));
       const out: { pr: number; headRef: string; reviewBody?: string }[] = [];
       for (const pr of [...new Set(prs)]) {
-        const { getPr, findReviewBody } = await import("../forge/github.js");
+        const { getPr } = await import("../forge/github.js");
         const p = await getPr(o.gh, pr);
-        out.push({ pr, headRef: p.headRef, reviewBody: await findReviewBody(o.gh, pr) });
+        out.push({ pr, headRef: p.headRef, reviewBody: await reviewBody(pr) });
       }
       return out;
     },

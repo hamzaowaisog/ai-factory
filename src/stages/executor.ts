@@ -5,6 +5,8 @@ import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import type { Failure, LedgerEvent } from "../contracts/index.js";
+import { ensureGuidelines } from "../conventions/auto.js";
+import { reviewDelivered } from "../merge/once.js";
 import { loadProject, type ProjectConfig } from "../config/project.js";
 import { DEFAULT_POLICY, mergePolicy, withPolicy, type Policy } from "../gates/policy.js";
 import { NO_CREDIT } from "../runners/claude-agent.js";
@@ -27,7 +29,7 @@ import type { StepContext, StepDef, StepOutcome } from "./framework.js";
 import { stepsFor } from "./modes.js";
 import { answersOf, asksGates, asksPerson, gateCard, gateRounds, gateSubject, GATE_ROUNDS, nextQuestionId, ROUND_ATTEMPTS, writeGateQuestions, type FiledRound, type GateRound } from "./gate-questions.js";
 import { greenfieldRefusal, newProductRefusal, repoIsEmpty, type EstimateScope } from "../config/greenfield.js";
-import { availableRungs, modelSteps, routeFor } from "./routing.js";
+import { availableRungs, modelSteps, checkRoutes, DESIGN_ROUTES, ESTIMATE_ROUTES, projectForRun, resolveRun, routeFor, routeRecord, usageRoute, type Choice } from "./routing.js";
 import { runtime } from "./workspace.js";
 import type { RequestSource } from "../sources/request.js";
 import { storeReferences, type GatheredRef } from "../sources/refs.js";
@@ -88,9 +90,15 @@ export function readRequestFile(path: string, maxBytes = MAX_REQUEST_FILE_BYTES)
 }
 
 /** `factory start`: create the ledger. Execution happens in `execute`. */
-export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "greenfield" | "estimate" | "design"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved }; fromDesign?: ApprovedDesign; designExport?: string[]; uiTarget?: RunInfo["uiTarget"] } = {}): Promise<string> {
+export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "greenfield" | "estimate" | "design"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved }; fromDesign?: ApprovedDesign; designExport?: string[]; uiTarget?: RunInfo["uiTarget"]; /** the models the person starting the run chose */ models?: Choice } = {}): Promise<string> {
   if (opts.maxCostUsd !== undefined && !(opts.maxCostUsd > 0)) throw new Error("--max-cost must be a positive number of dollars");
   const project = loadProject(projectName);
+  const choice: Choice = { ...(opts.models?.picks && Object.keys(opts.models.picks).length ? { picks: opts.models.picks } : {}), ...(opts.models?.preset ? { preset: opts.models.preset } : {}) };
+  // a pick the step cannot run on is refused before a run exists (the callers check keys and runners first)
+  if (choice.picks || choice.preset) {
+    const bad = checkRoutes(project, opts.mode === "estimate" ? ESTIMATE_ROUTES : opts.mode === "design" ? DESIGN_ROUTES : undefined, choice);
+    if (bad.length) throw new Error(`Setup problems:\n- ${bad.join("\n- ")}`);
+  }
   // an estimate or design from requirements alone has no repo to check or read
   const noRepo = readsRequirements(opts.mode) && opts.estimate?.noRepo === true;
   if (!noRepo) {
@@ -138,6 +146,8 @@ export async function createRun(request: string, projectName: string, operator: 
     data: {
       mode: opts.mode ?? "brownfield", project: project.project, ...(noRepo ? {} : { repoPath: project.repo, baseRef: project.baseBranch, baseCommit }), ...(noRepo ? {} : { repoId: project.project }),
       request, requestSha, operator, versions: versions(),
+      // every step's model, fixed here: a later change to the defaults or the project file does not move a run that has begun
+      routes: resolveRun(project, choice), ...(choice.picks || choice.preset ? { models: choice } : {}),
       ...(opts.maxCostUsd !== undefined ? { maxCostUsd: opts.maxCostUsd } : {}),
       ...(opts.requestFile ? { requestFile: opts.requestFile } : {}),
       ...(opts.sources?.length ? { sources: opts.sources } : {}),
@@ -259,7 +269,9 @@ function attemptHistory(ledger: Ledger, step: string): AttemptRecord[] {
   const lastRaise = Math.max(-1, ...all.filter((e) => e.type === "human.decided" && (e.data as { decision?: string; extraAttempts?: number })?.decision === "waive-cap" && typeof (e.data as { extraAttempts?: number }).extraAttempts === "number").map((e) => e.seq));
   // a round of questions about the step's failing checks starts it fresh too (src/stages/gate-questions.ts)
   const lastRound = Math.max(-1, ...evs.filter((e) => e.type === "step.failed" && (e.data as { action?: string } | undefined)?.action === "questions").map((e) => e.seq));
-  const since = Math.max(lastDone, lastRaise, lastRound);
+  // a person unlocking a file changes what the step can do: its failures before that say nothing about now
+  const lastUnlock = Math.max(-1, ...all.filter((e) => e.type === "human.decided" && (e.data as { decision?: string })?.decision === "unlock").map((e) => e.seq));
+  const since = Math.max(lastDone, lastRaise, lastRound, lastUnlock);
   return evs.filter((e) => e.type === "step.failed" && e.seq > since && !(e.data as { parked?: boolean })?.parked && !outOfCredit(ledger, e))
     .map((e) => e.data as unknown as AttemptRecord);
 }
@@ -290,7 +302,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
   const log = (msg: string) => trace.event("log", msg);
   ledger.onAppend = (ev) => traceLedgerEvent(trace, ev);
   let state = replay(ledger.events());
-  const project = loadProject(state.info.project);
+  const project = projectForRun(loadProject(state.info.project), state.info.routes);
   const policy = policyFor(project);
   for (const [model, price] of Object.entries(project.prices)) setPrice(model, price);
   await applyExpiredDeadline(ledger);
@@ -303,8 +315,12 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
     throw e;
   }
   const writer = lock;
+  // a project with no coding guidelines gets them now, so the code is written to the rules it is later judged by
+  if (state.info.mode !== "estimate" && state.info.mode !== "design") await ensureGuidelines(project, log);
   const warned = new Set<string>();
   let completed = 0;
+  /** the pull request this turn delivered, if it did */
+  let deliveredPr: string | undefined;
   /** steps that went back to an earlier one since a step last completed */
   const wentBack = new Set<string>();
   /**
@@ -354,7 +370,8 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
     if (share === 1) trace.setStep(step.key, attempt);
     const slog = (msg: string) => t.event("log", msg);
     let spent = 0;
-    await ledger.append({ type: "step.started", key, inputsHash: hash, data: { rung } }, writer);
+    const route = routeRecord(project, step.stage, rung, priorFailures);
+    await ledger.append({ type: "step.started", key, inputsHash: hash, data: { rung, ...(route ? { route } : {}) } }, writer);
     slog(`▶ ${step.key} (attempt ${attempt}${rung ? `, rung ${rung}` : ""})`);
 
     const ctx: StepContext = {
@@ -365,6 +382,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
         await ledger.append({ type: "usage", key, data: {
           "gen_ai.request.model": u.model, "gen_ai.usage.input_tokens": u.inputTokens, "gen_ai.usage.output_tokens": u.outputTokens,
           "gen_ai.usage.cache_read_tokens": u.cacheRead, "gen_ai.usage.cache_write_tokens": u.cacheWrite, "gen_ai.usage.cost_usd": u.estUsd,
+          ...usageRoute(project, u.route ?? step.stage),
         } }, writer);
       },
     };
@@ -394,6 +412,7 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
           await ledger.append({ type: "run.delivered", data: outcome.data ?? {} }, writer);
           dropBuildCache(runId);
           const d = outcome.data as { local?: boolean; branch?: string; prUrl?: string };
+          deliveredPr = d.local ? undefined : d.prUrl;
           return { status: "delivered", message: d.local ? `Ready locally on branch ${d.branch}. PR text: factory show-card ${runId} --pr` : `PR opened: ${d.prUrl}` };
         }
         break;
@@ -547,6 +566,8 @@ export async function execute(runId: string, echo: Log = () => undefined, opts: 
       const s = replay(ledger.events());
       if (completed && (s.steps.get("estimate")?.status === "completed" || s.info.estimateRef)) triggerTune();
     } catch { /* tuning never breaks a run */ }
+    // a project that merges what passes: the pull request is judged now, not when somebody remembers to
+    if (deliveredPr) await reviewDelivered(project, deliveredPr, log);
     trace.event("run", "executor stopped");
     trace.stopHeartbeat();
     ledger.onAppend = undefined;

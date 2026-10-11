@@ -63,6 +63,10 @@ describe("the pages and what they must show", () => {
     const facets = { type: "filters", search: "Search invoices", facets: [{ title: "Status", options: ["Paid"] }] } as never;
     expect(blockWords(facets)).toEqual(expect.arrayContaining(["Search invoices", "Status"]));
     expect(blockWords(facets, true)).not.toContain("Status");
+    // a toolbar's buttons and dropdowns fold into a menu on a phone (run 0f9d asked for "New request" there); its search stays
+    const toolbar = { type: "toolbar", search: "Search requests", buttons: ["New request"], selects: [{ label: "Sort", options: ["Newest"] }] } as never;
+    expect(blockWords(toolbar)).toEqual(expect.arrayContaining(["Search requests", "New request", "Sort"]));
+    expect(blockWords(toolbar, true)).toEqual(["Search requests"]);
   });
 
   it("a state's expectations: loading is a placeholder, empty and error their message, a layer its title and buttons, a toast its text", () => {

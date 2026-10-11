@@ -83,7 +83,9 @@ export function gitSource(repo: string, commit: string): FileSource {
     read(path) {
       if (cache.has(path)) return cache.get(path);
       let text: string | undefined;
-      try { text = gitSync(repo, ["show", `${commit}:${path}`]); } catch { text = undefined; }
+      // cat-file, not show: for a path with brackets ("app/requests/[id]/page.tsx") that the commit does not have, show answers
+      // with nothing and no error, so the file read as there and empty (run 0f9d: the scaffold kept "the repo's own" page that never was)
+      try { text = gitSync(repo, ["cat-file", "blob", `${commit}:${path}`]); } catch { text = undefined; }
       cache.set(path, text);
       return text;
     },

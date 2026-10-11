@@ -1,17 +1,13 @@
-// `factory conventions build` and `approve`. Run by hand, once per project, never by a trigger.
+// `factory conventions build` and `approve`, by hand. A project with no guidelines file needs neither: the factory
+// builds and approves one itself when a run or a review pass starts (src/conventions/auto.ts).
 import { readFileSync } from "node:fs";
 import { userInfo } from "node:os";
-import { join } from "node:path";
 import type { Command } from "commander";
 import { loadProject } from "../config/project.js";
-import { findConflicts } from "../conventions/build.js";
-import { renderGuidelines, parseGuidelines } from "../conventions/markdown.js";
-import { DEFAULT_SAMPLE, toConventions } from "../conventions/mine.js";
-import { scanRepo } from "../conventions/scan.js";
-import { parseSkillRules } from "../conventions/stackpack.js";
+import { buildGuidelines } from "../conventions/auto.js";
+import { parseGuidelines } from "../conventions/markdown.js";
+import { DEFAULT_SAMPLE } from "../conventions/mine.js";
 import { currentSha, guidelinesPath, readApproved, recordApproval, writeGuidelines } from "../conventions/store.js";
-import { noSkillsNote, readSkills } from "../conventions/skills.js";
-import { fromToolConfig } from "../conventions/toolconfig.js";
 
 export function registerConventions(program: Command, log: (s: string) => void): void {
   const conventions = program.command("conventions")
@@ -20,32 +16,11 @@ export function registerConventions(program: Command, log: (s: string) => void):
   conventions.command("build").requiredOption("--project <name>")
     .option("--sample <n>", "how many files the scan may read", String(DEFAULT_SAMPLE))
     .option("--model <id>", "the model that reads the code")
-    .description("scan this repo once and write the guidelines (run by hand; never automatic)")
+    .description("scan this repo and write the guidelines again, for you to approve (a project with none gets them by itself)")
     .action(async (o: { project: string; sample: string; model?: string }) => {
       const cfg = loadProject(o.project);
-      const { createSnapshot, snapshotDir } = await import("../context/snapshot.js");
-      const { resolveRef } = await import("../ledger/git.js");
-      const { modelFor } = await import("../stages/routing.js");
-
-      const commit = await resolveRef(cfg.repo, cfg.baseBranch);
-      const snap = createSnapshot(cfg.repo, commit, snapshotDir(`conventions-${o.project}`, commit), cfg.noGo);
-      const model = o.model ?? modelFor(cfg, "review", 0).model;
-      log(`reading ${cfg.project} @ ${commit.slice(0, 8)} with ${model}`);
-
-      const mined = toConventions(await scanRepo({
-        snap, repo: cfg.repo, model, noGo: cfg.noGo, sample: Number(o.sample), log,
-      }));
-      const declared = fromToolConfig((p) => snap.files.includes(p));
-      // shared skills from ~/.factory/skills, overridden by anything the repo carries itself
-      const skills = readSkills(cfg.repo);
-      if (skills.length === 0) log(noSkillsNote(cfg.repo));
-      const external = skills.flatMap((sk) => parseSkillRules(join(sk.dir, sk.name, "SKILL.md"), sk.text));
-
-      const all = [...mined, ...declared, ...external];
-      const conflicts = findConflicts(all);
-      const sha = writeGuidelines(o.project, renderGuidelines({
-        project: o.project, builtAt: new Date().toISOString().slice(0, 10), conventions: all, conflicts,
-      }));
+      const { all, mined, declared, external, skills, conflicts, markdown } = await buildGuidelines(cfg, { sample: Number(o.sample), model: o.model, log });
+      const sha = writeGuidelines(o.project, markdown);
 
       const blocking = all.filter((c) => c.status === "confirmed" && c.check).length;
       log(``);
@@ -66,7 +41,7 @@ export function registerConventions(program: Command, log: (s: string) => void):
 
   conventions.command("approve").requiredOption("--project <name>")
     .argument("<hash>", "first characters of the hash the build printed")
-    .description("approve the guidelines (a person, in a terminal — no script and no agent can)")
+    .description("approve guidelines you built or edited by hand")
     .action((hash: string, o: { project: string }) => {
       const sha = currentSha(o.project);
       if (!sha) {

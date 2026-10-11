@@ -8,7 +8,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { ComplexityFlag, SizeStep, Track } from "../contracts/estimate.js";
+import { ComplexityFlag } from "../contracts/common.js";
+import { SizeStep, Track } from "../contracts/estimate.js";
 
 export { SizeStep };
 /** factory tasks only: how hard the agent's work is to check (more retries), and how complete its context is */

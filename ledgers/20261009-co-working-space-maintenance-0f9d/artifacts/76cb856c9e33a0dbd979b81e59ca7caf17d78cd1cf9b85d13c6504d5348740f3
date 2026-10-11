@@ -1,0 +1,1 @@
+[{"check":"plan-coverage","frames":[],"message":"REQ-2 isn't covered by any task"},{"check":"plan-coverage","frames":[],"message":"REQ-6 isn't covered by any task"},{"check":"plan-contract","frames":[],"message":"contracts/openapi.yaml is not an OpenAPI document: it does not parse at line 171: Map keys must be unique (the line reads: /requests:)."}]

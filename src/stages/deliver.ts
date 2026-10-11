@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { userInfo } from "node:os";
 import { z } from "zod";
-import type { EvidenceManifest, PlanBody, SpecDraft, TestRun } from "../contracts/index.js";
+import type { EvidenceManifest, PlanBody, Requirement, ReviewCoverage, SpecDraft, TestRun } from "../contracts/index.js";
 import { ReviewSubmit } from "../contracts/index.js";
 import { scanText } from "../context/secrets.js";
 import { secret } from "../config/env.js";
@@ -14,7 +14,7 @@ import { unrequestedBehaviour } from "../estimate/gates.js";
 import { buildWaiver } from "../estimate/build-waiver.js";
 import type { WaiverRow } from "../estimate/log.js";
 import { noSecrets, reviewBlocking, shaBinding } from "../gates/predicates.js";
-import { reviewCoversCriteria, testsProveCriteria } from "../gates/coverage.js";
+import { criteriaHaveTests, reviewCoversCriteria, unprovenCriteria } from "../gates/coverage.js";
 import { MANUAL_CARD, manualBundle, manualCard, manualCriteria, signOffFor } from "./manual-check.js";
 import { changedFiles, commitAll, git, gitOut, resetHard } from "../ledger/git.js";
 import { runSink } from "../ledger/sinks.js";
@@ -189,15 +189,21 @@ export const reviewStep: StepDef = {
       }
     }
     if (!g.passed) return { kind: "park", reason: `Review found blocking problems: ${(g.failures ?? []).slice(0, 3).map((f) => f.message).join(" | ")}` };
-    // what the reviewer said about each locked test counts: a test that passes without proving its criterion stops the run
-    // here. The tests are locked, so no retry can change them: a person accepts the test as it stands, by name, or stops.
-    const proof = await runGate(testsProveCriteria, ctx.ledger, ctx.writer, { review: reviewSha, spec: specSha }, ctx.policy, { step: "review", treeSha: head });
+    // a criterion the reviewer found no test for at all stops the run here: nothing proves it, and the tests are locked, so
+    // a person accepts that by name or stops
+    // (one a person accepted before the tests were locked is not asked about again)
+    const acceptedUntested = (ctx.state.steps.get("author-tests")?.data as { acceptedUntested?: string[] } | undefined)?.acceptedUntested ?? [];
+    const proof = await runGate(criteriaHaveTests, ctx.ledger, ctx.writer, { review: reviewSha, spec: specSha, ...(acceptedUntested.length ? { accepted: ctx.ledger.putJson({ acIds: acceptedUntested }) } : {}) }, ctx.policy, { step: "review", treeSha: head });
     if (!proof.passed) {
-      const w = buildWaiver(ctx, "review", [{ def: testsProveCriteria, failures: proof.failures ?? [failure(testsProveCriteria.id, proof.details)] }], head,
+      const w = buildWaiver(ctx, "review", [{ def: criteriaHaveTests, failures: proof.failures ?? [failure(criteriaHaveTests.id, proof.details)] }], head,
         `The tests are locked, so another attempt cannot change them. The run's Tests tab shows each criterion, its test and the reviewer's reason. To stop instead: factory stop ${ctx.runId}`);
       if (w.kind === "ask") return hold(w.outcome);
       waivers = [...waivers, ...w.waivers];
     }
+    // a test the reviewer calls weak is kept and shown, on the pull request and the Tests tab, and does not stop the run.
+    // It is settled before the lock, where the writer can still tighten it (weakTests in build.ts).
+    const weakTests = unprovenCriteria((review.coverage ?? []) as ReviewCoverage[], spec.requirements as Requirement[]).filter((w) => w.verdict === "weak");
+    if (weakTests.length) ctx.log(`review: ${weakTests.length} locked test${weakTests.length === 1 ? "" : "s"} judged not to prove ${weakTests.length === 1 ? "its criterion" : "their criteria"} (${weakTests.map((w) => w.acId).join(", ")}): named on the pull request`);
     // last, the criteria no test can check: a person tries each one on this commit and signs it off
     const manual = manualCriteria(spec.requirements);
     let manualChecks: { by: string; criteria: string[] } | undefined;
@@ -212,7 +218,7 @@ export const reviewStep: StepDef = {
       }
       manualChecks = { by: signed.by, criteria: manual.map((c) => c.id) };
     }
-    return { kind: "done", outputs: { review: reviewSha }, data: { findings: review.findings.length, note: review.note, diffTruncated: truncated, ...(waivers.length ? { waivers } : {}), ...(manualChecks ? { manualChecks } : {}) } };
+    return { kind: "done", outputs: { review: reviewSha }, data: { findings: review.findings.length, note: review.note, diffTruncated: truncated, ...(waivers.length ? { waivers } : {}), ...(weakTests.length ? { weakTests } : {}), ...(manualChecks ? { manualChecks } : {}) } };
   },
 };
 
@@ -268,7 +274,10 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
   const flaky = a.run.results.filter((r) => r.flaky).map((r) => r.id);
   const security = a.review.findings.filter((f) => f.category === "security");
   // what a person decided at the review: the criteria tried by hand, and any check accepted as it stands
-  const reviewed = ctx.state.steps.get("review")?.data as { manualChecks?: { by: string; criteria: string[] }; waivers?: { gateIds: string[]; human: string; reason: string }[] } | undefined;
+  const reviewed = ctx.state.steps.get("review")?.data as { manualChecks?: { by: string; criteria: string[] }; waivers?: { gateIds: string[]; human: string; reason: string }[]; weakTests?: { acId: string; why: string }[] } | undefined;
+  const weak = reviewed?.weakTests ?? [];
+  // a criterion accepted with no test before the tests were locked
+  const written = ctx.state.steps.get("author-tests")?.data as { waivers?: { gateIds: string[]; human: string; reason: string }[]; acceptedUntested?: string[] } | undefined;
   const byHand = new Set(reviewed?.manualChecks?.criteria ?? []);
   return [
     `## What was asked`,
@@ -295,7 +304,9 @@ export function prBody(ctx: Pick<StepContext, "state" | "runId">, a: { spec: Spe
     `- Acceptance tests were written first, failed on the old code twice, then locked`,
     ...(a.lock.familyNote ? [`- ⚠ ${a.lock.familyNote}`] : []),
     ...(flaky.length ? [`- ⚠ Flaky (passed only on re-run): ${flaky.join(", ")}`] : []),
+    ...(written?.waivers ?? []).map((w) => `- ⚠ Waived by ${w.human}: ${w.gateIds.join(", ")} (${w.reason})${written?.acceptedUntested?.length ? `. No test covers ${written.acceptedUntested.join(", ")}` : ""}`),
     ...(reviewed?.waivers ?? []).map((w) => `- ⚠ Waived by ${w.human}: ${w.gateIds.join(", ")} (${w.reason})`),
+    ...(weak.length ? [`- ⚠ ${weak.length} locked test${weak.length === 1 ? "" : "s"} the review judged not to prove ${weak.length === 1 ? "its criterion" : "their criteria"}. ${weak.length === 1 ? "It passes" : "They pass"}, and the run did not stop for ${weak.length === 1 ? "it" : "them"}:`, ...weak.map((w) => `  - ${w.acId}: the test is too weak (${w.why})`)] : []),
     `- Review: ${a.review.findings.length} non-blocking findings${a.review.note ? ` (${a.review.note})` : ""}`,
     ...a.review.findings.map((f) => `  - ${f.id} [${f.severity}] ${f.text}`),
     `- Security review (OWASP Top 10): ${security.length ? `${security.length} finding${security.length > 1 ? "s" : ""}` : "nothing found"}`,

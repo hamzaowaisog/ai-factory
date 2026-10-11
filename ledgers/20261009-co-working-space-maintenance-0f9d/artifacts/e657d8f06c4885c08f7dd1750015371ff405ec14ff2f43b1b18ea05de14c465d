@@ -1,0 +1,74 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mock": {
+     "title": "Request detail",
+     "subtitle": "HW-2481 · Maintenance request",
+     "badge": "Open",
+     "blocks": [
+      {
+       "type": "detail",
+       "title": "Leak under sink in 4th-floor pantry",
+       "lead": {
+        "label": "Area",
+        "value": "East Wing · 4th-floor pantry"
+       },
+       "rows": [
+        {
+         "label": "Priority",
+         "value": "High",
+         "badge": true
+        },
+        {
+         "label": "Status",
+         "value": "Open",
+         "badge": true
+        },
+        {
+         "label": "Created (UTC)",
+         "value": "2026-03-18"
+        },
+        {
+         "label": "Description",
+         "value": "Water pools beneath the sink; inspect the supply line."
+        }
+       ]
+      },
+      {
+       "type": "actions",
+       "buttons": [
+        {
+         "label": "Start work",
+         "variant": "primary"
+        },
+        {
+         "label": "Back",
+         "variant": "link"
+        }
+       ]
+      }
+     ],
+     "links": [
+      {
+       "from": "Back",
+       "to": "S-1"
+      }
+     ],
+     "copy": {
+      "error": "Could not update the request.",
+      "success": "Request status updated."
+     }
+    }
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

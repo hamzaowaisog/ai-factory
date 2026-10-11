@@ -23,7 +23,7 @@ export function mergeGateDoctor(a: MergeGateSetup): { ok: boolean; problems: str
     problems.push(`No Harness Delegate is reachable on this host, so Harness cannot run the gate where ~/.factory and Docker are. Without it, this design does not apply.`);
   }
   if (!a.conventionsApproved) {
-    problems.push(`The coding guidelines are missing or unapproved, so conventions.followed cannot check and will fail every pull request. Run \`factory conventions build\` then \`factory conventions approve\`.`);
+    problems.push(`The coding guidelines are missing or unapproved, so conventions.followed cannot check and will fail every pull request. A project with no guidelines file gets one by itself at the next run or review pass; a file somebody edited needs \`factory conventions approve\`.`);
   }
   if (a.mergeMethod && a.mergeMethod !== "merge") {
     problems.push(`The base branch merges by ${a.mergeMethod}, which rewrites the commit the factory gated — so what lands is not the commit the evidence describes. Use a merge commit, or accept that deliver.sha-binding no longer means anything.`);

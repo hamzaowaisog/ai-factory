@@ -1,6 +1,6 @@
 // A review that skipped an acceptance criterion did not review the change.
 import { describe, expect, it } from "vitest";
-import { reviewCoversCriteria, testsProveCriteria } from "./coverage.js";
+import { criteriaHaveTests, reviewCoversCriteria, testsCoverCriteria, testsProveCriteria } from "./coverage.js";
 import { DEFAULT_POLICY } from "./policy.js";
 import type { Requirement, ReviewCoverage } from "../contracts/index.js";
 
@@ -94,5 +94,41 @@ describe("review.tests-prove-criteria", () => {
 
   it("can be waived by a person, and is not a safety gate: the verdict is a model's judgement", () => {
     expect(testsProveCriteria).toMatchObject({ safety: false, waiver: "human", after: "review" });
+  });
+});
+
+describe("review.criteria-have-tests", () => {
+  const spec = { requirements: [{ id: "REQ-1", acceptance: [{ id: "AC-1", level: "unit" }, { id: "AC-2", level: "api" }, { id: "AC-3", level: "manual" }] }] } as never;
+  const cov = (acId: string, verdict = "proves-it") => ({ acId, testId: "", verdict, why: `why ${acId}` }) as never;
+
+  it("fails only for a criterion nothing tests: a weak test passes and is counted in the details", () => {
+    const weak = criteriaHaveTests.predicate({ review: { coverage: [cov("AC-1", "weak"), cov("AC-2")] }, spec }, DEFAULT_POLICY);
+    expect(weak).toMatchObject({ passed: true, details: "2 automated criteria each have a locked test that covers them; 1 of the tests is called weak, which does not stop the run" });
+    const none = criteriaHaveTests.predicate({ review: { coverage: [cov("AC-1", "weak"), cov("AC-2", "no-test")] }, spec }, DEFAULT_POLICY);
+    expect(none.passed).toBe(false);
+    expect(none.failures!.map((f) => f.message)).toEqual(["AC-2: no locked test covers it (why AC-2)"]);
+  });
+
+  it("a criterion a person checks has no test by design, and a person can accept a failure", () => {
+    expect(criteriaHaveTests.predicate({ review: { coverage: [cov("AC-1"), cov("AC-2"), cov("AC-3", "no-test")] }, spec }, DEFAULT_POLICY).passed).toBe(true);
+    expect(criteriaHaveTests).toMatchObject({ safety: false, waiver: "human", after: "review" });
+  });
+});
+
+describe("a criterion with no test, before the lock and after a person accepted it", () => {
+  const spec = { requirements: [{ id: "REQ-1", acceptance: [{ id: "AC-1", level: "unit" }, { id: "AC-2", level: "api" }] }] } as never;
+  const cov = (acId: string, verdict = "proves-it") => ({ acId, testId: "", verdict, why: `why ${acId}` }) as never;
+
+  it("tests.cover-every-criterion fails for a criterion nothing tests and passes over a weak test", () => {
+    expect(testsCoverCriteria.predicate({ check: { coverage: [cov("AC-1", "weak")] } }, DEFAULT_POLICY).passed).toBe(true);
+    const v = testsCoverCriteria.predicate({ check: { coverage: [cov("AC-1", "weak"), cov("AC-2", "no-test")] } }, DEFAULT_POLICY);
+    expect(v.failures!.map((f) => f.message)).toEqual(["AC-2: no test covers it (why AC-2)"]);
+    expect(testsCoverCriteria).toMatchObject({ safety: false, waiver: "human", after: "author-tests" });
+  });
+
+  it("the review does not ask again about a criterion accepted before the lock, and still asks about another", () => {
+    const review = { coverage: [cov("AC-1", "no-test"), cov("AC-2", "no-test")] };
+    expect(criteriaHaveTests.predicate({ review, spec, accepted: { acIds: ["AC-1", "AC-2"] } }, DEFAULT_POLICY).passed).toBe(true);
+    expect(criteriaHaveTests.predicate({ review, spec, accepted: { acIds: ["AC-1"] } }, DEFAULT_POLICY).failures!.map((f) => f.message)).toEqual(["AC-2: no locked test covers it (why AC-2)"]);
   });
 });

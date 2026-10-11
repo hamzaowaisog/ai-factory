@@ -156,6 +156,12 @@ describe("helpers", () => {
   it("prices and families", () => {
     expect(costUsd("claude-opus-5-5", { inputTokens: 1_000_000, outputTokens: 0, cacheRead: 0, cacheWrite: 0 })).toBe(4);
     expect(costUsd("ollama/qwen3.6", { inputTokens: 1_000_000, outputTokens: 1_000_000, cacheRead: 0, cacheWrite: 0 })).toBe(0);
+    // a model with two prices: the higher one from the first call whose prompt is over the line, cached tokens counted
+    expect(costUsd("claude-haiku-5-5", { inputTokens: 100_000, outputTokens: 0, cacheRead: 0, cacheWrite: 0 })).toBeCloseTo(0.01);
+    expect(costUsd("claude-haiku-5-5", { inputTokens: 60_000, outputTokens: 0, cacheRead: 60_000, cacheWrite: 0 })).toBeCloseTo(0.033);
+    expect(costUsd("gpt-6-sol", { inputTokens: 300_000, outputTokens: 100_000, cacheRead: 0, cacheWrite: 0 })).toBeCloseTo(2.7);
+    // an agent session is many calls added up: the average prompt decides
+    expect(costUsd("claude-haiku-5-5", { inputTokens: 400_000, outputTokens: 0, cacheRead: 0, cacheWrite: 0, turns: 10 })).toBeCloseTo(0.04);
     expect(family("claude-sonnet-5")).toBe("anthropic");
     expect(family("gpt-5.5")).toBe("openai");
   });

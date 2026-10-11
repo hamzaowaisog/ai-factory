@@ -1,7 +1,7 @@
 // Estimate-mode artifacts (docs/estimates-design.md, "Fit with the code"). The model proposes the
 // breakdown and the sizing reasons; code computes every sum, so totals here are stored, never trusted (gate E6).
 import { z } from "zod";
-import { Id, Sha, Complexity } from "./common.js";
+import { Id, Sha, Complexity, ComplexityFlag } from "./common.js";
 import { ArtifactHeader } from "./artifacts.js";
 
 const withHeader = <T extends z.ZodRawShape>(shape: T) =>
@@ -30,11 +30,6 @@ export type Uncertainty = z.infer<typeof Uncertainty>;
 /** How much measured data backs a duration or cost figure. */
 export const Confidence = z.enum(["cold-start", "partial", "calibrated"]);
 export type Confidence = z.infer<typeof Confidence>;
-
-export const ComplexityFlag = z.enum([
-  "standard", "rules-or-algorithm", "external-dependency", "compliance-sensitive", "real-time", "new-to-stack",
-]);
-export type ComplexityFlag = z.infer<typeof ComplexityFlag>;
 
 /** A task's size against its catalogue kind's written scale (src/estimate/assets/catalogue.json). */
 export const SizeStep = z.enum(["small", "typical", "large", "very-large"]);

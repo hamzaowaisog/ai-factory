@@ -12,14 +12,16 @@ import {
 } from "../gates/predicates.js";
 import { CONFIG_INTEGRITY_GLOBS } from "../gates/protected.js";
 import { matchesAny } from "../util/glob.js";
-import { failureSignature } from "../gates/ladder.js";
+import { failureSignature, RUNGS } from "../gates/ladder.js";
 import { changedFiles, commitAll, diffIncludingUntracked, git, headSha, repoRefusals, resetHard, trackIgnored } from "../ledger/git.js";
-import { agentDatabase, ClaudeAgentRunner, NO_CREDIT_TEXT, type AgentProgress } from "../runners/claude-agent.js";
+import { agentDatabase, NO_CREDIT_TEXT, type AgentProgress } from "../runners/claude-agent.js";
+import { codingRunner } from "../runners/codex.js";
 import { ensureAgentImage, ensureEgress, feedHostsFrom } from "../runners/netinfra.js";
 import { buildPack, FILE_INLINE_MAX } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
 import { sha256 } from "../util/hash.js";
 import type { Ledger } from "../ledger/ledger.js";
+import { unlockedFiles } from "../ledger/human.js";
 import { parseTrx } from "../verify/trx.js";
 import { factoryHome } from "../util/paths.js";
 import { BUILT_SCHEMA_FILE, buildCachePath, produceDotnetTests, skippableKnownFailures, type BuiltSchema, type Probe, type ProduceOutput } from "../verify/dotnet.js";
@@ -29,17 +31,19 @@ import { contractGap, contractMatches, dataModelMatches } from "../gates/contrac
 import { changedPackages, isPackageManifest, packagesPlanned, type PackageChange, type PackageChanges } from "../gates/packages.js";
 import { DATA_MODEL_FILE, dataModelDiff, dataModelYaml } from "../gates/data-model.js";
 import { parse } from "yaml";
-import { DataModel } from "../contracts/index.js";
+import { DataModel, ReviewCoverage } from "../contracts/index.js";
 import { CLIENT_CMD, CLIENT_DIR, contractLockFiles, prepareClient } from "./contract.js";
 import { authorIntro, implementIntro, notFoundHint } from "./stack-text.js";
 import type { Expectations } from "../verify/validate.js";
+import { readApproved } from "../conventions/store.js";
+import { guidelinesBrief } from "../conventions/brief.js";
 import { approvedDesignFor } from "./design-inputs.js";
 import { header, outputOf, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
-import { modelFor } from "./routing.js";
+import { availableRungs, lightLaneModel, modelFor } from "./routing.js";
 import { family } from "../runners/types.js";
-import { S, tracePack } from "./think.js";
-import { changeBase, ensureWorktree, runtime, snapshotFor, uiBase } from "./workspace.js";
-import { replay, splitKey } from "../ledger/state.js";
+import { S, think, tracePack } from "./think.js";
+import { changeBase, ensureWorktree, runtime, snapshotFor, toolsAt, uiBase } from "./workspace.js";
+import { replay, splitKey, type RunState } from "../ledger/state.js";
 import { REPO_DESIGN_DIR, repoFiles, type DesignPackage } from "../design/package.js";
 import { exportRunPackage } from "./design-export.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
@@ -47,10 +51,12 @@ import { LANE, lightBuild, testWriterTurns } from "./lane.js";
 import { lessonPointers, readLessons, usableLessons } from "../context/lessons.js";
 import { sizeCap } from "../estimate/gates.js";
 import { buildWaiver } from "../estimate/build-waiver.js";
+import { testsCoverCriteria } from "../gates/coverage.js";
 import type { WaiverRow } from "../estimate/log.js";
 import { designFidelityLint, designSizeCap } from "../design/gates.js";
 import { screenBrief, screenFacts, screenFor, screensBrief, screensForTask, stitchHtmlFor, stitchScaffoldBrief, type ApprovedDesign } from "../design/design-link.js";
 import { scaffoldSummary, writeScaffold } from "../design/kit/index.js";
+import { loadKit } from "../design/kit/kit.js";
 import { screenTestsReady } from "../design/kit/screen-tests.js";
 import { scaffoldOfRun, type ScaffoldRecord } from "./scaffold-run.js";
 import { repoIsEmpty } from "../config/greenfield.js";
@@ -61,7 +67,6 @@ import { dirSource } from "../design/source.js";
 type Plan = z.infer<typeof PlanBody> & { complexity: string };
 type Intent = z.infer<typeof IntentBody>;
 
-const LIGHT_TEST_WRITER = "claude-sonnet-5";
 /** A coding agent isn't started with less than this left under the cost limit: it reads the briefing and the repo before it writes anything. */
 const AGENT_START_USD = 1;
 
@@ -84,6 +89,19 @@ export function anchorFiles(spec: Pick<Spec, "requirements">): string[] {
   return [...new Set(spec.requirements.flatMap((r) => (r.anchors ?? []).map((a) => a.path)))].slice(0, 10);
 }
 type Spec = z.infer<typeof SpecDraft>;
+
+/**
+ * The locked files a run works under: the test writer's lock, less any file a person unlocked for this run (factory unlock).
+ * Run 0f9d: a planned stub landed in the generated client's folder and was locked with it, so no task could fill it in.
+ */
+export function lockOf(state: RunState, ledger: Ledger): { lock: Lock; sha: string } {
+  const sha = state.steps.get("author-tests")!.outputs[0]!;
+  const lock = ledger.getJson<Lock>(sha);
+  const freed = unlockedFiles(ledger.events());
+  if (!freed.length) return { lock, sha };
+  const cut = { ...lock, lock: lock.lock.filter((l) => !freed.some((u) => u.file === l.file)), unlocks: freed.map((u) => ({ what: u.file, human: u.by, reason: u.reason, boundTo: sha })) };
+  return { lock: cut, sha: ledger.putJson(cut) };
+}
 
 interface Lock {
   tests: { acId: string; file: string; name: string; testId: string }[];
@@ -321,10 +339,20 @@ async function packageForBuild(ctx: StepContext): Promise<DesignPackage | undefi
   }
 }
 
+/**
+ * The kit's package pins, as an input of the stub commit of a new product with a design: its package.json is written from them,
+ * so a run whose scaffold was made before a pin makes it again (a run with no pins to take keeps its hash).
+ */
+function kitPins(s: RunState): { kitPins?: Record<string, string> } {
+  if (s.info.mode !== "greenfield" || !outputOf(s, "design-export")) return {};
+  const pins = loadKit().manifest.overrides;
+  return Object.keys(pins).length ? { kitPins: pins } : {};
+}
+
 export const stubCommitStep: StepDef = {
   key: "stub-commit", stage: "stub-commit", templateVersion: "1",
   // (the design package is an input only when this run wrote one, so runs from before packages keep their hash)
-  inputs: (s) => (s.steps.get("approve")?.status === "completed" ? { plan: s.steps.get("plan")!.outputs[0], approval: s.steps.get("approve")!.outputs[0], ...(outputOf(s, "design-export") ? { design: outputOf(s, "design-export") } : {}) } : undefined),
+  inputs: (s) => (s.steps.get("approve")?.status === "completed" ? { plan: s.steps.get("plan")!.outputs[0], approval: s.steps.get("approve")!.outputs[0], ...(outputOf(s, "design-export") ? { design: outputOf(s, "design-export") } : {}), ...kitPins(s) } : undefined),
   coding: true,
   async run(ctx) {
     const plan = requireOutput<Plan>(ctx.state, ctx.ledger, "plan");
@@ -481,7 +509,7 @@ export function testWriterTampering(files: { status: string; path: string; added
  * lab did not find or that fails for the wrong reason, or an agent that ran out of budget or turns. The files stay and the retry
  * is told what is missing. (A real run wrote 14 test files for $2.84, missed two criteria, and wrote all of them again.)
  */
-const TESTS_KEEPABLE = new Set(["ac-coverage", "tests-compile", "test-not-found", "agent-over-budget", "agent-timeout", "not-executed", "keep-passing", "passes-on-base", "wrong-failure-kind", "characterisation"]);
+const TESTS_KEEPABLE = new Set(["ac-coverage", "tests-compile", "test-not-found", "agent-over-budget", "agent-timeout", "not-executed", "keep-passing", "passes-on-base", "wrong-failure-kind", "characterisation", "test-proof"]);
 
 /** Keep the previous attempt's tests for this retry, or start from the stub commit. Any rung: the tests are edited, not trusted. */
 export function testRetryMode(prev: PrevAttempt | undefined): { mode: "keep" | "reset"; reason: string } {
@@ -576,6 +604,9 @@ export const authorTestsStep: StepDef = {
     const light = lightBuild(intent, plan.complexity);
     const start = String(ctx.state.steps.get("stub-commit")!.data!.commit);
     const wt = await ensureWorktree(ctx, start);
+    // the tests a card of this step is holding, once a person accepted them: locked as they are, not written and paid for again
+    const held = await heldTests(ctx, wt);
+    if (held) return held;
     // keep the previous attempt's tests when a retry can fix them, or start again from the stub commit
     const prev = previousAttempt(ctx.ledger.events(), "author-tests", ctx.priorFailures.map(checkOf));
     let mode = testRetryMode(prev);
@@ -599,8 +630,8 @@ export const authorTestsStep: StepDef = {
     const prevOut = mode.mode === "keep" && prev?.out ? AuthorOut.safeParse(ctx.ledger.getJson(prev.out)).data : undefined;
     const retry = { retryMode: mode.mode, retryReason: mode.reason };
     const routed = modelFor(ctx.project, "author-tests", ctx.rung, undefined, ctx.priorFailures);
-    // light lane: Sonnet writes the few small tests; Opus stays for bigger work, on escalation, or when the project routes it
-    const model = light && !ctx.project.steps["author-tests"] && ctx.rung < 2 ? LIGHT_TEST_WRITER : routed.model;
+    // light lane: Sonnet writes the few small tests; Opus stays for bigger work, on escalation, or when the run or the project routes it
+    const model = (light ? lightLaneModel(ctx.project, "author-tests", ctx.rung) : undefined) ?? routed.model;
     const { effort } = routed;
     // what earlier runs on this repo learned about where tests go (only if those files still exist here)
     const lessons = usableLessons(readLessons(ctx.project.project), wt);
@@ -626,7 +657,9 @@ export const authorTestsStep: StepDef = {
 - Write the fewest tests that prove each criterion: usually one test method per criterion, in one new test file next to the existing tests for the class.
 - At most ${LANE.light.maxCharacterisation} characterisation tests, as small unit tests of the same class. They must pass on today's code without any external service or seeded data. Skip them if the criteria already cover the unchanged behaviour.
 - Compile at most once, at the end.`)] : []),
-        S.template("tpl-end", `
+        S.template("tpl-end", apiElsewhere(ctx.project) ? `
+- Give no HTTP probes: the endpoints are served by the API, not by this app. Return an empty list of probes.
+Return the list of tests you wrote (acId, file, method name).` : `
 - For each "api" criterion whose endpoint needs NO login, also give one HTTP probe: method, path, optional JSON body, and the status code the criterion expects once implemented. The factory sends it to the running app (with an empty test database) as evidence. Skip criteria that need a login or seeded data.
 Return the list of tests you wrote (acId, file, method name) and the probes.`),
         ...(pointers.length ? [S.pointers(pointers)] : []),
@@ -658,12 +691,12 @@ Before you return, check your list against the criteria: each of these needs at 
       ctx.log(`author-tests: the previous attempt's ${ctx.priorFailures.length} rejected test${ctx.priorFailures.length === 1 ? "" : "s"} fail for an accepted reason when its reports are read again; checking its tests again without the test writer`);
       out = prevOut!;
     } else {
-      const r = await new ClaudeAgentRunner(rt, {
+      const r = await codingRunner(rt, {
         runId: ctx.runId, key: `author-tests/${ctx.attempt}`, fileScope: TEST_SCOPE, lockedFiles: [], extraProtected: contractLockFiles(ctx.project, wt), onProgress: agentTracer(ctx, "test writer"),
         protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
         onContainer: async (id) => { await ctx.ledger.append({ type: "container.started", key: "author-tests", data: { id, role: "agent" } }, ctx.writer); },
         onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key: "author-tests", data: { id } }, ctx.writer); },
-      }).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits, workdir: wt });
+      }, model).run({ step: "author-tests", model, effort, pack, schema: AuthorOut, limits, workdir: wt });
       await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
       if (r.status === "config-error" && r.error === NO_CREDIT_TEXT) {
         // the tests so far are paid for: committed, and the next attempt carries on from them (run b497 lost $1.91 of tests this way)
@@ -736,7 +769,7 @@ Before you return, check your list against the criteria: each of these needs at 
     const run2 = storeRun(ctx, await produce(ctx, "author-tests/base-2", commit, "author-tests-on-base", exp, only));
     const acIds = new Set(acs.filter((a) => a.level === "api").map((a) => a.id));
     const lock: Lock = {
-      tests, characterisation, probes: out.probes.filter((p) => acIds.has(p.acId)),
+      tests, characterisation, probes: apiElsewhere(ctx.project) ? [] : out.probes.filter((p) => acIds.has(p.acId)),
       // the API contract and the client generated from it are locked with the tests: nobody changes them after this
       lock: [...changed.filter((c) => c.status !== "D").map((c) => c.path), ...contractLockFiles(ctx.project, wt)].map((file) => ({ file, sha: sha256(readFileSync(join(wt, file))) })),
     };
@@ -750,9 +783,95 @@ Before you return, check your list against the criteria: each of these needs at 
     const lockSha = ctx.ledger.putJson({ ...lock, unlocks: [], families, familyNote, rules: { productionExceptionOk: true }, header: header(ctx.runId, "acceptance-tests", "author-tests", "", model) });
     const g = await runGate(failsOnBase, ctx.ledger, ctx.writer, { run1: run1.testRun, run2: run2.testRun, tests: lockSha }, ctx.policy, { step: "author-tests", treeSha: commit });
     if (!g.passed) return { kind: "fail", category: "other", failures: g.failures ?? [], signature: failureSignature((g.failures ?? []).map((f) => f.message)), data: keep };
-    return { kind: "done", outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, ...retry, locked: lock.lock.length, familyNote, ...(lessons.length ? { lessonsUsed: lessons.map((l) => l.csproj) } : {}) } };
+    // each test is read against its criterion now, while the writer can still tighten it: this is where a weak test is settled,
+    // since after the lock nothing in the run can change it
+    const weak = await weakTests(ctx, commit, needTest, tests);
+    if ("outcome" in weak) return weak.outcome;
+    if (weak.failures.length) {
+      const sent = ctx.ledger.events().filter((e) => e.type === "step.failed" && String(e.key).startsWith("author-tests/") && (e.data as { signature?: string } | undefined)?.signature === PROOF_SIGNATURE).length;
+      if (sent < PROOF_REWRITES && rewriteHasRoom(ctx)) return { kind: "fail", category: "other", failures: weak.failures, signature: PROOF_SIGNATURE, data: keep };
+      ctx.log(`author-tests: ${weak.failures.length} test(s) still read as weak after ${sent} rewrite${sent === 1 ? "" : "s"}; locking them as they are and naming them on the pull request`);
+    }
+    const done = { outputs: { tests: lockSha, run1: run1.testRun, run2: run2.testRun }, treeSha: commit, data: { commit, ...retry, locked: lock.lock.length, familyNote, ...(weak.weak.length ? { weakTests: weak.weak } : {}), ...(lessons.length ? { lessonsUsed: lessons.map((l) => l.csproj) } : {}) } };
+    // a criterion nothing tests, after every rewrite: the run stops here, before any code is paid for, and a person accepts it or stops
+    const untested = weak.weak.filter((w) => w.verdict === "no-test").map((w) => w.acId);
+    if (!untested.length) return { kind: "done", ...done };
+    const cover = await runGate(testsCoverCriteria, ctx.ledger, ctx.writer, { check: ctx.ledger.putJson({ coverage: weak.weak }) }, ctx.policy, { step: "author-tests", treeSha: commit });
+    const w = buildWaiver(ctx, "author-tests", [{ def: testsCoverCriteria, failures: cover.failures ?? [failure(testsCoverCriteria.id, cover.details)] }], commit,
+      `The test writer was sent back and still wrote no test for ${untested.length === 1 ? "this criterion" : "these criteria"}. Accepting locks the tests as they are and the build goes on; the pull request names the criteria. To stop instead: factory stop ${ctx.runId}`);
+    const accepted = { ...done, data: { ...done.data, acceptedUntested: untested } };
+    if (w.kind === "waived") return { kind: "done", ...accepted, data: { ...accepted.data, waivers: w.waivers } };
+    return w.outcome.kind === "wait" ? { ...w.outcome, card: { ...w.outcome.card, extra: { ...(w.outcome.card.extra ?? {}), testsFor: commit, held: accepted } } } : w.outcome;
   },
 };
+
+/**
+ * The step's result a waiver card is holding (see the end of authorTestsStep), when a person accepted the card and the
+ * worktree still has those tests: the same commit gets the same lock, with the person's name on it.
+ */
+async function heldTests(ctx: StepContext, wt: string): Promise<StepOutcome | undefined> {
+  const ev = [...ctx.ledger.events()].reverse().find((e) => e.type === "human.requested" && (e.data as { step?: string }).step === "author-tests");
+  const d = ev?.data as { artifactSha?: string; gateIds?: string[]; testsFor?: string; held?: { outputs: Record<string, string>; treeSha: string; data: Record<string, unknown> } } | undefined;
+  if (!d?.held || !d.testsFor || !d.artifactSha) return undefined;
+  const given = ctx.state.decisions.find((x) => x.artifactSha === d.artifactSha && x.decision === "waive");
+  if (!given || (await headSha(wt)) !== d.testsFor) return undefined;
+  ctx.log("author-tests: locking the tests the card was holding, as accepted (no model call)");
+  const reason = String((given as unknown as { reason?: string }).reason ?? "").trim();
+  return { kind: "done", outputs: d.held.outputs, treeSha: d.held.treeSha, data: { ...d.held.data, waivers: [{ gateIds: d.gateIds ?? [testsCoverCriteria.id], human: given.by, reason, boundTo: d.artifactSha }] } };
+}
+
+const PROOF_SIGNATURE = "author-tests:proof";
+/** How many times the test writer is sent back for tests that do not prove their criteria, before they are locked as they are. */
+const PROOF_REWRITES = 3;
+
+/**
+ * Whether the ladder gives the test writer another attempt after a failure now. The same failure twice moves it up a rung
+ * (more effort, then a stronger model where the step has one); with no rung left, or no attempt left, it parks the run for
+ * a person. A weak test is not worth that: the tests are locked as they are instead.
+ */
+export function rewriteHasRoom(ctx: Pick<StepContext, "project" | "policy" | "rung" | "attempt" | "state">): boolean {
+  const rungs = availableRungs(ctx.project, "author-tests", ctx.policy.localOnly);
+  return ctx.attempt < ctx.policy.retryBudget + ctx.state.capOverrides.extraAttempts && RUNGS.slice(ctx.rung + 1).some((r) => rungs.has(r));
+}
+const ProofOut = z.object({ coverage: z.array(ReviewCoverage) });
+/** A criterion whose test a reader judged not to prove it, and why. */
+export interface WeakTest { acId: string; verdict: "weak" | "no-test"; testId: string; why: string }
+const PROOF_TEMPLATE = `You check acceptance tests before they are locked. The code they test is not written yet, so every test fails today: do not judge whether a test passes.
+For each criterion in "acs", open its tests ("ac-tests" gives the file and the test name; a criterion can have several, judge them together) and decide whether they prove the criterion.
+- "proves-it": code that broke any part of the criterion would fail these tests. They assert the values, messages, status codes and stored data the criterion names, for every case it names.
+- "weak": the tests could pass on code that does not meet the criterion. Typical: checking that some error exists instead of the one the criterion names, checking one case of several, not comparing a value the criterion says is unchanged, not setting up the starting state the criterion describes.
+- "no-test": nothing tests it.
+Report one verdict per criterion in "coverage", with testId "" unless one test is at fault. In "why", one sentence the test writer can act on: what is not asserted. Judge only against the criterion's own words; do not ask for more than it says.`;
+
+/**
+ * Read each new test against its criterion before the lock (run e1b5: five tests passed at the end and proved too little, and by
+ * then they were locked, so the run could only ask a person to waive). The reviewer's model reads them, not the writer's route.
+ * A criterion the check leaves out counts as proven: the review at the end reads every test again and names what it finds weak.
+ */
+async function weakTests(ctx: StepContext, commit: string, needTest: { id: string }[], tests: { acId: string; file: string; name: string; testId: string }[]): Promise<{ failures: Failure[]; weak: WeakTest[] } | { outcome: StepOutcome }> {
+  if (!needTest.length) return { failures: [], weak: [] };
+  const room = Math.max(1, Math.ceil(needTest.length / 12));
+  const r = await think({ ...ctx, priorFailures: [], gateAnswers: [] }, {
+    stage: "author-tests", label: "test check", route: "review", cls: "read-large", budgetTokens: 60_000, schema: ProofOut,
+    maxTurns: 14 * room, maxUsd: 1 * room, timeoutSec: 600 * room,
+    tools: ["read_file", "search"], repoTools: toolsAt(ctx, commit), toolsAt: "under-review",
+    sections: [
+      S.template("tpl", PROOF_TEMPLATE),
+      S.artifact("acs", "acceptance-criteria", needTest),
+      S.artifact("ac-tests", "acceptance-tests", tests.map((t) => ({ acId: t.acId, file: t.file, name: t.name }))),
+      S.task("Check these tests against their criteria. Open the test files."),
+    ],
+  });
+  if (!r.ok) return r.outcome.kind === "park" ? { outcome: r.outcome } : { failures: [], weak: [] };
+  const ids = new Set(needTest.map((a) => a.id));
+  const seen = new Set<string>();
+  const bad = r.output.coverage.filter((c) => c.verdict !== "proves-it" && ids.has(c.acId) && !seen.has(c.acId) && !!seen.add(c.acId));
+  ctx.log(`author-tests: test check: ${bad.length ? `${bad.length} of ${needTest.length} criteria not proven by their tests` : `every criterion is proven by its tests`}`);
+  return {
+    weak: bad.map((c) => ({ acId: c.acId, verdict: c.verdict as WeakTest["verdict"], testId: c.testId, why: c.why })),
+    failures: bad.map((c) => failure("test-proof", `${c.acId}: ${c.verdict === "no-test" ? "no test covers it" : `its test${c.testId ? ` ${c.testId}` : ""} does not prove the criterion`} (${c.why}). Tighten the test so it asserts what the criterion says.`)),
+  };
+}
 
 // ---------- implement per task (A) ⟲ task verify (D) ----------
 const ImplementOut = z.object({ done: z.boolean(), filesChanged: z.array(z.string()), notes: z.string() });
@@ -782,7 +901,7 @@ async function isAncestor(wt: string, a: string, b: string): Promise<boolean> {
 
 /** The packages the commit's project files add or change since `diff.from`, read from the files at both commits. */
 async function packageChangesOf(wt: string, diff: DiffSummary): Promise<PackageChanges> {
-  const at = async (commit: string, path: string) => { try { return (await git(wt, ["show", `${commit}:${path}`])).stdout; } catch { return undefined; } };
+  const at = async (commit: string, path: string) => { try { return (await git(wt, ["cat-file", "blob", `${commit}:${path}`])).stdout; } catch { return undefined; } };
   const changes: PackageChange[] = [];
   for (const f of diff.files) if (isPackageManifest(f.path)) changes.push(...changedPackages(f.path, await at(diff.from, f.path), await at(diff.to, f.path)));
   return { kind: "packages", from: diff.from, to: diff.to, changes };
@@ -918,15 +1037,18 @@ export function planShowsLayers(events: LedgerEvent[], plan: OwnerPlan, spec: Ow
  * What a task works on beyond its own entry in the plan, because it holds criteria of requirements an earlier task lists
  * (acOwners): those requirements, those tasks' files, and the files of every task it is built on. A task that must make a
  * test pass may fix the code the test runs.
+ * stuck: a locked test of its own failed on the last attempt. Its test runs through the tasks it is built on, and the fault
+ * may be in their code (run e1b5: a time the create route returned finer than the database keeps, failing the get task's
+ * test twice), so their files open to it as well.
  */
-export function takenOver(plan: { tasks: { id: string; reqs: string[]; fileScope: string[]; dependsOn?: string[] }[] }, spec: OwnerSpec, taskId: string, layered = false): { reqs: string[]; fileScope: string[]; from: string[] } {
+export function takenOver(plan: { tasks: { id: string; reqs: string[]; fileScope: string[]; dependsOn?: string[] }[] }, spec: OwnerSpec, taskId: string, layered = false, stuck = false): { reqs: string[]; fileScope: string[]; from: string[] } {
   const owners = acOwners(plan, spec, layered);
   const me = plan.tasks.find((t) => t.id === taskId);
   const reqs = spec.requirements.filter((r) => !me?.reqs.includes(r.id) && r.acceptance.some((a) => owners.get(a.id) === taskId)).map((r) => r.id);
   const from = reqs.map((id) => [...plan.tasks].reverse().find((t) => t.reqs.includes(id))!).filter((t, i, all) => t.id !== taskId && all.indexOf(t) === i);
   // those tests run through every layer under this task, not only the tasks that list the requirement last (a DTO task whose
   // requirements a later task lists again): a wrong line in any of them fails a test here, so all of them can be fixed here
-  const under = new Set(from.length ? me?.dependsOn ?? [] : []);
+  const under = new Set(from.length || stuck ? me?.dependsOn ?? [] : []);
   for (const t of [...plan.tasks].reverse()) if (under.has(t.id)) for (const d of t.dependsOn ?? []) under.add(d);
   const files = [...from, ...plan.tasks.filter((t) => under.has(t.id) && !from.includes(t))].flatMap((t) => t.fileScope);
   return { reqs, from: from.map((t) => t.id), fileScope: [...new Set(files)].filter((f) => !me?.fileScope.includes(f)) };
@@ -1053,19 +1175,22 @@ export function implementStep(taskId: string): StepDef {
     async run(ctx) {
       const plan = requireOutput<Plan>(ctx.state, ctx.ledger, "plan");
       const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
-      const lock = requireOutput<Lock>(ctx.state, ctx.ledger, "author-tests");
+      const { lock, sha: lockSha } = lockOf(ctx.state, ctx.ledger);
       const baselineSha = ctx.state.steps.get("discover")!.outputs[0]!;
       const task = plan.tasks.find((t) => t.id === taskId)!;
       const inputs = implementStep(taskId).inputs(ctx.state, ctx.ledger)!;
       const start = String(inputs.taskStartSha);
       const wt = await ensureWorktree(ctx, start);
       const builtDoc = ctx.project.contract?.built ? [ctx.project.contract.built] : [];
+      // a locked test of this task failed on the last attempt: the files of the tasks it is built on open to it (takenOver)
+      const mine = acOwners(plan, spec, planShowsLayers(ctx.ledger.events(), plan, spec, lock.tests, ctx.project.stack));
+      const stuck = ctx.priorFailures.some((f) => f.check === "locked-failed" && lock.tests.some((t) => t.testId === f.testId && mine.get(t.acId) === task.id));
       // keep the previous attempt's code, or start fresh from a clean commit (its diff saved first)
       const prev = previousAttempt(ctx.ledger.events(), key, ctx.priorFailures.map(checkOf));
       let mode = retryMode(prev, ctx.rung);
       // an attempt that ended on its budget before that was read as one (run 31fe, attempt 7) left its code uncommitted: commit it now
       if (mode.mode === "keep" && !prev?.commit && ctx.priorFailures.some((f) => f.check !== checkOf(f)) && (await headSha(wt)) === start && (await dirtyPaths(wt)).length) {
-        await trackIgnored(wt, [...task.fileScope, ...takenOver(plan, spec, task.id, planShowsLayers(ctx.ledger.events(), plan, spec, lock.tests, ctx.project.stack)).fileScope], builtDoc);
+        await trackIgnored(wt, [...task.fileScope, ...takenOver(plan, spec, task.id, planShowsLayers(ctx.ledger.events(), plan, spec, lock.tests, ctx.project.stack), stuck).fileScope], builtDoc);
         await commitAll(wt, `factory: ${task.id} unfinished`);
       }
       const head = await headSha(wt);
@@ -1080,7 +1205,7 @@ export function implementStep(taskId: string): StepDef {
         // files stay; HEAD goes back to the start so the task still ends as one commit
         await git(wt, ["reset", "--mixed", "-q", start]);
         // a kept file an ignore rule matches would be cleaned away with the build output
-        await trackIgnored(wt, [...task.fileScope, ...takenOver(plan, spec, task.id, planShowsLayers(ctx.ledger.events(), plan, spec, lock.tests, ctx.project.stack)).fileScope], builtDoc);
+        await trackIgnored(wt, [...task.fileScope, ...takenOver(plan, spec, task.id, planShowsLayers(ctx.ledger.events(), plan, spec, lock.tests, ctx.project.stack), stuck).fileScope], builtDoc);
         await git(wt, ["clean", "-fdX", ...keptOnReset(ctx.project).flatMap((k) => ["-e", k])]);
         ctx.log(`implement ${taskId}: keeping previous attempt's code (${mode.reason}; diff ${saved.slice(0, 8)})`);
       } else if (head !== start || dirty) {
@@ -1097,12 +1222,15 @@ export function implementStep(taskId: string): StepDef {
       const myTests = lock.tests.filter((t) => owners.get(t.acId) === task.id);
       const earlier = earlierTests(plan, owners, lock.tests, task.id);
       // criteria held here for requirements an earlier task lists: this task gets those requirements and may change those tasks' files
-      const taken = takenOver(plan, spec, task.id, layered);
+      const taken = takenOver(plan, spec, task.id, layered, stuck);
       const fileScope = [...task.fileScope, ...taken.fileScope];
+      // a file a person unlocked for this run that this task may write: the agent is told, since the folder's rule still says hands off
+      const freed = unlockedFiles(ctx.ledger.events()).map((u) => u.file).filter((f) => matchesAny(f, fileScope));
       const sharesBuiltDir = sharesFolder(fileScope, builtDoc[0]);
       // what the last build's API document still lacks against the contract, so the agent starts from the list instead of finding it by hand
       const gap = writesEntry(fileScope, ctx.project.stack) || fileScope.some((f) => builtDoc.includes(f)) ? contractGapAt(ctx, wt, [prev?.commit, start]) : undefined;
       if (taken.from.length) ctx.log(`implement ${taskId}: also held to the criteria of ${taken.from.join(", ")} (tested through the app, which this task completes), so it may change their files too`);
+      else if (taken.fileScope.length) ctx.log(`implement ${taskId}: its own locked test failed on the last attempt, so it may change the files of the tasks it is built on too`);
       const ref = ctx.state.info.estimateRef;
       const approvedDesign = approvedDesignFor<ApprovedDesign>(ctx.state, ctx.ledger)?.design;
       const screen = ref && approvedDesign ? screenFor(ctx.ledger.getJson(ref.breakdownSha), approvedDesign, task.estimateTaskId) : undefined;
@@ -1121,6 +1249,12 @@ export function implementStep(taskId: string): StepDef {
       const limits = { maxTurns: 80 * room, maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4 * room), timeoutSec: 45 * 60 * room };
       // a backend on PostgreSQL: the session gets an empty database of its own, so the agent can run the locked tests
       const sessionDb = agentDatabase(ctx.project);
+      // the approved guidelines' rules for this task's files, so the code is written to the rules the reviewer judges it by.
+      // Not part of the step's inputs: guidelines approved or rebuilt during a run must not build finished tasks again.
+      const conv = readApproved(ctx.state.info.project);
+      const rules = "unapproved" in conv ? undefined : guidelinesBrief(conv, fileScope);
+      if (rules) ctx.log(`implement ${taskId}: shown ${rules.shown} coding guideline${rules.shown === 1 ? "" : "s"} for its files (guidelines ${"sha" in conv ? conv.sha.slice(0, 8) : ""}${rules.cut ? `; ${rules.cut} outside best practices left out, over the limit` : ""})`);
+      else if ("unapproved" in conv) ctx.log(`implement ${taskId}: no approved coding guidelines, so none are shown`);
       const pack = buildPack({
         stage: "implement", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
         sections: [
@@ -1143,9 +1277,11 @@ export function implementStep(taskId: string): StepDef {
           ...(designSystemTask ? [S.template("design-system", `This is the design-system task. The generated files are already in the repo (the scaffold commit). Finish the wiring:\n${scaf!.designSystem.todo.map((t) => `- ${t}`).join("\n") || "- nothing left to wire: check the app builds"}\nDo not change the generated files.`)] : []),
           S.artifact("acs", "acceptance-criteria", spec.requirements.filter((r) => task.reqs.includes(r.id) || taken.reqs.includes(r.id))),
           ...(sharesBuiltDir.length ? [S.template("built-doc-folder", `The build writes the API document to ${builtDoc[0]}. On this machine folder names that differ only in case are one folder, so that is also the folder of ${sharesBuiltDir.join(", ")}. Never delete or empty that folder: to get a fresh document, delete only ${builtDoc[0]}.`)] : []),
-          ...(taken.from.length ? [S.template("taken-over", `The locked tests below include those of ${taken.from.join(", ")}: their requirements (${taken.reqs.join(", ")}) are tested through the running app, and this is the task that completes it. Those tasks are done and their code is in the repo. Make these tests pass too. Where one fails because that earlier code is wrong, fix it there: their files are in your file scope.`)] : []),
+          ...(taken.from.length ? [S.template("taken-over", `The locked tests below include those of ${taken.from.join(", ")}: their requirements (${taken.reqs.join(", ")}) are tested through the running app, and this is the task that completes it. Those tasks are done and their code is in the repo. Make these tests pass too. Where one fails because that earlier code is wrong, fix it there: their files are in your file scope.`)] : taken.fileScope.length ? [S.template("taken-over", `A locked test of this task failed on the last attempt. It runs through the code of the tasks this one is built on, which are done and in the repo. Where the test fails because that earlier code is wrong, fix it there: their files are in your file scope.`)] : []),
+          ...(freed.length ? [S.template("unlocked", `A person unlocked ${freed.join(", ")} for this run: you may change ${freed.length === 1 ? "it" : "them"}, whatever a rule below says about ${freed.length === 1 ? "its" : "their"} folder. Every other locked file stays as it is.`)] : []),
           ...contractNote(ctx.project, wt, "code"),
           ...dataModelNote(ctx.project, wt, "code", !!databaseBefore(ctx)),
+          ...(rules ? [S.reference("guidelines", rules.text)] : []),
           S.artifact("tests", "locked-tests", myTests),
           S.pointers([...task.fileScope.map((p) => ({ path: p, reason: "you may change this" })), ...taken.fileScope.map((p) => ({ path: p, reason: "an earlier task's file; change it only to fix a failing test" })), ...task.exemplars.map((p) => ({ path: p, reason: "follow this style" })), ...myTests.map((t) => ({ path: t.file, reason: `locked test for ${t.acId}; read, don't edit` }))]),
           ...(prevChange !== undefined ? [{ spec: { id: "previous-change", source: "artifact" as const, trust: "derived" as const, placement: "user" as const }, artifactKind: "diff",
@@ -1176,12 +1312,12 @@ export function implementStep(taskId: string): StepDef {
       else {
         // a task that also holds earlier tasks' tests has their work to prove as well as its own: twice the turns, budget and
         // time of one task, so it is not cut off and started again part-way (each new session pays to read everything again)
-        const r = await new ClaudeAgentRunner(rt, {
+        const r = await codingRunner(rt, {
           runId: ctx.runId, key: `${key}/${ctx.attempt}`, fileScope, lockedFiles: lock.lock.map((l) => l.file), onProgress: agentTracer(ctx, "implementer"),
           extraProtected: scaf?.protected ?? [], ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo, ...(sessionDb ? { database: sessionDb } : {}),
           onContainer: async (id, role) => { await ctx.ledger.append({ type: "container.started", key, data: { id, role } }, ctx.writer); },
           onRemoved: async (id) => { await ctx.ledger.append({ type: "container.removed", key, data: { id } }, ctx.writer); },
-        }).run({ step: "implement", model, effort, pack, schema: ImplementOut, limits, workdir: wt });
+        }, model).run({ step: "implement", model, effort, pack, schema: ImplementOut, limits, workdir: wt });
         await ctx.usage({ model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens, cacheRead: r.usage.cacheRead, cacheWrite: r.usage.cacheWrite, turns: r.usage.turns, wallMs: r.usage.wallMs, estUsd: r.usage.estUsd });
         if (r.status === "config-error" && r.error === NO_CREDIT_TEXT) {
           // the code so far is paid for: committed, and the next attempt carries on from it at the same rung
@@ -1219,7 +1355,7 @@ export function implementStep(taskId: string): StepDef {
       };
       // 1. the diff checks first: a change that touches locked tests, protected files or secrets never gets run
       const diffGated = await gateAll(ctx, key, commit, [
-        [lockSetUnchanged, { diff: diffSha, tests: ctx.state.steps.get("author-tests")!.outputs[0]! }],
+        [lockSetUnchanged, { diff: diffSha, tests: lockSha }],
         [configIntegrity, { diff: diffSha, plan: ctx.state.steps.get("plan")!.outputs[0]! }],
         [packagesPlanned, { packages: ctx.ledger.putJson(await packageChangesOf(wt, diff)), plan: ctx.state.steps.get("plan")!.outputs[0]! }],
         [noSecrets, { scan: ctx.ledger.putJson(secretScanOf(diff, commit)) }],
@@ -1373,7 +1509,7 @@ export const integrateStep: StepDef = {
     return { head: tasks[tasks.length - 1]!.data?.commit, tests: s.steps.get("author-tests")!.outputs[0] };
   },
   async run(ctx) {
-    const lock = requireOutput<Lock>(ctx.state, ctx.ledger, "author-tests");
+    const { lock, sha: lockSha } = lockOf(ctx.state, ctx.ledger);
     const baselineSha = ctx.state.steps.get("discover")!.outputs[0]!;
     const baseline = ctx.ledger.getJson<TestRun>(baselineSha);
     const head = String(integrateStep.inputs(ctx.state, ctx.ledger)!.head);
@@ -1401,7 +1537,7 @@ export const integrateStep: StepDef = {
     const uiApproved = dRef ? approvedLevel(ctx.ledger.getJson(dRef)) : undefined;
     const gated = await gateAll(ctx, "integrate", head, [
       [testExpectations, { run: testRun, baseline: baselineSha }],
-      [lockSetUnchanged, { diff: diffSha, tests: ctx.state.steps.get("author-tests")!.outputs[0]! }],
+      [lockSetUnchanged, { diff: diffSha, tests: lockSha }],
       // the whole API says what the locked contract says
       ...contractGate(ctx, wt, head, false),
       // the database the app creates has the approved tables, keys and relations
@@ -1438,6 +1574,12 @@ export const integrateStep: StepDef = {
   },
 };
 
+/**
+ * A web app that is the client of a contract serves none of the contract's endpoints: the API does. A probe sent to it can
+ * only answer 404 (run 0f9d parked at accept on five of them, with every locked test passing).
+ */
+export const apiElsewhere = (project: { stack: string; contract?: unknown }): boolean => project.stack === "node" && !!project.contract;
+
 // ---------- accept (D, no model) ----------
 // Boot the app next to the test Postgres, send the locked HTTP probes, re-run the locked criteria tests;
 // every criterion gets evidence of its kind (verify-runner §2.8, minimal: no login/identities yet).
@@ -1446,9 +1588,11 @@ export const acceptStep: StepDef = {
   inputs: (s) => (s.steps.get("integrate")?.status === "completed" ? { integrate: s.steps.get("integrate")!.outputs[0], head: s.steps.get("integrate")!.data?.commit } : undefined),
   async run(ctx): Promise<StepOutcome> {
     const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
-    const lock = requireOutput<Lock>(ctx.state, ctx.ledger, "author-tests");
+    const { lock } = lockOf(ctx.state, ctx.ledger);
     const head = String(ctx.state.steps.get("integrate")!.data!.commit);
-    const probes = lock.probes ?? [];
+    const locked = lock.probes ?? [];
+    const probes = apiElsewhere(ctx.project) ? [] : locked;
+    if (locked.length && !probes.length) ctx.log(`accept: ${locked.length} probe(s) not sent: the endpoints are served by the API (${ctx.project.contract!.apiUrl}), not by this app; the locked tests are the evidence`);
     ctx.log(`accept: booting the app and sending ${probes.length} probe(s)`);
     const out = await produce(ctx, "accept", head, "accept", { expectPass: lock.tests.map((t) => t.testId), expectFail: [], compareToBaseline: [] },
       lock.tests.map((t) => t.testId), undefined, { probes });

@@ -1,0 +1,282 @@
+{
+  "header": {
+    "kind": "evidence-manifest",
+    "schemaVersion": 1,
+    "runId": "20261009-co-working-space-maintenance-0f9d",
+    "producedBy": {
+      "stage": "deliver"
+    },
+    "inputsHash": "091332e45fe7922008873a29ad56a94527c0be184038a75a9b3a92c66807ccc2",
+    "createdAt": "2026-10-10T02:29:05.231Z"
+  },
+  "artifacts": [
+    {
+      "kind": "blob",
+      "path": "discover",
+      "sha": "21f8c107e146fcacaf90e786c35d26c3950ed1a736f74ef030ad614ccdc85422"
+    },
+    {
+      "kind": "blob",
+      "path": "intake",
+      "sha": "c29b719951d32247faba8e23ae8d58396e467254672dc2f8529a36bc6f842f0a"
+    },
+    {
+      "kind": "blob",
+      "path": "ground",
+      "sha": "fc702aa217ec1011c33a86e7778b0e6b836e818f44f7eb2cbd13c8a20c96fe91"
+    },
+    {
+      "kind": "blob",
+      "path": "clarify",
+      "sha": "290dff939412318afbe0eea3e76a7b00db64b475c5f1db48d915dafaca43df6c"
+    },
+    {
+      "kind": "blob",
+      "path": "clarify-2",
+      "sha": "69a4b9eb7452a288a60b7f4382a81ad059d5c12d56a9ba4a95a40f1bb60b2ed2"
+    },
+    {
+      "kind": "blob",
+      "path": "drafts",
+      "sha": "ac3f4180efc500d60d9d020f64a1207beeb473e2f294277f3d6820a07802f4c8"
+    },
+    {
+      "kind": "blob",
+      "path": "merge",
+      "sha": "da8fcfb3c03a3eb567697264320e1afcc8e64e9b26eec5893944351214e29b2e"
+    },
+    {
+      "kind": "blob",
+      "path": "specify",
+      "sha": "575020913624cd91ce70b259d5d6cca06f4e0ecd472d4136e707bd5e4313d376"
+    },
+    {
+      "kind": "blob",
+      "path": "specify",
+      "sha": "1c00d3d53e822caa4375e4a6bd9e077439a86eba2b7aacc55c243486466961a4"
+    },
+    {
+      "kind": "blob",
+      "path": "design",
+      "sha": "a8c32e2da1802f0a7a72e1c9d81fcca375c92365c3bdbb80807753afbccdaaaf"
+    },
+    {
+      "kind": "blob",
+      "path": "design-baseline",
+      "sha": "f4f642aa1d3347c38c138d6bf1cd7f3ecc85d890b64e5288c5b2e6c44a1b10cb"
+    },
+    {
+      "kind": "blob",
+      "path": "design-export",
+      "sha": "61fca5123017908f2306a0c64acb3ffd96b3cbda5ecec9826027e4bac4fa2537"
+    },
+    {
+      "kind": "blob",
+      "path": "plan",
+      "sha": "e0c7f88ce4d7ebb840976fe1067764ee6d6f692f5fbd7da00ac0f45558068ae7"
+    },
+    {
+      "kind": "blob",
+      "path": "approve",
+      "sha": "a4d58bd1d3e6312123fda6f5a9add08e17128a7c47cb74716b50b22bc23ade46"
+    },
+    {
+      "kind": "blob",
+      "path": "stub-commit",
+      "sha": "135df7fa59ede08c2aac9e6cdef869b96d82a59e5b5db02ccf36a63ce384c085"
+    },
+    {
+      "kind": "blob",
+      "path": "stub-commit",
+      "sha": "673ba19e5170453e6c1918883a1a0e8b0bc5b144e65ea20c203270f6c64d9b34"
+    },
+    {
+      "kind": "blob",
+      "path": "author-tests",
+      "sha": "d80a6167f871b42f7aded4b17fe566e9ef85bf3cac8575f0cb3883f4c83b80ae"
+    },
+    {
+      "kind": "blob",
+      "path": "author-tests",
+      "sha": "378d27c1f7bb176d308654889b44d6165c248e3dfbe3b92009a771b1829265d3"
+    },
+    {
+      "kind": "blob",
+      "path": "author-tests",
+      "sha": "965c26cc69194ce08bec2a540d95121d8945704f3497916571a27d47b097a6bf"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-1",
+      "sha": "d50694deb8aae9eb4bc262be58796d4b636d5462bb19e0d00863dce67d51cdb5"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-1",
+      "sha": "04630b99b7ec6679efe5bdddd5fe38954dc9ed9a5fdae14f9e712e0e361d2c6f"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-2",
+      "sha": "68815fd4bd9a2610c1dee7235c4706bd5c76922c0ab59d2ff2ef484344f789eb"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-2",
+      "sha": "2059d820333c7d297835a876bc974dbb715882751a7f817622f7bdaf5a1ef0a8"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-3",
+      "sha": "a67ca7956fac05383d5a83358cb9c2ff46c2493b6574e2da4f5d84ff23ee5e6f"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-3",
+      "sha": "fd3c2dbcc1d35a36e6fa3c4370baf0f6b9aabcf1582586874df2bec101307404"
+    },
+    {
+      "kind": "blob",
+      "path": "integrate",
+      "sha": "fd3c2dbcc1d35a36e6fa3c4370baf0f6b9aabcf1582586874df2bec101307404"
+    },
+    {
+      "kind": "blob",
+      "path": "integrate",
+      "sha": "6e6936900f9a8648c9f6840d7465b0eff766e43a762be98a4ded0b5387008405"
+    },
+    {
+      "kind": "blob",
+      "path": "accept",
+      "sha": "d7b1ed824a456c19ae3c629d9a2618a5a5637c077686663327d5e328bd912111"
+    },
+    {
+      "kind": "blob",
+      "path": "accept",
+      "sha": "676a92610d2df5445f31f6450b40f584b161c34cc5e624478f2d4911fbdd1d29"
+    },
+    {
+      "kind": "blob",
+      "path": "design-fidelity",
+      "sha": "0d24c1a56d7db5a661e71a40595494f6d4b5f148d738e39fda9aa6c73a076510"
+    },
+    {
+      "kind": "blob",
+      "path": "design-check",
+      "sha": "6891815fb71b3fb6806ba65242effc73a4c1accb36995f9ad28e80ced91c369d"
+    },
+    {
+      "kind": "blob",
+      "path": "review",
+      "sha": "7db4b8688b4406a4b99d8b0e3715705531ea95f7cff98b65f627a0ce17635f52"
+    }
+  ],
+  "locks": [
+    {
+      "file": "tests/api-create.test.ts",
+      "sha": "34e42856255f5d99ae13167cf73f700345a48f3060f4305c64a87656ccf6ac6a"
+    },
+    {
+      "file": "tests/api-seed.test.ts",
+      "sha": "4369efa83a2ae611c0fa7ca7a26c7bf1c5398fc986b272bbd40807502b4e8508"
+    },
+    {
+      "file": "tests/api-status.test.ts",
+      "sha": "2b4973798ea40cd7a2536f72e579215e8ec8d251e3981ce0668fb66e265f2ce9"
+    },
+    {
+      "file": "tests/helpers/api.ts",
+      "sha": "3ff19179cbd897dcafed7a79c59fabb38acd371c20384879ea523ae5faba39cb"
+    },
+    {
+      "file": "tests/helpers/fake-api.ts",
+      "sha": "2f82004d634612e57417ceb7a6dcf2a29b352c07c0bc8510363a6afd47da06e6"
+    },
+    {
+      "file": "tests/helpers/guard.ts",
+      "sha": "3ee2e40e058beaccb511016930f67e87ad073b263f5fb841213cf50753742074"
+    },
+    {
+      "file": "tests/helpers/page.tsx",
+      "sha": "1845b179ec7eec2bc0f5c78736860a89872bffcfea51f802c989a469298936ea"
+    },
+    {
+      "file": "tests/routes.char.test.ts",
+      "sha": "618e71f0b0a786ba9bf89d04251ab6af8ac4fa0dee42338412db8ed7a1f7bd9c"
+    },
+    {
+      "file": "tests/screen-create.test.tsx",
+      "sha": "3ae362bcf557674b940dec46a69709f0ba6d83fa17aa15c01709cb7578d39758"
+    },
+    {
+      "file": "tests/screen-detail.test.tsx",
+      "sha": "f7d46591dec21439218da52453004d743f386590bebb7b2d527faa00ba499754"
+    },
+    {
+      "file": "tests/screen-flow.test.tsx",
+      "sha": "ef78b2bef0421d32ec31ce5f4d50f7df8187e3c098becfc828cf5822abb1e884"
+    },
+    {
+      "file": "tests/screen-list.test.tsx",
+      "sha": "e58139c29a990407894fc1afb41d539ea7926ea1bd33743d9a853714dd510bce"
+    },
+    {
+      "file": "contracts/openapi.yaml",
+      "sha": "2cf06dc03513489ad19f5631d6cb9d0e0227d2ddaad4d32406639075a9ba2585"
+    },
+    {
+      "file": "lib/api/client.msw.ts",
+      "sha": "980758c003cc449f394205d685aa7f19097d6189e043f4a691bd83390a3640f3"
+    },
+    {
+      "file": "lib/api/client.schemas.ts",
+      "sha": "9002cb2443593c979ed181d3432e92adc5f227eb2b118a1b8a3737c60f1a1051"
+    },
+    {
+      "file": "lib/api/client.ts",
+      "sha": "a4c5cd2fc6be1e33eb68b5e4de03bdaf2b3735a224c728048adfedf99329c49a"
+    },
+    {
+      "file": "lib/api/index.ts",
+      "sha": "06a1c829b0a5e58b2e32f755f204317fd1c34eceb5ae110d6823d668441172da"
+    },
+    {
+      "file": "orval.config.cjs",
+      "sha": "521b00b740896c01d641cda75dd886438bc2f64fcac27cf8ca26e88c9e8a7958"
+    }
+  ],
+  "approvals": [
+    {
+      "gate": "design-1951166c",
+      "artifactSha": "1951166cd3b4e0a07231baa7f8d1ee98971d18a349ae5b5e446c33f323b5b208",
+      "osUser": "Hamza (via web)",
+      "gitIdentity": "mhamza",
+      "riskNote": "",
+      "at": "2026-10-10T02:29:05.231Z"
+    },
+    {
+      "gate": "approval-1989fc9e",
+      "artifactSha": "1989fc9e0c7cbe8ac083b34ad4b7242f23c7396aeb853cbb06553fe843f9931a",
+      "osUser": "Hamza (via web)",
+      "gitIdentity": "mhamza",
+      "riskNote": "",
+      "at": "2026-10-10T02:29:05.231Z"
+    }
+  ],
+  "gatedTreeSha": "8e5e324af254a7944f4c4d0bfd52511daa47a115",
+  "waivers": [],
+  "unlocks": [],
+  "configFingerprint": "16a319e8954fad6d48db7997a911b890711be9b1b3a363943c371c6423e9625b",
+  "versions": {
+    "factory": "0.1.0",
+    "commit": "165ef42",
+    "node": "v22.22.0",
+    "mode:brownfield": "1",
+    "mode:estimate": "1",
+    "mode:design": "1",
+    "@anthropic-ai/claude-agent-sdk": "0.3.283",
+    "@anthropic-ai/sdk": "0.128.0",
+    "openai": "7.23.0",
+    "zod": "4.6.5"
+  }
+}

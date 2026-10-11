@@ -38,10 +38,29 @@ const STATE_TO_STATUS = { pending: "in_progress", success: "completed", failure:
  * so both are folded into one payload — which is then recorded verbatim, because this is a third
  * party's assertion and a replay must not depend on what GitHub answers today.
  */
+/**
+ * Open pull requests, newest first, with whether each is still a draft. The factory opens a pull
+ * request as a draft and marks it ready once its own review is posted, so "draft" is the difference
+ * between a pull request that is still being assembled and one that is asking to be gated.
+ */
+export async function listOpenPrs(gh: Gh, f: typeof fetch = fetch): Promise<{ number: number; draft: boolean; headSha: string }[]> {
+  const out: { number: number; draft: boolean; headSha: string }[] = [];
+  // every page: past 100 open pull requests the oldest would otherwise never be gated
+  let url: string | undefined = `${gh.api}/pulls?state=open&sort=created&direction=desc&per_page=100`;
+  while (url) {
+    const res = await f(url, { headers: gh.headers });
+    const next = /<([^>]+)>;\s*rel="next"/.exec(res.headers?.get?.("link") ?? "");
+    const prs = (await ok(res, "open pulls")) as { number: number; draft?: boolean; head: { sha: string } }[];
+    out.push(...prs.map((p) => ({ number: p.number, draft: p.draft === true, headSha: p.head.sha })));
+    url = next?.[1];
+  }
+  return out;
+}
+
 export async function listChecks(gh: Gh, sha: string, required: string[], f: typeof fetch = fetch): Promise<ExternalChecks> {
   const runs = (await ok(await f(`${gh.api}/commits/${sha}/check-runs?per_page=100`, { headers: gh.headers }), "check-runs")) as
     { check_runs: { name: string; status: string; conclusion?: string; details_url?: string; completed_at?: string }[] };
-  const statuses = (await ok(await f(`${gh.api}/commits/${sha}/status`, { headers: gh.headers }), "status")) as
+  const statuses = (await ok(await f(`${gh.api}/commits/${sha}/status?per_page=100`, { headers: gh.headers }), "status")) as
     { statuses: { context: string; state: keyof typeof STATE_TO_STATUS; target_url?: string }[] };
   return {
     headSha: sha,
@@ -66,26 +85,51 @@ export async function listChecks(gh: Gh, sha: string, required: string[], f: typ
   };
 }
 
-/** One check, updated in place: a pull request accumulating one check per webhook is unusable. */
-export async function upsertCheckRun(
+/**
+ * The latest state of one context on a commit, read from the combined status. `undefined` when the
+ * commit has none, or only a pending one. `error` reads as failure, as a required check treats it.
+ * 100 contexts are asked for: GitHub returns 30 by default, and a verdict past them would read as
+ * missing and be posted again on every pass.
+ */
+export async function commitStatus(gh: Gh, sha: string, context: string, f: typeof fetch = fetch): Promise<"success" | "failure" | undefined> {
+  const combined = (await ok(await f(`${gh.api}/commits/${sha}/status?per_page=100`, { headers: gh.headers }), "status")) as
+    { statuses: { context: string; state: keyof typeof STATE_TO_STATUS }[] };
+  const s = combined.statuses.find((x) => x.context === context);
+  if (!s || s.state === "pending") return undefined;
+  return s.state === "success" ? "success" : "failure";
+}
+
+/**
+ * The verdict as a commit status. A personal access token can write one; a check run can only be
+ * created by a GitHub App. Posting again does NOT replace the last status: GitHub keeps every one,
+ * up to 1000 per commit and context, and refuses the next. Only the latest counts for the check.
+ */
+export async function setCommitStatus(
   gh: Gh,
-  a: { name: string; headSha: string; conclusion: "success" | "failure" | "neutral"; title: string; summary: string },
+  a: { context: string; sha: string; conclusion: "success" | "failure" | "neutral"; description: string },
   f: typeof fetch = fetch,
-): Promise<"created" | "updated"> {
-  const existing = (await ok(
-    await f(`${gh.api}/commits/${a.headSha}/check-runs?check_name=${encodeURIComponent(a.name)}`, { headers: gh.headers }),
-    "check-run lookup",
-  )) as { check_runs: { id: number }[] };
-  const body = JSON.stringify({
-    name: a.name, head_sha: a.headSha, status: "completed", conclusion: a.conclusion,
-    output: { title: a.title, summary: a.summary },
-  });
-  const id = existing.check_runs[0]?.id;
+): Promise<void> {
+  // a status has no neutral; a required check counts a neutral check run as passing, so this keeps that
+  const state = a.conclusion === "failure" ? "failure" : "success";
+  // GitHub refuses a description over 140 characters
+  const description = a.description.length > 140 ? `${a.description.slice(0, 139)}…` : a.description;
   await ok(
-    await f(id ? `${gh.api}/check-runs/${id}` : `${gh.api}/check-runs`, { method: id ? "PATCH" : "POST", headers: gh.headers, body }),
-    "check-run write",
+    await f(`${gh.api}/statuses/${a.sha}`, { method: "POST", headers: gh.headers, body: JSON.stringify({ state, context: a.context, description }) }),
+    "commit status",
   );
-  return id ? "updated" : "created";
+}
+
+/**
+ * Merge a pull request with a merge commit, and only while its head is still `sha`: the commit that was judged.
+ * A squash or a rebase would land a commit nobody gated. GitHub refusing (branch protection, a head that moved,
+ * a conflict, a draft) is an answer, not an error.
+ */
+export async function mergePullRequest(gh: Gh, a: { pr: number; sha: string }, f: typeof fetch = fetch): Promise<{ merged: boolean; why: string }> {
+  const res = await f(`${gh.api}/pulls/${a.pr}/merge`, { method: "PUT", headers: gh.headers, body: JSON.stringify({ sha: a.sha, merge_method: "merge" }) });
+  if (res.ok) return { merged: true, why: "merged" };
+  let message = "";
+  try { message = String(((await res.json()) as { message?: string }).message ?? ""); } catch { /* no body */ }
+  return { merged: false, why: `GitHub answered ${res.status}${message ? `: ${message.slice(0, 200)}` : ""}` };
 }
 
 /** Update the factory's own comment, never append another. */
@@ -107,16 +151,29 @@ export async function upsertReviewComment(
 }
 
 export async function getPr(gh: Gh, n: number, f: typeof fetch = fetch): Promise<{
-  headSha: string; headRef: string; baseRef: string; state: string; merged: boolean;
+  headSha: string; headRef: string; headRepo: string; baseRef: string; state: string; merged: boolean;
 }> {
   const pr = (await ok(await f(`${gh.api}/pulls/${n}`, { headers: gh.headers }), `pull ${n}`)) as
-    { head: { sha: string; ref: string }; base: { ref: string }; state: string; merged: boolean };
-  return { headSha: pr.head.sha, headRef: pr.head.ref, baseRef: pr.base.ref, state: pr.state, merged: pr.merged };
+    { head: { sha: string; ref: string; repo?: { full_name: string } | null }; base: { ref: string }; state: string; merged: boolean };
+  // the head's repository, "" when it was deleted: a fork's branch lives somewhere a push must never aim
+  return { headSha: pr.head.sha, headRef: pr.head.ref, headRepo: pr.head.repo?.full_name ?? "", baseRef: pr.base.ref, state: pr.state, merged: pr.merged };
 }
 
-/** The factory's own review body on a pull request, for the run-id marker. */
-export async function findReviewBody(gh: Gh, n: number, f: typeof fetch = fetch): Promise<string | undefined> {
+/** The account the forge token belongs to: the one that posts the factory's own reviews. */
+export async function factoryLogin(gh: Gh, f: typeof fetch = fetch): Promise<string> {
+  const me = (await ok(await f(`${gh.root}/user`, { headers: gh.headers }), "user")) as { login: string };
+  return me.login;
+}
+
+/**
+ * The factory's own review body on a pull request, for the run-id marker. With `author`, only a review
+ * that account wrote counts: the marker now decides which ledger authorises a push, and anyone who can
+ * comment on the pull request could otherwise write one.
+ */
+export async function findReviewBody(gh: Gh, n: number, f: typeof fetch = fetch, author?: string): Promise<string | undefined> {
   const reviews = (await ok(await f(`${gh.api}/pulls/${n}/reviews?per_page=100`, { headers: gh.headers }), `reviews ${n}`)) as
-    { body: string }[];
-  return reviews.map((r) => r.body).find((b) => /factory-review:/.test(b ?? ""));
+    { body: string; user?: { login: string } | null }[];
+  return reviews
+    .filter((r) => author === undefined || r.user?.login === author)
+    .map((r) => r.body).find((b) => /factory-review:/.test(b ?? ""));
 }

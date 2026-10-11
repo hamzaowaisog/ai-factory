@@ -10,6 +10,7 @@ import { Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { gatherRequest } from "../sources/request.js";
 import { runDetached } from "../stages/background.js";
+import { choiceFrom } from "../stages/routing.js";
 import { shownStatus } from "../stages/run-status.js";
 import { API_PORT } from "../fullstack/skeleton.js";
 import { DATABASE_NAME, type DatabaseKind } from "../fullstack/database.js";
@@ -97,7 +98,7 @@ export function productsView(): { name: string; web: SideView; api: SideView }[]
 }
 
 /**
- * Start a product, as `factory fullstack start`: { name, dir, prompt or file, or fromDesign or fromEstimate, maxCost, github }. Every
+ * Start a product, as `factory fullstack start`: { name, dir, prompt or file, or fromDesign or fromEstimate, maxCost, github, models }. Every
  * check comes before anything is written (with `github`, GitHub is asked too: the token, and that both names are free); then the two repos and their projects are made and the web run (greenfield) starts in the
  * background. An approved design or estimate brings its own request.
  */
@@ -133,7 +134,7 @@ export async function startFullstack(input: Record<string, unknown>, deps: Start
     if (tmp) rmSync(tmp, { recursive: true, force: true });
   }
   let p: Product;
-  try { p = await startProduct(name, dir, req, `${userInfo().username} (via web)`, maxCostUsd, seed, input.github === true); } catch (e) { throw new StartError((e as Error).message); }
+  try { p = await startProduct(name, dir, req, `${userInfo().username} (via web)`, maxCostUsd, seed, input.github === true, choiceFrom(input.models)); } catch (e) { throw new StartError((e as Error).message); }
   (deps.execute ?? runDetached)(p.web.run!);
   return { name: p.name, webRun: p.web.run! };
 }

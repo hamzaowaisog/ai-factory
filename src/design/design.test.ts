@@ -163,6 +163,13 @@ describe("design: inventory", () => {
     expect(inv.pages.map((p) => `${p.kind} ${p.route}`).sort()).toEqual(["feature-folder /users", "file-route /users"]);
   });
 
+  it("does not take a missing page in a [param] folder for the repo's own (git show answers such a path with nothing and no error)", () => {
+    const r = gitRepo({ ...NEXT_ROOT, "app/items/[id]/page.tsx": "export default function Page() { return null; }\n" });
+    const src = gitSource(r.dir, r.base);
+    expect(src.read("app/requests/[id]/page.tsx")).toBeUndefined();
+    expect(src.read("app/items/[id]/page.tsx")).toContain("export default function Page");
+  });
+
   it("is deterministic and reads a commit without checking it out", () => {
     const r = gitRepo(NEXT_ROOT);
     expect(JSON.stringify(buildInventory(gitSource(r.dir, r.base)))).toBe(JSON.stringify(buildInventory(dirSource(r.dir))));

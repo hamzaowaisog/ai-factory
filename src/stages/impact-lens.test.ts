@@ -102,7 +102,7 @@ describe("impact lenses (fake provider)", () => {
     expect(item("src/Billing/Refunds.cs")).toMatchObject({ level: "must-change", lens: "callers", reason: "REQ-1: refunds must run on cancel (callers lens)" });
     expect(item("src/Orders/Notes.cs")!.level).toBe("check");
     const callers = impact.lensStats!.find((l) => l.lens === "callers")!;
-    expect(callers).toMatchObject({ findings: 2, bad: 0, demoted: 1, retried: false, model: "claude-sonnet-5" });
+    expect(callers).toMatchObject({ findings: 2, bad: 0, demoted: 1, retried: false, model: "claude-sonnet-5-5" });
     expect(callers.usd).toBeGreaterThan(0);
     expect(used).toHaveLength(4); // every lens's usage reaches the run's cost
     expect(Object.keys(data.lensUsd as object).sort()).toEqual(["callers", "data", "screens", "tests"]);

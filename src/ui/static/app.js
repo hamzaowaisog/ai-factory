@@ -337,6 +337,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const estimating = kind === "estimate" || designing;
   skeleton();
   const meta = await api("/api/projects");
+  const catalogue = await api(`/api/models/${designing ? "design" : estimating ? "estimate" : "build"}`);
   const err = h("div", { class: "error", hidden: true });
   const listed = meta.projects;
   const project = h("select", { id: "project" },
@@ -505,6 +506,10 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const uiTarget = h("select", { id: "uitarget" }, h("option", { value: "" }, "Detect from the repo"), Object.entries(TARGET_LABELS).map(([v, t]) => h("option", { value: v }, t)));
   const uiTargetBlock = !estimating ? h("div", { class: "field" }, h("label", { for: "uitarget" }, "UI target (optional)"), uiTarget,
     h("div", { class: "hint" }, "What the approved design is built in when the project's design.uiTarget sets nothing (like --ui-target). A kit target puts the kit, the theme and every approved page into the repo before the agents start; the agents write the behaviour. Detection picks the kit for a Next.js or Vite app and the repo's own components otherwise.")) : null;
+  const picker = modelPicker(catalogue, "modelpreset");
+  const modelPreset = picker.preset, modelsTable = picker.table, modelsHint = picker.hint, modelsPicked = picker.picked;
+  const modelsBlock = estimating ? sect(designing ? 7 : 8, "Models", "The model each step runs on.", h("div", { class: "fld" }, h("label", { for: "modelpreset" }, "Preset"), modelPreset), modelsTable, modelsHint)
+    : h("div", { class: "field" }, h("label", { for: "modelpreset" }, "Models"), modelPreset, modelsTable, modelsHint);
   const maxCost = h("input", { type: "number", id: "maxcost", min: "0.5", step: "0.5", placeholder: "normal limit" });
   // optional and rarely changed: folded, so the form reads as request, then start
   const moreOpts = h("details", { class: "more-opts" }, h("summary", {}, h("strong", {}, "More options"), h("span", { class: "hint" }, estimating ? "design references · export on approval" : "design references · export on approval · UI target")),
@@ -527,7 +532,8 @@ async function requestScreen(kind = "brownfield", preset = []) {
       h("div", { class: "hint" }, "Use one input or several: they are combined into one request, like factory start does.")),
     settings,
     moreOpts,
-    estimating ? sect(designing ? 7 : 8, "Cost", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
+    modelsBlock,
+    estimating ? sect(designing ? 8 : 9, "Cost", null, h("div", { class: "fld" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
       h("div", { class: "opts" }, opt2("fresh", fresh, "Ask the model again", "Don't reuse answers stored from an identical earlier request (like --fresh). It costs more; use it when an answer should be redone.")))
       : h("div", { class: "field" }, h("label", { for: "maxcost" }, "Max cost (optional)"), h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), h("div", { class: "hint" }, "It can only lower the normal limit, like --max-cost.")),
     h("div", { class: "row" }, start, h("span", { class: "hint" }, designing ? "Runs in the background. Questions and the design approval can be answered here on the run page or in your terminal." : "Runs in the background. Questions, the design and the plan can be decided here on the run page or in your terminal; waivers and cost limits stay in the terminal.")),
@@ -550,7 +556,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
       const bf = buildFrom();
       const from = !estimating ? (bf.kind === "e" ? { fromEstimate: bf.id } : bf.kind === "d" ? { fromDesign: bf.id } : {})
         : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises" }[startFrom.value]]: seedRun.value } : {};
-      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
+      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), ...modelsPicked(), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
         ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, ...(drawDesign.checked ? {} : { drawDesign: false }), noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(handsOff.checked ? { humanReview: false } : {}) } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
@@ -701,7 +707,8 @@ function runHeader(r, tab) {
       h("a", { href: `#/runs/${id}/design`, class: tab === "design" ? "on" : undefined }, icon("browser"), "Design"),
       h("a", { href: `#/runs/${id}/preview`, class: tab === "preview" ? "on" : undefined }, icon("image"), "Preview"),
       h("a", { href: `#/runs/${id}/data-model`, class: tab === "data-model" ? "on" : undefined }, icon("grid"), "Data model"),
-      h("a", { href: `#/runs/${id}/tests`, class: tab === "tests" ? "on" : undefined }, icon("check"), "Tests")),
+      h("a", { href: `#/runs/${id}/tests`, class: tab === "tests" ? "on" : undefined }, icon("check"), "Tests"),
+      h("a", { href: `#/runs/${id}/review`, class: tab === "review" ? "on" : undefined }, icon("shield"), "Review")),
   ];
 }
 
@@ -724,7 +731,7 @@ function pipeline(r) {
   const note = (() => {
     const parked = r.timeline.find((t) => t.status === "parked");
     if (r.status === "parked") return h("div", { class: "pipe-note bad" }, icon("alert"), h("div", {}, h("strong", {}, parked ? `Parked at ${parked.step}` : "Parked"), h("p", {}, r.parkedReason ?? "")));
-    if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Pick an option for each in the panel below (or answer in the terminal); the run carries on right after.")));
+    if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Pick an option for each in the panel below, or type your own answer (or answer in the terminal); the run carries on right after.")));
     if (r.card?.kind === "design-approval") return h("div", { class: "pipe-note wait" }, icon("image"), h("div", {}, h("strong", {}, "The design needs your approval"), h("p", {}, "Walk the clickable demo, then approve it or send it back in the panel below (or in the terminal); the run carries on right after.")));
     if (r.card?.kind === "approval") return h("div", { class: "pipe-note wait" }, icon("shield"), h("div", {}, h("strong", {}, "The spec and plan need your approval"), h("p", {}, "Read the card, then approve or reject it in the panel below (or in the terminal); the run carries on right after.")));
     if (r.card?.limit) return h("div", { class: "pipe-note wait" }, icon("dollar"), h("div", {}, h("strong", {}, r.card.limit.kind === "budget" ? "The approved budget is reached" : "A limit is reached"), h("p", {}, "Raise it and continue, or stop the run, in the panel below (or in the terminal); the run carries on right after a raise.")));
@@ -764,6 +771,30 @@ function costPanel(r) {
     h("div", { class: "meter-num" }, num, h("span", { class: "of" }, `of ${money(r.cost.capUsd)}`)),
     h("div", { class: `gauge ${share >= 0.9 ? "bad" : share >= 0.7 ? "warn" : ""}` }, fill, h("div", { class: "ticks" })),
     h("div", { class: "meter-foot" }, h("span", {}, `${r.activeMin.toFixed(1)} min of machine time`), h("span", {}, capNote(r.cost))));
+}
+
+/** The model each step was given when the run was created, what was called on each, and the retries that moved a step up. */
+function modelsPanel(r) {
+  const m = r.models;
+  if (!m || (!m.rows.length && !m.calls.length)) return null;
+  const spent = new Map();
+  for (const c of m.calls) { const a = spent.get(c.route) ?? { calls: 0, usd: 0 }; a.calls += c.calls; a.usd += c.usd; spent.set(c.route, a); }
+  const from = (x) => (x.preset ? `preset ${x.preset}` : x.source + (x.tier ? ` (${x.tier})` : ""));
+  const picked = m.rows.filter((x) => x.source === "pick" && !x.preset).length;
+  const head = !m.saved ? "before the picker" : [m.preset ? `preset ${m.preset}` : "", picked ? `${picked} chosen by hand` : ""].filter(Boolean).join(" · ") || "defaults";
+  const th = (...c) => h("thead", {}, h("tr", {}, c.map((x) => h("th", {}, x))));
+  return h("section", { class: "panel" },
+    h("div", { class: "panel-head" }, h("h2", {}, icon("gauge"), "Models"), h("span", { class: "small muted" }, head)),
+    m.saved ? h("table", { class: "models used" }, th("Step", "Model", "From", "Calls", "Cost"), h("tbody", {}, m.rows.map((x) => {
+      const a = spent.get(x.step);
+      return h("tr", {}, h("td", { class: "mono" }, x.step), h("td", {}, x.name, h("span", { class: "faint small" }, ` ${x.effort}`)), h("td", { class: "small" }, x.source === "pick" && !x.preset ? h("span", { class: "chip" }, "chosen") : from(x)),
+        h("td", { class: "num" }, a ? String(a.calls) : ""), h("td", { class: "num" }, a ? money(a.usd) : ""));
+    })))
+      : h("p", { class: "small muted" }, "This run began before the models were saved with a run: it uses the routing table of that time."),
+    m.moved.length ? h("div", { class: "hint" }, "Retries that moved a step to another model: ", m.moved.map((x) => `${x.step}: ${x.from} to ${x.to}`).join("; "), ".") : null,
+    m.calls.length ? h("details", { class: "gate-all" }, h("summary", {}, `Every model that answered (${m.calls.length})`),
+      h("table", { class: "models used" }, th(m.saved ? "Route" : "Step", "Model", "From", "Calls", "Cost"), h("tbody", {}, m.calls.map((c) =>
+        h("tr", {}, h("td", { class: "mono" }, c.route), h("td", {}, c.name), h("td", { class: "small" }, c.source), h("td", { class: "num" }, String(c.calls)), h("td", { class: "num" }, money(c.usd))))))) : null);
 }
 
 function gatesPanel(r) {
@@ -810,7 +841,7 @@ function nameInput() {
 
 /**
  * A question card, on any run (the clarify questions, the spec's questions, or a failing check's), one question at a time: pick an
- * option and it moves on; the chosen options are the answers. Picks are kept while the page redraws.
+ * option and it moves on, or type an answer in your own words; the chosen options and typed words are the answers. Picks are kept while the page redraws.
  */
 function questionPanel(r) {
   const c = r.card;
@@ -825,6 +856,16 @@ function questionPanel(r) {
   let at = draft.at, sent = draft.sent;
   const go = (n) => { at = draft.at = n; draw(); };
   const letter = (i) => String.fromCharCode(65 + i);
+  // an answer in the person's own words, when no option fits: what is typed is the answer, and emptying the box goes back to the recommended option
+  const own = (q) => {
+    const box = h("textarea", { id: "q-own", class: "q-own", rows: "2", maxlength: "2000", placeholder: "None of these fit? Type your answer here." });
+    if (!q.options.includes(picks[q.id])) box.value = picks[q.id];
+    box.addEventListener("input", () => {
+      picks[q.id] = box.value.trim() || q.recommended;
+      body.querySelectorAll(".q-opt").forEach((b, i) => { const on = picks[q.id] === q.options[i]; b.classList.toggle("picked", on); b.setAttribute("aria-checked", String(on)); });
+    });
+    return h("div", { class: "fld" }, h("label", { for: "q-own", class: "small" }, "Or answer in your own words"), box);
+  };
   const draw = () => {
     body.replaceChildren();
     if (at < qs.length) {
@@ -840,6 +881,7 @@ function questionPanel(r) {
           b.addEventListener("click", () => { picks[q.id] = o; draw(); setTimeout(() => { if (at === qs.indexOf(q)) go(at + 1); }, 220); });
           return b;
         })),
+        own(q),
         h("p", { class: "small muted" }, `Why it matters: ${q.why}`),
         h("div", { class: "row" },
           at > 0 ? (() => { const bk = h("button", { class: "btn ghost", type: "button" }, "Back"); bk.addEventListener("click", () => go(at - 1)); return bk; })() : null,
@@ -1212,7 +1254,7 @@ function runScreen(id) {
     if (r.delivered) right.push(deliveredPanel(r));
     right.push(tracePanel(r), terminalPanel(r));
     mount([...runHeader(r, "run"), h("div", { class: "stack" }, pipeline(r), h("div", { class: "grid-2" },
-      h("div", { class: "stack" }, costPanel(r), gatesPanel(r)),
+      h("div", { class: "stack" }, costPanel(r), modelsPanel(r), gatesPanel(r)),
       h("div", { class: "stack" }, right)))], first);
     view.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
     if (focused) { const again = document.getElementById(focused.id); if (again) { again.focus({ preventScroll: true }); if (caret) try { again.setSelectionRange(...caret); } catch { /* not a text field */ } } }
@@ -1543,10 +1585,11 @@ function testsScreen(id) {
       d.signOff ? signOffPanel(r, d) : null,
       h("section", { class: "panel rise" },
         h("div", { class: "panel-head" }, h("h2", {}, icon("check"), "Tests"),
-          d.proof ? h("span", { class: `pill t-${d.proof.passed ? "ok" : d.proof.waivedBy ? "wait" : "bad"}` }, h("span", { class: "d" }), d.proof.passed ? "Every test proves its criterion" : d.proof.waivedBy ? "Accepted by a person" : "Stopped: a test does not prove its criterion") : null),
+          d.proof ? h("span", { class: `pill t-${d.proof.passed ? "ok" : d.proof.waivedBy || d.proof.flagged ? "wait" : "bad"}` }, h("span", { class: "d" }), d.proof.passed ? "Every test proves its criterion" : d.proof.waivedBy ? "Accepted by a person" : d.proof.flagged ? `${d.proof.flagged} weak test${d.proof.flagged === 1 ? "" : "s"}, named on the pull request` : "Stopped: a test does not prove its criterion") : null),
         h("p", { class: "small muted" }, d.note, d.commit ? ` Results are for commit ${d.commit.slice(0, 10)}.` : ""),
         d.proof && !d.proof.passed ? h("p", { class: "small" }, d.proof.waivedBy
           ? `${d.proof.waivedBy} accepted the tests as they stand: ${d.proof.reason || "no reason recorded"}.`
+          : d.proof.flagged ? "The tests were checked before they were locked and the writer was sent back to tighten them. These are what the review still calls weak; the run does not stop for them."
           : "The run waits for a person: accept the tests as they stand with the waiver card on the run page, or stop the run.") : null,
         h("div", { class: "tests-stats" },
           stat("Criteria", m.criteria, "", `${m.requirements} requirement${m.requirements === 1 ? "" : "s"}`),
@@ -1570,6 +1613,99 @@ function testsScreen(id) {
         h("div", { class: "panel-head" }, h("h2", {}, icon("alert"), "Not tested"), h("span", { class: "small muted" }, `${d.nfrs.length} non-functional requirement${d.nfrs.length === 1 ? "" : "s"}`)),
         h("p", { class: "small muted" }, "The factory writes no test for these yet, so nothing on this page proves them."),
         h("ul", { class: "tcs" }, d.nfrs.map((n) => h("li", { class: "tc" }, h("div", { class: "tc-head" }, h("code", {}, n.id), h("span", { class: "small muted" }, n.metric)), h("p", { class: "tc-gwt" }, n.text))))) : null)], first);
+  });
+}
+
+/** What the review agent found had moved since it last judged the pull request, in words. */
+const REVIEW_MOVED = {
+  unchanged: "Nothing moved", "base-moved-clean": "The base moved; it still merges and passes", conflict: "The branch conflicts with the base",
+  "broken-merge": "It merges, but locked tests fail on the result", "unexpected-commits": "Commits the factory did not write",
+  "self-push": "Only the factory's own repair commits", "evidence-mismatch": "The run's evidence does not reconcile",
+  error: "The pass failed before a verdict", deferred: "Judged a moment ago; waiting", "not-here": "Not this machine's to judge",
+  abandoned: "The pull request is closed or merged", anomaly: "It cannot be tied to a run",
+};
+const REVIEW_VERDICT = { success: ["ok", "Passed"], failure: ["bad", "Failed"], neutral: ["idle", "No verdict"] };
+
+/**
+ * The review agent on the run's pull request: its last verdict and what moved, every gate's latest verdict, each pass it made,
+ * and a button that runs one pass now. A pass can cost a container and model calls and can push a repair to the pull request.
+ */
+function reviewScreen(id) {
+  skeleton("check");
+  let lastJson = "";
+  let note = "";
+  poll(2500, async (first) => {
+    const [r, d] = await Promise.all([api(`/api/runs/${encodeURIComponent(id)}`), api(`/api/runs/${encodeURIComponent(id)}/review`)]);
+    const json = JSON.stringify(d) + note;
+    if (json === lastJson) return;
+    lastJson = json;
+    if (d.none) return mount([...runHeader(r, "review"), h("div", { class: "slot big-empty rise" }, icon("shield"), h("strong", {}, "Nothing to review yet"), h("span", {}, d.none))], first);
+    const v = d.verdict;
+    const running = d.job?.status === "running";
+    const sha = (x) => (x ? h("code", { title: x }, x.slice(0, 8)) : "-");
+    const stat = (k, val, tone, hint) => h("div", { class: `stat${tone ? ` s-${tone}` : ""}`, title: hint }, h("div", { class: "k" }, k), h("div", { class: "v" }, val));
+    const verdictPill = (c) => { const [tone, label] = REVIEW_VERDICT[c] ?? ["idle", "No verdict"]; return h("span", { class: `pill t-${tone}` }, h("span", { class: "d" }), label); };
+    const failing = d.gates.filter((g) => !g.passed && !g.waived).length;
+    const accepted = d.gates.filter((g) => !g.passed && g.waived).length;
+
+    const go = h("button", { class: "btn primary", type: "button" }, icon("play"), running ? "Reviewing…" : "Review now");
+    go.disabled = running || !!d.blocked;
+    go.addEventListener("click", async () => {
+      go.disabled = true;
+      try {
+        await api(`/api/runs/${encodeURIComponent(id)}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        note = "";
+      } catch (err) { note = err.message; }
+      lastJson = "";
+    });
+    const j = d.job;
+    const jobLine = running ? h("p", { class: "small", role: "status" }, h("span", { class: "pulse" }), ` Reviewing pull request #${d.pr.number}… ${j.lines.at(-1) ?? ""}`)
+      : j?.status === "failed" ? h("p", { class: "small bad", role: "status" }, icon("alert"), ` The pass started ${ago(j.startedAt)} could not finish: ${j.error}`)
+      : j?.result ? h("p", { class: "small", role: "status" }, verdictPill(j.result.conclusion), ` The pass started ${ago(j.startedAt)}: ${REVIEW_MOVED[j.result.cls] ?? j.result.cls}.${j.result.repaired ? " It pushed a repair." : ""}`)
+      : null;
+
+    mount([...runHeader(r, "review"), h("div", { class: "stack" },
+      h("section", { class: "panel rise" },
+        h("div", { class: "panel-head" }, h("h2", {}, icon("shield"), "Review agent"),
+          running ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "Reviewing") : v ? verdictPill(v.conclusion) : h("span", { class: "pill t-idle" }, h("span", { class: "d" }), "Not judged yet")),
+        h("p", { class: "small muted" }, "Pull request ", h("a", { href: d.pr.url, target: "_blank", rel: "noreferrer" }, `#${d.pr.number}`), d.repository ? ` on ${d.repository}` : "", d.pr.branch ? [", branch ", h("code", {}, d.pr.branch)] : null,
+          d.stack ? `. Built and tested in the ${d.stack === "node" ? "Node" : ".NET"} lab.` : "."),
+        d.blocked ? h("p", { class: "small bad" }, icon("alert"), ` ${d.blocked}`) : null,
+        d.warnings.map((w) => h("p", { class: "small" }, h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "Set-up"), " ", w)),
+        h("div", { class: "row review-go" }, go,
+          h("span", { class: "small muted" }, "One pass, like factory review-open-prs --once for this pull request. If the head or base moved it starts a container and may call a model; it can push a repair commit, and it writes a status and a comment to the pull request. Nothing moved costs nothing.")),
+        note ? h("p", { class: "small bad", role: "alert" }, note) : null,
+        jobLine,
+        d.nextAt && !running ? h("p", { class: "small muted" }, `Judged less than 5 minutes ago: a head or base that moves is judged again after ${new Date(d.nextAt).toLocaleTimeString()}.`) : null,
+        h("div", { class: "tests-stats" },
+          stat("Verdict", v ? (REVIEW_VERDICT[v.conclusion] ?? ["", v.conclusion])[1] : "-", v?.conclusion === "failure" ? "bad" : "", "What the factory/merge-gate status on the pull request says"),
+          stat("Judged", v ? ago(v.at) : "-", "", v ? new Date(v.at).toLocaleString() : "No pass has reached a verdict"),
+          stat("Head", v ? sha(v.headSha) : sha(d.pr.head), "", "The pull request commit the verdict is about"),
+          stat("Base", v ? sha(v.baseSha) : "-", "", "The base branch commit it was judged against"),
+          stat("Gates failing", d.gates.length ? `${failing}/${d.gates.length}` : "-", failing ? "bad" : "", "Gates whose latest verdict is a failure nobody accepted"),
+          stat("Repairs used", `${d.repairs.used}/${d.repairs.max}`, d.repairs.used >= d.repairs.max ? "bad" : "", "Repair attempts on this pull request across all passes; past the limit it waits for a person"),
+          stat("When it passes", d.autoMerge ? "Merged" : "Left open", "", d.autoMerge ? "The review agent merges a pull request that passes, with a merge commit (forge.autoMerge in the project file)" : "A passing pull request waits for a person or for GitHub to merge it. Set forge.autoMerge: true in the project file to have the review agent merge it")),
+        v ? h("div", { class: "review-why" }, h("p", { class: "small" }, h("b", {}, "What moved: "), REVIEW_MOVED[v.cls] ?? v.cls, v.repaired ? ". This pass pushed a repair; read the diff again." : "."),
+          v.why ? md(v.why, "md small") : null) : h("p", { class: "small muted" }, "No pass has judged this pull request yet. Review now, or leave factory review-open-prs running."),
+        d.lastError ? h("p", { class: "small bad" }, icon("alert"), ` The last pass (${ago(d.lastError.at)}) failed before a verdict${d.lastError.inARow > 1 ? `, ${d.lastError.inARow} in a row` : ""}: ${d.lastError.error}`) : null),
+      d.gates.length ? h("section", { class: "panel rise" },
+        h("div", { class: "panel-head" }, h("h2", {}, icon("check"), "Gates"), h("span", { class: "small muted" }, `${d.gates.length - failing - accepted} passed, ${failing} failed${accepted ? `, ${accepted} accepted by a person` : ""}`)),
+        h("p", { class: "small muted" }, "Each gate's latest verdict. A gate whose inputs did not move keeps the verdict the build gave it; the review agent judges again only the ones that moved."),
+        h("ul", { class: "tcs" }, d.gates.map((g) => h("li", { class: `tc${g.passed ? "" : g.waived ? " tc-wait" : " tc-bad"}` },
+          h("div", { class: "tc-head" }, h("code", {}, g.id), h("span", { class: "small muted" }, g.byReview ? `judged again by the review agent, ${ago(g.at)}` : `from the build${g.step ? ` (${g.step})` : ""}`),
+            g.safety ? h("span", { class: "small muted" }, "safety") : null,
+            h("span", { class: `pill t-${g.passed ? "ok" : g.waived ? "wait" : "bad"}` }, h("span", { class: "d" }), g.passed ? "Passed" : g.waived ? "Failed, accepted" : "Failed")),
+          g.details ? h("p", { class: "tc-why small" }, g.details) : null,
+          g.waived ? h("p", { class: "tc-why small" }, h("b", {}, `${g.waived.by || "A person"} accepted this during the build`), g.waived.reason ? `: ${g.waived.reason}. ` : ". ", "The review agent keeps that while what this gate read is unchanged.") : null)))) : null,
+      h("section", { class: "panel rise" },
+        h("div", { class: "panel-head" }, h("h2", {}, icon("clock"), "Passes"), h("span", { class: "small muted" }, d.passes.length ? `${d.passes.length} recorded, newest first` : "none recorded")),
+        h("p", { class: "small muted" }, "A pass that finds neither the head nor the base moved concludes from the last verdict and records nothing new."),
+        h("ul", { class: "tcs" }, d.passes.map((p) => h("li", { class: `tc${p.cls === "error" || p.conclusion === "failure" ? " tc-bad" : ""}` },
+          h("div", { class: "tc-head" }, h("span", {}, new Date(p.at).toLocaleString()), h("span", { class: "small muted" }, REVIEW_MOVED[p.cls] ?? p.cls),
+            p.repaired ? h("span", { class: "pill t-wait" }, h("span", { class: "d" }), "Repair pushed") : null,
+            p.cls === "error" ? h("span", { class: "pill t-bad" }, h("span", { class: "d" }), "Error") : verdictPill(p.conclusion)),
+          p.headSha || p.baseSha ? h("p", { class: "tc-test small muted" }, "head ", sha(p.headSha), " on base ", sha(p.baseSha)) : null,
+          p.error ? h("p", { class: "tc-why small" }, p.error) : p.title ? h("p", { class: "tc-why small" }, p.title) : null)))))], first);
   });
 }
 
@@ -2295,6 +2431,45 @@ async function dashboardScreen() {
 // ---------- new product: greenfield ----------
 
 /**
+ * The model each step runs on, chosen once, at the start: a preset fills every row, and any row can be changed by hand.
+ * `catalogue` is GET /api/models/:mode. Returns the preset select, the table of steps, the hint, and `picked()`: what goes in the POST body.
+ */
+function modelPicker(catalogue, id, also = "") {
+  const mName = (m) => catalogue.models.find((x) => x.id === m)?.name ?? m;
+  const mPrice = (m) => { const x = catalogue.models.find((y) => y.id === m); return x ? `$${x.input} in / $${x.output} out per million tokens${x.unconfirmed ? " (not confirmed)" : ""}` : ""; };
+  const preset = h("select", { id }, h("option", { value: "" }, "Defaults"), catalogue.presets.map((p) => h("option", { value: p }, p[0].toUpperCase() + p.slice(1))));
+  const rows = catalogue.steps.map((s) => {
+    const auto = h("option", { value: "" });
+    const pick = s.fixed ? null : h("select", { "aria-label": `Model for ${s.step}` }, auto, s.offered.map((m) => h("option", { value: m, title: mPrice(m) }, mName(m))));
+    const tag = h("span", { class: "chip", hidden: true }, "changed");
+    const note = h("span", { class: "hint warn-text", hidden: true });
+    const row = h("tr", {}, h("td", { class: "mono" }, s.step), h("td", { class: "faint small" }, s.group),
+      h("td", {}, s.fixed ? h("span", {}, `${mName(s.model)} `, h("span", { class: "faint small" }, "always")) : pick, " ", tag, note));
+    const sync = () => {
+      if (!pick) return;
+      const base = preset.value ? s.presets[preset.value] : s.model;
+      auto.textContent = `${mName(base)} (${preset.value || "default"})`;
+      tag.hidden = !pick.value;
+      const on = pick.value || base;
+      note.hidden = !(s.warn && pick.value && on === s.warn.model);
+      if (!note.hidden) note.textContent = s.warn.why;
+    };
+    if (pick) pick.addEventListener("change", sync);
+    return { step: s.step, pick, sync, row };
+  });
+  const syncAll = () => rows.forEach((r) => r.sync());
+  preset.addEventListener("change", syncAll);
+  syncAll();
+  const picked = () => {
+    const picks = Object.fromEntries(rows.filter((r) => r.pick?.value).map((r) => [r.step, r.pick.value]));
+    return preset.value || Object.keys(picks).length ? { models: { ...(preset.value ? { preset: preset.value } : {}), ...(Object.keys(picks).length ? { picks } : {}) } } : {};
+  };
+  const hint = h("div", { class: "hint" }, `Chosen once, here: the run keeps these to the end. ${also}A preset fills every step from the tier table; change any step by hand and it is marked. A retry that keeps failing moves a step one model up. Like --preset and --model. `,
+    catalogue.models.map((m) => `${m.name} $${m.input}/$${m.output}${m.unconfirmed ? " (not confirmed)" : ""}`).join(" · "), " per million tokens in/out.");
+  return { preset, table: h("table", { class: "models" }, h("tbody", {}, rows.map((r) => r.row))), hint, picked };
+}
+
+/**
  * Greenfield: a new product is a web app and its API (factory fullstack start), in two new repos held to one API contract; or,
  * when the client provides the backend, the web app alone in one new repo (a greenfield run). It starts from a request, or from an
  * approved design (its design steps are skipped) or approved estimate (the web run is held to it), each made with no repo; then
@@ -2302,9 +2477,10 @@ async function dashboardScreen() {
  */
 async function greenfieldScreen(preset = []) {
   skeleton();
-  const [products, meta] = await Promise.all([api("/api/fullstack"), api("/api/projects")]);
+  const [products, meta, catalogue] = await Promise.all([api("/api/fullstack"), api("/api/projects"), api("/api/models/greenfield")]);
   const err = h("div", { class: "error", hidden: true });
   const fail = (m) => { err.replaceChildren(icon("alert"), h("span", {}, m)); err.hidden = false; };
+  const picker = modelPicker(catalogue, "fs-models", "With the API, the API run uses the same choice. ");
   const name = h("input", { type: "text", id: "fs-name", maxlength: "31", placeholder: "e.g. orders", autocomplete: "off" });
   const dir = h("input", { type: "text", id: "fs-dir", value: "~/projects", autocomplete: "off" });
   // the backend: built with the product (an API repo held to the contract the web plan writes), or the client's own
@@ -2388,6 +2564,7 @@ async function greenfieldScreen(preset = []) {
     h("div", { class: "field" }, h("label", { for: "fs-from" }, "Start from (optional)"), fromSel, fromHint, warns),
     reqBlock,
     fld("fs-max", "Max cost of the web run (optional)", h("div", { class: "money-in" }, h("span", {}, "$"), maxCost), "It can only lower the normal limit, like --max-cost. With the API, the API run gets its own limit when you start it."),
+    h("details", { class: "more-opts" }, h("summary", {}, h("strong", {}, "Models"), h("span", { class: "hint" }, "the model each step runs on · defaults unless changed")), h("div", { class: "field" }, h("label", { for: "fs-models" }, "Preset"), picker.preset, picker.table, picker.hint)),
     h("div", { class: "row" }, start, h("span", { class: "hint" }, "Runs in the background. Decide the web run's cards on its run page.")));
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();
@@ -2401,10 +2578,10 @@ async function greenfieldScreen(preset = []) {
       // the web app alone is a greenfield run into a new empty project, as factory init and factory start would make it
       if (webOnly()) {
         const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mode: "greenfield", project: "", newProject: { name: n, dir: d ? `${d}/${n}` : "" }, github: onGithub.checked, maxCost: maxCost.value, ...from }) });
+          body: JSON.stringify({ mode: "greenfield", project: "", newProject: { name: n, dir: d ? `${d}/${n}` : "" }, github: onGithub.checked, maxCost: maxCost.value, ...picker.picked(), ...from }) });
         location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
       } else {
-        const r = await api("/api/fullstack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: n, dir: d, github: onGithub.checked, maxCost: maxCost.value, ...from }) });
+        const r = await api("/api/fullstack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: n, dir: d, github: onGithub.checked, maxCost: maxCost.value, ...picker.picked(), ...from }) });
         location.hash = `#/fullstack/${encodeURIComponent(r.name)}`;
       }
     } catch (e) {
@@ -2512,7 +2689,7 @@ function productScreen(name) {
       moved && apps.services.length ? h("p", { class: "small muted" }, `Port 3000 is taken on this machine, so the web app is on ${apps.web.url.replace(/^.*:/, "")}. The API was told its address.`) : null,
       apps.services.length ? h("dl", { class: "facts" },
         h("dt", {}, "Web app"), h("dd", {}, apps.web.status ? h("a", { href: apps.web.url, target: "_blank", rel: "noopener" }, apps.web.url) : h("code", {}, apps.web.url), h("span", { class: "faint small" }, apps.web.status ? `answers (HTTP ${apps.web.status})` : "no answer yet")),
-        h("dt", {}, "API"), h("dd", {}, apps.api.status ? h("a", { href: apps.api.url, target: "_blank", rel: "noopener" }, apps.api.url) : h("code", {}, apps.api.url), h("span", { class: "faint small" }, apps.api.status ? `answers (HTTP ${apps.api.status})` : "no answer yet")),
+        h("dt", {}, "API"), h("dd", {}, apps.api.status ? h("a", { href: apps.api.url, target: "_blank", rel: "noopener" }, apps.api.url) : h("code", {}, apps.api.url), h("span", { class: "faint small" }, apps.api.status ? `answers (HTTP ${apps.api.status})` : "no answer yet"), apps.api.status ? h("a", { class: "small", href: `${apps.api.url}/swagger`, target: "_blank", rel: "noopener" }, "Swagger page") : null),
         h("dt", {}, "Containers"), h("dd", {}, h("div", { class: "tags" }, apps.services.map((sv) => h("span", { class: "tag" }, serviceName[sv.name], h("span", { class: "n" }, sv.detail || sv.state))))),
         apps.lists.length ? [h("dt", {}, "Sample data"), h("dd", {}, h("span", { class: "small" }, `${withRows} of ${apps.lists.length} list${apps.lists.length === 1 ? " returns" : "s return"} rows`),
           h("div", { class: "tags" }, apps.lists.map((l) => h("a", { class: "tag mono", href: `${apps.api.url}${l.operation.slice(4)}`, target: "_blank", rel: "noopener" }, l.operation, h("span", { class: "n" }, l.rows !== undefined ? `${l.rows} row${l.rows === 1 ? "" : "s"}` : l.status ? `HTTP ${l.status}` : "no answer")))))] : null) : null,
@@ -2574,6 +2751,7 @@ async function route() {
     else if (top === "runs" && parts[1] && parts[2] === "preview") await previewScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "data-model") dataModelScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "tests") testsScreen(parts[1]);
+    else if (top === "runs" && parts[1] && parts[2] === "review") reviewScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "charts") chartsScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "stats") statsScreen(parts[1]);
     else if (top === "runs" && parts[1] && parts[2] === "log") logScreen(parts[1]);

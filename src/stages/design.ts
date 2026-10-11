@@ -19,6 +19,7 @@ import { restyleChosen, type ClarifyResult } from "./clarify.js";
 import { btnLabels, DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
 import { designRoute } from "../config/design-route.js";
+import { usesDesignEngine } from "./routing.js";
 import { drawWithStitch, stitchOnExistingApp, type StitchDesign } from "./design-stitch.js";
 import { header, lastFailureData, outputOf, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { lightUi } from "./lane.js";
@@ -915,7 +916,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       // no UI: nothing to draw; E1b passes on the intent alone
       if (!intent.touchesUi) return { kind: "done", outputs: { design: ctx.ledger.putJson({ header: header(ctx.runId, "design", "design", ""), skipped: true, reason: "no UI in this request" }) }, data: { skipped: true } };
       // route-source logging: which engine and tier draw this design, and where each came from
-      if (!ctx.project.steps.design) {
+      if (usesDesignEngine(ctx.project)) {
         const dr = designRoute(ctx.project);
         const line = `design: engine ${dr.engine} (${dr.source.engine}), tier ${dr.tier} (${dr.source.tier}): ${dr.ladder.map((x) => `${x.tier} ${x.model}`).join(" → ")}${dr.dropped ? `; ${dr.dropped}` : ""}`;
         ctx.log(line);
@@ -927,7 +928,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
       // the stitch engine: Claude plans and writes DESIGN.md (stitch-design-taste), Stitch draws; a sent-back Stitch design is redrawn whole
       const inv = repoInventory(ctx, src);
-      if (!ctx.project.steps.design && designRoute(ctx.project).engine === "stitch") {
+      if (usesDesignEngine(ctx.project) && designRoute(ctx.project).engine === "stitch") {
         const refused = stitchOnExistingApp(inv);
         if (refused) return { kind: "park", reason: refused };
         const refsSha = outputOf(ctx.state, "design-refs");

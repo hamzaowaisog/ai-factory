@@ -1,0 +1,171 @@
+{
+  "header": {
+    "kind": "evidence-manifest",
+    "schemaVersion": 1,
+    "runId": "20261006-return-404-not-found-c9cf",
+    "producedBy": {
+      "stage": "deliver"
+    },
+    "inputsHash": "10dfbbf20fa200ec554109e915387e21231d4af6d1917d9d953b523b4759945d",
+    "createdAt": "2026-10-06T15:38:42.675Z"
+  },
+  "artifacts": [
+    {
+      "kind": "blob",
+      "path": "discover",
+      "sha": "b5b7162511d25fdb75b39cbfb882f428e127d964eb35ad422a6dfb1c3f17a182"
+    },
+    {
+      "kind": "blob",
+      "path": "intake",
+      "sha": "400c937a922f33da7e18ff953f6744b707ecae50d19fabe395f0abe69fd213b4"
+    },
+    {
+      "kind": "blob",
+      "path": "ground",
+      "sha": "386713a01177a9ca158fbdf1c6371d720ee2922a1bb12ba9ff31a376170b2cdb"
+    },
+    {
+      "kind": "blob",
+      "path": "clarify",
+      "sha": "b3fcdaed676209d39cbebdcdd213c08559f91607e97d94c1968aa5c6704624f5"
+    },
+    {
+      "kind": "blob",
+      "path": "clarify-2",
+      "sha": "1c6a26557bb83f4332be57b972ae9ff4068ba026f8d7ee2445d944c01061e373"
+    },
+    {
+      "kind": "blob",
+      "path": "drafts",
+      "sha": "cf80bdf988d505eb71191edfaff3f4d9a9a9e3c2cc515860f8e5669b46743228"
+    },
+    {
+      "kind": "blob",
+      "path": "merge",
+      "sha": "165d44d6236f7b8aed6270287580a34d8e7421fd3cd3fcd88ddd3d4d7d422cf9"
+    },
+    {
+      "kind": "blob",
+      "path": "specify",
+      "sha": "d7799155c0a879652cc6bc9724335bd5113eac70aab04174222516febc5459d5"
+    },
+    {
+      "kind": "blob",
+      "path": "specify",
+      "sha": "ed205abbecb70addb4409b0bffda64d8058e102123c301e0fbf9532deaca0630"
+    },
+    {
+      "kind": "blob",
+      "path": "impact",
+      "sha": "847c8c5dc0b040417a1850bc94dd61472c8bc21078bc4bb0948e5b83d566bc02"
+    },
+    {
+      "kind": "blob",
+      "path": "plan",
+      "sha": "d684fe5fb69f80db74b4d55835d90e29a7b235af91cc3314d889ed54372aec67"
+    },
+    {
+      "kind": "blob",
+      "path": "approve",
+      "sha": "33869b399a7cca18a3443c8bb5594d3a1f4a60e848c2c17eccaf71dc1f58f161"
+    },
+    {
+      "kind": "blob",
+      "path": "stub-commit",
+      "sha": "71f4d006dc5b8d77512096528168a114b4e57fa01f70579582d633bd1fac61e6"
+    },
+    {
+      "kind": "blob",
+      "path": "author-tests",
+      "sha": "8ae0655c9862a3b7912e0908aabbab916749d0d0988cdc60e65f6a2845797379"
+    },
+    {
+      "kind": "blob",
+      "path": "author-tests",
+      "sha": "b4184da93937b1232e5e7dbf3c587d960683101974a2888ca7efbc611e57fbc2"
+    },
+    {
+      "kind": "blob",
+      "path": "author-tests",
+      "sha": "f3ea64061c67cc7c6663dec9fe975325e1e7d90cf610e48f3a9877f92ab9acc8"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-1",
+      "sha": "e0183bf2cd3acb069416a6f337f2617c6581862b4d902bf79dbaa2c3e11b0186"
+    },
+    {
+      "kind": "blob",
+      "path": "implement/TASK-1",
+      "sha": "452647627077bbb581154181f4a4d4070f11502580e23e91c6682d5cbabe7f16"
+    },
+    {
+      "kind": "blob",
+      "path": "integrate",
+      "sha": "452647627077bbb581154181f4a4d4070f11502580e23e91c6682d5cbabe7f16"
+    },
+    {
+      "kind": "blob",
+      "path": "integrate",
+      "sha": "fd520b6bc19aee40038cfdb96281458db8775e1387002632ce96b9c7aac18ae9"
+    },
+    {
+      "kind": "blob",
+      "path": "accept",
+      "sha": "0ae04e20e49cc34dacf3aab53fcf4aa1c8fd71ffca82adef5eec32052be16b91"
+    },
+    {
+      "kind": "blob",
+      "path": "accept",
+      "sha": "e893a51bbd1de6fa472e8b4604b59a50dd69d6a25ed9f4081b37da5e394a529a"
+    },
+    {
+      "kind": "blob",
+      "path": "design-fidelity",
+      "sha": "3caaf6eb540e9c54bcbb312038eddccc1cfec14629971f7447df07e7d2fc0ad2"
+    },
+    {
+      "kind": "blob",
+      "path": "design-check",
+      "sha": "6891815fb71b3fb6806ba65242effc73a4c1accb36995f9ad28e80ced91c369d"
+    },
+    {
+      "kind": "blob",
+      "path": "review",
+      "sha": "85512697be7214a99e82febc665a4ef982a5b9b09a64d48d6ae6b2c67698b3a3"
+    }
+  ],
+  "locks": [
+    {
+      "file": "Shop.Tests/MissingOrderTests.cs",
+      "sha": "114bb24e655dd62afacd3cadc4efb829cae09ad657d4a761b4088a060b67a2c5"
+    }
+  ],
+  "approvals": [
+    {
+      "gate": "approval-7e04bd21",
+      "artifactSha": "7e04bd2141bee57138f3f6fde5fad1d110ec61b3ff72c0276459483af777153e",
+      "osUser": "selftest",
+      "gitIdentity": "mhamza",
+      "riskNote": "selftest",
+      "at": "2026-10-06T15:38:42.676Z"
+    }
+  ],
+  "gatedTreeSha": "01463934cdf7417c589ac1414a2181db9965afc4",
+  "waivers": [],
+  "unlocks": [],
+  "configFingerprint": "b46c2f76a31586cbbeee8e6c0adfe8b18aabefb5b7547cb78d283ed3531731e3",
+  "versions": {
+    "factory": "0.1.0",
+    "commit": "580fd12-dirty",
+    "node": "v22.22.0",
+    "mode:brownfield": "1",
+    "mode:estimate": "1",
+    "mode:design": "1",
+    "@anthropic-ai/claude-agent-sdk": "0.3.283",
+    "@anthropic-ai/sdk": "0.128.0",
+    "openai": "7.23.0",
+    "zod": "4.6.5"
+  }
+}

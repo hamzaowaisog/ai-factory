@@ -1,0 +1,1 @@
+{"commit":"9afa7b76b951635bac2253393a9bf1b7e77ca3d2","hits":[{"file":"App.Tests/PersistenceAndSeedTests.cs","line":0,"rule":"password-assignment"}],"kind":"secrets"}

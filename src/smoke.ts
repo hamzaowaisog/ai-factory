@@ -12,6 +12,7 @@ import { ClaudeAgentRunner } from "./runners/claude-agent.js";
 import { AGENT_NET, agentImageFingerprint, API_PROXY, ensureAgentImage, ensureEgress, feedHostsFrom, issueProxyToken, PROXY_IMAGE, REPO_ROOT, revokeProxyToken } from "./runners/netinfra.js";
 import { priceOf } from "./runners/pricing.js";
 import { DEFAULT_ROUTES, modelFor } from "./stages/routing.js";
+import { HAIKU } from "./stages/models.js";
 import { DEFAULT_POLICY } from "./gates/policy.js";
 import { factoryHome } from "./util/paths.js";
 import { stopAndRemove, type ContainerRuntime } from "./verify/runtime.js";
@@ -47,7 +48,7 @@ function codePrint(files: string[]): string {
   return h.digest("hex").slice(0, 12);
 }
 
-const CHEAP_AGENT_MODEL = "claude-haiku-4-5";
+const CHEAP_AGENT_MODEL = HAIKU;
 
 function tinyPack(): ContextPack {
   return {

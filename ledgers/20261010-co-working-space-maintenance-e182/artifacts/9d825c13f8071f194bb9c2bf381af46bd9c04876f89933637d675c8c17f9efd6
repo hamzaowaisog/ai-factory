@@ -1,0 +1,179 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "behaviours": [
+       {
+        "text": "Opening the web app presents the two in-scope request screens and routes request reads and writes through the API to the database; no sign-in screen is presented.",
+        "kind": "happy"
+       },
+       {
+        "text": "The signed-in demo user Sam Carter (shown as “SC”) can use all request functions; the app has no other user or role-based restrictions.",
+        "kind": "permission"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "readingChosen": "“Exactly 8 requests” means the initial seeded dataset contains 8 requests; later user-created requests are additional records, not a limit on the lifetime total.",
+      "behaviours": [
+       {
+        "text": "On initial seeding, the app has exactly 8 requests: 4 Open (including one Urgent), 2 In progress, and 2 Done; across them every supported area appears at least once.",
+        "kind": "data"
+       },
+       {
+        "text": "After seed data is present, starting or restarting the app does not add another copy of the seed requests.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "When a request is successfully created or its status is successfully changed, the resulting request data is stored and is still present with the same values after a page reload or application restart.",
+        "kind": "data"
+       },
+       {
+        "text": "When a write fails, the app does not present the failed change as saved; the existing request data remains authoritative.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "A list request returns every request, or only requests matching the one supplied valid status, ordered newest first; an unsupported status filter is rejected.",
+        "kind": "happy"
+       },
+       {
+        "text": "A create request accepts a title of 3–80 characters, a supported area, a supported priority, and an optional description no longer than 500 characters; it assigns an ID and creation date and sets status to Open.",
+        "kind": "happy"
+       },
+       {
+        "text": "A create request with a missing or invalid required field, a title outside its length limits, or an overlong description is rejected with a message naming the offending field; no request is created.",
+        "kind": "error"
+       },
+       {
+        "text": "A get-by-ID request returns the matching request, or reports not found when the ID does not exist.",
+        "kind": "happy"
+       },
+       {
+        "text": "A status-change request accepts only Open → In progress, In progress → Done, or Done → Open; any other transition is rejected and leaves the status unchanged.",
+        "kind": "error"
+       },
+       {
+        "text": "After creation, title, area, priority, and description cannot be changed, and requests cannot be deleted; the API exposes only list, create, get-by-ID, and change-status operations.",
+        "kind": "permission"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "The Requests screen shows the “Hive Works” wordmark and “SC”; it initially selects All and offers All, Open, In progress, and Done, with only one filter selected at a time.",
+        "kind": "happy"
+       },
+       {
+        "text": "On load or filter change, the screen loads the matching requests newest first and shows each row’s title, area, priority badge, status badge, and created date as a date only (for example, “8 Oct 2026”); selecting a row opens its detail screen.",
+        "kind": "happy"
+       },
+       {
+        "text": "While requests are loading, the screen displays “Loading requests…”; when the selected filter has no matches, it displays “No requests here.”",
+        "kind": "happy"
+       },
+       {
+        "text": "If loading fails, the screen displays “Could not load requests.” and a Retry button; choosing Retry attempts the load again.",
+        "kind": "error"
+       },
+       {
+        "text": "Choosing New request opens a dialog with labeled Title, Area, Priority, and Description fields, supported area and priority choices, Normal as the default priority, and Create and Cancel buttons; Cancel closes the dialog without creating a request.",
+        "kind": "happy"
+       },
+       {
+        "text": "On Create, invalid fields show their validation message beneath the relevant field and the dialog remains open. Valid input creates an Open request; on success the dialog closes and the new request appears at the top of the list.",
+        "kind": "happy"
+       },
+       {
+        "text": "While a create request is being sent, Create is disabled, so repeated clicks cannot submit duplicate requests.",
+        "kind": "permission"
+       },
+       {
+        "text": "If creating fails, the app does not close the dialog or show the request as successfully added.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-6",
+      "behaviours": [
+       {
+        "text": "Opening a valid request’s detail screen shows a link back to the Requests screen, its title, area, priority and status badges, created date, and its description; when the description is absent it shows “No description.”",
+        "kind": "happy"
+       },
+       {
+        "text": "The detail screen offers exactly one status action for the current status: Open shows Start work, In progress shows Mark done, and Done shows Reopen. After a successful action, the displayed status and available button reflect the new status.",
+        "kind": "happy"
+       },
+       {
+        "text": "A failed status update displays “Could not update the request.” and leaves the displayed status as it was until the API succeeds.",
+        "kind": "error"
+       },
+       {
+        "text": "Opening an ID that does not exist displays “Request not found.” and a link back to the Requests screen.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-7",
+      "behaviours": [
+       {
+        "text": "The interface uses a single light theme, one sans-serif font, a neutral background, near-black text, and one brand color for primary buttons; it offers no dark-mode choice.",
+        "kind": "happy"
+       },
+       {
+        "text": "Status badges show both text and the specified colors (Open blue, In progress amber, Done green); priority badges show text with Urgent red and Low and Normal neutral.",
+        "kind": "happy"
+       },
+       {
+        "text": "At 375 px width, request rows stack as cards; at 1280 px width, they display as a table, and the page has no horizontal scrolling at either width.",
+        "kind": "happy"
+       },
+       {
+        "text": "Every field has a label, every control is keyboard reachable, and text meets WCAG AA contrast; color is not the sole indicator of badge meaning.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-8",
+      "behaviours": [
+       {
+        "text": "Automated business-rule tests verify that valid creation starts Open; missing or too-short title, missing area, and overlong description are rejected; all three allowed status transitions succeed; disallowed transitions are rejected; status-filtered results contain only that status and are newest first; and unknown IDs return not found.",
+        "kind": "happy"
+       },
+       {
+        "text": "An automated end-to-end workflow opens the list, creates a request, sees it at the top, opens it, uses Start work and Mark done, then filters by Done and sees the request there.",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

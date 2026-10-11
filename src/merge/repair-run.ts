@@ -8,8 +8,12 @@
 // `lockedFiles` is enforced here, not merely requested in the prompt: an edit to any of them is
 // dropped and reported. That is the property that makes automatic repair safe — repair can fix the
 // code until the existing proof passes, and can never weaken the proof until the broken code passes.
+import { posix } from "node:path";
 import { z } from "zod";
 import { buildPack } from "../context/pack.js";
+import { isTestPath } from "../context/ripple.js";
+import { isSecretPath } from "../gates/protected.js";
+import { matchesAny } from "../util/glob.js";
 import { Redactor } from "../context/secrets.js";
 import type { Snapshot } from "../context/snapshot.js";
 import { RepoTools } from "../context/tools.js";
@@ -20,17 +24,35 @@ import { repairTrailer } from "./sync.js";
 /** What the model may return: whole-file replacements, nothing else. No shell, no patches. */
 export const RepairEdits = z.object({
   summary: z.string().min(1).max(400),
+  // NO floor on `edits`: both templates tell the model it may return nothing - a conflict it
+  // cannot safely decide, or a locked test it believes is wrong. A `.min(1)` made that
+  // instruction impossible to obey, so the model had to invent an edit or fail validation.
+  // `repairIsEmpty` turns an empty result into a parked pull request, which is what we want.
   edits: z.array(z.object({
     path: z.string().min(1),
     content: z.string(),
     why: z.string().min(1).max(200),
-  })).min(1).max(20),
+  })).max(20),
 });
 export type RepairEdits = z.infer<typeof RepairEdits>;
 
 export const CONFLICT_TEMPLATE = `You are resolving a git merge conflict. The files below contain conflict markers (<<<<<<<, =======, >>>>>>>).
 
-For each conflicted file, return the FULL resolved content with every marker removed. Keep both sides' intent: a conflict usually means two changes to the same region, and discarding one silently is the failure mode to avoid. Where the two sides cannot both be honoured, keep the behaviour the tests require and say so in "why".
+For each conflicted file, return the FULL resolved content with every marker removed.
+
+Decide each conflicted region by this rule, in order. Stop at the first case that applies.
+
+1. The two sides change DIFFERENT things that merely sit near each other - they added one field, you added another. Keep both.
+
+2. The two sides are two versions of the SAME decision: the same rule, the same constant, the same signature, the same branch of logic. You cannot keep both. Keeping both is how a merge produces code that does not compile, or a rule enforced twice with two different limits. Keep the side the locked tests require, and name the side you dropped in "why".
+
+3. One side makes the other unnecessary or wrong - they moved or rewrote the very thing you were changing. Produce the end state the locked tests require, and say in "why" what you reconciled.
+
+4. You cannot tell which side is correct, or satisfying the tests would mean inventing behaviour neither side wrote. Return NO edits and explain in "summary". A person resolves it instead. THIS IS A CORRECT OUTCOME, not a failure: a wrong resolution that happens to compile costs far more than a parked pull request.
+
+Never leave a conflict marker. Never keep both sides of the same decision "just in case" - that is the most expensive mistake available here. Read the locked tests to learn which behaviour is required; they are the tie-breaker in cases 2 and 3.
+
+Your result must compile. "build.clean" is an unwaivable gate, so a resolution that does not build is rejected and your work is discarded.
 
 You may read any other file for context. You may not change any test file: those are locked, and an edit to one will be dropped.`;
 
@@ -70,6 +92,44 @@ export interface RepairRunResult {
 const MAX_ATTEMPTS = 2;
 
 /**
+ * Repo-relative and inside the repo, or undefined. The caller writes these straight into the worktree
+ * and then pushes the result, so a path that climbs out would be written outside the repo and shipped.
+ * RepoTools guards reads this way (context/tools.ts safePath); writes had no guard at all.
+ */
+export function safeEditPath(raw: string): string | undefined {
+  const slashed = raw.replace(/\\/g, "/");
+  // RepoTools strips a leading slash and reads the repo-relative file, which is harmless for a READ.
+  // A write is different: "/etc/passwd" would become a file called etc/passwd committed and pushed to
+  // the repository. An absolute path is not a repo-relative edit, so refuse it rather than reinterpret.
+  if (slashed.startsWith("/") || /^[a-zA-Z]:/.test(slashed)) return undefined;
+  const rel = posix.normalize(slashed.replace(/^(\.\/)+/, ""));
+  if (rel === "" || rel === "." || rel === ".." || rel.startsWith("../")) return undefined;
+  return rel;
+}
+
+/**
+ * Paths a repair may never write. The result is pushed with the forge token, so a workflow file it
+ * wrote would run on the next push (on a self-hosted runner, on this host), and the evidence
+ * manifest is what binds the gates' verdicts to the branch.
+ */
+const PUSH_PROTECTED = [".github/**", ".factory/**"];
+
+/**
+ * Browser tests, which the general test rule does not know: a web app keeps them in a folder of
+ * their own (e2e/, cypress/, playwright/) or names them *.e2e.ts or *.cy.ts.
+ */
+const BROWSER_TEST = /(^|\/)(e2e|cypress|playwright)\/|\.(e2e|cy)\.[tj]sx?$/i;
+
+/** A test file of any stack: a repair makes the code pass the tests, never the other way round. */
+export function isRepairLockedTest(path: string): boolean {
+  return isTestPath(path) || BROWSER_TEST.test(path);
+}
+
+export function isPushProtected(path: string, noGo: readonly string[] = []): boolean {
+  return matchesAny(path, PUSH_PROTECTED) || isSecretPath(path, noGo);
+}
+
+/**
  * Produces the edits a repair would apply. Deliberately does NOT write them: the caller applies
  * them in the worktree, re-verifies the repaired tree in full, and only then commits with the
  * trailer. Keeping the decision separate from the write is what lets this be tested without a repo.
@@ -105,12 +165,19 @@ export async function proposeRepair(o: RepairRunOpts, reverifyRunId: string): Pr
 
     if (res.status === "ok" && res.output) {
       const rejected: { path: string; why: string }[] = [];
-      const edits = res.output.edits.filter((e) => {
-        const p = e.path.replace(/\\/g, "/").replace(/^\.\//, "");
-        if (locked.has(p)) { rejected.push({ path: p, why: e.why }); return false; }
-        return true;
-      });
-      o.log?.(`repair proposed ${edits.length} edit(s)${rejected.length ? `, dropped ${rejected.length} to locked test files` : ""}`);
+      const edits: RepairEdits["edits"] = [];
+      for (const e of res.output.edits) {
+        const p = safeEditPath(e.path);
+        if (!p) { rejected.push({ path: e.path, why: "path is outside the repository" }); continue; }
+        if (locked.has(p)) { rejected.push({ path: p, why: e.why }); continue; }
+        // any test, not only the locked ones: the merge result is no longer compared with a baseline
+        // test list, so a repair that deleted or skipped the failing test would otherwise go green
+        if (isRepairLockedTest(p)) { rejected.push({ path: p, why: "a repair may not change a test: it must make the code pass the tests, not the other way round" }); continue; }
+        if (isPushProtected(p, o.noGo ?? [])) { rejected.push({ path: p, why: "a repair may not write workflows, the evidence manifest or a no-go path" }); continue; }
+        // the normalised path, which is the one that was checked: on Linux a backslash is part of the file name
+        edits.push({ ...e, path: p });
+      }
+      o.log?.(`repair proposed ${edits.length} edit(s)${rejected.length ? `, dropped ${rejected.length} (locked tests or unsafe paths)` : ""}`);
       return { edits, summary: res.output.summary, rejected, model, trailer: repairTrailer(reverifyRunId) };
     }
 

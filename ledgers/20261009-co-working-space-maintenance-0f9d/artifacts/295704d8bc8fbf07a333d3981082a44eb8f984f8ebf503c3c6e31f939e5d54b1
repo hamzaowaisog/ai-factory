@@ -1,0 +1,39 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-23",
+      "op": "MODIFIED",
+      "ears": "The Hive Works app shall present labeled fields and keyboard-reachable controls on both screens and provide stacked request cards at 375 px and a request table at 1280 px viewport widths without horizontal page scrolling.",
+      "sources": [
+       "I-5",
+       "I-6",
+       "I-7",
+       "Q-10"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-23.1",
+        "given": "The Requests, creation dialog, and detail screens are rendered at 375 px and 1280 px viewport widths.",
+        "when": "The screens and controls are inspected and navigated by keyboard.",
+        "then": "The screen shows stacked request cards at 375 px, a request table at 1280 px, no horizontal page scroll, labels for every field, and keyboard-reachable controls.",
+        "level": "ui"
+       }
+      ],
+      "stability": 1
+     }
+    ]
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

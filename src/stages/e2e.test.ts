@@ -92,6 +92,9 @@ let clarifierPrompt = "";
 /** what the scripted reviewer says about every locked test, and how many reviews were paid for */
 let reviewVerdict: "proves-it" | "weak" | "no-test" = "proves-it";
 let reviewCalls = 0;
+/** what the scripted check before the lock says about every new test (unscripted when unset), and how often it was asked */
+let proofVerdict: "proves-it" | "weak" | "no-test" | undefined;
+let proofCalls = 0;
 /** the spec also carries a criterion only a person can check */
 let manualCriterion = false;
 /** A scripted review must now account for every acceptance criterion, as a real one must. */
@@ -131,6 +134,10 @@ function answerFor(system: string, allowMulti = true, user = ""): unknown {
     ...(!planGivesNoModel && (system.includes("DATA MODEL. Give") || system.includes("The database as it is now")) ? { dataModel: { tables: [{ name: "Greetings", purpose: "the greeting text", columns: [{ name: "Id", type: "int", required: true, pk: true }, { name: "Text", type: "string", required: true }] }] } } : {}),
   };
   if (system.includes("review a finished change")) return scriptedReview(user, reviewFindings);
+  if (proofVerdict && system.includes("check acceptance tests before they are locked")) {
+    proofCalls += 1;
+    return { coverage: [...new Set([...user.matchAll(/"id":\s*"(AC-[\w.-]+)"/g)].map((m) => m[1]!))].map((acId) => ({ acId, testId: "", verdict: proofVerdict, why: "scripted check" })) };
+  }
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
 }
 const modelCalls: string[] = [];
@@ -225,7 +232,7 @@ class Lab implements ContainerRuntime {
       } else {
         if (this.crashOnImplement) { this.crashOnImplement = false; throw new Error("simulated crash"); }
         writeFileSync(join(out, "progress.jsonl"), [
-          { ts: 1, kind: "start", model: "claude-sonnet-5" },
+          { ts: 1, kind: "start", model: "claude-sonnet-5-5" },
           { ts: 2, kind: "tool", tool: "Edit", target: "src/Api/Greeter.cs" },
           { ts: 3, kind: "end", status: "ok", turns: 9, costUsd: 0.08 },
         ].map((x) => JSON.stringify(x)).join("\n") + "\n");
@@ -305,7 +312,7 @@ beforeEach(() => {
   planGivesNoModel = false;
   const home = mkdtempSync(join(tmpdir(), "factory-e2e-"));
   process.env.FACTORY_HOME = home;
-  writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\n", { mode: 0o600 });
+  writeFileSync(join(home, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\n", { mode: 0o600 });
   _resetEnvCache();
   const repo = makeRepo();
   mkdirSync(join(home, "projects"), { recursive: true });
@@ -321,6 +328,8 @@ beforeEach(() => {
   reviewFindings = [];
   reviewVerdict = "proves-it";
   reviewCalls = 0;
+  proofVerdict = undefined;
+  proofCalls = 0;
   manualCriterion = false;
   criticFindings = [];
   repairSpec = undefined;
@@ -388,11 +397,19 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(verifyEvidence(ledger).every((c) => c.ok)).toBe(true);
     // thinking steps used Opus 5.5 for ground/spec/plan
     expect(modelCalls).toContain("claude-opus-5-5");
+    // the ledger says which model each step was given and why: saved once with the run, then on every step and every call
+    const evs = ledger.events();
+    expect((evs[0]!.data!.routes as Record<string, unknown>).critic).toMatchObject({ model: "claude-opus-5-5", source: "fixed" });
+    expect((evs[0]!.data!.routes as Record<string, unknown>).implement).toMatchObject({ model: "claude-sonnet-5-5", source: "default", tier: "standard" });
+    expect(evs.find((e) => e.type === "step.started" && e.key?.startsWith("intake"))!.data!.route).toMatchObject({ model: "claude-haiku-5-5", effort: "low", source: "default", tier: "light" });
+    const criticCalls = evs.filter((e) => e.type === "usage" && e.data!["factory.route"] === "critic");
+    expect(criticCalls.length).toBeGreaterThan(0);
+    for (const e of criticCalls) expect(e.data).toMatchObject({ "gen_ai.request.model": "claude-opus-5-5", "factory.route.source": "fixed" });
     expect(ledger.readCard(`pr-${runId}`)).toContain("AC-1.1");
     expect(ledger.readCard(`pr-${runId}`)).toContain("Security review (OWASP Top 10): nothing found");
     // the trace shows every level: steps, model turns, lab phases, containers, gates, the coding agent's actions
     const trace = readFileSync(join(ledger.dir, "run.log"), "utf8");
-    for (const want of [/▶ intake/, /intake turn 1 claude-haiku-4-5 .*→ answered/, /lab: build ok/, /lab: tests ran/, /container producer started/,
+    for (const want of [/▶ intake/, /intake turn 1 claude-haiku-5-5 .*→ answered/, /lab: build ok/, /lab: tests ran/, /container producer started/,
       /gate author-tests.fails-on-base passed/, /implementer: Edit src\/Api\/Greeter.cs/, /implementer: agent finished: ok after 9 turns/, /lab: app started/, /lab: probe GET \/greet\/Ann → 200/]) {
       expect(trace, String(want)).toMatch(want);
     }
@@ -436,8 +453,28 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(replay(ledger.events()).steps.get("integrate")!.data!.waivers).toMatchObject([{ gateIds: ["integrate.diff-size"], human: "lead" }]);
   });
 
-  it("a locked test the reviewer calls weak stops the run for a person, who accepts it by name without paying for a second review", async () => {
+  it("a locked test the reviewer calls weak does not stop the run: it is named on the pull request and the Tests page", async () => {
     reviewVerdict = "weak";
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    expect(reviewCalls).toBe(1);
+    const s = replay(ledger.events());
+    // the gate that stops a run passed, so the merge gate has no failed gate to replay
+    expect(s.gates.filter((g) => g.gateId === "review.tests-prove-criteria")).toEqual([]);
+    expect(s.gates.filter((g) => g.gateId === "review.criteria-have-tests").map((g) => g.passed)).toEqual([true]);
+    expect(s.steps.get("review")!.data!.weakTests).toEqual([{ acId: "AC-1.1", verdict: "weak", testId: "", why: "scripted" }]);
+    expect(s.steps.get("review")!.data!.waivers).toBeUndefined();
+    const pr = ledger.readCard(`pr-${runId}`);
+    expect(pr).toContain("1 locked test the review judged not to prove its criterion. It passes, and the run did not stop for it:");
+    expect(pr).toContain("  - AC-1.1: the test is too weak (scripted)");
+    expect(testsView(ledger)).toMatchObject({ stage: "reviewed", proof: { passed: false, flagged: 1 }, metrics: { weak: 1, proven: 0, lockedTests: 1, passing: 1 } });
+  });
+
+  it("a criterion the reviewer finds no test for stops the run for a person, who accepts it by name without paying for a second review", async () => {
+    reviewVerdict = "no-test";
     const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
     const ledger = await toApproval(runId);
     await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
@@ -445,17 +482,62 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(r.status, r.message).toBe("waiting");
     const card = replay(ledger.events()).openCard!;
     expect(card.kind).toBe("waiver");
-    expect(readFileSync(join(ledger.dir, "cards", `${card.cardId}.md`), "utf8")).toMatch(/review\.tests-prove-criteria: AC-1\.1: its locked test passes but does not prove the criterion \(scripted\)/);
-    expect(replay(ledger.events()).gates.filter((g) => g.gateId === "review.tests-prove-criteria").map((g) => g.passed)).toEqual([false]);
+    expect(readFileSync(join(ledger.dir, "cards", `${card.cardId}.md`), "utf8")).toMatch(/review\.criteria-have-tests: AC-1\.1: no locked test covers it \(scripted\)/);
+    expect(replay(ledger.events()).gates.filter((g) => g.gateId === "review.criteria-have-tests").map((g) => g.passed)).toEqual([false]);
     // the Tests page shows the verdict while the person decides, from the review the card is holding
-    expect(testsView(ledger)).toMatchObject({ stage: "reviewed", proof: { passed: false }, metrics: { weak: 1, proven: 0, lockedTests: 1, passing: 1 } });
+    expect(testsView(ledger)).toMatchObject({ stage: "reviewed", proof: { passed: false }, metrics: { noTest: 1, proven: 0, lockedTests: 1, passing: 1 } });
+    expect(testsView(ledger).proof!.flagged).toBeUndefined();
     await decide(ledger, { decision: "waive", hashPrefix: card.artifactSha.slice(0, 6), by: "lead", data: { reason: "the probe covers it" } });
     expect((await execute(runId)).status).toBe("delivered");
     expect(reviewCalls).toBe(1);
     const s = replay(ledger.events());
-    expect(s.steps.get("review")!.data!.waivers).toMatchObject([{ gateIds: ["review.tests-prove-criteria"], human: "lead", reason: "the probe covers it" }]);
-    expect(ledger.readCard(`pr-${runId}`)).toContain("Waived by lead: review.tests-prove-criteria (the probe covers it)");
+    expect(s.steps.get("review")!.data!.waivers).toMatchObject([{ gateIds: ["review.criteria-have-tests"], human: "lead", reason: "the probe covers it" }]);
+    expect(s.steps.get("review")!.data!.weakTests).toBeUndefined();
+    expect(ledger.readCard(`pr-${runId}`)).toContain("Waived by lead: review.criteria-have-tests (the probe covers it)");
     expect(testsView(ledger).proof).toMatchObject({ passed: false, waivedBy: "lead", reason: "the probe covers it" });
+  });
+
+  it("tests the check before the lock calls weak go back to the writer, then are locked as they are: the run never waits for a person", async () => {
+    proofVerdict = "weak";
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("delivered");
+    const sent = ledger.events().filter((e) => e.type === "step.failed" && String(e.key).startsWith("author-tests/") && (e.data as { signature?: string }).signature === "author-tests:proof");
+    // sent back at least once, never more than three times, and each time the ladder had somewhere to go
+    expect(sent.length).toBeGreaterThanOrEqual(1);
+    expect(sent.length).toBeLessThanOrEqual(3);
+    expect(sent.every((e) => (e.data as { action?: string }).action === "retry")).toBe(true);
+    expect(proofCalls).toBe(sent.length + 1);
+    expect(replay(ledger.events()).steps.get("author-tests")!.data!.weakTests).toEqual([{ acId: "AC-1.1", verdict: "weak", testId: "", why: "scripted check" }]);
+  });
+
+  it("a criterion nothing tests stops the run before the build, and once a person accepts it nobody is asked again", async () => {
+    proofVerdict = "no-test";
+    // the final review reads it the same way: the person's answer before the lock covers it
+    reviewVerdict = "no-test";
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    const ledger = await toApproval(runId);
+    await decide(ledger, { decision: "approve", hashPrefix: replay(ledger.events()).openCard!.artifactSha.slice(0, 6), by: "ahsan" });
+    const r = await execute(runId);
+    expect(r.status, r.message).toBe("waiting");
+    const waiting = replay(ledger.events());
+    const card = waiting.openCard!;
+    expect(card.kind).toBe("waiver");
+    expect(readFileSync(join(ledger.dir, "cards", `${card.cardId}.md`), "utf8")).toMatch(/tests\.cover-every-criterion: AC-1\.1: no test covers it \(scripted check\)/);
+    // it stopped before any code was written
+    expect([...waiting.steps.keys()].some((k) => k.startsWith("implement"))).toBe(false);
+    const asked = proofCalls;
+    await decide(ledger, { decision: "waive", hashPrefix: card.artifactSha.slice(0, 6), by: "lead", data: { reason: "checked by hand at release" } });
+    const r2 = await execute(runId);
+    expect(r2.status, r2.message).toBe("delivered");
+    // the tests the card held were locked as they were: not written or checked again
+    expect(proofCalls).toBe(asked);
+    const s = replay(ledger.events());
+    expect(s.steps.get("author-tests")!.data).toMatchObject({ acceptedUntested: ["AC-1.1"], waivers: [{ gateIds: ["tests.cover-every-criterion"], human: "lead", reason: "checked by hand at release" }] });
+    expect(s.gates.filter((g) => g.gateId === "review.criteria-have-tests").map((g) => g.passed)).toEqual([true]);
+    expect(ledger.readCard(`pr-${runId}`)).toContain("Waived by lead: tests.cover-every-criterion (checked by hand at release). No test covers AC-1.1");
   });
 
   it("a criterion with no automated test waits for a person's sign-off after the review, and the pull request names who checked it", async () => {
@@ -522,11 +604,11 @@ describe("brownfield slice end to end (fakes)", () => {
     const home = process.env.FACTORY_HOME!;
     const file = join(home, "projects", "demo.yaml");
     const { parse } = await import("yaml");
-    writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), policy: { allowedModels: ["claude-haiku-4-5", "claude-sonnet-5"] } }));
+    writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), policy: { allowedModels: ["claude-haiku-5-5", "claude-sonnet-5-5"] } }));
     const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
     const r = await execute(runId);
     expect(r.status).toBe("parked");
-    expect(r.message).toMatch(/needs claude-opus-5-5 but this run's policy allows only claude-haiku-4-5, claude-sonnet-5/);
+    expect(r.message).toMatch(/needs claude-opus-5-5 but this run's policy allows only claude-haiku-5-5, claude-sonnet-5-5/);
     expect(modelCalls.some((m) => /opus/.test(m))).toBe(false);
   });
 
@@ -982,13 +1064,13 @@ describe("light and full lanes (fakes)", () => {
 
   it("a small low-risk change: one draft, no merge call, a Sonnet test writer with tight limits", async () => {
     const s = await deliver();
-    expect(s.steps.get("drafts")!.data!.models).toEqual(["claude-sonnet-5"]);
+    expect(s.steps.get("drafts")!.data!.models).toEqual(["claude-sonnet-5-5"]);
     expect(s.steps.get("merge")!.data!.singleDraft).toBe(true);
     expect(s.steps.get("specify")!.data!.lane).toBe("light");
     // one question round: what round 1 didn't settle is an assumption
     expect(s.steps.get("clarify-2")!.data).toMatchObject({ skipped: true, lightLane: true });
     // the fixture's criteria are api level: the test writer needs a test host, so 40 turns
-    expect(writer()).toMatchObject({ model: "claude-sonnet-5", maxTurns: 40 });
+    expect(writer()).toMatchObject({ model: "claude-sonnet-5-5", maxTurns: 40 });
     expect(writer().maxUsd).toBeLessThanOrEqual(4);
     expect(writer().system).toContain("At most 2 characterisation tests");
     expect(writer().system).toContain('Don\'t run "dotnet test"');
@@ -1182,7 +1264,7 @@ describe("from a Jira label to a reviewed pull request (fakes: models, container
       });
       const gitUrl = await new Promise<string>((ok) => gitHttp.listen(0, "127.0.0.1", () => ok(`http://127.0.0.1:${(gitHttp.address() as AddressInfo).port}/api.git`)));
       closers.push(() => gitHttp.close());
-      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nGITHUB_TOKEN=ghp_testtoken0000000000\nJIRA_BASE_URL=${jira.url}\nJIRA_EMAIL=bot@shop.test\nJIRA_API_TOKEN=tok-0123456789\nSLACK_WEBHOOK=${slack.url}/hook\n`, { mode: 0o600 });
+      writeFileSync(join(home, ".env"), `ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\nGITHUB_TOKEN=ghp_testtoken0000000000\nJIRA_BASE_URL=${jira.url}\nJIRA_EMAIL=bot@shop.test\nJIRA_API_TOKEN=tok-0123456789\nSLACK_WEBHOOK=${slack.url}/hook\n`, { mode: 0o600 });
       _resetEnvCache();
       const { parse } = await import("yaml");
       const cfg = parse(readFileSync(join(home, "projects", "demo.yaml"), "utf8"));

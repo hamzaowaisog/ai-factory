@@ -10,7 +10,7 @@ import type { BuildRun, LintRun, ReviewFinding, Requirement, ReviewCoverage, Tes
 import type { ExternalChecks } from "../contracts/checks.js";
 import type { Convention } from "../contracts/index.js";
 import type { Violation } from "../conventions/check.js";
-import { type GateDef, runGate } from "../gates/engine.js";
+import { type GateDef, gateInputsHash, runGate } from "../gates/engine.js";
 import type { Policy } from "../gates/policy.js";
 import { diffSize, noSecrets, shaBinding, testExpectations } from "../gates/predicates.js";
 import { reviewCoversCriteria } from "../gates/coverage.js";
@@ -79,13 +79,40 @@ export async function runMergeGates(
   for (const { def, inputs } of planned(a.evidence)) {
     const recorded = a.replay?.get(def.id);
     if (recorded) { out.push(recorded); continue; }
-    // the engine loads inputs from the ledger by sha, so each one is stored first — which is also
-    // what makes the decision re-checkable long afterwards
-    const shas = Object.fromEntries(Object.entries(inputs).map(([k, v]) => [k, ledger.putJson(v)]));
-    const r = await runGate(def, ledger, writer, shas, policy, { step: a.step, treeSha: a.treeSha });
+    const r = await runGate(def, ledger, writer, stored(ledger, inputs), policy, { step: a.step, treeSha: a.treeSha });
     out.push({ id: def.id, passed: r.passed, details: r.details });
   }
   return out;
+}
+
+/**
+ * The engine loads inputs from the ledger by sha, so each one is stored first — which is also what
+ * makes the decision re-checkable long afterwards.
+ */
+function stored(ledger: Ledger, inputs: Record<string, unknown>): Record<string, string> {
+  return Object.fromEntries(Object.entries(inputs).map(([k, v]) => [k, ledger.putJson(v)]));
+}
+
+/**
+ * Each planned gate's inputs hash, computed the way the engine computes the one it records. Anything
+ * else can never equal a recorded hash, and every gate would be re-run on every pass.
+ */
+export function plannedInputHashes(ledger: Ledger, policy: Policy, e: MergeEvidence): Map<string, string> {
+  return new Map(planned(e).map(({ def, inputs }) => [def.id, gateInputsHash(def.id, stored(ledger, inputs), policy)]));
+}
+
+/**
+ * review-2's output, the model families and the spec, as the merge gates read them. Without these the
+ * review gates are never planned, so a blocking review-2 finding was paid for and then ignored.
+ */
+export function reviewEvidence(ledger: Ledger, a: { reviewSha: string; familiesSha: string; specSha: string }):
+  Pick<MergeEvidence, "review2" | "families" | "spec"> {
+  const review = ledger.getJson<{ findings: ReviewFinding[]; coverage: ReviewCoverage[] }>(a.reviewSha);
+  return {
+    review2: { findings: review.findings, coverage: review.coverage },
+    families: ledger.getJson<NonNullable<MergeEvidence["families"]>>(a.familiesSha),
+    spec: { requirements: ledger.getJson<{ requirements: Requirement[] }>(a.specSha).requirements ?? [] },
+  };
 }
 
 /** The gate ids this evidence would produce, in order, without evaluating anything. */

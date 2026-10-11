@@ -29,7 +29,7 @@ import { uiTargetOption, type UiTarget } from "../design/kit/index.js";
 import { parseFormats, type ExportFormat } from "../design/export.js";
 import { approvedDesign, approvedEstimate, designFitsProject, type Approved, type ApprovedDesign } from "../estimate/lineage.js";
 import { greenfieldRefusal, makeNewProduct, newProductProblem } from "../config/greenfield.js";
-import { checkRoutes, DESIGN_ROUTES, ESTIMATE_ROUTES } from "../stages/routing.js";
+import { checkRoutes, choiceFrom, DESIGN_ROUTES, ESTIMATE_ROUTES } from "../stages/routing.js";
 import { factoryHome } from "../util/paths.js";
 import { busyRun, projectNames } from "./data.js";
 
@@ -72,6 +72,8 @@ export interface StartInput {
   fresh?: unknown;
   /** a build: the stack the approved design is built in when the project sets none, like --ui-target */
   uiTarget?: unknown;
+  /** the models for this run, like --preset and --model: { preset?: "economy" | "balanced" | "quality", picks?: { step: model } } */
+  models?: unknown;
 }
 
 export interface StartDeps {
@@ -278,7 +280,8 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
   if (greenfield) { const why = greenfieldRefusal(fromDesign?.runId ?? approved?.runId ?? "This request", cfg); if (why) throw new StartError(why); }
   // the form left the review unset: the project's choice (a person reviews unless it opts out)
   if (estimating && !designing && settings && typeof ((input.estimate ?? {}) as Record<string, unknown>).humanReview !== "boolean") settings = { ...settings, humanReview: cfg.estimate?.humanReview !== false };
-  const problems = checkRoutes(cfg, designing ? DESIGN_ROUTES : estimating ? ESTIMATE_ROUTES : undefined);
+  const models = choiceFrom(input.models);
+  const problems = checkRoutes(cfg, designing ? DESIGN_ROUTES : estimating ? ESTIMATE_ROUTES : undefined, models);
   if (problems.length) throw new StartError(`Setup problems:\n- ${problems.join("\n- ")}`);
 
   const busy = standalone ? undefined : (await busyRun(project)) ?? (() => {
@@ -326,6 +329,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
     ...(settings ? { mode: designing ? "design" as const : "estimate" as const, estimate: settings, attachments: req.attachments } : {}),
     ...(designExport ? { designExport } : {}),
     ...(uiTarget ? { uiTarget } : {}),
+    models,
   });
   if (!standalone) starting.set(project, { runId, at: Date.now() });
   (deps.execute ?? runDetached)(runId, fresh ? { fresh } : undefined);

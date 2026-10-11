@@ -1,0 +1,70 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "NQ-1",
+      "category": "existing-data",
+      "text": "When the app starts with an already-populated database, how should the eight seed requests be handled?",
+      "options": [
+       "Insert the eight seed requests only when initializing an empty database; preserve all requests on restarts.",
+       "Ensure the seed requests are present on every startup, restoring any missing ones.",
+       "Reset the database to exactly the eight seed requests on every startup."
+      ],
+      "recommended": "Insert the eight seed requests only when initializing an empty database; preserve all requests on restarts.",
+      "reason": "This provides the initial seed data without duplicating or overwriting requests that must persist.",
+      "spans": [
+       "I-2"
+      ],
+      "impact": 3,
+      "impactReason": "Seeding on restart could add, restore, or delete persisted request records."
+     },
+     {
+      "id": "NQ-2",
+      "category": "scope",
+      "text": "After successfully creating a request while a status filter other than All is selected, what should happen to the filter and list?",
+      "options": [
+       "Switch the filter to All so the new Open request appears at the top.",
+       "Keep the selected filter, even if the new Open request is excluded from the list.",
+       "Switch the filter to Open so the new request appears at the top."
+      ],
+      "recommended": "Switch the filter to All so the new Open request appears at the top.",
+      "reason": "This makes the new request visible at the top while keeping the displayed list consistent with its filter.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "The choice changes what the user sees immediately after creating a request."
+     },
+     {
+      "id": "NQ-3",
+      "category": "scope",
+      "text": "When the user follows the detail screen's Back link, should the list retain the previously selected status filter?",
+      "options": [
+       "Retain the filter selected before opening the detail screen.",
+       "Reset the filter to All."
+      ],
+      "recommended": "Retain the filter selected before opening the detail screen.",
+      "reason": "Returning to the list preserves the user's place in the filtered workflow.",
+      "spans": [
+       "I-5",
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "This changes the list contents and visible navigation behavior when returning from a detail."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

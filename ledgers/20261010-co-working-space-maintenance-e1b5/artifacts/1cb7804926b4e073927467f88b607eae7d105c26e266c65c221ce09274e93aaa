@@ -1,0 +1,252 @@
+diff --git a/App.Api/AppDb.cs b/App.Api/AppDb.cs
+index 4217959..f50b1d2 100644
+--- a/App.Api/AppDb.cs
++++ b/App.Api/AppDb.cs
+@@ -1,7 +1,33 @@
+ using Microsoft.EntityFrameworkCore;
++using Microsoft.EntityFrameworkCore.Infrastructure;
++using Microsoft.EntityFrameworkCore.Storage;
+ 
+ namespace App.Api;
+ 
+ public class AppDb(DbContextOptions<AppDb> options) : DbContext(options)
+ {
++    public DbSet<MaintenanceRequest> MaintenanceRequests => Set<MaintenanceRequest>();
++
++    // EnsureCreated adds no table to a database that already holds others, so add ours to such a database as well,
++    // leaving its other tables alone.
++    public void CreateMissingTables()
++    {
++        if (Database.EnsureCreated()) return;
++        var missing = Database.SqlQuery<bool>($"SELECT to_regclass('\"MaintenanceRequests\"') IS NULL AS \"Value\"").Single();
++        if (missing) Database.GetService<IRelationalDatabaseCreator>().CreateTables();
++    }
++
++    protected override void OnModelCreating(ModelBuilder modelBuilder)
++    {
++        modelBuilder.Entity<MaintenanceRequest>(e =>
++        {
++            e.Property(x => x.Title).HasMaxLength(80);
++            e.Property(x => x.Area).HasMaxLength(20);
++            e.Property(x => x.Priority).HasMaxLength(20);
++            e.Property(x => x.Status).HasMaxLength(20);
++            // stored as UTC without a zone, so rows written by hand read back the same; read back marked as UTC
++            e.Property(x => x.CreatedAt).HasColumnType("timestamp without time zone")
++                .HasConversion(v => DateTime.SpecifyKind(v, DateTimeKind.Unspecified), v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
++        });
++    }
+ }
+diff --git a/App.Api/EndpointRegistration.cs b/App.Api/EndpointRegistration.cs
+new file mode 100644
+index 0000000..4e8f2fe
+--- /dev/null
++++ b/App.Api/EndpointRegistration.cs
+@@ -0,0 +1,47 @@
++using System.ComponentModel.DataAnnotations;
++using System.Reflection;
++using System.Text.Json.Serialization;
++using Microsoft.AspNetCore.Mvc.Infrastructure;
++using Microsoft.AspNetCore.OpenApi;
++using Microsoft.OpenApi.Any;
++
++namespace App.Api;
++
++// One operation of the contract, in its own file under Endpoints/. MapEndpoints finds every one in this assembly and maps it
++// under /api, so a new operation needs only its own class.
++public interface IEndpoint
++{
++    void Map(IEndpointRouteBuilder api);
++}
++
++public static class EndpointRegistration
++{
++    public static void MapEndpoints(this WebApplication app)
++    {
++        var api = app.MapGroup("/api");
++        var endpoints = typeof(IEndpoint).Assembly.GetTypes()
++            .Where(t => t is { IsClass: true, IsAbstract: false } && typeof(IEndpoint).IsAssignableFrom(t))
++            .OrderBy(t => t.FullName, StringComparer.Ordinal);
++        foreach (var type in endpoints) ((IEndpoint)Activator.CreateInstance(type)!).Map(api);
++    }
++
++    // The contract names the response schema MaintenanceRequest and lists the allowed values of area, priority and status:
++    // write [AllowedValues] properties and parameters as enums so the API's document says the same.
++    public static void UseContractSchemas(this OpenApiOptions o)
++    {
++        o.CreateSchemaReferenceId = t => t.Type == typeof(MaintenanceRequestResource)
++            ? "MaintenanceRequest"
++            : OpenApiOptions.CreateDefaultSchemaReferenceId(t);
++        o.AddSchemaTransformer((schema, context, _) =>
++        {
++            var allowed = context.JsonPropertyInfo?.AttributeProvider?.GetCustomAttributes(typeof(AllowedValuesAttribute), true)
++                    .OfType<AllowedValuesAttribute>().FirstOrDefault()
++                ?? (context.ParameterDescription?.ParameterDescriptor as IParameterInfoParameterDescriptor)?.ParameterInfo
++                    .GetCustomAttribute<AllowedValuesAttribute>();
++            if (allowed != null) schema.Enum = allowed.Values.Select(v => (IOpenApiAny)new OpenApiString((string)v!)).ToList();
++            // a property left out when null is optional in the contract, never null
++            if (context.JsonPropertyInfo?.AttributeProvider?.IsDefined(typeof(JsonIgnoreAttribute), true) == true) schema.Nullable = false;
++            return Task.CompletedTask;
++        });
++    }
++}
+diff --git a/App.Api/Endpoints/ListRequestsEndpoint.cs b/App.Api/Endpoints/ListRequestsEndpoint.cs
+new file mode 100644
+index 0000000..d885c03
+--- /dev/null
++++ b/App.Api/Endpoints/ListRequestsEndpoint.cs
+@@ -0,0 +1,34 @@
++using System.ComponentModel.DataAnnotations;
++using Microsoft.EntityFrameworkCore;
++
++namespace App.Api.Endpoints;
++
++// GET /api/requests: every request, or those with one status, newest first.
++public class ListRequestsEndpoint : IEndpoint
++{
++    public void Map(IEndpointRouteBuilder api) =>
++        api.MapGet("/requests", Handle)
++            .WithName("listRequests")
++            .WithSummary("List maintenance requests")
++            .Produces<RequestList>(StatusCodes.Status200OK)
++            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
++            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
++
++    private static async Task<IResult> Handle([AllowedValues("Open", "In progress", "Done")] string? status, AppDb db)
++    {
++        if (status != null && !RequestValues.Statuses.Contains(status))
++            return ErrorResponse.Result(StatusCodes.Status400BadRequest, "Status must be Open, In progress, or Done.",
++                new() { ["status"] = ["Unsupported status filter."] });
++        try
++        {
++            var query = db.MaintenanceRequests.AsNoTracking();
++            if (status != null) query = query.Where(x => x.Status == status);
++            var rows = await query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id).ToListAsync();
++            return Results.Ok(new RequestList { Requests = rows.Select(MaintenanceRequestResource.From).ToList() });
++        }
++        catch (Exception)
++        {
++            return ErrorResponse.Result(StatusCodes.Status500InternalServerError, "Could not load requests.");
++        }
++    }
++}
+diff --git a/App.Api/MaintenanceRequest.cs b/App.Api/MaintenanceRequest.cs
+new file mode 100644
+index 0000000..c3fefab
+--- /dev/null
++++ b/App.Api/MaintenanceRequest.cs
+@@ -0,0 +1,22 @@
++namespace App.Api;
++
++// One stored maintenance request. IsDemo marks the sample rows SeedData adds; it never leaves the API.
++public class MaintenanceRequest
++{
++    public long Id { get; set; }
++    public DateTime CreatedAt { get; set; }
++    public string Title { get; set; } = "";
++    public string Area { get; set; } = "";
++    public string Priority { get; set; } = "";
++    public string Status { get; set; } = "";
++    public string? Description { get; set; }
++    public bool IsDemo { get; set; }
++}
++
++// The values the contract allows, spelled as the API sends and stores them.
++public static class RequestValues
++{
++    public static readonly string[] Areas = ["Kitchen", "Meeting room", "Open desk", "Washroom", "Reception"];
++    public static readonly string[] Priorities = ["Low", "Normal", "Urgent"];
++    public static readonly string[] Statuses = ["Open", "In progress", "Done"];
++}
+diff --git a/App.Api/MaintenanceRequestResource.cs b/App.Api/MaintenanceRequestResource.cs
+new file mode 100644
+index 0000000..79f5e4a
+--- /dev/null
++++ b/App.Api/MaintenanceRequestResource.cs
+@@ -0,0 +1,47 @@
++using System.ComponentModel.DataAnnotations;
++using System.Text.Json.Serialization;
++
++namespace App.Api;
++
++// A request as the contract's MaintenanceRequest schema sends it: no IsDemo, and no description when there is none.
++public sealed class MaintenanceRequestResource
++{
++    public required long Id { get; init; }
++    public required DateTime CreatedAt { get; init; }
++    public required string Title { get; init; }
++    [AllowedValues("Kitchen", "Meeting room", "Open desk", "Washroom", "Reception")]
++    public required string Area { get; init; }
++    [AllowedValues("Low", "Normal", "Urgent")]
++    public required string Priority { get; init; }
++    [AllowedValues("Open", "In progress", "Done")]
++    public required string Status { get; init; }
++    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
++    public string? Description { get; init; }
++
++    public static MaintenanceRequestResource From(MaintenanceRequest r) => new()
++    {
++        Id = r.Id,
++        CreatedAt = DateTime.SpecifyKind(r.CreatedAt, DateTimeKind.Utc),
++        Title = r.Title,
++        Area = r.Area,
++        Priority = r.Priority,
++        Status = r.Status,
++        Description = r.Description,
++    };
++}
++
++public sealed class RequestList
++{
++    public required IReadOnlyList<MaintenanceRequestResource> Requests { get; init; }
++}
++
++// The contract's ErrorResponse: a message, and field-keyed messages when a field was at fault.
++public sealed class ErrorResponse
++{
++    public required string Message { get; init; }
++    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
++    public Dictionary<string, string[]>? Errors { get; init; }
++
++    public static IResult Result(int statusCode, string message, Dictionary<string, string[]>? errors = null) =>
++        Results.Json(new ErrorResponse { Message = message, Errors = errors }, statusCode: statusCode);
++}
+diff --git a/App.Api/Program.cs b/App.Api/Program.cs
+index eb64afd..d9380c0 100644
+--- a/App.Api/Program.cs
++++ b/App.Api/Program.cs
+@@ -2,7 +2,7 @@ using App.Api;
+ using Microsoft.EntityFrameworkCore;
+ 
+ var builder = WebApplication.CreateBuilder(args);
+-builder.Services.AddOpenApi();
++builder.Services.AddOpenApi(o => o.UseContractSchemas());
+ // PostgreSQL: the connection comes from ConnectionStrings__App and nowhere else. There is no built-in login: an app that is
+ // not given one stops when it first needs the database, so it can never run on a password that is written in the code.
+ builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetConnectionString("App")
+@@ -10,8 +10,8 @@ builder.Services.AddDbContext<AppDb>(o => o.UseNpgsql(builder.Configuration.GetC
+ // the web app's address: 3000 unless the setting Cors:Origin names another (the factory sets it when it starts the web app on another port)
+ builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(builder.Configuration["Cors:Origin"] ?? "http://localhost:3000").AllowAnyHeader().AllowAnyMethod()));
+ var app = builder.Build();
+-// Create the database with every table when the app starts. The build also runs this file, to write the API's OpenAPI
+-// document, and must not touch the database then. Keep this: the factory starts the app and reads the database it creates.
++// Create the database with every table when the app starts, adding the tables it lacks and leaving any others alone. The build
++// also runs this file, to write the API's OpenAPI document, and must not touch the database then. Keep this: the factory starts the app and reads the database it creates.
+ if (System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name != "GetDocument.Insider")
+ {
+     // one at a time: the tests start several copies of the app in one process, and two creating the tables at once collide
+@@ -19,13 +19,14 @@ if (System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name != "GetDocumen
+     {
+         using var scope = app.Services.CreateScope();
+         var db = scope.ServiceProvider.GetRequiredService<AppDb>();
+-        db.Database.EnsureCreated();
++        db.CreateMissingTables();
+         // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database
+         if (app.Configuration.GetValue<bool>("Seed:Demo")) SeedData.Run(db);
+     }
+ }
+ app.UseCors();
+ app.MapGet("/", () => "API is up").ExcludeFromDescription();
++app.MapEndpoints();
+ 
+ app.Run();
+ 

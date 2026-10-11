@@ -1,0 +1,34 @@
+npm error code EUSAGE
+npm error
+npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with `npm install` before continuing.
+npm error
+npm error Missing: openapi-typescript-codegen@0.29.0 from lock file
+npm error Missing: @apidevtools/json-schema-ref-parser@11.9.3 from lock file
+npm error Missing: camelcase@6.3.0 from lock file
+npm error Missing: commander@12.1.0 from lock file
+npm error Missing: handlebars@4.7.10 from lock file
+npm error Missing: minimist@1.2.8 from lock file
+npm error Missing: neo-async@2.6.2 from lock file
+npm error Missing: source-map@0.6.1 from lock file
+npm error Missing: uglify-js@3.19.3 from lock file
+npm error Missing: wordwrap@1.0.0 from lock file
+npm error Missing: @jsdevtools/ono@7.1.3 from lock file
+npm error
+npm error Clean install a project
+npm error
+npm error Usage:
+npm error npm ci
+npm error
+npm error Options:
+npm error [--install-strategy <hoisted|nested|shallow|linked>] [--legacy-bundling]
+npm error [--global-style] [--omit <dev|optional|peer> [--omit <dev|optional|peer> ...]]
+npm error [--include <prod|dev|optional|peer> [--include <prod|dev|optional|peer> ...]]
+npm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]
+npm error [--no-bin-links] [--no-fund] [--dry-run]
+npm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]
+npm error [-ws|--workspaces] [--include-workspace-root] [--install-links]
+npm error
+npm error aliases: clean-install, ic, install-clean, isntall-clean
+npm error
+npm error Run "npm help ci" for more info
+npm error A complete log of this run can be found in: /npm-cache/_logs/2026-10-10T01_00_21_872Z-debug-0.log

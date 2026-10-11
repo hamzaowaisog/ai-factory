@@ -46,13 +46,18 @@ export class Redactor {
   }
 }
 
+/** A connection string whose server is this machine (Host, Server or Data Source = 127.0.0.1, localhost or ::1). */
+const LOOPBACK_DB = /\b(?:host|server|data source)\s*=\s*(?:127\.0\.0\.1|localhost|\[?::1\]?)(?=[;:,"'\s]|$)/i;
+
 /** Scan without redacting: where secrets are (for per-commit scans). Values are never returned. */
 export function scanText(file: string, text: string): { file: string; line: number; rule: string }[] {
   const hits: { file: string; line: number; rule: string }[] = [];
   const lines = text.split("\n");
   lines.forEach((line, i) => {
     const r = new Redactor().redact(line);
-    for (const h of r.hits) hits.push({ file, line: i + 1, rule: h.rule });
+    // a database on this machine: its password opens nothing anyone else can reach (run e1b5: a test's unreachable 127.0.0.1 string)
+    const local = LOOPBACK_DB.test(line);
+    for (const h of r.hits) if (!(local && h.rule === "password-assignment")) hits.push({ file, line: i + 1, rule: h.rule });
   });
   // multi-line private keys
   if (/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(text) && !hits.some((h) => h.rule === "private-key")) {

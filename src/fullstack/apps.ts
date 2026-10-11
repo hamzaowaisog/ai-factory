@@ -11,13 +11,15 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { findRuntimeBinary } from "../verify/runtime.js";
-import { approvedContract, databaseOf, delivered, writeRunFiles, type Product } from "./product.js";
+import { approvedContract, databaseOf, delivered, writeRunFiles, NPM_CACHE_VOLUME, WEB_COMMAND, type Product } from "./product.js";
 import { API_PORT, API_SDK_IMAGE, API_SOLUTION, POSTGRES_IMAGE, CORS_KEY, CORS_SETTING, POSTGRES_LOCAL, postgresConnection, SEED_SETTING } from "./skeleton.js";
 
 export const WEB_PORT = 3000;
 /** how many ports after WEB_PORT are tried when it is taken */
 const WEB_PORT_TRIES = 10;
 export const WEB_IMAGE = "node:22-bookworm";
+/** the volume one product's installed web packages are kept in */
+export const webModulesVolume = (p: Product) => `${project(p)}-web-modules`;
 const SERVICES = ["db", "api", "web"] as const;
 export type Service = (typeof SERVICES)[number];
 
@@ -94,8 +96,8 @@ export function runArgs(p: Product, out: string, webPort = WEB_PORT): { service:
     { service: "api", args: [...base("api"), "--network", project(p), "-p", `127.0.0.1:${API_PORT}:${API_PORT}`, "-p", `127.0.0.1:${webPort}:${WEB_PORT}`, "-v", `${join(out, "api")}:/src`, "-w", "/src",
       ...env({ DOTNET_CLI_TELEMETRY_OPTOUT: "1", [SEED_SETTING]: "true", ...(webPort !== WEB_PORT ? { [CORS_SETTING]: `http://localhost:${webPort}` } : {}), ...(pg ? { ConnectionStrings__App: postgresConnection("db") } : {}) }),
       API_SDK_IMAGE, "dotnet", "run", "--project", API_SOLUTION.replace(/\.sln$/, ".Api"), "--urls", `http://0.0.0.0:${API_PORT}`] },
-    { service: "web", args: [...base("web"), "--network", `container:${containerName(p, "api")}`, "-v", `${join(out, "web")}:/app`, "-w", "/app", ...env({ NEXT_TELEMETRY_DISABLED: "1" }),
-      WEB_IMAGE, "sh", "-c", "npm ci --no-audit --no-fund && npm run build && npm start"] },
+    { service: "web", args: [...base("web"), "--network", `container:${containerName(p, "api")}`, "-v", `${join(out, "web")}:/app`, "-v", `${webModulesVolume(p)}:/app/node_modules`, "-v", `${NPM_CACHE_VOLUME}:/root/.npm`, "-w", "/app", ...env({ NEXT_TELEMETRY_DISABLED: "1" }),
+      WEB_IMAGE, "sh", "-c", WEB_COMMAND] },
   ];
 }
 
@@ -160,7 +162,7 @@ export async function startApps(p: Product, deps: AppsDeps = {}): Promise<{ dir:
   return { dir, webPort, done };
 }
 
-/** Stop the product: remove its three containers and its network. The database's rows stay in their volume for the next start. */
+/** Stop the product: remove its three containers and its network. The database's rows and the web app's installed packages stay in their volumes for the next start. */
 export async function stopApps(p: Product, deps: AppsDeps = {}): Promise<void> {
   const docker = deps.docker ?? realDocker;
   if (jobs.get(p.name)?.done === false) throw new Error(`${p.name} is still starting. Stop it once the start has finished.`);

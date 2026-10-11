@@ -1,5 +1,5 @@
 // Networks and proxies for containers (verify-runner §2.3, stages-aligned §6 "Container A packages").
-//   factory-agent-net  (internal): agent containers + api proxy → only the model API, key added by the proxy
+//   factory-agent-net  (internal): agent containers + api proxy → only the model APIs (Anthropic, OpenAI), key added by the proxy
 //   factory-feeds-net  (internal): restore containers + feed proxy → only allowlisted package hosts
 import { execFile } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
@@ -23,6 +23,9 @@ export const PROXY_IMAGE = "node:22-alpine";
 export const AGENT_IMAGE = "factory-agent:dotnet8";
 
 export const API_BASE_URL = `http://${API_PROXY}:8080/anthropic`;
+/** The same proxy for a GPT coding step (the Codex agent), and where a step reads what its token has spent. */
+export const OPENAI_BASE_URL = `http://${API_PROXY}:8080/openai/v1`;
+export const PROXY_SPEND_URL = `http://${API_PROXY}:8080/spend`;
 export const FEED_PROXY_URL = `http://${FEED_PROXY}:3128`;
 
 async function cli(rt: ContainerRuntime, args: string[]): Promise<string> {
@@ -54,20 +57,21 @@ export function setSkipInfra(v: boolean): void {
 }
 
 /**
- * What the key proxy reads, mounted into it read-only: the real key (a file, so it is in no container's
+ * What the key proxy reads, mounted into it read-only: the real keys (files, so they are in no container's
  * environment and not in `docker inspect`) and one small file per running agent step (its token).
  */
 export function proxyDir(): string {
   return join(factoryHome(), "proxy");
 }
 const KEY_FILE = "anthropic-key";
+const OPENAI_KEY_FILE = "openai-key";
 const TOKENS = "tokens";
 const PROXY_MOUNT = "/factory";
 
-/** Only agent containers reach this proxy and they only need Anthropic; host-side OpenAI calls go direct. No key in here. */
+/** Only agent containers reach this proxy: a Claude coding step, or a GPT one (the Codex agent). Host-side calls go direct. No key in here. */
 export function apiProxyEnv(): Record<string, string | undefined> {
   // besides its own model a step may call a Haiku model: the agent SDK uses one for its small background calls
-  return { MODE: "api", KEY_FILE: `${PROXY_MOUNT}/${KEY_FILE}`, TOKEN_DIR: `${PROXY_MOUNT}/${TOKENS}`, ALLOW_MODELS: "claude-haiku-*" };
+  return { MODE: "api", KEY_FILE: `${PROXY_MOUNT}/${KEY_FILE}`, OPENAI_KEY_FILE: `${PROXY_MOUNT}/${OPENAI_KEY_FILE}`, TOKEN_DIR: `${PROXY_MOUNT}/${TOKENS}`, ALLOW_MODELS: "claude-haiku-*" };
 }
 
 /** A short hash of the proxy's settings and code: stored as a label, never the keys themselves. */
@@ -76,20 +80,22 @@ export function proxyFingerprint(env: Record<string, string | undefined>, code: 
   return createHash("sha256").update(JSON.stringify(keys.map((k) => [k, env[k] ?? ""])) + "\0" + code).digest("hex").slice(0, 16);
 }
 
-/** The key proxy's label: its settings, its code, and the key it was started for (hashed with them, never stored). */
+/** The key proxy's label: its settings, its code, and the keys it was started for (hashed with them, never stored). */
 function apiProxyPrint(): string {
-  return proxyFingerprint({ ...apiProxyEnv(), ANTHROPIC_API_KEY: secret("ANTHROPIC_API_KEY") }, readFileSync(join(REPO_ROOT, "docker", "proxy", "proxy.mjs"), "utf8"));
+  return proxyFingerprint({ ...apiProxyEnv(), ANTHROPIC_API_KEY: secret("ANTHROPIC_API_KEY"), OPENAI_API_KEY: secret("OPENAI_API_KEY") }, readFileSync(join(REPO_ROOT, "docker", "proxy", "proxy.mjs"), "utf8"));
 }
 
-/** Today's key, in the file the proxy reads (owner-only); no key removes the file and the proxy refuses every call. */
-function writeProxyKey(): void {
+/** Today's keys, in the files the proxy reads (owner-only); a missing key removes its file and the proxy refuses every call to that API. */
+export function writeProxyKey(): void {
   const dir = proxyDir();
   mkdirSync(join(dir, TOKENS), { recursive: true, mode: 0o700 });
-  const file = join(dir, KEY_FILE);
-  const key = secret("ANTHROPIC_API_KEY");
-  if (!key) { rmSync(file, { force: true }); return; }
-  writeFileSync(file, key, { mode: 0o600 });
-  chmodSync(file, 0o600);
+  for (const [name, env] of [[OPENAI_KEY_FILE, "OPENAI_API_KEY"], [KEY_FILE, "ANTHROPIC_API_KEY"]] as const) {
+    const file = join(dir, name);
+    const key = secret(env);
+    if (!key) { rmSync(file, { force: true }); continue; }
+    writeFileSync(file, key, { mode: 0o600 });
+    chmodSync(file, 0o600);
+  }
   // tokens of steps that died without cleaning up (no step runs for two days)
   for (const f of readdirSync(join(dir, TOKENS))) {
     try { if (Date.now() - statSync(join(dir, TOKENS, f)).mtimeMs > 2 * 24 * 3600_000) rmSync(join(dir, TOKENS, f), { force: true }); } catch { /* gone already */ }
@@ -164,7 +170,7 @@ export async function ensureEgress(rt: ContainerRuntime, feedHosts: string[]): P
 /** Build container A's image once (docker/agent). */
 export async function ensureAgentImage(rt: ContainerRuntime, sdkImage: string): Promise<void> {
   if (skipInfra) return;
-  // rebuild when the image's files (run-agent.mjs, Dockerfile, package.json) or the SDK image change
+  // rebuild when the image's files (run-agent.mjs, run-codex.mjs, Dockerfile, package.json) or the SDK image change
   const fp = agentImageFingerprint(sdkImage);
   if ((await exists(rt, "image", AGENT_IMAGE)) && (await imageLabel(rt, AGENT_IMAGE, "factory.config")) === fp) return;
   await cli(rt, ["build", "--label", `factory.config=${fp}`, "--build-arg", `DOTNET_SDK=${sdkImage}`, "-t", AGENT_IMAGE, join(REPO_ROOT, "docker", "agent")]);
@@ -173,7 +179,7 @@ export async function ensureAgentImage(rt: ContainerRuntime, sdkImage: string): 
 export function agentImageFingerprint(sdkImage: string): string {
   const dir = join(REPO_ROOT, "docker", "agent");
   const h = createHash("sha256").update(sdkImage);
-  for (const f of ["Dockerfile", "package.json", "run-agent.mjs"]) h.update(`\0${f}\0`).update(readFileSync(join(dir, f)));
+  for (const f of ["Dockerfile", "package.json", "run-agent.mjs", "run-codex.mjs"]) h.update(`\0${f}\0`).update(readFileSync(join(dir, f)));
   return h.digest("hex").slice(0, 16);
 }
 

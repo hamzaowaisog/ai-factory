@@ -1,0 +1,330 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 2,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "ears": "The maintenance API shall expose `GET /api/requests` exactly as defined by `listRequests` in the locked OpenAPI contract, including optional single-status filtering, newest-first ordering, and the contract-defined response schemas and status codes.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-1.1",
+        "given": "The database contains requests with different creation timestamps and at least two requests with the same timestamp.",
+        "when": "A client sends `GET /api/requests` without a status filter.",
+        "then": "The response status is 200 and the response `requests` list contains all stored requests in descending `createdAt` order, with no required relative order for equal timestamps.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.2",
+        "given": "The database contains requests in each supported status.",
+        "when": "A client sends `GET /api/requests?status=In%20progress`.",
+        "then": "The response status is 200 and every record in the response `requests` list has status `In progress`.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.3",
+        "given": "The API is available.",
+        "when": "A client sends a request with an unsupported or malformed status filter.",
+        "then": "The response status is 400, the response `message` is `Status must be Open, In progress, or Done.`, and `errors.status` contains `Unsupported status filter.`",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-1.4",
+        "given": "The database operation for loading the request list fails after startup.",
+        "when": "A client sends `GET /api/requests`.",
+        "then": "The response status is 500 and the response `message` is `Could not load requests.`",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-2",
+      "ears": "The maintenance API shall expose `POST /api/requests` exactly as defined by `createRequest` in the locked OpenAPI contract.",
+      "op": "ADDED",
+      "sources": [
+       "I-1",
+       "Q-3"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-2.1",
+        "given": "The request body contains a valid title, area, priority, padded title and description values, and valid caller-supplied `id`, `createdAt`, and `status` values.",
+        "when": "A client sends `POST /api/requests`.",
+        "then": "The response status is 201 and the returned record has a positive system-generated `id`, a system-generated UTC `createdAt`, status `Open`, and trimmed title and description values; the caller-supplied system-controlled values are not used.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.2",
+        "given": "The request body has a valid title, area, and priority, with a description that is absent or blank after trimming.",
+        "when": "A client sends `POST /api/requests`.",
+        "then": "The response status is 201 and the returned record omits the `description` field.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.3",
+        "given": "The request body has a missing or shorter-than-three-character title, a missing or unsupported area, an unsupported priority, or a description longer than 500 characters.",
+        "when": "A client sends `POST /api/requests`.",
+        "then": "The response status is 400, the response `message` is `Request validation failed.`, and the response `errors` object identifies the invalid field; a two-character title has the message `Title must be 3 to 80 characters.`, a missing area has `Area is required.`, and an overlong description has `Description must be at most 500 characters.`",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.4",
+        "given": "The request body is malformed JSON, has an invalid field type, omits a required field, or contains a property not allowed by the contract.",
+        "when": "A client sends `POST /api/requests`.",
+        "then": "The response status is 400 and no request row is created.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-2.5",
+        "given": "The database operation for creating a request fails after startup.",
+        "when": "A client sends a valid `POST /api/requests`.",
+        "then": "The response status is 500 and the response `message` is `Could not create the request.`",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-3",
+      "ears": "The maintenance API shall expose `GET /api/requests/{id}` exactly as defined by `getRequest` in the locked OpenAPI contract.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-3.1",
+        "given": "A request with the requested ID exists in the database.",
+        "when": "A client sends `GET /api/requests/{id}` for that ID.",
+        "then": "The response status is 200 and the returned record contains the stored request fields defined by the contract.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.2",
+        "given": "No request has the requested ID.",
+        "when": "A client sends `GET /api/requests/{id}` for that ID.",
+        "then": "The response status is 404 and the response `message` is `Request not found.`",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-3.3",
+        "given": "The database operation for loading an existing request fails for a reason other than the request being absent.",
+        "when": "A client sends `GET /api/requests/{id}` for that request.",
+        "then": "The response status is 500 and the response `message` is `Could not load the request.`",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-4",
+      "ears": "The maintenance API shall expose `PATCH /api/requests/{id}/status` exactly as defined by `changeRequestStatus` in the locked OpenAPI contract, allowing only the transitions `Open` to `In progress`, `In progress` to `Done`, and `Done` to `Open`.",
+      "op": "ADDED",
+      "sources": [
+       "I-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-4.1",
+        "given": "A request exists in `Open`, `In progress`, or `Done`, and the requested status is respectively `In progress`, `Done`, or `Open`.",
+        "when": "A client sends `PATCH /api/requests/{id}/status` with only the requested status.",
+        "then": "The response status is 200, the returned record has the requested status, and its other stored fields are unchanged.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.2",
+        "given": "A request exists in `Open` and a client requests status `Done`.",
+        "when": "The client sends `PATCH /api/requests/{id}/status`.",
+        "then": "The response status is 409, the response `message` is `This status transition is not allowed.`, and the stored row remains `Open`.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.3",
+        "given": "The requested status is unsupported, the body contains an immutable or other extra property, or the required status is missing.",
+        "when": "A client sends `PATCH /api/requests/{id}/status`.",
+        "then": "The response status is 400 and the response contains the contract-defined validation `message` and field errors where applicable.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.4",
+        "given": "No request has the requested ID.",
+        "when": "A client sends `PATCH /api/requests/{id}/status` for that ID.",
+        "then": "The response status is 404 and the response `message` is `Request not found.`",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-4.5",
+        "given": "The database operation for updating a request status fails after startup.",
+        "when": "A client sends a valid status transition for an existing request.",
+        "then": "The response status is 500 and the response `message` is `Could not update the request.`",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-5",
+      "ears": "The maintenance API shall store maintenance-request records in the PostgreSQL database selected by the configured connection string named `App` and retain those records across application restarts.",
+      "op": "ADDED",
+      "sources": [
+       "I-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-5.1",
+        "given": "`ConnectionStrings:App` points to a PostgreSQL database and the API starts with that configuration.",
+        "when": "A client creates a request, the API is restarted with the same configuration, and the client retrieves the created request by ID.",
+        "then": "The response after restart is 200 and the returned record matches the request stored before restart.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-5.2",
+        "given": "`ConnectionStrings:App` points to the test PostgreSQL database.",
+        "when": "A client creates a request through the API.",
+        "then": "A row for that request is present in the database selected by `App`.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-6",
+      "ears": "When `Seed:Demo` is true, the API startup shall seed at least two maintenance-request rows using values from the locked OpenAPI contract examples and shall not add duplicate demo rows on repeated runs.",
+      "op": "ADDED",
+      "sources": [
+       "I-3",
+       "Q-1",
+       "Q-2"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-6.1",
+        "given": "A fresh PostgreSQL database and `Seed:Demo` set to true.",
+        "when": "The API starts and a client sends `GET /api/requests`.",
+        "then": "The response `requests` list contains at least two records whose title, area, priority, and status values match request examples in the locked contract; no exact total or per-status or per-area count is required.",
+        "level": "api"
+       },
+       {
+        "id": "AC-REQ-6.2",
+        "given": "`SeedData.Run` has already inserted demo rows into the database.",
+        "when": "A test calls the public `SeedData.Run` method again with the same `AppDb`.",
+        "then": "The row count is unchanged and the database contains no duplicate demo rows.",
+        "level": "unit"
+       }
+      ]
+     },
+     {
+      "id": "REQ-7",
+      "ears": "When `Seed:Demo` is false, the API shall not run the demo seeder or add demo rows to an empty request table.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 23,
+        "lineEnd": 25,
+        "quote": "        // sample rows, only when asked for (Seed__Demo=true): tests and the factory's own checks start on an empty database\n        if (app.Configuration.GetValue<bool>(\"Seed:Demo\")) SeedData.Run(db);\n    }"
+       }
+      ],
+      "sources": [
+       "I-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-7.1",
+        "given": "The PostgreSQL database has an empty request table and `Seed:Demo` is false.",
+        "when": "The API starts and a client sends `GET /api/requests`.",
+        "then": "The response status is 200 and the response `requests` list has count 0; API-operation tests use explicitly arranged rows rather than relying on demo seed rows.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-8",
+      "ears": "If PostgreSQL is unreachable during startup, then the API shall fail startup without using an alternate store.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 20,
+        "lineEnd": 22,
+        "quote": "        using var scope = app.Services.CreateScope();\n        var db = scope.ServiceProvider.GetRequiredService<AppDb>();\n        db.Database.EnsureCreated();"
+       }
+      ],
+      "sources": [
+       "I-2",
+       "Q-4"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-8.1",
+        "given": "`ConnectionStrings:App` points to an unreachable PostgreSQL instance.",
+        "when": "The API process starts.",
+        "then": "A startup error is reported and the process exits without serving an API response.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-9",
+      "ears": "The API shall keep `GET /` as a health endpoint returning HTTP 200 with the body `API is up` alongside the four contract operations.",
+      "op": "MODIFIED",
+      "anchors": [
+       {
+        "path": "App.Api/Program.cs",
+        "lineStart": 28,
+        "lineEnd": 30,
+        "quote": "app.MapGet(\"/\", () => \"API is up\").ExcludeFromDescription();\n\napp.Run();"
+       }
+      ],
+      "sources": [
+       "Q-5"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-9.1",
+        "given": "The API has started successfully.",
+        "when": "A client sends `GET /`.",
+        "then": "The response status is 200 and the response body is `API is up`.",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-10",
+      "ears": "The API repository shall not implement web-app screens.",
+      "op": "ADDED",
+      "sources": [
+       "I-5",
+       "ASM-1"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-REQ-10.1",
+        "given": "The API repository build is complete.",
+        "when": "A reviewer inspects the delivered application routes and repository artifacts.",
+        "then": "No screen or page for the web app is provided by this repository.",
+        "level": "manual"
+       }
+      ]
+     }
+    ],
+    "nfrs": [],
+    "outOfScope": [
+     "I-5 web-app screen implementation; screen-flow end-to-end test (ASM-1)"
+    ],
+    "assumptions": [
+     "ASM-1: Implement API/business-rule tests in this repository; leave the screen-flow end-to-end test to the separate web-app repository."
+    ],
+    "suggestions": []
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}
