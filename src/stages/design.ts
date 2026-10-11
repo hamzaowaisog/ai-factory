@@ -19,7 +19,7 @@ import { restyleChosen, type ClarifyResult } from "./clarify.js";
 import { btnLabels, DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
 import { designRoute } from "../config/design-route.js";
-import { usesDesignEngine } from "./routing.js";
+import { routeFor, usesDesignEngine } from "./routing.js";
 import { drawWithStitch, stitchOnExistingApp, type StitchDesign } from "./design-stitch.js";
 import { header, lastFailureData, outputOf, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { lightUi } from "./lane.js";
@@ -918,9 +918,12 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       // route-source logging: which engine and tier draw this design, and where each came from
       if (usesDesignEngine(ctx.project)) {
         const dr = designRoute(ctx.project);
-        const line = `design: engine ${dr.engine} (${dr.source.engine}), tier ${dr.tier} (${dr.source.tier}): ${dr.ladder.map((x) => `${x.tier} ${x.model}`).join(" → ")}${dr.dropped ? `; ${dr.dropped}` : ""}`;
+        // a planner picked with Google Stitch at the start runs in place of the tier's model (routing.ts stitchPick)
+        const planner = dr.engine === "stitch" && routeFor(ctx.project, "design").model !== dr.ladder[0]!.model ? routeFor(ctx.project, "design").model : undefined;
+        const line = planner ? `design: engine ${dr.engine} (${dr.source.engine}), planned by ${planner} (pick)`
+          : `design: engine ${dr.engine} (${dr.source.engine}), tier ${dr.tier} (${dr.source.tier}): ${dr.ladder.map((x) => `${x.tier} ${x.model}`).join(" → ")}${dr.dropped ? `; ${dr.dropped}` : ""}`;
         ctx.log(line);
-        ctx.trace.event("route.design", line, { engine: dr.engine, tier: dr.tier, source: dr.source, ladder: dr.ladder });
+        ctx.trace.event("route.design", line, { engine: dr.engine, tier: dr.tier, source: dr.source, ladder: dr.ladder, ...(planner ? { planner } : {}) });
       }
       // a spec from before problems were settled by questions, which the breakdown would refuse: settle it before drawing from it
       const back = await backToSettle(ctx, "design", src.spec);

@@ -85,6 +85,28 @@ describe("the Figma export of a Stitch design", () => {
   }, 120_000);
 });
 
+describe("the Figma export of a package that holds Stitch's own pictures", () => {
+  it("gives each picture its frame at the size it was drawn, with no browser", async () => {
+    const dot = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+    const dir = mkdtempSync(join(tmpdir(), "stitch-own-"));
+    mkdirSync(join(dir, "shots"));
+    writeFileSync(join(dir, "shots", "s-1-default-desktop.png"), dot);
+    writeFileSync(join(dir, "design.json"), JSON.stringify({ schemaVersion: 1, flow: "f", screens: [{ id: "S-1", route: "/appointments" }] }));
+    const manifest = { line: "clinic", version: 1, designSha: "a".repeat(64), product: { name: "Clinic" }, run: { id: "r1", mode: "design", project: "p" }, screens: [{ id: "S-1", title: "Appointments", route: "/appointments", reqs: ["REQ-1"], states: ["default"] }] };
+    const { figmaDoc } = await import("./figma.js");
+    const saved = process.env.FACTORY_NO_SCREENSHOTS;
+    process.env.FACTORY_NO_SCREENSHOTS = "1";
+    let r: Awaited<ReturnType<typeof figmaDoc>>;
+    try { r = await figmaDoc({ manifest, dir } as never, [{ id: "S-1", screen: "S-1 Appointments", stateBase: "default", viewport: "desktop", modeName: "light", langCode: "en", file: "s-1-default-desktop.png", own: true }], "test"); }
+    finally { if (saved === undefined) delete process.env.FACTORY_NO_SCREENSHOTS; else process.env.FACTORY_NO_SCREENSHOTS = saved; }
+    expect(r.why).toBeUndefined();
+    expect(r.doc!.frames).toHaveLength(1);
+    expect(r.doc!.frames[0]).toMatchObject({ screen: "S-1", state: "default", viewport: "desktop", w: 1, h: 1, nodes: 2 });
+    expect(r.doc!.frames[0]!.root.children[0]).toMatchObject({ t: "image", w: 1, h: 1, png: dot.toString("base64") });
+    expect(r.doc!.notes.join(" ")).toMatch(/design's own picture/);
+  });
+});
+
 describe("a Stitch state with no picture (review I1, M5)", () => {
   it("never shows another state's picture under a state's tab", () => {
     const html = demo([{ ...stitchScreen, states: ["empty", "success"] }], { "ST-1": { name: "stitch-S-1-normal-aaaaaaaa.png", state: "normal" }, "ST-2": stitchFrames["ST-2"] });

@@ -126,12 +126,12 @@ export function offeredFor(stage: string): ModelInfo[] {
   return MODELS.filter((m) => m.offered.includes(s.group) && (!s.only || s.only.includes(m.vendor)));
 }
 
-/** What the design step can be given besides a model: Google Stitch draws the screens, and Claude plans them (src/config/design-route.ts). */
+/** What the design step can be given besides a model: Google Stitch draws the screens, and a model plans them (the design tier's Claude model, or the one picked with it: src/stages/routing.ts stitchPick). */
 export const STITCH = "stitch";
 export const STITCH_NAME = "Google Stitch";
 /** The design engines a person may pick for this step at the start of a run, beside its models. */
 export function enginesFor(stage: string): { id: string; name: string; note: string }[] {
-  return stage === "design" ? [{ id: STITCH, name: STITCH_NAME, note: "Stitch draws the screens and Claude plans them. It sends the requirements to Google: picking it here allows that for this run. It needs STITCH_API_KEY." }] : [];
+  return stage === "design" ? [{ id: STITCH, name: STITCH_NAME, note: "Stitch draws the screens; the model beside it plans them and writes the design system. It sends the requirements to Google: picking it here allows that for this run. It needs STITCH_API_KEY." }] : [];
 }
 
 export type Preset = "economy" | "balanced" | "quality";

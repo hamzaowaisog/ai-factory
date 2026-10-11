@@ -1,7 +1,7 @@
 // The design package (docs/estimates-design.md, "Design handoff", step 2): W3C tokens, the design.json
 // format, the store (write once, checked by sha-256), the repo paths, the design-export step over a run
 // (v1, then a change request's v2 in the same line) and reproducible pictures.
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -102,6 +102,27 @@ describe("the package store", () => {
 
     writeFileSync(join(pkg.dir, "design.json"), "{}");
     expect(checkPackage(pkg.dir).problems).toEqual(["design.json was changed after approval"]);
+  });
+
+  it("keeps a design's own pictures as the package's pictures, and only the states that were drawn", async () => {
+    const dot = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+    const stitched = { ...design(), screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["loading", "error"], size: "new", frames: ["ST-1", "ST-2"] }] };
+    const pkg = await writePackage(input({ design: stitched as never, pictures: [{ id: "S-1", kind: "normal", viewport: "desktop", png: dot }, { id: "S-1", kind: "error", viewport: "desktop", png: dot }] }));
+    expect(pkg.manifest.shots).toEqual([
+      { file: "s-1-default-desktop.png", id: "S-1", screen: pkg.manifest.screens[0]!.title, state: "default", viewport: "desktop", own: true },
+      { file: "s-1-error-desktop.png", id: "S-1", screen: pkg.manifest.screens[0]!.title, state: "error", viewport: "desktop", own: true },
+    ]);
+    expect(pkg.manifest.screens[0]!.states).toEqual(["default", "error"]);
+    expect(pkg.manifest.shotsNote).toMatch(/design's own.*desktop width; not drawn, so not pictured: S-1 loading/);
+    expect(readFileSync(join(pkg.dir, "shots", "s-1-error-desktop.png")).equals(dot)).toBe(true);
+    expect(checkPackage(pkg.dir).problems).toEqual([]);
+  });
+
+  it("two writers of the same approved design end with one whole package and nothing left beside it", async () => {
+    const [a, b] = await Promise.all([writePackage(input()), writePackage(input())]);
+    expect(a.manifest).toEqual(b.manifest);
+    expect(checkPackage(a.dir).problems).toEqual([]);
+    expect(readdirSync(join(a.dir, ".."))).toEqual(["v1"]);
   });
 
   it("finds a package by its design, counts versions per line, and keeps the repo's look out of tokens", async () => {

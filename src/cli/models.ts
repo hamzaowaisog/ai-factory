@@ -16,7 +16,7 @@ export function choiceOption(model: string[] | undefined, preset: string | undef
   const steps = stepsOf(mode);
   for (const m of model ?? []) {
     const at = m.indexOf("=");
-    if (at < 1 || at === m.length - 1) throw new Error(`--model takes step=model (for example --model design=gpt-6-sol, or design=stitch for Google Stitch), not "${m}"`);
+    if (at < 1 || at === m.length - 1) throw new Error(`--model takes step=model (for example --model design=gpt-6-sol, or design=stitch for Google Stitch, design=stitch:gpt-6-luna to name the model that plans for it), not "${m}"`);
     const name = m.slice(0, at).trim(), id = m.slice(at + 1).trim();
     const group = steps.filter((s) => STEPS[s]!.group === name && !STEPS[s]!.fixed);
     // a step's own name wins over a group of the same name (design is both: the step, and the group it leads)
@@ -79,7 +79,8 @@ export function registerModels(program: Command, log: (s: string) => void, openR
       const steps = stepsOf(o.mode);
       const rows = steps.map((stage) => {
         const r = resolveRoute(project, stage, choice);
-        const offered = [...offeredFor(stage), ...enginesFor(stage)].map((m) => m.id);
+        // an engine takes a planner too: stitch, or stitch:<model>
+        const offered = [...offeredFor(stage).map((m) => m.id), ...enginesFor(stage).flatMap((e) => [e.id, `${e.id}:<model>`])];
         return [stage, STEPS[stage]!.group, r.engine ? `${r.engine} (${r.model})` : r.model, r.effort ?? "high", r.source + (r.preset ? ` (${r.preset})` : r.tier ? ` (${r.tier})` : ""), r.escalate[0] ?? "-", offered.length ? offered.join(", ") : "not asked"];
       });
       table(["step", "group", "model", "effort", "from", "retry moves to", "can be given"], rows, log);

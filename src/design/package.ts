@@ -13,12 +13,12 @@
 // A package is never changed after it is written: the ledger stays the source of truth and the package is an
 // export of it. A change after approval is a new version in the same line (v2, v3, ...). The repo gets the same
 // folder under `design/<line>/vN/` with the first build commit.
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { DesignTheme } from "../contracts/artifacts.js";
-import { COMPONENTS_ID, demoStates } from "./demo.js";
-import { captureDemo, type Shot, type ScreenShotInput } from "./screenshots.js";
+import { COMPONENTS_ID, demoStates, stateKind } from "./demo.js";
+import { captureDemo, type Shot, type ShotResult, type ScreenShotInput, type Viewport } from "./screenshots.js";
 import { designTokens } from "./tokens.js";
 import { factoryHome } from "../util/paths.js";
 import { STANDALONE_PROJECT } from "../config/project.js";
@@ -274,6 +274,38 @@ export interface PackageInput {
   log?: (msg: string) => void;
   /** more files for the package (a Stitch design's HTML per screen and its DESIGN.md), at paths inside it */
   extraFiles?: { path: string; content: string | Uint8Array }[];
+  /**
+   * The design's own pictures (a Stitch design: each screen and state Stitch drew, at the width it drew). Given, they are the
+   * package's pictures in place of pictures of the demo page, and a state with no picture is left out of the screen's states.
+   */
+  pictures?: OwnPicture[];
+}
+/** `kind` is the state as the demo reads it (normal, empty, error, ...; src/design/demo.ts stateKind). */
+export interface OwnPicture { id: string; kind: string; viewport: Viewport; png: Uint8Array }
+
+const fileSlug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "state";
+
+/** The design's own pictures as the package's shots: one per screen state that has one, named as the demo's are. */
+function ownShots(p: PackageInput, outDir: string): ShotResult & { states: Map<string, string[]> } {
+  mkdirSync(outDir, { recursive: true });
+  const label = screenLabels(p.design.screens);
+  const shots: Shot[] = [], states = new Map<string, string[]>(), missing: string[] = [];
+  for (const s of p.design.screens) {
+    const drawn: string[] = [];
+    demoStates(s as never).forEach((st, k) => {
+      const pic = p.pictures!.find((x) => x.id === s.id && x.kind === (k === 0 ? "normal" : stateKind(st)));
+      if (!pic) { missing.push(`${s.id} ${st}`); return; }
+      const file = `${fileSlug(s.id)}-${fileSlug(st)}-${pic.viewport}.png`;
+      if (shots.some((x) => x.file === file)) return;
+      writeFileSync(join(outDir, file), pic.png);
+      shots.push({ file, id: s.id, screen: label.get(s.id)!, state: st, viewport: pic.viewport, own: true });
+      drawn.push(st);
+    });
+    if (drawn.length) states.set(s.id, drawn);
+  }
+  const widths = [...new Set(shots.map((s) => s.viewport))].join(" and ");
+  const note = `the pictures are the design's own, as drawn at ${widths || "no"} width${missing.length ? `; not drawn, so not pictured: ${missing.join(", ")}` : ""}`;
+  return { shots, note, states };
 }
 
 /**
@@ -288,8 +320,7 @@ export async function writePackage(p: PackageInput): Promise<DesignPackage> {
     if (had.designSha === p.designSha) return { manifest: had, dir };
     throw new Error(`Design ${p.line} v${p.version} already holds another approved design (${had.designSha.slice(0, 8)}); a package never changes.`);
   }
-  const tmp = `${dir}.tmp-${process.pid}`;
-  rmSync(tmp, { recursive: true, force: true });
+  const tmp = `${dir}.tmp-${process.pid}-${randomBytes(4).toString("hex")}`;
   mkdirSync(join(tmp, "demo"), { recursive: true });
   const { header: _h, ...design } = p.design as Record<string, unknown> & { header?: unknown };
   writeFileSync(join(tmp, "design.json"), `${JSON.stringify({ schemaVersion: DESIGN_SCHEMA_VERSION, ...design }, null, 2)}\n`);
@@ -299,7 +330,8 @@ export async function writePackage(p: PackageInput): Promise<DesignPackage> {
     writeFileSync(join(tmp, "tokens.css"), designTokens(p.design.theme!).css);
   }
   writeFileSync(join(tmp, "demo", "index.html"), p.demoHtml);
-  const shots = await captureDemo(join(tmp, "demo", "index.html"), demoShotList(p.design.screens), join(tmp, "shots"), { reproducible: true, max: MAX_PACKAGE_SHOTS });
+  const own = p.pictures?.length ? ownShots(p, join(tmp, "shots")) : undefined;
+  const shots = own ?? await captureDemo(join(tmp, "demo", "index.html"), demoShotList(p.design.screens), join(tmp, "shots"), { reproducible: true, max: MAX_PACKAGE_SHOTS });
   if (shots.note) p.log?.(`design package: ${shots.note}`);
   for (const x of p.extraFiles ?? []) {
     if (/^[/\\]|(^|[/\\])\.\.([/\\]|$)/.test(x.path)) throw new Error(`A package file must stay inside the package: ${x.path}`);
@@ -322,13 +354,21 @@ export async function writePackage(p: PackageInput): Promise<DesignPackage> {
     designSha: p.designSha, demoSha: p.demoSha, run: p.run, product: p.product, approved: p.approved,
     templateVersion: p.templateVersion, designSchemaVersion: DESIGN_SCHEMA_VERSION, look,
     references: p.references.map((r) => ({ id: r.id, role: r.role, source: r.source, ...(use.get(r.id) ? { use: use.get(r.id)!.use, how: use.get(r.id)!.how } : {}) })),
-    screens: p.design.screens.map((s) => ({ id: s.id, title: label.get(s.id)!, route: s.route, reqs: s.reqs, states: demoStates(s as never) })),
+    screens: p.design.screens.map((s) => ({ id: s.id, title: label.get(s.id)!, route: s.route, reqs: s.reqs, states: own?.states.get(s.id) ?? demoStates(s as never) })),
     ...(p.previous ? { previous: p.previous } : {}), ...(p.changes ? { changes: p.changes } : {}),
     shots: shots.shots, ...(shots.note ? { shotsNote: shots.note } : {}), files,
   };
   writeFileSync(join(tmp, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
   mkdirSync(join(dir, ".."), { recursive: true });
-  renameSync(tmp, dir);
+  try { renameSync(tmp, dir); } catch (e) {
+    // another process wrote this version meanwhile (the run's own step and an export started from the screens): the same
+    // design is the same package, so theirs stands and this copy goes
+    rmSync(tmp, { recursive: true, force: true });
+    const had = existsSync(join(dir, "manifest.json")) ? (JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")) as DesignManifest) : undefined;
+    if (had?.designSha === p.designSha) return { manifest: had, dir };
+    if (had) throw new Error(`Design ${p.line} v${p.version} already holds another approved design (${had.designSha.slice(0, 8)}); a package never changes.`);
+    throw e;
+  }
   return { manifest, dir };
 }
 

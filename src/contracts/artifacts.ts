@@ -540,6 +540,8 @@ export const DesignBody = z.object({
     a11y: z.array(z.object({ screen: z.string(), rules: z.array(z.string()) })).optional(),
     /** each screen's Stitch prompt, for a rework that redraws its extra states */
     prompts: z.record(z.string(), z.string()).optional(),
+    /** per screen, the links the screen list gave it: the words on the control and the screen it opens (the live demo follows them) */
+    links: z.record(z.string(), z.array(z.object({ label: z.string(), to: z.string() }))).optional(),
   }).optional(),
 });
 export const Design = withHeader(DesignBody.shape);

@@ -1,18 +1,19 @@
 // The design step on the stitch engine (docs/superpowers/plans/2026-10-09-design-tier-ladder.md, Tasks 9 and 10): Claude
 // lists the screens and writes a DESIGN.md by following the stitch-design-taste skill; Stitch draws each screen against it.
 // Each screenshot is saved as a frame, so the demo, the approval card and the package pictures show it like an attached frame.
+import type { OwnPicture } from "../design/package.js";
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { z } from "zod";
 import type { Spec } from "../contracts/index.js";
 import type { Failure } from "../contracts/common.js";
-import { designRoute, ladderAt } from "../config/design-route.js";
 import { designMdFaults, DesignMdOut, loadTasteSkill, TASTE_OVERRIDES, type StitchTheme } from "../design/stitch-taste.js";
 import { stitchThemeToDesign } from "../design/stitch-theme.js";
 import { stitchFacts, type StitchFacts } from "../design/stitch-facts.js";
 import { stitchClient, type StitchClient, type StitchDevice } from "../design/stitch.js";
 import { checkStitchA11y } from "../design/stitch-a11y.js";
-import { stateKind } from "../design/demo.js";
+import { buildDemo, frameDataUri, stateKind } from "../design/demo.js";
+import { LIVE_DIR, stitchLiveHtml, type LiveScreen } from "../design/stitch-live.js";
 import { hasExistingLook, type DesignInventory } from "../design/inventory.js";
 import { failure } from "../gates/engine.js";
 import { currentCostCap } from "../ledger/caps.js";
@@ -26,6 +27,7 @@ export const StitchPlan = z.object({
   screens: z.array(z.object({
     id: z.string().regex(/^S-\d+$/), title: z.string(), route: z.string().min(1), file: z.string().min(1),
     reqs: z.array(z.string()), states: z.array(z.string()).default([]), prompt: z.string().min(20),
+    links: z.array(z.object({ label: z.string().min(1), to: z.string() })).default([]),
   })).min(1),
   noScreen: z.array(z.object({ req: z.string(), reason: z.string() })).default([]),
   brand: z.object({ colours: z.array(z.string()).default([]), fonts: z.array(z.string()).default([]) }).default({ colours: [], fonts: [] }),
@@ -36,6 +38,7 @@ const STITCH_PLAN_RULES = `You list the screens of a product for Google Stitch t
 - One screen per page a user sees: ids S-1, S-2, ..., each with its route, a proposed file path and the requirement ids it serves in "reqs".
 - Every requirement is on a screen, or in "noScreen" with the reason it has no page of its own.
 - Each "prompt" describes that page alone: its purpose, its sections in order, and real sample content from the product's domain (names, amounts, dates). No lorem ipsum, no generic names, nothing the requirements do not ask for.
+- "links" lists every way from this page to another screen: its menu items and the buttons and links that open one, each with the exact words on the control ("label") and the screen id it opens ("to"). A screen has one label, the same on every page that links to it; a button that stays on its page is not listed. The prompt uses those same words for those controls.
 - "states" lists the page's extra states besides its normal page (empty, loading, error, success, validation) only where the requirements need them.
 - "brand" lists the client's colours (hex) and fonts only when the requirements or references name them; otherwise leave it empty.`;
 
@@ -52,14 +55,23 @@ const STATE_HINT: Record<string, string> = {
   validation: "the form with its required fields flagged and their error messages",
 };
 const FOLLOW = "\nFollow the project's design system exactly.";
+/** The links of a screen that lead to a screen of the plan, each label once. */
+export function stitchLinks(s: Pick<Plan["screens"][number], "id" | "links">, ids: ReadonlySet<string>): { label: string; to: string }[] {
+  const seen = new Set<string>();
+  return (s.links ?? []).filter((l) => { const k = l.label.trim().toLowerCase(); if (!k || l.to === s.id || !ids.has(l.to) || seen.has(k)) return false; seen.add(k); return true; });
+}
+/** What a screen's prompt says of its links, so Stitch words those controls as the screen list did. */
+const labelled = (links: { label: string }[]) => (links.length ? `\nLabel the controls that open other pages exactly: ${links.map((l) => `"${l.label.trim()}"`).join(", ")}.` : "");
 
 /** What to draw: each screen's normal page, then each state it lists that the project allows (once per kind). */
 export function stitchJobs(screens: Plan["screens"], allowed: readonly string[]): { id: string; state: string; prompt: string }[] {
+  const ids = new Set(screens.map((s) => s.id));
   return screens.flatMap((s) => {
     const kinds = [...new Set(s.states.map(stateKind))].filter((k) => k !== "normal" && allowed.includes(k));
+    const names = labelled(stitchLinks(s, ids));
     return [
-      { id: s.id, state: "normal", prompt: `${s.prompt}${FOLLOW}` },
-      ...kinds.map((k) => ({ id: s.id, state: k, prompt: `${s.prompt}\nShow this same page in its ${k} state: ${STATE_HINT[k]}. Keep the layout, navigation and header identical to the normal page.${FOLLOW}` })),
+      { id: s.id, state: "normal", prompt: `${s.prompt}${names}${FOLLOW}` },
+      ...kinds.map((k) => ({ id: s.id, state: k, prompt: `${s.prompt}${names}\nShow this same page in its ${k} state: ${STATE_HINT[k]}. Keep the layout, navigation and header identical to the normal page.${FOLLOW}` })),
     ];
   });
 }
@@ -204,6 +216,7 @@ export function stitchArtifact(p: Plan, assets: StitchAsset[], meta: StitchMeta,
       projectId: meta.projectId, model: meta.model, designMd: meta.designMd, ...(meta.theme ? { theme: meta.theme } : {}),
       frames: Object.fromEntries(ordered.map((a) => [fid.get(a)!, { screen: a.id, state: a.state, name: a.name, screenId: a.screenId, html: a.html, image: a.image }])),
       prompts: Object.fromEntries(p.screens.map((s) => [s.id, s.prompt])),
+      links: Object.fromEntries(p.screens.map((s) => [s.id, stitchLinks(s, new Set(p.screens.map((x) => x.id)))] as const).filter(([, l]) => l.length)),
     },
   };
 }
@@ -213,6 +226,45 @@ export function stitchFrames(design: { stitch?: { frames: Record<string, { name:
   // each screen's page first: the demo embeds pictures up to a total, and an extra state is the one to go without
   const all = Object.entries(design.stitch?.frames ?? {}).map(([id, f]) => ({ id, name: f.name, ...(f.state ? { state: f.state } : {}) }));
   return [...all.filter((f) => f.state === "normal"), ...all.filter((f) => f.state !== "normal")];
+}
+
+/**
+ * The Stitch design as far as it is drawn, as the run's preview (Run: Preview in `factory ui`): each drawn frame live with its
+ * picture, the screens not drawn yet as wireframes, marked a draft so the page says how far it is. The approval step writes the
+ * real preview over it. Best effort: a draft that cannot be written never stops the drawing. Files are swapped in whole.
+ */
+export function stitchDraftPreview(ctx: Pick<StepContext, "ledger" | "state" | "runId" | "log">, spec: Spec, plan: Plan, assets: StitchAsset[], theme: StitchTheme | undefined, total: number): void {
+  try {
+    const dir = join(ctx.ledger.dir, "preview");
+    mkdirSync(join(dir, LIVE_DIR), { recursive: true });
+    const put = (name: string, body: string) => { writeFileSync(join(dir, `${name}.tmp`), body); renameSync(join(dir, `${name}.tmp`), join(dir, name)); };
+    const page = (id: string) => assets.find((a) => a.id === id && a.state === "normal");
+    const title = (s: Plan["screens"][number]) => page(s.id)?.facts?.title ?? s.title;
+    const screens: LiveScreen[] = plan.screens.map((s) => ({ id: s.id, route: s.route, title: title(s), ...(page(s.id)?.facts?.headings ? { headings: page(s.id)!.facts!.headings } : {}), links: stitchLinks(s, new Set(plan.screens.map((x) => x.id))) }));
+    // a frame keeps its name while the rest are drawn (the stored design numbers them ST-n only once all are back)
+    const fid = (a: StitchAsset) => `${a.id}-${a.state}`;
+    const frames: NonNullable<Parameters<typeof buildDemo>[0]["frames"]> = {};
+    let embedded = 0;
+    // each screen's page first: the demo embeds pictures up to a total, and an extra state is the one to go without
+    for (const a of [...assets.filter((x) => x.state === "normal"), ...assets.filter((x) => x.state !== "normal")]) {
+      let live: string | undefined;
+      try { put(`${LIVE_DIR}/${fid(a)}.html`, stitchLiveHtml(ctx.ledger.getArtifact(a.html).toString("utf8"), a.id, screens)); live = `${LIVE_DIR}/${fid(a)}.html`; } catch { /* its picture alone */ }
+      const png = ctx.ledger.getArtifact(a.image);
+      const dataUri = frameDataUri(a.name, png, embedded);
+      if (dataUri) embedded += png.length;
+      frames[fid(a)] = { name: a.name, state: a.state, ...(dataUri ? { dataUri } : {}), ...(live ? { live } : {}) };
+    }
+    put("index.html", buildDemo({
+      title: ctx.state.info.estimate?.projectName ?? ctx.runId, flow: plan.flow,
+      screens: plan.screens.map((s) => ({ id: s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states, size: "new" as const, frames: assets.filter((a) => a.id === s.id).map(fid), ...(page(s.id)?.facts ? { facts: page(s.id)!.facts! } : {}) })),
+      requirements: Object.fromEntries(spec.requirements.map((q) => [q.id, q.ears])), noScreen: plan.noScreen, frames,
+      ...(theme ? { theme: stitchThemeToDesign(theme, plan.flow) } : {}),
+    }));
+    put("preview.json", JSON.stringify({
+      site: { entry: "index.html", screens: plan.screens.map((s) => ({ path: `index.html#${s.id}`, title: title(s), ...(s.reqs[0] ? { req: s.reqs[0] } : {}), ...(page(s.id) ? {} : { pending: true }) })) },
+      images: [], draft: { drawn: assets.length, total, failed: 0 },
+    }, null, 2));
+  } catch (e) { ctx.log(`design: draft preview not written: ${(e as Error).message}`); }
 }
 
 const failed = (failures: Failure[], tag: string): StepOutcome => ({ kind: "fail", category: "other", failures, signature: `${tag}:${[...new Set(failures.map((f) => f.check))].sort().join(",")}`, gate: true });
@@ -246,7 +298,7 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
   if (!prev.stitch.prompts || frames.some((f) => !f.screen || !f.state)) { ctx.log("design: the earlier Stitch design predates per-screen frames; it is drawn again"); return undefined; }
   const plan: Plan = {
     flow: prev.flow, noScreen: prev.noScreen ?? [], brand: { colours: [], fonts: [] },
-    screens: prev.screens.map((s) => ({ id: s.id, title: s.facts?.title ?? s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states ?? [], prompt: prev.stitch.prompts![s.id] ?? s.facts?.title ?? s.id })),
+    screens: prev.screens.map((s) => ({ id: s.id, title: s.facts?.title ?? s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states ?? [], prompt: prev.stitch.prompts![s.id] ?? s.facts?.title ?? s.id, links: prev.stitch.links?.[s.id] ?? [] })),
   };
   // the spec may have changed since the design was drawn: screens that no longer cover it are drawn again
   const specReqs = spec.requirements.map((q) => q.id);
@@ -310,7 +362,6 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
 }
 
 export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: StitchInputs = {}): Promise<StepOutcome> {
-  const at = ladderAt(designRoute(ctx.project), ctx.rung);
   const reqIds = spec.requirements.map((q) => q.id);
   // a sent-back Stitch design: fix only the screens the lead named when that is all they asked
   if (inputs.previous && inputs.feedback?.length) {
@@ -371,8 +422,11 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
       saveProgress(ctx, progress);
     }
     if (saved) ctx.log(`design: resuming Stitch project ${progress.projectId}: ${saved.assets.length} drawn frame(s) kept, ${todo.length} to draw`);
-    else ctx.log(`design: Stitch project ${progress.projectId}, drawing ${plan.screens.length} screens with Stitch's default model, ${STITCH_SIDE_BY_SIDE} at a time`);
+    else ctx.log(`design: Stitch project ${progress.projectId}, drawing ${plan.screens.length} screens with Stitch's default model, ${STITCH_SIDE_BY_SIDE} at a time (Preview shows them as they come)`);
     mkdirSync(framesDir, { recursive: true });
+    // the preview fills in as screens come back
+    const draft = (drawn: StitchAsset[]) => stitchDraftPreview(ctx, spec, plan, drawn, m.output.theme, jobs.length);
+    draft(progress.assets);
     if (jobs.length > plan.screens.length) ctx.log(`design: ${jobs.length - plan.screens.length} extra state(s) drawn too (${allowed.join(", ")})`);
     // after a fault no new screen is started, and the ones under way are waited for and kept: they are paid for
     const faults: Error[] = [];
@@ -381,6 +435,7 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
       try {
         progress.assets.push(await saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(progress.projectId, j.prompt, device)));
         saveProgress(ctx, progress);
+        draft(progress.assets);
       } catch (e) { faults.push(e as Error); }
     });
     if (faults.length) throw faults[0];
@@ -388,6 +443,8 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     else {
       ({ assets, open } = await fixA11y(ctx, c, framesDir, progress.projectId, device, progress.assets, progress.assets.map((x) => x.id)));
       progress.a11y = { assets, open };
+      // a page Stitch fixed for accessibility replaces the one drawn first
+      draft(assets);
     }
     saveProgress(ctx, { ...progress, done: true });
   } catch (e) {
@@ -400,7 +457,7 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
   const drawn = stitchArtifact(plan, assets, { projectId, model: STITCH_MODEL, designMd: mdSha, theme: m.output.theme, mood: plan.flow }, reqIds);
   // a whole redraw answers every send-back so far too
   const answered = inputs.feedback?.length ? { revision: inputs.feedback.length, ...(inputs.previous?.rework?.length ? { rework: inputs.previous.rework } : {}) } : {};
-  const design = { ...drawn, ...answered, stitch: { ...drawn.stitch, ...(open.length ? { a11y: open } : {}) }, header: header(ctx.runId, "design", "design", "", at.model) };
+  const design = { ...drawn, ...answered, stitch: { ...drawn.stitch, ...(open.length ? { a11y: open } : {}) }, header: header(ctx.runId, "design", "design", "", p.model) };
   return { kind: "done", outputs: { design: ctx.ledger.putJson(design) }, data: { screens: plan.screens.length, engine: "stitch" } };
 }
 
@@ -413,6 +470,17 @@ export function stitchPackageFiles(design: { engine?: string; stitch?: { designM
       path: `screens/${f.screen}${!f.state || f.state === "normal" ? "" : `-${f.state}`}.html`, content: getArtifact(f.html),
     })),
   ];
+}
+
+/** What Stitch drew, for the design package's pictures: each screen and state at full size; none for a JSON design. */
+export function stitchPictures(design: { engine?: string; stitch?: { frames: Record<string, { screen?: string; state?: string; image: string }> } }, getArtifact: (sha: string) => Buffer): OwnPicture[] {
+  if (design.engine !== "stitch" || !design.stitch) return [];
+  return Object.values(design.stitch.frames).filter((f) => f.screen).map((f) => {
+    const png = getArtifact(f.image);
+    // a narrow picture is taken for a phone page; Stitch's desktop pictures are 1600 wide
+    const wide = png.length >= 24 && png.toString("latin1", 12, 16) === "IHDR" ? png.readUInt32BE(16) : 1600;
+    return { id: f.screen!, kind: f.state ?? "normal", viewport: wide <= 900 ? "phone" as const : "desktop" as const, png };
+  });
 }
 
 /** An accessibility problem Stitch could not fix on a screen: the axe rules still failing. */

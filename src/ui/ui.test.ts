@@ -2056,3 +2056,20 @@ describe("factory ui: the Review tab", () => {
     expect(js).toContain("Review now");
   });
 });
+
+describe("a preview page with frames of its own pages, in Safari", () => {
+  it("names the server as a place frames may come from, and only for a local host", async () => {
+    const { previewHeaders } = await import("./server.js");
+    expect(previewHeaders("127.0.0.1:4321")["Content-Security-Policy"]).toContain("default-src 'self'; frame-src 'self' http://127.0.0.1:4321; script-src");
+    expect(previewHeaders("evil.example:80")["Content-Security-Policy"]).not.toContain("frame-src");
+    expect(previewHeaders(undefined)["Content-Security-Policy"]).not.toContain("frame-src");
+    expect(previewHeaders("127.0.0.1:4321")["Content-Security-Policy"]).toContain("sandbox allow-scripts");
+  });
+  it("serves the demo without the policy in its <meta>, leaving the rest of the page as it was", async () => {
+    const { headerPolicyOnly } = await import("./server.js");
+    const page = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src 'self'"><title>d</title></head><body>x</body></html>`;
+    expect(headerPolicyOnly(Buffer.from(page)).toString()).toBe(`<!doctype html><html><head><meta charset="utf-8"><title>d</title></head><body>x</body></html>`);
+    const plain = Buffer.from("<!doctype html><title>d</title>");
+    expect(headerPolicyOnly(plain)).toBe(plain);
+  });
+});

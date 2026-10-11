@@ -14,7 +14,8 @@ import { NO_TRACE } from "../util/trace.js";
 import { setStitchFactory, setStitchTimeouts, type StitchClient } from "../design/stitch.js";
 import type { StepContext } from "./framework.js";
 import { setProviderFactory } from "./think.js";
-import { drawWithStitch, setA11yCheck, stitchArtifact, stitchFrames } from "./design-stitch.js";
+import { projectForRun, resolveRun } from "./routing.js";
+import { drawWithStitch, setA11yCheck, stitchArtifact, stitchFrames, stitchJobs } from "./design-stitch.js";
 
 const U = { inputTokens: 1000, outputTokens: 200, cacheRead: 0, cacheWrite: 0 };
 const reqs = [{ id: "REQ-1", ears: "The system shall list payees." }, { id: "REQ-2", ears: "The system shall add a payee." }];
@@ -100,6 +101,20 @@ describe("the stitch design artifact", () => {
     expect(a.stitch.frames["ST-2"]).toMatchObject({ screen: "S-1", state: "empty" });
   });
 
+  it("tells Stitch the words of each link the screen list gave, and keeps where each leads for the live demo", () => {
+    const linked = plan({ screens: [
+      { ...plan().screens[0], links: [{ label: "Add a payee", to: "S-2" }, { label: "add a payee", to: "S-2" }, { label: "Nowhere", to: "S-9" }, { label: "Here", to: "S-1" }] },
+      { ...plan().screens[1], links: [{ label: "All payees", to: "S-1" }] },
+    ] });
+    const jobs = stitchJobs(linked.screens as never, ["empty"]);
+    expect(jobs.map((j) => `${j.id} ${j.state}`)).toEqual(["S-1 normal", "S-1 empty", "S-2 normal"]);
+    for (const j of jobs.slice(0, 2)) expect(j.prompt).toContain('Label the controls that open other pages exactly: "Add a payee".');
+    expect(jobs[2]!.prompt).toContain('exactly: "All payees".');
+    expect(stitchJobs(plan().screens as never, [])[0]!.prompt).not.toContain("Label the controls");
+    const a = stitchArtifact(linked as never, [], { projectId: "p", model: "m", designMd: "m" }, ["REQ-1", "REQ-2"]);
+    expect(a.stitch.links).toEqual({ "S-1": [{ label: "Add a payee", to: "S-2" }], "S-2": [{ label: "All payees", to: "S-1" }] });
+  });
+
   it("lists the Stitch frames for the approval card, and none for a JSON design", () => {
     expect(stitchFrames({ stitch: { frames: { "ST-1": { name: "stitch-S-1.png" } } } })).toEqual([{ id: "ST-1", name: "stitch-S-1.png" }]);
     expect(stitchFrames({})).toEqual([]);
@@ -134,10 +149,41 @@ describe("drawing with stitch", () => {
     expect(d.screens.map((s) => s.frames)).toEqual([["ST-1", "ST-2"], ["ST-3"]]);
   });
 
+  it("fills the run's preview in as each screen comes back, the rest as wireframes, marked a draft", async () => {
+    const ledger = memoryLedger();
+    answers = [plan(), { designMd: md(), theme }];
+    const drafts: { draft: { drawn: number; total: number }; site: { screens: { title: string; pending?: boolean }[] } }[] = [];
+    const read = () => drafts.push(JSON.parse(readFileSync(join(ledger.dir, "preview", "preview.json"), "utf8")));
+    // the preview as it stands when each Stitch call starts: nothing drawn at the first, one frame more at each one after
+    setStitchFactory(() => { const c = fakeStitch(); return { ...c, generate: async (p, prompt, device) => { read(); return c.generate(p, prompt, device); } }; });
+    expect((await drawWithStitch({ ...ctxFor(ledger), project: project({ stitch: { states: ["empty"] } }) }, spec)).kind).toBe("done");
+    read();
+    expect(drafts[0]!.draft).toEqual({ drawn: 0, total: 3, failed: 0 });
+    expect(drafts[0]!.site.screens.map((x) => [x.title, x.pending])).toEqual([["Payees", true], ["Add payee", true]]);
+    expect(drafts.at(-1)!.draft).toEqual({ drawn: 3, total: 3, failed: 0 });
+    expect(drafts.at(-1)!.site.screens.every((x) => !x.pending)).toBe(true);
+    // each drawn frame is its own live page beside the demo, which frames it
+    expect(readdirSync(join(ledger.dir, "preview", "stitch")).sort()).toEqual(["S-1-empty.html", "S-1-normal.html", "S-2-normal.html"]);
+    expect(readFileSync(join(ledger.dir, "preview", "stitch", "S-2-normal.html"), "utf8")).toContain("Save payee");
+    expect(readFileSync(join(ledger.dir, "preview", "index.html"), "utf8")).toContain('src="stitch/S-1-normal.html"');
+  });
+
   it("plans with the next tier's Claude model after a step up", async () => {
     answers = [plan(), { designMd: md(), theme }];
     await drawWithStitch(ctxFor(memoryLedger(), 2), spec);
     expect(models).toEqual(["claude-opus-5-5", "claude-opus-5-5"]);
+  });
+
+  it("plans with the model picked beside Google Stitch at the start, and names it on the design", async () => {
+    const ledger = memoryLedger();
+    process.env.OPENAI_API_KEY = "sk-test-not-real"; _resetEnvCache();
+    answers = [plan(), { designMd: md(), theme }];
+    const base = ProjectConfig.parse({ project: "demo", repo: "-", stack: "dotnet" });
+    const out = await drawWithStitch({ ...ctxFor(ledger), project: projectForRun(base, resolveRun(base, { picks: { design: "stitch:gpt-6-luna" } })) }, spec);
+    delete process.env.OPENAI_API_KEY; _resetEnvCache();
+    expect(out.kind).toBe("done");
+    expect(models).toEqual(["gpt-6-luna", "gpt-6-luna"]);
+    expect(ledger.getJson<{ header: { producedBy: { model: string } } }>((out as { outputs: { design: string } }).outputs.design).header.producedBy.model).toBe("gpt-6-luna");
   });
 
   it("fails a screen list that leaves a requirement out, before any Stitch call", async () => {

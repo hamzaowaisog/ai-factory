@@ -616,7 +616,7 @@ As built (`src/design/export.ts`, `src/stages/design-export.ts`, `src/ui/exports
 - **Formats.**
   - `png`: the package's pictures, never new ones (a package never changes), named `S-1_empty_phone_dark_ar.png`; the dark and other-language pictures show the screen's first state. The package's other-language pictures now record the language code.
   - `pdf`: an A4 landscape design book (cover, the product reading and basis, the look with swatches and type, the Components page, then each screen with its route, requirement links with their EARS text, and each state at its widths side by side, one state never split over two pages: a tall capture is scaled to fit, and the PNG export has it full size), printed by Chromium's `page.pdf`. `--pdf-per-screen` gives `pdf/S-1.pdf` and so on.
-  - `html`: `demo.zip` (the approved `index.html` and a README), dated at the approval, so the same version always gives the same bytes.
+  - `html`: `demo.zip` (the approved `index.html` and a README), dated at the approval, so the same version always gives the same bytes. A Stitch design's zip is its screens as web pages (`index.html`, `pages/`), with the approved demo as `approved-demo.html` (docs/design-step.md).
   - `tokens`: `tokens/tokens.json` (W3C), `tokens/tokens.css` and `tokens/tailwind.css` (a Tailwind v4 `@theme` block with colours, fonts, radius, spacing, shadows and easing, and the dark values under `prefers-color-scheme` and `[data-theme]`).
   - `json`: `json/design.json` and `json/manifest.json`.
   - `figma`: `figma.json`, layers read from the approved demo in Chromium (see "Figma (as built)").

@@ -2452,8 +2452,12 @@ function modelPicker(catalogue, id, also = "") {
       (s.engines ?? []).map((e) => h("option", { value: e.id, title: e.note }, e.name)));
     const tag = h("span", { class: "chip", hidden: true }, "changed");
     const note = h("span", { class: "hint warn-text", hidden: true });
+    // the model that plans for a design engine (it lists the screens and writes the design system): the engine's own, or a pick
+    const plannerAuto = h("option", { value: "" });
+    const planner = s.engines?.length ? h("select", { "aria-label": `Model that plans for ${s.step}`, hidden: true }, plannerAuto, s.offered.map((m) => h("option", { value: m, title: mPrice(m) }, mName(m)))) : null;
+    const plannerLabel = planner ? h("span", { class: "faint small", hidden: true }, " planned by ") : null;
     const row = h("tr", {}, h("td", { class: "mono" }, s.step), h("td", { class: "faint small" }, s.group),
-      h("td", {}, s.fixed ? h("span", {}, `${mName(s.model)} `, h("span", { class: "faint small" }, "always")) : pick, " ", tag, note));
+      h("td", {}, s.fixed ? h("span", {}, `${mName(s.model)} `, h("span", { class: "faint small" }, "always")) : pick, plannerLabel, planner, " ", tag, note));
     // the model the row would run on, and whether a person moved it off its default (a pick, or a preset)
     const on = () => (pick && pick.value) || (preset.value ? s.presets[preset.value] : s.model);
     const moved = () => !!((pick && pick.value) || preset.value);
@@ -2462,6 +2466,10 @@ function modelPicker(catalogue, id, also = "") {
       auto.textContent = `${mName(preset.value ? s.presets[preset.value] : s.model)} (${preset.value || "default"})`;
       tag.hidden = !pick.value;
       const engine = (s.engines ?? []).find((e) => e.id === pick.value);
+      if (planner) {
+        planner.hidden = plannerLabel.hidden = !engine;
+        if (engine) plannerAuto.textContent = `${mName(engine.planner)} (default)`; else planner.value = "";
+      }
       // a spec step on the model its critic runs on: allowed, and said here as the start check says it
       const other = s.apart ? rows.find((r) => r.step === s.apart) : undefined;
       const same = !!other && on() === other.on() && (moved() || other.moved());
@@ -2470,13 +2478,15 @@ function modelPicker(catalogue, id, also = "") {
     };
     // one row's model can change another row's note (the critic's): every row is read again
     if (pick) pick.addEventListener("change", () => syncAll());
-    return { step: s.step, pick, sync, row, on, moved };
+    // what the run is started with: the engine alone, or engine:model when a planner is named
+    const value = () => (pick?.value && planner?.value ? `${pick.value}:${planner.value}` : pick?.value ?? "");
+    return { step: s.step, pick, sync, row, on, moved, value };
   });
   function syncAll() { rows.forEach((r) => r.sync()); }
   preset.addEventListener("change", syncAll);
   syncAll();
   const picked = () => {
-    const picks = Object.fromEntries(rows.filter((r) => r.pick?.value).map((r) => [r.step, r.pick.value]));
+    const picks = Object.fromEntries(rows.filter((r) => r.pick?.value).map((r) => [r.step, r.value()]));
     return preset.value || Object.keys(picks).length ? { models: { ...(preset.value ? { preset: preset.value } : {}), ...(Object.keys(picks).length ? { picks } : {}) } } : {};
   };
   const hint = h("div", { class: "hint" }, `Chosen once, here: the run keeps these to the end. ${also}A preset fills every step from the tier table; change any step by hand and it is marked. A retry that keeps failing moves a step one model up. Like --preset and --model. `,

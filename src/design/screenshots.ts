@@ -13,7 +13,8 @@ import { pathToFileURL } from "node:url";
 export const VIEWPORTS = { phone: { width: 390, height: 844 }, tablet: { width: 820, height: 1180 }, desktop: { width: 1280, height: 800 } } as const;
 export type Viewport = keyof typeof VIEWPORTS;
 /** `id` is the screen's id; `mode` and `lang` (the language code) say when the picture is the dark mode or another language (the screen as it first shows) */
-export interface Shot { file: string; id?: string; screen: string; state: string; viewport: Viewport; mode?: "dark"; lang?: string }
+/** `own`: the design's own picture of the page (what Stitch drew), not a picture of the demo. */
+export interface Shot { file: string; id?: string; screen: string; state: string; viewport: Viewport; mode?: "dark"; lang?: string; own?: true }
 /** How the walk runs: `reproducible` gives the same picture on every run (the design package); `max` caps the pictures. */
 export interface WalkOptions { reproducible?: boolean; max?: number }
 /** `title` is the page's name as the lead knows it; shots are labelled with it when given */
