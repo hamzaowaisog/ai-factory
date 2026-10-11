@@ -1,0 +1,705 @@
+{
+  "kind": "design-fidelity",
+  "levels": [
+    {
+      "level": "tokens",
+      "blocking": true,
+      "check": "design.tokens",
+      "status": "FAIL",
+      "detail": "1 finding(s) on 17 of 40 page(s)",
+      "items": [
+        "colour rgb(0, 0, 0) is not a design colour (span \"m maintenance-requests-web\", 3 places) (17 pages)"
+      ]
+    },
+    {
+      "level": "structure",
+      "blocking": true,
+      "check": "design.structure",
+      "status": "FAIL",
+      "detail": "6 finding(s) on 17 of 40 page(s)",
+      "items": [
+        "the page does not show \"Request detail\" (17 pages)",
+        "detail block is missing (9 pages)",
+        "actions block is missing (9 pages)",
+        "the loading state shows no loading placeholder (6 pages)",
+        "the error message is missing (2 pages)",
+        "the message \"Could not update the request.\" is not shown (2 pages)"
+      ]
+    },
+    {
+      "level": "a11y",
+      "blocking": true,
+      "check": "design.a11y",
+      "status": "PASS",
+      "detail": "40 page(s) checked"
+    },
+    {
+      "level": "layout",
+      "blocking": false,
+      "check": "design.layout",
+      "status": "WARN",
+      "detail": "3 finding(s) on 24 of 40 page(s)",
+      "items": [
+        "toolbar: 1 built, 0 approved (15 pages)",
+        "actions: 0 built, 1 approved (9 pages)",
+        "detail: 0 built, 1 approved (9 pages)"
+      ]
+    },
+    {
+      "level": "pixels",
+      "blocking": false,
+      "check": "design.pixels",
+      "status": "UNCHECKED",
+      "detail": "no accepted pictures to compare with yet"
+    }
+  ],
+  "findings": [
+    {
+      "level": "layout",
+      "message": "toolbar: 1 built, 0 approved",
+      "pages": [
+        "s-1-creation-dialog-open-phone",
+        "s-1-submitting-phone",
+        "s-1-creation-success-phone",
+        "s-1-field-validation-errors-phone",
+        "s-1-dialog-new-request-phone",
+        "s-1-toast-request-created-and-added-to-the-phone",
+        "s-1-full-data-phone",
+        "s-1-creation-dialog-open-tablet",
+        "s-1-creation-dialog-open-desktop",
+        "s-1-submitting-desktop",
+        "s-1-creation-success-desktop",
+        "s-1-field-validation-errors-desktop",
+        "s-1-dialog-new-request-desktop",
+        "s-1-toast-request-created-and-added-to-the-desktop",
+        "s-1-full-data-desktop"
+      ]
+    },
+    {
+      "level": "tokens",
+      "message": "colour rgb(0, 0, 0) is not a design colour (span \"m maintenance-requests-web\", 3 places)",
+      "pages": [
+        "s-2-not-found-phone",
+        "s-2-status-updated-phone",
+        "s-2-loading-phone",
+        "s-2-load-error-with-retry-phone",
+        "s-2-status-update-pending-phone",
+        "s-2-status-update-error-phone",
+        "s-2-toast-could-not-update-the-request-phone",
+        "s-2-full-data-phone",
+        "s-2-not-found-tablet",
+        "s-2-not-found-desktop",
+        "s-2-status-updated-desktop",
+        "s-2-loading-desktop",
+        "s-2-load-error-with-retry-desktop",
+        "s-2-status-update-pending-desktop",
+        "s-2-status-update-error-desktop",
+        "s-2-toast-could-not-update-the-request-desktop",
+        "s-2-full-data-desktop"
+      ]
+    },
+    {
+      "level": "structure",
+      "message": "the page does not show \"Request detail\"",
+      "pages": [
+        "s-2-not-found-phone",
+        "s-2-status-updated-phone",
+        "s-2-loading-phone",
+        "s-2-load-error-with-retry-phone",
+        "s-2-status-update-pending-phone",
+        "s-2-status-update-error-phone",
+        "s-2-toast-could-not-update-the-request-phone",
+        "s-2-full-data-phone",
+        "s-2-not-found-tablet",
+        "s-2-not-found-desktop",
+        "s-2-status-updated-desktop",
+        "s-2-loading-desktop",
+        "s-2-load-error-with-retry-desktop",
+        "s-2-status-update-pending-desktop",
+        "s-2-status-update-error-desktop",
+        "s-2-toast-could-not-update-the-request-desktop",
+        "s-2-full-data-desktop"
+      ]
+    },
+    {
+      "level": "structure",
+      "message": "detail block is missing",
+      "pages": [
+        "s-2-not-found-phone",
+        "s-2-status-updated-phone",
+        "s-2-toast-could-not-update-the-request-phone",
+        "s-2-full-data-phone",
+        "s-2-not-found-tablet",
+        "s-2-not-found-desktop",
+        "s-2-status-updated-desktop",
+        "s-2-toast-could-not-update-the-request-desktop",
+        "s-2-full-data-desktop"
+      ]
+    },
+    {
+      "level": "structure",
+      "message": "actions block is missing",
+      "pages": [
+        "s-2-not-found-phone",
+        "s-2-status-updated-phone",
+        "s-2-toast-could-not-update-the-request-phone",
+        "s-2-full-data-phone",
+        "s-2-not-found-tablet",
+        "s-2-not-found-desktop",
+        "s-2-status-updated-desktop",
+        "s-2-toast-could-not-update-the-request-desktop",
+        "s-2-full-data-desktop"
+      ]
+    },
+    {
+      "level": "layout",
+      "message": "actions: 0 built, 1 approved",
+      "pages": [
+        "s-2-not-found-phone",
+        "s-2-status-updated-phone",
+        "s-2-toast-could-not-update-the-request-phone",
+        "s-2-full-data-phone",
+        "s-2-not-found-tablet",
+        "s-2-not-found-desktop",
+        "s-2-status-updated-desktop",
+        "s-2-toast-could-not-update-the-request-desktop",
+        "s-2-full-data-desktop"
+      ]
+    },
+    {
+      "level": "layout",
+      "message": "detail: 0 built, 1 approved",
+      "pages": [
+        "s-2-not-found-phone",
+        "s-2-status-updated-phone",
+        "s-2-toast-could-not-update-the-request-phone",
+        "s-2-full-data-phone",
+        "s-2-not-found-tablet",
+        "s-2-not-found-desktop",
+        "s-2-status-updated-desktop",
+        "s-2-toast-could-not-update-the-request-desktop",
+        "s-2-full-data-desktop"
+      ]
+    },
+    {
+      "level": "structure",
+      "message": "the loading state shows no loading placeholder",
+      "pages": [
+        "s-2-loading-phone",
+        "s-2-load-error-with-retry-phone",
+        "s-2-status-update-pending-phone",
+        "s-2-loading-desktop",
+        "s-2-load-error-with-retry-desktop",
+        "s-2-status-update-pending-desktop"
+      ]
+    },
+    {
+      "level": "structure",
+      "message": "the error message is missing",
+      "pages": [
+        "s-2-status-update-error-phone",
+        "s-2-status-update-error-desktop"
+      ]
+    },
+    {
+      "level": "structure",
+      "message": "the message \"Could not update the request.\" is not shown",
+      "pages": [
+        "s-2-toast-could-not-update-the-request-phone",
+        "s-2-toast-could-not-update-the-request-desktop"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "key": "s-1-creation-dialog-open-phone",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "creation dialog open",
+      "slug": "creation-dialog-open",
+      "viewport": "phone",
+      "path": "/requests?fixture=S-1%3Acreation-dialog-open",
+      "demoState": 0,
+      "built": "design-fidelity/built/s-1-creation-dialog-open-phone.png",
+      "approved": "s-1-creation-dialog-open-phone.png"
+    },
+    {
+      "key": "s-1-submitting-phone",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "submitting",
+      "slug": "submitting",
+      "viewport": "phone",
+      "path": "/requests?fixture=S-1%3Asubmitting",
+      "demoState": 1,
+      "built": "design-fidelity/built/s-1-submitting-phone.png",
+      "approved": "s-1-submitting-phone.png"
+    },
+    {
+      "key": "s-1-creation-success-phone",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "creation success",
+      "slug": "creation-success",
+      "viewport": "phone",
+      "path": "/requests?fixture=S-1%3Acreation-success",
+      "demoState": 2,
+      "built": "design-fidelity/built/s-1-creation-success-phone.png",
+      "approved": "s-1-creation-success-phone.png"
+    },
+    {
+      "key": "s-1-field-validation-errors-phone",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "field validation errors",
+      "slug": "field-validation-errors",
+      "viewport": "phone",
+      "path": "/requests?fixture=S-1%3Afield-validation-errors",
+      "demoState": 3,
+      "built": "design-fidelity/built/s-1-field-validation-errors-phone.png",
+      "approved": "s-1-field-validation-errors-phone.png"
+    },
+    {
+      "key": "s-1-loading-phone",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "loading",
+      "slug": "loading",
+      "viewport": "phone",
+      "path": "/requests?fixture=S-1%3Aloading",
+      "demoState": 4,
+      "built": "design-fidelity/built/s-1-loading-phone.png",
+      "approved": "s-1-loading-phone.png"
+    },
+    {
+      "key": "s-1-empty-phone",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "empty",
+      "slug": "empty",
+      "viewport": "phone",
+      "path": "/requests?fixture=S-1%3Aempty",
+      "demoState": 5,
+      "built": "design-fidelity/built/s-1-empty-phone.png",
+      "approved": "s-1-empty-phone.png"
+    },
+    {
+      "key": "s-1-error-with-retry-phone",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "error with Retry",
+      "slug": "error-with-retry",
+      "viewport": "phone",
+      "path": "/requests?fixture=S-1%3Aerror-with-retry",
+      "demoState": 6,
+      "built": "design-fidelity/built/s-1-error-with-retry-phone.png",
+      "approved": "s-1-error-with-retry-phone.png"
+    },
+    {
+      "key": "s-1-creation-error-phone",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "creation error",
+      "slug": "creation-error",
+      "viewport": "phone",
+      "path": "/requests?fixture=S-1%3Acreation-error",
+      "demoState": 7,
+      "built": "design-fidelity/built/s-1-creation-error-phone.png",
+      "approved": "s-1-creation-error-phone.png"
+    },
+    {
+      "key": "s-1-dialog-new-request-phone",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "Dialog: New request",
+      "slug": "dialog-new-request",
+      "viewport": "phone",
+      "path": "/requests?fixture=S-1%3Adialog-new-request",
+      "demoState": 8,
+      "built": "design-fidelity/built/s-1-dialog-new-request-phone.png",
+      "approved": "s-1-dialog-new-request-phone.png"
+    },
+    {
+      "key": "s-1-toast-request-created-and-added-to-the-phone",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "Toast: Request created and added to the…",
+      "slug": "toast-request-created-and-added-to-the",
+      "viewport": "phone",
+      "path": "/requests?fixture=S-1%3Atoast-request-created-and-added-to-the",
+      "demoState": 9,
+      "built": "design-fidelity/built/s-1-toast-request-created-and-added-to-the-phone.png",
+      "approved": "s-1-toast-request-created-and-added-to-the-phone.png"
+    },
+    {
+      "key": "s-1-full-data-phone",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "Full data",
+      "slug": "full-data",
+      "viewport": "phone",
+      "path": "/requests?fixture=S-1%3Afull-data",
+      "demoState": 10,
+      "built": "design-fidelity/built/s-1-full-data-phone.png",
+      "approved": "s-1-full-data-phone.png"
+    },
+    {
+      "key": "s-2-not-found-phone",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "not found",
+      "slug": "not-found",
+      "viewport": "phone",
+      "path": "/requests/sample?fixture=S-2%3Anot-found",
+      "demoState": 0,
+      "built": "design-fidelity/built/s-2-not-found-phone.png",
+      "approved": "s-2-not-found-phone.png"
+    },
+    {
+      "key": "s-2-status-updated-phone",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "status updated",
+      "slug": "status-updated",
+      "viewport": "phone",
+      "path": "/requests/sample?fixture=S-2%3Astatus-updated",
+      "demoState": 1,
+      "built": "design-fidelity/built/s-2-status-updated-phone.png",
+      "approved": "s-2-status-updated-phone.png"
+    },
+    {
+      "key": "s-2-loading-phone",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "loading",
+      "slug": "loading",
+      "viewport": "phone",
+      "path": "/requests/sample?fixture=S-2%3Aloading",
+      "demoState": 2,
+      "built": "design-fidelity/built/s-2-loading-phone.png",
+      "approved": "s-2-loading-phone.png"
+    },
+    {
+      "key": "s-2-load-error-with-retry-phone",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "load error with Retry",
+      "slug": "load-error-with-retry",
+      "viewport": "phone",
+      "path": "/requests/sample?fixture=S-2%3Aload-error-with-retry",
+      "demoState": 3,
+      "built": "design-fidelity/built/s-2-load-error-with-retry-phone.png",
+      "approved": "s-2-load-error-with-retry-phone.png"
+    },
+    {
+      "key": "s-2-status-update-pending-phone",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "status update pending",
+      "slug": "status-update-pending",
+      "viewport": "phone",
+      "path": "/requests/sample?fixture=S-2%3Astatus-update-pending",
+      "demoState": 4,
+      "built": "design-fidelity/built/s-2-status-update-pending-phone.png",
+      "approved": "s-2-status-update-pending-phone.png"
+    },
+    {
+      "key": "s-2-status-update-error-phone",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "status update error",
+      "slug": "status-update-error",
+      "viewport": "phone",
+      "path": "/requests/sample?fixture=S-2%3Astatus-update-error",
+      "demoState": 5,
+      "built": "design-fidelity/built/s-2-status-update-error-phone.png",
+      "approved": "s-2-status-update-error-phone.png"
+    },
+    {
+      "key": "s-2-toast-could-not-update-the-request-phone",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "Toast: Could not update the request.",
+      "slug": "toast-could-not-update-the-request",
+      "viewport": "phone",
+      "path": "/requests/sample?fixture=S-2%3Atoast-could-not-update-the-request",
+      "demoState": 6,
+      "built": "design-fidelity/built/s-2-toast-could-not-update-the-request-phone.png",
+      "approved": "s-2-toast-could-not-update-the-request-phone.png"
+    },
+    {
+      "key": "s-2-full-data-phone",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "Full data",
+      "slug": "full-data",
+      "viewport": "phone",
+      "path": "/requests/sample?fixture=S-2%3Afull-data",
+      "demoState": 7,
+      "built": "design-fidelity/built/s-2-full-data-phone.png",
+      "approved": "s-2-full-data-phone.png"
+    },
+    {
+      "key": "s-1-creation-dialog-open-tablet",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "creation dialog open",
+      "slug": "creation-dialog-open",
+      "viewport": "tablet",
+      "path": "/requests?fixture=S-1%3Acreation-dialog-open",
+      "demoState": 0,
+      "built": "design-fidelity/built/s-1-creation-dialog-open-tablet.png",
+      "approved": "s-1-creation-dialog-open-tablet.png"
+    },
+    {
+      "key": "s-2-not-found-tablet",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "not found",
+      "slug": "not-found",
+      "viewport": "tablet",
+      "path": "/requests/sample?fixture=S-2%3Anot-found",
+      "demoState": 0,
+      "built": "design-fidelity/built/s-2-not-found-tablet.png",
+      "approved": "s-2-not-found-tablet.png"
+    },
+    {
+      "key": "s-1-creation-dialog-open-desktop",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "creation dialog open",
+      "slug": "creation-dialog-open",
+      "viewport": "desktop",
+      "path": "/requests?fixture=S-1%3Acreation-dialog-open",
+      "demoState": 0,
+      "built": "design-fidelity/built/s-1-creation-dialog-open-desktop.png",
+      "approved": "s-1-creation-dialog-open-desktop.png"
+    },
+    {
+      "key": "s-1-submitting-desktop",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "submitting",
+      "slug": "submitting",
+      "viewport": "desktop",
+      "path": "/requests?fixture=S-1%3Asubmitting",
+      "demoState": 1,
+      "built": "design-fidelity/built/s-1-submitting-desktop.png",
+      "approved": "s-1-submitting-desktop.png"
+    },
+    {
+      "key": "s-1-creation-success-desktop",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "creation success",
+      "slug": "creation-success",
+      "viewport": "desktop",
+      "path": "/requests?fixture=S-1%3Acreation-success",
+      "demoState": 2,
+      "built": "design-fidelity/built/s-1-creation-success-desktop.png",
+      "approved": "s-1-creation-success-desktop.png"
+    },
+    {
+      "key": "s-1-field-validation-errors-desktop",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "field validation errors",
+      "slug": "field-validation-errors",
+      "viewport": "desktop",
+      "path": "/requests?fixture=S-1%3Afield-validation-errors",
+      "demoState": 3,
+      "built": "design-fidelity/built/s-1-field-validation-errors-desktop.png",
+      "approved": "s-1-field-validation-errors-desktop.png"
+    },
+    {
+      "key": "s-1-loading-desktop",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "loading",
+      "slug": "loading",
+      "viewport": "desktop",
+      "path": "/requests?fixture=S-1%3Aloading",
+      "demoState": 4,
+      "built": "design-fidelity/built/s-1-loading-desktop.png",
+      "approved": "s-1-loading-desktop.png"
+    },
+    {
+      "key": "s-1-empty-desktop",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "empty",
+      "slug": "empty",
+      "viewport": "desktop",
+      "path": "/requests?fixture=S-1%3Aempty",
+      "demoState": 5,
+      "built": "design-fidelity/built/s-1-empty-desktop.png",
+      "approved": "s-1-empty-desktop.png"
+    },
+    {
+      "key": "s-1-error-with-retry-desktop",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "error with Retry",
+      "slug": "error-with-retry",
+      "viewport": "desktop",
+      "path": "/requests?fixture=S-1%3Aerror-with-retry",
+      "demoState": 6,
+      "built": "design-fidelity/built/s-1-error-with-retry-desktop.png",
+      "approved": "s-1-error-with-retry-desktop.png"
+    },
+    {
+      "key": "s-1-creation-error-desktop",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "creation error",
+      "slug": "creation-error",
+      "viewport": "desktop",
+      "path": "/requests?fixture=S-1%3Acreation-error",
+      "demoState": 7,
+      "built": "design-fidelity/built/s-1-creation-error-desktop.png",
+      "approved": "s-1-creation-error-desktop.png"
+    },
+    {
+      "key": "s-1-dialog-new-request-desktop",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "Dialog: New request",
+      "slug": "dialog-new-request",
+      "viewport": "desktop",
+      "path": "/requests?fixture=S-1%3Adialog-new-request",
+      "demoState": 8,
+      "built": "design-fidelity/built/s-1-dialog-new-request-desktop.png",
+      "approved": "s-1-dialog-new-request-desktop.png"
+    },
+    {
+      "key": "s-1-toast-request-created-and-added-to-the-desktop",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "Toast: Request created and added to the…",
+      "slug": "toast-request-created-and-added-to-the",
+      "viewport": "desktop",
+      "path": "/requests?fixture=S-1%3Atoast-request-created-and-added-to-the",
+      "demoState": 9,
+      "built": "design-fidelity/built/s-1-toast-request-created-and-added-to-the-desktop.png",
+      "approved": "s-1-toast-request-created-and-added-to-the-desktop.png"
+    },
+    {
+      "key": "s-1-full-data-desktop",
+      "id": "S-1",
+      "screen": "Requests",
+      "state": "Full data",
+      "slug": "full-data",
+      "viewport": "desktop",
+      "path": "/requests?fixture=S-1%3Afull-data",
+      "demoState": 10,
+      "built": "design-fidelity/built/s-1-full-data-desktop.png",
+      "approved": "s-1-full-data-desktop.png"
+    },
+    {
+      "key": "s-2-not-found-desktop",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "not found",
+      "slug": "not-found",
+      "viewport": "desktop",
+      "path": "/requests/sample?fixture=S-2%3Anot-found",
+      "demoState": 0,
+      "built": "design-fidelity/built/s-2-not-found-desktop.png",
+      "approved": "s-2-not-found-desktop.png"
+    },
+    {
+      "key": "s-2-status-updated-desktop",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "status updated",
+      "slug": "status-updated",
+      "viewport": "desktop",
+      "path": "/requests/sample?fixture=S-2%3Astatus-updated",
+      "demoState": 1,
+      "built": "design-fidelity/built/s-2-status-updated-desktop.png",
+      "approved": "s-2-status-updated-desktop.png"
+    },
+    {
+      "key": "s-2-loading-desktop",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "loading",
+      "slug": "loading",
+      "viewport": "desktop",
+      "path": "/requests/sample?fixture=S-2%3Aloading",
+      "demoState": 2,
+      "built": "design-fidelity/built/s-2-loading-desktop.png",
+      "approved": "s-2-loading-desktop.png"
+    },
+    {
+      "key": "s-2-load-error-with-retry-desktop",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "load error with Retry",
+      "slug": "load-error-with-retry",
+      "viewport": "desktop",
+      "path": "/requests/sample?fixture=S-2%3Aload-error-with-retry",
+      "demoState": 3,
+      "built": "design-fidelity/built/s-2-load-error-with-retry-desktop.png",
+      "approved": "s-2-load-error-with-retry-desktop.png"
+    },
+    {
+      "key": "s-2-status-update-pending-desktop",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "status update pending",
+      "slug": "status-update-pending",
+      "viewport": "desktop",
+      "path": "/requests/sample?fixture=S-2%3Astatus-update-pending",
+      "demoState": 4,
+      "built": "design-fidelity/built/s-2-status-update-pending-desktop.png",
+      "approved": "s-2-status-update-pending-desktop.png"
+    },
+    {
+      "key": "s-2-status-update-error-desktop",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "status update error",
+      "slug": "status-update-error",
+      "viewport": "desktop",
+      "path": "/requests/sample?fixture=S-2%3Astatus-update-error",
+      "demoState": 5,
+      "built": "design-fidelity/built/s-2-status-update-error-desktop.png",
+      "approved": "s-2-status-update-error-desktop.png"
+    },
+    {
+      "key": "s-2-toast-could-not-update-the-request-desktop",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "Toast: Could not update the request.",
+      "slug": "toast-could-not-update-the-request",
+      "viewport": "desktop",
+      "path": "/requests/sample?fixture=S-2%3Atoast-could-not-update-the-request",
+      "demoState": 6,
+      "built": "design-fidelity/built/s-2-toast-could-not-update-the-request-desktop.png",
+      "approved": "s-2-toast-could-not-update-the-request-desktop.png"
+    },
+    {
+      "key": "s-2-full-data-desktop",
+      "id": "S-2",
+      "screen": "Request detail",
+      "state": "Full data",
+      "slug": "full-data",
+      "viewport": "desktop",
+      "path": "/requests/sample?fixture=S-2%3Afull-data",
+      "demoState": 7,
+      "built": "design-fidelity/built/s-2-full-data-desktop.png",
+      "approved": "s-2-full-data-desktop.png"
+    }
+  ],
+  "overall": "fail",
+  "ran": [
+    "Chromium phone",
+    "Chromium tablet",
+    "Chromium desktop"
+  ],
+  "notes": [
+    "WebKit at phone width was not run: WebKit is not installed (npx playwright install webkit)",
+    "no accepted pictures yet: the built pages are shown beside the approved ones; accept them to make them the baseline"
+  ]
+}

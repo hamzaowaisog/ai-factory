@@ -2,6 +2,7 @@
 import { userInfo } from "node:os";
 import { resolve } from "node:path";
 import type { Command } from "commander";
+import { choiceOption, collectModel, MODEL_HELP, PRESET_HELP } from "../cli/models.js";
 import { gatherRequest } from "../sources/request.js";
 import { DATABASE_NAME } from "./database.js";
 import { databaseOf, delivered, loadProduct, productSeed, startApiRun, startProduct, writeRunFiles } from "./product.js";
@@ -18,13 +19,16 @@ export function registerFullstackCommands(program: Command, d: { log: (m: string
     .option("--from-design <runId>", "start from an approved design made with no repo: its design steps are skipped")
     .option("--from-estimate <runId>", "start from an approved estimate made with no repo: the web run is held to it")
     .option("--max-cost <usd>", "cost limit of the web run")
+    .option("--model <step=model>", MODEL_HELP, collectModel)
+    .option("--preset <name>", `${PRESET_HELP}; the API run uses the same choice`)
     .option("--github", "also put both repos on GitHub (private, under the account of GITHUB_TOKEN): each run then pushes its branch and opens a PR")
     .description("make the two repos and start the web run: questions, the design, then the plan with the API contract")
-    .action(async (prompt: string | undefined, o: { name: string; file?: string; dir: string; fromDesign?: string; fromEstimate?: string; maxCost?: string; github?: boolean }) => {
+    .action(async (prompt: string | undefined, o: { name: string; file?: string; dir: string; fromDesign?: string; fromEstimate?: string; maxCost?: string; github?: boolean; model?: string[]; preset?: string }) => {
+      const models = choiceOption(o.model, o.preset, "greenfield");
       const seed = productSeed({ design: o.fromDesign, estimate: o.fromEstimate });
       if (seed && (prompt || o.file)) throw new Error("An approved design or estimate brings its own request: give no prompt and no --file.");
       const req = seed ? undefined : await gatherRequest({ prompt, file: o.file }, {});
-      const p = await startProduct(o.name, resolve(o.dir), req, userInfo().username, o.maxCost !== undefined ? Number(o.maxCost) : undefined, seed, !!o.github);
+      const p = await startProduct(o.name, resolve(o.dir), req, userInfo().username, o.maxCost !== undefined ? Number(o.maxCost) : undefined, seed, !!o.github, models);
       log(`database of the API: ${DATABASE_NAME[databaseOf(p)]}. ${p.database?.reason ?? ""}`);
       log(`web repo ${p.web.repo} (project ${p.web.project}); API repo ${p.api.repo} (project ${p.api.project})`);
       if (p.web.github) log(`on GitHub: ${p.web.github} and ${p.api.github}`);

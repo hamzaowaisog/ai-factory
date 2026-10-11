@@ -42,7 +42,7 @@ if (cmd === "calibrate" || cmd === "all") {
   const tr = loadTaskRecords();
   const classes = [...new Set(tr.map((r) => r.taskClass))].sort().map((c) => classMinutes(c, tr));
   console.log("\n== Factory task classes (what the estimate's build time reads) ==");
-  console.log(classes.length ? classes.map((c) => `${c.taskClass.padEnd(34)} ${String(c.records).padStart(3)} record(s)  ${c.confidence.padEnd(10)} ${c.minutes ? `${c.minutes.min.toFixed(1)}-${c.minutes.max.toFixed(1)} min` : "not measured yet"}`).join("\n") : "No finished build has followed an approved estimate yet, so every factory task uses the sized hours as its duration (cold-start).");
+  console.log(classes.length ? classes.map((c) => `${c.taskClass.padEnd(34)} ${String(c.records).padStart(3)} record(s)  ${c.confidence.padEnd(10)} ${c.minutes ? `${c.minutes.min.toFixed(1)}-${c.minutes.max.toFixed(1)} min` : "not measured yet"}`).join("\n") : "No build has finished a task yet, so every factory task uses the sized hours as its duration (cold-start).");
   history.taskClasses = classes;
   const { uiSizeRows } = await import("../src/estimate/calibrate.js");
   const ui = uiSizeRows();

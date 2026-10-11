@@ -36,8 +36,23 @@ export function contractReadProblem(text: string): string | undefined {
   return missing.length ? `it has no top-level ${missing.join(" or ")}` : undefined;
 }
 
-const operations = (doc: Obj): { op: string; def: Obj }[] =>
-  Object.entries(doc.paths as Obj).flatMap(([path, item]) => METHODS.filter((m) => (item as Obj)?.[m]).map((m) => ({ op: `${m.toUpperCase()} ${path}`, def: (item as Obj)[m] as Obj })));
+/**
+ * The path every operation of a document sits under: its first server's path ("/api" of `servers: [{ url: /api }]`, or of
+ * a full address), "" when it has none. A contract with paths under a server and an API that maps the full paths are the
+ * same routes: read without it, a correct API was told GET /api/requests is not in the contract (run e1b5).
+ */
+export function basePath(doc: Obj): string {
+  const url = (doc.servers as Obj[] | undefined)?.[0]?.url;
+  if (typeof url !== "string") return "";
+  let path = url;
+  if (!url.startsWith("/")) { try { path = new URL(url).pathname; } catch { return ""; } }
+  return path.replace(/\/+$/, "");
+}
+
+const operations = (doc: Obj): { op: string; def: Obj }[] => {
+  const base = basePath(doc);
+  return Object.entries(doc.paths as Obj).flatMap(([path, item]) => METHODS.filter((m) => (item as Obj)?.[m]).map((m) => ({ op: `${m.toUpperCase()} ${base}${path}`, def: (item as Obj)[m] as Obj })));
+};
 
 /** One line per operation with its status codes, for the approval card. */
 export const contractSummary = (doc: Obj): string[] => operations(doc).map(({ op, def }) => `${op} -> ${Object.keys(def.responses ?? {}).join(", ")}`);

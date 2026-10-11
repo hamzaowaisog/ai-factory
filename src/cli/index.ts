@@ -16,7 +16,7 @@ import "../estimate/lint.js";
 import "../estimate/gates.js";
 import { registerDesignCommands } from "../design/cli.js";
 import { registerFullstackCommands } from "../fullstack/cli.js";
-import { assertTty, decide, DecisionError } from "../ledger/human.js";
+import { assertTty, decide, DecisionError, unlock } from "../ledger/human.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { MAX_BUDGET_CEILING, replay } from "../ledger/state.js";
 import { shownStatus, statusHint } from "../stages/run-status.js";
@@ -32,7 +32,8 @@ import { DESIGN_EXPORT_HELP, designExportOption, exportSeededNow, registerDesign
 import type { RequestSource } from "../sources/request.js";
 import { checkEdit, parseAnchorSpec, parseRatioSpec } from "../estimate/edits.js";
 import type { Proposal } from "../estimate/assemble.js";
-import { checkRoutes, ESTIMATE_ROUTES } from "../stages/routing.js";
+import { ESTIMATE_ROUTES } from "../stages/routing.js";
+import { checkChoice, choiceOption, collectModel, MODEL_HELP, PRESET_HELP, registerModels } from "./models.js";
 import { findRuntimeBinary } from "../verify/runtime.js";
 import { factoryHome } from "../util/paths.js";
 
@@ -76,15 +77,17 @@ program.command("start")
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .option("--design-export <formats>", DESIGN_EXPORT_HELP)
   .option("--ui-target <target>", UI_TARGET_HELP)
+  .option("--model <step=model>", MODEL_HELP, collectModel)
+  .option("--preset <name>", PRESET_HELP)
   .description("create a run from a prompt, a file or a Jira ticket (any one, or several) and execute until a card, a park, or delivery")
-  .action(async (prompt: string | undefined, o: { project: string; maxCost?: string; file?: string; jira?: string; fromEstimate?: string; fromDesign?: string; ref?: string[]; designExport?: string; uiTarget?: string }) => {
+  .action(async (prompt: string | undefined, o: { project: string; maxCost?: string; file?: string; jira?: string; fromEstimate?: string; fromDesign?: string; ref?: string[]; designExport?: string; uiTarget?: string; model?: string[]; preset?: string }) => {
     const designExport = designExportOption(o.designExport);
     const uiTarget = uiTargetOption(o.uiTarget);
     const project = loadProject(o.project);
     const dirty = dirtyWarning();
     if (dirty) log(dirty);
-    const problems = checkRoutes(project);
-    if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
+    const models = choiceOption(o.model, o.preset);
+    checkChoice(project, models, undefined, log);
     // everything is read before a run exists: a bad file or ticket costs nothing
     let approved: Approved | undefined;
     if (o.fromEstimate) {
@@ -107,6 +110,7 @@ program.command("start")
     const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
     const runId = await createRun(req.text, o.project, userInfo().username, {
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
+      models,
       sources: req.sources, references, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}), ...(fromDesign ? { fromDesign, ...(fromDesign.repo ? {} : { mode: "greenfield" as const }) } : {}), ...(designExport ? { designExport } : {}), ...(uiTarget ? { uiTarget } : {}),
     });
     log(`run ${runId} (request from ${fromDesign ? `design run ${fromDesign.runId}; the build follows its approved design${fromDesign.repo ? "" : ", a new product built into an empty repo"}` : approved ? `estimate run ${approved.runId}; the build follows its approved spec and design and is held to its budget${replay(Ledger.open(runId).events()).info.mode === "greenfield" ? ", a new product built into an empty repo" : ""}` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""})`);
@@ -135,11 +139,13 @@ program.command("estimate")
   .option("--revises <run>", "a change request: the new requirements revise an approved estimate, and the card shows what changed")
   .option("--from-design <run>", "size an approved design-only run (factory design start): its spec, answers and approved design are reused, only the sizing is new")
   .option("--resize <run>", "size an earlier estimate run again: its requirements, answers, spec, approved design and settings (hands-off or reviewed too) are reused (no clarify, no design), and only breakdown, sizing, approval and the workbooks run anew")
+  .option("--model <step=model>", MODEL_HELP, collectModel)
+  .option("--preset <name>", PRESET_HELP)
   .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
   .option("--fresh", "ask the model again even if the same requirements were estimated before (skips the stored answers)")
   .option("--design-export <formats>", DESIGN_EXPORT_HELP)
   .description("estimate the effort, API credit cost and elapsed time of delivering requirements through the factory, then write two workbooks; a person answers the questions and approves it unless --hands-off")
-  .action(async (prompt: string | undefined, o: EstimateOptions & { handsOff?: boolean; project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; revises?: string; fromDesign?: string; resize?: string; fresh?: boolean; ref?: string[]; designExport?: string }) => {
+  .action(async (prompt: string | undefined, o: EstimateOptions & { handsOff?: boolean; project?: string; file?: string; frames?: string; jira?: string; maxCost?: string; revises?: string; fromDesign?: string; resize?: string; fresh?: boolean; ref?: string[]; designExport?: string; model?: string[]; preset?: string }) => {
     if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
     const designExport = designExportOption(o.designExport);
     if (o.design === false) {
@@ -165,8 +171,8 @@ program.command("estimate")
     // no --project: the requirements stand alone, so there is no repo to read
     const projectName = o.project ?? (await import("../config/project.js")).ensureStandaloneProject();
     const project = loadProject(projectName);
-    const problems = checkRoutes(project, ESTIMATE_ROUTES);
-    if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
+    const models = choiceOption(o.model, o.preset, "estimate");
+    checkChoice(project, models, ESTIMATE_ROUTES, log);
     if (o.handsOff && o.review) throw new Error("Use --review or --hands-off, not both.");
     const reviewGiven = !!o.handsOff || o.review !== undefined;
     o.review = o.handsOff ? false : o.review ?? project.estimate?.humanReview ?? true;
@@ -187,7 +193,7 @@ program.command("estimate")
     // read before the run exists: a reference that cannot be read stops here and costs nothing
     const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
     const runId = await createRun(req.text, projectName, userInfo().username, {
-      mode: "estimate", estimate: settings, sources: req.sources, attachments: req.attachments, references, ...(lineage ? { lineage } : {}), ...(fromDesign ? { fromDesign } : {}),
+      mode: "estimate", models, estimate: settings, sources: req.sources, attachments: req.attachments, references, ...(lineage ? { lineage } : {}), ...(fromDesign ? { fromDesign } : {}),
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}), ...(designExport ? { designExport } : {}),
     });
     if (fromDesign) await exportSeededNow(runId, designExport, log);
@@ -344,6 +350,20 @@ program.command("waive-budget").argument("<run>").argument("<hash>", "first char
     if (r.kind === "repeat") return log("Already recorded.");
     log(`Limit raised to ${Math.round((ceiling as number) * 100)}% of the approved maximum, recorded with your name. Continuing…`);
     await runAndReport(l.runId);
+  });
+
+program.command("unlock").argument("<run>").argument("<files...>", "locked files that are not tests")
+  .requiredOption("--reason <text>", "why the file has to change")
+  .description("take a locked file that is not a test out of this run's locked set, so a task that has it in its file scope can change it (terminal only; then factory resume)")
+  .action(async (run: string, files: string[], o: { reason: string }) => {
+    assertTty();
+    const l = openRun(run);
+    const st = replay(l.events());
+    const sha = st.steps.get("author-tests")?.outputs[0];
+    if (!sha) throw new DecisionError("This run has no locked files yet.");
+    const lock = l.getJson<{ lock: { file: string }[]; tests: { file: string }[]; characterisation?: { file: string }[] }>(sha);
+    await unlock(l, { files, reason: o.reason, lockSha: sha, locked: lock.lock.map((x) => x.file), tests: [...lock.tests, ...(lock.characterisation ?? [])].map((x) => x.file) });
+    log(`Unlocked for this run: ${files.join(", ")}. Continue with: factory resume ${l.runId}`);
   });
 
 program.command("waive-cap").argument("<run>").argument("<hash>", "first characters of the limit card's hash")
@@ -679,6 +699,7 @@ program.command("selftest").option("--keep", "keep the sample repo and project a
 
 registerConventions(program, log);
 registerMergeGate(program, log);
+registerModels(program, log, openRun);
 
 program.command("doctor").description("check this machine and the setup").action(async () => {
   const ok = (b: boolean, m: string, fix?: string) => log(`${b ? "ok  " : "MISSING"} ${m}${!b && fix ? `\n      → ${fix}` : ""}`);
@@ -698,7 +719,7 @@ program.command("doctor").description("check this machine and the setup").action
   }
   ok(existsSync(join(factoryHome(), ".env")), "~/.factory/.env exists", "create it yourself with your API keys (never paste keys into chat)");
   ok(hasSecret("ANTHROPIC_API_KEY"), "ANTHROPIC_API_KEY set in ~/.factory/.env");
-  log(`${hasSecret("OPENAI_API_KEY") ? "ok  " : "note"} OPENAI_API_KEY ${hasSecret("OPENAI_API_KEY") ? "set" : "not set: critic and review will use Claude (single family)"}`);
+  log(`${hasSecret("OPENAI_API_KEY") ? "ok  " : "note"} OPENAI_API_KEY ${hasSecret("OPENAI_API_KEY") ? "set" : "not set: a run will not start (the second spec draft and the pre-PR reviewer run on GPT-6)"}`);
   log(hasSecret("STITCH_API_KEY") ? "ok   STITCH_API_KEY set: projects with design.engine: stitch can draw with Google Stitch" : "note STITCH_API_KEY not set (optional): needed only for design.engine: stitch");
   const { jiraConfigured } = await import("../sources/jira.js");
   log(jiraConfigured() ? "ok   Jira set up (factory start --jira ABC-123)" : "note Jira not set up (optional): add JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN to ~/.factory/.env to use --jira");

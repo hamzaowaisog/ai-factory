@@ -1,0 +1,204 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "mapping": [
+     {
+      "n": 1,
+      "spans": [
+       "I-1",
+       "I-3",
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 2,
+      "spans": [
+       "I-2"
+      ],
+      "answers": []
+     },
+     {
+      "n": 3,
+      "spans": [
+       "I-3"
+      ],
+      "answers": []
+     },
+     {
+      "n": 4,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 5,
+      "spans": [
+       "I-4",
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 6,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 7,
+      "spans": [
+       "I-4"
+      ],
+      "answers": [
+       "Q-4"
+      ]
+     },
+     {
+      "n": 8,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 9,
+      "spans": [
+       "I-4"
+      ],
+      "answers": []
+     },
+     {
+      "n": 10,
+      "spans": [
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 11,
+      "spans": [
+       "I-5"
+      ],
+      "answers": [
+       "Q-5"
+      ]
+     },
+     {
+      "n": 12,
+      "spans": [
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 13,
+      "spans": [
+       "I-5"
+      ],
+      "answers": [
+       "Q-1"
+      ]
+     },
+     {
+      "n": 14,
+      "spans": [
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 15,
+      "spans": [
+       "I-5"
+      ],
+      "answers": [
+       "Q-3"
+      ]
+     },
+     {
+      "n": 16,
+      "spans": [
+       "I-5"
+      ],
+      "answers": []
+     },
+     {
+      "n": 17,
+      "spans": [
+       "I-6"
+      ],
+      "answers": [
+       "Q-7"
+      ]
+     },
+     {
+      "n": 18,
+      "spans": [
+       "I-6"
+      ],
+      "answers": []
+     },
+     {
+      "n": 19,
+      "spans": [
+       "I-6"
+      ],
+      "answers": []
+     },
+     {
+      "n": 20,
+      "spans": [
+       "I-4",
+       "I-6"
+      ],
+      "answers": [
+       "Q-7"
+      ]
+     },
+     {
+      "n": 21,
+      "spans": [
+       "I-7"
+      ],
+      "answers": []
+     },
+     {
+      "n": 22,
+      "spans": [
+       "I-7"
+      ],
+      "answers": [
+       "Q-6"
+      ]
+     },
+     {
+      "n": 23,
+      "spans": [
+       "I-6"
+      ],
+      "answers": []
+     },
+     {
+      "n": 24,
+      "spans": [
+       "I-8"
+      ],
+      "answers": []
+     }
+    ]
+   },
+   "ms": 0,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

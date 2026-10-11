@@ -14,6 +14,7 @@ import { sha256 } from "../util/hash.js";
 export const SKILLS: Record<string, { appliesTo: string[]; sections?: string[] }> = {
   "dotnet-best-practices": { appliesTo: ["**/*.cs"] },
   "code-review": { appliesTo: ["**/*"], sections: ["3. Identify the standards sources"] },
+  "next-best-practices": { appliesTo: ["**/*.ts", "**/*.tsx"] },
 };
 
 /** `${...}` or `{{...}}` left in a rule means the skill was written for a different harness. */

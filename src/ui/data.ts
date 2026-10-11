@@ -17,6 +17,7 @@ import { readLockInfo, isLockFree } from "../ledger/exec-lock.js";
 import { Ledger } from "../ledger/ledger.js";
 import { MAX_BUDGET_CEILING, replay, splitKey, type RunState } from "../ledger/state.js";
 import { shownStatus } from "../stages/run-status.js";
+import { runModels } from "../stages/routing.js";
 import { outcomes, scoreRun, stageStats, stageOf, type RunScore } from "../report.js";
 import { jiraConfigured } from "../sources/jira.js";
 import { figmaConfigured } from "../sources/figma.js";
@@ -283,7 +284,8 @@ function limitOf(s: RunState) {
 }
 
 export function runView(ledger: Ledger) {
-  const s = replay(ledger.events());
+  const events = ledger.events();
+  const s = replay(events);
   const card = s.openCard && existsSync(join(ledger.cardsDir, `${s.openCard.cardId}.md`)) ? ledger.readCard(s.openCard.cardId) : undefined;
   const hash8 = s.openCard?.artifactSha.slice(0, 8) ?? "";
   const done = s.status === "delivered" || (typeof s.status === "object" && s.steps.get("deliver")?.status === "completed");
@@ -310,6 +312,8 @@ export function runView(ledger: Ledger) {
     lastActivity: last ? { ts: last.ts, msg: last.msg, where: last.step ?? "run" } : undefined,
     timeline: timeline(ledger, s),
     gates: gateChips(s),
+    // the model each step was given when the run was created, and what was called on each
+    models: runModels(events),
     card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}), ...limitOf(s) } : undefined,
     trace,
     delivered: done ? {

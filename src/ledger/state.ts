@@ -1,6 +1,7 @@
 // RunState is derived only by replaying the ledger (run-manager §2.2, §2.4). Never stored.
 import type { ChangeClass, Complexity, LedgerEvent, Mode, Reference, RunStatus } from "../contracts/index.js";
 import { hashJson } from "../util/hash.js";
+import type { Preset, RouteSource, Tier } from "../stages/models.js";
 
 /** Step key without the attempt: "plan", "implement/TASK-2". */
 export type StepKey = string;
@@ -72,6 +73,10 @@ export interface RunInfo {
   versions?: Record<string, string>;
   /** spend when the plan completed; the post-plan cost limit adds the size's cap to it */
   spendAtPlan?: number;
+  /** every model step's route, settled when the run was created (src/stages/routing.ts); a run without it began before routes were saved */
+  routes?: Record<string, { runner: "api" | "claude-agent" | "codex" | "jcode"; model: string; escalate: string[]; effort?: "low" | "medium" | "high" | "xhigh"; source: RouteSource; tier?: Tier; preset?: Preset }>;
+  /** what the person starting the run chose: a model for some steps, a preset for the rest */
+  models?: { picks?: Record<string, string>; preset?: Preset };
   /** `factory start --max-cost`: a lower limit for this run */
   maxCostUsd?: number;
   /** estimate and design modes: the run settings a person chose at the start (missing fields take the defaults); a design run uses only noRepo, client and projectName */

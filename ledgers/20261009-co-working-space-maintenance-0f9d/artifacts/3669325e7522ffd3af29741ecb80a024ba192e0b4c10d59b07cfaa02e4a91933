@@ -1,0 +1,20 @@
+# Approve the design
+
+Run 20261009-co-working-space-maintenance-0f9d. The build follows the approved mock and clickable demo: its screens, states, sample content and look are what gets built.
+
+Flow: Sam opens Requests to scan the newest maintenance work, filter by status, or create a request in a dialog. Selecting a row opens Request detail, where Sam can advance its status; Back returns to the list with the previous filter retained.
+
+Clickable demo (open in a browser, walk every screen and state before approving): /Users/mhamza/.factory/ledger/20261009-co-working-space-maintenance-0f9d/design-demo.html
+Screenshots: 43 in /Users/mhamza/.factory/ledger/20261009-co-working-space-maintenance-0f9d/preview/shots (each screen and state at phone and desktop width, each screen on a tablet)
+
+Screens (2):
+- Requests: S-1 /requests (app/requests/page.tsx) -> REQ-1, REQ-3, REQ-4, REQ-5, REQ-7, REQ-8, REQ-11, REQ-12, REQ-13, REQ-14, REQ-15, REQ-16, REQ-17, REQ-22, REQ-23; new; states: loading, empty, error with Retry, creation dialog open, field validation errors, submitting, creation error, creation success; UI: complex (8 states (loading, empty, error with Retry, creation dialog open, field validation errors, submitting, creation error, creation success); table with sorting and paging; 1 overlay (modal with a form))
+- Request detail: S-2 /requests/[id] (app/requests/[id]/page.tsx) -> REQ-7, REQ-9, REQ-10, REQ-18, REQ-19, REQ-20, REQ-21, REQ-23; new; states: loading, not found, load error with Retry, status update pending, status update error, status updated; UI: moderate (6 states (loading, not found, load error with Retry, status update pending, status update error, status updated); 1 toast; links to 1 page)
+
+Every requirement has a screen.
+Every screen links to a requirement.
+
+Approve: factory approve 20261009-co-working-space-maintenance-0f9d 1951166c
+Reject:  factory reject 20261009-co-working-space-maintenance-0f9d 1951166c --reason "why"   (only the parts you point at are fixed, or the whole design is redrawn if that is what it needs; you get a new card and the run does not stop)
+
+Card hash: 1951166c

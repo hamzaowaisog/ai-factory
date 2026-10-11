@@ -34,13 +34,20 @@ agentEnv:                          # dummy values so the app compiles where the 
 #   maxRunsPerDay: 3
 #   dailyBudgetUsd: 10
 #   monthlyBudgetUsd: 100
+#   preset: economy                      # optional: the models of every run it starts (economy, balanced, quality)
+#   models: { plan: gpt-6-sol }          # optional: a model for single steps, like --model
 # notify:
 #   slackWebhookEnv: SHOP_SLACK_WEBHOOK   # the webhook URL itself lives in ~/.factory/.env
-# Prices (USD per million tokens) for models the factory has no built-in price for, e.g. the GPT model
-# used for the critic and review when OPENAI_API_KEY is set. Without a price, cost is estimated at
+# The model of a step, by model or by tier (light, standard, heavy). A choice made when a run starts still wins;
+# an entry for critic is ignored. See docs/model-choice.md and `factory models --project <name>`.
+# steps:
+#   plan: { tier: standard }
+#   implement: { model: claude-opus-5-5 }
+# Prices (USD per million tokens), when the bill differs from the factory's built-in price or a model has none.
+# The built-in GPT-6 prices are not confirmed on OpenAI's price page. A model with no price is costed at
 # $10 in / $50 out, which is deliberately high and can hit the run's cost limit early.
 # prices:
-#   gpt-5.5: { input: <from OpenAI's pricing page>, output: <...>, cacheRead: <...> }
+#   gpt-6-sol: { input: <from OpenAI's pricing page>, output: <...>, cacheRead: <...> }
 # A repo with a React or Next.js front end: tell the design checks where things are when detection guesses wrong.
 # design:
 #   sourceRoot: "src/"               # "" is the repo root

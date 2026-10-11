@@ -72,6 +72,28 @@ export async function decide(ledger: Ledger, input: DecideInput): Promise<Decide
   return repeat || !ev ? { kind: "repeat" } : { kind: "recorded", event: ev };
 }
 
+/** Files a person took out of a run's locked set (factory unlock), oldest first. */
+export function unlockedFiles(events: LedgerEvent[]): { file: string; by: string; reason: string }[] {
+  return events.filter((e) => e.type === "human.decided" && (e.data as { decision?: string }).decision === "unlock")
+    .flatMap((e) => { const d = e.data as { files?: string[]; by?: string; reason?: string }; return (d.files ?? []).map((file) => ({ file, by: String(d.by ?? ""), reason: String(d.reason ?? "") })); });
+}
+
+/**
+ * Take files out of a run's locked set, for this run only. Never a test: a locked test that is wrong is a different decision.
+ * `locked` and `tests` come from the run's lock; `lockSha` is what the decision is bound to.
+ */
+export async function unlock(ledger: Ledger, input: { files: string[]; reason: string; locked: string[]; tests: string[]; lockSha: string; by?: string }): Promise<LedgerEvent> {
+  if (!input.reason.trim()) throw new DecisionError("An unlock needs a reason.");
+  if (!input.files.length) throw new DecisionError("Name the file to unlock.");
+  for (const f of input.files) {
+    if (!input.locked.includes(f)) throw new DecisionError(`${f} is not a locked file of this run.`);
+    if (input.tests.includes(f)) throw new DecisionError(`${f} is a locked test: only a file that is not a test can be unlocked.`);
+  }
+  const by = input.by ?? userInfo().username;
+  if (by === EVAL_DECIDER) throw new DecisionError(`"${EVAL_DECIDER}" can't unlock a file.`);
+  return ledger.append({ type: "human.decided", data: { cardId: "unlock", decision: "unlock", by, artifactSha: input.lockSha, files: input.files, reason: input.reason.trim() } }, HUMAN_WRITER);
+}
+
 /**
  * Deadlines: any command that finds an expired deadline appends the default decision.
  * It never starts execution (run-manager §2.7).

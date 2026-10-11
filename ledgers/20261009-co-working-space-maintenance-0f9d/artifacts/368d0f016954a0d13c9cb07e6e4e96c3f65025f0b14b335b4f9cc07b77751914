@@ -1,0 +1,206 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "spans": [
+     {
+      "id": "I-1",
+      "behaviours": [
+       {
+        "text": "Opening the app presents the Hive Works requests screen; selecting a request opens its detail screen, and the detail screen provides navigation back to the requests screen.",
+        "kind": "happy"
+       },
+       {
+        "text": "The app exposes the two requested screens only: the requests list (including its create dialog) and request detail; it does not provide other product screens.",
+        "kind": "data"
+       },
+       {
+        "text": "The single demo user, Sam Carter (shown as SC), can use the app without a sign-in screen or role-based restrictions.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-2",
+      "behaviours": [
+       {
+        "text": "Each stored request has a system-assigned ID and creation date, a title, area, priority, description, and status; title is 3–80 characters, area is one of Kitchen, Meeting room, Open desk, Washroom, or Reception, priority is Low, Normal, or Urgent, description is optional and at most 500 characters, and status is Open, In progress, or Done.",
+        "kind": "data"
+       },
+       {
+        "text": "A request saved to the database remains available after a page reload and an application restart.",
+        "kind": "data"
+       },
+       {
+        "text": "On initial shipment, the app has exactly 8 seeded requests: 4 Open (including one Urgent), 2 In progress, and 2 Done; across those requests every allowed area appears at least once.",
+        "kind": "data"
+       },
+       {
+        "text": "The app stores no other record type.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-3",
+      "behaviours": [
+       {
+        "text": "The API lists all requests or, when given one status filter, only requests with that status; results are newest first.",
+        "kind": "happy"
+       },
+       {
+        "text": "The API accepts creation of a request and returns the created request.",
+        "kind": "happy"
+       },
+       {
+        "text": "The API gets one request by ID; an unknown ID returns a not-found response.",
+        "kind": "error"
+       },
+       {
+        "text": "The API changes the status of one request and rejects a status change that is not allowed by the business rules.",
+        "kind": "error"
+       },
+       {
+        "text": "The API exposes these four operations only: list, create, get by ID, and change status; it exposes no delete or general edit operation.",
+        "kind": "data"
+       }
+      ]
+     },
+     {
+      "id": "I-4",
+      "behaviours": [
+       {
+        "text": "Creating a request with a title outside 3–80 characters, an area or priority outside the allowed values, or a description longer than 500 characters is rejected by the API with a message naming the invalid field; a missing title, area, or priority is also rejected.",
+        "kind": "error"
+       },
+       {
+        "text": "A valid newly created request is assigned status Open, regardless of any status supplied by the caller.",
+        "kind": "happy"
+       },
+       {
+        "text": "The API accepts exactly these status changes: Open → In progress, In progress → Done, and Done → Open; any other attempted change is rejected and does not change the stored status.",
+        "kind": "error"
+       },
+       {
+        "text": "After creation, title, area, priority, and description cannot be changed; attempts to change them are rejected. Requests cannot be deleted.",
+        "kind": "error"
+       },
+       {
+        "text": "Sam Carter can create requests and make the allowed status changes; the app provides no other user roles or access restrictions.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-5",
+      "behaviours": [
+       {
+        "text": "The requests screen shows the Hive Works wordmark, the user's initials SC, a New request button, and the All, Open, In progress, and Done filters. All is selected initially, and only one filter is selected at a time.",
+        "kind": "happy"
+       },
+       {
+        "text": "The list shows matching requests newest first. Each row shows title, area, priority badge, status badge, and created date; selecting a row opens that request's detail screen.",
+        "kind": "happy"
+       },
+       {
+        "text": "Selecting a status filter refreshes the list to show only requests with that status; selecting All shows all requests.",
+        "kind": "happy"
+       },
+       {
+        "text": "While the list is loading, the screen shows “Loading requests…”. If the selected filter has no matching requests, it shows “No requests here.”",
+        "kind": "happy"
+       },
+       {
+        "text": "If loading the list fails, the screen shows “Could not load requests.” and a Retry button; selecting Retry attempts to load the list again.",
+        "kind": "error"
+       },
+       {
+        "text": "Selecting New request opens a dialog with labeled Title, Area, Priority, and Description fields; Area offers the allowed areas, Priority offers the allowed priorities and defaults to Normal, and the dialog has Create and Cancel buttons.",
+        "kind": "happy"
+       },
+       {
+        "text": "Submitting invalid fields keeps the dialog open and displays the relevant validation message under each invalid field; a valid submission closes the dialog and places the new Open request at the top of the list.",
+        "kind": "error"
+       },
+       {
+        "text": "While a create request is being sent, Create is disabled so a double click cannot submit the same request twice.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-6",
+      "behaviours": [
+       {
+        "text": "The detail screen shows the request's title, area, priority badge, status badge, created date, and description; when description is empty it shows “No description.”",
+        "kind": "happy"
+       },
+       {
+        "text": "For an Open request the screen offers Start work, for In progress it offers Mark done, and for Done it offers Reopen. Selecting the action sends the corresponding allowed status change.",
+        "kind": "happy"
+       },
+       {
+        "text": "After a successful status change, the detail screen shows the new status badge and the action button for that status; the screen changes only after the API responds.",
+        "kind": "happy"
+       },
+       {
+        "text": "If a status change fails, the screen shows “Could not update the request.” and keeps showing the status that was displayed before the attempt.",
+        "kind": "error"
+       },
+       {
+        "text": "Opening a detail URL for an unknown ID shows “Request not found.” and a link back to the requests screen.",
+        "kind": "error"
+       }
+      ]
+     },
+     {
+      "id": "I-7",
+      "behaviours": [
+       {
+        "text": "The app uses a light theme with a neutral background, near-black text, one brand colour for primary buttons, and one sans-serif font; it has no dark mode or required animation.",
+        "kind": "data"
+       },
+       {
+        "text": "Open badges are blue, In progress badges amber, and Done badges green; Urgent priority badges are red, while Low and Normal are neutral. Every badge includes its text so colour is not the only status or priority cue.",
+        "kind": "data"
+       },
+       {
+        "text": "At 375 px wide, request rows stack as cards; at 1280 px wide, they appear as a table, and neither layout causes horizontal page scrolling.",
+        "kind": "happy"
+       },
+       {
+        "text": "Every field has a label, controls are keyboard reachable, and text has WCAG AA contrast.",
+        "kind": "happy"
+       }
+      ]
+     },
+     {
+      "id": "I-8",
+      "behaviours": [
+       {
+        "text": "Automated business-rule tests verify that valid creation produces an Open request; missing or too-short title, missing area, and overlong description are rejected; each of the three allowed status changes succeeds; and an out-of-order status change is rejected.",
+        "kind": "happy"
+       },
+       {
+        "text": "Automated business-rule tests verify that a status-filtered list contains only matching requests in newest-first order and that an unknown ID is reported as not found.",
+        "kind": "happy"
+       },
+       {
+        "text": "An end-to-end test opens the list, creates a request, sees it at the top, opens it, selects Start work and Mark done, then filters by Done and sees the request.",
+        "kind": "happy"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

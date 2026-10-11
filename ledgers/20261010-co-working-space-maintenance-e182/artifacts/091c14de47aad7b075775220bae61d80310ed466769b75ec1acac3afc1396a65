@@ -1,0 +1,117 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "tasks": [
+     {
+      "taskId": "EST-1",
+      "size": "small",
+      "verify": "moderate",
+      "context": "partial",
+      "reason": "1 entity with 7 request fields, one migration and an exact 8-record seed: small by the entity-count scale; matches the approved small EST-1."
+     },
+     {
+      "taskId": "EST-2",
+      "size": "typical",
+      "verify": "easy",
+      "context": "partial",
+      "reason": "One status filter plus newest-first ordering and status counts makes this more than a plain read: typical. The approved same-item-count endpoint was small; this task adds filtered listing and derived counts."
+     },
+     {
+      "taskId": "EST-3",
+      "size": "small",
+      "verify": "easy",
+      "context": "partial",
+      "reason": "One plain get-by-ID read with not-found handling: small; matches the approved small EST-3."
+     },
+     {
+      "taskId": "EST-4",
+      "size": "typical",
+      "verify": "moderate",
+      "context": "partial",
+      "reason": "8 discrete creation/validation/immutability/operation rules: typical. The approved near-match was large, but this has 8 rules, below the large threshold of 9."
+     },
+     {
+      "taskId": "EST-5",
+      "size": "typical",
+      "verify": "moderate",
+      "context": "partial",
+      "reason": "3 allowed transitions plus rejection, missing/invalid-body handling, not-found handling and operation restrictions: 4-8 rules, typical; matches the approved typical EST-5."
+     },
+     {
+      "taskId": "EST-6",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "One layout with a shared light-theme, typography and contrast baseline: typical. The approved EST-6 was small; this shell additionally carries the system-wide theme and accessibility factors."
+     },
+     {
+      "taskId": "EST-7",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "One status filter with retained selection and refresh behavior, multiple list states, and responsive card/table presentation: typical rather than a plain unfiltered list; matches the approved typical EST-7."
+     },
+     {
+      "taskId": "EST-8",
+      "size": "small",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "4 form fields with validation and submit/cancel behavior: small (up to 5 fields); matches the approved small EST-8."
+     },
+     {
+      "taskId": "EST-9",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "6 displayed request values plus a state-dependent status action and error/not-found states: typical detail view; matches the approved typical EST-9."
+     },
+     {
+      "taskId": "EST-10",
+      "size": "typical",
+      "verify": "moderate",
+      "context": "partial",
+      "reason": "3 broad test flows—creation validation, status transitions, and listing/get-by-ID: typical (2-4 flows); matches the approved typical EST-10."
+     },
+     {
+      "taskId": "EST-11",
+      "size": "typical",
+      "verify": "moderate",
+      "context": "partial",
+      "reason": "One multi-step list→create→detail→status transitions→Done-filter workflow, beyond a short flow: typical; matches the approved typical EST-11."
+     },
+     {
+      "taskId": "EST-12",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "One client acceptance/regression round: typical; matches the approved typical EST-12. Client judgment is needed, and detailed UAT scenarios are not supplied."
+     },
+     {
+      "taskId": "EST-13",
+      "size": "typical",
+      "verify": "hard",
+      "context": "partial",
+      "reason": "Assuming about one month of client liaison and sign-offs for this delivery: typical; matches the approved typical EST-13. No delivery duration or liaison cadence is specified."
+     }
+    ],
+    "stack": {
+     "backend": "ASP.NET Core Web API",
+     "web": "React + Vite",
+     "database": "SQLite",
+     "architecture": "Single-deployable modular monolith: browser SPA, HTTP API and relational persistence",
+     "basis": "assumed",
+     "notes": "No repository or chosen stack is provided, so these are explicit estimating assumptions. Hosting is omitted because no hosting or deployment task is in the breakdown; no mobile work is required."
+    }
+   },
+   "ms": 4,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

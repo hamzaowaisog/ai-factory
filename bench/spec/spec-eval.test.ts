@@ -147,7 +147,7 @@ function makeRepo(): { url: string; commit: string } {
 describe("a dry run (fake model, no cost)", () => {
   beforeEach(() => {
     process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "spec-eval-home-"));
-    writeFileSync(join(process.env.FACTORY_HOME, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\n", { mode: 0o600 });
+    writeFileSync(join(process.env.FACTORY_HOME, ".env"), "ANTHROPIC_API_KEY=sk-ant-test-not-real-000000000000\nOPENAI_API_KEY=sk-openai-test-not-real-0000000000\n", { mode: 0o600 });
     markEvalHome(process.env.FACTORY_HOME); // as the eval harness does: only a marked home lets it answer as "eval"
     _resetEnvCache();
     setProviderFactory(() => fakeProvider(() => CASE));

@@ -3,7 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { addWorktree, changedFiles, commitAll, diffIncludingUntracked, git, headSha, removeWorktree, repoRefusals, resetHard, trackIgnored } from "./git.js";
+import { addWorktree, authEnv, changedFiles, commitAll, diffIncludingUntracked, excludeLocally, fetchForGate, freshWorktree, git, headSha, removeWorktree, repoRefusals, resetHard, trackIgnored } from "./git.js";
 
 function makeRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "factory-git-"));
@@ -55,10 +55,52 @@ describe("hardened git", () => {
     expect(branches).toContain("factory/run-1");
   });
 
+  it("rebuilds a worktree that is already there, branch and all", async () => {
+    // the merge gate builds the SAME reverify worktree on every webhook for a pull request. With
+    // plain addWorktree the second build threw: the path existed, and removeWorktree leaves the
+    // branch behind (see the assertion above), so `add -b` hit an existing branch too.
+    const repo = makeRepo();
+    const base = await headSha(repo);
+    const wt = join(mkdtempSync(join(tmpdir(), "factory-wt-")), "w2");
+
+    await freshWorktree(repo, wt, "factory/reverify-1", base, "run-1");
+    writeFileSync(join(wt, "left-behind.txt"), "x");
+    await commitAll(wt, "a repair, committed into the worktree");
+
+    await freshWorktree(repo, wt, "factory/reverify-1", base, "run-1");
+    expect(existsSync(join(wt, "left-behind.txt"))).toBe(false);   // a FRESH tree at base
+    expect(await headSha(wt)).toBe(base);
+  });
+
+  it("builds over a folder that is in the way and is not a worktree", async () => {
+    const repo = makeRepo();
+    const base = await headSha(repo);
+    const wt = join(mkdtempSync(join(tmpdir(), "factory-wt-")), "w3");
+    mkdirSync(wt);
+    writeFileSync(join(wt, "stale.txt"), "left by a pass that was killed");
+
+    await freshWorktree(repo, wt, "factory/reverify-2", base, "run-2");
+    expect(existsSync(join(wt, "stale.txt"))).toBe(false);
+    expect(await headSha(wt)).toBe(base);
+  });
+
   it("refuses submodules", async () => {
     const repo = makeRepo();
     writeFileSync(join(repo, ".gitmodules"), "");
     expect((await repoRefusals(repo)).map((r) => r.code)).toContain("submodules");
+  });
+  it("keeps a file the build writes out of a commit when the repo's ignore rule misses it (run e1b5)", async () => {
+    const repo = makeRepo();
+    // anchored at the root, so it does not match App.Api/openapi/built.json
+    writeFileSync(join(repo, ".gitignore"), "openapi/*.json\n");
+    const start = await commitAll(repo, "ignore");
+    await excludeLocally(repo, ["App.Api/openapi/built.json"]);
+    await excludeLocally(repo, ["App.Api/openapi/built.json"]);
+    mkdirSync(join(repo, "App.Api", "openapi"), { recursive: true });
+    for (const f of ["App.Api/openapi/built.json", "App.Api/Program.cs"]) writeFileSync(join(repo, f), "x\n");
+    const commit = await commitAll(repo, "task");
+    expect((await changedFiles(repo, start, commit)).map((f) => f.path)).toEqual(["App.Api/Program.cs"]);
+    expect((await git(repo, ["status", "--porcelain"])).stdout).toBe("");
   });
   it("commits a file the plan names even when an ignore rule hides it, and keeps it through a clean", async () => {
     const repo = makeRepo();
@@ -77,5 +119,18 @@ describe("hardened git", () => {
     expect(existsSync(join(repo, "gen/Source.cs"))).toBe(true);
     expect(existsSync(join(repo, "gen/built.json"))).toBe(false);
     expect(await trackIgnored(repo, ["src/**"])).toEqual([]);
+  });
+  it("passes the forge token through git's environment only, base64 in an auth header", () => {
+    const env = authEnv("tok-123");
+    expect(Object.keys(env).sort()).toEqual(["GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"]);
+    expect(env.GIT_CONFIG_KEY_0).toBe("http.extraHeader");
+    expect(env.GIT_CONFIG_VALUE_0).toBe(`Authorization: Basic ${Buffer.from("x-access-token:tok-123").toString("base64")}`);
+  });
+
+  it("fails the gate's fetch when the base cannot be reached, without the token in the error", async () => {
+    const repo = makeRepo();
+    const err = await fetchForGate(repo, "main", undefined, { url: "https://127.0.0.1:9/none.git", token: "tok-SECRET-9" }).catch((e: Error) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).not.toContain("tok-SECRET-9");
   });
 });

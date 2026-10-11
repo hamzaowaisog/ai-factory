@@ -1,6 +1,6 @@
-// Runs inside container A. Reads /job/in.json, drives the Claude Agent SDK in /work,
-// writes /job/out/result.json. No git, no ledger, no real secrets; the API key is added
-// by the factory proxy (ANTHROPIC_BASE_URL points at it).
+// Runs inside container A. Reads /job/in.json, drives the Claude Agent SDK in /work (or, for a GPT step,
+// the Codex agent: run-codex.mjs), writes /job/out/result.json. No git, no ledger, no real secrets; the API
+// key is added by the factory proxy (ANTHROPIC_BASE_URL points at it).
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 
 // progress for the factory's run trace: the host reads this file while the agent works
@@ -104,6 +104,7 @@ async function scripted(script) {
 
 async function main() {
   if (job.script) return scripted(job.script);
+  if (job.agent === "codex") return (await import("./run-codex.mjs")).runCodex(job, out, { progress, short, rel });
   const ctxLimits = job.context ?? {};
   const stop = new AbortController();
   const res = query({
@@ -172,5 +173,5 @@ main().catch((e) => { if (!LIMIT_STOPS.has(out.status)) { out.status = "error"; 
   .finally(() => {
     writeFileSync("/job/out/result.json", JSON.stringify(out));
     // a stopped session's child process may linger: the result is written, so don't wait for it
-    if (out.status === "no-progress") setTimeout(() => process.exit(0), 2000);
+    if (out.status === "no-progress" || job.agent === "codex") setTimeout(() => process.exit(0), 2000);
   });

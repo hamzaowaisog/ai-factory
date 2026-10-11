@@ -55,6 +55,15 @@ describe("the locked API contract", () => {
     expect(gate(builtText)).toMatchObject({ passed: true });
   });
 
+  it("reads a contract's paths under its server: /requests under /api is the API's /api/requests (run e1b5)", () => {
+    const under = { ...contract, servers: [{ url: "/api" }] };
+    const api = built();
+    api.servers = [{ url: "http://localhost:5000/" }];
+    api.paths = Object.fromEntries(Object.entries(api.paths).map(([p, v]) => [`/api${p}`, v]));
+    expect(contractDiff(under, api)).toEqual([]);
+    expect(contractDiff(under, built()).some((d) => d.startsWith("not in the contract"))).toBe(true);
+  });
+
   it("names a renamed field, a changed type, a missing status, a missing route and an extra route", () => {
     const renamed = built();
     const s = renamed.components.schemas.Appointment;

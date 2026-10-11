@@ -122,7 +122,7 @@ describe("factory smoke", () => {
     expect(last).toMatchObject({ name: "model claude-opus-5-5", ok: false });
     expect(last.detail).toMatch(/Model not found/);
     expect(checks.slice(0, -1).every((c) => c.ok && c.costUsd > 0)).toBe(true);
-    expect(seen).toContain("claude-haiku-4-5");
+    expect(seen).toContain("claude-haiku-5-5");
     expect(seen).not.toContain("gpt-5.5"); // no OpenAI key: GPT routes fall back to Claude
   });
 });

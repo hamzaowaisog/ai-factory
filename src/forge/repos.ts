@@ -72,7 +72,7 @@ export async function pushBranch(repo: string, url: string, token: string, branc
 
 /**
  * Give a project the forge block of the repo the factory made for it, keeping the file's comments. `pullBase`: GitHub's main is
- * where each run starts (see `pullBase`). The API and push URLs are written only when they are not github.com's.
+ * where each run starts (see `pullBase`), and a pull request that passes the merge gate is merged into it (`autoMerge`). The API and push URLs are written only when they are not github.com's.
  */
 export function addForge(project: string, acct: GithubAccount, made: MadeRepo): void {
   const file = projectPath(project);
@@ -82,6 +82,7 @@ export function addForge(project: string, acct: GithubAccount, made: MadeRepo): 
     ...(acct.root !== GITHUB_API ? { apiUrl: acct.root } : {}),
     ...(made.cloneUrl !== `https://github.com/${made.repo}.git` ? { pushUrl: made.cloneUrl } : {}),
     pullBase: true,
+    autoMerge: true,
   });
   writeFileSync(file, doc.toString());
 }

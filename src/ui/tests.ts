@@ -6,7 +6,9 @@ import { replay, type RunState } from "../ledger/state.js";
 import { readOutput } from "../stages/framework.js";
 import { MANUAL_CARD, lastSignOff, type ManualBundle } from "../stages/manual-check.js";
 
-const PROOF_GATE = "review.tests-prove-criteria";
+/** the gate that stops a run on what the reviewer said about the tests, and the older one that also stopped on a weak test */
+const PROOF_GATE = "review.criteria-have-tests";
+const OLD_PROOF_GATE = "review.tests-prove-criteria";
 
 /** proven: the reviewer read the test and it asserts the criterion · weak, no-test: the reviewer's other verdicts ·
  *  passing, failing, flaky: how the locked test last ran, before any review · locked: written and locked, not run on the new code yet ·
@@ -47,7 +49,7 @@ export interface TestsView {
   /** non-functional requirements: listed because nothing tests them yet */
   nfrs?: { id: string; text: string; metric: string }[];
   /** the gate that reads the reviewer's verdicts, and the person who accepted a failing one */
-  proof?: { passed: boolean; details: string; waivedBy?: string; reason?: string };
+  proof?: { passed: boolean; details: string; waivedBy?: string; /** how many tests the review calls weak, on a run that does not stop for them */ flagged?: number; reason?: string };
   /** the open manual-check card, answered on this page */
   signOff?: { hash: string; criteria: string[] };
 }
@@ -110,16 +112,16 @@ export function testsView(ledger: Ledger): TestsView {
   const characterisation = (lock?.characterisation ?? []).map((c) => ({ target: c.target, testId: c.testId, file: c.file, ...(results.get(c.testId) ? { outcome: results.get(c.testId)!.outcome } : {}) }));
   const count = (st: CriterionState) => all.filter((c) => c.state === st).length;
 
-  const gate = [...s.gates].reverse().find((g) => g.gateId === PROOF_GATE);
+  const gate = [...s.gates].reverse().find((g) => g.gateId === PROOF_GATE || g.gateId === OLD_PROOF_GATE);
   const details = gate ? String((ledger.events().find((e) => e.seq === gate.seq)?.data as { details?: string } | undefined)?.details ?? "") : "";
   const waiver = gate && !gate.passed ? s.decisions.find((d) => {
     if (d.decision !== "waive") return false;
-    try { const b = ledger.getJson<{ gateIds?: string[]; scope?: string }>(d.artifactSha); return !!b.gateIds?.includes(PROOF_GATE) && b.scope === commit; } catch { return false; }
+    try { const b = ledger.getJson<{ gateIds?: string[]; scope?: string }>(d.artifactSha); return !!b.gateIds?.includes(gate.gateId) && b.scope === commit; } catch { return false; }
   }) as ({ by: string; reason?: string } | undefined) : undefined;
 
   const building = s.info.mode !== "estimate" && s.info.mode !== "design";
   const stage = review ? "reviewed" : run ? "run" : lock ? "locked" : "spec";
-  const note = stage === "reviewed" ? "The reviewer opened each locked test and said whether it proves its criterion. A weak or missing test stops the run until a person accepts it."
+  const note = stage === "reviewed" ? "The reviewer opened each locked test and said whether it proves its criterion. A criterion with no test stops the run until a person accepts it. A test it calls weak does not: it is named on the pull request."
     : stage === "run" ? "The locked tests ran on the new code. The review comes next: it reads each test and says whether it proves its criterion."
     : stage === "locked" ? "The tests are written and locked: each one failed on the old code twice. They run on the new code as it is built."
     : building ? "From the spec. The tests are written, and locked, after the plan is approved." : "From the spec. This run builds nothing, so no tests are written for it.";
@@ -144,7 +146,9 @@ export function testsView(ledger: Ledger): TestsView {
       nfrs: spec.nfrs?.length ?? 0,
     },
     requirements, characterisation, nfrs: spec.nfrs ?? [],
-    ...(gate ? { proof: { passed: gate.passed, details, ...(waiver ? { waivedBy: waiver.by, reason: String(waiver.reason ?? "") } : {}) } } : {}),
+    // a failed gate stopped the run; a passed one can still leave tests the reviewer calls weak, which the run does not stop for
+    ...(gate && !(gate.passed && count("weak")) ? { proof: { passed: gate.passed, details, ...(waiver ? { waivedBy: waiver.by, reason: String(waiver.reason ?? "") } : {}) } }
+      : gate ? { proof: { passed: false, details, flagged: count("weak") } } : {}),
     ...(card && cardCriteria.length ? { signOff: { hash: card.artifactSha.slice(0, 8), criteria: cardCriteria } } : {}),
   };
 }

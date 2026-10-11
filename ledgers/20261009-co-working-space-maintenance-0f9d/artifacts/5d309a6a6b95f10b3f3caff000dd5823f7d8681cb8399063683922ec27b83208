@@ -1,0 +1,1 @@
+{"level":"tweak","mode":"git","name":"screen tweak","reasons":["screen tweak: components/screens/s-1/container.tsx changed","screen tweak: components/screens/s-2/container.tsx changed"],"uiFiles":2,"work":"a short screen note (regions, components, states); no mock; checks: lint, accessibility, before/after screenshot"}

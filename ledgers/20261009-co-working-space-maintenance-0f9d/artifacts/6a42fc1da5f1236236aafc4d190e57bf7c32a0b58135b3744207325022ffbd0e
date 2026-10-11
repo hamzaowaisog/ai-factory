@@ -1,0 +1,147 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "questions": [
+     {
+      "id": "Q-1",
+      "category": "errors",
+      "text": "If creating a request fails for a reason other than field validation (for example, a network or server error), what should the dialog do?",
+      "options": [
+       "Show a generic creation error, keep the dialog open with its values, and allow another submission.",
+       "Close the dialog and show a generic error on the requests screen.",
+       "Show the field-validation error behavior for all failures."
+      ],
+      "recommended": "Show a generic creation error, keep the dialog open with its values, and allow another submission.",
+      "reason": "This provides recovery without discarding the user's input.",
+      "spans": [
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "It determines the visible recovery flow after a failed create."
+     },
+     {
+      "id": "Q-2",
+      "category": "errors",
+      "text": "If loading a detail address fails for a reason other than an unknown ID, what should the detail screen show?",
+      "options": [
+       "Show a generic loading error with a Retry action; reserve “Request not found.” for unknown IDs.",
+       "Show “Request not found.” for any detail-loading failure.",
+       "Show a generic error without a retry action."
+      ],
+      "recommended": "Show a generic loading error with a Retry action; reserve “Request not found.” for unknown IDs.",
+      "reason": "It distinguishes transient failures from a genuinely unknown request and permits recovery.",
+      "spans": [
+       "I-6"
+      ],
+      "impact": 2,
+      "impactReason": "It defines the detail screen's visible failure and recovery behavior."
+     },
+     {
+      "id": "Q-3",
+      "category": "data-model",
+      "text": "How should leading/trailing whitespace be handled for title and description validation and storage?",
+      "options": [
+       "Trim leading/trailing whitespace before validation and storage; treat a resulting blank title as missing.",
+       "Validate and store the submitted text exactly, including whitespace.",
+       "Reject a whitespace-only title, but otherwise preserve submitted whitespace."
+      ],
+      "recommended": "Trim leading/trailing whitespace before validation and storage; treat a resulting blank title as missing.",
+      "reason": "This prevents whitespace-only titles from satisfying the required-title rule and gives consistent stored values.",
+      "spans": [
+       "I-2",
+       "I-4",
+       "I-5"
+      ],
+      "impact": 3,
+      "impactReason": "The choice changes which values are accepted and what text is persisted."
+     },
+     {
+      "id": "Q-4",
+      "category": "data-model",
+      "text": "If multiple requests have the same creation timestamp, how should their relative order be determined in the newest-first list?",
+      "options": [
+       "Their relative order is unspecified and may vary.",
+       "Use a stable secondary order by ID.",
+       "Use a stable secondary order by title."
+      ],
+      "recommended": "Their relative order is unspecified and may vary.",
+      "reason": "The request requires newest-first ordering but does not require an additional tie-breaking rule.",
+      "spans": [
+       "I-3",
+       "I-5"
+      ],
+      "impact": 2,
+      "impactReason": "Tied records may appear in a different visible order depending on the chosen rule."
+     },
+     {
+      "id": "Q-5",
+      "category": "scope",
+      "topic": "browsers",
+      "text": "Which browsers must the web app support?",
+      "options": [
+       "Current stable versions of Chrome, Edge, Firefox, and Safari.",
+       "Current stable versions of Chrome and Edge only.",
+       "No additional browser commitment; target a modern browser."
+      ],
+      "recommended": "No additional browser commitment; target a modern browser.",
+      "reason": "The request specifies a web app and responsive layout but does not require a browser compatibility matrix.",
+      "spans": [
+       "I-1",
+       "I-7",
+       "I-8"
+      ],
+      "impact": 2,
+      "impactReason": "Browser support affects which users can use the app and what compatibility must be tested."
+     },
+     {
+      "id": "Q-6",
+      "category": "scope",
+      "text": "What should determine the primary-button brand colour, given that no specific colour or brand asset is provided?",
+      "options": [
+       "Choose an accessible colour that fits the light design.",
+       "Use an existing Hive Works brand colour if one is supplied; otherwise choose an accessible colour.",
+       "Leave the primary-button colour unspecified."
+      ],
+      "recommended": "Choose an accessible colour that fits the light design.",
+      "reason": "The design requires one brand colour but does not require a particular brand value or asset.",
+      "spans": [
+       "I-7"
+      ],
+      "impact": 1,
+      "impactReason": "This affects visual styling, not the app's data or behavior."
+     },
+     {
+      "id": "Q-7",
+      "category": "external",
+      "topic": "hosting",
+      "text": "Is a hosted deployment required, or is a locally runnable app sufficient?",
+      "options": [
+       "A locally runnable app is sufficient; no hosted deployment is required.",
+       "Deploy to a hosting environment that will be specified separately.",
+       "Choose and provide a hosted deployment target as part of this work."
+      ],
+      "recommended": "A locally runnable app is sufficient; no hosted deployment is required.",
+      "reason": "The request requires a web app, API, and database but does not ask for a hosted release.",
+      "spans": [
+       "I-1",
+       "I-2",
+       "I-3"
+      ],
+      "impact": 2,
+      "impactReason": "The answer determines whether delivery must include an externally accessible deployment."
+     }
+    ],
+    "conflicts": []
+   },
+   "ms": 2,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

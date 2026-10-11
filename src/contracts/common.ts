@@ -16,6 +16,12 @@ export type Risk = z.infer<typeof Risk>;
 export const Complexity = z.enum(["S", "M", "L"]);
 export type Complexity = z.infer<typeof Complexity>;
 
+/** What makes a task harder than plain work; with its track it is the task's class (src/estimate/durations.ts). */
+export const ComplexityFlag = z.enum([
+  "standard", "rules-or-algorithm", "external-dependency", "compliance-sensitive", "real-time", "new-to-stack",
+]);
+export type ComplexityFlag = z.infer<typeof ComplexityFlag>;
+
 export const ChangeClass = z.enum(["bugfix", "feature", "refactor", "migration", "config"]);
 export type ChangeClass = z.infer<typeof ChangeClass>;
 

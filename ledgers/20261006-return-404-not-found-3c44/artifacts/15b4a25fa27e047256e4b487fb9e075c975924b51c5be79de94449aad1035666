@@ -1,0 +1,1 @@
+[{"check":"exception","frames":[],"message":"No usable container runtime. On a Mac: brew install colima docker && colima start (setup.sh does this). Tried: /usr/bin/docker not found; /opt/homebrew/bin/docker not found; /usr/local/bin/docker: daemon not running; docker: daemon not running; podman not found"}]

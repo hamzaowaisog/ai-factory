@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { keptSketches, resolveAnswer, scoreQuestions, selectQuestions, verifyDifferences, type ClarifierQuestion, type Sketch } from "./clarify.js";
 import { Defaults, loadDefaults, topicsText } from "../estimate/defaults.js";
-import { applyRepair, checkMerge, criticBlocks, criticTemplate, lostCoverage, problems, roundTripCheck, sameProblems } from "./specpipe.js";
+import { allAdded, applyRepair, checkMerge, criticBlocks, criticTemplate, lostCoverage, problems, roundTripCheck, sameProblems } from "./specpipe.js";
 import { lintSpec, mentions, requestExcluded, sizeNote } from "./speclint.js";
 
 const sketch = (texts: string[]): Sketch => ({ spans: [{ id: "I-1", behaviours: texts.map((t) => ({ text: t, kind: "happy" as const })) }] });
@@ -199,6 +199,15 @@ describe("only people put scope out of scope", () => {
     expect(applyRepair(before, { requirements: [], outOfScope: [] }).outOfScope).toEqual([]);
   });
 
+  it("a repair that rewords a requirement can't turn it into MODIFIED; with no existing code every op is ADDED", () => {
+    const before = spec([], [req("REQ-1"), req("REQ-2")]);
+    const anchors = [{ path: "a", lineStart: 1, lineEnd: 1, quote: "x" }];
+    const after = applyRepair(before, { requirements: [{ ...req("REQ-1"), op: "MODIFIED" as const }, { ...req("REQ-2"), op: "MODIFIED" as const, anchors }, { ...req("REQ-3"), op: "MODIFIED" as const }] } as never);
+    expect(after.requirements.map((r) => r.op)).toEqual(["ADDED", "MODIFIED", "MODIFIED"]);
+    expect(allAdded(after).requirements.map((r) => r.op)).toEqual(["ADDED", "ADDED", "ADDED"]);
+    expect(allAdded(before)).toBe(before);
+  });
+
   it("a repair that drops a covered span is caught; identical problems stop repairs", () => {
     expect(lostCoverage(spec([], [req("REQ-1", ["I-1"]), req("REQ-2", ["I-2", "Q-1"])]), spec(["I-2 later"], [req("REQ-1", ["I-1"])]), ["I-1", "I-2"])).toEqual(["I-2"]);
     expect(lostCoverage(spec([], [req("REQ-1", ["I-1", "I-2"])]), spec([], [req("REQ-1", ["I-1"]), req("REQ-2", ["I-2"])]), ["I-1", "I-2"])).toEqual([]);
@@ -327,6 +336,9 @@ describe("acceptance criteria ownership", () => {
     expect(takenOver(dto, spec, "TASK-4", true)).toEqual({ reqs: ["REQ-1"], from: ["TASK-2"], fileScope: ["src/TASK-2.cs", "src/TASK-1.cs"] });
     // a task that takes nothing over stays inside its own files
     expect(takenOver(dto, spec, "TASK-2", true).fileScope).toEqual([]);
+    // until a locked test of its own fails: that test runs through the tasks it is built on, so their files open to it (run e1b5)
+    expect(takenOver(plan, spec, "TASK-4", false, true)).toEqual({ reqs: [], from: [], fileScope: ["src/TASK-1.cs", "src/TASK-2.cs"] });
+    expect(takenOver(plan, spec, "TASK-3", false, true).fileScope).toEqual([]);
   });
   it("finds scope files that share the built document's folder under another case", async () => {
     const { sharesFolder } = await import("./build.js");
@@ -349,5 +361,36 @@ describe("acceptance criteria ownership", () => {
     expect(slicesProblem(slices, spec, "dotnet")).toBeUndefined();
     // a small plan is left alone
     expect(slicesProblem({ tasks: wiredLast.tasks.slice(2) }, spec, "dotnet")).toBeUndefined();
+  });
+});
+
+describe("a web app's generated API client folder", () => {
+  it("sends back a plan that puts a stub or a task's files in it (run 0f9d)", async () => {
+    const { clientFolderProblems } = await import("./spec.js");
+    const plan = { stubs: [{ path: "lib/api/index.ts" }, { path: "lib/routes.ts" }], tasks: [{ id: "TASK-2", fileScope: ["components/screens/s-1/container.tsx", "lib/api/**"] }, { id: "TASK-3", fileScope: ["lib/apiary.ts"] }] };
+    const found = clientFolderProblems(plan, "contracts/openapi.yaml");
+    expect(found).toHaveLength(2);
+    expect(found[0]).toMatch(/Stub lib\/api\/index\.ts is in lib\/api/);
+    expect(found[1]).toMatch(/TASK-2 has lib\/api\/\*\* in its fileScope/);
+    expect(clientFolderProblems({ stubs: [{ path: "lib/routes.ts" }], tasks: [{ id: "TASK-1", fileScope: ["lib/routes.ts"] }] }, "contracts/openapi.yaml")).toEqual([]);
+  });
+});
+
+describe("apiElsewhere", () => {
+  it("is true only for a web app that is the client of a contract", async () => {
+    const { apiElsewhere } = await import("./build.js");
+    expect(apiElsewhere({ stack: "node", contract: { file: "contracts/openapi.yaml" } })).toBe(true);
+    expect(apiElsewhere({ stack: "node" })).toBe(false);
+    expect(apiElsewhere({ stack: "dotnet", contract: { file: "contracts/openapi.yaml" } })).toBe(false);
+  });
+});
+
+describe("clientBaseUrl", () => {
+  it("adds the contract's server path to the API's address, once", async () => {
+    const { clientBaseUrl } = await import("./contract.js");
+    const doc = (servers: string) => `openapi: 3.0.3\ninfo: { title: t, version: "1" }\n${servers}paths:\n  /requests:\n    get:\n      responses:\n        "200": { description: ok }\n`;
+    expect(clientBaseUrl("http://localhost:5080", doc("servers:\n  - url: /api\n"))).toBe("http://localhost:5080/api");
+    expect(clientBaseUrl("http://localhost:5080/api/", doc("servers:\n  - url: /api\n"))).toBe("http://localhost:5080/api");
+    expect(clientBaseUrl("http://localhost:5080", doc(""))).toBe("http://localhost:5080");
   });
 });

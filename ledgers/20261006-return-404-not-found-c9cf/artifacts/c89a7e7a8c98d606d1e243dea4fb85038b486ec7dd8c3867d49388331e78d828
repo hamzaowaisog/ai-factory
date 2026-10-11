@@ -1,0 +1,28 @@
+{
+ "model": "claude-haiku-4-5",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "source": "cli",
+    "spans": [
+     {
+      "id": "I-1",
+      "text": "Return 404 Not Found when an order doesn't exist"
+     }
+    ],
+    "changeClass": "bugfix",
+    "risk": "low",
+    "riskTags": [],
+    "rigor": "light",
+    "touchesUi": false
+   },
+   "ms": 1,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

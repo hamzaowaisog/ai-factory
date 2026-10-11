@@ -11,7 +11,8 @@ import { loadProject } from "../config/project.js";
 import { designRunView, formatDesignRun, listDesignRuns } from "../design/runs.js";
 import type { Ledger } from "../ledger/ledger.js";
 import { createRun } from "../stages/executor.js";
-import { checkRoutes, DESIGN_ROUTES } from "../stages/routing.js";
+import { DESIGN_ROUTES } from "../stages/routing.js";
+import { checkChoice, choiceOption, collectModel, MODEL_HELP, PRESET_HELP } from "./models.js";
 import { describeReferences, gatherReferences, parseRefArg } from "../sources/refs.js";
 import { describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
 import { EXPORT_MODES, listExports, parseFormats, parseList, type ExportOptions } from "../design/export.js";
@@ -82,20 +83,22 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
     .option("--max-cost <dollars>", "a lower spend limit for this run (it can only lower the normal limit)")
     .option("--fresh", "ask the model again even if the same requirements were designed before (skips the stored answers)")
     .option("--design-export <formats>", DESIGN_EXPORT_HELP)
+    .option("--model <step=model>", MODEL_HELP, collectModel)
+    .option("--preset <name>", PRESET_HELP)
     .description("design only: clarify the requirements, write the spec and draw the design (mock, clickable demo, look) from the requirements and any references; a lead approves it in the terminal. Nothing is sized or built.")
-    .action(async (prompt: string | undefined, o: { project?: string; file?: string; jira?: string; frames?: string; ref?: string[]; repo: boolean; client?: string; projectName?: string; maxCost?: string; fresh?: boolean; designExport?: string }) => {
+    .action(async (prompt: string | undefined, o: { project?: string; file?: string; jira?: string; frames?: string; ref?: string[]; repo: boolean; client?: string; projectName?: string; maxCost?: string; fresh?: boolean; designExport?: string; model?: string[]; preset?: string }) => {
       if (o.fresh) process.env.FACTORY_NO_CACHE = "1";
       const designExport = designExportOption(o.designExport);
       const projectName = o.project ?? (await import("../config/project.js")).ensureStandaloneProject();
       const project = loadProject(projectName);
-      const problems = checkRoutes(project, DESIGN_ROUTES);
-      if (problems.length) throw new Error(`Setup problems:\n- ${problems.join("\n- ")}`);
+      const models = choiceOption(o.model, o.preset, "design");
+      checkChoice(project, models, DESIGN_ROUTES, log);
       // everything is read before a run exists: a bad file, ticket or reference costs nothing
       const req = await gatherRequest({ prompt, file: o.file, jira: o.jira, frames: o.frames }, { fetchJira: jiraFetcherFor(project.jira?.allowedReporters) }, { maxBytes: MAX_ESTIMATE_REQUEST_BYTES });
       const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
       const settings = { ...(o.project && o.repo ? {} : { noRepo: true }), ...(o.client ? { client: o.client } : {}), ...(o.projectName ? { projectName: o.projectName } : {}) };
       const runId = await createRun(req.text, projectName, userInfo().username, {
-        mode: "design", estimate: settings, sources: req.sources, attachments: req.attachments, references, ...(designExport ? { designExport } : {}),
+        mode: "design", models, estimate: settings, sources: req.sources, attachments: req.attachments, references, ...(designExport ? { designExport } : {}),
         ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
       });
       log(`design run ${runId} (requirements from ${describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : "; no references: the look comes from the requirements and the industry library"})`);

@@ -1,0 +1,1 @@
+[{"check":"diff-in-scope","frames":[],"location":"App.Api/openapi/built.json","message":"Changed App.Api/openapi/built.json, which is outside the task's file scope"}]

@@ -14,6 +14,7 @@ import { replay } from "../ledger/state.js";
 import { shownStatus, statusHint } from "../stages/run-status.js";
 import { runDetached } from "../stages/background.js";
 import { createRun } from "../stages/executor.js";
+import { choiceFrom } from "../stages/routing.js";
 import { factoryHome } from "../util/paths.js";
 
 const text = (t: string) => ({ content: [{ type: "text" as const, text: t }] });
@@ -48,9 +49,14 @@ export async function startMcpServer(): Promise<void> {
 
   server.registerTool("factory_start", {
     description: "Start an AI Factory run: turns a change request into a verified branch/PR. Runs in the background and stops at human cards (questions, approval) that the USER answers in their own terminal. Returns the run id.",
-    inputSchema: { request: z.string().min(10).describe("What to change, in plain words"), project: z.string().describe("Project name from factory_projects") },
-  }, async ({ request, project }) => {
-    const runId = await createRun(request, project, `${userInfo().username} (via MCP)`);
+    inputSchema: {
+      request: z.string().min(10).describe("What to change, in plain words"), project: z.string().describe("Project name from factory_projects"),
+      preset: z.enum(["economy", "balanced", "quality"]).optional().describe("Set every step's model from the tier table. Leave out for the defaults; only set it when the user asks"),
+      models: z.record(z.string(), z.string()).optional().describe("A model for single steps, as { step: model id }, e.g. { \"design\": \"gpt-6-sol\" }. Only when the user names a model; a pick the step does not take is refused"),
+    },
+  }, async ({ request, project, preset, models }) => {
+    // the choice is made once, here: createRun checks it against the project and refuses a pick a step does not take
+    const runId = await createRun(request, project, `${userInfo().username} (via MCP)`, { models: choiceFrom({ preset, picks: models }) });
     runDetached(runId);
     return text(`Started run ${runId}. It runs in the background. Check it with factory_status. Questions and approval are answered by the user in their terminal (factory answer / factory approve).`);
   });

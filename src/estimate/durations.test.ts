@@ -98,6 +98,44 @@ describe("records from a build run", () => {
   });
 });
 
+describe("records from a build that followed no estimate", () => {
+  it("gives one record per plan task, classed from its file scope, and feeds the class's measured time", async () => {
+    const { mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { HUMAN_WRITER, Ledger } = await import("../ledger/ledger.js");
+    const { taskRecordsFromRun, loadTaskRecords } = await import("./durations.js");
+    process.env.FACTORY_HOME = mkdtempSync(join(tmpdir(), "factory-plan-rec-"));
+    const build = Ledger.create("20261010-build-0001");
+    await build.append({ type: "run.created", data: { mode: "greenfield", project: "p", request: "x" } }, HUMAN_WRITER);
+    const scopes: [string, string[], string?][] = [["TASK-1", ["app/layout.tsx", "package.json"]], ["TASK-2", ["components/screens/s-1/container.tsx", "lib/api/**"]], ["TASK-3", ["App.Api/Endpoints/ListEndpoint.cs"], "rules-or-algorithm"], ["TASK-4", ["App.Api/SeedData.cs"]]];
+    const planSha = build.putJson({ tasks: scopes.map(([id, fileScope, complexity]) => ({ id, fileScope, ...(complexity ? { complexity } : {}) })) });
+    await build.append({ type: "step.started", key: "plan/1" }, HUMAN_WRITER);
+    await build.append({ type: "step.completed", key: "plan/1", inputsHash: "a".repeat(64), outputs: [planSha], data: { tasks: scopes.map(([id]) => id) } }, HUMAN_WRITER);
+    // TASK-4 ran with no paid model call (a dry run): it adds no record
+    await build.append({ type: "step.started", key: "implement/TASK-4/1" }, HUMAN_WRITER);
+    await build.append({ type: "step.completed", key: "implement/TASK-4/1", inputsHash: "c".repeat(64), outputs: [] }, HUMAN_WRITER);
+    for (const id of ["TASK-1", "TASK-2", "TASK-3"]) {
+      await build.append({ type: "step.started", key: `implement/${id}/1` }, HUMAN_WRITER);
+      await build.append({ type: "usage", key: `implement/${id}/1`, data: { "gen_ai.request.model": "m", "gen_ai.usage.cost_usd": 0.5 } }, HUMAN_WRITER);
+      await build.append({ type: "step.completed", key: `implement/${id}/1`, inputsHash: "c".repeat(64), outputs: [] }, HUMAN_WRITER);
+    }
+    // the class takes the complexity the plan gave the task; a task without one is standard
+    expect(taskRecordsFromRun(build).map((r) => `${r.planTaskId} ${r.taskClass} ${r.outcome}`)).toEqual(["TASK-1 web/standard completed", "TASK-2 web/standard completed", "TASK-3 backend/rules-or-algorithm completed"]);
+    // the tests are written once for the run: one QA record, and none while the step has cost nothing
+    await build.append({ type: "step.started", key: "author-tests/1" }, HUMAN_WRITER);
+    await build.append({ type: "usage", key: "author-tests/1", data: { "gen_ai.request.model": "m", "gen_ai.usage.cost_usd": 0.5 } }, HUMAN_WRITER);
+    await build.append({ type: "step.completed", key: "author-tests/1", inputsHash: "d".repeat(64), outputs: [] }, HUMAN_WRITER);
+    const rs = taskRecordsFromRun(build);
+    expect(rs).toHaveLength(4);
+    expect(rs[3]).toMatchObject({ step: "author-tests", taskClass: "qa/standard", turns: 1, attempts: 1, outcome: "completed" });
+    expect(rs[0]).toMatchObject({ turns: 1, attempts: 1 });
+    expect(rs[0]!.estimateTaskId).toBeUndefined();
+    expect(rs[0]!.hours).toBeUndefined();
+    expect(loadTaskRecords()).toHaveLength(4);
+  });
+});
+
 describe("size picks paired with build actuals (Phase 2)", () => {
   it("records the predicted kind, size and hours with the actuals, and pairs the approved estimate's decision log with them", async () => {
     const { mkdtempSync } = await import("node:fs");

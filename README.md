@@ -101,7 +101,7 @@ When something keeps failing, the factory climbs a fixed ladder (retry with the 
 | Images sent to thinking steps (untrusted, never to steps that write code) | Design references in any form, `--ref` and in the UI (`docs/estimates-design.md`, "Design references"; not yet run against a live model) |
 | Clarify, 3-draft spec, merge, lint, critic, round trip | Accept that boots the app and records HTTP/DB evidence (today: "the locked test passed") |
 | Plan + approval card, stub commit, locked tests | Applying `steer` changes mid-run (recorded, not applied) |
-| Claude coding agent in a sealed container | Codex and jcode runners; Next.js/Node repos |
+| Claude coding agent in a sealed container; Codex agent for a coding step picked onto GPT-6 Luna or Sol (built, not yet proven in a paid run) | jcode runner; Next.js/Node repos |
 | Test lab: restore → offline build → tests next to a throwaway Postgres | Review repair loop (blocking findings park the run); unlock card for a wrong test |
 | Ledger, crash-resume, failure ladder, cost caps, verify-evidence | URL-prefix package filter (today: allowlist by host name) |
 | GitHub PR delivery (optional) | Bitbucket PR delivery (today: branch ready locally) |
@@ -187,7 +187,7 @@ ok   Node v22.x
 ok   container runtime: /usr/bin/docker
 ok   ~/.factory/.env exists
 ok   ANTHROPIC_API_KEY set in ~/.factory/.env
-note OPENAI_API_KEY not set: critic and review will use Claude (single family)
+note OPENAI_API_KEY not set: a run will not start (the second spec draft and the pre-PR reviewer run on GPT-6)
 note STITCH_API_KEY not set (optional): needed only for design.engine: stitch
 ```
 
@@ -522,6 +522,8 @@ With a GitHub `forge:`, the pull request title and the branch carry the ticket k
 | `factory mcp` | Runs the MCP server for Claude Code (registered by setup). |
 | `factory baseline --project <p>` | Builds and tests the untouched repo in the test lab. No AI. |
 | `factory start "<request>" --project <p> [--max-cost <usd>]` | Creates a run and executes until a card, a park or delivery. `--max-cost` lowers this run's spend limit: at that amount the run stops and asks you. |
+| `factory start … --preset <name> --model <step=model>` | Chooses the model of each step, once, at the start. Also on `factory estimate`, `factory design start` and `factory fullstack start`. See [`docs/model-choice.md`](docs/model-choice.md). |
+| `factory models [--mode <m>] [--preset <name>] [--model <step=model>]` | Lists every model step, the model it would run on and why, and the models it can be given. Free. `--run <run>` reads a run's ledger instead: what each step was given, what was called and what it cost. |
 | `factory start --file request.md --project <p>` | Same, with the request from a Markdown or text file. |
 | `factory start --jira ABC-123 --project <p>` | Same, with the request from a Jira ticket (key or link): summary, description and latest comments (only from allowed people when the project has a `jira:` block). Needs Jira set up in `~/.factory/.env`. |
 
@@ -583,7 +585,7 @@ Setup registers an MCP server called **ai-factory** in Claude Code (if you have 
 | Tool | Does |
 |---|---|
 | `factory_projects` | Lists your projects. |
-| `factory_start` | Starts a run in the background. |
+| `factory_start` | Starts a run in the background. Optional `preset` and `models` choose the model of each step. |
 | `factory_status` | Shows a run (or recent runs). |
 | `factory_show_card` | Shows the open card or the PR text. |
 | `factory_verify_evidence` | Re-checks a run's decisions. |
@@ -603,6 +605,7 @@ By design it **can't approve plans**, and an MCP client can't answer questions. 
 | No live secrets where the AI works | Secret files are hidden from AI steps; the coding container gets dummy settings; packs are secret-scanned and redacted. |
 | Client agent files don't steer the AI | `CLAUDE.md`, `AGENTS.md`, `.claude/`, `.mcp.json`… are masked in the coding container; loading one fails the step. |
 | Tests can't be weakened | Locked by fingerprint; test projects and runner config are protected; every expected test must actually run. |
+| Tests are read before they are locked | A reviewer model reads each new test against its criterion. A test that does not prove it goes back to the test writer, up to three times, the last on a stronger model where the step has one. A test still called weak, then or at the final review, does not stop the run: it is named on the pull request and the Tests tab. A criterion nothing tests is different: it stops the run until a person accepts it (`factory waive`). The check before the lock stops there, before any code is written, and the final review stops only for one that was not already accepted. |
 | Nothing unverified ships | Pushed code = the exact commit the gates judged + one manifest-only commit. |
 | Test database is disposable | A fresh Postgres per check, reachable only from the test container, with a non-superuser login. |
 
@@ -707,6 +710,8 @@ npm run screens      # retake docs/screens/*.jpg, dark and light
 Start with [`docs/design/BUILD-BRIEF.md`](docs/design/BUILD-BRIEF.md), then [`docs/design/stages-aligned.md`](docs/design/stages-aligned.md) (the source of truth for stages). Component designs: run manager, gate engine, verify runner, context builder, adapters. The design step for UI changes is in [`docs/design-step.md`](docs/design-step.md), with its test results in [`docs/design-eval/results.md`](docs/design-eval/results.md). Test-lab speed-ups (each commit built once, Integrate reusing the task's run, known failures skipped), before and after: [`docs/design/test-lab-reuse.md`](docs/design/test-lab-reuse.md).
 
 A new product in one run and the full-stack API contract: [`docs/fullstack-contract.md`](docs/fullstack-contract.md); where that work stands: [`docs/handoff-greenfield-fullstack.md`](docs/handoff-greenfield-fullstack.md); free dry runs on real containers: [`dryrun/`](dryrun/README.md).
+
+Choosing the model for each step (the form, `--preset` and `--model`, the project file, the tier table, reading a run's models): [`docs/model-choice.md`](docs/model-choice.md).
 
 The estimates path: [`docs/estimates-overview.md`](docs/estimates-overview.md) (one page), then [`docs/estimates-design.md`](docs/estimates-design.md) (the design, and its build status at the end). Why estimates can vary and what repeats them: [`docs/estimate-consistency.md`](docs/estimate-consistency.md); a local sizing model (research only): [`docs/estimate-local-model.md`](docs/estimate-local-model.md). Benchmarks and pinned public data: [`bench/README.md`](bench/README.md), [`bench/external/README.md`](bench/external/README.md). First real runs: [`docs/runs/2026-09-30-first-real-runs.md`](docs/runs/2026-09-30-first-real-runs.md).
 

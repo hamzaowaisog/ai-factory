@@ -4,6 +4,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ProjectConfig } from "../config/project.js";
 import { DATA_MODEL_FILE } from "../gates/data-model.js";
+import { basePath, readContract } from "../gates/contract.js";
 
 /** Where the generated client lives in the web app: factory-owned, locked with the contract. */
 export const CLIENT_DIR = "lib/api";
@@ -27,9 +28,21 @@ export function contractLockFiles(project: Pick<ProjectConfig, "contract">, wt: 
 export const clientConfig = (file: string, apiUrl: string): string =>
   `// Written by the factory: the API client and its test handlers are generated from the locked contract (${file}).\nmodule.exports = { api: { input: ${JSON.stringify(`./${file}`)}, output: { mode: "split", target: ${JSON.stringify(`./${CLIENT_DIR}/client.ts`)}, client: "fetch", baseUrl: ${JSON.stringify(apiUrl)}, mock: { type: "msw", useExamples: true } } } };\n`;
 
+/**
+ * The address the client calls: where the API answers, plus the path the contract puts every operation under (its first
+ * server: "/api"). The generator adds only the address it is given, so without the path the web app asked for /requests
+ * while the API, following the contract, served /api/requests (runs 0f9d and e1b5: "Could not load requests").
+ */
+export function clientBaseUrl(apiUrl: string, contractText: string): string {
+  const doc = readContract(contractText);
+  const base = doc ? basePath(doc) : "";
+  const root = apiUrl.replace(/\/+$/, "");
+  return base && !root.endsWith(base) ? root + base : root;
+}
+
 /** Add the generator and what its output needs to the app's dev packages, and write its settings. True when package.json changed. */
 export function prepareClient(wt: string, file: string, apiUrl: string): boolean {
-  writeFileSync(join(wt, CLIENT_CONFIG), clientConfig(file, apiUrl));
+  writeFileSync(join(wt, CLIENT_CONFIG), clientConfig(file, clientBaseUrl(apiUrl, readFileSync(join(wt, file), "utf8"))));
   const p = join(wt, "package.json");
   const pkg = JSON.parse(readFileSync(p, "utf8")) as { devDependencies?: Record<string, string> };
   const dev = { ...pkg.devDependencies, ...CLIENT_PACKAGES };
