@@ -22,6 +22,7 @@ import { ensureStandaloneProject } from "../config/project.js";
 import { makeNewProduct } from "../config/greenfield.js";
 import { loadProject } from "../config/project.js";
 import { fakeGithub } from "../forge/testutil.js";
+import { makeDocx, makePdf } from "../sources/testutil.js";
 // the page's Markdown renderer (plain browser JS, no DOM needed)
 import { renderMarkdown } from "./static/md.js";
 import { findChromium } from "../design/screenshots.js";
@@ -360,9 +361,13 @@ describe("factory ui: starting a run", () => {
       [{ project: "web", prompt: "   " }, 400, /Give a request/],
       [{ project: "web", prompt: "Rename it", maxCost: 25 }, 400, /can only lower the normal limit.*\$20/],
       [{ project: "web", prompt: "Rename it", maxCost: -1 }, 400, /positive number/],
-      [{ project: "web", file: { name: "req.exe", text: "Rename the orders heading" } }, 400, /\.md\) or text/],
+      [{ project: "web", file: { name: "req.exe", text: "Rename the orders heading" } }, 400, /\.md\), text/],
       [{ project: "web", file: { name: "big.md", text: "x".repeat(150_000) } }, 400, /split the request/],
       [{ project: "web", file: { name: "empty.md", text: " " } }, 400, /empty or too short/],
+      [{ project: "web", file: { name: "req.pdf", text: "Rename the orders heading" } }, 400, /did not arrive intact/],
+      [{ project: "web", file: { name: "req.docx", data: Buffer.from("Rename the orders heading").toString("base64") } }, 400, /not a valid .docx/],
+      [{ project: "web", file: { name: "req.pdf", data: Buffer.from("Rename the orders heading").toString("base64") } }, 400, /no PDF header/],
+      [{ project: "web", file: { name: "scan.pdf", data: makePdf([[]]).toString("base64") } }, 400, /no text in it/],
       [{ project: "web", jira: "ABC-12" }, 400, /add JIRA_BASE_URL/],
     ];
     for (const [body, status, msg] of cases) {
@@ -374,6 +379,22 @@ describe("factory ui: starting a run", () => {
     expect((await post("{not json")).status).toBe(400);
     expect(count()).toBe(before);
     expect(started).toEqual([]);
+  });
+
+  it("an uploaded PDF is read like --file", async () => {
+    const r = await post({ project: "web", file: { name: "req.pdf", data: makePdf([["Rename the orders heading to Your orders."]]).toString("base64") } });
+    expect(r.status).toBe(201);
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info.request).toBe("Rename the orders heading to Your orders.");
+    expect(s.info.sources).toEqual([{ kind: "pdf", name: "req.pdf", summary: "1 page" }]);
+  });
+
+  it("an uploaded Word document is read like --file", async () => {
+    const r = await post({ project: "web", file: { name: "req.docx", data: (await makeDocx(["Rename the orders heading to Your orders."])).toString("base64") } });
+    expect(r.status).toBe(201);
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info.request).toBe("Rename the orders heading to Your orders.");
+    expect(s.info.sources?.map((x) => [x.kind, x.name])).toEqual([["docx", "req.docx"]]);
   });
 
   it("a good request creates the run like factory start and executes it in the background", async () => {
@@ -521,7 +542,7 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
       [{ name: "orders", prompt: "An orders app" }, /folder/],
       [{ name: "orders", dir }, /Describe the product/],
       [{ name: "orders", dir, prompt: "An orders app", maxCost: 25 }, /can only lower/],
-      [{ name: "orders", dir, prompt: "An orders app", file: { name: "a.exe", text: "x" } }, /\.md\) or text/],
+      [{ name: "orders", dir, prompt: "An orders app", file: { name: "a.exe", text: "x" } }, /\.md\), text/],
       [{ name: "orders", dir, fromDesign: "nope", fromEstimate: "nope" }, /one thing at a time/],
       [{ name: "orders", dir, prompt: "An orders app", models: { picks: { critic: "gpt-6-sol" } } }, /critic always runs on Claude Opus 5\.5/],
       [{ name: "orders", dir, prompt: "An orders app", models: { preset: "cheap" } }, /No preset "cheap"/],

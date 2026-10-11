@@ -14,7 +14,7 @@ export function registerFullstackCommands(program: Command, d: { log: (m: string
   fs.command("start")
     .argument("[prompt]", "what the product does, in plain words")
     .requiredOption("--name <name>", "the product's short name: the repos are <name>-web and <name>-api")
-    .option("--file <path>", "the requirements as a Markdown or text file")
+    .option("--file <path>", "the requirements as a Markdown, text, Word (.docx) or PDF file")
     .option("--dir <folder>", "where the two repos go", ".")
     .option("--from-design <runId>", "start from an approved design made with no repo: its design steps are skipped")
     .option("--from-estimate <runId>", "start from an approved estimate made with no repo: the web run is held to it")

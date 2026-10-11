@@ -67,7 +67,7 @@ export interface RunInfo {
   /** `factory start --file`: the file the request came from */
   requestFile?: string;
   /** where the request came from: typed prompt, file, Jira ticket */
-  sources?: { kind: "prompt" | "file" | "jira" | "docx" | "frames"; name?: string; key?: string; url?: string; summary?: string }[];
+  sources?: { kind: "prompt" | "file" | "jira" | "docx" | "pdf" | "frames"; name?: string; key?: string; url?: string; summary?: string }[];
   /** design references the user attached (R-1, R-2, ...), read at intake; their pictures are ledger artifacts */
   references?: Reference[];
   versions?: Record<string, string>;
