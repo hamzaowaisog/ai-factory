@@ -423,7 +423,7 @@ export async function answerQuestions(ledger: Ledger, input: AnswersInput, deps:
 }
 
 /** The cards a person may approve or send back on the run page besides an estimate: the design (E1b) and the spec and plan, with its API contract. */
-export const WEB_DECIDED = ["design-approval", "approval"] as const;
+export const WEB_DECIDED = ["design-approval", "approval", "understood", "spec-review"] as const;
 
 export interface CardDecisionInput { hash?: unknown; decision?: unknown; by?: unknown; note?: unknown; reason?: unknown }
 

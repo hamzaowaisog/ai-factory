@@ -631,7 +631,7 @@ function runsScreen() {
     h("td", { class: "mono small nowrap" }, r.step),
     h("td", { class: "num" }, money(r.costUsd)),
     h("td", { class: "nowrap muted small" }, ago(r.createdAt)),
-    h("td", {}, r.openCard ? pill("waiting", `${r.openCard} card${["question", "approval", "design-approval", "estimate-approval", "cap", "budget"].includes(r.openCard) ? "" : " · terminal"}`) : null));
+    h("td", {}, r.openCard ? pill("waiting", `${r.openCard} card${["question", "approval", "design-approval", "estimate-approval", "cap", "budget", "understood", "spec-review"].includes(r.openCard) ? "" : " · terminal"}`) : null));
   const paint = () => {
     const q = runsFilter.q.trim().toLowerCase();
     const inScope = runs.filter((r) => (!runsFilter.project || r.project === runsFilter.project) && (!q || `${r.request} ${r.runId} ${r.project}`.toLowerCase().includes(q)));
@@ -733,6 +733,7 @@ function pipeline(r) {
     if (r.status === "parked") return h("div", { class: "pipe-note bad" }, icon("alert"), h("div", {}, h("strong", {}, parked ? `Parked at ${parked.step}` : "Parked"), h("p", {}, r.parkedReason ?? "")));
     if (r.card?.questions) return h("div", { class: "pipe-note wait" }, icon("alert"), h("div", {}, h("strong", {}, "Questions need your answers"), h("p", {}, "Pick an option for each in the panel below, or type your own answer (or answer in the terminal); the run carries on right after.")));
     if (r.card?.kind === "design-approval") return h("div", { class: "pipe-note wait" }, icon("image"), h("div", {}, h("strong", {}, "The design needs your approval"), h("p", {}, "Walk the clickable demo, then approve it or send it back in the panel below (or in the terminal); the run carries on right after.")));
+    if (REVIEW_CARD_TEXT[r.card?.kind]) return h("div", { class: "pipe-note wait" }, icon("shield"), h("div", {}, h("strong", {}, REVIEW_CARD_TEXT[r.card.kind].note), h("p", {}, "Read the card, then decide in the panel below (or in the terminal); the run carries on right after.")));
     if (r.card?.kind === "approval") return h("div", { class: "pipe-note wait" }, icon("shield"), h("div", {}, h("strong", {}, "The spec and plan need your approval"), h("p", {}, "Read the card, then approve or reject it in the panel below (or in the terminal); the run carries on right after.")));
     if (r.card?.limit) return h("div", { class: "pipe-note wait" }, icon("dollar"), h("div", {}, h("strong", {}, r.card.limit.kind === "budget" ? "The approved budget is reached" : "A limit is reached"), h("p", {}, "Raise it and continue, or stop the run, in the panel below (or in the terminal); the run carries on right after a raise.")));
     if (r.card?.kind === "manual-check") return h("div", { class: "pipe-note wait" }, icon("check"), h("div", {}, h("strong", {}, "Some criteria need a check by hand"), h("p", {}, "They have no automated test. Try each one, then record the result on the Tests tab (or in the terminal); the run delivers right after.")));
@@ -991,16 +992,49 @@ function designPanel(r) {
       md(c.markdown)));
 }
 
+// a guided run's two extra cards (src/stages/review-cards.ts): the same panel as the plan card, with their own words
+const REVIEW_CARD_TEXT = {
+  understood: {
+    note: "Check what the factory understood", title: "Is this what you meant?",
+    intro: "Read the card below: your request point by point, your answers, and what was assumed. Nothing is written yet, so a correction costs nothing; the run goes on either way.",
+    form: {
+      approveLabel: "This is right", rejectLabel: "Go on with this correction",
+      noteLabel: "Note (optional)", notePlaceholder: "",
+      reasonLabel: "Or: what is wrong", reasonPlaceholder: "e.g. Receptionists must not see billing; only the clinic manager does.",
+      reasonHint: "The spec is written with it. You are not asked again.", reasonNeeded: "Say what is wrong.",
+      approved: "Recorded. The run is continuing…", rejected: "Recorded. The spec is being written with your correction…",
+    },
+  },
+  "spec-review": {
+    note: "The spec needs your approval", title: "Approve what will be built",
+    intro: "Read the card below: each thing that will be built, how it will be checked, and what is left out. Nothing is drawn or planned yet. Sending it back revises the spec once; a second time stops the run.",
+    form: {
+      approveLabel: "Approve the spec", rejectLabel: "Send back",
+      noteLabel: "Note (optional)", notePlaceholder: "",
+      reasonLabel: "To send it back: what to change", reasonPlaceholder: "e.g. Cancelled appointments must stay visible, greyed out.",
+      reasonHint: "The spec is revised with it and shown again.", reasonNeeded: "Say what to change.",
+      approved: "Approved. The run is continuing…", rejected: "Sent back. The spec is being revised…",
+    },
+  },
+};
+
+/** A card's text: a guided run's card has its plain summary first and its technical part folded. */
+function cardBody(c) {
+  const at = c.markdown.indexOf("\n## Technical detail\n");
+  if (at < 0) return md(c.markdown);
+  return h("div", {}, md(c.markdown.slice(0, at)), h("details", {}, h("summary", { class: "small muted" }, "Technical detail"), md(c.markdown.slice(at))));
+}
+
 /** The plan card: the spec and plan (for a full-stack product's web run, with the API contract the API run is held to), approve or reject. */
 function planPanel(r) {
-  const c = r.card;
+  const c = r.card, t = REVIEW_CARD_TEXT[c.kind];
   return h("section", { class: "card-box" },
-    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Approve the spec and plan"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
+    h("header", {}, h("strong", {}, h("span", { class: "pulse" }), t ? t.title : "Approve the spec and plan"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),
     h("div", { class: "body stack" },
-      h("p", { class: "small muted" }, r.product?.side === "web"
+      h("p", { class: "small muted" }, t ? t.intro : r.product?.side === "web"
         ? `Read the card below, the API contract most of all: the API run of ${r.product.name} builds exactly that contract, and the web app calls it. Approving lets this run build and the API run start (from the product page).`
         : "Read the card below: what will be built, the tasks and their files, and any open risks. Approving lets the run write the tests and the code; rejecting with a reason revises the spec and plan."),
-      decisionForm(r, {
+      decisionForm(r, t ? t.form : {
         approveLabel: "Approve the plan", rejectLabel: "Reject",
         noteLabel: "Risk note (optional)", notePlaceholder: "e.g. Watch the totals on the orders page",
         reasonLabel: "To reject: why", reasonPlaceholder: "e.g. The refund task should not touch the payments module.",
@@ -1011,7 +1045,7 @@ function planPanel(r) {
       // a new product's web plan: the database its API will be built on, said before anything of the API is built
       r.product?.side === "web" && r.product.database ? h("p", { class: "small" }, h("strong", {}, `The API's database: ${r.product.database.name}. `), r.product.database.reason) : null,
       h("details", {}, h("summary", { class: "small muted" }, "Or decide in your terminal"), h("div", { class: "cmds" }, c.commands.map((cmd) => cmdRow(cmd)))),
-      md(c.markdown)));
+      cardBody(c)));
 }
 
 /**
@@ -1108,7 +1142,7 @@ function cardPanel(r) {
   // questions, the design, the plan and a limit are decided on this page (or in the terminal); gate waivers and unlocks only in the terminal
   if (c.questions) return questionPanel(r);
   if (c.kind === "design-approval") return designPanel(r);
-  if (c.kind === "approval") return planPanel(r);
+  if (c.kind === "approval" || REVIEW_CARD_TEXT[c.kind]) return planPanel(r);
   if (c.limit) return limitPanel(r);
   if (c.kind === "manual-check") return h("section", { class: "card-box" },
     h("header", {}, h("strong", {}, h("span", { class: "pulse" }), "Check these by hand"), h("span", { class: "mono small" }, `${c.kind} card · ${c.hash}`)),

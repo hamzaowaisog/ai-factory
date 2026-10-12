@@ -37,6 +37,9 @@ const provider: Provider = { start(_m, _e, system, user): Conversation {
 setProviderFactory(() => provider);
 setAgentScript((step) => (side === "web" ? webAgent(replay(Ledger.open(current).events()).workspace!.path, step) : apiAgent(step)));
 
+// DRYRUN_GUIDED=1: the run is guided (autonomous off), and its two extra cards are approved like the others
+const GUIDED = process.env.DRYRUN_GUIDED ? { autonomous: false } : {};
+const APPROVED_CARDS = ["approval", "design-approval", "understood", "spec-review"];
 const cards: string[] = [];
 /** Run until delivered or stuck, approving approval cards; with `untilPlanApproved` it stops right after the plan card. */
 async function drive(runId: string, which: "web" | "api", untilPlanApproved = false): Promise<string> {
@@ -46,7 +49,7 @@ async function drive(runId: string, which: "web" | "api", untilPlanApproved = fa
     if (r.status !== "waiting") return `${r.status}: ${r.message}`;
     const ledger = Ledger.open(runId);
     const card = replay(ledger.events()).openCard!;
-    if (card.kind !== "approval" && card.kind !== "design-approval") return `STOPPED at a ${card.kind} card`;
+    if (!APPROVED_CARDS.includes(card.kind)) return `STOPPED at a ${card.kind} card`;
     cards.push(`${which}: ${card.kind}`);
     console.log(`  [${which}] CARD ${card.kind} ${card.artifactSha.slice(0, 8)}: approved by the dry run`);
     await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 8), by: "dryrun", data: { note: "dry run" } });
@@ -64,7 +67,7 @@ const request = readFileSync(process.argv[2]!, "utf8");
 // --- factory fullstack start ---
 const p = setUpProduct("clinic", join(home, "code"));
 p.request = request;
-p.web.run = await createRun(request, p.web.project, "dryrun", { maxCostUsd: 8 });
+p.web.run = await createRun(request, p.web.project, "dryrun", { maxCostUsd: 8, ...GUIDED });
 saveProduct(p);
 console.log(`product clinic: web run ${p.web.run}, home ${home}`);
 console.log(`web: ${await drive(p.web.run, "web", true)}`);
@@ -72,7 +75,7 @@ console.log(`web: ${await drive(p.web.run, "web", true)}`);
 const contract = approvedContract(p);
 if (!contract) throw new Error("no approved contract after the web plan was approved");
 handOverContract(p, contract);
-p.api.run = await createRun(apiRequest(request), p.api.project, "dryrun", { maxCostUsd: 6 });
+p.api.run = await createRun(apiRequest(request), p.api.project, "dryrun", { maxCostUsd: 6, ...GUIDED });
 saveProduct(p);
 console.log(`contract handed over; API run ${p.api.run}`);
 console.log(`web: ${await drive(p.web.run, "web")}`);

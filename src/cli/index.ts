@@ -33,7 +33,8 @@ import type { RequestSource } from "../sources/request.js";
 import { checkEdit, parseAnchorSpec, parseRatioSpec } from "../estimate/edits.js";
 import type { Proposal } from "../estimate/assemble.js";
 import { ESTIMATE_ROUTES } from "../stages/routing.js";
-import { checkChoice, choiceOption, collectModel, MODEL_HELP, PRESET_HELP, registerModels } from "./models.js";
+import { AUTONOMOUS_HELP, autonomousOption, checkChoice, choiceOption, collectModel, GUIDED_HELP, MODEL_HELP, PRESET_HELP, registerModels } from "./models.js";
+import { cardView } from "../stages/card-summary.js";
 import { findRuntimeBinary } from "../verify/runtime.js";
 import { factoryHome } from "../util/paths.js";
 
@@ -79,8 +80,11 @@ program.command("start")
   .option("--ui-target <target>", UI_TARGET_HELP)
   .option("--model <step=model>", MODEL_HELP, collectModel)
   .option("--preset <name>", PRESET_HELP)
+  .option("--guided", GUIDED_HELP)
+  .option("--autonomous", AUTONOMOUS_HELP)
   .description("create a run from a prompt, a file or a Jira ticket (any one, or several) and execute until a card, a park, or delivery")
-  .action(async (prompt: string | undefined, o: { project: string; maxCost?: string; file?: string; jira?: string; fromEstimate?: string; fromDesign?: string; ref?: string[]; designExport?: string; uiTarget?: string; model?: string[]; preset?: string }) => {
+  .action(async (prompt: string | undefined, o: { project: string; maxCost?: string; file?: string; jira?: string; fromEstimate?: string; fromDesign?: string; ref?: string[]; designExport?: string; uiTarget?: string; model?: string[]; preset?: string; guided?: boolean; autonomous?: boolean }) => {
+    const autonomous = autonomousOption(o);
     const designExport = designExportOption(o.designExport);
     const uiTarget = uiTargetOption(o.uiTarget);
     const project = loadProject(o.project);
@@ -110,7 +114,7 @@ program.command("start")
     const references = await gatherReferences((o.ref ?? []).map(parseRefArg), { allowPrivate: !!project.design?.allowPrivateRefs });
     const runId = await createRun(req.text, o.project, userInfo().username, {
       ...(o.maxCost !== undefined ? { maxCostUsd: Number(o.maxCost) } : {}),
-      models,
+      models, ...(autonomous !== undefined ? { autonomous } : {}),
       sources: req.sources, references, ...(approved ? { lineage: { kind: "build" as const, approved } } : {}), ...(fromDesign ? { fromDesign, ...(fromDesign.repo ? {} : { mode: "greenfield" as const }) } : {}), ...(designExport ? { designExport } : {}), ...(uiTarget ? { uiTarget } : {}),
     });
     log(`run ${runId} (request from ${fromDesign ? `design run ${fromDesign.runId}; the build follows its approved design${fromDesign.repo ? "" : ", a new product built into an empty repo"}` : approved ? `estimate run ${approved.runId}; the build follows its approved spec and design and is held to its budget${replay(Ledger.open(runId).events()).info.mode === "greenfield" ? ", a new product built into an empty repo" : ""}` : describeSources(req.sources)}${references.length ? `; design references ${describeReferences(references)}` : ""})`);
@@ -227,12 +231,12 @@ program.command("status").argument("[run]").description("state, current step, co
   }
 });
 
-program.command("show-card").argument("<run>").option("--pr", "show the PR text").description("print the open card").action((run: string, o: { pr?: boolean }) => {
+program.command("show-card").argument("<run>").option("--pr", "show the PR text").option("--full", "a guided run's card: also print its technical detail").description("print the open card").action((run: string, o: { pr?: boolean; full?: boolean }) => {
   const l = openRun(run);
   if (o.pr) return log(l.readCard(`pr-${l.runId}`));
   const s = replay(l.events());
   if (!s.openCard) return log(s.parkedReason ? `No open card. Parked: ${s.parkedReason}` : "No open card.");
-  log(l.readCard(s.openCard.cardId));
+  log(cardView(l.readCard(s.openCard.cardId), !!o.full));
 });
 
 for (const d of ["approve", "reject"] as const) {
@@ -248,13 +252,14 @@ for (const d of ["approve", "reject"] as const) {
       assertTty();
       const l = openRun(run);
       const decision = d === "approve" && o.reject !== undefined ? "reject" : d;
-      const design = replay(l.events()).openCard?.kind === "design-approval";
+      const kind = replay(l.events()).openCard?.kind;
+      const design = kind === "design-approval";
       if (design && decision === "reject" && !(o.reject ?? o.reason ?? "").trim()) throw new DecisionError('Say what to change with --reason "...", naming the page or the part in your own words.');
       const signOff = (o.signOff ?? "").split(",").map((x) => x.trim()).filter(Boolean);
       const data = decision === "approve" ? { note: o.note ?? "", ...(signOff.length ? { signOff } : {}) } : { reason: o.reject ?? o.reason ?? "" };
       const r = await decide(l, { decision, hashPrefix: hash, data });
       if (r.kind === "repeat") return log("Already recorded.");
-      log(decision === "approve" ? "Approved." : design ? "Sent back. Fixing what you pointed at (or redrawing the design if it needs that); a new card follows…" : "Rejected. Revising the spec and plan with your reason…");
+      log(decision === "approve" ? "Approved." : design ? "Sent back. Fixing what you pointed at (or redrawing the design if it needs that); a new card follows…" : kind === "understood" ? "Noted. The spec is written with your correction…" : kind === "spec-review" ? "Sent back. Revising the spec with your reason…" : "Rejected. Revising the spec and plan with your reason…");
       await runAndReport(l.runId);
     });
 }

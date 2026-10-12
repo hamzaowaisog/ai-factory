@@ -83,6 +83,9 @@ const provider: Provider = { start(_m, _e, system, user): Conversation {
 setProviderFactory(() => provider);
 
 // ---------- setup: a new home and an empty repo, or the ones of a run to resume ----------
+// DRYRUN_GUIDED=1: the run is guided (autonomous off), and its two extra cards are approved like the others
+const GUIDED = process.env.DRYRUN_GUIDED ? { autonomous: false } : {};
+const APPROVED_CARDS = ["approval", "design-approval", "understood", "spec-review"];
 const resume = process.argv.includes("--resume");
 const home = resume ? arg("--resume")! : mkdtempSync(join((mkdirSync(join(homedir(), ".factory", "tmp", "greenfield-dryrun"), { recursive: true }), join(homedir(), ".factory", "tmp", "greenfield-dryrun")), "home-"));
 process.env.FACTORY_HOME = home;
@@ -121,7 +124,7 @@ setAgentScript((step) => {
 if (!resume) {
   const file = arg("--intent")!;
   // exactly what `factory start --file <intent> --project shop` passes: the file's text, no mode, no design run
-  runId = await createRun(readFileSync(file, "utf8"), "shop", "dryrun", { requestFile: file, maxCostUsd: 12 });
+  runId = await createRun(readFileSync(file, "utf8"), "shop", "dryrun", { requestFile: file, maxCostUsd: 12, ...GUIDED });
 }
 const t0 = Date.now();
 console.log(`${resume ? "resuming" : "one-run greenfield dry run"} ${runId}  (home ${home}; mode ${replay(Ledger.open(runId).events()).info.mode})`);
@@ -132,7 +135,7 @@ for (let i = 0; i < 8; i++) {
   if (r.status !== "waiting") { console.log(`\n${r.status}: ${r.message}`); break; }
   const ledger = Ledger.open(runId);
   const card = replay(ledger.events()).openCard!;
-  if (card.kind !== "approval" && card.kind !== "design-approval") { console.log(`\nSTOPPED at a ${card.kind} card:\n${readFileSync(join(ledger.dir, "cards", `${card.cardId}.md`), "utf8").slice(0, 2500)}`); break; }
+  if (!APPROVED_CARDS.includes(card.kind)) { console.log(`\nSTOPPED at a ${card.kind} card:\n${readFileSync(join(ledger.dir, "cards", `${card.cardId}.md`), "utf8").slice(0, 2500)}`); break; }
   console.log(`  [CARD ${card.kind} ${card.artifactSha.slice(0, 8)}: approved by the dry run  (factory approve ${runId} ${card.artifactSha.slice(0, 8)})]`);
   await decide(ledger, { decision: "approve", hashPrefix: card.artifactSha.slice(0, 8), by: "dryrun", data: { note: "dry run" } });
 }

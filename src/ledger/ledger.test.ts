@@ -253,6 +253,38 @@ describe("cost limits", () => {
     expect(s.waivers).toBe(0);
   });
 
+  it("a guided run counts rejections per kind of card, so each card can be sent back once", async () => {
+    const l = Ledger.create("cap-6");
+    await l.append({ type: "run.created", data: { mode: "brownfield", project: "p", autonomous: false } }, HUMAN_WRITER);
+    const reject = (cardId: string) => l.append({ type: "human.decided", data: { cardId, decision: "reject", by: "x", artifactSha: "" } }, HUMAN_WRITER);
+    await reject("spec-review-0a1b2c3d");
+    await reject("design-0a1b2c3d");
+    await reject("approval-0a1b2c3d");
+    expect(replay(l.events()).rejections).toBe(3);
+    expect(checkCaps(replay(l.events()))).toBeUndefined();
+    await reject("approval-4e5f6a7b");
+    expect(checkCaps(replay(l.events()))).toMatchObject({ kind: "rejections", waivable: false, reason: expect.stringContaining("Rejected 2 times") });
+  });
+
+  it("time spent waiting on a card is not active time, and the run shows as waiting", () => {
+    const at = (sec: number) => new Date(Date.UTC(2026, 9, 13, 12, 0, sec)).toISOString();
+    const ev = (seq: number, sec: number, type: string, key?: string, data?: Record<string, unknown>) => ({ seq, ts: at(sec), runId: "r", epoch: 0, type, ...(key ? { key } : {}), ...(data ? { data } : {}) }) as never;
+    // the order the executor writes: the step ends, then the card is posted
+    const waiting = [
+      ev(0, 0, "run.created"), ev(1, 0, "step.started", "spec-review/1"), ev(2, 5, "step.interrupted", "spec-review/1", { reason: "waiting" }),
+      ev(3, 5, "human.requested", undefined, { cardId: "spec-review-0a1b2c3d", kind: "spec-review", artifactSha: "a".repeat(64), step: "spec-review" }),
+    ];
+    const w = replay(waiting);
+    expect(w.status).toBe("waiting");
+    expect(w.running).toEqual([]);
+    expect(w.activeMs).toBe(0);
+    // an hour on the card, then two seconds of work: the hour is not counted
+    const done = replay([...waiting,
+      ev(4, 3605, "human.decided", undefined, { cardId: "spec-review-0a1b2c3d", decision: "approve", by: "x", artifactSha: "a".repeat(64) }),
+      ev(5, 3605, "step.started", "spec-review/1"), ev(6, 3607, "step.completed", "spec-review/1")]);
+    expect(done.activeMs).toBe(2_000);
+  });
+
   it("waivers, rejections and interruptions still park", async () => {
     const l = await run("cap-5");
     for (let i = 0; i < 2; i++) await l.append({ type: "human.decided", data: { cardId: `a${i}`, decision: "reject", by: "x", artifactSha: "" } }, HUMAN_WRITER);

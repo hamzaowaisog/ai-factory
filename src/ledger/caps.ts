@@ -42,6 +42,17 @@ export interface CapHit {
   proposal?: { costUsd?: number; wallMinutes?: number; extraAttempts?: number };
 }
 
+/**
+ * The rejections the cap counts: every one in the run, or in a guided run (more cards a person can send back) the most any
+ * one kind of card has had, so each card can be sent back once before the run parks.
+ */
+function rejectionCount(state: RunState): number {
+  if (state.info.autonomous !== false) return state.rejections;
+  const by = new Map<string, number>();
+  for (const d of state.decisions) if (d.decision === "reject") { const k = d.cardId.replace(/-[0-9a-f]+$/, ""); by.set(k, (by.get(k) ?? 0) + 1); }
+  return Math.max(0, ...by.values());
+}
+
 export function checkCaps(state: RunState, maxAttempts = MAX_ATTEMPTS_PER_TASK): CapHit | undefined {
   const o = state.capOverrides;
   const cap = currentCostCap(state);
@@ -54,7 +65,8 @@ export function checkCaps(state: RunState, maxAttempts = MAX_ATTEMPTS_PER_TASK):
     return { kind: "wall", waivable: true, reason: `Active-time limit reached: ${Math.round(state.activeMs / 60_000)} of ${Math.round(wall / 60_000)} min`, proposal: { wallMinutes: Math.round((2 * wall) / 60_000) } };
   }
   if (state.waivers > MAX_WAIVERS) return { kind: "waivers", waivable: false, reason: `More than ${MAX_WAIVERS} waivers in this run` };
-  if (state.rejections >= MAX_REJECTIONS) return { kind: "rejections", waivable: false, reason: `Rejected ${state.rejections} times; let's talk before trying again` };
+  const rejections = rejectionCount(state);
+  if (rejections >= MAX_REJECTIONS) return { kind: "rejections", waivable: false, reason: `Rejected ${rejections} times; let's talk before trying again` };
   for (const r of state.steps.values()) {
     if (r.attempts >= maxAttempts + o.extraAttempts && r.status !== "completed") {
       return { kind: "attempts", waivable: true, reason: `${r.step} used ${r.attempts} attempts`, proposal: { extraAttempts: 3 } };

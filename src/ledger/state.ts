@@ -105,6 +105,8 @@ export interface RunInfo {
    * `brownfield.questions` on. Set at the start, so a run keeps what it began with; missing on builds started before builds asked.
    */
   asks?: boolean;
+  /** false: a guided run (src/stages/framework.ts, guided). Set at the start, so a run keeps what it began with; missing = autonomous */
+  autonomous?: false;
   createdAt: string;
 }
 
