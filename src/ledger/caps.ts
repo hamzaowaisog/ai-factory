@@ -6,6 +6,8 @@ export const MAX_ATTEMPTS_PER_TASK = 6;
 export const MAX_WAIVERS = 3;
 export const MAX_INTERRUPTIONS = 3;
 export const MAX_REJECTIONS = 2;
+/** A design sent back on its approval card is redrawn; a look is settled over a few rounds, so it has a limit of its own. */
+export const MAX_DESIGN_REJECTIONS = 5;
 
 /** Class caps in USD (bugfix $5, S $5, M $10, L $20). */
 export function costCapUsd(changeClass: ChangeClass | undefined, complexity: Complexity | undefined): number {
@@ -54,6 +56,7 @@ export function checkCaps(state: RunState, maxAttempts = MAX_ATTEMPTS_PER_TASK):
     return { kind: "wall", waivable: true, reason: `Active-time limit reached: ${Math.round(state.activeMs / 60_000)} of ${Math.round(wall / 60_000)} min`, proposal: { wallMinutes: Math.round((2 * wall) / 60_000) } };
   }
   if (state.waivers > MAX_WAIVERS) return { kind: "waivers", waivable: false, reason: `More than ${MAX_WAIVERS} waivers in this run` };
+  if (state.designRejections >= MAX_DESIGN_REJECTIONS) return { kind: "rejections", waivable: false, reason: `The design was sent back ${state.designRejections} times; let's talk before trying again` };
   if (state.rejections >= MAX_REJECTIONS) return { kind: "rejections", waivable: false, reason: `Rejected ${state.rejections} times; let's talk before trying again` };
   for (const r of state.steps.values()) {
     if (r.attempts >= maxAttempts + o.extraAttempts && r.status !== "completed") {

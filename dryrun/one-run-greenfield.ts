@@ -18,6 +18,7 @@ import { Ledger } from "../src/ledger/ledger.js";
 import { replay } from "../src/ledger/state.js";
 import type { Conversation, Provider, Turn } from "../src/runners/api.js";
 import { setAgentScript } from "../src/runners/claude-agent.js";
+import { designAnswer, isPageCall } from "../src/stages/design-fake.js";
 import { createRun, execute } from "../src/stages/executor.js";
 import { setProviderFactory } from "../src/stages/think.js";
 
@@ -74,7 +75,7 @@ function answerFor(system: string, user: string): unknown {
   if (system.includes("Map each restated")) return { mapping: [{ n: 1, spans: ["I-1"], answers: [] }, { n: 2, spans: ["I-2"], answers: [] }] };
   if (system.includes("Senior engineer writing a behaviour spec")) return draft;
   if (system.includes("Adversarial reviewer")) return { findings: [] };
-  if (system.includes("drawing the screen inventory")) return DESIGN;
+  if (system.includes("drawing the screen inventory") || isPageCall(system)) return designAnswer(system, user, DESIGN);
   throw new Error(`unscripted system prompt: ${system.slice(0, 120)}`);
 }
 const provider: Provider = { start(_m, _e, system, user): Conversation {

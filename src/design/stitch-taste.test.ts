@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { designMdFaults, loadTasteSkill, TASTE_SKILL_PATH } from "./stitch-taste.js";
+import { designMdFaults, offBlack, loadTasteSkill, tastePageProblem, tastePageRules, TASTE_SKILL_PATH } from "./stitch-taste.js";
+import { FIELD_RULES as FIELD_RULES_, TASTE_OVERRIDES as TASTE_OVERRIDES_ } from "./stitch-taste.js";
 
 const good = "# Design System: Ledgerly\n## 1. Visual Theme & Atmosphere\nCalm.\n## 2. Color Palette & Roles\n- **Canvas** (#F9FAFB) — background\n- **Brand Teal** (#0F766E) — accent\n## 3. Typography Rules\n- **Display:** Geist\n## 4. Component Stylings\n## 5. Layout Principles\n## 7. Anti-Patterns (Banned)\n- No emojis";
 
@@ -27,6 +28,21 @@ describe("DESIGN.md checks", () => {
   it("flags missing sections, pure black, and a dropped brand colour or font", () => {
     const checks = designMdFaults("# Design System: X\n## 2. Color Palette & Roles\n- Ink (#000000)", { colours: ["#0F766E"], fonts: ["Lato"] }).map((f) => f.check);
     expect(checks).toEqual(expect.arrayContaining(["stitch-designmd-section", "stitch-designmd-black", "stitch-designmd-brand"]));
+  });
+});
+
+describe("pure black put right without a model call", () => {
+  it("swaps it where it is used, and leaves a ban line and a black brand alone", () => {
+    const md = "- **Canvas** (#000000) page\n- No pure black (#000000).";
+    expect(offBlack(md, { colours: [] })).toEqual({ md: "- **Canvas** (#18181B) page\n- No pure black (#000000).", swapped: 1 });
+    expect(offBlack(md, { colours: ["#000"] })).toEqual({ md, swapped: 0 });
+  });
+});
+
+describe("pure black named only to ban it", () => {
+  it("passes a design system whose anti-patterns say no pure black, and still flags one that uses it", () => {
+    expect(designMdFaults(`${good}\n- No emojis, no Inter, no pure black (#000000).`, { colours: ["#0f766e"], fonts: [] })).toEqual([]);
+    expect(designMdFaults(`${good}\n- **Ink** (#000000) — headings`, { colours: ["#0f766e"], fonts: [] }).map((f) => f.check)).toEqual(["stitch-designmd-black"]);
   });
 });
 
@@ -81,5 +97,37 @@ describe("the committed skill (PR review)", () => {
     const licence = join(dirname(TASTE_SKILL_PATH), "LICENSE");
     expect(existsSync(licence)).toBe(true);
     expect(readFileSync(licence, "utf8")).toMatch(/MIT License[\s\S]*Copyright \(c\) 2026 Leonxlnx/);
+  });
+});
+
+describe("the DESIGN.md rules that keep its words off the pages (parking redraw, 12 Oct 2026)", () => {
+  it("ask for photographs of what the product shows, a fingerprint in the look, no leakable term, sentence case, motion once and no product name", () => {
+    for (const w of ["is a real photograph", "never a mark, glyph or line drawn beside a value", "Nothing in this file is ever text on a page", "uppercase is for a table's column heads only", "neither repeats the other", "Name no real product or company in the file"]) expect(TASTE_OVERRIDES_).toContain(w);
+    expect(FIELD_RULES_).toContain('without a product\'s name (the names go in "basis")');
+  });
+});
+
+describe("the skill's page rules, for the step that writes each Stitch prompt", () => {
+  it("are the layout rules, the anti-patterns and the component replacements of the reviewed skill, and nothing else", () => {
+    const rules = tastePageRules();
+    for (const w of ["### 6. Define Layout Principles", "3 equal cards", "### 9. List Anti-Patterns", "No generic names", "## 12. Anti-Vibe-Coded Components", "One headline metric with context"]) expect(rules).toContain(w);
+    for (const w of ["Define Responsive Rules", "Output Format", "Human Fingerprint Rules", "Motion Tokens"]) expect(rules).not.toContain(w);
+    expect(rules.length).toBeLessThan(6000);
+  });
+  it("says which part is missing when the skill no longer has it", () => {
+    expect(() => tastePageRules("# Skill\n### 6. Define Layout Principles\n- a rule")).toThrow(/9\. List Anti-Patterns/);
+  });
+  it("is asked of the design system as a digest", () => {
+    expect(TASTE_OVERRIDES_).toContain('"digest"');
+  });
+});
+
+describe("the skill on a design drawn by Claude or OpenAI", () => {
+  it("is no start-up problem when missing or the reviewed copy, and one when changed", () => {
+    expect(tastePageProblem("/nope/SKILL.md")).toBeUndefined();
+    expect(tastePageProblem()).toBeUndefined();
+    const f = join(mkdtempSync(join(tmpdir(), "factory-taste-")), "SKILL.md");
+    writeFileSync(f, "# Changed");
+    expect(tastePageProblem(f, "0".repeat(64))).toMatch(/not the reviewed copy/);
   });
 });

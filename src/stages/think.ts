@@ -1,6 +1,7 @@
 // Shared plumbing for thinking steps: build the pack in the locked room, run ApiRunner,
 // store pack + output in the ledger, map runner results to step outcomes.
 import type { z } from "zod";
+import { WEB_ONLY, webOnly } from "../config/platform.js";
 import { readsRequirements, type ContextPack, type PackClass, type StageName } from "../contracts/index.js";
 import { buildPack, fileNotPasted, FILE_INLINE_MAX, PackOverBudgetError, type ResolvedSection } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
@@ -80,7 +81,8 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
   if (spec.model ? !modelAllowed(ctx.policy, model) : routed.blocked) {
     return { ok: false, outcome: { kind: "park", reason: spec.model ? blockedText(spec.stage, model, ctx.policy) : routed.blocked! } };
   }
-  const sections = [...spec.sections];
+  // a design run and a new product are web only: a requirement for a phone app is drawn and built as the responsive web app
+  const sections = [...(webOnly(ctx.state?.info?.mode, ctx.project) ? [S.template("platform", WEB_ONLY)] : []), ...spec.sections];
   if (ctx.priorFailures.length) {
     sections.push({
       spec: { id: "failures", source: "feedback", trust: "derived", placement: "user" },

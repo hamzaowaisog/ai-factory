@@ -535,11 +535,15 @@ export const DesignBody = z.object({
     projectId: z.string(), model: z.string(), designMd: z.string(),
     /** the Stitch design system's own theme, as sent to Stitch (src/design/stitch-taste.ts StitchTheme) */
     theme: z.record(z.string(), z.unknown()).optional(),
+    /** the design system's own colours, as each screen's prompt names them and each page is checked against (StitchPalette) */
+    palette: z.record(z.string(), z.string()).optional(),
     frames: z.record(z.string(), z.object({ screen: z.string().optional(), state: z.string().optional(), name: z.string(), screenId: z.string(), html: z.string(), image: z.string() })),
     /** accessibility problems Stitch could not fix in one round: per screen, the axe rules still failing (shown on the approval card) */
     a11y: z.array(z.object({ screen: z.string(), rules: z.array(z.string()) })).optional(),
     /** each screen's Stitch prompt, for a rework that redraws its extra states */
     prompts: z.record(z.string(), z.string()).optional(),
+    /** per screen, the links the screen list gave it: the words on the control and the screen it opens (the live demo follows them) */
+    links: z.record(z.string(), z.array(z.object({ label: z.string(), to: z.string() }))).optional(),
   }).optional(),
 });
 export const Design = withHeader(DesignBody.shape);
@@ -763,8 +767,8 @@ export const RunPreview = z.object({
     /** pending: listed but not drawn yet (a draft) */
     screens: z.array(z.object({ path: z.string(), title: z.string(), req: z.string().optional(), pending: z.boolean().optional() })).default([]),
   }).optional(),
-  /** the design while it is being drawn: how many pages are done; the approved preview has none */
-  draft: z.object({ drawn: z.number().int().nonnegative(), total: z.number().int().nonnegative(), failed: z.number().int().nonnegative().default(0) }).optional(),
+  /** the design while it is being drawn: how many pages are done, and how many were replaced by a fix after the checks; the approved preview has none */
+  draft: z.object({ drawn: z.number().int().nonnegative(), total: z.number().int().nonnegative(), failed: z.number().int().nonnegative().default(0), fixed: z.number().int().nonnegative().optional() }).optional(),
   images: z.array(z.object({
     file: z.string(),
     screen: z.string(),

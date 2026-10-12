@@ -15,6 +15,7 @@ import type { Conversation, Provider, Turn } from "../runners/api.js";
 import { NO_TRACE } from "../util/trace.js";
 import { designStep } from "./design.js";
 import { approvedDesignFor, type DesignSources } from "./design-inputs.js";
+import { designAnswer } from "./design-fake.js";
 import { designSteps } from "./design-pipeline.js";
 import { designBaselineStep } from "./design-approve.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
@@ -27,8 +28,8 @@ const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
 let answer: () => unknown = () => { throw new Error("the model must not be called"); };
 let modelCalls = 0;
 const provider: Provider = {
-  start(): Conversation {
-    return { async next(): Promise<Turn> { modelCalls++; return { calls: [{ id: "s", name: "submit_result", input: answer() }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
+  start(_m, _e, system, user): Conversation {
+    return { async next(): Promise<Turn> { modelCalls++; return { calls: [{ id: "s", name: "submit_result", input: designAnswer(system, user, answer()) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
 
@@ -107,7 +108,8 @@ describe("design pipeline", () => {
 
     answer = drawn;
     expect((await exec(ledger, draw)).kind).toBe("done");
-    expect(modelCalls).toBe(1);
+    // the screen list, then its one page
+    expect(modelCalls).toBe(2);
     // nothing approved yet: the plan gets no design
     expect(approvedDesignFor(replay(ledger.events()), ledger)).toBeUndefined();
 
@@ -173,7 +175,7 @@ describe("design pipeline", () => {
     for (const step of estimateSteps(replay(est.events())).filter((x) => !["breakdown", "estimate", "approve-estimate", "export"].includes(x.key))) {
       expect((await exec(est, step)).kind).toBe("done");
     }
-    expect(modelCalls).toBe(1);
+    expect(modelCalls).toBe(2);
     const s = replay(est.events());
     expect(approvedDesignFor<{ screens: { id: string }[] }>(s, est)?.design.screens.map((x) => x.id)).toEqual(["S-1"]);
     expect(estimateSteps(s).find((x) => x.key === "breakdown")!.inputs(s, est)).toBeTruthy();

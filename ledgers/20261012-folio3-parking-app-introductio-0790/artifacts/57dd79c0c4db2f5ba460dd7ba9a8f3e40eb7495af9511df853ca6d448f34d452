@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-[#F5F7F6]" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Give up my space today — Folio3 Parking</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            canvas: "#F5F7F6",
+            surface: "#FFFFFF",
+            ink: "#222927",
+            slate: "#596560",
+            rule: "#D8DEDB",
+            clay: "#A95540",
+            neutralFill: "#F1F3F2"
+          },
+          borderRadius: {
+            DEFAULT: "0.25rem",
+            lg: "0.5rem",
+            xl: "0.75rem",
+            full: "9999px"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "Arial", "sans-serif"],
+            display: ["Hanken Grotesk", "Arial", "sans-serif"],
+            body: ["\"Source Sans 3\"", "Arial", "sans-serif"],
+            mono: ["\"IBM Plex Mono\"", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 800ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    @keyframes settle-in {
+      from {
+        opacity: 0.84;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes active-check {
+      0%, 100% {
+        opacity: 0.76;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .page-intro {
+      animation: settle-in var(--dur-slow) var(--ease-out) both;
+    }
+
+    .entry-check-live {
+      animation: active-check 7.5s var(--ease-inout) infinite;
+    }
+
+    /* Parking bay stall mark indicator styling */
+    .parking-bay-mark {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .parking-bay-mark::before,
+    .parking-bay-mark::after {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 18px;
+      background-color: #D8DEDB;
+      border-radius: 1px;
+    }
+
+    /* Interactive press */
+    .btn-press:active {
+      transform: scale(0.97);
+      transition-duration: 90ms;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .page-intro,
+      .entry-check-live {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 120ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-canvas text-ink font-body antialiased selection:bg-neutralFill selection:text-ink">
+<!-- Top Navigation Bar (Verbatim Shared Component: Web Header) -->
+<header class="bg-white border-b border-rule w-full sticky top-0 z-30">
+<div class="w-full max-w-[1440px] mx-auto px-6 flex items-center justify-between h-16">
+<!-- Left: Brand Logo & Navigation Links -->
+<div class="flex items-center gap-8">
+<span class="font-headline text-base font-semibold tracking-tight text-ink select-none">
+          Folio3 Parking
+        </span>
+<nav aria-label="Main Navigation" class="hidden md:flex items-center gap-6">
+<a class="font-headline text-sm text-neutral-600 font-normal hover:text-neutral-900 pb-4 pt-4 transition-colors duration-150" href="#">
+            Parking home
+          </a>
+<a class="font-headline text-sm text-neutral-600 font-normal hover:text-neutral-900 pb-4 pt-4 transition-colors duration-150" href="#">
+            Available spaces
+          </a>
+<!-- Active Nav item per JSON & Context: "Give up my space today" -->
+<a aria-current="page" class="font-headline text-sm text-neutral-900 font-semibold border-b-2 border-amber-800 pb-4 pt-4 transition-colors duration-150" href="#">
+            Give up my space today
+          </a>
+<a class="font-headline text-sm text-neutral-600 font-normal hover:text-neutral-900 pb-4 pt-4 transition-colors duration-150" href="#">
+            Schedule releases
+          </a>
+<a class="font-headline text-sm text-neutral-600 font-normal hover:text-neutral-900 pb-4 pt-4 transition-colors duration-150" href="#">
+            Add or update a vehicle
+          </a>
+</nav>
+</div>
+<!-- Right: User Identity Menu -->
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2.5 pl-2 py-1 pr-1.5 rounded-lg hover:bg-neutralFill transition-colors duration-150 cursor-pointer group">
+<img alt="Ananya Rao" class="w-8 h-8 rounded-full object-cover ring-1 ring-rule" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmmX1t6pKX4SEa9CgJemuJ00t-9GLROajQjw1jfUim-ez73tmidDaceQcxXcvS5qFCK7lx3O3LbRvOhz6s0mV5BkBo-yoMmWsRzfmrr22SK2V9SRf7xVKeI6S_QeFRxc9UFTbVHGlSXhklsPXD-NttW-5ECzgOApg67qGGXNIX5ZZHOOvd_0h_tHviVQCl5LKkpYp9Gc6mPNq5dZUW4ZvlyLqRuvmCNxDnn-IUZQKhFcThBG7U7HqtgMAYLLThYWA8d1pPCTZB"/>
+<div class="flex flex-col text-left">
+<span class="font-headline text-sm font-semibold tracking-tight text-ink leading-tight">
+              Ananya Rao
+            </span>
+<span class="font-body text-xs text-slate tracking-tight leading-tight">
+              Employee
+            </span>
+</div>
+<span class="material-symbols-outlined text-slate text-base group-hover:text-ink transition-colors ml-0.5">
+            expand_more
+          </span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Work Surface Frame -->
+<main class="flex-1 w-full max-w-[1440px] mx-auto px-6 py-8 md:py-12">
+<div class="max-w-3xl mx-auto page-intro space-y-8">
+<!-- Employee & Assignment Metadata Context Bar -->
+<section aria-label="Assignment Details" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-rule">
+<div class="flex items-center gap-3.5">
+<img alt="Ananya Rao" class="w-12 h-12 rounded-full object-cover ring-1 ring-rule shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmmX1t6pKX4SEa9CgJemuJ00t-9GLROajQjw1jfUim-ez73tmidDaceQcxXcvS5qFCK7lx3O3LbRvOhz6s0mV5BkBo-yoMmWsRzfmrr22SK2V9SRf7xVKeI6S_QeFRxc9UFTbVHGlSXhklsPXD-NttW-5ECzgOApg67qGGXNIX5ZZHOOvd_0h_tHviVQCl5LKkpYp9Gc6mPNq5dZUW4ZvlyLqRuvmCNxDnn-IUZQKhFcThBG7U7HqtgMAYLLThYWA8d1pPCTZB"/>
+<div>
+<div class="flex items-center gap-2">
+<h1 class="font-headline text-lg font-semibold tracking-tight text-ink">Ananya Rao</h1>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutralFill text-slate border border-rule">
+                Employee
+              </span>
+</div>
+<p class="font-body text-sm text-slate">
+              Product Design • Bengaluru Office
+            </p>
+</div>
+</div>
+<div class="flex items-center gap-6 self-start sm:self-auto bg-surface sm:bg-transparent p-3 sm:p-0 rounded-lg sm:rounded-none border sm:border-0 border-rule">
+<div>
+<span class="block font-mono text-[11px] uppercase tracking-[0.07em] text-slate">Assigned stall</span>
+<div class="parking-bay-mark mt-0.5">
+<span class="font-mono text-base font-semibold text-ink tracking-tight">P1-12</span>
+</div>
+</div>
+<div class="h-8 w-px bg-rule"></div>
+<div>
+<span class="block font-mono text-[11px] uppercase tracking-[0.07em] text-slate">Vehicle plate</span>
+<span class="font-mono text-base font-semibold text-ink tracking-tight mt-0.5 block">KA03MN4821</span>
+</div>
+</div>
+</section>
+<!-- Restrained Primary Status Card -->
+<section aria-labelledby="status-heading" class="bg-surface rounded-lg border border-rule p-6 md:p-8 space-y-7 shadow-none">
+<!-- Header row of the card: Date & Reservation Badge -->
+<div class="flex flex-wrap items-baseline justify-between gap-3 pb-5 border-b border-rule">
+<div>
+<span class="block font-mono text-xs uppercase tracking-[0.07em] text-slate mb-1">Release date</span>
+<h2 class="font-headline text-2xl font-semibold tracking-tight text-ink" id="status-heading">
+              Tue 19 May 2026
+            </h2>
+</div>
+<!-- Status badge with ambient pulse marker -->
+<div class="flex items-center gap-2 bg-[#F1F3F2] px-3 py-1.5 rounded border border-rule">
+<span class="w-2 h-2 rounded-full bg-clay entry-check-live"></span>
+<span class="font-mono text-xs font-semibold tracking-wide text-ink">Reserved</span>
+</div>
+</div>
+<!-- Policy Explanatory Notice verbatim -->
+<div class="space-y-4">
+<div class="flex items-start gap-3 bg-neutralFill/70 p-4 rounded-lg border border-rule/80">
+<span class="material-symbols-outlined text-slate text-xl shrink-0 mt-0.5">
+              info
+            </span>
+<div class="space-y-1.5 text-sm">
+<p class="font-body text-ink font-medium leading-relaxed">
+                If you release before 9:00 AM IST, employees can claim it at 9:00 AM. After 9:00 AM, it is available right away.
+              </p>
+<p class="font-body text-slate text-xs leading-normal">
+                Bengaluru Office Operations • Space pool automated redistribution rule
+              </p>
+</div>
+</div>
+<!-- Current Time Evaluation Banner (9:15 AM IST context) -->
+<div class="flex items-center justify-between text-sm py-2 px-1">
+<div class="flex items-center gap-2 text-slate">
+<span class="material-symbols-outlined text-base">schedule</span>
+<span>Current office time:</span>
+<span class="font-mono font-medium text-ink">09:15 AM IST</span>
+</div>
+<div class="text-right">
+<span class="text-xs font-mono font-medium text-slate">
+                Status: Past cutoff — Available immediately upon release
+              </span>
+</div>
+</div>
+</div>
+<!-- Primary Action Cluster -->
+<div class="pt-4 border-t border-rule">
+<div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+<!-- Sole Primary Button (Processes directly for Tue 19 May 2026) -->
+<button class="btn-press inline-flex items-center justify-center px-6 py-3.5 rounded-lg bg-clay hover:bg-[#964a37] text-white font-headline text-base font-semibold tracking-tight transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 cursor-pointer shadow-none min-h-[44px]" id="releaseActionBtn" type="button">
+              Give up my space today
+            </button>
+<!-- Irreversible Warning Text directly adjacent -->
+<div class="flex items-center gap-2 text-slate">
+<span class="material-symbols-outlined text-base text-slate shrink-0">
+                lock_clock
+              </span>
+<span class="font-body text-sm font-medium tracking-normal text-slate">
+                You can’t undo this today
+              </span>
+</div>
+</div>
+</div>
+</section>
+<!-- Intentional Open Space & Calm Helper Context -->
+<div class="text-center sm:text-left text-xs font-body text-slate pt-4">
+<p>
+          Need to configure recurrent or extended leaves? Manage multi-day plans under 
+          <a class="underline underline-offset-2 hover:text-ink transition-colors" href="#">Schedule releases</a>.
+        </p>
+</div>
+</div>
+</main>
+<!-- Inline Interaction for Immediate Single-Action Processing -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const releaseBtn = document.getElementById('releaseActionBtn');
+      
+      if (releaseBtn) {
+        releaseBtn.addEventListener('click', () => {
+          // Disable button immediately to prevent double processing
+          releaseBtn.disabled = true;
+          releaseBtn.classList.add('opacity-70', 'cursor-not-allowed');
+          releaseBtn.innerText = 'Releasing stall...';
+
+          setTimeout(() => {
+            // Transition in-place without popup or modal
+            releaseBtn.classList.remove('bg-clay', 'hover:bg-[#964a37]');
+            releaseBtn.classList.add('bg-neutralFill', 'text-ink', 'border', 'border-rule');
+            releaseBtn.innerText = 'Stall P1-12 released for today';
+            
+            const warningEl = releaseBtn.parentElement.querySelector('.text-slate');
+            if (warningEl) {
+              warningEl.innerHTML = '<span class="material-symbols-outlined text-base text-ink shrink-0">check_circle</span><span class="font-body text-sm font-medium text-ink">Released at 09:15 AM IST &bull; Allocated to daily pool</span>';
+            }
+          }, 450);
+        });
+      }
+    });
+  </script>
+</body></html>

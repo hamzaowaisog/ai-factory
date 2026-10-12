@@ -22,6 +22,7 @@ import { ensureStandaloneProject } from "../config/project.js";
 import { makeNewProduct } from "../config/greenfield.js";
 import { loadProject } from "../config/project.js";
 import { fakeGithub } from "../forge/testutil.js";
+import { makeDocx, makePdf } from "../sources/testutil.js";
 // the page's Markdown renderer (plain browser JS, no DOM needed)
 import { renderMarkdown } from "./static/md.js";
 import { findChromium } from "../design/screenshots.js";
@@ -360,9 +361,13 @@ describe("factory ui: starting a run", () => {
       [{ project: "web", prompt: "   " }, 400, /Give a request/],
       [{ project: "web", prompt: "Rename it", maxCost: 25 }, 400, /can only lower the normal limit.*\$20/],
       [{ project: "web", prompt: "Rename it", maxCost: -1 }, 400, /positive number/],
-      [{ project: "web", file: { name: "req.exe", text: "Rename the orders heading" } }, 400, /\.md\) or text/],
+      [{ project: "web", file: { name: "req.exe", text: "Rename the orders heading" } }, 400, /\.md\), text/],
       [{ project: "web", file: { name: "big.md", text: "x".repeat(150_000) } }, 400, /split the request/],
       [{ project: "web", file: { name: "empty.md", text: " " } }, 400, /empty or too short/],
+      [{ project: "web", file: { name: "req.pdf", text: "Rename the orders heading" } }, 400, /did not arrive intact/],
+      [{ project: "web", file: { name: "req.docx", data: Buffer.from("Rename the orders heading").toString("base64") } }, 400, /not a valid .docx/],
+      [{ project: "web", file: { name: "req.pdf", data: Buffer.from("Rename the orders heading").toString("base64") } }, 400, /no PDF header/],
+      [{ project: "web", file: { name: "scan.pdf", data: makePdf([[]]).toString("base64") } }, 400, /no text in it/],
       [{ project: "web", jira: "ABC-12" }, 400, /add JIRA_BASE_URL/],
     ];
     for (const [body, status, msg] of cases) {
@@ -374,6 +379,22 @@ describe("factory ui: starting a run", () => {
     expect((await post("{not json")).status).toBe(400);
     expect(count()).toBe(before);
     expect(started).toEqual([]);
+  });
+
+  it("an uploaded PDF is read like --file", async () => {
+    const r = await post({ project: "web", file: { name: "req.pdf", data: makePdf([["Rename the orders heading to Your orders."]]).toString("base64") } });
+    expect(r.status).toBe(201);
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info.request).toBe("Rename the orders heading to Your orders.");
+    expect(s.info.sources).toEqual([{ kind: "pdf", name: "req.pdf", summary: "1 page" }]);
+  });
+
+  it("an uploaded Word document is read like --file", async () => {
+    const r = await post({ project: "web", file: { name: "req.docx", data: (await makeDocx(["Rename the orders heading to Your orders."])).toString("base64") } });
+    expect(r.status).toBe(201);
+    const s = replay(Ledger.open(r.json().runId).events());
+    expect(s.info.request).toBe("Rename the orders heading to Your orders.");
+    expect(s.info.sources?.map((x) => [x.kind, x.name])).toEqual([["docx", "req.docx"]]);
   });
 
   it("a good request creates the run like factory start and executes it in the background", async () => {
@@ -521,9 +542,9 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
       [{ name: "orders", prompt: "An orders app" }, /folder/],
       [{ name: "orders", dir }, /Describe the product/],
       [{ name: "orders", dir, prompt: "An orders app", maxCost: 25 }, /can only lower/],
-      [{ name: "orders", dir, prompt: "An orders app", file: { name: "a.exe", text: "x" } }, /\.md\) or text/],
+      [{ name: "orders", dir, prompt: "An orders app", file: { name: "a.exe", text: "x" } }, /\.md\), text/],
       [{ name: "orders", dir, fromDesign: "nope", fromEstimate: "nope" }, /one thing at a time/],
-      [{ name: "orders", dir, prompt: "An orders app", models: { picks: { critic: "gpt-6-sol" } } }, /critic always runs on Claude Opus 5\.5/],
+      [{ name: "orders", dir, prompt: "An orders app", models: { picks: { critic: "claude-sonnet-5-5" } } }, /critic: claude-sonnet-5-5 is not offered for this step/],
       [{ name: "orders", dir, prompt: "An orders app", models: { preset: "cheap" } }, /No preset "cheap"/],
     ];
     for (const [body, msg] of cases) {
@@ -668,7 +689,7 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     return id;
   }
 
-  it("starts from an approved estimate made with no repo: its request, and the web run held to it; a phone app is refused", async () => {
+  it("starts from an approved estimate made with no repo: its request, and the web run held to it; a phone app is built as the web app", async () => {
     const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
     const id = await noRepoEstimate([{ id: "EST-1", track: "web", kind: "ui-form", executor: "factory" }, { id: "EST-3", track: "backend", kind: "be-endpoint", executor: "factory" }]);
     expect((await send("/api/fullstack", { name: "parts", dir, fromEstimate: id, prompt: "more" })).json().error).toMatch(/brings its own request/);
@@ -679,13 +700,9 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     expect((await call("/api/fullstack/parts")).json()).toMatchObject({ request: "A quick-order page for parts buyers", from: { kind: "estimate", runId: id } });
 
     const phone = await noRepoEstimate([{ id: "EST-1", track: "web", kind: "ui-form", executor: "factory" }, { id: "EST-2", track: "mobile", kind: "ui-device", executor: "factory" }]);
-    expect((await call("/api/projects")).json().estimates.find((e: { runId: string }) => e.runId === phone).cannotBuild).toMatch(/prices a phone app: 1 mobile task \(EST-2; priced as React Native\)/);
-    const refused = await send("/api/fullstack", { name: "phones", dir, fromEstimate: phone });
-    expect(refused.status).toBe(400);
-    expect(refused.json().error).toMatch(/prices a phone app/);
-    expect(existsSync(join(dir, "phones-web"))).toBe(false);
-    expect((await call("/api/fullstack")).json().map((p: { name: string }) => p.name)).toContain("parts");
-    expect((await call("/api/fullstack")).json().map((p: { name: string }) => p.name)).not.toContain("phones");
+    expect((await call("/api/projects")).json().estimates.find((e: { runId: string }) => e.runId === phone).cannotBuild).toBeUndefined();
+    expect((await send("/api/fullstack", { name: "phones", dir, fromEstimate: phone })).status).toBe(201);
+    expect((await call("/api/fullstack")).json().map((p: { name: string }) => p.name)).toEqual(expect.arrayContaining(["parts", "phones"]));
   });
 
   it("starts from an approved design made with no repo: its design steps are skipped; one made for a repo is refused", async () => {
@@ -786,6 +803,18 @@ describe("factory ui: preview", () => {
     expect(page.headers["x-frame-options"]).toBe("SAMEORIGIN");
     expect((await file("img/orders-after.svg")).headers["content-type"]).toBe("image/svg+xml");
     expect((await call(`/preview/${PKEY}/${ids.delivered}/index.html`, { method: "POST", token: null, headers: { "Content-Type": "application/json" }, body: "{}" })).status).toBe(405);
+  });
+
+  it("a live Stitch page may load Tailwind and Google's fonts, still sandboxed and with no connection out", async () => {
+    withPreview();
+    const dir = join(Ledger.open(ids.delivered).dir, "preview", "stitch");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "ST-1.html"), "<!doctype html><title>x</title>");
+    const live = await file("stitch/ST-1.html");
+    expect(live.status).toBe(200);
+    const csp = String(live.headers["content-security-policy"]);
+    expect(csp).toMatch(/script-src 'unsafe-inline' https:\/\/cdn\.tailwindcss\.com;.*connect-src 'none'.*sandbox allow-scripts$/);
+    expect(String((await file("index.html")).headers["content-security-policy"])).not.toContain("tailwindcss");
   });
 
   it("needs the preview key, not the session key", async () => {
@@ -1626,13 +1655,13 @@ describe("factory ui: design exports", () => {
     expect(info.models).toEqual({ preset: "economy", picks: { plan: "gpt-6-sol" } });
     expect(info.routes!.plan).toMatchObject({ model: "gpt-6-sol", source: "pick" });
     expect(info.routes!.ground).toMatchObject({ model: "claude-sonnet-5-5", source: "pick", preset: "economy" });
-    expect(info.routes!.critic).toMatchObject({ model: "claude-opus-5-5", source: "fixed" });
+    expect(info.routes!.critic).toMatchObject({ model: "claude-opus-5-5", source: "pick", preset: "economy" });
     // the run page shows what each step was given, and where from
     const m = (await call(`/api/runs/${b.json().runId}`)).json().models;
     expect(m).toMatchObject({ saved: true, preset: "economy", calls: [], moved: [] });
     expect(m.rows.find((x: { step: string }) => x.step === "plan")).toMatchObject({ model: "gpt-6-sol", name: "GPT-6 Sol", source: "pick" });
     expect(m.rows.find((x: { step: string }) => x.step === "ground")).toMatchObject({ name: "Claude Sonnet 5.5", source: "pick", preset: "economy" });
-    expect(m.rows.find((x: { step: string }) => x.step === "critic")).toMatchObject({ name: "Claude Opus 5.5", source: "fixed" });
+    expect(m.rows.find((x: { step: string }) => x.step === "critic")).toMatchObject({ name: "Claude Opus 5.5", source: "pick", preset: "economy" });
     _resetStarting();
     expect((await post({ project: "web", prompt: "x", models: { picks: { "specify-other": "claude-opus-5-5" } } })).json().error).toMatch(/specify-other: claude-opus-5-5 is not offered for this step/);
     expect((await post({ project: "web", prompt: "x", models: { preset: "cheap" } })).json().error).toMatch(/No preset "cheap"/);
@@ -2021,5 +2050,22 @@ describe("factory ui: the Review tab", () => {
     expect(js).toContain("function reviewScreen(");
     expect(js).toContain("/review`, { method: \"POST\"");
     expect(js).toContain("Review now");
+  });
+});
+
+describe("a preview page with frames of its own pages, in Safari", () => {
+  it("names the server as a place frames may come from, and only for a local host", async () => {
+    const { previewHeaders } = await import("./server.js");
+    expect(previewHeaders("127.0.0.1:4321")["Content-Security-Policy"]).toContain("default-src 'self'; frame-src 'self' http://127.0.0.1:4321; script-src");
+    expect(previewHeaders("evil.example:80")["Content-Security-Policy"]).not.toContain("frame-src");
+    expect(previewHeaders(undefined)["Content-Security-Policy"]).not.toContain("frame-src");
+    expect(previewHeaders("127.0.0.1:4321")["Content-Security-Policy"]).toContain("sandbox allow-scripts");
+  });
+  it("serves the demo without the policy in its <meta>, leaving the rest of the page as it was", async () => {
+    const { headerPolicyOnly } = await import("./server.js");
+    const page = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; frame-src 'self'"><title>d</title></head><body>x</body></html>`;
+    expect(headerPolicyOnly(Buffer.from(page)).toString()).toBe(`<!doctype html><html><head><meta charset="utf-8"><title>d</title></head><body>x</body></html>`);
+    const plain = Buffer.from("<!doctype html><title>d</title>");
+    expect(headerPolicyOnly(plain)).toBe(plain);
   });
 });

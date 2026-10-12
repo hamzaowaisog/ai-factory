@@ -189,7 +189,10 @@ ok   ~/.factory/.env exists
 ok   ANTHROPIC_API_KEY set in ~/.factory/.env
 note OPENAI_API_KEY not set: a run will not start (the second spec draft and the pre-PR reviewer run on GPT-6)
 note STITCH_API_KEY not set (optional): needed only for design.engine: stitch
+ok   Python 3 (python3): the design step uses the ui-ux-pro-max skill
 ```
+
+Python 3 is needed by the design step's ui-ux-pro-max skill (its search is a Python script, with no packages to install). Without it a design is still drawn, but not from the skill. `scripts/setup.sh` installs it.
 
 Keys are read from `~/.factory/.env` first, then from the environment, so `export STITCH_API_KEY=...` (like `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`) works too.
 
@@ -214,7 +217,7 @@ FIGMA_TOKEN=...           # Figma → Settings → Security → Personal access 
 
 | Step | macOS | Windows / Ubuntu |
 |---|---|---|
-| Base | Apple command line tools, Homebrew | WSL + Ubuntu with systemd (Windows), git, curl |
+| Base | Apple command line tools, Homebrew, Python 3 (if missing) | WSL + Ubuntu with systemd (Windows), git, curl, Python 3 |
 | Node 22 | nvm | nvm |
 | Containers | `brew install colima docker`, `colima start --cpu 4 --memory 8` | Docker Engine CE from Docker's apt repo, your user added to the `docker` group |
 | Factory | `npm ci && npm run build && npm link` | same |
@@ -407,7 +410,7 @@ Answer the question card if one appears, read the approval card, then approve.
 
 **Into Figma, on any plan.** `factory design export <run> --format figma` (or Figma in the Export panel) writes `figma.json`: every screen and state as frames with auto layout, text and icons, the tokens as variables, the controls as component sets, and the approved pictures as hidden reference layers. It needs no Figma token or paid seat. Install the plugin once in the Figma desktop app: Plugins > Development > Import plugin from manifest..., then pick `figma-plugin/manifest.json` (or the manifest in the Export panel's plugin zip). Then, in any file you can edit, run Plugins > Development > AI Factory Import and choose `figma.json`. See `figma-plugin/README.md`.
 
-**Estimating instead of building.** `factory estimate` takes requirements (a prompt, `--file` as Markdown, text or Word, `--frames` for exported Figma frames, or `--jira`; and design references via `--ref`: any image, an https link, a Figma link (needs `FIGMA_TOKEN`, a Figma personal access token, in `~/.factory/.env`), a Figma JSON export, a PDF or a Word document, with an optional role and note; e.g. `--ref "layout:dash.jpg|table like this"`) and produces an effort, API-cost and elapsed-time estimate of delivering them through the factory. By default a person answers the clarify questions and approves the estimate (on the terminal, or on the run page). Add `--hands-off` (or set `estimate.humanReview: false` in the project config) to opt out: clarify asks nobody (each open question becomes a labelled assumption with its recommended answer) and the factory approves the estimate once its gates pass. A build never follows a hands-off estimate (`--from-estimate` refuses it), since a build is held to a budget a person approved. Every estimate is solely agentic. A request with UI also waits for a person to approve its design. Then two workbooks (team and client) are written under the run's `export/` folder. See `docs/estimates-design.md`. The workbooks are drawn on Folio3's estimation template, which the repo ships with its text cleared (`src/estimate/assets/estimation-template.xlsx`), so nothing needs setting. To use a newer template file instead, set `estimateTemplate: /path/to/Example_Estimation.xlsx` in the project config (or `FACTORY_ESTIMATE_TEMPLATE` in the environment).
+**Estimating instead of building.** `factory estimate` takes requirements (a prompt, `--file` as Markdown, text, Word or PDF, `--frames` for exported Figma frames, or `--jira`; and design references via `--ref`: any image, an https link, a Figma link (needs `FIGMA_TOKEN`, a Figma personal access token, in `~/.factory/.env`), a Figma JSON export, a PDF or a Word document, with an optional role and note; e.g. `--ref "layout:dash.jpg|table like this"`) and produces an effort, API-cost and elapsed-time estimate of delivering them through the factory. By default a person answers the clarify questions and approves the estimate (on the terminal, or on the run page). Add `--hands-off` (or set `estimate.humanReview: false` in the project config) to opt out: clarify asks nobody (each open question becomes a labelled assumption with its recommended answer) and the factory approves the estimate once its gates pass. A build never follows a hands-off estimate (`--from-estimate` refuses it), since a build is held to a budget a person approved. Every estimate is solely agentic. A request with UI also waits for a person to approve its design. Then two workbooks (team and client) are written under the run's `export/` folder. See `docs/estimates-design.md`. The workbooks are drawn on Folio3's estimation template, which the repo ships with its text cleared (`src/estimate/assets/estimation-template.xlsx`), so nothing needs setting. To use a newer template file instead, set `estimateTemplate: /path/to/Example_Estimation.xlsx` in the project config (or `FACTORY_ESTIMATE_TEMPLATE` in the environment).
 
 ```bash
 factory estimate --file requirements.docx --project shop-api --no-repo --rate backend=55 --rate default=40
@@ -524,7 +527,7 @@ With a GitHub `forge:`, the pull request title and the branch carry the ticket k
 | `factory start "<request>" --project <p> [--max-cost <usd>]` | Creates a run and executes until a card, a park or delivery. `--max-cost` lowers this run's spend limit: at that amount the run stops and asks you. |
 | `factory start … --preset <name> --model <step=model>` | Chooses the model of each step, once, at the start. Also on `factory estimate`, `factory design start` and `factory fullstack start`. See [`docs/model-choice.md`](docs/model-choice.md). |
 | `factory models [--mode <m>] [--preset <name>] [--model <step=model>]` | Lists every model step, the model it would run on and why, and the models it can be given. Free. `--run <run>` reads a run's ledger instead: what each step was given, what was called and what it cost. |
-| `factory start --file request.md --project <p>` | Same, with the request from a Markdown or text file. |
+| `factory start --file request.md --project <p>` | Same, with the request from a Markdown, text, Word (.docx) or PDF file. |
 | `factory start --jira ABC-123 --project <p>` | Same, with the request from a Jira ticket (key or link): summary, description and latest comments (only from allowed people when the project has a `jira:` block). Needs Jira set up in `~/.factory/.env`. |
 
 | `factory status [run]` | All recent runs, or one run's steps, cost and open card. A run nothing is executing shows `interrupted` with the resume command; a finished estimate or design shows `finished`. |
@@ -652,7 +655,7 @@ ai-factory/
 │   ├── stages/      the pipeline steps and the executor (build and estimate)
 │   ├── estimate/    estimate mode: hours, cost, durations, gates E1-E7 and B1-B7, workbooks
 │   ├── design/      design toolkit: app scan, UI change size, style checks, brief cleaner
-│   ├── sources/     request inputs: .docx, exported Figma frames, Jira, design references (images, sites, Figma, PDF, Word)
+│   ├── sources/     request inputs: .docx, PDF, exported Figma frames, Jira, design references (images, sites, Figma, PDF, Word)
 │   ├── watch/       Jira and Slack watcher
 │   ├── ui/          the local web screens (`factory ui`)
 │   ├── mcp/         the MCP server for Claude Code

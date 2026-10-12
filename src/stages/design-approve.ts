@@ -21,6 +21,7 @@ import { gate } from "./estimate.js";
 import { listedFrames, MAX_DESIGN_REVISIONS } from "./design.js";
 import { stitchFrames } from "./design-stitch.js";
 import { stitchA11yLines } from "../design/stitch-a11y.js";
+import { LIVE_DIR, stitchLiveFiles } from "../design/stitch-live.js";
 import type { ProjectConfig } from "../config/project.js";
 import { currentPictures } from "../design/current-pages.js";
 import { ESTIMATE_SOURCES, intentOf, specOf, type DesignSources, repoInventory } from "./design-inputs.js";
@@ -240,18 +241,28 @@ export function makeDesignApprovalStep(opts: { sources?: DesignSources; purpose?
       // a lead knows pages by their titles; two pages with the same title also show the route so they stay apart
       const named = (sc: (typeof d.screens)[number]) => sc.mock?.title?.trim();
       const label = (sc: (typeof d.screens)[number]) => { const t = named(sc); return !t ? `${sc.id} ${sc.route}` : d.screens.filter((o) => named(o) === t).length > 1 ? `${t} (${sc.route})` : t; };
-      const html = buildDemo({
+      const demoInput: Parameters<typeof buildDemo>[0] = {
         title: ctx.state.info.estimate?.projectName ?? ctx.runId, flow: d.flow, screens: d.screens.map((s) => ({ ...s, states: s.states ?? [], size: s.size ?? "new", frames: s.frames ?? [] })),
         requirements: Object.fromEntries(spec.requirements.map((r) => [r.id, r.ears])), noScreen: d.noScreen ?? [], frames, ...(d.theme ? { theme: d.theme } : {}), ...(d.apps?.length ? { apps: d.apps } : {}),
         ...(d.switcher ? { switcher: d.switcher } : {}), ...(d.locale ? { locale: d.locale } : {}),
-      });
+      };
+      const html = buildDemo(demoInput);
       const demoSha = ctx.ledger.putArtifact(html);
       const demoFile = join(ctx.ledger.dir, "design-demo.html");
       writeFileSync(demoFile, html);
       // the same page for `factory ui` (Run: Preview): the walkable demo, plus each attached frame against the screen that cites it
       const previewDir = join(ctx.ledger.dir, "preview");
       mkdirSync(join(previewDir, "frames"), { recursive: true });
-      writeFileSync(join(previewDir, "index.html"), html);
+      // a Stitch design is walked live there: each screen's own page in a sandboxed frame, its picture one click away. The demo
+      // file above (approved by its hash, pictured and exported) keeps the pictures alone, so it opens anywhere as one file.
+      rmSync(join(previewDir, LIVE_DIR), { recursive: true, force: true });
+      const live = stitchLiveFiles(d as Parameters<typeof stitchLiveFiles>[0], (sha) => ctx.ledger.getArtifact(sha));
+      if (live.length) mkdirSync(join(previewDir, LIVE_DIR), { recursive: true });
+      for (const f of live) writeFileSync(join(previewDir, f.path), f.content);
+      const liveAt = new Map(live.map((f) => [f.frame, f.path]));
+      writeFileSync(join(previewDir, "index.html"), live.length
+        ? buildDemo({ ...demoInput, frames: Object.fromEntries(Object.entries(frames).map(([id, f]) => [id, { ...f, ...(liveAt.has(id) ? { live: liveAt.get(id)! } : {}) }])) })
+        : html);
       // the look as design tokens, as the build will get them (a repo's own look has none: the build keeps the repo's)
       if (d.theme && d.themeSource !== "repo") {
         const tk = designTokens(d.theme);

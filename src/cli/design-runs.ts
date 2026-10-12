@@ -73,7 +73,7 @@ export function registerDesignRunCommands(design: Command, deps: DesignRunDeps):
   design.command("start")
     .argument("[prompt]", "the requirements, in plain words")
     .option("--project <name>", "project config in ~/.factory/projects/<name>.yaml: the design follows that app's look and components; leave it out for a new product (no repo)")
-    .option("--file <path>", "the requirements as a Markdown, text or Word (.docx) file")
+    .option("--file <path>", "the requirements as a Markdown, text, Word (.docx) or PDF file")
     .option("--jira <key>", "the requirements as a Jira ticket (ABC-123 or its link)")
     .option("--frames <dir>", "a folder of design frames exported from Figma (png, jpg, webp, svg or json)")
     .option("--ref <ref>", REF_HELP, collect)

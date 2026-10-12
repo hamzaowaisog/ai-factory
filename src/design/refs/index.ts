@@ -167,6 +167,20 @@ export function referenceBrief(industries: RefIndustry[], measured: Record<strin
     + "\nPick a brand colour in the same family as these, but do not reuse any one brand's exact value, name or logo. Make it feel like another competitor in the field.";
 }
 
+/**
+ * How the leading products of the requirement's field arrange and word their pages, without their colours: the ideas a screen list
+ * can take when it describes each page (the look is chosen apart). Empty when no listed field matches.
+ */
+export function ideaBrief(text: string, industries: RefIndustry[] = allIndustries()): string {
+  const picked = pickIndustries(text, industries);
+  if (!picked.length) return "";
+  return picked.map(({ industry: i }) => [
+    `${i.label}:`,
+    ...i.brands.map((b) => `- ${b.name}: ${b.chrome === "brand" ? "filled bar" : "plain bar"}, ${b.radius} corners; ${b.trait}`),
+    `What their pages share: ${i.pattern}`,
+  ].join("\n")).join("\n\n");
+}
+
 /** Used when no field is clear: the general look families, so the model can place a field nobody listed. */
 export function archetypeBrief(hint?: RefIndustry): string {
   return [

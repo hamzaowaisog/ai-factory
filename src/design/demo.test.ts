@@ -15,6 +15,26 @@ const screen = { id: "S-1", route: "/invoices/overdue", file: "x.tsx", reqs: ["R
 const base = { title: "Invoices", flow: "A user opens the list.", screens: [screen], requirements: { "REQ-1": "List overdue invoices." }, noScreen: [] };
 
 describe("clickable demo", () => {
+  it("a Stitch screen with a live page is shown live in a sandboxed frame, its picture one click away", () => {
+    const st = { ...screen, mock: undefined, states: ["default"], frames: ["ST-1"] };
+    const pic = { name: "Overdue", dataUri: "data:image/png;base64,AAAA", state: "normal" };
+    const html = buildDemo({ ...base, screens: [st], frames: { "ST-1": { ...pic, live: "stitch/ST-1.html" } } });
+    expect(html).toMatch(/<iframe class="live" sandbox="allow-scripts" src="stitch\/ST-1\.html"/);
+    expect(html).toContain('data-view="pic"');
+    expect(html).toMatch(/Content-Security-Policy[^>]*frame-src 'self'/);
+    // without a live page the demo frames nothing: the approved file stays pictures only
+    const still = buildDemo({ ...base, screens: [st], frames: { "ST-1": pic } });
+    expect(still).not.toContain("<iframe");
+    expect(still).not.toContain("frame-src");
+  });
+  it("gives a Stitch screen drawn at phone width a Phone tab with that drawing, at phone width", () => {
+    const st = { ...screen, mock: undefined, states: ["default"], frames: ["ST-1", "ST-2"] };
+    const html = buildDemo({ ...base, screens: [st], frames: { "ST-1": { name: "wide.png", dataUri: "data:image/png;base64,AAAA", state: "normal" }, "ST-2": { name: "narrow.png", dataUri: "data:image/png;base64,BBBB", state: "phone" } } });
+    expect(html).toMatch(/class="pane ph" data-wf="1" hidden><img src="data:image\/png;base64,BBBB" alt="narrow\.png">/);
+    expect(html).toMatch(/data-state="1"[^>]*>Phone</);
+    // a screen with no phone drawing has no such tab
+    expect(buildDemo({ ...base, screens: [{ ...st, frames: ["ST-1"] }], frames: { "ST-1": { name: "wide.png", dataUri: "data:image/png;base64,AAAA", state: "normal" } } })).not.toMatch(/>Phone</);
+  });
   it("draws a screen from its sample content, one pane per state", () => {
     const html = buildDemo(base);
     expect(html).toContain("Northwind Traders");

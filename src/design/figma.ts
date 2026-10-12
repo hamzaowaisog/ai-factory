@@ -422,7 +422,7 @@ function fontsOf(frames: FigmaFrame[]): string[] {
 
 // ---------- reading the demo ----------
 
-export interface FigmaShot { id?: string; screen: string; stateBase: string; viewport: Viewport; modeName: "light" | "dark"; langCode: string; file: string }
+export interface FigmaShot { id?: string; screen: string; stateBase: string; viewport: Viewport; modeName: "light" | "dark"; langCode: string; file: string; own?: boolean }
 
 const STILL_CSS = "*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}";
 const FIXED_TIME = new Date("2026-01-15T10:00:00Z");
@@ -434,9 +434,11 @@ interface DesignBits { theme?: DesignTheme; apps?: { id: string; name: string }[
  * there is no browser. Pictures are taken from the package as the frames' hidden reference layers.
  */
 export async function figmaDoc(pkg: DesignPackage, shots: FigmaShot[], tag: string, log?: (m: string) => void): Promise<{ doc?: FigmaDoc; why?: string }> {
-  if (process.env.FACTORY_NO_SCREENSHOTS) return { why: "the Figma file needs a browser to read the demo, and screenshots are switched off (FACTORY_NO_SCREENSHOTS)" };
-  const exe = findChromium();
-  if (!exe) return { why: "the Figma file needs Chromium to read the demo, and there is no browser here (npx playwright install chromium, or set FACTORY_CHROMIUM)" };
+  // the design's own pictures (a Stitch design) are not in the demo to read: each is its frame, at the size it was drawn
+  const drawn = shots.filter((s) => s.own && s.id), read = shots.filter((s) => !s.own);
+  if (read.length && process.env.FACTORY_NO_SCREENSHOTS) return { why: "the Figma file needs a browser to read the demo, and screenshots are switched off (FACTORY_NO_SCREENSHOTS)" };
+  const exe = read.length ? findChromium() : undefined;
+  if (read.length && !exe) return { why: "the Figma file needs Chromium to read the demo, and there is no browser here (npx playwright install chromium, or set FACTORY_CHROMIUM)" };
   const m = pkg.manifest;
   const d = readDesignJson(readFileSync(join(pkg.dir, "design.json"), "utf8")) as DesignBits;
   const appOf = new Map((d.screens ?? []).map((s) => [s.id, s.app ?? ""]));
@@ -445,14 +447,23 @@ export async function figmaDoc(pkg: DesignPackage, shots: FigmaShot[], tag: stri
   const statesOf = new Map(m.screens.map((s) => [s.id, s.states]));
   const notes: string[] = [];
   const frames: FigmaFrame[] = [];
-  const { chromium } = await import("playwright-core");
-  const browser = await chromium.launch({ executablePath: exe, args: ["--no-sandbox"] });
+  for (const s of drawn) {
+    const id = s.id!, png = readFileSync(join(pkg.dir, "shots", s.file));
+    if (png.length < 24 || png.toString("latin1", 12, 16) !== "IHDR") { notes.push(`${id} ${s.stateBase} ${s.viewport}: its picture could not be read`); continue; }
+    const w = png.readUInt32BE(16), h = png.readUInt32BE(20);
+    const title = m.screens.find((x) => x.id === id)?.title ?? s.screen;
+    const name = [`${id} ${title}`, s.stateBase, s.viewport].join(" · ");
+    const root: FFrame = { t: "frame", name, x: 0, y: 0, w, h, clip: true, children: [{ t: "image", name: "Picture", x: 0, y: 0, w, h, png: png.toString("base64") }] };
+    frames.push({ name, screen: id, title, app: appOf.get(id) ?? "", state: s.stateBase, viewport: s.viewport, mode: "light", lang: s.langCode, dir: "ltr", w, h, root, nodes: countNodes(root) });
+  }
+  if (drawn.length) notes.push(`${drawn.length} frame(s) hold the design's own picture of the page, not layers: the demo shows these pages as pictures`);
+  const browser = read.length ? await (await import("playwright-core")).chromium.launch({ executablePath: exe!, args: ["--no-sandbox"] }) : undefined;
   const url = pathToFileURL(join(pkg.dir, "demo", "index.html")).href;
   try {
-    for (const vp of ["phone", "tablet", "desktop"] as Viewport[]) {
-      const mine = shots.filter((s) => s.viewport === vp && s.id);
+    for (const vp of (browser ? ["phone", "tablet", "desktop"] : []) as Viewport[]) {
+      const mine = read.filter((s) => s.viewport === vp && s.id);
       if (!mine.length) continue;
-      const page = await browser.newPage({ viewport: VIEWPORTS[vp], reducedMotion: "reduce", deviceScaleFactor: 1, locale: "en-US", timezoneId: "UTC", bypassCSP: true });
+      const page = await browser!.newPage({ viewport: VIEWPORTS[vp], reducedMotion: "reduce", deviceScaleFactor: 1, locale: "en-US", timezoneId: "UTC", bypassCSP: true });
       page.setDefaultTimeout(10_000);
       await page.clock.setFixedTime(FIXED_TIME);
       for (const s of mine) {
@@ -500,7 +511,7 @@ export async function figmaDoc(pkg: DesignPackage, shots: FigmaShot[], tag: stri
       await page.close();
     }
   } finally {
-    await browser.close();
+    await browser?.close();
   }
   log?.(`design export: figma, ${frames.length} frame(s), ${frames.reduce((n, f) => n + f.nodes, 0)} layer(s)`);
   const usedApps = new Set(frames.map((f) => f.app));

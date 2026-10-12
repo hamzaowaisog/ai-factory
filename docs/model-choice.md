@@ -11,12 +11,12 @@ This works the same for all four kinds of run: estimate, design, brownfield and 
 ## The rules
 
 - **Asked once, at the start.** No step asks for a model mid-run, and a running run's models cannot be changed.
-- **Every step is listed**, helper steps included. The one exception is `critic`: it always runs on Claude Opus 5.5 and cannot be changed, from the form, the command line or the project file.
+- **Every step is listed**, helper steps included, and every one can be chosen. `critic` was fixed on Claude Opus 5.5 until 2026-10-12; it now has its own row like the others and still defaults to Claude Opus 5.5.
 - **Effort is not a choice.** Each step keeps its own effort.
 - **An OpenAI key is needed.** `specify-other` and `review` run on GPT-6 by default. Without `OPENAI_API_KEY` in `~/.factory/.env`, a new run does not start. It never falls back to Claude silently.
 - **Coding steps default to Claude.** `author-tests` and `implement` take Claude Sonnet 5.5, Claude Opus 5.5, GPT-6 Luna or GPT-6 Sol. The defaults and the presets keep them on Claude; a GPT-6 model is a pick. On a GPT-6 model a coding step runs in OpenAI's Codex agent, not the Claude one (see "Coding on GPT-6").
-- **`specify-other` must be a GPT-6 model.** It is the second spec draft, and it has to differ from the critic. A Claude pick is refused.
-- **Claude Opus 5.5 on `specify` or `merge` is allowed, with a warning.** The critic is the same model, so it would read a spec its own model wrote.
+- **`specify-other` must be a GPT-6 model.** It is the second spec draft, written by another vendor than the first. A Claude pick is refused.
+- **A spec step on the critic's own model is allowed, with a warning.** When `specify`, `specify-other` or `merge` ends up on the model `critic` runs on, the critic would read a spec its own model wrote. The warning follows the critic's model: with the critic on Claude Opus 5.5 it is about `specify` and `merge`; with the critic picked onto GPT-6 Sol it is about `specify-other`. The defaults are not warned about, only a run where one of these steps or the critic was moved.
 
 ## Where the model of a step comes from
 
@@ -24,7 +24,7 @@ The first of these that says something wins:
 
 | Order | Where | Logged as |
 |---|---|---|
-| 1 | The step is fixed (`critic`) | `fixed` |
+| 1 | The step is fixed (no step is today; `critic` was, and its older runs show this) | `fixed` |
 | 2 | A model picked for that step at the start | `pick` |
 | 3 | A preset chosen at the start | `pick`, with the preset's name |
 | 4 | The project file's `steps:` entry | `config` |
@@ -63,7 +63,7 @@ Claude Haiku 5.5 is not offered by name. A step reaches it through its tier or a
 | `merge` | thinking | Claude Opus 5.5 | heavy |
 | `restater` | thinking | Claude Sonnet 5.5 | standard |
 | `rt-align` | thinking | Claude Haiku 5.5 | light |
-| `critic` | review | Claude Opus 5.5 | fixed |
+| `critic` | review | Claude Opus 5.5 | heavy |
 | `breakdown` | thinking | Claude Opus 5.5 | heavy |
 | `estimate` | thinking | Claude Opus 5.5 | heavy |
 | `design` | design | Claude Opus 5.5 | heavy |
@@ -94,7 +94,7 @@ A preset sets every step at once. Any step can still be changed by hand after it
 
 - A step already on the lowest or highest tier stays there.
 - `author-tests` never goes below the standard tier. The test writer decides what "done" means for the code.
-- `critic` is not touched.
+- `critic` never goes below the heavy tier, so a preset leaves it on Claude Opus 5.5. A pick or a project file entry moves it.
 - A step that moves tier takes that tier's effort. A step that stays keeps its own.
 
 Under Economy, `implement` runs on Claude Haiku 5.5. Pick a model for `implement` by hand if that is too low for the work.
@@ -118,6 +118,8 @@ factory start "Add an orders page" --project shop --preset economy --model plan=
 - `--preset economy|balanced|quality` sets every step.
 - `--model step=model` sets one step, and wins over the preset. Repeat it for more steps.
 - A group name sets every step of that group: `--model coding=claude-opus-5-5`. The groups are `thinking`, `design`, `coding` and `review`. A step's own name wins over a group of the same name (`design` is the step).
+- The `design` step can also be given **Google Stitch** (`--model design=stitch`, or "Google Stitch" in the form's design row): Stitch draws the screens, and a model plans them: it lists the screens, writes each screen's prompt and writes the design system. That model is the design tier's Claude model (Claude Opus 5.5 unless the project file sets `design.tier` or `design.tiers`). To name another, add it after a colon, `--model design=stitch:gpt-6-luna`, or choose it in the "planned by" list that appears beside Google Stitch in the form; any model the design step is offered can plan. It sends the requirements to Google: picking it allows that for the run, with no change to the project file (`design.allowStitch: true` is still needed when the project file itself names the engine, `design.engine: stitch`). `STITCH_API_KEY` must be set; otherwise the start is refused with the reason. The run keeps the engine it started with.
+- The `design` step can also be given **Model-drawn pages** (`--model design=pages:<model>`, or "Model-drawn pages" in the form's design row): the same screen list, design system, checks, preview and export as a Stitch design, with the named model writing each page's HTML in Stitch's place (`design=pages` alone uses the design tier's Claude model). Nothing is sent to Google and no Stitch key is needed; every page is one call to that model, paid by its tokens. A page is plain HTML and CSS with Google Fonts: no scripts, no pictures from the web. To compare the three ways on one requirement, start it three times: `design=stitch:<model>`, `design=pages:<gpt model>` and `design=pages:<claude model>`.
 
 To see what a run would use before starting it, at no cost:
 
@@ -138,7 +140,6 @@ steps:
 ```
 
 - Give a model or a tier, not both.
-- A `steps:` entry for `critic` is ignored, and the start check says so.
 
 ### Jira watcher
 
@@ -164,7 +165,6 @@ A step that fails is retried on the same model first, with more effort. If it ke
 | A GPT-6 step | GPT-6 Luna, GPT-6 Sol, Claude Opus 5.5 |
 | `specify-other`, `review` | GPT-6 Luna, GPT-6 Sol |
 | `author-tests` | Claude Sonnet 5.5, Claude Opus 5.5 |
-| `critic` | Claude Opus 5.5 only |
 
 ## Reading what a run used
 
@@ -222,7 +222,7 @@ Optional fields:
 | `floor` | The lowest tier a preset or a suggestion may put it on. |
 | `fixed` | The model it always runs on. It is never asked. |
 | `only` | The vendors that may run it. A pick from another is refused. |
-| `warn` | A vendor whose pick is allowed, with a warning at the start. |
+| `apart` | A step it is better kept apart from. Running on that step's model is allowed, with a warning at the start. |
 | `ladder` | Its own retry ladder, when the vendor's does not fit. |
 
 A new step must not show its own choice screen mid-run. A choice it needs goes on the start form.

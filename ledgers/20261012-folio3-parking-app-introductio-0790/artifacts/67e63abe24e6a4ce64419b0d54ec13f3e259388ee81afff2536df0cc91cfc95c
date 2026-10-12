@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Folio3 Parking — My Parking</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Typography Fallbacks & Core Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration matching Design System & Theme Tokens -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-on-surface": "#2c322e",
+            "outline": "#87948b",
+            "on-primary-fixed": "#002113",
+            "on-primary": "#003824",
+            "secondary": "#a8d0b8",
+            "secondary-container": "#2a4e3c",
+            "tertiary-fixed-dim": "#ffb3b3",
+            "surface-container-high": "#262b28",
+            "inverse-surface": "#dfe4de",
+            "secondary-fixed": "#c3ecd3",
+            "tertiary-container": "#de7779",
+            "surface-dim": "#0f1511",
+            "error-container": "#93000a",
+            "primary-container": "#3fa77a",
+            "on-tertiary": "#5e151b",
+            "surface-variant": "#313632",
+            "on-secondary-fixed": "#002113",
+            "surface-container-lowest": "#0a0f0c",
+            "on-surface-variant": "#bdcac0",
+            "surface-container": "#1b211d",
+            "on-tertiary-container": "#5b1219",
+            "secondary-fixed-dim": "#a8d0b8",
+            "on-secondary-fixed-variant": "#2a4e3c",
+            "on-surface": "#dfe4de",
+            "tertiary": "#ffb3b3",
+            "surface": "#0f1511",
+            "on-tertiary-fixed-variant": "#7c2b30",
+            "error": "#ffb4ab",
+            "surface-container-low": "#171d19",
+            "outline-variant": "#3e4942",
+            "primary-fixed-dim": "#74daa9",
+            "on-secondary": "#123726",
+            "surface-bright": "#353a37",
+            "on-primary-fixed-variant": "#005236",
+            "on-tertiary-fixed": "#400009",
+            "on-error-container": "#ffdad6",
+            "surface-tint": "#74daa9",
+            "surface-container-highest": "#313632",
+            "on-secondary-container": "#97bea7",
+            "tertiary-fixed": "#ffdad9",
+            "primary": "#74daa9",
+            "on-background": "#dfe4de",
+            "on-primary-container": "#003522",
+            "inverse-primary": "#006c49",
+            "on-error": "#690005",
+            "background": "#0f1511",
+            "primary-fixed": "#91f7c4"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["IBM Plex Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"],
+            "label": ["Public Sans", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Design System Motion Tokens & Custom Specifications */
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 700ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+      --travel: 8px;
+    }
+
+    /* Tabular numeric discipline for operational data */
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Keyframes */
+    @keyframes page-enter {
+      from {
+        opacity: 0;
+        transform: translateY(var(--travel));
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes status-breathe {
+      0%, 100% {
+        opacity: 0.94;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    /* Motion Sequencing */
+    .animate-enter-1 {
+      animation: page-enter var(--dur-slow) var(--ease-out) forwards;
+    }
+
+    .animate-enter-2 {
+      animation: page-enter var(--dur-slow) var(--ease-out) 60ms forwards;
+      opacity: 0;
+    }
+
+    .animate-enter-3 {
+      animation: page-enter var(--dur-slow) var(--ease-out) 120ms forwards;
+      opacity: 0;
+    }
+
+    /* The one and only permissible ambient pulse */
+    .live-status-dot {
+      animation: status-breathe 7.5s ease-in-out infinite;
+    }
+
+    /* Signature Motion: Bay-mark handoff rule */
+    .record-title, .record-rule {
+      view-transition-name: parking-record;
+    }
+
+    ::view-transition-old(parking-record),
+    ::view-transition-new(parking-record) {
+      animation-duration: var(--dur-slow);
+      animation-timing-function: var(--ease-inout);
+    }
+
+    /* Reduced Motion Safety */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 120ms !important;
+      }
+      .live-status-dot {
+        animation: none !important;
+      }
+      .animate-enter-1,
+      .animate-enter-2,
+      .animate-enter-3 {
+        opacity: 1 !important;
+        transform: none !important;
+        animation: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body antialiased min-h-[100dvh] flex flex-col selection:bg-secondary-container selection:text-secondary-fixed">
+<!-- TopNavBar (Shared Component from JSON Blueprint) -->
+<header class="bg-surface-container dark:bg-surface-container docked full-width top-0 sticky z-40 border-b border-outline-variant/55 dark:border-outline-variant/55">
+<div class="flex justify-between items-center w-full px-4 lg:px-8 max-w-7xl mx-auto h-14">
+<!-- Brand & Desktop Navigation Cluster -->
+<div class="flex items-center gap-8 lg:gap-10 h-full">
+<!-- Brand Logo / Wordmark -->
+<div class="flex items-center gap-2.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-primary-container inline-block"></span>
+<span class="font-headline text-base font-semibold tracking-tight text-on-surface dark:text-on-surface">Folio3 Parking</span>
+</div>
+<!-- Strict Navigation Links (Desktop: exactly matched to JSON & Prompt, 'My Parking' active) -->
+<nav aria-label="Employee Navigation" class="hidden md:flex items-center gap-6 h-full pt-3">
+<!-- Active: My Parking -->
+<a aria-current="page" class="text-on-surface dark:text-on-surface font-medium border-b-2 border-primary dark:border-primary pb-3 -mb-px text-sm active:scale-[0.97] transition-transform duration-90 flex items-center h-full" href="#">
+            My Parking
+          </a>
+<!-- Inactive destinations: exact required labels -->
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface text-sm pb-3 -mb-px transition-colors duration-160 active:scale-[0.97] flex items-center h-full" href="#">
+            Available Spaces
+          </a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface text-sm pb-3 -mb-px transition-colors duration-160 active:scale-[0.97] flex items-center h-full" href="#">
+            Release Schedule
+          </a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface text-sm pb-3 -mb-px transition-colors duration-160 active:scale-[0.97] flex items-center h-full" href="#">
+            My Vehicles
+          </a>
+</nav>
+</div>
+<!-- Trailing Action Cluster -->
+<div class="flex items-center gap-3">
+<!-- Release Bay button defined by Shared JSON spec -->
+<button class="hidden sm:inline-flex items-center justify-center px-3.5 h-8 text-xs font-medium font-body rounded-[6px] border border-outline-variant/55 text-on-surface hover:bg-surface-container-high transition-colors duration-160 active:scale-[0.97]" type="button">
+          Release Bay
+        </button>
+<div class="flex items-center gap-1">
+<!-- Notification Icon -->
+<button aria-label="Notifications" class="w-9 h-9 flex items-center justify-center rounded-[6px] text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-160 active:scale-[0.97]" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+</button>
+<!-- Account Circle Icon -->
+<button aria-label="Employee profile" class="w-9 h-9 flex items-center justify-center rounded-[6px] text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-160 active:scale-[0.97]" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas (Civic, technical, dark-step progression) -->
+<main class="flex-1 w-full max-w-7xl mx-auto px-4 lg:px-8 py-6 md:py-8">
+<!-- Page Header (Compact, Measured, No Oversized Hero) -->
+<section class="mb-6 animate-enter-1">
+<div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 pb-4 border-b border-outline-variant/40">
+<div>
+<h1 class="font-headline text-xl md:text-2xl font-semibold tracking-tight text-on-surface record-title">My Parking</h1>
+<p class="font-body text-xs text-on-surface-variant mt-0.5">Assigned desk bay allocation and daily release privileges</p>
+</div>
+<div class="flex items-center gap-2 text-xs font-mono tabular-nums text-outline">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span>FACILITY CODE: P2-SOUTH</span>
+</div>
+</div>
+</section>
+<!-- Main Two-Column Working Grid (12 Columns Desktop, Stack on Tablet/Phone) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- LEFT COLUMN: Primary Assignment Anchor (Lg: col-span-7) -->
+<div class="lg:col-span-7 flex flex-col gap-6 animate-enter-2">
+<!-- Primary Assignment Record Card -->
+<article class="bg-surface-container border border-outline-variant/55 rounded-[6px] relative overflow-hidden">
+<!-- Signature Painted Bay-Mark Edge: Thin accent rule denoting current bay assignment -->
+<div class="absolute left-0 top-0 bottom-0 w-[3px] bg-primary-container record-rule"></div>
+<div class="p-5 sm:p-6 pl-6 sm:pl-7">
+<!-- Compact Status Row -->
+<div class="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-outline-variant/40">
+<div class="flex items-center gap-2.5">
+<!-- Status Lozenge with Live Availability Breathing Dot -->
+<div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-[4px] bg-surface-container-high border border-outline-variant/60 text-xs font-medium font-body text-on-surface">
+<span aria-hidden="true" class="w-2 h-2 rounded-full bg-primary-container live-status-dot inline-block shrink-0"></span>
+<span>Reserved</span>
+</div>
+<span class="text-xs font-body text-on-surface-variant hidden sm:inline">Active Allocation</span>
+</div>
+<!-- Today Date Tag -->
+<div class="font-body text-xs font-medium text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-outline text-[16px]" data-icon="calendar_today">calendar_today</span>
+<span>Today · Tue, May 19, 2026</span>
+</div>
+</div>
+<!-- Primary Assignment Space Anchor Details -->
+<div class="py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-4 rounded-[6px] border border-outline-variant/30">
+<span class="block text-[11px] font-mono uppercase tracking-[0.08em] text-outline mb-1">DESIGNATED LOCATION</span>
+<div class="font-headline text-lg sm:text-xl font-semibold tracking-tight text-on-surface flex items-baseline gap-2">
+<span>Floor P2</span>
+<span class="text-outline-variant font-light">/</span>
+<span class="text-primary-container font-mono tabular-nums">Space D-214</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-1.5 font-body">Sub-level 2 · Core B pillar access</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-[6px] border border-outline-variant/30">
+<span class="block text-[11px] font-mono uppercase tracking-[0.08em] text-outline mb-1">RELEASE POLICY RULE</span>
+<div class="font-headline text-lg sm:text-xl font-semibold tracking-tight text-on-surface flex items-baseline gap-1.5">
+<span class="font-mono tabular-nums">10:00 AM</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-1.5 font-body">Configured daily release time threshold</p>
+</div>
+</div>
+<!-- Single-Action Execution Area -->
+<div class="pt-2">
+<!-- 'Release my space today' Primary Button -->
+<button class="w-full min-h-[44px] px-5 py-3 rounded-[6px] bg-primary-container text-on-primary-container hover:brightness-105 active:scale-[0.97] transition-all duration-90 font-headline font-semibold text-sm tracking-tight flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:ring-offset-2 focus-visible:ring-offset-surface-container" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="event_busy">event_busy</span>
+<span>Release my space today</span>
+</button>
+<!-- Concise Helper Text Strictly Provided -->
+<p class="mt-3 text-xs leading-relaxed text-on-surface-variant font-body">
+                A release submitted before 10:00 AM becomes claimable at 10:00 AM; one submitted at or after that time is claimable immediately.
+              </p>
+</div>
+</div>
+</article>
+<!-- RECENT ACTIVITY LIST (Restrained, Tabular Figures, No Generic Cards) -->
+<section class="bg-surface-container border border-outline-variant/55 rounded-[6px] p-5 sm:p-6">
+<div class="flex items-center justify-between pb-3.5 border-b border-outline-variant/40 mb-3">
+<h2 class="font-headline text-sm font-semibold tracking-tight text-on-surface">Recent Activity</h2>
+<span class="text-[11px] font-mono tabular-nums text-outline uppercase tracking-[0.08em]">30-DAY LOG</span>
+</div>
+<!-- Ruled Worklist Items -->
+<div class="divide-y divide-outline-variant/30">
+<!-- Item 1: May 18 -->
+<div class="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-colors duration-160 hover:bg-surface-container-high/40 px-2 -mx-2 rounded-[4px]">
+<div class="flex items-center gap-3">
+<span class="font-mono text-xs tabular-nums text-on-surface-variant w-14">May 18</span>
+<span class="text-outline-variant text-xs">·</span>
+<span class="font-mono text-xs tabular-nums font-medium text-on-surface">Space D-214</span>
+</div>
+<div class="flex items-center gap-2 sm:justify-end">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-surface-container-high text-primary border border-outline-variant/50">
+                  Used
+                </span>
+<span class="text-xs text-outline font-mono tabular-nums">08:42 AM check-in</span>
+</div>
+</div>
+<!-- Item 2: May 15 -->
+<div class="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-colors duration-160 hover:bg-surface-container-high/40 px-2 -mx-2 rounded-[4px]">
+<div class="flex items-center gap-3">
+<span class="font-mono text-xs tabular-nums text-on-surface-variant w-14">May 15</span>
+<span class="text-outline-variant text-xs">·</span>
+<span class="font-mono text-xs tabular-nums font-medium text-on-surface">Space D-214</span>
+</div>
+<div class="flex items-center gap-2 sm:justify-end">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-surface-container-high text-on-surface-variant border border-outline-variant/40">
+                  Released, not claimed
+                </span>
+<span class="text-xs text-outline font-mono tabular-nums">Released 07:30 AM</span>
+</div>
+</div>
+</div>
+<!-- Intentional whitespace below the short activity list as mandated -->
+<div class="mt-4 pt-3 border-t border-outline-variant/20 flex items-center justify-between text-xs text-outline">
+<span class="font-mono">Showing 2 recorded sessions</span>
+<span class="font-mono tabular-nums">Updated 09:14 AM</span>
+</div>
+</section>
+</div>
+<!-- RIGHT COLUMN: Directory, Vehicle & Administrator Metadata (Lg: col-span-5) -->
+<div class="lg:col-span-5 flex flex-col gap-6 animate-enter-3">
+<!-- Corporate-directory Summary -->
+<section class="bg-surface-container border border-outline-variant/55 rounded-[6px] p-5 sm:p-6">
+<div class="flex items-center justify-between pb-3.5 border-b border-outline-variant/40 mb-4">
+<h2 class="font-headline text-sm font-semibold tracking-tight text-on-surface">Employee Record</h2>
+<span class="text-[11px] font-mono uppercase tracking-[0.08em] text-outline">FOLIO3 WORKFORCE</span>
+</div>
+<div class="flex items-start gap-4">
+<!-- Real Photographic Portrait of Maya Chen -->
+<div class="relative shrink-0">
+<img alt="Maya Chen, East Asian female product designer, neat attire, warm soft studio lighting, high resolution authentic real photograph." class="w-16 h-16 sm:w-20 sm:h-20 rounded-[6px] object-cover border border-outline-variant/60" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfOfcwr7rPfgrV3KMThB2TvFoLN4NHVpVWRSn6jY6_x7IPBR5527CM6bf-9O3HE1vyiH3D41VEpX1rzF4Ex-HAKvBPUCkwGlJgSFKUh6F0gGt1IMAkfn-0blDDB5j9MUGqHGLp2xuchTreHjGbc9rOR1xf6wxfYIzDXLzoEKcitCf4yhJUVOu0SYK7I-dOkj_DbfgaCkJHfyunS3_yGNTobjEPXAWRTyN81GdVwvug7PAWvG7gkWiWMURKFmRGHDcaDQFUDLJ0xv4B"/>
+<span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary-container border-2 border-surface-container" title="Active"></span>
+</div>
+<!-- Employee Directory Data -->
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2">
+<h3 class="font-headline text-base font-semibold text-on-surface truncate">Maya Chen</h3>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-surface-container-high text-primary border border-outline-variant/40">
+                  Active employee
+                </span>
+</div>
+<div class="mt-2 space-y-1 text-xs">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[15px] text-outline" data-icon="mail">mail</span>
+<span class="truncate font-mono">maya.chen@folio3.com</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[15px] text-outline" data-icon="badge">badge</span>
+<span>Product Design</span>
+</div>
+<div class="flex items-center gap-2 text-outline font-mono text-[11px] pt-1">
+<span>ID: EMP-88421</span>
+<span>·</span>
+<span>Bay Group: Tech Staff</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Registered Vehicle Section -->
+<section class="bg-surface-container border border-outline-variant/55 rounded-[6px] overflow-hidden">
+<div class="p-5 sm:p-6 pb-3 flex items-center justify-between border-b border-outline-variant/40">
+<h2 class="font-headline text-sm font-semibold tracking-tight text-on-surface">Registered Vehicle</h2>
+<span class="text-[11px] font-mono tabular-nums text-outline">PRIMARY TRANSPONDER</span>
+</div>
+<!-- Real Photographic Image of 2022 Subaru Crosstrek -->
+<div class="p-5 sm:p-6 pt-4 space-y-4">
+<div class="relative w-full aspect-[16/9] rounded-[6px] overflow-hidden border border-outline-variant/40 bg-surface-container-low">
+<img alt="2022 Subaru Crosstrek compact SUV in cool gray finish, clean professional automotive photography, clear lighting, realistic vehicle photograph." class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjHbtV0VNcF9MdlKoDbQ9EL70VdvUmiFITxmhjNV1xtR6nwn7yBKZ54Efwfsx3-FsHdmLJP3V6pybfWwiEmvvCn09iGPrGltTShigdmki_yiSYAnFBUNmmDULjK32vzKebsXIpQqN9LTOkzCIQmr7DQImF6Nm1eUAHJqaOKAxM4df24HHcEcBWwbJoSyj58XzrU9pT9kZ9f_PnqX2Bvqq_1_kplZ5tc9FI-pW3gTPZOBpi25SnOg_4stgHYos0JpSrkSlu2XCJ9BkA"/>
+<div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-surface-dim/90 backdrop-blur-sm border border-outline-variant/50 text-[10px] font-mono text-on-surface tabular-nums">
+                PERMIT · 2026-F3
+              </div>
+</div>
+<!-- Vehicle Details Table-like Rows -->
+<div class="space-y-2 text-xs font-body">
+<div class="flex items-center justify-between py-1.5 border-b border-outline-variant/20">
+<span class="text-on-surface-variant">Vehicle Model</span>
+<span class="font-headline font-semibold text-on-surface">2022 Subaru Crosstrek</span>
+</div>
+<div class="flex items-center justify-between py-1.5 border-b border-outline-variant/20">
+<span class="text-on-surface-variant">License Plate</span>
+<span class="font-mono font-medium text-on-surface bg-surface-container-high px-2 py-0.5 rounded border border-outline-variant/40">
+                  7XYZ892
+                </span>
+</div>
+<div class="flex items-center justify-between py-1.5 border-b border-outline-variant/20">
+<span class="text-on-surface-variant">Registration Status</span>
+<span class="font-mono text-primary flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+                  Verified Active (CA)
+                </span>
+</div>
+<div class="flex items-center justify-between py-1.5">
+<span class="text-on-surface-variant">Gate Sensor Tag</span>
+<span class="font-mono tabular-nums text-outline">RFID-#9022-441-A</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Administrator-maintained Assignment Metadata -->
+<section class="bg-surface-container-low border border-outline-variant/55 rounded-[6px] p-5 sm:p-6">
+<div class="flex items-center gap-2 pb-3 border-b border-outline-variant/40 mb-3 text-outline">
+<span class="material-symbols-outlined text-[16px]" data-icon="admin_panel_settings">admin_panel_settings</span>
+<span class="text-[11px] font-mono uppercase tracking-[0.08em]">ASSIGNMENT GOVERNANCE</span>
+</div>
+<div class="grid grid-cols-2 gap-3 mb-3">
+<div>
+<span class="block text-[11px] font-body text-on-surface-variant">Assigned Bay</span>
+<span class="font-headline text-sm font-semibold text-on-surface">Space D-214</span>
+</div>
+<div>
+<span class="block text-[11px] font-body text-on-surface-variant">Floor</span>
+<span class="font-mono text-sm font-medium text-on-surface">P2</span>
+</div>
+</div>
+<div class="pt-2 border-t border-outline-variant/30 flex items-start gap-2 text-xs text-outline">
+<span class="material-symbols-outlined text-[15px] shrink-0 mt-0.5 text-primary-container" data-icon="lock">lock</span>
+<p class="leading-normal font-body">Administrator-maintained assignment</p>
+</div>
+</section>
+</div>
+</div>
+<!-- Intentional Technical Layout Whitespace Balance -->
+<div class="h-12"></div>
+</main>
+<!-- Grounding Technical Footer (Read-only status strip, no additional page links) -->
+<footer class="mt-auto border-t border-outline-variant/35 bg-surface-container py-3">
+<div class="w-full max-w-7xl mx-auto px-4 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-mono text-outline">
+<div class="flex items-center gap-3">
+<span class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span>PARKING SERVER SYNCED</span>
+</span>
+<span>·</span>
+<span class="tabular-nums">SYS-TIME: 09:24:18 AM EST</span>
+</div>
+<div>
+<span>FOLIO3 WORKPLACE ASSET MGMT</span>
+</div>
+</div>
+</footer>
+</body></html>

@@ -2,7 +2,7 @@
 // them, so the project config, the design step and the ledger spell them the same way.
 import type { ProjectConfig, StepRoute } from "./project.js";
 
-export const DESIGN_ENGINES = ["claude", "openai", "stitch"] as const;
+export const DESIGN_ENGINES = ["claude", "openai", "stitch", "pages"] as const;
 /** Ladder order: a step up is the next one. light = T1, standard = T2, heavy = T3 (docs/design/workflow-design.md). */
 export const DESIGN_TIERS = ["light", "standard", "heavy"] as const;
 export type DesignEngine = (typeof DESIGN_ENGINES)[number];
@@ -20,7 +20,9 @@ const DEFAULT_ENGINE: DesignEngine = "claude";
 const DEFAULT_TIER: DesignTier = "heavy";
 
 export interface DesignPick { engine: DesignEngine; tier: DesignTier; source: { engine: RouteSource; tier: RouteSource }; dropped?: string }
-/** On the stitch engine each entry's `model` is the Claude planner; Stitch draws with its own default model (it refused every documented model id on 9 Oct 2026). */
+/** Whether the engine draws each screen as a page of its own (Stitch, or the model writing the page's HTML), planned by a model. */
+export const drawsPages = (engine: DesignEngine | undefined): engine is "stitch" | "pages" => engine === "stitch" || engine === "pages";
+/** On the stitch engine each entry's `model` is the Claude planner (on the pages engine it draws the pages too); Stitch draws with its own default model (it refused every documented model id on 9 Oct 2026). */
 export interface DesignRoute extends DesignPick { ladder: { tier: DesignTier; model: string }[]; route: StepRoute }
 type Design = ProjectConfig["design"];
 type Hook = { engine?: DesignEngine; tier?: DesignTier };
@@ -57,8 +59,8 @@ export function designRoute(project: Pick<ProjectConfig, "design">, hook?: Hook)
   }
   const tiers: TierTable = {};
   for (const t of DESIGN_TIERS) tiers[t] = { ...DEFAULT_TIERS[t], ...d?.tiers?.[t] };
-  // Stitch draws; Claude plans the screens and writes the DESIGN.md on the tier's Claude model
-  const planner = pick.engine === "stitch" ? "claude" : pick.engine;
+  // Stitch draws; Claude plans the screens and writes the DESIGN.md on the tier's Claude model (on the pages engine it draws them too)
+  const planner = drawsPages(pick.engine) ? "claude" : pick.engine;
   const ladder = tierModels(planner, pick.tier, tiers);
   // the engine needs a model of its own on the ladder; a ladder of only the cross-vendor heavy step would swap vendors silently
   if (!ladder.some((x) => tiers[x.tier]?.[planner] === x.model)) throw new Error(`No ${planner} model for the design step at tier ${pick.tier} or above; add one under design.tiers`);

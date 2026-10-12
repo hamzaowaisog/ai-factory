@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Utilization · Folio3 Parking</title>
+<!-- Google Fonts: Hanken Grotesk, IBM Plex Sans, IBM Plex Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration verbatim as mandated -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "secondary-fixed": "#c3ecd3",
+            "on-surface-variant": "#bdcac0",
+            "on-tertiary-container": "#5b1219",
+            "secondary-container": "#2a4e3c",
+            "outline": "#87948b",
+            "on-secondary-fixed-variant": "#2a4e3c",
+            "on-secondary": "#123726",
+            "surface-container-highest": "#313632",
+            "surface-dim": "#0f1511",
+            "on-primary-fixed-variant": "#005236",
+            "tertiary-fixed": "#ffdad9",
+            "on-surface": "#dfe4de",
+            "on-primary-fixed": "#002113",
+            "surface": "#0f1511",
+            "primary-fixed-dim": "#74daa9",
+            "on-primary-container": "#003522",
+            "on-background": "#dfe4de",
+            "surface-bright": "#353a37",
+            "on-error-container": "#ffdad6",
+            "surface-container-high": "#262b28",
+            "on-primary": "#003824",
+            "inverse-on-surface": "#2c322e",
+            "on-tertiary-fixed": "#400009",
+            "on-secondary-fixed": "#002113",
+            "surface-tint": "#74daa9",
+            "primary-container": "#3fa77a",
+            "tertiary-fixed-dim": "#ffb3b3",
+            "inverse-surface": "#dfe4de",
+            "on-tertiary-fixed-variant": "#7c2b30",
+            "inverse-primary": "#006c49",
+            "secondary-fixed-dim": "#a8d0b8",
+            "surface-container-low": "#171d19",
+            "error-container": "#93000a",
+            "background": "#0f1511",
+            "surface-variant": "#313632",
+            "surface-container": "#1b211d",
+            "on-tertiary": "#5e151b",
+            "tertiary": "#ffb3b3",
+            "tertiary-container": "#de7779",
+            "surface-container-lowest": "#0a0f0c",
+            "on-error": "#690005",
+            "on-secondary-container": "#97bea7",
+            "primary-fixed": "#91f7c4",
+            "outline-variant": "#3e4942",
+            "error": "#ffb4ab",
+            "primary": "#74daa9",
+            "secondary": "#a8d0b8"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {},
+          "fontFamily": {
+            "headline": [
+              "Hanken Grotesk"
+            ],
+            "display": [
+              "Hanken Grotesk"
+            ],
+            "body": [
+              "IBM Plex Sans"
+            ],
+            "mono": [
+              "IBM Plex Mono"
+            ],
+            "label": [
+              "Public Sans"
+            ]
+          },
+          "fontSize": {}
+        },
+      },
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 700ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+      --travel: 8px;
+    }
+
+    body {
+      background-color: #0f1511;
+      color: #dfe4de;
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @keyframes page-enter {
+      from { 
+        opacity: 0; 
+        transform: translateY(var(--travel)); 
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0); 
+      }
+    }
+
+    @keyframes status-breathe {
+      0%, 100% { opacity: 0.94; }
+      50% { opacity: 1; }
+    }
+
+    .animate-page-enter {
+      animation: page-enter var(--dur-scene) var(--ease-out) forwards;
+    }
+
+    .live-status-dot {
+      animation: status-breathe 7.5s ease-in-out infinite;
+    }
+
+    .record-title, .record-rule {
+      view-transition-name: parking-record;
+    }
+
+    ::view-transition-old(parking-record),
+    ::view-transition-new(parking-record) {
+      animation-duration: var(--dur-slow);
+      animation-timing-function: var(--ease-inout);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation: none !important;
+        transition-duration: 0ms !important;
+      }
+      .live-status-dot {
+        animation: none !important;
+        opacity: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-surface text-on-surface flex flex-col justify-between selection:bg-primary-container selection:text-on-primary-container">
+<!-- TOP NAVIGATION BAR (Semantic Web Header Anchor) -->
+<header class="w-full bg-surface border-b border-outline-variant/55 sticky top-0 z-50">
+<div class="flex justify-between items-center w-full px-4 sm:px-6 max-w-[1440px] mx-auto h-12">
+<!-- Brand & Operations Tag + Live Node -->
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="font-headline font-semibold text-base text-on-surface tracking-tight">Folio3 Parking</span>
+<span class="text-[10px] uppercase tracking-widest font-mono text-outline border border-outline-variant/60 rounded px-1.5 py-0.5">OPERATIONS</span>
+</div>
+<div class="h-3.5 w-px bg-outline-variant/55 hidden sm:block"></div>
+<!-- Terminal Status with 7.5s breathing dot -->
+<div class="hidden sm:flex items-center gap-2 text-xs font-mono text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-primary live-status-dot"></span>
+<span>Terminal 04 · LIVE</span>
+</div>
+</div>
+<!-- Navigation Tabs: Explicit constraints -->
+<nav class="hidden md:flex items-center gap-6 h-full font-body text-sm tracking-normal">
+<a class="text-on-surface-variant font-normal hover:text-on-surface pb-3 pt-3 transition-colors duration-160" href="#overview">Overview</a>
+<a class="text-on-surface-variant font-normal hover:text-on-surface pb-3 pt-3 transition-colors duration-160" href="#employees">Employees</a>
+<a class="text-on-surface-variant font-normal hover:text-on-surface pb-3 pt-3 transition-colors duration-160" href="#settings">Parking Settings</a>
+<a class="text-on-surface-variant font-normal hover:text-on-surface pb-3 pt-3 transition-colors duration-160" href="#access">Access &amp; Reports</a>
+<!-- Active Tab: Utilization -->
+<a class="text-on-surface font-medium border-b-2 border-primary pb-3 pt-3" href="#utilization">Utilization</a>
+</nav>
+<!-- Trailing Administrator Profile -->
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2.5 pl-2">
+<img alt="Leila Haddad avatar" class="w-7 h-7 rounded object-cover ring-1 ring-outline-variant/60" src="https://lh3.googleusercontent.com/aida/AEtjO1VaPwKr8KNQp7JkizL9B58Bp-l8doFUyFfQcJ4Hy-ALCuAptHr5yzYguPWQRp782F7Pvv7Cz0bre-MrGgFkyoQSOJNTHIb5Qnu18cg-ZDLtnPGf31AzBh4Rh7d_ufmWbAiZhJqMka1wAgGfZK_oqTYbzGaxLvZyUh90EuYwYYpPEAZM41RizjDelVicMeXMhr67z6FnUz5aZP_mlMMMzf3xQIg6HHE6DtPN-JKmo0KLwU3i3bijuIL-pc16"/>
+<div class="hidden lg:flex flex-col text-left">
+<span class="text-xs font-medium text-on-surface leading-tight">Leila Haddad</span>
+<span class="text-[10px] text-on-surface-variant leading-tight">Administrator</span>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN CANVAS (Controlled 12-Column Layout, Max 1440px) -->
+<main class="w-full max-w-[1440px] mx-auto px-4 sm:px-6 py-6 flex-grow animate-page-enter">
+<!-- Header & Context Area -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-outline-variant/40 mb-6">
+<div class="space-y-1">
+<div class="flex flex-wrap items-center gap-2.5">
+<h1 class="font-headline font-semibold text-2xl tracking-tight text-on-surface">
+            Weekly utilization · May 11–17, 2026
+          </h1>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono text-on-surface-variant bg-surface-container-high border border-outline-variant/60">
+            WEEK 20
+          </span>
+</div>
+<p class="text-xs sm:text-sm text-on-surface-variant font-body">
+          Generated Mon, May 18, 2026 · <span class="font-mono-num">8:00 AM</span> · Folio3 office time
+        </p>
+</div>
+<!-- Clarification Badge / Policy Pill -->
+<div class="flex items-center gap-2 px-3 py-2 rounded bg-surface-container-low border border-outline-variant/50 max-w-xl self-start lg:self-auto">
+<span class="material-symbols-outlined text-outline text-[18px] shrink-0">info</span>
+<span class="text-xs text-on-surface-variant leading-relaxed">
+          Monitoring and reporting only: no automated warnings, suspensions, or penalties.
+        </span>
+</div>
+</div>
+<!-- UPPER SECTION: Weekly Summary Metrics & Active Filter Cluster -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-5 mb-6">
+<!-- Metrics Overview Block (8 cols on desktop) -->
+<div class="xl:col-span-8 bg-surface-container-low border border-outline-variant/55 rounded p-4 sm:p-5 flex flex-col justify-between gap-4">
+<div>
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant/40 mb-4">
+<span class="text-xs uppercase font-mono tracking-wider text-outline">Executive Capacity Summary</span>
+<span class="text-xs font-mono text-outline">Formula: 100 × used allocations ÷ eligible allocations</span>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<!-- Metric 1: Primary Ratio -->
+<div class="bg-surface-container border border-outline-variant/40 rounded p-3">
+<span class="text-[11px] font-medium text-on-surface-variant block mb-1">ALLOCATION OCCUPANCY</span>
+<div class="flex items-baseline gap-2">
+<span class="font-mono-num text-xl font-semibold text-on-surface">0 / 300</span>
+<span class="text-xs font-mono text-outline">0.0%</span>
+</div>
+<span class="text-[11px] text-outline mt-1 block">0 used / 300 eligible</span>
+</div>
+<!-- Metric 2: Released Spaces -->
+<div class="bg-surface-container border border-outline-variant/40 rounded p-3">
+<span class="text-[11px] font-medium text-on-surface-variant block mb-1">RELEASED SPACES</span>
+<div class="flex items-baseline gap-2">
+<span class="font-mono-num text-xl font-semibold text-on-surface">0</span>
+<span class="text-xs font-mono text-outline">0 voluntary</span>
+</div>
+<span class="text-[11px] text-outline mt-1 block">Surrendered to shared pool</span>
+</div>
+<!-- Metric 3: Accepted Claims -->
+<div class="bg-surface-container border border-outline-variant/40 rounded p-3">
+<span class="text-[11px] font-medium text-on-surface-variant block mb-1">ACCEPTED CLAIMS</span>
+<div class="flex items-baseline gap-2">
+<span class="font-mono-num text-xl font-semibold text-on-surface">0</span>
+<span class="text-xs font-mono text-outline">0 active</span>
+</div>
+<span class="text-[11px] text-outline mt-1 block">Overnight and secondary requests</span>
+</div>
+</div>
+</div>
+<!-- Daily Utilization Trackers (Static Baseline) -->
+<div class="pt-2">
+<div class="flex items-center justify-between text-xs text-outline mb-1.5 font-mono">
+<span>Daily distribution (Mon–Fri target: 60 bays/day)</span>
+<span>Aggregate: 0 / 300 (0%)</span>
+</div>
+<div class="grid grid-cols-5 gap-2">
+<div class="bg-surface-container border border-outline-variant/30 rounded p-2 text-center">
+<span class="block text-[10px] text-outline font-mono">MON 11</span>
+<span class="text-xs font-mono text-on-surface-variant">0 / 60 · 0%</span>
+</div>
+<div class="bg-surface-container border border-outline-variant/30 rounded p-2 text-center">
+<span class="block text-[10px] text-outline font-mono">TUE 12</span>
+<span class="text-xs font-mono text-on-surface-variant">0 / 60 · 0%</span>
+</div>
+<div class="bg-surface-container border border-outline-variant/30 rounded p-2 text-center">
+<span class="block text-[10px] text-outline font-mono">WED 13</span>
+<span class="text-xs font-mono text-on-surface-variant">0 / 60 · 0%</span>
+</div>
+<div class="bg-surface-container border border-outline-variant/30 rounded p-2 text-center">
+<span class="block text-[10px] text-outline font-mono">THU 14</span>
+<span class="text-xs font-mono text-on-surface-variant">0 / 60 · 0%</span>
+</div>
+<div class="bg-surface-container border border-outline-variant/30 rounded p-2 text-center">
+<span class="block text-[10px] text-outline font-mono">FRI 15</span>
+<span class="text-xs font-mono text-on-surface-variant">0 / 60 · 0%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Compact Filter Bar & Operational Controls (4 cols on desktop) -->
+<div class="xl:col-span-4 bg-surface-container-low border border-outline-variant/55 rounded p-4 sm:p-5 flex flex-col justify-between gap-4">
+<div>
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant/40 mb-3">
+<span class="text-xs uppercase font-mono tracking-wider text-outline">Query Parameters</span>
+<span class="text-xs text-primary font-mono cursor-pointer hover:underline">Reset</span>
+</div>
+<!-- Controls Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+<div>
+<label class="block text-[11px] font-medium text-on-surface-variant mb-1">Date Range</label>
+<div class="flex items-center justify-between bg-surface-container border border-outline-variant/55 rounded px-2.5 py-1.5 font-mono text-on-surface">
+<span>May 11–17, 2026</span>
+<span class="material-symbols-outlined text-[16px] text-outline">calendar_today</span>
+</div>
+</div>
+<div>
+<label class="block text-[11px] font-medium text-on-surface-variant mb-1">Floor Level</label>
+<div class="flex items-center justify-between bg-surface-container border border-outline-variant/55 rounded px-2.5 py-1.5 text-on-surface">
+<span>All floors</span>
+<span class="material-symbols-outlined text-[16px] text-outline">expand_more</span>
+</div>
+</div>
+<div>
+<label class="block text-[11px] font-medium text-on-surface-variant mb-1">Allocation Type</label>
+<div class="flex items-center justify-between bg-surface-container border border-outline-variant/55 rounded px-2.5 py-1.5 text-on-surface">
+<span>All types</span>
+<span class="material-symbols-outlined text-[16px] text-outline">expand_more</span>
+</div>
+</div>
+<div>
+<label class="block text-[11px] font-medium text-on-surface-variant mb-1">Status</label>
+<div class="flex items-center justify-between bg-surface-container border border-outline-variant/55 rounded px-2.5 py-1.5 text-on-surface">
+<span>All statuses</span>
+<span class="material-symbols-outlined text-[16px] text-outline">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Filter Action Buttons: Touch Sized (>=44px) -->
+<div class="flex items-center gap-3 pt-2">
+<button class="flex-1 h-11 bg-surface-container border border-outline-variant/60 rounded text-xs font-medium text-on-surface hover:border-outline transition-colors active:scale-[0.98] duration-90 flex items-center justify-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[16px]">filter_list</span>
+<span>Apply filters</span>
+</button>
+<button class="h-11 px-4 bg-transparent border border-outline-variant/50 rounded text-xs font-medium text-on-surface-variant hover:text-on-surface hover:border-outline transition-colors active:scale-[0.98] duration-90 flex items-center justify-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[16px]">download</span>
+<span>Export CSV</span>
+</button>
+</div>
+</div>
+</div>
+<!-- WORKLIST SECTION: Records Table & Exact Empty State -->
+<div class="bg-surface-container-low border border-outline-variant/55 rounded overflow-hidden">
+<!-- Table Header Bar -->
+<div class="px-5 py-3 border-b border-outline-variant/55 bg-surface-container flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="text-xs uppercase font-mono tracking-wider text-on-surface font-semibold">Allocation &amp; Sensor Telemetry Audit</span>
+<span class="text-xs font-mono text-outline">(0 records active)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+<span class="text-[11px] font-mono text-outline uppercase">Sensors idle</span>
+</div>
+</div>
+<!-- Preserved Desktop Table Column Schema -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant/40 bg-surface-container-lowest/60 text-[11px] font-mono tracking-wider text-outline uppercase">
+<th class="py-2.5 px-4 font-normal">EMPLOYEE</th>
+<th class="py-2.5 px-4 font-normal">ALLOCATION TYPE</th>
+<th class="py-2.5 px-4 font-normal">DATE</th>
+<th class="py-2.5 px-4 font-normal">FLOOR / BAY</th>
+<th class="py-2.5 px-4 font-normal">SENSOR TELEMETRY</th>
+<th class="py-2.5 px-4 font-normal text-right">UTILIZATION STATUS</th>
+</tr>
+</thead>
+<tbody>
+<!-- Centered Empty State Container spans the records area -->
+<tr>
+<td class="py-16 sm:py-24 px-6 text-center" colspan="6">
+<div class="max-w-md mx-auto flex flex-col items-center">
+<!-- Radar / Empty Records Minimalist Graphic -->
+<div class="w-14 h-14 rounded-full bg-surface-container border border-outline-variant/60 flex items-center justify-center text-outline mb-4">
+<span class="material-symbols-outlined text-2xl">sensors_off</span>
+</div>
+<!-- Empty State Headline -->
+<h2 class="font-headline font-semibold text-lg text-on-surface tracking-tight mb-2">
+                    No utilization records found
+                  </h2>
+<!-- Empty State Context Body -->
+<p class="text-sm text-on-surface-variant leading-relaxed mb-6 font-body">
+                    No parking session or sensor telemetry records have been logged for this reporting period. Sync ANPR loop sensors or import the first allocation batch to generate utilization data.
+                  </p>
+<!-- Single Primary Action Button (Touch-sized 44px min height) -->
+<button class="h-11 px-5 bg-primary-container text-on-primary-container rounded font-medium text-sm flex items-center gap-2 hover:brightness-105 active:scale-[0.97] transition-all duration-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>+ Import first allocation batch</span>
+</button>
+<!-- Technical Footnote -->
+<span class="text-[11px] font-mono text-outline mt-5">
+                    Terminal node ready for standard JSON, CSV, or Modbus loop feeds
+                  </span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+<!-- FOOTER: Operational Chrome & Security Metadata -->
+<footer class="w-full bg-surface-container-lowest border-t border-outline-variant/40 py-4 px-4 sm:px-6 mt-8">
+<div class="max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-outline">
+<div class="flex items-center gap-2">
+<span>Folio3 Enterprise Systems © 2026 · Operations Console</span>
+</div>
+<div class="flex items-center gap-4">
+<span>Security Protocol 802.1X Verified</span>
+<span class="h-3 w-px bg-outline-variant/40"></span>
+<span class="text-primary/90">Network Sync: Nominal</span>
+</div>
+</div>
+</footer>
+</body></html>

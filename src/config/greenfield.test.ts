@@ -101,8 +101,8 @@ describe("an estimate built as a new product: a web app and its API, or a web ap
     expect(alone).toMatch(/^d7a6 prices more than a web app: 5 backend tasks \(EST-1, EST-2, EST-3, EST-4, …; priced as ASP\.NET Core Web API\)/);
     expect(alone).toMatch(/factory fullstack start --from-estimate d7a6.*client provides the backend, estimate again without the backend work/);
   });
-  it("refuses a phone app either way, and names the tasks", () => {
-    expect(newProductRefusal("est", { tasks: [t("EST-1", "mobile", "ui-device")] }, true)).toMatch(/^est prices a phone app: 1 mobile task \(EST-1\).*Estimate again without the phone app/);
-    expect(newProductRefusal("est", { tasks: [t("EST-1", "mobile", "ui-device")] }, false)).toMatch(/1 mobile task \(EST-1\).*A phone app is not built yet/);
+  it("takes an estimate that prices a phone app: a new product builds it as the responsive web app", () => {
+    expect(newProductRefusal("est", { tasks: [t("EST-1", "mobile", "ui-device")] }, true)).toBeUndefined();
+    expect(newProductRefusal("est", { tasks: [t("EST-1", "mobile", "ui-device")] }, false)).toBeUndefined();
   });
 });

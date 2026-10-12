@@ -1,0 +1,638 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Folio3 Parking — Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #F3F6F8;
+      --surface: #FFFFFF;
+      --text: #25313B;
+      --text-quiet: #5D6A75;
+      --border: #D6DEE5;
+      --primary: #356F9A;
+      --status-good: #2D6F4F;
+      --status-waiting: #8A5C14;
+      --status-refused: #A53B36;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 22px;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .heading-font {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+    }
+
+    .mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .main-heading {
+      font-size: 28px;
+      line-height: 34px;
+      font-weight: 600;
+    }
+
+    .section-heading {
+      font-size: 20px;
+      line-height: 26px;
+      font-weight: 600;
+    }
+
+    .subhead {
+      font-size: 16px;
+      line-height: 22px;
+      font-weight: 600;
+    }
+
+    /* 8px corners on panels, fields, buttons, menus */
+    .rounded-standard {
+      border-radius: 8px;
+    }
+
+    .panel-box {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .form-input {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      height: 44px;
+      color: var(--text);
+      padding: 0 12px;
+      outline: none;
+      transition: border-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .form-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(53, 111, 154, 0.2);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      height: 44px;
+      border-radius: 8px;
+      font-weight: 500;
+      padding: 0 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 120ms ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.985);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .nav-item {
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-quiet);
+      text-decoration: none;
+      transition: background-color 160ms ease, color 160ms ease;
+    }
+
+    .nav-item:hover {
+      color: var(--text);
+      background-color: rgba(214, 222, 229, 0.35);
+    }
+
+    .nav-item.active {
+      background-color: var(--primary);
+      color: #FFFFFF;
+    }
+
+    .status-badge-good {
+      color: var(--status-good);
+      border: 1px solid var(--status-good);
+      background-color: rgba(45, 111, 79, 0.05);
+      border-radius: 8px;
+      padding: 3px 10px;
+      font-size: 13px;
+      line-height: 18px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-badge-waiting {
+      color: var(--status-waiting);
+      border: 1px solid var(--status-waiting);
+      background-color: rgba(138, 92, 20, 0.05);
+      border-radius: 8px;
+      padding: 3px 10px;
+      font-size: 13px;
+      line-height: 18px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-badge-refused {
+      color: var(--status-refused);
+      border: 1px solid var(--status-refused);
+      background-color: rgba(165, 59, 54, 0.05);
+      border-radius: 8px;
+      padding: 3px 10px;
+      font-size: 13px;
+      line-height: 18px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .page-entrance {
+      animation: entranceFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes statusDotBreathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.96; }
+    }
+
+    .status-dot-pulse {
+      animation: statusDotBreathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .page-entrance, .status-dot-pulse, .btn-primary, .form-input, .nav-item {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* Photo 4:3 ratio standard */
+    .photo-crop-4-3 {
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+
+    .row-record {
+      min-height: 44px;
+      border-bottom: 1px solid var(--border);
+    }
+    .row-record:last-child {
+      border-bottom: none;
+    }
+  </style>
+</head>
+<body class="page-entrance min-h-screen flex flex-col">
+
+  <!-- Header standard across Folio3 Parking desktop pages -->
+  <header class="bg-white border-b border-[#D6DEE5] px-6 py-3 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      
+      <!-- Brand & Left Admin Nav -->
+      <div class="flex items-center space-x-6">
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-lg bg-[#356F9A] flex items-center justify-center text-white font-bold text-sm tracking-wide">
+            P
+          </div>
+          <span class="text-base font-semibold tracking-tight text-[#25313B] heading-font">Folio3 Parking</span>
+        </div>
+
+        <!-- Desktop Navigation Items in exact order -->
+        <nav class="hidden md:flex items-center space-x-2">
+          <a href="#" class="nav-item">Employees</a>
+          <a href="#" class="nav-item">Utilization</a>
+          <a href="#" class="nav-item">Entry checks</a>
+          <a href="#" class="nav-item active">Settings</a>
+        </nav>
+      </div>
+
+      <!-- Right Administrator Profile & Mobile Menu Trigger -->
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-3">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1UEPY1rknBcGXudinEZoNDI2ocd0H3tbKG5Tj0CGSufGO90jYurMGNjREOe98t-UzxyfmgRVA2OoYQWBxGvqSu0rKhbTBZVQJlu386XZKLUFt5c-NTdiWP-X5qITC7aUkOtB0-tt378Jb3QNjNKhRZcdeq5-FUMIi4hjtquq-4QGcYRPfCiDLkubgQsizzpAOW8CO1ug4ExOhVLQPXMDu6O8URSqgQyIUXe5JyxJEp5N2oYL8u2Z1KdDw" alt="Tessa Nguyen headshot" class="w-9 h-9 rounded-full object-cover border border-[#D6DEE5]">
+          <div class="hidden sm:block text-left">
+            <div class="text-xs font-semibold text-[#25313B] leading-tight">Tessa Nguyen</div>
+            <div class="text-[11px] text-[#5D6A75] leading-tight">Parking Administrator</div>
+          </div>
+        </div>
+
+        <!-- Mobile touch-sized Menu trigger button -->
+        <button type="button" class="md:hidden w-11 h-11 rounded-lg border border-[#D6DEE5] bg-white flex items-center justify-center text-[#25313B] hover:bg-[#F3F6F8] active:scale-95 transition" aria-label="Open menu">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content Container with standard padding and max-w-7xl -->
+  <main class="flex-grow px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto w-full">
+    
+    <!-- Left-aligned Header & Office Metadata -->
+    <div class="flex flex-col sm:flex-row sm:items-baseline justify-between mb-8 pb-1">
+      <div>
+        <h1 class="main-heading text-[#25313B]">Settings</h1>
+        <p class="text-sm text-[#5D6A75] mt-1">
+          Workplace operations, allocation capacities, reporting schedule, and security role assignments.
+        </p>
+      </div>
+      <div class="mt-2 sm:mt-0 text-xs text-[#5D6A75] mono-num">
+        Folio3 San Francisco office · America/Los_Angeles
+      </div>
+    </div>
+
+    <!-- Configuration form container -->
+    <form class="space-y-6">
+
+      <!-- SECTION 1: Initial Administrator Status -->
+      <section class="panel-box p-6">
+        <div class="flex items-center justify-between border-b border-[#D6DEE5] pb-4 mb-5">
+          <div>
+            <h2 class="section-heading text-[#25313B]">Initial administrator status</h2>
+            <p class="text-xs text-[#5D6A75] mt-0.5">Bootstrap environment verification and primary account identity.</p>
+          </div>
+          <span class="status-badge-good">
+            <span class="w-2 h-2 rounded-full bg-[#2D6F4F] status-dot-pulse"></span>
+            good
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-[#5D6A75]">Setup status</label>
+            <div class="form-input flex items-center bg-[#F3F6F8] border-[#D6DEE5] text-[#25313B] font-medium cursor-default">
+              Initial administrator setup complete
+            </div>
+            <p class="text-xs text-[#5D6A75] mt-1">Designated bootstrap setup verified for Folio3 San Francisco facility operations.</p>
+          </div>
+
+          <div class="space-y-1">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-[#5D6A75]">Designated active account</label>
+            <div class="form-input flex items-center justify-between bg-[#F3F6F8] border-[#D6DEE5] text-[#25313B] cursor-default">
+              <div class="flex items-center space-x-2.5">
+                <img src="https://lh3.googleusercontent.com/aida/AEtjO1UEPY1rknBcGXudinEZoNDI2ocd0H3tbKG5Tj0CGSufGO90jYurMGNjREOe98t-UzxyfmgRVA2OoYQWBxGvqSu0rKhbTBZVQJlu386XZKLUFt5c-NTdiWP-X5qITC7aUkOtB0-tt378Jb3QNjNKhRZcdeq5-FUMIi4hjtquq-4QGcYRPfCiDLkubgQsizzpAOW8CO1ug4ExOhVLQPXMDu6O8URSqgQyIUXe5JyxJEp5N2oYL8u2Z1KdDw" alt="Tessa Nguyen" class="w-6 h-6 rounded-full object-cover border border-[#D6DEE5]">
+                <span class="font-medium">Tessa Nguyen</span>
+                <span class="text-xs text-[#5D6A75]">&lt;tessa.nguyen@folio3.com&gt;</span>
+              </div>
+              <span class="text-xs text-[#356F9A] font-semibold bg-[#EBF2F7] px-2 py-0.5 rounded">Initial Parking Administrator</span>
+            </div>
+            <p class="text-xs text-[#5D6A75] mt-1">Active bootstrap account with unconstrained administrator permissions.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: Daily Release Time and Per-Floor Capacity -->
+      <section class="panel-box p-6">
+        <div class="border-b border-[#D6DEE5] pb-4 mb-5">
+          <h2 class="section-heading text-[#25313B]">Daily release time and per-floor capacity</h2>
+          <p class="text-xs text-[#5D6A75] mt-0.5">Automated release window and facility parking deck stall allocations.</p>
+        </div>
+
+        <div class="space-y-6">
+          <!-- Daily release time field -->
+          <div class="max-w-md">
+            <label for="release-time" class="block text-xs font-semibold uppercase tracking-wider text-[#5D6A75] mb-1">
+              Configured daily release time (PDT)
+            </label>
+            <div class="flex items-center space-x-3">
+              <input type="text" id="release-time" value="09:00" class="form-input w-36 mono-num text-base font-semibold" aria-label="Configured daily release time">
+              <span class="text-xs text-[#5D6A75]">Releases submitted prior to 09:00 become claimable at this configured hour.</span>
+            </div>
+          </div>
+
+          <!-- Per-floor capacity grid -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-xs font-semibold uppercase tracking-wider text-[#5D6A75]">
+                Garage floor allocation capacity
+              </label>
+              <span class="text-xs text-[#5D6A75]">
+                Total office capacity: <strong class="mono-num text-[#25313B] font-semibold">38 spaces</strong>
+              </span>
+            </div>
+
+            <!-- Compact responsive grid: stacked on phone, 3-column grid on wider screens -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              
+              <!-- Floor 2 -->
+              <div class="border border-[#D6DEE5] rounded-standard p-4 bg-white">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="subhead text-[#25313B]">Floor 2</span>
+                  <span class="text-xs text-[#5D6A75] mono-num">Stalls P2-01–P2-12</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <input type="number" value="12" min="1" class="form-input w-24 mono-num text-base font-semibold text-center" aria-label="Floor 2 capacity">
+                  <span class="text-sm text-[#5D6A75]">spaces</span>
+                </div>
+                <div class="text-[12px] text-[#5D6A75] mt-2">Sample dedicated: P2-08 (Maya Chen)</div>
+              </div>
+
+              <!-- Floor 3 -->
+              <div class="border border-[#D6DEE5] rounded-standard p-4 bg-white">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="subhead text-[#25313B]">Floor 3</span>
+                  <span class="text-xs text-[#5D6A75] mono-num">Stalls P3-01–P3-16</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <input type="number" value="16" min="1" class="form-input w-24 mono-num text-base font-semibold text-center" aria-label="Floor 3 capacity">
+                  <span class="text-sm text-[#5D6A75]">spaces</span>
+                </div>
+                <div class="text-[12px] text-[#5D6A75] mt-2">Sample dedicated: P3-06 (Alina Brooks)</div>
+              </div>
+
+              <!-- Floor 4 -->
+              <div class="border border-[#D6DEE5] rounded-standard p-4 bg-white">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="subhead text-[#25313B]">Floor 4</span>
+                  <span class="text-xs text-[#5D6A75] mono-num">General pool</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <input type="number" value="10" min="1" class="form-input w-24 mono-num text-base font-semibold text-center" aria-label="Floor 4 capacity">
+                  <span class="text-sm text-[#5D6A75]">spaces</span>
+                </div>
+                <div class="text-[12px] text-[#5D6A75] mt-2">Flexible visitor and claimant pool</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: Work Calendar -->
+      <section class="panel-box p-6">
+        <div class="border-b border-[#D6DEE5] pb-4 mb-5">
+          <h2 class="section-heading text-[#25313B]">Work calendar</h2>
+          <p class="text-xs text-[#5D6A75] mt-0.5">Active operational days for parking verification and space release schedules.</p>
+        </div>
+
+        <div class="space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold text-[#25313B]">Active schedule: Monday–Friday</div>
+              <div class="text-xs text-[#5D6A75]">Automated daily allocation and license plate recognition operate Monday through Friday.</div>
+            </div>
+            <div class="text-xs text-[#5D6A75] bg-[#F3F6F8] px-3 py-1.5 rounded-standard border border-[#D6DEE5] shrink-0">
+              Weekends (Saturday, Sunday) excluded
+            </div>
+          </div>
+
+          <!-- Day of week compact selector / indicators -->
+          <div class="grid grid-cols-7 gap-2 max-w-xl">
+            <div class="border border-[#356F9A] bg-[#EBF2F7] rounded-standard py-2 text-center">
+              <span class="block text-xs font-semibold text-[#356F9A]">Mon</span>
+              <span class="block text-[11px] text-[#2D6F4F] font-medium mt-0.5">Active</span>
+            </div>
+            <div class="border border-[#356F9A] bg-[#EBF2F7] rounded-standard py-2 text-center">
+              <span class="block text-xs font-semibold text-[#356F9A]">Tue</span>
+              <span class="block text-[11px] text-[#2D6F4F] font-medium mt-0.5">Active</span>
+            </div>
+            <div class="border border-[#356F9A] bg-[#EBF2F7] rounded-standard py-2 text-center">
+              <span class="block text-xs font-semibold text-[#356F9A]">Wed</span>
+              <span class="block text-[11px] text-[#2D6F4F] font-medium mt-0.5">Active</span>
+            </div>
+            <div class="border border-[#356F9A] bg-[#EBF2F7] rounded-standard py-2 text-center">
+              <span class="block text-xs font-semibold text-[#356F9A]">Thu</span>
+              <span class="block text-[11px] text-[#2D6F4F] font-medium mt-0.5">Active</span>
+            </div>
+            <div class="border border-[#356F9A] bg-[#EBF2F7] rounded-standard py-2 text-center">
+              <span class="block text-xs font-semibold text-[#356F9A]">Fri</span>
+              <span class="block text-[11px] text-[#2D6F4F] font-medium mt-0.5">Active</span>
+            </div>
+            <div class="border border-[#D6DEE5] bg-[#F3F6F8] rounded-standard py-2 text-center opacity-60">
+              <span class="block text-xs font-medium text-[#5D6A75]">Sat</span>
+              <span class="block text-[11px] text-[#5D6A75] mt-0.5">Off</span>
+            </div>
+            <div class="border border-[#D6DEE5] bg-[#F3F6F8] rounded-standard py-2 text-center opacity-60">
+              <span class="block text-xs font-medium text-[#5D6A75]">Sun</span>
+              <span class="block text-[11px] text-[#5D6A75] mt-0.5">Off</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: Report Recipients -->
+      <section class="panel-box p-6">
+        <div class="border-b border-[#D6DEE5] pb-4 mb-5">
+          <div class="flex flex-col sm:flex-row sm:items-baseline justify-between">
+            <h2 class="section-heading text-[#25313B]">Report recipients</h2>
+            <span class="text-xs text-[#5D6A75] mt-1 sm:mt-0">Weekly summary report generation: Mondays at 06:00 PDT</span>
+          </div>
+          <p class="text-xs text-[#5D6A75] mt-0.5">
+            Configured distribution list for automated telemetry and utilization records.
+          </p>
+        </div>
+
+        <!-- Explanatory policy note on role requirement -->
+        <div class="border border-[#D6DEE5] bg-[#F3F6F8] rounded-standard p-4 mb-5 text-xs text-[#5D6A75] flex items-start space-x-3">
+          <svg class="w-4 h-4 text-[#356F9A] mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+          </svg>
+          <div class="leading-relaxed">
+            <strong class="text-[#25313B] font-semibold">Delivery permission constraint:</strong>
+            Employee-identifying weekly reports are delivered only to configured recipients who currently hold the 
+            <span class="text-[#25313B] font-medium">Parking Administrator</span> role. 
+            Configured accounts with other roles remain on the record list for auditing but are not delivery recipients.
+          </div>
+        </div>
+
+        <!-- Recipients Table / Ledger -->
+        <div class="border border-[#D6DEE5] rounded-standard overflow-hidden bg-white">
+          <div class="bg-[#F3F6F8] border-b border-[#D6DEE5] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#5D6A75] grid grid-cols-12 gap-2">
+            <div class="col-span-4 sm:col-span-4">Recipient</div>
+            <div class="col-span-4 sm:col-span-4">Email</div>
+            <div class="col-span-2 sm:col-span-2">Assigned role</div>
+            <div class="col-span-2 sm:col-span-2 text-right">Delivery status</div>
+          </div>
+
+          <!-- Recipient 1: Tessa Nguyen -->
+          <div class="px-4 py-3 border-b border-[#D6DEE5] grid grid-cols-12 gap-2 items-center text-sm">
+            <div class="col-span-4 sm:col-span-4 flex items-center space-x-3">
+              <img src="https://lh3.googleusercontent.com/aida/AEtjO1UEPY1rknBcGXudinEZoNDI2ocd0H3tbKG5Tj0CGSufGO90jYurMGNjREOe98t-UzxyfmgRVA2OoYQWBxGvqSu0rKhbTBZVQJlu386XZKLUFt5c-NTdiWP-X5qITC7aUkOtB0-tt378Jb3QNjNKhRZcdeq5-FUMIi4hjtquq-4QGcYRPfCiDLkubgQsizzpAOW8CO1ug4ExOhVLQPXMDu6O8URSqgQyIUXe5JyxJEp5N2oYL8u2Z1KdDw" alt="Tessa Nguyen" class="w-8 h-8 rounded-full object-cover border border-[#D6DEE5] shrink-0">
+              <div>
+                <div class="font-semibold text-[#25313B]">Tessa Nguyen</div>
+                <div class="text-[11px] text-[#5D6A75]">Workplace Operations</div>
+              </div>
+            </div>
+            <div class="col-span-4 sm:col-span-4 text-xs text-[#25313B] mono-num truncate">
+              tessa.nguyen@folio3.com
+            </div>
+            <div class="col-span-2 sm:col-span-2 text-xs text-[#25313B] font-medium">
+              Parking Administrator
+            </div>
+            <div class="col-span-2 sm:col-span-2 text-right">
+              <span class="status-badge-good text-xs">
+                good active
+              </span>
+            </div>
+          </div>
+
+          <!-- Recipient 2: Raul Torres -->
+          <div class="px-4 py-3 grid grid-cols-12 gap-2 items-center text-sm bg-white">
+            <div class="col-span-4 sm:col-span-4 flex items-center space-x-3">
+              <img src="https://lh3.googleusercontent.com/aida/AEtjO1WJHBb4K3UWhr9NwOmnz_EqyHi-4BIReGEflG1zUmvK4wxXc3sal8-3hK5O6lHqWwaajobhCXDAGULiYvx_oGa5VZRn4F4_fm0Wj2satb09oVKMDtdiSlkgRI_x0q2Knby3DmE7BWxpIii_KJ3353fzpoFeE0GetFzn5VS66Fo-OTCCaccaqYku200AuhgbSx9A9EmUSpvJQHFiuLe13vN3y2t-qRCzvEQviliE4mw_0tOw4fAyP20fYdw" alt="Raul Torres" class="w-8 h-8 rounded-full object-cover border border-[#D6DEE5] shrink-0">
+              <div>
+                <div class="font-semibold text-[#25313B]">Raul Torres</div>
+                <div class="text-[11px] text-[#5D6A75]">Facilities Security</div>
+              </div>
+            </div>
+            <div class="col-span-4 sm:col-span-4 text-xs text-[#25313B] mono-num truncate">
+              raul.torres@folio3.com
+            </div>
+            <div class="col-span-2 sm:col-span-2 text-xs text-[#5D6A75]">
+              Security Guard
+            </div>
+            <div class="col-span-2 sm:col-span-2 text-right">
+              <span class="status-badge-waiting text-xs" title="Not delivered: requires Parking Administrator role">
+                waiting ineligible
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-[12px] text-[#5D6A75] mt-2">
+          Raul Torres is not an active delivery recipient while he is a Security Guard.
+        </div>
+      </section>
+
+      <!-- SECTION 5: Role Assignments -->
+      <section class="panel-box p-6">
+        <div class="border-b border-[#D6DEE5] pb-4 mb-5">
+          <h2 class="section-heading text-[#25313B]">Role assignments</h2>
+          <p class="text-xs text-[#5D6A75] mt-0.5">Operational roles governing gate overrides, audit verification, and facility configuration.</p>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Role 1: Tessa Nguyen -->
+          <div class="border border-[#D6DEE5] rounded-standard p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+            <div class="flex items-center space-x-4">
+              <!-- Distinct genuine portrait for Tessa Nguyen cropped 4:3 -->
+              <img src="https://lh3.googleusercontent.com/aida/AEtjO1UEPY1rknBcGXudinEZoNDI2ocd0H3tbKG5Tj0CGSufGO90jYurMGNjREOe98t-UzxyfmgRVA2OoYQWBxGvqSu0rKhbTBZVQJlu386XZKLUFt5c-NTdiWP-X5qITC7aUkOtB0-tt378Jb3QNjNKhRZcdeq5-FUMIi4hjtquq-4QGcYRPfCiDLkubgQsizzpAOW8CO1ug4ExOhVLQPXMDu6O8URSqgQyIUXe5JyxJEp5N2oYL8u2Z1KdDw" alt="Tessa Nguyen headshot" class="w-16 h-12 photo-crop-4-3 border border-[#D6DEE5] shrink-0">
+              <div>
+                <div class="text-base font-semibold text-[#25313B]">Tessa Nguyen</div>
+                <div class="text-xs text-[#5D6A75]">Workplace Operations · <span class="mono-num">tessa.nguyen@folio3.com</span></div>
+                <div class="text-xs text-[#5D6A75] mt-0.5">No dedicated stall assignment · No registered vehicle</div>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-3 sm:self-center">
+              <label for="role-tessa" class="sr-only">Role for Tessa Nguyen</label>
+              <select id="role-tessa" class="form-input text-sm font-medium w-48" aria-label="Role for Tessa Nguyen">
+                <option value="admin" selected="">Parking Administrator</option>
+                <option value="guard">Security Guard</option>
+                <option value="employee">Employee</option>
+              </select>
+              <span class="status-badge-good text-xs shrink-0">
+                good active
+              </span>
+            </div>
+          </div>
+
+          <!-- Role 2: Raul Torres -->
+          <div class="border border-[#D6DEE5] rounded-standard p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
+            <div class="flex items-center space-x-4">
+              <!-- Distinct genuine portrait for Raul Torres cropped 4:3 -->
+              <img src="https://lh3.googleusercontent.com/aida/AEtjO1WJHBb4K3UWhr9NwOmnz_EqyHi-4BIReGEflG1zUmvK4wxXc3sal8-3hK5O6lHqWwaajobhCXDAGULiYvx_oGa5VZRn4F4_fm0Wj2satb09oVKMDtdiSlkgRI_x0q2Knby3DmE7BWxpIii_KJ3353fzpoFeE0GetFzn5VS66Fo-OTCCaccaqYku200AuhgbSx9A9EmUSpvJQHFiuLe13vN3y2t-qRCzvEQviliE4mw_0tOw4fAyP20fYdw" alt="Raul Torres headshot" class="w-16 h-12 photo-crop-4-3 border border-[#D6DEE5] shrink-0">
+              <div>
+                <div class="text-base font-semibold text-[#25313B]">Raul Torres</div>
+                <div class="text-xs text-[#5D6A75]">Facilities Security · <span class="mono-num">raul.torres@folio3.com</span></div>
+                <div class="text-xs text-[#5D6A75] mt-0.5">On-site gate supervision · Manual verification override access</div>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-3 sm:self-center">
+              <label for="role-raul" class="sr-only">Role for Raul Torres</label>
+              <select id="role-raul" class="form-input text-sm font-medium w-48 text-[#5D6A75]" aria-label="Role for Raul Torres">
+                <option value="guard" selected="">Security Guard</option>
+                <option value="admin">Parking Administrator</option>
+                <option value="employee">Employee</option>
+              </select>
+              <span class="status-badge-good text-xs shrink-0">
+                good active
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Primary Action Footer with Breathing Room -->
+      <div class="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-[#D6DEE5]">
+        <div class="text-xs text-[#5D6A75]">
+          Records follow Folio3's existing records-retention policy. System configuration changes are logged for audit compliance.
+        </div>
+        <div class="flex items-center space-x-3">
+          <button type="button" class="btn-primary w-full sm:w-auto">
+            Save changes
+          </button>
+        </div>
+      </div>
+
+    </form>
+
+  </main>
+
+  <!-- Page Footer -->
+  <footer class="mt-12 border-t border-[#D6DEE5] bg-white py-4 px-6 text-xs text-[#5D6A75]">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+      <div>Folio3 San Francisco office · America/Los_Angeles</div>
+      <div class="mono-num text-[11px]">Configured daily release: 09:00 PDT</div>
+    </div>
+  </footer>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["my space","employee my space"],"words":["employee","space"]},{"id":"S-3","names":["release date","employee release date"],"words":["employee","release","date"]},{"id":"S-4","names":["free space","employee free space"],"words":["employee","free","space"]},{"id":"S-5","names":["my vehicle","employee my vehicle"],"words":["employee","vehicle"]},{"id":"S-6","names":["employee","admin employee"],"words":["employee"]},{"id":"S-8","names":["utilization","admin utilization"],"words":["utilization"]},{"id":"S-9","names":["entry check","admin entry check"],"words":["entry","check"]},{"id":"S-10","names":["setting","admin setting"],"words":["setting"]},{"id":"S-7","names":["employee detail","employee","admin employee"],"words":["employee"]}],L={"employees":"S-6","utilization":"S-8","entry checks":"S-9"},A={"free spaces":"S-4","my vehicles":"S-5","set release dates":"S-3","my space":"S-2","open employee record":"S-7"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-10";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

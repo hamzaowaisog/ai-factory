@@ -27,6 +27,7 @@ import { REPO_ROOT } from "../runners/netinfra.js";
 import { modelsView } from "../stages/routing.js";
 import { dashboardView, designView, estimateView, eventsView, draftFile, exportFile, findRun, visualShot, previewView, projectsView, referencesView, refImage, runView, runsView, statsView } from "./data.js";
 import { previewFile } from "./preview.js";
+import { LIVE_CSP, LIVE_DIR } from "../design/stitch-live.js";
 import { dataModelView } from "./erd.js";
 import { testsView } from "./tests.js";
 import { answerQuestions, checkRefs, decideCard, decideEstimate, raiseLimit, resumeRun, signOffManual, startRun, StartError, stopAtLimit, type StartDeps } from "./start.js";
@@ -380,6 +381,18 @@ const PREVIEW_HEADERS = {
   "Cross-Origin-Resource-Policy": "cross-origin",
 };
 
+/**
+ * A Stitch screen's live page (preview/stitch/): Stitch's own HTML inside the demo, which is itself sandboxed. It may load
+ * Tailwind's browser build, Google's fonts and Stitch's pictures, and nothing else (src/design/stitch-live.ts). The demo that
+ * frames it has an opaque origin, which no frame-ancestors value names, so the preview key in its address is what guards it.
+ */
+const LIVE_HEADERS = {
+  "Content-Security-Policy": `${LIVE_CSP}; sandbox allow-scripts`,
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  "Cross-Origin-Resource-Policy": "cross-origin",
+};
+
 // ---------- server ----------
 
 export interface UiServerOptions {
@@ -436,6 +449,27 @@ const LOCKED_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 
 /** Added to a demo page shown inside the screens' own frame: the demo's side list repeats the screens' list beside it, so it is hidden there. */
 const FRAME_STYLE = "<style>html{scroll-padding-top:14px}aside{display:none!important}main{padding:14px 18px 28px!important}.screen>.file{display:none!important}</style>";
+
+/**
+ * PREVIEW_HEADERS for a request to this host, with the host named as a place frames may come from. Safari does not take
+ * 'self' to mean the server inside a sandboxed frame (its origin is opaque), so a demo's frames of its own pages (a Stitch
+ * design's live pages) were refused there.
+ */
+export function previewHeaders(host: string | undefined): typeof PREVIEW_HEADERS {
+  if (!host || !/^(127\.0\.0\.1|localhost|\[::1\]):\d{1,5}$/.test(host)) return PREVIEW_HEADERS;
+  return { ...PREVIEW_HEADERS, "Content-Security-Policy": PREVIEW_HEADERS["Content-Security-Policy"].replace("default-src 'self';", `default-src 'self'; frame-src 'self' http://${host};`) };
+}
+
+/**
+ * A preview page without the policy it carries in a <meta> (the demo's own, for when it is opened from a file). Here the
+ * PREVIEW_HEADERS policy stands in for it: Safari loads no frame in a sandboxed page that has a <meta> policy, so a Stitch
+ * design's live pages stayed blank there. Only the head is read.
+ */
+export function headerPolicyOnly(body: Buffer): Buffer {
+  const head = body.subarray(0, 4096).toString("latin1");
+  const m = /<meta http-equiv="Content-Security-Policy" content="[^"]*">/i.exec(head);
+  return m ? Buffer.concat([body.subarray(0, m.index), body.subarray(m.index + m[0].length)]) : body;
+}
 
 export function createUiServer(opts: UiServerOptions = {}): UiServer {
   const token = opts.token ?? randomBytes(24).toString("base64url");
@@ -590,8 +624,11 @@ export function createUiServer(opts: UiServerOptions = {}): UiServer {
     const l = findRun(runId);
     const f = l && rest.length ? previewFile(l, rest.join("/")) : undefined;
     if (!f) return plain(404, "Not found.");
-    res.writeHead(200, { ...PREVIEW_HEADERS, "Content-Type": f.type, "Cache-Control": "no-store" });
-    const body = framed && f.type.startsWith("text/html") ? Buffer.concat([f.body, Buffer.from(FRAME_STYLE)]) : f.body;
+    const liveHtml = rest[0] === LIVE_DIR && f.type.startsWith("text/html");
+    res.writeHead(200, { ...(liveHtml ? LIVE_HEADERS : previewHeaders(req.headers.host)), "Content-Type": f.type, "Cache-Control": "no-store" });
+    const html = f.type.startsWith("text/html");
+    const page = html && !liveHtml ? headerPolicyOnly(f.body) : f.body;
+    const body = framed && html ? Buffer.concat([page, Buffer.from(FRAME_STYLE)]) : page;
     res.end(req.method === "HEAD" ? undefined : body);
   }
 

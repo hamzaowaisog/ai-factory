@@ -28,7 +28,7 @@ export const MODELS: readonly ModelInfo[] = [
   { id: LUNA, name: "GPT-6 Luna", vendor: "openai", offered: ["thinking", "design", "review", "coding"] },
   { id: SOL, name: "GPT-6 Sol", vendor: "openai", offered: ["thinking", "design", "review", "coding"] },
   { id: OPUS, name: "Claude Opus 5.5", vendor: "anthropic", offered: ["thinking", "design", "review", "coding"] },
-  { id: SONNET, name: "Claude Sonnet 5.5", vendor: "anthropic", offered: ["coding"] },
+  { id: SONNET, name: "Claude Sonnet 5.5", vendor: "anthropic", offered: ["design", "coding"] },
   { id: HAIKU, name: "Claude Haiku 5.5", vendor: "anthropic", offered: [] },
 ];
 
@@ -59,17 +59,18 @@ export interface StepSpec {
   fixed?: string;
   /** only these vendors may run it; a pick from another is refused */
   only?: readonly Vendor[];
-  /** a pick from this vendor is allowed but warned about at the start */
-  warn?: { vendor: Vendor; why: string };
+  /** a step it is better kept apart from: running on that step's model is allowed but warned about at the start */
+  apart?: string;
   /** the models a retry climbs, weakest first, when it differs from the vendor's own */
   ladder?: readonly string[];
 }
 
-const SAME_AS_CRITIC = "the critic is Claude Opus 5.5 too, so it reads a spec its own model wrote";
+/** Why a spec step on the critic's own model is warned about. */
+export const sameAsCritic = (model: string): string => `the critic is ${modelName(model)} too, so it reads a spec its own model wrote`;
 
 /**
  * Every model step. Thinking steps stay on Claude until the paid GPT-6 proving run; the second spec draft and the
- * pre-PR reviewer are on GPT-6 so they differ from the critic and from the implementer.
+ * pre-PR reviewer are on GPT-6 so they differ from the critic's default and from the implementer.
  */
 export const STEPS: Record<string, StepSpec> = {
   intake: { runner: "api", group: "thinking", vendor: "anthropic", tier: "light", effort: "low" },
@@ -77,12 +78,13 @@ export const STEPS: Record<string, StepSpec> = {
   sketches: { runner: "api", group: "thinking", vendor: "anthropic", tier: "standard", effort: "medium" },
   "sketch-align": { runner: "api", group: "thinking", vendor: "anthropic", tier: "light", effort: "low" },
   clarifier: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "medium" },
-  specify: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "high", warn: { vendor: "anthropic", why: SAME_AS_CRITIC } },
-  "specify-other": { runner: "api", group: "thinking", vendor: "openai", tier: "heavy", effort: "high", only: ["openai"], ladder: [LUNA, SOL] },
-  merge: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "medium", warn: { vendor: "anthropic", why: SAME_AS_CRITIC } },
+  specify: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "high", apart: "critic" },
+  "specify-other": { runner: "api", group: "thinking", vendor: "openai", tier: "heavy", effort: "high", only: ["openai"], apart: "critic", ladder: [LUNA, SOL] },
+  merge: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "medium", apart: "critic" },
   restater: { runner: "api", group: "thinking", vendor: "anthropic", tier: "standard", effort: "low" },
   "rt-align": { runner: "api", group: "thinking", vendor: "anthropic", tier: "light", effort: "low" },
-  critic: { runner: "api", group: "review", vendor: "anthropic", tier: "heavy", effort: "high", fixed: OPUS, ladder: [OPUS] },
+  // the critic is the spec's last check before a person reads it: a preset never moves it off the heavy tier, a pick may
+  critic: { runner: "api", group: "review", vendor: "anthropic", tier: "heavy", effort: "high", floor: "heavy" },
   breakdown: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "high" },
   estimate: { runner: "api", group: "thinking", vendor: "anthropic", tier: "heavy", effort: "high" },
   design: { runner: "api", group: "design", vendor: "anthropic", tier: "heavy", effort: "high" },
@@ -122,6 +124,20 @@ export function offeredFor(stage: string): ModelInfo[] {
   const s = STEPS[stage];
   if (!s || s.fixed) return [];
   return MODELS.filter((m) => m.offered.includes(s.group) && (!s.only || s.only.includes(m.vendor)));
+}
+
+/** What the design step can be given besides a model: Google Stitch draws the screens, and a model plans them (the design tier's Claude model, or the one picked with it: src/stages/routing.ts stitchPick). */
+export const STITCH = "stitch";
+export const STITCH_NAME = "Google Stitch";
+/** The same design with no Stitch: the model writes each page's HTML itself (src/stages/design-pages.ts), so its pages are free-form like Stitch's. */
+export const PAGES = "pages";
+export const PAGES_NAME = "Model-drawn pages";
+/** The design engines a person may pick for this step at the start of a run, beside its models. */
+export function enginesFor(stage: string): { id: string; name: string; note: string }[] {
+  return stage === "design" ? [
+    { id: STITCH, name: STITCH_NAME, note: "Stitch draws the screens; the model beside it plans them and writes the design system. It sends the requirements to Google: picking it here allows that for this run. It needs STITCH_API_KEY." },
+    { id: PAGES, name: PAGES_NAME, note: "The model beside it plans the screens, writes the design system and writes each page's HTML itself, as Stitch would draw it. It costs that model's tokens for every page." },
+  ] : [];
 }
 
 export type Preset = "economy" | "balanced" | "quality";

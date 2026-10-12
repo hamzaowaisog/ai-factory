@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>My Vehicles — Folio3 Parking</title>
+<!-- Typography & Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Public+Sans:wght@500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary": "#123726",
+            "inverse-surface": "#dfe4de",
+            "tertiary": "#ffb3b3",
+            "surface-container-lowest": "#0a0f0c",
+            "on-secondary-fixed": "#002113",
+            "on-primary": "#003824",
+            "secondary-container": "#2a4e3c",
+            "on-tertiary-fixed": "#400009",
+            "on-surface": "#dfe4de",
+            "error": "#ffb4ab",
+            "primary-fixed-dim": "#74daa9",
+            "inverse-primary": "#006c49",
+            "inverse-on-surface": "#2c322e",
+            "on-primary-container": "#003522",
+            "tertiary-fixed": "#ffdad9",
+            "secondary-fixed": "#c3ecd3",
+            "on-background": "#dfe4de",
+            "on-surface-variant": "#bdcac0",
+            "on-primary-fixed": "#002113",
+            "surface-container-highest": "#313632",
+            "surface-container-low": "#171d19",
+            "surface-dim": "#0f1511",
+            "surface-container-high": "#262b28",
+            "on-secondary-fixed-variant": "#2a4e3c",
+            "on-primary-fixed-variant": "#005236",
+            "surface-variant": "#313632",
+            "secondary": "#a8d0b8",
+            "surface-tint": "#74daa9",
+            "secondary-fixed-dim": "#a8d0b8",
+            "surface-container": "#1b211d",
+            "outline": "#87948b",
+            "outline-variant": "#3e4942",
+            "background": "#0f1511",
+            "on-error": "#690005",
+            "surface-bright": "#353a37",
+            "surface": "#0f1511",
+            "tertiary-fixed-dim": "#ffb3b3",
+            "primary-fixed": "#91f7c4",
+            "primary-container": "#3fa77a",
+            "error-container": "#93000a",
+            "on-error-container": "#ffdad6",
+            "tertiary-container": "#de7779",
+            "on-tertiary": "#5e151b",
+            "primary": "#74daa9",
+            "on-tertiary-fixed-variant": "#7c2b30",
+            "on-tertiary-container": "#5b1219",
+            "on-secondary-container": "#97bea7"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["IBM Plex Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"],
+            "label": ["Public Sans", "sans-serif"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 700ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+      --travel: 8px;
+    }
+
+    @keyframes enter {
+      from {
+        opacity: 0;
+        transform: translateY(var(--travel));
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes status-breathe {
+      0%, 100% { opacity: 0.94; }
+      50% { opacity: 1; }
+    }
+
+    .animate-enter-seq-1 {
+      animation: enter var(--dur-base) var(--ease-out) forwards;
+    }
+
+    .animate-enter-seq-2 {
+      animation: enter var(--dur-base) var(--ease-out) 60ms backwards;
+    }
+
+    .animate-enter-seq-3 {
+      animation: enter var(--dur-base) var(--ease-out) 120ms backwards;
+    }
+
+    .live-status-dot {
+      animation: status-breathe 7.5s ease-in-out infinite;
+    }
+
+    .record-rule {
+      view-transition-name: parking-record;
+    }
+
+    ::view-transition-old(parking-record),
+    ::view-transition-new(parking-record) {
+      animation-duration: var(--dur-slow);
+      animation-timing-function: var(--ease-inout);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 120ms !important;
+      }
+      .live-status-dot {
+        animation: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body antialiased min-h-screen flex flex-col selection:bg-primary-container selection:text-on-primary-container">
+<!-- TOP APP BAR (Shared Component Anchor) -->
+<header class="bg-surface-container dark:bg-surface-container docked full-width top-0 sticky z-40 border-b border-outline-variant/30">
+<div class="flex justify-between items-center w-full px-6 py-3 max-w-[1440px] mx-auto">
+<!-- Brand & Facility Context -->
+<div class="flex items-center space-x-6">
+<div class="flex items-center space-x-2.5">
+<span class="font-headline text-base font-semibold tracking-tight text-on-surface dark:text-on-surface">Folio3 Parking</span>
+<span class="font-mono text-[11px] uppercase tracking-wider px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant border border-outline-variant/40">Staff Bay Access</span>
+</div>
+<!-- Navigation Links (Exact order preserved, My Vehicles active) -->
+<nav aria-label="Main Navigation" class="hidden md:flex items-center space-x-7 font-headline text-sm tracking-tight">
+<a class="text-on-surface-variant dark:text-on-surface-variant font-normal py-3 hover:text-on-surface hover:bg-surface-container-high transition-colors duration-160 active:scale-[0.98]" href="#">My Parking</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-normal py-3 hover:text-on-surface hover:bg-surface-container-high transition-colors duration-160 active:scale-[0.98]" href="#">Available Spaces</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-normal py-3 hover:text-on-surface hover:bg-surface-container-high transition-colors duration-160 active:scale-[0.98]" href="#">Release Schedule</a>
+<a aria-current="page" class="text-on-surface dark:text-on-surface font-medium border-b-2 border-primary py-3 -mb-3 transition-colors duration-160" href="#">My Vehicles</a>
+</nav>
+</div>
+<!-- Trailing Cluster -->
+<div class="flex items-center space-x-4">
+<!-- Release Bay Action Button -->
+<button class="hidden sm:inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-[6px] text-xs font-medium font-body bg-surface-container-high border border-outline-variant/60 text-on-surface hover:border-primary/50 transition-colors duration-160 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="event_available">event_available</span>
+<span>Release Bay</span>
+</button>
+<div class="h-4 w-[1px] bg-outline-variant/40 hidden sm:block"></div>
+<!-- Trailing Icon Actions -->
+<div class="flex items-center space-x-1">
+<button aria-label="Notifications" class="p-2 rounded-[6px] text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-160 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span>
+</button>
+<button aria-label="Help &amp; Documentation" class="p-2 rounded-[6px] text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors duration-160 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="help">help</span>
+</button>
+</div>
+<!-- Employee Profile Badge -->
+<div class="flex items-center space-x-2 pl-2 border-l border-outline-variant/30">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary flex items-center justify-center font-mono font-medium text-xs border border-outline-variant/40" title="Maya Chen">
+            MC
+          </div>
+<div class="hidden lg:flex flex-col text-left">
+<span class="text-xs font-medium text-on-surface leading-tight">Maya Chen</span>
+<span class="text-[11px] font-mono text-on-surface-variant leading-none">Staff Product Designer</span>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN CANVAS (Data-First 12-Column Ledger) -->
+<main class="flex-1 w-full max-w-[1440px] mx-auto px-6 py-8">
+<!-- Breadcrumb & System Environment Header -->
+<div class="animate-enter-seq-1 mb-8">
+<div class="flex items-center space-x-3 mb-2 font-mono text-xs text-on-surface-variant">
+<span class="flex items-center space-x-1.5">
+<span class="w-2 h-2 rounded-full bg-primary live-status-dot"></span>
+<span>FACILITY P2-SOUTH</span>
+</span>
+<span class="text-outline-variant">/</span>
+<span>ACCESS CONTROL LEDGER</span>
+<span class="text-outline-variant">/</span>
+<span class="text-on-surface">ROSTER ASSIGNMENT</span>
+</div>
+<div class="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 border-b border-outline-variant/40 pb-5">
+<div>
+<h1 class="text-2xl md:text-3xl font-headline font-semibold text-on-surface tracking-tight">My Vehicles</h1>
+<p class="text-sm text-on-surface-variant mt-1.5 max-w-[65ch] leading-relaxed">
+            At least one registered license plate is required for parking release and claim operations.
+          </p>
+</div>
+<div class="flex items-center space-x-2 self-start md:self-auto">
+<span class="font-mono text-xs text-on-surface-variant px-2.5 py-1 rounded bg-surface-container-high border border-outline-variant/40">
+            Active Plate Limit: 02
+          </span>
+</div>
+</div>
+</div>
+<!-- 2-COLUMN LAYOUT: Vehicle Roster (Empty) beside Registration Form -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- LEFT COLUMN: Vehicle Roster (Empty State) [7 Cols] -->
+<section aria-labelledby="roster-heading" class="lg:col-span-7 space-y-4 animate-enter-seq-2">
+<!-- Section Bar -->
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center space-x-3">
+<h2 class="font-headline text-base font-semibold text-on-surface tracking-tight" id="roster-heading">Registered Vehicles</h2>
+<span class="font-mono text-xs px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant border border-outline-variant/40">0 Registered</span>
+</div>
+<span class="font-mono text-[11px] text-on-surface-variant/80">RFID AUTO-SYNC</span>
+</div>
+<!-- Empty State Container -->
+<div class="rounded-[6px] border border-outline-variant/50 bg-surface-container-low p-8 text-center flex flex-col items-center justify-center relative overflow-hidden">
+<!-- Bay Edge Painted Indicator (Left Accent) -->
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-outline-variant/60 record-rule"></div>
+<!-- Empty Icon Boundary -->
+<div class="w-14 h-14 rounded-[6px] bg-surface-container border border-outline-variant/40 flex items-center justify-center mb-4 text-on-surface-variant">
+<span class="material-symbols-outlined text-3xl text-outline" data-icon="directions_car">directions_car</span>
+</div>
+<!-- Explanatory Typography -->
+<h3 class="font-headline text-base font-semibold text-on-surface mb-2 tracking-tight">No registered vehicles</h3>
+<p class="text-sm text-on-surface-variant max-w-[48ch] leading-relaxed mb-6 font-body">
+            You have no vehicles on file. Register your primary commuter vehicle below to enable automated gate access, space release, and bay claiming privileges.
+          </p>
+<!-- Primary Focus Action -->
+<a class="inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-[6px] text-xs font-medium font-body bg-primary-container text-on-primary-container hover:bg-primary transition-colors duration-160 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" href="#registration-form">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+<span>Add vehicle</span>
+</a>
+<!-- Technical Transponder Advisory -->
+<div class="mt-8 pt-6 border-t border-outline-variant/30 w-full flex items-start space-x-3 text-left">
+<span class="material-symbols-outlined text-lg text-primary shrink-0 mt-0.5" data-icon="contactless">contactless</span>
+<p class="text-xs text-on-surface-variant leading-normal font-body">
+<strong class="font-medium text-on-surface">RFID &amp; ANPR Clearance:</strong> Once added, verified vehicles receive digital RFID transponder tags and gate clearance within 15 minutes across South Structure barrier arms.
+            </p>
+</div>
+</div>
+<!-- System Architecture Card / Technical Context -->
+<div class="rounded-[6px] border border-outline-variant/30 bg-surface-container-low p-5">
+<h4 class="font-mono text-xs uppercase tracking-wider text-on-surface-variant mb-3 flex items-center space-x-2">
+<span class="material-symbols-outlined text-sm text-outline" data-icon="info">info</span>
+<span>Allocation Protocol &amp; Roster Limits</span>
+</h4>
+<ul class="space-y-2 text-xs text-on-surface-variant/90 font-body">
+<li class="flex items-baseline space-x-2">
+<span class="font-mono text-primary text-[11px]">•</span>
+<span>Employees may register up to <span class="font-mono text-on-surface">2</span> secondary license plates under single credential allocation.</span>
+</li>
+<li class="flex items-baseline space-x-2">
+<span class="font-mono text-primary text-[11px]">•</span>
+<span>Only one concurrent vehicle occupancy is authorized per allocated stall or daily reservation.</span>
+</li>
+<li class="flex items-baseline space-x-2">
+<span class="font-mono text-primary text-[11px]">•</span>
+<span>Rental or temporary pool vehicles require temporary visitor passes managed via Security Dispatch.</span>
+</li>
+</ul>
+</div>
+</section>
+<!-- RIGHT COLUMN: Registration Form [5 Cols] -->
+<section aria-labelledby="form-heading" class="lg:col-span-5 animate-enter-seq-3" id="registration-form">
+<div class="rounded-[6px] border border-outline-variant/60 bg-surface-container p-6 relative">
+<!-- Green Bay Top Hairline Indicator -->
+<div class="absolute top-0 left-0 right-0 h-[2px] bg-primary rounded-t-[6px]"></div>
+<div class="flex items-center justify-between border-b border-outline-variant/40 pb-4 mb-6">
+<div>
+<h2 class="font-headline text-base font-semibold text-on-surface tracking-tight" id="form-heading">Register New Vehicle</h2>
+<p class="text-xs text-on-surface-variant mt-0.5">Enter commute vehicle specifications</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant/70 text-xl" data-icon="app_registration">app_registration</span>
+</div>
+<!-- Structured Form -->
+<form class="space-y-5" onsubmit="event.preventDefault();">
+<!-- Field 1: Make & Model -->
+<div>
+<label class="block text-xs font-medium text-on-surface mb-1.5 font-body" for="vehicle-model">
+                Vehicle Make &amp; Model <span class="text-primary">*</span>
+</label>
+<input class="w-full h-11 px-3.5 rounded-[6px] bg-surface-container-highest/60 border border-outline-variant text-on-surface text-sm placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors duration-160 font-body" id="vehicle-model" name="vehicle-model" placeholder="e.g. 2021 Toyota Corolla" required="" type="text"/>
+<span class="block text-[11px] text-on-surface-variant mt-1.5">Enter the vehicle manufacturer year, make, and trim level.</span>
+</div>
+<!-- Field 2: License Plate -->
+<div>
+<label class="block text-xs font-medium text-on-surface mb-1.5 font-body" for="license-plate">
+                License Plate <span class="text-primary">*</span>
+</label>
+<input class="w-full h-11 px-3.5 rounded-[6px] bg-surface-container-highest/60 border border-outline-variant text-on-surface text-sm placeholder:text-outline font-mono uppercase tracking-wider focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors duration-160" id="license-plate" maxlength="10" name="license-plate" placeholder="e.g. 8ABC123" required="" type="text"/>
+<span class="block text-[11px] text-on-surface-variant mt-1.5 font-mono">Standard alphanumerics without spaces or special symbols.</span>
+</div>
+<!-- Field 3: State / Jurisdiction -->
+<div>
+<label class="block text-xs font-medium text-on-surface mb-1.5 font-body" for="jurisdiction">
+                State / Jurisdiction <span class="text-primary">*</span>
+</label>
+<div class="relative">
+<select class="w-full h-11 px-3.5 rounded-[6px] bg-surface-container-highest/60 border border-outline-variant text-on-surface text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors duration-160 appearance-none font-body" id="jurisdiction" name="jurisdiction" required="">
+<option selected="" value="CA">California (CA)</option>
+<option value="WA">Washington (WA)</option>
+<option value="OR">Oregon (OR)</option>
+<option value="NV">Nevada (NV)</option>
+<option value="AZ">Arizona (AZ)</option>
+<option value="TX">Texas (TX)</option>
+<option value="OTHER">Other Jurisdiction</option>
+</select>
+<span class="material-symbols-outlined text-outline pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xl" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Field 4: Vehicle Color / Description (Optional) -->
+<div>
+<div class="flex items-center justify-between mb-1.5">
+<label class="block text-xs font-medium text-on-surface font-body" for="vehicle-color">
+                  Vehicle Color / Description
+                </label>
+<span class="font-mono text-[11px] text-on-surface-variant/80">Optional</span>
+</div>
+<input class="w-full h-11 px-3.5 rounded-[6px] bg-surface-container-highest/60 border border-outline-variant text-on-surface text-sm placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-colors duration-160 font-body" id="vehicle-color" name="vehicle-color" placeholder="e.g. Magnetite Gray Metallic" type="text"/>
+<span class="block text-[11px] text-on-surface-variant mt-1.5">Assists security personnel during manual bay verification checks.</span>
+</div>
+<!-- Compliance / Verification Note -->
+<div class="rounded-[6px] p-3 bg-surface-container-lowest border border-outline-variant/30 flex items-start space-x-2.5">
+<span class="material-symbols-outlined text-[18px] text-outline shrink-0 mt-0.5" data-icon="verified_user">verified_user</span>
+<p class="text-[11px] text-on-surface-variant leading-relaxed">
+                License plates are verified against DMV records and building access control for automated gate entry.
+              </p>
+</div>
+<!-- Submit Primary CTA -->
+<div class="pt-2">
+<button class="w-full min-h-[44px] flex items-center justify-center space-x-2 px-5 py-3 rounded-[6px] text-xs font-semibold font-body bg-primary-container text-on-primary-container hover:bg-primary transition-colors duration-160 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2" type="submit">
+<span class="material-symbols-outlined text-[18px]" data-icon="save">save</span>
+<span>Add vehicle</span>
+</button>
+</div>
+</form>
+</div>
+</section>
+</div>
+</main>
+<!-- BOTTOM NAVIGATION BAR (Mobile Viewport Shared Anchor) -->
+<nav aria-label="Mobile Navigation" class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-surface-container dark:bg-surface-container docked full-width bottom-0 md:hidden border-t border-outline-variant/30">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant py-1 font-label text-xs tracking-wider uppercase hover:text-on-surface transition-colors duration-160 active:scale-[0.97]" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="local_parking">local_parking</span>
+<span class="text-[10px] mt-0.5">My Parking</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant py-1 font-label text-xs tracking-wider uppercase hover:text-on-surface transition-colors duration-160 active:scale-[0.97]" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="garage">garage</span>
+<span class="text-[10px] mt-0.5">Available</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant py-1 font-label text-xs tracking-wider uppercase hover:text-on-surface transition-colors duration-160 active:scale-[0.97]" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="event_repeat">event_repeat</span>
+<span class="text-[10px] mt-0.5">Schedule</span>
+</a>
+<a aria-current="page" class="flex flex-col items-center justify-center text-primary dark:text-primary font-medium py-1 font-label text-xs tracking-wider uppercase hover:text-on-surface transition-colors duration-160 active:scale-[0.97]" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="directions_car">directions_car</span>
+<span class="text-[10px] mt-0.5">Vehicles</span>
+</a>
+</nav>
+<!-- FOOTER (Workforce Reference Ledger) -->
+<footer class="mt-auto border-t border-outline-variant/30 py-6 px-6 bg-surface-container-lowest">
+<div class="max-w-[1440px] mx-auto flex flex-col sm:flex-row justify-between items-center text-xs text-on-surface-variant font-mono gap-3">
+<div class="flex items-center space-x-2">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+<span>Folio3 Enterprise Systems • Internal Parking Allocation &amp; Fleet Roster • Facility P2-SOUTH</span>
+</div>
+<div class="flex items-center space-x-4 text-[11px]">
+<span>LEDGER REVISION 2.4</span>
+<span class="text-outline-variant">|</span>
+<span class="text-on-surface-variant/70">ALL ACCESS GATES ONLINE</span>
+</div>
+</div>
+</footer>
+</body></html>

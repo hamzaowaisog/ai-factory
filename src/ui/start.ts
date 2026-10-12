@@ -18,6 +18,7 @@ import { isLockFree, readLockInfo } from "../ledger/exec-lock.js";
 import { costCapUsd, MIN_CAP_USD } from "../ledger/caps.js";
 import { parseEstimateSettings } from "../estimate/settings.js";
 import { checkUploadedFrames, describeSources, gatherRequest, MAX_ESTIMATE_REQUEST_BYTES } from "../sources/request.js";
+import { MAX_PDF_BYTES } from "../sources/pdf.js";
 import { MAX_REFERENCES, RefRole } from "../contracts/reference.js";
 import { describeReferences, gatherReferences, MAX_REF_FILE_BYTES, type GatheredRef, type RefRequest } from "../sources/refs.js";
 import { MAX_DOCX_BYTES } from "../sources/request.js";
@@ -40,7 +41,7 @@ export class StartError extends Error {
 export interface StartInput {
   project?: unknown;
   prompt?: unknown;
-  file?: unknown; // { name, text }
+  file?: unknown; // { name, text }, or { name, data } for a PDF or a .docx
   jira?: unknown;
   maxCost?: unknown;
   /** "estimate" starts an estimate run (factory estimate), "design" a design-only run (factory design start), "greenfield" a new
@@ -143,13 +144,22 @@ export function maxCostOf(v: unknown): number | undefined {
   return usd;
 }
 
-/** An uploaded requirements file, { name, text }: a Markdown or text file with a plain name. */
-export function uploadedFile(v: unknown): { name: string; text: string } | undefined {
+/** An uploaded requirements file: a Markdown or text file as { name, text }, or a PDF or Word document as { name, data } (base64), with a plain name. */
+export function uploadedFile(v: unknown): { name: string; text: string } | { name: string; bytes: Buffer } | undefined {
   if (v === undefined || v === null) return undefined;
-  const f = v as { name?: unknown; text?: unknown };
-  if (typeof f.name !== "string" || typeof f.text !== "string") throw new StartError("The uploaded file couldn't be read.");
+  const f = v as { name?: unknown; text?: unknown; data?: unknown };
+  if (typeof f.name !== "string") throw new StartError("The uploaded file couldn't be read.");
   const name = basename(f.name.replace(/\\/g, "/"));
-  if (!/^[\w .()-]{1,100}\.(md|markdown|txt)$/i.test(name)) throw new StartError("Upload a Markdown (.md) or text (.txt) file.");
+  const doc = /^[\w .()-]{1,100}\.(pdf|docx)$/i.exec(name)?.[1]?.toLowerCase();
+  if (doc) {
+    if (typeof f.data !== "string" || !f.data || !/^[A-Za-z0-9+/]*={0,2}$/.test(f.data)) throw new StartError(`${name}: the file did not arrive intact.`);
+    const bytes = Buffer.from(f.data, "base64");
+    const cap = doc === "docx" ? MAX_DOCX_BYTES : MAX_PDF_BYTES;
+    if (bytes.length > cap) throw new StartError(`${name} is over ${cap / 1e6} MB.`);
+    return { name, bytes };
+  }
+  if (typeof f.text !== "string") throw new StartError("The uploaded file couldn't be read.");
+  if (!/^[\w .()-]{1,100}\.(md|markdown|txt)$/i.test(name)) throw new StartError("Upload a Markdown (.md), text (.txt), Word (.docx) or PDF file.");
   return { name, text: f.text };
 }
 
@@ -300,7 +310,7 @@ export async function startRun(input: StartInput, deps: StartDeps = {}): Promise
       mkdirSync(join(factoryHome(), "tmp"), { recursive: true, mode: 0o700 });
       dir = mkdtempSync(join(factoryHome(), "tmp", "ui-upload-"));
       path = join(dir, file.name);
-      writeFileSync(path, file.text, { mode: 0o600 });
+      writeFileSync(path, "bytes" in file ? file.bytes : file.text, { mode: 0o600 });
     }
     const seed = approved ?? fromDesign;
     req = seed ? { text: seed.request, sources: [{ kind: "prompt" as const }], attachments: [] } : await (deps.gather ?? gatherRequest)({ prompt: str(input.prompt), file: path, jira: str(input.jira)?.trim(), ...(frameFiles ? { frameFiles } : {}) }, { fetchJira: jiraFetcherFor(cfg.jira?.allowedReporters) }, estimating ? { maxBytes: MAX_ESTIMATE_REQUEST_BYTES } : undefined);

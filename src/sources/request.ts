@@ -1,11 +1,12 @@
-// Where a request comes from: a typed prompt, a Markdown/text file, or a Jira ticket (any one, or several).
+// Where a request comes from: a typed prompt, a Markdown/text file, a Word document, a PDF, or a Jira ticket (any one, or several).
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { fetchJiraTicket } from "./jira.js";
 import { readDocx } from "./docx.js";
+import { MAX_PDF_BYTES, readPdf } from "./pdf.js";
 import { MAX_REQUEST_FILE_BYTES, readRequestFile } from "../stages/executor.js";
 
-export interface RequestSource { kind: "prompt" | "file" | "jira" | "docx" | "frames"; name?: string; key?: string; url?: string; summary?: string }
+export interface RequestSource { kind: "prompt" | "file" | "jira" | "docx" | "pdf" | "frames"; name?: string; key?: string; url?: string; summary?: string }
 
 /** A file that travels with the request (document images, design frames); stored beside the run, never fetched. */
 export interface Attachment { name: string; bytes: Buffer }
@@ -74,6 +75,11 @@ export async function gatherRequest(
     const d = await readDocx(readFileSync(o.file));
     attachments.push(...d.images.map((i) => ({ name: `docx/${i.name}`, bytes: i.bytes })));
     parts.push({ heading: `From ${basename(o.file)}`, text: d.text, source: { kind: "docx", name: basename(o.file), summary: `${d.headings} headings, ${d.tables} tables, ${d.images.length} images` } });
+  } else if (o.file && extname(o.file).toLowerCase() === ".pdf") {
+    if (!existsSync(o.file)) throw new Error(`No such file: ${o.file}`);
+    if (statSync(o.file).size > MAX_PDF_BYTES) throw new Error(`${basename(o.file)} is over ${MAX_PDF_BYTES / 1e6} MB.`);
+    const d = await readPdf(readFileSync(o.file));
+    parts.push({ heading: `From ${basename(o.file)}`, text: d.text, source: { kind: "pdf", name: basename(o.file), summary: `${d.pages} page${d.pages === 1 ? "" : "s"}${d.blank ? `, ${d.blank} with no text` : ""}` } });
   } else if (o.file) {
     const f = readRequestFile(o.file);
     parts.push({ heading: `From ${f.name}`, text: f.text, source: { kind: "file", name: f.name } });

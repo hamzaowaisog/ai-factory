@@ -1,0 +1,697 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My space</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F3F6F8;
+      color: #25313B;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 22px;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes statusBreathe {
+      0%, 100% {
+        opacity: 0.96;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .entrance-animate {
+      animation: entranceFadeUp 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-breathing-dot {
+      animation: statusBreathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Typography */
+    h1, .heading-main {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      line-height: 34px;
+      font-weight: 600;
+      color: #25313B;
+    }
+
+    h2, .heading-section {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 20px;
+      line-height: 26px;
+      font-weight: 600;
+      color: #25313B;
+    }
+
+    .heading-sub {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      line-height: 22px;
+      font-weight: 600;
+      color: #25313B;
+    }
+
+    .mono-data {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .text-quiet {
+      color: #5D6A75;
+    }
+
+    /* Shared Header */
+    .app-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D6DEE5;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      background-color: #25313B;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .brand-wordmark {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 18px;
+      color: #25313B;
+      letter-spacing: -0.2px;
+    }
+
+    .employee-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      height: 40px;
+      padding: 0 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      color: #5D6A75;
+      transition: background-color 120ms ease, color 120ms ease;
+    }
+
+    .nav-link:hover {
+      background-color: #F3F6F8;
+      color: #25313B;
+    }
+
+    .nav-link:focus-visible {
+      outline: 2px solid #356F9A;
+      outline-offset: 2px;
+    }
+
+    .nav-link.active {
+      color: #356F9A;
+      background-color: rgba(53, 111, 154, 0.08);
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-portrait {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid #D6DEE5;
+      display: block;
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: #25313B;
+      line-height: 18px;
+      font-size: 14px;
+    }
+
+    .user-role {
+      font-size: 12px;
+      line-height: 16px;
+      color: #5D6A75;
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      width: 44px;
+      height: 44px;
+      background: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mobile-menu-btn:focus-visible {
+      outline: 2px solid #356F9A;
+      outline-offset: 2px;
+    }
+
+    /* Page Layout */
+    .page-container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 40px 32px 64px;
+    }
+
+    .title-region {
+      margin-bottom: 24px;
+    }
+
+    .status-prominent-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+      padding: 6px 14px;
+      background-color: #FFFFFF;
+      border: 1px solid #2D6F4F;
+      border-radius: 8px;
+    }
+
+    .status-badge-text {
+      color: #2D6F4F;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+    }
+
+    .status-details {
+      color: #25313B;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    /* Two-Region Layout */
+    .work-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* Panels & Cards */
+    .panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      padding: 24px;
+    }
+
+    /* Compact Assignment Row */
+    .assignment-row-card {
+      margin-bottom: 24px;
+    }
+
+    .assignment-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #D6DEE5;
+    }
+
+    .meta-item-label {
+      font-size: 12px;
+      line-height: 16px;
+      color: #5D6A75;
+      margin-bottom: 4px;
+    }
+
+    .meta-item-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: #25313B;
+    }
+
+    /* Vehicle details section */
+    .assignment-vehicle-bar {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .vehicle-inline-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .plate-chip {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 2px 8px;
+      background: #F3F6F8;
+      border: 1px solid #D6DEE5;
+      border-radius: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+      font-size: 13px;
+      color: #25313B;
+      letter-spacing: 0.5px;
+      width: fit-content;
+    }
+
+    /* Primary Action Area */
+    .action-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .action-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .btn-primary {
+      height: 44px;
+      background-color: #356F9A;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 8px;
+      padding: 0 20px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 120ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:active {
+      opacity: 0.85;
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid #356F9A;
+      outline-offset: 2px;
+    }
+
+    .action-explanation {
+      font-size: 14px;
+      line-height: 22px;
+      color: #5D6A75;
+      padding-top: 10px;
+    }
+
+    /* Upcoming Release Dates */
+    .upcoming-section {
+      background-color: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      padding: 24px;
+    }
+
+    .section-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .link-action {
+      color: #356F9A;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .link-action:hover {
+      text-decoration: underline;
+    }
+
+    .link-action:focus-visible {
+      outline: 2px solid #356F9A;
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .ledger-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .ledger-row {
+      height: 44px;
+      border-bottom: 1px solid #D6DEE5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ledger-row:last-child {
+      border-bottom: none;
+    }
+
+    .date-col {
+      font-size: 14px;
+      color: #25313B;
+      font-weight: 500;
+    }
+
+    .status-badge-waiting {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border: 1px solid #8A5C14;
+      border-radius: 4px;
+      color: #8A5C14;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 16px;
+    }
+
+    /* Vehicle Photograph Side Region */
+    .vehicle-display-panel {
+      background-color: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .vehicle-photo-container {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      border-radius: 8px;
+      border: 1px solid #D6DEE5;
+      background-color: #F3F6F8;
+      margin-bottom: 16px;
+    }
+
+    .vehicle-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .vehicle-specs {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .vehicle-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: #25313B;
+    }
+
+    .spec-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #D6DEE5;
+      font-size: 13px;
+    }
+
+    .spec-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    /* Responsive */
+    @media (max-width: 860px) {
+      .app-header {
+        padding: 0 16px;
+      }
+      .employee-nav {
+        display: none;
+      }
+      .mobile-menu-btn {
+        display: flex;
+      }
+      .page-container {
+        padding: 24px 16px 48px;
+      }
+      .work-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .assignment-meta-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      .action-row {
+        flex-direction: column;
+        gap: 12px;
+      }
+      .btn-primary {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Shared App Header (Strict specification) -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-group">
+        <div class="brand-mark">P</div>
+        <div class="brand-wordmark">Folio3 Parking</div>
+      </div>
+      <nav class="employee-nav" aria-label="Employee Navigation">
+        <a href="#my-space" class="nav-link active">My space</a>
+        <a href="#free-spaces" class="nav-link">Free spaces</a>
+        <a href="#my-vehicles" class="nav-link">My vehicles</a>
+      </nav>
+    </div>
+
+    <div class="header-right">
+      <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIAa6JmkH7JHuOYINvkIlp7j31Ql228tpf5gst48_EyQpMyaHi9LSoIDIr2Cnja3nRLjk6RUfCafhHyaoHMCA9dMGAvEHQRgA391Felr9nnfPM-f484IcqYcJot-4mWV7uoNZluwTbOTSvhrWznKdXgH-wiYojhNTDUFfCuBt336VSpJCGrQvHS1FI98-uYJYKvX4MXgDxZd0wuxKsSftjcu3CUplMI4DJ8AmBvdbqhkMyi1FZwTkScnMCUfvbIIgkoXkQTKsvuVk" alt="Maya Chen portrait" class="user-portrait">
+      <div class="user-details">
+        <span class="user-name">Maya Chen</span>
+        <span class="user-role">Employee</span>
+      </div>
+      <button class="mobile-menu-btn" aria-label="Open menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#25313B" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Page Body -->
+  <main class="page-container entrance-animate">
+    
+    <!-- Title Region & Prominent Status Line -->
+    <div class="title-region">
+      <h1 class="heading-main">My space</h1>
+      
+      <div class="status-prominent-line">
+        <span class="status-badge-text">Reserved today</span>
+        <span class="status-details">for <strong class="mono-data">P2-08</strong>, Floor 2</span>
+      </div>
+    </div>
+
+    <!-- Restrained Two-Region Work Layout -->
+    <div class="work-grid">
+      
+      <!-- Primary Column: Assignment Details, Action, Upcoming Releases -->
+      <div class="left-work-column">
+        
+        <!-- Compact Assignment Row Card -->
+        <div class="panel assignment-row-card">
+          <div class="assignment-meta-grid">
+            <div class="meta-item">
+              <div class="meta-item-label">Current time</div>
+              <div class="meta-item-value mono-data">Monday, 12 May 2025, 10:15 PDT</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-item-label">Configured daily release time</div>
+              <div class="meta-item-value mono-data">09:00</div>
+            </div>
+            <div class="meta-item">
+              <div class="meta-item-label">Dedicated space</div>
+              <div class="meta-item-value mono-data">P2-08, Floor 2</div>
+            </div>
+          </div>
+
+          <div class="assignment-vehicle-bar">
+            <div class="vehicle-inline-info">
+              <div class="meta-item-label">Registered vehicle</div>
+              <div class="meta-item-value">Ford Escape</div>
+              <div class="plate-chip">8KVL291</div>
+            </div>
+            <div class="text-quiet" style="font-size: 13px; text-align: right;">
+              <div>Folio3 San Francisco office</div>
+              <div class="mono-data">America/Los_Angeles</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Action Area -->
+        <div class="action-panel">
+          <div class="action-row">
+            <button class="btn-primary" type="button">Release my space today</button>
+            <div class="action-explanation">
+              Because it is after <span class="mono-data">09:00</span>, the space becomes claimable immediately; this action records one release for today.
+            </div>
+          </div>
+        </div>
+
+        <!-- Upcoming Release Dates Section -->
+        <div class="upcoming-section">
+          <div class="section-header-row">
+            <h2 class="heading-section">Upcoming release dates</h2>
+            <a href="#set-release-dates" class="link-action">Set release dates</a>
+          </div>
+
+          <div class="ledger-table">
+            <div class="ledger-row">
+              <span class="date-col mono-data">15 May 2025</span>
+              <span class="status-badge-waiting">Scheduled</span>
+            </div>
+            <div class="ledger-row">
+              <span class="date-col mono-data">21 May 2025</span>
+              <span class="status-badge-waiting">Scheduled</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Secondary Column: Vehicle Verification & Photography -->
+      <aside class="right-work-column">
+        <div class="vehicle-display-panel">
+          <div class="heading-sub" style="margin-bottom: 12px;">Registered vehicle at office</div>
+          <div class="vehicle-photo-container">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTWpjqLCFBNW3CQkRgmbU7i_xh2Zny6zqdoA0RoohjPElE8SmvzLNiRW1HwbrHSf0YAzGgpZC2YiqNU3f4aazBhIpNvFnXGnE6JZU9S7WuAN3ebhbZuN3v7XXL-RUaokbMW15r7d2UmSlRdMUqHlrXgC-w4OrFphqWuXGy8s-Bd6ETGXsEr9_dCw43mCk2lJNMMA1DC4HeXFTe-4H8sq4BjKWGGm9i6oZcQwmw7mvdy1W_mRpTQJCjbDhFDAbUtJFzVaPh087cN-8" alt="Maya Chen's Ford Escape parked at Folio3 San Francisco office with plate 8KVL291" class="vehicle-photo">
+          </div>
+          <div class="vehicle-specs">
+            <div class="vehicle-title">Ford Escape</div>
+            <div class="spec-row">
+              <span class="text-quiet">License plate</span>
+              <span class="mono-data" style="font-weight: 600;">8KVL291</span>
+            </div>
+            <div class="spec-row">
+              <span class="text-quiet">Location</span>
+              <span>Folio3 San Francisco</span>
+            </div>
+            <div class="spec-row">
+              <span class="text-quiet">Assigned stall</span>
+              <span class="mono-data">P2-08 (Floor 2)</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["my space","employee my space"],"words":["employee","space"]},{"id":"S-3","names":["release date","employee release date"],"words":["employee","release","date"]},{"id":"S-4","names":["free space","employee free space"],"words":["employee","free","space"]},{"id":"S-5","names":["my vehicle","employee my vehicle"],"words":["employee","vehicle"]},{"id":"S-6","names":["employee","admin employee"],"words":["employee"]},{"id":"S-8","names":["utilization","admin utilization"],"words":["utilization"]},{"id":"S-9","names":["entry check","admin entry check"],"words":["entry","check"]},{"id":"S-10","names":["setting","admin setting"],"words":["setting"]},{"id":"S-7","names":["employee detail","employee","admin employee"],"words":["employee"]}],L={"free spaces":"S-4","my vehicles":"S-5","set release dates":"S-3"},A={"open employee record":"S-7","utilization":"S-8","entry checks":"S-9","settings":"S-10","employees":"S-6"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-2";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>
