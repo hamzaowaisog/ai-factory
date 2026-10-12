@@ -285,7 +285,7 @@ describe("design tier routes", () => {
   });
 
   it("Google Stitch can be picked for the design step, the pick allows it, and the run keeps it", () => {
-    expect(modelsView("greenfield").steps.find((s) => s.step === "design")?.engines?.map((e) => e.id)).toEqual(["stitch"]);
+    expect(modelsView("greenfield").steps.find((s) => s.step === "design")?.engines?.map((e) => e.id)).toEqual(["stitch", "pages"]);
     expect(modelsView("greenfield").steps.find((s) => s.step === "plan")?.engines ?? []).toEqual([]);
     const pick = { picks: { design: "stitch" } };
     // the pick is the allowance: a project that never set allowStitch is stopped only by the missing key
@@ -307,6 +307,21 @@ describe("design tier routes", () => {
     expect(projectForRun(allowed, resolveRun(allowed)).design?.engine).not.toBe("stitch");
   });
 
+  it("the pages engine is picked like Stitch, with the model that draws, and needs no Stitch key or allowance", () => {
+    const pick = { picks: { design: "pages:gpt-6-luna" } };
+    process.env.OPENAI_API_KEY = "sk-test"; delete process.env.STITCH_API_KEY; _resetEnvCache();
+    expect(resolveRoute(cfg(), "design", pick)).toMatchObject({ model: "gpt-6-luna", source: "design engine", engine: "pages", strict: true });
+    expect(resolveRoute(cfg(), "design", { picks: { design: "pages" } })).toMatchObject({ model: "claude-opus-5-5", engine: "pages" });
+    expect(checkRoutes(cfg(), ["design"], pick).join("\n")).not.toMatch(/STITCH_API_KEY|allowStitch/);
+    const run = projectForRun(cfg(), resolveRun(cfg(), pick));
+    expect(run.design?.engine).toBe("pages");
+    expect(run.design?.allowStitch).not.toBe(true);
+    expect(usesDesignEngine(run)).toBe(true);
+    expect(modelFor(run, "design", 0).model).toBe("gpt-6-luna");
+    expect(checkRoutes(cfg(), ["design"], { picks: { design: "pages:gpt-1" } })[0]).toMatch(/gpt-1 cannot plan a Model-drawn pages design/);
+    delete process.env.OPENAI_API_KEY; _resetEnvCache();
+  });
+
   it("a model named with Google Stitch plans its screens in place of the tier's, and the run keeps both", () => {
     const pick = { picks: { design: "stitch:gpt-6-luna" } };
     expect(resolveRoute(cfg(), "design", { picks: { design: "stitch" } }).model).toBe("claude-opus-5-5");
@@ -316,7 +331,7 @@ describe("design tier routes", () => {
     expect(usesDesignEngine(run)).toBe(true);
     expect(modelFor(run, "design", 0).model).toBe("gpt-6-luna");
     // the start form shows what plans for the engine when no model is named
-    expect(modelsView("design").steps.find((s) => s.step === "design")?.engines).toMatchObject([{ id: "stitch", planner: "claude-opus-5-5" }]);
+    expect(modelsView("design").steps.find((s) => s.step === "design")?.engines).toMatchObject([{ id: "stitch", planner: "claude-opus-5-5" }, { id: "pages", planner: "claude-opus-5-5" }]);
     // only a model the design step is offered, and only on the design step
     expect(checkRoutes(cfg(), ["design"], { picks: { design: "stitch:gpt-1" } })[0]).toMatch(/gpt-1 cannot plan a Google Stitch design/);
     expect(checkRoutes(cfg(), ["design"], { picks: { design: "stitch:" } })[0]).toMatch(/cannot plan/);

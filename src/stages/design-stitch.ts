@@ -28,6 +28,10 @@ import { hashJson } from "../util/hash.js";
 import { inPool } from "../util/pool.js";
 import { header, type StepContext, type StepOutcome } from "./framework.js";
 import { S, think, UNTRUSTED_IMAGE_NOTE } from "./think.js";
+import { pagesClient } from "./design-pages.js";
+import { designRoute } from "../config/design-route.js";
+import { modelFor } from "./routing.js";
+import { modelName } from "./models.js";
 
 export const StitchPlan = z.object({
   flow: z.string(),
@@ -158,8 +162,8 @@ export function stitchOnExistingApp(inv: DesignInventory | undefined): string | 
 
 /** Every Stitch call is one usage row under this model name: no tokens, the project's price per call. */
 export const STITCH_USAGE_MODEL = "stitch";
-/** The most Stitch calls one run makes unless the project says otherwise (a 10-screen design with two states each is 30). */
-export const DEFAULT_STITCH_MAX_CALLS = 40;
+/** No limit on a run's Stitch calls unless the project sets one: the default of 40 parked a 96-call design on the 2026-10-12 run. */
+export const DEFAULT_STITCH_MAX_CALLS = Infinity;
 
 /** The Stitch calls the run has made so far, from its usage rows (earlier steps and attempts included). */
 function stitchCallsSoFar(ctx: StepContext): number {
@@ -222,6 +226,20 @@ function saveProgress(ctx: StepContext, p: StitchProgress): void {
   writeFileSync(`${file}.tmp`, JSON.stringify(p));
   renameSync(`${file}.tmp`, file);
 }
+
+/**
+ * Who draws the pages: Google Stitch, or on the pages engine the design step's own model writing each page's HTML
+ * (src/stages/design-pages.ts). The model's calls are counted by their tokens, so Stitch's call limit and price are not its.
+ */
+interface Drawer { client: StitchClient; /** what the log and a park call it */ name: string; /** what the design records as its drawer */ model: string; own: boolean; failed(e: unknown): string }
+function drawerFor(ctx: StepContext): Drawer {
+  let own = false;
+  try { own = designRoute(ctx.project).engine === "pages"; } catch { /* no design route: Stitch, as before */ }
+  if (!own) return { client: metered(ctx, stitchClient()), name: "Stitch", model: STITCH_MODEL, own, failed: (e) => `Stitch failed: ${(e as Error).message}. Check the Stitch service, its quota and STITCH_API_KEY, then resume.` };
+  const model = modelFor(ctx.project, "design", ctx.rung, ctx.policy, ctx.priorFailures).model;
+  return { client: pagesClient(ctx), name: modelName(model), model, own, failed: (e) => `${modelName(model)} could not draw the pages: ${(e as Error).message}. The pages already drawn are kept; resume to draw the rest.` };
+}
+const ownDrawer = (ctx: StepContext): boolean => { try { return designRoute(ctx.project).engine === "pages"; } catch { return false; } };
 
 /** Downloads a generated screen, saves its picture as a frame named by version, and stores its HTML and picture in the ledger. */
 async function saveAsset(ctx: StepContext, c: StitchClient, framesDir: string, id: string, state: string, g: { screenId: string; htmlUrl: string; imageUrl: string }): Promise<StitchAsset> {
@@ -400,14 +418,14 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
   // each named screen is one edit, and its extra states are drawn again
   const motion = prev.stitch.motion;
   const calls = named.reduce((n, x) => n + stitchJobs([plan.screens.find((s) => s.id === x.id)!], allowed, undefined, true).length, 0);
-  const over = stitchBudgetProblem(ctx, calls);
+  const over = ownDrawer(ctx) ? undefined : stitchBudgetProblem(ctx, calls);
   if (over) return { kind: "park", reason: over };
-  const c = metered(ctx, stitchClient());
+  const by = drawerFor(ctx), c = by.client;
   let edited: StitchAsset[];
   let open: A11yOpen[] = [];
   try {
     mkdirSync(framesDir, { recursive: true });
-    ctx.log(`design: Stitch edits ${named.map((n) => n.id).join(", ")}; ${plan.screens.length - named.length} screen(s) kept as approved`);
+    ctx.log(`design: ${by.name} edits ${named.map((n) => n.id).join(", ")}; ${plan.screens.length - named.length} screen(s) kept as approved`);
     edited = (await inPool(named, STITCH_SIDE_BY_SIDE, async (n) => {
       const normal = frames.find((f) => f.screen === n.id && f.state === "normal")!;
       const page = await saveAsset(ctx, c, framesDir, n.id, "normal", await c.edit(prev.stitch.projectId, normal.screenId, `${n.change}${FOLLOW_SYSTEM}`, device));
@@ -418,11 +436,11 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
       return [page, ...drawn];
     })).flat();
     // only the edited screens are checked: an approved screen is never changed for accessibility on a send-back
-    const fixed = await fixA11y(ctx, c, framesDir, prev.stitch.projectId, device, edited, named.map((n) => n.id), prev.stitch.theme ? stitchLook(prev.stitch.theme as StitchTheme, prev.stitch.palette) : undefined);
+    const fixed = await fixA11y(ctx, c, framesDir, prev.stitch.projectId, device, edited, named.map((n) => n.id), prev.stitch.theme ? stitchLook(prev.stitch.theme as StitchTheme, prev.stitch.palette) : undefined, undefined, by.name);
     edited = fixed.assets;
     open = [...(prev.stitch.a11y ?? []).filter((x) => !named.some((n) => n.id === x.screen)), ...fixed.open];
   } catch (e) {
-    return { kind: "park", reason: `Stitch failed: ${(e as Error).message}. Check the Stitch service, its quota and STITCH_API_KEY, then resume.` };
+    return { kind: "park", reason: by.failed(e) };
   } finally {
     await c.close().catch(() => undefined);
   }
@@ -559,9 +577,9 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
   const key = hashJson({ plan, designMd: mdSha, theme: out.theme, device, allowed, ...(out.motion ? { motion: out.motion } : {}) });
   const saved = readProgress(ctx, key);
   const todo = jobs.filter((j) => !saved?.assets.some((a) => a.id === j.id && a.state === j.state));
-  const over = stitchBudgetProblem(ctx, todo.length);
+  const over = ownDrawer(ctx) ? undefined : stitchBudgetProblem(ctx, todo.length);
   if (over) return { kind: "park", reason: over };
-  const c = metered(ctx, stitchClient());
+  const by = drawerFor(ctx), c = by.client;
   let progress: StitchProgress;
   let assets: StitchAsset[];
   let open: A11yOpen[] = [];
@@ -579,8 +597,8 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
       progress.system = true;
       saveProgress(ctx, progress);
     }
-    if (saved) ctx.log(`design: resuming Stitch project ${progress.projectId}: ${saved.assets.length} drawn frame(s) kept, ${todo.length} to draw`);
-    else ctx.log(`design: Stitch project ${progress.projectId}, drawing ${plan.screens.length} screens with Stitch's default model, ${STITCH_SIDE_BY_SIDE} at a time (Preview shows them as they come)`);
+    if (saved) ctx.log(`design: resuming ${by.own ? "the drawing" : "Stitch project"} ${progress.projectId}: ${saved.assets.length} drawn frame(s) kept, ${todo.length} to draw`);
+    else ctx.log(`design: ${by.own ? "drawing" : "Stitch project"} ${progress.projectId}, drawing ${plan.screens.length} screens with ${by.own ? by.name : "Stitch's default model"}, ${STITCH_SIDE_BY_SIDE} at a time (Preview shows them as they come)`);
     mkdirSync(framesDir, { recursive: true });
     // the preview fills in as screens come back
     const draft = (drawn: StitchAsset[], fixed = 0) => stitchDraftPreview(ctx, spec, plan, drawn, out.theme, jobs.length, fixed);
@@ -600,18 +618,18 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     if (progress.a11y) ({ assets, open } = progress.a11y);
     else {
       // a page Stitch fixed replaces the one drawn first, in the preview as soon as its fix is back
-      ({ assets, open } = await fixA11y(ctx, c, framesDir, progress.projectId, device, progress.assets, progress.assets.map((x) => x.id), ownLook, draft));
+      ({ assets, open } = await fixA11y(ctx, c, framesDir, progress.projectId, device, progress.assets, progress.assets.map((x) => x.id), ownLook, draft, by.name));
       progress.a11y = { assets, open };
     }
     saveProgress(ctx, { ...progress, done: true });
   } catch (e) {
     // a Stitch fault is not the model's: park for a person instead of climbing to a dearer tier and paying for every call again
-    return { kind: "park", reason: `Stitch failed: ${(e as Error).message}. Check the Stitch service, its quota and STITCH_API_KEY, then resume.` };
+    return { kind: "park", reason: by.failed(e) };
   } finally {
     await c.close().catch(() => undefined);
   }
   const projectId = progress.projectId;
-  const drawn = stitchArtifact(plan, assets, { projectId, model: STITCH_MODEL, designMd: mdSha, theme: out.theme, ...(out.palette ? { palette: out.palette } : {}), mood: plan.flow, ...(out.motion ? { motion: out.motion } : {}), ...basis }, reqIds);
+  const drawn = stitchArtifact(plan, assets, { projectId, model: by.model, designMd: mdSha, theme: out.theme, ...(out.palette ? { palette: out.palette } : {}), mood: plan.flow, ...(out.motion ? { motion: out.motion } : {}), ...basis }, reqIds);
   // a whole redraw answers every send-back so far too
   const answered = inputs.feedback?.length ? { revision: inputs.feedback.length, ...(inputs.previous?.rework?.length ? { rework: inputs.previous.rework } : {}) } : {};
   const design = { ...drawn, ...answered, stitch: { ...drawn.stitch, ...(open.length ? { a11y: open } : {}) }, header: header(ctx.runId, "design", "design", "", planner) };
@@ -658,7 +676,7 @@ export function setA11yCheck(f: typeof checkStitchA11y | undefined): void { a11y
  * accessibility rules still open; a tell still there is said in the log. `onFixed` gets the assets as they stand each time a
  * fix comes back, and how many are fixed so far.
  */
-async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, projectId: string, device: StitchDevice, assets: StitchAsset[], ids: string[], look?: StitchLook, onFixed?: (assets: StitchAsset[], fixed: number) => void): Promise<{ assets: StitchAsset[]; open: A11yOpen[] }> {
+async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, projectId: string, device: StitchDevice, assets: StitchAsset[], ids: string[], look?: StitchLook, onFixed?: (assets: StitchAsset[], fixed: number) => void, who = "Stitch"): Promise<{ assets: StitchAsset[]; open: A11yOpen[] }> {
   const normals = assets.filter((a) => a.state === "normal" && ids.includes(a.id));
   const read = (a: StitchAsset) => ({ id: a.id, html: ctx.ledger.getArtifact(a.html).toString("utf8") });
   // a check that cannot run is a note, never a failure: the screens Stitch drew are kept
@@ -666,14 +684,14 @@ async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, pro
     try { return await a11yCheck(pages.map(read)); } catch (e) { ctx.log(`design: the accessibility check could not run (${(e as Error).message})`); return undefined; }
   };
   const first = await check(normals);
-  if (!first) ctx.log("design: the Stitch screens' accessibility was not checked (no Chromium or axe-core here)");
+  if (!first) ctx.log("design: the drawn screens' accessibility was not checked (no Chromium or axe-core here)");
   // a page is paid a fix for a tell that shows; one that only lacks a reduced-motion rule gets it when it is fixed anyway
   const tellsOf = (a: StitchAsset): StitchTell[] => { try { return tellCheck(read(a).html, look); } catch { return []; } };
   const bad = normals.map((a) => ({ id: a.id, violations: first?.find((x) => x.id === a.id)?.violations ?? [], tells: tellsOf(a) })).filter((b) => b.violations.length || b.tells.some((t) => !t.soft));
   if (!bad.length) return { assets, open: [] };
   const named = (pick: (b: (typeof bad)[number]) => boolean) => bad.filter(pick).map((b) => b.id).join(", ");
-  if (bad.some((b) => b.violations.length)) ctx.log(`design: accessibility problems on ${named((b) => b.violations.length > 0)}; one Stitch fix each`);
-  if (bad.some((b) => b.tells.some((t) => !t.soft))) ctx.log(`design: ${named((b) => b.tells.some((t) => !t.soft))} look generated or stand still (${[...new Set(bad.flatMap((b) => b.tells.filter((t) => !t.soft).map((t) => t.id)))].join(", ")}); one Stitch fix each`);
+  if (bad.some((b) => b.violations.length)) ctx.log(`design: accessibility problems on ${named((b) => b.violations.length > 0)}; one ${who} fix each`);
+  if (bad.some((b) => b.tells.some((t) => !t.soft))) ctx.log(`design: ${named((b) => b.tells.some((t) => !t.soft))} look generated or stand still (${[...new Set(bad.flatMap((b) => b.tells.filter((t) => !t.soft).map((t) => t.id)))].join(", ")}); one ${who} fix each`);
   const rulesOf = (x: { violations: { id: string }[] }) => [...new Set(x.violations.map((v) => v.id))];
   const withFixes = (pages: StitchAsset[]) => assets.map((a) => (a.state === "normal" ? pages.find((f) => f.id === a.id) ?? a : a));
   const back: StitchAsset[] = [];
@@ -689,13 +707,13 @@ async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, pro
       onFixed?.(withFixes(back), back.length);
       return { b, page };
     }
-    catch (e) { ctx.log(`design: Stitch could not fix ${b.id}'s accessibility (${(e as Error).message}); kept as drawn`); return { b, page: undefined }; }
+    catch (e) { ctx.log(`design: ${who} could not fix ${b.id}'s accessibility (${(e as Error).message}); kept as drawn`); return { b, page: undefined }; }
   });
   const fixed = tried.flatMap((x) => (x.page ? [x.page] : []));
   const notFixed = tried.filter((x) => !x.page && x.b.violations.length).map((x) => ({ screen: x.b.id, rules: rulesOf(x.b) }));
   const again = fixed.length && first ? (await check(fixed)) ?? [] : [];
   const still = fixed.map((p) => ({ id: p.id, tells: tellsOf(p).filter((t) => !t.soft).map((t) => t.id) })).filter((x) => x.tells.length);
-  if (still.length) ctx.log(`design: still there after Stitch's fix: ${still.map((x) => `${x.id} (${x.tells.join(", ")})`).join("; ")}; kept as drawn`);
+  if (still.length) ctx.log(`design: still there after ${who}'s fix: ${still.map((x) => `${x.id} (${x.tells.join(", ")})`).join("; ")}; kept as drawn`);
   return {
     assets: withFixes(fixed),
     open: [...notFixed, ...again.filter((x) => x.violations.length).map((x) => ({ screen: x.id, rules: rulesOf(x) }))],

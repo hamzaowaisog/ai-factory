@@ -28,7 +28,7 @@ export const MODELS: readonly ModelInfo[] = [
   { id: LUNA, name: "GPT-6 Luna", vendor: "openai", offered: ["thinking", "design", "review", "coding"] },
   { id: SOL, name: "GPT-6 Sol", vendor: "openai", offered: ["thinking", "design", "review", "coding"] },
   { id: OPUS, name: "Claude Opus 5.5", vendor: "anthropic", offered: ["thinking", "design", "review", "coding"] },
-  { id: SONNET, name: "Claude Sonnet 5.5", vendor: "anthropic", offered: ["coding"] },
+  { id: SONNET, name: "Claude Sonnet 5.5", vendor: "anthropic", offered: ["design", "coding"] },
   { id: HAIKU, name: "Claude Haiku 5.5", vendor: "anthropic", offered: [] },
 ];
 
@@ -129,9 +129,15 @@ export function offeredFor(stage: string): ModelInfo[] {
 /** What the design step can be given besides a model: Google Stitch draws the screens, and a model plans them (the design tier's Claude model, or the one picked with it: src/stages/routing.ts stitchPick). */
 export const STITCH = "stitch";
 export const STITCH_NAME = "Google Stitch";
+/** The same design with no Stitch: the model writes each page's HTML itself (src/stages/design-pages.ts), so its pages are free-form like Stitch's. */
+export const PAGES = "pages";
+export const PAGES_NAME = "Model-drawn pages";
 /** The design engines a person may pick for this step at the start of a run, beside its models. */
 export function enginesFor(stage: string): { id: string; name: string; note: string }[] {
-  return stage === "design" ? [{ id: STITCH, name: STITCH_NAME, note: "Stitch draws the screens; the model beside it plans them and writes the design system. It sends the requirements to Google: picking it here allows that for this run. It needs STITCH_API_KEY." }] : [];
+  return stage === "design" ? [
+    { id: STITCH, name: STITCH_NAME, note: "Stitch draws the screens; the model beside it plans them and writes the design system. It sends the requirements to Google: picking it here allows that for this run. It needs STITCH_API_KEY." },
+    { id: PAGES, name: PAGES_NAME, note: "The model beside it plans the screens, writes the design system and writes each page's HTML itself, as Stitch would draw it. It costs that model's tokens for every page." },
+  ] : [];
 }
 
 export type Preset = "economy" | "balanced" | "quality";

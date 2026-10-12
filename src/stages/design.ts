@@ -18,7 +18,7 @@ import type { Ledger } from "../ledger/ledger.js";
 import { restyleChosen, type ClarifyResult } from "./clarify.js";
 import { btnLabels, DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
-import { designRoute } from "../config/design-route.js";
+import { designRoute, drawsPages } from "../config/design-route.js";
 import { routeFor, usesDesignEngine } from "./routing.js";
 import { drawWithStitch, stitchOnExistingApp, type StitchDesign } from "./design-stitch.js";
 import { header, lastFailureData, outputOf, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
@@ -948,7 +948,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       if (usesDesignEngine(ctx.project)) {
         const dr = designRoute(ctx.project);
         // a planner picked with Google Stitch at the start runs in place of the tier's model (routing.ts stitchPick)
-        const planner = dr.engine === "stitch" && routeFor(ctx.project, "design").model !== dr.ladder[0]!.model ? routeFor(ctx.project, "design").model : undefined;
+        const planner = drawsPages(dr.engine) && routeFor(ctx.project, "design").model !== dr.ladder[0]!.model ? routeFor(ctx.project, "design").model : undefined;
         const line = planner ? `design: engine ${dr.engine} (${dr.source.engine}), planned by ${planner} (pick)`
           : `design: engine ${dr.engine} (${dr.source.engine}), tier ${dr.tier} (${dr.source.tier}): ${dr.ladder.map((x) => `${x.tier} ${x.model}`).join(" → ")}${dr.dropped ? `; ${dr.dropped}` : ""}`;
         ctx.log(line);
@@ -960,7 +960,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
       // the stitch engine: Claude plans and writes DESIGN.md (stitch-design-taste), Stitch draws; a sent-back Stitch design is redrawn whole
       const inv = repoInventory(ctx, src);
-      if (usesDesignEngine(ctx.project) && designRoute(ctx.project).engine === "stitch") {
+      if (usesDesignEngine(ctx.project) && drawsPages(designRoute(ctx.project).engine)) {
         const refused = stitchOnExistingApp(inv);
         if (refused) return { kind: "park", reason: refused };
         const refsSha = outputOf(ctx.state, "design-refs");

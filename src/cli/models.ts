@@ -16,7 +16,7 @@ export function choiceOption(model: string[] | undefined, preset: string | undef
   const steps = stepsOf(mode);
   for (const m of model ?? []) {
     const at = m.indexOf("=");
-    if (at < 1 || at === m.length - 1) throw new Error(`--model takes step=model (for example --model design=gpt-6-sol, or design=stitch for Google Stitch, design=stitch:gpt-6-luna to name the model that plans for it), not "${m}"`);
+    if (at < 1 || at === m.length - 1) throw new Error(`--model takes step=model (for example --model design=gpt-6-sol, or design=stitch for Google Stitch, design=stitch:gpt-6-luna to name the model that plans for it, design=pages:gpt-6-luna for that model to draw the pages itself), not "${m}"`);
     const name = m.slice(0, at).trim(), id = m.slice(at + 1).trim();
     const group = steps.filter((s) => STEPS[s]!.group === name && !STEPS[s]!.fixed);
     // a step's own name wins over a group of the same name (design is both: the step, and the group it leads)

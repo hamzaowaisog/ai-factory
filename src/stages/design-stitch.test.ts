@@ -15,6 +15,7 @@ import { setStitchFactory, setStitchTimeouts, type StitchClient } from "../desig
 import type { StepContext } from "./framework.js";
 import { S, setProviderFactory } from "./think.js";
 import { projectForRun, resolveRun } from "./routing.js";
+import { setPagePicture } from "./design-pages.js";
 import { drawWithStitch, setA11yCheck, setTellCheck, stitchArtifact, stitchFrames, stitchJobs, withShared } from "./design-stitch.js";
 
 const U = { inputTokens: 1000, outputTokens: 200, cacheRead: 0, cacheWrite: 0 };
@@ -765,6 +766,15 @@ describe("Stitch calls: cost, limits, timeouts and resume (PR review)", () => {
     expect(out).toMatchObject({ kind: "park", reason: expect.stringMatching(/2 already used/) });
   });
 
+  it("has no call limit unless the project sets one", async () => {
+    script();
+    const ledger = memoryLedger();
+    const used = { type: "usage", key: "design#1", data: { "gen_ai.request.model": "stitch", "gen_ai.usage.cost_usd": 0 } } as never;
+    ledger.events = () => [CREATED, ...Array<never>(60).fill(used)];
+    const out = await drawWithStitch(metered(ledger, {}), spec);
+    expect(out.kind).toBe("done");
+  });
+
   it("parks before drawing when the calls would pass the run's cost limit", async () => {
     script();
     const out = await drawWithStitch(metered(memoryLedger(), { stitch: { usdPerCall: 50 } }), spec);
@@ -849,5 +859,51 @@ describe("the approval preview's frames for a JSON design (PR #32 review)", () =
     const screens = [{ id: "S-1", frames: ["F-1"] }, { id: "S-2", frames: ["ST-1"] }];
     const frames = { "F-1": { name: "mock.png" }, "ST-1": { name: "stitch-S-2-normal-aaaaaaaa.png", state: "normal" } };
     expect(previewFrames(screens, frames, () => true).map((x) => x.name)).toEqual(["stitch-S-2-normal-aaaaaaaa.png"]);
+  });
+});
+
+describe("the pages engine: the design step's model draws each page in Stitch's place", () => {
+  const pageHtml = (n: number) => `<!DOCTYPE html><html lang="en"><head><title>P${n}</title><style>body{background:#F9FAFB}</style><script>alert(1)</script></head><body><main><h1>Payees ${n}</h1><p>Everyone you have paid before.</p><button type="button">Add payee</button></main></body></html>`;
+  let logged: { model: string }[] = [];
+  const pagesCtx = (ledger: ReturnType<typeof memoryLedger>) => {
+    const c = ctxFor(ledger, 0, { engine: "pages", allowStitch: false });
+    c.usage = async (u) => { logged.push(u); };
+    return c;
+  };
+  beforeEach(() => { logged = []; setPagePicture(async (_html, device) => Buffer.from(`PNG-${device}`)); setStitchFactory(() => { throw new Error("Stitch must not be called"); }); });
+  afterEach(() => setPagePicture(undefined));
+
+  it("draws every page with the model, keeps it without its scripts, and records the model as the drawer", async () => {
+    answers = [plan(), { designMd: md(), theme }, { html: pageHtml(1) }, { html: pageHtml(2) }, { html: pageHtml(3) }];
+    const ledger = memoryLedger();
+    const out = await drawWithStitch(pagesCtx(ledger), spec);
+    expect((out as { reason?: string }).reason).toBeUndefined();
+    expect(out).toMatchObject({ kind: "done", data: { screens: 2, engine: "stitch" } });
+    const design = ledger.getJson<{ engine: string; stitch: { model: string; projectId: string; frames: Record<string, { html: string; image: string; screenId: string }> } }>((out as { outputs: { design: string } }).outputs.design);
+    // the same shape as a Stitch design, so the preview, the checks and the export read it unchanged
+    expect(design.engine).toBe("stitch");
+    expect(design.stitch.model).toBe("claude-sonnet-5");
+    expect(design.stitch.projectId).toMatch(/^pages-/);
+    const frames = Object.values(design.stitch.frames);
+    expect(frames).toHaveLength(3); // S-1, S-1 empty, S-2
+    for (const f of frames) {
+      const html = ledger.getArtifact(f.html).toString();
+      expect(html).toContain("<h1>Payees");
+      expect(html).not.toContain("<script");
+      expect(f.screenId).toBe(f.html);
+      expect(ledger.getArtifact(f.image).toString()).toBe("PNG-DESKTOP");
+    }
+    // the page calls are told the design system and the page's prompt, and no Stitch call is counted
+    expect(systems.slice(2).every((s) => s.includes("writes production HTML"))).toBe(true);
+    expect(users.slice(2).every((u) => u.includes("# Design System: Payees"))).toBe(true);
+    expect(logged.some((u) => u.model === "stitch")).toBe(false);
+  });
+
+  it("parks with the model's name, never Stitch's, when a page cannot be drawn", async () => {
+    answers = [plan(), { designMd: md(), theme }, { html: "x".repeat(300) }, { html: pageHtml(2) }, { html: pageHtml(3) }];
+    const out = await drawWithStitch(pagesCtx(memoryLedger()), spec);
+    expect(out.kind).toBe("park");
+    expect((out as { reason: string }).reason).toMatch(/could not draw the pages: the model's answer was not a page/);
+    expect((out as { reason: string }).reason).not.toMatch(/STITCH_API_KEY/);
   });
 });

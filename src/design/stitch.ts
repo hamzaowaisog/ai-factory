@@ -41,18 +41,23 @@ export async function files(screen: { id: string; getHtml(): Promise<string>; ge
   throw last;
 }
 
-interface StitchScreen { id?: string; name?: string; htmlCode?: { downloadUrl?: string }; screenshot?: { downloadUrl?: string } }
+interface StitchScreen { id?: string; name?: string; deviceType?: string; width?: number | string; height?: number | string; htmlCode?: { downloadUrl?: string }; screenshot?: { downloadUrl?: string } }
 export interface StitchAnswer { outputComponents?: { design?: { screens?: StitchScreen[] } }[] }
 
 /**
  * The page among what one drawing call gave back. Asked for a real photograph, Stitch makes the picture first and returns it as
  * a screen of its own, ahead of the page that uses it; that one has no page file and get_screen refuses it ("Request contains an
- * invalid argument", 12 Oct 2026). The SDK takes whichever comes first, so the answer is read here: the first screen that has a
- * page, else the first one.
+ * invalid argument", 12 Oct 2026). A drawn signature comes back the same way but with a page file of its own (a 500 x 200 SVG and
+ * no device, 13 Oct 2026), so the first screen with a page is not always the page. The SDK takes whichever comes first, so the
+ * answer is read here: of the screens that have a page, the one drawn for a device, the tallest when several are; else the first
+ * screen.
  */
 export function pageOf(raw: StitchAnswer): { id: string; htmlUrl: string; imageUrl: string } {
   const all = (raw?.outputComponents ?? []).flatMap((c) => c?.design?.screens ?? []);
-  const s = all.find((x) => x.htmlCode?.downloadUrl) ?? all[0];
+  const device = (x: StitchScreen) => (x.deviceType && x.deviceType !== "DEVICE_TYPE_UNSPECIFIED" ? 1 : 0);
+  const pages = all.filter((x) => x.htmlCode?.downloadUrl);
+  // sort is stable: screens that tie keep the order Stitch gave them
+  const s = [...pages].sort((a, b) => device(b) - device(a) || (Number(b.height) || 0) - (Number(a.height) || 0))[0] ?? all[0];
   const id = s?.id ?? s?.name?.split("/screens/")[1];
   if (!s || !id) throw new Error("Stitch answered without a screen");
   return { id, htmlUrl: s.htmlCode?.downloadUrl ?? "", imageUrl: s.screenshot?.downloadUrl ?? "" };

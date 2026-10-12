@@ -38,6 +38,13 @@ describe("the page among what Stitch gave back", () => {
     expect(pageOf({ outputComponents: [{ design: { screens: [photo] } }] }).id).toBe("pic");
     expect(() => pageOf({ outputComponents: [{}] })).toThrow("without a screen");
   });
+  it("takes the page, not the signature Stitch drew first with a page file of its own", () => {
+    const signature = { name: "projects/p/screens/sig", width: 500, height: 200, htmlCode: { downloadUrl: "sig-html" }, screenshot: { downloadUrl: "sig-img" } };
+    const page = { name: "projects/p/screens/page", deviceType: "DESKTOP", width: 2560, height: 3732, htmlCode: { downloadUrl: "html-url" }, screenshot: { downloadUrl: "img-url" } };
+    expect(pageOf({ outputComponents: [{ design: { screens: [signature, page] } }] }).id).toBe("page");
+    // no device on either: the taller one is the page
+    expect(pageOf({ outputComponents: [{ design: { screens: [signature, { ...page, deviceType: undefined }] } }] }).id).toBe("page");
+  });
 });
 
 describe("the files of a screen Stitch just drew", () => {

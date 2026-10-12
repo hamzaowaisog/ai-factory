@@ -192,7 +192,7 @@ export const ProjectConfig = z.object({
       states: z.array(z.enum(["empty", "error", "loading", "success", "validation"])).optional(),
       /** USD per Stitch call (a screen drawn or edited), counted in the run's cost and its limit; Stitch is free within its quota today */
       usdPerCall: z.number().nonnegative().optional(),
-      /** the most Stitch calls one run may make (draws, edits and fixes together), so a run cannot use up the account's quota */
+      /** the most Stitch calls one run may make (draws, edits and fixes together), so a run cannot use up the account's quota; default: no limit */
       maxCalls: z.number().int().positive().optional(),
       /** the look asked of the design system: calm, bold or futuristic (src/design/stitch-taste.ts); default: chosen from the product */
       mood: z.enum(STITCH_MOODS).optional(),
