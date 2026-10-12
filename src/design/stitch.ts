@@ -18,8 +18,58 @@ export interface StitchClient {
 }
 
 
+/** How often, and how far apart, a drawn screen's files are asked for again before the call counts as failed. */
+let fileTries = { tries: 4, waitMs: 5000 };
+/** Tests shorten the wait; undefined goes back to four tries, five seconds apart (longer each time). */
+export function setStitchFileTries(t: { tries: number; waitMs: number } | undefined): void { fileTries = t ?? { tries: 4, waitMs: 5000 }; }
+
+/**
+ * The page and picture of a screen Stitch just drew. Its answer usually carries both links; when it does not, the SDK asks
+ * get_screen, which refuses a screen that is not stored yet ("Request contains an invalid argument", 12 Oct 2026). The drawing is
+ * already paid for, so the links are asked for again after a short wait before the call fails.
+ */
+export async function files(screen: { id: string; getHtml(): Promise<string>; getImage(): Promise<string> }): Promise<{ screenId: string; htmlUrl: string; imageUrl: string }> {
+  let last: unknown;
+  for (let n = 1; n <= fileTries.tries; n++) {
+    try {
+      const htmlUrl = await screen.getHtml(), imageUrl = await screen.getImage();
+      if (htmlUrl && imageUrl) return { screenId: screen.id, htmlUrl, imageUrl };
+      last = new Error(`Stitch drew screen ${screen.id} but gave no ${htmlUrl ? "picture" : "page"} for it`);
+    } catch (e) { last = e; }
+    if (n < fileTries.tries) await new Promise((r) => setTimeout(r, fileTries.waitMs * n));
+  }
+  throw last;
+}
+
+interface StitchScreen { id?: string; name?: string; htmlCode?: { downloadUrl?: string }; screenshot?: { downloadUrl?: string } }
+export interface StitchAnswer { outputComponents?: { design?: { screens?: StitchScreen[] } }[] }
+
+/**
+ * The page among what one drawing call gave back. Asked for a real photograph, Stitch makes the picture first and returns it as
+ * a screen of its own, ahead of the page that uses it; that one has no page file and get_screen refuses it ("Request contains an
+ * invalid argument", 12 Oct 2026). The SDK takes whichever comes first, so the answer is read here: the first screen that has a
+ * page, else the first one.
+ */
+export function pageOf(raw: StitchAnswer): { id: string; htmlUrl: string; imageUrl: string } {
+  const all = (raw?.outputComponents ?? []).flatMap((c) => c?.design?.screens ?? []);
+  const s = all.find((x) => x.htmlCode?.downloadUrl) ?? all[0];
+  const id = s?.id ?? s?.name?.split("/screens/")[1];
+  if (!s || !id) throw new Error("Stitch answered without a screen");
+  return { id, htmlUrl: s.htmlCode?.downloadUrl ?? "", imageUrl: s.screenshot?.downloadUrl ?? "" };
+}
+
+function drawn(tools: { callTool<T>(name: string, args: Record<string, unknown>): Promise<T> }, projectId: string, raw: StitchAnswer) {
+  const page = pageOf(raw);
+  const ask = () => tools.callTool<StitchScreen>("get_screen", { projectId, screenId: page.id, name: `projects/${projectId}/screens/${page.id}` });
+  return {
+    id: page.id,
+    getHtml: async () => page.htmlUrl || ((await ask())?.htmlCode?.downloadUrl ?? ""),
+    getImage: async () => page.imageUrl || ((await ask())?.screenshot?.downloadUrl ?? ""),
+  };
+}
+
 function sdkClient(apiKey: string): StitchClient {
-  let made: Promise<{ tools: { close(): Promise<void> }; stitch: import("@google/stitch-sdk").Stitch }> | undefined;
+  let made: Promise<{ tools: { close(): Promise<void>; callTool<T>(name: string, args: Record<string, unknown>): Promise<T> }; stitch: import("@google/stitch-sdk").Stitch }> | undefined;
   const sdk = () => (made ??= import("@google/stitch-sdk").then(({ Stitch, StitchToolClient }) => {
     const tools = new StitchToolClient({ apiKey });
     return { tools, stitch: new Stitch(tools) };
@@ -31,12 +81,12 @@ function sdkClient(apiKey: string): StitchClient {
       await ds.update({ displayName: name, theme });
     },
     async generate(projectId, prompt, device) {
-      const screen = await (await sdk()).stitch.project(projectId).generate(prompt, device);
-      return { screenId: screen.id, htmlUrl: await screen.getHtml(), imageUrl: await screen.getImage() };
+      const { tools } = await sdk();
+      return files(drawn(tools, projectId, await tools.callTool<StitchAnswer>("generate_screen_from_text", { projectId, prompt, deviceType: device })));
     },
     async edit(projectId, screenId, prompt, device) {
-      const screen = await (await sdk()).stitch.project(projectId).screen(screenId).edit(prompt, device);
-      return { screenId: screen.id, htmlUrl: await screen.getHtml(), imageUrl: await screen.getImage() };
+      const { tools } = await sdk();
+      return files(drawn(tools, projectId, await tools.callTool<StitchAnswer>("edit_screens", { projectId, selectedScreenIds: [screenId], prompt, deviceType: device })));
     },
     async download(url) {
       // the fetch itself is cut off at the time limit, not only abandoned

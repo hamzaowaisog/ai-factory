@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { designMdFaults, loadTasteSkill, TASTE_SKILL_PATH } from "./stitch-taste.js";
+import { designMdFaults, offBlack, loadTasteSkill, TASTE_SKILL_PATH } from "./stitch-taste.js";
 
 const good = "# Design System: Ledgerly\n## 1. Visual Theme & Atmosphere\nCalm.\n## 2. Color Palette & Roles\n- **Canvas** (#F9FAFB) — background\n- **Brand Teal** (#0F766E) — accent\n## 3. Typography Rules\n- **Display:** Geist\n## 4. Component Stylings\n## 5. Layout Principles\n## 7. Anti-Patterns (Banned)\n- No emojis";
 
@@ -27,6 +27,21 @@ describe("DESIGN.md checks", () => {
   it("flags missing sections, pure black, and a dropped brand colour or font", () => {
     const checks = designMdFaults("# Design System: X\n## 2. Color Palette & Roles\n- Ink (#000000)", { colours: ["#0F766E"], fonts: ["Lato"] }).map((f) => f.check);
     expect(checks).toEqual(expect.arrayContaining(["stitch-designmd-section", "stitch-designmd-black", "stitch-designmd-brand"]));
+  });
+});
+
+describe("pure black put right without a model call", () => {
+  it("swaps it where it is used, and leaves a ban line and a black brand alone", () => {
+    const md = "- **Canvas** (#000000) page\n- No pure black (#000000).";
+    expect(offBlack(md, { colours: [] })).toEqual({ md: "- **Canvas** (#18181B) page\n- No pure black (#000000).", swapped: 1 });
+    expect(offBlack(md, { colours: ["#000"] })).toEqual({ md, swapped: 0 });
+  });
+});
+
+describe("pure black named only to ban it", () => {
+  it("passes a design system whose anti-patterns say no pure black, and still flags one that uses it", () => {
+    expect(designMdFaults(`${good}\n- No emojis, no Inter, no pure black (#000000).`, { colours: ["#0f766e"], fonts: [] })).toEqual([]);
+    expect(designMdFaults(`${good}\n- **Ink** (#000000) — headings`, { colours: ["#0f766e"], fonts: [] }).map((f) => f.check)).toEqual(["stitch-designmd-black"]);
   });
 });
 

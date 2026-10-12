@@ -33,6 +33,10 @@ export function liveNames(s: LiveScreen): string[] {
 const COMMON = new Set(["the", "and", "for", "with", "your", "our", "all", "new", "view", "open", "see", "show", "manage", "admin", "app", "page", "list", "details", "detail", "back", "this", "that", "from", "into", "error", "state", "success", "empty", "loading", "default", "normal", "validation"]);
 /** A control that starts with one of these acts on the page it is on; it is never guessed to be a way to another screen. */
 const ACTS = ["claim", "remove", "delete", "cancel", "save", "flag", "copy", "edit", "update", "toggle", "export", "download", "retry", "try", "close", "confirm", "submit", "apply", "reset", "clear", "search", "filter", "sort"];
+/** A control with one of these words shows a state of its own page (Stitch draws such switches); only a screen's exact name or a listed link makes it open one. */
+const STATE_WORDS = ["empty", "loading", "error", "success", "validation", "state", "states", "preview", "variant", "variants", "demo", "default"];
+/** The words of a page's footer and help links; a control with one is never guessed to be a way to another screen. */
+const CHROME = ["terms", "privacy", "policy", "legal", "cookie", "cookies", "support", "help", "documentation", "docs"];
 const stem = (w: string) => (w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w);
 const keys = (s: string) => [...new Set(norm(s).split(" ").filter((w) => w.length >= 3 && !COMMON.has(w)).map(stem))];
 
@@ -44,9 +48,12 @@ export function liveWords(s: LiveScreen): string[] {
 /**
  * The script a live page gets: a click on a link, button or tab asks the demo to open the screen it leads to. A link never
  * leaves the page and a form is never sent. The screen is found, in order: by the links the screen list gave this page, then
- * by what any page calls a screen; by a screen's name (exact, else the click's words inside the name or the name inside the
+ * by what any page calls a screen; by a screen's name, a plural as its singular (exact, or exact once the click's filler words
+ * are gone; else the click's words inside the name, or a name of two words or more, or one the click goes "to", inside the
  * click's words, the closest in length first); and last by the words the click shares with one screen's route, when one screen
- * alone shares the most and the control is not an action on its own page.
+ * alone shares the most and the control is not an action on its own page. A wrong page misleads more than a click that does
+ * nothing, so a one-word name inside a longer control ("Claim space" beside /admin/spaces) opens nothing. The page's own
+ * screen is among those a click may mean: when it fits best the click stays where it is ("Dashboard" on the dashboard).
  */
 function clickScript(self: string, screens: LiveScreen[], site = false): string {
   const others = screens.filter((s) => s.id !== self);
@@ -58,20 +65,24 @@ function clickScript(self: string, screens: LiveScreen[], site = false): string 
   const ids = new Set(screens.map((s) => s.id));
   for (const s of screens) for (const l of s.links ?? []) { const k = norm(l.label); if (!k || !ids.has(l.to)) continue; said.set(k, said.has(k) && said.get(k) !== l.to ? null : l.to); }
   const any = Object.fromEntries([...said].filter((e): e is [string, string] => e[1] !== null && known.has(e[1]) && !(e[0] in own)));
-  const table = others.map((s) => ({ id: s.id, names: liveNames(s), words: liveWords(s) }));
+  // of two screens a name fits as well, the one with the shorter route wins (a list before its detail page)
+  const stems = (n: string) => n.split(" ").map(stem).join(" ");
+  const depth = (s: LiveScreen) => s.route.split(/[/?#]/).filter(Boolean).length;
+  const table = [...screens].sort((a, b) => depth(a) - depth(b)).map((s) => ({ id: s.id, names: [...new Set(liveNames(s).map(stems))], words: liveWords(s) }));
   const json = (v: unknown) => JSON.stringify(v).replace(/</g, "\\u003c");
-  return `(function(){var T=${json(table)},L=${json(own)},A=${json(any)},C=${json([...COMMON])},V=${json(ACTS)};
+  return `(function(){var T=${json(table)},L=${json(own)},A=${json(any)},C=${json([...COMMON])},V=${json(ACTS)},S=${json(STATE_WORDS)},F=${json(CHROME)},M=${json(self)};
 function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
 function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
 function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
 function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
-function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0)return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
 var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
 if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
-function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var best,gap=1e9;T.forEach(function(s){s.names.forEach(function(n){
-var d=n===t?-1:(t.length>=4&&(has(n,t)||has(t,n)))?Math.abs(n.length-t.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||guess(t)}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
 document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
-if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id){e.preventDefault();${site ? 'location.href=id+".html"' : 'parent.postMessage({factoryGo:id},"*")'}}},true);
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();${site ? 'location.href=id+".html"' : 'parent.postMessage({factoryGo:id},"*")'}}},true);
 document.addEventListener("submit",function(e){e.preventDefault()},true);})();`;
 }
 

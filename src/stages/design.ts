@@ -27,11 +27,12 @@ import { lookFromRefs, lookRefs, matchFamilies, refBrief as clientRefBrief, refF
 import type { DesignRefsArt } from "./design-refs.js";
 import { ESTIMATE_SOURCES, intentOf, inventoryNamed, repoInventory, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
 import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
-import { uiuxSection } from "../design/uiux-skill.js";
+import { lookResearch } from "../design/research.js";
 import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
 import { ensureMeasured } from "../design/refs/measure.js";
 import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } from "../design/looks.js";
 import { S, think, UNTRUSTED_IMAGE_NOTE, UNTRUSTED_NOTE } from "./think.js";
+import { asWeb, webOnly } from "../config/platform.js";
 import { carriedLines, carries } from "./gate-questions.js";
 import { buildDemo, demoStates, themeValues } from "../design/demo.js";
 import { contrastIssues } from "../design/palette.js";
@@ -650,7 +651,7 @@ async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true;
     sections: [S.template("tpl", PLAN_RULES()), ...b.rules, ...b.context, S.task("List the screens and choose the look; the pages are drawn next.")],
   });
   if (!p.ok) return p;
-  const plan = p.output;
+  const plan = webOnly(ctx.state.info.mode, ctx.project) ? asWeb(p.output) : p.output;
   const keptLook = !!b.earlierTheme && JSON.stringify(b.earlierTheme) === JSON.stringify(plan.theme);
   const listed = [
     ...mapFailures(mapDesign(b.spec.requirements.map((q) => q.id), plan as never, b.frames)),
@@ -943,7 +944,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
           ...(prev?.engine === "stitch" ? { previous: prev } : {}),
           feedback: designRejections(ctx.state).slice(0, MAX_DESIGN_REVISIONS),
           ...(inv?.look ? { look: inv.look } : {}),
-          ...(refRead && !refRead.skipped && refRead.refs.length ? { refs: refRead } : {}),
+          ...(refRead && !refRead.skipped && refRead.refs.length ? { refs: refRead, refSections: referenceSections(ctx.state, refRead) } : {}),
         });
       }
       const frames = listedFrames(ctx.state.info.request ?? "");
@@ -981,17 +982,16 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       // a look taken from match or inspire references replaces the field's library; layout references leave the look to it
       const fromRefs = !!reading && lookFromRefs(reading) && !existing;
       const matchOnly = fromRefs && lookRefs(reading).every((r) => r.role === "match");
-      // about to draw: read the live sites of the field's brands first (best effort), so the brief and the colour check use real colours
-      if (!existing && !fromRefs) await ensureMeasured(pickIndustries(reqText).map((x) => x.industry.id)).catch(() => undefined);
-      const refBrief = briefFor(reqText);
-      const refs = fitRefs(reqText);
-      // a new look is compared with the factory's latest projects; a change keeps its approved look, and an existing app keeps the repo's
-      const field = fieldOf(reqText);
-      // (a client's brand may repeat an earlier project's: no recent-looks check when every look reference is matched)
-      const recent = existing || restyle || (earlier && !earlier.skipped) || matchOnly ? [] : recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), undefined, field);
-      // a new look gets the ui-ux-pro-max skill's design system for the field, from the skill's own search (no model)
-      const uiux = await uiuxSection(reqText, ctx.state.info.estimate?.projectName ?? "", !existing && !restyle && !fromRefs && !(earlier && !earlier.skipped));
-      if (uiux.note) ctx.log(uiux.note);
+      // the research a new look stands on, the same on every engine (src/design/research.ts): the field's products with their live
+      // colours, the factory's latest looks (a change keeps its approved look, an existing app the repo's, a matched client brand
+      // may repeat an earlier project's), and the ui-ux-pro-max design system
+      const kept = !!earlier && !earlier.skipped;
+      const found = await lookResearch(reqText, {
+        projectName: ctx.state.info.estimate?.projectName, runId: ctx.runId, byField: !existing && !fromRefs,
+        compare: !(existing || restyle || kept || matchOnly), fresh: !existing && !restyle && !fromRefs && !kept, log: ctx.log,
+      });
+      const { brief: refBrief, refs, field, recent } = found;
+      const uiux = { section: found.uiux };
       const feedback = sentBack.length
         ? `The lead rejected the previous design ${sentBack.length === 1 ? "once" : `${sentBack.length} times`}. Their reasons, oldest first:\n${sentBack.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nRedraw it so each reason is met: keep what they did not criticise, change what they did, and do not repeat the earlier screens, theme or sample data where they objected.${again?.fine.length && prev ? ` The lead said these pages are fine, so keep them as they are: ${prev.screens.filter((x) => again!.fine.includes(x.id)).map(screenName).join(", ")}.` : ""}`
         : "";
@@ -1030,7 +1030,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
           sections: [S.template("tpl", RULES), ...rules, ...context, S.task("Draw the screen inventory.")],
         });
       if (!r.ok) return r.outcome;
-      const out = keepFine(r.output, again?.fine ?? [], prev, earlierTheme);
+      const out = keepFine(webOnly(ctx.state.info.mode, ctx.project) ? asWeb(r.output) : r.output, again?.fine ?? [], prev, earlierTheme);
       const map = mapDesign(spec.requirements.map((q) => q.id), out, frames.map((f) => f.id));
       const bad = [
         ...mapFailures(map),

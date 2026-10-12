@@ -689,7 +689,7 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     return id;
   }
 
-  it("starts from an approved estimate made with no repo: its request, and the web run held to it; a phone app is refused", async () => {
+  it("starts from an approved estimate made with no repo: its request, and the web run held to it; a phone app is built as the web app", async () => {
     const dir = mkdtempSync(join(tmpdir(), "factory-ui-fs-"));
     const id = await noRepoEstimate([{ id: "EST-1", track: "web", kind: "ui-form", executor: "factory" }, { id: "EST-3", track: "backend", kind: "be-endpoint", executor: "factory" }]);
     expect((await send("/api/fullstack", { name: "parts", dir, fromEstimate: id, prompt: "more" })).json().error).toMatch(/brings its own request/);
@@ -700,13 +700,9 @@ describe("factory ui: a web app + API product (factory fullstack)", () => {
     expect((await call("/api/fullstack/parts")).json()).toMatchObject({ request: "A quick-order page for parts buyers", from: { kind: "estimate", runId: id } });
 
     const phone = await noRepoEstimate([{ id: "EST-1", track: "web", kind: "ui-form", executor: "factory" }, { id: "EST-2", track: "mobile", kind: "ui-device", executor: "factory" }]);
-    expect((await call("/api/projects")).json().estimates.find((e: { runId: string }) => e.runId === phone).cannotBuild).toMatch(/prices a phone app: 1 mobile task \(EST-2; priced as React Native\)/);
-    const refused = await send("/api/fullstack", { name: "phones", dir, fromEstimate: phone });
-    expect(refused.status).toBe(400);
-    expect(refused.json().error).toMatch(/prices a phone app/);
-    expect(existsSync(join(dir, "phones-web"))).toBe(false);
-    expect((await call("/api/fullstack")).json().map((p: { name: string }) => p.name)).toContain("parts");
-    expect((await call("/api/fullstack")).json().map((p: { name: string }) => p.name)).not.toContain("phones");
+    expect((await call("/api/projects")).json().estimates.find((e: { runId: string }) => e.runId === phone).cannotBuild).toBeUndefined();
+    expect((await send("/api/fullstack", { name: "phones", dir, fromEstimate: phone })).status).toBe(201);
+    expect((await call("/api/fullstack")).json().map((p: { name: string }) => p.name)).toEqual(expect.arrayContaining(["parts", "phones"]));
   });
 
   it("starts from an approved design made with no repo: its design steps are skipped; one made for a repo is refused", async () => {

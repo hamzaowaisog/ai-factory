@@ -34,8 +34,10 @@ describe("a live Stitch page", () => {
     expect(liveNames(screens[2]!)).toEqual(["visit history", "visits", "patients visits"]);
     const html = stitchLiveHtml(page, "S-1", [...screens, { id: "S-4", route: "/x", title: "</script><script>steal()" }]);
     const script = html.slice(html.lastIndexOf("<script>"));
-    expect(script).toContain('"id":"S-2","names":["patients"]');
-    expect(script).not.toContain('"id":"S-1"');
+    expect(script).toContain('"id":"S-2","names":["patient"]');
+    // its own screen is listed too, so a click that means it stays where it is
+    expect(script).toContain('"id":"S-1"');
+    expect(script).toContain('M="S-1"');
     expect(script).toContain("parent.postMessage({factoryGo:id}");
     expect(script).not.toContain("</script><script>steal");
   });
@@ -76,6 +78,32 @@ describe("a live Stitch page", () => {
     expect(goes("S-1", all.slice(0, 3), "Parking spaces")).toBe("S-2");
     expect(goes("S-1", all.slice(0, 3), "Remove space")).toBeUndefined();
     expect(goes("S-1", all.slice(0, 3), "Error state")).toBeUndefined();
+  });
+
+  it("stays on its page when the click means its own screen, and reads a plural as its singular", () => {
+    const all = [{ id: "S-1", route: "/dashboard", title: "Good morning" }, { id: "S-2", route: "/dashboard/holder", title: "Hello" }, { id: "S-3", route: "/releases/schedule", title: "Schedule" }, { id: "S-4", route: "/admin/settings", title: "Parking release settings" }, { id: "S-5", route: "/admin/employees", title: "Employees" }, { id: "S-6", route: "/admin/employees/:id", title: "Employee record" }];
+    expect(goes("S-1", all, "Dashboard")).toBeUndefined();
+    expect(goes("S-3", all, "Dashboard")).toBe("S-1");
+    expect(goes("S-1", all, "Release")).toBe("S-3");
+    expect(goes("S-3", all, "Release today")).toBeUndefined();
+    // a list and its detail page are named by the same route word: the list is meant, from either
+    expect(goes("S-6", all, "Employees")).toBe("S-5");
+    expect(goes("S-5", all, "All employees")).toBeUndefined();
+    expect(goes("S-6", all, "Back to employees")).toBe("S-5");
+  });
+
+  it("never takes a switch between a page's states or a footer link for a way to another screen", () => {
+    const all = [{ id: "S-1", route: "/sign-in", title: "Acme" }, { id: "S-2", route: "/access-error", title: "Acme" }, { id: "S-3", route: "/admin/spaces", title: "Parking spaces" }];
+    expect(goes("S-1", all, "Empty state 0 spaces")).toBeUndefined();
+    expect(goes("S-1", all, "Success space B2 14")).toBeUndefined();
+    expect(goes("S-1", all, "Terms of access")).toBeUndefined();
+    // a screen's exact name still opens it
+    expect(goes("S-1", all, "Access error")).toBe("S-2");
+    expect(goes("S-1", all, "Manage parking spaces")).toBe("S-3");
+    // a one-word name inside a longer control is not a way there, unless the control goes "to" it
+    expect(goes("S-1", all, "Claim space")).toBeUndefined();
+    expect(goes("S-1", all, "Release today's space")).toBeUndefined();
+    expect(goes("S-1", all, "Save and continue to spaces")).toBe("S-3");
   });
 
   it("one file per frame of a Stitch design, none for another engine or a frame whose HTML is gone", () => {
