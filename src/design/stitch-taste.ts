@@ -31,10 +31,34 @@ export function tasteSkillProblem(path = TASTE_SKILL_PATH, pinned = path === TAS
   return fault ? `design.engine is stitch, but ${fault}` : undefined;
 }
 
+/**
+ * A start-up problem for a design drawn by Claude or OpenAI, which takes the skill's page rules when the skill is installed:
+ * only the reviewed copy. A missing skill is not a problem there: the design is drawn without it.
+ */
+export function tastePageProblem(path = TASTE_SKILL_PATH, pinned = path === TASTE_SKILL_PATH ? TASTE_SKILL_SHA256 : undefined): string | undefined {
+  return existsSync(path) ? skillFault(path, pinned) : undefined;
+}
+
 export function loadTasteSkill(path = TASTE_SKILL_PATH, pinned = path === TASTE_SKILL_PATH ? TASTE_SKILL_SHA256 : undefined): string {
   const fault = skillFault(path, pinned);
   if (fault) throw new Error(fault.charAt(0).toUpperCase() + fault.slice(1));
   return readFileSync(path, "utf8").replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "").trim();
+}
+
+/** The skill's parts that say how a page is composed (its layout rules, its anti-patterns and its component replacements), by their headings. */
+const PAGE_PARTS = ["### 6. Define Layout Principles", "### 9. List Anti-Patterns (AI Tells)", "## 12. Anti-Vibe-Coded Components"];
+/**
+ * Those parts of the skill, for the step that lists the screens and writes each Stitch prompt: it runs before the DESIGN.md
+ * exists, and Stitch's drawing call takes a prompt alone, so a layout rule reaches a page only through its prompt.
+ */
+export function tastePageRules(skill = loadTasteSkill()): string {
+  const lines = skill.split("\n");
+  return PAGE_PARTS.map((h) => {
+    const at = lines.findIndex((l) => l.startsWith(h));
+    if (at < 0) throw new Error(`The stitch-design-taste skill has no "${h}" part; review the skill and update PAGE_PARTS in src/design/stitch-taste.ts`);
+    const end = lines.findIndex((l, i) => i > at && /^#{1,3} /.test(l));
+    return lines.slice(at, end < 0 ? undefined : end).join("\n").trim();
+  }).join("\n\n");
 }
 
 /** The fonts Stitch's design system accepts (create_design_system, SDK 0.3.5). */
@@ -55,15 +79,26 @@ export const TASTE_OVERRIDES = `You write the DESIGN.md for this product by foll
 - The client's brand colours and fonts, and an existing app's look, win over the skill's taste rules and bans. Keep every brand hex and font named in "brand" exactly.
 - Use the skill's output structure (sections 1 to 7). Every colour has a descriptive name, its hex code and its role.
 - Choose the dials from the product: software screens and dashboards are Density 5 to 7, Variance 3 to 5 and Motion 4 to 6; a marketing site may go higher. A "mood" below, when there is one, sets them instead.
-- Motion is part of the look, never left out: the motion system gives every token as a CSS value, and names one signature motion moment and one ambient animation that belong to this product.
-- Describe the screens' shared look only. Never list screens, invent features, or describe content the requirements do not ask for.
-Return the whole file as "designMd", "motion" (the signature motion moment as "signature" and the one ambient animation as "ambient": one sentence each that says which element moves and how, with its CSS values, as the DESIGN.md has them), and "theme" for Stitch: colorMode (LIGHT or DARK), headlineFont and bodyFont from Stitch's list (${STITCH_FONTS_TEXT}; the closest to the DESIGN.md's fonts), roundness (ROUND_FOUR, ROUND_EIGHT, ROUND_TWELVE or ROUND_FULL) and customColor, the one accent as a 6-digit hex (the client's brand colour when there is one).`;
+- Motion is part of the look, never left out: the motion system gives every token as a CSS value, and names one signature motion moment and one ambient animation that belong to this product. It is said once: section 6 is at most four sentences that point to the motion system section, which holds the tokens, the layers and the CSS; neither repeats the other, and a product at Motion 4 or less keeps that section under 1500 characters besides its CSS.
+- Mono type, when the look has one, is for numbers, codes and times only, never for labels, statuses or sentences: say so in section 3. The voice is the plain words of the product's users, never a console's ("protocol", "telemetry", "governance").
+- Section 2 names exactly one page background, one surface for panels and fields, one text colour, one muted text colour and one rule colour, and one colour each for a status that is good, one that waits and one that is refused or failed. The accent is for actions and the selected menu item, never a status; a neutral never carries a tint of the accent unless the brand asks for it. Every page uses these and no other.
+- Labels, headings and buttons are in sentence case; uppercase is for a table's column heads only. Do not name uppercase metadata as the look's contrast.
+- Pictures: a person, a place, a product or a vehicle the product shows is a real photograph, the same person the same photograph on every page; say how it is cropped. Only decoration is banned (stock scenes, illustrations, logo strips). Never write that avatars or record pictures are left out.
+- The human fingerprint's unexpected decision is a property of the look (a type treatment, a spacing rhythm, how rules and edges are drawn), never a mark, glyph or line drawn beside a value or an identifier: Stitch draws such a mark as stray characters in the data.
+- Nothing in this file is ever text on a page. Write the grid, the numerals and the tokens as what the CSS does ("columns align to a shared grid", "figures line up in columns"), without a term a page could show as a label or chip ("12-col", "tabular numerals", a token's name).
+- Name no real product or company in the file: say what is taken ("orderly white work surfaces", "plain-language actions") and give the products' names in "basis" alone.
+- Describe the screens' shared look only: no sentence about sample data, roles, navigation or how the pages are produced. Never list screens, invent features, or describe content the requirements do not ask for.
+Return the whole file as "designMd", "digest" (what the one who draws a page must keep of this file, as six to ten short plain sentences of instructions: the corner radius in px and where it applies, how a panel is edged (a rule or a shadow, and which), the spacing rhythm in px, each heading level's size and weight, the body size, a table's row height and how its rows are divided, how a primary and a secondary button and a field look and their height, how a status is shown, how a picture is cropped, and the human fingerprint's decision; no colour and no font name, which the page is told apart, nothing about motion, and no word a page could show as a label), "palette" (the hex codes of section 2, exactly as the file has them: "canvas" the page background, "surface", "ink" the text, "muted", "rule", the statuses "good", "waiting" and "bad", and "mono", the mono font's name when the look has one), "motion" (the signature motion moment as "signature" and the one ambient animation as "ambient": one sentence each that says which element moves and how, with its CSS values, as the DESIGN.md has them), and "theme" for Stitch: colorMode (LIGHT or DARK), headlineFont and bodyFont from Stitch's list (${STITCH_FONTS_TEXT}; the closest to the DESIGN.md's fonts), roundness (ROUND_FOUR, ROUND_EIGHT, ROUND_TWELVE or ROUND_FULL) and customColor, the one accent as a 6-digit hex (the client's brand colour when there is one).`;
 
 /** The two motions every screen's prompt names, so Stitch draws them (it follows a concrete instruction better than a mood). */
 export const StitchMotion = z.object({ signature: z.string().min(8), ambient: z.string().min(8) });
 export type StitchMotion = z.infer<typeof StitchMotion>;
+const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+/** The design system's colours as section 2 of its DESIGN.md has them, so every screen's prompt and the page check can name them. */
+export const StitchPalette = z.object({ canvas: Hex, surface: Hex, ink: Hex, muted: Hex.optional(), rule: Hex.optional(), good: Hex.optional(), waiting: Hex.optional(), bad: Hex.optional(), mono: z.string().max(40).optional() });
+export type StitchPalette = z.infer<typeof StitchPalette>;
 export const DesignMdOut = z.object({
-  designMd: z.string().min(200), theme: StitchTheme, motion: StitchMotion.optional(),
+  designMd: z.string().min(200), /** the file's rules a page is drawn by, written into every screen's prompt */ digest: z.string().max(3000).optional(), theme: StitchTheme, motion: StitchMotion.optional(), palette: StitchPalette.optional(),
   /** with the field's reference products: the ones the look stands on and what was taken from each, and why it leaves their colour family when it does */
   basis: z.array(z.object({ ref: z.string().min(1).max(40), took: z.string().min(1).max(120) })).max(5).optional(),
   departure: z.string().max(200).optional(),
@@ -72,7 +107,7 @@ export const DesignMdOut = z.object({
 /** The DESIGN.md rules when no client brand or reference sets the look: it stands on the real products of the product's field. */
 export const FIELD_RULES = `No client brand or reference sets this product's look, so it is proof-driven, not invented: "design-references" lists the leading real products of this field with their colours (measured from their live sites where it says so) and how they use them.
 - Take the accent from their colour family, in a shade of your own as another competitor in the field would choose it, never one product's exact shade. "theme.customColor" is that accent.
-- Take the way they use colour, type and density too (where the accent appears, how heavy the headings are, how dense the tables are), and say it in section 1 by product name.
+- Take the way they use colour, type and density too (where the accent appears, how heavy the headings are, how dense the tables are), and say in section 1 what was taken, without a product's name (the names go in "basis").
 - Return "basis": two to four of those products by the name the list gives, each with what you took from it in under 120 characters ("Delta: navy headings, red only on the primary action").
 - When this product's users or purpose call for a colour outside that family, return "departure" with the reason in one sentence; otherwise leave it out.
 - "recent-looks", when there is one, lists the factory's latest other products: do not repeat any one's colour family together with its light or dark mode and its type.`;
@@ -81,7 +116,7 @@ export const FIELD_RULES = `No client brand or reference sets this product's loo
 export const STITCH_MOODS = ["calm", "bold", "futuristic"] as const;
 export type StitchMood = (typeof STITCH_MOODS)[number];
 const MOODS: Record<StitchMood, string> = {
-  calm: `The project asks for a calm look: Density 5 to 7, Variance 3 to 4, Motion 3 to 4. Light, quiet surfaces; motion only confirms that something changed.`,
+  calm: `The project asks for a calm look: colorMode LIGHT unless the brand is dark, Density 5 to 7, Variance 3 to 4, Motion 3 to 4. Light, quiet surfaces with dark text that reads in daylight on a phone; motion only confirms that something changed.`,
   bold: `The project asks for a bold look: Variance 5 to 7, Motion 5 to 7. Large, confident type with strong contrast of size, one saturated accent used in big areas, layouts that are not symmetric, and every change of state animated.`,
   futuristic: `The project asks for a futuristic look: colorMode DARK unless the brand is light, Density 6 to 8, Variance 4 to 6, Motion 6 to 8.
 It reads as a precise instrument, never as science fiction: near-black surfaces tinted towards the accent in three steps (never pure black), 1px hairlines of low-alpha light in place of shadows, mono type with tabular figures for every number, code and time, tight uppercase labels, and one sharp accent used as thin lines, small fills and the focus ring. Depth comes from layered surfaces and inset rules.

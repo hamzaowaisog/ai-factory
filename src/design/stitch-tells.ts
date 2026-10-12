@@ -1,13 +1,32 @@
 // What gives a Stitch page away as generated, or leaves it still, read from its HTML alone (no browser, no call): the tells the
 // stitch-design-taste skill's audit names that can be seen in markup. The design step gives a page with one a single Stitch fix.
 import { load } from "cheerio";
+import type { StitchLook } from "./stitch-theme.js";
 
 /** One tell: what Stitch is asked to change. A `soft` one is fixed along with another, never paid for alone. */
 export interface StitchTell { id: string; fix: string; soft?: boolean }
 
 const count = (s: string, re: RegExp) => (s.match(re) ?? []).length;
 
-export function stitchTells(html: string): StitchTell[] {
+/** A font as a page names it: in CSS ("Source Sans 3") or in a Google Fonts link ("Source+Sans+3"). */
+const hasFont = (html: string, family: string) => html.includes(family) || html.includes(family.replace(/ /g, "+"));
+const MONOS = ["JetBrains Mono", "IBM Plex Mono", "Space Mono", "Roboto Mono", "Fira Code", "Geist Mono", "DM Mono", "Source Code Pro"];
+
+/**
+ * Where a page left the design system: its page background, its accent or its fonts are not the system's own. Stitch's theme
+ * makes tokens of its own from the accent (neutrals tinted towards it, the accent darkened), and some pages load other fonts.
+ */
+export function offLook(html: string, look: StitchLook): string[] {
+  const low = html.toLowerCase(), off: string[] = [];
+  if (!low.includes(look.canvas.toLowerCase())) off.push(`the page background is ${look.canvas} on the body`);
+  if (!low.includes(look.accent.toLowerCase())) off.push(`primary buttons and the selected menu item are ${look.accent}`);
+  if (!hasFont(html, look.body) || !hasFont(html, look.heading)) off.push(`headings are in ${look.heading} and all other text in ${look.body}`);
+  const stray = look.mono ? MONOS.filter((m) => m.toLowerCase() !== look.mono!.toLowerCase() && hasFont(html, m)) : [];
+  if (stray.length) off.push(`numbers and codes are in ${look.mono}, not ${stray.join(" or ")}`);
+  return off;
+}
+
+export function stitchTells(html: string, look?: StitchLook): StitchTell[] {
   const $ = load(html);
   $("script, style").remove();
   // the words a person reads, each element's apart from the next one's
@@ -18,6 +37,9 @@ export function stitchTells(html: string): StitchTell[] {
   if (/\bblur-(2xl|3xl)\b/.test(html)) tells.push({ id: "blob", fix: "remove the blurred colour blobs behind the content" });
   if (/lorem ipsum|\bjohn doe\b|\bjane doe\b|\bacme\b/i.test(text)) tells.push({ id: "placeholder", fix: "replace the placeholder copy and names with real ones from this product's domain" });
   if (/\b(seamless(ly)?|elevate|unleash|supercharge|next-gen|revolutioni[sz]e)\b/i.test(text)) tells.push({ id: "cliche", fix: "reword the marketing clichés (seamless, elevate, unleash, next-gen) as plain statements of what the page does" });
+  const off = look ? offLook(html, look) : [];
+  if (off.length) tells.push({ id: "off-look", fix: `use the design system's own values, written as these exact values: ${off.join("; ")}; no other background tint or font` });
+  if (/\bbuild \d+\.\d|\b(registry|schema|engine|system|framework|ledger) v\d+\.\d|\b\d+-col(umn)? (ledger|grid|layout)\b|\bprotocol v?\d+\.\d|\bnode (id:? ?|#)[\w-]+|\btabular numerals\b|\bdesign system standard\b/i.test(text)) tells.push({ id: "console", fix: "remove the build and version numbers, the protocol and node names and any status line about the system itself, keeping only what a user of the product needs" });
   if (/[\u{1F300}-\u{1FAFF}]/u.test(text)) tells.push({ id: "emoji", fix: "remove the emojis" });
   if (!/prefers-reduced-motion|motion-reduce:/.test(html)) tells.push({ id: "reduced-motion", fix: "add a prefers-reduced-motion rule that turns the animations off", soft: true });
   return tells;

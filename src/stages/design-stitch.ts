@@ -7,8 +7,9 @@ import { dirname, join } from "node:path";
 import { z } from "zod";
 import type { Spec } from "../contracts/index.js";
 import type { Failure } from "../contracts/common.js";
-import { designMdFaults, DesignMdOut, offBlack, FIELD_RULES, loadTasteSkill, moodRules, TASTE_OVERRIDES, type StitchMotion, type StitchTheme } from "../design/stitch-taste.js";
+import { designMdFaults, DesignMdOut, offBlack, FIELD_RULES, loadTasteSkill, moodRules, tastePageRules, TASTE_OVERRIDES, type StitchMotion, type StitchPalette, type StitchTheme } from "../design/stitch-taste.js";
 import { stitchTells, type StitchTell } from "../design/stitch-tells.js";
+import { digestLine, lookLine, stitchLook, type StitchLook } from "../design/stitch-theme.js";
 import { stitchThemeToDesign } from "../design/stitch-theme.js";
 import { ideaBrief } from "../design/refs/index.js";
 import { themeFit } from "../design/refs/fit.js";
@@ -34,7 +35,10 @@ export const StitchPlan = z.object({
     id: z.string().regex(/^S-\d+$/), title: z.string(), route: z.string().min(1), file: z.string().min(1),
     reqs: z.array(z.string()), states: z.array(z.string()).default([]), prompt: z.string().min(20),
     links: z.array(z.object({ label: z.string().min(1), to: z.string() })).default([]),
+    shell: z.string().optional(), phone: z.boolean().optional(),
   })).min(1),
+  shells: z.array(z.object({ id: z.string().min(1), header: z.string().min(20) })).default([]),
+  sample: z.string().default(""),
   noScreen: z.array(z.object({ req: z.string(), reason: z.string() })).default([]),
   brand: z.object({ colours: z.array(z.string()).default([]), fonts: z.array(z.string()).default([]) }).default({ colours: [], fonts: [] }),
 });
@@ -48,7 +52,14 @@ const STITCH_PLAN_RULES = `You list the screens of a product for Google Stitch t
 - Where a page shows something its user knows by sight (a product, a place, a person, a vehicle), the prompt asks for a real photograph of it, with what is in the picture; never an illustration, an icon in its place or a grey box.
 - "field-ideas", when given, tells how the leading real products of this field arrange their pages. Where a requirement fits one of their patterns, the prompt asks for that component by what it is and what it holds (a boarding-pass strip with the route set large, a balance in large tabular figures above the latest movements), with this product's own content. Never a product's name, logo or wording, and never a colour from that list: the design system sets the colours.
 - "client-references", when given, are the client's own references with their pictures (R-1, R-2, ...). Stitch never sees them, so the prompt says in words what is taken: for a "layout" or "match" reference, the navigation and the regions in the order its picture shows, on the screens it relates to; for an "inspire" reference, its feel (how dense, how much white, how large the pictures and headings). The requirements beat a reference.
+- "shells" lists the frame each kind of user's pages share, one per kind (ids such as "employee", "admin"). Its "header" says in two or three sentences what the header holds, the same on every page: the brand's words as written, where the menu sits (beside the brand or centred), and what is on the right (the signed-in user's name and role, say; whether their picture is a photograph or initials, and on which side of the name it sits), and the brand's mark in one phrase (a small square in the accent with a white "P", or the words alone). Each screen names its shell in "shell"; a page outside any (sign-in) leaves it out. Every prompt of a shell is given that header word for word, so a prompt never describes the header itself.
+- "sample" is the product's sample data, the same on every page: each person with their name, department and role, what the pages show of them (their space, their vehicle and its plate), the place's one time zone, and the counts more than one page shows (capacity per floor, totals), all agreeing with each other, and, when any page lists events (a log, a history, a report, a check), one dated list of them (when, who, what, where, the result) that those pages all take their rows from, with counts that add up to it. Every prompt takes its names, figures and dates from it and never contradicts it; one person is never two people's photograph.
+- Labels, headings and messages use the plain words a user of this product would say ("Give up my space today", "3 spaces free"), never system or legal wording ("relinquish", "allocation governance", "materialize"). Each page has one primary action; one that cannot be undone says so beside its button.
+- "title" is the page's one heading. A page the menu opens has its menu label as its title, word for word; a menu label names a place ("My space", "Free spaces"), never an action, in three words at most.
+- A page never repeats its menu as a panel of links or tiles. A row that opens a record is itself the link, or has one control that does; no checkbox or radio on a row unless the page acts on several rows at once. Filters apply as they are chosen, with no Apply button. A page shows no field, id, switch, building, gate or device that neither the requirements nor "sample" name.
+- "phone": true on the pages a person opens on a phone on the move (the main tasks of the largest group of users), five at most; each is drawn a second time at phone width.
 - Each prompt composes its page like a finished product, not a wireframe: one thing the eye meets first (named, with its size against the rest), then the sections in the order the user needs them, what sits beside what on a wide screen, and where the page is left empty on purpose. Give real figures, names and dates enough to fill every list and table with believable rows.
+- "taste" holds the layout rules, the anti-patterns and the component replacements the design system is written by. Compose each page by them: where a page would have a component from the left column of its table, the prompt asks for the one on the right, with this product's content (one headline figure with its context above a dense table, never four cards of figures with sparklines; a list or a table, never a grid of near-equal tiles; no row of three equal cards). Its lines about colours, fonts, shadows, motion and CSS are the design system's and stay out of a prompt, and its lines about heroes, pricing, testimonials and footers apply to a public marketing page alone. A page outside any shell that holds one task (sign in, a confirmation, a message that access is refused) is not a hero: its heading, its one sentence and its one action sit in a single panel no wider than 440 px, centred on the page both ways, with the brand's mark and words above the panel and nothing else on the page (no header bar, no footer, no office or place name). The requirements, and a rule above, win over it.
 - "states" lists the page's extra states besides its normal page (empty, loading, error, success, validation) only where the requirements need them.
 - "brand" lists the client's colours (hex) and fonts only when the requirements or references name them; otherwise leave it empty.`;
 
@@ -65,6 +76,22 @@ const STATE_HINT: Record<string, string> = {
   validation: "the form with its required fields flagged and their error messages",
 };
 const FOLLOW_SYSTEM = "\nFollow the project's design system exactly.";
+/** Stitch otherwise dresses a page as a console: build numbers, protocol names, sync readouts and chips that are no record's status. */
+const ONLY_NEEDED = "\nShow only what a user of this product needs: no build or version numbers, no server, node, terminal or protocol names, no sync or latency readouts, no confidence or recognition score, no line about how the system logs, syncs or verifies itself, no breadcrumb of system areas, no label written as a code (BAY-ALLOT), nothing about the grid or the design system, and no badge or chip that is not the status of a record on the page. Add no field, id, switch, place or feature the text above does not name, no panel of links that repeats the menu, and no Apply button on filters. Mono type is for numbers, codes and times only.";
+/** What every page of a shell is told of its header, and every page of the sample data, so the pages read as one product. */
+const framed = (header: string | undefined) => (header ? `\nThe page's header, the same on every page: ${header.trim()} Draw nothing else in the header, and no footer.` : "");
+const titled = (title: string) => (title.trim() ? `\nThe page's one heading reads "${title.trim()}".` : "");
+const sampled = (sample: string | undefined) => (sample?.trim() ? `\nThe product's sample data, the same on every page; where this page shows any of it, use it exactly: ${sample.trim()}` : "");
+
+/**
+ * The screen list with what its pages share written into each screen's prompt: its heading, its shell's header, the sample data
+ * and the look's own colours and fonts and the design system's rules for a page. The design
+ * keeps these prompts, so a state drawn again after a send-back is told the same.
+ */
+export function withShared(p: Plan, look?: StitchLook, digest?: string): Plan {
+  const header = new Map(p.shells.map((x) => [x.id, x.header]));
+  return { ...p, screens: p.screens.map((s) => ({ ...s, prompt: `${s.prompt}${s.shell && header.has(s.shell) ? titled(s.title) : ""}${framed(s.shell ? header.get(s.shell) : undefined)}${sampled(p.sample)}${lookLine(look)}${digestLine(digest)}` })) };
+}
 /** The links of a screen that lead to a screen of the plan, each label once. */
 export function stitchLinks(s: Pick<Plan["screens"][number], "id" | "links">, ids: ReadonlySet<string>): { label: string; to: string }[] {
   const seen = new Set<string>();
@@ -79,15 +106,23 @@ const ONE_STATE = "\nDraw this one state only: no tabs, chips or buttons that sw
 const moving = (m: StitchMotion | undefined) => `\nMotion: write the design system's motion tokens and keyframes into a <style> block and use them, in CSS only (no JavaScript): the entrance sequence on load, and a hover, focus and pressed state on every control.${m ? ` The signature motion: ${m.signature.trim()} The one ambient animation: ${m.ambient.trim()}` : ""} Include a prefers-reduced-motion rule.`;
 
 /** What to draw: each screen's normal page, then each state it lists that the project allows (once per kind). */
-export function stitchJobs(screens: Plan["screens"], allowed: readonly string[], motion?: StitchMotion): { id: string; state: string; prompt: string }[] {
+/** The frame a phone-width drawing of a screen is kept as (beside its normal page and its extra states). */
+export const PHONE_STATE = "phone";
+/** The most screens drawn a second time at phone width: each is one more Stitch generation. */
+export const MAX_PHONE_FRAMES = 5;
+const AT_PHONE = "\nShow the page in its normal state at phone width (about 390 px), whatever the header line says of a wide screen: one column, the brand and a menu button in the header with the menu behind it, each table as stacked labelled records, the primary action within reach of a thumb, nothing scrolling sideways.";
+
+export function stitchJobs(screens: Plan["screens"], allowed: readonly string[], motion?: StitchMotion, phone = false): { id: string; state: string; prompt: string; device?: StitchDevice }[] {
+  const narrow = new Set(phone ? screens.filter((s) => s.phone).slice(0, MAX_PHONE_FRAMES).map((s) => s.id) : []);
   const ids = new Set(screens.map((s) => s.id));
-  const FOLLOW = `${moving(motion)}${FOLLOW_SYSTEM}`;
+  const FOLLOW = `${ONLY_NEEDED}${moving(motion)}${FOLLOW_SYSTEM}`;
   return screens.flatMap((s) => {
     const kinds = [...new Set(s.states.map(stateKind))].filter((k) => k !== "normal" && allowed.includes(k));
     const names = labelled(stitchLinks(s, ids));
     return [
       { id: s.id, state: "normal", prompt: `${s.prompt}${names}\nShow the page in its normal state.${ONE_STATE}${FOLLOW}` },
       ...kinds.map((k) => ({ id: s.id, state: k, prompt: `${s.prompt}${names}\nShow this same page in its ${k} state: ${STATE_HINT[k]}. Keep the layout, navigation and header identical to the normal page.${ONE_STATE}${FOLLOW}` })),
+      ...(narrow.has(s.id) ? [{ id: s.id, state: PHONE_STATE, prompt: `${s.prompt}${names}${AT_PHONE}${ONE_STATE}${FOLLOW}`, device: "MOBILE" as const }] : []),
     ];
   });
 }
@@ -207,6 +242,7 @@ function planFaults(reqIds: string[], p: Plan): Failure[] {
   return [
     ...reqIds.filter((r) => !onScreen.has(r)).map((r) => failure("design-unmapped", `${r} is on no screen; put it on a screen or in noScreen with the reason`)),
     ...p.screens.filter((s) => !s.reqs.some((r) => reqIds.includes(r))).map((s) => failure("design-orphan", `${s.id} serves no requirement; drop it or name the requirements it serves`)),
+    ...p.screens.filter((s) => s.shell && !p.shells.some((x) => x.id === s.shell)).map((s) => failure("design-unknown-shell", `${s.id} names the shell "${s.shell}", which "shells" does not list`)),
     ...dup(p.screens.map((s) => s.id)).map((x) => failure("design-duplicate-id", `two screens share the id ${x}`)),
     ...dup(p.screens.map((s) => s.route.trim().toLowerCase().replace(/\/+$/, "") || "/")).map((x) => failure("design-duplicate-route", `two screens share the route ${x}`)),
   ];
@@ -215,7 +251,7 @@ function planFaults(reqIds: string[], p: Plan): Failure[] {
 /** One drawn Stitch screen: a page in its normal state or one of its extra states, with its saved frame file. */
 export interface StitchAsset { id: string; state: string; name: string; screenId: string; html: string; image: string; facts?: StitchFacts }
 /** `theme` is the Stitch design system's theme; with it the design gets our theme (tokens, the kit's look) and "new" as its look. */
-export interface StitchMeta { projectId: string; model: string; designMd: string; theme?: StitchTheme; mood?: string; motion?: StitchMotion; basis?: { ref: string; took: string }[]; departure?: string }
+export interface StitchMeta { projectId: string; model: string; designMd: string; theme?: StitchTheme; palette?: StitchPalette; mood?: string; motion?: StitchMotion; basis?: { ref: string; took: string }[]; departure?: string }
 
 /**
  * The design artifact of a Stitch design: the JSON design's shape, with each screen drawn as frames (ST-n) instead of a mock,
@@ -224,7 +260,7 @@ export interface StitchMeta { projectId: string; model: string; designMd: string
 export function stitchArtifact(p: Plan, assets: StitchAsset[], meta: StitchMeta, reqIds: string[]) {
   const ordered = p.screens.flatMap((s) => {
     const own = assets.filter((a) => a.id === s.id);
-    const rank = (a: StitchAsset) => (a.state === "normal" ? -1 : s.states.findIndex((x) => stateKind(x) === a.state));
+    const rank = (a: StitchAsset) => (a.state === "normal" ? -1 : a.state === PHONE_STATE ? s.states.length : s.states.findIndex((x) => stateKind(x) === a.state));
     return own.sort((x, y) => rank(x) - rank(y));
   });
   const fid = new Map(ordered.map((a, i) => [a, `ST-${i + 1}`]));
@@ -241,7 +277,7 @@ export function stitchArtifact(p: Plan, assets: StitchAsset[], meta: StitchMeta,
     noScreen: p.noScreen,
     mapping: { unmappedReqs: reqIds.filter((r) => !onScreen.has(r) && !p.noScreen.some((n) => n.req === r)), orphanScreens: p.screens.filter((s) => !s.reqs.length).map((s) => s.id) },
     stitch: {
-      projectId: meta.projectId, model: meta.model, designMd: meta.designMd, ...(meta.theme ? { theme: meta.theme } : {}), ...(meta.motion ? { motion: meta.motion } : {}),
+      projectId: meta.projectId, model: meta.model, designMd: meta.designMd, ...(meta.theme ? { theme: meta.theme } : {}), ...(meta.palette ? { palette: meta.palette } : {}), ...(meta.motion ? { motion: meta.motion } : {}),
       frames: Object.fromEntries(ordered.map((a) => [fid.get(a)!, { screen: a.id, state: a.state, name: a.name, screenId: a.screenId, html: a.html, image: a.image }])),
       prompts: Object.fromEntries(p.screens.map((s) => [s.id, s.prompt])),
       links: Object.fromEntries(p.screens.map((s) => [s.id, stitchLinks(s, new Set(p.screens.map((x) => x.id)))] as const).filter(([, l]) => l.length)),
@@ -299,7 +335,7 @@ const failed = (failures: Failure[], tag: string): StepOutcome => ({ kind: "fail
 
 /** What the design step knows besides the spec: the lead's send-back reasons, the existing app's look, the client's references. */
 /** A Stitch design as the design step stored it (with the rework rounds a send-back added). */
-export type StitchDesign = ReturnType<typeof stitchArtifact> & { revision?: number; rework?: ReworkRound[]; stitch: { a11y?: A11yOpen[]; motion?: StitchMotion } };
+export type StitchDesign = ReturnType<typeof stitchArtifact> & { revision?: number; rework?: ReworkRound[]; stitch: { a11y?: A11yOpen[]; motion?: StitchMotion; palette?: StitchPalette } };
 interface ReworkRound { round: number; mode: "patch" | "redraw" | "none"; patched: string[]; lines: string[]; kept: string[]; notDesign: { quote: string; why: string }[]; fine: string[] }
 
 /** What the design step knows besides the spec: the lead's send-back reasons, the existing app's look, the client's references, and the design sent back. */
@@ -337,8 +373,8 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
   // a design stored before frames named their screen and state, or before prompts were kept, can only be drawn again
   if (!prev.stitch.prompts || frames.some((f) => !f.screen || !f.state)) { ctx.log("design: the earlier Stitch design predates per-screen frames; it is drawn again"); return undefined; }
   const plan: Plan = {
-    flow: prev.flow, noScreen: prev.noScreen ?? [], brand: { colours: [], fonts: [] },
-    screens: prev.screens.map((s) => ({ id: s.id, title: s.facts?.title ?? s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states ?? [], prompt: prev.stitch.prompts![s.id] ?? s.facts?.title ?? s.id, links: prev.stitch.links?.[s.id] ?? [] })),
+    flow: prev.flow, noScreen: prev.noScreen ?? [], brand: { colours: [], fonts: [] }, shells: [], sample: "",
+    screens: prev.screens.map((s) => ({ id: s.id, title: s.facts?.title ?? s.id, route: s.route, file: s.file, reqs: s.reqs, states: s.states ?? [], prompt: prev.stitch.prompts![s.id] ?? s.facts?.title ?? s.id, links: prev.stitch.links?.[s.id] ?? [], ...(frames.some((f) => f.screen === s.id && f.state === PHONE_STATE) ? { phone: true } : {}) })),
   };
   // the spec may have changed since the design was drawn: screens that no longer cover it are drawn again
   const specReqs = spec.requirements.map((q) => q.id);
@@ -362,7 +398,7 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
   const framesDir = join(ctx.ledger.dir, "attachments", "frames");
   // each named screen is one edit, and its extra states are drawn again
   const motion = prev.stitch.motion;
-  const calls = named.reduce((n, x) => n + stitchJobs([plan.screens.find((s) => s.id === x.id)!], allowed).length, 0);
+  const calls = named.reduce((n, x) => n + stitchJobs([plan.screens.find((s) => s.id === x.id)!], allowed, undefined, true).length, 0);
   const over = stitchBudgetProblem(ctx, calls);
   if (over) return { kind: "park", reason: over };
   const c = metered(ctx, stitchClient());
@@ -376,12 +412,12 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
       const page = await saveAsset(ctx, c, framesDir, n.id, "normal", await c.edit(prev.stitch.projectId, normal.screenId, `${n.change}${FOLLOW_SYSTEM}`, device));
       // its extra states follow the change: drawn again from the screen's prompt with the change added
       const screen = plan.screens.find((s) => s.id === n.id)!;
-      const states = stitchJobs([{ ...screen, prompt: `${screen.prompt}\nChange: ${n.change}` }], allowed, motion).filter((j) => j.state !== "normal");
-      const drawn = await inPool(states, STITCH_SIDE_BY_SIDE, async (j) => saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(prev.stitch.projectId, j.prompt, device)));
+      const states = stitchJobs([{ ...screen, prompt: `${screen.prompt}\nChange: ${n.change}` }], allowed, motion, true).filter((j) => j.state !== "normal");
+      const drawn = await inPool(states, STITCH_SIDE_BY_SIDE, async (j) => saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(prev.stitch.projectId, j.prompt, j.device ?? device)));
       return [page, ...drawn];
     })).flat();
     // only the edited screens are checked: an approved screen is never changed for accessibility on a send-back
-    const fixed = await fixA11y(ctx, c, framesDir, prev.stitch.projectId, device, edited, named.map((n) => n.id));
+    const fixed = await fixA11y(ctx, c, framesDir, prev.stitch.projectId, device, edited, named.map((n) => n.id), prev.stitch.theme ? stitchLook(prev.stitch.theme as StitchTheme, prev.stitch.palette) : undefined);
     edited = fixed.assets;
     open = [...(prev.stitch.a11y ?? []).filter((x) => !named.some((n) => n.id === x.screen)), ...fixed.open];
   } catch (e) {
@@ -392,7 +428,7 @@ async function reworkStitch(ctx: StepContext, prev: StitchDesign, feedback: stri
   const theme = prev.stitch.theme as StitchTheme | undefined;
   // the revision counts the send-backs answered, as on the JSON track: a rerun with no new one does not rework again
   const round = feedback.length;
-  const drawn = stitchArtifact(plan, [...kept, ...edited], { projectId: prev.stitch.projectId, model: prev.stitch.model, designMd: prev.stitch.designMd, ...(theme ? { theme, mood: prev.flow } : {}), ...(motion ? { motion } : {}) }, specReqs);
+  const drawn = stitchArtifact(plan, [...kept, ...edited], { projectId: prev.stitch.projectId, model: prev.stitch.model, designMd: prev.stitch.designMd, ...(theme ? { theme, mood: prev.flow } : {}), ...(prev.stitch.palette ? { palette: prev.stitch.palette } : {}), ...(motion ? { motion } : {}) }, specReqs);
   const design = {
     ...drawn, stitch: { ...drawn.stitch, ...(open.length ? { a11y: open } : {}) },
     revision: round,
@@ -440,7 +476,7 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
   } else {
     const p = await think({ ...ctx, priorFailures: ctx.priorFailures.filter((f) => !ofSystem(f.check)) }, {
       stage: "design", label: "design screen list (stitch)", route: "design", cls: "read-large", budgetTokens: 60000, tools: [], schema: StitchPlan, maxTurns: 3,
-      sections: [S.template("tpl", STITCH_PLAN_RULES), ...seen, S.artifact("reqs", "requirements", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))), ...(ideas ? [S.reference("field-ideas", `How the leading products of this field arrange their pages:\n${ideas}`)] : []), ...context, S.task("List every screen and write one Stitch prompt for each.")],
+      sections: [S.template("tpl", STITCH_PLAN_RULES), S.template("taste", tastePageRules()), ...seen, S.artifact("reqs", "requirements", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))), ...(ideas ? [S.reference("field-ideas", `How the leading products of this field arrange their pages:\n${ideas}`)] : []), ...context, S.task("List every screen and write one Stitch prompt for each.")],
     });
     if (!p.ok) return p.outcome;
     plan = p.output;
@@ -477,7 +513,7 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     ...(recent.length ? [S.reference("recent-looks", `The factory's latest other products:\n${recent.map((l, i) => `${i + 1}. ${l.field ? `[${l.field}] ` : ""}${l.brand.toUpperCase()} ${l.mode}, ${l.font} type${l.mood ? ` ("${l.mood}")` : ""}`).join("\n")}`)] : []),
   ] : [];
   const brand = { colours: plan.brand.colours, fonts: [...new Set([...plan.brand.fonts, ...(ctx.project.design?.brandFonts ?? [])])] };
-  const sysKey = hashJson({ brand, look });
+  const sysKey = hashJson({ brand, look, rules: TASTE_OVERRIDES });
   let out: z.infer<typeof DesignMdOut>;
   let forget: (() => void) | undefined;
   if (kept?.system && kept.sysKey === sysKey && !ctx.priorFailures.some((f) => ofSystem(f.check))) {
@@ -491,6 +527,11 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     if (!m.ok) return m.outcome;
     out = m.output;
     forget = m.forget;
+  }
+  // the palette is the DESIGN.md's own: one that names a colour the file does not have is left out (the pages are then told and checked on the accent alone)
+  if (out.palette && [out.palette.canvas, out.palette.surface, out.palette.ink].some((h) => !out.designMd.toLowerCase().includes(h.toLowerCase()))) {
+    ctx.log("design: the design system's palette names a colour its DESIGN.md does not have; the screens are not told its colours");
+    out = { ...out, palette: undefined };
   }
   const black = offBlack(out.designMd, brand);
   if (black.swapped) ctx.log(`design: pure black in the design system put right to #18181B (${black.swapped} place${black.swapped === 1 ? "" : "s"}, no model call)`);
@@ -508,7 +549,11 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
   const allowed = ctx.project.design?.stitch?.states ?? DEFAULT_STITCH_STATES;
   const title = ctx.state.info.estimate?.projectName ?? ctx.runId;
   const framesDir = join(ctx.ledger.dir, "attachments", "frames");
-  const jobs = stitchJobs(plan.screens, allowed, out.motion);
+  // each screen's prompt now carries its heading, its shell's header, the sample data, the look's own values and the design system's rules for a page, and is kept that way
+  const ownLook = stitchLook(out.theme, out.palette);
+  plan = withShared(plan, ownLook, out.digest);
+  // a design drawn for a wide screen shows its most used pages at phone width too, unless the project says no
+  const jobs = stitchJobs(plan.screens, allowed, out.motion, device === "DESKTOP" && (ctx.project.design?.stitch?.phone ?? true));
   // a resumed run keeps the Stitch project and the screens it already drew, when the plan and design system are the same
   const key = hashJson({ plan, designMd: mdSha, theme: out.theme, device, allowed, ...(out.motion ? { motion: out.motion } : {}) });
   const saved = readProgress(ctx, key);
@@ -523,7 +568,13 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     progress = saved ?? { key, projectId: await c.createProject(title), system: false, assets: [] };
     saveProgress(ctx, progress);
     if (!progress.system) {
-      await c.createDesignSystem(progress.projectId, title, { ...out.theme, designMd: md });
+      // Stitch makes its tokens from the accent alone (neutrals tinted towards it, the accent darkened) unless it is given both
+      const system = { ...out.theme, designMd: md };
+      try { await c.createDesignSystem(progress.projectId, title, { ...system, overridePrimaryColor: out.theme.customColor, ...(out.palette ? { overrideNeutralColor: out.palette.canvas } : {}) }); }
+      catch (e) {
+        ctx.log(`design: Stitch did not take the design system with its own neutral and primary colours (${(e as Error).message}); sent without them`);
+        await c.createDesignSystem(progress.projectId, title, system);
+      }
       progress.system = true;
       saveProgress(ctx, progress);
     }
@@ -539,7 +590,7 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     await inPool(todo, STITCH_SIDE_BY_SIDE, async (j) => {
       if (faults.length) return;
       try {
-        progress.assets.push(await saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(progress.projectId, j.prompt, device)));
+        progress.assets.push(await saveAsset(ctx, c, framesDir, j.id, j.state, await c.generate(progress.projectId, j.prompt, j.device ?? device)));
         saveProgress(ctx, progress);
         draft(progress.assets);
       } catch (e) { faults.push(e as Error); }
@@ -547,7 +598,7 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     if (faults.length) throw faults[0];
     if (progress.a11y) ({ assets, open } = progress.a11y);
     else {
-      ({ assets, open } = await fixA11y(ctx, c, framesDir, progress.projectId, device, progress.assets, progress.assets.map((x) => x.id)));
+      ({ assets, open } = await fixA11y(ctx, c, framesDir, progress.projectId, device, progress.assets, progress.assets.map((x) => x.id), ownLook));
       progress.a11y = { assets, open };
       // a page Stitch fixed for accessibility replaces the one drawn first
       draft(assets);
@@ -560,7 +611,7 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     await c.close().catch(() => undefined);
   }
   const projectId = progress.projectId;
-  const drawn = stitchArtifact(plan, assets, { projectId, model: STITCH_MODEL, designMd: mdSha, theme: out.theme, mood: plan.flow, ...(out.motion ? { motion: out.motion } : {}), ...basis }, reqIds);
+  const drawn = stitchArtifact(plan, assets, { projectId, model: STITCH_MODEL, designMd: mdSha, theme: out.theme, ...(out.palette ? { palette: out.palette } : {}), mood: plan.flow, ...(out.motion ? { motion: out.motion } : {}), ...basis }, reqIds);
   // a whole redraw answers every send-back so far too
   const answered = inputs.feedback?.length ? { revision: inputs.feedback.length, ...(inputs.previous?.rework?.length ? { rework: inputs.previous.rework } : {}) } : {};
   const design = { ...drawn, ...answered, stitch: { ...drawn.stitch, ...(open.length ? { a11y: open } : {}) }, header: header(ctx.runId, "design", "design", "", planner) };
@@ -606,7 +657,7 @@ export function setA11yCheck(f: typeof checkStitchA11y | undefined): void { a11y
  * axe named and the tells to change), and checks the fixed ones again. Returns the assets with the fixed pages in place and the
  * accessibility rules still open; a tell still there is said in the log.
  */
-async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, projectId: string, device: StitchDevice, assets: StitchAsset[], ids: string[]): Promise<{ assets: StitchAsset[]; open: A11yOpen[] }> {
+async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, projectId: string, device: StitchDevice, assets: StitchAsset[], ids: string[], look?: StitchLook): Promise<{ assets: StitchAsset[]; open: A11yOpen[] }> {
   const normals = assets.filter((a) => a.state === "normal" && ids.includes(a.id));
   const read = (a: StitchAsset) => ({ id: a.id, html: ctx.ledger.getArtifact(a.html).toString("utf8") });
   // a check that cannot run is a note, never a failure: the screens Stitch drew are kept
@@ -616,7 +667,7 @@ async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, pro
   const first = await check(normals);
   if (!first) ctx.log("design: the Stitch screens' accessibility was not checked (no Chromium or axe-core here)");
   // a page is paid a fix for a tell that shows; one that only lacks a reduced-motion rule gets it when it is fixed anyway
-  const tellsOf = (a: StitchAsset): StitchTell[] => { try { return tellCheck(read(a).html); } catch { return []; } };
+  const tellsOf = (a: StitchAsset): StitchTell[] => { try { return tellCheck(read(a).html, look); } catch { return []; } };
   const bad = normals.map((a) => ({ id: a.id, violations: first?.find((x) => x.id === a.id)?.violations ?? [], tells: tellsOf(a) })).filter((b) => b.violations.length || b.tells.some((t) => !t.soft));
   if (!bad.length) return { assets, open: [] };
   const named = (pick: (b: (typeof bad)[number]) => boolean) => bad.filter(pick).map((b) => b.id).join(", ");

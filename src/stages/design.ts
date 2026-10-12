@@ -3,7 +3,7 @@
 // requirements it serves, and a reason for each requirement that needs no screen. Code checks the links
 // both ways. It is an inventory of screens with sample content, not a finished design: a person approves it at E1b, and it
 // becomes the count of screens, flows and reused components for the UI work.
-import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
@@ -28,6 +28,7 @@ import type { DesignRefsArt } from "./design-refs.js";
 import { ESTIMATE_SOURCES, intentOf, inventoryNamed, repoInventory, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
 import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
 import { lookResearch } from "../design/research.js";
+import { tastePageRules, TASTE_SKILL_PATH } from "../design/stitch-taste.js";
 import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
 import { ensureMeasured } from "../design/refs/measure.js";
 import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } from "../design/looks.js";
@@ -523,6 +524,24 @@ const PLAN_PAGES = `- PAGES ARE DRAWN NEXT. This request is large, so here you o
 `;
 const PLAN_RULES = (): string => RULES.replace(MOCK_RULES(), PLAN_PAGES);
 
+/**
+ * How a design drawn by Claude or OpenAI reads the stitch-design-taste skill's page rules (the same three parts the Stitch screen
+ * list gets). The pages here are built from the factory's own components and a theme of fixed choices, so the skill's lines on
+ * CSS, font names and image links have nothing to act on, and the theme's own choices stand.
+ */
+const TASTE_PAGE_NOTE = `TASTE. The rules below are the layout rules, anti-patterns and component replacements of the stitch-design-taste skill, the same ones a design drawn by Google Stitch is composed by. They decide what a page is made of and what its words and figures say:
+- Where a page would have a component from the left column of the table, draw the one on the right with the blocks you have: one headline figure with its context and then a dense table, never a row of four figures each with a small chart and a green rise; a table or a list, never a grid of near-equal cards; never three equal cards in a row; pages that differ in their blocks where their content differs, never one template repeated.
+- Figures are real and uneven with their unit and period, never round filler ("99.9%", "10K+", "24/7"). A button says what it does in the product's words ("Plan your first route"), never "Get started". An icon goes on a button only where it speeds up recognition, never on every one.
+- Their lines about fonts by name, pure black, shadows, CSS, image links and motion do not apply here: the theme and the factory's components set those, and the rules above them win (a "glass" surface or a "band" hero stays allowed where those rules allow it). Their lines about heroes, pricing, testimonials, logo strips and footers apply to a public marketing page alone.
+- The requirements win over them: a block a requirement asks for is drawn.`;
+/** The skill's page rules as a briefing section, for a product with no look of its own to extend; none when the skill is not installed. */
+function tastePages(log: (line: string) => void): ResolvedSection[] {
+  if (!existsSync(TASTE_SKILL_PATH)) { log("design: the stitch-design-taste skill is not installed; drawn without its page rules"); return []; }
+  return [S.template("taste", `${TASTE_PAGE_NOTE}\n\n${tastePageRules()}`)];
+}
+/** That section among a design's rules, for the calls that draw one page each. */
+const tasteOf = (rules: ResolvedSection[]): ResolvedSection[] => rules.filter((r) => r.spec.id === "taste");
+
 const PAGE_RULES = `You are a principal UI/UX engineer drawing ONE page of a design. The screen list, the flow and the look were decided first and are fixed: "design" holds them, "this-page" is the page to draw.
 - Return "mock" for this page (and "mockFull" where FULL DATA asks for it), and nothing else. Its id, route, requirements, states and app stay as listed.
 - Use the title in "this-page" as the mock's title, and draw what its "purpose" says for the requirements given.
@@ -567,7 +586,7 @@ const REDRAW_RULES = `- "rejected-page" is this page as you drew it before. It f
  * A small design (one answer) that failed checks naming its pages: only those pages are drawn again, each against the rejected
  * design's list and look, and the rest are kept. On the 2026-10-06 web run one cut-off label had every page drawn again ($0.86).
  */
-async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" | "reading" | "feedback">, rejected: z.infer<typeof DesignOut>, ids: string[]): Promise<{ ok: true; output: z.infer<typeof DesignOut>; model: string; risks: string[] } | { ok: false; outcome: StepOutcome }> {
+async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" | "reading" | "feedback" | "rules">, rejected: z.infer<typeof DesignOut>, ids: string[]): Promise<{ ok: true; output: z.infer<typeof DesignOut>; model: string; risks: string[] } | { ok: false; outcome: StepOutcome }> {
   const ears = new Map(b.spec.requirements.map((q) => [q.id, q.ears]));
   const titleOf = (x: ScreenT) => x.mock?.title ?? x.id;
   const design = {
@@ -583,6 +602,7 @@ async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" 
       stage: "design", label: `design ${old.id} "${titleOf(old)}"`, route: "design", cls: "read-large", budgetTokens: 30000, tools: [], schema: DesignPage, maxTurns: 3,
       sections: [
         S.template("tpl", PAGE_RULES + REDRAW_RULES + MOCK_RULES() + UNTRUSTED_NOTE),
+        ...tasteOf(b.rules),
         ...(cited?.refs.length ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
         S.artifact("design", "design-plan", design),
         S.artifact("this-page", "design-plan", { ...entry, title: titleOf(old) }),
@@ -695,6 +715,7 @@ async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true;
         stage: "design", label: `design ${entry.id} "${title}"`, route: "design", cls: "read-large", budgetTokens: 30000, tools: [], schema: DesignPage, maxTurns: 3,
         sections: [
           S.template("tpl", PAGE_RULES + MOCK_RULES() + UNTRUSTED_NOTE),
+          ...tasteOf(b.rules),
           ...(cited?.refs.length ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
           S.artifact("design", "design-plan", design),
           S.artifact("this-page", "design-plan", { ...entry, title, purpose }),
@@ -998,6 +1019,8 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const rules = [
         ...(existing ? [S.template("existing-rules", EXISTING_RULES)] : restyle ? [S.template("restyle-rules", RESTYLE_RULES)] : starter ? [S.template("starter-rules", STARTER_RULES)] : []),
         ...(reading ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
+        // an existing app keeps the way its pages are composed; every other design is composed by the taste skill's page rules
+        ...(hasExistingLook(inv) ? [] : tastePages(ctx.log)),
       ];
       const context = [
         S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
@@ -1018,7 +1041,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const rejected = before?.rejected ? DesignOut.safeParse(ctx.ledger.getJson(before.rejected)) : undefined;
       const failedPages = rejected?.success ? pagesToRedraw(rejected.data.screens.map((x) => x.id), ctx.priorFailures) : undefined;
       const r = failedPages && rejected?.success
-        ? await redrawPages(ctx, { spec, inv, reading, feedback }, rejected.data, failedPages)
+        ? await redrawPages(ctx, { spec, inv, reading, feedback, rules }, rejected.data, failedPages)
         : inParts
         ? await drawInParts(ctx, {
           spec, reqText, frames: frames.map((f) => f.id), rules, context, existing, refs, recent, fromRefs, earlierTheme, inv, reading,

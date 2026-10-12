@@ -1,0 +1,98 @@
+# Design System: Web-Based Parking
+
+## 1. Visual Theme & Atmosphere
+A calm, daylight-readable work interface: sober, orderly, and practical, with density 6/10, variance 3/10, and motion 3/10. Take the white work surfaces and people-first order of workforce tools, then trade soft, floating card layouts for flat, ruled data surfaces and compact, scan-first tables suited to audit work. A restrained blue is reserved for actions and the selected item; status colors remain independent. Keep a single plain header treatment, left-aligned page headings, and a centered content area consistent throughout. Build for phone, tablet, and desktop widths; on narrow screens, collapse multi-column layouts, reflow tables without horizontal scrolling, and keep touch targets at least 44px. Use real photographs of people and vehicles where called for, never decorative stock scenes or illustrations.
+
+## 2. Color Palette & Roles
+Use only this light palette throughout; neutral surfaces stay neutral and never take on the accent tint.
+- **Daylight Canvas** (#F3F6F8) — the one page background.
+- **Paper Surface** (#FFFFFF) — the one panel and field surface.
+- **Charcoal Ink** (#25313B) — the one primary text color; dark without using pure black.
+- **Slate Muted** (#5D6A75) — the one secondary text color and metadata color.
+- **Quiet Rule** (#D6DEE5) — the one hairline divider and neutral outline color.
+- **Harbor Blue** (#356F9A) — the single accent for primary actions, focus indication, and the selected menu item only; never a status color.
+- **Field Green** (#2D6F4F) — the good-status text and outline.
+- **Waiting Ochre** (#8A5C14) — the waiting-status text and outline.
+- **Brick Status** (#A53B36) — the refused or failed status text and outline.
+
+## 3. Typography Rules
+- **Display and headings:** Hanken Grotesk, with compact, controlled sizing and weight-led hierarchy; use negative tracking of −0.025em on large headings, not oversized display type.
+- **Body and controls:** Source Sans 3, chosen for clear, steady reading in dense work views. Keep body copy at 14px or larger with relaxed 1.55 line-height and a maximum measure of 65 characters.
+- **Numbers and codes:** IBM Plex Mono is only for figures, codes, and times—never labels, statuses, or sentences. Align figures vertically with tabular numeric CSS.
+- **Hierarchy:** H1 28px/36px at weight 600; H2 20px/28px at 600; H3 16px/24px at 600. Use sentence case for headings, labels, and buttons; uppercase is reserved for table column heads, tracked by 0.08em. Use curly quotation marks and en dashes for ranges.
+
+## 4. Component Stylings
+- **Buttons:** Primary actions use a solid accent fill with legible white text; secondary actions use a white fill, a 1px rule, and ink text. Both have 8px corners, 44px minimum height, clear hover and focus-visible states, and a brief scale-to-0.97 press response. No glow or decorative shadow.
+- **Panels and tables:** Use white, 8px-corner panels with a 1px Quiet Rule edge and no shadow. Prefer ruled tables and open spacing to a stack of cards; make rows 44px high with 1px horizontal dividers. Keep filters compact and aligned above their data.
+- **Fields:** Place a sentence-case label above a white 44px-or-taller field with an understated 1px rule. Show help or error text beneath it. Focus uses a clearly visible 2px accent outline with 2px offset; never use floating labels.
+- **Statuses:** State is conveyed by a readable word, in its assigned status color, with a matching fine outline; never use the action accent as a status. Do not rely on color alone.
+- **Loading, empty, and error states:** Use static skeletons matching the final layout, not a generic spinner. Empty states use concise explanatory copy and an available next step without decorative illustration. Put errors beside the affected field or record in plain language.
+- **Iconography:** Use one restrained SVG icon set at 1.75px stroke, only where an icon improves recognition; text carries meaning.
+
+## 5. Layout Principles
+Use CSS Grid with content aligned to a shared twelve-column grid and a centered maximum width of 1360px. Keep headings and controls left-aligned; vary the width of reading areas and data areas without random offsets or repeated equal-card rows. Establish a 4px spacing rhythm: 8px within tight control groups, 16px between related elements, 24px between work sections, and 40px at major breaks. At widths below 768px, collapse multi-column arrangements to one column, reflow table records into readable stacked rows, and maintain at least 44px touch targets; never permit horizontal overflow. Keep one consistent header treatment across the app and give every element its own non-overlapping space. Use no marketing hero, equal three-card row, decorative imagery, glass surfaces, or gradient background.
+
+## 6. Motion & Interaction
+Motion is quiet and state-led: it confirms a selection, a changed result, or an active check rather than decorating the screen. Keep the page readable without motion and reserve the single ambient loop for a genuinely active entry check. Use the named record-settle moment and the CSS rules in §9; remove ambient and entrance motion when reduced motion is requested.
+
+## 7. Anti-Patterns (Banned)
+Never use emojis, Inter, generic serif fonts, pure black, neon, oversaturated accents, outer glows, gradient text, custom cursors, overlapping content, or three equal columns of cards. Never add decorative stock scenes, illustrations, logo strips, generic icon-in-rounded-square feature tiles, bento grids, glassmorphism, fake round-number metrics, generic placeholder names, or marketing-style hero and testimonial patterns. Avoid unexplained system labels and version chips, repeated card templates, vague action copy, filler scroll prompts, and broken image links. Do not make color the sole carrier of a status, animate layout dimensions, apply the same reveal to every section, or let motion obscure content.
+
+## 8. Voice & Font Rationale
+- **Voice:** calm, accountable, practical.
+- **Display:** Hanken Grotesk — its compact, distinctive forms give headings a composed, workmanlike character without shouting (Google Fonts fallback: Hanken Grotesk).
+- **Body / Mono:** Source Sans 3 keeps dense reading open and steady; IBM Plex Mono gives figures, codes, and times a precise alignment without turning prose into console text.
+
+## 9. Motion System
+- **Tokens:** `--dur-instant: 90ms`; `--dur-quick: 160ms`; `--dur-base: 260ms`; `--dur-slow: 420ms`; `--dur-scene: 800ms` (one-time scene range 700–900ms); `--ease-out: cubic-bezier(0.16, 1, 0.3, 1)`; `--ease-in: cubic-bezier(0.7, 0, 0.84, 0)`; `--ease-inout: cubic-bezier(0.65, 0, 0.35, 1)`; `--ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1)`; `--travel: 8px` (maximum 8–16px).
+- **Entrance:** On first view only, the heading, controls, and data region receive a subtle opacity change and 8px rise, staggered by 60ms; the full sequence stays under 500ms and content remains readable throughout.
+- **Scroll-linked:** None; data views do not animate merely because they enter the viewport.
+- **Interaction feedback:** Hover changes only the relevant row to the canvas surface; focus-visible uses a 2px accent outline with 2px offset; press scales controls to 0.97 over 90ms.
+- **State transitions:** Selected indicators move with the 260ms in-out curve. **Signature moment — Parking record settle:** when a filtered record list changes, new or reordered rows fade in while rising 8px over 160ms. On narrow screens, a filter sheet enters over 420ms with the same out curve and a 40% backdrop.
+- **Ambient (max 1):** Only while an entry check is actively resolving, its status dot gently breathes between 0.96 and 1 opacity over an 8s cycle; otherwise none.
+- **Reduced motion:** Under `prefers-reduced-motion: reduce`, reveal and ambient animations are removed, content is immediately visible, and state changes use no more than a 120ms opacity transition.
+
+```css
+:root {
+  --dur-instant: 90ms;
+  --dur-quick: 160ms;
+  --dur-base: 260ms;
+  --dur-slow: 420ms;
+  --dur-scene: 800ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077 21.4%, 1.121 24%, 1.149 27%, 1.159, 1.154 33%, 1.051 43.2%, 1.013 49.5%, 0.996 57%, 1.001 72%, 1);
+  --travel: 8px;
+}
+@keyframes record-settle {
+  from { opacity: 0.9; transform: translateY(var(--travel)); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes active-check-breathe {
+  0%, 100% { opacity: 0.96; }
+  50% { opacity: 1; }
+}
+.record-enter { animation: record-settle var(--dur-quick) var(--ease-out) both; }
+.entry-check-active { animation: active-check-breathe 8s var(--ease-inout) infinite; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition-duration: 120ms !important;
+  }
+  .record-enter, .entry-check-active { opacity: 1 !important; transform: none !important; }
+}
+```
+
+## 10. Component Substitutions
+- Replace icon tiles and repeated feature cards with plain headings, compact lists, and data tables whose spacing shows hierarchy.
+- Replace generic KPI cards and sparklines with one contextual headline measure followed by the relevant, sortable data view.
+- Replace promotional banners, logo strips, and decorative dashboard tiles with the actual work surface and quiet hairline structure.
+- Replace status-by-color-only treatments with concise state words and distinct status-colored outlines.
+- Replace uniform section repetition with a measured mix of narrow reading areas, broad tables, and ruled lists; keep surfaces flat and solid.
+
+## 11. Human Fingerprint
+- **Unexpected decision:** Data views use compact 44px records, then a deliberate 20px pause before a distinct list section, giving dense work a paper-ledger cadence without decorative marks.
+- **Radius family / elevation levels / grid:** One soft 8px radius on panels and controls; flat surfaces with hairline borders and no shadows; content follows a shared twelve-column grid within a 1360px maximum width.
+- **Image treatment / icon set:** Real, natural-color photographs only where people or vehicles are shown; repeat the same person's photograph wherever that person appears and crop both people and vehicles consistently to 4:3, keeping the subject legible. Use a restrained SVG icon set at 1.75px stroke, only where it aids recognition.

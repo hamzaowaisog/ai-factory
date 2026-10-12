@@ -196,6 +196,8 @@ export const ProjectConfig = z.object({
       maxCalls: z.number().int().positive().optional(),
       /** the look asked of the design system: calm, bold or futuristic (src/design/stitch-taste.ts); default: chosen from the product */
       mood: z.enum(STITCH_MOODS).optional(),
+      /** a design drawn for a wide screen shows its most used pages (five at most) at phone width too, one more generation each; default on */
+      phone: z.boolean().optional(),
     }).optional(),
     /**
      * A small UI fix in an app of its own gets a text design note approved with the estimate, not a drawn demo and a card of its

@@ -258,4 +258,24 @@ describe("cost limits", () => {
     for (let i = 0; i < 2; i++) await l.append({ type: "human.decided", data: { cardId: `a${i}`, decision: "reject", by: "x", artifactSha: "" } }, HUMAN_WRITER);
     expect(checkCaps(replay(l.events()))).toMatchObject({ kind: "rejections", waivable: false });
   });
+
+  it("a design sent back is counted apart: two do not park the run, five do, and they leave the spec's two rejections alone", async () => {
+    const l = await run("cap-6");
+    const sendBack = async (i: number) => {
+      const sha = `${i}`.repeat(64);
+      await l.append({ type: "human.requested", data: { cardId: `design-${sha.slice(0, 8)}`, kind: "design-approval", artifactSha: sha, step: "design-baseline" } }, HUMAN_WRITER);
+      await l.append({ type: "human.decided", data: { cardId: `design-${sha.slice(0, 8)}`, decision: "reject", by: "x", artifactSha: sha, reason: "redraw" } }, HUMAN_WRITER);
+    };
+    for (let i = 1; i <= 2; i++) await sendBack(i);
+    let s = replay(l.events());
+    expect([s.designRejections, s.rejections]).toEqual([2, 0]);
+    expect(checkCaps(s)).toBeUndefined();
+    // one spec rejection beside them is still under its own limit of two
+    await l.append({ type: "human.decided", data: { cardId: "a0", decision: "reject", by: "x", artifactSha: "" } }, HUMAN_WRITER);
+    expect(checkCaps(replay(l.events()))).toBeUndefined();
+    for (let i = 3; i <= 5; i++) await sendBack(i);
+    s = replay(l.events());
+    expect(s.designRejections).toBe(5);
+    expect(checkCaps(s)).toMatchObject({ kind: "rejections", waivable: false, reason: expect.stringMatching(/design was sent back 5 times/) });
+  });
 });

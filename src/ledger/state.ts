@@ -139,7 +139,10 @@ export interface RunState {
   costUsd: number;
   activeMs: number;
   waivers: number;
+  /** rejections of a spec, a plan or anything else that is not a design */
   rejections: number;
+  /** designs sent back on a design-approval card: counted apart, since a design is redrawn a few times as normal work */
+  designRejections: number;
   pendingChanges: { seq: number; sha: string }[];
   parkedReason?: string;
   workspace?: { path: string; branch: string };
@@ -171,6 +174,7 @@ export function replay(events: LedgerEvent[]): RunState {
     activeMs: 0,
     waivers: 0,
     rejections: 0,
+    designRejections: 0,
     pendingChanges: [],
     lastSeq: first.seq,
     flags: { pauseRequested: false, stopRequested: false },
@@ -276,7 +280,11 @@ export function replay(events: LedgerEvent[]): RunState {
         }
         s.decisions.push(dec);
         if (dec.decision === "waive") s.waivers += 1;
-        if (dec.decision === "reject") s.rejections += 1;
+        if (dec.decision === "reject") {
+          // the card being decided says what it is; a decision with no open card is read from the card's id (design-<hash>)
+          const design = s.openCard?.cardId === dec.cardId ? s.openCard.kind === "design-approval" : /^design-[0-9a-f]{8}$/.test(dec.cardId);
+          if (design) s.designRejections += 1; else s.rejections += 1;
+        }
         if (s.openCard && s.openCard.cardId === dec.cardId) {
           s.openCard = undefined;
           if (s.status === "waiting") s.status = "running";

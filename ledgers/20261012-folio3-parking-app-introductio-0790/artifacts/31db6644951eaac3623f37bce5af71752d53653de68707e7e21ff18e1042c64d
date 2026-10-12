@@ -1,0 +1,118 @@
+{
+ "model": "gpt-6-luna",
+ "turn": 1,
+ "stop": "tool_use",
+ "text": "",
+ "calls": [
+  {
+   "name": "submit_result",
+   "input": {
+    "requirements": [
+     {
+      "id": "REQ-1",
+      "op": "ADDED",
+      "ears": "When a person submits a Google OAuth callback, the Folio3 Parking web app shall create an authenticated session only after validating the Google-issued ID token signature, issuer, and audience, verifying OAuth state, and confirming that the account belongs to an active Folio3 employee.",
+      "sources": [
+       "I-1",
+       "Q-15"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-1.1",
+        "given": "A Google OAuth callback has a valid Google-issued ID token signature, issuer, and audience, a valid OAuth state, and an account belonging to an active Folio3 employee",
+        "when": "The callback is submitted",
+        "then": "The response status is 200 and the response contains an authenticated session field",
+        "level": "api"
+       },
+       {
+        "id": "AC-1.2",
+        "given": "A Google OAuth callback contains a personal Gmail identity, a non-Folio3 identity, or an inactive employee identity",
+        "when": "The callback is submitted",
+        "then": "The response status is 403 and no authenticated session is returned",
+        "level": "api"
+       },
+       {
+        "id": "AC-1.3",
+        "given": "A Google OAuth callback has an invalid ID token signature, issuer, or audience, or an invalid OAuth state",
+        "when": "The callback is submitted",
+        "then": "The response status is not 200 and no authenticated session is returned",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-16",
+      "op": "ADDED",
+      "ears": "When the Folio3 LPR integration submits an entrance-verification request, the Folio3 Parking web app shall authenticate the request as originating from trusted Folio3 LPR equipment, require a unique authenticated request ID or nonce and reject any previously accepted ID or nonce, then verify a detected car's readable plate against that date's temporary parking authorizations and activate the green indicator only for a valid authorization.",
+      "sources": [
+       "I-5",
+       "ASM-3",
+       "ASM-17",
+       "Q-10",
+       "Q-16"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-16.1",
+        "given": "Trusted Folio3 LPR equipment submits an authenticated request with a unique request ID or nonce and a readable plate matching a valid temporary authorization for the current date",
+        "when": "The entrance verification request is processed",
+        "then": "The indicator integration receives an activation call and the response status is authorized",
+        "level": "api"
+       },
+       {
+        "id": "AC-16.2",
+        "given": "Trusted Folio3 LPR equipment submits an authenticated request with a unique request ID or nonce and a readable plate that has no valid temporary authorization",
+        "when": "The entrance verification request is processed",
+        "then": "The indicator receives no activation call and the response status is denied",
+        "level": "api"
+       },
+       {
+        "id": "AC-16.3",
+        "given": "Trusted Folio3 LPR equipment submits an authenticated request with a unique request ID or nonce for a non-car detection",
+        "when": "The entrance event is processed",
+        "then": "No authorization response is returned and no indicator activation call is made",
+        "level": "api"
+       },
+       {
+        "id": "AC-16.4",
+        "given": "An entrance-verification request is not authenticated as originating from trusted Folio3 LPR equipment",
+        "when": "The request is submitted",
+        "then": "The response status is 401 and the indicator receives no activation call",
+        "level": "api"
+       },
+       {
+        "id": "AC-16.5",
+        "given": "Trusted Folio3 LPR equipment resubmits an authenticated entrance-verification request with an ID or nonce that was previously accepted",
+        "when": "The request is processed",
+        "then": "The response status is rejected, no indicator activation call is made, and the indicator integration receives an explicit set-inactive call",
+        "level": "api"
+       }
+      ]
+     },
+     {
+      "id": "REQ-21",
+      "op": "ADDED",
+      "ears": "Where a Parking Administrator has configured a named report-recipient list, the Folio3 Parking web app shall send weekly employee-identifying report emails only to configured recipients who have the Parking Administrator role, omitting all other listed addresses from delivery.",
+      "sources": [
+       "I-6",
+       "Q-2",
+       "Q-14"
+      ],
+      "acceptance": [
+       {
+        "id": "AC-21.1",
+        "given": "A named report-recipient list contains configured addresses belonging to Parking Administrators and configured addresses belonging to other roles, and the weekly report job runs",
+        "when": "The report email is sent",
+        "then": "Email messages are sent only to the configured recipients with the Parking Administrator role, and no email message is sent to other listed addresses or any unconfigured address",
+        "level": "job"
+       }
+      ]
+     }
+    ]
+   },
+   "ms": 3,
+   "resultChars": 9,
+   "result": "Accepted."
+  }
+ ]
+}

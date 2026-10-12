@@ -535,6 +535,8 @@ export const DesignBody = z.object({
     projectId: z.string(), model: z.string(), designMd: z.string(),
     /** the Stitch design system's own theme, as sent to Stitch (src/design/stitch-taste.ts StitchTheme) */
     theme: z.record(z.string(), z.unknown()).optional(),
+    /** the design system's own colours, as each screen's prompt names them and each page is checked against (StitchPalette) */
+    palette: z.record(z.string(), z.string()).optional(),
     frames: z.record(z.string(), z.object({ screen: z.string().optional(), state: z.string().optional(), name: z.string(), screenId: z.string(), html: z.string(), image: z.string() })),
     /** accessibility problems Stitch could not fix in one round: per screen, the axe rules still failing (shown on the approval card) */
     a11y: z.array(z.object({ screen: z.string(), rules: z.array(z.string()) })).optional(),

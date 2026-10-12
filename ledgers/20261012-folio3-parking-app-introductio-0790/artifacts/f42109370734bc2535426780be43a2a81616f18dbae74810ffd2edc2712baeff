@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Release Schedule — Folio3 Parking</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Public+Sans:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-fixed-variant": "#2a4e3c",
+            "outline": "#87948b",
+            "surface-variant": "#313632",
+            "on-secondary-fixed": "#002113",
+            "inverse-primary": "#006c49",
+            "on-secondary": "#123726",
+            "secondary": "#a8d0b8",
+            "primary-container": "#3fa77a",
+            "on-tertiary-fixed": "#400009",
+            "tertiary-fixed": "#ffdad9",
+            "error": "#ffb4ab",
+            "on-primary-fixed": "#002113",
+            "secondary-fixed": "#c3ecd3",
+            "secondary-container": "#2a4e3c",
+            "on-surface-variant": "#bdcac0",
+            "background": "#0f1511",
+            "primary-fixed": "#91f7c4",
+            "tertiary-container": "#de7779",
+            "tertiary": "#ffb3b3",
+            "on-tertiary-fixed-variant": "#7c2b30",
+            "surface-container-highest": "#313632",
+            "error-container": "#93000a",
+            "tertiary-fixed-dim": "#ffb3b3",
+            "surface-bright": "#353a37",
+            "on-error-container": "#ffdad6",
+            "surface-dim": "#0f1511",
+            "surface-container": "#1b211d",
+            "outline-variant": "#3e4942",
+            "on-tertiary": "#5e151b",
+            "on-primary-fixed-variant": "#005236",
+            "surface-container-lowest": "#0a0f0c",
+            "surface-container-low": "#171d19",
+            "on-error": "#690005",
+            "on-primary": "#003824",
+            "primary-fixed-dim": "#74daa9",
+            "secondary-fixed-dim": "#a8d0b8",
+            "on-secondary-container": "#97bea7",
+            "on-tertiary-container": "#5b1219",
+            "on-primary-container": "#003522",
+            "on-background": "#dfe4de",
+            "surface-container-high": "#262b28",
+            "surface-tint": "#74daa9",
+            "inverse-on-surface": "#2c322e",
+            "surface": "#0f1511",
+            "inverse-surface": "#dfe4de",
+            "primary": "#74daa9",
+            "on-surface": "#dfe4de"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "fontFamily": {
+            "headline": ["Hanken Grotesk", "sans-serif"],
+            "display": ["Hanken Grotesk", "sans-serif"],
+            "body": ["IBM Plex Sans", "sans-serif"],
+            "label": ["Public Sans", "sans-serif"],
+            "mono": ["IBM Plex Mono", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --dur-scene: 700ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+      --travel: 8px;
+    }
+
+    /* Tabular figures for numbers, codes, and timestamps */
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Page Entrance Animation */
+    @keyframes entrance {
+      from {
+        opacity: 0;
+        transform: translateY(var(--travel));
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-entrance {
+      animation: entrance var(--dur-scene) var(--ease-out) forwards;
+    }
+
+    .stagger-1 {
+      animation-delay: 60ms;
+    }
+
+    .stagger-2 {
+      animation-delay: 120ms;
+    }
+
+    /* Ambient live availability pulse: the single ambient animation on page */
+    @keyframes live-pulse {
+      0%, 100% {
+        opacity: 0.94;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .live-status {
+      animation: live-pulse 7.5s ease-in-out infinite;
+    }
+
+    /* Bay-mark handoff view transition token */
+    .record-title, .record-rule {
+      view-transition-name: parking-record;
+    }
+
+    ::view-transition-old(parking-record),
+    ::view-transition-new(parking-record) {
+      animation-duration: var(--dur-slow);
+      animation-timing-function: var(--ease-inout);
+    }
+
+    /* Button and Interactive control states */
+    button, a, input, select {
+      transition: background-color var(--dur-quick) ease, border-color var(--dur-quick) ease, color var(--dur-quick) ease, transform var(--dur-instant) ease;
+    }
+
+    button:active, a:active {
+      transform: scale(0.98);
+    }
+
+    /* Focus visible standard */
+    button:focus-visible, a:focus-visible, input:focus-visible {
+      outline: 2px solid #3FA77A;
+      outline-offset: 2px;
+    }
+
+    /* Prefers-reduced-motion reset */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 120ms !important;
+      }
+      .live-status {
+        animation: none !important;
+      }
+      .animate-entrance {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body antialiased min-h-screen flex flex-col selection:bg-secondary-container selection:text-secondary-fixed">
+<!-- Top Navigation Bar: Shared Component mapped from JSON -->
+<header class="bg-surface-container docked full-width top-0 sticky z-40 border-b border-outline-variant/55 flat no shadows">
+<div class="flex justify-between items-center w-full px-4 lg:px-8 max-w-7xl mx-auto h-14">
+<!-- Brand & Facility Status Cluster -->
+<div class="flex items-center gap-4">
+<span class="font-headline text-base font-semibold tracking-tight text-on-surface flex items-center gap-2">
+          Folio3 Parking
+        </span>
+<span class="hidden sm:inline-block w-px h-4 bg-outline-variant/50"></span>
+<!-- Facility Live Indicator (The single ambient loop) -->
+<div class="hidden sm:flex items-center gap-2 bg-surface-container-low px-2 py-1 rounded text-xs text-on-surface-variant border border-outline-variant/40">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container live-status inline-block"></span>
+<span class="font-mono text-[11px] uppercase tracking-wider text-on-surface">P2 Deck Active</span>
+</div>
+</div>
+<!-- Navigation Links: strictly ordered, no extra tabs or destination items -->
+<nav class="hidden md:flex items-center gap-6 font-headline text-sm tracking-tight font-medium font-body h-14">
+<a class="text-on-surface-variant hover:text-on-surface text-sm pb-3 -mb-px transition-colors duration-160 flex items-center pt-3" href="#">
+          My Parking
+        </a>
+<a class="text-on-surface-variant hover:text-on-surface text-sm pb-3 -mb-px transition-colors duration-160 flex items-center pt-3" href="#">
+          Available Spaces
+        </a>
+<!-- ACTIVE STATE: Release Schedule -->
+<a aria-current="page" class="text-on-surface font-medium border-b-2 border-primary pb-3 -mb-px text-sm flex items-center pt-3" href="#">
+          Release Schedule
+        </a>
+<a class="text-on-surface-variant hover:text-on-surface text-sm pb-3 -mb-px transition-colors duration-160 flex items-center pt-3" href="#">
+          My Vehicles
+        </a>
+</nav>
+<!-- Trailing Identity & Staff Profile Match: Maya Chen EMP-88421 -->
+<div class="flex items-center gap-3">
+<div class="text-right hidden sm:block">
+<div class="text-xs font-headline font-semibold text-on-surface tracking-tight leading-none">Maya Chen</div>
+<div class="text-[11px] font-mono text-outline leading-tight mt-0.5 tabular-nums">EMP-88421 · P2 Bay 44</div>
+</div>
+<div class="relative w-8 h-8 rounded-full overflow-hidden border border-outline-variant/80 bg-surface-container-high flex-shrink-0">
+<img alt="Maya Chen portrait" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1UAhY7haOxAS8BBMHNsjWHraKVc6pU-7Y6s8J8VbL1fZ_dgE6cBwOBIcExXIcpY8Ml1dgqj04UCD8WUS-n7ywcifDZyoSmJOUPUQbVNn-dMDZPE4_e_zDb3L0RTd-kKbuzr_pZXbzKmm9HOB_fFWJI9FBEW3L_Z1qEEoquViOn9nea_hNQId6rTCSXkBI9nYPZWgHcg3630k3F-jlPAzi_Iz7ohRXmLcASniuZ9CafiVKo77JXi2Tpmuhum"/>
+</div>
+</div>
+</div>
+<!-- Mobile Secondary Viewport Nav -->
+<div class="flex md:hidden px-4 border-t border-outline-variant/40 bg-surface-container overflow-x-auto text-xs font-headline">
+<a class="py-2.5 px-3 text-on-surface-variant hover:text-on-surface whitespace-nowrap" href="#">My Parking</a>
+<a class="py-2.5 px-3 text-on-surface-variant hover:text-on-surface whitespace-nowrap" href="#">Available Spaces</a>
+<a aria-current="page" class="py-2.5 px-3 text-on-surface font-semibold border-b-2 border-primary whitespace-nowrap" href="#">Release Schedule</a>
+<a class="py-2.5 px-3 text-on-surface-variant hover:text-on-surface whitespace-nowrap" href="#">My Vehicles</a>
+</div>
+</header>
+<!-- Main Canvas Container -->
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8 animate-entrance">
+<!-- Heading and Intro Section -->
+<section class="space-y-1">
+<div class="flex flex-wrap items-baseline justify-between gap-2">
+<h1 class="text-2xl lg:text-3xl font-headline font-semibold text-on-surface tracking-tight">
+          Release Schedule
+        </h1>
+<div class="font-mono text-xs text-outline tabular-nums">
+          CYCLE: DAILY 10:00 AM UTC-5
+        </div>
+</div>
+<p class="text-sm text-on-surface-variant max-w-[65ch] leading-relaxed">
+        Schedule one or more dedicated-space releases up to 30 days ahead.
+      </p>
+</section>
+<!-- Top Section: Date Controls beside Governance/Rules Panel (Grid) -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start stagger-1 animate-entrance">
+<!-- Left Side: Date Picker & Configuration Action (7 Columns) -->
+<div class="lg:col-span-7 bg-surface-container-low border border-outline-variant/55 rounded-lg p-5 lg:p-6 space-y-5">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-variant/40 pb-4">
+<div>
+<span class="text-xs uppercase tracking-wider text-outline font-headline font-semibold block">Batch Scheduling</span>
+<span class="text-sm font-headline font-medium text-on-surface">Select Space Release Dates</span>
+</div>
+<!-- Release threshold indicator pill -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-container-high border border-outline-variant/60 font-mono text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-primary text-[15px]" style="font-variation-settings: 'FILL' 1;">schedule</span>
+<span>Daily release threshold: <strong class="text-on-surface tabular-nums">10:00 AM</strong></span>
+</div>
+</div>
+<!-- Date Selection Input Group -->
+<div class="space-y-3">
+<label class="block text-xs font-headline font-medium text-on-surface-variant">
+            Eligible forward dates (Multi-select enabled up to 30 days)
+          </label>
+<!-- Selected Multi-Date Display Trigger -->
+<div class="w-full bg-surface-container border border-outline-variant/80 rounded px-3.5 py-2.5 flex items-center justify-between hover:border-outline focus-within:border-primary">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="material-symbols-outlined text-outline text-lg">calendar_month</span>
+<!-- Mock Selected Dates in Multi-Select -->
+<span class="inline-flex items-center gap-1.5 text-xs bg-secondary-container/80 text-secondary-fixed px-2 py-0.5 rounded font-mono tabular-nums border border-secondary-container">
+                May 26, 2026
+                <span class="material-symbols-outlined text-[13px] hover:text-on-surface cursor-pointer">close</span>
+</span>
+<span class="inline-flex items-center gap-1.5 text-xs bg-secondary-container/80 text-secondary-fixed px-2 py-0.5 rounded font-mono tabular-nums border border-secondary-container">
+                Jun 2, 2026
+                <span class="material-symbols-outlined text-[13px] hover:text-on-surface cursor-pointer">close</span>
+</span>
+</div>
+<span class="font-mono text-xs text-outline tabular-nums">2 selected</span>
+</div>
+<!-- Calendar Days Preview Strip -->
+<div class="bg-surface-container p-3 rounded border border-outline-variant/30 grid grid-cols-7 gap-1.5 text-center font-mono text-xs">
+<div class="text-[11px] text-outline font-headline">MO</div>
+<div class="text-[11px] text-outline font-headline">TU</div>
+<div class="text-[11px] text-outline font-headline">WE</div>
+<div class="text-[11px] text-outline font-headline">TH</div>
+<div class="text-[11px] text-outline font-headline">FR</div>
+<div class="text-[11px] text-outline/40 font-headline">SA</div>
+<div class="text-[11px] text-outline/40 font-headline">SU</div>
+<!-- Dates line sample -->
+<button class="py-1.5 rounded text-outline-variant hover:bg-surface-container-high text-opacity-50" type="button">25</button>
+<button class="py-1.5 rounded bg-primary-container text-on-primary font-semibold tabular-nums" type="button">26</button>
+<button class="py-1.5 rounded text-on-surface hover:bg-surface-container-high tabular-nums" type="button">27</button>
+<button class="py-1.5 rounded text-on-surface hover:bg-surface-container-high tabular-nums" type="button">28</button>
+<button class="py-1.5 rounded text-on-surface hover:bg-surface-container-high tabular-nums" type="button">29</button>
+<button class="py-1.5 rounded text-outline/30 tabular-nums" type="button">30</button>
+<button class="py-1.5 rounded text-outline/30 tabular-nums" type="button">31</button>
+<button class="py-1.5 rounded text-on-surface hover:bg-surface-container-high tabular-nums" type="button">01</button>
+<button class="py-1.5 rounded bg-primary-container text-on-primary font-semibold tabular-nums" type="button">02</button>
+<button class="py-1.5 rounded text-on-surface hover:bg-surface-container-high tabular-nums" type="button">03</button>
+<button class="py-1.5 rounded text-on-surface hover:bg-surface-container-high tabular-nums" type="button">04</button>
+<button class="py-1.5 rounded text-on-surface hover:bg-surface-container-high tabular-nums" type="button">05</button>
+<button class="py-1.5 rounded text-outline/30 tabular-nums" type="button">06</button>
+<button class="py-1.5 rounded text-outline/30 tabular-nums" type="button">07</button>
+</div>
+</div>
+<!-- Space Target & Execution Button -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+<div class="text-xs text-on-surface-variant">
+            Target Allocation: <span class="font-mono text-on-surface font-semibold">P2 · Bay 44 (Assigned)</span>
+</div>
+<!-- Primary Button: Schedule releases action -->
+<button class="bg-primary-container hover:bg-primary text-on-primary-container font-headline font-semibold text-sm px-5 py-2.5 rounded shadow-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all" type="button">
+<span class="material-symbols-outlined text-base">event_available</span>
+<span>Schedule releases</span>
+</button>
+</div>
+</div>
+<!-- Right Side: Rules Panel / Governance Card (5 Columns) -->
+<div class="lg:col-span-5 bg-surface-container-low border border-outline-variant/55 rounded-lg p-5 lg:p-6 space-y-4">
+<div class="flex items-center gap-2 border-b border-outline-variant/40 pb-3">
+<span class="material-symbols-outlined text-primary text-base">policy</span>
+<h2 class="text-xs uppercase tracking-wider font-headline font-semibold text-on-surface">
+            Release Governance &amp; Policies
+          </h2>
+</div>
+<ul class="space-y-3.5 text-xs text-on-surface-variant leading-relaxed">
+<!-- 30-Day Forward Rule -->
+<li class="flex items-start gap-2.5">
+<span class="w-1.5 h-1.5 rounded-full bg-outline flex-shrink-0 mt-1.5"></span>
+<div>
+<span class="font-headline font-semibold text-on-surface">30-day forward window:</span>
+              Releases may be placed up to 30 calendar days in advance. Dates beyond this rolling boundary are sealed until their respective threshold.
+            </div>
+</li>
+<!-- 10:00 AM Cutoff Rule -->
+<li class="flex items-start gap-2.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container flex-shrink-0 mt-1.5"></span>
+<div>
+<span class="font-headline font-semibold text-on-surface">Daily 10:00 AM cutoff:</span>
+              Releases queued prior to 10:00 AM unlock precisely at 10:00 AM on their availability day. Entries submitted after the threshold unlock immediately.
+            </div>
+</li>
+<!-- Cancellation Rule -->
+<li class="flex items-start gap-2.5">
+<span class="w-1.5 h-1.5 rounded-full bg-outline flex-shrink-0 mt-1.5"></span>
+<div>
+<span class="font-headline font-semibold text-on-surface">Claim-lock constraint:</span>
+              Cancellation is permitted at any time prior to colleague claim. Once a space is claimed by another employee, the allocation is locked and non-reversible.
+            </div>
+</li>
+</ul>
+<div class="pt-2 border-t border-outline-variant/30 flex items-center justify-between text-[11px] font-mono text-outline">
+<span>System Version: Roster-v4.1</span>
+<span class="text-primary font-medium">Compliance Active</span>
+</div>
+</div>
+</section>
+<!-- Worklist: Full-width Schedule List -->
+<section class="space-y-3 stagger-2 animate-entrance">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="text-base font-headline font-semibold text-on-surface tracking-tight">Active Releases &amp; Recent Log</h2>
+<p class="text-xs text-outline">Manage queued dates and review claim locks for dedicated Bay 44.</p>
+</div>
+<span class="font-mono text-xs text-outline tabular-nums">3 Total Records</span>
+</div>
+<!-- Dense Technical Worklist Container -->
+<div class="bg-surface-container-low border border-outline-variant/55 rounded-lg overflow-hidden divide-y divide-outline-variant/40">
+<!-- Table Header (Visible on Desktop) -->
+<div class="hidden md:grid grid-cols-12 gap-4 px-6 py-2.5 bg-surface-container text-[11px] font-headline font-semibold text-outline uppercase tracking-wider">
+<div class="col-span-4">Date &amp; Location</div>
+<div class="col-span-3">State &amp; Threshold</div>
+<div class="col-span-3">Availability Details</div>
+<div class="col-span-2 text-right">Action</div>
+</div>
+<!-- Row 1 (Scheduled): Tue, May 26, 2026 -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 py-4 items-center hover:bg-surface-container/60 transition-colors">
+<!-- Bay-mark line accent token on active row -->
+<div class="col-span-1 md:col-span-4 flex items-center gap-3">
+<span aria-hidden="true" class="w-1 h-8 rounded-full bg-primary flex-shrink-0 record-rule"></span>
+<div>
+<div class="font-headline font-medium text-sm text-on-surface record-title">
+                Tue, May 26, 2026
+              </div>
+<div class="text-xs font-mono text-outline tabular-nums">
+                Level P2 · Bay 44
+              </div>
+</div>
+</div>
+<!-- Status badge -->
+<div class="col-span-1 md:col-span-3 flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-medium bg-secondary-container/60 text-secondary-fixed border border-secondary-container">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+              Scheduled
+            </span>
+</div>
+<!-- Schedule detail text -->
+<div class="col-span-1 md:col-span-3 text-xs text-on-surface-variant font-mono tabular-nums">
+            Claimable at 10:00 AM
+          </div>
+<!-- Prominent Secondary Action Button -->
+<div class="col-span-1 md:col-span-2 flex justify-start md:justify-end">
+<button class="w-full md:w-auto text-xs font-headline font-medium text-on-surface-variant hover:text-error hover:border-error/40 border border-outline-variant/60 bg-surface-container hover:bg-surface-container-high px-3 py-1.5 rounded active:scale-[0.98] transition-all" type="button">
+              Cancel release
+            </button>
+</div>
+</div>
+<!-- Row 2 (Scheduled): Tue, Jun 2, 2026 -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 py-4 items-center hover:bg-surface-container/60 transition-colors">
+<!-- Bay-mark line accent token -->
+<div class="col-span-1 md:col-span-4 flex items-center gap-3">
+<span aria-hidden="true" class="w-1 h-8 rounded-full bg-primary flex-shrink-0"></span>
+<div>
+<div class="font-headline font-medium text-sm text-on-surface">
+                Tue, Jun 2, 2026
+              </div>
+<div class="text-xs font-mono text-outline tabular-nums">
+                Level P2 · Bay 44
+              </div>
+</div>
+</div>
+<!-- Status badge -->
+<div class="col-span-1 md:col-span-3 flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-medium bg-secondary-container/60 text-secondary-fixed border border-secondary-container">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+              Scheduled
+            </span>
+</div>
+<!-- Schedule detail text -->
+<div class="col-span-1 md:col-span-3 text-xs text-on-surface-variant font-mono tabular-nums">
+            Claimable at 10:00 AM
+          </div>
+<!-- Prominent Secondary Action Button -->
+<div class="col-span-1 md:col-span-2 flex justify-start md:justify-end">
+<button class="w-full md:w-auto text-xs font-headline font-medium text-on-surface-variant hover:text-error hover:border-error/40 border border-outline-variant/60 bg-surface-container hover:bg-surface-container-high px-3 py-1.5 rounded active:scale-[0.98] transition-all" type="button">
+              Cancel release
+            </button>
+</div>
+</div>
+<!-- Row 3 (Recent history / claimed example in subdued styling): May 18, 2026 -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 px-6 py-4 items-center bg-surface-container-lowest/40 opacity-75">
+<!-- Neutral marker for locked history -->
+<div class="col-span-1 md:col-span-4 flex items-center gap-3">
+<span aria-hidden="true" class="w-1 h-8 rounded-full bg-outline-variant flex-shrink-0"></span>
+<div>
+<div class="font-headline font-medium text-sm text-outline">
+                Mon, May 18, 2026
+              </div>
+<div class="text-xs font-mono text-outline/80 tabular-nums">
+                Level P2 · Bay 44
+              </div>
+</div>
+</div>
+<!-- Muted Pill Status Badge -->
+<div class="col-span-1 md:col-span-3 flex items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-medium bg-surface-container text-outline border border-outline-variant/40">
+<span class="material-symbols-outlined text-[13px]">lock</span>
+              Claimed
+            </span>
+</div>
+<!-- Locked claim event detail text -->
+<div class="col-span-1 md:col-span-3 text-xs text-outline font-mono tabular-nums">
+            Claimed at 10:12 AM
+          </div>
+<!-- Disabled cancellation explaining policy rule directly inline -->
+<div class="col-span-1 md:col-span-2 flex justify-start md:justify-end items-center">
+<span class="text-xs font-headline text-outline/70 italic flex items-center gap-1">
+              Cancellation unavailable
+            </span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Technical Footer Bar: Civic and Subdued -->
+<footer class="mt-auto border-t border-outline-variant/40 bg-surface-container-lowest py-4 text-xs font-mono text-outline">
+<div class="max-w-7xl mx-auto px-4 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-2">
+<div>Folio3 Workforce Operations · Parking Space Relinquishment System</div>
+<div class="flex items-center gap-4 tabular-nums">
+<span>Server Sync: 10:00:00 EST</span>
+<span class="text-primary font-medium">Synced</span>
+</div>
+</div>
+</footer>
+</body></html>

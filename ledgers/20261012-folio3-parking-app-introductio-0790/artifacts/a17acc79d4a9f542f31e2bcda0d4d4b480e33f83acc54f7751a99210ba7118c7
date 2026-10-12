@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Folio3 Parking — Parking Settings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              primary: '#3FA77A',
+              primaryDark: '#2E805C',
+              primaryHover: '#35926B',
+              surface: '#0B0F0E',
+              surfaceContainer: '#121816',
+              surfaceContainerHigh: '#19221F',
+              surfaceContainerHighest: '#202B27',
+              border: 'rgba(63, 167, 122, 0.18)',
+              borderSubtle: 'rgba(255, 255, 255, 0.08)',
+              textMuted: '#84938D',
+              textSubtle: '#586560'
+            }
+          },
+          fontFamily: {
+            sans: ['"Hanken Grotesk"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Design System Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Ambient live dot breathing: 0.94 to 1 opacity over 7.5s ease-in-out */
+    @keyframes liveBreathe {
+      0%, 100% {
+        opacity: 0.94;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.06);
+      }
+    }
+
+    .ambient-live-dot {
+      animation: liveBreathe 7.5s ease-in-out infinite;
+    }
+
+    .motion-stagger-1 {
+      animation: entranceFadeUp 340ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .motion-stagger-2 {
+      animation: entranceFadeUp 420ms cubic-bezier(0.16, 1, 0.3, 1) 60ms forwards;
+      opacity: 0;
+    }
+
+    .motion-stagger-3 {
+      animation: entranceFadeUp 440ms cubic-bezier(0.16, 1, 0.3, 1) 120ms forwards;
+      opacity: 0;
+    }
+
+    /* Signature Bay-mark handoff view transition token */
+    .bay-mark-handoff {
+      view-transition-name: parking-record;
+      transition: all 420ms cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    /* Responsive & interactive form control styles */
+    .admin-input {
+      transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, transform 90ms ease;
+    }
+    .admin-input:hover {
+      border-color: rgba(63, 167, 122, 0.45);
+      background-color: #1a2420;
+    }
+    .admin-input:focus {
+      outline: none;
+      border-color: #3FA77A;
+      box-shadow: 0 0 0 1px #3FA77A, 0 0 0 4px rgba(63, 167, 122, 0.15);
+      background-color: #17201c;
+    }
+    .admin-input:active {
+      transform: scale(0.995);
+    }
+
+    .admin-btn-primary {
+      transition: background-color 160ms ease, box-shadow 160ms ease, transform 90ms ease;
+    }
+    .admin-btn-primary:hover {
+      background-color: #48bb89;
+      box-shadow: 0 4px 12px rgba(63, 167, 122, 0.25);
+    }
+    .admin-btn-primary:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #0B0F0E, 0 0 0 4px #3FA77A;
+    }
+    .admin-btn-primary:active {
+      transform: scale(0.97);
+      background-color: #35926B;
+    }
+
+    .admin-btn-ghost {
+      transition: background-color 160ms ease, color 160ms ease, transform 90ms ease, border-color 160ms ease;
+    }
+    .admin-btn-ghost:hover {
+      background-color: #1c2723;
+      color: #e5ece9;
+      border-color: rgba(63, 167, 122, 0.35);
+    }
+    .admin-btn-ghost:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(63, 167, 122, 0.4);
+    }
+    .admin-btn-ghost:active {
+      transform: scale(0.97);
+    }
+
+    .nav-tab-item {
+      transition: color 160ms ease, border-color 160ms ease;
+    }
+    .nav-tab-item:hover {
+      color: #e5ece9;
+    }
+    .nav-tab-item:active {
+      transform: scale(0.98);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .ambient-live-dot {
+        animation: none !important;
+        opacity: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-[#0B0F0E] text-[#D3DDD8] font-sans min-h-screen antialiased selection:bg-[#3FA77A]/30 selection:text-white flex flex-col justify-between">
+
+  <div>
+    <!-- Top Shared Administrator Navigation Header -->
+    <header class="w-full bg-[#101614] border-b border-[#1D2824] sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-14">
+          <!-- Brand & Operations badge -->
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="font-bold text-white tracking-tight text-base sm:text-lg">Folio3 Parking</span>
+            <span class="font-mono text-[10px] tracking-wider uppercase px-2 py-0.5 rounded bg-[#16211D] text-[#8BA49A] border border-[#23352E]">OPERATIONS</span>
+          </div>
+
+          <!-- Administrator Navigation: exact order, only allowed page-opening controls -->
+          <nav aria-label="Administrator Navigation" class="hidden md:flex items-center space-x-1 lg:space-x-2 h-full text-xs lg:text-sm font-medium">
+            <a href="#" class="nav-tab-item px-3 py-4 text-[#84938D] hover:text-[#E2EBE6] h-full flex items-center border-b-2 border-transparent">Overview</a>
+            <a href="#" class="nav-tab-item px-3 py-4 text-[#84938D] hover:text-[#E2EBE6] h-full flex items-center border-b-2 border-transparent">Employees</a>
+            <a href="#" aria-current="page" class="nav-tab-item px-3 py-4 text-[#3FA77A] font-semibold h-full flex items-center border-b-2 border-[#3FA77A]">Parking Settings</a>
+            <a href="#" class="nav-tab-item px-3 py-4 text-[#84938D] hover:text-[#E2EBE6] h-full flex items-center border-b-2 border-transparent">Access &amp; Reports</a>
+            <a href="#" class="nav-tab-item px-3 py-4 text-[#84938D] hover:text-[#E2EBE6] h-full flex items-center border-b-2 border-transparent">Utilization</a>
+          </nav>
+
+          <!-- Telemetry & Admin Identity -->
+          <div class="flex items-center space-x-3 sm:space-x-4 shrink-0">
+            <div class="hidden sm:flex items-center space-x-2 font-mono text-[11px] text-[#84938D] bg-[#141C1A] px-2.5 py-1 rounded border border-[#1E2B26]">
+              <span>Terminal 04</span>
+              <span class="text-[#33463F]">·</span>
+              <span class="inline-flex items-center space-x-1.5 text-[#3FA77A]">
+                <!-- Genuinely live availability status dot breathes on a 7.5s cycle -->
+                <span class="w-1.5 h-1.5 rounded-full bg-[#3FA77A] ambient-live-dot" aria-hidden="true"></span>
+                <span class="font-semibold tracking-wider text-[10px]">LIVE</span>
+              </span>
+            </div>
+
+            <div class="flex items-center space-x-2 text-xs">
+              <span class="material-symbols-outlined text-[#84938D] text-lg" aria-hidden="true">account_circle</span>
+              <div class="hidden sm:flex items-baseline space-x-1.5">
+                <span class="font-medium text-[#E1EAE6]">Leila Haddad</span>
+                <span class="text-[#586560]">·</span>
+                <span class="text-[#84938D] text-[11px]">Administrator</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phone / Small Screen Subnav with exact controls & exact order -->
+        <nav aria-label="Administrator Navigation (Mobile)" class="md:hidden flex items-center space-x-1 overflow-x-auto py-2 border-t border-[#19221F] no-scrollbar text-xs">
+          <a href="#" class="nav-tab-item px-2.5 py-1 text-[#84938D] whitespace-nowrap rounded">Overview</a>
+          <a href="#" class="nav-tab-item px-2.5 py-1 text-[#84938D] whitespace-nowrap rounded">Employees</a>
+          <a href="#" aria-current="page" class="nav-tab-item px-2.5 py-1 text-[#3FA77A] font-semibold bg-[#17231F] rounded border border-[#243B31] whitespace-nowrap">Parking Settings</a>
+          <a href="#" class="nav-tab-item px-2.5 py-1 text-[#84938D] whitespace-nowrap rounded">Access &amp; Reports</a>
+          <a href="#" class="nav-tab-item px-2.5 py-1 text-[#84938D] whitespace-nowrap rounded">Utilization</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      
+      <!-- Page Title & Header Note -->
+      <section class="motion-stagger-1 mb-6 sm:mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2 border-b border-[#1A2621] pb-4">
+          <div>
+            <div class="flex items-center space-x-2.5 mb-1.5">
+              <span class="w-1.5 h-5 bg-[#3FA77A] rounded-full inline-block" aria-hidden="true"></span>
+              <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white">Parking settings</h1>
+            </div>
+            <p class="text-xs sm:text-sm text-[#8E9F98] max-w-2xl">
+              Changes govern daily release and configured floor capacity.
+            </p>
+          </div>
+
+          <!-- Time Zone Metadata Pill -->
+          <div class="flex items-center space-x-2 bg-[#121A17] border border-[#1F2C27] rounded-md px-3 py-1.5 self-start sm:self-auto">
+            <span class="material-symbols-outlined text-[#3FA77A] text-[16px]" aria-hidden="true">schedule</span>
+            <span class="text-[11px] sm:text-xs text-[#95A59E] font-mono">Folio3 office time zone · America/Los_Angeles</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings Form: 3 separated, compact sections in user order -->
+      <!-- Wide screens: Release-time & Calendar beside Floor-capacity table. Phones: Stacked in user order. -->
+      <form onsubmit="return false;" class="space-y-6">
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- LEFT COLUMN (Wide screen): Section 1 (Daily release time) & Section 3 (Work calendar) -->
+          <div class="lg:col-span-6 flex flex-col space-y-6">
+
+            <!-- SECTION 1: Daily release time -->
+            <section class="motion-stagger-2 bg-[#111715] border border-[#1E2925] rounded-lg p-4 sm:p-5 shadow-sm bay-mark-handoff">
+              <div class="flex items-center justify-between pb-3 mb-4 border-b border-[#1A2420]">
+                <div class="flex items-center space-x-2">
+                  <span class="material-symbols-outlined text-[#3FA77A] text-lg" aria-hidden="true">alarm</span>
+                  <h2 class="text-sm font-semibold uppercase tracking-wider text-white">Daily release time</h2>
+                </div>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-[#16221E] text-[#4BBF8C] border border-[#233830]">THRESHOLD ACTIVE</span>
+              </div>
+
+              <p class="text-xs text-[#84938D] mb-4">
+                Configured daily deadline when unclaimed reserved spaces automatically unlock to the shared employee pool.
+              </p>
+
+              <div class="space-y-4">
+                <div>
+                  <label for="release-time-input" class="block text-xs font-medium text-[#C0CEC7] mb-1.5">
+                    Release Cutoff Time <span class="text-[#3FA77A]">*</span>
+                  </label>
+                  <div class="relative max-w-xs">
+                    <input 
+                      type="text" 
+                      id="release-time-input" 
+                      name="release_time"
+                      value="10:00 AM" 
+                      class="admin-input w-full bg-[#141C1A] text-white font-mono text-sm sm:text-base px-3.5 py-2.5 rounded border border-[#23312B] focus:border-[#3FA77A]"
+                      aria-describedby="release-time-help"
+                    />
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-[#5B6D66]">
+                      <span class="material-symbols-outlined text-[18px]">nest_clock_farsight_analog</span>
+                    </div>
+                  </div>
+                  <p id="release-time-help" class="mt-1.5 text-[11px] text-[#71827C]">
+                    Current value: <strong class="text-[#E0E9E5] font-mono">10:00 AM</strong>. Applies to all sub-level decks Monday through Friday.
+                  </p>
+                </div>
+
+                <!-- Configured Office Timezone Status -->
+                <div class="pt-2 border-t border-[#18221E] flex items-center justify-between text-xs">
+                  <span class="text-[#84938D]">Configured zone:</span>
+                  <span class="font-mono text-[#A8BBB2] text-[11px] bg-[#161F1C] px-2 py-1 rounded border border-[#212E29]">
+                    America/Los_Angeles (PT)
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            <!-- SECTION 3: Work calendar (displayed here on wide screens to be beside floor capacity, stacked in user order on mobile) -->
+            <section class="motion-stagger-3 bg-[#111715] border border-[#1E2925] rounded-lg p-4 sm:p-5 shadow-sm">
+              <div class="flex items-center justify-between pb-3 mb-4 border-b border-[#1A2420]">
+                <div class="flex items-center space-x-2">
+                  <span class="material-symbols-outlined text-[#3FA77A] text-lg" aria-hidden="true">calendar_month</span>
+                  <h2 class="text-sm font-semibold uppercase tracking-wider text-white">Work calendar</h2>
+                </div>
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-[#16221E] text-[#84938D] border border-[#23312B]">SCHEDULE RULES</span>
+              </div>
+
+              <p class="text-xs text-[#84938D] mb-4">
+                Defines automated release cycles and security gate transponder polling for regular workdays and observed corporate holidays.
+              </p>
+
+              <!-- Working Days vs Non-working Days Matrix -->
+              <div class="mb-4">
+                <span class="block text-xs font-medium text-[#C0CEC7] mb-2">Weekly Cadence</span>
+                <div class="grid grid-cols-7 gap-1.5 sm:gap-2 text-center font-mono text-xs">
+                  <!-- Monday -->
+                  <div class="bg-[#15211D] border border-[#263D33] p-2 rounded flex flex-col items-center">
+                    <span class="text-[#96AAA1] text-[10px] font-sans font-medium">MON</span>
+                    <span class="text-xs font-semibold text-white mt-0.5">Work</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#3FA77A] mt-1.5" title="Working day"></span>
+                  </div>
+                  <!-- Tuesday -->
+                  <div class="bg-[#15211D] border border-[#263D33] p-2 rounded flex flex-col items-center">
+                    <span class="text-[#96AAA1] text-[10px] font-sans font-medium">TUE</span>
+                    <span class="text-xs font-semibold text-white mt-0.5">Work</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#3FA77A] mt-1.5" title="Working day"></span>
+                  </div>
+                  <!-- Wednesday -->
+                  <div class="bg-[#15211D] border border-[#263D33] p-2 rounded flex flex-col items-center">
+                    <span class="text-[#96AAA1] text-[10px] font-sans font-medium">WED</span>
+                    <span class="text-xs font-semibold text-white mt-0.5">Work</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#3FA77A] mt-1.5" title="Working day"></span>
+                  </div>
+                  <!-- Thursday -->
+                  <div class="bg-[#15211D] border border-[#263D33] p-2 rounded flex flex-col items-center">
+                    <span class="text-[#96AAA1] text-[10px] font-sans font-medium">THU</span>
+                    <span class="text-xs font-semibold text-white mt-0.5">Work</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#3FA77A] mt-1.5" title="Working day"></span>
+                  </div>
+                  <!-- Friday -->
+                  <div class="bg-[#15211D] border border-[#263D33] p-2 rounded flex flex-col items-center">
+                    <span class="text-[#96AAA1] text-[10px] font-sans font-medium">FRI</span>
+                    <span class="text-xs font-semibold text-white mt-0.5">Work</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#3FA77A] mt-1.5" title="Working day"></span>
+                  </div>
+                  <!-- Saturday (Non-working) -->
+                  <div class="bg-[#131917] border border-[#1E2623] p-2 rounded flex flex-col items-center opacity-75">
+                    <span class="text-[#6C7E77] text-[10px] font-sans">SAT</span>
+                    <span class="text-[11px] text-[#7E9089] mt-0.5">Off</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#36443F] mt-1.5" title="Non-working"></span>
+                  </div>
+                  <!-- Sunday (Non-working) -->
+                  <div class="bg-[#131917] border border-[#1E2623] p-2 rounded flex flex-col items-center opacity-75">
+                    <span class="text-[#6C7E77] text-[10px] font-sans">SUN</span>
+                    <span class="text-[11px] text-[#7E9089] mt-0.5">Off</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#36443F] mt-1.5" title="Non-working"></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Holiday entry -->
+              <div class="mt-4 pt-3 border-t border-[#18221E]">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-medium text-[#C0CEC7]">Configured Holidays &amp; Standdowns</span>
+                  <span class="text-[10px] text-[#6A7C75] font-mono">1 OBSERVED</span>
+                </div>
+
+                <div class="bg-[#141C1A] border border-[#212E29] rounded-md p-3 flex items-center justify-between">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded bg-[#1A2621] border border-[#253930] flex items-center justify-center text-[#3FA77A]">
+                      <span class="material-symbols-outlined text-[18px]">event</span>
+                    </div>
+                    <div>
+                      <div class="text-xs font-semibold text-white">Memorial Day</div>
+                      <div class="text-[11px] font-mono text-[#899C93]">May 25, 2026</div>
+                    </div>
+                  </div>
+                  <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[#1E1917] text-[#D88A60] border border-[#3C271E]">
+                    Facility Closed
+                  </span>
+                </div>
+              </div>
+            </section>
+
+          </div>
+
+          <!-- RIGHT COLUMN (Wide screen): Section 2 (Floor capacity) -->
+          <div class="lg:col-span-6 flex flex-col space-y-6">
+
+            <!-- SECTION 2: Floor capacity -->
+            <section class="motion-stagger-2 bg-[#111715] border border-[#1E2925] rounded-lg p-4 sm:p-5 shadow-sm bay-mark-handoff">
+              <div class="flex items-center justify-between pb-3 mb-4 border-b border-[#1A2420]">
+                <div class="flex items-center space-x-2">
+                  <span class="material-symbols-outlined text-[#3FA77A] text-lg" aria-hidden="true">layers</span>
+                  <h2 class="text-sm font-semibold uppercase tracking-wider text-white">Floor capacity</h2>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span class="text-[11px] font-mono text-[#8E9F98]">Total Capacity:</span>
+                  <span class="text-xs font-mono font-bold text-[#3FA77A] bg-[#16221E] px-2 py-0.5 rounded border border-[#243A31]">106 bays</span>
+                </div>
+              </div>
+
+              <p class="text-xs text-[#84938D] mb-4">
+                Configured physical bay allocation per deck level. Values dynamically calibrate the release algorithm and automated overflow triggers.
+              </p>
+
+              <!-- Floor Capacity Table with editable rows -->
+              <div class="overflow-hidden rounded-md border border-[#1E2C26] bg-[#131B19]">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr class="bg-[#16211E] text-[#869991] font-mono text-[11px] border-b border-[#1F2F29]">
+                      <th scope="col" class="py-2.5 px-3 font-medium">DECK / LEVEL</th>
+                      <th scope="col" class="py-2.5 px-3 font-medium">ALLOCATION</th>
+                      <th scope="col" class="py-2.5 px-3 font-medium text-right">EDITABLE SPACES</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-[#1B2722] font-mono">
+                    
+                    <!-- Row P1 · 42 spaces -->
+                    <tr class="hover:bg-[#16201D] transition-colors">
+                      <td class="py-3 px-3">
+                        <div class="flex items-center space-x-2">
+                          <span class="font-bold text-white text-xs">P1</span>
+                          <span class="text-[11px] text-[#697D75]">Ground Level</span>
+                        </div>
+                      </td>
+                      <td class="py-3 px-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] bg-[#17241F] text-[#3FA77A] border border-[#233B2F]">
+                          Active Roster
+                        </span>
+                      </td>
+                      <td class="py-3 px-3 text-right">
+                        <div class="inline-flex items-center space-x-2">
+                          <label for="p1-spaces-input" class="sr-only">P1 spaces</label>
+                          <input 
+                            type="number" 
+                            id="p1-spaces-input" 
+                            name="capacity_p1"
+                            value="42" 
+                            min="0"
+                            class="admin-input w-20 bg-[#16221E] text-white text-right px-2.5 py-1.5 rounded border border-[#263730] text-xs font-mono focus:border-[#3FA77A]"
+                          />
+                          <span class="text-[#72857D] text-[11px]">spaces</span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <!-- Row P2 · 38 spaces -->
+                    <tr class="hover:bg-[#16201D] transition-colors">
+                      <td class="py-3 px-3">
+                        <div class="flex items-center space-x-2">
+                          <span class="font-bold text-white text-xs">P2</span>
+                          <span class="text-[11px] text-[#697D75]">Sub-level 2</span>
+                        </div>
+                      </td>
+                      <td class="py-3 px-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] bg-[#17241F] text-[#3FA77A] border border-[#233B2F]">
+                          Active Roster
+                        </span>
+                      </td>
+                      <td class="py-3 px-3 text-right">
+                        <div class="inline-flex items-center space-x-2">
+                          <label for="p2-spaces-input" class="sr-only">P2 spaces</label>
+                          <input 
+                            type="number" 
+                            id="p2-spaces-input" 
+                            name="capacity_p2"
+                            value="38" 
+                            min="0"
+                            class="admin-input w-20 bg-[#16221E] text-white text-right px-2.5 py-1.5 rounded border border-[#263730] text-xs font-mono focus:border-[#3FA77A]"
+                          />
+                          <span class="text-[#72857D] text-[11px]">spaces</span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <!-- Row P3 · 26 spaces -->
+                    <tr class="hover:bg-[#16201D] transition-colors">
+                      <td class="py-3 px-3">
+                        <div class="flex items-center space-x-2">
+                          <span class="font-bold text-white text-xs">P3</span>
+                          <span class="text-[11px] text-[#697D75]">Sub-level 3</span>
+                        </div>
+                      </td>
+                      <td class="py-3 px-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] bg-[#17241F] text-[#3FA77A] border border-[#233B2F]">
+                          Active Roster
+                        </span>
+                      </td>
+                      <td class="py-3 px-3 text-right">
+                        <div class="inline-flex items-center space-x-2">
+                          <label for="p3-spaces-input" class="sr-only">P3 spaces</label>
+                          <input 
+                            type="number" 
+                            id="p3-spaces-input" 
+                            name="capacity_p3"
+                            value="26" 
+                            min="0"
+                            class="admin-input w-20 bg-[#16221E] text-white text-right px-2.5 py-1.5 rounded border border-[#263730] text-xs font-mono focus:border-[#3FA77A]"
+                          />
+                          <span class="text-[#72857D] text-[11px]">spaces</span>
+                        </div>
+                      </td>
+                    </tr>
+
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Thin green rule for audit ledger continuity -->
+              <div class="mt-4 pt-3 border-t border-[#1C2823] flex items-center justify-between text-[11px] text-[#71847D] font-mono">
+                <span>Synchronized with ANPR loop detectors</span>
+                <span class="text-[#3FA77A]">Telemetry 802.1X Active</span>
+              </div>
+            </section>
+
+          </div>
+
+        </div>
+
+        <!-- Single Save settings action at the end of the form -->
+        <section class="motion-stagger-3 pt-4 border-t border-[#1B2722] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="text-xs text-[#73867F]">
+            Pending updates take effect immediately on next schedule evaluation.
+          </div>
+          <div class="w-full sm:w-auto">
+            <button 
+              type="submit" 
+              class="admin-btn-primary w-full sm:w-auto bg-[#3FA77A] text-[#09100D] font-bold text-sm px-7 py-3 rounded-md flex items-center justify-center space-x-2"
+            >
+              <span class="material-symbols-outlined text-[18px]">check_circle</span>
+              <span>Save settings</span>
+            </button>
+          </div>
+        </section>
+
+      </form>
+
+    </main>
+  </div>
+
+  <!-- Corporate Audit Footer (No page opening links, only copyright & system status) -->
+  <footer class="w-full border-t border-[#18231F] bg-[#0E1311] py-4 text-[11px] text-[#60736C] font-mono mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div>Folio3 Enterprise Systems © 2026 · Operations Console</div>
+      <div>Configured Node: sjc-node-p2 · Network Sync: Nominal</div>
+    </div>
+  </footer>
+
+</body>
+</html>

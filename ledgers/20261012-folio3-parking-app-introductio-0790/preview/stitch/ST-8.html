@@ -1,0 +1,626 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Folio3 Parking — Free spaces</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F3F6F8;
+      color: #25313B;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 22px;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Typography tokens */
+    h1, h2, h3, .heading-font {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+    }
+
+    .mono-font {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion tokens */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes statusBreathe {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.96;
+      }
+    }
+
+    .animate-settle {
+      animation: entranceFadeUp 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .delay-1 { animation-delay: 40ms; }
+    .delay-2 { animation-delay: 80ms; }
+    .delay-3 { animation-delay: 120ms; }
+    .delay-4 { animation-delay: 160ms; }
+
+    .status-breathing-dot {
+      animation: statusBreathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-settle, .status-breathing-dot {
+        animation: none !important;
+        transform: none !important;
+      }
+      * {
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header styling */
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D6DEE5;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      width: 100%;
+    }
+
+    .header-inner {
+      max-width: 100%;
+      height: 64px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background-color: #25313B;
+      color: #FFFFFF;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      color: #25313B;
+      letter-spacing: -0.01em;
+    }
+
+    /* Menu container on mobile */
+    .menu-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border: 1px solid #D6DEE5;
+      background: #FFFFFF;
+      border-radius: 8px;
+      cursor: pointer;
+      color: #25313B;
+      transition: background-color 120ms ease, border-color 120ms ease;
+    }
+
+    .menu-trigger:hover {
+      background-color: #F3F6F8;
+    }
+
+    .menu-trigger:focus-visible {
+      outline: 2px solid #356F9A;
+      outline-offset: 2px;
+    }
+
+    /* Hidden desktop nav on phone width, mobile drawer triggered by details element */
+    details.nav-menu-wrapper {
+      position: relative;
+    }
+
+    details.nav-menu-wrapper summary {
+      list-style: none;
+    }
+
+    details.nav-menu-wrapper summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .mobile-dropdown {
+      position: absolute;
+      top: 52px;
+      right: 0;
+      width: 240px;
+      background: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      padding: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 100;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      height: 44px;
+      padding: 0 12px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #25313B;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: background-color 120ms ease;
+    }
+
+    .nav-item:hover {
+      background-color: #F3F6F8;
+    }
+
+    .nav-item.active {
+      color: #356F9A;
+      font-weight: 600;
+      background-color: #F3F6F8;
+    }
+
+    .nav-item:focus-visible {
+      outline: 2px solid #356F9A;
+      outline-offset: -2px;
+    }
+
+    .mobile-user-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      border-top: 1px solid #D6DEE5;
+      margin-top: 4px;
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid #D6DEE5;
+      flex-shrink: 0;
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: #25313B;
+      font-size: 13px;
+    }
+
+    .user-role {
+      font-size: 12px;
+      color: #5D6A75;
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 24px 16px 40px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Page Heading */
+    .page-title {
+      font-size: 28px;
+      line-height: 34px;
+      color: #25313B;
+      letter-spacing: -0.01em;
+    }
+
+    /* Live Count Panel */
+    .panel {
+      background: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .count-headline {
+      font-size: 20px;
+      line-height: 26px;
+      color: #25313B;
+      margin-bottom: 6px;
+    }
+
+    .count-meta {
+      font-size: 13px;
+      line-height: 20px;
+      color: #5D6A75;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 8px;
+      line-height: 18px;
+    }
+
+    .status-badge.available {
+      color: #2D6F4F;
+      border: 1px solid #2D6F4F;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: currentColor;
+    }
+
+    /* Offer Card */
+    .offer-card {
+      background: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .offer-header {
+      padding: 16px 16px 12px 16px;
+      border-bottom: 1px solid #D6DEE5;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+
+    .offer-space-title {
+      font-size: 20px;
+      line-height: 26px;
+      color: #25313B;
+    }
+
+    .ledger-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ledger-row {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      border-bottom: 1px solid #D6DEE5;
+      font-size: 14px;
+    }
+
+    .ledger-row:last-child {
+      border-bottom: none;
+    }
+
+    .ledger-label {
+      color: #5D6A75;
+    }
+
+    .ledger-value {
+      color: #25313B;
+      font-weight: 500;
+      text-align: right;
+    }
+
+    /* Explanation Text */
+    .notice-box {
+      background: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .notice-lead {
+      color: #25313B;
+      font-size: 14px;
+      line-height: 22px;
+    }
+
+    .confirmation-assigned-floor {
+      padding: 12px;
+      background-color: #F3F6F8;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Profile & Vehicle summary card */
+    .signed-in-context {
+      background: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      line-height: 22px;
+      color: #25313B;
+    }
+
+    .user-profile-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .profile-photo-lg {
+      width: 56px;
+      height: 56px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid #D6DEE5;
+      flex-shrink: 0;
+    }
+
+    .vehicle-media {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #D6DEE5;
+    }
+
+    .vehicle-caption {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #5D6A75;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 44px;
+      background-color: #356F9A;
+      color: #FFFFFF;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 120ms ease, transform 60ms ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #2D5E83;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.99);
+      background-color: #264F6E;
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid #356F9A;
+      outline-offset: 2px;
+    }
+
+    .action-container {
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Exact Shared Header -->
+  <header>
+    <div class="header-inner">
+      <div class="brand-group">
+        <div class="brand-mark" aria-hidden="true">P</div>
+        <span class="brand-name">Folio3 Parking</span>
+      </div>
+
+      <!-- Collapsible Touch Menu on Phone -->
+      <details class="nav-menu-wrapper">
+        <summary class="menu-trigger" aria-label="Open navigation menu">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <line x1="3" y1="5" x2="17" y2="5"></line>
+            <line x1="3" y1="10" x2="17" y2="10"></line>
+            <line x1="3" y1="15" x2="17" y2="15"></line>
+          </svg>
+        </summary>
+        <div class="mobile-dropdown">
+          <a href="#" class="nav-item">My space</a>
+          <a href="#" class="nav-item active" aria-current="page">Free spaces</a>
+          <a href="#" class="nav-item">My vehicles</a>
+          <div class="mobile-user-row">
+            <img src="https://lh3.googleusercontent.com/aida/AEtjO1WPGvx5nijN4_ad3fWNdLqftpGPgyKOiSSuwuvuifnQ3P_w8XpamHqwk9XrCbefcanGGZeWj4hO55q3RXLtLn_Bgieu9pzy1oLUX7n5oWIV3AdfquYttCGIGDsFd2KeG8SQbEG1yMT0dkoVXbyiODZU0z_qeDR9_GVUHUOVm0_EGWPYvmVxMGLWMq2i0UFK8phGHZKK7fhFWplgrfRLoqSPlEZ00RowDlkUwouN-OtfwoS7NSdEjjVSFQ" alt="Omar Patel" class="user-avatar">
+            <div class="user-info">
+              <span class="user-name">Omar Patel</span>
+              <span class="user-role">Employee</span>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <!-- Phone-Width Normal Stack Container -->
+  <main>
+
+    <!-- Page Heading -->
+    <h1 class="page-title animate-settle">Free spaces</h1>
+
+    <!-- 1. Live Count Headline -->
+    <section class="panel animate-settle delay-1" aria-labelledby="count-title">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px;">
+        <h2 id="count-title" class="count-headline">1 space free</h2>
+        <span class="status-badge available">
+          <span class="status-dot status-breathing-dot"></span>
+          Available
+        </span>
+      </div>
+      <p class="count-meta">
+        Checked <span class="mono-font">Monday, 12 May 2025</span> at <span class="mono-font">10:15 PDT</span>
+      </p>
+    </section>
+
+    <!-- 2. Single Earliest Claimable Offer -->
+    <section class="offer-card animate-settle delay-2" aria-labelledby="offer-heading">
+      <div class="offer-header">
+        <div>
+          <span style="font-size: 13px; color: #5D6A75; display: block; margin-bottom: 2px;">Earliest claimable offer</span>
+          <h2 id="offer-heading" class="offer-space-title">
+            <span class="mono-font">P3-06</span> — Floor 3
+          </h2>
+        </div>
+      </div>
+
+      <div class="ledger-list">
+        <div class="ledger-row">
+          <span class="ledger-label">Location</span>
+          <span class="ledger-value">Folio3 San Francisco office</span>
+        </div>
+        <div class="ledger-row">
+          <span class="ledger-label">Assigned floor</span>
+          <span class="ledger-value">Floor 3</span>
+        </div>
+        <div class="ledger-row">
+          <span class="ledger-label">Released today</span>
+          <span class="ledger-value mono-font">09:42 PDT</span>
+        </div>
+        <div class="ledger-row">
+          <span class="ledger-label">Availability</span>
+          <span class="ledger-value" style="color: #2D6F4F;">Immediate</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Primary Action & Plain-Language Explanation -->
+    <section class="notice-box animate-settle delay-3">
+      <p class="notice-lead">
+        The first accepted claim gets the space. A confirmed temporary claim cannot be cancelled.
+      </p>
+
+      <div class="confirmation-assigned-floor">
+        <span class="ledger-label">After confirmation</span>
+        <span class="ledger-value">Assigned to <strong>Floor 3</strong></span>
+      </div>
+
+      <div class="action-container">
+        <button type="button" class="btn-primary" aria-label="Claim this space">
+          Claim this space
+        </button>
+      </div>
+    </section>
+
+    <!-- 4. Signed-In Employee & Registered Vehicle Authentication Details -->
+    <section class="signed-in-context animate-settle delay-4" aria-labelledby="profile-heading">
+      <div class="user-profile-header">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1WPGvx5nijN4_ad3fWNdLqftpGPgyKOiSSuwuvuifnQ3P_w8XpamHqwk9XrCbefcanGGZeWj4hO55q3RXLtLn_Bgieu9pzy1oLUX7n5oWIV3AdfquYttCGIGDsFd2KeG8SQbEG1yMT0dkoVXbyiODZU0z_qeDR9_GVUHUOVm0_EGWPYvmVxMGLWMq2i0UFK8phGHZKK7fhFWplgrfRLoqSPlEZ00RowDlkUwouN-OtfwoS7NSdEjjVSFQ" alt="Omar Patel" class="profile-photo-lg">
+        <div>
+          <h3 id="profile-heading" class="section-title">Omar Patel</h3>
+          <p style="color: #5D6A75; font-size: 13px; line-height: 18px;">
+            Customer Support · Employee
+          </p>
+          <p style="color: #5D6A75; font-size: 13px; line-height: 18px; margin-top: 2px;">
+            No dedicated space assignment
+          </p>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid #D6DEE5; padding-top: 16px;">
+        <span style="font-size: 13px; color: #5D6A75; display: block; margin-bottom: 8px;">
+          Registered vehicle eligible to claim
+        </span>
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1XnCWur_27nRKVcjxmIJ_mivqdFIMorbs5Zagxk6UJ9sqP2ix-W3Qfr_t99vWBCtZyt4p0ixq2XNmWoNfi9PuEBe7qD6h7F4fnOF0Bdys1tI5GeC06IUGMEpYSlz9XtGfOyLZY8Hmw5ghnFFcmM_miPtFksZWkVRpOXVEw3Hm_skZ8dH2WKNQUM5EE_DN0zIcwnoJX_Hkn8TsO63YbqGaSNXRN7C-c8WUfUP31C00E361fSZADq2FJLLRQ" alt="Subaru Crosstrek parked in Folio3 parking deck" class="vehicle-media">
+        <div class="vehicle-caption">
+          <span style="font-weight: 500; color: #25313B;">Subaru Crosstrek</span>
+          <span class="mono-font" style="background: #F3F6F8; border: 1px solid #D6DEE5; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #25313B;">
+            7MJR482
+          </span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["my space","employee my space"],"words":["employee","space"]},{"id":"S-3","names":["release date","employee release date"],"words":["employee","release","date"]},{"id":"S-4","names":["free space","employee free space"],"words":["employee","free","space"]},{"id":"S-5","names":["my vehicle","employee my vehicle"],"words":["employee","vehicle"]},{"id":"S-6","names":["employee","admin employee"],"words":["employee"]},{"id":"S-8","names":["utilization","admin utilization"],"words":["utilization"]},{"id":"S-9","names":["entry check","admin entry check"],"words":["entry","check"]},{"id":"S-10","names":["setting","admin setting"],"words":["setting"]},{"id":"S-7","names":["employee detail","employee","admin employee"],"words":["employee"]}],L={"my space":"S-2","my vehicles":"S-5"},A={"set release dates":"S-3","open employee record":"S-7","utilization":"S-8","entry checks":"S-9","settings":"S-10","employees":"S-6"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-4";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

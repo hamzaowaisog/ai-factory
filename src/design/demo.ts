@@ -53,6 +53,8 @@ export function frameDataUri(name: string, bytes: Uint8Array, used = 0): string 
 }
 
 type StateKind = "normal" | "loading" | "empty" | "error" | "success" | "validation";
+/** The tab of a Stitch screen's phone-width drawing (its frame's state is "phone"). */
+const PHONE_TAB = "Phone";
 /** A state's name by its words: anything unrecognised draws the normal page. */
 export function stateKind(state: string): StateKind {
   return /empty|no data|none|no results/i.test(state) ? "empty"
@@ -954,7 +956,7 @@ kbd{font:500 11px var(--font);border:1px solid var(--edge2);border-bottom-width:
 .pane{--px:clamp(14px,2.4vw,32px);padding:26px var(--px) 32px;flex:1}.pane[hidden]{display:none}.pane:not([hidden]){animation:fadein .3s ease backwards}@keyframes fadein{from{opacity:0}}
 .canvas img{max-width:100%;display:block;margin:18px auto}
 .pane.lv{padding:0}.canvas iframe.live{display:block;width:100%;height:min(860px,84vh);border:0;background:#fff}.canvas.phone iframe.live{height:760px}
-.states.views{margin-inline-start:8px}.screen:not(.pic) .pane.lv>:not(iframe){display:none}.screen.pic .pane.lv>iframe{display:none}.wire{background:#fff;border-radius:var(--r);padding:10px;margin:14px}.wire svg{display:block;width:auto;height:auto;max-width:640px;margin:0 auto;stroke-width:inherit}
+.states.views{margin-inline-start:8px}.pane.ph{max-width:390px;margin-inline:auto}.screen:not(.pic) .pane.lv>:not(iframe){display:none}.screen.pic .pane.lv>iframe{display:none}.wire{background:#fff;border-radius:var(--r);padding:10px;margin:14px}.wire svg{display:block;width:auto;height:auto;max-width:640px;margin:0 auto;stroke-width:inherit}
 /* the page */
 .ph{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 20px;flex-wrap:wrap}.ph h3{margin:0;font-size:clamp(21px,2.3vw,26px);letter-spacing:var(--hls);font-weight:var(--hw);line-height:1.2}.pa .row{gap:8px}
 .sub{margin:.3rem 0 0;color:var(--mut);font-size:14px}.body{display:grid;gap:16px;margin-top:22px}
@@ -1747,7 +1749,8 @@ export function buildDemo(d: DemoInput): string {
   const panel = (s: Screen, i: number): string => {
     const app = appOf(s), shell = app.shell, phone = app.device === "phone";
     const sibs = screens.filter((o) => appOf(o) === app);
-    const states = demoStates(s);
+    // a Stitch screen drawn at phone width too has that drawing as a tab of its own, after its states
+    const states = [...demoStates(s), ...(s.frames.some((id) => frame(id)?.state === PHONE_TAB.toLowerCase()) ? [PHONE_TAB] : [])];
     const shown = s.frames.map(frame).filter((f) => f?.dataUri);
     const reqs = s.reqs.map((r) => `<li><b>${esc(r)}</b> ${esc(d.requirements[r] ?? "")}</li>`).join("");
     const wrap = (x: string) => (shell === "sidebar" || phone ? x : `<div class="wrap">${x}</div>`);
@@ -1786,13 +1789,13 @@ export function buildDemo(d: DemoInput): string {
     const listed = s.frames.map(frame).filter((f) => !!f);
     const stitched = listed.length > 0 && listed.every((f) => !!f!.state);
     const statePane = (st: string, k: number): string => {
-      const kind = k === 0 ? "normal" : stateKind(st);
+      const kind = k === 0 ? "normal" : st === PHONE_TAB ? "phone" : stateKind(st);
       const f = listed.find((x) => x!.state === kind && (x!.dataUri || x!.live));
       const pic = f?.dataUri ? `<img src="${f.dataUri}" alt="${esc(f.name)}">` : "";
       // the page itself, live: sandboxed (no access to the demo or whoever serves it), and what it may load is its own policy's
       const page = f?.live ? `<iframe class="live" sandbox="allow-scripts" src="${esc(f.live)}" title="${esc(`${s.route} ${k === 0 ? "" : st}`.trim())}" loading="lazy" referrerpolicy="no-referrer"></iframe>${pic || `<p class="wire pic">No Stitch picture of the ${esc(k === 0 ? "page" : st)} state in this demo.</p>`}` : "";
       const body = page || pic || `<p class="wire">No Stitch picture of the ${esc(k === 0 ? "page" : st)} state in this demo.</p>`;
-      return `<div class="pane${page ? " lv" : ""}" data-wf="${k}"${k === 0 ? "" : " hidden"}>${body}</div>`;
+      return `<div class="pane${page ? " lv" : ""}${kind === "phone" ? " ph" : ""}" data-wf="${k}"${k === 0 ? "" : " hidden"}>${body}</div>`;
     };
     const liveOn = stitched && listed.some((f) => f!.live);
     const views = liveOn ? `<div class="states views" role="group" aria-label="View"><button type="button" data-view="live" class="on" aria-pressed="true">Live</button><button type="button" data-view="pic" aria-pressed="false">Picture</button></div>` : "";

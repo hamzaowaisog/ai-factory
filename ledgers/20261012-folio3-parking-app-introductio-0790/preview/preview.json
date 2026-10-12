@@ -1,0 +1,173 @@
+{
+  "site": {
+    "entry": "index.html",
+    "screens": [
+      {
+        "path": "index.html#S-1",
+        "title": "S-1 /sign-in",
+        "req": "REQ-1"
+      },
+      {
+        "path": "index.html#S-2",
+        "title": "S-2 /employee/my-space",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-3",
+        "title": "S-3 /employee/release-dates",
+        "req": "REQ-6"
+      },
+      {
+        "path": "index.html#S-4",
+        "title": "S-4 /employee/free-spaces",
+        "req": "REQ-3"
+      },
+      {
+        "path": "index.html#S-5",
+        "title": "S-5 /employee/my-vehicles",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-6",
+        "title": "S-6 /admin/employees",
+        "req": "REQ-4"
+      },
+      {
+        "path": "index.html#S-7",
+        "title": "S-7 /admin/employees/:employeeId",
+        "req": "REQ-2"
+      },
+      {
+        "path": "index.html#S-8",
+        "title": "S-8 /admin/utilization",
+        "req": "REQ-6"
+      },
+      {
+        "path": "index.html#S-9",
+        "title": "S-9 /admin/entry-checks",
+        "req": "REQ-6"
+      },
+      {
+        "path": "index.html#S-10",
+        "title": "S-10 /admin/settings",
+        "req": "REQ-5"
+      }
+    ]
+  },
+  "images": [
+    {
+      "file": "frames/stitch-S-1-normal-7c5f3efd.png",
+      "screen": "S-1 /sign-in",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-1-error-220a1c24.png",
+      "screen": "S-1 /sign-in",
+      "req": "REQ-1",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-2-normal-55a09b50.png",
+      "screen": "S-2 /employee/my-space",
+      "req": "REQ-2",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-2-phone-20b57397.png",
+      "screen": "S-2 /employee/my-space",
+      "req": "REQ-2",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-3-normal-66511d56.png",
+      "screen": "S-3 /employee/release-dates",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-3-phone-76006e64.png",
+      "screen": "S-3 /employee/release-dates",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-4-normal-fa4e8b8e.png",
+      "screen": "S-4 /employee/free-spaces",
+      "req": "REQ-3",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-4-phone-e842d1cb.png",
+      "screen": "S-4 /employee/free-spaces",
+      "req": "REQ-3",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-5-normal-f76c1478.png",
+      "screen": "S-5 /employee/my-vehicles",
+      "req": "REQ-2",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-5-phone-02ed1a75.png",
+      "screen": "S-5 /employee/my-vehicles",
+      "req": "REQ-2",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-6-normal-1dfb8682.png",
+      "screen": "S-6 /admin/employees",
+      "req": "REQ-4",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-7-normal-f2787061.png",
+      "screen": "S-7 /admin/employees/:employeeId",
+      "req": "REQ-2",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-8-normal-37d2ef29.png",
+      "screen": "S-8 /admin/utilization",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-8-empty-e806296b.png",
+      "screen": "S-8 /admin/utilization",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-8-error-d433d82e.png",
+      "screen": "S-8 /admin/utilization",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-normal-e313476e.png",
+      "screen": "S-9 /admin/entry-checks",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-empty-4cbe106a.png",
+      "screen": "S-9 /admin/entry-checks",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-9-error-df2d70c5.png",
+      "screen": "S-9 /admin/entry-checks",
+      "req": "REQ-6",
+      "viewport": "desktop"
+    },
+    {
+      "file": "frames/stitch-S-10-normal-08c2ff88.png",
+      "screen": "S-10 /admin/settings",
+      "req": "REQ-5",
+      "viewport": "desktop"
+    }
+  ]
+}

@@ -97,6 +97,16 @@ describe("a large design is drawn in parts", () => {
     expect(p2.user).not.toContain('"REQ-1"');
   });
 
+  it("gives the screen list and every page the taste skill's page rules, as a design drawn by Stitch gets", async () => {
+    await draw(await newRun());
+    for (const c of [calls.find(isPlan)!, calls.find((x) => pageOf(x) === "S-2")!]) {
+      expect(c.system).toContain("TASTE. The rules below");
+      expect(c.system).toContain("Anti-Vibe-Coded Components");
+      // the skill's motion and output-format parts stay with the Stitch design system
+      expect(c.system).not.toContain("Motion Tokens (encode exactly)");
+    }
+  });
+
   it("the drawn design has the one-answer shape: every screen from the list with its page", async () => {
     const ledger = await newRun();
     const out = await draw(ledger) as { kind: "done"; outputs: { design: string } };

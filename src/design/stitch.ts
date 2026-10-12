@@ -8,7 +8,7 @@ export type StitchDevice = "MOBILE" | "DESKTOP" | "TABLET" | "AGNOSTIC";
 export interface StitchClient {
   createProject(title: string): Promise<string>;
   /** Creates the project's design system and applies it (Stitch asks for update_design_system right after create_design_system). */
-  createDesignSystem(projectId: string, name: string, theme: StitchTheme & { designMd: string }): Promise<void>;
+  createDesignSystem(projectId: string, name: string, theme: StitchTheme & { designMd: string; overridePrimaryColor?: string; overrideNeutralColor?: string }): Promise<void>;
   /** Stitch's default model: the service refused every documented model id (GEMINI_3_FLASH, GEMINI_3_PRO, GEMINI_3_1_PRO) on 9 Oct 2026. */
   generate(projectId: string, prompt: string, device: StitchDevice): Promise<{ screenId: string; htmlUrl: string; imageUrl: string }>;
   /** Edits one screen with a text prompt (Stitch edit_screens) and returns the changed screen. */

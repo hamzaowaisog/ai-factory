@@ -4,7 +4,7 @@ import { hasSecret } from "../config/env.js";
 import { designRoute, type DesignEngine } from "../config/design-route.js";
 import type { Rung } from "../gates/ladder.js";
 import { hasPrice } from "../runners/pricing.js";
-import { tasteSkillProblem } from "../design/stitch-taste.js";
+import { tastePageProblem, tasteSkillProblem } from "../design/stitch-taste.js";
 import { uiuxProblem } from "../design/uiux-skill.js";
 import { blockedText, modelAllowed, type Policy } from "../gates/policy.js";
 import { family, type Effort } from "../runners/types.js";
@@ -351,6 +351,9 @@ export function checkRoutes(project: ProjectConfig, only?: readonly string[], ch
       // the JSON track runs the ui-ux-pro-max skill's search: only the reviewed copy
       const ux = uiuxProblem();
       if (ux) problems.push(`design: ${ux}`);
+      // and takes the stitch-design-taste skill's page rules, when it is installed
+      const taste = tastePageProblem();
+      if (taste) problems.push(`design: ${taste}`);
     }
     if (STEPS[stage]?.fixed && project.steps[stage] && project.steps[stage]!.model !== r.model) problems.push(`${stage} always runs on ${modelName(r.model)}; remove its entry (${project.steps[stage]!.model}) from the project file's steps`);
     if (THINKING_STEPS.has(stage) && r.runner !== "api") problems.push(`${stage} is a thinking step and must use the api runner`);

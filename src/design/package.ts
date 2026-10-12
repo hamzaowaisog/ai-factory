@@ -301,6 +301,13 @@ function ownShots(p: PackageInput, outDir: string): ShotResult & { states: Map<s
       shots.push({ file, id: s.id, screen: label.get(s.id)!, state: st, viewport: pic.viewport, own: true });
       drawn.push(st);
     });
+    // a screen drawn at phone width too: the same page, as its phone picture
+    const narrow = p.pictures!.find((x) => x.id === s.id && x.kind === "phone");
+    const page = demoStates(s as never)[0];
+    if (narrow && page) {
+      const file = `${fileSlug(s.id)}-${fileSlug(page)}-phone.png`;
+      if (!shots.some((x) => x.file === file)) { writeFileSync(join(outDir, file), narrow.png); shots.push({ file, id: s.id, screen: label.get(s.id)!, state: page, viewport: "phone", own: true }); }
+    }
     if (drawn.length) states.set(s.id, drawn);
   }
   const widths = [...new Set(shots.map((s) => s.viewport))].join(" and ");

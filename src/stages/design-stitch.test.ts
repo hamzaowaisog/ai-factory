@@ -15,7 +15,7 @@ import { setStitchFactory, setStitchTimeouts, type StitchClient } from "../desig
 import type { StepContext } from "./framework.js";
 import { S, setProviderFactory } from "./think.js";
 import { projectForRun, resolveRun } from "./routing.js";
-import { drawWithStitch, setA11yCheck, setTellCheck, stitchArtifact, stitchFrames, stitchJobs } from "./design-stitch.js";
+import { drawWithStitch, setA11yCheck, setTellCheck, stitchArtifact, stitchFrames, stitchJobs, withShared } from "./design-stitch.js";
 
 const U = { inputTokens: 1000, outputTokens: 200, cacheRead: 0, cacheWrite: 0 };
 const reqs = [{ id: "REQ-1", ears: "The system shall list payees." }, { id: "REQ-2", ears: "The system shall add a payee, in the brand colour #0F766E." }];
@@ -102,6 +102,106 @@ describe("the stitch design artifact", () => {
     expect(a.stitch.frames["ST-2"]).toMatchObject({ screen: "S-1", state: "empty" });
   });
 
+  it("tells every page the look's own colours and fonts, gives Stitch its neutral, and has a page that left them fixed", async () => {
+    const palette = { canvas: "#F9FAFB", surface: "#0F766E", ink: "#0F766E", good: "#0F766E", mono: "Geist Mono" };
+    let looks: unknown[] = [];
+    setTellCheck((_h, look) => { looks.push(look); return []; });
+    answers = [plan(), { designMd: md(), theme, palette }];
+    const ledger = memoryLedger();
+    const out = await drawWithStitch(ctxFor(ledger), spec);
+    expect(out.kind).toBe("done");
+    expect(made.systems[0]!.theme).toMatchObject({ overridePrimaryColor: "#0F766E", overrideNeutralColor: "#F9FAFB" });
+    for (const g of made.generated) {
+      expect(g.prompt).toContain("page background #F9FAFB on the body");
+      expect(g.prompt).toContain("Headings in Geist, everything else in Geist, numbers, codes and times in Geist Mono; load no other font.");
+    }
+    expect(looks[0]).toMatchObject({ canvas: "#F9FAFB", accent: "#0F766E", body: "Geist", mono: "Geist Mono" });
+    // the design keeps the palette, so a page edited after a send-back is checked against it too
+    const design = ledger.getJson<{ stitch: { palette?: unknown } }>((out as { outputs: { design: string } }).outputs.design);
+    expect(design.stitch.palette).toEqual(palette);
+
+    // a palette with a colour the DESIGN.md does not have is not told to the screens
+    made = { projects: [], systems: [], generated: [], edits: [], closed: 0 };
+    answers = [plan(), { designMd: md(), theme, palette: { ...palette, canvas: "#123456" } }];
+    await drawWithStitch(ctxFor(memoryLedger()), spec);
+    expect(made.generated[0]!.prompt).not.toContain("page background");
+    expect(made.systems[0]!.theme).not.toHaveProperty("overrideNeutralColor");
+  });
+
+  it("writes the design system's rules for a page into every screen's prompt, and gives the screen list the skill's page rules", async () => {
+    const digest = "Corners are 6 px on panels, fields and buttons. Panels are edged with a 1 px rule and no shadow. Table rows are 44 px high.";
+    answers = [plan(), { designMd: md(), theme, digest }];
+    expect((await drawWithStitch(ctxFor(memoryLedger()), spec)).kind).toBe("done");
+    for (const g of made.generated) expect(g.prompt).toContain(`The design system's rules for every page; follow them, and show none of these words on the page: ${digest}`);
+    // the step that writes the prompts gets the layout rules, anti-patterns and component replacements, and not the whole skill
+    const listCall = systems[0] + users[0];
+    expect(listCall).toContain("Define Layout Principles");
+    expect(listCall).toContain("Anti-Vibe-Coded Components");
+    expect(listCall).not.toContain("Motion Tokens (encode exactly)");
+    // a one-task page outside any shell is a centred panel, whatever the skill says of centred heroes (the parking sign-in page, 12 Oct 2026)
+    expect(listCall).toContain("centred on the page both ways");
+    // a design system without a digest draws as before
+    made = { projects: [], systems: [], generated: [], edits: [], closed: 0 };
+    answers = [plan(), { designMd: md(), theme }];
+    await drawWithStitch(ctxFor(memoryLedger()), spec);
+    expect(made.generated[0]!.prompt).not.toContain("The design system's rules for every page");
+  });
+
+  it("sends the design system without its colour overrides when Stitch refuses them", async () => {
+    setStitchFactory(() => ({ ...fakeStitch(), async createDesignSystem(_p, name, t) { if ("overridePrimaryColor" in t) throw new Error("unknown field"); made.systems.push({ name, theme: t }); } }));
+    answers = [plan(), { designMd: md(), theme }];
+    expect((await drawWithStitch(ctxFor(memoryLedger()), spec)).kind).toBe("done");
+    expect(made.systems).toEqual([{ name: expect.any(String), theme: { ...theme, designMd: md() } }]);
+  });
+
+  it("draws the pages marked for a phone a second time at phone width, five at most, unless the project says no", async () => {
+    const phones = plan({ screens: plan().screens.map((x) => ({ ...x, phone: true, states: [] })) });
+    const jobs = stitchJobs(phones.screens as never, [], undefined, true);
+    expect(jobs.map((j) => `${j.id} ${j.state} ${j.device ?? ""}`.trim())).toEqual(["S-1 normal", "S-1 phone MOBILE", "S-2 normal", "S-2 phone MOBILE"]);
+    expect(jobs[1]!.prompt).toContain("at phone width (about 390 px)");
+    const seven = Array.from({ length: 7 }, (_, i) => ({ ...phones.screens[0]!, id: `S-${i + 1}` }));
+    expect(stitchJobs(seven as never, [], undefined, true).filter((j) => j.state === "phone")).toHaveLength(5);
+    expect(stitchJobs(phones.screens as never, []).some((j) => j.state === "phone")).toBe(false);
+
+    answers = [phones, { designMd: md(), theme }];
+    const ledger = memoryLedger();
+    const out = await drawWithStitch(ctxFor(ledger), spec);
+    expect(made.generated.map((g) => g.device).sort()).toEqual(["DESKTOP", "DESKTOP", "MOBILE", "MOBILE"]);
+    // the phone drawing is a frame of its screen, after its page
+    const design = ledger.getJson<{ screens: { frames: string[] }[]; stitch: { frames: Record<string, { state: string }> } }>((out as { outputs: { design: string } }).outputs.design);
+    expect(design.screens[0]!.frames.map((f) => design.stitch.frames[f]!.state)).toEqual(["normal", "phone"]);
+
+    made = { projects: [], systems: [], generated: [], edits: [], closed: 0 };
+    answers = [phones, { designMd: md(), theme }];
+    await drawWithStitch(ctxFor(memoryLedger(), 0, { stitch: { phone: false } }), spec);
+    expect(made.generated.map((g) => g.device)).toEqual(["DESKTOP", "DESKTOP"]);
+  });
+
+  it("gives a page of a shell its title as its one heading", () => {
+    const shared = withShared(plan({ shells: [{ id: "customer", header: "The brand reads \"Payees\" on the left with the menu beside it." }], screens: [{ ...plan().screens[0], shell: "customer" }, plan().screens[1]] }) as never);
+    expect(shared.screens[0]!.prompt).toContain('The page\'s one heading reads "Payees".');
+    expect(shared.screens[1]!.prompt).not.toContain("one heading");
+  });
+
+  it("gives every page of a shell the same header and every page the same sample data, and keeps a page to what its user needs", () => {
+    const shared = withShared(plan({
+      shells: [{ id: "customer", header: "The brand reads \"Payees\" on the left with the menu beside it; the right holds Sam Rivera, Customer." }],
+      sample: "Sam Rivera, customer; payee Dana Cole, Northwind Bank.",
+      screens: [{ ...plan().screens[0], shell: "customer" }, plan().screens[1]],
+    }) as never);
+    const [list, , form] = stitchJobs(shared.screens, ["empty"]);
+    expect(list!.prompt).toContain("The page's header, the same on every page: The brand reads \"Payees\" on the left with the menu beside it; the right holds Sam Rivera, Customer. Draw nothing else in the header, and no footer.");
+    // a page outside any shell is told of no header, and still of the sample data
+    expect(form!.prompt).not.toContain("The page's header");
+    for (const j of [list!, form!]) {
+      expect(j.prompt).toContain("use it exactly: Sam Rivera, customer; payee Dana Cole, Northwind Bank.");
+      expect(j.prompt).toContain("no build or version numbers");
+    }
+    // the design keeps the prompt as drawn, so a state drawn again after a send-back is told the same
+    expect(stitchArtifact(shared as never, [], { projectId: "p", model: "m", designMd: "m" }, ["REQ-1", "REQ-2"]).stitch.prompts["S-1"]).toContain("The page's header");
+    expect(withShared(plan({ shells: [], sample: "" }) as never).screens[0]!.prompt).toBe(plan().screens[0]!.prompt);
+  });
+
   it("tells Stitch the words of each link the screen list gave, and keeps where each leads for the live demo", () => {
     const linked = plan({ screens: [
       { ...plan().screens[0], links: [{ label: "Add a payee", to: "S-2" }, { label: "add a payee", to: "S-2" }, { label: "Nowhere", to: "S-9" }, { label: "Here", to: "S-1" }] },
@@ -133,7 +233,8 @@ describe("drawing with stitch", () => {
     expect(systems[1]).toContain("Stitch Design Taste");
     expect(systems[1]).toContain("win over the skill's taste rules");
     expect(made.projects).toHaveLength(1);
-    expect(made.systems).toEqual([{ name: expect.any(String), theme: { ...theme, designMd: md() } }]);
+    // Stitch is given the accent as its primary too: left to itself it darkens it
+    expect(made.systems).toEqual([{ name: expect.any(String), theme: { ...theme, designMd: md(), overridePrimaryColor: "#0F766E" } }]);
     // S-1 lists an empty state, which the default design.stitch.states draws: three generations
     expect(made.generated.map((g) => g.device)).toEqual(["DESKTOP", "DESKTOP", "DESKTOP"]);
     expect(made.generated.filter((g) => /empty state/.test(g.prompt))).toHaveLength(1);
