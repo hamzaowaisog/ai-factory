@@ -448,6 +448,29 @@ describe("accessibility of Stitch screens", () => {
     expect(ledger.getJson<D>((out as { outputs: { design: string } }).outputs.design).stitch.a11y).toBeUndefined();
   });
 
+  it("puts each fixed page in the run's preview as its fix comes back, and counts it so the page showing the draft sees the change", async () => {
+    setA11yCheck(async (pages) => pages.map((p) => ({ id: p.id, violations: [{ id: "button-name", targets: ["button.icon"] }] })));
+    const ledger = memoryLedger();
+    answers = [plan(), { designMd: md(), theme }];
+    const preview = () => JSON.parse(readFileSync(join(ledger.dir, "preview", "preview.json"), "utf8")).draft as { drawn: number; fixed?: number };
+    const live = (id: string) => readFileSync(join(ledger.dir, "preview", "stitch", `${id}-normal.html`), "utf8");
+    // the preview as it stands when each fix starts (one at a time here, so the second fix sees the first one in place)
+    const seen: { fixed?: number; pages: string }[] = [];
+    setStitchFactory(() => {
+      const c = fakeStitch();
+      let turn = Promise.resolve();
+      return { ...c, edit: (p, screenId, prompt, device) => { const r = turn.then(() => { seen.push({ ...(preview().fixed ? { fixed: preview().fixed! } : {}), pages: live("S-1") + live("S-2") }); return c.edit(p, screenId, prompt, device); }); turn = r.then(() => new Promise<void>((done) => setTimeout(done, 20))); return r; } };
+    });
+    expect((await drawWithStitch(ctxFor(ledger), spec)).kind).toBe("done");
+    expect(seen).toHaveLength(2);
+    expect(seen[0]!.fixed).toBeUndefined();
+    expect(seen[0]!.pages).not.toMatch(/Page html-e/);
+    expect(seen[1]!.fixed).toBe(1);
+    expect(seen[1]!.pages.match(/Page html-e/g)).toHaveLength(1);
+    expect(preview().fixed).toBe(2);
+    expect((live("S-1") + live("S-2")).match(/Page html-e/g)).toHaveLength(2);
+  });
+
   it("records what still fails after the fix", async () => {
     setA11yCheck(async (pages) => pages.map((p) => ({ id: p.id, violations: p.id === "S-2" ? [{ id: "label", targets: ["input"] }] : [] })));
     const ledger = memoryLedger();

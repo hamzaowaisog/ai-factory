@@ -297,7 +297,7 @@ export function stitchFrames(design: { stitch?: { frames: Record<string, { name:
  * picture, the screens not drawn yet as wireframes, marked a draft so the page says how far it is. The approval step writes the
  * real preview over it. Best effort: a draft that cannot be written never stops the drawing. Files are swapped in whole.
  */
-export function stitchDraftPreview(ctx: Pick<StepContext, "ledger" | "state" | "runId" | "log">, spec: Spec, plan: Plan, assets: StitchAsset[], theme: StitchTheme | undefined, total: number): void {
+export function stitchDraftPreview(ctx: Pick<StepContext, "ledger" | "state" | "runId" | "log">, spec: Spec, plan: Plan, assets: StitchAsset[], theme: StitchTheme | undefined, total: number, fixed = 0): void {
   try {
     const dir = join(ctx.ledger.dir, "preview");
     mkdirSync(join(dir, LIVE_DIR), { recursive: true });
@@ -326,7 +326,8 @@ export function stitchDraftPreview(ctx: Pick<StepContext, "ledger" | "state" | "
     }));
     put("preview.json", JSON.stringify({
       site: { entry: "index.html", screens: plan.screens.map((s) => ({ path: `index.html#${s.id}`, title: title(s), ...(s.reqs[0] ? { req: s.reqs[0] } : {}), ...(page(s.id) ? {} : { pending: true }) })) },
-      images: [], draft: { drawn: assets.length, total, failed: 0 },
+      // fixed: pages replaced by a fix after the checks, so the page showing the draft knows a drawn page changed
+      images: [], draft: { drawn: assets.length, total, failed: 0, ...(fixed ? { fixed } : {}) },
     }, null, 2));
   } catch (e) { ctx.log(`design: draft preview not written: ${(e as Error).message}`); }
 }
@@ -582,7 +583,7 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     else ctx.log(`design: Stitch project ${progress.projectId}, drawing ${plan.screens.length} screens with Stitch's default model, ${STITCH_SIDE_BY_SIDE} at a time (Preview shows them as they come)`);
     mkdirSync(framesDir, { recursive: true });
     // the preview fills in as screens come back
-    const draft = (drawn: StitchAsset[]) => stitchDraftPreview(ctx, spec, plan, drawn, out.theme, jobs.length);
+    const draft = (drawn: StitchAsset[], fixed = 0) => stitchDraftPreview(ctx, spec, plan, drawn, out.theme, jobs.length, fixed);
     draft(progress.assets);
     if (jobs.length > plan.screens.length) ctx.log(`design: ${jobs.length - plan.screens.length} extra state(s) drawn too (${allowed.join(", ")})`);
     // after a fault no new screen is started, and the ones under way are waited for and kept: they are paid for
@@ -598,10 +599,9 @@ export async function drawWithStitch(ctx: StepContext, spec: Spec, inputs: Stitc
     if (faults.length) throw faults[0];
     if (progress.a11y) ({ assets, open } = progress.a11y);
     else {
-      ({ assets, open } = await fixA11y(ctx, c, framesDir, progress.projectId, device, progress.assets, progress.assets.map((x) => x.id), ownLook));
+      // a page Stitch fixed replaces the one drawn first, in the preview as soon as its fix is back
+      ({ assets, open } = await fixA11y(ctx, c, framesDir, progress.projectId, device, progress.assets, progress.assets.map((x) => x.id), ownLook, draft));
       progress.a11y = { assets, open };
-      // a page Stitch fixed for accessibility replaces the one drawn first
-      draft(assets);
     }
     saveProgress(ctx, { ...progress, done: true });
   } catch (e) {
@@ -655,9 +655,10 @@ export function setA11yCheck(f: typeof checkStitchA11y | undefined): void { a11y
  * Checks the normal pages of the given screens for accessibility (axe) and for what makes a page look generated or stand still
  * (src/design/stitch-tells.ts), gives each one that fails a single Stitch fix for both (edit_screens with the rules and elements
  * axe named and the tells to change), and checks the fixed ones again. Returns the assets with the fixed pages in place and the
- * accessibility rules still open; a tell still there is said in the log.
+ * accessibility rules still open; a tell still there is said in the log. `onFixed` gets the assets as they stand each time a
+ * fix comes back, and how many are fixed so far.
  */
-async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, projectId: string, device: StitchDevice, assets: StitchAsset[], ids: string[], look?: StitchLook): Promise<{ assets: StitchAsset[]; open: A11yOpen[] }> {
+async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, projectId: string, device: StitchDevice, assets: StitchAsset[], ids: string[], look?: StitchLook, onFixed?: (assets: StitchAsset[], fixed: number) => void): Promise<{ assets: StitchAsset[]; open: A11yOpen[] }> {
   const normals = assets.filter((a) => a.state === "normal" && ids.includes(a.id));
   const read = (a: StitchAsset) => ({ id: a.id, html: ctx.ledger.getArtifact(a.html).toString("utf8") });
   // a check that cannot run is a note, never a failure: the screens Stitch drew are kept
@@ -674,13 +675,20 @@ async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, pro
   if (bad.some((b) => b.violations.length)) ctx.log(`design: accessibility problems on ${named((b) => b.violations.length > 0)}; one Stitch fix each`);
   if (bad.some((b) => b.tells.some((t) => !t.soft))) ctx.log(`design: ${named((b) => b.tells.some((t) => !t.soft))} look generated or stand still (${[...new Set(bad.flatMap((b) => b.tells.filter((t) => !t.soft).map((t) => t.id)))].join(", ")}); one Stitch fix each`);
   const rulesOf = (x: { violations: { id: string }[] }) => [...new Set(x.violations.map((v) => v.id))];
+  const withFixes = (pages: StitchAsset[]) => assets.map((a) => (a.state === "normal" ? pages.find((f) => f.id === a.id) ?? a : a));
+  const back: StitchAsset[] = [];
   // a fix Stitch cannot make keeps the page as drawn and leaves its rules open
   const tried = await inPool(bad, STITCH_SIDE_BY_SIDE, async (b) => {
     const a = normals.find((x) => x.id === b.id)!;
     const a11y = b.violations.length ? `Fix these accessibility problems and change nothing else: ${b.violations.map((v) => `${v.id} (${(v.targets ?? []).slice(0, 3).join("; ")})`).join(", ")}.` : "";
     const look = b.tells.length ? `${a11y ? " Also" : "Change this and nothing else:"} ${b.tells.map((t) => t.fix).join("; ")}.` : "";
     const prompt = `${a11y}${look}`;
-    try { return { b, page: await saveAsset(ctx, c, framesDir, a.id, "normal", await c.edit(projectId, a.screenId, prompt, device)) }; }
+    try {
+      const page = await saveAsset(ctx, c, framesDir, a.id, "normal", await c.edit(projectId, a.screenId, prompt, device));
+      back.push(page);
+      onFixed?.(withFixes(back), back.length);
+      return { b, page };
+    }
     catch (e) { ctx.log(`design: Stitch could not fix ${b.id}'s accessibility (${(e as Error).message}); kept as drawn`); return { b, page: undefined }; }
   });
   const fixed = tried.flatMap((x) => (x.page ? [x.page] : []));
@@ -689,7 +697,7 @@ async function fixA11y(ctx: StepContext, c: StitchClient, framesDir: string, pro
   const still = fixed.map((p) => ({ id: p.id, tells: tellsOf(p).filter((t) => !t.soft).map((t) => t.id) })).filter((x) => x.tells.length);
   if (still.length) ctx.log(`design: still there after Stitch's fix: ${still.map((x) => `${x.id} (${x.tells.join(", ")})`).join("; ")}; kept as drawn`);
   return {
-    assets: assets.map((a) => (a.state === "normal" ? fixed.find((f) => f.id === a.id) ?? a : a)),
+    assets: withFixes(fixed),
     open: [...notFixed, ...again.filter((x) => x.violations.length).map((x) => ({ screen: x.id, rules: rulesOf(x) }))],
   };
 }

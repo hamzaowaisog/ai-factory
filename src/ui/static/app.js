@@ -1799,7 +1799,7 @@ function erdDiagram(l, existing) {
 }
 
 function draftText(d) {
-  if (d.drawn + d.failed >= d.total) return `All ${d.total} pages are back${d.failed ? ` (${d.failed} failed and will be drawn again)` : ""}; the design is being checked. Not approved yet.`;
+  if (d.drawn + d.failed >= d.total) return `All ${d.total} pages are back${d.failed ? ` (${d.failed} failed and will be drawn again)` : ""}; the design is being checked.${d.fixed ? ` ${d.fixed} ${d.fixed === 1 ? "page was" : "pages were"} fixed after the checks; pick a page to see its latest.` : ""} Not approved yet.`;
   return `Draft: ${d.drawn} of ${d.total} pages drawn${d.failed ? `, ${d.failed} failed` : ""}. Pages not drawn yet show as wireframes; pick a page to see its latest. Not approved yet.`;
 }
 
@@ -1813,7 +1813,7 @@ function renderPreview(r, p, first) {
   const url = (path) => { const [file, ...tail] = path.split(/(?=[?#])/); return p.base + file.split("/").map(encodeURIComponent).join("/") + tail.join(""); };
   // a draft is rewritten as pages come back: a fresh address so the frame does not show the last copy
   // frame=1: the demo page leaves out its own side list, which the Screens row here already is
-  const fresh = (path) => path.replace(/^([^?#]*)/, pv.draft ? `$1?frame=1&v=${pv.draft.drawn}-${pv.draft.failed}` : "$1?frame=1");
+  const fresh = (path) => path.replace(/^([^?#]*)/, pv.draft ? `$1?frame=1&v=${pv.draft.drawn}-${pv.draft.failed}-${pv.draft.fixed ?? 0}` : "$1?frame=1");
   const parts = [];
   const banner = pv.draft ? h("section", { class: "callout live rise" }, icon("cursor"), h("div", {}, h("strong", {}, "Design being drawn"), h("p", {}, draftText(pv.draft)))) : null;
   if (banner) parts.push(banner);

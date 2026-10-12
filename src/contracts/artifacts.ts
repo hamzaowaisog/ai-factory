@@ -767,8 +767,8 @@ export const RunPreview = z.object({
     /** pending: listed but not drawn yet (a draft) */
     screens: z.array(z.object({ path: z.string(), title: z.string(), req: z.string().optional(), pending: z.boolean().optional() })).default([]),
   }).optional(),
-  /** the design while it is being drawn: how many pages are done; the approved preview has none */
-  draft: z.object({ drawn: z.number().int().nonnegative(), total: z.number().int().nonnegative(), failed: z.number().int().nonnegative().default(0) }).optional(),
+  /** the design while it is being drawn: how many pages are done, and how many were replaced by a fix after the checks; the approved preview has none */
+  draft: z.object({ drawn: z.number().int().nonnegative(), total: z.number().int().nonnegative(), failed: z.number().int().nonnegative().default(0), fixed: z.number().int().nonnegative().optional() }).optional(),
   images: z.array(z.object({
     file: z.string(),
     screen: z.string(),
