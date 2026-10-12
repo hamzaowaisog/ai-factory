@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#fbf9f6]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Overview - Folio3 Parking Administrator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  
+  <style>
+    body {
+      font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1f2937;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes pageEnter {
+      0% { opacity: 0; transform: translateY(6px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes barSettle {
+      0% { transform: scaleX(1.04); }
+      100% { transform: scaleX(1.0); }
+    }
+
+    @keyframes dotBreathe {
+      0%, 100% { opacity: 0.76; }
+      50% { opacity: 1; }
+    }
+
+    .animate-page-enter {
+      animation: pageEnter 360ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Signature motion: bar settle */
+    .bar-settle {
+      transform-origin: left center;
+      animation: barSettle 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .bar-delay-1 { animation-delay: 0ms; }
+    .bar-delay-2 { animation-delay: 40ms; }
+    .bar-delay-3 { animation-delay: 80ms; }
+    .bar-delay-4 { animation-delay: 120ms; }
+    .bar-delay-5 { animation-delay: 160ms; }
+
+    /* Ambient animation for active entry check status dot */
+    .dot-evaluating {
+      animation: dotBreathe 7.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    /* Interactive state styles */
+    .ctrl-interactive {
+      transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 90ms ease;
+    }
+    .ctrl-interactive:hover {
+      background-color: #f7f3ee;
+    }
+    .ctrl-interactive:focus-visible {
+      outline: 2px solid #a95540;
+      outline-offset: 2px;
+    }
+    .ctrl-interactive:active {
+      transform: scale(0.985);
+    }
+
+    .btn-primary {
+      background-color: #a95540;
+      color: #ffffff;
+      transition: background-color 150ms ease, box-shadow 150ms ease, transform 90ms ease;
+    }
+    .btn-primary:hover {
+      background-color: #924532;
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid #a95540;
+      outline-offset: 2px;
+    }
+    .btn-primary:active {
+      transform: scale(0.985);
+      background-color: #7d3a2a;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-full flex flex-col bg-[#fbf9f6] text-[#24211e] antialiased selection:bg-[#f1ded9] selection:text-[#7d3a2a]">
+
+  <!-- SHARED ADMIN HEADER -->
+  <header class="w-full bg-white border-b border-[#e9e4dd] sticky top-0 z-30">
+    <div class="max-w-[1240px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      
+      <!-- Brand & Navigation in exact order -->
+      <div class="flex items-center space-x-6 lg:space-x-8">
+        <a href="#" class="text-base font-bold text-[#1f1d1a] tracking-tight hover:text-[#a95540] transition-colors flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded bg-[#a95540] text-white font-black text-xs">P</span>
+          <span>Folio3 Parking</span>
+        </a>
+
+        <nav class="hidden md:flex items-center space-x-1" aria-label="Main Navigation">
+          <!-- Overview (Active) -->
+          <a href="#" class="px-3 py-2 text-sm font-semibold text-[#1f1d1a] border-b-2 border-[#a95540] transition-colors">Overview</a>
+          <!-- Employees -->
+          <a href="#" class="px-3 py-2 text-sm font-normal text-[#6b645c] hover:text-[#1f1d1a] hover:bg-[#f7f4ef] rounded-md transition-colors">Employees</a>
+          <!-- Parking setup -->
+          <a href="#" class="px-3 py-2 text-sm font-normal text-[#6b645c] hover:text-[#1f1d1a] hover:bg-[#f7f4ef] rounded-md transition-colors">Parking setup</a>
+          <!-- Weekly report -->
+          <a href="#" class="px-3 py-2 text-sm font-normal text-[#6b645c] hover:text-[#1f1d1a] hover:bg-[#f7f4ef] rounded-md transition-colors">Weekly report</a>
+          <!-- Entry checks -->
+          <a href="#" class="px-3 py-2 text-sm font-normal text-[#6b645c] hover:text-[#1f1d1a] hover:bg-[#f7f4ef] rounded-md transition-colors">Entry checks</a>
+          <!-- Audit history -->
+          <a href="#" class="px-3 py-2 text-sm font-normal text-[#6b645c] hover:text-[#1f1d1a] hover:bg-[#f7f4ef] rounded-md transition-colors">Audit history</a>
+        </nav>
+      </div>
+
+      <!-- Right Profile Menu -->
+      <div class="flex items-center">
+        <div class="flex items-center gap-3 pl-3 pr-2 py-1.5 rounded-lg hover:bg-[#f7f4ef] transition-colors cursor-pointer group" role="button" aria-haspopup="true" aria-expanded="false" tabindex="0">
+          <div class="w-8 h-8 rounded-full bg-[#f0e7df] border border-[#d8cfc4] flex items-center justify-center text-[#7d3a2a] font-semibold text-xs font-mono">
+            PN
+          </div>
+          <div class="text-left hidden sm:block">
+            <div class="text-sm font-semibold text-[#1f1d1a] leading-none group-hover:text-[#a95540] transition-colors">Priya Nair</div>
+            <div class="text-[11px] font-normal text-[#7a7269] mt-0.5 leading-none">Parking Administrator</div>
+          </div>
+          <span class="material-symbols-outlined text-[#8a8176] text-base group-hover:text-[#1f1d1a] transition-colors">expand_more</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN VIEW CONTAINER -->
+  <main class="flex-1 max-w-[1240px] w-full mx-auto px-4 sm:px-6 py-6 md:py-8 animate-page-enter">
+    
+    <!-- 1. COMPACT "TODAY" SUMMARY (NOT A HERO BANNER) -->
+    <section class="bg-white rounded-xl border border-[#e8e2d8] p-4 sm:p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] mb-6" aria-label="Today summary">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        
+        <!-- Left: Date & Subtitle -->
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-2 h-2 rounded-full bg-[#3d7a5a]"></span>
+            <span class="text-xs font-bold uppercase tracking-wider text-[#70685e]">Today</span>
+            <span class="text-xs text-[#a39a8e]">•</span>
+            <span class="text-sm font-bold text-[#1f1d1a]">Tue 19 May 2026</span>
+            <span class="text-xs font-mono text-[#827a70] bg-[#f7f3ee] px-2 py-0.5 rounded border border-[#eae3d9]">09:15 AM IST</span>
+          </div>
+          <p class="text-xs text-[#70685e] mt-1.5">Bengaluru Office campus facility • Continuous automated pool release & access monitoring</p>
+        </div>
+
+        <!-- Right: 3 Key Metric Bullets in compact row -->
+        <div class="flex flex-wrap items-center gap-3 sm:gap-6 pt-3 md:pt-0 border-t md:border-t-0 border-[#f0eae1]">
+          <div class="flex items-baseline gap-1.5">
+            <span class="font-mono text-xl sm:text-2xl font-bold text-[#1f1d1a]">2</span>
+            <span class="text-xs text-[#5c544a] font-medium">spaces free</span>
+          </div>
+          
+          <div class="hidden sm:block w-px h-6 bg-[#eae4db]"></div>
+
+          <div class="flex items-center gap-1.5">
+            <span class="font-mono text-xs font-semibold text-[#8a4b3b] bg-[#f9eee9] px-2 py-0.5 rounded border border-[#ebd8d0]">9:00 AM IST</span>
+            <span class="text-xs text-[#5c544a]">daily release time</span>
+          </div>
+
+          <div class="hidden sm:block w-px h-6 bg-[#eae4db]"></div>
+
+          <div class="flex items-baseline gap-1.5">
+            <span class="font-mono text-sm sm:text-base font-bold text-[#1f1d1a]">70</span>
+            <span class="text-xs text-[#5c544a]">spaces across 2 floors</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 2. DENSE ROW OF SMALL STATUS FIGURES -->
+    <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6" aria-label="Status metrics">
+      
+      <!-- Card 1: P1 Stalls -->
+      <div class="bg-white rounded-lg border border-[#e8e2d8] p-3.5 flex flex-col justify-between">
+        <span class="text-[11px] font-semibold uppercase tracking-wider text-[#756d63]">P1 Level Stalls</span>
+        <div class="mt-2 flex items-baseline justify-between">
+          <span class="font-mono text-xl font-bold text-[#1f1d1a]">39<span class="text-xs font-normal text-[#8c8378]">/40</span></span>
+          <span class="text-[10px] font-medium text-[#2d6a4f] bg-[#eef7f2] px-1.5 py-0.5 rounded border border-[#d2ebe0]">1 claimable</span>
+        </div>
+        <div class="w-full bg-[#f2ede6] h-1.5 rounded-full mt-2 overflow-hidden">
+          <div class="bg-[#756d63] h-full rounded-full" style="width: 97.5%"></div>
+        </div>
+      </div>
+
+      <!-- Card 2: P2 Stalls -->
+      <div class="bg-white rounded-lg border border-[#e8e2d8] p-3.5 flex flex-col justify-between">
+        <span class="text-[11px] font-semibold uppercase tracking-wider text-[#756d63]">P2 Level Stalls</span>
+        <div class="mt-2 flex items-baseline justify-between">
+          <span class="font-mono text-xl font-bold text-[#1f1d1a]">29<span class="text-xs font-normal text-[#8c8378]">/30</span></span>
+          <span class="text-[10px] font-medium text-[#2d6a4f] bg-[#eef7f2] px-1.5 py-0.5 rounded border border-[#d2ebe0]">1 claimable</span>
+        </div>
+        <div class="w-full bg-[#f2ede6] h-1.5 rounded-full mt-2 overflow-hidden">
+          <div class="bg-[#756d63] h-full rounded-full" style="width: 96.6%"></div>
+        </div>
+      </div>
+
+      <!-- Card 3: Today's Releases -->
+      <div class="bg-white rounded-lg border border-[#e8e2d8] p-3.5 flex flex-col justify-between">
+        <span class="text-[11px] font-semibold uppercase tracking-wider text-[#756d63]">Today's Releases</span>
+        <div class="mt-2 flex items-baseline justify-between">
+          <span class="font-mono text-xl font-bold text-[#1f1d1a]">2</span>
+          <span class="text-[10px] font-mono text-[#756d63]">P1-18, P2-14</span>
+        </div>
+        <div class="text-[11px] text-[#787167] mt-1 truncate">Voluntary pool releases</div>
+      </div>
+
+      <!-- Card 4: Total Occupancy -->
+      <div class="bg-white rounded-lg border border-[#e8e2d8] p-3.5 flex flex-col justify-between">
+        <span class="text-[11px] font-semibold uppercase tracking-wider text-[#756d63]">Assigned Fill</span>
+        <div class="mt-2 flex items-baseline justify-between">
+          <span class="font-mono text-xl font-bold text-[#1f1d1a]">68<span class="text-xs font-normal text-[#8c8378]">/70</span></span>
+          <span class="font-mono text-[11px] font-semibold text-[#1f1d1a]">97.1%</span>
+        </div>
+        <div class="text-[11px] text-[#787167] mt-1">2 remaining claimable</div>
+      </div>
+
+      <!-- Card 5: Pre-scheduled Releases -->
+      <div class="bg-white rounded-lg border border-[#e8e2d8] p-3.5 flex flex-col justify-between">
+        <span class="text-[11px] font-semibold uppercase tracking-wider text-[#756d63]">Scheduled Ahead</span>
+        <div class="mt-2 flex items-baseline justify-between">
+          <span class="font-mono text-xl font-bold text-[#1f1d1a]">2</span>
+          <span class="text-[10px] text-[#857d73]">30-day window</span>
+        </div>
+        <div class="text-[11px] font-mono text-[#787167] mt-1">Thu 21 & Mon 25 May</div>
+      </div>
+
+      <!-- Card 6: Last Reporting Week -->
+      <div class="bg-white rounded-lg border border-[#e8e2d8] p-3.5 flex flex-col justify-between">
+        <span class="text-[11px] font-semibold uppercase tracking-wider text-[#756d63]">Last Week Util.</span>
+        <div class="mt-2 flex items-baseline justify-between">
+          <span class="font-mono text-xl font-bold text-[#1f1d1a]">81.7%</span>
+          <span class="text-[10px] text-[#2d6a4f] font-mono">286/350</span>
+        </div>
+        <div class="text-[11px] text-[#787167] mt-1">11 May–17 May 2026</div>
+      </div>
+
+    </section>
+
+    <!-- 3. MAIN WORKLIST & ACTION SECTION -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+      
+      <!-- Left/Main Column: Operational Worklist (Single-column adapted on mobile) -->
+      <div class="lg:col-span-8 space-y-6">
+        
+        <!-- Worklist Panel -->
+        <section class="bg-white rounded-xl border border-[#e8e2d8] shadow-[0_1px_3px_rgba(0,0,0,0.02)] overflow-hidden" aria-label="Administrator Worklist">
+          
+          <!-- Panel Header -->
+          <div class="px-5 py-4 border-b border-[#ece7de] flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-bold text-[#1f1d1a] tracking-tight">Active Worklist & Evaluation Monitor</h2>
+              <p class="text-xs text-[#736b61] mt-0.5">Key pending actions, available claims, and latest gate enforcement status</p>
+            </div>
+            <span class="text-xs font-mono font-medium text-[#736b61] bg-[#f7f3ee] px-2.5 py-1 rounded border border-[#eae3d9]">
+              3 items queued
+            </span>
+          </div>
+
+          <!-- Worklist Item 1: Two Claimable Spaces -->
+          <div class="p-4 sm:p-5 border-b border-[#f0eae1] flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+              <div class="w-8 h-8 rounded bg-[#f4efe8] border border-[#e3dbcf] flex items-center justify-center text-[#736b61] flex-shrink-0 mt-0.5">
+                <span class="material-symbols-outlined text-base">local_parking</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="text-sm font-bold text-[#1f1d1a]">Two claimable spaces in shared pool</h3>
+                  <span class="inline-flex items-center text-[10px] font-medium text-[#2d6a4f] bg-[#eef7f2] px-2 py-0.5 rounded border border-[#d2ebe0]">
+                    Available now
+                  </span>
+                </div>
+                <p class="text-xs text-[#635b51] mt-1">
+                  Released for today (<span class="font-mono text-[#1f1d1a]">Tue 19 May 2026</span>) after passing the <span class="font-mono text-[#1f1d1a]">9:00 AM IST</span> daily cutoff. Eligible employees without dedicated assignments can claim either stall immediately.
+                </p>
+                
+                <!-- Stall details -->
+                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div class="bg-[#faf8f5] p-2.5 rounded border border-[#eae4da] flex items-center justify-between">
+                    <div>
+                      <span class="font-mono font-bold text-[#1f1d1a] mr-2">P1-18</span>
+                      <span class="text-[#635b51]">Devika Iyer (Finance)</span>
+                    </div>
+                    <span class="font-mono text-[11px] text-[#7a7269]">KA04CD6190</span>
+                  </div>
+                  <div class="bg-[#faf8f5] p-2.5 rounded border border-[#eae4da] flex items-center justify-between">
+                    <div>
+                      <span class="font-mono font-bold text-[#1f1d1a] mr-2">P2-14</span>
+                      <span class="text-[#635b51]">Maya Krishnan (Engineering)</span>
+                    </div>
+                    <span class="font-mono text-[11px] text-[#7a7269]">KA03GH8820</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Worklist Item 2: Next Weekly Report -->
+          <div class="p-4 sm:p-5 border-b border-[#f0eae1] flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+              <div class="w-8 h-8 rounded bg-[#f4efe8] border border-[#e3dbcf] flex items-center justify-center text-[#736b61] flex-shrink-0 mt-0.5">
+                <span class="material-symbols-outlined text-base">calendar_month</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="text-sm font-bold text-[#1f1d1a]">Next weekly report generation</h3>
+                  <span class="inline-flex items-center text-[10px] font-medium text-[#7a483b] bg-[#fbf0ec] px-2 py-0.5 rounded border border-[#edd7ce]">
+                    Scheduled · Mon 25 May
+                  </span>
+                </div>
+                <p class="text-xs text-[#635b51] mt-1">
+                  Automated aggregation for active cycle Mon 18 May–Sun 24 May 2026 runs on <span class="font-mono text-[#1f1d1a]">Mon 25 May 2026 at 8:00 AM IST</span>. Previous reporting cycle (Mon 11 May–Sun 17 May) is finalized and ready for review.
+                </p>
+                <div class="mt-2.5 flex items-center gap-4 text-xs text-[#736b61]">
+                  <span>Last week: <strong class="font-mono text-[#1f1d1a]">81.7%</strong> (286/350 used)</span>
+                  <span class="text-[#c8c0b5]">•</span>
+                  <span>Recipients: <span class="font-mono text-[#1f1d1a]">Priya Nair</span> & <span class="font-mono text-[#1f1d1a]">Jonah Lee</span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Review weekly report CTA -->
+            <div class="sm:flex-shrink-0 self-start sm:self-center pt-2 sm:pt-0">
+              <a href="#" class="btn-primary inline-flex items-center justify-center px-4 py-2 rounded-lg text-xs font-semibold tracking-tight shadow-sm min-h-[38px] touch-manipulation ctrl-interactive">
+                Review weekly report
+              </a>
+            </div>
+          </div>
+
+          <!-- Worklist Item 3: Latest Entry Check Result -->
+          <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+              <div class="w-8 h-8 rounded bg-[#fef2f2] border border-[#fed7d7] flex items-center justify-center text-[#991b1b] flex-shrink-0 mt-0.5">
+                <span class="material-symbols-outlined text-base">gpp_maybe</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="text-sm font-bold text-[#1f1d1a]">Latest boom barrier entry check</h3>
+                  
+                  <!-- Low-emphasis status chip with breathing ambient evaluation dot -->
+                  <span class="inline-flex items-center gap-1.5 text-[10px] font-medium text-[#991b1b] bg-[#fef2f2] px-2 py-0.5 rounded border border-[#fecaca]">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-[#dc2626] dot-evaluating"></span>
+                    <span>Denied · green indicator off</span>
+                  </span>
+                </div>
+                
+                <p class="text-xs text-[#635b51] mt-1">
+                  Evaluated at campus Level P1 North Inbound barrier at <span class="font-mono text-[#1f1d1a]">09:12 AM IST</span>. Automated license plate recognition detected unregistered or unreserved vehicle.
+                </p>
+
+                <div class="mt-2.5 flex flex-wrap items-center gap-3 text-xs text-[#736b61]">
+                  <span class="bg-[#faf8f5] px-2 py-0.5 rounded border border-[#eae4da]">Checkpoint: <strong class="font-medium text-[#1f1d1a]">Gate P1 North</strong></span>
+                  <span class="bg-[#faf8f5] px-2 py-0.5 rounded border border-[#eae4da]">Barrier status: <strong class="font-medium text-[#991b1b]">Locked down</strong></span>
+                  <span class="bg-[#faf8f5] px-2 py-0.5 rounded border border-[#eae4da]">Attendant: <strong class="font-medium text-[#1f1d1a]">Kabir Shah (Security)</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Signature Motion Chart: Weekly Utilization Settle Effect -->
+        <section class="bg-white rounded-xl border border-[#e8e2d8] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)]" aria-label="Weekly utilization summary">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-sm font-bold text-[#1f1d1a]">Weekly Utilization Metrics (Mon 11 May – Fri 15 May 2026)</h2>
+              <p class="text-xs text-[#736b61] mt-0.5">Campus benchmark: 350 eligible stall allocations, 286 used across reporting week (81.7% overall)</p>
+            </div>
+            <span class="text-xs font-mono font-bold text-[#1f1d1a] bg-[#f7f3ee] px-2.5 py-1 rounded border border-[#eae3d9]">
+              81.7% Avg
+            </span>
+          </div>
+
+          <!-- Staggered settle bar fills -->
+          <div class="space-y-3 pt-2">
+            <!-- Mon -->
+            <div class="flex items-center text-xs">
+              <span class="w-10 font-mono text-[#615a51]">Mon</span>
+              <div class="flex-1 bg-[#f0eae1] h-3 rounded-sm mx-3 overflow-hidden">
+                <div class="bg-[#a95540] h-full rounded-sm bar-settle bar-delay-1" style="width: 82.85%;"></div>
+              </div>
+              <span class="font-mono text-[#1f1d1a] font-medium w-16 text-right">58/70</span>
+              <span class="font-mono text-[#787167] text-[11px] w-12 text-right">82.9%</span>
+            </div>
+            <!-- Tue -->
+            <div class="flex items-center text-xs">
+              <span class="w-10 font-mono text-[#615a51]">Tue</span>
+              <div class="flex-1 bg-[#f0eae1] h-3 rounded-sm mx-3 overflow-hidden">
+                <div class="bg-[#a95540] h-full rounded-sm bar-settle bar-delay-2" style="width: 81.42%;"></div>
+              </div>
+              <span class="font-mono text-[#1f1d1a] font-medium w-16 text-right">57/70</span>
+              <span class="font-mono text-[#787167] text-[11px] w-12 text-right">81.4%</span>
+            </div>
+            <!-- Wed -->
+            <div class="flex items-center text-xs">
+              <span class="w-10 font-mono text-[#615a51]">Wed</span>
+              <div class="flex-1 bg-[#f0eae1] h-3 rounded-sm mx-3 overflow-hidden">
+                <div class="bg-[#a95540] h-full rounded-sm bar-settle bar-delay-3" style="width: 80.00%;"></div>
+              </div>
+              <span class="font-mono text-[#1f1d1a] font-medium w-16 text-right">56/70</span>
+              <span class="font-mono text-[#787167] text-[11px] w-12 text-right">80.0%</span>
+            </div>
+            <!-- Thu -->
+            <div class="flex items-center text-xs">
+              <span class="w-10 font-mono text-[#615a51]">Thu</span>
+              <div class="flex-1 bg-[#f0eae1] h-3 rounded-sm mx-3 overflow-hidden">
+                <div class="bg-[#a95540] h-full rounded-sm bar-settle bar-delay-4" style="width: 82.85%;"></div>
+              </div>
+              <span class="font-mono text-[#1f1d1a] font-medium w-16 text-right">58/70</span>
+              <span class="font-mono text-[#787167] text-[11px] w-12 text-right">82.9%</span>
+            </div>
+            <!-- Fri -->
+            <div class="flex items-center text-xs">
+              <span class="w-10 font-mono text-[#615a51]">Fri</span>
+              <div class="flex-1 bg-[#f0eae1] h-3 rounded-sm mx-3 overflow-hidden">
+                <div class="bg-[#a95540] h-full rounded-sm bar-settle bar-delay-5" style="width: 81.42%;"></div>
+              </div>
+              <span class="font-mono text-[#1f1d1a] font-medium w-16 text-right">57/70</span>
+              <span class="font-mono text-[#787167] text-[11px] w-12 text-right">81.4%</span>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-[#f0eae1] flex items-center justify-between text-[11px] text-[#787167]">
+            <span>12 releases submitted • 10 claimed by queue • 8 unused dedicated stalls • 4 unused temporary allocations</span>
+            <span class="font-mono text-[#544d44]">Generated Mon 18 May at 8:00 AM IST</span>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Right Column: Compact Navigation Tiles (Using EXACT shared menu labels) -->
+      <div class="lg:col-span-4 space-y-4">
+        
+        <!-- Group Container for Compact Navigation Tiles -->
+        <section class="bg-white rounded-xl border border-[#e8e2d8] p-4 sm:p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)]" aria-label="Administrator navigation modules">
+          
+          <div class="pb-3 mb-3 border-b border-[#ece7de]">
+            <h2 class="text-sm font-bold text-[#1f1d1a]">Administrator modules</h2>
+            <p class="text-xs text-[#736b61] mt-0.5">Quick access to operational directories</p>
+          </div>
+
+          <div class="space-y-2.5">
+            
+            <!-- Tile 1: Employees -->
+            <a href="#" class="ctrl-interactive flex items-start gap-3 p-3 rounded-lg border border-[#eae4da] bg-white group min-h-[44px]">
+              <div class="w-8 h-8 rounded bg-[#f7f3ee] border border-[#e2dacd] flex items-center justify-center text-[#736b61] group-hover:text-[#a95540] transition-colors flex-shrink-0 mt-0.5">
+                <span class="material-symbols-outlined text-base">badge</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-[#1f1d1a] group-hover:text-[#a95540] transition-colors">Employees</span>
+                  <span class="material-symbols-outlined text-sm text-[#a0978b] group-hover:text-[#1f1d1a] transition-colors">arrow_forward</span>
+                </div>
+                <p class="text-[11px] text-[#70685e] mt-0.5 line-clamp-1">Staff roster, stall assignments & vehicle plates</p>
+              </div>
+            </a>
+
+            <!-- Tile 2: Parking setup -->
+            <a href="#" class="ctrl-interactive flex items-start gap-3 p-3 rounded-lg border border-[#eae4da] bg-white group min-h-[44px]">
+              <div class="w-8 h-8 rounded bg-[#f7f3ee] border border-[#e2dacd] flex items-center justify-center text-[#736b61] group-hover:text-[#a95540] transition-colors flex-shrink-0 mt-0.5">
+                <span class="material-symbols-outlined text-base">tune</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-[#1f1d1a] group-hover:text-[#a95540] transition-colors">Parking setup</span>
+                  <span class="material-symbols-outlined text-sm text-[#a0978b] group-hover:text-[#1f1d1a] transition-colors">arrow_forward</span>
+                </div>
+                <p class="text-[11px] text-[#70685e] mt-0.5 line-clamp-1">Floor capacity, cutoff timings & allocation rules</p>
+              </div>
+            </a>
+
+            <!-- Tile 3: Entry checks -->
+            <a href="#" class="ctrl-interactive flex items-start gap-3 p-3 rounded-lg border border-[#eae4da] bg-white group min-h-[44px]">
+              <div class="w-8 h-8 rounded bg-[#f7f3ee] border border-[#e2dacd] flex items-center justify-center text-[#736b61] group-hover:text-[#a95540] transition-colors flex-shrink-0 mt-0.5">
+                <span class="material-symbols-outlined text-base">sensor_occupied</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-[#1f1d1a] group-hover:text-[#a95540] transition-colors">Entry checks</span>
+                  <span class="material-symbols-outlined text-sm text-[#a0978b] group-hover:text-[#1f1d1a] transition-colors">arrow_forward</span>
+                </div>
+                <p class="text-[11px] text-[#70685e] mt-0.5 line-clamp-1">Boom barrier gate logs, plate OCR & security feed</p>
+              </div>
+            </a>
+
+            <!-- Tile 4: Audit history -->
+            <a href="#" class="ctrl-interactive flex items-start gap-3 p-3 rounded-lg border border-[#eae4da] bg-white group min-h-[44px]">
+              <div class="w-8 h-8 rounded bg-[#f7f3ee] border border-[#e2dacd] flex items-center justify-center text-[#736b61] group-hover:text-[#a95540] transition-colors flex-shrink-0 mt-0.5">
+                <span class="material-symbols-outlined text-base">history</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-[#1f1d1a] group-hover:text-[#a95540] transition-colors">Audit history</span>
+                  <span class="material-symbols-outlined text-sm text-[#a0978b] group-hover:text-[#1f1d1a] transition-colors">arrow_forward</span>
+                </div>
+                <p class="text-[11px] text-[#70685e] mt-0.5 line-clamp-1">Immutable release timestamps & stall reallocations</p>
+              </div>
+            </a>
+
+            <!-- Tile 5: Weekly report -->
+            <a href="#" class="ctrl-interactive flex items-start gap-3 p-3 rounded-lg border border-[#eae4da] bg-white group min-h-[44px]">
+              <div class="w-8 h-8 rounded bg-[#f7f3ee] border border-[#e2dacd] flex items-center justify-center text-[#736b61] group-hover:text-[#a95540] transition-colors flex-shrink-0 mt-0.5">
+                <span class="material-symbols-outlined text-base">analytics</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-[#1f1d1a] group-hover:text-[#a95540] transition-colors">Weekly report</span>
+                  <span class="material-symbols-outlined text-sm text-[#a0978b] group-hover:text-[#1f1d1a] transition-colors">arrow_forward</span>
+                </div>
+                <p class="text-[11px] text-[#70685e] mt-0.5 line-clamp-1">Historical summaries, utilization curves & exports</p>
+              </div>
+            </a>
+
+          </div>
+
+        </section>
+
+        <!-- Facility Policy & Rules Summary Card -->
+        <section class="bg-white rounded-xl border border-[#e8e2d8] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] text-xs" aria-label="Campus rules">
+          <div class="flex items-center gap-2 pb-2.5 mb-2.5 border-b border-[#ece7de] text-[#70685e] font-semibold text-[11px] uppercase tracking-wider">
+            <span class="material-symbols-outlined text-sm text-[#a95540]">verified_user</span>
+            <span>Operating Framework</span>
+          </div>
+          <ul class="space-y-2 text-[#635b51] text-xs">
+            <li class="flex items-start gap-2">
+              <span class="text-[#a95540]">•</span>
+              <span><strong class="font-medium text-[#1f1d1a]">09:00 AM IST Cutoff:</strong> Unused dedicated spaces release automatically to general queue.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-[#a95540]">•</span>
+              <span><strong class="font-medium text-[#1f1d1a]">Strict Non-Cancellable:</strong> Accepted daily claims lock immediately to prevent gate hold-ups.</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-[#a95540]">•</span>
+              <span><strong class="font-medium text-[#1f1d1a]">Administrator Confidentiality:</strong> Only Priya Nair receives employee-identifying weekly utilization audits.</span>
+            </li>
+          </ul>
+        </section>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</body>
+</html>

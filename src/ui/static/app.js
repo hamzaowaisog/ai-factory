@@ -231,6 +231,13 @@ function modeScreen() {
 
 // ---------- new run: request ----------
 
+// a requirements file, read like --file: Markdown or text as it is, a PDF or Word document sent whole and read by the factory
+const REQ_ACCEPT = ".md,.markdown,.txt,.pdf,.docx,text/markdown,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const REQ_BAD = "Upload a Markdown (.md), text (.txt), Word (.docx) or PDF file.";
+/** The size limit of a requirements file by its name, or 0 for a type that is not taken; a PDF or .docx is sent as bytes. */
+const reqDoc = (name) => /\.(pdf|docx)$/i.test(name);
+const reqMax = (name) => /\.pdf$/i.test(name) ? 25e6 : /\.docx$/i.test(name) ? 50e6 : /\.(md|markdown|txt)$/i.test(name) ? 1e6 : 0;
+const fileB64 = (f) => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] ?? ""); r.onerror = () => no(new Error(`Could not read ${f.name}.`)); r.readAsDataURL(f); });
 // design references (any mode, like --ref): files and links, each with a role and a note. The same limits are checked again
 // on the server, and every reference is read before the run exists, so one that cannot be read costs nothing.
 const REF_MAX = 12, REF_FILE_MAX = 25e6, REF_DOCX_MAX = 50e6, REF_TOTAL_MAX = 50e6;
@@ -375,7 +382,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
 
   // the three inputs, which can be combined like factory start
   const prompt = h("textarea", { id: "prompt", placeholder: estimating ? "Paste the requirements: notes, a brief, a transcript, an email thread. e.g. A customer portal where buyers log in, see their orders and download invoices." : "e.g. Show the number of orders next to the Your orders heading, and keep the heading text." });
-  const fileInput = h("input", { type: "file", accept: ".md,.markdown,.txt,text/markdown,text/plain" });
+  const fileInput = h("input", { type: "file", accept: REQ_ACCEPT });
   const jira = h("input", { type: "text", id: "jira", placeholder: "ABC-123 or its link", disabled: !meta.jira.configured });
   let file;
   const fileBox = h("div");
@@ -394,13 +401,13 @@ async function requestScreen(kind = "brownfield", preset = []) {
   const takeFile = async (f) => {
     err.hidden = true;
     if (!f) return;
-    if (!/\.(md|markdown|txt)$/i.test(f.name)) return fail("Upload a Markdown (.md) or text (.txt) file.");
-    if (f.size > 1_000_000) return fail(`${f.name} is over 1 MB.`);
-    file = { name: f.name, text: await f.text(), size: f.size };
+    if (!reqMax(f.name)) return fail(REQ_BAD);
+    if (f.size > reqMax(f.name)) return fail(`${f.name} is over ${reqMax(f.name) / 1e6} MB.`);
+    try { file = reqDoc(f.name) ? { name: f.name, data: await fileB64(f), size: f.size } : { name: f.name, text: await f.text(), size: f.size }; } catch (e) { return fail(e.message); }
     showFile();
   };
   fileInput.addEventListener("change", () => takeFile(fileInput.files?.[0]));
-  const drop = h("label", { class: "drop" }, fileInput, icon("upload"), h("strong", {}, "Drop a .md or .txt file here"), h("span", { class: "small" }, "or click to choose one · read like --file"));
+  const drop = h("label", { class: "drop" }, fileInput, icon("upload"), h("strong", {}, "Drop a .md, .txt, .docx or .pdf file here"), h("span", { class: "small" }, "or click to choose one · read like --file"));
   drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
   drop.addEventListener("dragleave", () => drop.classList.remove("over"));
   drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); takeFile(e.dataTransfer?.files?.[0]); });
@@ -421,7 +428,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
     panels[k].classList.remove("tab-panel"); void panels[k].offsetWidth; panels[k].classList.add("tab-panel");
   };
   tabs.prompt = h("button", { class: "tab", type: "button", role: "tab", onclick: () => select("prompt") }, icon("pen"), "Prompt", dots.prompt);
-  tabs.file = h("button", { class: "tab", type: "button", role: "tab", onclick: () => select("file") }, icon("upload"), "Upload .md", dots.file);
+  tabs.file = h("button", { class: "tab", type: "button", role: "tab", onclick: () => select("file") }, icon("upload"), "Upload file", dots.file);
   tabs.jira = h("button", { class: "tab", type: "button", role: "tab", onclick: () => select("jira") }, icon("ticket"), "Jira key", dots.jira);
   select("prompt");
 
@@ -556,7 +563,7 @@ async function requestScreen(kind = "brownfield", preset = []) {
       const bf = buildFrom();
       const from = !estimating ? (bf.kind === "e" ? { fromEstimate: bf.id } : bf.kind === "d" ? { fromDesign: bf.id } : {})
         : startFrom.value && seedRun.value ? { [{ design: "fromDesign", revises: "revises" }[startFrom.value]]: seedRun.value } : {};
-      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), ...modelsPicked(), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: { name: file.name, text: file.text } } : {}),
+      const body = { project: project.value, ...(designExport.length ? { designExport } : {}), ...from, ...(estimating && fresh.checked ? { fresh: true } : {}), ...(!estimating && uiTarget.value ? { uiTarget: uiTarget.value } : {}), ...modelsPicked(), prompt: seeded ? "" : prompt.value, ...(sent && !seeded ? { frames: sent } : {}), ...(sentRefs ? { refs: sentRefs } : {}), jira: jira.disabled || seeded ? "" : jira.value, maxCost: maxCost.value, ...(file && !seeded ? { file: file.data ? { name: file.name, data: file.data } : { name: file.name, text: file.text } } : {}),
         ...(designing ? { mode: "design", design: { noRepo: noRepo.checked, client: hdr.value, projectName: projName.value } } : estimating ? { mode: "estimate", estimate: { stackSource: stack.value, feedbackRounds: rounds.value, designInTotal: designIn.checked, ...(drawDesign.checked ? {} : { drawDesign: false }), noRepo: noRepo.checked, client: hdr.value, projectName: projName.value, pm: pm.value, ...(handsOff.checked ? { humanReview: false } : {}) } } : {}) };
       const r = await api("/api/runs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       location.hash = `#/runs/${encodeURIComponent(r.runId)}`;
@@ -1826,7 +1833,7 @@ function erdDiagram(l, existing) {
 }
 
 function draftText(d) {
-  if (d.drawn + d.failed >= d.total) return `All ${d.total} pages are back${d.failed ? ` (${d.failed} failed and will be drawn again)` : ""}; the design is being checked. Not approved yet.`;
+  if (d.drawn + d.failed >= d.total) return `All ${d.total} pages are back${d.failed ? ` (${d.failed} failed and will be drawn again)` : ""}; the design is being checked.${d.fixed ? ` ${d.fixed} ${d.fixed === 1 ? "page was" : "pages were"} fixed after the checks; pick a page to see its latest.` : ""} Not approved yet.`;
   return `Draft: ${d.drawn} of ${d.total} pages drawn${d.failed ? `, ${d.failed} failed` : ""}. Pages not drawn yet show as wireframes; pick a page to see its latest. Not approved yet.`;
 }
 
@@ -1840,7 +1847,7 @@ function renderPreview(r, p, first) {
   const url = (path) => { const [file, ...tail] = path.split(/(?=[?#])/); return p.base + file.split("/").map(encodeURIComponent).join("/") + tail.join(""); };
   // a draft is rewritten as pages come back: a fresh address so the frame does not show the last copy
   // frame=1: the demo page leaves out its own side list, which the Screens row here already is
-  const fresh = (path) => path.replace(/^([^?#]*)/, pv.draft ? `$1?frame=1&v=${pv.draft.drawn}-${pv.draft.failed}` : "$1?frame=1");
+  const fresh = (path) => path.replace(/^([^?#]*)/, pv.draft ? `$1?frame=1&v=${pv.draft.drawn}-${pv.draft.failed}-${pv.draft.fixed ?? 0}` : "$1?frame=1");
   const parts = [];
   const banner = pv.draft ? h("section", { class: "callout live rise" }, icon("cursor"), h("div", {}, h("strong", {}, "Design being drawn"), h("p", {}, draftText(pv.draft)))) : null;
   if (banner) parts.push(banner);
@@ -2474,28 +2481,46 @@ function modelPicker(catalogue, id, also = "") {
   const preset = h("select", { id }, h("option", { value: "" }, "Defaults"), catalogue.presets.map((p) => h("option", { value: p }, p[0].toUpperCase() + p.slice(1))));
   const rows = catalogue.steps.map((s) => {
     const auto = h("option", { value: "" });
-    const pick = s.fixed ? null : h("select", { "aria-label": `Model for ${s.step}` }, auto, s.offered.map((m) => h("option", { value: m, title: mPrice(m) }, mName(m))));
+    const pick = s.fixed ? null : h("select", { "aria-label": `Model for ${s.step}` }, auto, s.offered.map((m) => h("option", { value: m, title: mPrice(m) }, mName(m))),
+      // a design engine beside the models: Google Stitch draws the screens
+      (s.engines ?? []).map((e) => h("option", { value: e.id, title: e.note }, e.name)));
     const tag = h("span", { class: "chip", hidden: true }, "changed");
     const note = h("span", { class: "hint warn-text", hidden: true });
+    // the model that plans for a design engine (it lists the screens and writes the design system): the engine's own, or a pick
+    const plannerAuto = h("option", { value: "" });
+    const planner = s.engines?.length ? h("select", { "aria-label": `Model that plans for ${s.step}`, hidden: true }, plannerAuto, s.offered.map((m) => h("option", { value: m, title: mPrice(m) }, mName(m)))) : null;
+    const plannerLabel = planner ? h("span", { class: "faint small", hidden: true }, " planned by ") : null;
     const row = h("tr", {}, h("td", { class: "mono" }, s.step), h("td", { class: "faint small" }, s.group),
-      h("td", {}, s.fixed ? h("span", {}, `${mName(s.model)} `, h("span", { class: "faint small" }, "always")) : pick, " ", tag, note));
+      h("td", {}, s.fixed ? h("span", {}, `${mName(s.model)} `, h("span", { class: "faint small" }, "always")) : pick, plannerLabel, planner, " ", tag, note));
+    // the model the row would run on, and whether a person moved it off its default (a pick, or a preset)
+    const on = () => (pick && pick.value) || (preset.value ? s.presets[preset.value] : s.model);
+    const moved = () => !!((pick && pick.value) || preset.value);
     const sync = () => {
       if (!pick) return;
-      const base = preset.value ? s.presets[preset.value] : s.model;
-      auto.textContent = `${mName(base)} (${preset.value || "default"})`;
+      auto.textContent = `${mName(preset.value ? s.presets[preset.value] : s.model)} (${preset.value || "default"})`;
       tag.hidden = !pick.value;
-      const on = pick.value || base;
-      note.hidden = !(s.warn && pick.value && on === s.warn.model);
-      if (!note.hidden) note.textContent = s.warn.why;
+      const engine = (s.engines ?? []).find((e) => e.id === pick.value);
+      if (planner) {
+        planner.hidden = plannerLabel.hidden = !engine;
+        if (engine) plannerAuto.textContent = `${mName(engine.planner)} (default)`; else planner.value = "";
+      }
+      // a spec step on the model its critic runs on: allowed, and said here as the start check says it
+      const other = s.apart ? rows.find((r) => r.step === s.apart) : undefined;
+      const same = !!other && on() === other.on() && (moved() || other.moved());
+      note.hidden = !engine && !same;
+      if (!note.hidden) note.textContent = engine ? engine.note : `the ${other.step} is ${mName(on())} too, so it reads a spec its own model wrote`;
     };
-    if (pick) pick.addEventListener("change", sync);
-    return { step: s.step, pick, sync, row };
+    // one row's model can change another row's note (the critic's): every row is read again
+    if (pick) pick.addEventListener("change", () => syncAll());
+    // what the run is started with: the engine alone, or engine:model when a planner is named
+    const value = () => (pick?.value && planner?.value ? `${pick.value}:${planner.value}` : pick?.value ?? "");
+    return { step: s.step, pick, sync, row, on, moved, value };
   });
-  const syncAll = () => rows.forEach((r) => r.sync());
+  function syncAll() { rows.forEach((r) => r.sync()); }
   preset.addEventListener("change", syncAll);
   syncAll();
   const picked = () => {
-    const picks = Object.fromEntries(rows.filter((r) => r.pick?.value).map((r) => [r.step, r.pick.value]));
+    const picks = Object.fromEntries(rows.filter((r) => r.pick?.value).map((r) => [r.step, r.value()]));
     return preset.value || Object.keys(picks).length ? { models: { ...(preset.value ? { preset: preset.value } : {}), ...(Object.keys(picks).length ? { picks } : {}) } } : {};
   };
   const hint = h("div", { class: "hint" }, `Chosen once, here: the run keeps these to the end. ${also}A preset fills every step from the tier table; change any step by hand and it is marked. A retry that keeps failing moves a step one model up. Like --preset and --model. `,
@@ -2550,16 +2575,16 @@ async function greenfieldScreen(preset = []) {
   const fromHint = h("div", { class: "hint" });
   const prompt = h("textarea", { id: "fs-prompt", placeholder: "Describe the product, or paste its requirements. e.g. An orders app: staff list orders, filter them by status and mark one shipped." });
   let file;
-  const fileInput = h("input", { type: "file", accept: ".md,.markdown,.txt,text/markdown,text/plain", id: "fs-file" });
-  const fileBox = h("div", { class: "small muted" }, "Or upload a .md or .txt file instead.");
+  const fileInput = h("input", { type: "file", accept: REQ_ACCEPT, id: "fs-file" });
+  const fileBox = h("div", { class: "small muted" }, "Or upload a .md, .txt, .docx or .pdf file instead.");
   fileInput.addEventListener("change", async () => {
     const f = fileInput.files?.[0];
     err.hidden = true;
     if (!f) { file = undefined; return; }
-    if (!/\.(md|markdown|txt)$/i.test(f.name)) return fail("Upload a Markdown (.md) or text (.txt) file.");
-    if (f.size > 1_000_000) return fail(`${f.name} is over 1 MB.`);
-    file = { name: f.name, text: await f.text() };
-    fileBox.replaceChildren(h("div", { class: "file-chip" }, icon("file"), h("span", { class: "mono" }, file.name), h("button", { class: "btn sm", type: "button", onclick: () => { file = undefined; fileInput.value = ""; fileBox.textContent = "Or upload a .md or .txt file instead."; } }, icon("x"), "Remove")));
+    if (!reqMax(f.name)) return fail(REQ_BAD);
+    if (f.size > reqMax(f.name)) return fail(`${f.name} is over ${reqMax(f.name) / 1e6} MB.`);
+    try { file = reqDoc(f.name) ? { name: f.name, data: await fileB64(f) } : { name: f.name, text: await f.text() }; } catch (e) { return fail(e.message); }
+    fileBox.replaceChildren(h("div", { class: "file-chip" }, icon("file"), h("span", { class: "mono" }, file.name), h("button", { class: "btn sm", type: "button", onclick: () => { file = undefined; fileInput.value = ""; fileBox.textContent = "Or upload a .md, .txt, .docx or .pdf file instead."; } }, icon("x"), "Remove")));
   });
   const maxCost = h("input", { type: "number", id: "fs-max", min: "0.5", step: "0.5", placeholder: "normal limit" });
   const start = h("button", { class: "btn primary", type: "submit" }, "Make the repos and start the web run", icon("arrow"));

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Release dates</title>
+  <!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Design System exact colors and font mappings */
+    :root {
+      --bg-page: #F3F6F8;
+      --bg-panel: #FFFFFF;
+      --text-main: #25313B;
+      --text-quieter: #5D6A75;
+      --border-rule: #D6DEE5;
+      --primary-accent: #356F9A;
+      --status-good: #2D6F4F;
+      --status-waiting: #8A5C14;
+      --status-refused: #A53B36;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 22px;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .heading-hanken {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-code {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion specifications */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes recordSettle {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ambientBreathe {
+      0%, 100% { opacity: 0.96; }
+      50% { opacity: 1; }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .parking-record-row {
+      animation: recordSettle 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-dot-pulse {
+      animation: ambientBreathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    /* Control states */
+    button, input, a {
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+
+    button:focus-visible, input:focus-visible, a:focus-visible {
+      outline: 2px solid var(--primary-accent);
+      outline-offset: 2px;
+    }
+
+    button:active, a:active {
+      transform: translateY(1px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#F3F6F8] text-[#25313B]">
+
+  <!-- Header: exact shared specification -->
+  <header class="w-full bg-[#FFFFFF] border-b border-[#D6DEE5] h-16 sticky top-0 z-40">
+    <div class="w-full max-w-5xl mx-auto px-4 h-full flex items-center justify-between">
+      <!-- Left: Logo & Wordmark + Employee navigation -->
+      <div class="flex items-center space-x-3">
+        <!-- Square brand mark carrying white P -->
+        <div class="w-8 h-8 rounded-[8px] bg-[#356F9A] flex items-center justify-center shrink-0">
+          <span class="text-white font-bold text-base leading-none">P</span>
+        </div>
+        <span class="font-['Hanken_Grotesk'] font-semibold text-[17px] tracking-tight text-[#25313B] whitespace-nowrap">
+          Folio3 Parking
+        </span>
+
+        <!-- Desktop Employee menu (hidden on phone) -->
+        <nav class="hidden md:flex items-center space-x-1 ml-4" aria-label="Employee navigation">
+          <a href="#" class="px-3 py-2 rounded-[8px] text-[14px] font-medium text-[#25313B] hover:bg-[#F3F6F8]">My space</a>
+          <a href="#" class="px-3 py-2 rounded-[8px] text-[14px] font-medium text-[#25313B] hover:bg-[#F3F6F8]">Free spaces</a>
+          <a href="#" class="px-3 py-2 rounded-[8px] text-[14px] font-medium text-[#25313B] hover:bg-[#F3F6F8]">My vehicles</a>
+        </nav>
+      </div>
+
+      <!-- Right: Mobile Menu button (touch sized) & Profile -->
+      <div class="flex items-center space-x-3">
+        <!-- Profile info (on wide screen: portrait + name + role; on phone: portrait + menu button) -->
+        <div class="flex items-center space-x-2.5">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1W-2LmS0gi0rlqanztR876-bTNv1ClkF-M-sLPPQrTuEoLPYNXoF0CcvxoL3wggfwKydwlUGah1QhKvH63Bhq6juvjc81WumZIbTy21pNYSFPTzFjDBsbDDdDWjQF8xXZ9NzeCtq-CrC_IHDnQ4uoa4R6r_4Z1ARfYZDxKHjmB8rfWF3ubbJWNM5MnuPxv_WuRpDdbk44NwE52Ut2ab2nxmWJEOI_331bLxogh6t2UYdbQTZLyVlxRPRHo" alt="Maya Chen" class="w-9 h-9 rounded-full object-cover border border-[#D6DEE5] shrink-0">
+          <div class="hidden sm:flex flex-col text-left">
+            <span class="text-[14px] font-semibold leading-tight text-[#25313B]">Maya Chen</span>
+            <span class="text-[12px] leading-tight text-[#5D6A75]">Employee</span>
+          </div>
+        </div>
+
+        <!-- Phone touch-sized hamburger menu button -->
+        <div class="md:hidden">
+          <button type="button" aria-label="Open employee menu" class="w-11 h-11 flex items-center justify-center rounded-[8px] border border-[#D6DEE5] bg-[#FFFFFF] text-[#25313B] hover:bg-[#F3F6F8] active:bg-[#E5ECF0]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Work Area (Phone width 390px native layout) -->
+  <main class="w-full max-w-[420px] md:max-w-4xl mx-auto px-4 py-6 flex-1 animate-entrance">
+    
+    <!-- Page Heading: Exactly "Release dates" (28px / 600) -->
+    <div class="mb-4">
+      <h1 class="text-[28px] leading-[34px] font-semibold text-[#25313B] tracking-tight">
+        Release dates
+      </h1>
+      <p class="mt-2 text-[14px] leading-[22px] text-[#5D6A75]">
+        Scheduled dates must fall within the next 30 days and the Folio3 work calendar.
+      </p>
+    </div>
+
+    <!-- Small Context Row: Assignment P2-08, registered Ford Escape 8KVL291, with Maya's photo and car photo -->
+    <div class="w-full bg-[#FFFFFF] rounded-[8px] border border-[#D6DEE5] p-3.5 mb-6">
+      <div class="flex items-center justify-between gap-3">
+        <!-- Left: portraits & vehicle thumbnail -->
+        <div class="flex items-center space-x-3">
+          <!-- Car thumbnail cropped 4:3 -->
+          <div class="w-16 h-12 rounded-[6px] overflow-hidden border border-[#D6DEE5] shrink-0 bg-[#F3F6F8]">
+            <img src="https://lh3.googleusercontent.com/aida/AEtjO1VJw6pEU7qXBMTuESbjoCtafDUsGx6ojyySTfSQS1Q8u8nCq8LKji9jKI0dSma1MObIb2Ze1KZuzJmuNypEVdP3nPoVny4SErMxdiQEJ6kMW8rC04F8ut5Y4FgyNrLLCsVj4-XaY3J_gJS1XHlM4gwlVRlOODrNEyVgTUTWR63m465oPF7oqGzmnL1nqgJvDbQp6VWblKGmZtk7N1fe_fxYX_uhqIfhU_y0Voh7w2MH7jlkzWFi0hrApTQ" alt="Registered Ford Escape" class="w-full h-full object-cover">
+          </div>
+          <!-- Vehicle & Space metadata -->
+          <div class="flex flex-col">
+            <div class="flex items-center space-x-1.5">
+              <span class="text-[14px] font-semibold text-[#25313B]">Ford Escape</span>
+              <span class="font-mono-code text-[12px] bg-[#F3F6F8] border border-[#D6DEE5] px-1.5 py-0.5 rounded text-[#25313B]">8KVL291</span>
+            </div>
+            <div class="text-[13px] text-[#5D6A75] mt-0.5">
+              Dedicated space <span class="font-mono-code font-semibold text-[#25313B]">P2-08</span>, Floor 2
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Maya's person photo matching header and profile -->
+        <div class="shrink-0 flex items-center pl-2 border-l border-[#D6DEE5]">
+          <img src="https://lh3.googleusercontent.com/aida/AEtjO1W-2LmS0gi0rlqanztR876-bTNv1ClkF-M-sLPPQrTuEoLPYNXoF0CcvxoL3wggfwKydwlUGah1QhKvH63Bhq6juvjc81WumZIbTy21pNYSFPTzFjDBsbDDdDWjQF8xXZ9NzeCtq-CrC_IHDnQ4uoa4R6r_4Z1ARfYZDxKHjmB8rfWF3ubbJWNM5MnuPxv_WuRpDdbk44NwE52Ut2ab2nxmWJEOI_331bLxogh6t2UYdbQTZLyVlxRPRHo" alt="Maya Chen portrait" class="w-10 h-10 rounded-[8px] object-cover border border-[#D6DEE5]">
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid / Stacking container: Phone stacks, wide screens alongside -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+      
+      <!-- Multi-Date Picker Column (md: 6 columns) -->
+      <section class="md:col-span-6 w-full bg-[#FFFFFF] rounded-[8px] border border-[#D6DEE5] p-4" aria-labelledby="picker-heading">
+        <div class="flex items-center justify-between pb-3 border-b border-[#D6DEE5]">
+          <h2 id="picker-heading" class="text-[16px] leading-[22px] font-semibold text-[#25313B] font-['Hanken_Grotesk']">
+            Select release dates
+          </h2>
+          <span class="font-mono-code text-[13px] font-semibold text-[#25313B]">May 2025</span>
+        </div>
+
+        <!-- Month calendar grid representation (Monday - Friday work calendar) -->
+        <div class="mt-3">
+          <!-- Calendar Days Header -->
+          <div class="grid grid-cols-7 gap-1 text-center font-mono-code text-[12px] text-[#5D6A75] py-1 border-b border-[#D6DEE5] mb-1.5">
+            <div>Mo</div>
+            <div>Tu</div>
+            <div>We</div>
+            <div>Th</div>
+            <div>Fr</div>
+            <div class="text-[#A2ABB3]">Sa</div>
+            <div class="text-[#A2ABB3]">Su</div>
+          </div>
+
+          <!-- Calendar Days Grid (Sample Month: May 2025 starting Thursday May 1) -->
+          <div class="grid grid-cols-7 gap-1 text-center font-mono-code text-[13px]">
+            <!-- Row 1: Apr 28-30 empty, May 1, 2, 3, 4 -->
+            <div class="h-9 flex items-center justify-center text-[#A2ABB3]"></div>
+            <div class="h-9 flex items-center justify-center text-[#A2ABB3]"></div>
+            <div class="h-9 flex items-center justify-center text-[#A2ABB3]"></div>
+            <!-- May 1 (past) -->
+            <div class="h-9 flex items-center justify-center text-[#A2ABB3] cursor-not-allowed">01</div>
+            <!-- May 2 (past) -->
+            <div class="h-9 flex items-center justify-center text-[#A2ABB3] cursor-not-allowed">02</div>
+            <!-- May 3 Weekend -->
+            <div class="h-9 flex items-center justify-center text-[#D6DEE5] cursor-not-allowed bg-[#F8FAFB] rounded-[4px]">03</div>
+            <!-- May 4 Weekend -->
+            <div class="h-9 flex items-center justify-center text-[#D6DEE5] cursor-not-allowed bg-[#F8FAFB] rounded-[4px]">04</div>
+
+            <!-- Row 2: May 5-11 (past) -->
+            <div class="h-9 flex items-center justify-center text-[#A2ABB3] cursor-not-allowed">05</div>
+            <div class="h-9 flex items-center justify-center text-[#A2ABB3] cursor-not-allowed">06</div>
+            <div class="h-9 flex items-center justify-center text-[#A2ABB3] cursor-not-allowed">07</div>
+            <div class="h-9 flex items-center justify-center text-[#A2ABB3] cursor-not-allowed">08</div>
+            <div class="h-9 flex items-center justify-center text-[#A2ABB3] cursor-not-allowed">09</div>
+            <div class="h-9 flex items-center justify-center text-[#D6DEE5] cursor-not-allowed bg-[#F8FAFB] rounded-[4px]">10</div>
+            <div class="h-9 flex items-center justify-center text-[#D6DEE5] cursor-not-allowed bg-[#F8FAFB] rounded-[4px]">11</div>
+
+            <!-- Row 3: May 12 (today) - May 18 -->
+            <!-- May 12: Today (sample date) -->
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] border border-[#25313B] font-semibold text-[#25313B] bg-[#FFFFFF] hover:bg-[#F3F6F8]" title="Today, 12 May">
+              12
+            </button>
+            <!-- May 13: Eligible -->
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] text-[#25313B] hover:bg-[#E5ECF0]">
+              13
+            </button>
+            <!-- May 14: Eligible -->
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] text-[#25313B] hover:bg-[#E5ECF0]">
+              14
+            </button>
+            <!-- May 15: Selected / Scheduled -->
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] bg-[#356F9A] text-white font-semibold" title="Selected: 15 May">
+              15
+            </button>
+            <!-- May 16: Eligible -->
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] text-[#25313B] hover:bg-[#E5ECF0]">
+              16
+            </button>
+            <!-- May 17 Weekend -->
+            <div class="h-9 flex items-center justify-center text-[#D6DEE5] cursor-not-allowed bg-[#F8FAFB] rounded-[4px]">17</div>
+            <!-- May 18 Weekend -->
+            <div class="h-9 flex items-center justify-center text-[#D6DEE5] cursor-not-allowed bg-[#F8FAFB] rounded-[4px]">18</div>
+
+            <!-- Row 4: May 19 - 25 -->
+            <!-- May 19: Eligible -->
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] text-[#25313B] hover:bg-[#E5ECF0]">
+              19
+            </button>
+            <!-- May 20: Eligible -->
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] text-[#25313B] hover:bg-[#E5ECF0]">
+              20
+            </button>
+            <!-- May 21: Selected / Scheduled -->
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] bg-[#356F9A] text-white font-semibold" title="Selected: 21 May">
+              21
+            </button>
+            <!-- May 22: Newly toggled/selected in picker -->
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] border-2 border-[#356F9A] text-[#356F9A] font-semibold bg-[#F3F6F8]" title="Selected to schedule">
+              22
+            </button>
+            <!-- May 23: Eligible -->
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] text-[#25313B] hover:bg-[#E5ECF0]">
+              23
+            </button>
+            <!-- May 24 Weekend -->
+            <div class="h-9 flex items-center justify-center text-[#D6DEE5] cursor-not-allowed bg-[#F8FAFB] rounded-[4px]">24</div>
+            <!-- May 25 Weekend -->
+            <div class="h-9 flex items-center justify-center text-[#D6DEE5] cursor-not-allowed bg-[#F8FAFB] rounded-[4px]">25</div>
+
+            <!-- Row 5: May 26 - 31 -->
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] text-[#25313B] hover:bg-[#E5ECF0]">26</button>
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] text-[#25313B] hover:bg-[#E5ECF0]">27</button>
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] text-[#25313B] hover:bg-[#E5ECF0]">28</button>
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] text-[#25313B] hover:bg-[#E5ECF0]">29</button>
+            <button type="button" class="h-9 flex items-center justify-center rounded-[8px] text-[#25313B] hover:bg-[#E5ECF0]">30</button>
+            <div class="h-9 flex items-center justify-center text-[#D6DEE5] cursor-not-allowed bg-[#F8FAFB] rounded-[4px]">31</div>
+            <div></div>
+          </div>
+        </div>
+
+        <!-- Quick legend / guidelines -->
+        <div class="mt-4 pt-3 border-t border-[#D6DEE5] flex flex-wrap items-center justify-between text-[12px] text-[#5D6A75] gap-2">
+          <div class="flex items-center space-x-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#356F9A] inline-block"></span>
+            <span>Selected date</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="w-2.5 h-2.5 rounded-full border border-[#25313B] inline-block"></span>
+            <span>Today (12 May)</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <span class="w-2.5 h-2.5 rounded-[2px] bg-[#F8FAFB] border border-[#D6DEE5] inline-block"></span>
+            <span>Weekend / non-work</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Selected-Dates List and Rules Column (md: 6 columns) -->
+      <section class="md:col-span-6 w-full space-y-4" aria-labelledby="schedule-heading">
+        
+        <!-- Explanation card beside the list -->
+        <div class="w-full bg-[#FFFFFF] rounded-[8px] border border-[#D6DEE5] p-4 text-[13px] leading-[20px] text-[#5D6A75]">
+          <p class="mb-1 text-[#25313B] font-semibold text-[14px]">Release guidelines</p>
+          <p>
+            A scheduled release becomes claimable at <span class="font-mono-code font-semibold text-[#25313B]">09:00</span> on its selected date. A claimed release cannot be cancelled.
+          </p>
+        </div>
+
+        <!-- Selected Dates Panel -->
+        <div class="w-full bg-[#FFFFFF] rounded-[8px] border border-[#D6DEE5] overflow-hidden">
+          <div class="px-4 py-3 border-b border-[#D6DEE5] flex items-center justify-between">
+            <h2 id="schedule-heading" class="text-[16px] leading-[22px] font-semibold text-[#25313B] font-['Hanken_Grotesk']">
+              Selected dates
+            </h2>
+            <span class="text-[13px] text-[#5D6A75]">3 dates</span>
+          </div>
+
+          <!-- Compact selected-dates list: exactly 44px rows with 1px horizontal rules -->
+          <div class="divide-y divide-[#D6DEE5]" role="list">
+            
+            <!-- Existing row 1: 15 May 2025 -->
+            <div class="parking-record-row min-h-[44px] py-2 px-4 flex items-center justify-between gap-3" role="listitem">
+              <div class="flex items-center space-x-3">
+                <span class="font-mono-code text-[14px] font-semibold text-[#25313B]">
+                  15 May 2025
+                </span>
+                <span class="inline-flex items-center text-[12px] font-medium text-[#8A5C14] border border-[#8A5C14] rounded px-2 py-0.5 leading-none">
+                  Scheduled
+                </span>
+              </div>
+              <!-- Touch-sized cancel control (at least 44px hit area on phone) -->
+              <button type="button" class="h-11 px-3 text-[13px] font-medium text-[#A53B36] border border-[#D6DEE5] hover:border-[#A53B36] hover:bg-[#FDF7F7] rounded-[8px] flex items-center justify-center shrink-0" aria-label="Cancel release for 15 May 2025">
+                Cancel
+              </button>
+            </div>
+
+            <!-- Existing row 2: 21 May 2025 -->
+            <div class="parking-record-row min-h-[44px] py-2 px-4 flex items-center justify-between gap-3" role="listitem">
+              <div class="flex items-center space-x-3">
+                <span class="font-mono-code text-[14px] font-semibold text-[#25313B]">
+                  21 May 2025
+                </span>
+                <span class="inline-flex items-center text-[12px] font-medium text-[#8A5C14] border border-[#8A5C14] rounded px-2 py-0.5 leading-none">
+                  Scheduled
+                </span>
+              </div>
+              <!-- Touch-sized cancel control -->
+              <button type="button" class="h-11 px-3 text-[13px] font-medium text-[#A53B36] border border-[#D6DEE5] hover:border-[#A53B36] hover:bg-[#FDF7F7] rounded-[8px] flex items-center justify-center shrink-0" aria-label="Cancel release for 21 May 2025">
+                Cancel
+              </button>
+            </div>
+
+            <!-- Newly chosen row in picker: 22 May 2025 -->
+            <div class="parking-record-row min-h-[44px] py-2 px-4 flex items-center justify-between gap-3 bg-[#F8FAFB]" role="listitem">
+              <div class="flex items-center space-x-3">
+                <span class="font-mono-code text-[14px] font-semibold text-[#25313B]">
+                  22 May 2025
+                </span>
+                <span class="inline-flex items-center text-[12px] font-medium text-[#356F9A] border border-[#356F9A] bg-[#FFFFFF] rounded px-2 py-0.5 leading-none">
+                  New selection
+                </span>
+              </div>
+              <!-- Touch-sized remove control -->
+              <button type="button" class="h-11 px-3 text-[13px] font-medium text-[#5D6A75] border border-[#D6DEE5] hover:border-[#25313B] hover:text-[#25313B] rounded-[8px] flex items-center justify-center shrink-0" aria-label="Remove 22 May 2025 from selection">
+                Remove
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Bottom Action Area inside panel: The one primary action "Schedule these dates" -->
+          <div class="p-4 bg-[#FFFFFF] border-t border-[#D6DEE5]">
+            <button type="button" class="w-full h-[44px] rounded-[8px] bg-[#356F9A] hover:bg-[#2C5D82] active:bg-[#254F70] text-white font-medium text-[15px] flex items-center justify-center transition-colors">
+              Schedule these dates
+            </button>
+            <p class="mt-2 text-center text-[12px] text-[#5D6A75]">
+              Applies to all selected dates in one save.
+            </p>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- Deliberate spacing rhythm pause before end of work area -->
+    <div class="h-8"></div>
+
+  </main>
+
+</body>
+</html>

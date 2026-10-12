@@ -56,7 +56,8 @@ if [ "$PLATFORM" = mac ]; then
   ok "Homebrew $(brew --version | head -1 | cut -d' ' -f2)"
 else
   need=()
-  for p in git curl ca-certificates; do dpkg -s "$p" >/dev/null 2>&1 || need+=("$p"); done
+  # python3: the design step runs the ui-ux-pro-max skill's search with it (src/design/uiux-skill.ts)
+  for p in git curl ca-certificates python3; do dpkg -s "$p" >/dev/null 2>&1 || need+=("$p"); done
   if [ ${#need[@]} -gt 0 ]; then
     note "Installing ${need[*]} (asks for your Linux password)"
     quiet sudo apt-get update -qq && apt_install "${need[@]}"
@@ -68,6 +69,13 @@ else
   fi
 fi
 ok "git $(git --version | cut -d' ' -f3)"
+# Python 3 for the design step's ui-ux-pro-max skill (its search is a Python script; no packages needed)
+if [ "$PLATFORM" = mac ] && ! python3 --version >/dev/null 2>&1; then
+  note "Installing Python 3"
+  brew install -q python
+fi
+if python3 --version >/dev/null 2>&1; then ok "$(python3 --version)"
+else note "Python 3 was not installed; the design step draws without the ui-ux-pro-max skill until it is (factory doctor checks it)"; fi
 
 # ---------- 2. Node 22 ----------
 bold "2/7 Node.js $NODE_MAJOR"

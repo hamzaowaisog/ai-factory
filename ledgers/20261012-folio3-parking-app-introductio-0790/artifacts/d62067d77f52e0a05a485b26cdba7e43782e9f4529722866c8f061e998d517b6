@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Folio3 Parking — Sign In</title>
+  <!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F3F6F8;
+      color: #25313B;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 22px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Motion Tokens & Keyframes */
+    @keyframes entranceFadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Parking record settle signature motion token */
+    @keyframes recordSettle {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Entry check status dot breathing animation */
+    @keyframes dotBreathe {
+      0%, 100% {
+        opacity: 0.96;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header & Brand */
+    header {
+      padding: 24px 32px;
+      animation: entranceFadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #25313B;
+    }
+
+    .p-logo-badge {
+      width: 28px;
+      height: 28px;
+      background-color: #356F9A;
+      color: #FFFFFF;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .brand-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 20px;
+      color: #25313B;
+      letter-spacing: -0.01em;
+    }
+
+    /* Main Container & Column Layout */
+    main {
+      flex: 1 0 auto;
+      padding: 40px 32px 64px 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      animation: entranceFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .auth-column {
+      width: 100%;
+      max-width: 360px;
+      text-align: left;
+    }
+
+    /* Typography */
+    h1.page-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 36px;
+      color: #25313B;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .lead-text {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 22px;
+      color: #5D6A75;
+      margin-bottom: 24px;
+    }
+
+    /* Inline Error State Banner */
+    .error-banner {
+      background-color: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-left: 3px solid #A53B36;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: recordSettle 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .error-banner-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .error-indicator-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #A53B36;
+      margin-top: 7px;
+      flex-shrink: 0;
+    }
+
+    .error-content {
+      flex: 1;
+    }
+
+    .error-status-tag {
+      font-family: 'Source Sans 3', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      line-height: 16px;
+      color: #A53B36;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
+    }
+
+    .error-message {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 20px;
+      color: #25313B;
+    }
+
+    /* Retry Action Button */
+    .retry-button {
+      align-self: flex-start;
+      height: 36px;
+      padding: 0 16px;
+      background-color: #FFFFFF;
+      color: #25313B;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .retry-button:hover {
+      background-color: #F3F6F8;
+      border-color: #D6DEE5;
+      color: #25313B;
+    }
+
+    .retry-button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #356F9A;
+    }
+
+    .retry-button:active {
+      background-color: #E6ECF0;
+    }
+
+    /* Primary Google Action Button */
+    .btn-google {
+      width: 100%;
+      height: 44px;
+      background-color: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: #25313B;
+      text-decoration: none;
+      transition: background-color 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-color 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.05s ease;
+      user-select: none;
+      margin-bottom: 16px;
+    }
+
+    .btn-google:hover {
+      background-color: #FFFFFF;
+      border-color: #B5C3CF;
+      box-shadow: 0 1px 3px rgba(37, 49, 59, 0.06);
+    }
+
+    .btn-google:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #356F9A;
+      border-color: #356F9A;
+    }
+
+    .btn-google:active {
+      background-color: #F3F6F8;
+      border-color: #D6DEE5;
+      transform: translateY(1px);
+    }
+
+    .google-g-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* Quiet explanatory note */
+    .access-note {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 13px;
+      line-height: 20px;
+      color: #5D6A75;
+    }
+
+    /* Footer */
+    footer {
+      padding: 24px 32px;
+      border-top: 1px solid #D6DEE5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-place {
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 13px;
+      line-height: 18px;
+      color: #5D6A75;
+    }
+
+    @media (max-width: 640px) {
+      header {
+        padding: 20px 20px;
+      }
+      main {
+        padding: 24px 20px 48px 20px;
+      }
+      footer {
+        padding: 20px 20px;
+      }
+      .auth-column {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header with Wordmark and Square P Logo -->
+  <header>
+    <div class="brand-mark">
+      <div class="p-logo-badge" aria-hidden="true">P</div>
+      <span class="brand-title">Folio3 Parking</span>
+    </div>
+  </header>
+
+  <!-- Left-Aligned Narrow Column Container with Generous Empty Space -->
+  <main>
+    <div class="auth-column">
+      <!-- Exact Heading -->
+      <h1 class="page-title">Sign in</h1>
+
+      <!-- Exact One Sentence -->
+      <p class="lead-text">Use your Folio3 Google account to manage parking.</p>
+
+      <!-- Error State: Inline Error Message and Retry Action -->
+      <div class="error-banner" role="alert">
+        <div class="error-banner-header">
+          <div class="error-indicator-dot" aria-hidden="true"></div>
+          <div class="error-content">
+            <div class="error-status-tag">Failed</div>
+            <div class="error-message">The data failed to load. Please verify your connection and try again.</div>
+          </div>
+        </div>
+        <button type="button" class="retry-button">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M13.65 2.35A7.95 7.95 0 0 0 8 0C3.58 0 0 3.58 0 8s3.58 8 8 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 8 14c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L9 7h7V0l-2.35 2.35z" fill="#5D6A75"/>
+          </svg>
+          Retry
+        </button>
+      </div>
+
+      <!-- Primary Action: Continue with Google -->
+      <button type="button" class="btn-google">
+        <svg class="google-g-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+        </svg>
+        <span>Continue with Google</span>
+      </button>
+
+      <!-- Quiet Explanatory Line -->
+      <p class="access-note">Access is for active Folio3 employees.</p>
+    </div>
+  </main>
+
+  <!-- Grounded Workspace Footer -->
+  <footer>
+    <span class="footer-place">Folio3 San Francisco office</span>
+  </footer>
+
+</body>
+</html>

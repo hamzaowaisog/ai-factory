@@ -298,6 +298,17 @@ export interface ExecuteResult { status: string; message: string }
 
 /** until: stop, without running it, at the first step after this one (the spec eval stops after specify). */
 export async function execute(runId: string, echo: Log = () => undefined, opts: { until?: string } = {}): Promise<ExecuteResult> {
+  for (;;) {
+    const r = await executeOnce(runId, echo, opts);
+    if (r.status !== "waiting") return r;
+    // A card answered while this executor still held the lock: the executor that answer started found the repo busy and quit, so
+    // nobody else carries the run on (the 2026-10-12 run stalled so, one module's card answered while the other's spec was written).
+    const s = replay(Ledger.open(runId).events());
+    if (s.openCard || s.status !== "running") return r;
+  }
+}
+
+async function executeOnce(runId: string, echo: Log, opts: { until?: string }): Promise<ExecuteResult> {
   const ledger = Ledger.open(runId);
   // the run trace: every console line, model turn, tool call, container phase and gate, with timestamps
   const trace = new Tracer(ledger.dir, { echo, putBlob: (c) => ledger.putArtifact(c) });

@@ -6,6 +6,8 @@ export const MAX_ATTEMPTS_PER_TASK = 6;
 export const MAX_WAIVERS = 3;
 export const MAX_INTERRUPTIONS = 3;
 export const MAX_REJECTIONS = 2;
+/** A design sent back on its approval card is redrawn; a look is settled over a few rounds, so it has a limit of its own. */
+export const MAX_DESIGN_REJECTIONS = 5;
 
 /** Class caps in USD (bugfix $5, S $5, M $10, L $20). */
 export function costCapUsd(changeClass: ChangeClass | undefined, complexity: Complexity | undefined): number {
@@ -49,7 +51,8 @@ export interface CapHit {
 function rejectionCount(state: RunState): number {
   if (state.info.autonomous !== false) return state.rejections;
   const by = new Map<string, number>();
-  for (const d of state.decisions) if (d.decision === "reject") { const k = d.cardId.replace(/-[0-9a-f]+$/, ""); by.set(k, (by.get(k) ?? 0) + 1); }
+  // (the design card has its own limit, MAX_DESIGN_REJECTIONS)
+  for (const d of state.decisions) if (d.decision === "reject" && !/^design-[0-9a-f]{8}$/.test(d.cardId)) { const k = d.cardId.replace(/-[0-9a-f]+$/, ""); by.set(k, (by.get(k) ?? 0) + 1); }
   return Math.max(0, ...by.values());
 }
 
@@ -65,6 +68,7 @@ export function checkCaps(state: RunState, maxAttempts = MAX_ATTEMPTS_PER_TASK):
     return { kind: "wall", waivable: true, reason: `Active-time limit reached: ${Math.round(state.activeMs / 60_000)} of ${Math.round(wall / 60_000)} min`, proposal: { wallMinutes: Math.round((2 * wall) / 60_000) } };
   }
   if (state.waivers > MAX_WAIVERS) return { kind: "waivers", waivable: false, reason: `More than ${MAX_WAIVERS} waivers in this run` };
+  if (state.designRejections >= MAX_DESIGN_REJECTIONS) return { kind: "rejections", waivable: false, reason: `The design was sent back ${state.designRejections} times; let's talk before trying again` };
   const rejections = rejectionCount(state);
   if (rejections >= MAX_REJECTIONS) return { kind: "rejections", waivable: false, reason: `Rejected ${rejections} times; let's talk before trying again` };
   for (const r of state.steps.values()) {

@@ -407,8 +407,8 @@ describe("credit guards, checked before anything costs money", () => {
     const info = replay(Ledger.open(await startFromJira("shop-api", "SHOP-1", 3, () => undefined)).events()).info;
     expect(info.models).toEqual({ preset: "economy", picks: { plan: "gpt-6-sol" } });
     expect(info.routes!.plan).toMatchObject({ model: "gpt-6-sol", source: "pick" });
-    writeFileSync(file, stringify({ ...cfg, jira: { ...cfg.jira, models: { critic: "gpt-6-sol" } } }));
-    await expect(startFromJira("shop-api", "SHOP-1", 3, () => undefined)).rejects.toThrow(/critic always runs on Claude Opus 5\.5/);
+    writeFileSync(file, stringify({ ...cfg, jira: { ...cfg.jira, models: { critic: "claude-sonnet-5-5" } } }));
+    await expect(startFromJira("shop-api", "SHOP-1", 3, () => undefined)).rejects.toThrow(/critic: claude-sonnet-5-5 is not offered for this step/);
   });
 
   it("epics, sub-tasks and short descriptions are skipped for free, with one comment each", async () => {

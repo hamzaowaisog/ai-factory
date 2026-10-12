@@ -25,6 +25,7 @@ import { estimateGroundStep, newBuildBehaviour } from "./estimate-ground.js";
 import { breakdownStep, estimateStep, setRecordsSource, setTaskRecordsSource } from "./estimate.js";
 import { designQuality, designStep, mapDesign, MAX_DESIGN_REVISIONS } from "./design.js";
 import type { StepContext, StepDef, StepOutcome } from "./framework.js";
+import { designAnswer } from "./design-fake.js";
 import { setProviderFactory } from "./think.js";
 import { lightUi, LIGHT_UI_REQS } from "./lane.js";
 import { NO_TRACE } from "../util/trace.js";
@@ -34,8 +35,8 @@ const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
 let answer: (system: string) => unknown = () => { throw new Error("the model must not be called"); };
 let modelCalls = 0;
 const provider: Provider = {
-  start(): Conversation {
-    return { async next(_m?: unknown): Promise<Turn> { modelCalls++; return { calls: [{ id: "s", name: "submit_result", input: answer("") }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
+  start(_m, _e, system, user): Conversation {
+    return { async next(_m?: unknown): Promise<Turn> { modelCalls++; return { calls: [{ id: "s", name: "submit_result", input: designAnswer(system, user, answer("")) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
 
@@ -496,6 +497,8 @@ describe("design step", () => {
       return ledger;
     }
     const queue = (...xs: unknown[]) => { answer = () => { if (!xs.length) throw new Error("one model call too many"); return xs.shift(); }; };
+    /** The queued answers, then a whole design for the redraw's calls: its screen list and each of its pages. */
+    const queueThenRedraw = (whole: unknown, ...xs: unknown[]) => { answer = () => (xs.length ? xs.shift() : whole); };
     const latest = (ledger: Ledger) => ledger.getJson<{ screens: { id: string; mock?: { title: string } }[]; rework?: { mode: string; patched: string[]; lines: string[]; kept: string[] }[]; revision?: number }>(replay(ledger.events()).steps.get("design")!.outputs[0]!);
     const item = (o: object) => ({ part: "screen", screen: "S-2", quote: "the booking page is crowded", change: "fewer blocks, clearer steps", confidence: "high", ...o });
 
@@ -521,10 +524,11 @@ describe("design step", () => {
     });
     it("redraws everything when the note is about the structure, and says so", async () => {
       const ledger = await rejected("the whole flow is wrong, there should be a basket page");
-      queue(triage({ verdict: "redraw", items: [item({ part: "screen", screen: undefined, confidence: "low" })] }), dress(three() as never));
+      queueThenRedraw(dress(three() as never), triage({ verdict: "redraw", items: [item({ part: "screen", screen: undefined, confidence: "low" })] }));
       modelCalls = 0;
       expect((await exec(ledger, designStep)).kind).toBe("done");
-      expect(modelCalls).toBe(2);
+      // the read of the note, the screen list, and a call per page
+      expect(modelCalls).toBe(5);
       expect(latest(ledger).rework![0]).toMatchObject({ mode: "redraw" });
       expect(latest(ledger).rework![0]!.lines[0]).toMatch(/organised, so I redrew all of it/);
     });
@@ -541,10 +545,11 @@ describe("design step", () => {
     it("falls back to a full redraw when the fixed page keeps failing its checks", async () => {
       const ledger = await rejected("the booking page is crowded");
       const wrong = { screen: sc("S-9", "/other", "Book your flight", ["REQ-2"]) };
-      queue(triage({ items: [item({})] }), wrong, wrong, dress(three() as never));
+      queueThenRedraw(dress(three() as never), triage({ items: [item({})] }), wrong, wrong);
       modelCalls = 0;
       expect((await exec(ledger, designStep)).kind).toBe("done");
-      expect(modelCalls).toBe(4);
+      // the read of the note, the fix and its one retry, then the redraw: the screen list and a call per page
+      expect(modelCalls).toBe(7);
       expect(latest(ledger).rework![0]!.lines[0]).toMatch(/did not hold up to the checks/);
     });
   });

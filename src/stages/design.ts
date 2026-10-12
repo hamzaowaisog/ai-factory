@@ -3,7 +3,7 @@
 // requirements it serves, and a reason for each requirement that needs no screen. Code checks the links
 // both ways. It is an inventory of screens with sample content, not a finished design: a person approves it at E1b, and it
 // becomes the count of screens, flows and reused components for the UI work.
-import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
@@ -18,8 +18,8 @@ import type { Ledger } from "../ledger/ledger.js";
 import { restyleChosen, type ClarifyResult } from "./clarify.js";
 import { btnLabels, DesignApp, DesignLocale, DesignTheme, MockBlockFull, ScreenMock, ScreenMockFull, Switcher } from "../contracts/artifacts.js";
 import { failure } from "../gates/engine.js";
-import { designRoute } from "../config/design-route.js";
-import { usesDesignEngine } from "./routing.js";
+import { designRoute, drawsPages } from "../config/design-route.js";
+import { routeFor, usesDesignEngine } from "./routing.js";
 import { drawWithStitch, stitchOnExistingApp, type StitchDesign } from "./design-stitch.js";
 import { header, lastFailureData, outputOf, readOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
 import { lightUi } from "./lane.js";
@@ -27,11 +27,13 @@ import { lookFromRefs, lookRefs, matchFamilies, refBrief as clientRefBrief, refF
 import type { DesignRefsArt } from "./design-refs.js";
 import { ESTIMATE_SOURCES, intentOf, inventoryNamed, repoInventory, sourcesReady, specOf, type DesignSources } from "./design-inputs.js";
 import { briefFor, fieldOf, pickIndustries } from "../design/refs/index.js";
-import { uiuxSection } from "../design/uiux-skill.js";
+import { lookResearch } from "../design/research.js";
+import { tastePageRules, TASTE_SKILL_PATH } from "../design/stitch-taste.js";
 import { fitRefs, themeFit, type FitRefs } from "../design/refs/fit.js";
 import { ensureMeasured } from "../design/refs/measure.js";
 import { lookBrief, lookKey, lookRepeats, readingFit, recentLooks, type Look } from "../design/looks.js";
 import { S, think, UNTRUSTED_IMAGE_NOTE, UNTRUSTED_NOTE } from "./think.js";
+import { asWeb, webOnly } from "../config/platform.js";
 import { carriedLines, carries } from "./gate-questions.js";
 import { buildDemo, demoStates, themeValues } from "../design/demo.js";
 import { contrastIssues } from "../design/palette.js";
@@ -495,15 +497,14 @@ const cut = (from: string, to: string): string => RULES.slice(RULES.indexOf(from
 const ART_RULES = (): string => cut("- ART DIRECTION.", "- MOCK CONTENT.");
 const MOCK_RULES = (): string => cut("- MOCK CONTENT.", "- If design frames");
 
-// ---------- a large request: the screen list first, then each page on its own ----------
+// ---------- the screen list first, then each page on its own ----------
 
-/**
- * Above this many requirements the design is drawn in parts. One answer holding every page's sample content, full data and
- * translations does not fit the model's output: the 2026-10-05 estimate run (136 requirements) was cut off at 64K tokens
- * after 8.6 minutes, $1.52 thrown away, and the retry asked for the same answer again.
+/*
+ * Every design is drawn in parts, whatever its size. One answer holding every page's sample content, full data and translations
+ * does not fit the model's output on a large request: the 2026-10-05 estimate run (136 requirements) was cut off at 64K tokens
+ * after 8.6 minutes, $1.52 thrown away, and the retry asked for the same answer again. A small request was one answer until
+ * 2026-10-12, and its Preview stayed empty until the whole design came back (run dd8b, 22 requirements, 11 pages).
  */
-// ponytail: counted in requirements, not screens (unknown before the list); a 7-requirement design was one screen, 2.5 KB
-export const DRAW_IN_PARTS_AT = 24;
 /** pages drawn at once */
 const PAGES_SIDE_BY_SIDE = 4;
 
@@ -513,14 +514,32 @@ const PlanScreen = DesignOut.shape.screens.element.omit({ mock: true, mockFull: 
   /** one sentence on what the user sees and does there: the page call's brief */
   purpose: z.string().min(1).max(240),
 });
-/** The screen list of a large request: every field of the design but the pages' content. */
+/** The screen list: every field of the design but the pages' content. */
 export const DesignPlan = DesignOut.extend({ screens: z.array(PlanScreen).min(1) });
 /** One page's content, drawn against the fixed screen list and look. */
 export const DesignPage = z.object({ mock: ScreenMock, mockFull: ScreenMockFull.optional() });
 
-const PLAN_PAGES = `- PAGES ARE DRAWN NEXT. This request is large, so here you only list the screens and choose the look; each page's content is drawn afterwards, one page per call, from your list. For every screen give "title" (the page's name as its heading reads: "Order history", never "Page 3") and "purpose" (one sentence: what the user sees and does there). Leave out "mock" and "mockFull".
+const PLAN_PAGES = `- PAGES ARE DRAWN NEXT. Here you only list the screens and choose the look; each page's content is drawn afterwards, one page per call, from your list. For every screen give "title" (the page's name as its heading reads: "Order history", never "Page 3") and "purpose" (one sentence: what the user sees and does there). Leave out "mock" and "mockFull".
 `;
 const PLAN_RULES = (): string => RULES.replace(MOCK_RULES(), PLAN_PAGES);
+
+/**
+ * How a design drawn by Claude or OpenAI reads the stitch-design-taste skill's page rules (the same three parts the Stitch screen
+ * list gets). The pages here are built from the factory's own components and a theme of fixed choices, so the skill's lines on
+ * CSS, font names and image links have nothing to act on, and the theme's own choices stand.
+ */
+const TASTE_PAGE_NOTE = `TASTE. The rules below are the layout rules, anti-patterns and component replacements of the stitch-design-taste skill, the same ones a design drawn by Google Stitch is composed by. They decide what a page is made of and what its words and figures say:
+- Where a page would have a component from the left column of the table, draw the one on the right with the blocks you have: one headline figure with its context and then a dense table, never a row of four figures each with a small chart and a green rise; a table or a list, never a grid of near-equal cards; never three equal cards in a row; pages that differ in their blocks where their content differs, never one template repeated.
+- Figures are real and uneven with their unit and period, never round filler ("99.9%", "10K+", "24/7"). A button says what it does in the product's words ("Plan your first route"), never "Get started". An icon goes on a button only where it speeds up recognition, never on every one.
+- Their lines about fonts by name, pure black, shadows, CSS, image links and motion do not apply here: the theme and the factory's components set those, and the rules above them win (a "glass" surface or a "band" hero stays allowed where those rules allow it). Their lines about heroes, pricing, testimonials, logo strips and footers apply to a public marketing page alone.
+- The requirements win over them: a block a requirement asks for is drawn.`;
+/** The skill's page rules as a briefing section, for a product with no look of its own to extend; none when the skill is not installed. */
+function tastePages(log: (line: string) => void): ResolvedSection[] {
+  if (!existsSync(TASTE_SKILL_PATH)) { log("design: the stitch-design-taste skill is not installed; drawn without its page rules"); return []; }
+  return [S.template("taste", `${TASTE_PAGE_NOTE}\n\n${tastePageRules()}`)];
+}
+/** That section among a design's rules, for the calls that draw one page each. */
+const tasteOf = (rules: ResolvedSection[]): ResolvedSection[] => rules.filter((r) => r.spec.id === "taste");
 
 const PAGE_RULES = `You are a principal UI/UX engineer drawing ONE page of a design. The screen list, the flow and the look were decided first and are fixed: "design" holds them, "this-page" is the page to draw.
 - Return "mock" for this page (and "mockFull" where FULL DATA asks for it), and nothing else. Its id, route, requirements, states and app stay as listed.
@@ -545,8 +564,8 @@ export function failuresFor(failures: Failure[], page?: string): Failure[] {
 }
 
 /**
- * The pages a retry of a one-answer design draws again: those its failures name, when every failure names a page that was drawn
- * and none is about the list or the look. Undefined when the whole design has to be drawn again.
+ * The pages a retry of a one-answer design (drawn before every design was drawn in parts) draws again: those its failures name,
+ * when every failure names a page that was drawn and none is about the list or the look. Undefined when the whole design has to be drawn again.
  */
 export function pagesToRedraw(ids: string[], failures: Failure[]): string[] | undefined {
   if (!failures.length || failures.some((f) => f.check.startsWith("runner-") || PLAN_CHECKS.has(f.check))) return undefined;
@@ -563,10 +582,11 @@ const REDRAW_RULES = `- "rejected-page" is this page as you drew it before. It f
 `;
 
 /**
- * A small design (one answer) that failed checks naming its pages: only those pages are drawn again, each against the rejected
- * design's list and look, and the rest are kept. On the 2026-10-06 web run one cut-off label had every page drawn again ($0.86).
+ * A one-answer design (a run from before every design was drawn in parts) that failed checks naming its pages: only those pages
+ * are drawn again, each against the rejected design's list and look, and the rest are kept. On the 2026-10-06 web run one cut-off
+ * label had every page drawn again ($0.86). Preview shows the kept pages and fills in the fixed ones as they come.
  */
-async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" | "reading" | "feedback">, rejected: z.infer<typeof DesignOut>, ids: string[]): Promise<{ ok: true; output: z.infer<typeof DesignOut>; model: string; risks: string[] } | { ok: false; outcome: StepOutcome }> {
+async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" | "reading" | "feedback" | "rules">, rejected: z.infer<typeof DesignOut>, ids: string[]): Promise<{ ok: true; output: z.infer<typeof DesignOut>; model: string; risks: string[] } | { ok: false; outcome: StepOutcome }> {
   const ears = new Map(b.spec.requirements.map((q) => [q.id, q.ears]));
   const titleOf = (x: ScreenT) => x.mock?.title ?? x.id;
   const design = {
@@ -575,6 +595,10 @@ async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" 
   };
   ctx.log(`design: drawing again only ${ids.join(", ")} (${rejected.screens.length - ids.length} of ${rejected.screens.length} pages kept)`);
   let model = "";
+  const plan = { ...rejected, screens: rejected.screens.map(({ mock: _m, mockFull: _f, ...x }) => ({ ...x, title: titleOf(x as ScreenT), purpose: titleOf(x as ScreenT) })) };
+  const shown = new Map(rejected.screens.filter((x) => !ids.includes(x.id)).map((x) => [x.id, x] as const));
+  const draft = () => draftPreview(ctx, b.spec, plan, shown, { drawn: shown.size, total: rejected.screens.length, failed: 0 });
+  draft();
   const drawn = await inPool(rejected.screens.filter((x) => ids.includes(x.id)), PAGES_SIDE_BY_SIDE, async (old): Promise<{ screen: ScreenT } | { outcome: StepOutcome }> => {
     const { mock: _m, mockFull: _f, ...entry } = old;
     const cited = b.reading && entry.refs?.length ? { ...b.reading, refs: b.reading.refs.filter((r) => entry.refs!.includes(r.id)) } : undefined;
@@ -582,6 +606,7 @@ async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" 
       stage: "design", label: `design ${old.id} "${titleOf(old)}"`, route: "design", cls: "read-large", budgetTokens: 30000, tools: [], schema: DesignPage, maxTurns: 3,
       sections: [
         S.template("tpl", PAGE_RULES + REDRAW_RULES + MOCK_RULES() + UNTRUSTED_NOTE),
+        ...tasteOf(b.rules),
         ...(cited?.refs.length ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
         S.artifact("design", "design-plan", design),
         S.artifact("this-page", "design-plan", { ...entry, title: titleOf(old) }),
@@ -595,7 +620,10 @@ async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" 
     });
     if (!r.ok) return { outcome: r.outcome };
     model = r.model;
-    return { screen: { ...old, mock: r.output.mock, ...(r.output.mockFull ? { mockFull: r.output.mockFull } : {}) } };
+    const screen: ScreenT = { ...old, mock: r.output.mock, ...(r.output.mockFull ? { mockFull: r.output.mockFull } : {}) };
+    shown.set(old.id, screen);
+    draft();
+    return { screen };
   });
   const stopped = drawn.find((d): d is { outcome: StepOutcome } => "outcome" in d);
   if (stopped) return { ok: false, outcome: stopped.outcome };
@@ -605,9 +633,9 @@ async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" 
 
 interface PartsBrief {
   spec: Spec; reqText: string; frames: string[];
-  /** the mode's own rules (existing app, restyle, starter, references), as in the one-answer call */
+  /** the mode's own rules (existing app, restyle, starter, references) */
   rules: ResolvedSection[];
-  /** the one-answer call's briefing sections (requirements, earlier design, existing app, references, recent looks, feedback) */
+  /** the screen list's briefing sections (requirements, earlier design, existing app, references, recent looks, feedback) */
   context: ResolvedSection[];
   existing: boolean; refs: FitRefs; recent: Look[]; fromRefs: boolean; earlierTheme?: Theme | undefined;
   inv?: DesignInventory | undefined; reading?: DesignRefsArt | undefined; earlierScreens: ScreenT[]; feedback: string;
@@ -640,7 +668,7 @@ export function draftPreview(ctx: Pick<StepContext, "ledger" | "state" | "runId"
 }
 
 /**
- * A large request's design: one call lists the screens and chooses the look (checked before any page is paid for), then each page
+ * A design: one call lists the screens and chooses the look (checked before any page is paid for), then each page
  * is drawn on its own against that list, a few at a time, with one more try for a page that fails its checks. The result has the
  * one-answer call's shape, so the step's checks and the demo measure it the same way.
  */
@@ -650,7 +678,7 @@ async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true;
     sections: [S.template("tpl", PLAN_RULES()), ...b.rules, ...b.context, S.task("List the screens and choose the look; the pages are drawn next.")],
   });
   if (!p.ok) return p;
-  const plan = p.output;
+  const plan = webOnly(ctx.state.info.mode, ctx.project) ? asWeb(p.output) : p.output;
   const keptLook = !!b.earlierTheme && JSON.stringify(b.earlierTheme) === JSON.stringify(plan.theme);
   const listed = [
     ...mapFailures(mapDesign(b.spec.requirements.map((q) => q.id), plan as never, b.frames)),
@@ -694,6 +722,7 @@ async function drawInParts(ctx: StepContext, b: PartsBrief): Promise<{ ok: true;
         stage: "design", label: `design ${entry.id} "${title}"`, route: "design", cls: "read-large", budgetTokens: 30000, tools: [], schema: DesignPage, maxTurns: 3,
         sections: [
           S.template("tpl", PAGE_RULES + MOCK_RULES() + UNTRUSTED_NOTE),
+          ...tasteOf(b.rules),
           ...(cited?.refs.length ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
           S.artifact("design", "design-plan", design),
           S.artifact("this-page", "design-plan", { ...entry, title, purpose }),
@@ -918,9 +947,12 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       // route-source logging: which engine and tier draw this design, and where each came from
       if (usesDesignEngine(ctx.project)) {
         const dr = designRoute(ctx.project);
-        const line = `design: engine ${dr.engine} (${dr.source.engine}), tier ${dr.tier} (${dr.source.tier}): ${dr.ladder.map((x) => `${x.tier} ${x.model}`).join(" → ")}${dr.dropped ? `; ${dr.dropped}` : ""}`;
+        // a planner picked with Google Stitch at the start runs in place of the tier's model (routing.ts stitchPick)
+        const planner = drawsPages(dr.engine) && routeFor(ctx.project, "design").model !== dr.ladder[0]!.model ? routeFor(ctx.project, "design").model : undefined;
+        const line = planner ? `design: engine ${dr.engine} (${dr.source.engine}), planned by ${planner} (pick)`
+          : `design: engine ${dr.engine} (${dr.source.engine}), tier ${dr.tier} (${dr.source.tier}): ${dr.ladder.map((x) => `${x.tier} ${x.model}`).join(" → ")}${dr.dropped ? `; ${dr.dropped}` : ""}`;
         ctx.log(line);
-        ctx.trace.event("route.design", line, { engine: dr.engine, tier: dr.tier, source: dr.source, ladder: dr.ladder });
+        ctx.trace.event("route.design", line, { engine: dr.engine, tier: dr.tier, source: dr.source, ladder: dr.ladder, ...(planner ? { planner } : {}) });
       }
       // a spec from before problems were settled by questions, which the breakdown would refuse: settle it before drawing from it
       const back = await backToSettle(ctx, "design", src.spec);
@@ -928,7 +960,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const spec = specOf<Spec>(ctx.state, ctx.ledger, src);
       // the stitch engine: Claude plans and writes DESIGN.md (stitch-design-taste), Stitch draws; a sent-back Stitch design is redrawn whole
       const inv = repoInventory(ctx, src);
-      if (usesDesignEngine(ctx.project) && designRoute(ctx.project).engine === "stitch") {
+      if (usesDesignEngine(ctx.project) && drawsPages(designRoute(ctx.project).engine)) {
         const refused = stitchOnExistingApp(inv);
         if (refused) return { kind: "park", reason: refused };
         const refsSha = outputOf(ctx.state, "design-refs");
@@ -940,7 +972,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
           ...(prev?.engine === "stitch" ? { previous: prev } : {}),
           feedback: designRejections(ctx.state).slice(0, MAX_DESIGN_REVISIONS),
           ...(inv?.look ? { look: inv.look } : {}),
-          ...(refRead && !refRead.skipped && refRead.refs.length ? { refs: refRead } : {}),
+          ...(refRead && !refRead.skipped && refRead.refs.length ? { refs: refRead, refSections: referenceSections(ctx.state, refRead) } : {}),
         });
       }
       const frames = listedFrames(ctx.state.info.request ?? "");
@@ -978,23 +1010,24 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       // a look taken from match or inspire references replaces the field's library; layout references leave the look to it
       const fromRefs = !!reading && lookFromRefs(reading) && !existing;
       const matchOnly = fromRefs && lookRefs(reading).every((r) => r.role === "match");
-      // about to draw: read the live sites of the field's brands first (best effort), so the brief and the colour check use real colours
-      if (!existing && !fromRefs) await ensureMeasured(pickIndustries(reqText).map((x) => x.industry.id)).catch(() => undefined);
-      const refBrief = briefFor(reqText);
-      const refs = fitRefs(reqText);
-      // a new look is compared with the factory's latest projects; a change keeps its approved look, and an existing app keeps the repo's
-      const field = fieldOf(reqText);
-      // (a client's brand may repeat an earlier project's: no recent-looks check when every look reference is matched)
-      const recent = existing || restyle || (earlier && !earlier.skipped) || matchOnly ? [] : recentLooks(lookKey(ctx.state.info.estimate?.projectName, ctx.runId), undefined, field);
-      // a new look gets the ui-ux-pro-max skill's design system for the field, from the skill's own search (no model)
-      const uiux = await uiuxSection(reqText, ctx.state.info.estimate?.projectName ?? "", !existing && !restyle && !fromRefs && !(earlier && !earlier.skipped));
-      if (uiux.note) ctx.log(uiux.note);
+      // the research a new look stands on, the same on every engine (src/design/research.ts): the field's products with their live
+      // colours, the factory's latest looks (a change keeps its approved look, an existing app the repo's, a matched client brand
+      // may repeat an earlier project's), and the ui-ux-pro-max design system
+      const kept = !!earlier && !earlier.skipped;
+      const found = await lookResearch(reqText, {
+        projectName: ctx.state.info.estimate?.projectName, runId: ctx.runId, byField: !existing && !fromRefs,
+        compare: !(existing || restyle || kept || matchOnly), fresh: !existing && !restyle && !fromRefs && !kept, log: ctx.log,
+      });
+      const { brief: refBrief, refs, field, recent } = found;
+      const uiux = { section: found.uiux };
       const feedback = sentBack.length
         ? `The lead rejected the previous design ${sentBack.length === 1 ? "once" : `${sentBack.length} times`}. Their reasons, oldest first:\n${sentBack.map((x, i) => `${i + 1}. ${x}`).join("\n")}\nRedraw it so each reason is met: keep what they did not criticise, change what they did, and do not repeat the earlier screens, theme or sample data where they objected.${again?.fine.length && prev ? ` The lead said these pages are fine, so keep them as they are: ${prev.screens.filter((x) => again!.fine.includes(x.id)).map(screenName).join(", ")}.` : ""}`
         : "";
       const rules = [
         ...(existing ? [S.template("existing-rules", EXISTING_RULES)] : restyle ? [S.template("restyle-rules", RESTYLE_RULES)] : starter ? [S.template("starter-rules", STARTER_RULES)] : []),
         ...(reading ? [S.template("ref-rules", `${REF_RULES}\n${UNTRUSTED_IMAGE_NOTE}`)] : []),
+        // an existing app keeps the way its pages are composed; every other design is composed by the taste skill's page rules
+        ...(hasExistingLook(inv) ? [] : tastePages(ctx.log)),
       ];
       const context = [
         S.artifact("requirements", "spec", spec.requirements.map((q) => ({ id: q.id, ears: q.ears }))),
@@ -1008,26 +1041,21 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         ...(feedback ? [S.reference("design-feedback", feedback)] : []),
       ];
       const earlierTheme = earlier && !earlier.skipped ? earlier.theme : undefined;
-      const inParts = spec.requirements.length > DRAW_IN_PARTS_AT;
-      // one answer that failed checks naming its pages: only those pages are drawn again (a design in parts gets the same from
-      // its stored page answers)
-      const before = inParts ? undefined : lastFailureData(ctx.ledger, "design") as { rejected?: string } | undefined;
+      // a one-answer design from before every design was drawn in parts, which failed checks naming its pages: only those pages
+      // are drawn again (a design in parts gets the same from its stored page answers)
+      const before = lastFailureData(ctx.ledger, "design") as { rejected?: string } | undefined;
       const rejected = before?.rejected ? DesignOut.safeParse(ctx.ledger.getJson(before.rejected)) : undefined;
       const failedPages = rejected?.success ? pagesToRedraw(rejected.data.screens.map((x) => x.id), ctx.priorFailures) : undefined;
+      const redrawn = !!failedPages && !!rejected?.success;
       const r = failedPages && rejected?.success
-        ? await redrawPages(ctx, { spec, inv, reading, feedback }, rejected.data, failedPages)
-        : inParts
-        ? await drawInParts(ctx, {
+        ? await redrawPages(ctx, { spec, inv, reading, feedback, rules }, rejected.data, failedPages)
+        : await drawInParts(ctx, {
           spec, reqText, frames: frames.map((f) => f.id), rules, context, existing, refs, recent, fromRefs, earlierTheme, inv, reading,
           earlierScreens: earlier && !earlier.skipped ? earlier.screens as ScreenT[] : [], feedback,
           fine: prev && again?.fine.length ? prev.screens.filter((x) => again!.fine.includes(x.id)) : [],
-        })
-        : await think(ctx, {
-          stage: "design", route: "design", cls: "read-large", budgetTokens: 80000, tools: [], schema: DesignOut, maxTurns: 4,
-          sections: [S.template("tpl", RULES), ...rules, ...context, S.task("Draw the screen inventory.")],
         });
       if (!r.ok) return r.outcome;
-      const out = keepFine(r.output, again?.fine ?? [], prev, earlierTheme);
+      const out = keepFine(webOnly(ctx.state.info.mode, ctx.project) ? asWeb(r.output) : r.output, again?.fine ?? [], prev, earlierTheme);
       const map = mapDesign(spec.requirements.map((q) => q.id), out, frames.map((f) => f.id));
       const bad = [
         ...mapFailures(map),
@@ -1039,9 +1067,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const openRisks = "risks" in r ? [...r.risks] : [];
       if (bad.length && carries(ctx, bad)) openRisks.push(...carriedLines("the design checks", bad));
       else if (bad.length) {
-        // the one answer was rejected: a retry with these failures must not read it back
-        (r as { forget?: () => void }).forget?.();
-        return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}`, gate: true, ...(inParts ? {} : { data: { rejected: ctx.ledger.putJson(out) } }) };
+        return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}`, gate: true, ...(redrawn ? { data: { rejected: ctx.ledger.putJson(out) } } : {}) };
       }
       // the drawn demo is measured in a browser: text past the frame, cut off or on top of other text, and (with layout references)
       // a screen that does not show its reference's navigation or regions, go back for one fix round together (after that round
@@ -1056,7 +1082,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         if (!fixRound && (issues.length || refGaps.length)) {
           ctx.log(`design: ${issues.length} layout problem(s) and ${refGaps.length} reference layout gap(s) in the drawn demo, sent back for one fix`);
           const fixes = [...layoutFixes(issues), ...(reading ? refLayoutFixes(refGaps, reading) : [])].map((q) => failure(q.check, q.message));
-          return { kind: "fail", category: "other", failures: fixes, signature: `design:${[...new Set(fixes.map((f) => f.check))].sort().join(",")}`, ...(inParts ? {} : { data: { rejected: ctx.ledger.putJson(out) } }) };
+          return { kind: "fail", category: "other", failures: fixes, signature: `design:${[...new Set(fixes.map((f) => f.check))].sort().join(",")}`, ...(redrawn ? { data: { rejected: ctx.ledger.putJson(out) } } : {}) };
         }
         if (refGaps.length) ctx.log(`design: ${refGaps.length} reference layout gap(s) left after the fix round, kept on the design`);
       }

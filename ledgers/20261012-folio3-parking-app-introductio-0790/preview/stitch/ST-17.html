@@ -1,0 +1,289 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Folio3 Parking — Entry checks (Empty State)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #F3F6F8;
+      --surface: #FFFFFF;
+      --text: #25313B;
+      --text-quiet: #5D6A75;
+      --border: #D6DEE5;
+      --primary: #356F9A;
+      --status-good: #2D6F4F;
+      --status-waiting: #8A5C14;
+      --status-failed: #A53B36;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Source Sans 3', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-code {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion specifications */
+    @keyframes pageEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes recordSettle {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulseBreathe {
+      0%, 100% {
+        opacity: 0.96;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-settle {
+      animation: recordSettle 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-breathe {
+      animation: pulseBreathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .animate-entrance,
+      .animate-settle,
+      .animate-breathe {
+        animation: none !important;
+        transform: none !important;
+      }
+    }
+
+    /* Custom select chevron */
+    select {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%235D6A75' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+      background-position: right 14px center;
+      background-repeat: no-repeat;
+      background-size: 1.25em 1.25em;
+      padding-right: 2.5rem;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+    }
+
+    /* Focus & hover transitions */
+    a, button, select, input {
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+    }
+
+    a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="w-full bg-white border-b border-[#D6DEE5] px-6 lg:px-10 h-[72px] flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center space-x-8">
+      <!-- Brand mark & Wordmark -->
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-[8px] bg-[#356F9A] flex items-center justify-center text-white font-bold text-base shadow-none">
+          P
+        </div>
+        <span class="font-semibold text-[17px] text-[#25313B] tracking-tight">Folio3 Parking</span>
+      </div>
+
+      <!-- Administrator Desktop Navigation -->
+      <nav class="hidden md:flex items-center space-x-1">
+        <a href="#employees" class="px-3.5 py-2 rounded-[8px] text-[14px] font-medium text-[#5D6A75] hover:text-[#25313B] hover:bg-[#F3F6F8]">Employees</a>
+        <a href="#utilization" class="px-3.5 py-2 rounded-[8px] text-[14px] font-medium text-[#5D6A75] hover:text-[#25313B] hover:bg-[#F3F6F8]">Utilization</a>
+        <a href="#entry-checks" class="px-3.5 py-2 rounded-[8px] text-[14px] font-medium text-white bg-[#356F9A]">Entry checks</a>
+        <a href="#settings" class="px-3.5 py-2 rounded-[8px] text-[14px] font-medium text-[#5D6A75] hover:text-[#25313B] hover:bg-[#F3F6F8]">Settings</a>
+      </nav>
+    </div>
+
+    <!-- Right Profile / Mobile Hamburger -->
+    <div class="flex items-center space-x-4">
+      <div class="hidden sm:flex items-center space-x-3">
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1UEPY1rknBcGXudinEZoNDI2ocd0H3tbKG5Tj0CGSufGO90jYurMGNjREOe98t-UzxyfmgRVA2OoYQWBxGvqSu0rKhbTBZVQJlu386XZKLUFt5c-NTdiWP-X5qITC7aUkOtB0-tt378Jb3QNjNKhRZcdeq5-FUMIi4hjtquq-4QGcYRPfCiDLkubgQsizzpAOW8CO1ug4ExOhVLQPXMDu6O8URSqgQyIUXe5JyxJEp5N2oYL8u2Z1KdDw" alt="Tessa Nguyen portrait" class="w-9 h-9 rounded-full object-cover border border-[#D6DEE5]">
+        <div class="flex flex-col text-left">
+          <span class="text-[14px] font-semibold text-[#25313B] leading-tight">Tessa Nguyen</span>
+          <span class="text-[12px] text-[#5D6A75] leading-tight mt-0.5">Parking Administrator</span>
+        </div>
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <button type="button" aria-label="Open administrator menu" class="md:hidden w-10 h-10 flex items-center justify-center rounded-[8px] border border-[#D6DEE5] text-[#25313B] hover:bg-[#F3F6F8] active:bg-[#D6DEE5]">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-10 py-8 animate-entrance">
+    
+    <!-- Title & Location Bar -->
+    <div class="flex flex-col md:flex-row md:items-baseline md:justify-between mb-8 pb-1 gap-3">
+      <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <h1 class="text-[28px] font-semibold text-[#25313B] tracking-tight leading-none">Entry checks</h1>
+        <span class="text-[14px] text-[#5D6A75] font-mono-code font-normal">0 attempts: 0 allowed, 0 denied</span>
+      </div>
+      <div class="text-[13px] text-[#5D6A75] font-mono-code">
+        Folio3 San Francisco office · America/Los_Angeles
+      </div>
+    </div>
+
+    <!-- Filters Panel -->
+    <section class="bg-white rounded-[8px] border border-[#D6DEE5] p-5 mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Filter 1: Date window -->
+        <div class="flex flex-col space-y-1.5">
+          <label for="filter-date" class="text-[11px] font-semibold text-[#5D6A75] uppercase tracking-wider font-mono-code">
+            Date Window
+          </label>
+          <select id="filter-date" class="w-full h-[44px] px-3.5 bg-white border border-[#D6DEE5] rounded-[8px] text-[14px] text-[#25313B] focus:border-[#356F9A] cursor-pointer">
+            <option selected="">5 May – 9 May 2025</option>
+            <option>12 May – 16 May 2025</option>
+            <option>All recorded dates</option>
+          </select>
+        </div>
+
+        <!-- Filter 2: Verification Result -->
+        <div class="flex flex-col space-y-1.5">
+          <label for="filter-result" class="text-[11px] font-semibold text-[#5D6A75] uppercase tracking-wider font-mono-code">
+            Verification Result
+          </label>
+          <select id="filter-result" class="w-full h-[44px] px-3.5 bg-white border border-[#D6DEE5] rounded-[8px] text-[14px] text-[#25313B] focus:border-[#356F9A] cursor-pointer">
+            <option selected="">All results (0 attempts)</option>
+            <option>Authorized only</option>
+            <option>Unauthorized only</option>
+            <option>Denied only</option>
+          </select>
+        </div>
+
+        <!-- Filter 3: Entry Status -->
+        <div class="flex flex-col space-y-1.5">
+          <label for="filter-status" class="text-[11px] font-semibold text-[#5D6A75] uppercase tracking-wider font-mono-code">
+            Entry Status
+          </label>
+          <select id="filter-status" class="w-full h-[44px] px-3.5 bg-white border border-[#D6DEE5] rounded-[8px] text-[14px] text-[#25313B] focus:border-[#356F9A] cursor-pointer">
+            <option selected="">All statuses</option>
+            <option>Entered</option>
+            <option>Denied</option>
+          </select>
+        </div>
+
+        <!-- Filter 4: Green indicator command -->
+        <div class="flex flex-col space-y-1.5">
+          <label for="filter-indicator" class="text-[11px] font-semibold text-[#5D6A75] uppercase tracking-wider font-mono-code">
+            Green Indicator Command
+          </label>
+          <select id="filter-indicator" class="w-full h-[44px] px-3.5 bg-white border border-[#D6DEE5] rounded-[8px] text-[14px] text-[#25313B] focus:border-[#356F9A] cursor-pointer">
+            <option selected="">All commands</option>
+            <option>Green on</option>
+            <option>Indicator set inactive</option>
+          </select>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Audit Records Table Container -->
+    <section class="bg-white rounded-[8px] border border-[#D6DEE5] overflow-hidden mb-6">
+      
+      <!-- Table Header (Desktop) -->
+      <div class="hidden lg:grid grid-cols-12 gap-4 px-6 py-3.5 border-b border-[#D6DEE5] bg-white text-[11px] font-semibold uppercase tracking-wider font-mono-code text-[#5D6A75]">
+        <div class="col-span-2">Time</div>
+        <div class="col-span-4">Person or Plate</div>
+        <div class="col-span-2">Result</div>
+        <div class="col-span-1">Entry Status</div>
+        <div class="col-span-2">Green Indicator Command</div>
+        <div class="col-span-1 text-right">Verification</div>
+      </div>
+
+      <!-- Empty State View -->
+      <div class="py-20 px-6 flex flex-col items-center justify-center text-center animate-settle">
+        <div class="w-12 h-12 rounded-[8px] bg-[#F3F6F8] border border-[#D6DEE5] flex items-center justify-center text-[#5D6A75] mb-4">
+          <svg class="w-6 h-6 stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path>
+          </svg>
+        </div>
+        
+        <h2 class="text-[18px] font-semibold text-[#25313B] mb-1.5">No entry check records found</h2>
+        <p class="text-[14px] text-[#5D6A75] max-w-[460px] leading-relaxed mb-6">
+          There are no automated license plate recognition or manual entry check attempts recorded for this date window.
+        </p>
+
+        <!-- One Action that adds / logs the first -->
+        <button type="button" class="h-[44px] px-6 bg-[#356F9A] hover:bg-[#2c5d81] active:bg-[#254f6f] text-white rounded-[8px] text-[14px] font-semibold flex items-center space-x-2 transition-colors cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
+          </svg>
+          <span>Log first entry check</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- Informational Policy Note -->
+    <div class="bg-white rounded-[8px] border border-[#D6DEE5] p-4 flex items-start space-x-3.5">
+      <div class="w-5 h-5 rounded-full border border-[#5D6A75] flex items-center justify-center shrink-0 mt-0.5 text-[#5D6A75]">
+        <span class="text-[11px] font-mono-code font-bold leading-none">i</span>
+      </div>
+      <p class="text-[13px] text-[#5D6A75] leading-relaxed">
+        Records follow Folio3’s existing records-retention policy. All entry check verifications are logged read-only for audit purposes.
+      </p>
+    </div>
+
+  </main>
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["my space","employee my space"],"words":["employee","space"]},{"id":"S-3","names":["release date","employee release date"],"words":["employee","release","date"]},{"id":"S-4","names":["free space","employee free space"],"words":["employee","free","space"]},{"id":"S-5","names":["my vehicle","employee my vehicle"],"words":["employee","vehicle"]},{"id":"S-6","names":["employee","admin employee"],"words":["employee"]},{"id":"S-8","names":["utilization","admin utilization"],"words":["utilization"]},{"id":"S-9","names":["entry check","admin entry check"],"words":["entry","check"]},{"id":"S-10","names":["setting","admin setting"],"words":["setting"]},{"id":"S-7","names":["employee detail","employee","admin employee"],"words":["employee"]}],L={"employees":"S-6","utilization":"S-8","settings":"S-10"},A={"free spaces":"S-4","my vehicles":"S-5","set release dates":"S-3","my space":"S-2","open employee record":"S-7"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-9";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

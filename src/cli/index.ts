@@ -70,7 +70,7 @@ program.name("factory").description("AI Factory: turns a request into a verified
 program.command("start")
   .argument("[prompt]", "what you want changed, in plain words")
   .requiredOption("--project <name>", "project config in ~/.factory/projects/<name>.yaml")
-  .option("--file <path>", "the request as a Markdown or text file")
+  .option("--file <path>", "the request as a Markdown, text, Word (.docx) or PDF file")
   .option("--jira <key>", "the request as a Jira ticket (ABC-123 or its link)")
   .option("--from-estimate <run>", "build an approved estimate: inherits its spec, plans against its tasks, and is held to its size and budget (gates B1-B5)")
   .option("--from-design <run>", "build an approved design-only run (factory design start): inherits its spec and follows its approved screens and look")
@@ -125,7 +125,7 @@ program.command("start")
 program.command("estimate")
   .argument("[prompt]", "the requirements, in plain words")
   .option("--project <name>", "project config in ~/.factory/projects/<name>.yaml; leave it out to estimate from the requirements alone (no repo)")
-  .option("--file <path>", "the requirements as a Markdown, text or Word (.docx) file")
+  .option("--file <path>", "the requirements as a Markdown, text, Word (.docx) or PDF file")
   .option("--frames <dir>", "a folder of design frames exported from Figma (png, jpg, webp, svg or json)")
   .option("--jira <key>", "the requirements as a Jira ticket (ABC-123 or its link)")
   .option("--ref <ref>", 'a design reference: an image, an https link, a Figma link, a PDF, a .docx or a Figma JSON export; optional role match:, inspire: or layout: in front and a note after |, e.g. --ref "layout:dash.jpg|table like this"; repeat it', (v: string, prev: string[] = []) => [...prev, v])
@@ -726,6 +726,10 @@ program.command("doctor").description("check this machine and the setup").action
   ok(hasSecret("ANTHROPIC_API_KEY"), "ANTHROPIC_API_KEY set in ~/.factory/.env");
   log(`${hasSecret("OPENAI_API_KEY") ? "ok  " : "note"} OPENAI_API_KEY ${hasSecret("OPENAI_API_KEY") ? "set" : "not set: a run will not start (the second spec draft and the pre-PR reviewer run on GPT-6)"}`);
   log(hasSecret("STITCH_API_KEY") ? "ok   STITCH_API_KEY set: projects with design.engine: stitch can draw with Google Stitch" : "note STITCH_API_KEY not set (optional): needed only for design.engine: stitch");
+  // the design step runs the ui-ux-pro-max skill's search with Python 3; without it a design is drawn, but not from the skill
+  const { findPython, UIUX_SKILL_DIR } = await import("../design/uiux-skill.js");
+  const py = findPython();
+  if (existsSync(join(UIUX_SKILL_DIR, "SKILL.md"))) ok(!!py, py ? `Python 3 (${py.cmd}): the design step uses the ui-ux-pro-max skill` : "Python 3: the design step draws without the ui-ux-pro-max skill", "install Python 3 (macOS: brew install python; Ubuntu: sudo apt-get install -y python3), or run scripts/setup.sh again");
   const { jiraConfigured } = await import("../sources/jira.js");
   log(jiraConfigured() ? "ok   Jira set up (factory start --jira ABC-123)" : "note Jira not set up (optional): add JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN to ~/.factory/.env to use --jira");
   log(hasSecret("GITHUB_TOKEN") ? "ok   GITHUB_TOKEN set: a new product can be put on GitHub (Greenfield's \"Put it on GitHub\", factory fullstack start --github)"

@@ -125,7 +125,7 @@ export async function startFullstack(input: Record<string, unknown>, deps: Start
       mkdirSync(join(factoryHome(), "tmp"), { recursive: true, mode: 0o700 });
       tmp = mkdtempSync(join(factoryHome(), "tmp", "ui-upload-"));
       path = join(tmp, file.name);
-      writeFileSync(path, file.text, { mode: 0o600 });
+      writeFileSync(path, "bytes" in file ? file.bytes : file.text, { mode: 0o600 });
     }
     req = await (deps.gather ?? gatherRequest)({ prompt, file: path }, {});
   } catch (e) {

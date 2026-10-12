@@ -17,6 +17,7 @@ import { join, relative } from "node:path";
 import { crc32 } from "node:zlib";
 import JSZip from "jszip";
 import { designTokens } from "./tokens.js";
+import { stitchSiteFiles } from "./stitch-live.js";
 import { findChromium, VIEWPORTS, type Shot, type Viewport } from "./screenshots.js";
 import type { DesignTheme } from "../contracts/artifacts.js";
 import { checkExport } from "./export-check.js";
@@ -294,6 +295,7 @@ export async function exportDesign(pkg: DesignPackage, out: string, o: ExportOpt
   if (o.formats.includes("png")) {
     if (pictureNote) notes.push(`png: ${pictureNote}`);
     else if (!picked.length) notes.push("png: no picture matches the options");
+    else if (m.shotsNote && m.shots.some((s) => s.own)) notes.push(`pictures: ${m.shotsNote}`);
     for (const s of picked) add("png", `png/${s.name}`, tagPng(readFileSync(join(pkg.dir, "shots", s.file)), tag));
   }
   if (o.formats.includes("pdf")) {
@@ -313,8 +315,13 @@ export async function exportDesign(pkg: DesignPackage, out: string, o: ExportOpt
     const zip = new JSZip();
     // dated at the approval, so the same version always gives the same zip
     const date = new Date(m.approved.at);
-    zip.file("index.html", readFileSync(join(pkg.dir, "demo", "index.html")), { date });
-    zip.file("README.txt", `${tag}\n\nThe clickable demo the lead approved. Open index.html in a browser; it needs no server and no network.\n`, { date });
+    // a Stitch design: its screens as real web pages that link to each other, with the approved demo beside them
+    const site = stitchSiteFiles(d as never, (p) => (existsSync(join(pkg.dir, p)) ? readFileSync(join(pkg.dir, p), "utf8") : undefined), m.product.name ?? m.run.project);
+    for (const f of site) zip.file(f.path, f.content, { date });
+    zip.file(site.length ? "approved-demo.html" : "index.html", readFileSync(join(pkg.dir, "demo", "index.html")), { date });
+    zip.file("README.txt", site.length
+      ? `${tag}\n\nThe design as web pages. Open index.html in a browser and pick a screen; each page is in pages/, and its links and buttons open the other pages. The pages need the network for their styles (Tailwind) and fonts (Google Fonts); they need no server.\napproved-demo.html is the demo the lead approved, with every screen as a picture.\n`
+      : `${tag}\n\nThe clickable demo the lead approved. Open index.html in a browser; it needs no server and no network.\n`, { date });
     add("html", "demo.zip", await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
   }
   if (o.formats.includes("tokens")) {

@@ -1,15 +1,15 @@
 // Model routing per step (adapters.md config; stages-aligned §2; WD §4 tiers).
-import type { ProjectConfig, RunRoutes, StepRoute } from "../config/project.js";
+import { ProjectConfig, type RunRoutes, type StepRoute } from "../config/project.js";
 import { hasSecret } from "../config/env.js";
-import { designRoute } from "../config/design-route.js";
+import { designRoute, type DesignEngine } from "../config/design-route.js";
 import type { Rung } from "../gates/ladder.js";
 import { hasPrice } from "../runners/pricing.js";
-import { tasteSkillProblem } from "../design/stitch-taste.js";
+import { tastePageProblem, tasteSkillProblem } from "../design/stitch-taste.js";
 import { uiuxProblem } from "../design/uiux-skill.js";
 import { blockedText, modelAllowed, type Policy } from "../gates/policy.js";
 import { family, type Effort } from "../runners/types.js";
 import { priceOf, UNCONFIRMED_PRICES } from "../runners/pricing.js";
-import { heldTier, modelInfo, modelName, nextUp, offeredFor, OPUS, PRESETS, presetTier, runnerFor, STEPS, TIER_TABLE, type Preset, type RouteSource, type StepSpec, type Tier, type Vendor } from "./models.js";
+import { enginesFor, heldTier, modelInfo, modelName, nextUp, offeredFor, PRESETS, presetTier, runnerFor, sameAsCritic, PAGES, PAGES_NAME, STEPS, STITCH, STITCH_NAME, TIER_TABLE, type Preset, type RouteSource, type StepSpec, type Tier, type Vendor } from "./models.js";
 
 const OLD_OPUS = "claude-opus-5-5";
 const OLD_SONNET = "claude-sonnet-5";
@@ -49,7 +49,33 @@ export interface Choice { picks?: Record<string, string>; preset?: Preset }
 /** A tier put forward for a step by something other than a person (the plan's task size, a rule, a recommendation). */
 export interface Suggestion { tier: Tier; source: Extract<RouteSource, "recommended" | "plan size" | "rule"> }
 /** A step's route with where it came from. */
-export interface Resolved extends StepRoute { source: RouteSource; tier?: Tier; preset?: Preset }
+export interface Resolved extends StepRoute { source: RouteSource; tier?: Tier; preset?: Preset; /** the design engine a person picked for the run (Google Stitch) */ engine?: DesignEngine }
+
+/** The project's design block with Stitch picked for the run: the pick is the allowance, and a project with no design block gets the defaults. */
+const engineDesign = (d: ProjectConfig["design"], engine: PageEngine): NonNullable<ProjectConfig["design"]> => ({ ...(d ?? ProjectConfig.shape.design.unwrap().parse({})), engine, ...(engine === STITCH ? { allowStitch: true } : {}) });
+type PageEngine = typeof STITCH | typeof PAGES;
+const ENGINE_NAME: Record<PageEngine, string> = { [STITCH]: STITCH_NAME, [PAGES]: PAGES_NAME };
+
+/**
+ * A design engine as the design step's pick: "stitch" or "pages", or "<engine>:<model>" to name the model that plans its screens
+ * and writes its design system (and, on pages, draws them) in place of the design tier's Claude model.
+ */
+export function enginePick(pick: string | undefined): { engine: PageEngine; planner?: string } | undefined {
+  for (const engine of [STITCH, PAGES] as const) {
+    if (pick === engine) return { engine };
+    if (pick?.startsWith(`${engine}:`)) return { engine, planner: pick.slice(engine.length + 1) };
+  }
+  return undefined;
+}
+
+/**
+ * Google Stitch as the design step's pick: "stitch", or "stitch:<model>" to name the model that plans its screens and writes its
+ * design system (any model the design step is offered) in place of the design tier's Claude model.
+ */
+export function stitchPick(pick: string | undefined): { planner?: string } | undefined {
+  if (pick === STITCH) return {};
+  return pick?.startsWith(`${STITCH}:`) ? { planner: pick.slice(STITCH.length + 1) } : undefined;
+}
 
 const esc = (stage: string, model: string): string[] => { const n = nextUp(stage, model); return n ? [n] : []; };
 
@@ -73,6 +99,15 @@ export function resolveRoute(project: ProjectConfig, stage: string, choice: Choi
   }
   if (spec.fixed) return { runner: spec.runner, model: spec.fixed, escalate: [], effort: spec.effort ?? "high", source: "fixed" };
   const pick = choice.picks?.[stage];
+  // Google Stitch picked for the design step: the project's design tiers plan the screens, and the run keeps the engine
+  // the pick is the allowance: a person who chose Stitch for the run has agreed to send it the requirements
+  const stitch = stage === "design" ? enginePick(pick) : undefined;
+  if (stitch) {
+    const route = designRoute({ design: engineDesign(project.design, stitch.engine) }).route;
+    // a planner named with it runs in place of the tier's model, and a retry moves it up as it would any picked model
+    if (stitch.planner) return { runner: "api", model: stitch.planner, escalate: esc(stage, stitch.planner), effort: route.effort, strict: true, source: "design engine", engine: stitch.engine };
+    return { ...route, source: "design engine", engine: stitch.engine };
+  }
   if (pick) return { runner: runnerFor(stage, pick), model: pick, escalate: esc(stage, pick), effort: spec.effort ?? "high", source: "pick" };
   // a design engine or tier the project pinned is not undone by a preset: only a pick for the step itself changes it
   if (stage === "design" && !own && (project.design?.engine || project.design?.tier)) return { ...designRoute(project).route, source: "design engine" };
@@ -112,7 +147,9 @@ export function projectForRun(project: ProjectConfig, saved: Record<string, Reso
   }
   // a step added to the project file after the run began: read as the file has it
   for (const [stage, r] of Object.entries(project.steps)) if (!steps[stage] && !STEPS[stage]) { steps[stage] = r; how[stage] = { source: "config" }; }
-  return { ...project, steps, runRoutes: { legacy: false, steps: how } };
+  // a design engine picked at the start is the run's own: the design step reads it as the project's, allowed by the pick
+  const engine = saved.design?.engine;
+  return { ...project, ...(engine === STITCH || engine === PAGES ? { design: engineDesign(project.design, engine) } : engine && project.design ? { design: { ...project.design, engine } } : {}), steps, runRoutes: { legacy: false, steps: how } };
 }
 
 /**
@@ -160,14 +197,16 @@ export function stepsOf(mode: string | undefined): string[] {
 }
 
 /** What the start form shows: every step with its default, the models it can be given, and what each preset puts it on. */
-export function modelsView(mode: string | undefined): { steps: { step: string; group: string; model: string; effort: string; fixed: boolean; offered: string[]; presets: Record<Preset, string>; warn?: { model: string; why: string } }[]; presets: readonly Preset[]; models: { id: string; name: string; input: number; output: number; unconfirmed: boolean }[] } {
+export function modelsView(mode: string | undefined): { steps: { step: string; group: string; model: string; effort: string; fixed: boolean; offered: string[]; engines?: { id: string; name: string; note: string; planner: string }[]; presets: Record<Preset, string>; /** the step whose model it is warned about sharing */ apart?: string }[]; presets: readonly Preset[]; models: { id: string; name: string; input: number; output: number; unconfirmed: boolean }[] } {
   const none = { steps: {} } as unknown as ProjectConfig;
   const steps = stepsOf(mode).map((step) => {
     const spec = STEPS[step]!, r = resolveRoute(none, step);
     return {
       step, group: spec.group, model: r.model, effort: r.effort ?? "high", fixed: !!spec.fixed, offered: offeredFor(step).map((m) => m.id),
+      // an engine's planner: the model that plans for it unless a person names another (step=engine:model)
+      ...(enginesFor(step).length ? { engines: enginesFor(step).map((e) => ({ ...e, planner: resolveRoute(none, step, { picks: { [step]: e.id } }).model })) } : {}),
       presets: Object.fromEntries(PRESETS.map((p) => [p, resolveRoute(none, step, { preset: p }).model])) as Record<Preset, string>,
-      ...(spec.warn ? { warn: { model: OPUS, why: spec.warn.why } } : {}),
+      ...(spec.apart ? { apart: spec.apart } : {}),
     };
   });
   const ids = [...new Set(steps.flatMap((s) => [s.model, ...s.offered, ...Object.values(s.presets)]))];
@@ -270,24 +309,31 @@ function refusal(stage: string, model: string, by: "pick" | "config"): string | 
   const spec = STEPS[stage];
   if (!spec) return by === "pick" ? `${stage} is not a step that takes a model (see factory models)` : undefined;
   if (spec.fixed) return by === "pick" ? `${stage} always runs on ${modelName(spec.fixed)}; it cannot be changed` : undefined;
+  if (by === "pick" && enginesFor(stage).some((e) => e.id === model)) return undefined;
+  const picked = by === "pick" && enginesFor(stage).length ? enginePick(model) : undefined;
+  const planner = picked?.planner;
+  if (picked && planner !== undefined) return offeredFor(stage).some((m) => m.id === planner) ? undefined : `${stage}: ${planner || "nothing"} cannot plan a ${ENGINE_NAME[picked.engine]} design (choose ${picked.engine}:<model> with ${offeredFor(stage).map((m) => m.id).join(", ")})`;
   const info = modelInfo(model);
-  if (by === "pick" && !offeredFor(stage).some((m) => m.id === model)) return `${stage}: ${model} is not offered for this step (choose ${offeredFor(stage).map((m) => m.id).join(", ")})`;
+  if (by === "pick" && !offeredFor(stage).some((m) => m.id === model)) return `${stage}: ${model} is not offered for this step (choose ${[...offeredFor(stage), ...enginesFor(stage)].map((m) => m.id).join(", ")})`;
   const vendor = info?.vendor ?? (family(model) === "local" ? undefined : family(model));
   if (spec.only && vendor && !spec.only.includes(vendor as Vendor)) {
-    return stage === "specify-other" ? `specify-other is the spec draft from another vendor than the critic (${modelName(OPUS)}); it needs a GPT-6 model, not ${model}`
+    return stage === "specify-other" ? `specify-other is the second spec draft, written by another vendor than the first; it needs a GPT-6 model, not ${model}`
       : `${stage}: ${model} cannot run this step (it needs a model from ${spec.only.join(" or ")})`;
   }
   return undefined;
 }
 
-/** What a choice is allowed but warned about: a spec written by the same model that criticises it. */
+/**
+ * What a choice is allowed but warned about: a spec written by the same model that criticises it. The defaults are left
+ * alone; the warning is for a run where the spec step or the critic was moved (a pick, a preset, the project file).
+ */
 export function routeWarnings(project: ProjectConfig, choice: Choice = {}, only?: readonly string[]): string[] {
   const out: string[] = [];
   for (const stage of only ?? Object.keys(STEPS)) {
-    const w = STEPS[stage]?.warn;
-    if (!w) continue;
-    const r = resolveRoute(project, stage, choice);
-    if (r.source !== "default" && r.model === OPUS && w.vendor === "anthropic") out.push(`${stage} on ${modelName(r.model)}: ${w.why}`);
+    const other = STEPS[stage]?.apart;
+    if (!other || (only && !only.includes(other))) continue;
+    const r = resolveRoute(project, stage, choice), o = resolveRoute(project, other, choice);
+    if (r.model === o.model && (r.source !== "default" || o.source !== "default")) out.push(`${stage} on ${modelName(r.model)}: ${sameAsCritic(o.model)}`);
   }
   return out;
 }
@@ -312,14 +358,19 @@ export function checkRoutes(project: ProjectConfig, only?: readonly string[], ch
       const why = refusal(stage, r.model, "config");
       if (why) problems.push(`${why} (set in the project file)`);
     }
-    if (stage === "design" && r.source === "design engine" && project.design?.engine === "stitch") {
-      if (!hasSecret("STITCH_API_KEY")) problems.push("design.engine is stitch, but STITCH_API_KEY is missing from ~/.factory/.env");
+    const engine = r.engine ?? project.design?.engine;
+    if (stage === "design" && r.source === "design engine" && (engine === STITCH || engine === PAGES)) {
+      // the pages engine draws with its own model: no Stitch key, the same skill
+      if (engine === STITCH && !hasSecret("STITCH_API_KEY")) problems.push(`${r.engine ? `${STITCH_NAME} was picked for the design step` : "design.engine is stitch"}, but STITCH_API_KEY is missing from ~/.factory/.env`);
       const skill = tasteSkillProblem();
       if (skill) problems.push(skill);
     } else if (stage === "design") {
       // the JSON track runs the ui-ux-pro-max skill's search: only the reviewed copy
       const ux = uiuxProblem();
       if (ux) problems.push(`design: ${ux}`);
+      // and takes the stitch-design-taste skill's page rules, when it is installed
+      const taste = tastePageProblem();
+      if (taste) problems.push(`design: ${taste}`);
     }
     if (STEPS[stage]?.fixed && project.steps[stage] && project.steps[stage]!.model !== r.model) problems.push(`${stage} always runs on ${modelName(r.model)}; remove its entry (${project.steps[stage]!.model}) from the project file's steps`);
     if (THINKING_STEPS.has(stage) && r.runner !== "api") problems.push(`${stage} is a thinking step and must use the api runner`);
@@ -360,7 +411,7 @@ export function runModels(events: { type: string; key?: string; data?: Record<st
   const info = (events[0]?.data ?? {}) as { routes?: Record<string, Resolved>; models?: Choice; mode?: string };
   const rows = info.routes ? stepsOf(info.mode).filter((s) => info.routes![s]).map((s) => {
     const r = info.routes![s]!;
-    return { step: s, model: r.model, name: modelName(r.model), effort: r.effort ?? "high", source: r.source, ...(r.tier ? { tier: r.tier } : {}), ...(r.preset ? { preset: r.preset } : {}), ...(r.escalate[0] ? { next: r.escalate[0] } : {}) };
+    return { step: s, model: r.model, name: r.engine === STITCH ? `${STITCH_NAME}, planned by ${modelName(r.model)}` : r.engine === PAGES ? `Pages drawn by ${modelName(r.model)}` : modelName(r.model), effort: r.effort ?? "high", source: r.source, ...(r.tier ? { tier: r.tier } : {}), ...(r.preset ? { preset: r.preset } : {}), ...(r.escalate[0] ? { next: r.escalate[0] } : {}) };
   }) : [];
   const by = new Map<string, RunModels["calls"][number]>();
   for (const e of events) {

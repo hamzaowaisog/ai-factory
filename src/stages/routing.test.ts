@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _resetEnvCache } from "../config/env.js";
 import { ProjectConfig } from "../config/project.js";
-import { availableRungs, checkRoutes, DEFAULT_ROUTES, ESTIMATE_ROUTES, lightLaneModel, mechanical, modelFor, modelSteps, modelsView, projectForRun, resolveRoute, resolveRun, routeFor, routeRecord, routeSource, routeWarnings, usageRoute } from "./routing.js";
+import { availableRungs, checkRoutes, DEFAULT_ROUTES, ESTIMATE_ROUTES, lightLaneModel, mechanical, modelFor, modelSteps, modelsView, projectForRun, resolveRoute, resolveRun, routeFor, routeRecord, routeSource, routeWarnings, usageRoute, usesDesignEngine } from "./routing.js";
 
 const KEYS = ["FACTORY_HOME", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"] as const;
 function cleanEnv(set: Partial<Record<(typeof KEYS)[number], string>> = {}): void {
@@ -75,14 +75,17 @@ describe("which model a step runs on", () => {
     expect(resolveRoute(project, "author-tests", { preset: "economy" })).toMatchObject({ model: "claude-sonnet-5-5", tier: "standard" });
     expect(resolveRoute(project, "specify-other", { preset: "economy" })).toMatchObject({ model: "gpt-6-sol", effort: "medium" });
     // balanced is the defaults
-    for (const stage of Object.keys(DEFAULT_ROUTES).filter((s) => s !== "critic")) expect(resolveRoute(project, stage, { preset: "balanced" })).toMatchObject(DEFAULT_ROUTES[stage]!);
+    for (const stage of Object.keys(DEFAULT_ROUTES)) expect(resolveRoute(project, stage, { preset: "balanced" })).toMatchObject(DEFAULT_ROUTES[stage]!);
   });
 
-  it("the critic is Claude Opus 5.5 whatever the person, the preset or the project file says", () => {
-    for (const c of [{}, { preset: "economy" as const }, { picks: { critic: "gpt-6-sol" } }]) expect(resolveRoute(withFile, "critic", c)).toMatchObject({ model: "claude-opus-5-5", effort: "high", source: "fixed" });
-    expect(routeFor(withFile, "critic").model).toBe("claude-opus-5-5");
-    expect(checkRoutes(project, undefined, { picks: { critic: "gpt-6-sol" } })).toEqual(["critic always runs on Claude Opus 5.5; it cannot be changed"]);
-    expect(checkRoutes(withFile).join("\n")).toMatch(/critic always runs on Claude Opus 5.5; remove its entry \(gpt-6-sol\)/);
+  it("the critic takes a pick or a project file entry like any step, and a preset keeps it on the heavy tier", () => {
+    expect(resolveRoute(project, "critic")).toMatchObject({ model: "claude-opus-5-5", effort: "high", source: "default", escalate: [] });
+    for (const preset of ["economy", "balanced", "quality"] as const) expect(resolveRoute(project, "critic", { preset })).toMatchObject({ model: "claude-opus-5-5", effort: "high", tier: "heavy" });
+    expect(resolveRoute(project, "critic", { preset: "economy", picks: { critic: "gpt-6-sol" } })).toMatchObject({ model: "gpt-6-sol", effort: "high", source: "pick", escalate: ["claude-opus-5-5"] });
+    expect(resolveRoute(withFile, "critic")).toMatchObject({ model: "gpt-6-sol", source: "config" });
+    expect(routeFor(withFile, "critic").model).toBe("gpt-6-sol");
+    expect(checkRoutes(project, undefined, { picks: { critic: "gpt-6-sol" } })).toEqual([]);
+    expect(checkRoutes(project, undefined, { picks: { critic: "claude-sonnet-5-5" } })[0]).toMatch(/critic: claude-sonnet-5-5 is not offered for this step \(choose gpt-6-luna, gpt-6-sol, claude-opus-5-5\)/);
   });
 
   it("a GPT model picked for a coding step runs in the Codex agent, and a retry that moves up to Claude runs in the Claude one", () => {
@@ -115,7 +118,10 @@ describe("which model a step runs on", () => {
     expect(routeWarnings(project)).toEqual([]);
     expect(routeWarnings(project, { picks: { specify: "claude-opus-5-5" } })).toEqual(["specify on Claude Opus 5.5: the critic is Claude Opus 5.5 too, so it reads a spec its own model wrote"]);
     const claudeDraft = ProjectConfig.parse({ project: "p", repo: "-", stack: "dotnet", steps: { "specify-other": { model: "claude-opus-5-5" } } });
-    expect(checkRoutes(claudeDraft).join("\n")).toMatch(/specify-other is the spec draft from another vendor than the critic .* \(set in the project file\)/);
+    expect(checkRoutes(claudeDraft).join("\n")).toMatch(/specify-other is the second spec draft, written by another vendor than the first; .* \(set in the project file\)/);
+    // the warning follows the critic's own model: moved to GPT-6 Sol it is the second draft that shares it
+    expect(routeWarnings(project, { picks: { critic: "gpt-6-sol" } })).toEqual(["specify-other on GPT-6 Sol: the critic is GPT-6 Sol too, so it reads a spec its own model wrote"]);
+    expect(routeWarnings(project, { picks: { critic: "gpt-6-sol", "specify-other": "gpt-6-luna", specify: "claude-opus-5-5" } })).toEqual([]);
   });
 
   it("the project file names a model or a tier, never both, and a tier only for a step the factory knows", () => {
@@ -134,7 +140,7 @@ describe("which model a step runs on", () => {
     // the project file changed after the run began: the run does not move
     expect(routeFor(run, "design").model).toBe("claude-opus-5-5");
     expect(routeRecord(run, "plan", 2)).toMatchObject({ model: "claude-opus-5-5", source: "pick", movedUpFrom: "gpt-6-sol" });
-    expect(usageRoute(run, "critic")).toEqual({ "factory.route": "critic", "factory.route.source": "fixed" });
+    expect(usageRoute(run, "critic")).toEqual({ "factory.route": "critic", "factory.route.source": "default", "factory.route.tier": "heavy" });
     expect(routeFor(old, "intake").model).toBe("claude-haiku-4-5");
     expect(routeFor(old, "critic").model).toBe("gpt-5.5");
     expect(routeSource(old, "critic").source).toBe("before the picker");
@@ -276,6 +282,63 @@ describe("design tier routes", () => {
     process.env.STITCH_API_KEY = "st"; _resetEnvCache();
     expect(checkRoutes(cfg({ design: { engine: "stitch", allowStitch: true } }), ["design"])).toEqual([]);
     delete process.env.STITCH_API_KEY; _resetEnvCache();
+  });
+
+  it("Google Stitch can be picked for the design step, the pick allows it, and the run keeps it", () => {
+    expect(modelsView("greenfield").steps.find((s) => s.step === "design")?.engines?.map((e) => e.id)).toEqual(["stitch", "pages"]);
+    expect(modelsView("greenfield").steps.find((s) => s.step === "plan")?.engines ?? []).toEqual([]);
+    const pick = { picks: { design: "stitch" } };
+    // the pick is the allowance: a project that never set allowStitch is stopped only by the missing key
+    expect(checkRoutes(cfg(), ["design"], pick).join("\n")).not.toMatch(/allowStitch/);
+    expect(checkRoutes(cfg(), ["design"], pick).join("\n")).toMatch(/STITCH_API_KEY/);
+    expect(projectForRun(cfg(), resolveRun(cfg(), pick)).design).toMatchObject({ engine: "stitch", allowStitch: true });
+    const off = cfg({ design: { allowStitch: false } });
+    expect(projectForRun(off, resolveRun(off, pick)).design).toMatchObject({ engine: "stitch", allowStitch: true });
+    expect(projectForRun(off, resolveRun(off)).design?.allowStitch).toBe(false);
+    expect(checkRoutes(cfg(), ["plan"], { picks: { plan: "stitch" } })[0]).toMatch(/not offered/);
+    const allowed = cfg({ design: { allowStitch: true } });
+    expect(checkRoutes(allowed, ["design"], pick).join("\n")).toMatch(/STITCH_API_KEY/);
+    process.env.STITCH_API_KEY = "st"; _resetEnvCache();
+    expect(checkRoutes(allowed, ["design"], pick)).toEqual([]);
+    delete process.env.STITCH_API_KEY; _resetEnvCache();
+    expect(resolveRoute(allowed, "design", pick)).toMatchObject({ source: "design engine", engine: "stitch" });
+    const run = projectForRun(allowed, resolveRun(allowed, pick));
+    expect(run.design?.engine).toBe("stitch");
+    expect(projectForRun(allowed, resolveRun(allowed)).design?.engine).not.toBe("stitch");
+  });
+
+  it("the pages engine is picked like Stitch, with the model that draws, and needs no Stitch key or allowance", () => {
+    const pick = { picks: { design: "pages:gpt-6-luna" } };
+    process.env.OPENAI_API_KEY = "sk-test"; delete process.env.STITCH_API_KEY; _resetEnvCache();
+    expect(resolveRoute(cfg(), "design", pick)).toMatchObject({ model: "gpt-6-luna", source: "design engine", engine: "pages", strict: true });
+    expect(resolveRoute(cfg(), "design", { picks: { design: "pages" } })).toMatchObject({ model: "claude-opus-5-5", engine: "pages" });
+    expect(checkRoutes(cfg(), ["design"], pick).join("\n")).not.toMatch(/STITCH_API_KEY|allowStitch/);
+    const run = projectForRun(cfg(), resolveRun(cfg(), pick));
+    expect(run.design?.engine).toBe("pages");
+    expect(run.design?.allowStitch).not.toBe(true);
+    expect(usesDesignEngine(run)).toBe(true);
+    expect(modelFor(run, "design", 0).model).toBe("gpt-6-luna");
+    expect(checkRoutes(cfg(), ["design"], { picks: { design: "pages:gpt-1" } })[0]).toMatch(/gpt-1 cannot plan a Model-drawn pages design/);
+    delete process.env.OPENAI_API_KEY; _resetEnvCache();
+  });
+
+  it("a model named with Google Stitch plans its screens in place of the tier's, and the run keeps both", () => {
+    const pick = { picks: { design: "stitch:gpt-6-luna" } };
+    expect(resolveRoute(cfg(), "design", { picks: { design: "stitch" } }).model).toBe("claude-opus-5-5");
+    expect(resolveRoute(cfg(), "design", pick)).toMatchObject({ model: "gpt-6-luna", escalate: ["gpt-6-sol"], source: "design engine", engine: "stitch", strict: true });
+    const run = projectForRun(cfg(), resolveRun(cfg(), pick));
+    expect(run.design).toMatchObject({ engine: "stitch", allowStitch: true });
+    expect(usesDesignEngine(run)).toBe(true);
+    expect(modelFor(run, "design", 0).model).toBe("gpt-6-luna");
+    // the start form shows what plans for the engine when no model is named
+    expect(modelsView("design").steps.find((s) => s.step === "design")?.engines).toMatchObject([{ id: "stitch", planner: "claude-opus-5-5" }, { id: "pages", planner: "claude-opus-5-5" }]);
+    // only a model the design step is offered, and only on the design step
+    expect(checkRoutes(cfg(), ["design"], { picks: { design: "stitch:gpt-1" } })[0]).toMatch(/gpt-1 cannot plan a Google Stitch design/);
+    expect(checkRoutes(cfg(), ["design"], { picks: { design: "stitch:" } })[0]).toMatch(/cannot plan/);
+    expect(checkRoutes(cfg(), ["plan"], { picks: { plan: "stitch:gpt-6-luna" } })[0]).toMatch(/not offered/);
+    process.env.STITCH_API_KEY = "st"; process.env.OPENAI_API_KEY = "sk-test"; _resetEnvCache();
+    expect(checkRoutes(cfg(), ["design"], pick)).toEqual([]);
+    delete process.env.STITCH_API_KEY; delete process.env.OPENAI_API_KEY; _resetEnvCache();
   });
 
   it("keeps a design route the project set by hand", () => {

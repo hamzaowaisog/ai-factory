@@ -22,6 +22,7 @@ import { designSteps } from "./design-pipeline.js";
 import { checkRefRead, cleanRefRead, designRefsStep, type DesignRefsArt, type RefReadOut } from "./design-refs.js";
 import type { StepContext, StepOutcome } from "./framework.js";
 import { designOnlySteps, estimateSteps } from "./modes.js";
+import { designAnswer } from "./design-fake.js";
 import { setProviderFactory } from "./think.js";
 import { matchFamilies, refFit } from "../design/ref-checks.js";
 import { themeValues } from "../design/demo.js";
@@ -35,7 +36,7 @@ let seen: { system: string; user: string; images: number }[] = [];
 const provider: Provider = {
   start(_model, _effort, system, user, _tools, images): Conversation {
     seen.push({ system, user, images: images?.length ?? 0 });
-    return { async next(): Promise<Turn> { calls++; return { calls: [{ id: "s", name: "submit_result", input: answer() }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
+    return { async next(): Promise<Turn> { calls++; return { calls: [{ id: "s", name: "submit_result", input: designAnswer(system, user, answer()) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
 

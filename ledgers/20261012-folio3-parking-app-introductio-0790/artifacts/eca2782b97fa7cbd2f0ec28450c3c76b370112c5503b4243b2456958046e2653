@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entry checks - Folio3 Parking</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-sans: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --color-primary: #A95540;
+      --color-primary-dark: #8c3f2d;
+      --color-primary-light: #fbf5f3;
+      --color-surface: #ffffff;
+      --color-surface-subtle: #fcfbf9;
+      --color-border: #e6e2dc;
+      --color-border-subtle: #f0ede8;
+      --color-text-primary: #211d19;
+      --color-text-secondary: #6e675f;
+      --color-text-tertiary: #9c958c;
+      --color-success: #1e7e4e;
+      --color-success-bg: #eef8f2;
+      --color-danger: #b33924;
+      --color-danger-bg: #fdf2f0;
+      --color-neutral-badge: #f1ede8;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: #faf8f5;
+      color: var(--color-text-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-mono {
+      font-family: var(--font-mono);
+    }
+
+    /* Motion specifications */
+    @keyframes pageEntrance {
+      0% {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* The one ambient animation: Only while an entry check is actively evaluated, its status dot breathes opacity 0.76→1→0.76 on a 7.5s cubic-bezier(0.65, 0, 0.35, 1) cycle */
+    @keyframes dotBreathe {
+      0%, 100% {
+        opacity: 0.76;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .animate-entrance {
+      animation: pageEntrance 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .active-evaluating-dot {
+      animation: dotBreathe 7.5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    /* Interactive control states: hover, focus, pressed */
+    .interactive-btn {
+      transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 90ms ease;
+    }
+    .interactive-btn:hover {
+      background-color: var(--color-primary-dark);
+    }
+    .interactive-btn:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+    .interactive-btn:active {
+      transform: scale(0.98);
+    }
+
+    .interactive-link {
+      transition: color 140ms ease, border-color 140ms ease;
+    }
+    .interactive-link:hover {
+      color: var(--color-primary);
+    }
+    .interactive-link:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+    .interactive-link:active {
+      opacity: 0.85;
+    }
+
+    .interactive-input {
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+    .interactive-input:hover {
+      border-color: #d1cbc2;
+    }
+    .interactive-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px rgba(169, 85, 64, 0.15);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#FAF8F5] text-[#211D19]">
+
+  <!-- Header: exact specification:
+       The shared header reads “Folio3 Parking”; the menu sits beside the brand and contains “Overview,” “Employees,” “Parking setup,” “Weekly report,” “Entry checks,” and “Audit history,” in that order. On the right, a profile menu shows “Priya Nair” and “Parking Administrator.” Draw nothing else in the header, and no footer. -->
+  <header class="w-full bg-[#FFFFFF] border-b border-[#E6E2DC] sticky top-0 z-40">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-8">
+        <!-- Brand -->
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-lg bg-[#A95540] flex items-center justify-center text-white font-semibold text-base shadow-sm">
+            P
+          </div>
+          <span class="font-bold text-lg tracking-tight text-[#211D19]">Folio3 Parking</span>
+        </div>
+
+        <!-- Navigation items beside brand -->
+        <nav class="hidden md:flex items-center space-x-1" aria-label="Global">
+          <a href="#" class="interactive-link px-3 py-2 text-sm font-medium text-[#6E675F] hover:text-[#211D19] rounded-md">Overview</a>
+          <a href="#" class="interactive-link px-3 py-2 text-sm font-medium text-[#6E675F] hover:text-[#211D19] rounded-md">Employees</a>
+          <a href="#" class="interactive-link px-3 py-2 text-sm font-medium text-[#6E675F] hover:text-[#211D19] rounded-md">Parking setup</a>
+          <a href="#" class="interactive-link px-3 py-2 text-sm font-medium text-[#6E675F] hover:text-[#211D19] rounded-md">Weekly report</a>
+          <a href="#" class="px-3 py-2 text-sm font-semibold text-[#A95540] border-b-2 border-[#A95540] rounded-none">Entry checks</a>
+          <a href="#" class="interactive-link px-3 py-2 text-sm font-medium text-[#6E675F] hover:text-[#211D19] rounded-md">Audit history</a>
+        </nav>
+      </div>
+
+      <!-- Right profile menu -->
+      <div class="flex items-center space-x-3">
+        <div class="text-right hidden sm:block">
+          <div class="text-sm font-semibold text-[#211D19] leading-tight">Priya Nair</div>
+          <div class="text-xs text-[#6E675F]">Parking Administrator</div>
+        </div>
+        <img src="https://lh3.googleusercontent.com/aida/AEtjO1VwWzSJ8eWrtaCfTF8yQAHJ5ml32Y3DrT-0xxblKf3Br833Qba3zhfSj2EwvG04AqTk4HdxTcNMoXR2tJ6wZygjw343-wMiQrYS7VU6v7JVo44sQpgzO_D_3bDyHjMMcDKYfXRftvYU3H5BBkL_l2Khnp2Wv5wnS1zBnWogkHipU87ihc8ItVkN38W98tmaWJtwxWsMUaAKeIho6E3uE-n-Tx0SnQfmxH5cgU_X5z3crRn3kVI3oQ32" alt="Priya Nair profile portrait" class="w-9 h-9 rounded-full object-cover border border-[#E6E2DC] shadow-sm">
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 animate-entrance space-y-6">
+
+    <!-- Title and Subtitle & Scope notice -->
+    <div class="space-y-1">
+      <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2">
+        <h1 class="text-2xl font-bold tracking-tight text-[#211D19]">Entry checks</h1>
+        <div class="text-xs text-[#6E675F] font-mono">Bengaluru Campus · Asia/Kolkata (IST, UTC+05:30)</div>
+      </div>
+      <p class="text-sm text-[#6E675F]">
+        Immutable log of automated boom barrier plate scans and clearance evaluations. This is a read-only record of entrance checks, not a control to open the gate.
+      </p>
+    </div>
+
+    <!-- Compact Result Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-[#FFFFFF] border border-[#E6E2DC] rounded-lg p-4">
+        <div class="text-xs font-medium text-[#6E675F] uppercase tracking-wider">Scans logged today</div>
+        <div class="mt-2 flex items-baseline justify-between">
+          <div class="text-2xl font-bold font-mono text-[#211D19]">38</div>
+          <span class="text-xs text-[#6E675F]">Tue 19 May</span>
+        </div>
+        <div class="mt-1 text-xs text-[#6E675F]">Bengaluru entry gate 1 &amp; 2</div>
+      </div>
+
+      <div class="bg-[#FFFFFF] border border-[#E6E2DC] rounded-lg p-4">
+        <div class="text-xs font-medium text-[#6E675F] uppercase tracking-wider">Entries allowed</div>
+        <div class="mt-2 flex items-baseline justify-between">
+          <div class="text-2xl font-bold font-mono text-[#1E7E4E]">33</div>
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-[#EEF8F2] text-[#1E7E4E]">
+            86.8%
+          </span>
+        </div>
+        <div class="mt-1 text-xs text-[#6E675F]">Green indicator activated</div>
+      </div>
+
+      <div class="bg-[#FFFFFF] border border-[#E6E2DC] rounded-lg p-4">
+        <div class="text-xs font-medium text-[#6E675F] uppercase tracking-wider">Entries denied</div>
+        <div class="mt-2 flex items-baseline justify-between">
+          <div class="text-2xl font-bold font-mono text-[#B33924]">5</div>
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-[#FDF2F0] text-[#B33924]">
+            13.2%
+          </span>
+        </div>
+        <div class="mt-1 text-xs text-[#6E675F]">Indicator held off · barrier locked</div>
+      </div>
+
+      <div class="bg-[#FFFFFF] border border-[#E6E2DC] rounded-lg p-4">
+        <div class="text-xs font-medium text-[#6E675F] uppercase tracking-wider">Plate unreadable</div>
+        <div class="mt-2 flex items-baseline justify-between">
+          <div class="text-2xl font-bold font-mono text-[#6E675F]">2</div>
+          <span class="text-xs text-[#6E675F]">Optical retry</span>
+        </div>
+        <div class="mt-1 text-xs text-[#6E675F]">Attendant verification required</div>
+      </div>
+    </div>
+
+    <!-- Filter Bar: "Apply filters" is the single primary action -->
+    <div class="bg-[#FFFFFF] border border-[#E6E2DC] rounded-lg p-4 sm:p-5 shadow-sm">
+      <form class="space-y-4" onsubmit="event.preventDefault();">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Date Filter -->
+          <div>
+            <label for="filter-date" class="block text-xs font-semibold uppercase tracking-wider text-[#6E675F] mb-1.5">
+              Date window (Asia/Kolkata)
+            </label>
+            <select id="filter-date" class="interactive-input w-full bg-[#FAF8F5] border border-[#E6E2DC] text-[#211D19] text-sm rounded-md px-3 py-2">
+              <option selected>Current session (18–19 May 2026)</option>
+              <option>Today only (Tue 19 May 2026)</option>
+              <option>Yesterday (Mon 18 May 2026)</option>
+              <option>Full week (11–17 May 2026)</option>
+            </select>
+          </div>
+
+          <!-- Result Filter -->
+          <div>
+            <label for="filter-result" class="block text-xs font-semibold uppercase tracking-wider text-[#6E675F] mb-1.5">
+              Result &amp; Authorization
+            </label>
+            <select id="filter-result" class="interactive-input w-full bg-[#FAF8F5] border border-[#E6E2DC] text-[#211D19] text-sm rounded-md px-3 py-2">
+              <option selected>All results</option>
+              <option>Temporary parking authorized</option>
+              <option>Dedicated stall authorized</option>
+              <option>Not authorized</option>
+              <option>Not verified (unreadable)</option>
+            </select>
+          </div>
+
+          <!-- Entry Status Filter -->
+          <div>
+            <label for="filter-status" class="block text-xs font-semibold uppercase tracking-wider text-[#6E675F] mb-1.5">
+              Entry Status
+            </label>
+            <select id="filter-status" class="interactive-input w-full bg-[#FAF8F5] border border-[#E6E2DC] text-[#211D19] text-sm rounded-md px-3 py-2">
+              <option selected>All entry statuses</option>
+              <option>Entry allowed</option>
+              <option>Entry denied</option>
+            </select>
+          </div>
+
+          <!-- Gate / Attendant Filter -->
+          <div>
+            <label for="filter-gate" class="block text-xs font-semibold uppercase tracking-wider text-[#6E675F] mb-1.5">
+              Indicator outcome
+            </label>
+            <select id="filter-gate" class="interactive-input w-full bg-[#FAF8F5] border border-[#E6E2DC] text-[#211D19] text-sm rounded-md px-3 py-2">
+              <option selected>All indicator states</option>
+              <option>Green indicator on</option>
+              <option>Green indicator off</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-[#F0EDE8]">
+          <div class="text-xs text-[#6E675F]">
+            Filtering 38 logged records · Showing 6 prioritized checks
+          </div>
+          <!-- Single primary action: Apply filters -->
+          <button type="submit" class="interactive-btn inline-flex items-center justify-center px-4 py-2 bg-[#A95540] text-white text-sm font-semibold rounded-md shadow-sm">
+            Apply filters
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Dense Table with timestamp in Asia/Kolkata time, detected plate, result, entry status and indicator outcome -->
+    <!-- On phone, stack each attempt into a touch-readable record -->
+    <div class="bg-[#FFFFFF] border border-[#E6E2DC] rounded-lg shadow-sm overflow-hidden">
+      
+      <!-- Table Header (Desktop) -->
+      <div class="hidden lg:block">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr class="bg-[#FAF8F5] border-b border-[#E6E2DC] text-[11px] font-semibold uppercase tracking-wider text-[#6E675F]">
+              <th scope="col" class="py-3 px-4 w-[210px]">Timestamp (IST)</th>
+              <th scope="col" class="py-3 px-4 w-[260px]">Detected Plate &amp; Vehicle</th>
+              <th scope="col" class="py-3 px-4">Evaluation Result</th>
+              <th scope="col" class="py-3 px-4 w-[160px]">Entry Status</th>
+              <th scope="col" class="py-3 px-4 w-[200px]">Indicator Outcome</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#E6E2DC] text-[#211D19]">
+
+            <!-- Sample Row 1: Tue 19 May 2026 9:02 AM · KA02ZZ4401 · Not authorized · Entry denied · Green indicator off -->
+            <tr class="hover:bg-[#FAF8F5] transition-colors">
+              <td class="py-3.5 px-4 align-middle">
+                <div class="font-mono text-xs font-semibold text-[#211D19]">Tue 19 May 2026 9:02 AM</div>
+                <div class="text-[11px] text-[#6E675F]">Asia/Kolkata · Boom Gate 1</div>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <div class="inline-flex items-center px-2 py-0.5 rounded border border-[#E6E2DC] bg-[#FAF8F5] font-mono text-xs font-bold text-[#211D19]">
+                  KA02ZZ4401
+                </div>
+                <div class="text-[11px] text-[#6E675F] mt-0.5">Unregistered visitor vehicle</div>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span class="text-sm font-medium text-[#B33924]">Not authorized</span>
+                <p class="text-[11px] text-[#6E675F]">No allocation found on campus registry for this license plate</p>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#FDF2F0] text-[#B33924] border border-[#FADCD6]">
+                  Entry denied
+                </span>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <div class="inline-flex items-center space-x-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-[#B33924]" aria-hidden="true"></span>
+                  <span class="text-xs font-medium text-[#6E675F]">Green indicator off</span>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Sample Row 2: Tue 19 May 2026 8:57 AM · Plate unreadable · Not verified · Entry denied · Green indicator off -->
+            <tr class="hover:bg-[#FAF8F5] transition-colors">
+              <td class="py-3.5 px-4 align-middle">
+                <div class="font-mono text-xs font-semibold text-[#211D19]">Tue 19 May 2026 8:57 AM</div>
+                <div class="text-[11px] text-[#6E675F]">Asia/Kolkata · Boom Gate 2</div>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <!-- Keep unreadable-plate attempts text-only -->
+                <span class="italic text-xs font-medium text-[#6E675F]">Plate unreadable</span>
+                <div class="text-[11px] text-[#9C958C] mt-0.5">Camera OCR low contrast score (0.24)</div>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span class="text-sm font-medium text-[#6E675F]">Not verified</span>
+                <p class="text-[11px] text-[#6E675F]">Attendant verification requested to Security Guard Kabir Shah</p>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#FDF2F0] text-[#B33924] border border-[#FADCD6]">
+                  Entry denied
+                </span>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <div class="inline-flex items-center space-x-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-[#9C958C]" aria-hidden="true"></span>
+                  <span class="text-xs font-medium text-[#6E675F]">Green indicator off</span>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Sample Row 3: Mon 18 May 2026 9:14 AM · KA05PQ7712 · Temporary parking authorized · Entry allowed · Green indicator on
+                 For readable authorized vehicle KA05PQ7712, include small real photograph of that registered vehicle (https://lh3.googleusercontent.com/aida-public/AB6AXuAcaPBM4ZMIgbF8CrC4GxhZAnP7cvo2WV7Yeji5zT_eHGpEWkTXZOUPUHC6b0zW_A8YoXTTPdULSlJDAkR18zC0RNMQfR15VWVCKDCBUbeJU7leHSL0Rc3X86QwLrafv_34LKWSHh_oAjlztfPgc22xSEMeWj5_-KHu1CtbrHR_8Jtnc32eLtnKVVASl-9Dp0rTlGn6rzJq0p5lO5J_IyTzsyFv6rxFWqZsQIN9V_uKU77C_7OgWJ55_FuWX3DsEasTsRW4Rk6n) -->
+            <tr class="hover:bg-[#FAF8F5] transition-colors bg-[#FCFBF9]">
+              <td class="py-3.5 px-4 align-middle">
+                <div class="font-mono text-xs font-semibold text-[#211D19]">Mon 18 May 2026 9:14 AM</div>
+                <div class="text-[11px] text-[#6E675F]">Asia/Kolkata · Boom Gate 1</div>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <div class="flex items-center space-x-3">
+                  <!-- Small real photograph of registered vehicle KA05PQ7712 -->
+                  <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcaPBM4ZMIgbF8CrC4GxhZAnP7cvo2WV7Yeji5zT_eHGpEWkTXZOUPUHC6b0zW_A8YoXTTPdULSlJDAkR18zC0RNMQfR15VWVCKDCBUbeJU7leHSL0Rc3X86QwLrafv_34LKWSHh_oAjlztfPgc22xSEMeWj5_-KHu1CtbrHR_8Jtnc32eLtnKVVASl-9Dp0rTlGn6rzJq0p5lO5J_IyTzsyFv6rxFWqZsQIN9V_uKU77C_7OgWJ55_FuWX3DsEasTsRW4Rk6n" alt="Registered vehicle KA05PQ7712 at gate" class="w-16 h-10 object-cover rounded border border-[#E6E2DC] shadow-xs flex-shrink-0">
+                  <div>
+                    <div class="inline-flex items-center px-2 py-0.5 rounded border border-[#CDE5D6] bg-[#EEF8F2] font-mono text-xs font-bold text-[#1E7E4E]">
+                      KA05PQ7712
+                    </div>
+                    <div class="text-[11px] text-[#211D19] font-medium mt-0.5">Rohan Mehta (Engineering)</div>
+                  </div>
+                </div>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span class="text-sm font-semibold text-[#1E7E4E]">Temporary parking authorized</span>
+                <p class="text-[11px] text-[#6E675F]">Accepted daily pool claim on Floor P1 · Stall P1-18</p>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#EEF8F2] text-[#1E7E4E] border border-[#CDE5D6]">
+                  Entry allowed
+                </span>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <div class="inline-flex items-center space-x-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-[#1E7E4E]" aria-hidden="true"></span>
+                  <span class="text-xs font-semibold text-[#1E7E4E]">Green indicator on</span>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Additional contextual sample rows matching product database -->
+            <tr class="hover:bg-[#FAF8F5] transition-colors">
+              <td class="py-3.5 px-4 align-middle">
+                <div class="font-mono text-xs font-semibold text-[#211D19]">Tue 19 May 2026 8:42 AM</div>
+                <div class="text-[11px] text-[#6E675F]">Asia/Kolkata · Boom Gate 1</div>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <div class="inline-flex items-center px-2 py-0.5 rounded border border-[#E6E2DC] bg-[#FAF8F5] font-mono text-xs font-bold text-[#211D19]">
+                  KA03MN4821
+                </div>
+                <div class="text-[11px] text-[#211D19] font-medium mt-0.5">Ananya Rao (Product Design)</div>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span class="text-sm font-medium text-[#211D19]">Dedicated stall authorized</span>
+                <p class="text-[11px] text-[#6E675F]">Active reservation · Assigned Stall P1-12</p>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#EEF8F2] text-[#1E7E4E] border border-[#CDE5D6]">
+                  Entry allowed
+                </span>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <div class="inline-flex items-center space-x-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-[#1E7E4E]" aria-hidden="true"></span>
+                  <span class="text-xs font-semibold text-[#1E7E4E]">Green indicator on</span>
+                </div>
+              </td>
+            </tr>
+
+            <tr class="hover:bg-[#FAF8F5] transition-colors">
+              <td class="py-3.5 px-4 align-middle">
+                <div class="font-mono text-xs font-semibold text-[#211D19]">Tue 19 May 2026 8:50 AM</div>
+                <div class="text-[11px] text-[#6E675F]">Asia/Kolkata · Boom Gate 2</div>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <div class="inline-flex items-center px-2 py-0.5 rounded border border-[#E6E2DC] bg-[#FAF8F5] font-mono text-xs font-bold text-[#211D19]">
+                  KA04CD6190
+                </div>
+                <div class="text-[11px] text-[#211D19] font-medium mt-0.5">Devika Iyer (Finance)</div>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span class="text-sm font-medium text-[#B33924]">Not authorized</span>
+                <p class="text-[11px] text-[#6E675F]">Dedicated stall P1-18 was surrendered to public pool for today</p>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#FDF2F0] text-[#B33924] border border-[#FADCD6]">
+                  Entry denied
+                </span>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <div class="inline-flex items-center space-x-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-[#B33924]" aria-hidden="true"></span>
+                  <span class="text-xs font-medium text-[#6E675F]">Green indicator off</span>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Active check row with ambient breathing dot -->
+            <tr class="hover:bg-[#FAF8F5] transition-colors">
+              <td class="py-3.5 px-4 align-middle">
+                <div class="font-mono text-xs font-semibold text-[#211D19]">Tue 19 May 2026 9:15 AM</div>
+                <div class="text-[11px] text-[#A95540] font-medium">Asia/Kolkata · In progress</div>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <div class="inline-flex items-center px-2 py-0.5 rounded border border-[#E6E2DC] bg-[#FAF8F5] font-mono text-xs font-bold text-[#211D19]">
+                  KA01AB2345
+                </div>
+                <div class="text-[11px] text-[#211D19] font-medium mt-0.5">Priya Nair (People Operations)</div>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span class="text-sm font-medium text-[#211D19]">Evaluating stall clearance...</span>
+                <p class="text-[11px] text-[#6E675F]">Checking stall P2-08 access rule</p>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#FAF8F5] text-[#6E675F] border border-[#E6E2DC]">
+                  Pending check
+                </span>
+              </td>
+              <td class="py-3.5 px-4 align-middle">
+                <div class="inline-flex items-center space-x-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-[#A95540] active-evaluating-dot" aria-hidden="true"></span>
+                  <span class="text-xs font-medium text-[#6E675F]">Evaluating (indicator off)</span>
+                </div>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Layout: Touch-readable stacked records -->
+      <div class="block lg:hidden divide-y divide-[#E6E2DC]">
+        
+        <!-- Mobile Record 1 -->
+        <div class="p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-xs font-bold text-[#211D19]">Tue 19 May 2026 9:02 AM</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#FDF2F0] text-[#B33924] border border-[#FADCD6]">
+              Entry denied
+            </span>
+          </div>
+
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="inline-flex items-center px-2 py-0.5 rounded border border-[#E6E2DC] bg-[#FAF8F5] font-mono text-xs font-bold text-[#211D19]">
+                KA02ZZ4401
+              </div>
+              <div class="text-xs text-[#6E675F] mt-1">Unregistered visitor vehicle</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs font-semibold text-[#B33924]">Not authorized</div>
+              <div class="text-[11px] text-[#6E675F]">No allocation found</div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-[#F0EDE8] flex items-center justify-between text-xs">
+            <span class="text-[#6E675F]">Gate 1 · Asia/Kolkata</span>
+            <div class="inline-flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#B33924]"></span>
+              <span class="text-[#6E675F] font-medium">Green indicator off</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Record 2 -->
+        <div class="p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-xs font-bold text-[#211D19]">Tue 19 May 2026 8:57 AM</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#FDF2F0] text-[#B33924] border border-[#FADCD6]">
+              Entry denied
+            </span>
+          </div>
+
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="italic text-xs font-medium text-[#6E675F]">Plate unreadable</span>
+              <div class="text-[11px] text-[#9C958C] mt-0.5">Camera OCR low contrast score (0.24)</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs font-semibold text-[#6E675F]">Not verified</div>
+              <div class="text-[11px] text-[#6E675F]">Attendant check</div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-[#F0EDE8] flex items-center justify-between text-xs">
+            <span class="text-[#6E675F]">Gate 2 · Kabir Shah alert</span>
+            <div class="inline-flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#9C958C]"></span>
+              <span class="text-[#6E675F] font-medium">Green indicator off</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Record 3: KA05PQ7712 with image -->
+        <div class="p-4 space-y-3 bg-[#FCFBF9]">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-xs font-bold text-[#211D19]">Mon 18 May 2026 9:14 AM</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#EEF8F2] text-[#1E7E4E] border border-[#CDE5D6]">
+              Entry allowed
+            </span>
+          </div>
+
+          <div class="flex items-center space-x-3">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcaPBM4ZMIgbF8CrC4GxhZAnP7cvo2WV7Yeji5zT_eHGpEWkTXZOUPUHC6b0zW_A8YoXTTPdULSlJDAkR18zC0RNMQfR15VWVCKDCBUbeJU7leHSL0Rc3X86QwLrafv_34LKWSHh_oAjlztfPgc22xSEMeWj5_-KHu1CtbrHR_8Jtnc32eLtnKVVASl-9Dp0rTlGn6rzJq0p5lO5J_IyTzsyFv6rxFWqZsQIN9V_uKU77C_7OgWJ55_FuWX3DsEasTsRW4Rk6n" alt="Vehicle KA05PQ7712 at gate" class="w-20 h-12 object-cover rounded border border-[#E6E2DC] shadow-xs flex-shrink-0">
+            <div>
+              <div class="inline-flex items-center px-2 py-0.5 rounded border border-[#CDE5D6] bg-[#EEF8F2] font-mono text-xs font-bold text-[#1E7E4E]">
+                KA05PQ7712
+              </div>
+              <div class="text-xs text-[#211D19] font-medium mt-0.5">Rohan Mehta (Engineering)</div>
+              <div class="text-[11px] text-[#1E7E4E] font-medium">Temporary parking authorized (P1-18)</div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-[#F0EDE8] flex items-center justify-between text-xs">
+            <span class="text-[#6E675F]">Gate 1 · Asia/Kolkata</span>
+            <div class="inline-flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#1E7E4E]"></span>
+              <span class="text-[#1E7E4E] font-semibold">Green indicator on</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Record 4: Ananya Rao -->
+        <div class="p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-xs font-bold text-[#211D19]">Tue 19 May 2026 8:42 AM</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#EEF8F2] text-[#1E7E4E] border border-[#CDE5D6]">
+              Entry allowed
+            </span>
+          </div>
+
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="inline-flex items-center px-2 py-0.5 rounded border border-[#E6E2DC] bg-[#FAF8F5] font-mono text-xs font-bold text-[#211D19]">
+                KA03MN4821
+              </div>
+              <div class="text-xs text-[#211D19] font-medium mt-0.5">Ananya Rao (Product Design)</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs font-semibold text-[#211D19]">Dedicated stall</div>
+              <div class="text-[11px] text-[#6E675F]">P1-12 reserved</div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-[#F0EDE8] flex items-center justify-between text-xs">
+            <span class="text-[#6E675F]">Gate 1 · Asia/Kolkata</span>
+            <div class="inline-flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#1E7E4E]"></span>
+              <span class="text-[#1E7E4E] font-semibold">Green indicator on</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Record 5: Devika Iyer -->
+        <div class="p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-xs font-bold text-[#211D19]">Tue 19 May 2026 8:50 AM</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#FDF2F0] text-[#B33924] border border-[#FADCD6]">
+              Entry denied
+            </span>
+          </div>
+
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="inline-flex items-center px-2 py-0.5 rounded border border-[#E6E2DC] bg-[#FAF8F5] font-mono text-xs font-bold text-[#211D19]">
+                KA04CD6190
+              </div>
+              <div class="text-xs text-[#211D19] font-medium mt-0.5">Devika Iyer (Finance)</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs font-semibold text-[#B33924]">Not authorized</div>
+              <div class="text-[11px] text-[#6E675F]">Stall surrendered</div>
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-[#F0EDE8] flex items-center justify-between text-xs">
+            <span class="text-[#6E675F]">Gate 2 · Asia/Kolkata</span>
+            <div class="inline-flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-[#B33924]"></span>
+              <span class="text-[#6E675F] font-medium">Green indicator off</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Compact Table Pagination / Footer note -->
+      <div class="px-4 py-3 bg-[#FAF8F5] border-t border-[#E6E2DC] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#6E675F]">
+        <div class="font-mono">
+          Showing 1–6 of 38 checks recorded across Gate 1 &amp; 2
+        </div>
+        <div class="flex items-center space-x-4">
+          <span>Stall allocation detection updates boom barrier optical logs continuously</span>
+          <span class="font-mono font-medium text-[#211D19]">Page 1 of 4</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: https://lh3.googleusercontent.com; connect-src 'none'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free spaces — Folio3 Parking</title>
+  <!-- Google Fonts: Hanken Grotesk, Source Sans 3, IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Exact System Color Palette */
+    :root {
+      --bg-page: #F3F6F8;
+      --bg-panel: #FFFFFF;
+      --text-main: #25313B;
+      --text-quiet: #5D6A75;
+      --border-rule: #D6DEE5;
+      --primary: #356F9A;
+      --status-good: #2D6F4F;
+      --status-waiting: #8A5C14;
+      --status-failed: #A53B36;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 22px;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    .font-mono-numbers {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* Motion specifications */
+    @keyframes screenEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes parkingRecordSettle {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ambientStatusBreathe {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.96;
+      }
+    }
+
+    .animate-entrance {
+      animation: screenEntrance 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-record-settle {
+      animation: parkingRecordSettle 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .status-dot-breathing {
+      animation: ambientStatusBreathe 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    /* Interactive States */
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      height: 44px;
+      border-radius: 8px;
+      transition: background-color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
+    }
+    .btn-primary:hover {
+      background-color: #2b5b7f;
+    }
+    .btn-primary:active {
+      transform: scale(0.99);
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .nav-item {
+      height: 40px;
+      border-radius: 8px;
+      transition: color 150ms ease, background-color 150ms ease;
+    }
+    .nav-item:hover {
+      color: var(--text-main);
+      background-color: rgba(53, 111, 154, 0.06);
+    }
+    .nav-item.active {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .panel-card {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-rule);
+      border-radius: 8px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header: Exact Shared Header Specification -->
+  <header class="bg-white border-b border-[#D6DEE5] px-6 h-16 flex items-center justify-between sticky top-0 z-30">
+    <div class="flex items-center space-x-6">
+      <!-- Brand mark + Wordmark -->
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-[8px] bg-[#25313B] flex items-center justify-center text-white font-bold text-sm tracking-wide">
+          P
+        </div>
+        <span class="font-heading text-[18px] font-semibold text-[#25313B] tracking-tight">Folio3 Parking</span>
+      </div>
+
+      <!-- Employee Menu (Desktop) -->
+      <nav class="hidden md:flex items-center space-x-1 pl-4">
+        <a href="#my-space" class="nav-item px-3 py-2 text-[#5D6A75] text-[14px]">My space</a>
+        <a href="#free-spaces" class="nav-item active px-3 py-2 text-[#356F9A] text-[14px]">Free spaces</a>
+        <a href="#my-vehicles" class="nav-item px-3 py-2 text-[#5D6A75] text-[14px]">My vehicles</a>
+      </nav>
+    </div>
+
+    <!-- Right Profile / Mobile Menu -->
+    <div class="flex items-center space-x-4">
+      <!-- Signed-in Employee Profile: Omar Patel -->
+      <div class="flex items-center space-x-3">
+        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBiZdGrj3zboCnVTrcZf3jZ8YBHKXjN6y0Kiu384WQWDT8g159foEkHsjPhFJAbcgzgYJps6XF6GTV1mfGFEy69CxapRMBUSqlCCV3qwaZQ4qQMP1RLLtg4tvSyTeBTuA_n9SVkjmKhQPTTpUNLQg9-1a54lGgUykpP7p7aBXotTWIU1ZqlIyPD7ag-34-3fxQm8cWl-7u0CKYmi0RKjKFeFT3bQu1V4itZMrV30RarRfrqOpoUHr2c3_V3I0_vnSFkmz7B7hbPpGo" alt="Omar Patel" class="w-9 h-9 rounded-[8px] object-cover border border-[#D6DEE5]">
+        <div class="text-left leading-tight hidden sm:block">
+          <div class="font-semibold text-[#25313B] text-[14px]">Omar Patel</div>
+          <div class="text-[#5D6A75] text-[12px]">Employee</div>
+        </div>
+      </div>
+
+      <!-- Mobile Touch Menu Button -->
+      <button class="md:hidden w-11 h-11 flex items-center justify-center rounded-[8px] border border-[#D6DEE5] text-[#25313B] hover:bg-slate-50 active:bg-slate-100" aria-label="Open menu">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8 animate-entrance">
+    <!-- One Page Heading -->
+    <h1 class="text-[28px] leading-[36px] font-semibold text-[#25313B] mb-8 font-heading">Free spaces</h1>
+
+    <!-- Wider widths: adjacent regions; narrow phones: stacked -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Left Column / Primary Workflow (7 cols on lg) -->
+      <div class="lg:col-span-7 space-y-6">
+        
+        <!-- Live Count Headline Panel -->
+        <section class="panel-card p-6">
+          <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2 border-b border-[#D6DEE5] pb-4">
+            <div>
+              <div class="text-[12px] font-medium text-[#5D6A75] uppercase tracking-wider mb-1">Live availability</div>
+              <div class="text-[28px] sm:text-[32px] font-semibold text-[#25313B] font-heading tracking-tight">1 space free</div>
+            </div>
+            <div class="text-left sm:text-right">
+              <span class="inline-flex items-center px-2.5 py-1 rounded-[8px] text-[12px] font-medium border border-[#2D6F4F] text-[#2D6F4F] bg-[#2D6F4F]/5">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#2D6F4F] mr-1.5 status-dot-breathing"></span>
+                good
+              </span>
+            </div>
+          </div>
+          <div class="pt-3 text-[13px] text-[#5D6A75]">
+            Checked <span class="font-mono-numbers text-[#25313B]">Monday, 12 May 2025 at 10:15 PDT</span>
+          </div>
+        </section>
+
+        <!-- Earliest Claimable Offer Panel -->
+        <section class="panel-card p-6 animate-record-settle">
+          <div class="flex items-center justify-between pb-4 border-b border-[#D6DEE5]">
+            <h2 class="text-[20px] font-semibold text-[#25313B] font-heading">Available allocation</h2>
+            <span class="text-[12px] text-[#5D6A75]">Released today at <span class="font-mono-numbers text-[#25313B]">09:42</span></span>
+          </div>
+
+          <div class="py-5 space-y-4">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <div class="text-[12px] text-[#5D6A75] mb-1">Space</div>
+                <div class="font-mono-numbers text-[20px] font-semibold text-[#25313B]">P3-06</div>
+              </div>
+              <div>
+                <div class="text-[12px] text-[#5D6A75] mb-1">Assigned floor</div>
+                <div class="text-[16px] font-semibold text-[#25313B]">Floor 3</div>
+              </div>
+              <div class="col-span-2 sm:col-span-1">
+                <div class="text-[12px] text-[#5D6A75] mb-1">Location</div>
+                <div class="text-[14px] text-[#25313B]">Folio3 San Francisco office</div>
+              </div>
+            </div>
+
+            <!-- Plain Language Explanation Box -->
+            <div class="p-4 rounded-[8px] bg-[#F3F6F8] border border-[#D6DEE5] text-[13px] text-[#5D6A75] leading-[20px]">
+              The first accepted claim gets the space. A confirmed temporary claim cannot be cancelled; after confirmation, park on your assigned floor (<span class="font-medium text-[#25313B]">Floor 3</span>).
+            </div>
+          </div>
+
+          <!-- The One Primary Action -->
+          <div class="pt-2">
+            <button type="button" class="btn-primary w-full text-[15px] font-semibold flex items-center justify-center">
+              Claim this space
+            </button>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Right Column / Profile & Registered Vehicle Details (5 cols on lg) -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- Vehicle Details Panel -->
+        <section class="panel-card p-6">
+          <div class="flex items-center justify-between pb-3 border-b border-[#D6DEE5]">
+            <h2 class="text-[16px] font-semibold text-[#25313B] font-heading">Registered vehicle</h2>
+            <span class="text-[12px] text-[#5D6A75]">Active record</span>
+          </div>
+
+          <!-- Genuine photograph of Omar's Subaru Crosstrek cropped 4:3 -->
+          <div class="my-4 overflow-hidden rounded-[8px] border border-[#D6DEE5] aspect-[4/3] bg-neutral-100">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCV1Gt_3AqC6lgTzlDzeX8pYy-Yz0icaSA72dSx48Z2YHa08NXTj-qfglM7urWlz6Dr3vMyNwLTk4UP8LKCMjy6pGPosmmW8ijWDDxAkSkhS9BIA18pGgV-R_kW5AstjkQ00HL_8dTf6BtX7YR6-ldW_IKwxkka_goAqSPYn3Pz0U3C2i-MyK6VMvbgGXst8r8CsXKx-71JE8WyjK2HSywgIqGm70UJBZgKO5MtqKNWjEOxWc-rhrlPjBpSmF5gcYRO1fZset1LiJM" alt="Subaru Crosstrek with California plate 7MJR482" class="w-full h-full object-cover">
+          </div>
+
+          <div class="space-y-3 pt-1">
+            <div class="flex items-center justify-between text-[14px] py-1 border-b border-[#D6DEE5]/60">
+              <span class="text-[#5D6A75]">Model</span>
+              <span class="font-medium text-[#25313B]">Subaru Crosstrek</span>
+            </div>
+            <div class="flex items-center justify-between text-[14px] py-1 border-b border-[#D6DEE5]/60">
+              <span class="text-[#5D6A75]">License plate</span>
+              <span class="font-mono-numbers font-semibold text-[#25313B] px-2 py-0.5 rounded-[6px] bg-[#F3F6F8] border border-[#D6DEE5]">7MJR482</span>
+            </div>
+            <div class="flex items-center justify-between text-[14px] py-1 border-b border-[#D6DEE5]/60">
+              <span class="text-[#5D6A75]">Registered driver</span>
+              <span class="font-medium text-[#25313B]">Omar Patel</span>
+            </div>
+            <div class="flex items-center justify-between text-[14px] py-1">
+              <span class="text-[#5D6A75]">Office assignment</span>
+              <span class="text-[#25313B]">None (daily claimant)</span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+    </div>
+  </main>
+
+
+
+<script>(function(){var T=[{"id":"S-1","names":["sign in"],"words":["sign"]},{"id":"S-2","names":["my space","employee my space"],"words":["employee","space"]},{"id":"S-3","names":["release date","employee release date"],"words":["employee","release","date"]},{"id":"S-4","names":["free space","employee free space"],"words":["employee","free","space"]},{"id":"S-5","names":["my vehicle","employee my vehicle"],"words":["employee","vehicle"]},{"id":"S-6","names":["employee","admin employee"],"words":["employee"]},{"id":"S-8","names":["utilization","admin utilization"],"words":["utilization"]},{"id":"S-9","names":["entry check","admin entry check"],"words":["entry","check"]},{"id":"S-10","names":["setting","admin setting"],"words":["setting"]},{"id":"S-7","names":["employee detail","employee","admin employee"],"words":["employee"]}],L={"my space":"S-2","my vehicles":"S-5"},A={"set release dates":"S-3","open employee record":"S-7","utilization":"S-8","entry checks":"S-9","settings":"S-10","employees":"S-6"},C=["the","and","for","with","your","our","all","new","view","open","see","show","manage","admin","app","page","list","details","detail","back","this","that","from","into","error","state","success","empty","loading","default","normal","validation"],V=["claim","remove","delete","cancel","save","flag","copy","edit","update","toggle","export","download","retry","try","close","confirm","submit","apply","reset","clear","search","filter","sort"],S=["empty","loading","error","success","validation","state","states","preview","variant","variants","demo","default"],F=["terms","privacy","policy","legal","cookie","cookies","support","help","documentation","docs"],M="S-4";
+function norm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()}
+function words(el){var c=el.cloneNode(true);[].forEach.call(c.querySelectorAll("[class*=material-],svg,script,style"),function(x){x.remove()});return norm(c.textContent)||norm(el.getAttribute("aria-label")||el.getAttribute("title"))}
+function has(a,b){return (" "+a+" ").indexOf(" "+b+" ")>=0}
+function stem(w){return w.length>3&&/[^s]s$/.test(w)?w.slice(0,-1):w}
+function guess(t){var w=t.split(" ");if(w.length>4||V.indexOf(w[0])>=0||w.some(function(x){return F.indexOf(x)>=0}))return;var k=[];w.forEach(function(x){if(x.length>=3&&C.indexOf(x)<0&&k.indexOf(stem(x))<0)k.push(stem(x))});if(!k.length)return;
+var best,top=0,tie=false;T.forEach(function(s){var n=0;k.forEach(function(x){if(s.words.indexOf(x)>=0)n++});
+if(n*2<k.length)return;if(n>top){top=n;best=s.id;tie=false}else if(n===top&&n>0)tie=true});return tie?undefined:best}
+function find(t){if(t.length<3)return;if(L[t])return L[t];if(A[t])return A[t];var w=t.split(" "),u=w.map(stem).join(" "),st=w.some(function(x){return S.indexOf(x)>=0}),best,gap=1e9;
+var k=w.filter(function(x){return x.length>=3&&C.indexOf(x)<0}).map(stem).join(" ");
+T.forEach(function(s){s.names.forEach(function(n){var d=n===u?-1:st||!k?1e9:n===k?0:(u.length>=4&&(has(n,u)||has(u,n.indexOf(" ")>0?n:"to "+n)))?1+Math.abs(n.length-u.length):1e9;if(d<gap){gap=d;best=s.id}})});return best||(st?undefined:guess(t))}
+document.addEventListener("click",function(e){var el=e.target&&e.target.closest&&e.target.closest("a,button,[role=button],[role=link],[role=tab],[role=menuitem]");if(!el)return;
+if(el.tagName==="A")e.preventDefault();var id=find(words(el));if(id&&id!==M){e.preventDefault();parent.postMessage({factoryGo:id},"*")}},true);
+document.addEventListener("submit",function(e){e.preventDefault()},true);})();</script></body></html>

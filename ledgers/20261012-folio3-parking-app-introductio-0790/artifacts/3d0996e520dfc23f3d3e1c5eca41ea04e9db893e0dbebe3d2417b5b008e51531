@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in — Folio3 Parking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* Design System exact color specification & typography */
+    :root {
+      --bg-page: #F3F6F8;
+      --bg-surface: #FFFFFF;
+      --text-main: #25313B;
+      --text-quiet: #5D6A75;
+      --border-rule: #D6DEE5;
+      --primary-cta: #356F9A;
+      --status-good: #2D6F4F;
+      --status-waiting: #8A5C14;
+      --status-refused: #A53B36;
+      --font-heading: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 22px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ambientBreathe {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.96;
+      }
+    }
+
+    .entrance-animate {
+      animation: entranceFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .entrance-animate {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
+      * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+
+    /* Header Bar */
+    .top-header {
+      width: 100%;
+      height: 64px;
+      padding: 0 32px;
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border-rule);
+      display: flex;
+      align-items: center;
+    }
+
+    @media (max-width: 640px) {
+      .top-header {
+        padding: 0 20px;
+        height: 56px;
+      }
+    }
+
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .square-p-logo {
+      width: 28px;
+      height: 28px;
+      background-color: var(--primary-cta);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 16px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+    }
+
+    /* Page Layout: narrow left-aligned column with generous surrounding space */
+    .page-container {
+      flex: 1;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 80px 32px 64px 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+
+    @media (max-width: 768px) {
+      .page-container {
+        padding: 48px 24px 48px 24px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .page-container {
+        padding: 36px 20px 36px 20px;
+      }
+    }
+
+    .sign-in-column {
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    /* Page Heading: Largest type on page (28px/600) in Hanken Grotesk */
+    .page-title {
+      font-family: var(--font-heading);
+      font-size: 28px;
+      line-height: 34px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      margin-bottom: 16px;
+    }
+
+    /* Explanatory sentence */
+    .page-lead {
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 22px;
+      color: var(--text-quiet);
+      margin-bottom: 24px;
+    }
+
+    /* Sole Primary Action: Continue with Google */
+    .btn-google {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      height: 44px;
+      background-color: var(--bg-surface);
+      color: var(--text-main);
+      border: 1px solid var(--border-rule);
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      padding: 0 16px;
+      transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+      outline: none;
+      user-select: none;
+    }
+
+    .btn-google:hover {
+      background-color: #FAFCFD;
+      border-color: #B9C6D1;
+    }
+
+    .btn-google:focus-visible {
+      border-color: var(--primary-cta);
+      box-shadow: 0 0 0 2px var(--primary-cta);
+    }
+
+    .btn-google:active {
+      background-color: #EDF2F6;
+      border-color: var(--border-rule);
+    }
+
+    .google-g-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* Quiet line explaining active employee requirement */
+    .access-notice {
+      margin-top: 16px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      line-height: 20px;
+      color: var(--text-quiet);
+    }
+
+    /* Minimal subtle office context line at bottom of viewport */
+    .site-footer {
+      margin-top: auto;
+      padding: 24px 32px;
+      border-top: 1px solid var(--border-rule);
+      background-color: transparent;
+      width: 100%;
+    }
+
+    @media (max-width: 640px) {
+      .site-footer {
+        padding: 20px;
+      }
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      color: var(--text-quiet);
+      font-size: 12px;
+      line-height: 18px;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top application bar -->
+  <header class="top-header" role="banner">
+    <div class="brand-mark" aria-label="Folio3 Parking Home">
+      <div class="square-p-logo" aria-hidden="true">P</div>
+      <span class="brand-title">Folio3 Parking</span>
+    </div>
+  </header>
+
+  <!-- Main sign-in layout in left-aligned narrow column with generous surrounding space -->
+  <main class="page-container" role="main">
+    <div class="sign-in-column entrance-animate">
+      <h1 class="page-title">Sign in</h1>
+      <p class="page-lead">Use your Folio3 Google account to manage parking.</p>
+      
+      <button type="button" class="btn-google" aria-label="Continue with Google">
+        <svg class="google-g-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+        </svg>
+        <span>Continue with Google</span>
+      </button>
+
+      <p class="access-notice">Access is for active Folio3 employees.</p>
+    </div>
+  </main>
+
+  <!-- Page footer showing clean, quiet office reference -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="footer-inner">
+      <span>Folio3 San Francisco office</span>
+    </div>
+  </footer>
+
+</body>
+</html>

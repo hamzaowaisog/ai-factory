@@ -7,6 +7,7 @@ import { z } from "zod";
 import { heldTier, nextUp, runnerFor, STEPS, TIER_TABLE } from "../stages/models.js";
 import { factoryHome } from "../util/paths.js";
 import { DESIGN_ENGINES, DESIGN_TIERS } from "./design-route.js";
+import { STITCH_MOODS } from "../design/stitch-taste.js";
 
 const EffortName = z.enum(["low", "medium", "high", "xhigh"]);
 const RunnerName = z.enum(["api", "claude-agent", "codex", "jcode"]);
@@ -68,6 +69,11 @@ export const ProjectConfig = z.object({
   project: z.string().regex(/^[a-z0-9][a-z0-9-]*$/),
   repo: z.string(),
   baseBranch: z.string().default("main"),
+  /**
+   * Temporary, until the factory builds phone apps: a design run and a new product draw and build a requirement for a mobile app
+   * as one responsive web app (src/config/platform.ts). Set false to get a phone app's design back (phone frame, bottom tab bar).
+   */
+  webOnly: z.boolean().default(true),
   /** dotnet: built and tested in the .NET lab; node: a TypeScript app (a new product's kit app), built and tested with npm and vitest */
   stack: z.enum(["dotnet", "node"]).default("dotnet"),
   forge: z.object({
@@ -192,8 +198,12 @@ export const ProjectConfig = z.object({
       states: z.array(z.enum(["empty", "error", "loading", "success", "validation"])).optional(),
       /** USD per Stitch call (a screen drawn or edited), counted in the run's cost and its limit; Stitch is free within its quota today */
       usdPerCall: z.number().nonnegative().optional(),
-      /** the most Stitch calls one run may make (draws, edits and fixes together), so a run cannot use up the account's quota */
+      /** the most Stitch calls one run may make (draws, edits and fixes together), so a run cannot use up the account's quota; default: no limit */
       maxCalls: z.number().int().positive().optional(),
+      /** the look asked of the design system: calm, bold or futuristic (src/design/stitch-taste.ts); default: chosen from the product */
+      mood: z.enum(STITCH_MOODS).optional(),
+      /** a design drawn for a wide screen shows its most used pages (five at most) at phone width too, one more generation each; default on */
+      phone: z.boolean().optional(),
     }).optional(),
     /**
      * A small UI fix in an app of its own gets a text design note approved with the estimate, not a drawn demo and a card of its

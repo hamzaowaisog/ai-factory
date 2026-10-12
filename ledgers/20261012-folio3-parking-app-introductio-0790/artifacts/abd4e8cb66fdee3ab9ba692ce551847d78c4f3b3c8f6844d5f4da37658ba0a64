@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Folio3 Parking — My vehicles</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #F3F6F8;
+      color: #25313B;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      line-height: 22px;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .font-mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .font-heading {
+      font-family: 'Hanken Grotesk', sans-serif;
+    }
+
+    /* Motion specifications */
+    @keyframes entranceFadeIn {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes parkingRecordSettle {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes statusBreath {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.96;
+      }
+    }
+
+    .animate-entrance {
+      animation: entranceFadeIn 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-settle {
+      animation: parkingRecordSettle 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .animate-breath {
+      animation: statusBreath 8s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Header styling */
+    .app-header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D6DEE5;
+      padding: 0 16px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 50;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      background-color: #25313B;
+      color: #FFFFFF;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .brand-wordmark {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      color: #25313B;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .avatar-img {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      object-fit: cover;
+      aspect-ratio: 4 / 3;
+      border: 1px solid #D6DEE5;
+      background-color: #E2E8F0;
+      display: block;
+    }
+
+    .user-meta {
+      display: flex;
+      flex-direction: column;
+      text-align: right;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 13px;
+      color: #25313B;
+      line-height: 16px;
+    }
+
+    .user-role {
+      font-size: 12px;
+      color: #5D6A75;
+      line-height: 14px;
+    }
+
+    /* Mobile menu button */
+    .menu-button {
+      width: 44px;
+      height: 44px;
+      border: 1px solid #D6DEE5;
+      background-color: #FFFFFF;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #25313B;
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+
+    .menu-button:hover {
+      background-color: #F8FAFC;
+    }
+
+    .menu-button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #356F9A;
+    }
+
+    .menu-button:active {
+      background-color: #EDF2F7;
+    }
+
+    /* Mobile navigation overlay / dropdown */
+    .mobile-nav-panel {
+      display: none;
+      position: absolute;
+      top: 64px;
+      left: 0;
+      right: 0;
+      background-color: #FFFFFF;
+      border-bottom: 1px solid #D6DEE5;
+      padding: 12px 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      z-index: 40;
+    }
+
+    /* Controls opening other pages */
+    .nav-item {
+      display: flex;
+      align-items: center;
+      height: 44px;
+      padding: 0 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #25313B;
+      text-decoration: none;
+      transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    .nav-item:hover {
+      background-color: #F3F6F8;
+    }
+
+    .nav-item:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #356F9A;
+    }
+
+    .nav-item.active {
+      color: #356F9A;
+      background-color: #F3F6F8;
+    }
+
+    /* Main Content Container */
+    .main-content {
+      width: 100%;
+      max-width: 390px;
+      margin: 0 auto;
+      padding: 24px 16px 40px 16px;
+      flex: 1;
+    }
+
+    .page-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 28px;
+      line-height: 34px;
+      color: #25313B;
+      margin-bottom: 24px;
+      letter-spacing: -0.015em;
+    }
+
+    /* Plain notice box */
+    .notice-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .notice-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      line-height: 22px;
+      color: #25313B;
+      margin-bottom: 6px;
+    }
+
+    .notice-body {
+      font-size: 14px;
+      line-height: 22px;
+      color: #5D6A75;
+    }
+
+    /* Form section */
+    .form-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      padding: 20px 16px;
+      margin-bottom: 24px;
+    }
+
+    .form-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 20px;
+      line-height: 26px;
+      color: #25313B;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #25313B;
+      margin-bottom: 6px;
+    }
+
+    .optional-tag {
+      font-weight: 400;
+      color: #5D6A75;
+      font-size: 13px;
+    }
+
+    .text-input {
+      width: 100%;
+      height: 44px;
+      background-color: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      padding: 0 12px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      color: #25313B;
+      outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .text-input.input-mono {
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.05em;
+    }
+
+    .text-input:focus {
+      border-color: #356F9A;
+      box-shadow: 0 0 0 2px #356F9A;
+    }
+
+    .field-hint {
+      font-size: 12px;
+      line-height: 16px;
+      color: #5D6A75;
+      margin-top: 4px;
+    }
+
+    /* Primary button */
+    .btn-primary {
+      width: 100%;
+      height: 44px;
+      background-color: #356F9A;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Source Sans 3', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 20px;
+      transition: opacity 150ms ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+    }
+
+    .btn-primary:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #356F9A;
+    }
+
+    .btn-primary:active {
+      opacity: 0.84;
+    }
+
+    /* Empty vehicle list section */
+    .list-section-header {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 16px;
+      line-height: 22px;
+      color: #25313B;
+      margin-bottom: 8px;
+    }
+
+    .empty-state-card {
+      background-color: #FFFFFF;
+      border: 1px solid #D6DEE5;
+      border-radius: 8px;
+      padding: 24px 16px;
+      text-align: left;
+    }
+
+    .empty-state-title {
+      font-family: 'Hanken Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      color: #25313B;
+      margin-bottom: 4px;
+    }
+
+    .empty-state-desc {
+      font-size: 14px;
+      line-height: 22px;
+      color: #5D6A75;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Shared Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-mark" aria-hidden="true">P</div>
+      <span class="brand-wordmark">Folio3 Parking</span>
+    </div>
+
+    <div class="header-right">
+      <div class="user-profile">
+        <img 
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnvlNl6B3fnakYNghpP_-RT1BNO9-VcQk5BTbXVZFYJDsbMGDuUKOj9RtQlgjgXRv7BWrfJ0AIOThuIj8R0sFv-TJz5zomNU9MHyqmC4lhq1UQcQxfjzoHxvXgt0RIlsP8ADJsnB_KFFGyhDeukbx-udY1OsyrWGQASzJTIh4Lix6xpZL_x5GS2EqMTcVPZfmlldqiUEzGLcUqV2coSA0t95NTeV5HMzjsmYays3u2eaiE1Po7XDMBDTS00pFSwQQBMB4o3XKmO70" 
+          alt="Elliot Kim" 
+          class="avatar-img"
+        >
+        <div class="user-meta">
+          <span class="user-name">Elliot Kim</span>
+          <span class="user-role">Employee</span>
+        </div>
+      </div>
+
+      <!-- Phone menu button -->
+      <button 
+        type="button" 
+        class="menu-button" 
+        aria-label="Navigation menu"
+        aria-expanded="false"
+        onclick="const m = document.getElementById('mobileNav'); m.style.display = m.style.display === 'block' ? 'none' : 'block';"
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 5H17M3 10H17M3 15H17" stroke="#25313B" stroke-width="1.75" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Collapsible menu items -->
+    <nav class="mobile-nav-panel" id="mobileNav">
+      <a href="#" class="nav-item">My space</a>
+      <a href="#" class="nav-item">Free spaces</a>
+      <a href="#" class="nav-item active">My vehicles</a>
+    </nav>
+  </header>
+
+  <!-- Page Content -->
+  <main class="main-content animate-entrance">
+    <h1 class="page-title">My vehicles</h1>
+
+    <!-- First thing seen: Plain notice -->
+    <div class="notice-card">
+      <div class="notice-title">Add a license plate before using parking.</div>
+      <p class="notice-body">
+        At least one valid license plate must be registered to your profile before you can release an assigned space or claim an available parking allocation.
+      </p>
+    </div>
+
+    <!-- Registration form -->
+    <section class="form-card">
+      <h2 class="form-title">Register vehicle</h2>
+      <form onsubmit="event.preventDefault();">
+        <div class="form-group">
+          <label for="licensePlateInput" class="form-label">License plate</label>
+          <input 
+            type="text" 
+            id="licensePlateInput" 
+            name="licensePlate" 
+            class="text-input input-mono" 
+            placeholder="e.g. 7XYZ123" 
+            required 
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <div class="field-hint">Required for automated license plate recognition at office entrance.</div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="vehicleModelInput" class="form-label">
+            Vehicle <span class="optional-tag">(optional)</span>
+          </label>
+          <input 
+            type="text" 
+            id="vehicleModelInput" 
+            name="vehicle" 
+            class="text-input" 
+            placeholder="e.g. Make and model"
+          >
+          <div class="field-hint">Helps security identify your car on parking decks.</div>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          Save vehicle
+        </button>
+      </form>
+    </section>
+
+    <!-- Space below the form for registered-vehicle list (empty state) -->
+    <section class="registered-list-section">
+      <h3 class="list-section-header">Registered vehicles</h3>
+      <div class="empty-state-card">
+        <div class="empty-state-title">No vehicles registered</div>
+        <p class="empty-state-desc">
+          No active vehicle records on file. Save your plate above to complete setup.
+        </p>
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>

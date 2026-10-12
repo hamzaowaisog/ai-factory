@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { parse, stringify } from "yaml";
 import "../gates/predicates.js";
 import { verifyEvidence } from "../gates/engine.js";
@@ -424,12 +424,12 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(modelCalls).toContain("claude-opus-5-5");
     // the ledger says which model each step was given and why: saved once with the run, then on every step and every call
     const evs = ledger.events();
-    expect((evs[0]!.data!.routes as Record<string, unknown>).critic).toMatchObject({ model: "claude-opus-5-5", source: "fixed" });
+    expect((evs[0]!.data!.routes as Record<string, unknown>).critic).toMatchObject({ model: "claude-opus-5-5", source: "default", tier: "heavy" });
     expect((evs[0]!.data!.routes as Record<string, unknown>).implement).toMatchObject({ model: "claude-sonnet-5-5", source: "default", tier: "standard" });
     expect(evs.find((e) => e.type === "step.started" && e.key?.startsWith("intake"))!.data!.route).toMatchObject({ model: "claude-haiku-5-5", effort: "low", source: "default", tier: "light" });
     const criticCalls = evs.filter((e) => e.type === "usage" && e.data!["factory.route"] === "critic");
     expect(criticCalls.length).toBeGreaterThan(0);
-    for (const e of criticCalls) expect(e.data).toMatchObject({ "gen_ai.request.model": "claude-opus-5-5", "factory.route.source": "fixed" });
+    for (const e of criticCalls) expect(e.data).toMatchObject({ "gen_ai.request.model": "claude-opus-5-5", "factory.route.source": "default" });
     expect(ledger.readCard(`pr-${runId}`)).toContain("AC-1.1");
     expect(ledger.readCard(`pr-${runId}`)).toContain("Security review (OWASP Top 10): nothing found");
     // the trace shows every level: steps, model turns, lab phases, containers, gates, the coding agent's actions
@@ -460,6 +460,28 @@ describe("brownfield slice end to end (fakes)", () => {
     expect(ev.app.ok).toBe(true);
     expect(ev.items[0]).toMatchObject({ ac: "AC-1.1", kind: "http", passed: true });
     expect(ledger.getArtifact(ev.items[0]!.http[0]!.bodySha).toString()).toBe("Hello Ann");
+  });
+
+  it("carries on when its card is answered while it still holds the lock", async () => {
+    const runId = await createRun("Greet people with Hello instead of Hi", "demo", "tester");
+    // the answer lands the moment the card is asked, before the executor has let go of the repo
+    const append = Ledger.prototype.append;
+    let answered = false;
+    const spy = vi.spyOn(Ledger.prototype, "append").mockImplementation(async function (this: Ledger, ev, writer) {
+      const full = await append.call(this, ev, writer);
+      if (ev.type === "human.requested" && !answered) {
+        answered = true;
+        await decide(this, { decision: "answer", hashPrefix: String((ev.data as { artifactSha: string }).artifactSha).slice(0, 6), by: "ahsan", data: { answers: { "Q-1": "A" } } });
+      }
+      return full;
+    });
+    try {
+      const r = await execute(runId);
+      expect(r.status, r.message).toBe("waiting");
+      expect(replay(Ledger.open(runId).events()).openCard?.kind).toBe("approval");
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("asks a person about a change over the size limit instead of parking for good", async () => {

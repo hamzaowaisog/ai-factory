@@ -6,11 +6,11 @@ import { replay, type RunState } from "../ledger/state.js";
 import { diffDesigns } from "../design/diff.js";
 import { findPackage, listPackages, nextVersion, packageDir, writePackage, type DesignManifest, type DesignPackage, type PackageInput } from "../design/package.js";
 import { exportDesign, nextExportDir, parseFormats, type ExportOptions, type ExportRecord } from "../design/export.js";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DESIGN_TEMPLATE_VERSION } from "./design.js";
 import { outputOf, readOutput, type StepDef } from "./framework.js";
-import { stitchPackageFiles } from "./design-stitch.js";
+import { stitchPackageFiles, stitchPictures } from "./design-stitch.js";
 
 type Log = (msg: string) => void;
 type Baseline = { ui?: boolean; design?: string; by?: string };
@@ -78,6 +78,7 @@ export async function exportRunPackage(state: RunState, ledger: Ledger, log: Log
     references: (state.info.references ?? []).map((r) => ({ id: r.id, role: r.role, source: r.source })),
     ...(previous ? { previous } : {}), ...(changes ? { changes } : {}), log,
     extraFiles: stitchPackageFiles(design as never, (sha) => ledger.getArtifact(sha)),
+    pictures: stitchPictures(design as never, (sha) => ledger.getArtifact(sha)),
   });
 }
 
@@ -90,7 +91,9 @@ export async function ensurePackage(runId: string, log: Log = () => {}): Promise
   const state = replay(ledger.events());
   const done = readOutput<DesignManifest & { skipped?: boolean }>(state, ledger, "design-export");
   if (done && !done.skipped && existsSync(join(packageDir(done.run.project, done.line, done.version), "manifest.json"))) {
-    return { manifest: done, dir: packageDir(done.run.project, done.line, done.version) };
+    // the manifest as the store holds it: a package written again after the store lost it can list other pictures than the step's
+    const dir = packageDir(done.run.project, done.line, done.version);
+    return { manifest: JSON.parse(readFileSync(join(dir, "manifest.json"), "utf8")) as DesignManifest, dir };
   }
   const r = await exportRunPackage(state, ledger, log);
   return "none" in r ? undefined : r;

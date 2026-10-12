@@ -1,4 +1,4 @@
-// A large request's design is drawn in parts (src/stages/design.ts, drawInParts): the 2026-10-05 estimate run's 136
+// Every design is drawn in parts (src/stages/design.ts, drawInParts): the 2026-10-05 estimate run's 136
 // requirements were one answer, cut off at the 64K output limit. The screen list comes first and is checked before any
 // page is paid for; each page is drawn on its own, a failing page gets one more try, and a retry pays only for the pages
 // that failed.
@@ -16,7 +16,7 @@ import { replay } from "../ledger/state.js";
 import type { Conversation, Provider, Turn } from "../runners/api.js";
 import type { Failure } from "../contracts/common.js";
 import { NO_TRACE } from "../util/trace.js";
-import { designStep, DRAW_IN_PARTS_AT, failuresFor, pagesToRedraw } from "./design.js";
+import { designStep, failuresFor, pagesToRedraw } from "./design.js";
 import { readPreview } from "../ui/preview.js";
 import type { StepContext, StepOutcome } from "./framework.js";
 import { setProviderFactory } from "./think.js";
@@ -25,7 +25,7 @@ const sha = "a".repeat(64);
 const U = { inputTokens: 2000, outputTokens: 300, cacheRead: 0, cacheWrite: 0 };
 const theme = { mood: "calm clinical", mode: "light", brand: "#1f6feb", neutral: "cool", chrome: "plain", font: "sans", radius: "soft", density: "comfortable", surface: "flat", motion: "lively", reading: { users: "clinic staff", context: "at a desk all day", device: "web", tone: "calm", hero: "the day's queue at a glance", traits: ["dense", "quiet"] }, basis: [{ ref: "Epic MyChart", took: "calm white page, one blue action" }, { ref: "Linear", took: "hairline borders, compact tables" }] };
 
-const N = DRAW_IN_PARTS_AT + 6;
+const N = 30;
 const reqs = Array.from({ length: N }, (_, i) => ({ id: `REQ-${i + 1}`, ears: `The system shall let a user sign in, step ${i + 1}.`, op: "ADDED", sources: ["I-1"], acceptance: [] }));
 const spec = (rs = reqs) => ({ requirements: rs, nfrs: [], outOfScope: [], assumptions: [], lint: [], critic: [], roundTrip: { droppedSpans: [], inventedCapabilities: [] } });
 const intent = { source: "cli", spans: [{ id: "I-1", text: "a" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: true };
@@ -83,7 +83,7 @@ async function draw(ledger: Ledger, priorFailures: Failure[] = []): Promise<Step
   return designStep.run(ctx);
 }
 
-describe("a large design is drawn in parts", () => {
+describe("a design is drawn in parts", () => {
   it("lists the screens once, then draws each page with only its own requirements", async () => {
     const out = await draw(await newRun());
     expect(out.kind).toBe("done");
@@ -95,6 +95,16 @@ describe("a large design is drawn in parts", () => {
     expect(p2.system).toContain("- MOCK CONTENT.");
     expect(p2.user).toContain("REQ-11");
     expect(p2.user).not.toContain('"REQ-1"');
+  });
+
+  it("gives the screen list and every page the taste skill's page rules, as a design drawn by Stitch gets", async () => {
+    await draw(await newRun());
+    for (const c of [calls.find(isPlan)!, calls.find((x) => pageOf(x) === "S-2")!]) {
+      expect(c.system).toContain("TASTE. The rules below");
+      expect(c.system).toContain("Anti-Vibe-Coded Components");
+      // the skill's motion and output-format parts stay with the Stitch design system
+      expect(c.system).not.toContain("Motion Tokens (encode exactly)");
+    }
   });
 
   it("the drawn design has the one-answer shape: every screen from the list with its page", async () => {
@@ -177,37 +187,47 @@ describe("a large design is drawn in parts", () => {
     expect(logged).toContain('design: page 3 of 3 failed its checks twice: S-3 "Clinic queue 3"');
   });
 
-  it("a small request is still one answer", async () => {
+  it("a small request is drawn the same way, so its preview fills in too", async () => {
     const small = reqs.slice(0, 3);
-    answer = () => ({ theme, flow: "A user signs in.", noScreen: [], screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: small.map((r) => r.id), states: [], size: "new", ...page("Sign in") }] });
+    answer = (c) => (isPlan(c)
+      ? { theme, flow: "A user signs in.", noScreen: [], screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: small.map((r) => r.id), states: [], size: "new", title: "Sign in", purpose: "Staff sign in." }] }
+      : page(titleOf(c)));
     const ledger = await newRun(small);
     expect((await draw(ledger)).kind).toBe("done");
-    expect(calls).toHaveLength(1);
-    expect(isPlan(calls[0]!)).toBe(false);
-    // no draft for a one-answer design: the preview comes with design-baseline
-    expect(existsSync(join(ledger.dir, "preview"))).toBe(false);
+    expect(calls.map((c) => pageOf(c) ?? "list")).toEqual(["list", "S-1"]);
+    const v = readPreview(ledger);
+    if (!("preview" in v)) throw new Error(v.none);
+    expect(v.preview.draft).toEqual({ drawn: 1, total: 1, failed: 0 });
   });
 });
 
+// a run parked before every design was drawn in parts: its last failed attempt left the whole rejected design for the retry
 describe("a one-answer design that fails checks naming its pages", () => {
   const small = reqs.slice(0, 6);
   const screen = (k: number, title: string) => ({ id: `S-${k}`, route: `/p${k}`, file: `app/p${k}/page.tsx`, reqs: small.slice((k - 1) * 3, k * 3).map((r) => r.id), states: [], size: "new", ...page(title) });
   const whole = (t2: string) => ({ theme, flow: "A user signs in and sees the queue.", noScreen: [], screens: [screen(1, "Sign in"), screen(2, t2)] });
 
   it("draws only those pages again, each from its rejected drawing, and keeps the rest", async () => {
-    answer = () => whole("Page 2");
     const ledger = await newRun(small);
-    const out = await draw(ledger);
-    expect(out).toMatchObject({ kind: "fail", data: { rejected: expect.any(String) } });
-    const failures = (out as { failures: Failure[] }).failures;
-    expect(failures.map((f) => f.check)).toEqual(["design-generic-title"]);
-    // as the executor records a failed attempt: its failures and what it left for the retry
-    await ledger.append({ type: "step.failed", key: "design/1", outputs: [ledger.putJson(failures)], data: (out as { data: Record<string, unknown> }).data }, HUMAN_WRITER);
-    calls = [];
-    answer = (c) => { if (!/Fix page S-2/.test(c.user)) throw new Error("only S-2 is drawn again"); return page("Clinic queue"); };
+    const failures = [failure("design-generic-title", 'Screen S-2 has a generic title ("Page 2"). Name the page for what it shows.')];
+    // as the executor recorded that failed attempt: its failures and what it left for the retry
+    await ledger.append({ type: "step.failed", key: "design/1", outputs: [ledger.putJson(failures)], data: { rejected: ledger.putJson(whole("Page 2")) } }, HUMAN_WRITER);
+    let during: unknown;
+    answer = (c) => {
+      if (!/Fix page S-2/.test(c.user)) throw new Error("only S-2 is drawn again");
+      // what the run page shows while S-2 is being fixed: the kept page drawn, S-2 pending
+      const v = readPreview(ledger);
+      if ("preview" in v) during = [v.preview.draft, v.preview.site!.screens.map((x) => x.pending ?? false)];
+      return page("Clinic queue");
+    };
     const again = await draw(ledger, failures);
     expect(again.kind, JSON.stringify(again)).toBe("done");
     expect(calls).toHaveLength(1);
+    expect(during).toEqual([{ drawn: 1, total: 2, failed: 0 }, [false, true]]);
+    const v = readPreview(ledger);
+    if (!("preview" in v)) throw new Error(v.none);
+    expect(v.preview.draft).toEqual({ drawn: 2, total: 2, failed: 0 });
+    expect(v.preview.site!.screens.map((x) => [x.title, x.pending ?? false])).toEqual([["Sign in", false], ["Clinic queue", false]]);
     expect(calls[0]!.user).toContain("rejected-page");
     expect(calls[0]!.user).toContain("design-generic-title");
     expect(calls[0]!.system).toContain("return it with those fixed and everything else as it was");

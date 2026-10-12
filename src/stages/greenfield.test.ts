@@ -22,6 +22,7 @@ import type { ContainerRuntime, ContainerSpec } from "../verify/runtime.js";
 import { findChromium } from "../design/screenshots.js";
 import { FIDELITY_DIR, packageOfRun } from "./design-fidelity.js";
 import { createRun, execute } from "./executor.js";
+import { designAnswer, isPageCall } from "./design-fake.js";
 import { setProviderFactory } from "./think.js";
 import { setRuntime } from "./workspace.js";
 
@@ -134,7 +135,7 @@ function answerFor(system: string, user: string): unknown {
   if (system.includes("Map each restated")) return { mapping: [{ n: 1, spans: ["I-1"], answers: [] }] };
   if (system.includes("Senior engineer writing a behaviour spec")) return draft;
   if (system.includes("Adversarial reviewer")) return { findings: [] };
-  if (system.includes("drawing the screen inventory")) {
+  if (system.includes("drawing the screen inventory") || isPageCall(system)) {
     const drawn = { title: "Sign in", blocks: [{ type: "form", fields: [{ label: "Email", kind: "email" }], submit: "Sign in" }, { type: "actions", buttons: ["Need help"] }], copy: {} };
     return { flow: "A user signs in", theme: { ...theme, basis: [{ ref: "Linear", took: "hairlines" }, { ref: "Stripe", took: "one blue action" }] }, noScreen: [], screens: [{ id: "S-1", route: "/login", file: "app/login/page.tsx", reqs: ["REQ-1"], states: ["error"], size: "new", frames: [], mock: drawn, mockFull: drawn }] };
   }
@@ -147,7 +148,7 @@ const provider: Provider = {
     prompts.push({ system, user });
     if (system.includes("Senior engineer writing a behaviour spec")) draftTools.push(tools.map((t) => t.name));
     return {
-      async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answerFor(system, user) }], text: "", stop: "tool_use", usage: U }; },
+      async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: designAnswer(system, user, answerFor(system, user)) }], text: "", stop: "tool_use", usage: U }; },
       toolResults() {}, say() {},
     };
   },

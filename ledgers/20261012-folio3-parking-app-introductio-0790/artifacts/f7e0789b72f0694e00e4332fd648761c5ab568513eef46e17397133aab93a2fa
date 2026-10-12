@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Folio3 Parking - Employee Home</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Source+Sans+3:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-primary-fixed": "#3c0700",
+            "on-primary-fixed-variant": "#78301e",
+            "surface-container": "#fbeae6",
+            "secondary-fixed": "#ffdad2",
+            "on-background": "#221a18",
+            "error": "#ba1a1a",
+            "surface-container-highest": "#efdfdb",
+            "on-tertiary-fixed": "#00201c",
+            "surface-variant": "#efdfdb",
+            "on-secondary-fixed": "#31130b",
+            "on-primary": "#ffffff",
+            "on-tertiary-fixed-variant": "#005047",
+            "surface-dim": "#e7d7d3",
+            "surface": "#fff8f6",
+            "outline": "#88726d",
+            "inverse-on-surface": "#feede9",
+            "secondary": "#7e5449",
+            "tertiary-container": "#007b6e",
+            "on-secondary-container": "#794f45",
+            "on-surface-variant": "#55433e",
+            "tertiary-fixed": "#96f3e3",
+            "surface-container-lowest": "#ffffff",
+            "on-tertiary-container": "#b2fff0",
+            "on-error-container": "#93000a",
+            "outline-variant": "#dac1bb",
+            "inverse-surface": "#382e2c",
+            "error-container": "#ffdad6",
+            "on-primary-container": "#ffece8",
+            "secondary-fixed-dim": "#f1baac",
+            "surface-container-low": "#fff1ed",
+            "secondary-container": "#fdc5b7",
+            "on-surface": "#221a18",
+            "on-secondary": "#ffffff",
+            "surface-container-high": "#f5e5e1",
+            "primary": "#8b3e2a",
+            "on-error": "#ffffff",
+            "surface-bright": "#fff8f6",
+            "tertiary-fixed-dim": "#79d7c7",
+            "inverse-primary": "#ffb4a2",
+            "surface-tint": "#974733",
+            "primary-fixed": "#ffdad2",
+            "primary-fixed-dim": "#ffb4a2",
+            "on-tertiary": "#ffffff",
+            "background": "#fff8f6",
+            /* Design system calibrated tokens */
+            "canvas": "#F5F7F6",
+            "paper": "#FFFFFF",
+            "graphite": "#222927",
+            "slate-quiet": "#596560",
+            "rule": "#D8DEDB",
+            "clay": "#A95540",
+            "neutral-soft": "#F1F3F2"
+          },
+          borderRadius: {
+            DEFAULT: "0.25rem",
+            lg: "0.5rem",
+            xl: "0.75rem",
+            full: "9999px"
+          },
+          fontFamily: {
+            headline: ["Hanken Grotesk", "sans-serif"],
+            display: ["Hanken Grotesk", "sans-serif"],
+            body: ["\"Source Sans 3\"", "sans-serif"],
+            mono: ["\"IBM Plex Mono\"", "monospace"]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    :root {
+      --dur-instant: 90ms;
+      --dur-quick: 160ms;
+      --dur-base: 260ms;
+      --dur-slow: 420ms;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+    }
+    
+    body {
+      background-color: #F5F7F6;
+      color: #222927;
+      font-family: 'Source Sans 3', sans-serif;
+    }
+
+    .font-mono-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Motion Specification */
+    @keyframes entranceFadeUp {
+      from {
+        opacity: 0.84;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes ambientStatusBreathe {
+      0%, 100% {
+        opacity: 0.76;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    .motion-entrance {
+      animation: entranceFadeUp var(--dur-slow) var(--ease-out) both;
+    }
+
+    .stagger-1 { animation-delay: 50ms; }
+    .stagger-2 { animation-delay: 100ms; }
+    .stagger-3 { animation-delay: 150ms; }
+
+    .status-dot-active {
+      animation: ambientStatusBreathe 7.5s var(--ease-inout) infinite;
+    }
+
+    .btn-press:active {
+      transform: scale(0.98);
+      transition-duration: var(--dur-instant);
+    }
+
+    /* Parking-bay indicator marker */
+    .stall-bay-marker {
+      position: relative;
+      padding-left: 0.75rem;
+    }
+    .stall-bay-marker::before,
+    .stall-bay-marker::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      width: 2px;
+      height: 7px;
+      background-color: #A95540;
+    }
+    .stall-bay-marker::before { top: 3px; }
+    .stall-bay-marker::after { bottom: 3px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .motion-entrance,
+      .status-dot-active {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      .btn-press:active {
+        transform: none !important;
+      }
+      * {
+        transition-duration: 120ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-canvas text-graphite antialiased font-body selection:bg-secondary-fixed selection:text-on-secondary-fixed">
+<!-- SHARED HEADER: Folio3 Parking (Strict Negative Constraints: No search, no notifications, no extra icons) -->
+<header class="w-full sticky top-0 z-40 bg-surface-container-lowest border-b border-rule">
+<div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+<!-- Left: Brand + Navigation directly beside brand strictly in specified order -->
+<div class="flex items-center gap-8">
+<a class="font-headline text-lg font-semibold tracking-tight text-graphite shrink-0" href="#">
+          Folio3 Parking
+        </a>
+<nav aria-label="Main Navigation" class="hidden md:flex items-center gap-6 text-sm">
+<a aria-current="page" class="text-primary font-semibold border-b-2 border-primary pb-1 pt-1.5 transition-colors duration-160" href="#">Parking home</a>
+<a class="text-on-surface-variant font-normal hover:text-graphite pb-1 pt-1.5 transition-colors duration-160" href="#">Available spaces</a>
+<a class="text-on-surface-variant font-normal hover:text-graphite pb-1 pt-1.5 transition-colors duration-160" href="#">Give up my space today</a>
+<a class="text-on-surface-variant font-normal hover:text-graphite pb-1 pt-1.5 transition-colors duration-160" href="#">Schedule releases</a>
+<a class="text-on-surface-variant font-normal hover:text-graphite pb-1 pt-1.5 transition-colors duration-160" href="#">Add or update a vehicle</a>
+</nav>
+</div>
+<!-- Right: Profile menu showing Ananya Rao and role Employee with real photograph -->
+<div class="flex items-center gap-3 pl-4 border-l border-rule/60">
+<div class="text-right hidden sm:block">
+<div class="font-headline text-sm font-semibold leading-tight text-graphite">Ananya Rao</div>
+<div class="text-xs text-slate-quiet leading-tight mt-0.5">Employee</div>
+</div>
+<img alt="Ananya Rao - Employee, Product Design" class="w-9 h-9 rounded-full object-cover border border-rule shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxKtH_zrT5cBhPi6ea6UskND8KZV1hdPcx7UwYKl5eUKjCTNGbxZ2j8Qf3PmZFKibYCYgmITv_jGE2ozwBXxnVy-DKKlPHs-pZNaXmH1GVz_Z1HReoZQa1zVwREOEEfjC4ezIYsHa51OGRp_YU9WQDlOtXMINtbXmGu0_tHCm4c54zGyHnpeA9HfbgoHRBfdOQjMjV9gm3EFZUsdZzqNevslQ6SdkirC16OHYM7smI8SGntsqD8zCTZUsMDaHVCnM4CPsxanEg"/>
+</div>
+</div>
+</header>
+<!-- MAIN VIEWPORT CANVAS -->
+<main class="flex-1 w-full max-w-7xl mx-auto px-6 py-8">
+<!-- Title / Scope Header -->
+<div class="motion-intro motion-entrance mb-8">
+<div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2 border-b border-rule pb-4">
+<div>
+<h1 class="font-headline text-2xl font-semibold tracking-tight text-graphite">
+            Parking workspace
+          </h1>
+<p class="text-sm text-slate-quiet mt-1">
+            Bengaluru Office — Campus assigned parking &amp; release allocations
+          </p>
+</div>
+<div class="text-xs font-mono-num text-slate-quiet tracking-tight self-start sm:self-auto">
+          Tue 19 May 2026, 09:15 AM IST
+        </div>
+</div>
+</div>
+<!-- PRIMARY DASHBOARD GRID (Desktop Multi-Column) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- LEFT COLUMN: Profile Card & Today's Primary Action Strip (7 Cols) -->
+<div class="lg:col-span-7 space-y-6">
+<!-- 1. COMPACT PROFILE CARD -->
+<section class="bg-paper border border-rule rounded-lg p-6 shadow-none motion-entrance stagger-1">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+<div class="flex items-center gap-4">
+<img alt="Ananya Rao - Employee, Product Design" class="w-16 h-16 rounded-lg object-cover border border-rule shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxKtH_zrT5cBhPi6ea6UskND8KZV1hdPcx7UwYKl5eUKjCTNGbxZ2j8Qf3PmZFKibYCYgmITv_jGE2ozwBXxnVy-DKKlPHs-pZNaXmH1GVz_Z1HReoZQa1zVwREOEEfjC4ezIYsHa51OGRp_YU9WQDlOtXMINtbXmGu0_tHCm4c54zGyHnpeA9HfbgoHRBfdOQjMjV9gm3EFZUsdZzqNevslQ6SdkirC16OHYM7smI8SGntsqD8zCTZUsMDaHVCnM4CPsxanEg"/>
+<div>
+<h2 class="font-headline text-lg font-semibold text-graphite tracking-tight">Ananya Rao</h2>
+<p class="text-sm text-slate-quiet">Product Design · Bengaluru Office</p>
+<div class="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-neutral-soft text-slate-quiet border border-rule/60">
+                  Role: Employee
+                </div>
+</div>
+</div>
+<!-- Vehicle & Stall Identity Details -->
+<div class="bg-canvas border border-rule rounded-lg p-3 sm:min-w-[190px] flex flex-col justify-center">
+<div class="text-xs text-slate-quiet font-normal mb-1">Assigned stall</div>
+<div class="flex items-center justify-between gap-4">
+<span class="stall-bay-marker font-mono font-semibold text-base text-graphite font-mono-num">P1-12</span>
+<span class="text-xs px-1.5 py-0.5 bg-paper rounded border border-rule font-mono font-medium text-slate-quiet font-mono-num tracking-wider">
+                  KA03MN4821
+                </span>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. COMPACT STATUS STRIP & TODAY'S ACTION -->
+<section class="bg-paper border border-rule rounded-lg p-6 motion-entrance stagger-2">
+<div class="flex items-center justify-between pb-4 border-b border-rule">
+<div class="flex items-center gap-3">
+<span aria-label="Reserved status indicator" class="w-2.5 h-2.5 rounded-full bg-tertiary-container status-dot-active"></span>
+<div class="font-headline text-base font-semibold text-graphite">
+                Today, Tue 19 May
+              </div>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs uppercase tracking-wider text-slate-quiet font-medium">Stall status:</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-tertiary-fixed text-on-tertiary-fixed border border-tertiary-container/30">
+                Reserved
+              </span>
+</div>
+</div>
+<!-- Mid info: Daily release timing context -->
+<div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm text-slate-quiet">
+<div>
+              Daily release cutoff time is <span class="font-mono-num font-medium text-graphite">9:00 AM IST</span>.
+            </div>
+<div class="text-xs text-slate-quiet">
+              Evaluation checkpoint active
+            </div>
+</div>
+<!-- Action Box: Primary Action Button & Plain Warning -->
+<div class="pt-4 border-t border-rule bg-canvas/40 -mx-6 -mb-6 p-6 rounded-b-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex items-center gap-2.5">
+<span class="text-clay font-medium text-sm">Notice:</span>
+<p class="text-sm text-slate-quiet">You can’t undo this today.</p>
+</div>
+<!-- Single prominent primary action button -->
+<button class="btn-press inline-flex items-center justify-center px-5 py-2.5 text-sm font-headline font-semibold text-on-primary bg-clay hover:bg-primary rounded-lg transition-colors duration-160 focus:outline-none focus:ring-2 focus:ring-clay focus:ring-offset-2 min-h-[44px] shrink-0" type="button">
+              Give up my space today
+            </button>
+</div>
+</section>
+<!-- 3. ACTIONS NAVIGATIONAL HUB -->
+<section class="bg-paper border border-rule rounded-lg p-5 motion-entrance stagger-3">
+<div class="text-xs font-semibold uppercase tracking-wider text-slate-quiet mb-3">
+            Quick workspace navigation
+          </div>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+<a class="btn-press flex flex-col justify-between p-3.5 rounded-lg border border-rule bg-canvas/30 hover:bg-neutral-soft hover:border-slate-quiet/40 transition-colors duration-160 min-h-[72px]" href="#">
+<span class="text-xs text-slate-quiet font-normal">Check open pool</span>
+<span class="text-sm font-headline font-semibold text-graphite mt-1">Available spaces</span>
+</a>
+<a class="btn-press flex flex-col justify-between p-3.5 rounded-lg border border-rule bg-canvas/30 hover:bg-neutral-soft hover:border-slate-quiet/40 transition-colors duration-160 min-h-[72px]" href="#">
+<span class="text-xs text-slate-quiet font-normal">Plan upcoming days</span>
+<span class="text-sm font-headline font-semibold text-graphite mt-1">Schedule releases</span>
+</a>
+<a class="btn-press flex flex-col justify-between p-3.5 rounded-lg border border-rule bg-canvas/30 hover:bg-neutral-soft hover:border-slate-quiet/40 transition-colors duration-160 min-h-[72px]" href="#">
+<span class="text-xs text-slate-quiet font-normal">License plate register</span>
+<span class="text-sm font-headline font-semibold text-graphite mt-1">Add or update a vehicle</span>
+</a>
+</div>
+</section>
+</div>
+<!-- RIGHT COLUMN: Scheduled Releases & Eligible Spaces Status (5 Cols) -->
+<div class="lg:col-span-5 space-y-6">
+<!-- 4. SCHEDULED RELEASES CARD -->
+<section class="bg-paper border border-rule rounded-lg p-6 motion-entrance stagger-1">
+<div class="flex items-center justify-between pb-3 border-b border-rule mb-4">
+<h3 class="font-headline text-base font-semibold text-graphite tracking-tight">
+              Scheduled releases
+            </h3>
+<span class="text-xs font-mono font-medium text-slate-quiet font-mono-num">P1-12</span>
+</div>
+<p class="text-xs text-slate-quiet mb-4">
+            Your space is automatically placed into the unassigned employee allocation queue on these selected days:
+          </p>
+<div class="space-y-3">
+<!-- Item 1 -->
+<div class="flex items-center justify-between p-3 bg-canvas border border-rule rounded-lg">
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-clay"></span>
+<div>
+<div class="text-sm font-headline font-semibold text-graphite">Thu 21 May 2026</div>
+<div class="text-xs text-slate-quiet font-normal">Full-day automatic release</div>
+</div>
+</div>
+<span class="text-xs font-mono font-medium text-slate-quiet px-2 py-0.5 bg-paper rounded border border-rule font-mono-num">
+                Confirmed
+              </span>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center justify-between p-3 bg-canvas border border-rule rounded-lg">
+<div class="flex items-center gap-3">
+<span class="w-2 h-2 rounded-full bg-clay"></span>
+<div>
+<div class="text-sm font-headline font-semibold text-graphite">Mon 25 May 2026</div>
+<div class="text-xs text-slate-quiet font-normal">Full-day automatic release</div>
+</div>
+</div>
+<span class="text-xs font-mono font-medium text-slate-quiet px-2 py-0.5 bg-paper rounded border border-rule font-mono-num">
+                Confirmed
+              </span>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-rule/60 flex items-center justify-between">
+<span class="text-xs text-slate-quiet">Need to change dates?</span>
+<a class="text-xs font-headline font-semibold text-clay hover:underline inline-flex items-center min-h-[36px] py-1" href="#">
+              Schedule releases
+            </a>
+</div>
+</section>
+<!-- 5. ELIGIBLE SPACES STATUS READOUT (Capacity 70) -->
+<section class="bg-paper border border-rule rounded-lg p-6 motion-entrance stagger-2">
+<div class="flex items-baseline justify-between pb-3 border-b border-rule mb-4">
+<h3 class="font-headline text-base font-semibold text-graphite tracking-tight">
+              Eligible spaces status
+            </h3>
+<span class="text-xs font-mono font-medium text-slate-quiet font-mono-num">
+              Capacity: 70
+            </span>
+</div>
+<!-- Status Readout Box -->
+<div class="p-4 bg-canvas rounded-lg border border-rule mb-4">
+<div class="flex items-baseline gap-2">
+<span class="font-headline text-3xl font-bold text-graphite font-mono-num tracking-tight">2</span>
+<span class="text-sm font-headline font-medium text-graphite">spaces free</span>
+</div>
+<p class="text-xs text-slate-quiet mt-1">
+              Available today for eligible employees without a dedicated space across levels <span class="font-mono-num">P1</span> and <span class="font-mono-num">P2</span>.
+            </p>
+</div>
+<!-- Activity List of Spaces Released Today -->
+<div class="space-y-2.5">
+<div class="text-xs uppercase tracking-wider text-slate-quiet font-semibold">
+              Today's released stalls
+            </div>
+<!-- Stall 1 -->
+<div class="flex items-center justify-between p-2.5 border border-rule rounded bg-paper hover:bg-neutral-soft transition-colors duration-160">
+<div class="flex items-center gap-3">
+<span class="font-mono font-semibold text-sm text-graphite font-mono-num px-1.5 py-0.5 bg-neutral-soft rounded">
+                  P1-18
+                </span>
+<span class="text-xs text-slate-quiet">
+                  Released today by <span class="text-graphite font-medium">Devika Iyer</span>
+</span>
+</div>
+<span class="text-xs font-medium text-tertiary">Open</span>
+</div>
+<!-- Stall 2 -->
+<div class="flex items-center justify-between p-2.5 border border-rule rounded bg-paper hover:bg-neutral-soft transition-colors duration-160">
+<div class="flex items-center gap-3">
+<span class="font-mono font-semibold text-sm text-graphite font-mono-num px-1.5 py-0.5 bg-neutral-soft rounded">
+                  P2-14
+                </span>
+<span class="text-xs text-slate-quiet">
+                  Released today by <span class="text-graphite font-medium">Maya Krishnan</span>
+</span>
+</div>
+<span class="text-xs font-medium text-tertiary">Open</span>
+</div>
+</div>
+<!-- Utilization Context Bar -->
+<div class="mt-5 pt-4 border-t border-rule text-xs text-slate-quiet">
+<div class="flex justify-between items-center mb-1.5">
+<span>Campus stall occupancy</span>
+<span class="font-mono-num font-medium text-graphite">68 / 70 filled (97%)</span>
+</div>
+<div class="w-full h-1.5 bg-neutral-soft rounded-full overflow-hidden">
+<div class="h-full bg-slate-quiet rounded-full" style="width: 97.1%;"></div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- STRICT REQUIREMENT APPLIED: NO FOOTER DRAWN ON THIS PAGE -->
+</body></html>

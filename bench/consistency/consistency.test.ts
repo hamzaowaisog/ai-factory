@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { _resetEnvCache } from "../../src/config/env.js";
 import type { Conversation, Provider, Turn } from "../../src/runners/api.js";
 import { setRecordsSource, setTaskRecordsSource } from "../../src/stages/estimate.js";
+import { designAnswer, isPageCall } from "../../src/stages/design-fake.js";
 import { setProviderFactory } from "../../src/stages/think.js";
 import { formatStats, groupStats, type Sample } from "./report.js";
 import { listCases, parseReportArgs, runCase } from "./run.js";
@@ -70,8 +71,8 @@ const DESIGN = {
   noScreen: [],
 };
 const mock = { title: "Products", blocks: [{ type: "stats", items: [{ label: "Products", value: "14" }] }, { type: "actions", buttons: ["Add product"] }], copy: {} };
-function answerFor(system: string): unknown {
-  if (system.includes("drawing the screen inventory")) return { theme: { mood: "calm", brand: "#1f6feb", reading: { users: "warehouse clerks", context: "at a desk", device: "web", tone: "plain", hero: "the product list", traits: ["dense", "quiet"] }, basis: [{ ref: "Amazon", took: "dense product rows" }, { ref: "IKEA", took: "one blue action" }] }, ...DESIGN, screens: DESIGN.screens.map((x) => ({ mock, mockFull: mock, ...x })) };
+function answerFor(system: string, user: string): unknown {
+  if (system.includes("drawing the screen inventory") || isPageCall(system)) return designAnswer(system, user, { theme: { mood: "calm", brand: "#1f6feb", reading: { users: "warehouse clerks", context: "at a desk", device: "web", tone: "plain", hero: "the product list", traits: ["dense", "quiet"] }, basis: [{ ref: "Amazon", took: "dense product rows" }, { ref: "IKEA", took: "one blue action" }] }, ...DESIGN, screens: DESIGN.screens.map((x) => ({ mock, mockFull: mock, ...x })) });
   if (system.includes("intake step")) return { source: "cli", spans: [{ id: "I-1", text: "store products" }], changeClass: "feature", risk: "low", riskTags: [], rigor: "light", touchesUi: false };
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: "caller stores a product", kind: "happy" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [] };
@@ -86,8 +87,8 @@ function answerFor(system: string): unknown {
   throw new Error(`unscripted system prompt: ${system.slice(0, 80)}`);
 }
 const provider: Provider = {
-  start(_m, _e, system): Conversation {
-    return { async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answerFor(system) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
+  start(_m, _e, system, user): Conversation {
+    return { async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answerFor(system, user) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
 

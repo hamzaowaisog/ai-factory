@@ -5,8 +5,8 @@ import { DEFAULT_TIERS, DESIGN_ENGINES, DESIGN_TIERS, designRoute, ladderAt, mer
 const base = { project: "p", repo: "-", stack: "dotnet" };
 
 describe("locked design names", () => {
-  it("has the three engines and the three tiers in ladder order", () => {
-    expect(DESIGN_ENGINES).toEqual(["claude", "openai", "stitch"]);
+  it("has the four engines and the three tiers in ladder order", () => {
+    expect(DESIGN_ENGINES).toEqual(["claude", "openai", "stitch", "pages"]);
     expect(DESIGN_TIERS).toEqual(["light", "standard", "heavy"]);
   });
 
