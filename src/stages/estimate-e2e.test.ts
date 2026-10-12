@@ -22,6 +22,7 @@ import { INTERRUPTED, shownStatus, statusHint } from "./run-status.js";
 import { previewFile, readPreview } from "../ui/preview.js";
 import { approvedEstimate, estimateDesign } from "../estimate/lineage.js";
 import { NO_DESIGN_NOTE, setRecordsSource, setTaskRecordsSource } from "./estimate.js";
+import { designAnswer, isPageCall } from "./design-fake.js";
 import { setProviderFactory } from "./think.js";
 import { setTuneTrigger } from "../estimate/tune.js";
 
@@ -117,7 +118,7 @@ function answerFor(system: string, user = ""): unknown {
   if (modular && system.includes("sizing the tasks")) return bigSizing();
   if (modular && system.includes("turning a finished spec")) return bigBreakdown();
   if (modular && system.includes("Requirements analyst")) return { questions: [], conflicts: [] };
-  if (system.includes("drawing the screen inventory")) {
+  if (system.includes("drawing the screen inventory") || isPageCall(system)) {
     const d = uiDesign as { screens: Record<string, unknown>[] };
     const mock = { title: "Open orders", blocks: [{ type: "stats", items: [{ label: "Open orders", value: "14" }] }, { type: "actions", buttons: ["Continue"] }], copy: {} };
     return { theme: { mood: "calm", brand: "#1f6feb", reading: { users: "clinic staff", context: "at a desk all day", device: "web", tone: "calm", hero: "the day's queue at a glance", traits: ["dense", "quiet"] }, basis: [{ ref: "Linear", took: "hairlines" }, { ref: "Stripe", took: "one blue action" }] }, ...d, screens: d.screens.map((x) => ({ mock, mockFull: mock, ...x })) };
@@ -141,7 +142,7 @@ const provider: Provider = {
     if (system.includes("Senior engineer writing a behaviour spec")) drafterTools.push(tools.map((t) => t.name));
     if (system.includes("Adversarial reviewer")) { criticSystems.push(system); criticEfforts.push(_e); }
     if (system.includes("Merge three independent")) mergeCalls++;
-    return { async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: answerFor(system, _u) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
+    return { async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: designAnswer(system, _u, answerFor(system, _u)) }], text: "", stop: "tool_use", usage: U }; }, toolResults() {}, say() {} };
   },
 };
 

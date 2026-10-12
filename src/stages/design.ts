@@ -497,15 +497,14 @@ const cut = (from: string, to: string): string => RULES.slice(RULES.indexOf(from
 const ART_RULES = (): string => cut("- ART DIRECTION.", "- MOCK CONTENT.");
 const MOCK_RULES = (): string => cut("- MOCK CONTENT.", "- If design frames");
 
-// ---------- a large request: the screen list first, then each page on its own ----------
+// ---------- the screen list first, then each page on its own ----------
 
-/**
- * Above this many requirements the design is drawn in parts. One answer holding every page's sample content, full data and
- * translations does not fit the model's output: the 2026-10-05 estimate run (136 requirements) was cut off at 64K tokens
- * after 8.6 minutes, $1.52 thrown away, and the retry asked for the same answer again.
+/*
+ * Every design is drawn in parts, whatever its size. One answer holding every page's sample content, full data and translations
+ * does not fit the model's output on a large request: the 2026-10-05 estimate run (136 requirements) was cut off at 64K tokens
+ * after 8.6 minutes, $1.52 thrown away, and the retry asked for the same answer again. A small request was one answer until
+ * 2026-10-12, and its Preview stayed empty until the whole design came back (run dd8b, 22 requirements, 11 pages).
  */
-// ponytail: counted in requirements, not screens (unknown before the list); a 7-requirement design was one screen, 2.5 KB
-export const DRAW_IN_PARTS_AT = 24;
 /** pages drawn at once */
 const PAGES_SIDE_BY_SIDE = 4;
 
@@ -515,12 +514,12 @@ const PlanScreen = DesignOut.shape.screens.element.omit({ mock: true, mockFull: 
   /** one sentence on what the user sees and does there: the page call's brief */
   purpose: z.string().min(1).max(240),
 });
-/** The screen list of a large request: every field of the design but the pages' content. */
+/** The screen list: every field of the design but the pages' content. */
 export const DesignPlan = DesignOut.extend({ screens: z.array(PlanScreen).min(1) });
 /** One page's content, drawn against the fixed screen list and look. */
 export const DesignPage = z.object({ mock: ScreenMock, mockFull: ScreenMockFull.optional() });
 
-const PLAN_PAGES = `- PAGES ARE DRAWN NEXT. This request is large, so here you only list the screens and choose the look; each page's content is drawn afterwards, one page per call, from your list. For every screen give "title" (the page's name as its heading reads: "Order history", never "Page 3") and "purpose" (one sentence: what the user sees and does there). Leave out "mock" and "mockFull".
+const PLAN_PAGES = `- PAGES ARE DRAWN NEXT. Here you only list the screens and choose the look; each page's content is drawn afterwards, one page per call, from your list. For every screen give "title" (the page's name as its heading reads: "Order history", never "Page 3") and "purpose" (one sentence: what the user sees and does there). Leave out "mock" and "mockFull".
 `;
 const PLAN_RULES = (): string => RULES.replace(MOCK_RULES(), PLAN_PAGES);
 
@@ -565,8 +564,8 @@ export function failuresFor(failures: Failure[], page?: string): Failure[] {
 }
 
 /**
- * The pages a retry of a one-answer design draws again: those its failures name, when every failure names a page that was drawn
- * and none is about the list or the look. Undefined when the whole design has to be drawn again.
+ * The pages a retry of a one-answer design (drawn before every design was drawn in parts) draws again: those its failures name,
+ * when every failure names a page that was drawn and none is about the list or the look. Undefined when the whole design has to be drawn again.
  */
 export function pagesToRedraw(ids: string[], failures: Failure[]): string[] | undefined {
   if (!failures.length || failures.some((f) => f.check.startsWith("runner-") || PLAN_CHECKS.has(f.check))) return undefined;
@@ -583,8 +582,9 @@ const REDRAW_RULES = `- "rejected-page" is this page as you drew it before. It f
 `;
 
 /**
- * A small design (one answer) that failed checks naming its pages: only those pages are drawn again, each against the rejected
- * design's list and look, and the rest are kept. On the 2026-10-06 web run one cut-off label had every page drawn again ($0.86).
+ * A one-answer design (a run from before every design was drawn in parts) that failed checks naming its pages: only those pages
+ * are drawn again, each against the rejected design's list and look, and the rest are kept. On the 2026-10-06 web run one cut-off
+ * label had every page drawn again ($0.86). Preview shows the kept pages and fills in the fixed ones as they come.
  */
 async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" | "reading" | "feedback" | "rules">, rejected: z.infer<typeof DesignOut>, ids: string[]): Promise<{ ok: true; output: z.infer<typeof DesignOut>; model: string; risks: string[] } | { ok: false; outcome: StepOutcome }> {
   const ears = new Map(b.spec.requirements.map((q) => [q.id, q.ears]));
@@ -595,6 +595,10 @@ async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" 
   };
   ctx.log(`design: drawing again only ${ids.join(", ")} (${rejected.screens.length - ids.length} of ${rejected.screens.length} pages kept)`);
   let model = "";
+  const plan = { ...rejected, screens: rejected.screens.map(({ mock: _m, mockFull: _f, ...x }) => ({ ...x, title: titleOf(x as ScreenT), purpose: titleOf(x as ScreenT) })) };
+  const shown = new Map(rejected.screens.filter((x) => !ids.includes(x.id)).map((x) => [x.id, x] as const));
+  const draft = () => draftPreview(ctx, b.spec, plan, shown, { drawn: shown.size, total: rejected.screens.length, failed: 0 });
+  draft();
   const drawn = await inPool(rejected.screens.filter((x) => ids.includes(x.id)), PAGES_SIDE_BY_SIDE, async (old): Promise<{ screen: ScreenT } | { outcome: StepOutcome }> => {
     const { mock: _m, mockFull: _f, ...entry } = old;
     const cited = b.reading && entry.refs?.length ? { ...b.reading, refs: b.reading.refs.filter((r) => entry.refs!.includes(r.id)) } : undefined;
@@ -616,7 +620,10 @@ async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" 
     });
     if (!r.ok) return { outcome: r.outcome };
     model = r.model;
-    return { screen: { ...old, mock: r.output.mock, ...(r.output.mockFull ? { mockFull: r.output.mockFull } : {}) } };
+    const screen: ScreenT = { ...old, mock: r.output.mock, ...(r.output.mockFull ? { mockFull: r.output.mockFull } : {}) };
+    shown.set(old.id, screen);
+    draft();
+    return { screen };
   });
   const stopped = drawn.find((d): d is { outcome: StepOutcome } => "outcome" in d);
   if (stopped) return { ok: false, outcome: stopped.outcome };
@@ -626,9 +633,9 @@ async function redrawPages(ctx: StepContext, b: Pick<PartsBrief, "spec" | "inv" 
 
 interface PartsBrief {
   spec: Spec; reqText: string; frames: string[];
-  /** the mode's own rules (existing app, restyle, starter, references), as in the one-answer call */
+  /** the mode's own rules (existing app, restyle, starter, references) */
   rules: ResolvedSection[];
-  /** the one-answer call's briefing sections (requirements, earlier design, existing app, references, recent looks, feedback) */
+  /** the screen list's briefing sections (requirements, earlier design, existing app, references, recent looks, feedback) */
   context: ResolvedSection[];
   existing: boolean; refs: FitRefs; recent: Look[]; fromRefs: boolean; earlierTheme?: Theme | undefined;
   inv?: DesignInventory | undefined; reading?: DesignRefsArt | undefined; earlierScreens: ScreenT[]; feedback: string;
@@ -661,7 +668,7 @@ export function draftPreview(ctx: Pick<StepContext, "ledger" | "state" | "runId"
 }
 
 /**
- * A large request's design: one call lists the screens and chooses the look (checked before any page is paid for), then each page
+ * A design: one call lists the screens and chooses the look (checked before any page is paid for), then each page
  * is drawn on its own against that list, a few at a time, with one more try for a page that fails its checks. The result has the
  * one-answer call's shape, so the step's checks and the demo measure it the same way.
  */
@@ -1034,23 +1041,18 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         ...(feedback ? [S.reference("design-feedback", feedback)] : []),
       ];
       const earlierTheme = earlier && !earlier.skipped ? earlier.theme : undefined;
-      const inParts = spec.requirements.length > DRAW_IN_PARTS_AT;
-      // one answer that failed checks naming its pages: only those pages are drawn again (a design in parts gets the same from
-      // its stored page answers)
-      const before = inParts ? undefined : lastFailureData(ctx.ledger, "design") as { rejected?: string } | undefined;
+      // a one-answer design from before every design was drawn in parts, which failed checks naming its pages: only those pages
+      // are drawn again (a design in parts gets the same from its stored page answers)
+      const before = lastFailureData(ctx.ledger, "design") as { rejected?: string } | undefined;
       const rejected = before?.rejected ? DesignOut.safeParse(ctx.ledger.getJson(before.rejected)) : undefined;
       const failedPages = rejected?.success ? pagesToRedraw(rejected.data.screens.map((x) => x.id), ctx.priorFailures) : undefined;
+      const redrawn = !!failedPages && !!rejected?.success;
       const r = failedPages && rejected?.success
         ? await redrawPages(ctx, { spec, inv, reading, feedback, rules }, rejected.data, failedPages)
-        : inParts
-        ? await drawInParts(ctx, {
+        : await drawInParts(ctx, {
           spec, reqText, frames: frames.map((f) => f.id), rules, context, existing, refs, recent, fromRefs, earlierTheme, inv, reading,
           earlierScreens: earlier && !earlier.skipped ? earlier.screens as ScreenT[] : [], feedback,
           fine: prev && again?.fine.length ? prev.screens.filter((x) => again!.fine.includes(x.id)) : [],
-        })
-        : await think(ctx, {
-          stage: "design", route: "design", cls: "read-large", budgetTokens: 80000, tools: [], schema: DesignOut, maxTurns: 4,
-          sections: [S.template("tpl", RULES), ...rules, ...context, S.task("Draw the screen inventory.")],
         });
       if (!r.ok) return r.outcome;
       const out = keepFine(webOnly(ctx.state.info.mode, ctx.project) ? asWeb(r.output) : r.output, again?.fine ?? [], prev, earlierTheme);
@@ -1065,9 +1067,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
       const openRisks = "risks" in r ? [...r.risks] : [];
       if (bad.length && carries(ctx, bad)) openRisks.push(...carriedLines("the design checks", bad));
       else if (bad.length) {
-        // the one answer was rejected: a retry with these failures must not read it back
-        (r as { forget?: () => void }).forget?.();
-        return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}`, gate: true, ...(inParts ? {} : { data: { rejected: ctx.ledger.putJson(out) } }) };
+        return { kind: "fail", category: "other", failures: bad, signature: `design:${bad.map((f) => f.check).sort().join(",")}`, gate: true, ...(redrawn ? { data: { rejected: ctx.ledger.putJson(out) } } : {}) };
       }
       // the drawn demo is measured in a browser: text past the frame, cut off or on top of other text, and (with layout references)
       // a screen that does not show its reference's navigation or regions, go back for one fix round together (after that round
@@ -1082,7 +1082,7 @@ export function makeDesignStep(src: DesignSources = ESTIMATE_SOURCES): StepDef {
         if (!fixRound && (issues.length || refGaps.length)) {
           ctx.log(`design: ${issues.length} layout problem(s) and ${refGaps.length} reference layout gap(s) in the drawn demo, sent back for one fix`);
           const fixes = [...layoutFixes(issues), ...(reading ? refLayoutFixes(refGaps, reading) : [])].map((q) => failure(q.check, q.message));
-          return { kind: "fail", category: "other", failures: fixes, signature: `design:${[...new Set(fixes.map((f) => f.check))].sort().join(",")}`, ...(inParts ? {} : { data: { rejected: ctx.ledger.putJson(out) } }) };
+          return { kind: "fail", category: "other", failures: fixes, signature: `design:${[...new Set(fixes.map((f) => f.check))].sort().join(",")}`, ...(redrawn ? { data: { rejected: ctx.ledger.putJson(out) } } : {}) };
         }
         if (refGaps.length) ctx.log(`design: ${refGaps.length} reference layout gap(s) left after the fix round, kept on the design`);
       }

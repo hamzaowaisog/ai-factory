@@ -2,6 +2,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AgentScript } from "../src/runners/claude-agent.js";
+import { designAnswer, isPageCall } from "../src/stages/design-fake.js";
 
 // ---------- scripted answers: two screens, two requirements, two tasks ----------
 const theme = { mood: "calm clinical", mode: "light", brand: "#1f6feb", neutral: "cool", chrome: "plain", font: "sans", radius: "soft", density: "comfortable", surface: "flat", motion: "lively", reading: { users: "clinic staff", context: "at a desk all day", device: "web", tone: "calm", hero: "the day's appointments", traits: ["dense", "quiet"] }, basis: [{ ref: "Linear", took: "hairlines" }, { ref: "Stripe", took: "one blue action" }] };
@@ -87,7 +88,7 @@ export function webAnswer(system: string, user: string): unknown {
   if (system.includes("Map each restated")) return { mapping: [{ n: 1, spans: ["I-1"], answers: [] }, { n: 2, spans: ["I-2"], answers: [] }] };
   if (system.includes("Senior engineer writing a behaviour spec")) return draft;
   if (system.includes("Adversarial reviewer")) return { findings: [] };
-  if (system.includes("drawing the screen inventory")) return DESIGN;
+  if (system.includes("drawing the screen inventory") || isPageCall(system)) return designAnswer(system, user, DESIGN);
   throw new Error(`unscripted system prompt: ${system.slice(0, 120)}`);
 }
 
