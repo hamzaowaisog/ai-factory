@@ -65,6 +65,9 @@ let intakeRisk = "low";
 let criticFindings: unknown[] = [];
 let repairSpec: unknown;
 let repairCalls = 0;
+/** the spec-question writer asks one question about the first open problem */
+let settleAsks = false;
+let reviseCalls = 0;
 const MULTI_FILES = ["src/Api/Greeter.cs", "src/Api/Farewell.cs", "src/Api/Third.cs"];
 const MULTI_TESTS = ["AC_1_1_GreetsWithHello", "AC_2_1_SaysBye", "AC_3_1_CountsThree"];
 function multiAnswer(system: string): unknown {
@@ -115,7 +118,7 @@ function answerFor(system: string, allowMulti = true, user = ""): unknown {
   if (system.includes("independently reading a change request")) return { spans: [{ id: "I-1", behaviours: [{ text: system.length % 2 ? "Hello Ann" : "Hello, Ann!", kind: "happy" }, { text: "empty name returns Hello", kind: "error" }] }] };
   if (system.includes("Three engineers independently")) return { differences: [{ id: "D-1", span: "I-1", topic: "punctuation", readings: [{ sketch: 1, behaviour: 0, summary: "Hello Ann" }, { sketch: 2, behaviour: 0, summary: "Hello, Ann!" }] }] };
   // the spec's open problems are settled by questions in a build too: none to ask here, so they are carried as open risks
-  if (system.includes("these problems are still open")) return { questions: [], inRequest: [] };
+  if (system.includes("these problems are still open")) return { questions: settleAsks ? [{ problems: [1], text: "What does an empty name return?", options: ["Hello", "An error"], recommended: "Hello", reason: "simplest", impact: 2, impactReason: "visible text" }] : [], inRequest: [] };
   if (system.includes("Requirements analyst")) clarifierPrompt = system;
   if (system.includes("Requirements analyst")) return system.includes("already answered") ? { questions: [], conflicts: [] } : {
     questions: [{ id: "q1", category: "scope", text: "Keep the comma?", options: ["Hello Ann", "Hello, Ann!"], recommended: "Hello Ann", reason: "shortest", spans: ["I-1"], impact: 2, impactReason: "visible text", difference: "D-1" }], conflicts: [] };
@@ -159,6 +162,7 @@ const provider: Provider = {
     if (system.includes("plan the implementation")) planPrompt = `${system}\n${user}`;
     const repair = user.includes("Repair this spec");
     if (repair) repairCalls++;
+    if (user.includes("Revise this spec so it addresses")) reviseCalls++;
     return {
       async next(): Promise<Turn> { return { calls: [{ id: "s", name: "submit_result", input: repair && repairSpec ? repairSpec : answerFor(system, true, user) }], text: "", stop: "tool_use", usage: U }; },
       toolResults() {}, say() {},
@@ -346,6 +350,8 @@ beforeEach(() => {
   criticFindings = [];
   repairSpec = undefined;
   repairCalls = 0;
+  settleAsks = false;
+  reviseCalls = 0;
 });
 
 describe("brownfield slice end to end (fakes)", () => {
@@ -1295,6 +1301,29 @@ describe("spec repairs", () => {
     await decide(ledger, { decision: "approve", hashPrefix: s.openCard!.artifactSha.slice(0, 6), by: "ahsan" });
     const r = await execute(s.info.runId);
     expect(r.status, r.message).toBe("delivered");
+  });
+
+  it("a rejection after the spec's own questions revises the spec with the reason, and does not pay for the answered round again", async () => {
+    intakeRisk = "medium";
+    criticFindings = [finding];
+    settleAsks = true;
+    const file = join(process.env.FACTORY_HOME!, "projects", "demo.yaml");
+    writeFileSync(file, stringify({ ...parse(readFileSync(file, "utf8")), brownfield: { questions: true } }));
+    const ledger = await toApproval(await createRun("Greet people with Hello instead of Hi", "demo", "tester"));
+    const q = replay(ledger.events()).openCard!;
+    expect(q.cardId).toMatch(/^spec-questions-1-/);
+    criticFindings = [];
+    await decide(ledger, { decision: "answer", hashPrefix: q.artifactSha.slice(0, 6), by: "ahsan", data: { answers: { "Q-2": "A" } } });
+    expect((await execute(ledger.runId)).status).toBe("waiting");
+    const card = replay(ledger.events()).openCard!;
+    expect(card.kind).toBe("approval");
+    const repairs = repairCalls;
+    await decide(ledger, { decision: "reject", hashPrefix: card.artifactSha.slice(0, 6), by: "ahsan", data: { reason: "Keep 'Hi' for admins" } });
+    expect((await execute(ledger.runId)).status).toBe("waiting");
+    expect(reviseCalls).toBe(1);
+    expect(repairCalls).toBe(repairs);
+    // what the questions settled stays on the revised spec
+    expect(ledger.getJson<{ settled?: unknown[] }>(replay(ledger.events()).steps.get("specify")!.outputs[0]!)!.settled).toHaveLength(1);
   });
 
   it("a retry goes on from the failed attempt's repaired spec, and a repair answers with changes only", async () => {

@@ -12,7 +12,7 @@ import { S, think, UNTRUSTED_NOTE, type ThinkSpec } from "./think.js";
 import { snapshotFor, toolsFor } from "./workspace.js";
 import { LANE, lightSpec, specLane } from "./lane.js";
 import { settles, specRefused, unsettled, type Found } from "../estimate/settled.js";
-import { settle, settleKey, type Answer, type Decided } from "./settle.js";
+import { settle, settledAnswers, settleKey, type Answer, type Decided } from "./settle.js";
 import { hashJson } from "../util/hash.js";
 import { repoIsEmpty } from "../config/greenfield.js";
 import { testsScreens } from "./stack-text.js";
@@ -377,7 +377,7 @@ export const specifyStep: StepDef = {
     ? { merged: s.steps.get("merge")!.outputs[0], rejections: planRejections(s), ...(settles(s.info) && specRefused(s, l) ? { refused: true } : {}) }
     : undefined),
   async run(ctx) {
-    const i = inputsOf(ctx);
+    let i = inputsOf(ctx);
     const lane = specLane(i.intent, ctx.state.info.mode);
     const merged = requireOutput<{ spec: Spec; conflicts: string[]; singleDraft?: boolean }>(ctx.state, ctx.ledger, "merge");
     // stability is only measured across drafts: with one draft there's nothing to report
@@ -418,7 +418,11 @@ export const specifyStep: StepDef = {
     // a spec gate E1 refused before problems were settled by questions: settle that spec's problems, not a new spec's
     const prior = readOutput<Spec & Found>(ctx.state, ctx.ledger, "specify");
     const refused = settling && !resumed && unsettled(prior) && specRefused(ctx.state, ctx.ledger) ? prior : undefined;
-    if (resumed || refused) {
+    // a rejection after the spec's own questions: the answered rounds stand (they are in the spec the person saw), so they are
+    // not applied and paid for again; the spec is revised with the reason, knowing those answers
+    const answered = settling && rejections.length && prior?.settled ? settledAnswers<Checks>(ctx, key) : undefined;
+    if (answered) i = { ...i, answers: [...i.answers, ...answered] };
+    if ((resumed && !answered) || refused) {
       if (refused) ctx.log("specify: gate E1 refused this spec; settling its open problems with questions");
     } else {
     if (rejections.length) {
@@ -475,8 +479,8 @@ Answer with the changes only, not the whole spec: "requirements" holds each requ
       repaired = true;
     }
     }
-    let settled: Found["settled"];
-    if (settling) {
+    let settled: Found["settled"] = answered ? prior!.settled : undefined;
+    if (settling && !answered) {
       const withAnswers = (answers: Answer[]) => ({ ...i, answers: [...i.answers, ...answers] });
       const s = await settle<Checks>(ctx, {
         key, request: request(ctx), firstId: nextQuestion(i.answers),

@@ -154,14 +154,24 @@ function card<C extends Found>(ctx: StepContext, key: string, st: SettleState<C>
   };
 }
 
+/** A round's questions as decisions: each with the answer given (the recommended one when none was) and the problems it settles. */
+const decisionsOn = <C extends Found>(st: SettleState<C>, raw: Record<string, string>, by: string): Decided[] => st.asked.map((q) => ({
+  id: q.id, question: q.text, answer: resolveAnswer(q, raw[q.id] ?? q.recommended), by,
+  problems: (st.problemOf[q.id] ?? []).map((n) => st.problems[n - 1]!).filter(Boolean),
+}));
+const answersAfter = <C extends Found>(st: SettleState<C>, decided: Decided[]): Answer[] => [...st.answers, ...decided.map(({ problems: _p, ...x }) => x)];
+
+/** Every question the spec's own cards settled, as answers, once the last card is answered (no model call). */
+export function settledAnswers<C extends Found>(ctx: Pick<StepContext, "ledger" | "state">, key: string): Answer[] | undefined {
+  const last = lastSettle<C>(ctx, key);
+  return last?.answers ? answersAfter(last.state, decisionsOn(last.state, last.answers, last.by ?? "human")) : undefined;
+}
+
 /** A round's answers applied: the spec repaired with them and checked again, and the round's problems settled. */
 async function applyRound<C extends Found>(st: SettleState<C>, raw: Record<string, string>, how: "answered" | "assumed", by: string, io: SettleIo<C>, log: (m: string) => void):
   Promise<{ ok: true; st: SettleState<C> } | { ok: false; outcome: StepOutcome }> {
-  const decided: Decided[] = st.asked.map((q) => ({
-    id: q.id, question: q.text, answer: resolveAnswer(q, raw[q.id] ?? q.recommended), by,
-    problems: (st.problemOf[q.id] ?? []).map((n) => st.problems[n - 1]!).filter(Boolean),
-  }));
-  const answers = [...st.answers, ...decided.map(({ problems: _p, ...x }) => x)];
+  const decided = decisionsOn(st, raw, by);
+  const answers = answersAfter(st, decided);
   const rep = await io.repair(st.spec, answers, decided);
   if (!rep.ok) return rep;
   const lost = io.lost(st.spec, rep.spec);
