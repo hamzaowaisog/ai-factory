@@ -7,6 +7,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { dirname, join } from "node:path";
 import { parse, stringify } from "yaml";
 import { newProductRefusal, PRODUCT_NAME, seedEmptyRepo, type EstimateScope } from "../config/greenfield.js";
+import { API_SIDE_OPENING } from "../config/platform.js";
 import { loadProject, projectPath, type ProjectConfig } from "../config/project.js";
 import { secret } from "../config/env.js";
 import { addForge, createGithubRepo, githubPreflight, pushBranch, type GithubAccount } from "../forge/repos.js";
@@ -180,7 +181,9 @@ export async function startApiRun(p: Product, operator: string, maxCostUsd?: num
     if (!token) throw new Error(`${forge.tokenEnv} is missing in ~/.factory/.env, so the contract cannot be pushed to ${forge.repo}.`);
     await pushBranch(p.api.repo, forge.pushUrl ?? `https://github.com/${forge.repo}.git`, token, "main");
   }
-  p.api.run = await createRun(apiRequest(p.request ?? "", databaseOf(p)), p.api.project, operator, { ...(maxCostUsd !== undefined ? { maxCostUsd } : {}), ...(p.models ? { models: p.models } : {}), ...(p.autonomous === false ? { autonomous: false } : {}) });
+  // a build that asks, as the web run of the same product is: a large request is read module by module. Read in one piece it
+  // does not fit the intake step (run 1de4: parked on a 33,000-character request the web run had read in two modules)
+  p.api.run = await createRun(apiRequest(p.request ?? "", databaseOf(p)), p.api.project, operator, { asks: true, ...(maxCostUsd !== undefined ? { maxCostUsd } : {}), ...(p.models ? { models: p.models } : {}), ...(p.autonomous === false ? { autonomous: false } : {}) });
   saveProduct(p);
   return p.api.run;
 }
@@ -213,7 +216,7 @@ export function handOverContract(p: Product, contract: string): void {
 
 /** The API run's request: the product's own words, and what this side is. Only a product from before PostgreSQL was settled is on SQLite. */
 export const apiRequest = (request: string, database: DatabaseKind = "postgres"): string =>
-  `${request.trim()}\n\nThis run builds the API side of the product above, in an existing .NET API project. Build every operation of the locked API contract in ${CONTRACT_FILE}, exactly as it is written there. Keep the data in ${database === "postgres" ? "the project's PostgreSQL database (the connection string named App, which the project already reads)" : "the project's local SQLite database"}, and write its sample data in ${SEED_FILE}: a few believable rows for each table, taken from the contract's examples, so each list has something to show. The app runs that file only when the setting Seed:Demo is true, so no test may count on those rows. The web app is built in its own repo; do not build screens here.`;
+  `${request.trim()}\n\n${API_SIDE_OPENING}, in an existing .NET API project. Build every operation of the locked API contract in ${CONTRACT_FILE}, exactly as it is written there. Keep the data in ${database === "postgres" ? "the project's PostgreSQL database (the connection string named App, which the project already reads)" : "the project's local SQLite database"}, and write its sample data in ${SEED_FILE}: a few believable rows for each table, taken from the contract's examples, so each list has something to show. The app runs that file only when the setting Seed:Demo is true, so no test may count on those rows. The web app is built in its own repo; do not build screens here.`;
 
 /** every product's downloaded packages, kept between starts */
 export const NPM_CACHE_VOLUME = "factory-npm-cache";

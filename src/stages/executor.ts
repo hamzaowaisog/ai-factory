@@ -91,7 +91,7 @@ export function readRequestFile(path: string, maxBytes = MAX_REQUEST_FILE_BYTES)
 }
 
 /** `factory start`: create the ledger. Execution happens in `execute`. */
-export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "greenfield" | "estimate" | "design"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved }; fromDesign?: ApprovedDesign; designExport?: string[]; uiTarget?: RunInfo["uiTarget"]; /** the models the person starting the run chose */ models?: Choice; /** false: a guided run; left out, the project decides */ autonomous?: boolean } = {}): Promise<string> {
+export async function createRun(request: string, projectName: string, operator: string, opts: { maxCostUsd?: number; requestFile?: string; sources?: RequestSource[]; mode?: "brownfield" | "greenfield" | "estimate" | "design"; estimate?: RunInfo["estimate"]; attachments?: { name: string; bytes: Buffer }[]; references?: GatheredRef[]; lineage?: { kind: "change" | "sibling" | "build"; approved: Approved }; fromDesign?: ApprovedDesign; designExport?: string[]; uiTarget?: RunInfo["uiTarget"]; /** the models the person starting the run chose */ models?: Choice; /** a build that asks whatever its project says (the API side of a new product) */ asks?: boolean; /** false: a guided run; left out, the project decides */ autonomous?: boolean } = {}): Promise<string> {
   if (opts.maxCostUsd !== undefined && !(opts.maxCostUsd > 0)) throw new Error("--max-cost must be a positive number of dollars");
   const project = loadProject(projectName);
   const choice: Choice = { ...(opts.models?.picks && Object.keys(opts.models.picks).length ? { picks: opts.models.picks } : {}), ...(opts.models?.preset ? { preset: opts.models.preset } : {}) };
@@ -159,7 +159,7 @@ export async function createRun(request: string, projectName: string, operator: 
       ...(opts.designExport?.length ? { designExport: opts.designExport } : {}),
       ...(opts.uiTarget ? { uiTarget: opts.uiTarget } : {}),
       // a build that asks (src/estimate/settled.ts, settles): fixed here, so a paused run resumes with the steps it began with
-      ...(opts.mode === "greenfield" || ((opts.mode ?? "brownfield") === "brownfield" && project.brownfield?.questions) ? { asks: true } : {}),
+      ...(opts.mode === "greenfield" || ((opts.mode ?? "brownfield") === "brownfield" && (opts.asks || project.brownfield?.questions)) ? { asks: true } : {}),
       ...((opts.autonomous ?? project.autonomous) === false ? { autonomous: false } : {}),
       ...(lin?.kind === "build" ? { estimateRef: { runId: lin.approved.runId, estimateSha: lin.approved.estimateSha, breakdownSha: lin.approved.breakdownSha, specSha: lin.approved.specSha, ...(lin.approved.criticSha ? { criticSha: lin.approved.criticSha } : {}), ...(lin.approved.designSha ? { designSha: lin.approved.designSha } : {}), ...(lin.approved.settings.drawDesign === false ? { noDesign: true as const } : {}) } } : {}),
     },
@@ -504,7 +504,7 @@ async function executeOnce(runId: string, echo: Log, opts: { until?: string }): 
           await ledger.append({ type: "run.parked", data: { reason, step: step.key } }, writer);
           return { status: "parked", message: reason };
         }
-        if (action.action === "backoff") { slog(`  waiting ${Math.round(action.waitMs / 1000)}s (rate limit)`); await new Promise((r) => setTimeout(r, action.waitMs)); }
+        if (action.action === "backoff") { slog(`  waiting ${Math.round(action.waitMs / 1000)}s (${outcome.failures.some((f) => /timed? ?out/i.test(f.message)) ? "the model did not answer in time" : "rate limit or outage"})`); await new Promise((r) => setTimeout(r, action.waitMs)); }
         break;
       }
     }

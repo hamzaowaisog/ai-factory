@@ -29,6 +29,7 @@ import { dashboardView, designView, estimateView, eventsView, draftFile, exportF
 import { previewFile } from "./preview.js";
 import { LIVE_CSP, LIVE_DIR } from "../design/stitch-live.js";
 import { dataModelView } from "./erd.js";
+import { talkText } from "./talk.js";
 import { testsView } from "./tests.js";
 import { answerQuestions, checkRefs, decideCard, decideEstimate, raiseLimit, resumeRun, signOffManual, startRun, StartError, stopAtLimit, type StartDeps } from "./start.js";
 import { designExportsView, exportDownload, ExportJobs, exportRequest } from "./exports.js";
@@ -70,7 +71,7 @@ export const ROUTES: readonly Route[] = [
   { method: "GET", path: "/api/models/:mode", what: "the model steps of one kind of run (estimate, design, build): each one's default, the models it can be given, the presets and the prices", handle: ({ mode }) => ok(modelsView(mode)) },
   { method: "GET", path: "/api/runs", what: "recent runs", handle: () => ok(runsView()) },
   {
-    method: "GET", path: "/api/runs/:id", what: "one run: timeline, cost, trace, open card (read-only), delivery",
+    method: "GET", path: "/api/runs/:id", what: "one run: timeline, cost, trace, the latest exchanges with the models, open card (read-only), delivery",
     handle: ({ id }) => { const l = findRun(id!); return l ? ok(runView(l)) : notFound(`No run ${id}`); },
   },
   {
@@ -88,6 +89,14 @@ export const ROUTES: readonly Route[] = [
   {
     method: "GET", path: "/api/runs/:id/events", what: "the run's ledger events and trace lines, secret-masked (text view)",
     handle: ({ id }) => { const l = findRun(id!); return l ? ok(eventsView(l)) : notFound(`No run ${id}`); },
+  },
+  {
+    method: "GET", path: "/api/runs/:id/talk/:sha", what: "the whole of one briefing sent to a model, or of one model turn, as text (only those the run's trace names), secret-masked",
+    handle: ({ id, sha }) => {
+      const l = findRun(id!);
+      const t = l && /^[0-9a-f]{16,64}$/.test(sha ?? "") ? talkText(l, sha!) : undefined;
+      return t ? ok(t) : notFound(`No such briefing or model turn in run ${id}`);
+    },
   },
   {
     method: "GET", path: "/api/runs/:id/stats", what: "per-step cost, time and retries, cost over time, totals (graphical and statistical views)",

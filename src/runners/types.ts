@@ -20,6 +20,16 @@ export interface Job<T = unknown> {
 /** config-error: the API said no in a way retrying can't fix (bad key, unknown model, bad request). */
 export type ResultStatus = "ok" | "bad-output" | "timeout" | "over-budget" | "rate-limited" | "refused" | "config-error" | "error";
 
+/**
+ * The HTTP status behind an agent's error when it gives the API's answer and no status line: OpenAI names the kind in the
+ * body ("type": "invalid_request_error"). A call refused this way fails the same on every retry (run 9fcb: four attempts
+ * went on a schema the API would not take).
+ */
+export function refusedStatus(error: string | undefined): 400 | 401 | 403 | 404 | undefined {
+  const kind = /"type"\s*:\s*"(invalid_request_error|authentication_error|permission_error|not_found_error)"/.exec(error ?? "")?.[1];
+  return kind === "invalid_request_error" ? 400 : kind === "authentication_error" ? 401 : kind === "permission_error" ? 403 : kind === "not_found_error" ? 404 : undefined;
+}
+
 /** Plain words for a non-retryable API status. */
 export function configErrorText(status: number | undefined, detail: string, model?: string): string {
   const m = model ? ` (${model})` : "";

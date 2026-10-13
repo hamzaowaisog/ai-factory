@@ -3,7 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { _resetEnvCache } from "../config/env.js";
-import { files, pageOf, setStitchFactory, setStitchFileTries, stitchClient } from "./stitch.js";
+import { answerShape, editedSince, files, pageOf, setStitchFactory, setStitchFileTries, stitchClient } from "./stitch.js";
 
 describe("stitch client", () => {
   const saved = { home: process.env.FACTORY_HOME, key: process.env.STITCH_API_KEY };
@@ -44,6 +44,29 @@ describe("the page among what Stitch gave back", () => {
     expect(pageOf({ outputComponents: [{ design: { screens: [signature, page] } }] }).id).toBe("page");
     // no device on either: the taller one is the page
     expect(pageOf({ outputComponents: [{ design: { screens: [signature, { ...page, deviceType: undefined }] } }] }).id).toBe("page");
+  });
+});
+
+describe("an answer without a screen", () => {
+  it("says what the answer held instead", () => {
+    expect(() => pageOf({ outputComponents: [{ text: "I could not change that screen." }, { suggestion: "Try a smaller change", design: {} }] } as never))
+      .toThrow('without a screen (it sent text "I could not change that screen." | suggestion "Try a smaller change", design)');
+    expect(answerShape({ outputComponents: [] })).toBe("no parts");
+    expect(answerShape({ outputComponents: [{}] })).toBe("an empty part");
+    expect(answerShape({})).toBe("an empty answer");
+    expect(answerShape({ sessionId: "s1", screens: [1, 2] })).toBe('no outputComponents, only sessionId "s1", screens [2]');
+    expect(answerShape(undefined)).toBe("nothing");
+    expect(answerShape({ outputComponents: [{ text: "x".repeat(400) }] })).toHaveLength('text ""'.length + 161);
+  });
+  it("finds the edited screen in the project's list: the one new page with the edited screen's title", () => {
+    const scr = (id: string, title: string, page = true) => ({ name: `projects/p/screens/${id}`, title, ...(page ? { htmlCode: { downloadUrl: `html-${id}` } } : {}) });
+    const before = [scr("a", "Routes"), scr("b", "Orders")];
+    expect(editedSince(before, [...before, scr("c", "Routes"), scr("d", "Orders")], "a")?.name).toBe("projects/p/screens/c");
+    // nothing certain: no new page with that title, two of them, a picture without a page, or the edited screen not listed
+    expect(editedSince(before, [...before, scr("d", "Orders")], "a")).toBeUndefined();
+    expect(editedSince(before, [...before, scr("c", "Routes"), scr("e", "Routes")], "a")).toBeUndefined();
+    expect(editedSince(before, [...before, scr("c", "Routes", false)], "a")).toBeUndefined();
+    expect(editedSince(before, [...before, scr("c", "Routes")], "zz")).toBeUndefined();
   });
 });
 

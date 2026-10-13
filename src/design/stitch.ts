@@ -41,7 +41,7 @@ export async function files(screen: { id: string; getHtml(): Promise<string>; ge
   throw last;
 }
 
-interface StitchScreen { id?: string; name?: string; deviceType?: string; width?: number | string; height?: number | string; htmlCode?: { downloadUrl?: string }; screenshot?: { downloadUrl?: string } }
+export interface StitchScreen { id?: string; name?: string; title?: string; deviceType?: string; width?: number | string; height?: number | string; htmlCode?: { downloadUrl?: string }; screenshot?: { downloadUrl?: string } }
 export interface StitchAnswer { outputComponents?: { design?: { screens?: StitchScreen[] } }[] }
 
 /**
@@ -58,9 +58,40 @@ export function pageOf(raw: StitchAnswer): { id: string; htmlUrl: string; imageU
   const pages = all.filter((x) => x.htmlCode?.downloadUrl);
   // sort is stable: screens that tie keep the order Stitch gave them
   const s = [...pages].sort((a, b) => device(b) - device(a) || (Number(b.height) || 0) - (Number(a.height) || 0))[0] ?? all[0];
-  const id = s?.id ?? s?.name?.split("/screens/")[1];
-  if (!s || !id) throw new Error("Stitch answered without a screen");
+  const id = s && idOf(s);
+  if (!s || !id) throw new Error(`Stitch answered without a screen (it sent ${answerShape(raw)})`);
   return { id, htmlUrl: s.htmlCode?.downloadUrl ?? "", imageUrl: s.screenshot?.downloadUrl ?? "" };
+}
+
+const idOf = (s: StitchScreen) => s.id ?? s.name?.split("/screens/")[1];
+
+/**
+ * What an answer held in place of a screen, for the log: each part's fields and the start of anything Stitch wrote. An edit
+ * came back without a screen four times in one run (13 Oct 2026) and nothing recorded what it did carry.
+ */
+export function answerShape(raw: unknown): string {
+  const short = (v: string) => (v.length > 160 ? `${v.slice(0, 160)}…` : v);
+  const part = (o: unknown) => (o && typeof o === "object"
+    ? Object.entries(o).map(([k, v]) => (typeof v === "string" ? `${k} "${short(v)}"` : Array.isArray(v) ? `${k} [${v.length}]` : k)).join(", ") || "an empty part"
+    : String(o));
+  if (!raw || typeof raw !== "object") return raw === undefined || raw === null ? "nothing" : `${typeof raw} "${short(String(raw))}"`;
+  const parts = (raw as StitchAnswer).outputComponents;
+  if (!Array.isArray(parts)) return part(raw) === "an empty part" ? "an empty answer" : `no outputComponents, only ${part(raw)}`;
+  return parts.length ? parts.map(part).join(" | ") : "no parts";
+}
+
+/**
+ * The screen an edit made when its answer carried none: edit_screens says itself that the work may still succeed after a call
+ * that failed. Read from the project's screen list before and after the call: the one new page with the edited screen's title.
+ * The list is not whole (46 of some 100 screens, 13 Oct 2026) and other edits run beside this one, so anything less certain
+ * (the edited screen not listed, no new page with its title, or several) gives nothing and the edit counts as failed.
+ */
+export function editedSince(before: StitchScreen[], after: StitchScreen[], screenId: string): StitchScreen | undefined {
+  const title = before.find((s) => idOf(s) === screenId)?.title;
+  if (!title) return undefined;
+  const had = new Set(before.map(idOf));
+  const made = after.filter((s) => !had.has(idOf(s)) && s.title === title && s.htmlCode?.downloadUrl);
+  return made.length === 1 ? made[0] : undefined;
 }
 
 function drawn(tools: { callTool<T>(name: string, args: Record<string, unknown>): Promise<T> }, projectId: string, raw: StitchAnswer) {
@@ -91,7 +122,17 @@ function sdkClient(apiKey: string): StitchClient {
     },
     async edit(projectId, screenId, prompt, device) {
       const { tools } = await sdk();
-      return files(drawn(tools, projectId, await tools.callTool<StitchAnswer>("edit_screens", { projectId, selectedScreenIds: [screenId], prompt, deviceType: device })));
+      // a list that cannot be read only means an answer without a screen stays a failure
+      const listed = () => tools.callTool<{ screens?: StitchScreen[] }>("list_screens", { projectId }).then((r) => r?.screens ?? [], () => undefined);
+      const before = await listed();
+      const raw = await tools.callTool<StitchAnswer>("edit_screens", { projectId, selectedScreenIds: [screenId], prompt, deviceType: device });
+      try { pageOf(raw); } catch (e) {
+        const after = before && (await listed());
+        const made = after && editedSince(before, after, screenId);
+        if (!made) throw e;
+        return files(drawn(tools, projectId, { outputComponents: [{ design: { screens: [made] } }] }));
+      }
+      return files(drawn(tools, projectId, raw));
     },
     async download(url) {
       // the fetch itself is cut off at the time limit, not only abandoned

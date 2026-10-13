@@ -3,13 +3,13 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
-import "../stages/modes.js";
+import { brownfieldSteps } from "../stages/modes.js";
 import { _resetEnvCache } from "../config/env.js";
 import { loadProject, projectPath } from "../config/project.js";
 import { HUMAN_WRITER, Ledger } from "../ledger/ledger.js";
 import { replay } from "../ledger/state.js";
 import { createRun } from "../stages/executor.js";
-import { apiRequest, approvedContract, CONTRACT_FILE, handOverContract, loadProduct, saveProduct, setUpProduct, writeRunFiles } from "./product.js";
+import { apiRequest, approvedContract, CONTRACT_FILE, handOverContract, loadProduct, saveProduct, setUpProduct, startApiRun, writeRunFiles } from "./product.js";
 
 let dir: string;
 beforeEach(() => {
@@ -65,6 +65,14 @@ describe("a full-stack product: two repos, one contract", () => {
     expect(git(p.api.repo, "log", "-1", "--format=%s")).toContain(`approved with the web plan in ${p.web.run}`);
     handOverContract(p, contract); // again: nothing new to commit
     expect(git(p.api.repo, "rev-list", "--count", "main").trim()).toBe("2");
+    // the API run asks as the web run does, so a request too long for one intake is read module by module (run 1de4 parked on one)
+    const long = Array.from({ length: 12 }, (_, n) => `# Part ${n + 1}\n\n${"Staff record each delivery and its temperature. ".repeat(60)}`).join("\n\n");
+    saveProduct({ ...p, request: long });
+    const apiRun = (await startApiRun(loadProduct("clinic"), "tester"))!;
+    const api = replay(Ledger.open(apiRun).events());
+    expect(api.info).toMatchObject({ mode: "brownfield", asks: true });
+    expect(brownfieldSteps(api).map((s) => s.key).filter((k) => k.startsWith("intake"))).toEqual(["intake:m1", "intake:m2", "intake"]);
+    expect(loadProduct("clinic").api.run).toBe(apiRun);
     // the API run's request keeps the product's words and says which side this is
     expect(apiRequest("Staff sign in.")).toMatch(/^Staff sign in\.\n\nThis run builds the API side[\s\S]*contracts\/openapi\.yaml[\s\S]*PostgreSQL database \(the connection string named App/);
   });

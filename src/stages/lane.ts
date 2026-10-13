@@ -57,6 +57,15 @@ export function testWriterTurns(light: boolean, levels: string[]): number {
 }
 
 /**
+ * How many times the lane's limits (turns, minutes, money) a test writer gets for a long list of criteria. The limits were
+ * set on changes of a few criteria; a new product's 180 were written in the 60 turns and cut off while their type errors
+ * were being fixed (run 9fcb). One more share for every 120 criteria past the first 40, three at most.
+ */
+export function testWriterRoom(criteria: number): number {
+  return Math.min(3, 1 + Math.max(0, criteria - 40) / 120);
+}
+
+/**
  * Size by the change, not by how the planner split it: a 14-line fix split into 3 tasks was "M" and took the full
  * build lane (60 test-writer turns, no characterisation limit; the 2026-10-04 run). Files are the union of the tasks'
  * scopes; a glob counts as 3 files.

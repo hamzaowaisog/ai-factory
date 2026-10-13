@@ -14,6 +14,7 @@ import { failure } from "../gates/engine.js";
 import { anchorsResolve, planChecks } from "../gates/predicates.js";
 import { isConfigIntegrityPath } from "../gates/protected.js";
 import { runGate, type GateDef } from "../gates/engine.js";
+import { apiSide } from "../config/platform.js";
 import { hashJson } from "../util/hash.js";
 import { approvedDesignFor } from "./design-inputs.js";
 import { guided, header, lastFailureData, outputOf, planRejections, readOutput, requireOutput, type StepContext, type StepDef, type StepOutcome } from "./framework.js";
@@ -38,6 +39,7 @@ import { WAIVER_AFTER_ATTEMPT } from "./waiver.js";
 import type { Breakdown } from "../contracts/index.js";
 import { affectsLines, planCoverageFailures, planNote, readImpact } from "./impact.js";
 import { dependencyKind, planIntro, stubRule } from "./stack-text.js";
+import { outsideSystemsPlanRule } from "./outside-systems.js";
 import { checkPlanScaffold, designForScopeGate, scaffoldForPlan, scaffoldOfRun } from "./scaffold-run.js";
 
 type Intent = z.infer<typeof IntentBody>;
@@ -103,7 +105,7 @@ ${UNTRUSTED_NOTE}
       risk: maxRisk(r.output.risk, rules.risk), riskTags: [...new Set([...r.output.riskTags, ...rules.tags])],
       // the API side of a full-stack product (a .NET project held to a contract) has no screens of its own, whatever the
       // product's request says about them: its web app is designed and built in its own repo
-      touchesUi: ctx.project.stack === "dotnet" && !!ctx.project.contract?.built ? false : r.output.touchesUi || ruleUi(request(ctx)),
+      touchesUi: apiSide(ctx.project) ? false : r.output.touchesUi || ruleUi(request(ctx)),
     };
     const sha = ctx.ledger.putJson({ header: header(ctx.runId, "intent", "intake", "", r.model), ...intent });
     return { kind: "done", outputs: { intent: sha }, data: { changeClass: intent.changeClass, risk: intent.risk, touchesUi: intent.touchesUi } };
@@ -165,10 +167,12 @@ const dataModelRules = (required: boolean, touched: string[], existing = false):
 
 const contractRules = (file: string): string => `API CONTRACT. This product has a web app and an API in two repos, and both are built against one contract.
 - Give one more stub: path "${file}", content the full OpenAPI 3.0.3 document (YAML) of every operation the approved screens and requirements need. It is outside every task's fileScope: nobody implements it, both sides follow it.
+- Write it in block style, one key per line with two-space indents: no {...} or [...] on a line except an empty value ("security: []", "{}"). Put any text with an apostrophe, a colon or a # in double quotes. A file with whole operations on one line stops parsing at the first stray quote.
+- No YAML anchors, aliases or merge keys (&name, *name, <<): what is used twice is a schema, a response or a parameter under components, pointed at with $ref.
 - Every operation has an operationId (camelCase), its request body where it takes one, and every status code it answers with.
 - Schemas go under components/schemas with "required" lists. Take the field names and types from the approved screens' sample data; an id is an integer.
 - Every JSON response carries an "example" with believable data (the approved screens' sample rows): the web app's tests run against these examples.
-- The web app calls the API only through the client generated from this file (lib/api); do not plan a hand-written client.
+- The web app calls the API only through the client generated from this file (lib/api); do not plan a hand-written client, and put no path under lib/api in a stub or in a task's fileScope: the factory generates that folder.
 - What the spec lists as not changing with "(API-SIDE)" is behaviour the API side builds and tests: no task here builds it, and the contract still gives its operations and every status code they answer with.`;
 
 /**
@@ -184,7 +188,7 @@ export function clientFolderProblems(plan: { stubs: { path: string }[]; tasks: {
 }
 
 export const planStep: StepDef = {
-  key: "plan", stage: "plan", templateVersion: "2",
+  key: "plan", stage: "plan", templateVersion: "3", // 3: one seam per outside system, its settings declared by name
   // a design approved in this run counts; with none the key is dropped, so the hash is what it always was
   inputs: (s) => (s.steps.get("specify")?.status === "completed" ? { spec: s.steps.get("specify")!.outputs[0], rejections: planRejections(s), design: outputOf(s, "design-baseline") } : undefined),
   async run(ctx) {
@@ -236,6 +240,7 @@ export const planStep: StepDef = {
 - complexity, on every task: standard | rules-or-algorithm | external-dependency | compliance-sensitive | real-time | new-to-stack. Most tasks are standard. rules-or-algorithm is a task whose work is mostly business rules, validations, allowed state changes or calculations.
 - Test projects, test files and CI config are not in any file scope: tests are written separately.
 - stubs: for every NEW public type/method/endpoint the tests will call, give a compilable stub file (full file content) whose bodies ${stubRule(ctx.project.stack)}, so tests compile before implementation. Existing APIs need no stubs. Stub paths must be inside a task's fileScope.
+${outsideSystemsPlanRule(ctx.project.stack)}
 - protectedPathsDeclared: list any migration, CI, build-config or package-feed file you must change (a human will see it).
 - newDependencies: any ${dependencyKind(ctx.project.stack)} package to add (name, version, registry). Prefer none.`),
       S.profile("repomap", `Repository map:\n${map}`),

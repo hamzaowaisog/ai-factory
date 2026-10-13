@@ -11,6 +11,19 @@ export const WEB_ONLY = `PLATFORM. This product is designed and built as a web a
  */
 export const webOnly = (mode: string | undefined, project?: { webOnly?: boolean | undefined }): boolean => project?.webOnly !== false && (mode === "greenfield" || mode === "design");
 
+/** How the API run of a full-stack product's request says which side it is (src/fullstack/product.ts, apiRequest). */
+export const API_SIDE_OPENING = "This run builds the API side of the product above";
+
+/**
+ * Told to a model call of a product's API run whose request does not say which side it is: a large request is read module by
+ * module, and the sentence that says so ends the request, so only the last module holds it.
+ */
+export const apiSideNote = (contractFile: string): string =>
+  `PRODUCT SIDE. This run builds the API side of the product these requirements describe, in an existing .NET API project: every operation of the locked API contract in ${contractFile}, exactly as it is written there, and the data behind them. The web app is built in its own repo: no screen is built here, and no criterion is written for one.`;
+
+/** The API side of a full-stack product: a .NET project held to a contract it builds. */
+export const apiSide = (project?: { stack?: string | undefined; contract?: { file: string; built?: string | undefined } | undefined }): boolean => project?.stack === "dotnet" && !!project.contract?.built;
+
 interface AppLike { device?: string | undefined; shell?: string | undefined }
 interface LookLike { shell?: string | undefined; reading?: { device?: string | undefined } | undefined }
 

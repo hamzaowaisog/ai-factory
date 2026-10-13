@@ -3,6 +3,7 @@
 // No write, shell or network. Output is zod-validated with at most 2 re-asks; ≤ maxTurns turns.
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
+import { Agent, fetch as undiciFetch } from "undici";
 import { z } from "zod";
 import { toJsonSchema } from "../contracts/index.js";
 import type { RepoTools } from "../context/tools.js";
@@ -112,6 +113,19 @@ export function droppedConnection(e: unknown): boolean {
   return /^(ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|ENOTFOUND|EAI_AGAIN|UND_ERR_\w+)$/.test(code)
     || /^terminated$|fetch failed|socket hang up|premature close/i.test(e.message);
 }
+/** How long a model call may stay silent before it counts as dropped: longer than the SDK's own 10-minute wait for an answer to start. */
+const MODEL_QUIET_MS = 20 * 60_000;
+/** OpenAI's codes for a failure worth waiting for, as a streamed response reports them. */
+const TRANSIENT_OPENAI = new Set(["server_error", "rate_limit_exceeded"]);
+/**
+ * An output item as the next turn's input. The SDK's stream helper adds fields of its own to what it hands back
+ * ("parsed_arguments" on a function call, "parsed" on a message's text), and OpenAI answers 400 to them (run 9fcb).
+ */
+function asInput(item: OpenAI.Responses.ResponseOutputItem): OpenAI.Responses.ResponseInputItem {
+  const { parsed_arguments: _a, ...rest } = item as unknown as Record<string, unknown>;
+  if (item.type !== "message") return rest as unknown as OpenAI.Responses.ResponseInputItem;
+  return { ...rest, content: item.content.map((c) => { const { parsed: _p, ...part } = c as unknown as Record<string, unknown>; return part; }) } as unknown as OpenAI.Responses.ResponseInputItem;
+}
 /** 400/401/403/404: retrying won't help. */
 export class ConfigError extends Error {
   constructor(readonly status: number | undefined, message: string) { super(message); }
@@ -200,10 +214,18 @@ export class OpenAIProvider implements Provider {
   private readonly client: OpenAI;
   /** local servers (Ollama, vLLM) speak chat completions; OpenAI itself needs the Responses API for tools + reasoning */
   private readonly local: boolean;
-  constructor(opts: { apiKey?: string; baseURL?: string; api?: "responses" | "chat" } = {}) {
+  /** `quietMs`: how long a call may send nothing before it is dropped (tests shorten it) */
+  constructor(opts: { apiKey?: string; baseURL?: string; api?: "responses" | "chat"; quietMs?: number } = {}) {
     const apiKey = opts.apiKey ?? secret("OPENAI_API_KEY");
     if (!apiKey && !opts.baseURL) throw new Error("OPENAI_API_KEY is missing. Add it to ~/.factory/.env");
-    this.client = new OpenAI({ apiKey: apiKey ?? "local", baseURL: opts.baseURL, maxRetries: 0 });
+    // Node's own fetch drops a call that is silent for 5 minutes, before the headers or between two pieces of a stream;
+    // a model thinking hard is silent for longer. undici's fetch with its own Agent is the only way to move that limit.
+    const quietMs = opts.quietMs ?? MODEL_QUIET_MS;
+    this.client = new OpenAI({
+      apiKey: apiKey ?? "local", baseURL: opts.baseURL, maxRetries: 0,
+      fetch: undiciFetch as unknown as NonNullable<ConstructorParameters<typeof OpenAI>[0]>["fetch"],
+      fetchOptions: { dispatcher: new Agent({ headersTimeout: quietMs, bodyTimeout: quietMs }) },
+    });
     this.local = opts.api ? opts.api === "chat" : !!opts.baseURL;
   }
 
@@ -212,7 +234,10 @@ export class OpenAIProvider implements Provider {
   }
 
   private rethrow(e: unknown): never {
-    if (droppedConnection(e) || e instanceof OpenAI.RateLimitError || e instanceof OpenAI.InternalServerError) throw new RateLimitedError((e as Error).message);
+    if (e instanceof RateLimitedError) throw e;
+    // an error sent inside a stream arrives after HTTP 200, so the SDK raises it with no status, only its code
+    const streamed = e instanceof OpenAI.APIError && e.status === undefined && TRANSIENT_OPENAI.has(String(e.code ?? e.type ?? ""));
+    if (streamed || droppedConnection(e) || e instanceof OpenAI.RateLimitError || e instanceof OpenAI.InternalServerError) throw new RateLimitedError((e as Error).message);
     if (e instanceof OpenAI.APIError && CONFIG_STATUSES.has(e.status as number)) throw new ConfigError(e.status as number, (e as Error).message);
     throw e;
   }
@@ -224,19 +249,35 @@ export class OpenAIProvider implements Provider {
     const toolParams: OpenAI.Responses.FunctionTool[] = tools.map((t) => ({ type: "function", name: t.name, description: t.description, parameters: t.schema, strict: false }));
     const rethrow = (e: unknown) => this.rethrow(e);
     return {
-      async next(_progress?: (chars: number) => void, signal?: AbortSignal): Promise<Turn> {
+      async next(progress?: (chars: number) => void, signal?: AbortSignal): Promise<Turn> {
         let res: OpenAI.Responses.Response;
         try {
-          res = await client.responses.create({
+          // streamed, so the answer's headers come back at once: Node's fetch drops a request that has sent none in
+          // 5 minutes, and an unstreamed turn sends none until the model has finished thinking and writing
+          const stream = client.responses.stream({
             model, instructions: system, input, tools: toolParams, tool_choice: "auto",
             ...(effort ? { reasoning: { effort } } : {}),
             store: false, include: ["reasoning.encrypted_content"],
           }, signal ? { signal } : undefined);
+          if (progress) {
+            let chars = 0;
+            stream.on("event", (e) => {
+              if (e.type !== "response.output_text.delta" && e.type !== "response.function_call_arguments.delta") return;
+              chars += e.delta.length;
+              progress(chars);
+            });
+          }
+          res = await stream.finalResponse();
+          // a streamed turn that fails after HTTP 200 ends as a response with status "failed", not as a thrown error
+          if (res.status === "failed") {
+            const message = `OpenAI: ${res.error?.message ?? "the response failed"}`;
+            throw TRANSIENT_OPENAI.has(String(res.error?.code ?? "")) ? new RateLimitedError(message) : new Error(message);
+          }
         } catch (e) {
           rethrow(e);
         }
         // the output items (reasoning, messages, function calls) go back in as input next turn
-        input.push(...(res!.output as unknown as OpenAI.Responses.ResponseInputItem[]));
+        input.push(...res!.output.map(asInput));
         const calls = res!.output.filter((o): o is OpenAI.Responses.ResponseFunctionToolCall => o.type === "function_call").map((c) => {
           let parsed: unknown;
           try { parsed = JSON.parse(c.arguments || "{}"); } catch { parsed = { __unparsable: true }; }

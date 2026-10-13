@@ -36,6 +36,7 @@ import { lastActivity, readTrace } from "../util/trace.js";
 import { maskSecrets } from "../config/env.js";
 import { Redactor } from "../context/secrets.js";
 import { readPreview } from "./preview.js";
+import { talkView } from "./talk.js";
 import { factoryAssumed } from "../stages/gate-questions.js";
 import { loadProject, STANDALONE_PROJECT } from "../config/project.js";
 import { githubConfigured, NO_GITHUB_TOKEN } from "../forge/repos.js";
@@ -292,7 +293,8 @@ export function runView(ledger: Ledger) {
   const d = (s.steps.get("deliver")?.data ?? {}) as { branch?: string; head?: string; prUrl?: string; local?: boolean };
   const prFile = join(ledger.cardsDir, `pr-${ledger.runId}.md`);
   const last = lastActivity(ledger.dir);
-  const trace = readTrace(ledger.dir).filter((e) => e.kind !== "model.turn.detail").slice(-40)
+  const lines = readTrace(ledger.dir);
+  const trace = lines.filter((e) => e.kind !== "model.turn.detail").slice(-40)
     .map((e) => ({ ts: e.ts, where: e.step ? `${e.step}${e.attempt ? `#${e.attempt}` : ""}` : "run", kind: e.kind, msg: e.msg }));
   return {
     runId: ledger.runId,
@@ -316,6 +318,8 @@ export function runView(ledger: Ledger) {
     models: runModels(events),
     card: s.openCard ? { kind: s.openCard.kind, hash: hash8, markdown: card ?? "(the card file is missing)", commands: cardCommands(card ?? "", ledger.runId, hash8), ...(s.openCard.kind === "question" ? questionsOf(ledger, s.openCard.artifactSha) : {}), ...limitOf(s) } : undefined,
     trace,
+    // what the factory asked each model and what came back (src/ui/talk.ts)
+    talk: talkView(lines),
     delivered: done ? {
       branch: d.branch ?? s.workspace?.branch, head: d.head, prUrl: d.prUrl, local: d.local !== false,
       prText: existsSync(prFile) ? ledger.readCard(`pr-${ledger.runId}`) : undefined,

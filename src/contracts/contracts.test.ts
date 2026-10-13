@@ -6,6 +6,19 @@ import {
 const sha = "a".repeat(64);
 
 describe("contracts", () => {
+  it("a plan's stubs are read when the model wrote a stub's reason as the next item of the list (run 9fcb)", () => {
+    const stubs = (given: unknown[]) => PlanBody.shape.stubs.parse(given);
+    // as six answers in a row gave them: the long file's stub closed early, its reason next, then names of keys
+    expect(stubs([{ path: "a.ts", content: "x", reason: "seam" }, { path: "contracts/openapi.yaml", content: "openapi: 3.0.3" }, "reason for the contract stub", "dataModel", "skip"]))
+      .toEqual([{ path: "a.ts", content: "x", reason: "seam" }, { path: "contracts/openapi.yaml", content: "openapi: 3.0.3", reason: "for the contract stub" }]);
+    expect(stubs([{ path: "a.ts", content: "x" }, "reason:"])).toEqual([{ path: "a.ts", content: "x", reason: "" }]);
+    expect(stubs([{ path: "a.ts", content: "x" }])).toEqual([{ path: "a.ts", content: "x", reason: "" }]);
+    expect(() => stubs([{ path: "a.ts" }])).toThrow();
+    // the model is asked for the long content last
+    const asked = (toJsonSchema(PlanBody) as { properties: { stubs: { items: { properties: object } } } }).properties.stubs.items.properties;
+    expect(Object.keys(asked)).toEqual(["path", "reason", "content"]);
+  });
+
   it("maxRisk only goes up", () => {
     expect(maxRisk("low", "medium")).toBe("medium");
     expect(maxRisk("high", "low")).toBe("high");

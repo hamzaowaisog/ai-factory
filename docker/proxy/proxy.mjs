@@ -172,6 +172,12 @@ function apiServer(opts = {}) {
       };
       const out = (up.tls === false ? http : https).request({ host: up.host, port: up.port ?? 443, method: req.method, path: r.path, headers }, (upRes) => {
         res.writeHead(upRes.statusCode ?? 502, upRes.headers);
+        // a call the API refused: its reason goes in the log, since the agent that got it may end without passing it on (run 9fcb)
+        if ((upRes.statusCode ?? 502) >= 400) {
+          let said = "";
+          upRes.on("data", (c) => { if (said.length < 600) said += c.toString("utf8"); });
+          upRes.on("end", () => log(`refused ${upRes.statusCode} ${where} ${grant.run ?? "?"} ${grant.key ?? "?"} ${model}: ${said.slice(0, 600).replace(/\s+/g, " ")}`));
+        }
         upRes.on("data", (c) => meter.push(c));
         upRes.on("end", settle);
         upRes.on("close", settle);
