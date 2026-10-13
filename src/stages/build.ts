@@ -48,7 +48,7 @@ import { JUDGE_TEMPLATE, JudgeOut, judgedTests, parkReason, relocked, REWRITE_RU
 import { REPO_DESIGN_DIR, repoFiles, type DesignPackage } from "../design/package.js";
 import { exportRunPackage } from "./design-export.js";
 import { stepBudgetUsd } from "../ledger/caps.js";
-import { LANE, lightBuild, testWriterTurns } from "./lane.js";
+import { LANE, lightBuild, testWriterRoom, testWriterTurns } from "./lane.js";
 import { lessonPointers, readLessons, usableLessons } from "../context/lessons.js";
 import { sizeCap } from "../estimate/gates.js";
 import { buildWaiver } from "../estimate/build-waiver.js";
@@ -171,7 +171,7 @@ export function agentTracer(ctx: Pick<StepContext, "trace">, who: string) {
     if (p.kind === "tool") ctx.trace.event("agent.tool", `${who}: ${p.tool} ${p.target ?? ""}`);
     else if (p.kind === "turn") {
       peak = Math.max(peak, p.in ?? 0);
-      ctx.trace.event("agent.turn", `${who}: turn  in ${p.in ?? 0} out ${p.out ?? 0}${p.text ? `  "${p.text}"` : ""}`, { id: p.id, in: p.in ?? 0, out: p.out ?? 0, cacheRead: p.cacheRead ?? 0, cacheWrite: p.cacheWrite ?? 0 });
+      ctx.trace.event("agent.turn", `${who}: turn  in ${p.in ?? 0} out ${p.out ?? 0}${p.text ? `  "${p.text}"` : ""}`, { id: p.id, in: p.in ?? 0, out: p.out ?? 0, cacheRead: p.cacheRead ?? 0, cacheWrite: p.cacheWrite ?? 0, ...(p.text ? { text: p.text } : {}) });
     } else if (p.kind === "result") {
       const t = tools.get(p.tool ?? "?") ?? { calls: 0, chars: 0 };
       tools.set(p.tool ?? "?", { calls: t.calls + 1, chars: t.chars + (p.chars ?? 0) });
@@ -458,7 +458,11 @@ export const stubCommitStep: StepDef = {
 
 // ---------- author-tests (A) + fails on base twice + lock ----------
 const AuthorOut = z.object({
-  tests: z.array(z.object({ acId: z.string(), file: z.string(), name: z.string().regex(/^AC_\d+_\d+_\w+$/, "method name must be AC_<req>_<n>_<Words>") })).min(1),
+  tests: z.array(z.object({
+    acId: z.string(), file: z.string(), name: z.string().regex(/^AC_\d+_\d+_\w+$/, "method name must be AC_<req>_<n>_<Words>"),
+    /** the approved screen the test opens: its criterion is held at the task that builds that screen (heldByScreen) */
+    screen: z.string().optional(),
+  })).min(1),
   characterisation: z.array(z.object({ target: z.string(), file: z.string(), name: z.string().regex(/^CHAR_\w+$/, "method name must be CHAR_<Words>") })),
   /** one HTTP request per api-level criterion, replayed against the running app at accept */
   probes: z.array(z.object({
@@ -675,7 +679,8 @@ export const authorTestsStep: StepDef = {
     const contractFile = ctx.project.contract && existsSync(join(wt, ctx.project.contract.file)) ? ctx.project.contract.file : undefined;
     const pointers = [...anchorFiles(spec).map((p) => ({ path: p, reason: "the code these criteria are about" })), ...lessonPointers(lessons),
       ...(contractFile && plan.stubs.some((s) => s.path === contractFile) ? [{ path: contractFile, reason: `the locked API contract; the client and test handlers in ${CLIENT_DIR} are generated from it` }] : [])];
-    const limits = { maxTurns: testWriterTurns(light, needTest.map((a) => a.level)), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4), timeoutSec: 45 * 60 };
+    const room = testWriterRoom(needTest.length);
+    const limits = { maxTurns: Math.round(testWriterTurns(light, needTest.map((a) => a.level)) * room), maxUsd: stepBudgetUsd(replay(ctx.ledger.events()), 4 * room), timeoutSec: Math.round(45 * 60 * room) };
     const pack = buildPack({
       stage: "author-tests", cls: "agent", model, recipeVersion: "1", tools: [], redactor: new Redactor(),
       sections: [
@@ -691,7 +696,7 @@ Return the list of tests you wrote (acId, file, method name).` : `
 Return the list of tests you wrote (acId, file, method name) and the probes.`),
         ...(pointers.length ? [S.pointers(pointers)] : []),
         S.artifact("acs", "acceptance-criteria", acs),
-        ...(screens.length ? [S.artifact("approved-screens", "approved-screens", screens), S.template("approved-screens-rules", `The approved-screens section lists the screens a person approved for these requirements: route, states, and the exact words on them (title, buttons, field labels, column headers, empty, error, success and validation messages, toasts; "change" for a design note). Where a criterion is about what the user sees or is told, take the expected values from there, word for word, and do not invent other wording. A criterion with no screen there is tested as before.`)] : []),
+        ...(screens.length ? [S.artifact("approved-screens", "approved-screens", screens), S.template("approved-screens-rules", `The approved-screens section lists the screens a person approved for these requirements: route, states, and the exact words on them (title, buttons, field labels, column headers, empty, error, success and validation messages, toasts; "change" for a design note). Where a criterion is about what the user sees or is told, take the expected values from there, word for word, and do not invent other wording. A criterion with no screen there is tested as before. For each test that opens one of the approved screens, also return that screen's id as "screen" (the screen the test renders, which can be another than the one its requirement is listed under): the test is then held at the task that builds that screen. Leave it out for a test that opens no screen.`)] : []),
         // the stubs are in the checkout (the stub commit): a big one is named, not pasted, and so are the biggest when the briefing is over
         S.files("stubs", "stubs", plan.stubs.filter((s) => s.path !== contractFile).map((s) => ({ path: s.path, content: s.content }))),
         ...contractNote(ctx.project, wt, "tests"),
@@ -718,6 +723,7 @@ Before you return, check your list against the criteria: each of these needs at 
       ctx.log(`author-tests: the previous attempt's ${ctx.priorFailures.length} rejected test${ctx.priorFailures.length === 1 ? "" : "s"} fail for an accepted reason when its reports are read again; checking its tests again without the test writer`);
       out = prevOut!;
     } else {
+      tracePack(ctx.trace, "test writer", pack, ctx.ledger.putJson(pack));
       const r = await codingRunner(rt, {
         runId: ctx.runId, key: `author-tests/${ctx.attempt}`, fileScope: TEST_SCOPE, lockedFiles: [], extraProtected: contractLockFiles(ctx.project, wt), onProgress: agentTracer(ctx, "test writer"),
         protectedGlobs: CONFIG_INTEGRITY_GLOBS, ...(ctx.project.stack === "node" ? {} : { packagesDir: packagesDir(ctx.runId) }), agentEnv: ctx.project.agentEnv, noGo: ctx.project.noGo,
@@ -939,7 +945,8 @@ function secretScanOf(diff: DiffSummary, commit: string) {
 }
 
 type OwnerPlan = { tasks: { id: string; reqs: string[]; dependsOn?: string[]; fileScope?: string[] }[] };
-type OwnerSpec = { requirements: { id: string; acceptance: { id: string; level?: string }[] }[] };
+type HeldSpec<S extends OwnerSpec> = Omit<S, "requirements"> & { requirements: (Omit<S["requirements"][number], "acceptance"> & { acceptance: (S["requirements"][number]["acceptance"][number] & { task?: string })[] })[] };
+type OwnerSpec = { requirements: { id: string; acceptance: { id: string; level?: string; task?: string }[] }[] };
 
 /**
  * Criteria proven on the app as a whole, not on one class: they can only pass once the route or screen that serves them is wired.
@@ -964,16 +971,37 @@ function lastBuiltOn(plan: OwnerPlan, taskId: string): string {
  * `layered`: the run has shown its plan is built in layers (planShowsLayers). A criterion proven through the running
  * app (level api, ui or job) is then held later still, at the last task built on that one: such a plan lists a requirement
  * on the layer that holds its logic, and no test can reach it until the last layer is wired.
+ * A criterion whose test opens a screen another task builds belongs to that task instead (`task`, set by heldByScreen).
  */
 export function acOwners(plan: OwnerPlan, spec: OwnerSpec, layered = false): Map<string, string> {
   const owners = new Map<string, string>();
   for (const r of spec.requirements) {
-    const owner = [...plan.tasks].reverse().find((t) => t.reqs.includes(r.id));
-    if (!owner) continue;
-    const later = layered ? lastBuiltOn(plan, owner.id) : owner.id;
-    for (const a of r.acceptance) owners.set(a.id, THROUGH_APP.has(a.level ?? "") ? later : owner.id);
+    const last = [...plan.tasks].reverse().find((t) => t.reqs.includes(r.id))?.id;
+    for (const a of r.acceptance) {
+      const owner = a.task && plan.tasks.some((t) => t.id === a.task) ? a.task : last;
+      if (owner) owners.set(a.id, layered && THROUGH_APP.has(a.level ?? "") ? lastBuiltOn(plan, owner) : owner);
+    }
   }
   return owners;
+}
+
+/**
+ * The spec with each criterion marked with the task that builds the screen its test opens (the test author names the screen,
+ * the approved design gives its file, the plan says whose file that is). Ownership by requirement alone gave run 9fcb's
+ * "set new password" task a test of the customer orders screen: a file it could not change, so the run parked.
+ * Several tasks or screens for one criterion: the last in plan order. No screen named, or no task builds it: as before.
+ */
+export function heldByScreen<S extends OwnerSpec>(spec: S, plan: OwnerPlan, design: { skipped?: boolean; screens: { id: string; file: string }[] } | undefined, tests: { acId: string; screen?: string }[]): HeldSpec<S> {
+  const same = spec as HeldSpec<S>;
+  if (!design || design.skipped || !tests.some((t) => t.screen)) return same;
+  const at = new Map<string, number>();
+  for (const t of tests) {
+    const file = t.screen ? design.screens.find((s) => s.id === t.screen)?.file : undefined;
+    const i = file ? plan.tasks.findLastIndex((x) => matchesAny(file, x.fileScope ?? [])) : -1;
+    if (i >= 0) at.set(t.acId, Math.max(i, at.get(t.acId) ?? -1));
+  }
+  if (!at.size) return same;
+  return { ...spec, requirements: spec.requirements.map((r) => ({ ...r, acceptance: r.acceptance.map((a) => (at.has(a.id) ? { ...a, task: plan.tasks[at.get(a.id)!]!.id } : a)) })) } as HeldSpec<S>;
 }
 
 /**
@@ -1072,7 +1100,9 @@ export function takenOver(plan: { tasks: { id: string; reqs: string[]; fileScope
   const owners = acOwners(plan, spec, layered);
   const me = plan.tasks.find((t) => t.id === taskId);
   const reqs = spec.requirements.filter((r) => !me?.reqs.includes(r.id) && r.acceptance.some((a) => owners.get(a.id) === taskId)).map((r) => r.id);
-  const from = reqs.map((id) => [...plan.tasks].reverse().find((t) => t.reqs.includes(id))!).filter((t, i, all) => t.id !== taskId && all.indexOf(t) === i);
+  // a requirement held here only because its test opens this task's screen (heldByScreen) hands over no earlier task's files
+  const handed = reqs.filter((id) => spec.requirements.find((r) => r.id === id)!.acceptance.some((a) => owners.get(a.id) === taskId && a.task !== taskId));
+  const from = handed.map((id) => [...plan.tasks].reverse().find((t) => t.reqs.includes(id))).filter((t, i, all): t is NonNullable<typeof t> => !!t && t.id !== taskId && all.indexOf(t) === i);
   // those tests run through every layer under this task, not only the tasks that list the requirement last (a DTO task whose
   // requirements a later task lists again): a wrong line in any of them fails a test here, so all of them can be fixed here
   const under = new Set(from.length || stuck ? me?.dependsOn ?? [] : []);
@@ -1269,7 +1299,7 @@ async function settleTests(ctx: StepContext, a: {
       S.recap(["only the named tests", "keep each test's name", "no other file", "assert what the criterion says"]),
     ],
   });
-  tracePack(ctx.trace, `test rewrite ${a.taskId}`, pack);
+  tracePack(ctx.trace, `test rewrite ${a.taskId}`, pack, ctx.ledger.putJson(pack));
   const rt = runtime();
   await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
   await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
@@ -1346,8 +1376,9 @@ export function implementStep(taskId: string): StepDef {
     },
     async run(ctx) {
       const plan = requireOutput<Plan>(ctx.state, ctx.ledger, "plan");
-      const spec = requireOutput<Spec>(ctx.state, ctx.ledger, "specify");
       let { lock, sha: lockSha } = lockOf(ctx.state, ctx.ledger);
+      // a criterion whose test opens a screen is held at the task that builds that screen
+      const spec = heldByScreen(requireOutput<Spec>(ctx.state, ctx.ledger, "specify"), plan, approvedDesignFor<ApprovedDesign>(ctx.state, ctx.ledger)?.design, lock.tests);
       const baselineSha = ctx.state.steps.get("discover")!.outputs[0]!;
       const task = plan.tasks.find((t) => t.id === taskId)!;
       const inputs = implementStep(taskId).inputs(ctx.state, ctx.ledger)!;
@@ -1417,6 +1448,8 @@ export function implementStep(taskId: string): StepDef {
       const sharesBuiltDir = sharesFolder(fileScope, builtDoc[0]);
       // what the last build's API document still lacks against the contract, so the agent starts from the list instead of finding it by hand
       const gap = writesEntry(fileScope, ctx.project.stack) || fileScope.some((f) => builtDoc.includes(f)) ? contractGapAt(ctx, wt, [prev?.commit, start]) : undefined;
+      const forScreen = spec.requirements.flatMap((r) => r.acceptance).filter((x) => x.task === task.id && owners.get(x.id) === task.id && !task.reqs.some((id) => spec.requirements.find((r) => r.id === id)?.acceptance.includes(x))).map((x) => x.id);
+      if (forScreen.length) ctx.log(`implement ${taskId}: also held to ${forScreen.join(", ")}, whose test opens the screen this task builds`);
       if (taken.from.length) ctx.log(`implement ${taskId}: also held to the criteria of ${taken.from.join(", ")} (tested through the app, which this task completes), so it may change their files too`);
       else if (taken.fileScope.length) ctx.log(`implement ${taskId}: its own locked test failed on the last attempt, so it may change the files of the tasks it is built on too`);
       const ref = ctx.state.info.estimateRef;
@@ -1463,7 +1496,7 @@ export function implementStep(taskId: string): StepDef {
 - Do not restyle or rebuild the page: no new markup, classes, colours or components for what the page already draws. Keep the fixture branch (\`?fixture=${scaffoldScreen.id}:<state>\` shows the approved sample data with no backend).
 - Server code, API clients and validation go in the other files of your scope.`)] : []),
           ...(designSystemTask ? [S.template("design-system", `This is the design-system task. The generated files are already in the repo (the scaffold commit). Finish the wiring:\n${scaf!.designSystem.todo.map((t) => `- ${t}`).join("\n") || "- nothing left to wire: check the app builds"}\nDo not change the generated files.`)] : []),
-          S.artifact("acs", "acceptance-criteria", spec.requirements.filter((r) => task.reqs.includes(r.id) || taken.reqs.includes(r.id))),
+          S.artifact("acs", "acceptance-criteria", spec.requirements.filter((r) => task.reqs.includes(r.id) || taken.reqs.includes(r.id)).map((r) => ({ ...r, acceptance: r.acceptance.map(({ task: _held, ...ac }) => ac) }))),
           ...(sharesBuiltDir.length ? [S.template("built-doc-folder", `The build writes the API document to ${builtDoc[0]}. On this machine folder names that differ only in case are one folder, so that is also the folder of ${sharesBuiltDir.join(", ")}. Never delete or empty that folder: to get a fresh document, delete only ${builtDoc[0]}.`)] : []),
           ...(taken.from.length ? [S.template("taken-over", `The locked tests below include those of ${taken.from.join(", ")}: their requirements (${taken.reqs.join(", ")}) are tested through the running app, and this is the task that completes it. Those tasks are done and their code is in the repo. Make these tests pass too. Where one fails because that earlier code is wrong, fix it there: their files are in your file scope.`)] : taken.fileScope.length ? [S.template("taken-over", `A locked test of this task failed on the last attempt. It runs through the code of the tasks this one is built on, which are done and in the repo. Where the test fails because that earlier code is wrong, fix it there: their files are in your file scope.`)] : []),
           ...(freed.length ? [S.template("unlocked", `A person unlocked ${freed.join(", ")} for this run: you may change ${freed.length === 1 ? "it" : "them"}, whatever a rule below says about ${freed.length === 1 ? "its" : "their"} folder. Every other locked file stays as it is.`)] : []),
@@ -1490,7 +1523,7 @@ export function implementStep(taskId: string): StepDef {
       // the briefing is built first: one that doesn't fit stops the step before any container starts
       const rt = runtime();
       await ensureEgress(rt, feedHostsFrom(ctx.policy.registryAllowlist));
-      tracePack(ctx.trace, `implementer ${taskId}`, pack);
+      tracePack(ctx.trace, `implementer ${taskId}`, pack, ctx.ledger.putJson(pack));
       await ensureAgentImage(rt, ctx.project.dotnet.sdkImage);
       // a Node app's packages, in the checkout (a .NET one reads the restored packages from the run's folder)
       if (ctx.project.stack === "node") await ensurePackages(ctx, start, wt);

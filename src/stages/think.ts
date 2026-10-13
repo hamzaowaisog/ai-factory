@@ -1,7 +1,7 @@
 // Shared plumbing for thinking steps: build the pack in the locked room, run ApiRunner,
 // store pack + output in the ledger, map runner results to step outcomes.
 import type { z } from "zod";
-import { WEB_ONLY, webOnly } from "../config/platform.js";
+import { API_SIDE_OPENING, apiSide, apiSideNote, WEB_ONLY, webOnly } from "../config/platform.js";
 import { readsRequirements, type ContextPack, type PackClass, type StageName } from "../contracts/index.js";
 import { buildPack, fileNotPasted, FILE_INLINE_MAX, PackOverBudgetError, type ResolvedSection } from "../context/pack.js";
 import { Redactor } from "../context/secrets.js";
@@ -82,7 +82,9 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
     return { ok: false, outcome: { kind: "park", reason: spec.model ? blockedText(spec.stage, model, ctx.policy) : routed.blocked! } };
   }
   // a design run and a new product are web only: a requirement for a phone app is drawn and built as the responsive web app
-  const sections = [...(webOnly(ctx.state?.info?.mode, ctx.project) ? [S.template("platform", WEB_ONLY)] : []), ...spec.sections];
+  // the API run of a product, reading a module of its request that does not say which side this is
+  const sideUnsaid = apiSide(ctx.project) && !!ctx.state?.info?.request && !ctx.state.info.request.includes(API_SIDE_OPENING);
+  const sections = [...(webOnly(ctx.state?.info?.mode, ctx.project) ? [S.template("platform", WEB_ONLY)] : []), ...(sideUnsaid ? [S.template("side", apiSideNote(ctx.project.contract!.file))] : []), ...spec.sections];
   if (ctx.priorFailures.length) {
     sections.push({
       spec: { id: "failures", source: "feedback", trust: "derived", placement: "user" },
@@ -102,7 +104,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
     throw e;
   }
   const packSha = ctx.ledger.putJson(pack);
-  tracePack(ctx.trace, spec.label ?? spec.stage, pack);
+  tracePack(ctx.trace, spec.label ?? spec.stage, pack, packSha);
 
   // the same briefing, model and repository state gives the stored answer (src/estimate/cache.ts): from any run in estimate and
   // design modes (the same requirements give the same estimate), and from this run alone in a build run, where it saves a
@@ -121,7 +123,7 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
     const parsed = hit ? spec.schema.safeParse(hit.output) : undefined;
     if (hit && parsed?.success) {
       ctx.log(`${spec.label ?? spec.stage}: reused the stored answer from run ${hit.runId} (same briefing, model and settings; no model call)`);
-      ctx.trace.event("cache.hit", `${spec.label ?? spec.stage} reused from ${hit.runId}`, { key, fromRun: hit.runId, model });
+      ctx.trace.event("cache.hit", `${spec.label ?? spec.stage} reused from ${hit.runId}`, { key, fromRun: hit.runId, model, who: spec.label ?? spec.stage });
       return { ok: true, output: parsed.data, model, packSha, note: singleFamilyNote, forget: () => cacheForget(key) };
     }
   }
@@ -132,13 +134,16 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
     loadImage: (sha) => ctx.ledger.getArtifact(sha),
     onTurn: (t) => {
       const tools = t.calls.filter((c) => c.name !== "submit_result").map((c) => `${c.name}(${argsSummary(c.input)})`);
+      const answer = t.calls.find((c) => c.name === "submit_result");
       const sha = ctx.trace.blob(JSON.stringify({ model: t.model, turn: t.turn, stop: t.stop, text: t.text, calls: t.calls }, null, 1));
       ctx.trace.event("model.turn",
         `${spec.label ?? spec.stage} turn ${t.turn} ${t.model}  in ${kTok(t.usage.inputTokens + t.usage.cacheRead)} out ${kTok(t.usage.outputTokens)} $${t.costUsd.toFixed(3)} ${(t.ms / 1000).toFixed(1)}s`
           + (tools.length ? `  → ${tools.join(", ")}` : "")
           + (t.calls.some((c) => c.name === "submit_result") ? (t.schemaError ? `  → answer REJECTED: ${t.schemaError.slice(0, 160)}` : t.mended?.length ? `  → answered (mended: ${t.mended.join("; ").slice(0, 160)})` : "  → answered") : "")
           + (t.stop === "max_tokens" ? "  (hit max tokens)" : ""),
-        { model: t.model, turn: t.turn, costUsd: t.costUsd, ms: t.ms, usage: t.usage, turnSha: sha, ...(t.schemaError ? { rejected: true } : {}), ...(t.stop === "max_tokens" ? { maxTokens: true } : {}) });
+        { model: t.model, turn: t.turn, costUsd: t.costUsd, ms: t.ms, usage: t.usage, turnSha: sha, ...(t.schemaError ? { rejected: true } : {}), ...(t.stop === "max_tokens" ? { maxTokens: true } : {}),
+          // for the run page's conversation: who was asked, what it said, what it looked up and the start of its answer
+          who: spec.label ?? spec.stage, ...(t.text.trim() ? { said: short(t.text, SAID_MAX) } : {}), ...(tools.length ? { tools: tools.slice(0, 12) } : {}), ...(answer ? { answer: short(JSON.stringify(answer.input), SAID_MAX) } : {}) });
     },
     // a long answer (a large design takes minutes) says it is arriving, instead of the heartbeat's "no new activity"
     onProgress: (p) => {
@@ -168,11 +173,22 @@ export async function think<T>(ctx: StepContext, spec: ThinkSpec<T>): Promise<Th
 }
 
 /** The briefing's size by section in the run trace, so `factory report <run> --cost` can show what each step was sent. */
-export function tracePack(trace: Trace, who: string, pack: ContextPack): void {
+export function tracePack(trace: Trace, who: string, pack: ContextPack, sha?: string): void {
   const m = pack.manifest;
   const top = [...m.sections].sort((x, y) => y.tokens - x.tokens).slice(0, 3).filter((x) => x.tokens > 0);
   trace.event("pack", `${who}: briefing ${kTok(m.packTokens)} tokens of ${kTok(m.budgetTokens)}${top.length ? ` (largest: ${top.map((x) => `${x.id} ${kTok(x.tokens)}`).join(", ")})` : ""}`,
-    { packTokens: m.packTokens, budgetTokens: m.budgetTokens, sections: m.sections.map((x) => ({ id: x.id, tokens: x.tokens, trimmed: x.trimmed })) });
+    { packTokens: m.packTokens, budgetTokens: m.budgetTokens, sections: m.sections.map((x) => ({ id: x.id, tokens: x.tokens, trimmed: x.trimmed })),
+      // for the run page's conversation: who is asked, the request in its own words, and where the whole briefing is stored
+      who, model: m.model, ask: askOf(pack.user), ...(pack.images.length ? { images: pack.images.length } : {}), ...(sha ? { packSha: sha } : {}) });
+}
+
+/** how much of a request or an answer a trace line carries; the whole text is in the ledger */
+const SAID_MAX = 600;
+const short = (text: string, max: number) => { const t = text.replace(/\s+/g, " ").trim(); return t.length > max ? `${t.slice(0, max - 1)}…` : t; };
+
+/** The request in the briefing's own words: the user message without the material handed over with it (documents, artifacts, pointers, failures). */
+export function askOf(user: string): string {
+  return short(user.replace(/<(artifact|untrusted_document|untrusted_image|pointers|failures|recap)\b[^>]*>[\s\S]*?<\/\1>/g, " "), SAID_MAX);
 }
 
 // ---------- section helpers ----------

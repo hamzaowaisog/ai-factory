@@ -70,7 +70,8 @@ export async function runCodex(job, out, { progress, short, rel }) {
   };
   const timer = setInterval(spend, 3000);
 
-  let answer, usage, failed;
+  // `said why`: the last error Codex reported before it ended; its exit message alone is only what it printed on the way (run 9fcb)
+  let answer, usage, failed, saidWhy;
   try {
     const { events } = await thread.runStreamed(job.task, { outputSchema: job.schema, signal: stop.signal });
     for await (const e of events) {
@@ -88,12 +89,13 @@ export async function runCodex(job, out, { progress, short, rel }) {
       }
       if (e.type === "item.completed" && it?.type === "agent_message") { answer = it.text; said = it.text; }
       if (e.type === "turn.completed") usage = e.usage;
+      if (e.type === "error" && e.message) saidWhy = String(e.message);
       if (e.type === "turn.failed") failed = e.error?.message ?? "the turn failed";
       if (e.type === "item.completed" || e.type === "turn.completed" || e.type === "turn.failed") await spend();
     }
   } catch (e) {
     // a stop made here (budget, turns, no edits) ends the stream with an abort: its status stands
-    if (out.status === "error") failed = String(e?.message ?? e);
+    if (out.status === "error") failed = failed ?? (saidWhy ? `${saidWhy} (${String(e?.message ?? e).split("\n")[0]})` : String(e?.message ?? e));
   } finally {
     clearInterval(timer);
   }

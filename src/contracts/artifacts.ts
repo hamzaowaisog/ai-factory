@@ -576,9 +576,25 @@ export const PlanTask = z.object({
 });
 export type PlanTask = z.infer<typeof PlanTask>;
 
+/** `content` comes last: a model that writes a long file and then one more key loses its place in the JSON (run 9fcb). */
 export const InterfaceStub = z.object({
-  path: z.string(), content: z.string(), reason: z.string(),
+  path: z.string(), reason: z.string().default(""), content: z.string(),
 });
+/**
+ * The stubs as a model that lost its place after a long file gives them: the stub closed early and its reason written as the
+ * next item of the list, a bare text, sometimes followed by the names of keys it meant to write next (run 9fcb: six answers
+ * in a row, each after a 90K contract). A text straight after a stub with no reason is that stub's reason; any other is dropped.
+ */
+export function tidyStubs(v: unknown): unknown {
+  if (!Array.isArray(v)) return v;
+  const out: unknown[] = [];
+  v.forEach((x, i) => {
+    if (typeof x !== "string") { out.push(x); return; }
+    const prev = v[i - 1];
+    if (prev && typeof prev === "object" && !("reason" in prev)) out[out.length - 1] = { ...prev, reason: x.replace(/^reason\b:?\s*/i, "").trim() };
+  });
+  return out;
+}
 /**
  * The stored data a backend plan sets up or changes: its tables, their columns and keys. A relation is a column's `references`
  * (a foreign key); its kind follows from the keys (unique = one to one, a table of two foreign keys = many to many). Approved on
@@ -615,7 +631,7 @@ export const PlanBody = z.object({
   adr: z.string(),
   protectedPathsDeclared: z.array(z.string()),
   newDependencies: z.array(z.object({ name: z.string(), version: z.string(), registry: z.string() })).default([]),
-  stubs: z.array(InterfaceStub).default([]),
+  stubs: z.preprocess(tidyStubs, z.array(InterfaceStub)).default([]),
   /** a backend plan's tables, columns and keys (required where the plan sets up or changes stored data) */
   dataModel: DataModel.optional(),
 });
@@ -645,6 +661,8 @@ export const AcceptanceTests = withHeader({
   tests: z.array(z.object({
     acId: Id, file: z.string(), name: z.string(), testId: z.string(),
     failsOnBase: z.boolean(), failureKind: FailureKind.optional(),
+    /** the approved screen the test opens, when the test author named one */
+    screen: z.string().optional(),
   })),
   characterisation: z.array(z.object({
     target: z.string(), file: z.string(), testId: z.string(), passesOnBase: z.boolean(),

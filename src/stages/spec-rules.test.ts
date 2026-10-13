@@ -272,6 +272,31 @@ describe("acceptance criteria ownership", () => {
     expect([...o.values()].includes("TASK-1")).toBe(false);
   });
 
+  it("a criterion whose test opens a screen is held at the task that builds that screen", async () => {
+    const { acOwners, heldByScreen, takenOver } = await import("./build.js");
+    const spec = { requirements: [{ id: "REQ-2", acceptance: [{ id: "AC-2.3", level: "ui" }, { id: "AC-2.4", level: "ui" }] }, { id: "REQ-3", acceptance: [{ id: "AC-3.1", level: "ui" }] }] };
+    const task = (id: string, reqs: string[], screen: number, dependsOn: string[] = []) => ({ id, reqs, dependsOn, fileScope: [`components/screens/s-${screen}/container.tsx`] });
+    // run 9fcb: REQ-2 ends at the reset screens, but its access-denial test opens the orders screen a much later task builds
+    const plan = { tasks: [task("TASK-4", ["REQ-2"], 3), task("TASK-5", [], 4, ["TASK-4"]), task("TASK-42", ["REQ-3"], 41)] };
+    const design = { screens: [3, 4, 41].map((n) => ({ id: `S-${n}`, file: `components/screens/s-${n}/container.tsx` })) };
+    const tests = [{ acId: "AC-2.3", screen: "S-3" }, { acId: "AC-2.4", screen: "S-41" }, { acId: "AC-3.1" }];
+    const held = heldByScreen(spec, plan, design, tests);
+    expect(Object.fromEntries(acOwners(plan, held))).toEqual({ "AC-2.3": "TASK-4", "AC-2.4": "TASK-42", "AC-3.1": "TASK-42" });
+    // the layered hand-over no longer carries it to the reset task, and the orders task gets the requirement without the reset task's files
+    expect(acOwners(plan, held, true).get("AC-2.4")).toBe("TASK-42");
+    expect(acOwners(plan, held, true).get("AC-2.3")).toBe("TASK-5");
+    expect(takenOver(plan, held, "TASK-42")).toEqual({ reqs: ["REQ-2"], from: [], fileScope: [] });
+    // nothing named, an unknown screen, a screen no task builds, a skipped design: as before
+    const before = Object.fromEntries(acOwners(plan, spec));
+    expect(before["AC-2.4"]).toBe("TASK-4");
+    for (const t of [[{ acId: "AC-2.4" }], [{ acId: "AC-2.4", screen: "S-99" }]]) expect(Object.fromEntries(acOwners(plan, heldByScreen(spec, plan, design, t)))).toEqual(before);
+    expect(heldByScreen(spec, plan, { screens: [{ id: "S-41", file: "app/other/page.tsx" }] }, tests)).toBe(spec);
+    expect(heldByScreen(spec, plan, { ...design, skipped: true }, tests)).toBe(spec);
+    expect(heldByScreen(spec, plan, undefined, tests)).toBe(spec);
+    // two tests of one criterion on screens of different tasks: the last in plan order
+    expect(acOwners(plan, heldByScreen(spec, plan, design, [{ acId: "AC-2.4", screen: "S-41" }, { acId: "AC-2.4", screen: "S-3" }])).get("AC-2.4")).toBe("TASK-42");
+  });
+
   it("a plan built in layers: a task whose own API tests fail twice shows it, and those criteria wait for the last task built on it", async () => {
     const { acOwners, failsForLayers, planShowsLayers, takenOver } = await import("./build.js");
     const req = (id: string, level: "api" | "unit") => ({ id, acceptance: [{ id: id.replace("REQ-", "AC-") + ".1", level }] });

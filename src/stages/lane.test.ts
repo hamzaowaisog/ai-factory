@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { checkStartBudget, stepBudgetUsd } from "../ledger/caps.js";
 import type { RunState } from "../ledger/state.js";
 import { timeSplit } from "../report.js";
-import { complexityOf, LANE, lightBuild, lightSpec, specLane, testWriterTurns } from "./lane.js";
+import { complexityOf, LANE, lightBuild, lightSpec, specLane, testWriterRoom, testWriterTurns } from "./lane.js";
 import { downgradeUi } from "./specpipe.js";
 import { authorIntro, testsScreens } from "./stack-text.js";
 
@@ -27,6 +27,12 @@ describe("light lane", () => {
     expect(testWriterTurns(true, ["job"])).toBe(40);
     expect(testWriterTurns(false, ["unit"])).toBe(60);
     expect(testWriterTurns(false, ["api"])).toBe(60);
+    // a long list of criteria gets more of everything, up to three times (run 9fcb: 183 criteria cut off at 60 turns)
+    expect(testWriterRoom(5)).toBe(1);
+    expect(testWriterRoom(40)).toBe(1);
+    expect(testWriterRoom(160)).toBe(2);
+    expect(testWriterRoom(183)).toBeCloseTo(2.19, 2);
+    expect(testWriterRoom(2000)).toBe(3);
   });
 
   it("the full lane keeps what every run had before", () => {

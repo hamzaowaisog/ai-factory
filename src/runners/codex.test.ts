@@ -8,6 +8,7 @@ import { z } from "zod";
 import type { ContainerRuntime, ContainerSpec } from "../verify/runtime.js";
 import { ClaudeAgentRunner, NO_CREDIT_TEXT, type AgentProgress } from "./claude-agent.js";
 import { codingRunner, CodexRunner, fileRulesText, toStrictJsonSchema, withoutNulls } from "./codex.js";
+import { refusedStatus } from "./types.js";
 import { AGENT_NET, issueProxyToken, OPENAI_BASE_URL, PROXY_SPEND_URL, proxyDir, writeProxyKey } from "./netinfra.js";
 import { costUsd } from "./pricing.js";
 
@@ -71,6 +72,22 @@ describe("the Codex runner's answer shape", () => {
     expect(s.properties.probes!.anyOf![0]!.items).toMatchObject({ required: ["path", "body"], additionalProperties: false });
     expect(JSON.stringify(s)).not.toMatch(/"default"|\$schema/);
     expect(() => toStrictJsonSchema(z.object({ byName: z.record(z.string(), z.string()) }))).toThrow(/free-form map/);
+  });
+
+  it("an API refusal given only as its answer is read as its status; other errors are not (run 9fcb)", () => {
+    expect(refusedStatus('{ "error": { "message": "Invalid schema for response_format", "type": "invalid_request_error", "code": "invalid_json_schema" } }')).toBe(400);
+    expect(refusedStatus('{"error":{"type":"authentication_error"}}')).toBe(401);
+    expect(refusedStatus("Codex Exec exited with code 1: Reading prompt from stdin...")).toBeUndefined();
+    expect(refusedStatus('{"error":{"type":"server_error"}}')).toBeUndefined();
+    expect(refusedStatus(undefined)).toBeUndefined();
+  });
+
+  it("a text check keeps its pattern and loses the format name OpenAI refuses with a 400 (run 9fcb)", () => {
+    const s = toStrictJsonSchema(z.object({ path: z.string().startsWith("/"), at: z.string().datetime(), probes: z.array(z.object({ path: z.string().startsWith("/") })).default([]) }));
+    const text = JSON.stringify(s);
+    expect(text).not.toContain("starts_with");
+    expect((s.properties as Record<string, { pattern?: string; format?: string }>).path).toMatchObject({ type: "string", pattern: expect.stringContaining("^") });
+    expect((s.properties as Record<string, { format?: string }>).at!.format).toBe("date-time");
   });
 
   it("reads a null back as a field left out", () => {
@@ -152,6 +169,11 @@ describe("CodexRunner (fake runtime)", () => {
     expect((await run(fail("unexpected status 429 Too Many Requests", { apiErrorStatus: 429 }))).status).toBe("rate-limited");
     expect((await run(fail("context_length_exceeded: the input exceeds the context window"))).status).toBe("timeout");
     expect((await run({ ...fail("API error 404: model not found", { apiErrorStatus: 404 }), status: "config-error" })).status).toBe("config-error");
+    // the API's answer with no status line, before any work was paid for: stops with the reason instead of using up retries (run 9fcb)
+    const refusal = '{ "error": { "message": "Invalid schema for response_format \'codex_output_schema\'", "type": "invalid_request_error", "code": "invalid_json_schema" } }';
+    expect(await run(fail(refusal))).toMatchObject({ status: "config-error", error: expect.stringContaining("Invalid schema") });
+    // the same text after paid work is an ordinary failure: its work is kept for the retry
+    expect((await run(fail(refusal, { costUsd: 1.2, turns: 30, usage: { input_tokens: 1000, output_tokens: 100 } }))).status).toBe("error");
     expect((await run(ok({ done: "yes" }))).status).toBe("bad-output");
   });
 

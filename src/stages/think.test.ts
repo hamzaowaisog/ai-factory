@@ -36,6 +36,31 @@ async function ctxFor(): Promise<StepContext> {
   };
 }
 
+describe("the API run of a product, read module by module", () => {
+  it("tells a module that does not say which side this is, and leaves alone the one that does (run 1de4)", async () => {
+    const ctx = await ctxFor();
+    const api = { ...ctx, project: ProjectConfig.parse({ project: "demo-api", repo: "/x", stack: "dotnet", contract: { file: "contracts/openapi.yaml", built: "openapi.json" } }) };
+    const systems: string[] = [];
+    setProviderFactory(() => ({
+      start(_m, _e, system) {
+        systems.push(system);
+        return {
+          async next() { return { calls: [{ id: "1", name: "submit_result", input: { seen: 0 } }], text: "", stop: "tool_use", usage: { inputTokens: 10, outputTokens: 5, cacheRead: 0, cacheWrite: 0 } }; },
+          toolResults() {}, say() {},
+        };
+      },
+    }));
+    const ask = (c: StepContext, request: string) => think({ ...c, state: { ...c.state, info: { ...c.state.info, request } } }, { stage: "intake", route: "intake", cls: "read-small", tools: [], schema: Out, sections: [S.template("tpl", "Classify."), S.task("Go.")] });
+    await ask(api, "Stock is held in three warehouses.");
+    await ask(api, "Recalls.\n\nThis run builds the API side of the product above, in an existing .NET API project.");
+    await ask(ctx, "Stock is held in three warehouses.");
+    expect(systems[0]).toMatch(/PRODUCT SIDE\. This run builds the API side[\s\S]*contracts\/openapi\.yaml[\s\S]*no screen is built here/);
+    expect(systems[1]).not.toContain("PRODUCT SIDE");
+    // any other .NET project is not a product's API side
+    expect(systems[2]).not.toContain("PRODUCT SIDE");
+  });
+});
+
 describe("think with images", () => {
   it("sends the stored image bytes with the briefing, in the order of their markers", async () => {
     const ctx = await ctxFor();

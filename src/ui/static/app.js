@@ -69,6 +69,7 @@ const ICONS = {
   user: [["circle", { cx: 12, cy: 8, r: 4 }], ["path", { d: "M4 21a8 8 0 0 1 16 0" }]],
   code: [["path", { d: "M8.5 7l-5 5 5 5M15.5 7l5 5-5 5" }]],
   gauge: [["path", { d: "M3.5 16a8.5 8.5 0 1 1 17 0" }], ["path", { d: "M12 16l4-5" }]],
+  chat: [["path", { d: "M4 5.5h16v10.5H10l-4.5 3.5V16H4z" }]],
 };
 
 function icon(name, cls = "i") {
@@ -684,7 +685,7 @@ const PHASES = ["Spec", "Build", "Ship"];
 const NODE_ICON = { completed: "check", waiting: "terminal", decided: "clock", parked: "alert", failed: "x", interrupted: "pause" };
 const retriesOf = (row) => row.tries.filter((t) => t.outcome === "failed" && row.tries.some((u) => u.attempt > t.attempt)).length;
 
-const runState = { id: "", seenGates: new Set(), cost: 0, share: 0, drawer: "", last: undefined, drafts: new Map() };
+const runState = { id: "", seenGates: new Set(), cost: 0, share: 0, drawer: "", last: undefined, drafts: new Map(), talkOpen: new Set() };
 
 /** What a person has typed or picked on an open card, kept across the run page's re-renders (by run and card hash). */
 function draftOf(r) {
@@ -1192,6 +1193,61 @@ function tracePanel(r) {
   return h("section", { class: "panel" }, h("div", { class: "panel-head" }, h("h2", {}, icon("activity"), "Latest activity"), h("a", { class: "small", href: `#/runs/${encodeURIComponent(r.runId)}/log` }, "Full log")), box);
 }
 
+/** Whole briefings and model turns already read from the server, by their address in the ledger. */
+const talkFull = new Map();
+
+/** A button that opens the whole text of one side of an exchange under it; what is open stays open when the page redraws. */
+function talkMore(r, sha, label) {
+  if (!sha) return null;
+  const box = h("pre", { class: "talk-full", hidden: true, tabindex: "0" });
+  const btn = h("button", { class: "btn small ghost", type: "button", "aria-expanded": "false" }, label);
+  const show = async () => {
+    box.hidden = false;
+    btn.textContent = "Hide";
+    btn.setAttribute("aria-expanded", "true");
+    if (!talkFull.has(sha)) {
+      box.textContent = "Loading…";
+      try { talkFull.set(sha, (await api(`/api/runs/${encodeURIComponent(r.runId)}/talk/${sha}`)).text); } catch (err) { box.textContent = err.message; return; }
+    }
+    box.textContent = talkFull.get(sha);
+  };
+  btn.addEventListener("click", () => {
+    if (box.hidden) { runState.talkOpen.add(sha); show(); return; }
+    runState.talkOpen.delete(sha);
+    box.hidden = true;
+    btn.textContent = label;
+    btn.setAttribute("aria-expanded", "false");
+  });
+  if (runState.talkOpen.has(sha)) show();
+  return [h("div", { class: "talk-more" }, btn), box];
+}
+
+const TALK_KIND = { tools: "looked things up", answer: "its answer", rejected: "answer sent back", reused: "stored answer", ended: "ended" };
+
+/** What the factory asked each model and what the model said back, as a conversation, oldest first. */
+function talkPanel(r) {
+  const talk = r.talk ?? { exchanges: [], earlier: 0 };
+  const time = (ts) => new Date(ts).toTimeString().slice(0, 8);
+  const said = (cls, name, ts, kids) => h("div", { class: `talk-msg ${cls}` }, h("div", { class: "talk-who" }, h("strong", {}, name), h("span", { class: "t" }, time(ts))), kids);
+  const box = h("div", { class: "talk" },
+    talk.earlier ? h("p", { class: "small muted" }, `${talk.earlier} earlier exchange${talk.earlier === 1 ? "" : "s"} not shown.`) : null,
+    talk.exchanges.length ? talk.exchanges.map((x) => h("div", { class: "talk-x" },
+      h("div", { class: "talk-hd" }, h("span", { class: "w" }, x.where), h("span", {}, x.who), x.model ? h("code", {}, x.model) : null),
+      x.sent
+        ? said("out", "Factory", x.ts, [h("p", {}, x.sent.summary), x.sent.ask ? h("p", { class: "ask" }, x.sent.ask) : null, talkMore(r, x.sent.sha, "Read the whole briefing")])
+        : said("out", "Factory", x.ts, h("p", { class: "muted" }, "The briefing for this call was not recorded.")),
+      x.earlier ? h("p", { class: "small muted talk-gap" }, `${x.earlier} earlier repl${x.earlier === 1 ? "y" : "ies"} not shown.`) : null,
+      x.replies.map((p, i) => said(`in k-${p.kind}`, "Model", p.ts, [
+        TALK_KIND[p.kind] ? h("span", { class: "talk-kind" }, TALK_KIND[p.kind]) : null,
+        h("p", {}, p.text),
+        // one button for a turn, under the last thing it did
+        p.sha && x.replies[i + 1]?.sha !== p.sha ? talkMore(r, p.sha, "Read the whole turn") : null,
+      ])),
+      x.waiting ? h("p", { class: "small muted talk-gap", role: "status" }, "Waiting for the model…") : null,
+    )) : h("span", { class: "muted" }, "Nothing has been sent to a model yet."));
+  return h("section", { class: "panel" }, h("div", { class: "panel-head" }, h("h2", {}, icon("chat"), "Factory and model"), h("span", { class: "small muted" }, "what was asked, what came back")), box);
+}
+
 // the side drawer for one step
 const scrim = h("div", { class: "scrim", onclick: () => closeDrawer() });
 const drawer = h("aside", { class: "drawer", "aria-hidden": "true" });
@@ -1240,7 +1296,7 @@ function paintDrawer() {
 }
 
 function runScreen(id) {
-  if (runState.id !== id) Object.assign(runState, { id, seenGates: new Set(), cost: 0, share: 0, drawer: "", last: undefined, drafts: new Map(), pipeX: undefined });
+  if (runState.id !== id) Object.assign(runState, { id, seenGates: new Set(), cost: 0, share: 0, drawer: "", last: undefined, drafts: new Map(), pipeX: undefined, talkOpen: new Set() });
   skeleton("grid");
   let lastJson = "";
   poll(2000, async (first) => {
@@ -1255,18 +1311,30 @@ function runScreen(id) {
     const caret = focused && "selectionStart" in focused ? [focused.selectionStart, focused.selectionEnd] : undefined;
     const oldTrace = view.querySelector(".trace");
     const atBottom = !oldTrace || oldTrace.scrollTop + oldTrace.clientHeight >= oldTrace.scrollHeight - 8;
+    // the conversation follows its newest message unless a person has scrolled back in it
+    const oldTalk = view.querySelector(".talk");
+    const talkTop = oldTalk && oldTalk.scrollTop + oldTalk.clientHeight < oldTalk.scrollHeight - 8 ? oldTalk.scrollTop : undefined;
     const right = [];
     if (r.card) right.push(cardPanel(r));
     if (r.status === "parked" || r.status === "interrupted") right.push(parkedPanel(r, r.status === "interrupted"));
     if (r.delivered) right.push(deliveredPanel(r));
-    right.push(tracePanel(r), terminalPanel(r));
-    mount([...runHeader(r, "run"), h("div", { class: "stack" }, pipeline(r), h("div", { class: "grid-2" },
+    right.push(terminalPanel(r));
+    const talkRow = h("div", { class: "grid-2 even talk-row" }, talkPanel(r), tracePanel(r));
+    const main = h("div", { class: "grid-2" },
       h("div", { class: "stack" }, costPanel(r), modelsPanel(r), gatesPanel(r)),
-      h("div", { class: "stack" }, right)))], first);
+      h("div", { class: "stack" }, right));
+    // a run waiting on a person keeps its card or its stop right under the pipeline
+    const waitsOnPerson = !!r.card || r.status === "parked" || r.status === "interrupted";
+    mount([...runHeader(r, "run"), h("div", { class: "stack" }, pipeline(r), waitsOnPerson ? [main, talkRow] : [talkRow, main])], first);
     view.querySelectorAll("details").forEach((d, i) => { if (open[i]) d.open = true; });
     if (focused) { const again = document.getElementById(focused.id); if (again) { again.focus({ preventScroll: true }); if (caret) try { again.setSelectionRange(...caret); } catch { /* not a text field */ } } }
     const t = view.querySelector(".trace");
     if (t && atBottom) t.scrollTop = t.scrollHeight;
+    const talk = view.querySelector(".talk");
+    // again after layout: the messages' height is not final while the page is still drawing
+    const place = () => { if (talk?.isConnected) talk.scrollTop = talkTop ?? talk.scrollHeight; };
+    place();
+    requestAnimationFrame(place);
     if (runState.drawer) paintDrawer();
     placePipeline();
   });

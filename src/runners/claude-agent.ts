@@ -20,7 +20,7 @@ import type { Usage } from "../contracts/index.js";
 import { supportsEffort } from "./api.js";
 import { AGENT_IMAGE, AGENT_NET, API_BASE_URL, issueProxyToken, revokeProxyToken } from "./netinfra.js";
 import { costUsd, priceOf } from "./pricing.js";
-import { configErrorText, emptyUsage, type Job, type Result, type Runner } from "./types.js";
+import { configErrorText, emptyUsage, refusedStatus, type Job, type Result, type Runner } from "./types.js";
 
 export interface AgentJobExtras {
   runId: string;
@@ -314,6 +314,9 @@ export class ClaudeAgentRunner implements Runner {
         if (SESSION_FULL.test(out.error ?? "")) return { status: "timeout", error: "The session filled the model's context window before it finished", usage: u, sessionId: out.sessionId };
         if (NO_CREDIT.test(out.error ?? "")) return { status: "config-error", error: NO_CREDIT_TEXT, usage: u, sessionId: out.sessionId };
         if (PROXY_CAP.test(out.error ?? "")) return { status: "over-budget", error: "The key proxy stopped this step: its calls cost more than the step's budget allows", usage: u, sessionId: out.sessionId };
+        // refused before any work was paid for, with the API's answer as the only sign: a retry would be refused the same way
+        const refused = out.status === "error" && !out.apiErrorStatus && !u.estUsd ? refusedStatus(out.error) : undefined;
+        if (refused) { out.status = "config-error"; out.apiErrorStatus = refused; }
         if (out.status === "config-error") {
           return { status: "config-error", error: out.apiErrorStatus === 403
             ? "The coding agent's API calls were refused by the factory's key proxy or the API (403). Run factory doctor."

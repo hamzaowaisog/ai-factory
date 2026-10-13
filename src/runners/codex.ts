@@ -28,11 +28,16 @@ export function toStrictJsonSchema(schema: z.ZodType): Json {
   return strict(rest) as Json;
 }
 
+/** The string formats OpenAI's strict output knows. Zod names its own for a text check ("starts_with"), beside the pattern that says the same. */
+const STRICT_FORMATS = new Set(["date-time", "time", "date", "duration", "email", "hostname", "ipv4", "ipv6", "uuid"]);
+
 function strict(node: unknown): unknown {
   if (Array.isArray(node)) return node.map(strict);
   if (!node || typeof node !== "object") return node;
   const { default: _default, ...n } = node as Json;
   void _default;
+  // any other format is refused with a 400 before the model reads a word (run 9fcb: the test writer's probes[].path)
+  if (typeof n.format === "string" && !STRICT_FORMATS.has(n.format)) delete n.format;
   const out: Json = {};
   for (const [k, v] of Object.entries(n)) out[k] = k === "properties" ? Object.fromEntries(Object.entries(v as Json).map(([name, s]) => [name, strict(s)])) : k === "required" || k === "enum" || k === "const" ? v : strict(v);
   if (n.additionalProperties && typeof n.additionalProperties === "object") throw new Error("A coding step's answer cannot hold a free-form map: OpenAI's strict output has no shape for it");

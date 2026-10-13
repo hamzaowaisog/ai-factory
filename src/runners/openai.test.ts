@@ -13,7 +13,7 @@ const pack: ContextPack = {
 let server: http.Server | undefined;
 afterEach(() => server?.close());
 
-function fakeOpenAI(reply: (body: Record<string, unknown>, n: number) => { status?: number; json: unknown }) {
+function fakeOpenAI(reply: (body: Record<string, unknown>, n: number) => { status?: number; json: unknown; quietMs?: number }) {
   const seen: { path: string; body: Record<string, unknown> }[] = [];
   server = http.createServer((req, res) => {
     let raw = "";
@@ -21,6 +21,16 @@ function fakeOpenAI(reply: (body: Record<string, unknown>, n: number) => { statu
       const body = JSON.parse(raw || "{}") as Record<string, unknown>;
       seen.push({ path: req.url ?? "", body });
       const r = reply(body, seen.length);
+      // a streamed Responses call gets its answer as server-sent events, the way OpenAI sends it
+      if (body.stream && (r.status ?? 200) === 200) {
+        const done = r.json as { status?: string };
+        const events = [{ type: "response.created", response: { ...done, status: "in_progress", output: [] } }, { type: done.status === "failed" ? "response.failed" : "response.completed", response: done }];
+        const [first, last] = events.map((e, i) => `event: ${e.type}\ndata: ${JSON.stringify({ ...e, sequence_number: i })}\n\n`);
+        res.writeHead(200, { "content-type": "text/event-stream" }).write(first);
+        // the model thinking: the stream is open and silent
+        setTimeout(() => res.end(last), r.quietMs ?? 0);
+        return;
+      }
       res.writeHead(r.status ?? 200, { "content-type": "application/json" }).end(JSON.stringify(r.json));
     });
   });
@@ -34,7 +44,7 @@ const resp = (output: unknown[]) => ({ id: "resp_1", object: "response", status:
 describe("OpenAI via the Responses API", () => {
   it("sends tools with reasoning effort, stores nothing, and returns tool results next turn", async () => {
     const { url, seen } = await fakeOpenAI((_b, n) => n === 1
-      ? { json: resp([{ type: "reasoning", id: "rs_1", summary: [], encrypted_content: "enc" }, { type: "function_call", call_id: "call_1", name: "read_file", arguments: '{"path":"a.cs"}' }]) }
+      ? { json: resp([{ type: "reasoning", id: "rs_1", summary: [], encrypted_content: "enc" }, { type: "message", id: "msg_1", role: "assistant", status: "completed", content: [{ type: "output_text", text: "Reading it.", annotations: [] }] }, { type: "function_call", call_id: "call_1", name: "read_file", arguments: '{"path":"a.cs"}' }]) }
       : { json: resp([{ type: "function_call", call_id: "call_2", name: "submit_result", arguments: '{"ok":true}' }]) });
     const tools = { call: (name: string, input: Record<string, unknown>) => `${name}:${input.path}` };
     const r = await new ApiRunner({ provider: () => new OpenAIProvider({ apiKey: "sk-test", baseURL: url, api: "responses" }), tools: tools as never })
@@ -42,10 +52,14 @@ describe("OpenAI via the Responses API", () => {
     expect(r.status).toBe("ok");
     expect(seen.map((x) => x.path)).toEqual(["/v1/responses", "/v1/responses"]);
     const first = seen[0]!.body;
+    expect(first.stream).toBe(true); // an unstreamed turn over 5 minutes is dropped by Node's fetch
     expect(first).toMatchObject({ model: "gpt-5.5", instructions: expect.stringContaining("You are a check."), reasoning: { effort: "high" }, store: false, tool_choice: "auto" });
     expect((first.tools as { name: string }[]).map((t) => t.name)).toEqual(["read_file", "submit_result"]);
     const second = seen[1]!.body.input as { type?: string; call_id?: string; output?: string }[];
     expect(second.some((i) => i.type === "reasoning")).toBe(true); // reasoning goes back as input
+    // the SDK's stream helper adds its own fields to what it hands back; OpenAI answers 400 to them as input (run 9fcb)
+    expect(JSON.stringify(second)).not.toMatch(/"parsed(_arguments)?"/);
+    expect(second.find((i) => i.type === "message")).toMatchObject({ content: [{ type: "output_text", text: "Reading it." }] });
     // the file's contents go back wrapped as untrusted, the same on every provider
     expect(second.find((i) => i.type === "function_call_output")).toMatchObject({
       call_id: "call_1",
@@ -60,6 +74,27 @@ describe("OpenAI via the Responses API", () => {
       .run({ step: "critic", model: "gpt-5.5", effort: "high", pack: { ...pack, tools: [] }, schema: z.object({ ok: z.literal(true) }), limits: { maxTurns: 2, maxUsd: 1, timeoutSec: 30 } });
     expect(r.status).toBe("config-error");
     expect(r.error).toMatch(/HTTP 400/);
+  });
+
+  it("a streamed turn that fails on OpenAI's side waits like an outage", async () => {
+    const { url } = await fakeOpenAI(() => ({ json: { ...resp([]), status: "failed", error: { code: "server_error", message: "The server had an error" } } }));
+    const r = await new ApiRunner({ provider: () => new OpenAIProvider({ apiKey: "sk-test", baseURL: url, api: "responses" }) })
+      .run({ step: "critic", model: "gpt-5.5", effort: "high", pack: { ...pack, tools: [] }, schema: z.object({ ok: z.literal(true) }), limits: { maxTurns: 2, maxUsd: 1, timeoutSec: 30 } });
+    expect(r.status).toBe("rate-limited");
+    expect(r.error).toMatch(/The server had an error/);
+  });
+
+  it("a stream that goes silent is waited for up to the client's own limit, then dropped like an outage", async () => {
+    const answer = resp([{ type: "function_call", call_id: "call_1", name: "submit_result", arguments: '{"ok":true}' }]);
+    const run = async (quietMs: number) => {
+      const { url } = await fakeOpenAI(() => ({ json: answer, quietMs: 1500 }));
+      const r = await new ApiRunner({ provider: () => new OpenAIProvider({ apiKey: "sk-test", baseURL: url, api: "responses", quietMs }) })
+        .run({ step: "critic", model: "gpt-5.5", effort: "high", pack: { ...pack, tools: [] }, schema: z.object({ ok: z.literal(true) }), limits: { maxTurns: 2, maxUsd: 1, timeoutSec: 30 } });
+      server?.close();
+      return r.status;
+    };
+    expect(await run(10_000)).toBe("ok");
+    expect(await run(300)).toBe("rate-limited");
   });
 
   it("local servers keep the chat-completions API", async () => {
